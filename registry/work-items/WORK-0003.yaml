@@ -1,0 +1,97 @@
+id: WORK-0003
+title: "Configure repository protection and merge policy"
+status: PLANNED
+phase: PHASE-0
+lot: LOT-0
+sublot: SUBLOT-0.3
+created_at: "2026-09-10"
+updated_at: "2026-09-10"
+
+purpose: |
+  Configure GitHub repository-level protections so process rules are enforced at the hosting layer as well as documented in the repository.
+
+scope:
+  in:
+    - decide and configure repository visibility
+    - protect main branch
+    - require pull requests
+    - require selected status checks once available
+    - prevent force-push/deletion of main where supported
+    - define merge strategy
+    - enable applicable secret/dependency/code scanning features
+    - document actual repository settings
+  out:
+    - product implementation
+    - organization-wide GitHub administration unrelated to MONDE
+
+acceptance_criteria:
+  - id: AC-1
+    description: "Repository visibility is intentionally configured for MONDE's current sensitivity."
+    status: NOT_STARTED
+  - id: AC-2
+    description: "Main branch merge/protection policy matches canonical development rules."
+    status: NOT_STARTED
+  - id: AC-3
+    description: "Available security and status-check protections are configured and documented."
+    status: NOT_STARTED
+
+read_before:
+  - docs/09_GOVERNANCE/development-rules.md
+  - docs/10_ROADMAP/development-process.md
+  - docs/13_QUALITY/project-scorecard.md
+  - registry/work-items/WORK-0002.yaml
+
+depends_on: [WORK-0001]
+blocks: []
+reuses:
+  - "GitHub repository settings"
+  - "PR workflow"
+affected_capabilities: []
+affected_engines: []
+affected_schemas: []
+affected_docs:
+  - PROJECT_STATE.md
+contracts:
+  - "main branch protection policy"
+adrs: []
+
+implementation_plan:
+  tasks: []
+  planned_runs: []
+
+required_tests:
+  unit: []
+  integration: []
+  contract: []
+  e2e: ["attempt representative PR workflow against actual repository settings"]
+  regression: []
+  security: ["verify force-push/deletion/review/status-check behavior where configured"]
+  performance: []
+  real_system: ["actual GitHub repository settings"]
+
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: NOT_APPLICABLE, branch: NOT_APPLICABLE}
+  known_gaps: []
+
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: NONE
+  performance: NONE
+  operational: MEDIUM
+
+rollback:
+  strategy: "Revert repository rules/settings through GitHub administration while preserving documentation of the change."
+
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion:
+  definition_of_done_checked: false
+  review_complete: false
+  docs_updated: false
+  registries_updated: false
+  project_state_updated: false
