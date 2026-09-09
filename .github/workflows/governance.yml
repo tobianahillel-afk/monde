@@ -35,9 +35,10 @@ jobs:
         with:
           python-version: '3.13'
           cache: pip
+          cache-dependency-path: requirements/governance-ci.txt
 
-      - name: Install governance tooling
-        run: python -m pip install -e '.[test]'
+      - name: Install locked governance toolchain
+        run: python -m pip install -r requirements/governance-ci.txt
 
       - name: Unit and branch coverage
         run: python -m pytest --cov=tools.governance --cov-branch --cov-report=term-missing --cov-fail-under=100
