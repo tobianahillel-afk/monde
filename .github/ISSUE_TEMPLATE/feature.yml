@@ -1,12 +1,12 @@
 name: MONDE feature / work proposal
-description: Propose a capability, engine, data source, architecture or implementation work item.
+description: Propose a capability, engine, data source, architecture, specification or implementation work item.
 title: "[PROPOSAL] "
 labels: []
 body:
   - type: markdown
     attributes:
       value: |
-        Do not start implementation from this issue alone. Accepted implementation work must be represented by a `registry/work-items/WORK-*.yaml` entry.
+        Do not start implementation from this issue alone. Accepted work must be represented by a `registry/work-items/WORK-*.yaml` entry and pass the applicable Definition of Ready / specification-quality gates.
   - type: textarea
     id: problem
     attributes:
@@ -24,15 +24,36 @@ body:
   - type: textarea
     id: existing
     attributes:
-      label: Existing capabilities/components to reuse
-      description: List CAP IDs, engines, schemas or similar work already searched.
+      label: Existing capabilities / requirements / components searched
+      description: List CAP/REQ/WORK IDs, synonyms, engines, schemas or similar work already searched so this proposal does not duplicate an existing responsibility.
     validations:
       required: true
   - type: textarea
     id: dependencies
     attributes:
       label: Dependencies / affected areas
-      description: Data, engines, schemas, experiences, permissions, models or external systems involved.
+      description: Upstream/downstream data, engines, schemas, experiences, permissions, models, external systems or contracts involved.
+    validations:
+      required: true
+  - type: textarea
+    id: assumptions
+    attributes:
+      label: Material assumptions / open questions
+      description: Which uncertain premises must be validated? Mention likely ASM records if already known.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Material risks / failure modes
+      description: Security, epistemic, data, performance, operational, cost, privacy/policy or other risks that could invalidate the proposal.
+    validations:
+      required: true
+  - type: textarea
+    id: research
+    attributes:
+      label: External research needed
+      description: What facts, standards, datasets, APIs, current versions, benchmarks or domain evidence must be verified before specification/implementation?
     validations:
       required: true
   - type: textarea
@@ -42,24 +63,37 @@ body:
       description: What must be demonstrably true for this work to be complete?
     validations:
       required: true
+  - type: textarea
+    id: nfr
+    attributes:
+      label: Non-functional expectations
+      description: Relevant latency, throughput, freshness, reliability, security, observability, resource/cost, accessibility or recovery expectations.
+    validations:
+      required: true
   - type: dropdown
     id: risk
     attributes:
-      label: Highest apparent risk class
+      label: Highest apparent risk / assurance class
       options:
-        - Standard
-        - Data / provenance
-        - Security
-        - Performance / scale
-        - High-risk capability
-        - Unknown / needs review
+        - A1 - Local / low risk
+        - A2 - Standard product/engineering
+        - A3 - Critical
+        - A4 - Constitutional / high-risk / systemic
+        - Unknown / needs discovery
     validations:
       required: true
   - type: textarea
     id: validation
     attributes:
-      label: Real-world validation needed
-      description: Browser, API, database, model, dataset, external service or environment that must be tested for real.
+      label: Verification / real-world validation needed
+      description: Tests, backtests, browser/API/database/model/dataset/external service validation, security review, performance benchmark or experiment required.
+    validations:
+      required: true
+  - type: textarea
+    id: review
+    attributes:
+      label: Review perspectives likely required
+      description: Product, Architecture, Data/Epistemic, Domain Science, V&V, Security, Privacy/Policy, Performance/SRE, Model Science, Red Team, Documentation/Traceability, Operations.
     validations:
       required: true
   - type: checkboxes
@@ -67,7 +101,11 @@ body:
     attributes:
       label: Proposal checks
       options:
-        - label: I searched for an existing capability/work item before proposing a duplicate.
+        - label: I searched for an existing capability/requirement/work item before proposing a duplicate.
           required: true
-        - label: I described what should be achieved rather than silently expanding another work item's scope.
+        - label: I described the desired outcome rather than silently expanding another work item's scope.
+          required: true
+        - label: I separated known facts from assumptions/open questions.
+          required: true
+        - label: I considered how the proposal will be verified rather than leaving validation until after implementation.
           required: true
