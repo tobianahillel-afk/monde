@@ -1,0 +1,59 @@
+id: TEST-0003
+name: "Governance validator real-repository GitHub Actions execution"
+status: PASS
+type: REAL_SYSTEM_E2E
+
+protects:
+  requirements: []
+  capabilities: []
+  contracts:
+    - "repository governance validation"
+    - "CI quality gate"
+  risks:
+    - "validator passes fixtures but fails on the actual MONDE repository"
+    - "GitHub workflow configuration does not execute successfully"
+  invariants:
+    - "actual repository state satisfies implemented deterministic governance checks"
+
+location:
+  test_path: .github/workflows/governance.yml
+  suite: "Governance / validate"
+
+environment:
+  kind: REAL_GITHUB_ACTIONS
+  real_dependencies:
+    - "GitHub Actions"
+    - "tobianahillel-afk/monde PR #2"
+  mocked_dependencies: []
+
+cases:
+  happy_path:
+    - "checkout actual PR head"
+    - "install package/test dependencies"
+    - "execute full pytest coverage suite"
+    - "execute validator against repository root"
+  edge_cases:
+    - "workflow runs with repository contents read-only permission"
+  failure_modes:
+    - "test/coverage failure blocks job"
+    - "governance validation error returns non-zero and blocks job"
+  adversarial_cases:
+    - "workflow does not require repository secrets"
+    - "validator parses repository content as data and does not eval it"
+
+execution:
+  command_or_workflow: "GitHub Actions workflow Governance, run 34418172466"
+  last_run_at: "2026-09-10"
+  commit_sha: "3b4cf905d25a90ccba4613210b320308140d64d4"
+  result: PASS
+  evidence:
+    - "workflow run 34418172466 status=completed conclusion=success"
+    - "PR #2"
+
+coverage:
+  line_contribution: 100
+  branch_contribution: 100
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"
