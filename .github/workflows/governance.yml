@@ -1,0 +1,44 @@
+name: Governance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+      - 'fix/**'
+      - 'docs/**'
+      - 'refactor/**'
+      - 'security/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: governance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Governance / validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+
+      - name: Install governance tooling
+        run: python -m pip install --upgrade pip && python -m pip install -e '.[test]'
+
+      - name: Unit and branch coverage
+        run: python -m pytest --cov=tools.governance --cov-branch --cov-report=term-missing --cov-fail-under=100
+
+      - name: Validate repository governance
+        run: python -m tools.governance.validate_repo .
