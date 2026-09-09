@@ -1,0 +1,67 @@
+name: MONDE bug / regression
+description: Report incorrect behavior, broken contract, data-quality issue or regression.
+title: "[BUG] "
+labels: []
+body:
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: What actually happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / contract
+      description: What should have happened and which canonical document/schema/ADR defines it?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Exact minimal steps, inputs, timestamps, environment and identifiers needed to reproduce.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Logs, trace/job IDs, screenshots, source/evidence IDs, failing tests or other non-secret evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Affected capabilities, users, data, epistemic state, security, performance or operations.
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - S4 - Minor
+        - S3 - Material
+        - S2 - Major
+        - S1 - Critical
+    validations:
+      required: true
+  - type: textarea
+    id: real_system
+    attributes:
+      label: Real-system context
+      description: Did this occur with a real browser/API/database/source/model/runtime? Do not include credentials.
+    validations:
+      required: true
+  - type: checkboxes
+    id: regression
+    attributes:
+      label: Fix requirements
+      options:
+        - label: The fix should add a regression test when technically feasible.
+          required: true
+        - label: The fix must update work-item/project state if it changes tracked implementation status.
+          required: true
