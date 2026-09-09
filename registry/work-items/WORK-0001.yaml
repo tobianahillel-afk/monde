@@ -26,6 +26,11 @@ scope:
     - repository quality scorecard
     - capability-registry operating contract
     - Phase-0 lot/sublot roadmap
+    - canonical specification-quality lifecycle
+    - multi-role Review Council
+    - requirement/assumption/risk/traceability registry contracts
+    - reproducibility and backtesting protocol
+    - non-compensable quality gates
   out:
     - MONDE product capability implementation
     - final product architecture specifications
@@ -60,6 +65,19 @@ acceptance_criteria:
   - id: AC-9
     description: "Bootstrap changes receive structured review in a dedicated PR before merge."
     status: DONE
+  - id: AC-10
+    description: "Canonical documentation/specification work has explicit scientific quality gates, multi-role reviews, atomic requirements, assumptions/risks and end-to-end traceability contracts."
+    status: DONE
+  - id: AC-11
+    description: "Backtesting/reproducibility rules prevent future-information leakage and require baseline/replay evidence for scientific/model claims."
+    status: DONE
+  - id: AC-12
+    description: "Critical quality dimensions are non-compensable and can block completion regardless of aggregate score."
+    status: DONE
+
+requirements: []
+assumptions: []
+risks: []
 
 read_before:
   - README.md
@@ -72,6 +90,9 @@ read_before:
   - docs/10_ROADMAP/phase-0.md
   - docs/13_QUALITY/definition-of-done.md
   - docs/13_QUALITY/testing-strategy.md
+  - docs/13_QUALITY/specification-quality.md
+  - docs/13_QUALITY/review-council.md
+  - docs/13_QUALITY/reproducibility-backtesting.md
 
 depends_on: []
 blocks:
@@ -84,6 +105,9 @@ affected_engines: []
 affected_schemas:
   - registry/work-items/_TEMPLATE.yaml
   - registry/capabilities/_TEMPLATE.yaml
+  - registry/requirements/_TEMPLATE.yaml
+  - registry/assumptions/_TEMPLATE.yaml
+  - registry/risks/_TEMPLATE.yaml
 affected_docs:
   - README.md
   - AGENTS.md
@@ -98,14 +122,35 @@ affected_docs:
   - docs/13_QUALITY/definition-of-done.md
   - docs/13_QUALITY/testing-strategy.md
   - docs/13_QUALITY/project-scorecard.md
+  - docs/13_QUALITY/specification-quality.md
+  - docs/13_QUALITY/review-council.md
+  - docs/13_QUALITY/reproducibility-backtesting.md
   - registry/capabilities/README.md
   - registry/dependencies/README.md
+  - registry/traceability/README.md
 contracts:
   - "AI resume protocol"
   - "Work item tracking contract"
   - "Capability registry contract"
   - "Progress tracking contract"
+  - "Requirement contract"
+  - "Assumption ledger contract"
+  - "Risk register contract"
+  - "Traceability contract"
+  - "Specification quality contract"
+  - "Review Council contract"
 adrs: []
+
+impact_analysis:
+  blast_radius: CROSS_COMPONENT
+  upstream: []
+  downstream:
+    - WORK-0002
+    - WORK-0004
+    - "all future canonical specification work"
+    - "all future implementation work"
+  migrations_or_reprocessing: []
+  compatibility_notes: "Bootstrap-only repository; contracts are being established before production implementation."
 
 implementation_plan:
   tasks:
@@ -139,6 +184,11 @@ implementation_plan:
       depends_on: [T5]
       expected_files: [PROJECT_STATE.md, registry/work-items/WORK-0001.yaml, registry/progress/matrix.yaml]
       status: IN_REVIEW
+    - id: T7
+      description: "Harden AI/documentation quality with requirements, assumptions, risks, traceability, review roles and scientific backtesting contracts."
+      depends_on: [T3, T4, T5]
+      expected_files: [docs/13_QUALITY/specification-quality.md, docs/13_QUALITY/review-council.md, docs/13_QUALITY/reproducibility-backtesting.md, registry/requirements/_TEMPLATE.yaml, registry/assumptions/_TEMPLATE.yaml, registry/risks/_TEMPLATE.yaml, registry/traceability/README.md]
+      status: DONE
   planned_runs:
     - id: RUN-1
       objective: "Repository navigation, governance and tracking bootstrap"
@@ -155,14 +205,38 @@ implementation_plan:
       tasks: [T6]
       exit_condition: "PR reviewed and project state points to the next work"
       status: IN_REVIEW
+    - id: RUN-4
+      objective: "Scientific/documentation governance hardening requested during PR review"
+      tasks: [T7]
+      exit_condition: "Canonical documentation work is governed as rigorously as implementation work"
+      status: DONE
+
+review_plan:
+  artifact_class: FOUNDATIONAL_GOVERNANCE
+  independence_level: L2_TARGET
+  required_hats:
+    - ARCHITECTURE_REUSE
+    - VERIFICATION_VALIDATION
+    - SECURITY
+    - DATA_EPISTEMIC
+    - PERFORMANCE_SRE
+    - DOCUMENTATION_TRACEABILITY
+    - RED_TEAM_SKEPTIC
+  completed_reviews:
+    - "Initial structured PR review submitted before T7 expansion"
+  open_findings:
+    - "Re-review PR after specification-governance expansion"
 
 required_tests:
   unit: []
+  property: []
   integration: []
   contract:
     - "Cross-file consistency review of status vocabulary, path names and work-item fields"
+    - "Specification/registry contract consistency review"
   e2e:
     - "Resume-path review: README → START_HERE → PROJECT_STATE → WORK-0001 identifies exact next action"
+    - "Cold-read specification workflow can determine required research/review/traceability without chat context"
   regression: []
   security:
     - "Repository visibility reviewed; current state observed as public"
@@ -170,6 +244,24 @@ required_tests:
   real_system:
     - "Branch writes performed against actual GitHub repository"
     - "Dedicated GitHub pull request created and inspected"
+  epistemic:
+    - "Review that scientific/backtesting contract enforces knowledge-at-T rather than hindsight data"
+
+scientific_validation:
+  required: false
+  baseline: null
+  backtest: []
+  temporal_leakage_check: "Protocol documented; no model/forecast implementation exists yet."
+  reproducibility_manifest: null
+  shadow_or_canary: null
+
+observability:
+  required: false
+  logs: []
+  metrics: []
+  traces: []
+  alerts: []
+  slis_slos: []
 
 validation:
   executed:
@@ -180,6 +272,7 @@ validation:
     - "PR #1 opened and full diff reviewed"
     - "Structured PR review submitted"
     - "Status-vocabulary inconsistency found during review and corrected before merge"
+    - "Specification-governance gap analysis performed after user review"
   evidence:
     - "Git history on bootstrap/ai-governance"
     - "PR #1 review discussion"
@@ -191,6 +284,7 @@ validation:
     - "No CI status checks are currently attached to the bootstrap PR"
     - "Repository visibility remains public until owner changes repository settings"
     - "Owner/final merge review remains pending"
+    - "Review Council evidence is not yet stored in a dedicated machine-readable review registry"
 
 risk:
   security: LOW
@@ -212,20 +306,26 @@ run_log:
   - run: RUN-3
     date: "2026-09-10"
     note: "Opened PR #1, reviewed the full bootstrap diff, found/corrected the status-vocabulary mismatch and recorded remaining owner/CI actions."
+  - run: RUN-4
+    date: "2026-09-10"
+    note: "Added scientific specification lifecycle, multi-hat Review Council, requirement/assumption/risk/traceability contracts, reproducibility/backtesting protocol, AI anti-omission rules and non-compensable hard quality gates."
 
 discoveries:
   - "Repository visibility is currently public."
   - "Automated governance validation should be a separate follow-up work item rather than hidden inside bootstrap documentation scope."
   - "No GitHub status checks are currently attached to the PR head."
+  - "Execution governance alone is insufficient for AI-led development; specification reasoning must itself be structured, traceable, reviewed and falsifiable."
 blockers: []
 follow_up_work_items:
-  - "SUBLOT-0.2: create CI governance validator for registry references/status/path consistency and future quality/security gates."
+  - "SUBLOT-0.2: create CI governance validator for registry references/status/path/requirement/assumption/risk/traceability consistency and future quality/security gates."
   - "SUBLOT-0.3: configure repository visibility/branch protection/required checks/merge policy."
   - "LOT-1/SUBLOT-1.1: inventory all previously validated MONDE capabilities and assign stable CAP IDs."
-  - "LOT-1+: write canonical product/world-model/data/intelligence/experience architecture specifications."
+  - "LOT-1+: write canonical product/world-model/data/intelligence/experience architecture specifications using specification-quality gates."
 
 completion:
   definition_of_done_checked: true
+  specification_gates_checked: true
+  traceability_checked: true
   review_complete: false
   docs_updated: true
   registries_updated: true
