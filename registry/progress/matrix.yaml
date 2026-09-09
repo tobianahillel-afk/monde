@@ -1,4 +1,4 @@
-version: 2
+version: 3
 updated_at: "2026-09-10"
 
 status_vocabulary:
@@ -43,21 +43,21 @@ phases:
                 handover: DONE
           SUBLOT-0.2:
             name: "Governance automation"
-            status: PLANNED
+            status: IN_PROGRESS
             work_items:
               WORK-0002:
-                status: PLANNED
+                status: IN_PROGRESS
                 docs: PARTIAL
-                specification_governance: PARTIAL
-                implementation: NOT_STARTED
-                tests: NOT_STARTED
+                specification_governance: DONE
+                implementation: PARTIAL
+                tests: DONE
                 scientific_validation: NOT_APPLICABLE
-                security_review: NOT_STARTED
-                real_system_validation: NOT_STARTED
+                security_review: PARTIAL
+                real_system_validation: DONE
                 review: NOT_STARTED
-                dependencies: PLANNED
+                dependencies: DONE
                 traceability: PARTIAL
-                handover: NOT_STARTED
+                handover: PARTIAL
           SUBLOT-0.3:
             name: "Repository protection and merge discipline"
             status: PLANNED
@@ -125,10 +125,10 @@ quality_dimensions:
   adr_process_defined: DONE
   project_state_resumable: DONE
   github_workflow_defined: DONE
-  governance_ci_enforced: NOT_STARTED
+  governance_ci_enforced: PARTIAL
   architecture_fitness_functions_enforced: NOT_STARTED
-  automated_traceability_validation: NOT_STARTED
-  automated_specification_validation: NOT_STARTED
+  automated_traceability_validation: PARTIAL
+  automated_specification_validation: PARTIAL
   product_capability_inventory: NOT_STARTED
 
 rules:
