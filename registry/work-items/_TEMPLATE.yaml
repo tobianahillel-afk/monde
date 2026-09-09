@@ -20,6 +20,10 @@ acceptance_criteria:
     description: ""
     status: NOT_STARTED
 
+requirements: []
+assumptions: []
+risks: []
+
 read_before: []
 depends_on: []
 blocks: []
@@ -30,6 +34,13 @@ affected_schemas: []
 affected_docs: []
 contracts: []
 adrs: []
+
+impact_analysis:
+  blast_radius: LOCAL
+  upstream: []
+  downstream: []
+  migrations_or_reprocessing: []
+  compatibility_notes: ""
 
 implementation_plan:
   tasks:
@@ -45,8 +56,19 @@ implementation_plan:
       exit_condition: ""
       status: NOT_STARTED
 
+review_plan:
+  artifact_class: STANDARD
+  independence_level: L1
+  required_hats:
+    - ARCHITECTURE_REUSE
+    - VERIFICATION_VALIDATION
+    - DOCUMENTATION_TRACEABILITY
+  completed_reviews: []
+  open_findings: []
+
 required_tests:
   unit: []
+  property: []
   integration: []
   contract: []
   e2e: []
@@ -54,6 +76,23 @@ required_tests:
   security: []
   performance: []
   real_system: []
+  epistemic: []
+
+scientific_validation:
+  required: false
+  baseline: null
+  backtest: []
+  temporal_leakage_check: null
+  reproducibility_manifest: null
+  shadow_or_canary: null
+
+observability:
+  required: false
+  logs: []
+  metrics: []
+  traces: []
+  alerts: []
+  slis_slos: []
 
 validation:
   executed: []
@@ -81,6 +120,8 @@ follow_up_work_items: []
 
 completion:
   definition_of_done_checked: false
+  specification_gates_checked: false
+  traceability_checked: false
   review_complete: false
   docs_updated: false
   registries_updated: false
