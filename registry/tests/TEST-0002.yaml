@@ -1,5 +1,5 @@
 id: TEST-0002
-name: "Governance validator deterministic unit and branch suite"
+name: "Governance deterministic unit and branch suite"
 status: PASS
 type: UNIT_INTEGRATION
 
@@ -10,30 +10,36 @@ protects:
     - "repository governance validation"
     - "registry status/reference/path integrity"
     - "work dependency and completion gates"
+    - "repository path containment"
   risks:
     - "validator silently accepts malformed repository state"
     - "100 percent coverage is achieved without failure-path coverage"
+    - "declared or Markdown paths escape repository root"
   invariants:
     - "deterministic governance rules return actionable failures"
+    - "repository-declared paths remain inside repository root"
 
 location:
-  test_path: tests/governance/test_validate_repo.py
+  test_path: tests/governance/
   suite: governance
 
 environment:
-  kind: LOCAL_ISOLATED_FIXTURES
-  real_dependencies: []
+  kind: GITHUB_ACTIONS_AND_ISOLATED_FIXTURES
+  real_dependencies:
+    - "GitHub Actions Python 3.13.15 runner"
   mocked_dependencies: []
 
 cases:
   happy_path:
     - "clean representative repository passes"
     - "valid task dependencies and future review dates pass"
+    - "valid in-repository YAML and Markdown paths pass"
   edge_cases:
     - "template registry files are ignored"
     - "terminal work cannot remain active"
     - "relative Markdown anchors/external URLs are ignored correctly"
     - "non-mapping progress states are detected"
+    - "symlink resolution is checked against repository boundary"
   failure_modes:
     - "YAML parse errors"
     - "invalid record shape/id prefix/duplicate id/status"
@@ -45,20 +51,26 @@ cases:
     - "canonical TODO/TBD/FIXME and broken Markdown links"
     - "missing/inconsistent progress matrix"
     - "missing/stale/unknown active project work"
+    - "absolute, traversal and symlink path escape"
+    - "Markdown path escape"
   adversarial_cases:
     - "malformed scalar/list structures where mappings are expected"
     - "duplicate stable IDs"
     - "bogus status values"
+    - "../ traversal"
+    - "absolute filesystem paths"
+    - "in-repository symlink resolving outside root"
 
 execution:
-  command_or_workflow: "python -m pytest --cov=tools.governance --cov-branch --cov-report=term-missing"
+  command_or_workflow: "python -m pytest --cov=tools.governance --cov-branch --cov-report=term-missing --cov-fail-under=100"
   last_run_at: "2026-09-10"
-  commit_sha: "3b4cf905d25a90ccba4613210b320308140d64d4"
+  commit_sha: "c074a3faf5a8928472ea468d37cdbfc8f32d577f"
   result: PASS
   evidence:
-    - "21 tests passed"
-    - "297/297 statements covered"
-    - "158/158 branches covered"
+    - "GitHub Actions run 34418747551"
+    - "30 tests passed"
+    - "386/386 statements covered"
+    - "196/196 branches covered"
     - "Total coverage 100.00%"
 
 coverage:
