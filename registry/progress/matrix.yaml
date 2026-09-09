@@ -1,4 +1,4 @@
-version: 3
+version: 4
 updated_at: "2026-09-10"
 
 status_vocabulary:
@@ -43,21 +43,21 @@ phases:
                 handover: DONE
           SUBLOT-0.2:
             name: "Governance automation"
-            status: IN_PROGRESS
+            status: IN_REVIEW
             work_items:
               WORK-0002:
-                status: IN_PROGRESS
-                docs: PARTIAL
+                status: IN_REVIEW
+                docs: DONE
                 specification_governance: DONE
-                implementation: PARTIAL
+                implementation: DONE
                 tests: DONE
                 scientific_validation: NOT_APPLICABLE
                 security_review: PARTIAL
                 real_system_validation: DONE
-                review: NOT_STARTED
+                review: IN_REVIEW
                 dependencies: DONE
-                traceability: PARTIAL
-                handover: PARTIAL
+                traceability: DONE
+                handover: DONE
           SUBLOT-0.3:
             name: "Repository protection and merge discipline"
             status: PLANNED
