@@ -38,6 +38,52 @@ phases:
                 review: IN_REVIEW
                 dependencies: DONE
                 handover: DONE
+          SUBLOT-0.2:
+            name: "Governance automation"
+            status: PLANNED
+            work_items:
+              WORK-0002:
+                status: PLANNED
+                docs: PARTIAL
+                implementation: NOT_STARTED
+                tests: NOT_STARTED
+                security_review: NOT_STARTED
+                real_system_validation: NOT_STARTED
+                review: NOT_STARTED
+                dependencies: PLANNED
+                handover: NOT_STARTED
+          SUBLOT-0.3:
+            name: "Repository protection and merge discipline"
+            status: PLANNED
+            work_items:
+              WORK-0003:
+                status: PLANNED
+                docs: PARTIAL
+                implementation: NOT_APPLICABLE
+                tests: NOT_STARTED
+                security_review: NOT_STARTED
+                real_system_validation: NOT_STARTED
+                review: NOT_STARTED
+                dependencies: PLANNED
+                handover: NOT_STARTED
+      LOT-1:
+        name: "Canonical product inventory"
+        status: PLANNED
+        sublots:
+          SUBLOT-1.1:
+            name: "Historical capability inventory"
+            status: PLANNED
+            work_items:
+              WORK-0004:
+                status: PLANNED
+                docs: PARTIAL
+                implementation: NOT_APPLICABLE
+                tests: NOT_STARTED
+                security_review: NOT_STARTED
+                real_system_validation: NOT_APPLICABLE
+                review: NOT_STARTED
+                dependencies: PLANNED
+                handover: NOT_STARTED
 
 quality_dimensions:
   documentation_current: DONE
@@ -53,7 +99,7 @@ quality_dimensions:
   product_capability_inventory: NOT_STARTED
 
 rules:
-  - "Every active work item must appear in this matrix."
+  - "Every active work item must appear in this matrix; planned work should also be represented once assigned an ID."
   - "A work item cannot be DONE while any mandatory applicable dimension is NOT_STARTED, PARTIAL, BLOCKED or IN_REVIEW."
   - "NOT_APPLICABLE requires justification in the work item."
   - "Agents update this matrix in the same PR that changes work status."
