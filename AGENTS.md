@@ -12,11 +12,11 @@ Before changing anything:
 2. Read `docs/00_START_HERE.md`.
 3. Read `PROJECT_STATE.md`.
 4. Identify the active `WORK-*` item in `registry/work-items/`.
-5. Read that work item's `read_before`, `depends_on`, `reuses`, `affected_capabilities`, `affected_engines`, `affected_schemas` and `required_tests`.
-6. Read every referenced canonical document before editing implementation.
-7. Search the repository for an existing implementation, capability, engine, schema, helper or adapter before creating a new one.
+5. Read that work item's `read_before`, `depends_on`, `reuses`, `affected_capabilities`, `affected_engines`, `affected_schemas`, requirements/assumptions/risks and `required_tests`.
+6. Read every referenced canonical document before editing specification or implementation.
+7. Search the repository for an existing implementation, capability, requirement, engine, schema, helper, adapter or synonym before creating a new one.
 8. Check `docs/11_ADR/` for relevant architectural decisions.
-9. Check the capability and dependency registries.
+9. Check capability, dependency, requirement, assumption, risk and traceability registries.
 10. Only then plan the change.
 
 If no work item exists, create one before implementation.
@@ -30,7 +30,10 @@ An agent must not assume:
 - that a chat description overrides canonical documentation;
 - that a source value is current merely because it was recently ingested;
 - that a test fixture proves production behavior;
-- that a new abstraction is preferable to reuse.
+- that a new abstraction is preferable to reuse;
+- that a detailed specification is internally complete;
+- that an unstated assumption is safe;
+- that another document has no dependency merely because it was not in the initial context window.
 
 When ambiguity exists, inspect repository state and record the ambiguity explicitly.
 
@@ -45,8 +48,12 @@ For each requested change determine:
 - number of implementation runs/checkpoints;
 - files expected to change;
 - existing components to reuse;
+- requirements being satisfied;
+- assumptions being relied upon;
+- risks introduced/changed;
 - contracts that may be affected;
 - test suites required;
+- review hats required;
 - real-system validations required;
 - rollback strategy.
 
@@ -85,9 +92,12 @@ Before implementing a new component, search for:
 - utility;
 - model;
 - workflow;
-- capability.
+- capability;
+- requirement or invariant already defining equivalent behavior.
 
-If existing code can be extended safely, extend it.
+Search synonyms and related domains, not only the exact requested phrase.
+
+If existing code/specification can be extended safely, extend it.
 
 If new code is required, document why reuse was insufficient.
 
@@ -101,9 +111,14 @@ Every work item declares:
 - `blocks`: downstream work;
 - `reuses`: components that must be reused;
 - `read_before`: exact files needed to understand the area;
-- `contracts`: schemas/interfaces that cannot be changed accidentally.
+- `contracts`: schemas/interfaces that cannot be changed accidentally;
+- `requirements`: behavioral obligations;
+- `assumptions`: material uncertain premises;
+- `risks`: tracked failure possibilities.
 
 When a dependency changes, update every affected work item or registry entry in the same PR.
+
+Before changing a stable concept, explicitly ask **WHAT DEPENDS ON THIS?** and inspect the traceability/dependency graph.
 
 ## 7. Mandatory epistemic invariants
 
@@ -121,11 +136,12 @@ Read `docs/09_GOVERNANCE/constitution.md` before touching world semantics.
 
 ## 8. Definition of Done
 
-A work item is not done because code compiles.
+A work item is not done because code compiles or documentation is long.
 
 It is done only when all applicable gates pass:
 
 - functional correctness;
+- specification quality;
 - unit tests;
 - integration tests;
 - contract/schema tests;
@@ -136,9 +152,9 @@ It is done only when all applicable gates pass:
 - real-environment validation where the feature depends on a real external system;
 - observability;
 - documentation;
-- registry/progress updates;
-- review;
-- reproducibility.
+- registry/progress/traceability updates;
+- required review hats;
+- reproducibility/backtesting where applicable.
 
 See `docs/13_QUALITY/definition-of-done.md`.
 
@@ -177,13 +193,17 @@ Before a PR can be considered mergeable, perform:
 1. self-review against the work item;
 2. diff review for accidental duplication or scope creep;
 3. architecture/ADR consistency review;
-4. test review;
-5. security review;
-6. data/provenance review when applicable;
-7. performance/resource review when applicable;
-8. documentation and registry review.
+4. specification/requirements/traceability review;
+5. test/verification review;
+6. security review where applicable;
+7. data/provenance/epistemic review where applicable;
+8. performance/SRE review where applicable;
+9. documentation/handover review;
+10. adversarial/skeptic review for foundational, critical or high-risk changes.
 
-Critical/high-risk changes require an explicit adversarial/red-team review step.
+Use `docs/13_QUALITY/review-council.md` to determine required hats and independence level.
+
+Critical/high-risk changes should not rely on author self-review as the sole approval.
 
 ## 12. Scope-control rule
 
@@ -208,14 +228,16 @@ When work starts:
 During work:
 
 - append run notes/checkpoints;
-- record discoveries, blockers and deviations.
+- record discoveries, blockers and deviations;
+- add newly discovered assumptions/risks/dependencies rather than leaving them only in reasoning;
+- update requirement/traceability mappings when scope changes legitimately.
 
 When work ends:
 
 - update acceptance-criteria status;
 - record tests and evidence of validation;
-- update dependency/progress matrices;
-- update relevant docs/ADRs;
+- update dependency/progress/traceability matrices;
+- update relevant docs/ADRs/requirements/assumptions/risks;
 - set state accurately (`DONE`, `BLOCKED`, `PARTIAL`, etc.);
 - update `PROJECT_STATE.md` with next action.
 
@@ -236,13 +258,17 @@ A PR description must include:
 
 - work-item IDs;
 - scope;
+- requirements/capabilities;
 - dependencies/reuse;
+- assumptions/risks;
 - acceptance criteria;
 - tests executed;
+- backtests/reproducibility evidence where applicable;
 - real-system validation;
 - security impact;
 - data/epistemic impact;
-- docs/registry updates;
+- docs/registry/traceability updates;
+- required review hats/outcomes;
 - known limitations;
 - rollback notes.
 
@@ -252,9 +278,11 @@ Stop implementation and mark the work item blocked if:
 
 - a canonical contract is contradictory;
 - required dependency is absent or invalid;
+- an important assumption is both unvalidated and capable of invalidating the design;
 - implementation would silently break epistemic invariants;
 - a security boundary cannot be preserved;
-- required validation cannot be performed and shipping would create false confidence.
+- required validation cannot be performed and shipping would create false confidence;
+- critical traceability is broken such that impact cannot be understood.
 
 Record the exact blocker and proposed next action.
 
@@ -265,7 +293,67 @@ At the end of every bounded run, another competent agent must be able to continu
 1. `PROJECT_STATE.md`;
 2. the active work item;
 3. its `read_before` files;
-4. linked ADRs;
-5. recent commits/PR discussion.
+4. linked requirements/assumptions/risks;
+5. linked ADRs;
+6. recent commits/PR discussion.
 
 If that is not true, the run is incomplete.
+
+## 17. Documentation/specification is first-class engineering
+
+When the task is to write or change canonical documentation, do **not** treat it as exempt from engineering discipline.
+
+Follow `docs/13_QUALITY/specification-quality.md`:
+
+1. discover existing concepts and synonyms;
+2. identify related requirements/capabilities/dependencies;
+3. inspect upstream/downstream documents;
+4. external research when required by the specification and permitted by the task;
+5. record assumptions and unresolved uncertainty;
+6. write atomic/testable requirements;
+7. include examples, counterexamples and failure modes;
+8. check security/performance/operations/data semantics where relevant;
+9. run cross-document contradiction and duplication review;
+10. update traceability;
+11. perform required Review Council hats;
+12. perform a cold-read test before `Accepted`.
+
+A canonical document is defective if implementation cannot determine what behavior to build/test from it.
+
+## 18. Scientific validation and backtesting
+
+Forecasts, detectors, entity resolution, causal models, source scoring, research planners and learned/model-based behavior must follow `docs/13_QUALITY/reproducibility-backtesting.md`.
+
+Never evaluate historical performance using information unavailable at the historical cutoff.
+
+Require appropriate:
+
+- baseline;
+- leakage-safe splits/cutoffs;
+- calibration/uncertainty metrics;
+- subgroup/regime evaluation;
+- reproducibility manifest;
+- resource benchmark;
+- failure analysis;
+- shadow/canary validation before critical promotion.
+
+Negative results that prevent repeated dead ends should be recorded.
+
+## 19. AI anti-omission protocol
+
+Before finalizing a plan/specification/PR, explicitly ask:
+
+- What important category did I not inspect?
+- What adjacent concept could already own this responsibility?
+- Which upstream/downstream dependency could be affected?
+- Which failure mode makes the happy-path design misleading?
+- Which assumption am I treating as fact?
+- Which timestamp/provenance/permission semantics could be lost?
+- What would a security reviewer object to?
+- What would an SRE/performance reviewer object to?
+- What would an epistemic reviewer object to?
+- What would falsify the claimed improvement?
+- Can a simpler design satisfy the same requirements?
+- Can another agent resume this without hidden context?
+
+Record material discoveries rather than leaving them only in transient reasoning.
