@@ -44,4 +44,6 @@ jobs:
         run: python -m pytest --cov=tools.governance --cov-branch --cov-report=term-missing --cov-fail-under=100
 
       - name: Validate repository governance
-        run: python -m tools.governance.validate_repo .
+        run: |
+          python -m tools.governance.validate_repo .
+          python -m tools.governance.path_safety .
