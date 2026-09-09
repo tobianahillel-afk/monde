@@ -1,0 +1,57 @@
+id: EXP-XXXX
+name: ""
+status: PLANNED
+purpose: ""
+
+hypothesis:
+  statement: ""
+  falsification_condition: ""
+
+scope:
+  requirements: []
+  capabilities: []
+  models: []
+  datasets: []
+
+reproducibility:
+  code_commit_sha: null
+  config_hash_or_version: null
+  data_versions: []
+  knowledge_cutoff: null
+  model_versions: []
+  feature_versions: []
+  environment: []
+  seeds: []
+  known_nondeterminism: []
+
+method:
+  cohort_or_query: ""
+  train_window: null
+  validation_window: null
+  holdout_window: null
+  baseline: ""
+  metrics: []
+  leakage_checks: []
+  subgroup_or_regime_checks: []
+
+resources:
+  compute_budget: null
+  latency_budget: null
+  memory_budget: null
+  cost_budget: null
+
+results:
+  metrics: []
+  artifacts: []
+  interpretation: null
+  negative_results: []
+  failure_analysis: []
+
+review:
+  review_ids: []
+  promotion_decision: null
+
+history:
+  created_at: null
+  updated_at: null
+  completed_at: null
