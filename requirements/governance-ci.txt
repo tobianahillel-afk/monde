@@ -1,0 +1,10 @@
+# Exact dependency set validated for MONDE governance CI.
+# Hash locking is a planned supply-chain hardening step once automated lock generation is introduced.
+PyYAML==6.0.3
+pytest==9.0.2
+pytest-cov==7.0.0
+coverage==7.13.3
+pluggy==1.6.0
+iniconfig==2.3.0
+packaging==25.0
+Pygments==2.20.0
