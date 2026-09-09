@@ -9,6 +9,8 @@ MONDE should be assessable against an explicit engineering-quality standard rath
 
 The target is **100/100** before MONDE claims a mature production-grade engineering process. Early phases are expected to score lower; gaps must be visible and tracked.
 
+A score is descriptive evidence, **not permission to compensate for a critical failure**. Non-compensable gates defined below can block acceptance even at a high numeric score.
+
 ## Scoring
 
 50 criteria × 2 points = 100 points.
@@ -116,6 +118,51 @@ For each criterion:
 | 49 | Reversible identity/history semantics | Constitution | 2 |
 | 50 | Epistemic invariants enforced by executable tests | invariant CI/MONDE Mini | 0 |
 
+## Artifact-specific quality systems
+
+The repository score does not replace artifact-specific gates. In particular:
+
+- canonical specifications follow `specification-quality.md`;
+- required independent perspectives follow `review-council.md`;
+- models/detectors/forecasts/research methods follow `reproducibility-backtesting.md`;
+- requirements/assumptions/risks/traceability use their registries.
+
+These systems add rigor without inflating the 100-point repository score merely because more policy text exists.
+
+## Non-compensable hard gates
+
+The following cannot be offset by points elsewhere when applicable:
+
+1. **Constitution gate** — no known unresolved violation of a MONDE constitutional invariant.
+2. **Security gate** — no unresolved critical security finding or secret exposure.
+3. **Authorization/visibility gate** — no known cross-tenant/permission widening defect for scoped data.
+4. **Epistemic gate** — no known promotion of inference/simulation into observed truth.
+5. **Provenance gate** — important canonical outputs retain required source/lineage.
+6. **Temporal gate** — historical/backtest behavior does not knowingly use future information or destroy source-time semantics.
+7. **Traceability gate** — critical behavior has a requirement/rationale and verification path.
+8. **Verification gate** — required critical tests/real-system validations have not been skipped while claiming DONE.
+9. **Reproducibility gate** — material scientific/model claims required for promotion are reproducible and leakage-checked.
+10. **Handover gate** — active critical work is resumable from repository state without hidden chat context.
+
+If an applicable hard gate fails, status is `BLOCKED`, `PARTIAL` or `IN_REVIEW`, regardless of numeric score.
+
+## Maturity dimensions should not be collapsed blindly
+
+Alongside the total, future dashboards should display separate scores for:
+
+- specification/documentation;
+- implementation correctness;
+- security;
+- epistemic/data integrity;
+- reliability/operations;
+- performance/resources;
+- observability;
+- scientific/model validation;
+- real-system validation;
+- resumability/traceability.
+
+This prevents a strong area from hiding a weak critical area.
+
 ## Bootstrap score
 
 Current provisional score from documented/evidenced bootstrap state:
@@ -136,6 +183,6 @@ This score is intentionally conservative: policy text receives only partial cred
 
 ## Rules for claiming 100/100
 
-MONDE may claim 100/100 only when every applicable criterion has verifiable repository evidence. Documentation alone is not sufficient for criteria that require automation, implementation or real-system validation.
+MONDE may claim 100/100 only when every applicable criterion has verifiable repository evidence **and every applicable hard gate passes**. Documentation alone is not sufficient for criteria that require automation, implementation or real-system validation.
 
 The scorecard itself must be reviewed at each major phase boundary; criteria may be made stricter as MONDE matures, but should not be weakened merely to improve the score.
