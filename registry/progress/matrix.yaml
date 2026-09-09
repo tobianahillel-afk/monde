@@ -2,6 +2,7 @@ version: 1
 updated_at: "2026-09-10"
 
 status_vocabulary:
+  - NOT_STARTED
   - PROPOSED
   - PLANNED
   - READY
@@ -12,6 +13,7 @@ status_vocabulary:
   - DONE
   - DEPRECATED
   - CANCELLED
+  - NOT_APPLICABLE
 
 phases:
   PHASE-0:
