@@ -1,0 +1,185 @@
+id: WORK-0001
+title: "Bootstrap AI-first repository governance"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-0
+sublot: SUBLOT-0.1
+owner: "repository bootstrap"
+created_at: "2026-09-10"
+updated_at: "2026-09-10"
+
+purpose: |
+  Establish the minimum repository operating system required for MONDE to be safely developed by AI agents without relying on chat history, duplicated work or implicit project state.
+
+scope:
+  in:
+    - repository navigation and resume protocol
+    - AI agent rules
+    - project state tracking
+    - work item schema
+    - dependency and progress tracking
+    - development lifecycle
+    - Definition of Done and testing rules
+    - security/development constraints
+    - ADR process
+    - PR/issue templates
+    - repository quality scorecard
+  out:
+    - MONDE product capability implementation
+    - final product architecture specifications
+    - production infrastructure
+
+acceptance_criteria:
+  - id: AC-1
+    description: "A new AI agent can determine what to read and current project state without reading the whole repository."
+    status: PARTIAL
+  - id: AC-2
+    description: "Every future implementation can be represented by a machine-readable work item with dependencies, reuse, tasks, runs, tests and validation evidence."
+    status: PARTIAL
+  - id: AC-3
+    description: "Canonical product/engineering invariants are documented."
+    status: DONE
+  - id: AC-4
+    description: "Development lot/sublot lifecycle and mandatory review gates are documented."
+    status: NOT_STARTED
+  - id: AC-5
+    description: "Definition of Done and complete testing strategy are documented."
+    status: NOT_STARTED
+  - id: AC-6
+    description: "Progress and dependency matrices exist and can be updated by agents."
+    status: NOT_STARTED
+  - id: AC-7
+    description: "PR and issue templates force traceability to work items and validation."
+    status: NOT_STARTED
+  - id: AC-8
+    description: "A repository scorecard covering at least 30 engineering criteria exists."
+    status: NOT_STARTED
+  - id: AC-9
+    description: "Bootstrap changes are reviewed in a dedicated PR before merge."
+    status: NOT_STARTED
+
+read_before:
+  - README.md
+  - AGENTS.md
+  - docs/00_START_HERE.md
+  - PROJECT_STATE.md
+  - docs/09_GOVERNANCE/constitution.md
+
+depends_on: []
+blocks:
+  - "PHASE-0 product specification work"
+reuses:
+  - "GitHub pull-request workflow"
+  - "MONDE Constitution"
+affected_capabilities: []
+affected_engines: []
+affected_schemas:
+  - registry/work-items/_TEMPLATE.yaml
+affected_docs:
+  - README.md
+  - AGENTS.md
+  - docs/00_START_HERE.md
+  - PROJECT_STATE.md
+  - docs/09_GOVERNANCE/constitution.md
+contracts:
+  - "AI resume protocol"
+  - "Work item tracking contract"
+adrs: []
+
+implementation_plan:
+  tasks:
+    - id: T1
+      description: "Create repository navigation, README, agent protocol and project state."
+      depends_on: []
+      expected_files: [README.md, AGENTS.md, docs/00_START_HERE.md, PROJECT_STATE.md]
+      status: DONE
+    - id: T2
+      description: "Create Constitution and machine-readable tracking schemas."
+      depends_on: [T1]
+      expected_files: [docs/09_GOVERNANCE/constitution.md, registry/work-items/_TEMPLATE.yaml, registry/progress/matrix.yaml]
+      status: IN_PROGRESS
+    - id: T3
+      description: "Define development lifecycle, review gates, DoD and testing strategy."
+      depends_on: [T2]
+      expected_files: [docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md]
+      status: NOT_STARTED
+    - id: T4
+      description: "Define development/security rules and ADR process."
+      depends_on: [T2]
+      expected_files: [docs/09_GOVERNANCE/development-rules.md, docs/11_ADR/README.md]
+      status: NOT_STARTED
+    - id: T5
+      description: "Add GitHub PR/issue templates and project quality scorecard."
+      depends_on: [T3, T4]
+      expected_files: [.github/pull_request_template.md, .github/ISSUE_TEMPLATE/feature.yml, docs/13_QUALITY/project-scorecard.md]
+      status: NOT_STARTED
+    - id: T6
+      description: "Review bootstrap as a PR and update canonical project state."
+      depends_on: [T5]
+      expected_files: [PROJECT_STATE.md, registry/work-items/WORK-0001.yaml, registry/progress/matrix.yaml]
+      status: NOT_STARTED
+  planned_runs:
+    - id: RUN-1
+      objective: "Repository navigation, governance and tracking bootstrap"
+      tasks: [T1, T2]
+      exit_condition: "Core resume and tracking contracts exist"
+      status: IN_PROGRESS
+    - id: RUN-2
+      objective: "Quality, lifecycle and GitHub workflow bootstrap"
+      tasks: [T3, T4, T5]
+      exit_condition: "Development gates and templates exist"
+      status: NOT_STARTED
+    - id: RUN-3
+      objective: "Bootstrap review and handover"
+      tasks: [T6]
+      exit_condition: "PR reviewed and state is resumable"
+      status: NOT_STARTED
+
+required_tests:
+  unit: []
+  integration: []
+  contract:
+    - "Manual consistency review of work item/status vocabulary"
+  e2e:
+    - "Resume-path review: new agent can identify next action from canonical files"
+  regression: []
+  security:
+    - "Review repository visibility before sensitive material is committed"
+  performance: []
+  real_system:
+    - "Verify GitHub branch/PR workflow on actual repository"
+
+validation:
+  executed: []
+  evidence: []
+  coverage:
+    line: null
+    branch: null
+  known_gaps: []
+
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  performance: NONE
+  operational: MEDIUM
+
+rollback:
+  strategy: "Revert bootstrap PR; README-only initial repository remains recoverable through Git history."
+
+run_log:
+  - run: RUN-1
+    date: "2026-09-10"
+    note: "Created branch bootstrap/ai-governance and established README, AGENTS, START_HERE, PROJECT_STATE and Constitution."
+
+discoveries:
+  - "Repository visibility is currently public."
+blockers: []
+follow_up_work_items: []
+
+completion:
+  definition_of_done_checked: false
+  review_complete: false
+  docs_updated: true
+  registries_updated: false
+  project_state_updated: true
