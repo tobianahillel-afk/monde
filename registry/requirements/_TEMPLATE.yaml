@@ -1,0 +1,47 @@
+id: REQ-XXXX
+title: ""
+status: PROPOSED
+type: FUNCTIONAL
+normative_statement: "MONDE SHALL ..."
+rationale: ""
+
+origin:
+  source: ""
+  decision_date: null
+  introduced_by_work: null
+  introduced_by_adr: null
+
+scope:
+  capabilities: []
+  engines: []
+  experiences: []
+  schemas: []
+  data_sources: []
+  models: []
+
+depends_on: []
+conflicts_with: []
+related_requirements: []
+
+semantics:
+  temporal: false
+  spatial: false
+  provenance: false
+  confidence_uncertainty: false
+  permissions: false
+
+verification:
+  method: TEST
+  acceptance_evidence: []
+  test_ids: []
+  real_system_validation: []
+
+risk:
+  criticality: NORMAL
+  failure_impact: ""
+
+history:
+  created_at: null
+  updated_at: null
+  supersedes: []
+  superseded_by: null

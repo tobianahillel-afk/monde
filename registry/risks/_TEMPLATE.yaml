@@ -1,0 +1,43 @@
+id: RISK-XXXX
+title: ""
+status: OPEN
+category: ENGINEERING
+
+statement: "If ..., then ..., causing ..."
+
+scope:
+  work_items: []
+  capabilities: []
+  engines: []
+  data_sources: []
+  models: []
+  experiences: []
+
+assessment:
+  likelihood: MEDIUM
+  impact: MEDIUM
+  detectability: MEDIUM
+  confidence: MEDIUM
+  rationale: ""
+
+controls:
+  preventive: []
+  detective: []
+  recovery: []
+
+verification:
+  tests: []
+  monitors: []
+  review_roles: []
+
+owner: null
+review_by: null
+
+resolution:
+  accepted: false
+  acceptance_rationale: null
+  closed_at: null
+
+history:
+  created_at: null
+  updated_at: null

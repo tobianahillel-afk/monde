@@ -1,0 +1,54 @@
+id: CAP-XXX
+name: ""
+status: PROPOSED
+summary: ""
+
+type: []
+lenses: []
+engines: []
+
+inputs: []
+outputs: []
+
+supports:
+  console: false
+  globe: false
+  api: false
+  batch: false
+  realtime: false
+
+semantics:
+  observed_output: false
+  estimated_output: false
+  simulated_output: false
+  requires_provenance: true
+  requires_confidence: true
+  temporal: true
+  spatial: false
+
+architecture:
+  reuses: []
+  depends_on: []
+  blocks: []
+  schemas: []
+  canonical_docs: []
+  adrs: []
+
+implementation:
+  phase: null
+  lot: null
+  sublot: null
+  work_items: []
+  implementation_status: NOT_STARTED
+  test_status: NOT_STARTED
+  documentation_status: NOT_STARTED
+
+risk:
+  classification: STANDARD
+  notes: ""
+
+history:
+  created_at: null
+  updated_at: null
+  supersedes: []
+  superseded_by: null

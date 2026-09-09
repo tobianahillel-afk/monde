@@ -1,0 +1,171 @@
+id: WORK-0002
+title: "Automate repository governance validation"
+status: PLANNED
+phase: PHASE-0
+lot: LOT-0
+sublot: SUBLOT-0.2
+created_at: "2026-09-10"
+updated_at: "2026-09-10"
+
+purpose: |
+  Turn the governance contracts introduced by WORK-0001 into executable CI checks so repository state, specifications, traceability and review evidence cannot silently drift.
+
+scope:
+  in:
+    - validate YAML/registry structure
+    - validate allowed statuses and state transitions
+    - validate unique immutable IDs across WORK/CAP/REQ/ASM/RISK/REVIEW/TEST/EXP records
+    - validate referenced work/capability/dependency/requirement/assumption/risk/review/test/experiment IDs
+    - validate read_before paths
+    - validate PROJECT_STATE active work references
+    - validate canonical documentation links/front matter where practical
+    - validate DONE work-item completion requirements
+    - detect orphan Accepted requirements and orphan DONE capabilities where possible
+    - detect broken traceability chains for critical artifacts
+    - validate expired/review-due assumptions and risks
+    - validate review-plan requirements are satisfied before completion
+    - validate accepted canonical docs do not contain unresolved placeholders where detectable
+    - introduce CI workflow and tests for the validator
+  out:
+    - product implementation
+    - full language/toolchain CI for future application code
+    - semantic equivalence detection requiring advanced model reasoning
+
+acceptance_criteria:
+  - id: AC-1
+    description: "Invalid registry/status/reference/path state fails CI with actionable diagnostics."
+    status: NOT_STARTED
+  - id: AC-2
+    description: "Governance validator itself has 100% meaningful line and branch coverage."
+    status: NOT_STARTED
+  - id: AC-3
+    description: "CI executes on pull requests and protects against regressions in canonical repository state."
+    status: NOT_STARTED
+  - id: AC-4
+    description: "Critical traceability and review-completion defects are detectable automatically before a work item can claim DONE."
+    status: NOT_STARTED
+  - id: AC-5
+    description: "Accepted specification records are checked for valid linked requirements/assumptions/risks and canonical references where required."
+    status: NOT_STARTED
+
+requirements: []
+assumptions: []
+risks: []
+
+read_before:
+  - AGENTS.md
+  - docs/00_START_HERE.md
+  - docs/03_ARCHITECTURE/documentation-architecture.md
+  - docs/09_GOVERNANCE/development-rules.md
+  - docs/10_ROADMAP/development-process.md
+  - docs/13_QUALITY/testing-strategy.md
+  - docs/13_QUALITY/specification-quality.md
+  - docs/13_QUALITY/review-council.md
+  - docs/13_QUALITY/reproducibility-backtesting.md
+  - registry/work-items/_TEMPLATE.yaml
+  - registry/capabilities/_TEMPLATE.yaml
+  - registry/requirements/_TEMPLATE.yaml
+  - registry/assumptions/_TEMPLATE.yaml
+  - registry/risks/_TEMPLATE.yaml
+  - registry/reviews/_TEMPLATE.yaml
+  - registry/tests/_TEMPLATE.yaml
+  - registry/experiments/_TEMPLATE.yaml
+  - registry/traceability/README.md
+  - registry/progress/matrix.yaml
+
+depends_on: [WORK-0001]
+blocks: []
+reuses:
+  - "status vocabulary"
+  - "work-item registry contract"
+  - "capability registry contract"
+  - "requirement/assumption/risk/review/test/experiment contracts"
+  - "traceability contract"
+affected_capabilities: []
+affected_engines: []
+affected_schemas: []
+affected_docs: []
+contracts:
+  - "repository governance validation"
+adrs: []
+
+impact_analysis:
+  blast_radius: CROSS_COMPONENT
+  upstream: [WORK-0001]
+  downstream:
+    - "all future PR governance checks"
+    - WORK-0004
+  migrations_or_reprocessing: []
+  compatibility_notes: "Validator should initially report actionable failures without rewriting repository state automatically."
+
+implementation_plan:
+  tasks: []
+  planned_runs: []
+
+review_plan:
+  artifact_class: GOVERNANCE_AUTOMATION
+  independence_level: L2_TARGET
+  required_hats:
+    - ARCHITECTURE_REUSE
+    - VERIFICATION_VALIDATION
+    - SECURITY
+    - DOCUMENTATION_TRACEABILITY
+  completed_reviews: []
+  open_findings: []
+
+required_tests:
+  unit: ["validator rules"]
+  property: ["ID/reference/status invariants where suitable"]
+  integration: ["validator against repository fixtures"]
+  contract: ["registry schemas/status/reference/traceability integrity"]
+  e2e: ["GitHub Actions PR validation"]
+  regression: ["every governance defect found during bootstrap becomes a fixture"]
+  security: ["workflow permissions and untrusted PR input review"]
+  performance: ["validator remains fast on repository scale"]
+  real_system: ["actual GitHub Actions run on this repository"]
+  epistemic: ["checks protecting accepted epistemic/temporal traceability metadata"]
+
+scientific_validation:
+  required: false
+  baseline: null
+  backtest: []
+  temporal_leakage_check: null
+  reproducibility_manifest: null
+  shadow_or_canary: null
+
+observability:
+  required: true
+  logs: ["actionable validation diagnostics"]
+  metrics: ["validation duration", "error count by rule"]
+  traces: []
+  alerts: []
+  slis_slos: ["PR validator completes within defined CI budget"]
+
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: []
+
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: LOW
+  performance: LOW
+  operational: MEDIUM
+
+rollback:
+  strategy: "Revert workflow/validator changes while retaining WORK-0001 documentation contracts."
+
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion:
+  definition_of_done_checked: false
+  specification_gates_checked: false
+  traceability_checked: false
+  review_complete: false
+  docs_updated: false
+  registries_updated: false
+  project_state_updated: false

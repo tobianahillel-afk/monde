@@ -1,0 +1,299 @@
+id: WORK-0001
+title: "Bootstrap AI-first repository governance"
+status: IN_REVIEW
+phase: PHASE-0
+lot: LOT-0
+sublot: SUBLOT-0.1
+owner: "repository bootstrap"
+created_at: "2026-09-10"
+updated_at: "2026-09-10"
+
+purpose: |
+  Establish the repository operating system required for MONDE to be safely specified and developed by AI agents without relying on chat history, duplicated work, hidden assumptions or unverifiable completion claims.
+
+scope:
+  in:
+    - repository navigation and resume protocol
+    - AI agent rules
+    - project state tracking
+    - work item and progress tracking
+    - dependency/reuse and capability registry contracts
+    - requirement/assumption/risk/review/test/experiment registry contracts
+    - end-to-end traceability contract
+    - development lifecycle and phase/lot/sublot roadmap
+    - Definition of Ready and Definition of Done
+    - specification-quality lifecycle for canonical documentation
+    - evidence-based research protocol for specifications
+    - multi-role Review Council and review independence
+    - assurance levels A0-A4
+    - comprehensive and advanced verification strategy
+    - reproducibility/backtesting and temporal-leakage controls
+    - non-functional quality attributes and SLO direction
+    - security/development rules and threat modeling
+    - ADR process
+    - PR/issue templates
+    - repository quality scorecard and non-compensable hard gates
+  out:
+    - MONDE product capability implementation
+    - final MONDE product/world-model specifications
+    - production infrastructure
+    - CI automation for governance validation
+    - repository visibility/protection configuration
+
+acceptance_criteria:
+  - {id: AC-1, description: "A new AI agent can determine what to read and current project state without reading the whole repository.", status: DONE}
+  - {id: AC-2, description: "Every future implementation/specification can be represented by a machine-readable work item with dependencies, reuse, tasks, runs, tests and validation evidence.", status: DONE}
+  - {id: AC-3, description: "Canonical product/engineering invariants are documented.", status: DONE}
+  - {id: AC-4, description: "Development lot/sublot lifecycle and mandatory review gates are documented.", status: DONE}
+  - {id: AC-5, description: "Definition of Ready, Definition of Done and comprehensive testing strategy are documented.", status: DONE}
+  - {id: AC-6, description: "Progress, dependency, requirement, assumption, risk, review, test, experiment and traceability contracts exist.", status: DONE}
+  - {id: AC-7, description: "PR and issue templates force traceability to work items and validation.", status: DONE}
+  - {id: AC-8, description: "A repository scorecard covering at least 30 engineering criteria exists.", status: DONE}
+  - {id: AC-9, description: "Bootstrap changes receive structured review in a dedicated PR before merge.", status: DONE}
+  - {id: AC-10, description: "Canonical documentation/specification work has scientific quality gates, atomic requirements, assumptions/risks, research and end-to-end traceability.", status: DONE}
+  - {id: AC-11, description: "Backtesting/reproducibility rules prevent future-information leakage and require baseline/replay evidence for scientific/model claims.", status: DONE}
+  - {id: AC-12, description: "Critical quality dimensions are non-compensable and can block completion regardless of aggregate score.", status: DONE}
+  - {id: AC-13, description: "Risk-based assurance levels and Review Council roles scale rigor with blast radius and criticality.", status: DONE}
+  - {id: AC-14, description: "100% coverage is supplemented by advanced test-strength methods such as mutation/fuzz/property/metamorphic/differential/fault-injection where appropriate.", status: DONE}
+
+requirements: []
+assumptions: []
+risks: []
+
+assurance:
+  level: A3
+  rationale: "Foundational governance affects all subsequent MONDE work and can create systemic process errors if incomplete."
+  escalation_triggers:
+    - "constitutional process changes"
+    - "repository-wide traceability contract changes"
+
+read_before:
+  - README.md
+  - AGENTS.md
+  - docs/00_START_HERE.md
+  - PROJECT_STATE.md
+  - registry/README.md
+  - docs/09_GOVERNANCE/constitution.md
+  - docs/03_ARCHITECTURE/documentation-architecture.md
+  - docs/10_ROADMAP/development-process.md
+  - docs/10_ROADMAP/phase-0.md
+  - docs/13_QUALITY/definition-of-ready.md
+  - docs/13_QUALITY/definition-of-done.md
+  - docs/13_QUALITY/testing-strategy.md
+  - docs/13_QUALITY/specification-quality.md
+  - docs/13_QUALITY/review-council.md
+  - docs/13_QUALITY/assurance-levels.md
+  - docs/13_QUALITY/advanced-verification.md
+  - docs/13_QUALITY/non-functional-requirements.md
+  - docs/13_QUALITY/reproducibility-backtesting.md
+  - docs/12_RESEARCH/research-protocol.md
+  - docs/09_GOVERNANCE/threat-modeling.md
+
+depends_on: []
+blocks:
+  - "PHASE-0 product specification work"
+reuses:
+  - "GitHub pull-request workflow"
+  - "MONDE Constitution"
+affected_capabilities: []
+affected_engines: []
+affected_schemas:
+  - registry/work-items/_TEMPLATE.yaml
+  - registry/capabilities/_TEMPLATE.yaml
+  - registry/requirements/_TEMPLATE.yaml
+  - registry/assumptions/_TEMPLATE.yaml
+  - registry/risks/_TEMPLATE.yaml
+  - registry/reviews/_TEMPLATE.yaml
+  - registry/tests/_TEMPLATE.yaml
+  - registry/experiments/_TEMPLATE.yaml
+affected_docs:
+  - README.md
+  - AGENTS.md
+  - PROJECT_STATE.md
+  - docs/00_START_HERE.md
+  - docs/03_ARCHITECTURE/documentation-architecture.md
+  - docs/09_GOVERNANCE/constitution.md
+  - docs/09_GOVERNANCE/development-rules.md
+  - docs/09_GOVERNANCE/threat-modeling.md
+  - docs/10_ROADMAP/development-process.md
+  - docs/10_ROADMAP/phase-0.md
+  - docs/11_ADR/README.md
+  - docs/12_RESEARCH/research-protocol.md
+  - docs/13_QUALITY/definition-of-ready.md
+  - docs/13_QUALITY/definition-of-done.md
+  - docs/13_QUALITY/testing-strategy.md
+  - docs/13_QUALITY/specification-quality.md
+  - docs/13_QUALITY/review-council.md
+  - docs/13_QUALITY/assurance-levels.md
+  - docs/13_QUALITY/advanced-verification.md
+  - docs/13_QUALITY/non-functional-requirements.md
+  - docs/13_QUALITY/reproducibility-backtesting.md
+  - docs/13_QUALITY/project-scorecard.md
+  - registry/README.md
+  - registry/capabilities/README.md
+  - registry/dependencies/README.md
+  - registry/traceability/README.md
+  - registry/progress/matrix.yaml
+  - registry/reviews/REVIEW-0001.yaml
+  - registry/tests/TEST-0001.yaml
+contracts:
+  - "AI resume protocol"
+  - "Work item tracking contract"
+  - "Capability registry contract"
+  - "Progress tracking contract"
+  - "Requirement contract"
+  - "Assumption ledger contract"
+  - "Risk register contract"
+  - "Review evidence contract"
+  - "Test evidence contract"
+  - "Experiment/reproducibility contract"
+  - "Traceability contract"
+  - "Specification quality contract"
+  - "Review Council contract"
+  - "Assurance-level contract"
+adrs: []
+
+impact_analysis:
+  blast_radius: CROSS_COMPONENT
+  upstream: []
+  downstream:
+    - WORK-0002
+    - WORK-0003
+    - WORK-0004
+    - "all future canonical specification work"
+    - "all future implementation work"
+  migrations_or_reprocessing: []
+  compatibility_notes: "Bootstrap-only repository; contracts are established before production implementation."
+
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Create repository navigation, README, agent protocol and project state.", depends_on: [], expected_files: [README.md, AGENTS.md, docs/00_START_HERE.md, PROJECT_STATE.md], status: DONE}
+    - {id: T2, description: "Create Constitution and machine-readable tracking schemas.", depends_on: [T1], expected_files: [docs/09_GOVERNANCE/constitution.md, registry/work-items/_TEMPLATE.yaml, registry/progress/matrix.yaml, registry/dependencies/README.md, registry/capabilities/_TEMPLATE.yaml], status: DONE}
+    - {id: T3, description: "Define development lifecycle, DoR/DoD and testing strategy.", depends_on: [T2], expected_files: [docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md], status: DONE}
+    - {id: T4, description: "Define documentation architecture, development/security rules, threat modeling and ADR process.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/11_ADR/README.md], status: DONE}
+    - {id: T5, description: "Add GitHub templates, capability registry, project scorecard and Phase-0 roadmap.", depends_on: [T3, T4], expected_files: [.github/pull_request_template.md, .github/ISSUE_TEMPLATE/feature.yml, .github/ISSUE_TEMPLATE/bug.yml, registry/capabilities/README.md, docs/13_QUALITY/project-scorecard.md, docs/10_ROADMAP/phase-0.md], status: DONE}
+    - {id: T6, description: "Open/review bootstrap PR and update canonical project state for handover.", depends_on: [T5], expected_files: [PROJECT_STATE.md, registry/work-items/WORK-0001.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
+    - {id: T7, description: "Add scientific specification lifecycle, requirements/assumptions/risks, traceability and reproducibility/backtesting contracts.", depends_on: [T3, T4, T5], expected_files: [docs/13_QUALITY/specification-quality.md, docs/13_QUALITY/reproducibility-backtesting.md, registry/requirements/_TEMPLATE.yaml, registry/assumptions/_TEMPLATE.yaml, registry/risks/_TEMPLATE.yaml, registry/traceability/README.md], status: DONE}
+    - {id: T8, description: "Add assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols; synchronize state.", depends_on: [T7], expected_files: [docs/13_QUALITY/review-council.md, docs/13_QUALITY/assurance-levels.md, docs/13_QUALITY/advanced-verification.md, docs/13_QUALITY/non-functional-requirements.md, docs/12_RESEARCH/research-protocol.md, registry/reviews/_TEMPLATE.yaml, registry/tests/_TEMPLATE.yaml, registry/experiments/_TEMPLATE.yaml, registry/README.md], status: DONE}
+  planned_runs:
+    - {id: RUN-1, objective: "Repository navigation/governance tracking bootstrap", tasks: [T1, T2], exit_condition: "Core resume/tracking contracts exist", status: DONE}
+    - {id: RUN-2, objective: "Quality/lifecycle/GitHub workflow bootstrap", tasks: [T3, T4, T5], exit_condition: "Development gates/templates exist", status: DONE}
+    - {id: RUN-3, objective: "Bootstrap PR review and handover", tasks: [T6], exit_condition: "PR receives final independent/owner review and state is merge-ready", status: IN_REVIEW}
+    - {id: RUN-4, objective: "Scientific/documentation governance hardening", tasks: [T7], exit_condition: "Canonical documentation is governed as rigorously as implementation", status: DONE}
+    - {id: RUN-5, objective: "Assurance, research and advanced verification hardening", tasks: [T8], exit_condition: "Quality dimensions/review evidence are explicit and synchronized", status: DONE}
+
+review_plan:
+  artifact_class: FOUNDATIONAL_GOVERNANCE
+  independence_level: L2_TARGET
+  required_hats:
+    - ARCHITECTURE_REUSE
+    - VERIFICATION_VALIDATION
+    - SECURITY
+    - DATA_EPISTEMIC
+    - PERFORMANCE_SRE
+    - DOCUMENTATION_TRACEABILITY
+    - RED_TEAM_SKEPTIC
+  completed_reviews:
+    - REVIEW-0001
+  open_findings:
+    - "REVIEW-0001/F-3 repository visibility owner action"
+    - "REVIEW-0001/F-5 fresh-context/owner L2 review"
+
+required_tests:
+  unit: []
+  property: []
+  integration: []
+  contract:
+    - "Cross-file consistency review of status vocabulary, paths and registry contracts"
+  e2e:
+    - TEST-0001
+    - "Cold-read specification workflow determines research/review/traceability without chat context"
+  regression:
+    - "Bootstrap-discovered governance defects become WORK-0002 validator fixtures"
+  security:
+    - "Repository visibility reviewed; currently public"
+  performance: []
+  real_system:
+    - "Branch writes performed against actual GitHub repository"
+    - "Dedicated GitHub pull request created and inspected"
+  epistemic:
+    - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
+
+scientific_validation:
+  required: false
+  baseline: null
+  backtest: []
+  temporal_leakage_check: "Protocol documented; no model/forecast implementation exists yet."
+  reproducibility_manifest: null
+  shadow_or_canary: null
+
+observability:
+  required: false
+  logs: []
+  metrics: []
+  traces: []
+  alerts: []
+  slis_slos: []
+
+validation:
+  executed:
+    - "Actual GitHub repository/main inspected"
+    - "Bootstrap branch created from main"
+    - "Bootstrap documents/registries written on real branch"
+    - "Manual resume/read-path consistency review"
+    - "PR #1 opened and diff reviewed"
+    - "Status-vocabulary inconsistency found and corrected"
+    - "Specification-governance gap analysis performed"
+    - "Review/test evidence contracts exercised with REVIEW-0001 and TEST-0001"
+  evidence:
+    - "Git history on bootstrap/ai-governance"
+    - "PR #1"
+    - REVIEW-0001
+    - TEST-0001
+  coverage:
+    line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+    branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+  known_gaps:
+    - "Governance/document/traceability consistency is not yet enforced automatically in CI"
+    - "No CI status checks are currently attached to PR #1"
+    - "Repository visibility remains public until owner action"
+    - "Fresh-context/owner L2 final review pending"
+
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  performance: NONE
+  operational: MEDIUM
+
+rollback:
+  strategy: "Close/revert bootstrap PR; initial README-only state remains recoverable through Git history."
+
+run_log:
+  - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
+  - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
+  - {run: RUN-3, date: "2026-09-10", note: "Opened/reviewed PR #1 and corrected status vocabulary defect; final independent review remains."}
+  - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
+  - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
+
+discoveries:
+  - "Repository visibility is currently public."
+  - "No GitHub status checks are currently attached to PR #1."
+  - "Execution governance alone is insufficient; specification reasoning must be structured, traceable, independently reviewed and falsifiable."
+  - "100% coverage alone is insufficient; test-strength and non-compensable gates are required."
+blockers: []
+follow_up_work_items:
+  - "WORK-0002: automate governance/specification/traceability and architecture fitness validation in CI."
+  - "WORK-0003: configure repository visibility/branch protection/required checks/security settings."
+  - "WORK-0004: inventory all previously validated MONDE capabilities and assign stable CAP IDs."
+  - "Future: implement MONDE Mini, historical event packs and executable epistemic/architecture invariants."
+
+completion:
+  definition_of_ready_checked: true
+  definition_of_done_checked: true
+  specification_gates_checked: true
+  traceability_checked: true
+  review_complete: false
+  docs_updated: true
+  registries_updated: true
+  project_state_updated: true

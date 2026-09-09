@@ -1,0 +1,41 @@
+id: TEST-XXXX
+name: ""
+status: PLANNED
+type: UNIT
+
+protects:
+  requirements: []
+  capabilities: []
+  contracts: []
+  risks: []
+  invariants: []
+
+location:
+  test_path: null
+  suite: null
+
+environment:
+  kind: LOCAL
+  real_dependencies: []
+  mocked_dependencies: []
+
+cases:
+  happy_path: []
+  edge_cases: []
+  failure_modes: []
+  adversarial_cases: []
+
+execution:
+  command_or_workflow: null
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
+
+coverage:
+  line_contribution: null
+  branch_contribution: null
+
+history:
+  created_at: null
+  updated_at: null

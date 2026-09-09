@@ -1,0 +1,54 @@
+id: TEST-0001
+name: "Bootstrap repository resume and governance consistency drill"
+status: PASS
+type: MANUAL_E2E
+
+protects:
+  requirements: []
+  capabilities: []
+  contracts:
+    - "AI resume protocol"
+    - "status vocabulary consistency"
+    - "active work routing"
+  risks:
+    - "AI resumes from stale or incomplete context"
+  invariants:
+    - "Repository state, not chat history, is the source of truth"
+
+environment:
+  kind: REAL_GITHUB_REPOSITORY
+  real_dependencies:
+    - "tobianahillel-afk/monde"
+    - "PR #1"
+  mocked_dependencies: []
+
+cases:
+  happy_path:
+    - "README points to START_HERE/AGENTS/PROJECT_STATE"
+    - "PROJECT_STATE identifies WORK-0001 and PR #1"
+    - "WORK-0001 exposes read_before and next validation state"
+  edge_cases:
+    - "Status vocabulary cross-checked against values used by progress/work records"
+  failure_modes:
+    - "Unknown status token causes governance inconsistency"
+    - "Active work path missing or stale would break resume"
+  adversarial_cases:
+    - "Reviewer assumes initial bootstrap is complete and searches for omitted governance categories"
+
+execution:
+  command_or_workflow: "Manual cold-path/diff review on actual GitHub branch and PR"
+  last_run_at: "2026-09-10"
+  commit_sha: null
+  result: PASS_WITH_FINDINGS_RESOLVED
+  evidence:
+    - "REVIEW-0001/F-1"
+    - "PR #1 diff"
+    - "Status vocabulary correction commits"
+
+coverage:
+  line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+  branch_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"
