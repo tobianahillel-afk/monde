@@ -85,6 +85,7 @@ Registries are machine-readable operational truth.
 
 Use only explicit states:
 
+- `NOT_STARTED`
 - `PROPOSED`
 - `PLANNED`
 - `READY`
@@ -95,6 +96,9 @@ Use only explicit states:
 - `DONE`
 - `DEPRECATED`
 - `CANCELLED`
+- `NOT_APPLICABLE`
+
+`NOT_APPLICABLE` always requires a reason in the owning work item or matrix context.
 
 Never use vague labels such as "basically done".
 
