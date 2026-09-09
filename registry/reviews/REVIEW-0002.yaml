@@ -3,7 +3,7 @@ status: IN_PROGRESS
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-2"
-  commit_sha: null
+  commit_sha: "c074a3faf5a8928472ea468d37cdbfc8f32d577f"
 reviewer:
   actor: "AI WORK-0002 reviewer"
   context_id: "same-context-work-0002"
@@ -46,11 +46,13 @@ findings:
   - id: F-3
     severity: R2_MAJOR
     category: PATH_BOUNDARY
-    description: "Path validation checks existence but does not yet reject absolute or traversal/symlink paths resolving outside repository root."
+    description: "Path validation originally checked existence but did not reject absolute or traversal/symlink paths resolving outside repository root."
     evidence:
       - "validate_paths and validate_markdown code review"
-    disposition: OPEN
-    resolved_by: null
+      - "tests/governance/test_path_safety.py"
+      - "GitHub Actions run 34418747551"
+    disposition: RESOLVED
+    resolved_by: "Added deterministic path-safety gate for YAML declarations and Markdown links, including traversal/absolute/symlink escapes; regression tests retain 100 percent line/branch coverage."
   - id: F-4
     severity: R3_MODERATE
     category: SUPPLY_CHAIN_SECURITY
@@ -65,23 +67,33 @@ findings:
     description: "PR CI necessarily executes repository test code on a hosted runner."
     evidence:
       - ".github/workflows/governance.yml"
-      - "GitHub Actions run logs"
+      - "GitHub Actions run 34418747551 logs"
     disposition: ACCEPTED
-    resolved_by: "Use GitHub-hosted runner, pull_request event, read-only contents token, no repository secrets, no privileged/self-hosted runner, and checkout credentials removed after checkout."
+    resolved_by: "Use GitHub-hosted runner, pull_request event, read-only contents token, no repository secrets, no privileged/self-hosted runner, immutable actions, and non-persisted checkout credentials."
   - id: F-6
     severity: R3_MODERATE
     category: SCHEMA_DEPTH
     description: "Current validator enforces selected deterministic invariants but does not yet validate every registry field through formal JSON Schema."
     evidence:
-      - "WORK-0002 scope and validator implementation"
+      - "WORK-0002 bounded scope"
+      - "validator implementation"
     disposition: TRACKED_FOLLOWUP
     resolved_by: "Keep this deterministic first slice bounded; add machine-readable JSON Schema validation as registries stabilize."
+  - id: F-7
+    severity: R4_LOW
+    category: SELF_ENFORCEMENT
+    description: "During hardening, CI correctly failed when WORK-0002 referenced REVIEW-0002 before that registry record existed."
+    evidence:
+      - "GitHub Actions run 34418545142"
+    disposition: RESOLVED
+    resolved_by: "Created REVIEW-0002 as the declared review artifact; subsequent hardened run is green. This demonstrates cross-record enforcement on the actual repository."
 
 checks:
   assumptions_challenged:
-    - "A green 100% coverage run proves the validator has no security boundary flaws."
+    - "A green 100 percent coverage run proves the validator has no security boundary flaws."
     - "File existence alone is sufficient path validation."
     - "Mutable action major tags are adequate for a repository-wide hard gate."
+    - "An expected registry artifact may safely remain only a prose promise."
   omitted_categories_considered:
     - "supply-chain integrity"
     - "path traversal and symlink escape"
@@ -91,7 +103,7 @@ checks:
     - "false-positive and false-negative governance behavior"
     - "schema validation depth"
   duplicate_or_reuse_search:
-    - "Validator remains a single deterministic module and reuses existing registry contracts rather than introducing a parallel state system."
+    - "Existing governance contracts and validator architecture were reused; path containment was added as a small deterministic companion rule module rather than a second state system."
   failure_modes_considered:
     - "malformed YAML"
     - "unknown/duplicate IDs"
@@ -101,12 +113,13 @@ checks:
     - "repository path escape"
     - "dependency/action supply-chain drift"
     - "untrusted PR code execution"
+    - "declared evidence record missing"
   evidence_requested:
-    - "green final-head GitHub Actions run"
-    - "path-containment regression tests"
-    - "fresh-context L2 review before final completion claim"
+    - "green hardened GitHub Actions run: satisfied by 34418747551"
+    - "path-containment regression tests: satisfied"
+    - "fresh-context L2 review before final completion claim: still required"
 
-outcome: CHANGES_REQUIRED
+outcome: L2_REVIEW_REQUIRED
 completed_at: null
 
 history:
