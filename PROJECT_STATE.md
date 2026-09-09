@@ -47,14 +47,24 @@ Goal: make MONDE safely resumable and developable by AI agents without relying o
 - ADR process defined.
 - PR and feature/bug issue templates created.
 - 50-criterion / 100-point engineering scorecard created.
-- Bootstrap PR #1 opened for review.
+- Phase-0 roadmap created.
+- Follow-up work items created for governance automation, repository protections and historical capability inventory.
+- Bootstrap PR #1 opened and received structured self-review; one status-vocabulary inconsistency was found and fixed.
 
 ## Remaining before SUBLOT-0.1 is complete
 
-- Review PR #1 against scope/reuse, architecture, testing, security, documentation/handover gates.
-- Resolve any review findings.
-- Update `WORK-0001` and progress matrix with review result.
+- Owner/final review of PR #1.
+- Resolve any additional review findings.
 - Merge only when review gates are satisfied.
+- After merge, update `WORK-0001`/progress state to `DONE` and activate the next approved work item explicitly.
+
+## Planned next work
+
+- `WORK-0002` / `SUBLOT-0.2` — automate governance validation in CI.
+- `WORK-0003` / `SUBLOT-0.3` — configure repository visibility, branch protection, required checks and merge policy.
+- `WORK-0004` / `LOT-1 / SUBLOT-1.1` — inventory every previously validated MONDE capability and assign stable CAP IDs.
+
+No planned work item becomes active automatically.
 
 ## Blockers / owner actions
 
@@ -64,9 +74,13 @@ Repository visibility was observed as **public** on 2026-09-10. MONDE is expecte
 
 This connector does not expose a repository-visibility mutation, so this setting has not been changed automatically.
 
+### Repository protection
+
+No CI status checks are currently attached to PR #1. Branch protection/security settings still require `WORK-0002`/`WORK-0003` and owner configuration where GitHub permissions/settings are not exposed through the current connector.
+
 ## Next action
 
-Perform structured review of PR #1. Do not start product capability implementation until SUBLOT-0.1 is merged/completed and the next work item is explicitly activated.
+Owner/final review of PR #1. Do not start product capability implementation until SUBLOT-0.1 is merged/completed and the next work item is explicitly activated.
 
 ## Resume instructions
 
