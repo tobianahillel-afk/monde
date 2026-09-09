@@ -1,0 +1,55 @@
+version: 1
+updated_at: "2026-09-10"
+
+status_vocabulary:
+  - PROPOSED
+  - PLANNED
+  - READY
+  - IN_PROGRESS
+  - PARTIAL
+  - BLOCKED
+  - IN_REVIEW
+  - DONE
+  - DEPRECATED
+  - CANCELLED
+
+phases:
+  PHASE-0:
+    name: "Specification and repository governance"
+    status: IN_PROGRESS
+    lots:
+      LOT-0:
+        name: "AI-first repository operating system"
+        status: IN_PROGRESS
+        sublots:
+          SUBLOT-0.1:
+            name: "Governance bootstrap"
+            status: IN_PROGRESS
+            work_items:
+              WORK-0001:
+                status: IN_PROGRESS
+                docs: PARTIAL
+                implementation: NOT_APPLICABLE
+                tests: PARTIAL
+                security_review: PARTIAL
+                real_system_validation: PARTIAL
+                review: NOT_STARTED
+                dependencies: DONE
+                handover: PARTIAL
+
+quality_dimensions:
+  documentation_current: PARTIAL
+  capability_registry_current: NOT_STARTED
+  dependency_registry_current: PARTIAL
+  work_item_tracking_current: PARTIAL
+  test_strategy_defined: NOT_STARTED
+  security_rules_defined: NOT_STARTED
+  adr_process_defined: NOT_STARTED
+  project_state_resumable: PARTIAL
+  github_workflow_defined: NOT_STARTED
+
+rules:
+  - "Every active work item must appear in this matrix."
+  - "A work item cannot be DONE while any mandatory applicable dimension is NOT_STARTED, PARTIAL, BLOCKED or IN_REVIEW."
+  - "NOT_APPLICABLE requires justification in the work item."
+  - "Agents update this matrix in the same PR that changes work status."
