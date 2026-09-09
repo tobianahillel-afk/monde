@@ -1,0 +1,73 @@
+name: MONDE feature / work proposal
+description: Propose a capability, engine, data source, architecture or implementation work item.
+title: "[PROPOSAL] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not start implementation from this issue alone. Accepted implementation work must be represented by a `registry/work-items/WORK-*.yaml` entry.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / opportunity
+      description: What exact problem should MONDE solve?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe observable behavior/value, not implementation preference.
+    validations:
+      required: true
+  - type: textarea
+    id: existing
+    attributes:
+      label: Existing capabilities/components to reuse
+      description: List CAP IDs, engines, schemas or similar work already searched.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies / affected areas
+      description: Data, engines, schemas, experiences, permissions, models or external systems involved.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Proposed acceptance criteria
+      description: What must be demonstrably true for this work to be complete?
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Highest apparent risk class
+      options:
+        - Standard
+        - Data / provenance
+        - Security
+        - Performance / scale
+        - High-risk capability
+        - Unknown / needs review
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Real-world validation needed
+      description: Browser, API, database, model, dataset, external service or environment that must be tested for real.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Proposal checks
+      options:
+        - label: I searched for an existing capability/work item before proposing a duplicate.
+          required: true
+        - label: I described what should be achieved rather than silently expanding another work item's scope.
+          required: true
