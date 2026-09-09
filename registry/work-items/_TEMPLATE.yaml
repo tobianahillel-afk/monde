@@ -24,6 +24,11 @@ requirements: []
 assumptions: []
 risks: []
 
+assurance:
+  level: A2
+  rationale: ""
+  escalation_triggers: []
+
 read_before: []
 depends_on: []
 blocks: []
@@ -119,6 +124,7 @@ blockers: []
 follow_up_work_items: []
 
 completion:
+  definition_of_ready_checked: false
   definition_of_done_checked: false
   specification_gates_checked: false
   traceability_checked: false
