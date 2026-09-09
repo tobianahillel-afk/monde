@@ -25,6 +25,8 @@ scope:
     - "work-item tracking"
     - "specification quality"
     - "traceability"
+    - "assurance levels"
+    - "review/test/experiment evidence"
   risks: []
 
 findings:
@@ -33,7 +35,7 @@ findings:
     category: CONSISTENCY
     description: "Progress matrix used NOT_STARTED/NOT_APPLICABLE before canonical status vocabulary declared them."
     evidence:
-      - "PR #1 diff review"
+      - "PR #1 initial diff review"
     disposition: RESOLVED
     resolved_by: "Status vocabulary and START_HERE were corrected on bootstrap branch."
   - id: F-2
@@ -44,7 +46,7 @@ findings:
       - "No PR status checks observed"
       - "WORK-0002"
     disposition: TRACKED_FOLLOWUP
-    resolved_by: "WORK-0002 planned"
+    resolved_by: "WORK-0002 planned and expanded to validate specifications/traceability/review evidence."
   - id: F-3
     severity: R2_MAJOR
     category: SECURITY
@@ -70,14 +72,33 @@ findings:
       - "Review Council independence policy"
     disposition: OPEN
     resolved_by: null
+  - id: F-6
+    severity: R2_MAJOR
+    category: PROCESS_DRIFT
+    description: "The PR template still reflected the pre-assurance process and could let future contributors omit REQ/ASM/RISK, assurance, scientific validation and Review Council evidence."
+    evidence:
+      - ".github/pull_request_template.md second-pass diff inspection"
+    disposition: RESOLVED
+    resolved_by: "PR template synchronized with DoR, assurance, specification, scientific/backtest, NFR, threat-model, observability and hard-gate checks."
+  - id: F-7
+    severity: R3_MODERATE
+    category: PROPOSAL_QUALITY
+    description: "Feature proposal template did not force assumptions, external research needs, NFRs or review perspectives."
+    evidence:
+      - ".github/ISSUE_TEMPLATE/feature.yml second-pass inspection"
+    disposition: RESOLVED
+    resolved_by: "Feature proposal template expanded with existing-semantics search, assumptions, risks, research, NFR, assurance and validation/review fields."
 
 checks:
   assumptions_challenged:
     - "Detailed documentation alone is sufficient governance"
     - "100% coverage alone proves test strength"
     - "One aggregate score can safely represent project quality"
+    - "Process templates automatically stay synchronized when governance evolves"
+    - "Author self-review is enough for foundational governance"
   omitted_categories_considered:
     - "specification quality"
+    - "Definition of Ready"
     - "requirements"
     - "assumptions"
     - "risk"
@@ -85,9 +106,12 @@ checks:
     - "security threat modeling"
     - "performance/SRE/NFR"
     - "research provenance"
+    - "advanced verification/test strength"
+    - "observability/operations"
     - "independent review"
   duplicate_or_reuse_search:
-    - "New governance concepts were integrated into existing WORK/DoD/AGENTS/process rather than creating a parallel development workflow."
+    - "New governance concepts were integrated into existing WORK/DoD/AGENTS/development process rather than creating a parallel process."
+    - "Registry index centralizes ID namespaces rather than creating independent undocumented registries."
   failure_modes_considered:
     - "stale project state"
     - "duplicate capability implementation"
@@ -96,6 +120,9 @@ checks:
     - "hidden assumptions"
     - "critical weakness hidden by aggregate score"
     - "security review performed too late"
+    - "process/template drift"
+    - "documentation accepted without testable semantics"
+    - "AI starting implementation before sufficient context exists"
   evidence_requested:
     - "Fresh-context/owner review of PR #1"
     - "Governance CI implementation in WORK-0002"
