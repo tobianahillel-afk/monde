@@ -1,0 +1,102 @@
+id: WORK-0002
+title: "Automate repository governance validation"
+status: PLANNED
+phase: PHASE-0
+lot: LOT-0
+sublot: SUBLOT-0.2
+created_at: "2026-09-10"
+updated_at: "2026-09-10"
+
+purpose: |
+  Turn the governance contracts introduced by WORK-0001 into executable CI checks so repository state cannot silently drift.
+
+scope:
+  in:
+    - validate YAML/registry structure
+    - validate allowed statuses
+    - validate unique immutable IDs
+    - validate referenced work/capability/dependency IDs
+    - validate read_before paths
+    - validate PROJECT_STATE active work references
+    - validate documentation links where practical
+    - validate DONE work-item completion requirements
+    - introduce CI workflow and tests for the validator
+  out:
+    - product implementation
+    - full language/toolchain CI for future application code
+
+acceptance_criteria:
+  - id: AC-1
+    description: "Invalid registry/status/reference/path state fails CI with actionable diagnostics."
+    status: NOT_STARTED
+  - id: AC-2
+    description: "Governance validator itself has 100% meaningful line and branch coverage."
+    status: NOT_STARTED
+  - id: AC-3
+    description: "CI executes on pull requests and protects against regressions in canonical repository state."
+    status: NOT_STARTED
+
+read_before:
+  - AGENTS.md
+  - docs/00_START_HERE.md
+  - docs/03_ARCHITECTURE/documentation-architecture.md
+  - docs/09_GOVERNANCE/development-rules.md
+  - docs/10_ROADMAP/development-process.md
+  - docs/13_QUALITY/testing-strategy.md
+  - registry/work-items/_TEMPLATE.yaml
+  - registry/progress/matrix.yaml
+
+depends_on: [WORK-0001]
+blocks: []
+reuses:
+  - "status vocabulary"
+  - "work-item registry contract"
+  - "capability registry contract"
+affected_capabilities: []
+affected_engines: []
+affected_schemas: []
+affected_docs: []
+contracts:
+  - "repository governance validation"
+adrs: []
+
+implementation_plan:
+  tasks: []
+  planned_runs: []
+
+required_tests:
+  unit: ["validator rules"]
+  integration: ["validator against repository fixtures"]
+  contract: ["registry schemas/status/reference integrity"]
+  e2e: ["GitHub Actions PR validation"]
+  regression: []
+  security: ["workflow permissions and untrusted PR input review"]
+  performance: ["validator remains fast on repository scale"]
+  real_system: ["actual GitHub Actions run on this repository"]
+
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: []
+
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: LOW
+  performance: LOW
+  operational: MEDIUM
+
+rollback:
+  strategy: "Revert workflow/validator changes while retaining WORK-0001 documentation contracts."
+
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion:
+  definition_of_done_checked: false
+  review_complete: false
+  docs_updated: false
+  registries_updated: false
+  project_state_updated: false
