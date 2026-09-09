@@ -1,4 +1,4 @@
-version: 1
+version: 2
 updated_at: "2026-09-10"
 
 status_vocabulary:
@@ -31,12 +31,15 @@ phases:
               WORK-0001:
                 status: IN_REVIEW
                 docs: DONE
+                specification_governance: DONE
                 implementation: NOT_APPLICABLE
                 tests: PARTIAL
+                scientific_validation: NOT_APPLICABLE
                 security_review: PARTIAL
                 real_system_validation: PARTIAL
                 review: IN_REVIEW
                 dependencies: DONE
+                traceability: DONE
                 handover: DONE
           SUBLOT-0.2:
             name: "Governance automation"
@@ -45,12 +48,15 @@ phases:
               WORK-0002:
                 status: PLANNED
                 docs: PARTIAL
+                specification_governance: PARTIAL
                 implementation: NOT_STARTED
                 tests: NOT_STARTED
+                scientific_validation: NOT_APPLICABLE
                 security_review: NOT_STARTED
                 real_system_validation: NOT_STARTED
                 review: NOT_STARTED
                 dependencies: PLANNED
+                traceability: PARTIAL
                 handover: NOT_STARTED
           SUBLOT-0.3:
             name: "Repository protection and merge discipline"
@@ -59,12 +65,15 @@ phases:
               WORK-0003:
                 status: PLANNED
                 docs: PARTIAL
+                specification_governance: PARTIAL
                 implementation: NOT_APPLICABLE
                 tests: NOT_STARTED
+                scientific_validation: NOT_APPLICABLE
                 security_review: NOT_STARTED
                 real_system_validation: NOT_STARTED
                 review: NOT_STARTED
                 dependencies: PLANNED
+                traceability: PARTIAL
                 handover: NOT_STARTED
       LOT-1:
         name: "Canonical product inventory"
@@ -77,16 +86,37 @@ phases:
               WORK-0004:
                 status: PLANNED
                 docs: PARTIAL
+                specification_governance: READY
                 implementation: NOT_APPLICABLE
                 tests: NOT_STARTED
+                scientific_validation: NOT_APPLICABLE
                 security_review: NOT_STARTED
                 real_system_validation: NOT_APPLICABLE
                 review: NOT_STARTED
                 dependencies: PLANNED
+                traceability: NOT_STARTED
                 handover: NOT_STARTED
 
 quality_dimensions:
   documentation_current: DONE
+  documentation_architecture_defined: DONE
+  specification_quality_protocol_defined: DONE
+  definition_of_ready_defined: DONE
+  definition_of_done_defined: DONE
+  requirements_registry_contract: DONE
+  assumptions_registry_contract: DONE
+  risk_registry_contract: DONE
+  review_registry_contract: DONE
+  test_registry_contract: DONE
+  experiment_registry_contract: DONE
+  traceability_contract: DONE
+  review_council_defined: DONE
+  assurance_levels_defined: DONE
+  non_functional_requirements_defined: DONE
+  advanced_verification_defined: DONE
+  reproducibility_backtesting_defined: DONE
+  research_protocol_defined: DONE
+  threat_modeling_protocol_defined: DONE
   capability_registry_current: PARTIAL
   dependency_registry_current: PARTIAL
   work_item_tracking_current: DONE
@@ -96,6 +126,9 @@ quality_dimensions:
   project_state_resumable: DONE
   github_workflow_defined: DONE
   governance_ci_enforced: NOT_STARTED
+  architecture_fitness_functions_enforced: NOT_STARTED
+  automated_traceability_validation: NOT_STARTED
+  automated_specification_validation: NOT_STARTED
   product_capability_inventory: NOT_STARTED
 
 rules:
@@ -104,3 +137,4 @@ rules:
   - "NOT_APPLICABLE requires justification in the work item."
   - "Agents update this matrix in the same PR that changes work status."
   - "Policy/documentation may be DONE while automated enforcement remains separately PARTIAL/NOT_STARTED; do not conflate definition with enforcement."
+  - "Applicable hard gates are non-compensable regardless of aggregate quality score."
