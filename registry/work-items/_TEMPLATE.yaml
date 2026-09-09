@@ -1,0 +1,87 @@
+id: WORK-XXXX
+title: ""
+status: PROPOSED
+phase: PHASE-X
+lot: LOT-X
+sublot: SUBLOT-X.Y
+owner: null
+created_at: null
+updated_at: null
+
+purpose: |
+  Describe the exact engineering objective and why it exists.
+
+scope:
+  in: []
+  out: []
+
+acceptance_criteria:
+  - id: AC-1
+    description: ""
+    status: NOT_STARTED
+
+read_before: []
+depends_on: []
+blocks: []
+reuses: []
+affected_capabilities: []
+affected_engines: []
+affected_schemas: []
+affected_docs: []
+contracts: []
+adrs: []
+
+implementation_plan:
+  tasks:
+    - id: T1
+      description: ""
+      depends_on: []
+      expected_files: []
+      status: NOT_STARTED
+  planned_runs:
+    - id: RUN-1
+      objective: ""
+      tasks: []
+      exit_condition: ""
+      status: NOT_STARTED
+
+required_tests:
+  unit: []
+  integration: []
+  contract: []
+  e2e: []
+  regression: []
+  security: []
+  performance: []
+  real_system: []
+
+validation:
+  executed: []
+  evidence: []
+  coverage:
+    line: null
+    branch: null
+  known_gaps: []
+
+risk:
+  security: NONE
+  data: NONE
+  epistemic: NONE
+  performance: NONE
+  operational: NONE
+
+rollback:
+  strategy: ""
+
+run_log: []
+
+discoveries: []
+blockers: []
+follow_up_work_items: []
+
+completion:
+  definition_of_done_checked: false
+  review_complete: false
+  docs_updated: false
+  registries_updated: false
+  project_state_updated: false
