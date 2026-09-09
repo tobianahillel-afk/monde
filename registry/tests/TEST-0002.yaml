@@ -1,0 +1,70 @@
+id: TEST-0002
+name: "Governance validator deterministic unit and branch suite"
+status: PASS
+type: UNIT_INTEGRATION
+
+protects:
+  requirements: []
+  capabilities: []
+  contracts:
+    - "repository governance validation"
+    - "registry status/reference/path integrity"
+    - "work dependency and completion gates"
+  risks:
+    - "validator silently accepts malformed repository state"
+    - "100 percent coverage is achieved without failure-path coverage"
+  invariants:
+    - "deterministic governance rules return actionable failures"
+
+location:
+  test_path: tests/governance/test_validate_repo.py
+  suite: governance
+
+environment:
+  kind: LOCAL_ISOLATED_FIXTURES
+  real_dependencies: []
+  mocked_dependencies: []
+
+cases:
+  happy_path:
+    - "clean representative repository passes"
+    - "valid task dependencies and future review dates pass"
+  edge_cases:
+    - "template registry files are ignored"
+    - "terminal work cannot remain active"
+    - "relative Markdown anchors/external URLs are ignored correctly"
+    - "non-mapping progress states are detected"
+  failure_modes:
+    - "YAML parse errors"
+    - "invalid record shape/id prefix/duplicate id/status"
+    - "unknown registry references"
+    - "missing or malformed read_before/affected paths"
+    - "work dependency cycles and invalid task/run references"
+    - "incomplete DONE work"
+    - "overdue/invalid assumption and risk dates"
+    - "canonical TODO/TBD/FIXME and broken Markdown links"
+    - "missing/inconsistent progress matrix"
+    - "missing/stale/unknown active project work"
+  adversarial_cases:
+    - "malformed scalar/list structures where mappings are expected"
+    - "duplicate stable IDs"
+    - "bogus status values"
+
+execution:
+  command_or_workflow: "python -m pytest --cov=tools.governance --cov-branch --cov-report=term-missing"
+  last_run_at: "2026-09-10"
+  commit_sha: "3b4cf905d25a90ccba4613210b320308140d64d4"
+  result: PASS
+  evidence:
+    - "21 tests passed"
+    - "297/297 statements covered"
+    - "158/158 branches covered"
+    - "Total coverage 100.00%"
+
+coverage:
+  line_contribution: 100
+  branch_contribution: 100
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"
