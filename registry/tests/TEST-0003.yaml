@@ -1,5 +1,5 @@
 id: TEST-0003
-name: "Governance validator real-repository GitHub Actions execution"
+name: "Governance real-repository GitHub Actions execution"
 status: PASS
 type: REAL_SYSTEM_E2E
 
@@ -9,11 +9,14 @@ protects:
   contracts:
     - "repository governance validation"
     - "CI quality gate"
+    - "repository path containment"
   risks:
     - "validator passes fixtures but fails on the actual MONDE repository"
     - "GitHub workflow configuration does not execute successfully"
+    - "supply-chain or path-safety hardening breaks reproducible execution"
   invariants:
     - "actual repository state satisfies implemented deterministic governance checks"
+    - "test suite retains 100 percent line and branch coverage"
 
 location:
   test_path: .github/workflows/governance.yml
@@ -22,32 +25,42 @@ location:
 environment:
   kind: REAL_GITHUB_ACTIONS
   real_dependencies:
-    - "GitHub Actions"
+    - "GitHub Actions ubuntu-24.04 hosted runner"
+    - "Python 3.13.15"
     - "tobianahillel-afk/monde PR #2"
   mocked_dependencies: []
 
 cases:
   happy_path:
-    - "checkout actual PR head"
-    - "install package/test dependencies"
+    - "checkout actual PR merge ref"
+    - "install exact pinned governance dependency set"
     - "execute full pytest coverage suite"
-    - "execute validator against repository root"
+    - "execute main governance validator against repository root"
+    - "execute path-safety validator against repository root"
   edge_cases:
-    - "workflow runs with repository contents read-only permission"
+    - "workflow uses repository contents read-only token"
+    - "checkout credentials are not persisted"
+    - "GitHub Actions dependencies are pinned to immutable commit SHAs"
   failure_modes:
     - "test/coverage failure blocks job"
     - "governance validation error returns non-zero and blocks job"
+    - "path-safety error returns non-zero and blocks job"
   adversarial_cases:
     - "workflow does not require repository secrets"
+    - "workflow runs on GitHub-hosted rather than privileged self-hosted runner"
     - "validator parses repository content as data and does not eval it"
 
 execution:
-  command_or_workflow: "GitHub Actions workflow Governance, run 34418172466"
+  command_or_workflow: "GitHub Actions workflow Governance, run 34418747551"
   last_run_at: "2026-09-10"
-  commit_sha: "3b4cf905d25a90ccba4613210b320308140d64d4"
+  commit_sha: "c074a3faf5a8928472ea468d37cdbfc8f32d577f"
   result: PASS
   evidence:
-    - "workflow run 34418172466 status=completed conclusion=success"
+    - "workflow run 34418747551 completed successfully"
+    - "30 tests passed in GitHub Actions"
+    - "386 statements and 196 branches at 100 percent coverage"
+    - "MONDE governance validation: 0 errors, 0 warnings, 9 records"
+    - "MONDE path-safety validation: 0 errors"
     - "PR #2"
 
 coverage:
