@@ -24,32 +24,35 @@ phases:
         sublots:
           SUBLOT-0.1:
             name: "Governance bootstrap"
-            status: IN_PROGRESS
+            status: IN_REVIEW
             work_items:
               WORK-0001:
-                status: IN_PROGRESS
-                docs: PARTIAL
+                status: IN_REVIEW
+                docs: DONE
                 implementation: NOT_APPLICABLE
                 tests: PARTIAL
                 security_review: PARTIAL
                 real_system_validation: PARTIAL
-                review: NOT_STARTED
+                review: IN_REVIEW
                 dependencies: DONE
-                handover: PARTIAL
+                handover: DONE
 
 quality_dimensions:
-  documentation_current: PARTIAL
-  capability_registry_current: NOT_STARTED
+  documentation_current: DONE
+  capability_registry_current: PARTIAL
   dependency_registry_current: PARTIAL
-  work_item_tracking_current: PARTIAL
-  test_strategy_defined: NOT_STARTED
-  security_rules_defined: NOT_STARTED
-  adr_process_defined: NOT_STARTED
-  project_state_resumable: PARTIAL
-  github_workflow_defined: NOT_STARTED
+  work_item_tracking_current: DONE
+  test_strategy_defined: DONE
+  security_rules_defined: DONE
+  adr_process_defined: DONE
+  project_state_resumable: DONE
+  github_workflow_defined: DONE
+  governance_ci_enforced: NOT_STARTED
+  product_capability_inventory: NOT_STARTED
 
 rules:
   - "Every active work item must appear in this matrix."
   - "A work item cannot be DONE while any mandatory applicable dimension is NOT_STARTED, PARTIAL, BLOCKED or IN_REVIEW."
   - "NOT_APPLICABLE requires justification in the work item."
   - "Agents update this matrix in the same PR that changes work status."
+  - "Policy/documentation may be DONE while automated enforcement remains separately PARTIAL/NOT_STARTED; do not conflate definition with enforcement."
