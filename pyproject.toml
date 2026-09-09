@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools==82.0.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,10 +7,10 @@ name = "monde-governance"
 version = "0.1.0"
 description = "Deterministic repository governance validator for MONDE"
 requires-python = ">=3.12"
-dependencies = ["PyYAML>=6.0.2,<7"]
+dependencies = ["PyYAML==6.0.3"]
 
 [project.optional-dependencies]
-test = ["pytest>=9,<10", "pytest-cov>=7,<8"]
+test = ["pytest==9.0.2", "pytest-cov==7.0.0", "coverage==7.13.3"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
