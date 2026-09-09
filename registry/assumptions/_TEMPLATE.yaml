@@ -1,0 +1,37 @@
+id: ASM-XXXX
+title: ""
+status: OPEN
+statement: ""
+
+context:
+  why_needed: ""
+  introduced_by_work: null
+  related_requirements: []
+  affected_capabilities: []
+  affected_engines: []
+
+confidence:
+  level: LOW
+  evidence: []
+  counter_evidence: []
+
+impact_if_false:
+  severity: MEDIUM
+  description: ""
+  affected_outputs: []
+
+validation:
+  method: ""
+  evidence_needed: []
+  owner: null
+  target_date: null
+  expiry_or_review_condition: ""
+
+resolution:
+  outcome: null
+  resolved_at: null
+  superseded_by: null
+
+history:
+  created_at: null
+  updated_at: null
