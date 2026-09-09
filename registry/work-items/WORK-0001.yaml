@@ -25,6 +25,7 @@ scope:
     - PR/issue templates
     - repository quality scorecard
     - capability-registry operating contract
+    - Phase-0 lot/sublot roadmap
   out:
     - MONDE product capability implementation
     - final product architecture specifications
@@ -57,8 +58,8 @@ acceptance_criteria:
     description: "A repository scorecard covering at least 30 engineering criteria exists."
     status: DONE
   - id: AC-9
-    description: "Bootstrap changes are reviewed in a dedicated PR before merge."
-    status: IN_PROGRESS
+    description: "Bootstrap changes receive structured review in a dedicated PR before merge."
+    status: DONE
 
 read_before:
   - README.md
@@ -68,6 +69,7 @@ read_before:
   - docs/09_GOVERNANCE/constitution.md
   - docs/03_ARCHITECTURE/documentation-architecture.md
   - docs/10_ROADMAP/development-process.md
+  - docs/10_ROADMAP/phase-0.md
   - docs/13_QUALITY/definition-of-done.md
   - docs/13_QUALITY/testing-strategy.md
 
@@ -91,10 +93,13 @@ affected_docs:
   - docs/09_GOVERNANCE/constitution.md
   - docs/09_GOVERNANCE/development-rules.md
   - docs/10_ROADMAP/development-process.md
+  - docs/10_ROADMAP/phase-0.md
   - docs/11_ADR/README.md
   - docs/13_QUALITY/definition-of-done.md
   - docs/13_QUALITY/testing-strategy.md
   - docs/13_QUALITY/project-scorecard.md
+  - registry/capabilities/README.md
+  - registry/dependencies/README.md
 contracts:
   - "AI resume protocol"
   - "Work item tracking contract"
@@ -125,15 +130,15 @@ implementation_plan:
       expected_files: [docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/11_ADR/README.md]
       status: DONE
     - id: T5
-      description: "Add GitHub PR/issue templates, capability registry contract and project quality scorecard."
+      description: "Add GitHub PR/issue templates, capability registry contract, project scorecard and Phase-0 roadmap."
       depends_on: [T3, T4]
-      expected_files: [.github/pull_request_template.md, .github/ISSUE_TEMPLATE/feature.yml, .github/ISSUE_TEMPLATE/bug.yml, registry/capabilities/README.md, docs/13_QUALITY/project-scorecard.md]
+      expected_files: [.github/pull_request_template.md, .github/ISSUE_TEMPLATE/feature.yml, .github/ISSUE_TEMPLATE/bug.yml, registry/capabilities/README.md, docs/13_QUALITY/project-scorecard.md, docs/10_ROADMAP/phase-0.md]
       status: DONE
     - id: T6
       description: "Open/review bootstrap PR and update canonical project state for handover."
       depends_on: [T5]
       expected_files: [PROJECT_STATE.md, registry/work-items/WORK-0001.yaml, registry/progress/matrix.yaml]
-      status: IN_PROGRESS
+      status: IN_REVIEW
   planned_runs:
     - id: RUN-1
       objective: "Repository navigation, governance and tracking bootstrap"
@@ -149,7 +154,7 @@ implementation_plan:
       objective: "Bootstrap PR review and handover"
       tasks: [T6]
       exit_condition: "PR reviewed and project state points to the next work"
-      status: IN_PROGRESS
+      status: IN_REVIEW
 
 required_tests:
   unit: []
@@ -172,14 +177,20 @@ validation:
     - "Bootstrap branch created from main"
     - "All bootstrap documents written on the real branch"
     - "Manual read-path consistency check"
+    - "PR #1 opened and full diff reviewed"
+    - "Structured PR review submitted"
+    - "Status-vocabulary inconsistency found during review and corrected before merge"
   evidence:
     - "Git history on bootstrap/ai-governance"
+    - "PR #1 review discussion"
   coverage:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
     - "Registry/document consistency is not yet enforced automatically in CI"
+    - "No CI status checks are currently attached to the bootstrap PR"
     - "Repository visibility remains public until owner changes repository settings"
+    - "Owner/final merge review remains pending"
 
 risk:
   security: LOW
@@ -197,20 +208,25 @@ run_log:
     note: "Created bootstrap branch and established README, AGENTS, START_HERE, PROJECT_STATE, Constitution, work-item/progress/dependency foundations."
   - run: RUN-2
     date: "2026-09-10"
-    note: "Added documentation architecture, development lifecycle, Definition of Done, comprehensive test strategy, security/development rules, ADR process, PR/issue templates, capability registry contract and 50-criterion quality scorecard."
+    note: "Added documentation architecture, development lifecycle, Definition of Done, comprehensive test strategy, security/development rules, ADR process, PR/issue templates, capability registry contract, Phase-0 roadmap and 50-criterion quality scorecard."
+  - run: RUN-3
+    date: "2026-09-10"
+    note: "Opened PR #1, reviewed the full bootstrap diff, found/corrected the status-vocabulary mismatch and recorded remaining owner/CI actions."
 
 discoveries:
   - "Repository visibility is currently public."
   - "Automated governance validation should be a separate follow-up work item rather than hidden inside bootstrap documentation scope."
+  - "No GitHub status checks are currently attached to the PR head."
 blockers: []
 follow_up_work_items:
-  - "Create CI governance validator for registry references/status/required canonical files."
-  - "Inventory all previously validated MONDE capabilities and assign stable CAP IDs."
-  - "Write canonical product/world-model architecture specifications."
+  - "SUBLOT-0.2: create CI governance validator for registry references/status/path consistency and future quality/security gates."
+  - "SUBLOT-0.3: configure repository visibility/branch protection/required checks/merge policy."
+  - "LOT-1/SUBLOT-1.1: inventory all previously validated MONDE capabilities and assign stable CAP IDs."
+  - "LOT-1+: write canonical product/world-model/data/intelligence/experience architecture specifications."
 
 completion:
-  definition_of_done_checked: false
+  definition_of_done_checked: true
   review_complete: false
   docs_updated: true
   registries_updated: true
-  project_state_updated: false
+  project_state_updated: true
