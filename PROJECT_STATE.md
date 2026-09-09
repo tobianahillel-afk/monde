@@ -26,7 +26,7 @@ Goal: make MONDE safely resumable and developable by AI agents without relying o
 ## Current branch / PR
 
 - Branch: `bootstrap/ai-governance`
-- Pull request: `#1 — docs: bootstrap AI-first MONDE repository governance`
+- Pull request: `#1 — docs: bootstrap AI-first MONDE repository governance and assurance`
 
 ## Current status
 
@@ -34,44 +34,50 @@ Goal: make MONDE safely resumable and developable by AI agents without relying o
 
 ## Completed in this sublot
 
-- Product-level README expanded.
-- Mandatory `AGENTS.md` protocol created.
-- Canonical START_HERE reading/resume protocol created.
-- MONDE Constitution created.
-- Documentation architecture created.
-- Machine-readable work-item/progress/dependency/capability registry contracts created.
-- Machine-readable `REQ-*`, `ASM-*`, `RISK-*`, `REVIEW-*`, `TEST-*` and `EXP-*` contracts created.
-- Canonical registry index and end-to-end traceability contract created.
-- Phase → lot → sublot → work item → task → run development lifecycle defined.
-- Definition of Ready and Definition of Done defined.
-- Canonical Specification Quality Protocol created for documentation/spec work.
-- Multi-role Review Council and risk-based assurance levels created.
-- Comprehensive testing strategy defined, including 100% meaningful line/branch coverage target and real-system validation.
-- Advanced verification ladder defined: property, fuzzing, mutation, metamorphic, differential, historical replay, fault injection and narrow formal/model-based verification.
-- Reproducibility/backtesting protocol defined with strict knowledge-at-T / temporal-leakage rules.
-- Non-functional quality attributes formalized: performance, freshness, reliability, SLOs, cost/resources, observability, recovery, security and maintainability.
-- Research protocol created so material specification facts are verified from explicit sources rather than implicit model memory.
-- Threat-modeling protocol created for security-sensitive trust-boundary changes.
-- Development/security rules and ADR process defined.
-- PR and feature/bug issue templates created.
-- 50-criterion / 100-point engineering scorecard created with non-compensable hard gates.
-- Phase-0 roadmap created.
-- Follow-up work items created for governance automation, repository protections and historical capability inventory.
-- Bootstrap PR #1 opened and received structured review; one status-vocabulary inconsistency was found and fixed.
+- Product-level README and mandatory AI resume protocol.
+- MONDE Constitution and canonical documentation architecture.
+- Machine-readable work/progress/dependency/capability contracts.
+- `REQ-*`, `ASM-*`, `RISK-*`, `REVIEW-*`, `TEST-*`, `EXP-*` registry contracts and central registry index.
+- End-to-end traceability contract.
+- Phase → lot → sublot → work item → task → run development lifecycle.
+- Definition of Ready and Definition of Done.
+- Specification Quality Protocol for canonical documentation.
+- Research Protocol for evidence-based specification work.
+- Review Council with explicit engineering/scientific/security/operations hats and review independence levels.
+- Risk-based assurance levels A0–A4.
+- Comprehensive testing strategy and 100% meaningful line/branch coverage target.
+- Advanced verification ladder: property, fuzzing, mutation, metamorphic, differential, historical replay, fault injection and narrow formal/model-based verification.
+- Reproducibility/backtesting protocol with strict knowledge-at-T / temporal-leakage rules.
+- Non-functional quality attributes: performance, freshness, reliability, cost/resources, observability, recovery/SLO direction, security and maintainability.
+- Threat-modeling protocol for security-sensitive changes.
+- Development/security rules and ADR process.
+- PR/feature/bug templates synchronized with current assurance process.
+- 50-criterion / 100-point engineering scorecard with non-compensable hard gates.
+- Phase-0 roadmap and planned `WORK-0002`, `WORK-0003`, `WORK-0004`.
+- Structured review evidence stored as `REVIEW-0001` and first repository-resume validation stored as `TEST-0001`.
+
+## Review findings resolved during bootstrap
+
+- Status vocabulary mismatch between registry state and canonical vocabulary.
+- Missing specification/research/assumption/traceability governance in the initial process.
+- PR template drift after assurance framework expansion.
+- Feature proposal template missing assumptions/research/NFR/review requirements.
+
+These defects were found through the review process and corrected before merge.
 
 ## Remaining before SUBLOT-0.1 is complete
 
-- Re-review PR #1 after the specification/scientific-governance expansion.
-- Resolve any additional review findings.
-- Owner/final review of PR #1.
-- Merge only when review gates are satisfied.
-- After merge, update `WORK-0001`/progress state to `DONE` and activate the next approved work item explicitly.
+- Fresh-context/owner L2 review of PR #1 (current structured review is same-context L1).
+- Owner decision/action on repository visibility before sensitive/high-risk specifications are added.
+- Resolve any findings from that independent review.
+- Merge only when required gates are satisfied.
+- After merge, set `WORK-0001`/progress state to `DONE` and activate the next approved work item explicitly.
 
 ## Planned next work
 
-- `WORK-0002` / `SUBLOT-0.2` — automate governance/specification/traceability validation in CI, including registry schemas, orphan detection and architecture fitness functions.
+- `WORK-0002` / `SUBLOT-0.2` — automate governance/specification/traceability validation in CI, including registry schemas, orphan detection, review completion and architecture fitness functions.
 - `WORK-0003` / `SUBLOT-0.3` — configure repository visibility, branch protection, required checks and merge policy.
-- `WORK-0004` / `LOT-1 / SUBLOT-1.1` — inventory every previously validated MONDE capability and assign stable CAP IDs using the new specification-quality protocol.
+- `WORK-0004` / `LOT-1 / SUBLOT-1.1` — inventory every previously validated MONDE capability and assign stable CAP IDs using the specification-quality process.
 
 No planned work item becomes active automatically.
 
@@ -83,17 +89,19 @@ Repository visibility was observed as **public** on 2026-09-10. MONDE is expecte
 
 This connector does not expose a repository-visibility mutation, so this setting has not been changed automatically.
 
-### Repository protection
+### Automated enforcement
 
-No CI status checks are currently attached to PR #1. Branch protection/security settings still require `WORK-0002`/`WORK-0003` and owner configuration where GitHub permissions/settings are not exposed through the current connector.
+No CI status checks are currently attached to PR #1. The rules now exist as canonical contracts, but automated enforcement still belongs to `WORK-0002`; branch/security settings belong to `WORK-0003`.
 
 ## Current quality interpretation
 
-The governance framework is now substantially stronger, but the repository must **not** claim maturity merely from documentation. Automated enforcement, actual tests, MONDE Mini, architecture fitness functions, real-system validation and production implementation remain future work. The current numeric score remains intentionally conservative.
+The governance/specification framework is now deliberately rigorous, but the repository must **not** claim maturity from documentation alone. Automation, executable architecture/epistemic fitness functions, MONDE Mini, real application test suites and production evidence remain future work.
+
+The next quality gain should come from **enforcement**, not adding more parallel governance prose.
 
 ## Next action
 
-Perform a fresh structured review of PR #1 using the Review Council, especially Architecture/Reuse, V&V, Security, Data/Epistemic, Performance/SRE, Documentation/Traceability and Skeptic perspectives. Do not start product capability implementation until SUBLOT-0.1 is merged/completed and the next work item is explicitly activated.
+Perform a fresh-context/owner structured review of PR #1 using the required Review Council hats. If accepted, merge the bootstrap and then explicitly activate the next work item; recommended order is `WORK-0002` (automation) before deep product specification so the documentation process can enforce itself.
 
 ## Resume instructions
 
@@ -105,7 +113,8 @@ Next agent must read, in order:
 4. this file
 5. `registry/README.md`
 6. `registry/work-items/WORK-0001.yaml`
-7. files listed in `WORK-0001.read_before`
-8. PR #1 discussion/diff for current review state
+7. `registry/reviews/REVIEW-0001.yaml`
+8. files listed in `WORK-0001.read_before`
+9. PR #1 discussion/diff for current review state
 
 No prior chat history is required to understand the current bootstrap state.
