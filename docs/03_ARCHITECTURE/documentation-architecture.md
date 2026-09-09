@@ -1,7 +1,8 @@
 # MONDE Documentation Architecture
 
 Status: Accepted  
-Canonical: Yes
+Canonical: Yes  
+Last Updated: 2026-09-10
 
 ## Goal
 
@@ -12,11 +13,12 @@ MONDE documentation must let a new human or AI answer, without reading the entir
 3. What work is active?
 4. What must I read before modifying it?
 5. What already exists and must be reused?
-6. What contracts/dependencies can I break?
-7. What tests prove the behavior?
-8. What architectural decisions explain the current design?
-9. What remains unfinished?
-10. How do I hand the work to the next agent?
+6. What requirements/assumptions/risks govern it?
+7. What contracts/dependencies can I break?
+8. What tests/experiments prove the behavior?
+9. What architectural decisions explain the current design?
+10. What remains unfinished?
+11. How do I hand the work to the next agent?
 
 ## Canonical information layers
 
@@ -43,7 +45,7 @@ Product docs describe **what/why**, not implementation details.
 
 Defines canonical primitives and semantics: Entity, Observation, Claim, Evidence, Source, Event, Relation, State, Belief, Forecast, Scenario, temporal/spatial support, uncertainty and ledger behavior.
 
-Changes here are high impact and normally require ADR review.
+Changes here are high impact and normally require ADR + epistemic review.
 
 ### Layer D — System architecture
 
@@ -87,7 +89,7 @@ Defines specialist model architecture, evaluation, tournament/promotion, active 
 
 `docs/09_GOVERNANCE/`
 
-Constitution, development/security rules, visibility/permissions, high-risk boundaries, auditability and data policies.
+Constitution, development/security rules, threat modeling, visibility/permissions, high-risk boundaries, auditability and data policies.
 
 ### Layer K — Roadmap/execution
 
@@ -105,13 +107,41 @@ Explains durable decisions and why alternatives were rejected.
 
 `docs/12_RESEARCH/`
 
-Draft hypotheses, experiments and references. Research documents are non-canonical until promoted through review/ADR/specification.
+Research questions, evidence gathering, experiments and non-canonical findings. Follow `research-protocol.md`; findings become canonical only after promotion into requirements/specifications/ADRs/registries.
 
-### Layer N — Quality
+### Layer N — Quality and assurance
 
 `docs/13_QUALITY/`
 
-Definition of Done, testing strategy, MONDE Mini, benchmarks, scorecards and World Model health.
+Contains:
+- Definition of Ready;
+- Definition of Done;
+- testing strategy;
+- specification-quality protocol;
+- Review Council;
+- assurance levels;
+- advanced verification;
+- non-functional requirements;
+- reproducibility/backtesting;
+- MONDE Mini/golden-world strategy;
+- benchmarks/scorecards/World Model health.
+
+## Machine-readable project memory
+
+`registry/README.md` is the canonical index.
+
+Core project-memory registries include:
+- `WORK-*` work items;
+- `CAP-*` capabilities;
+- `REQ-*` requirements;
+- `ASM-*` assumptions;
+- `RISK-*` risks;
+- `REVIEW-*` review evidence;
+- `TEST-*` verification artifacts;
+- `EXP-*` reproducible experiments/backtests;
+- typed dependencies and progress state.
+
+Future runtime/product registries include engines, sources, datasets, models, metrics, SLOs and lenses.
 
 ## Canonical document front matter
 
@@ -124,18 +154,27 @@ Owner: optional role/component
 Last Updated: YYYY-MM-DD
 Depends On: optional canonical references
 Supersedes: optional references
+Related Requirements: REQ-...
 Related Capabilities: CAP-...
 Related ADRs: ADR-...
 ```
 
 During bootstrap older docs may omit some fields, but the project should converge on this contract.
 
-## What belongs in a work item vs documentation
+## Specification lifecycle
+
+Canonical documentation is an engineered artifact and follows:
+
+`DISCOVER → REQUIREMENTS → IMPACT → ASSUMPTIONS/RISKS → SPECIFY → EXAMPLES/COUNTEREXAMPLES → TRACE → REVIEW → COLD-READ → ACCEPT`
+
+See `docs/13_QUALITY/specification-quality.md`.
+
+## What belongs in a work item vs documentation vs registry
 
 ### Work item
 
 Use for:
-- current implementation plan;
+- current implementation/specification plan;
 - task/run decomposition;
 - branch-specific discoveries;
 - validation evidence;
@@ -148,11 +187,20 @@ Use for:
 Use for:
 - durable product behavior;
 - stable architecture;
-- contracts;
-- invariants;
+- detailed semantics;
+- contracts/invariants;
+- examples/counterexamples;
 - reusable operational procedures.
 
-Never leave an important durable architectural rule only inside a closed PR/work item.
+### Registry
+
+Use for:
+- stable identity;
+- lifecycle/status;
+- machine-readable dependencies/links;
+- compact verification/traceability metadata.
+
+Never leave an important durable architectural rule only inside a closed PR/work item, and never duplicate a full specification into registry YAML.
 
 ## Read-before contract
 
@@ -164,15 +212,16 @@ A good `read_before` list includes:
 - owning engine/module spec;
 - relevant ADRs;
 - interfaces reused;
-- test strategy for the area.
-
-A work item with `read_before: []` is acceptable only for truly isolated bootstrap/administrative changes.
+- linked requirements/assumptions/risks;
+- test/assurance guidance for the area.
 
 ## Dependency-driven navigation
 
-The dependency registry is also a documentation router.
+The dependency/traceability graph is also a documentation router.
 
-When work item A depends on component B, its dependency record should point to the canonical document/contract explaining B. An agent follows dependencies until it has enough context; it should not read unrelated documentation.
+When work item A depends on component B, its records should point to the canonical document/contract explaining B. An agent follows dependencies until it has enough context; it should not read unrelated documentation.
+
+Before changing a stable concept the agent asks `WHAT DEPENDS ON THIS?` and follows downstream references.
 
 ## Status freshness
 
@@ -188,39 +237,33 @@ After any merge that changes active work:
 
 A stale `PROJECT_STATE.md` is a release-blocking repository defect for AI-led development.
 
-## Capability traceability
+## End-to-end traceability
 
-Each capability eventually maps:
+Target chain:
 
-`CAP-ID → docs → engines → schemas → work items → implementation → tests → status`
+`PRODUCT GOAL → REQ-ID → CAP-ID → ADR/DESIGN → ENGINE/SCHEMA → WORK-ID → IMPLEMENTATION → TEST/EXP → REVIEW/VALIDATION → OBSERVABILITY`
+
+Assumptions/risks attach wherever they matter.
 
 No capability is considered implemented because a UI button exists. The registry status must be supported by implementation/test evidence.
-
-## Engine traceability
-
-Each engine eventually maps:
-
-`ENGINE-ID → responsibility → contracts → dependencies → capabilities → implementation → test suites → observability`
-
-## Source/model traceability
-
-Sources and models receive stable IDs so evidence can refer to exact source/model versions without relying on prose names.
 
 ## Documentation validation automation — target state
 
 CI should eventually validate:
 
-- all work-item IDs unique;
-- all capability IDs unique/immutable;
+- unique immutable IDs;
+- registry schemas/status transitions;
 - referenced IDs exist;
 - `read_before` paths exist;
-- status values are valid;
-- DONE work items satisfy required completion flags;
+- DONE work items satisfy required completion/review/traceability flags;
+- Accepted specs satisfy required metadata/gates where machine-checkable;
+- orphan accepted requirements/DONE capabilities are detected;
 - registry ↔ documentation references are non-broken;
 - active project state points to existing work;
-- orphan implementation areas are detected where feasible;
-- docs links are valid;
-- ADR numbering/status is valid.
+- docs links/front matter are valid;
+- ADR numbering/status is valid;
+- expired assumptions/risks are surfaced;
+- architecture fitness functions pass.
 
 ## Historical preservation
 
@@ -230,15 +273,18 @@ When a decision changes:
 
 - create/supersede an ADR;
 - update current canonical documentation;
-- let Git/ADR history preserve the previous state.
+- retain requirement/capability mapping history;
+- let Git/ADR/registry history preserve the previous state.
 
 ## Desired property
 
 At any commit SHA, it should be possible to reconstruct:
 
 - what MONDE was supposed to do;
+- which requirements/assumptions/risks existed;
 - what was implemented;
 - what was being worked on;
 - why architecture looked that way;
-- which tests/validation supported it;
+- which tests/experiments/reviews supported it;
+- which external research informed material decisions;
 - what the next agent was expected to do.
