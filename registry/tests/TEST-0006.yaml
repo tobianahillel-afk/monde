@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: FAIL
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -87,15 +87,11 @@ cases:
     - "Cold-read README then START_HERE/PROJECT_STATE/WORK-0001 and attempt to resume without conversation memory"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3 tree 11cca4bccb318d29c422917d544a470870b2cf65"
-  last_run_at: "2026-09-11"
-  commit_sha: "11cca4bccb318d29c422917d544a470870b2cf65"
-  result: FAIL
-  evidence:
-    - "PROJECT_STATE.md @ 11cca4bccb318d29c422917d544a470870b2cf65 correctly exposes REVIEW-0015/v7 but its Next action still starts by synchronizing WORK-0001 and reopening TEST-0006, both already complete at that exact tree."
-    - "WORK-0001 @ 11cca4bccb318d29c422917d544a470870b2cf65 is already synchronized through REVIEW-0015/v7 and TEST-0007 current PASS."
-    - "TEST-0006 @ 11cca4bccb318d29c422917d544a470870b2cf65 is already READY, so a cold-resuming agent following PROJECT_STATE would repeat completed administrative/test-state work."
-    - "No PASS is recorded until the handover is advanced past those completed actions and the test is rerun on the corrected tree."
+  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -140,10 +136,10 @@ history:
       recorded_in_commit: "7ce54360a2e56f8892ea70354af824bfa8c4df72"
       validity: VALID
       invalidated_by: null
-      reason: "After atomic WORK-0001/PROJECT_STATE synchronization, the exact tested tree exposed current v6/REVIEW-0014 state, all current-tree WORK-0002 prerequisites resolved, branch-only prerequisites were explicitly deferred and present on PR #2 branch, live PR #2 matched the mirrored lifecycle, historical-import exceptions remained isolated, and TEST-0001 replacement coverage was preserved. This remains valid for that v6 tree; TEST-0006 is rerun because REVIEW-0015/status-machine v7 changes the canonical lifecycle and cold-resume state it inspects."
+      reason: "After atomic WORK-0001/PROJECT_STATE synchronization, the exact tested tree exposed current v6/REVIEW-0014 state, all current-tree WORK-0002 prerequisites resolved, branch-only prerequisites were explicitly deferred and present on PR #2 branch, live PR #2 matched the mirrored lifecycle, historical-import exceptions remained isolated, and TEST-0001 replacement coverage was preserved. This remains valid for that v6 tree; TEST-0006 was rerun because REVIEW-0015/status-machine v7 changed the canonical lifecycle and cold-resume state it inspects."
     - commit_sha: "11cca4bccb318d29c422917d544a470870b2cf65"
       recorded_result: FAIL
-      recorded_in_commit: null
+      recorded_in_commit: "35e3c4c892f8c9bc6e5424fbe792c2fc8043eaf8"
       validity: VALID
       invalidated_by: null
-      reason: "The v7 contract and WORK-0001 are current, but PROJECT_STATE still instructs a cold-resuming agent to repeat already-completed WORK-0001 synchronization and TEST-0006 reopen actions. The handover must advance before rerun."
+      reason: "The v7 contract and WORK-0001 were current, but PROJECT_STATE still instructed a cold-resuming agent to repeat already-completed WORK-0001 synchronization and TEST-0006 reopen actions. The handover was advanced in 334fd31604054dcb05c1ae2c7732cacabf8b68d9 before this rerun."
