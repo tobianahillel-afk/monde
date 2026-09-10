@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -62,7 +62,7 @@ cases:
     - "A COMPLETE review with all findings resolved but outcome CHANGES_REQUIRED remains negative evidence and cannot approve"
     - "A COMPLETE review with outcome APPROVE_WITH_FOLLOWUP may approve only subject to the other completion and blocking-finding rules"
     - "Historical import/replay exceptions can preserve immutable legacy history without changing generic lifecycle semantics"
-    - "An externally completed negative review can be imported truthfully but remains negative evidence"
+    - "An externally completed negative review may be imported truthfully but remains negative evidence"
     - "Historical TEST-0001 remains inspectable while no longer serving as gating PASS evidence"
   failure_modes:
     - "README/START_HERE does not route to the current project state and active work"
@@ -86,9 +86,9 @@ cases:
     - "Cold-read README then START_HERE/PROJECT_STATE/WORK-0001 and attempt to resume without conversation memory"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3"
-  last_run_at: null
-  commit_sha: null
+  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3 tree 11cca4bccb318d29c422917d544a470870b2cf65"
+  last_run_at: "2026-09-11"
+  commit_sha: "11cca4bccb318d29c422917d544a470870b2cf65"
   result: null
   evidence: []
 
@@ -135,4 +135,4 @@ history:
       recorded_in_commit: "7ce54360a2e56f8892ea70354af824bfa8c4df72"
       validity: VALID
       invalidated_by: null
-      reason: "After atomic WORK-0001/PROJECT_STATE synchronization, the exact tested tree exposed current v6/REVIEW-0014 state, all current-tree WORK-0002 prerequisites resolved, branch-only prerequisites were explicitly deferred and present on PR #2 branch, live PR #2 matched the mirrored lifecycle, historical-import exceptions remained isolated, and TEST-0001 replacement coverage was preserved. This remains valid for that v6 tree; TEST-0006 is reopened because REVIEW-0015/status-machine v7 changes the canonical lifecycle and cold-resume state it inspects."
+      reason: "After atomic WORK-0001/PROJECT_STATE synchronization, the exact tested tree exposed current v6/REVIEW-0014 state, all current-tree WORK-0002 prerequisites resolved, branch-only prerequisites were explicitly deferred and present on PR #2 branch, live PR #2 matched the mirrored lifecycle, historical-import exceptions remained isolated, and TEST-0001 replacement coverage was preserved. This remains valid for that v6 tree; TEST-0006 is rerun because REVIEW-0015/status-machine v7 changes the canonical lifecycle and cold-resume state it inspects."
