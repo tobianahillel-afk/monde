@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -81,8 +81,20 @@ execution:
   command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v6/import-isolation and review-outcome audit of PR #3 tree bb973b669797e887d6190065a3d74c377aa33c01, including live PR #2 head/state verification"
   last_run_at: "2026-09-10"
   commit_sha: "bb973b669797e887d6190065a3d74c377aa33c01"
-  result: null
-  evidence: []
+  result: PASS
+  evidence:
+    - "README.md @ bb973b669797e887d6190065a3d74c377aa33c01 routes cold resume through docs/00_START_HERE.md, AGENTS.md, PROJECT_STATE.md, active work/read_before and the Constitution."
+    - "docs/00_START_HERE.md @ bb973b669797e887d6190065a3d74c377aa33c01 defines the ordered cold-resume path and requires registry/status-machines.yaml as the single lifecycle source of truth."
+    - "PROJECT_STATE.md and WORK-0001 @ bb973b669797e887d6190065a3d74c377aa33c01 expose REVIEW-0014, status-machine v6, TEST-0007's current PASS, TEST-0006's prior FAIL, and TEST-0006 rerun as the next gate."
+    - "Compare de83dfd076143ac88d9be3c26d226b7c2b488305 → bb973b669797e887d6190065a3d74c377aa33c01 changes only registry/tests/TEST-0006.yaml for FAIL → READY, so the atomic WORK-0001/PROJECT_STATE synchronization is unchanged in the tested tree."
+    - "registry/progress/matrix.yaml @ bb973b669797e887d6190065a3d74c377aa33c01 points to ../status-machines.yaml#progress, records WORK-0001 IN_REVIEW and WORK-0002 IN_REVIEW, and defines no competing status vocabulary."
+    - "registry/work-items/WORK-0002.yaml @ bb973b669797e887d6190065a3d74c377aa33c01 is IN_REVIEW, depends_on WORK-0001, and its current-tree read_before paths all resolve in tree 006271d68d09ac76a14271749af884d55f124c7c."
+    - "WORK-0002 explicitly defers docs/03_ARCHITECTURE/github-control-plane.md and docs/13_QUALITY/ai-context-routing.md until checkout of feat/work-0002-governance-ci; both files were fetched successfully from that branch during this execution."
+    - "Live PR #2 was rechecked open, non-draft and mergeable at exact head c50c33009d90f079e645f0ca9e1befe1a4a77ba9 during this execution."
+    - "registry/status-machines.yaml @ bb973b669797e887d6190065a3d74c377aa33c01 is version 6, preserves review initial OPEN with OPEN → IN_PROGRESS → COMPLETE and requirement initial PROPOSED with PROPOSED → ACCEPTED, and adds only exact record/status/commit-bound historical imports with future reuse forbidden."
+    - "The v6 review completion rule still permits approval evidence only for COMPLETE reviews with APPROVE or APPROVE_WITH_FOLLOWUP; CHANGES_REQUIRED/BLOCKED remain negative evidence."
+    - "TEST-0001 @ bb973b669797e887d6190065a3d74c377aa33c01 is SUPERSEDED by TEST-0006; TEST-0006 protects all three original contracts AI resume protocol, status vocabulary consistency and active work routing."
+    - "The prior TEST-0006 FAIL on ffffb37d680e477fa03f74523dfac624ad74427c remains preserved with result commit 45088fc916b84c7e809d1305fe926724e85b797c; this PASS demonstrates the stale-handover cause was corrected rather than erased."
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -122,3 +134,9 @@ history:
       validity: VALID
       invalidated_by: null
       reason: "The v6 contract is correct, but the exact tested tree still exposes stale v5/REVIEW-0013 handover and WORK-0001 currentness, so a cold-resuming agent cannot discover REVIEW-0014 as the current gate from canonical repository state. The failure remains preserved after synchronization and triggers this rerun."
+    - commit_sha: "bb973b669797e887d6190065a3d74c377aa33c01"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "After atomic WORK-0001/PROJECT_STATE synchronization, the exact tested tree exposes current v6/REVIEW-0014 state, all current-tree WORK-0002 prerequisites resolve, branch-only prerequisites are explicitly deferred and present on PR #2 branch, live PR #2 matches the mirrored lifecycle, historical-import exceptions remain isolated, and TEST-0001 replacement coverage is preserved."
