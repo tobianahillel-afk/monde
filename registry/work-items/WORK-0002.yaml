@@ -52,6 +52,9 @@ requirements: []
 assumptions: []
 risks: []
 
+progress_justifications:
+  scientific_validation: "WORK-0002 is deterministic repository-governance automation and introduces no scientific/model claim; applicable validation is engineering, security, CI and real-system verification."
+
 read_before:
   - AGENTS.md
   - docs/00_START_HERE.md

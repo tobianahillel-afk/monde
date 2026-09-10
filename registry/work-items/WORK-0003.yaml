@@ -12,7 +12,7 @@ purpose: |
 
 scope:
   in:
-    - decide and configure repository visibility
+    - intentionally configure repository visibility
     - protect main branch
     - require pull requests
     - require selected status checks once available
@@ -34,6 +34,10 @@ acceptance_criteria:
   - id: AC-3
     description: "Available security and status-check protections are configured and documented."
     status: NOT_STARTED
+
+progress_justifications:
+  implementation: "WORK-0003 applies GitHub repository settings rather than adding project-owned executable product code; execution is evidenced through repository-setting, security and real-system validation."
+  scientific_validation: "Repository administration makes no scientific/model claim and therefore has no applicable scientific-validation gate."
 
 read_before:
   - docs/09_GOVERNANCE/development-rules.md

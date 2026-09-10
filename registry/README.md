@@ -72,15 +72,16 @@ A material accepted governance behavior is not exempt merely because no product 
 
 ## Status integrity
 
-`registry/status-machines.yaml` is the single machine-readable lifecycle contract for current registries. It defines each registry's initial state, allowed states, valid transitions, and status-adjacent vocabularies such as review outcomes/dispositions.
+`registry/status-machines.yaml` is the single machine-readable lifecycle contract for current registries **and for progress state**. It defines registry initial states, allowed states, valid transitions, review outcome/disposition vocabulary, and the progress lifecycle used by phase/lot/sublot/task/run/quality dimensions.
 
 Rules:
 1. A registry record may use only states declared for that registry.
 2. A transition must be explicitly allowed by that registry's machine; metadata-only edits may retain the same state.
-3. Project/work progress dimensions use the progress vocabulary declared in the status-machine contract and `registry/progress/matrix.yaml`; that vocabulary does **not** implicitly authorize states in REQ/ASM/RISK/REVIEW/TEST/EXP/DEP records.
-4. `NOT_APPLICABLE` is a progress-dimension state, not a universal registry state, and requires a non-empty work-item justification.
-5. Lifecycle changes are governance changes: update the canonical machine, affected schemas/validators, migrations and review evidence together rather than adding an ad-hoc state locally.
-6. Governance tooling must fail closed on unknown states and invalid transitions.
+3. `registry/progress/matrix.yaml` stores current progress instances only; it does not define or duplicate a status vocabulary.
+4. A matrix WORK status mirrors the `work_items` registry machine; other progress-bearing matrix/task/run/dimension state uses `status-machines.yaml#progress`.
+5. `NOT_APPLICABLE` is a progress-dimension state, not a universal registry state, and requires a non-empty work-item justification.
+6. Lifecycle changes are governance changes: update the canonical machine, affected schemas/validators, migrations and review evidence together rather than adding an ad-hoc state locally.
+7. Governance tooling must fail closed on unknown states and invalid transitions.
 
 Human-readable registry-specific documents may explain these states but must not define a competing lifecycle truth.
 
@@ -98,7 +99,7 @@ Governance CI should validate:
 - schema correctness;
 - unique IDs;
 - valid references;
-- registry-specific lifecycle states/transitions from `registry/status-machines.yaml`;
+- registry-specific and progress lifecycle states/transitions from `registry/status-machines.yaml`;
 - required fields by status/risk;
 - no orphan critical/material records;
 - `read_before` paths;

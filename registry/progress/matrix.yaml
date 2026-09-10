@@ -1,19 +1,6 @@
-version: 2
+version: 3
 updated_at: "2026-09-10"
-
-status_vocabulary:
-  - NOT_STARTED
-  - PROPOSED
-  - PLANNED
-  - READY
-  - IN_PROGRESS
-  - PARTIAL
-  - BLOCKED
-  - IN_REVIEW
-  - DONE
-  - DEPRECATED
-  - CANCELLED
-  - NOT_APPLICABLE
+status_machine: "../status-machines.yaml#progress"
 
 phases:
   PHASE-0:
@@ -132,10 +119,10 @@ quality_dimensions:
   product_capability_inventory: NOT_STARTED
 
 rules:
+  - "All progress status values and transitions are defined only by registry/status-machines.yaml#progress; this matrix stores current instances and never defines a competing vocabulary."
   - "Every active work item must appear in this matrix; planned work should also be represented once assigned an ID."
-  - "A work item cannot be DONE while any mandatory applicable dimension is NOT_STARTED, PARTIAL, BLOCKED or IN_REVIEW."
-  - "NOT_APPLICABLE requires a non-empty justification in the work item and remains reviewable for non-compensable gates."
+  - "A work item's matrix status must mirror the WORK registry lifecycle; a work item cannot be DONE while any mandatory applicable dimension is NOT_STARTED, PARTIAL, BLOCKED or IN_REVIEW."
+  - "NOT_APPLICABLE requires a non-empty justification in the corresponding work item and remains reviewable for non-compensable gates."
   - "Agents update this matrix in the same PR that changes work status."
-  - "Registry-specific lifecycle states are defined by registry/status-machines.yaml; this progress vocabulary is not a universal registry status vocabulary."
   - "Policy/documentation may be DONE while automated enforcement remains separately PARTIAL/NOT_STARTED; do not conflate definition with enforcement."
   - "Applicable hard gates are non-compensable regardless of aggregate quality score."

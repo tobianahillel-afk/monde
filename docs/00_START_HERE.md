@@ -103,26 +103,13 @@ Current core registries include:
 - `registry/reviews/` — structured review evidence;
 - `registry/tests/` — important verification artifacts;
 - `registry/experiments/` — reproducible experiments/backtests;
-- `registry/progress/` — phase/lot/work quality state.
+- `registry/progress/` — current phase/lot/work quality state instances.
 
-## Status vocabulary
+## Lifecycle/status source of truth
 
-Use only explicit states appropriate to each registry. Project/work progress currently uses:
+Use only states and transitions declared in `registry/status-machines.yaml`. That file is the single lifecycle source of truth for registry records and progress-bearing phase/lot/sublot/acceptance-criterion/task/run/quality-dimension state.
 
-- `NOT_STARTED`
-- `PROPOSED`
-- `PLANNED`
-- `READY`
-- `IN_PROGRESS`
-- `PARTIAL`
-- `BLOCKED`
-- `IN_REVIEW`
-- `DONE`
-- `DEPRECATED`
-- `CANCELLED`
-- `NOT_APPLICABLE`
-
-`NOT_APPLICABLE` always requires a reason in the owning work item or matrix context.
+`registry/progress/matrix.yaml` stores current progress values only and does not define a second vocabulary. A matrix WORK status mirrors the WORK registry state. `NOT_APPLICABLE` is allowed only for a progress dimension with a non-empty justification in the corresponding work item.
 
 Never use vague labels such as "basically done".
 

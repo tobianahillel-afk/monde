@@ -1,4 +1,4 @@
-version: 1
+version: 2
 canonical: true
 updated_at: "2026-09-10"
 
@@ -7,7 +7,7 @@ principles:
   - "Transitions not listed here are invalid unless a reviewed migration explicitly changes this contract."
   - "A metadata-only edit may retain the same status; this is not a lifecycle transition."
   - "Terminal and superseded records remain historically addressable; IDs are never reused."
-  - "Project/work progress dimensions use their own vocabulary and must not be treated as the status vocabulary of every registry."
+  - "Project/work progress dimensions use their own lifecycle and must not be treated as the status vocabulary of every registry."
 
 registry_machines:
   work_items:
@@ -78,12 +78,13 @@ registry_machines:
     transitions:
       OPEN: [IN_PROGRESS, CLOSED]
       IN_PROGRESS: [COMPLETE, CLOSED]
-      COMPLETE: [CLOSED]
+      COMPLETE: []
       CLOSED: []
     outcomes: [APPROVE, APPROVE_WITH_FOLLOWUP, CHANGES_REQUIRED, BLOCKED]
     finding_severities: [R1_CRITICAL, R2_MAJOR, R3_MODERATE, R4_MINOR]
     finding_dispositions: [OPEN, RESOLVED, ACCEPTED, TRACKED_FOLLOWUP, OWNER_ACTION_REQUIRED]
-    completion_rule: "A COMPLETE/CLOSED review must be bound to the reviewed artifact/version and may approve completion only when blocking R1/R2 findings are RESOLVED or ACCEPTED."
+    completion_rule: "Only a COMPLETE review may provide approval evidence. It must be bound to the reviewed artifact/version, include the required executed review roles/independence, and have no unresolved blocking R1/R2 finding unless formally ACCEPTED."
+    closed_rule: "CLOSED is an administrative terminal state for a review that will not provide approval evidence; CLOSED never satisfies a work-item review-completion gate."
 
   tests:
     initial: PLANNED
@@ -122,6 +123,23 @@ registry_machines:
       RETIRED: []
 
 progress:
-  work_dimension_states: [NOT_STARTED, PROPOSED, PLANNED, READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, DEPRECATED, CANCELLED, NOT_APPLICABLE]
+  canonical_source: "This section is the sole lifecycle vocabulary for phase, lot, sublot, acceptance-criterion, task, run, quality-dimension and WORK progress-dimension state. registry/progress/matrix.yaml stores current instances only."
+  initial: NOT_STARTED
+  applies_to: [PHASE, LOT, SUBLOT, ACCEPTANCE_CRITERION, TASK, RUN, QUALITY_DIMENSION, WORK_PROGRESS_DIMENSION]
+  states: [NOT_STARTED, PROPOSED, PLANNED, READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, DEPRECATED, CANCELLED, NOT_APPLICABLE]
+  transitions:
+    NOT_STARTED: [PROPOSED, PLANNED, READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
+    PROPOSED: [PLANNED, READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
+    PLANNED: [READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
+    READY: [IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
+    IN_PROGRESS: [PARTIAL, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
+    PARTIAL: [IN_PROGRESS, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
+    BLOCKED: [READY, IN_PROGRESS, PARTIAL, IN_REVIEW, CANCELLED, NOT_APPLICABLE]
+    IN_REVIEW: [IN_PROGRESS, PARTIAL, BLOCKED, DONE, CANCELLED, NOT_APPLICABLE]
+    DONE: [DEPRECATED]
+    DEPRECATED: []
+    CANCELLED: []
+    NOT_APPLICABLE: [NOT_STARTED, PLANNED]
+  work_item_status_rule: "The status field of a WORK entry in the progress matrix mirrors the canonical registry_machines.work_items state and transition; NOT_APPLICABLE is never a WORK record status."
   done_allowed_dimension_states: [DONE, NOT_APPLICABLE]
   not_applicable_rule: "Every NOT_APPLICABLE dimension requires a non-empty justification in the corresponding work item and remains subject to review for non-compensable gates."
