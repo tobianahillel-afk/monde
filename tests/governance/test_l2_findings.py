@@ -63,8 +63,11 @@ def test_meta_qualifier_skip_branches(tmp_path: Path) -> None:
     write(tmp_path, "registry/work-items/WORK-1.yaml", minimal_work(affected_paths=[".github/"]))
     base = commit(tmp_path, "base")
 
-    # Exercise terminal, low-assurance and malformed-work skip paths while WORK-1 authorizes.
-    write(tmp_path, "registry/work-items/WORK-1.yaml", minimal_work(affected_paths=[".github/"]))
+    # WORK-1 is substantively present in the changed-file set and authorizes the meta path.
+    # WORK-2/3/4 exercise terminal, low-assurance and malformed-work skip paths.
+    authorizer = minimal_work(affected_paths=[".github/"])
+    authorizer["updated_at"] = "2026-09-10"
+    write(tmp_path, "registry/work-items/WORK-1.yaml", authorizer)
     write(tmp_path, "registry/work-items/WORK-2.yaml", {"id": "WORK-2", "status": "DONE", "assurance": {"level": "A4"}, "affected_paths": [".github/"]})
     write(tmp_path, "registry/work-items/WORK-3.yaml", {"id": "WORK-3", "status": "IN_PROGRESS", "assurance": {"level": "A1"}, "affected_paths": [".github/"]})
     write(tmp_path, "registry/work-items/WORK-4.yaml", "not: [valid")
