@@ -32,7 +32,7 @@ No WORK-0003 or WORK-0004 implementation has started.
 
 ## WORK-0001 assurance history
 
-The durable review chain is `REVIEW-0003` through `REVIEW-0012`. Corrective test evidence is `TEST-0004`, `TEST-0005`, `TEST-0006`, and `TEST-0007`; superseded `TEST-0001` remains historical/non-gating evidence.
+The durable review chain is `REVIEW-0003` through `REVIEW-0013`. Corrective test evidence is `TEST-0004`, `TEST-0005`, `TEST-0006`, and `TEST-0007`; superseded `TEST-0001` remains historical/non-gating evidence.
 
 Key current facts:
 
@@ -40,8 +40,9 @@ Key current facts:
 - `REVIEW-0008` invalidated the second TEST-0006 PASS because the PR #3 WORK-0002 mirror referenced two branch-only `read_before` files that were absent from the tested tree.
 - `REVIEW-0009`, on `1e3f539b89afbbb07de63271682a1db06f47550c`, found missing reviewed `DONE → IN_REVIEW` reopening semantics and TEST-0004's immutable historical `PLANNED → PASS` edge.
 - `REVIEW-0010`, on `14c3d3fcc6dd96af9d2e5acd9f02d2d957c03425`, confirmed those lifecycle corrections but found one R3/P2 traceability gap: TEST-0007 protected REQ-0006, while REQ-0006 still pointed only to the older TEST-0004.
-- `REVIEW-0011`, on `c8fbfa51ac04b566f337ee606a806e42881b67f2`, found no new substantive lifecycle/test/traceability defect but identified one R3/P2 handover-currentness defect: PROJECT_STATE still told a cold-resuming agent to perform synchronization already complete.
+- `REVIEW-0011`, on `c8fbfa51ac04b566f337ee606a806e42881b67f2`, found one R3/P2 handover-currentness defect: PROJECT_STATE still told a cold-resuming agent to perform synchronization already complete.
 - `REVIEW-0012`, on `a2a86b96bb3fe39229b9834cd4ab17ee16d8121f`, found one R3/P2 work-currentness defect: PROJECT_STATE knew REVIEW-0011/current gate while WORK-0001's own review/evidence/gap/run-log surfaces still stopped at REVIEW-0010.
+- `REVIEW-0013`, on `9f9bcaa0b91b975296b169cf2511edc297a83e1f`, found one R3/P2 work-test-plan gap: WORK-0001.required_tests.e2e omitted TEST-0007 even though TEST-0007 is the current revision-bound proof for REQ-0006 lifecycle reopening/migration semantics.
 
 ## Current correction and proof
 
@@ -55,9 +56,9 @@ Key current facts:
 
 The fourth TEST-0006 execution remains PASS on exact synchronized tree `fa55004d1623ab2aa66c14b62bb036f6e335f041`; result `80eb23da21d76d5b87134164ce46954423a04e95`, history pointer `772f45b2f7eacb3d2dfbeb39f3c1aca089b19959`.
 
-For REVIEW-0010/F-1, REQ-0006 includes TEST-0007 in both `verification.test_ids` and `verification.acceptance_evidence`, while TEST-0007 points back through `protects.requirements: [REQ-0006]`. TEST-0007's second execution passed on exact tree `c27a98b94c4f59c5778b9c7d30e447536a70a452`; result `07fb9baf3f76437059b73f7805a5edd36d704cc6`, history pointer `7560d7265c873c8ab25ef7de423f75fab8aa33e0`.
+REQ-0006 includes TEST-0007 in both `verification.test_ids` and `verification.acceptance_evidence`, while TEST-0007 points back through `protects.requirements: [REQ-0006]`. TEST-0007's second execution passed on exact tree `c27a98b94c4f59c5778b9c7d30e447536a70a452`; result `07fb9baf3f76437059b73f7805a5edd36d704cc6`, history pointer `7560d7265c873c8ab25ef7de423f75fab8aa33e0`.
 
-REVIEW-0011/F-1 and REVIEW-0012/F-1 are administrative currentness defects. WORK-0001 and PROJECT_STATE now both record REVIEW-0011, REVIEW-0012 and the same remaining gate. No tested status machine, requirement mapping, TEST-0006 assertion or TEST-0007 assertion changed in this synchronization, so the existing exact-SHA substantive proof remains applicable. Neither finding is considered resolved until another fresh independent L2 verifies the resulting frozen HEAD.
+For REVIEW-0013/F-1, WORK-0001.required_tests.e2e now explicitly includes that existing current proof TEST-0007. Because `required_tests` is part of the active-WORK semantic contract consumed by the future change guard, WORK-0001 records a `scope_change` with `approved: true`, rationale and evidence `REVIEW-0013/F-1`. This is a proof-plan traceability correction only: no purpose, acceptance criterion, product scope, status-machine behavior, TEST-0006 assertion or TEST-0007 assertion changed. The existing exact-SHA test executions therefore remain applicable. REVIEW-0013/F-1 remains open until another fresh independent L2 verifies the resulting frozen HEAD.
 
 ## WORK-0002 cross-branch boundary
 
@@ -92,7 +93,7 @@ A blocking R1/R2 finding may become non-blocking through `ACCEPTED` only with ex
 
 ## Next action
 
-1. Reply to REVIEW-0012/F-1 with the exact synchronized WORK-0001/PROJECT_STATE evidence, without resolving the thread prematurely.
+1. Reply to REVIEW-0013/F-1 with the exact WORK-level test-plan correction and scope-change evidence, without resolving the thread prematurely.
 2. Freeze the resulting PR #3 HEAD and request another fresh-context L2 explicitly against that SHA.
 3. If that review finds anything material, correct and re-prove it. If it reports no material defect, record the approval-capable L2 evidence and resolve only findings whose underlying defects have been independently verified as corrected.
 4. Finalize WORK-0001/progress/completion only after the approval gate is genuinely satisfied, then merge PR #3.
@@ -111,7 +112,7 @@ Minimum manual sequence:
 7. `registry/status-machines.yaml`
 8. `registry/progress/matrix.yaml`
 9. `registry/requirements/REQ-0001.yaml` through `REQ-0019.yaml`
-10. `registry/reviews/REVIEW-0003.yaml` through `REVIEW-0012.yaml`
+10. `registry/reviews/REVIEW-0003.yaml` through `REVIEW-0013.yaml`
 11. `registry/tests/TEST-0004.yaml` through `TEST-0007.yaml`, plus superseded historical `TEST-0001.yaml`
 12. live PR #3 reviews/threads
 13. live PR #2 HEAD/checks/unresolved threads
