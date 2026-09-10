@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening and exact historical transition migration drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -53,8 +53,15 @@ execution:
   command_or_workflow: "Manual exact-SHA GitHub audit of PR #3 lifecycle contract and immutable history, testing reopening semantics plus the exact TEST-0004 migration edge on corrective tree d1d0b32e321cd56ada21f76c4d3e08856a792db5"
   last_run_at: "2026-09-10"
   commit_sha: "d1d0b32e321cd56ada21f76c4d3e08856a792db5"
-  result: null
-  evidence: []
+  result: PASS
+  evidence:
+    - "registry/status-machines.yaml @ d1d0b32e321cd56ada21f76c4d3e08856a792db5 has progress.transitions.DONE = [IN_REVIEW, DEPRECATED] and a reopening_rule tied to new evidence/review/dependency/invalidated proof"
+    - "Generic registry_machines.tests transitions @ d1d0b32e321cd56ada21f76c4d3e08856a792db5 do not permit PLANNED → PASS; PASS remains reachable generically only from RUNNING"
+    - "The single historical_transition_exceptions entry is record-specific TEST-0004 / PLANNED → PASS / 98e8cdccc07bd3c2d8313d81f296f49c97c44379 → e8337d833ca0b524bed69318ca4b3691c9ce6c23, historical_only and future_reuse_forbidden"
+    - "registry/tests/TEST-0004.yaml @ 98e8cdccc07bd3c2d8313d81f296f49c97c44379 has status PLANNED"
+    - "registry/tests/TEST-0004.yaml @ e8337d833ca0b524bed69318ca4b3691c9ce6c23 has status PASS and remains SHA-bound to tested tree 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "Commit caaa27d716c38e28728e1e22412b1c43770096ef introduced the lifecycle machine before commit 4ef4bfd27e28973fcebead8b2b5065422c4a8883 reopened WORK-0001 and quality progress dimensions DONE → IN_REVIEW"
+    - "REVIEW-0009 records both historical inconsistencies against reviewed head 1e3f539b89afbbb07de63271682a1db06f47550c"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
