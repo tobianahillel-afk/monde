@@ -76,7 +76,7 @@ risks: []
 
 progress_justifications:
   implementation: "WORK-0001 is a governance/specification bootstrap and explicitly contains no MONDE product executable implementation."
-  scientific_validation: "WORK-0001 defines scientific-validation and leakage-safe backtesting protocols but implements no scientific/model claim requiring a backtest of its own; the governance contract is verified by review and TEST-0001."
+  scientific_validation: "WORK-0001 defines scientific-validation and leakage-safe backtesting protocols but implements no scientific/model claim requiring a backtest of its own; the corrective governance contract is verified by independent review and TEST-0004."
 
 assurance:
   level: A3
@@ -156,7 +156,9 @@ affected_docs:
   - registry/progress/matrix.yaml
   - registry/reviews/REVIEW-0001.yaml
   - registry/reviews/REVIEW-0003.yaml
+  - registry/reviews/REVIEW-0004.yaml
   - registry/tests/TEST-0001.yaml
+  - registry/tests/TEST-0004.yaml
 contracts:
   - "AI resume protocol"
   - "Work item tracking contract"
@@ -185,7 +187,7 @@ impact_analysis:
     - "all future canonical specification work"
     - "all future implementation work"
   migrations_or_reprocessing: []
-  compatibility_notes: "Bootstrap-only repository. Registry lifecycle semantics are now centralized before automation consumes them; no production data migration exists."
+  compatibility_notes: "Bootstrap-only repository. Registry lifecycle semantics and historical evidence boundaries are centralized before automation consumes them; no production data migration exists."
 
 implementation_plan:
   tasks:
@@ -194,13 +196,13 @@ implementation_plan:
     - {id: T3, description: "Define development lifecycle, DoR/DoD and testing strategy.", depends_on: [T2], expected_files: [docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md], status: DONE}
     - {id: T4, description: "Define documentation architecture, development/security rules, threat modeling and ADR process.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/11_ADR/README.md], status: DONE}
     - {id: T5, description: "Add GitHub templates, capability registry, project scorecard and Phase-0 roadmap.", depends_on: [T3, T4], expected_files: [.github/pull_request_template.md, .github/ISSUE_TEMPLATE/feature.yml, .github/ISSUE_TEMPLATE/bug.yml, registry/capabilities/README.md, docs/13_QUALITY/project-scorecard.md, docs/10_ROADMAP/phase-0.md], status: DONE}
-    - {id: T6, description: "Complete post-merge independent assurance review, correct its findings, and synchronize canonical handover state.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/requirements/, registry/reviews/REVIEW-0003.yaml, registry/tests/TEST-0001.yaml, registry/work-items/WORK-0001.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
+    - {id: T6, description: "Complete post-merge independent assurance review, correct its findings, and synchronize canonical handover state.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/requirements/, registry/reviews/REVIEW-0003.yaml, registry/reviews/REVIEW-0004.yaml, registry/tests/TEST-0001.yaml, registry/tests/TEST-0004.yaml, registry/work-items/WORK-0001.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
     - {id: T7, description: "Add scientific specification lifecycle, requirements/assumptions/risks, traceability and reproducibility/backtesting contracts.", depends_on: [T3, T4, T5], expected_files: [docs/13_QUALITY/specification-quality.md, docs/13_QUALITY/reproducibility-backtesting.md, registry/requirements/_TEMPLATE.yaml, registry/assumptions/_TEMPLATE.yaml, registry/risks/_TEMPLATE.yaml, registry/traceability/README.md], status: DONE}
     - {id: T8, description: "Add assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols; synchronize state.", depends_on: [T7], expected_files: [docs/13_QUALITY/review-council.md, docs/13_QUALITY/assurance-levels.md, docs/13_QUALITY/advanced-verification.md, docs/13_QUALITY/non-functional-requirements.md, docs/12_RESEARCH/research-protocol.md, registry/reviews/_TEMPLATE.yaml, registry/tests/_TEMPLATE.yaml, registry/experiments/_TEMPLATE.yaml, registry/README.md], status: DONE}
   planned_runs:
     - {id: RUN-1, objective: "Repository navigation/governance tracking bootstrap", tasks: [T1, T2], exit_condition: "Core resume/tracking contracts exist", status: DONE}
     - {id: RUN-2, objective: "Quality/lifecycle/GitHub workflow bootstrap", tasks: [T3, T4, T5], exit_condition: "Development gates/templates exist", status: DONE}
-    - {id: RUN-3, objective: "Post-merge bootstrap assurance correction and fresh re-review", tasks: [T6], exit_condition: "Fresh L2 findings are corrected, evidence-backed and independently re-reviewed with no unresolved blocking finding", status: IN_REVIEW}
+    - {id: RUN-3, objective: "Post-merge bootstrap assurance correction and fresh re-review", tasks: [T6], exit_condition: "Fresh L2 findings are corrected, SHA-bound evidence exists, and a new independent review has no unresolved blocking finding", status: IN_REVIEW}
     - {id: RUN-4, objective: "Scientific/documentation governance hardening", tasks: [T7], exit_condition: "Canonical documentation is governed as rigorously as implementation", status: DONE}
     - {id: RUN-5, objective: "Assurance, research and advanced verification hardening", tasks: [T8], exit_condition: "Quality dimensions/review evidence are explicit and synchronized", status: DONE}
 
@@ -217,32 +219,42 @@ review_plan:
     - RED_TEAM_SKEPTIC
   completed_reviews: []
   open_findings:
-    - "REVIEW-0003/F-1 atomic normative requirement traceability"
-    - "REVIEW-0003/F-2 registry-specific status lifecycle machines"
-    - "REVIEW-0003/F-3 post-merge PROJECT_STATE handover truth"
-    - "Fresh L2 re-review of the corrective branch is required before completion."
+    - "REVIEW-0004/F-1 corrective TEST evidence freshness"
+    - "REVIEW-0004/F-2 historical REVIEW scope integrity"
+    - "REVIEW-0004/F-3 CLOSED review cannot approve"
+    - "REVIEW-0004/F-4 canonical progress initial state/transitions and single vocabulary"
+    - "REVIEW-0004/F-5 NOT_APPLICABLE justifications for all current users"
+    - "REVIEW-0004/F-6 REQ-0008/REQ-0012 atomic ownership"
+    - "Fresh L2 re-review of the corrected PR #3 HEAD is required before completion."
 
 required_tests:
   unit: []
   property: []
   integration: []
   contract:
-    - "Cross-file consistency review of status vocabulary, registry lifecycle machines, REQ links, paths and registry contracts"
+    - "Cross-file consistency review of registry lifecycle machines, progress transitions, REQ links, N/A justifications, evidence boundaries, paths and registry contracts"
   e2e:
     - TEST-0001
+    - TEST-0004
     - "Cold-read specification workflow determines current work, normative requirements, research/review/traceability without chat context"
   regression:
     - "Bootstrap-discovered governance defects become WORK-0002 validator fixtures"
     - "Material bootstrap acceptance criteria cannot remain outside REQ traceability"
-    - "Registry-specific status semantics cannot be inferred from the project progress vocabulary"
-    - "Post-merge PROJECT_STATE cannot instruct agents to repeat the merged PR"
+    - "Historical TEST/REVIEW evidence cannot be widened to corrective artifacts created later"
+    - "CLOSED review state cannot satisfy approval semantics"
+    - "Progress state has one canonical vocabulary plus explicit initial state/transitions"
+    - "Every current NOT_APPLICABLE progress dimension has a work-item justification"
+    - "REQ-0008 scorecard ownership does not duplicate REQ-0012 hard-gate ownership"
+    - "Post-merge PROJECT_STATE cannot instruct agents to repeat already-completed work"
   security:
     - "Repository visibility reviewed; public by explicit owner decision under public-code-safe constraints (no secrets, private/personal datasets or user-identifying runtime data in Git)."
   performance: []
   real_system:
     - "Branch writes performed against actual GitHub repository"
     - "PR #1 created, reviewed and squash-merged as b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
-    - "Fresh GitHub Codex review executed against the merged artifact"
+    - "Fresh GitHub Codex review executed against merged artifact and recorded as REVIEW-0003"
+    - "Fresh GitHub Codex re-review executed against PR #3 head 2d4dea7e51a6cc55b159ff3001637e3ca8ec3ee9 and recorded as REVIEW-0004"
+    - "TEST-0004 must execute against the post-correction PR #3 SHA before the six findings can be claimed resolved"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -269,23 +281,29 @@ validation:
     - "Manual resume/read-path consistency review"
     - "Status-vocabulary inconsistency found and corrected before merge"
     - "Specification-governance gap analysis performed"
-    - "Review/test evidence contracts exercised with REVIEW-0001 and TEST-0001"
+    - "Historical REVIEW-0001 and TEST-0001 retained as evidence of what actually ran before corrective artifacts existed"
     - "Fresh-context GitHub Codex L2 executed on merged bootstrap and recorded as REVIEW-0003"
     - "Fourteen bootstrap acceptance criteria normalized to REQ-0001 through REQ-0014"
-    - "Registry-specific lifecycle semantics centralized in registry/status-machines.yaml"
+    - "Registry and progress lifecycle semantics centralized in registry/status-machines.yaml"
+    - "Fresh-context GitHub Codex re-review executed on PR #3 head 2d4dea7e51a6cc55b159ff3001637e3ca8ec3ee9 and recorded as REVIEW-0004"
+    - "Second corrective pass separates historical evidence, defines progress transitions/single vocabulary, supplies all current N/A justifications and removes REQ-0008 hard-gate overlap"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
+    - "PR #3"
     - REVIEW-0001
     - REVIEW-0003
+    - REVIEW-0004
     - TEST-0001
+    - TEST-0004
     - "REQ-0001..REQ-0014"
     - registry/status-machines.yaml
   coverage:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "Corrective branch still requires fresh L2 re-review before WORK-0001 can complete."
+    - "TEST-0004 is not PASS until it is executed against the post-correction PR #3 SHA."
+    - "Corrective branch still requires a fresh L2 re-review after TEST-0004 evidence before WORK-0001 can complete."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -302,7 +320,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; fresh post-merge L2 found missing atomic REQ traceability, missing registry-specific lifecycle machines, and stale handover state. Corrective branch now addresses all three and awaits re-review."}
+  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; REVIEW-0003 found three assurance gaps. PR #3 corrected those; REVIEW-0004 then found six additional evidence/lifecycle/atomicity gaps. The second corrective pass is published and awaits SHA-bound TEST-0004 plus another fresh L2."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 
@@ -311,6 +329,9 @@ discoveries:
   - "Acceptance criteria are not a substitute for stable REQ identities when behavior is material and normative."
   - "Registry status semantics must be registry-specific and machine-readable before CI can enforce transitions safely."
   - "A post-merge independent review can expose assurance debt that was invisible to same-context review."
+  - "Historical evidence must not be widened retroactively to corrective files or requirements created after execution."
+  - "CLOSED and COMPLETE review states have different evidence semantics."
+  - "A status vocabulary is incomplete as a machine contract without an initial state and transitions."
   - "100% coverage alone is insufficient; test-strength and non-compensable gates are required."
 blockers: []
 follow_up_work_items:
