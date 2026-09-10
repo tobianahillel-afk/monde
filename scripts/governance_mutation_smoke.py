@@ -46,7 +46,7 @@ MUTATIONS = {
     ),
     "review-work-binding": (
         "tools/governance/strict_contracts.py",
-        'if review is not None and wid not in review_targets(review):',
+        'if wid not in review_targets(review):',
         'if False:',
     ),
     "required-test-pass": (
@@ -58,6 +58,36 @@ MUTATIONS = {
         "tools/governance/strict_contracts.py",
         'if previous is not None:',
         'if False:',
+    ),
+    "review-independence-target-schema": (
+        "schemas/registry/work-items.schema.json",
+        '"enum": ["L0", "L1", "L2", "L3", "L0_TARGET", "L1_TARGET", "L2_TARGET", "L3_TARGET"]',
+        '"type": "string"',
+    ),
+    "specification-completion-gate": (
+        "tools/governance/strict_contracts.py",
+        'if isinstance(completion, dict) and completion.get("specification_gates_checked") is not True:',
+        'if False:',
+    ),
+    "done-progress-complete-set": (
+        "tools/governance/strict_contracts.py",
+        'if missing:',
+        'if False:',
+    ),
+    "canonical-review-severity": (
+        "tools/governance/strict_contracts.py",
+        'if rank <= BLOCKING_REVIEW_RANK and finding.get("disposition") not in {"RESOLVED", "ACCEPTED"}:',
+        'if False:',
+    ),
+    "context-dependency-closure": (
+        "tools/governance/context_manifest.py",
+        'neighbors = forward.get(rid, set()) | reverse.get(rid, set())',
+        'neighbors = forward.get(rid, set())',
+    ),
+    "review-freshness-scope": (
+        "tools/governance/change_guard.py",
+        'if change_relevant_to_work(root, path, work, reviewed, head, file_path)',
+        'if True',
     ),
 }
 
