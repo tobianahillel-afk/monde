@@ -53,9 +53,10 @@ findings:
     description: "Repository is currently public while future MONDE specifications may contain sensitive/high-risk architectural material."
     evidence:
       - "Repository metadata inspected 2026-09-10"
+      - "Explicit owner decision 2026-09-10: repository remains public"
       - "WORK-0003"
-    disposition: OWNER_ACTION_REQUIRED
-    resolved_by: null
+    disposition: ACCEPTED
+    resolved_by: "Owner explicitly accepts a public repository. Repository content must remain public-code-safe: no credentials, secrets, private/personal datasets or user-identifying runtime data may be committed; sensitive runtime data and secrets remain outside Git. WORK-0003 retains branch/ruleset/check/security hardening but not privatization as a requirement."
   - id: F-4
     severity: R2_MAJOR
     category: SPECIFICATION_PROCESS
