@@ -86,3 +86,9 @@ history:
       validity: VALID
       invalidated_by: null
       reason: "Exact history and status-machine checks passed; reopening is reviewed and generic TEST lifecycle remains strict while the lone legacy edge is commit-bound. This remains valid for that scope/tree; TEST-0007 is rerun because REVIEW-0010 adds a bidirectional REQ-0006 traceability assertion."
+    - commit_sha: "c27a98b94c4f59c5778b9c7d30e447536a70a452"
+      recorded_result: PASS
+      recorded_in_commit: "07fb9baf3f76437059b73f7805a5edd36d704cc6"
+      validity: VALID
+      invalidated_by: null
+      reason: "Forward REQ-0006 → TEST-0007 and reverse TEST-0007 → REQ-0006 traceability both resolve on the exact tested tree, while lifecycle v5 and the exact historical migration guarantees remain intact."
