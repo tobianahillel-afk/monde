@@ -248,7 +248,7 @@ review_plan:
     - "REVIEW-0009/F-1 progress DONE → IN_REVIEW reopening semantics were missing even though the corrective branch had truthfully reopened dimensions after adverse evidence"
     - "REVIEW-0009/F-2 TEST-0004 immutable history contains a PLANNED → PASS edge requiring an exact reviewed historical migration exception"
     - "TEST-0007 is PASS on exact corrective tree d1d0b32e321cd56ada21f76c4d3e08856a792db5; result recorded in a280fed4123a476dc5d5a22651b8b8e1c3aa1240 and history pointer in 03b6b85adc9e48b038a609e83c890c16fc313d34."
-    - "TEST-0006 was reopened PASS → READY because status-machines.yaml changed; rerun against the synchronized current tree before requesting another fresh L2."
+    - "Fourth TEST-0006 execution is PASS on exact synchronized contract-v5 tree fa55004d1623ab2aa66c14b62bb036f6e335f041; result recorded in 80eb23da21d76d5b87134164ce46954423a04e95 and history pointer in 772f45b2f7eacb3d2dfbeb39f3c1aca089b19959. Fresh L2 verification is still required before findings close."
 
 required_tests:
   unit: []
@@ -299,7 +299,7 @@ required_tests:
     - "Third TEST-0006 execution is PASS on exact corrected tree 0b2c2f6a92051760e759bf2e64518188e8266012; result recorded in badf011c82fc07e86d85d0e5d6efcb21223ca8cb and its history pointer recorded in 5dc3153ceee2db22496186d54180815c09e3afa2"
     - "Fresh GitHub Codex re-review executed against PR #3 head 1e3f539b89afbbb07de63271682a1db06f47550c and recorded as REVIEW-0009; it found missing DONE → IN_REVIEW reopening semantics and the immutable TEST-0004 PLANNED → PASS lifecycle edge"
     - "TEST-0007 PASS is SHA-bound to exact corrected lifecycle-history tree d1d0b32e321cd56ada21f76c4d3e08856a792db5; result recorded in a280fed4123a476dc5d5a22651b8b8e1c3aa1240 and history pointer in 03b6b85adc9e48b038a609e83c890c16fc313d34"
-    - "TEST-0006 was reopened PASS → READY after status-machines.yaml version 5 changed the contract it protects; a fresh exact-tree rerun remains required"
+    - "Fourth TEST-0006 execution followed READY → RUNNING → PASS on exact synchronized tree fa55004d1623ab2aa66c14b62bb036f6e335f041; result recorded in 80eb23da21d76d5b87134164ce46954423a04e95 and history pointer in 772f45b2f7eacb3d2dfbeb39f3c1aca089b19959"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -349,7 +349,7 @@ validation:
     - "REVIEW-0009 reviewed exact head 1e3f539b89afbbb07de63271682a1db06f47550c and exposed two lifecycle-history defects that prevented closure"
     - "status-machines.yaml version 5 now defines evidence-triggered progress DONE → IN_REVIEW reopening and one exact non-reusable TEST-0004 historical transition exception"
     - "TEST-0007 followed PLANNED → READY → RUNNING → PASS and verified those corrections against exact Git history on d1d0b32e321cd56ada21f76c4d3e08856a792db5; PASS recorded in a280fed4123a476dc5d5a22651b8b8e1c3aa1240"
-    - "TEST-0006 is READY for an exact-tree rerun after the lifecycle-contract change"
+    - "TEST-0006 fourth execution followed READY → RUNNING → PASS and passed on exact synchronized tree fa55004d1623ab2aa66c14b62bb036f6e335f041; PASS recorded in 80eb23da21d76d5b87134164ce46954423a04e95 and its history pointer in 772f45b2f7eacb3d2dfbeb39f3c1aca089b19959"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -365,7 +365,7 @@ validation:
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
     - TEST-0005
-    - "TEST-0006 (current status READY after contract v5 change; prior valid execution on 0b2c2f6a remains historical evidence until rerun)"
+    - "TEST-0006 (PASS on fa55004d1623ab2aa66c14b62bb036f6e335f041 under status contract v5; prior valid execution on 0b2c2f6a remains historical evidence and earlier executions on 331931d/3b4477f remain invalidated)"
     - "TEST-0007 (PASS on d1d0b32e321cd56ada21f76c4d3e08856a792db5; result a280fed4123a476dc5d5a22651b8b8e1c3aa1240)"
     - "REQ-0001..REQ-0019"
     - registry/status-machines.yaml
@@ -374,7 +374,7 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "REVIEW-0009/F-1 and F-2 remain open until TEST-0006 is rerun on the synchronized contract-v5 tree and another fresh-context L2 independently verifies the correction."
+    - "REVIEW-0009/F-1 and F-2 remain open until another fresh-context L2 independently verifies the corrected frozen PR #3 HEAD; TEST-0006/TEST-0007 PASS alone cannot close them."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; six fresh-L2 findings on c50c330 remain open."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -391,7 +391,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; successive fresh L2 reviews REVIEW-0003 through REVIEW-0009 exposed assurance defects. REVIEW-0009 found missing DONE→IN_REVIEW reopening semantics and TEST-0004's immutable PLANNED→PASS edge. Contract v5 and TEST-0007 now prove the historical correction; TEST-0006 is READY for a final current-tree rerun before another fresh L2."}
+  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; successive fresh L2 reviews REVIEW-0003 through REVIEW-0009 exposed assurance defects. REVIEW-0009 found missing DONE→IN_REVIEW reopening semantics and TEST-0004's immutable PLANNED→PASS edge. Contract v5 is proven by TEST-0007 and the fourth TEST-0006 execution on fa55004d; another fresh L2 is the remaining assurance gate."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 
