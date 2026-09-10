@@ -1,81 +1,52 @@
 id: TEST-0002
-name: "Governance deterministic unit and branch suite"
+name: "Governance deterministic verification suite"
 status: PASS
-type: UNIT_INTEGRATION
+type: UNIT_PROPERTY_REGRESSION
 
 protects:
   requirements: []
   capabilities: []
   contracts:
     - "repository governance validation"
-    - "registry status/reference/path integrity"
-    - "work dependency and completion gates"
-    - "repository path containment"
+    - "registry/schema/status/reference/path integrity"
+    - "DONE review/progress semantics"
+    - "change-control and context-routing behavior"
   risks:
-    - "validator silently accepts malformed repository state"
-    - "100 percent coverage is achieved without failure-path coverage"
-    - "declared or Markdown paths escape repository root"
-  invariants:
-    - "deterministic governance rules return actionable failures"
-    - "repository-declared paths remain inside repository root"
+    - "governance implementation accepts invalid repository state"
+    - "100 percent coverage hides missing behavioral properties"
 
 location:
   test_path: tests/governance/
   suite: governance
 
-environment:
-  kind: GITHUB_ACTIONS_AND_ISOLATED_FIXTURES
-  real_dependencies:
-    - "GitHub Actions Python 3.13.15 runner"
-  mocked_dependencies: []
-
 cases:
   happy_path:
-    - "clean representative repository passes"
-    - "valid task dependencies and future review dates pass"
-    - "valid in-repository YAML and Markdown paths pass"
-  edge_cases:
-    - "template registry files are ignored"
-    - "terminal work cannot remain active"
-    - "relative Markdown anchors/external URLs are ignored correctly"
-    - "non-mapping progress states are detected"
-    - "symlink resolution is checked against repository boundary"
+    - "clean representative repositories pass"
+    - "valid L1 plus L2 review evidence jointly satisfies required hats and independence"
+    - "valid administrative post-review finalization remains review-fresh"
   failure_modes:
-    - "YAML parse errors"
-    - "invalid record shape/id prefix/duplicate id/status"
-    - "unknown registry references"
-    - "missing or malformed read_before/affected paths"
-    - "work dependency cycles and invalid task/run references"
-    - "incomplete DONE work"
-    - "overdue/invalid assumption and risk dates"
-    - "canonical TODO/TBD/FIXME and broken Markdown links"
-    - "missing/inconsistent progress matrix"
-    - "missing/stale/unknown active project work"
-    - "absolute, traversal and symlink path escape"
-    - "Markdown path escape"
+    - "invalid YAML/schema/status/reference/path"
+    - "incomplete DONE dimensions or review evidence"
+    - "missing work in progress matrix"
+    - "invalid state transitions, ID changes, record deletion and scope drift"
+    - "review freshness after substantive changes"
+    - "mutable actions/digests and high-confidence committed secret patterns"
+    - "live GitHub malformed/paginated/unresolved-thread states"
   adversarial_cases:
-    - "malformed scalar/list structures where mappings are expected"
-    - "duplicate stable IDs"
-    - "bogus status values"
-    - "../ traversal"
-    - "absolute filesystem paths"
-    - "in-repository symlink resolving outside root"
+    - "Markdown link titles"
+    - "path traversal/symlink escape"
+    - "scope reduction after READY"
+    - "L1 review attempting to satisfy L2 requirement"
 
-execution:
-  command_or_workflow: "python -m pytest --cov=tools.governance --cov-branch --cov-report=term-missing --cov-fail-under=100"
-  last_run_at: "2026-09-10"
-  commit_sha: "c074a3faf5a8928472ea468d37cdbfc8f32d577f"
-  result: PASS
-  evidence:
-    - "GitHub Actions run 34418747551"
-    - "30 tests passed"
-    - "386/386 statements covered"
-    - "196/196 branches covered"
-    - "Total coverage 100.00%"
+execution_definition:
+  command: "python -m pytest --cov=tools.governance --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=100"
+  required_line_coverage: 100
+  required_branch_coverage: 100
+  mutation_smoke: "python scripts/governance_mutation_smoke.py"
 
-coverage:
-  line_contribution: 100
-  branch_contribution: 100
+execution_evidence_policy:
+  source_of_truth: GITHUB_CHECKS_AND_ARTIFACTS
+  rule: "This registry record defines the test obligation. A GitHub execution proves only the SHA on which that check ran."
 
 history:
   created_at: "2026-09-10"

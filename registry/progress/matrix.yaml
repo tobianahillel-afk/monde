@@ -1,4 +1,4 @@
-version: 4
+version: 5
 updated_at: "2026-09-10"
 
 status_vocabulary:
@@ -42,7 +42,7 @@ phases:
                 traceability: DONE
                 handover: DONE
           SUBLOT-0.2:
-            name: "Governance automation"
+            name: "Governance automation and GitHub control plane"
             status: IN_REVIEW
             work_items:
               WORK-0002:
@@ -52,8 +52,8 @@ phases:
                 implementation: DONE
                 tests: DONE
                 scientific_validation: NOT_APPLICABLE
-                security_review: PARTIAL
-                real_system_validation: DONE
+                security_review: IN_REVIEW
+                real_system_validation: IN_REVIEW
                 review: IN_REVIEW
                 dependencies: DONE
                 traceability: DONE
@@ -117,6 +117,8 @@ quality_dimensions:
   reproducibility_backtesting_defined: DONE
   research_protocol_defined: DONE
   threat_modeling_protocol_defined: DONE
+  ai_context_routing_defined: DONE
+  github_control_plane_defined: DONE
   capability_registry_current: PARTIAL
   dependency_registry_current: PARTIAL
   work_item_tracking_current: DONE
@@ -127,14 +129,13 @@ quality_dimensions:
   github_workflow_defined: DONE
   governance_ci_enforced: PARTIAL
   architecture_fitness_functions_enforced: NOT_STARTED
-  automated_traceability_validation: PARTIAL
+  automated_traceability_validation: DONE
   automated_specification_validation: PARTIAL
   product_capability_inventory: NOT_STARTED
 
 rules:
-  - "Every active work item must appear in this matrix; planned work should also be represented once assigned an ID."
-  - "A work item cannot be DONE while any mandatory applicable dimension is NOT_STARTED, PARTIAL, BLOCKED or IN_REVIEW."
+  - "Every active/planned WORK record must appear in this matrix."
+  - "A DONE work item cannot have an applicable dimension in NOT_STARTED, PARTIAL, BLOCKED or IN_REVIEW."
   - "NOT_APPLICABLE requires justification in the work item."
-  - "Agents update this matrix in the same PR that changes work status."
-  - "Policy/documentation may be DONE while automated enforcement remains separately PARTIAL/NOT_STARTED; do not conflate definition with enforcement."
-  - "Applicable hard gates are non-compensable regardless of aggregate quality score."
+  - "Repository policy definition and GitHub enforcement are tracked separately."
+  - "Hard gates are non-compensable regardless of aggregate score."

@@ -3,7 +3,7 @@
 Status: Accepted  
 Canonical operational state: Yes
 
-> This file is the **fast resume point**. Keep it short, current and factual. Detailed history belongs in work items, reviews, tests and PRs.
+> Fast resume point. Durable intent lives in Git; live PR/check/thread truth lives in GitHub.
 
 ## Current phase
 
@@ -15,17 +15,17 @@ Canonical operational state: Yes
 
 ## Current sublot
 
-**SUBLOT-0.2 — Governance automation**
+**SUBLOT-0.2 — Governance automation / P0-P2 hardening**
 
 ## Active work
 
-- `WORK-0002` — deterministic executable governance CI for MONDE.
+- `WORK-0002` — governance automation and GitHub control-plane hardening.
 
 ## Current branch / PR
 
 - Branch: `feat/work-0002-governance-ci`
 - Pull request: `#2 — feat(governance): automate MONDE repository validation`
-- PR state: moving to ready-for-review after final-head CI.
+- PR state in repository prose: draft during substantive P0-P2 proof. Always verify live GitHub state before merge decisions.
 
 ## Current status
 
@@ -33,91 +33,79 @@ Canonical operational state: Yes
 
 ## Last completed milestone
 
-PR #1 — `docs: bootstrap AI-first MONDE repository governance and assurance` was squash-merged into `main` at commit `b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1`.
+PR #1 — `docs: bootstrap AI-first MONDE repository governance and assurance` was squash-merged into `main` at `b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1`.
 
-`WORK-0001` remains administratively `IN_REVIEW` in its historical registry because its targeted fresh-context review/owner visibility findings were preserved rather than rewritten after merge. Its merged contracts are the foundation used by WORK-0002.
+## WORK-0002 current scope
 
-## WORK-0002 implementation state
+The hardened implementation includes:
 
-Implementation and same-context L1 hardening are complete:
-
-- deterministic registry/status/reference/path validator;
-- dependency-cycle and task/run validation;
-- DONE completion-gate validation;
-- PROJECT_STATE ↔ progress ↔ work-item consistency;
-- assumption/risk due-date checks;
-- canonical Markdown placeholder/link checks;
-- repository path-containment gate for absolute/traversal/symlink escapes;
-- GitHub Actions workflow with `contents: read` only;
-- checkout credentials not persisted;
-- GitHub Actions dependencies pinned to immutable SHAs;
-- governance Python dependencies pinned to exact validated versions;
-- `TEST-0002` and `TEST-0003` evidence records;
-- `REVIEW-0002` same-context multi-hat review.
-
-Latest hardened proof before final state-only commits:
-
-- GitHub Actions run `34418747551` succeeded;
-- 30 tests passed;
-- 386/386 executable statements covered;
-- 196/196 branches covered;
-- total line/branch coverage = 100%;
-- repository governance = 0 errors / 0 warnings;
-- path-safety = 0 errors.
-
-A prior run `34418545142` failed because `WORK-0002` referenced `REVIEW-0002` before that record existed. This is retained as positive evidence that cross-record self-enforcement works on the real repository.
+- deterministic registry/status/reference/path validation;
+- JSON Schema validation;
+- DONE progress-dimension and review-evidence validation;
+- reverse WORK↔progress membership;
+- Markdown link-title handling and path containment;
+- base/head and per-commit transition validation;
+- immutable IDs / published-record deletion guard;
+- post-READY semantic scope-drift and review-freshness guards;
+- meta-governance A3/A4 change guard;
+- immutable Action/Docker pins and high-confidence secret-pattern checks;
+- hash-locked Python governance dependencies;
+- reusable governance workflow, Dependency Review and CodeQL;
+- stable `MONDE / Merge Gate`;
+- SHA-bound live GitHub HEAD/mergeability/unresolved-thread gate;
+- AI context manifest with MUST_READ / SHOULD_READ / ON_DEMAND tiers;
+- CI evidence artifacts and job summaries.
 
 ## Review state
 
-`REVIEW-0002` resolved implementation findings for:
+The original Codex review on PR #2 identified four unresolved findings on the old HEAD:
 
-- mutable GitHub Action references / persisted credentials;
-- dependency-version drift;
-- repository path escape.
+- review evidence was not validated deeply enough before DONE;
+- DONE progress dimensions could remain incomplete;
+- work items could be absent from the progress matrix;
+- Markdown links with optional titles could false-fail.
 
-Tracked non-blocking hardening remains:
+The substantive P0-P2 hardening implements regressions for all four. Do not resolve those GitHub threads until the new substantive HEAD is pushed and CI proves the fixes there.
 
-- hash-lock Python package artifacts, beyond exact version pinning;
-- formal JSON Schema coverage as registry contracts stabilize.
+`REVIEW-0002` remains the same-context L1 review. A fresh L2 review on the substantive final HEAD is required before `WORK-0002 = DONE`.
 
-The remaining gate for `WORK-0002 = DONE` is the targeted **fresh-context L2 review** required by assurance level A3. Current review evidence is L1 and is not being mislabeled as independent.
+## Evidence model
+
+`TEST-*` / `REVIEW-*` records define durable obligations. GitHub checks, artifacts, review threads and run logs are live SHA-bound executions. A historical run must never be relabeled as proof of a later HEAD.
 
 ## Planned next work
 
-- `WORK-0003` / `SUBLOT-0.3` — repository visibility, branch protection, required checks and merge discipline.
-- `WORK-0004` / `LOT-1 / SUBLOT-1.1` — exhaustive historical MONDE capability inventory and stable CAP IDs.
+- `WORK-0003` — intentional repository visibility, main/ruleset protection, required gate, merge/security policy and real-setting verification.
+- `WORK-0004` — exhaustive capability inventory only after WORK-0003 is complete.
 
-No planned work becomes active automatically.
+## Owner/admin limitation
 
-## Owner action still open
-
-Repository visibility is currently **public**. Sensitive/high-risk MONDE product specifications should not be added until visibility/protection is reviewed. This belongs to `WORK-0003` and repository-owner settings.
-
-## Quality interpretation
-
-The governance automation itself is implemented and proven on GitHub. `governance_ci_enforced` remains `PARTIAL` because the repository still does not require this check at merge time; that enforcement belongs to WORK-0003.
+The current GitHub connector can modify repository files/branches/PRs but does not expose full repository-administration mutations such as visibility/ruleset changes. WORK-0003 must distinguish settings applied through available tooling from explicit owner actions still required in GitHub UI/API.
 
 ## Next action
 
-Run final-head GitHub Actions after state/evidence synchronization. If green, mark PR #2 ready for review. A fresh-context L2 reviewer must then examine the PR before WORK-0002 is declared DONE/merged under the A3 process.
+1. Publish the substantive P0-P2 commit to PR #2.
+2. Execute the real MONDE Gate on that exact HEAD.
+3. Fix any real CI discrepancy without weakening gates.
+4. Resolve Codex threads only after the proven fixes are visible.
+5. Move PR out of draft and obtain fresh L2 review on the substantive HEAD.
+6. Add only administrative finalization records/statuses, rerun the gate, then merge if all live gates pass.
+7. Start WORK-0003; do not begin WORK-0004 first.
 
 ## Resume instructions
 
-A fresh L2 reviewer should read, in order:
+Use the AI context manifest when available. Minimum manual sequence:
 
 1. `README.md`
 2. `AGENTS.md`
 3. `docs/00_START_HERE.md`
 4. this file
 5. `registry/work-items/WORK-0002.yaml`
-6. `registry/reviews/REVIEW-0002.yaml`
-7. `registry/tests/TEST-0002.yaml`
-8. `registry/tests/TEST-0003.yaml`
-9. `.github/workflows/governance.yml`
-10. `requirements/governance-ci.txt`
-11. `tools/governance/validate_repo.py`
-12. `tools/governance/path_safety.py`
-13. `tests/governance/`
-14. PR #2 diff/checks
+6. `docs/03_ARCHITECTURE/github-control-plane.md`
+7. `docs/13_QUALITY/ai-context-routing.md`
+8. `.github/workflows/governance.yml`
+9. `tools/governance/`
+10. `tests/governance/`
+11. live PR #2 checks and unresolved threads
 
-No prior chat history is required.
+No previous chat history is required.
