@@ -1,6 +1,6 @@
 id: TEST-0004
 name: "WORK-0001 corrective lifecycle and evidence-boundary drill"
-status: PLANNED
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -52,11 +52,19 @@ cases:
     - "Search every current matrix NOT_APPLICABLE value for a matching work-item rationale"
 
 execution:
-  command_or_workflow: null
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  command_or_workflow: "Manual SHA-bound inspection through the GitHub connector of the corrective PR #3 tree, cross-checking the six REVIEW-0004 findings against canonical files and current matrix/work-item state."
+  last_run_at: "2026-09-10"
+  commit_sha: "23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+  result: PASS
+  evidence:
+    - "PR #3 corrective tree @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "registry/status-machines.yaml @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "registry/progress/matrix.yaml @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "registry/work-items/WORK-0002.yaml, WORK-0003.yaml and WORK-0004.yaml @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "registry/tests/TEST-0001.yaml and registry/reviews/REVIEW-0001.yaml @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "registry/requirements/REQ-0008.yaml and REQ-0012.yaml @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "PROJECT_STATE.md @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "REVIEW-0004"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
