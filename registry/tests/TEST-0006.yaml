@@ -114,3 +114,9 @@ history:
       validity: VALID
       invalidated_by: null
       reason: "All current-tree read_before paths resolved, branch-only prerequisites were explicitly deferred until checkout of the WORK-0002 implementation branch, lifecycle state remained coherent, and the original replacement-scope/review-outcome checks passed. This remains valid for its tested tree; TEST-0006 was rerun because REVIEW-0009 changed the status-machine contract it inspects."
+    - commit_sha: "fa55004d1623ab2aa66c14b62bb036f6e335f041"
+      recorded_result: PASS
+      recorded_in_commit: "80eb23da21d76d5b87134164ce46954423a04e95"
+      validity: VALID
+      invalidated_by: null
+      reason: "Contract v5, current handover, WORK-0002 cross-branch boundary, global lifecycle consistency, TEST-0001 supersession and positive-only review approval semantics all passed on the exact synchronized tree."
