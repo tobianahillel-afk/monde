@@ -34,19 +34,23 @@ No WORK-0003 or WORK-0004 implementation has started.
 
 `REVIEW-0003` was a fresh-context L2 of merged bootstrap commit `b88e9edf2a` and found three material gaps: missing atomic REQ identities, missing registry-specific lifecycle machines, and stale post-merge handover state.
 
-`REVIEW-0004` was a fresh-context L2 of PR #3 at `2d4dea7e51a6cc55b159ff3001637e3ca8ec3ee9` and found six additional issues: historical TEST/REVIEW evidence had been widened, CLOSED reviews could count as approval, progress lacked explicit transitions/single-source vocabulary, current N/A values lacked justifications, and REQ-0008 overlapped REQ-0012. `TEST-0004` subsequently passed against exact corrective tree `23ef1a88e9a5106b12144d4c6649868a6a691a8f`; its PASS was recorded in `e8337d833ca0b524bed69318ca4b3691c9ce6c23`.
+`REVIEW-0004` was a fresh-context L2 of PR #3 at `2d4dea7e51a6cc55b159ff3001637e3ca8ec3ee9` and found six additional issues: historical TEST/REVIEW evidence had been widened, CLOSED reviews could count as approval, progress lacked explicit transitions/single-source vocabulary, current N/A values lacked justifications, and REQ-0008 overlapped REQ-0012. `TEST-0004` passed against exact corrective tree `23ef1a88e9a5106b12144d4c6649868a6a691a8f`; its PASS was recorded in `e8337d833ca0b524bed69318ca4b3691c9ce6c23`.
 
 `REVIEW-0005` was a fresh-context L2 of PR #3 at `d5be907160c7fad3d86b2e0ce84911a3dcaab7d9` and found three further issues: TEST-0001 was still an active unbound PASS, R1/R2 acceptance lacked authority evidence, and REQ-0010 remained compound. The next correction superseded TEST-0001 without inventing a historical SHA, made blocking-finding acceptance authority machine-representable, and split AC-10 normative ownership across REQ-0010 plus REQ-0015..REQ-0019. `TEST-0005` passed against exact substantive tree `2712795dc9f10c1efed2088313d125f6f915cc98`; the PASS record was committed as `89d39c75fe29d8bbcbe016cecaa6c87d935f1c47`.
 
-`REVIEW-0006` was the fresh-context L2 of PR #3 HEAD `8c2fbc9e44ba9f0c810b768be513d988812f1e5c`. It found two remaining issues: negative COMPLETE review outcomes could still be interpreted as approval, and TEST-0001's replacement did not preserve the original resume/status scope. The fourth corrective pass constrained approval-capable outcomes and made TEST-0006 the scope-preserving replacement.
+`REVIEW-0006` was the fresh-context L2 of PR #3 HEAD `8c2fbc9e44ba9f0c810b768be513d988812f1e5c`. It found two issues: negative COMPLETE review outcomes could still be interpreted as approval, and TEST-0001's replacement did not preserve the original resume/status scope. The fourth corrective pass constrained approval-capable outcomes and made TEST-0006 the scope-preserving replacement.
 
 `REVIEW-0007` was the fresh-context L2 of PR #3 HEAD `71ecfea253066a66df6ae8302172c07f78f35752`. It found one R2/P1 defect: the first TEST-0006 tree had PROJECT_STATE describing WORK-0002 as `IN_REVIEW` while the PR #3 WORK-0002 record and progress matrix still said `PLANNED`, invalidating that first PASS.
 
-The global WORK-0002 snapshot was reconciled through legal `PLANNED → READY → IN_PROGRESS → IN_REVIEW` transitions. TEST-0006 was then rerun on `3b4477f00953f1a352fe7c40497853fc01e103b6` and initially recorded PASS in `1558b2d9e85f64c755bacd623d310474ef838719`.
+The global WORK-0002 snapshot was reconciled through legal `PLANNED → READY → IN_PROGRESS → IN_REVIEW` transitions. TEST-0006 was then rerun on `3b4477f00953f1a352fe7c40497853fc01e103b6` and recorded PASS in `1558b2d9e85f64c755bacd623d310474ef838719`.
 
-`REVIEW-0008` is the fresh-context L2 of PR #3 HEAD `cd7bf6a0429b4fab09fd2512c29cb4ba0a8a1e5f`. It found one R2/P1 defect: the synchronized WORK-0002 mirror imported two `read_before` paths (`docs/03_ARCHITECTURE/github-control-plane.md` and `docs/13_QUALITY/ai-context-routing.md`) that do not exist in the PR #3 tree and exist only on the PR #2 branch. That made the second TEST-0006 cold-resume PASS semantically false despite correct lifecycle alignment.
+`REVIEW-0008` is the fresh-context L2 of PR #3 HEAD `cd7bf6a0429b4fab09fd2512c29cb4ba0a8a1e5f`. It found one R2/P1 defect: the synchronized WORK-0002 mirror imported two `read_before` paths (`docs/03_ARCHITECTURE/github-control-plane.md` and `docs/13_QUALITY/ai-context-routing.md`) that do not exist in the PR #3 tree and exist only on the PR #2 branch. That made the second TEST-0006 PASS semantically false.
 
-The second TEST-0006 execution remains preserved in history but is explicitly `INVALIDATED` by `REVIEW-0008/F-1`. TEST-0006 is back to `READY`. The PR #3 WORK-0002 mirror now lists only `read_before` paths that resolve in this tree. Before editing WORK-0002 implementation, an agent must explicitly checkout `feat/work-0002-governance-ci` and then follow that branch's WORK-0002 record, where `github-control-plane.md` and `ai-context-routing.md` are present and mandatory.
+Both earlier TEST-0006 executions remain preserved and explicitly `INVALIDATED` by REVIEW-0007/F-1 and REVIEW-0008/F-1 respectively. The PR #3 WORK-0002 mirror now lists only `read_before` paths that resolve in this tree. Before editing WORK-0002 implementation, an agent must explicitly checkout `feat/work-0002-governance-ci` and then follow that branch's WORK-0002 record, where `github-control-plane.md` and `ai-context-routing.md` are present and mandatory.
+
+A third exact-SHA TEST-0006 execution was run against corrective tree `0b2c2f6a92051760e759bf2e64518188e8266012`. It verified every PR #3 WORK-0002 `read_before` path from the exact Git tree, rechecked the two branch-only documents on `feat/work-0002-governance-ci`, rechecked live PR #2 at `c50c33009d90f079e645f0ca9e1befe1a4a77ba9 / IN_REVIEW`, and revalidated lifecycle, supersession and review-outcome semantics. The third run is **PASS**, recorded in `badf011c82fc07e86d85d0e5d6efcb21223ca8cb`; `5dc3153ceee2db22496186d54180815c09e3afa2` records that result commit in TEST-0006 history.
+
+No REVIEW-0008 finding is considered resolved solely because TEST-0006 passed. A new fresh-context L2 of the synchronized current PR #3 HEAD is still required before any completion claim.
 
 ## WORK-0002 state
 
@@ -93,14 +97,12 @@ WORK-0001 material bootstrap behavior is represented by `REQ-0001` through `REQ-
 
 ## Next action
 
-1. Produce a stable exact PR #3 SHA with REVIEW-0008 recorded, TEST-0006 `READY`, WORK-0002 current-tree `read_before` paths resolvable, and this cross-branch handoff explicit.
-2. Re-execute TEST-0006 on that exact SHA, including existence checks for every WORK-0002 `read_before` path plus verification that the two branch-only documents resolve on `feat/work-0002-governance-ci` rather than on PR #3.
-3. Record PASS only if the full cold-resume route is coherent; preserve both earlier invalidated TEST-0006 executions in history.
-4. Attach exact-SHA proof to REVIEW-0008/F-1 without resolving it, synchronize WORK-0001/PROJECT_STATE, and request another fresh-context L2 review.
-5. If the reviewer finds anything material, correct and re-prove it; otherwise record the approval-capable review and resolve only verified findings.
-6. Finalize WORK-0001/progress/completion evidence and merge PR #3 only after the approval gate is truly satisfied.
-7. Rebase/update PR #2 on the new main contract, fix its six current findings with regression/mutation tests and exact-SHA CI proof, and obtain its own fresh L2 before merge.
-8. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
+1. Attach the exact third TEST-0006 proof (`0b2c2f6a…` tested, `badf011c…` result, `5dc3153c…` history pointer) to REVIEW-0008/F-1 without resolving the thread.
+2. Request another fresh-context L2 review of the synchronized current PR #3 HEAD after administrative evidence synchronization.
+3. If the reviewer finds anything material, correct and re-prove it; otherwise record the approval-capable review and resolve only verified findings.
+4. Finalize WORK-0001/progress/completion evidence and merge PR #3 only after the approval gate is truly satisfied.
+5. Rebase/update PR #2 on the new main contract, fix its six current findings with regression/mutation tests and exact-SHA CI proof, and obtain its own fresh L2 before merge.
+6. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
 
 ## Resume instructions
 
