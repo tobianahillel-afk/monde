@@ -11,20 +11,20 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "tools/governance/validate_repo.py"
 MUTATIONS = {
     "review-completion": (
-        'if data.get("status") not in {"COMPLETE", "CLOSED"}:',
-        'if False:',
+        'if d.get("status") not in {"COMPLETE","CLOSED"}:self.add(r.path,"DONE_REVIEW",f"review {rid} is not complete")',
+        'if False:self.add(r.path,"DONE_REVIEW",f"review {rid} is not complete")',
     ),
     "progress-reverse-membership": (
-        'if wid not in found:',
-        'if False:',
+        'if wid not in found:self.add(p,"PROGRESS_WORK",f"work item {wid} is missing from progress matrix")',
+        'if False:self.add(p,"PROGRESS_WORK",f"work item {wid} is missing from progress matrix")',
     ),
     "action-sha-pinning": (
-        'if not PINNED_ACTION.fullmatch(uses):',
-        'if False:',
+        'elif not PINNED_ACTION.fullmatch(x):self.add(p,"ACTION_PIN",f"action must use full commit SHA: {x}")',
+        'elif False:self.add(p,"ACTION_PIN",f"action must use full commit SHA: {x}")',
     ),
     "done-progress-dimensions": (
-        'if dimension_status not in DONE_PROGRESS_ALLOWED:',
-        'if False:',
+        'if isinstance(val,str) and val in GLOBAL_STATUSES and val not in DONE_PROGRESS_ALLOWED:self.add(p,"PROGRESS_DONE_DIMENSION",f"{wid}.{key}={val} is incomplete for DONE")',
+        'if False:self.add(p,"PROGRESS_DONE_DIMENSION",f"{wid}.{key}={val} is incomplete for DONE")',
     ),
 }
 
@@ -50,7 +50,7 @@ def main() -> int:
             env = dict(os.environ)
             env["PYTHONPATH"] = str(temp)
             proc = subprocess.run(
-                [sys.executable, "-m", "pytest", "-q", "tests/governance/test_validate_repo.py"],
+                [sys.executable, "-m", "pytest", "-q", "tests/governance"],
                 cwd=temp,
                 env=env,
                 stdout=subprocess.DEVNULL,
