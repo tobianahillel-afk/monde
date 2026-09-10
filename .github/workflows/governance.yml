@@ -72,6 +72,7 @@ jobs:
   codeql:
     name: CodeQL
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     permissions:
       actions: read
       contents: read

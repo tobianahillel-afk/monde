@@ -54,6 +54,7 @@ jobs:
       - name: Validate repository state
         run: |
           python -m tools.governance.validate_repo . --json-out governance-findings.json
+          python -m tools.governance.strict_contracts . --json-out strict-findings.json
           python -m tools.governance.path_safety . --json-out path-findings.json
 
       - name: Validate base-to-head transition
@@ -84,7 +85,7 @@ jobs:
             echo '- Head: `${{ inputs.head_sha }}`'
             echo '- Coverage target: **100% line + branch**'
             echo '- Mutation smoke: critical governance mutants must be killed'
-            echo '- Static repository, path, schema, secret-pattern, action-pin and transition guards executed above'
+            echo '- Static repository, strict lifecycle/proof, path, schema, secret-pattern, action-pin and transition guards executed above'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload governance evidence
@@ -95,6 +96,7 @@ jobs:
           path: |
             coverage.xml
             governance-findings.json
+            strict-findings.json
             path-findings.json
             change-findings.json
             context-manifest.json
