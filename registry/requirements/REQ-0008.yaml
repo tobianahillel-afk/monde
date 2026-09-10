@@ -1,0 +1,15 @@
+id: REQ-0008
+title: "Evidence-based repository quality scorecard"
+status: ACCEPTED
+type: GOVERNANCE
+normative_statement: "MONDE SHALL maintain a repository quality scorecard with at least thirty engineering criteria, explicit evidence expectations, and non-compensable hard gates for critical dimensions."
+rationale: "Aggregate maturity scores must not hide severe quality failures."
+origin: {source: "WORK-0001/AC-8", decision_date: "2026-09-10", introduced_by_work: WORK-0001, introduced_by_adr: null}
+scope: {capabilities: [], engines: [], experiences: [], schemas: [], data_sources: [], models: []}
+depends_on: [REQ-0005]
+conflicts_with: []
+related_requirements: [REQ-0012]
+semantics: {temporal: false, spatial: false, provenance: false, confidence_uncertainty: false, permissions: false}
+verification: {method: REVIEW, acceptance_evidence: [TEST-0001, REVIEW-0001, "docs/13_QUALITY/project-scorecard.md"], test_ids: [TEST-0001], real_system_validation: []}
+risk: {criticality: NORMAL, failure_impact: "A high aggregate score could conceal an unacceptable security, epistemic, or traceability defect."}
+history: {created_at: "2026-09-10", updated_at: "2026-09-10", supersedes: [], superseded_by: null}

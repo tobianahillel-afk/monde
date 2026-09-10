@@ -1,0 +1,127 @@
+version: 1
+canonical: true
+updated_at: "2026-09-10"
+
+principles:
+  - "A record status is valid only when declared by the machine for its registry."
+  - "Transitions not listed here are invalid unless a reviewed migration explicitly changes this contract."
+  - "A metadata-only edit may retain the same status; this is not a lifecycle transition."
+  - "Terminal and superseded records remain historically addressable; IDs are never reused."
+  - "Project/work progress dimensions use their own vocabulary and must not be treated as the status vocabulary of every registry."
+
+registry_machines:
+  work_items:
+    initial: PROPOSED
+    states: [PROPOSED, PLANNED, READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, DEPRECATED, CANCELLED]
+    transitions:
+      PROPOSED: [PLANNED, CANCELLED]
+      PLANNED: [READY, BLOCKED, CANCELLED]
+      READY: [IN_PROGRESS, BLOCKED, CANCELLED]
+      IN_PROGRESS: [PARTIAL, BLOCKED, IN_REVIEW, CANCELLED]
+      PARTIAL: [IN_PROGRESS, BLOCKED, IN_REVIEW, CANCELLED]
+      BLOCKED: [READY, IN_PROGRESS, PARTIAL, CANCELLED]
+      IN_REVIEW: [IN_PROGRESS, PARTIAL, BLOCKED, DONE]
+      DONE: [DEPRECATED]
+      DEPRECATED: []
+      CANCELLED: []
+
+  capabilities:
+    initial: PROPOSED
+    states: [PROPOSED, PLANNED, READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, DEPRECATED, CANCELLED]
+    transitions:
+      PROPOSED: [PLANNED, CANCELLED]
+      PLANNED: [READY, BLOCKED, CANCELLED]
+      READY: [IN_PROGRESS, BLOCKED, CANCELLED]
+      IN_PROGRESS: [PARTIAL, BLOCKED, IN_REVIEW, CANCELLED]
+      PARTIAL: [IN_PROGRESS, BLOCKED, IN_REVIEW, CANCELLED]
+      BLOCKED: [READY, IN_PROGRESS, PARTIAL, CANCELLED]
+      IN_REVIEW: [IN_PROGRESS, PARTIAL, BLOCKED, DONE]
+      DONE: [DEPRECATED]
+      DEPRECATED: []
+      CANCELLED: []
+
+  requirements:
+    initial: PROPOSED
+    states: [PROPOSED, ACCEPTED, SUPERSEDED, DEPRECATED, CANCELLED]
+    transitions:
+      PROPOSED: [ACCEPTED, CANCELLED]
+      ACCEPTED: [SUPERSEDED, DEPRECATED]
+      SUPERSEDED: []
+      DEPRECATED: []
+      CANCELLED: []
+
+  assumptions:
+    initial: OPEN
+    states: [OPEN, VALIDATING, RESOLVED, SUPERSEDED, EXPIRED]
+    transitions:
+      OPEN: [VALIDATING, RESOLVED, SUPERSEDED, EXPIRED]
+      VALIDATING: [OPEN, RESOLVED, SUPERSEDED, EXPIRED]
+      RESOLVED: [SUPERSEDED]
+      SUPERSEDED: []
+      EXPIRED: [OPEN, SUPERSEDED]
+    resolution_outcomes: [CONFIRMED, REJECTED, PARTIALLY_CONFIRMED, UNKNOWN]
+
+  risks:
+    initial: OPEN
+    states: [OPEN, MITIGATING, MONITORING, ACCEPTED, CLOSED, SUPERSEDED]
+    transitions:
+      OPEN: [MITIGATING, MONITORING, ACCEPTED, CLOSED, SUPERSEDED]
+      MITIGATING: [OPEN, MONITORING, ACCEPTED, CLOSED, SUPERSEDED]
+      MONITORING: [OPEN, MITIGATING, ACCEPTED, CLOSED, SUPERSEDED]
+      ACCEPTED: [OPEN, MONITORING, CLOSED, SUPERSEDED]
+      CLOSED: [OPEN, SUPERSEDED]
+      SUPERSEDED: []
+
+  reviews:
+    initial: OPEN
+    states: [OPEN, IN_PROGRESS, COMPLETE, CLOSED]
+    transitions:
+      OPEN: [IN_PROGRESS, CLOSED]
+      IN_PROGRESS: [COMPLETE, CLOSED]
+      COMPLETE: [CLOSED]
+      CLOSED: []
+    outcomes: [APPROVE, APPROVE_WITH_FOLLOWUP, CHANGES_REQUIRED, BLOCKED]
+    finding_severities: [R1_CRITICAL, R2_MAJOR, R3_MODERATE, R4_MINOR]
+    finding_dispositions: [OPEN, RESOLVED, ACCEPTED, TRACKED_FOLLOWUP, OWNER_ACTION_REQUIRED]
+    completion_rule: "A COMPLETE/CLOSED review must be bound to the reviewed artifact/version and may approve completion only when blocking R1/R2 findings are RESOLVED or ACCEPTED."
+
+  tests:
+    initial: PLANNED
+    states: [PLANNED, READY, RUNNING, PASS, FAIL, BLOCKED, CANCELLED, SUPERSEDED]
+    transitions:
+      PLANNED: [READY, BLOCKED, CANCELLED]
+      READY: [RUNNING, BLOCKED, CANCELLED]
+      RUNNING: [PASS, FAIL, BLOCKED]
+      PASS: [READY, SUPERSEDED]
+      FAIL: [READY, BLOCKED, SUPERSEDED]
+      BLOCKED: [READY, CANCELLED, SUPERSEDED]
+      CANCELLED: []
+      SUPERSEDED: []
+    pass_rule: "PASS is evidence-bearing: the record must identify what it protects, how it ran, its result, and concrete evidence; state-bound executions must identify the reviewed/tested version."
+
+  experiments:
+    initial: PLANNED
+    states: [PLANNED, READY, RUNNING, COMPLETE, FAILED, BLOCKED, CANCELLED, SUPERSEDED]
+    transitions:
+      PLANNED: [READY, BLOCKED, CANCELLED]
+      READY: [RUNNING, BLOCKED, CANCELLED]
+      RUNNING: [COMPLETE, FAILED, BLOCKED]
+      COMPLETE: [SUPERSEDED]
+      FAILED: [READY, SUPERSEDED]
+      BLOCKED: [READY, CANCELLED, SUPERSEDED]
+      CANCELLED: []
+      SUPERSEDED: []
+
+  dependencies:
+    initial: PROPOSED
+    states: [PROPOSED, ACTIVE, SUPERSEDED, RETIRED]
+    transitions:
+      PROPOSED: [ACTIVE, RETIRED]
+      ACTIVE: [SUPERSEDED, RETIRED]
+      SUPERSEDED: []
+      RETIRED: []
+
+progress:
+  work_dimension_states: [NOT_STARTED, PROPOSED, PLANNED, READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, DEPRECATED, CANCELLED, NOT_APPLICABLE]
+  done_allowed_dimension_states: [DONE, NOT_APPLICABLE]
+  not_applicable_rule: "Every NOT_APPLICABLE dimension requires a non-empty justification in the corresponding work item and remains subject to review for non-compensable gates."

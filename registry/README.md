@@ -68,11 +68,21 @@ The target relationship is:
 
 `ASM` and `RISK` attach anywhere they materially affect the chain.
 
+A material accepted governance behavior is not exempt merely because no product capability exists yet: it still requires a stable `REQ-*` identity and a verification/review path. Bootstrap requirements may therefore trace directly `REQ → WORK → TEST/REVIEW` until product capability records exist.
+
 ## Status integrity
 
-Each registry defines its allowed lifecycle states. Governance tooling should reject unknown states and invalid transitions.
+`registry/status-machines.yaml` is the single machine-readable lifecycle contract for current registries. It defines each registry's initial state, allowed states, valid transitions, and status-adjacent vocabularies such as review outcomes/dispositions.
 
-Do not use vague free-text status such as `almost_done` or `looks_good`.
+Rules:
+1. A registry record may use only states declared for that registry.
+2. A transition must be explicitly allowed by that registry's machine; metadata-only edits may retain the same state.
+3. Project/work progress dimensions use the progress vocabulary declared in the status-machine contract and `registry/progress/matrix.yaml`; that vocabulary does **not** implicitly authorize states in REQ/ASM/RISK/REVIEW/TEST/EXP/DEP records.
+4. `NOT_APPLICABLE` is a progress-dimension state, not a universal registry state, and requires a non-empty work-item justification.
+5. Lifecycle changes are governance changes: update the canonical machine, affected schemas/validators, migrations and review evidence together rather than adding an ad-hoc state locally.
+6. Governance tooling must fail closed on unknown states and invalid transitions.
+
+Human-readable registry-specific documents may explain these states but must not define a competing lifecycle truth.
 
 ## AI navigation rule
 
@@ -84,14 +94,15 @@ As the repository grows, human-readable tables/search indexes should be generate
 
 ## Validation target
 
-Future governance CI should validate:
+Governance CI should validate:
 - schema correctness;
 - unique IDs;
 - valid references;
-- valid lifecycle transitions;
+- registry-specific lifecycle states/transitions from `registry/status-machines.yaml`;
 - required fields by status/risk;
-- no orphan critical records;
+- no orphan critical/material records;
 - `read_before` paths;
 - traceability completeness;
 - assumption/risk review deadlines;
-- DONE/Accepted evidence requirements.
+- DONE/Accepted evidence requirements;
+- progress `NOT_APPLICABLE` justifications.

@@ -1,0 +1,15 @@
+id: REQ-0006
+title: "Stable project registries and lifecycle semantics"
+status: ACCEPTED
+type: GOVERNANCE
+normative_statement: "MONDE SHALL maintain stable-ID contracts for progress, dependencies, requirements, assumptions, risks, reviews, tests, experiments, and traceability, with explicit registry-specific lifecycle vocabularies and transitions."
+rationale: "Machine validation cannot safely infer status semantics from examples or unrelated progress vocabularies."
+origin: {source: "WORK-0001/AC-6", decision_date: "2026-09-10", introduced_by_work: WORK-0001, introduced_by_adr: null}
+scope: {capabilities: [], engines: [], experiences: [], schemas: ["registry/status-machines.yaml"], data_sources: [], models: []}
+depends_on: [REQ-0002]
+conflicts_with: []
+related_requirements: [REQ-0010]
+semantics: {temporal: false, spatial: false, provenance: false, confidence_uncertainty: false, permissions: false}
+verification: {method: TEST_AND_REVIEW, acceptance_evidence: [TEST-0001, REVIEW-0001, "registry/README.md", "registry/status-machines.yaml"], test_ids: [TEST-0001], real_system_validation: []}
+risk: {criticality: HIGH, failure_impact: "Governance automation may accept unknown states or invent incompatible transitions."}
+history: {created_at: "2026-09-10", updated_at: "2026-09-10", supersedes: [], superseded_by: null}

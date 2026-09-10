@@ -4,46 +4,61 @@ status: PASS
 type: MANUAL_E2E
 
 protects:
-  requirements: []
+  requirements: [REQ-0001, REQ-0002, REQ-0003, REQ-0004, REQ-0005, REQ-0006, REQ-0007, REQ-0008, REQ-0009, REQ-0010, REQ-0011, REQ-0012, REQ-0013, REQ-0014]
   capabilities: []
   contracts:
     - "AI resume protocol"
-    - "status vocabulary consistency"
+    - "status vocabulary and registry lifecycle consistency"
     - "active work routing"
+    - "work/requirement/test/review traceability"
+    - "specification and assurance governance"
   risks:
     - "AI resumes from stale or incomplete context"
+    - "material governance behavior has no normative requirement trace"
+    - "registry automation invents status semantics"
   invariants:
-    - "Repository state, not chat history, is the source of truth"
+    - "Repository state, not chat history, is the durable source of project truth"
+    - "Material governance obligations have stable REQ identities and a verification path"
+    - "Registry-specific status semantics are explicit before automation depends on them"
 
 environment:
   kind: REAL_GITHUB_REPOSITORY
   real_dependencies:
     - "tobianahillel-afk/monde"
     - "PR #1"
+    - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
   mocked_dependencies: []
 
 cases:
   happy_path:
-    - "README points to START_HERE/AGENTS/PROJECT_STATE"
-    - "PROJECT_STATE identifies WORK-0001 and PR #1"
-    - "WORK-0001 exposes read_before and next validation state"
+    - "README routes to START_HERE/AGENTS/PROJECT_STATE and active work without chat history"
+    - "WORK-0001 exposes bounded read_before, scope, acceptance criteria, assurance, validation, review and rollback"
+    - "REQ-0001 through REQ-0014 map the fourteen material WORK-0001 acceptance criteria into the trace graph"
+    - "Registry index routes lifecycle validation to registry/status-machines.yaml"
+    - "Definitions of Ready/Done, specification quality, Review Council, assurance levels, advanced verification, research and backtesting contracts are reachable from WORK-0001"
   edge_cases:
-    - "Status vocabulary cross-checked against values used by progress/work records"
+    - "Project/work progress states are not assumed to be valid assumption/risk/review/test/experiment/dependency states"
+    - "Public repository decision is explicit while secrets and private/personal runtime data remain out of Git"
   failure_modes:
-    - "Unknown status token causes governance inconsistency"
-    - "Active work path missing or stale would break resume"
+    - "Unknown registry status or transition lacks a canonical machine"
+    - "Accepted material requirement has no verification path"
+    - "Current project state tells an agent to repeat an already-completed merge"
   adversarial_cases:
-    - "Reviewer assumes initial bootstrap is complete and searches for omitted governance categories"
+    - "Reviewer assumes long governance prose is complete and searches for orphan requirements and lifecycle semantics"
+    - "Reviewer follows only repository state, not prior conversation, to determine the next action"
 
 execution:
-  command_or_workflow: "Manual cold-path/diff review on actual GitHub branch and PR"
+  command_or_workflow: "Manual cold-path, traceability and lifecycle-contract review against the actual GitHub repository and PR #1 merged state"
   last_run_at: "2026-09-10"
-  commit_sha: null
-  result: PASS_WITH_FINDINGS_RESOLVED
+  commit_sha: "b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
+  result: PASS_WITH_POST_MERGE_FINDINGS_TRACKED
   evidence:
-    - "REVIEW-0001/F-1"
-    - "PR #1 diff"
-    - "Status vocabulary correction commits"
+    - "PR #1 and merge b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
+    - "REVIEW-0001"
+    - "REVIEW-0003"
+    - "registry/status-machines.yaml"
+    - "registry/requirements/REQ-0001.yaml through REQ-0014.yaml"
+    - "PROJECT_STATE.md"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
