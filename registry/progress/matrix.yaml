@@ -1,4 +1,4 @@
-version: 3
+version: 4
 updated_at: "2026-09-10"
 status_machine: "../status-machines.yaml#progress"
 
@@ -29,22 +29,22 @@ phases:
                 traceability: IN_REVIEW
                 handover: IN_REVIEW
           SUBLOT-0.2:
-            name: "Governance automation"
-            status: PLANNED
+            name: "Governance automation and GitHub control plane"
+            status: READY
             work_items:
               WORK-0002:
-                status: PLANNED
+                status: READY
                 docs: PARTIAL
                 specification_governance: PARTIAL
-                implementation: NOT_STARTED
-                tests: NOT_STARTED
+                implementation: PARTIAL
+                tests: PARTIAL
                 scientific_validation: NOT_APPLICABLE
-                security_review: NOT_STARTED
-                real_system_validation: NOT_STARTED
-                review: NOT_STARTED
-                dependencies: PLANNED
+                security_review: IN_REVIEW
+                real_system_validation: PARTIAL
+                review: IN_REVIEW
+                dependencies: DONE
                 traceability: PARTIAL
-                handover: NOT_STARTED
+                handover: PARTIAL
           SUBLOT-0.3:
             name: "Repository protection and merge discipline"
             status: PLANNED
