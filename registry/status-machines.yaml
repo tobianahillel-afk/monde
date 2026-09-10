@@ -1,15 +1,16 @@
-version: 5
+version: 6
 canonical: true
 updated_at: "2026-09-10"
 
 principles:
   - "A record status is valid only when declared by the machine for its registry."
-  - "Transitions not listed here are invalid unless an exact reviewed migration exception in this contract applies."
-  - "Migration exceptions are historical, record-specific and commit-bound; they never add a generic transition and may not be reused for future records."
+  - "Transitions not listed here are invalid unless an exact reviewed migration or historical-import exception in this contract applies."
+  - "Migration/import exceptions are historical, record-specific and commit-bound; they never add a generic transition or alternate initial state and may not be reused for future records."
   - "A metadata-only edit may retain the same status; this is not a lifecycle transition."
   - "Terminal and superseded records remain historically addressable; IDs are never reused."
   - "Project/work progress dimensions use their own lifecycle and must not be treated as the status vocabulary of every registry."
   - "Completion evidence may be reopened when later evidence invalidates or materially re-questions it; reopening is recorded rather than rewriting the prior state."
+  - "A registry record materialized after an already-completed external governance event may enter Git in its resulting status only when an exact reviewed historical-import exception names that record, status and introduction commit."
 
 registry_machines:
   work_items:
@@ -51,6 +52,43 @@ registry_machines:
       SUPERSEDED: []
       DEPRECATED: []
       CANCELLED: []
+    historical_import_exceptions:
+      - record_id: REQ-0015
+        imported_status: ACCEPTED
+        import_commit: "2712795dc9f10c1efed2088313d125f6f915cc98"
+        reason: "REQ-0015 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint must not be fabricated retroactively."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-2"
+      - record_id: REQ-0016
+        imported_status: ACCEPTED
+        import_commit: "2712795dc9f10c1efed2088313d125f6f915cc98"
+        reason: "REQ-0016 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint must not be fabricated retroactively."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-2"
+      - record_id: REQ-0017
+        imported_status: ACCEPTED
+        import_commit: "2712795dc9f10c1efed2088313d125f6f915cc98"
+        reason: "REQ-0017 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint must not be fabricated retroactively."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-2"
+      - record_id: REQ-0018
+        imported_status: ACCEPTED
+        import_commit: "2712795dc9f10c1efed2088313d125f6f915cc98"
+        reason: "REQ-0018 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint must not be fabricated retroactively."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-2"
+      - record_id: REQ-0019
+        imported_status: ACCEPTED
+        import_commit: "2712795dc9f10c1efed2088313d125f6f915cc98"
+        reason: "REQ-0019 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint must not be fabricated retroactively."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-2"
+    historical_import_rule: "A post-contract requirement introduced in a non-initial status is valid only when record_id, imported_status and import_commit exactly match a reviewed exception above and actual Git history. The exception preserves immutable history only; it does not make ACCEPTED an initial state, does not create a generic transition, and cannot authorize any future requirement to bypass PROPOSED. Records introduced in the same bootstrap commit that established this machine are baseline state, not post-contract imports."
 
   assumptions:
     initial: OPEN
@@ -96,6 +134,78 @@ registry_machines:
     accepted_finding_rule: "A finding with disposition ACCEPTED must identify the accepting actor, authority role, non-empty evidence establishing that authority for the reviewed artifact/risk, rationale, acceptance time, and a future review/expiry condition. For an R1/R2 finding to stop blocking A3/A4 completion, that acceptance evidence must demonstrate authority appropriate to the work item's assurance level; an author cannot make a blocking finding non-blocking merely by writing ACCEPTED. A4 additionally requires formal owner approval wherever the assurance policy requires it."
     completion_rule: "Only a COMPLETE review whose outcome is one of approval_capable_outcomes may provide approval evidence. It must be bound to the reviewed artifact/version, include the required executed review roles/independence, and have no unresolved blocking R1/R2 finding unless that finding satisfies accepted_finding_rule. COMPLETE reviews with CHANGES_REQUIRED or BLOCKED are durable negative review evidence and never satisfy a work-item review-completion gate."
     closed_rule: "CLOSED is an administrative terminal state for a review that will not provide approval evidence; CLOSED never satisfies a work-item review-completion gate."
+    historical_import_exceptions:
+      - record_id: REVIEW-0004
+        imported_status: COMPLETE
+        import_commit: "98e8cdccc07bd3c2d8313d81f296f49c97c44379"
+        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0004 as COMPLETE."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-1"
+      - record_id: REVIEW-0005
+        imported_status: COMPLETE
+        import_commit: "2712795dc9f10c1efed2088313d125f6f915cc98"
+        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0005 as COMPLETE."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-1"
+      - record_id: REVIEW-0006
+        imported_status: COMPLETE
+        import_commit: "2593b93891a7d5c8ba6fa60522cbc48c787c1a96"
+        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0006 as COMPLETE."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-1"
+      - record_id: REVIEW-0007
+        imported_status: COMPLETE
+        import_commit: "e93017e6382fa30fa752091ef204edc14ca14d11"
+        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0007 as COMPLETE."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-1"
+      - record_id: REVIEW-0008
+        imported_status: COMPLETE
+        import_commit: "f75dd13309caa6d0d55d41cc300fdf4f4ab8b858"
+        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0008 as COMPLETE."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-1"
+      - record_id: REVIEW-0009
+        imported_status: COMPLETE
+        import_commit: "c00d32512608afd0e8f60b5413f6067b5af42158"
+        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0009 as COMPLETE."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-1"
+      - record_id: REVIEW-0010
+        imported_status: COMPLETE
+        import_commit: "3b78f0f996b1aced47b7f9ab3f17364f27997a99"
+        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0010 as COMPLETE."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-1"
+      - record_id: REVIEW-0011
+        imported_status: COMPLETE
+        import_commit: "46fd37beaedcce90b6d8357c314336fbe956f659"
+        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0011 as COMPLETE."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-1"
+      - record_id: REVIEW-0012
+        imported_status: COMPLETE
+        import_commit: "319e12aade5e188594ef6da721ec8ff57aa7fdd2"
+        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0012 as COMPLETE."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-1"
+      - record_id: REVIEW-0013
+        imported_status: COMPLETE
+        import_commit: "69cb8c083fb7f55c5895f42d4f7e1a1e7820d320"
+        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0013 as COMPLETE."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0014/F-1"
+    historical_import_rule: "A post-contract review may first appear as COMPLETE only when record_id, imported_status and import_commit exactly match a reviewed exception above and Git history demonstrates that the review was externally completed before registry materialization. The exception is an import boundary only: OPEN remains the initial state, the generic OPEN → IN_PROGRESS → COMPLETE path remains mandatory for repository-native review execution, no OPEN → COMPLETE shortcut is added, and no future record may reuse an exception. Records introduced in the same bootstrap commit that established this machine are baseline state, not post-contract imports."
 
   tests:
     initial: PLANNED
