@@ -18,7 +18,7 @@ roles:
   - RED_TEAM_SKEPTIC
 
 scope:
-  requirements: []
+  requirements: [REQ-0001, REQ-0002, REQ-0003, REQ-0004, REQ-0005, REQ-0006, REQ-0007, REQ-0008, REQ-0009, REQ-0010, REQ-0011, REQ-0012, REQ-0013, REQ-0014]
   capabilities: []
   contracts:
     - "AI resume protocol"
@@ -34,59 +34,49 @@ findings:
     severity: R2_MAJOR
     category: CONSISTENCY
     description: "Progress matrix used NOT_STARTED/NOT_APPLICABLE before canonical status vocabulary declared them."
-    evidence:
-      - "PR #1 initial diff review"
+    evidence: ["PR #1 initial diff review"]
     disposition: RESOLVED
     resolved_by: "Status vocabulary and START_HERE were corrected on bootstrap branch."
   - id: F-2
     severity: R2_MAJOR
     category: AUTOMATION
     description: "Governance contracts are not yet automatically enforced by CI, so manual drift remains possible."
-    evidence:
-      - "No PR status checks observed"
-      - "WORK-0002"
+    evidence: ["No PR status checks observed", "WORK-0002"]
     disposition: TRACKED_FOLLOWUP
-    resolved_by: "WORK-0002 planned and expanded to validate specifications/traceability/review evidence."
+    resolved_by: "WORK-0002 implements governance/specification/traceability validation and is independently reviewed before merge."
   - id: F-3
     severity: R2_MAJOR
     category: SECURITY
     description: "Repository is currently public while future MONDE specifications may contain sensitive/high-risk architectural material."
-    evidence:
-      - "Repository metadata inspected 2026-09-10"
-      - "Explicit owner decision 2026-09-10: repository remains public"
-      - "WORK-0003"
+    evidence: ["Repository metadata inspected 2026-09-10", "Explicit owner decision 2026-09-10: repository remains public", "WORK-0003"]
     disposition: ACCEPTED
     resolved_by: "Owner explicitly accepts a public repository. Repository content must remain public-code-safe: no credentials, secrets, private/personal datasets or user-identifying runtime data may be committed; sensitive runtime data and secrets remain outside Git. WORK-0003 retains branch/ruleset/check/security hardening but not privatization as a requirement."
   - id: F-4
     severity: R2_MAJOR
     category: SPECIFICATION_PROCESS
     description: "Initial bootstrap governed execution well but insufficiently governed specification reasoning, assumptions, traceability and independent review."
-    evidence:
-      - "Gap analysis during PR review"
+    evidence: ["Gap analysis during PR review"]
     disposition: RESOLVED
     resolved_by: "Added specification quality, requirements/assumptions/risks, Review Council, traceability, DoR, NFR, research and backtesting protocols."
   - id: F-5
     severity: R3_MODERATE
     category: REVIEW_INDEPENDENCE
     description: "Current structured review is same-context L1; foundational governance targets a fresh-context L2 review before final confidence."
-    evidence:
-      - "Review Council independence policy"
-    disposition: OPEN
-    resolved_by: null
+    evidence: ["Review Council independence policy", "REVIEW-0003 fresh-context Codex review of merged b88e9edf"]
+    disposition: RESOLVED
+    resolved_by: "A fresh-context GitHub Codex L2 review was executed against merged commit b88e9edf and recorded as REVIEW-0003. That independent review found three new issues now tracked separately; final approval still requires re-review of their corrections."
   - id: F-6
     severity: R2_MAJOR
     category: PROCESS_DRIFT
     description: "The PR template still reflected the pre-assurance process and could let future contributors omit REQ/ASM/RISK, assurance, scientific validation and Review Council evidence."
-    evidence:
-      - ".github/pull_request_template.md second-pass diff inspection"
+    evidence: [".github/pull_request_template.md second-pass diff inspection"]
     disposition: RESOLVED
     resolved_by: "PR template synchronized with DoR, assurance, specification, scientific/backtest, NFR, threat-model, observability and hard-gate checks."
   - id: F-7
     severity: R3_MODERATE
     category: PROPOSAL_QUALITY
     description: "Feature proposal template did not force assumptions, external research needs, NFRs or review perspectives."
-    evidence:
-      - ".github/ISSUE_TEMPLATE/feature.yml second-pass inspection"
+    evidence: [".github/ISSUE_TEMPLATE/feature.yml second-pass inspection"]
     disposition: RESOLVED
     resolved_by: "Feature proposal template expanded with existing-semantics search, assumptions, risks, research, NFR, assurance and validation/review fields."
 
@@ -125,9 +115,9 @@ checks:
     - "documentation accepted without testable semantics"
     - "AI starting implementation before sufficient context exists"
   evidence_requested:
-    - "Fresh-context/owner review of PR #1"
+    - "Fresh-context L2 review of PR #1: satisfied by REVIEW-0003"
     - "Governance CI implementation in WORK-0002"
-    - "Repository protection/visibility work in WORK-0003"
+    - "Repository branch/ruleset/check/security hardening in WORK-0003"
 
 outcome: CHANGES_REQUIRED
 completed_at: null

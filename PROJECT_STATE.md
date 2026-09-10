@@ -3,7 +3,7 @@
 Status: Accepted  
 Canonical operational state: Yes
 
-> This file is the **fast resume point**. Keep it short, current and factual. Detailed implementation history belongs in work items and PRs.
+> Fast resume point. Durable intent lives in Git; live PR/check/thread truth lives in GitHub and must be rechecked before merge decisions.
 
 ## Current phase
 
@@ -13,108 +13,88 @@ Canonical operational state: Yes
 
 **LOT-0 — AI-first repository operating system**
 
-Goal: make MONDE safely resumable and developable by AI agents without relying on chat history or rediscovering architecture.
+## Current blocking sublot
 
-## Current sublot
+**SUBLOT-0.1 — Governance bootstrap / post-merge assurance correction**
 
-**SUBLOT-0.1 — Governance bootstrap**
+PR #1 was already squash-merged into `main` as `b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1`. WORK-0001 remained `IN_REVIEW` because its A3 assurance debt had not received a fresh-context L2 review before that merge.
 
 ## Active work
 
-- `WORK-0001` — bootstrap AI-first governance, specification quality, navigation, tracking, testing/review rules and repository assurance framework.
+- `WORK-0001` — post-merge assurance correction on branch `chore/work-0001-assurance-closure`; it blocks truthful completion of WORK-0002.
+- `WORK-0002` — governance automation on open PR #2 / branch `feat/work-0002-governance-ci`; implementation is advanced but remains `IN_REVIEW` and depends on WORK-0001.
 
-## Current branch / PR
-
-- Branch: `bootstrap/ai-governance`
-- Pull request: `#1 — docs: bootstrap AI-first MONDE repository governance and assurance`
+No WORK-0003 or WORK-0004 implementation has started.
 
 ## Current status
 
 `IN_REVIEW`
 
-## Completed in this sublot
+## WORK-0001 fresh L2 result
 
-- Product-level README and mandatory AI resume protocol.
-- MONDE Constitution and canonical documentation architecture.
-- Machine-readable work/progress/dependency/capability contracts.
-- `REQ-*`, `ASM-*`, `RISK-*`, `REVIEW-*`, `TEST-*`, `EXP-*` registry contracts and central registry index.
-- End-to-end traceability contract.
-- Phase → lot → sublot → work item → task → run development lifecycle.
-- Definition of Ready and Definition of Done.
-- Specification Quality Protocol for canonical documentation.
-- Research Protocol for evidence-based specification work.
-- Review Council with explicit engineering/scientific/security/operations hats and review independence levels.
-- Risk-based assurance levels A0–A4.
-- Comprehensive testing strategy and 100% meaningful line/branch coverage target.
-- Advanced verification ladder: property, fuzzing, mutation, metamorphic, differential, historical replay, fault injection and narrow formal/model-based verification.
-- Reproducibility/backtesting protocol with strict knowledge-at-T / temporal-leakage rules.
-- Non-functional quality attributes: performance, freshness, reliability, cost/resources, observability, recovery/SLO direction, security and maintainability.
-- Threat-modeling protocol for security-sensitive changes.
-- Development/security rules and ADR process.
-- PR/feature/bug templates synchronized with current assurance process.
-- 50-criterion / 100-point engineering scorecard with non-compensable hard gates.
-- Phase-0 roadmap and planned `WORK-0002`, `WORK-0003`, `WORK-0004`.
-- Structured review evidence stored as `REVIEW-0001` and first repository-resume validation stored as `TEST-0001`.
+A fresh-context GitHub Codex review was executed against merged bootstrap commit `b88e9edf2a` and is recorded as `REVIEW-0003`. It found three material gaps:
 
-## Review findings resolved during bootstrap
+1. P1 — the fourteen material bootstrap acceptance criteria had no atomic `REQ-*` identities or REQ→TEST/REVIEW trace;
+2. P1 — registry-specific lifecycle vocabularies/transitions were not canonically defined for REQ/ASM/RISK/REVIEW/TEST/EXP/DEP and related registries;
+3. P2 — this handover file still instructed agents to review/merge PR #1 after it had already merged.
 
-- Status vocabulary mismatch between registry state and canonical vocabulary.
-- Missing specification/research/assumption/traceability governance in the initial process.
-- PR template drift after assurance framework expansion.
-- Feature proposal template missing assumptions/research/NFR/review requirements.
+The current corrective branch addresses those findings by adding `REQ-0001` through `REQ-0014`, centralizing lifecycle truth in `registry/status-machines.yaml`, strengthening TEST-0001 traceability, and replacing the stale handover state. These corrections still require a fresh L2 re-review before WORK-0001 can become DONE.
 
-These defects were found through the review process and corrected before merge.
+## WORK-0002 state
 
-## Remaining before SUBLOT-0.1 is complete
+PR #2 current substantive HEAD is `c50c33009d90f079e645f0ca9e1befe1a4a77ba9`.
 
-- Fresh-context/owner L2 review of PR #1 (current structured review is same-context L1).
-- Owner decision/action on repository visibility before sensitive/high-risk specifications are added.
-- Resolve any findings from that independent review.
-- Merge only when required gates are satisfied.
-- After merge, set `WORK-0001`/progress state to `DONE` and activate the next approved work item explicitly.
+MONDE Gate run `34509930758` is green after rerunning its live final gate: 76 tests, 100% line/branch coverage, 16/16 critical mutations, repository/strict/path/change validators green, context manifest generated, CodeQL green, and live review-thread gate green for the findings known before the newest review.
 
-## Planned next work
+A newer fresh-context Codex review on `c50c33009d` then found six additional issues that remain open and must **not** be resolved until corrected and CI-proven:
 
-- `WORK-0002` / `SUBLOT-0.2` — automate governance/specification/traceability validation in CI, including registry schemas, orphan detection, review completion and architecture fitness functions.
-- `WORK-0003` / `SUBLOT-0.3` — configure repository visibility, branch protection, required checks and merge policy.
-- `WORK-0004` / `LOT-1 / SUBLOT-1.1` — inventory every previously validated MONDE capability and assign stable CAP IDs using the specification-quality process.
+1. P1 — minimum review independence must derive from assurance level, not only the work's declared target;
+2. P1 — COMPLETE/CLOSED review evidence must be bound to a reviewed commit SHA;
+3. P1 — TEST status PASS must require substantive execution/protection/evidence fields;
+4. P1 — progress `NOT_APPLICABLE` must require a work-item justification;
+5. P2 — context routing must seed graph closure from directly changed non-WORK registry records;
+6. P2 — PR #2 handover state was stale relative to its current HEAD/review history.
 
-No planned work item becomes active automatically.
+WORK-0002 remains `IN_REVIEW`; do not merge or mark it DONE before WORK-0001 is DONE and these six findings are corrected, re-proven and freshly re-reviewed.
 
-## Blockers / owner actions
+## Repository visibility decision
 
-### Repository visibility
+The repository intentionally remains **public** by explicit owner decision. This is not a pending privatization task.
 
-Repository visibility was observed as **public** on 2026-09-10. MONDE is expected to contain sensitive architectural material. The repository owner should review and preferably change visibility to private before later sensitive/high-risk specifications are committed.
+Public-code-safe constraints are mandatory:
+- never commit credentials, tokens or secrets;
+- never commit private/personal datasets or user-identifying runtime data;
+- keep sensitive runtime data and secrets outside Git in appropriate stores/secret managers;
+- WORK-0003 will harden branch/ruleset/required-check/merge/security settings while preserving public visibility.
 
-This connector does not expose a repository-visibility mutation, so this setting has not been changed automatically.
+## Canonical lifecycle/traceability correction
 
-### Automated enforcement
+`registry/status-machines.yaml` is the lifecycle source of truth for current registry statuses/transitions. `registry/progress/matrix.yaml` remains the project/work progress view and must not be treated as a universal status vocabulary.
 
-No CI status checks are currently attached to PR #1. The rules now exist as canonical contracts, but automated enforcement still belongs to `WORK-0002`; branch/security settings belong to `WORK-0003`.
-
-## Current quality interpretation
-
-The governance/specification framework is now deliberately rigorous, but the repository must **not** claim maturity from documentation alone. Automation, executable architecture/epistemic fitness functions, MONDE Mini, real application test suites and production evidence remain future work.
-
-The next quality gain should come from **enforcement**, not adding more parallel governance prose.
+WORK-0001 material bootstrap behavior is normalized into `REQ-0001` through `REQ-0014`; TEST-0001 and review evidence link to these requirements.
 
 ## Next action
 
-Perform a fresh-context/owner structured review of PR #1 using the required Review Council hats. If accepted, merge the bootstrap and then explicitly activate the next work item; recommended order is `WORK-0002` (automation) before deep product specification so the documentation process can enforce itself.
+1. Open a corrective PR from `chore/work-0001-assurance-closure` to `main`.
+2. Re-run a fresh-context L2 review on the complete corrective diff; fix any new material finding rather than force-closing it.
+3. Only after the correction is approved, update REVIEW/TEST/progress/WORK-0001 completion evidence and merge the corrective PR.
+4. Rebase/update PR #2 on the new main contract, then fix its six current fresh-L2 findings with regression/mutation tests and exact-SHA CI proof.
+5. Obtain a fresh L2 on the corrected PR #2 head; only then finalize/merge WORK-0002.
+6. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
 
 ## Resume instructions
 
-Next agent must read, in order:
-
+Minimum manual sequence:
 1. `README.md`
 2. `AGENTS.md`
 3. `docs/00_START_HERE.md`
 4. this file
-5. `registry/README.md`
-6. `registry/work-items/WORK-0001.yaml`
-7. `registry/reviews/REVIEW-0001.yaml`
-8. files listed in `WORK-0001.read_before`
-9. PR #1 discussion/diff for current review state
+5. `registry/work-items/WORK-0001.yaml`
+6. `registry/status-machines.yaml`
+7. `registry/requirements/REQ-0001.yaml` through `REQ-0014.yaml`
+8. `registry/reviews/REVIEW-0003.yaml`
+9. `registry/tests/TEST-0001.yaml`
+10. live corrective-PR state once opened
+11. live PR #2 checks and unresolved threads
 
-No prior chat history is required to understand the current bootstrap state.
+No prior chat history is required.
