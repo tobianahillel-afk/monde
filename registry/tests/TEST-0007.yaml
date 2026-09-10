@@ -1,0 +1,65 @@
+id: TEST-0007
+name: "Progress reopening and exact historical transition migration drill"
+status: PLANNED
+type: MANUAL_E2E
+
+protects:
+  requirements: [REQ-0006]
+  capabilities: []
+  contracts:
+    - "registry lifecycle/status-machine contract"
+    - "progress reopening semantics"
+    - "test execution lifecycle"
+    - "exact historical transition migration exceptions"
+  risks:
+    - "Truthful reopened evidence cannot be represented because DONE progress is terminal"
+    - "Historical lifecycle violations are silently accepted or generalized into future shortcuts"
+    - "A migration exception matches more history than the exact legacy edge it is intended to preserve"
+  invariants:
+    - "New adverse evidence can reopen DONE progress to IN_REVIEW without rewriting history"
+    - "Reopening requires an explicit evidence/review trigger and normal gates before returning to DONE"
+    - "Generic TEST transitions still require PLANNED → READY → RUNNING → PASS"
+    - "The TEST-0004 legacy exception applies only to its exact immutable PLANNED → PASS commit edge"
+
+environment:
+  kind: REAL_GITHUB_REPOSITORY
+  real_dependencies:
+    - "tobianahillel-afk/monde"
+    - "PR #3 commit history"
+  mocked_dependencies: []
+
+cases:
+  happy_path:
+    - "registry/status-machines.yaml allows progress DONE → IN_REVIEW and documents why a reviewed reopening is allowed"
+    - "The historical WORK-0001/quality-dimension DONE → IN_REVIEW changes in commit 4ef4bfd27e28973fcebead8b2b5065422c4a8883 are representable under the reopening rule"
+    - "Generic TEST transitions keep PASS reachable only from RUNNING"
+    - "The TEST-0004 exception names record TEST-0004, from PLANNED, to PASS, before commit 98e8cdccc07bd3c2d8313d81f296f49c97c44379 and transition commit e8337d833ca0b524bed69318ca4b3691c9ce6c23"
+    - "The exact Git history confirms TEST-0004 was PLANNED before e8337d833ca0b524bed69318ca4b3691c9ce6c23 and PASS at that transition"
+  edge_cases:
+    - "A reopened DONE dimension remains IN_REVIEW until its normal gate is re-satisfied"
+    - "An exact migration exception preserves immutable history without asserting that the historical process followed checkpoints it did not record"
+  failure_modes:
+    - "DONE progress can only deprecate and cannot re-enter review after new adverse evidence"
+    - "DONE → IN_REVIEW is allowed without any trigger/rationale requirement"
+    - "PLANNED → PASS appears in the generic TEST transition table"
+    - "The legacy exception omits record ID, source/target state, before commit, transition commit, rationale, historical-only scope or future-reuse prohibition"
+    - "The declared exception commit pair does not match the actual TEST-0004 history"
+  adversarial_cases:
+    - "Attempt to apply the TEST-0004 exception to another TEST record or another commit pair and verify the contract forbids it"
+    - "Inspect commit caaa27d716c38e28728e1e22412b1c43770096ef followed by 4ef4bfd27e28973fcebead8b2b5065422c4a8883 and verify the reopened progress changes are explicitly supported"
+    - "Inspect 98e8cdccc07bd3c2d8313d81f296f49c97c44379 and e8337d833ca0b524bed69318ca4b3691c9ce6c23 rather than inferring TEST-0004 history from its current file"
+
+execution:
+  command_or_workflow: null
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
+
+coverage:
+  line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+  branch_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"
