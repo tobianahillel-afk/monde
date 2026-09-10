@@ -116,7 +116,7 @@ history:
       reason: "Forward REQ-0006 → TEST-0007 and reverse TEST-0007 → REQ-0006 traceability both resolve on the exact tested tree, while lifecycle v5 and the exact historical migration guarantees remain intact. This remains valid for that scope/tree; TEST-0007 is reopened because REVIEW-0014 adds v6 review/requirement historical-import guarantees."
     - commit_sha: "b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "42a36e1b37855ea107eb94a8f3c9a05fe9cd6c67"
       validity: VALID
       invalidated_by: null
       reason: "Lifecycle v6 preserves strict generic transitions while exact post-contract review/requirement imports match immutable Git history, REVIEW-0014 itself follows the normal review lifecycle, and REQ-0006 ↔ TEST-0007 traceability remains intact."
