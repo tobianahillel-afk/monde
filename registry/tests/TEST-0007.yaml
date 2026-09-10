@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening and exact historical transition migration drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -50,9 +50,9 @@ cases:
     - "Inspect 98e8cdccc07bd3c2d8313d81f296f49c97c44379 and e8337d833ca0b524bed69318ca4b3691c9ce6c23 rather than inferring TEST-0004 history from its current file"
 
 execution:
-  command_or_workflow: null
-  last_run_at: null
-  commit_sha: null
+  command_or_workflow: "Manual exact-SHA GitHub audit of PR #3 lifecycle contract and immutable history, testing reopening semantics plus the exact TEST-0004 migration edge on corrective tree d1d0b32e321cd56ada21f76c4d3e08856a792db5"
+  last_run_at: "2026-09-10"
+  commit_sha: "d1d0b32e321cd56ada21f76c4d3e08856a792db5"
   result: null
   evidence: []
 
