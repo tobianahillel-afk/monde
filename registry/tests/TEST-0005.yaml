@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 third-pass evidence, authority and requirement-atomicity drill"
-status: PLANNED
+status: READY
 type: MANUAL_E2E
 
 protects:
