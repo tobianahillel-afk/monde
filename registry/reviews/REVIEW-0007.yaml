@@ -1,0 +1,70 @@
+id: REVIEW-0007
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "71ecfea253066a66df6ae8302172c07f78f35752"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-71ecfea"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+scope:
+  work_items: [WORK-0001]
+  requirements: []
+  capabilities: []
+  contracts:
+    - "AI resume protocol"
+    - "active work routing"
+    - "historical test supersession/replacement coverage"
+    - "cross-file lifecycle consistency"
+  risks:
+    - "A cold-resuming agent derives contradictory lifecycle state for concurrently active WORK-0002."
+    - "TEST-0006 is treated as PASS even though one of its happy-path assertions is false at the tested SHA."
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: ACTIVE_WORK_STATE_CONSISTENCY
+    description: "At TEST-0006's tested tree 331931d, PROJECT_STATE describes WORK-0002 as active and IN_REVIEW while the current-branch WORK-0002 record and progress matrix still say PLANNED, so the cold-resume active-work lifecycle is contradictory and TEST-0006 cannot validly pass its replacement scope."
+    evidence:
+      - "PR #3 inline review on registry/tests/TEST-0006.yaml @ 71ecfea253066a66df6ae8302172c07f78f35752"
+      - "PROJECT_STATE.md @ 331931d21c4ebde3f84911825debde61488f91b3"
+      - "registry/work-items/WORK-0002.yaml @ 331931d21c4ebde3f84911825debde61488f91b3"
+      - "registry/progress/matrix.yaml @ 331931d21c4ebde3f84911825debde61488f91b3"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "An open PR's live work state can be described as IN_REVIEW in PROJECT_STATE while the canonical tracking snapshot on another active branch remains PLANNED without confusing cold resume."
+    - "A SHA-bound manual test remains valid merely because its execution mechanics were recorded correctly."
+  omitted_categories_considered:
+    - "cross-branch active-work state"
+    - "PROJECT_STATE/WORK/matrix consistency"
+    - "test semantic validity"
+  duplicate_or_reuse_search:
+    - "Reuse the existing WORK-0002 record and progress matrix rather than adding a parallel branch-state registry."
+  failure_modes_considered:
+    - "PROJECT_STATE and WORK record disagree on active lifecycle"
+    - "matrix and WORK record disagree"
+    - "PASS evidence contains a false happy-path assertion"
+  evidence_requested:
+    - "Synchronize WORK-0002 and its progress-matrix entry to the live PR #2 lifecycle while retaining current WORK-0001 contracts."
+    - "Preserve the invalidated TEST-0006 execution historically, transition it back through the canonical rerun lifecycle, and rerun against a synchronized exact SHA."
+    - "Obtain another fresh-context L2 after the synchronized rerun."
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-10"
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"
