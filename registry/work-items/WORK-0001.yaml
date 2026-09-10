@@ -243,7 +243,7 @@ review_plan:
     - "REVIEW-0006/F-2 TEST-0001 supersession must preserve its original protected behavior"
     - "REVIEW-0007/F-1 PROJECT_STATE/WORK-0002/progress-matrix active lifecycle contradiction invalidated the first TEST-0006 PASS"
     - "REVIEW-0008/F-1 PR #3 WORK-0002 mirror imported branch-only read_before paths, invalidating the second TEST-0006 PASS"
-    - "TEST-0006 is READY for a third exact-SHA rerun after the cross-branch resume boundary correction; a subsequent fresh L2 is required before any finding is closed."
+    - "TEST-0006 third rerun is PASS on exact corrected tree 0b2c2f6a92051760e759bf2e64518188e8266012, recorded in badf011c82fc07e86d85d0e5d6efcb21223ca8cb; a fresh L2 is still required before any finding is closed."
 
 required_tests:
   unit: []
@@ -291,6 +291,7 @@ required_tests:
     - "WORK-0002 reconciliation on PR #3 preserved canonical status history PLANNED → READY → IN_PROGRESS → IN_REVIEW and ends at e93017e6382fa30fa752091ef204edc14ca14d11"
     - "TEST-0006 rerun on 3b4477f00953f1a352fe7c40497853fc01e103b6 was recorded PASS in 1558b2d9e85f64c755bacd623d310474ef838719, then invalidated by REVIEW-0008/F-1 because two WORK-0002 read_before paths were branch-only and unreadable in the tested PR #3 tree"
     - "Fresh GitHub Codex re-review executed against PR #3 head cd7bf6a0429b4fab09fd2512c29cb4ba0a8a1e5f and recorded as REVIEW-0008"
+    - "Third TEST-0006 execution is PASS on exact corrected tree 0b2c2f6a92051760e759bf2e64518188e8266012; result recorded in badf011c82fc07e86d85d0e5d6efcb21223ca8cb and its history pointer recorded in 5dc3153ceee2db22496186d54180815c09e3afa2"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -336,6 +337,7 @@ validation:
     - "Second TEST-0006 execution on 3b4477f00953f1a352fe7c40497853fc01e103b6 was later disproved by fresh REVIEW-0008 because the synchronized WORK-0002 read_before list referenced two documents absent from the PR #3 tree"
     - "REVIEW-0008 is recorded on exact reviewed head cd7bf6a0429b4fab09fd2512c29cb4ba0a8a1e5f"
     - "The PR #3 WORK-0002 mirror now restricts read_before to current-tree paths and explicitly defers branch-only prerequisites until checkout of feat/work-0002-governance-ci"
+    - "Third TEST-0006 execution passed on exact corrected tree 0b2c2f6a92051760e759bf2e64518188e8266012 after full read_before existence and branch-boundary verification; result recorded in badf011c82fc07e86d85d0e5d6efcb21223ca8cb"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -350,7 +352,7 @@ validation:
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
     - TEST-0005
-    - "TEST-0006 (READY for third exact-SHA rerun; executions on 331931d and 3b4477f invalidated by REVIEW-0007/F-1 and REVIEW-0008/F-1 respectively)"
+    - "TEST-0006 (PASS on 0b2c2f6a92051760e759bf2e64518188e8266012; earlier executions on 331931d and 3b4477f remain invalidated)"
     - "REQ-0001..REQ-0019"
     - registry/status-machines.yaml
     - "PR #2 live head c50c33009d90f079e645f0ca9e1befe1a4a77ba9"
@@ -358,8 +360,7 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "TEST-0006 must rerun on the exact corrected branch-boundary tree before another fresh L2 is requested."
-    - "A fresh-context L2 review of the corrected PR #3 HEAD is required before WORK-0001 can complete; TEST-0006 PASS alone cannot close REVIEW-0008/F-1."
+    - "A fresh-context L2 review of the current PR #3 HEAD is required before WORK-0001 can complete; TEST-0006 PASS alone cannot close REVIEW-0008/F-1."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; six fresh-L2 findings on c50c330 remain open."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -376,7 +377,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; successive fresh L2 reviews REVIEW-0003 through REVIEW-0008 exposed assurance defects. REVIEW-0008 invalidated the second TEST-0006 PASS because WORK-0002 imported branch-only read_before paths into PR #3. The branch boundary is now explicit and TEST-0006 is READY for a third exact-SHA rerun before another fresh L2."}
+  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; successive fresh L2 reviews REVIEW-0003 through REVIEW-0008 exposed assurance defects. REVIEW-0008 invalidated the second TEST-0006 PASS because WORK-0002 imported branch-only read_before paths into PR #3. The branch boundary is now explicit and the third TEST-0006 run passed on exact tree 0b2c2f6a; a fresh L2 is now the remaining WORK-0001 gate."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 
