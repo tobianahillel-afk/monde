@@ -46,8 +46,9 @@ execution:
     - "Status vocabulary correction commits"
 
 supersession:
-  superseded_by: TEST-0005
-  reason: "The exact historical revision exercised by this manual PASS cannot be proven from durable evidence. The execution record is preserved without fabricating a SHA, but it is non-gating and replaced by exact-SHA corrective evidence."
+  superseded_by: TEST-0006
+  reason: "The exact historical revision exercised by this manual PASS cannot be proven from durable evidence. The execution record is preserved without fabricating a SHA, but it is non-gating. TEST-0006 is its revision-bound replacement and re-executes the original resume-routing, active-work-routing and status-vocabulary scope on a known repository tree."
+  replacement_scope: "TEST-0006 re-executes every contract/invariant represented by TEST-0001 rather than merely testing later corrective concerns."
   decision_date: "2026-09-10"
 
 coverage:

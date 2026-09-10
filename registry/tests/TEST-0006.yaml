@@ -1,0 +1,72 @@
+id: TEST-0006
+name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
+status: PLANNED
+type: MANUAL_E2E
+
+protects:
+  requirements: []
+  capabilities: []
+  contracts:
+    - "AI resume protocol"
+    - "status vocabulary consistency"
+    - "active work routing"
+    - "review approval outcome semantics"
+    - "historical test supersession coverage"
+  risks:
+    - "AI resumes from stale or incomplete context"
+    - "Unknown or competing status semantics cause governance drift"
+    - "A negative COMPLETE review is treated as approval evidence"
+    - "Superseding an unbound historical test drops its original coverage"
+  invariants:
+    - "Repository state, not chat history, is sufficient to resume active work"
+    - "registry/status-machines.yaml is the single lifecycle source of truth"
+    - "Only COMPLETE reviews with APPROVE or APPROVE_WITH_FOLLOWUP may provide approval evidence"
+    - "A superseding test re-executes the protected behavior represented by the superseded test"
+
+environment:
+  kind: REAL_GITHUB_REPOSITORY
+  real_dependencies:
+    - "tobianahillel-afk/monde"
+    - "PR #3"
+  mocked_dependencies: []
+
+cases:
+  happy_path:
+    - "README directs a new agent to START_HERE, AGENTS and PROJECT_STATE before implementation"
+    - "docs/00_START_HERE.md gives an ordered cold-resume path through PROJECT_STATE, active WORK, read_before, linked registries and live work discussion"
+    - "PROJECT_STATE identifies the current phase/lot, active WORK-0001 on PR #3, dependent WORK-0002 on PR #2, blockers and next action without hidden chat context"
+    - "WORK-0001 exposes read_before, dependencies, review plan, tests, evidence and remaining gate"
+    - "registry/progress/matrix.yaml points to registry/status-machines.yaml#progress and does not embed a second status vocabulary"
+    - "all progress/status values used by the inspected active routing are declared by the canonical lifecycle machine"
+    - "registry/status-machines.yaml declares approval_capable_outcomes as APPROVE and APPROVE_WITH_FOLLOWUP only"
+    - "review completion_rule explicitly requires an approval-capable outcome and explicitly rejects COMPLETE+CHANGES_REQUIRED/BLOCKED as approval evidence"
+    - "TEST-0001 is SUPERSEDED and points to TEST-0006, whose protected contracts include every original TEST-0001 contract"
+  edge_cases:
+    - "A COMPLETE review with all findings resolved but outcome CHANGES_REQUIRED remains negative evidence and cannot approve"
+    - "A COMPLETE review with outcome APPROVE_WITH_FOLLOWUP may approve only subject to the other completion and blocking-finding rules"
+    - "Historical TEST-0001 remains inspectable while no longer serving as gating PASS evidence"
+  failure_modes:
+    - "README/START_HERE does not route to the current project state and active work"
+    - "PROJECT_STATE cannot identify current work and its next gate without chat history"
+    - "progress matrix defines a competing status vocabulary or uses an undeclared status"
+    - "COMPLETE+CHANGES_REQUIRED or COMPLETE+BLOCKED can satisfy review completion"
+    - "TEST-0001 is superseded by evidence that omits any of its original protected contracts"
+  adversarial_cases:
+    - "Resolve every R1/R2 finding on a CHANGES_REQUIRED review and verify its negative outcome still prevents approval"
+    - "Follow TEST-0001.supersession and compare original protected contracts/invariant with TEST-0006 coverage"
+    - "Cold-read README then START_HERE/PROJECT_STATE/WORK-0001 and attempt to resume without conversation memory"
+
+execution:
+  command_or_workflow: null
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
+
+coverage:
+  line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+  branch_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"
