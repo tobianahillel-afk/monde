@@ -13,6 +13,7 @@ TRANSITIONS={
 META_PATH_PREFIXES=(".github/","tools/governance/","schemas/registry/","scripts/governance_")
 ADMIN_PATH_PREFIXES=("registry/reviews/","registry/tests/","registry/progress/","PROJECT_STATE.md")
 SEMANTIC_WORK_KEYS={"purpose","scope","acceptance_criteria","requirements","assumptions","risks","assurance","depends_on","reuses","contracts","impact_analysis","required_tests","scientific_validation","risk","rollback"}
+GUARD_PATH="tools/governance/change_guard.py"
 @dataclass(frozen=True)
 class ChangeFinding:
     path:str;rule:str;message:str
@@ -28,14 +29,27 @@ def show_yaml(root:Path,sha:str,path:str)->dict[str,Any]|None:
     try:data=yaml.safe_load(text)
     except yaml.YAMLError:return None
     return data if isinstance(data,dict) else None
+def file_exists_at(root:Path,sha:str,path:str)->bool:
+    try:git(root,"cat-file","-e",f"{sha}:{path}");return True
+    except RuntimeError:return False
 def registry_kind(path:str)->str|None:
     parts=Path(path).parts
     return parts[1] if len(parts)>=3 and parts[0]=="registry" and path.endswith(".yaml") and not Path(path).name.startswith("_") else None
+def acceptance_contract(value:Any)->Any:
+    if not isinstance(value,list):return value
+    out=[]
+    for item in value:
+        if isinstance(item,dict):out.append({k:item.get(k) for k in ("id","description") if k in item})
+        else:out.append(item)
+    return out
 def semantic_projection(data:dict[str,Any]|None)->dict[str,Any]:
     if not data:return {}
-    return {k:data.get(k) for k in sorted(SEMANTIC_WORK_KEYS) if k in data}
+    out={k:data.get(k) for k in sorted(SEMANTIC_WORK_KEYS) if k in data}
+    if "acceptance_criteria" in out:out["acceptance_criteria"]=acceptance_contract(out["acceptance_criteria"])
+    return out
 def validate(root:Path,base:str,head:str)->list[ChangeFinding]:
     out=[];files=changed_files(root,base,head)
+    base_has_guard=file_exists_at(root,base,GUARD_PATH)
     for path in files:
         kind=registry_kind(path)
         if not kind:continue
@@ -49,13 +63,18 @@ def validate(root:Path,base:str,head:str)->list[ChangeFinding]:
                 scope_change=new.get("scope_change") or {}
                 if scope_change.get("approved") is not True or not scope_change.get("rationale"):
                     out.append(ChangeFinding(path,"SCOPE_DRIFT","semantic scope/AC/contracts changed after READY without approved scope_change rationale"))
-    # Validate state transitions and late scope drift against the actual commit sequence.
+    # Per-commit rules are non-retroactive during bootstrap: if the base predates this guard,
+    # begin sequence enforcement at the first commit that actually contains the guard.
     commits=[base]+[x for x in git(root,"rev-list","--reverse",f"{base}..{head}").splitlines() if x]
+    start=0
+    if not base_has_guard:
+        start=next((i for i,sha in enumerate(commits) if file_exists_at(root,sha,GUARD_PATH)),len(commits)-1)
+    sequence=commits[start:]
     for path in files:
         kind=registry_kind(path); allowed=TRANSITIONS.get(kind or "")
-        if not allowed:continue
-        previous=show_yaml(root,commits[0],path)
-        for sha in commits[1:]:
+        if not allowed or len(sequence)<2:continue
+        previous=show_yaml(root,sequence[0],path)
+        for sha in sequence[1:]:
             current=show_yaml(root,sha,path)
             if previous and current:
                 before,after=previous.get("status"),current.get("status")
@@ -69,7 +88,6 @@ def validate(root:Path,base:str,head:str)->list[ChangeFinding]:
     if any(path.startswith(META_PATH_PREFIXES) for path in files):
         works=[show_yaml(root,head,p) for p in files if p.startswith("registry/work-items/") and p.endswith(".yaml")]
         if not any(w and (w.get("assurance") or {}).get("level") in {"A3","A4"} for w in works):out.append(ChangeFinding(".github/tools/governance","META_GOVERNANCE","meta-governance change requires an affected A3/A4 work item in the change"))
-    # A completed review remains fresh only when subsequent changes are administrative/semantic-neutral.
     work_paths=[x for x in git(root,"ls-tree","-r","--name-only",head,"registry/work-items").splitlines() if x.endswith(".yaml") and not Path(x).name.startswith("_")]
     for path in work_paths:
         work=show_yaml(root,head,path) or {};plan=work.get("review_plan") or {}
