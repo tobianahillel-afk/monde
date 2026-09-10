@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -64,8 +64,17 @@ execution:
   command_or_workflow: "Manual exact-SHA GitHub cold-read and cross-PR lifecycle consistency review of PR #3 synchronized tree 3b4477f00953f1a352fe7c40497853fc01e103b6, including live PR #2 head/state verification"
   last_run_at: "2026-09-10"
   commit_sha: "3b4477f00953f1a352fe7c40497853fc01e103b6"
-  result: null
-  evidence: []
+  result: PASS
+  evidence:
+    - "PR #2 remained open/mergeable at live head c50c33009d90f079e645f0ca9e1befe1a4a77ba9 and its work is IN_REVIEW"
+    - "PROJECT_STATE.md @ 3b4477f00953f1a352fe7c40497853fc01e103b6 identifies WORK-0001 and live WORK-0002 consistently and lists the six current PR #2 findings"
+    - "registry/work-items/WORK-0002.yaml @ 3b4477f00953f1a352fe7c40497853fc01e103b6 has status IN_REVIEW, depends_on WORK-0001, and preserves the six live PR #2 fresh-L2 findings"
+    - "registry/progress/matrix.yaml @ 3b4477f00953f1a352fe7c40497853fc01e103b6 mirrors WORK-0002 IN_REVIEW and points to registry/status-machines.yaml#progress without a duplicate vocabulary"
+    - "registry/work-items/WORK-0001.yaml @ 3b4477f00953f1a352fe7c40497853fc01e103b6 remains IN_REVIEW and identifies TEST-0006 rerun plus fresh L2 as the remaining gate"
+    - "registry/status-machines.yaml @ 3b4477f00953f1a352fe7c40497853fc01e103b6 restricts approval evidence to COMPLETE + APPROVE/APPROVE_WITH_FOLLOWUP and declares the TEST rerun lifecycle"
+    - "registry/tests/TEST-0001.yaml @ 3b4477f00953f1a352fe7c40497853fc01e103b6 is SUPERSEDED by TEST-0006 with explicit original-scope replacement"
+    - "README.md, AGENTS.md and docs/00_START_HERE.md @ 3b4477f00953f1a352fe7c40497853fc01e103b6 preserve the repository-first cold-resume route"
+    - "REVIEW-0007/F-1"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -81,3 +90,8 @@ history:
       validity: INVALIDATED
       invalidated_by: "REVIEW-0007/F-1"
       reason: "Fresh L2 proved that PROJECT_STATE described WORK-0002 as IN_REVIEW while the WORK-0002 record and matrix at the tested SHA still said PLANNED, so the active-work-routing happy path was false."
+    - commit_sha: "3b4477f00953f1a352fe7c40497853fc01e103b6"
+      recorded_result: PASS
+      validity: VALID
+      invalidated_by: null
+      reason: "The rerun rechecked live PR #2 and found PROJECT_STATE, WORK-0002 and the progress matrix synchronized at IN_REVIEW while all original replacement-scope and review-outcome checks passed."
