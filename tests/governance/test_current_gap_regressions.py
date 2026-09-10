@@ -216,3 +216,144 @@ def test_review_freshness_ignores_unrelated_work_but_catches_owned_path(tmp_path
     (tmp_path / "component-a/a.txt").write_text("changed", encoding="utf-8")
     owned = commit(tmp_path, "owned change")
     assert "REVIEW_FRESHNESS" in {f.rule for f in cg.validate(tmp_path, unrelated, owned)}
+
+
+def test_strict_defensive_gap_branches(tmp_path: Path) -> None:
+    from tools.governance.strict_contracts import validate_review_findings
+
+    review = {
+        "findings": [
+            "not-a-map",
+            {"id": "F-low", "severity": "R3_MODERATE", "disposition": "OPEN"},
+            {"id": "F-resolved", "severity": "R2_MAJOR", "disposition": "RESOLVED"},
+        ]
+    }
+    assert validate_review_findings("work.yaml", "REVIEW-1", review) == []
+
+    complete = {key: "DONE" for key in WORK_PROGRESS_DIMENSIONS}
+    complete["tests"] = "PARTIAL"
+    complete["typo_dimension"] = "DONE"
+    matrix = {
+        "phases": {
+            "P": {
+                "lots": {
+                    "L": {
+                        "sublots": {
+                            "S": {
+                                "work_items": {
+                                    "WORK-bad-shape": "DONE",
+                                    "WORK-incomplete": {"status": "DONE", **complete},
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    dump(tmp_path / "registry/progress/matrix.yaml", matrix)
+    rules = {issue.rule for issue in validate_progress_uniqueness(tmp_path)}
+    assert {"PROGRESS_SHAPE", "PROGRESS_DIMENSION_KEY", "PROGRESS_DONE_DIMENSION"} <= rules
+
+
+def test_context_helper_and_bad_metadata_branches(tmp_path: Path) -> None:
+    assert list(cm.iter_strings([])) == []
+    assert cm.record_refs({"id": 7, "values": []}) == set()
+    assert cm.record_index(tmp_path) == {}
+
+    dump(tmp_path / "registry/_TEMPLATE.yaml", {"id": "WORK-999"})
+    dump(tmp_path / "registry/bad-id.yaml", {"id": 7})
+    assert cm.record_index(tmp_path) == {}
+
+    assert cm.declared_paths({"read_before": "README.md", "implementation_plan": "bad"}) == []
+    paths = cm.declared_paths(
+        {
+            "implementation_plan": {
+                "tasks": [
+                    "bad-task",
+                    {"expected_files": ["owned/file.txt", 7]},
+                    {"expected_files": "not-a-list"},
+                ]
+            }
+        }
+    )
+    assert paths == ["owned/file.txt"]
+
+
+def test_context_build_handles_noncanonical_metadata_without_crashing(tmp_path: Path) -> None:
+    init_git(tmp_path)
+    for name in ("README.md", "AGENTS.md", "PROJECT_STATE.md"):
+        (tmp_path / name).write_text("x", encoding="utf-8")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/00_START_HERE.md").write_text("x", encoding="utf-8")
+    (tmp_path / "note.txt").write_text("a", encoding="utf-8")
+
+    dump(
+        tmp_path / "registry/work-items/WORK-bad.yaml",
+        {"id": 7, "status": "IN_PROGRESS", "read_before": [], "assurance": {"level": "A1"}},
+    )
+    dump(
+        tmp_path / "registry/work-items/WORK-2.yaml",
+        {
+            "id": "WORK-2",
+            "status": "IN_PROGRESS",
+            "read_before": [],
+            "required_tests": {"unit": ["TEST-2", "TEST-3"]},
+            "assurance": {"level": "A2"},
+        },
+    )
+    dump(tmp_path / "registry/tests/TEST-2.yaml", {"id": "TEST-2", "status": "PASS", "location": "bad"})
+    dump(tmp_path / "registry/tests/TEST-3.yaml", {"id": "TEST-3", "status": "PASS", "location": {"test_path": 7}})
+    base = commit(tmp_path, "base")
+    (tmp_path / "note.txt").write_text("b", encoding="utf-8")
+    head = commit(tmp_path, "text change")
+
+    manifest = cm.build(tmp_path, base, head)
+    assert "WORK-2" in manifest["active_work"]
+    assert "note.txt" not in manifest["context"]["should_read"]
+
+
+def test_change_guard_scope_helpers_and_registry_reference(tmp_path: Path) -> None:
+    assert list(cg.iter_strings([])) == []
+    assert cg.work_scope_paths({"read_before": "bad", "implementation_plan": "bad"}) == []
+    assert cg.work_scope_paths(
+        {
+            "implementation_plan": {
+                "tasks": [
+                    "bad-task",
+                    {"expected_files": ["component/x.txt", 7]},
+                    {"expected_files": "bad"},
+                ]
+            }
+        }
+    ) == ["component/x.txt"]
+    assert cg.work_referenced_ids({"id": 7, "requirements": ["REQ-1"]}) == {"REQ-1"}
+
+    init_git(tmp_path)
+    dump(tmp_path / "registry/requirements/REQ-1.yaml", {"id": "REQ-1", "status": "ACCEPTED"})
+    dump(tmp_path / "registry/requirements/REQ-2.yaml", {"id": 7, "status": "ACCEPTED"})
+    reviewed = commit(tmp_path, "requirements")
+    dump(tmp_path / "registry/requirements/REQ-1.yaml", {"id": "REQ-1", "status": "SUPERSEDED"})
+    head = commit(tmp_path, "change requirement")
+
+    assert cg.registry_id_for_change(tmp_path, reviewed, head, "registry/requirements/REQ-1.yaml") == "REQ-1"
+    assert cg.registry_id_for_change(tmp_path, reviewed, head, "registry/requirements/REQ-2.yaml") is None
+    work = {"id": "WORK-1", "requirements": ["REQ-1"]}
+    assert cg.change_relevant_to_work(
+        tmp_path,
+        "registry/work-items/WORK-1.yaml",
+        work,
+        reviewed,
+        head,
+        "registry/requirements/REQ-1.yaml",
+    )
+
+
+def test_strict_redundant_defensive_scope_and_docker_branches(tmp_path: Path) -> None:
+    from tools.governance.strict_contracts import review_targets, validate_action_surfaces
+
+    assert review_targets({"scope": ["not-a-map"]}) == set()
+    workflow = tmp_path / ".github/workflows/docker.yaml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text("jobs:\n  x:\n    steps:\n      - uses: docker://alpine:latest\n", encoding="utf-8")
+    assert "ACTION_PIN" in {issue.rule for issue in validate_action_surfaces(tmp_path)}
