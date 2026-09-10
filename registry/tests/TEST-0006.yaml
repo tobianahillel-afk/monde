@@ -127,7 +127,7 @@ history:
       recorded_in_commit: "80eb23da21d76d5b87134164ce46954423a04e95"
       validity: VALID
       invalidated_by: null
-      reason: "Contract v5, current handover, WORK-0002 cross-branch boundary, global lifecycle consistency, TEST-0001 supersession and positive-only review approval semantics all passed on the exact synchronized tree. This remains valid for that scope/tree; TEST-0006 is reopened because REVIEW-0014 changes the canonical status-machine contract to v6."
+      reason: "Contract v5, current handover, WORK-0002 cross-branch boundary, global lifecycle consistency, TEST-0001 supersession and positive-only review approval semantics all passed on the exact synchronized tree. This remains valid for its tested tree; TEST-0006 was rerun because REVIEW-0014 changes the canonical status-machine contract to v6."
     - commit_sha: "ffffb37d680e477fa03f74523dfac624ad74427c"
       recorded_result: FAIL
       recorded_in_commit: "45088fc916b84c7e809d1305fe926724e85b797c"
@@ -136,7 +136,7 @@ history:
       reason: "The v6 contract is correct, but the exact tested tree still exposes stale v5/REVIEW-0013 handover and WORK-0001 currentness, so a cold-resuming agent cannot discover REVIEW-0014 as the current gate from canonical repository state. The failure remains preserved after synchronization and triggers this rerun."
     - commit_sha: "bb973b669797e887d6190065a3d74c377aa33c01"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "7ce54360a2e56f8892ea70354af824bfa8c4df72"
       validity: VALID
       invalidated_by: null
       reason: "After atomic WORK-0001/PROJECT_STATE synchronization, the exact tested tree exposes current v6/REVIEW-0014 state, all current-tree WORK-0002 prerequisites resolve, branch-only prerequisites are explicitly deferred and present on PR #2 branch, live PR #2 matches the mirrored lifecycle, historical-import exceptions remain isolated, and TEST-0001 replacement coverage is preserved."
