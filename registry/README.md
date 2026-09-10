@@ -72,7 +72,7 @@ A material accepted governance behavior is not exempt merely because no product 
 
 ## Status integrity
 
-`registry/status-machines.yaml` is the single machine-readable lifecycle contract for current registries **and for progress state**. It defines registry initial states, allowed states, valid transitions, review outcome/disposition vocabulary, and the progress lifecycle used by phase/lot/sublot/task/run/quality dimensions.
+`registry/status-machines.yaml` is the single machine-readable lifecycle contract for current registries **and for progress state**. It defines registry initial states, allowed states, valid transitions, review outcome/disposition vocabulary, the progress lifecycle used by phase/lot/sublot/task/run/quality dimensions, and any exact historical migration exception needed to preserve immutable Git history.
 
 Rules:
 1. A registry record may use only states declared for that registry.
@@ -80,8 +80,10 @@ Rules:
 3. `registry/progress/matrix.yaml` stores current progress instances only; it does not define or duplicate a status vocabulary.
 4. A matrix WORK status mirrors the `work_items` registry machine; other progress-bearing matrix/task/run/dimension state uses `status-machines.yaml#progress`.
 5. `NOT_APPLICABLE` is a progress-dimension state, not a universal registry state, and requires a non-empty work-item justification.
-6. Lifecycle changes are governance changes: update the canonical machine, affected schemas/validators, migrations and review evidence together rather than adding an ad-hoc state locally.
-7. Governance tooling must fail closed on unknown states and invalid transitions.
+6. A progress dimension already marked `DONE` may move back to `IN_REVIEW` only when new evidence, a review finding, dependency change, or invalidated proof materially re-questions prior completion. The owning WORK/project handover must identify the trigger, affected downstream completion assumptions must be re-evaluated, and normal gates apply before it returns to `DONE`.
+7. Historical transition exceptions do not create generic shortcuts. Each exception must identify the exact record, source state, target state, before-commit and transition-commit, explain why immutable history cannot be repaired honestly, forbid future reuse, and receive independent review.
+8. Lifecycle changes are governance changes: update the canonical machine, affected schemas/validators, migrations and review evidence together rather than adding an ad-hoc state locally.
+9. Governance tooling must fail closed on unknown states, invalid transitions, and migration-exception mismatches.
 
 Human-readable registry-specific documents may explain these states but must not define a competing lifecycle truth.
 
@@ -100,10 +102,12 @@ Governance CI should validate:
 - unique IDs;
 - valid references;
 - registry-specific and progress lifecycle states/transitions from `registry/status-machines.yaml`;
+- exact matching and non-reusability of any declared historical transition exception;
 - required fields by status/risk;
 - no orphan critical/material records;
 - `read_before` paths;
 - traceability completeness;
 - assumption/risk review deadlines;
 - DONE/Accepted evidence requirements;
-- progress `NOT_APPLICABLE` justifications.
+- progress `NOT_APPLICABLE` justifications;
+- reviewed reopening evidence for any `DONE → IN_REVIEW` progress regression.
