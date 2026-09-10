@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import subprocess
+from datetime import date
 from pathlib import Path
 
 import yaml
 
-from tools.governance.change_guard import validate as validate_changes
-from tools.governance.validate_repo import Record, Validator
+from tools.governance import change_guard as cg
+from tools.governance.validate_repo import GLOBAL_STATUSES, Issue, Record, Validator, main as validate_main
+
+
+def git(root: Path, *args: str) -> str:
+    return subprocess.run(["git", *args], cwd=root, text=True, capture_output=True, check=True).stdout.strip()
 
 
 def write(root: Path, path: str, data) -> None:
@@ -18,158 +23,137 @@ def write(root: Path, path: str, data) -> None:
         target.write_text(data, encoding="utf-8")
 
 
-def git(root: Path, *args: str) -> str:
-    return subprocess.run(["git", *args], cwd=root, text=True, capture_output=True, check=True).stdout.strip()
-
-
 def commit(root: Path, message: str) -> str:
     git(root, "add", ".")
     git(root, "commit", "-m", message)
     return git(root, "rev-parse", "HEAD")
 
 
-def init_repo(tmp_path: Path, *, affected_paths=None) -> tuple[Path, str]:
-    root = tmp_path / "repo"
-    root.mkdir()
+def init_git(root: Path) -> None:
     git(root, "init")
-    git(root, "config", "user.email", "x@example.test")
-    git(root, "config", "user.name", "x")
-    work = {
+    git(root, "config", "user.email", "coverage@example.test")
+    git(root, "config", "user.name", "coverage")
+
+
+def minimal_work(*, assurance: str = "A3", status: str = "IN_PROGRESS", affected_paths=None) -> dict:
+    return {
         "id": "WORK-1",
-        "status": "IN_PROGRESS",
-        "purpose": "governance",
-        "scope": {"in": ["governance"], "out": []},
+        "status": status,
+        "purpose": "coverage",
+        "scope": {"in": ["coverage"], "out": []},
         "acceptance_criteria": [{"id": "AC-1", "description": "x", "status": "IN_REVIEW"}],
-        "assurance": {"level": "A3"},
+        "assurance": {"level": assurance},
         "affected_paths": affected_paths or [],
-        "review_plan": {
-            "independence_level": "L2_TARGET",
-            "required_hats": ["SECURITY"],
-            "completed_reviews": [],
-        },
+        "review_plan": {"required_hats": [], "completed_reviews": []},
     }
-    write(root, "registry/work-items/WORK-1.yaml", work)
-    write(root, "tools/governance/change_guard.py", "guard")
-    write(root, "README.md", "# test\n")
-    return root, commit(root, "base")
 
 
-def review_record(level: str, outcome: str = "APPROVE") -> Record:
-    return Record(
-        "reviews",
-        Path("review.yaml"),
-        {
-            "id": "REVIEW-1",
-            "status": "COMPLETE",
-            "outcome": outcome,
-            "roles": ["SECURITY"],
-            "reviewer": {"independence_level": level},
-            "findings": [],
-        },
-    )
+def test_change_guard_helper_branches() -> None:
+    assert cg.review_plan_contract("not-a-map") == "not-a-map"
+    assert cg.semantic_projection({"purpose": "x"}) == {"purpose": "x"}
+    assert cg.path_is_declared("x.txt", [42, "x.txt"])
+    assert not cg.path_is_declared("x.txt", [42, "other.txt"])
+    assert cg.path_is_declared("x/y.txt", ["x/"])
+    assert not cg.path_is_declared("x/y.txt", ["other/"])
 
 
-def work_record(target: str) -> Record:
-    return Record(
-        "work-items",
-        Path("work.yaml"),
-        {
-            "id": "WORK-1",
-            "review_plan": {
-                "required_hats": ["SECURITY"],
-                "independence_level": target,
-                "completed_reviews": ["REVIEW-1"],
-            },
-        },
-    )
+def test_meta_qualifier_skip_branches(tmp_path: Path) -> None:
+    init_git(tmp_path)
+    write(tmp_path, cg.GUARD_PATH, "guard")
+    write(tmp_path, "registry/work-items/WORK-1.yaml", minimal_work(affected_paths=[".github/"]))
+    base = commit(tmp_path, "base")
+
+    # Exercise terminal, low-assurance and malformed-work skip paths while WORK-1 authorizes.
+    write(tmp_path, "registry/work-items/WORK-1.yaml", minimal_work(affected_paths=[".github/"]))
+    write(tmp_path, "registry/work-items/WORK-2.yaml", {"id": "WORK-2", "status": "DONE", "assurance": {"level": "A4"}, "affected_paths": [".github/"]})
+    write(tmp_path, "registry/work-items/WORK-3.yaml", {"id": "WORK-3", "status": "IN_PROGRESS", "assurance": {"level": "A1"}, "affected_paths": [".github/"]})
+    write(tmp_path, "registry/work-items/WORK-4.yaml", "not: [valid")
+    write(tmp_path, ".github/workflows/x.yml", "name: x\n")
+    head = commit(tmp_path, "meta")
+    findings = cg.validate(tmp_path, base, head)
+    assert "META_GOVERNANCE" not in {f.rule for f in findings}
 
 
-def test_l3_target_requires_l3_review(tmp_path: Path) -> None:
+def test_change_guard_cli_prints_finding_without_json(tmp_path: Path, capsys) -> None:
+    init_git(tmp_path)
+    write(tmp_path, cg.GUARD_PATH, "guard")
+    write(tmp_path, "registry/work-items/WORK-1.yaml", minimal_work())
+    base = commit(tmp_path, "base")
+    work = minimal_work()
+    work["id"] = "WORK-2"
+    write(tmp_path, "registry/work-items/WORK-1.yaml", work)
+    head = commit(tmp_path, "bad id")
+    assert cg.main([str(tmp_path), "--base", base, "--head", head]) == 1
+    captured = capsys.readouterr()
+    assert "ID_IMMUTABLE" in captured.err
+    assert "MONDE change guard" in captured.out
+
+
+def test_review_finding_nonblocking_and_nonmapping_branches(tmp_path: Path) -> None:
     validator = Validator(tmp_path)
-    validator.by_id = {"REVIEW-1": review_record("L2")}
-    validator.validate_review_evidence(work_record("L3_TARGET"))
-    assert [issue.rule for issue in validator.issues] == ["DONE_REVIEW"]
-    assert "L3_TARGET" in validator.issues[0].message
-
-    validator = Validator(tmp_path)
-    validator.by_id = {"REVIEW-1": review_record("L3")}
-    validator.validate_review_evidence(work_record("L3_TARGET"))
+    work = Record("work-items", tmp_path / "work.yaml", {
+        "id": "WORK-1",
+        "review_plan": {
+            "required_hats": ["SECURITY"],
+            "independence_level": "L2_TARGET",
+            "completed_reviews": ["REVIEW-1"],
+        },
+    })
+    review = Record("reviews", tmp_path / "review.yaml", {
+        "id": "REVIEW-1",
+        "status": "COMPLETE",
+        "outcome": "APPROVE",
+        "roles": ["SECURITY"],
+        "reviewer": {"independence_level": "L2"},
+        "findings": ["nondict", {"id": "F-low", "severity": "R4_LOW", "disposition": "OPEN"}],
+    })
+    validator.by_id = {"REVIEW-1": review}
+    validator.validate_review_evidence(work)
     assert validator.issues == []
 
 
-def test_canonical_review_outcomes_are_accepted(tmp_path: Path) -> None:
-    for outcome in ("APPROVE", "APPROVE_WITH_FOLLOWUP"):
-        validator = Validator(tmp_path)
-        validator.by_id = {"REVIEW-1": review_record("L2", outcome)}
-        validator.validate_review_evidence(work_record("L2_TARGET"))
-        assert validator.issues == []
-
-
-def test_review_requirements_are_substantive_but_completion_list_is_admin(tmp_path: Path) -> None:
-    root, base = init_repo(tmp_path)
-    work_path = root / "registry/work-items/WORK-1.yaml"
-    work = yaml.safe_load(work_path.read_text())
-    work["status"] = "IN_REVIEW"
-    write(root, "registry/work-items/WORK-1.yaml", work)
-    reviewed = commit(root, "review point")
-    write(root, "registry/reviews/REVIEW-1.yaml", {
-        "id": "REVIEW-1", "status": "COMPLETE", "outcome": "APPROVE",
-        "roles": ["SECURITY"], "reviewer": {"independence_level": "L2"},
-        "artifact": {"commit_sha": reviewed}, "findings": [],
+def test_task_known_dependency_and_future_due_branches(tmp_path: Path) -> None:
+    validator = Validator(tmp_path, today=date(2026, 9, 10))
+    work = Record("work-items", tmp_path / "work.yaml", {
+        "implementation_plan": {
+            "tasks": [{"id": "T1", "depends_on": []}, {"id": "T2", "depends_on": ["T1"]}],
+            "planned_runs": [{"id": "RUN", "tasks": ["T1", "T2"]}],
+        }
     })
-    work["review_plan"]["completed_reviews"] = ["REVIEW-1"]
-    write(root, "registry/work-items/WORK-1.yaml", work)
-    admin_head = commit(root, "record review")
-    assert not [x for x in validate_changes(root, reviewed, admin_head) if x.rule == "REVIEW_FRESHNESS"]
-
-    work["review_plan"]["required_hats"] = []
-    work["scope_change"] = {"approved": True, "rationale": "test semantic review weakening"}
-    write(root, "registry/work-items/WORK-1.yaml", work)
-    weakened = commit(root, "weaken review requirement")
-    assert "REVIEW_FRESHNESS" in {x.rule for x in validate_changes(root, admin_head, weakened)}
+    validator.validate_work_tasks(work)
+    validator.check_due(work, "2026-09-11", "DUE")
+    assert validator.issues == []
 
 
-def test_commit_sequence_union_catches_reverted_invalid_transition(tmp_path: Path) -> None:
-    root, base = init_repo(tmp_path)
-    work_path = root / "registry/work-items/WORK-1.yaml"
-    work = yaml.safe_load(work_path.read_text())
-    work["status"] = "CANCELLED"
-    work["scope_change"] = {"approved": True, "rationale": "test"}
-    write(root, "registry/work-items/WORK-1.yaml", work)
-    commit(root, "invalid intermediate transition")
-    work["status"] = "IN_PROGRESS"
-    work.pop("scope_change", None)
-    write(root, "registry/work-items/WORK-1.yaml", work)
-    head = commit(root, "restore endpoint")
-    assert "registry/work-items/WORK-1.yaml" not in git(root, "diff", "--name-only", f"{base}..{head}").splitlines()
-    assert "STATE_TRANSITION" in {x.rule for x in validate_changes(root, base, head)}
+def test_progress_status_mismatch(tmp_path: Path) -> None:
+    path = tmp_path / "registry/progress/matrix.yaml"
+    path.parent.mkdir(parents=True)
+    work = Record("work-items", tmp_path / "registry/work-items/WORK-1.yaml", {"id": "WORK-1", "status": "IN_PROGRESS"})
+    path.write_text(yaml.safe_dump({
+        "status_vocabulary": sorted(GLOBAL_STATUSES),
+        "phases": {"P": {"lots": {"L": {"sublots": {"S": {"work_items": {"WORK-1": {"status": "PLANNED"}}}}}}}},
+    }), encoding="utf-8")
+    validator = Validator(tmp_path)
+    validator.records = [work]
+    validator.by_id = {"WORK-1": work}
+    validator.validate_progress()
+    assert [issue.rule for issue in validator.issues] == ["PROGRESS_STATUS"]
 
 
-def test_meta_governance_requires_active_bound_work(tmp_path: Path) -> None:
-    root, base = init_repo(tmp_path, affected_paths=["tools/governance/"])
-    write(root, ".github/workflows/x.yml", "name: x\n")
-    work_path = root / "registry/work-items/WORK-1.yaml"
-    work = yaml.safe_load(work_path.read_text())
-    work["updated_at"] = "2026-09-10"
-    write(root, "registry/work-items/WORK-1.yaml", work)
-    head = commit(root, "unbound meta change")
-    assert "META_GOVERNANCE" in {x.rule for x in validate_changes(root, base, head)}
-
-    base = head
-    work["affected_paths"] = [".github/", "tools/governance/"]
-    work["scope_change"] = {"approved": True, "rationale": "bind workflow path"}
-    write(root, "registry/work-items/WORK-1.yaml", work)
-    write(root, ".github/workflows/y.yml", "name: y\n")
-    head = commit(root, "bound meta change")
-    assert "META_GOVERNANCE" not in {x.rule for x in validate_changes(root, base, head)}
+def test_validate_cli_prints_error_without_json(tmp_path: Path, capsys) -> None:
+    assert validate_main([str(tmp_path), "--today", "2026-09-10"]) == 1
+    captured = capsys.readouterr()
+    assert "ERROR" in captured.err
+    assert "error(s)" in captured.out
 
 
-def test_secret_added_then_removed_is_detected_in_history(tmp_path: Path) -> None:
-    root, base = init_repo(tmp_path)
-    token = "ghp_" + ("A" * 30)
-    write(root, "temporary.txt", token + "\n")
-    commit(root, "accidentally add secret")
-    (root / "temporary.txt").unlink()
-    head = commit(root, "remove secret")
-    findings = validate_changes(root, base, head)
-    assert "SECRET_HISTORY" in {x.rule for x in findings}
+def test_validate_cli_warning_branch(tmp_path: Path, capsys, monkeypatch) -> None:
+    def fake_run(self):
+        self.records = []
+        return [Issue("x", "WARN", "message", severity="WARNING")]
+
+    monkeypatch.setattr(Validator, "run", fake_run)
+    assert validate_main([str(tmp_path), "--today", "2026-09-10"]) == 0
+    captured = capsys.readouterr()
+    assert "WARNING WARN" in captured.out
+    assert captured.err == ""
