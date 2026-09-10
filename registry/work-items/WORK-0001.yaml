@@ -163,9 +163,11 @@ affected_docs:
   - registry/reviews/REVIEW-0003.yaml
   - registry/reviews/REVIEW-0004.yaml
   - registry/reviews/REVIEW-0005.yaml
+  - registry/reviews/REVIEW-0006.yaml
   - registry/tests/TEST-0001.yaml
   - registry/tests/TEST-0004.yaml
   - registry/tests/TEST-0005.yaml
+  - registry/tests/TEST-0006.yaml
 contracts:
   - "AI resume protocol"
   - "Work item tracking contract"
@@ -203,7 +205,7 @@ implementation_plan:
     - {id: T3, description: "Define development lifecycle, DoR/DoD and testing strategy.", depends_on: [T2], expected_files: [docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md], status: DONE}
     - {id: T4, description: "Define documentation architecture, development/security rules, threat modeling and ADR process.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/11_ADR/README.md], status: DONE}
     - {id: T5, description: "Add GitHub templates, capability registry, project scorecard and Phase-0 roadmap.", depends_on: [T3, T4], expected_files: [.github/pull_request_template.md, .github/ISSUE_TEMPLATE/feature.yml, .github/ISSUE_TEMPLATE/bug.yml, registry/capabilities/README.md, docs/13_QUALITY/project-scorecard.md, docs/10_ROADMAP/phase-0.md], status: DONE}
-    - {id: T6, description: "Complete post-merge independent assurance review, correct its findings, and synchronize canonical handover state.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/requirements/, registry/reviews/REVIEW-0003.yaml, registry/reviews/REVIEW-0004.yaml, registry/reviews/REVIEW-0005.yaml, registry/tests/TEST-0001.yaml, registry/tests/TEST-0004.yaml, registry/tests/TEST-0005.yaml, registry/work-items/WORK-0001.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
+    - {id: T6, description: "Complete post-merge independent assurance review, correct its findings, and synchronize canonical handover state.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/requirements/, registry/reviews/REVIEW-0003.yaml, registry/reviews/REVIEW-0004.yaml, registry/reviews/REVIEW-0005.yaml, registry/reviews/REVIEW-0006.yaml, registry/tests/TEST-0001.yaml, registry/tests/TEST-0004.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/work-items/WORK-0001.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
     - {id: T7, description: "Add scientific specification lifecycle, requirements/assumptions/risks, traceability and reproducibility/backtesting contracts.", depends_on: [T3, T4, T5], expected_files: [docs/13_QUALITY/specification-quality.md, docs/13_QUALITY/reproducibility-backtesting.md, registry/requirements/_TEMPLATE.yaml, registry/assumptions/_TEMPLATE.yaml, registry/risks/_TEMPLATE.yaml, registry/traceability/README.md], status: DONE}
     - {id: T8, description: "Add assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols; synchronize state.", depends_on: [T7], expected_files: [docs/13_QUALITY/review-council.md, docs/13_QUALITY/assurance-levels.md, docs/13_QUALITY/advanced-verification.md, docs/13_QUALITY/non-functional-requirements.md, docs/12_RESEARCH/research-protocol.md, registry/reviews/_TEMPLATE.yaml, registry/tests/_TEMPLATE.yaml, registry/experiments/_TEMPLATE.yaml, registry/README.md], status: DONE}
   planned_runs:
@@ -235,6 +237,9 @@ review_plan:
     - "REVIEW-0005/F-1 active historical PASS lacks a provable exact revision"
     - "REVIEW-0005/F-2 accepted blocking finding lacks structured authority evidence"
     - "REVIEW-0005/F-3 REQ-0010 is compound rather than atomic"
+    - "REVIEW-0006/F-1 negative COMPLETE review outcomes must never count as approval evidence"
+    - "REVIEW-0006/F-2 TEST-0001 supersession must preserve its original protected behavior"
+    - "TEST-0006 must pass on the exact synchronized fourth-pass tree before another fresh L2."
     - "Fresh L2 re-review of the corrected PR #3 HEAD is required before completion."
 
 required_tests:
@@ -242,20 +247,23 @@ required_tests:
   property: []
   integration: []
   contract:
-    - "Cross-file consistency review of registry lifecycle machines, progress transitions, REQ links, N/A justifications, evidence boundaries, accepted-finding authority, paths and registry contracts"
+    - "Cross-file consistency review of registry lifecycle machines, progress transitions, REQ links, N/A justifications, evidence boundaries, accepted-finding authority, approval outcomes, paths and registry contracts"
   e2e:
     - TEST-0004
     - TEST-0005
+    - TEST-0006
     - "Cold-read specification workflow determines current work, normative requirements, research/review/traceability without chat context"
   regression:
     - "Bootstrap-discovered governance defects become WORK-0002 validator fixtures"
     - "Material bootstrap acceptance criteria cannot remain outside REQ traceability"
     - "Historical TEST/REVIEW evidence cannot be widened to corrective artifacts created later"
     - "CLOSED review state cannot satisfy approval semantics"
+    - "COMPLETE review with CHANGES_REQUIRED or BLOCKED cannot satisfy approval semantics"
     - "Progress state has one canonical vocabulary plus explicit initial state/transitions"
     - "Every current NOT_APPLICABLE progress dimension has a work-item justification"
     - "REQ-0008 scorecard ownership does not duplicate REQ-0012 hard-gate ownership"
     - "An active state-bound PASS cannot have a null exact tested commit SHA"
+    - "A superseded historical test must be replaced by revision-bound evidence that preserves or explicitly partitions its original scope"
     - "An ACCEPTED R1/R2 finding cannot become non-blocking without accepting authority evidence"
     - "Independently fail-able specification obligations cannot share one compound REQ owner"
     - "Post-merge PROJECT_STATE cannot instruct agents to repeat already-completed work"
@@ -270,6 +278,7 @@ required_tests:
     - "TEST-0004 PASS is SHA-bound to corrective tree 23ef1a88e9a5106b12144d4c6649868a6a691a8f; result recorded in commit e8337d833ca0b524bed69318ca4b3691c9ce6c23"
     - "Fresh GitHub Codex re-review executed against PR #3 head d5be907160c7fad3d86b2e0ce84911a3dcaab7d9 and recorded as REVIEW-0005"
     - "TEST-0005 PASS is SHA-bound to third-pass corrective tree 2712795dc9f10c1efed2088313d125f6f915cc98; result recorded in commit 89d39c75fe29d8bbcbe016cecaa6c87d935f1c47"
+    - "Fresh GitHub Codex re-review executed against PR #3 head 8c2fbc9e44ba9f0c810b768be513d988812f1e5c and recorded as REVIEW-0006"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -307,6 +316,8 @@ validation:
     - "Fresh-context GitHub Codex re-review executed on PR #3 head d5be907160c7fad3d86b2e0ce84911a3dcaab7d9 and recorded as REVIEW-0005"
     - "Third corrective pass supersedes unbound TEST-0001, introduces accepted-finding authority evidence, and splits AC-10 normative ownership into REQ-0010 plus REQ-0015 through REQ-0019"
     - "TEST-0005 manually executed against exact corrective tree 2712795dc9f10c1efed2088313d125f6f915cc98 and recorded PASS in 89d39c75fe29d8bbcbe016cecaa6c87d935f1c47"
+    - "Fresh-context GitHub Codex re-review executed on PR #3 head 8c2fbc9e44ba9f0c810b768be513d988812f1e5c and recorded as REVIEW-0006"
+    - "Fourth corrective pass constrains approval evidence to positive review outcomes and replaces TEST-0001 with TEST-0006, which re-executes the original protected resume/status scope; TEST-0006 is still pending exact-SHA execution"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -315,16 +326,19 @@ validation:
     - REVIEW-0003
     - REVIEW-0004
     - REVIEW-0005
+    - REVIEW-0006
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
     - TEST-0005
+    - TEST-0006
     - "REQ-0001..REQ-0019"
     - registry/status-machines.yaml
   coverage:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "Corrective branch requires another fresh L2 re-review after TEST-0005 evidence before WORK-0001 can complete."
+    - "TEST-0006 must execute against the exact synchronized fourth-pass corrective tree before another fresh L2 is requested."
+    - "After TEST-0006 PASS is recorded, another fresh L2 is required before WORK-0001 can complete."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -336,12 +350,12 @@ risk:
   operational: MEDIUM
 
 rollback:
-  strategy: "Revert the WORK-0001 assurance-correction PR; PR #1 merge remains recoverable and the unresolved L2 findings remain explicit."
+  strategy: "Revert the WORK-0001 assurance-correction PR; PR #1 merge remains recoverable and unresolved L2 findings remain explicit."
 
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; REVIEW-0003 found three assurance gaps. REVIEW-0004 found six more after the first correction. TEST-0004 passed on 23ef1a88. REVIEW-0005 then found three additional evidence-authority/atomicity issues on d5be907. The third corrective pass is published; TEST-0005 passed on 2712795 and another fresh L2 is required."}
+  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; REVIEW-0003 found three gaps, REVIEW-0004 found six more, REVIEW-0005 found three more, and REVIEW-0006 found two remaining approval/supersession issues. TEST-0004 and TEST-0005 passed on exact corrective trees; the fourth corrective pass is synchronized and TEST-0006 remains pending before another fresh L2."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 
@@ -353,7 +367,9 @@ discoveries:
   - "A post-merge independent review can expose assurance debt that was invisible to same-context review."
   - "Historical evidence must not be widened retroactively to corrective files or requirements created after execution."
   - "An unprovable historical tested SHA must not be guessed; the evidence should be superseded and replaced with revision-bound proof."
+  - "Superseding evidence must preserve or explicitly partition the behavior represented by the superseded artifact."
   - "A blocking review finding marked ACCEPTED needs explicit accepting authority and evidence, not only a disposition token."
+  - "COMPLETE is necessary but not sufficient for approval: only positive outcomes are approval-capable."
   - "CLOSED and COMPLETE review states have different evidence semantics."
   - "A status vocabulary is incomplete as a machine contract without an initial state and transitions."
   - "100% coverage alone is insufficient; test-strength and non-compensable gates are required."
