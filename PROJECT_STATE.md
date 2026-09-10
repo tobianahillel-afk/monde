@@ -32,40 +32,51 @@ No WORK-0003 or WORK-0004 implementation has started.
 
 ## WORK-0001 assurance history
 
-The durable review chain is `REVIEW-0003` through `REVIEW-0014`. Corrective test evidence is `TEST-0004`, `TEST-0005`, `TEST-0006`, and `TEST-0007`; superseded `TEST-0001` remains historical/non-gating evidence.
+The durable review chain is `REVIEW-0003` through `REVIEW-0015`. Corrective test evidence is `TEST-0004`, `TEST-0005`, `TEST-0006`, and `TEST-0007`; superseded `TEST-0001` remains historical/non-gating evidence.
 
-Key current facts:
+Key narrowing:
 
 - `REVIEW-0007` invalidated the first TEST-0006 PASS because PROJECT_STATE, WORK-0002 and the progress matrix disagreed on the global WORK-0002 lifecycle.
-- `REVIEW-0008` invalidated the second TEST-0006 PASS because the PR #3 WORK-0002 mirror referenced two branch-only `read_before` files that were absent from the tested tree.
-- `REVIEW-0009`, on `1e3f539b89afbbb07de63271682a1db06f47550c`, found missing reviewed `DONE → IN_REVIEW` reopening semantics and TEST-0004's immutable historical `PLANNED → PASS` edge.
-- `REVIEW-0010`, on `14c3d3fcc6dd96af9d2e5acd9f02d2d957c03425`, found missing forward REQ-0006 → TEST-0007 traceability.
-- `REVIEW-0011`, on `c8fbfa51ac04b566f337ee606a806e42881b67f2`, found stale PROJECT_STATE next-action ordering.
-- `REVIEW-0012`, on `a2a86b96bb3fe39229b9834cd4ab17ee16d8121f`, found WORK-0001 had not yet preserved REVIEW-0011/current gate.
-- `REVIEW-0013`, on `9f9bcaa0b91b975296b169cf2511edc297a83e1f`, found WORK-0001.required_tests.e2e omitted current lifecycle proof TEST-0007.
-- `REVIEW-0014`, on `c9b75f677f5b79f66189f90a730cb8efbeb8af0c`, found two P1/R2 accumulated-history defects: REVIEW-0004..REVIEW-0013 were first materialized directly `COMPLETE` after the review lifecycle existed, and REQ-0015..REQ-0019 were first materialized directly `ACCEPTED` after the requirement lifecycle existed.
+- `REVIEW-0008` invalidated the second TEST-0006 PASS because the PR #3 WORK-0002 mirror referenced branch-only `read_before` files absent from the tested tree.
+- `REVIEW-0009` through `REVIEW-0013` established reviewed progress reopening, the exact TEST-0004 historical migration, REQ-0006 ↔ TEST-0007 traceability, current handover alignment and WORK-level TEST-0007 declaration.
+- `REVIEW-0014`, on `c9b75f677f5b79f66189f90a730cb8efbeb8af0c`, found post-contract direct materialization of REVIEW-0004..REVIEW-0013 as `COMPLETE` and REQ-0015..REQ-0019 as `ACCEPTED`.
+- `REVIEW-0015`, from fresh Codex review of exact head `a27d01a9c0add10d0de220b9443a7f7d113152d9`, proved that REVIEW-0014 itself had already completed externally before its apparent `OPEN → IN_PROGRESS → COMPLETE` commits. Its first `OPEN` materialization already contained the final findings and `outcome: CHANGES_REQUIRED`; the sequence was therefore a post-hoc status replay, not execution-time lifecycle evidence.
 
-## Current correction and proof
+## Current lifecycle correction — v7
 
-`registry/status-machines.yaml` version 6:
+`registry/status-machines.yaml` version 7 keeps normal repository-native lifecycle semantics strict:
 
-- preserves generic review lifecycle `OPEN → IN_PROGRESS → COMPLETE`; no generic `OPEN → COMPLETE` shortcut exists;
-- preserves requirement initial state `PROPOSED` and generic `PROPOSED → ACCEPTED`; `ACCEPTED` is not an alternate initial state;
-- adds exact historical import exceptions only for REVIEW-0004..REVIEW-0013, each bound to its real introduction commit, `historical_only: true`, `future_reuse_forbidden: true`, and `REVIEW-0014/F-1`;
-- adds exact historical import exceptions only for REQ-0015..REQ-0019 at commit `2712795dc9f10c1efed2088313d125f6f915cc98`, each `historical_only: true`, `future_reuse_forbidden: true`, and bound to `REVIEW-0014/F-2`;
-- continues to permit progress `DONE → IN_REVIEW` only as a reviewed reopening after new adverse evidence;
-- keeps generic TEST execution strict as `PLANNED → READY → RUNNING → PASS`;
-- retains the single exact historical TEST-0004 `PLANNED → PASS` migration exception, record/commit bound and non-reusable.
+- review initial state remains `OPEN` with normal `OPEN → IN_PROGRESS → COMPLETE`;
+- requirement initial state remains `PROPOSED` with normal `PROPOSED → ACCEPTED`;
+- no generic `OPEN → COMPLETE` shortcut and no alternate `ACCEPTED` initial state exist;
+- progress `DONE → IN_REVIEW` remains a reviewed reopening only after new adverse evidence;
+- generic TEST execution remains `PLANNED → READY → RUNNING → PASS`;
+- exact immutable pre-v7 review/requirement/test exceptions remain record/commit-bound and non-reusable.
 
-REVIEW-0014 itself demonstrates the normal review path in immutable Git history: `OPEN` at `ec69110468c7e1cd79984dedb835504de8c0b561` → `IN_PROGRESS` at `2926a070de8371e7ad3aaebeca0d9e424700d43f` → `COMPLETE/CHANGES_REQUIRED` at `b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7`. It is not covered by a historical import exception.
+v7 additionally distinguishes **repository-native review execution** from **a review that already completed externally before registry materialization**:
 
-TEST-0007's third execution is **PASS** on exact lifecycle-v6 tree `b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7`; result commit `42a36e1b37855ea107eb94a8f3c9a05fe9cd6c67`; history pointer `ffffb37d680e477fa03f74523dfac624ad74427c`. It verifies exact review/requirement import boundaries, future-reuse prohibition, REVIEW-0014's normal lifecycle, the prior TEST-0004 migration boundary, progress reopening, and REQ-0006 ↔ TEST-0007 traceability.
+1. A lifecycle checkpoint is evidence only if that state actually existed while the governed activity was occurring.
+2. REVIEW-0014's immutable replay is preserved by one exact `historical_replay_exception` bound to external source review `PRR_kwDOUUI5ts8AAAABNFU66A` and commits `ec69110468c7e1cd79984dedb835504de8c0b561 → 2926a070de8371e7ad3aaebeca0d9e424700d43f → b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7`; it is `historical_only` and `future_reuse_forbidden`.
+3. Future externally completed reviews use a one-shot **preauthorized import** rather than replaying OPEN/IN_PROGRESS after completion.
+4. The authorization must already exist in a parent commit before the REVIEW file first appears, bind record/result/reviewed SHA/source review/context, and later be consumed by the exact first-materialization commit.
 
-TEST-0006 first ran against exact tree `ffffb37d680e477fa03f74523dfac624ad74427c` and correctly **FAILED** because PROJECT_STATE and WORK-0001 still described v5/REVIEW-0013. That negative execution is preserved with result `45088fc916b84c7e809d1305fe926724e85b797c` and history pointer `337324fe083fab0ec6a88c0672d7cd86aadf69af`.
+REVIEW-0015 demonstrates this truthful path. Its one-shot authorization exists in commit `2b26ed4384e2098e04c10f5e5d2db3da949b6718`; REVIEW-0015 first materialized directly as the externally completed `COMPLETE/CHANGES_REQUIRED` review in later commit `877d5bce12c7854701843747783891558ab05d37`; `f46307b88633d362ccfe59309097c8a574e1407f` binds that import SHA into the review, and `ecf2619b5194257dbc254bd141ef56bcb0010b36` consumes the one-shot authorization with the same SHA.
 
-After WORK-0001 and PROJECT_STATE were synchronized atomically in `de83dfd076143ac88d9be3c26d226b7c2b488305`, TEST-0006 was reopened and rerun through `READY → RUNNING → PASS`. Its current execution is **PASS** on exact synchronized tree `bb973b669797e887d6190065a3d74c377aa33c01`; result commit `7ce54360a2e56f8892ea70354af824bfa8c4df72`; history pointer `abae9028bbc54e4f39f67e915626d2b24c2a29d4`. The run rechecked cold-resume routing, current-tree WORK-0002 prerequisites, the explicit PR #2 checkout boundary, live PR #2 at `c50c33009d90f079e645f0ca9e1befe1a4a77ba9`, v6 import isolation, positive-only review approval, and TEST-0001 replacement coverage.
+## Exact-SHA proof
 
-REVIEW-0014/F-1 and F-2 therefore have corrective evidence, but remain open until another fresh-context L2 independently verifies the resulting frozen PR #3 HEAD. No finding is closed merely because the author produced a PASS.
+TEST-0007 was reopened for v7 and rerun against exact tree `669dcf7638746e07cc034cd69fa2cb08da133937`. It is **PASS**; result commit `87668f4e64453dca4c987252a8cb46e73793950c`; history pointer `87ec209eec614a0ff3be7a00a7565102042cad3f`.
+
+That run proved from Git history rather than prose that:
+
+- Codex source review REVIEW-0014 completed at `2026-09-10T22:43:13Z`, before its first apparent OPEN commit `ec691104...` at `2026-09-10T22:53:36Z`, whose file already carried the final R2 findings and CHANGES_REQUIRED outcome;
+- v7 isolates that exact sequence as historical replay instead of normal review execution;
+- REVIEW-0015 authorization `2b26ed...` is an ancestor of first materialization `877d5bce...`;
+- the authorization, imported record and consumption binding agree on exact reviewed artifact/source/outcome/import SHA and are one-shot;
+- pre-v7 REVIEW/REQ imports, TEST-0004 migration, progress reopening and REQ-0006 ↔ TEST-0007 traceability remain exact and non-reusable.
+
+TEST-0006 has an earlier valid PASS on exact v6 synchronized tree `bb973b669797e887d6190065a3d74c377aa33c01` (result `7ce54360a2e56f8892ea70354af824bfa8c4df72`, pointer `abae9028bbc54e4f39f67e915626d2b24c2a29d4`). Its prior FAIL on `ffffb37d680e477fa03f74523dfac624ad74427c` remains preserved. Because the canonical lifecycle and cold-resume handover have now changed to v7/REVIEW-0015, **TEST-0006 must be reopened and rerun on the synchronized v7 tree before another fresh L2**.
+
+REVIEW-0014/F-1, REVIEW-0014/F-2 and REVIEW-0015/F-1 remain unresolved until a later fresh-context L2 independently verifies the current v7 proof. No finding is closed merely because the author produced a PASS.
 
 ## WORK-0002 cross-branch boundary
 
@@ -98,16 +109,18 @@ Only a `COMPLETE` review whose outcome is `APPROVE` or `APPROVE_WITH_FOLLOWUP` m
 
 A blocking R1/R2 finding may become non-blocking through `ACCEPTED` only with explicit accepting actor, authority role, authority evidence, rationale, date and review condition appropriate to assurance level.
 
-Historical import exceptions preserve immutable post-contract materialization only when exact record/status/commit tuples are explicitly reviewed. They never create alternate initial states, generic transitions, or reusable future shortcuts.
+Historical import/replay exceptions preserve immutable history only when their exact record/status/commit/source tuples are explicitly bounded. They never create alternate initial states, generic transitions, or reusable future shortcuts. Post-v7 external reviews use preauthorized one-shot import provenance rather than post-hoc lifecycle replay.
 
 ## Next action
 
-1. Reply to REVIEW-0014/F-1 and F-2 with the exact status-machine v6, REVIEW-0014 lifecycle, TEST-0007 PASS and TEST-0006 PASS evidence; leave both threads unresolved pending independent verification.
-2. Freeze the resulting PR #3 HEAD and request another fresh-context L2 explicitly against that SHA.
-3. If that review reports any material defect, correct and re-prove the exact defect. If it reports no material defect, record approval-capable L2 evidence using the normal review lifecycle and only then close findings independently verified as corrected.
-4. Finalize WORK-0001/progress/completion and merge PR #3 only after the A3 assurance gate genuinely passes.
-5. After PR #3 merge, rebase/update PR #2 on the new main contract, correct/re-prove its outstanding fresh-L2 work and obtain its own fresh L2 before merge.
-6. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
+1. Synchronize `WORK-0001` to this REVIEW-0015/v7/TEST-0007 state while keeping WORK-0001, T6, RUN-3 and completion gates non-terminal.
+2. Reopen TEST-0006 from `PASS → READY`; use the resulting synchronized v7 commit as the exact rerun tree, then execute `READY → RUNNING`.
+3. Recheck README/START_HERE cold resume, WORK-0001/PROJECT_STATE currentness, global WORK-0002/matrix state, every current-tree WORK-0002 `read_before`, explicit PR #2 branch handoff, live PR #2, v7 external-import/replay isolation, positive-only review approval and TEST-0001 replacement coverage. Record PASS only if every assertion is true.
+4. Bind the TEST-0006 result, synchronize the final PASS into WORK-0001/PROJECT_STATE, reply to REVIEW-0015/F-1 with exact evidence, and leave all relevant threads unresolved pending independent verification.
+5. Freeze the resulting PR #3 HEAD and request a fresh-context L2 on that exact SHA.
+6. If that review reports any material defect, correct and re-prove it. If it reports no material defect, record truthful approval-capable L2 evidence, resolve only findings independently verified as corrected, finalize WORK-0001/progress/completion and merge PR #3.
+7. After PR #3 merge, update PR #2 on the new main contract, correct and re-prove its outstanding fresh-L2 findings, obtain its own fresh L2, and merge only if its gate genuinely passes.
+8. Continue with WORK-0003 and then WORK-0004 in roadmap order.
 
 ## Resume instructions
 
@@ -121,7 +134,7 @@ Minimum manual sequence:
 7. `registry/status-machines.yaml`
 8. `registry/progress/matrix.yaml`
 9. `registry/requirements/REQ-0001.yaml` through `REQ-0019.yaml`
-10. `registry/reviews/REVIEW-0003.yaml` through `REVIEW-0014.yaml`
+10. `registry/reviews/REVIEW-0003.yaml` through `REVIEW-0015.yaml`
 11. `registry/tests/TEST-0004.yaml` through `TEST-0007.yaml`, plus superseded historical `TEST-0001.yaml`
 12. live PR #3 reviews/threads
 13. live PR #2 HEAD/checks/unresolved threads
