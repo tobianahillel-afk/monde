@@ -73,7 +73,6 @@ read_before:
   - AGENTS.md
   - docs/00_START_HERE.md
   - docs/03_ARCHITECTURE/documentation-architecture.md
-  - docs/03_ARCHITECTURE/github-control-plane.md
   - docs/09_GOVERNANCE/development-rules.md
   - docs/09_GOVERNANCE/threat-modeling.md
   - docs/10_ROADMAP/development-process.md
@@ -82,7 +81,6 @@ read_before:
   - docs/13_QUALITY/testing-strategy.md
   - docs/13_QUALITY/review-council.md
   - docs/13_QUALITY/advanced-verification.md
-  - docs/13_QUALITY/ai-context-routing.md
   - registry/README.md
   - registry/progress/matrix.yaml
 
@@ -121,7 +119,7 @@ impact_analysis:
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative."
+  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative. This PR #3 mirror intentionally lists only read_before paths available in the current tree; before editing WORK-0002 implementation, switch to feat/work-0002-governance-ci and then follow that branch's WORK-0002 record, including branch-only github-control-plane.md and ai-context-routing.md."
 
 implementation_plan:
   tasks:
@@ -209,6 +207,7 @@ validation:
   evidence: [TEST-0002, TEST-0003, REVIEW-0002, "PR #2", "MONDE Gate run 34509930758", "fresh L2 on c50c33009d90f079e645f0ca9e1befe1a4a77ba9"]
   coverage: {line: 100, branch: 100}
   known_gaps:
+    - "This PR #3 mirror intentionally lists only read_before paths present in the current tree. Before editing WORK-0002 implementation, checkout feat/work-0002-governance-ci and follow that branch's WORK-0002 read_before; docs/03_ARCHITECTURE/github-control-plane.md and docs/13_QUALITY/ai-context-routing.md are branch-only until WORK-0002 merges."
     - "Six fresh-L2 findings on c50c330 remain to be corrected, re-proven and independently re-reviewed."
     - "WORK-0002 cannot become DONE while dependency WORK-0001 remains IN_REVIEW."
     - "Repository administration/ruleset enforcement belongs to WORK-0003."
@@ -233,6 +232,7 @@ discoveries:
   - "Test/review definitions must be separated from SHA-bound execution evidence."
   - "Meta-governance authorization must bind the changed sensitive path to the active work item, not merely observe an unrelated A3/A4 record."
   - "Security scanning must account for reachable PR commit history until squash-only merge is enforced."
+  - "Cross-branch work mirrors must not place branch-only files in current-tree read_before; the checkout boundary must be explicit before those prerequisites become mandatory."
 blockers:
   - "WORK-0001 must become DONE before WORK-0002 can truthfully become DONE."
 follow_up_work_items: [WORK-0003, WORK-0004]
