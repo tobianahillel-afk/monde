@@ -44,7 +44,7 @@ TEST-0006 was then executed against `331931d21c4ebde3f84911825debde61488f91b3` a
 
 `REVIEW-0007` is the fresh-context L2 of PR #3 HEAD `71ecfea253066a66df6ae8302172c07f78f35752`. It found one R2/P1 defect: at the TEST-0006 tested tree, PROJECT_STATE called WORK-0002 active and `IN_REVIEW`, while the current-branch WORK-0002 record and progress matrix still said `PLANNED`. That contradiction made TEST-0006's active-work-routing happy path false despite its exact-SHA mechanics being correct.
 
-The current corrective pass therefore synchronizes the global WORK-0002 record and matrix with the live PR #2 lifecycle, preserving PR #2's six unresolved fresh-L2 findings. The previous TEST-0006 execution remains recorded in its machine-readable history but is explicitly `INVALIDATED` by `REVIEW-0007/F-1`; TEST-0006 returns to `READY` and must be rerun against the new synchronized exact SHA before any further approval claim.
+The correction is now published through a canonical reconciliation sequence ending at `e93017e6382fa30fa752091ef204edc14ca14d11`: the PR #3 mirror of WORK-0002 moved `PLANNED → READY → IN_PROGRESS → IN_REVIEW`, its progress entry mirrors `IN_REVIEW`, and its six live PR #2 fresh-L2 findings are preserved. The prior TEST-0006 execution remains in machine-readable history but is explicitly `INVALIDATED` by `REVIEW-0007/F-1`; TEST-0006 is `READY` for an exact-SHA rerun on the fully synchronized handover tree produced by the current administrative update.
 
 ## WORK-0002 state
 
@@ -81,9 +81,9 @@ WORK-0001 material bootstrap behavior is represented by `REQ-0001` through `REQ-
 
 ## Next action
 
-1. Commit the WORK-0002/matrix synchronization, REVIEW-0007 evidence and TEST-0006 reset while TEST-0006 is `READY`.
-2. Re-execute TEST-0006 on that exact synchronized commit, including the PR #2 live-state ↔ WORK-0002 ↔ matrix consistency check.
-3. Record PASS only if the cold-resume route has one coherent lifecycle, attach exact-SHA proof to REVIEW-0007/F-1 without resolving it, and synchronize WORK-0001/PROJECT_STATE.
+1. Execute TEST-0006 against the exact fully synchronized current PR #3 tree while confirming PR #2 is still live at `c50c33009d90f079e645f0ca9e1befe1a4a77ba9` / `IN_REVIEW` and that PROJECT_STATE, WORK-0002 and the matrix agree.
+2. Record PASS only if the cold-resume route has one coherent lifecycle; preserve the invalidated prior execution in TEST-0006 history.
+3. Attach the new exact-SHA proof to REVIEW-0007/F-1 without resolving it, then synchronize WORK-0001/PROJECT_STATE with the result.
 4. Request another fresh-context L2 review of the resulting PR #3 HEAD.
 5. If the reviewer finds anything material, correct and re-prove it; otherwise record the approval-capable review and resolve only verified findings.
 6. Finalize WORK-0001/progress/completion evidence and merge PR #3 only after the approval gate is truly satisfied.
