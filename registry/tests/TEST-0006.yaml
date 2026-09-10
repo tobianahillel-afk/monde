@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: FAIL
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -78,16 +78,11 @@ cases:
     - "Cold-read README then START_HERE/PROJECT_STATE/WORK-0001 and attempt to resume without conversation memory"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v6/import-isolation and review-outcome audit of PR #3 tree ffffb37d680e477fa03f74523dfac624ad74427c, including live PR #2 head/state verification"
-  last_run_at: "2026-09-10"
-  commit_sha: "ffffb37d680e477fa03f74523dfac624ad74427c"
-  result: FAIL
-  evidence:
-    - "PROJECT_STATE.md @ ffffb37d680e477fa03f74523dfac624ad74427c still described registry/status-machines.yaml as version 5, stopped the durable review chain at REVIEW-0013, and instructed the next agent to process REVIEW-0013 even though v6 and REVIEW-0014 already existed."
-    - "registry/work-items/WORK-0001.yaml @ ffffb37d680e477fa03f74523dfac624ad74427c likewise stopped affected/review/evidence/run-log surfaces at REVIEW-0013 and therefore did not expose REVIEW-0014 as the current remaining gate."
-    - "registry/work-items/WORK-0002.yaml and registry/progress/matrix.yaml @ ffffb37d680e477fa03f74523dfac624ad74427c both correctly recorded WORK-0002 as IN_REVIEW and WORK-0002 depends_on WORK-0001."
-    - "Live PR #2 was rechecked open and mergeable at c50c33009d90f079e645f0ca9e1befe1a4a77ba9, so the failure is specifically stale PR #3 handover/current-work evidence rather than WORK-0002 lifecycle disagreement."
-    - "Because TEST-0006 protects repository cold-resume and next-gate discoverability, the stale v5/REVIEW-0013 handover makes the run fail even though the v6 lifecycle/import contract itself is correct."
+  command_or_workflow: null
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -126,4 +121,4 @@ history:
       recorded_in_commit: "45088fc916b84c7e809d1305fe926724e85b797c"
       validity: VALID
       invalidated_by: null
-      reason: "The v6 contract is correct, but the exact tested tree still exposes stale v5/REVIEW-0013 handover and WORK-0001 currentness, so a cold-resuming agent cannot discover REVIEW-0014 as the current gate from canonical repository state."
+      reason: "The v6 contract is correct, but the exact tested tree still exposes stale v5/REVIEW-0013 handover and WORK-0001 currentness, so a cold-resuming agent cannot discover REVIEW-0014 as the current gate from canonical repository state. The failure remains preserved after synchronization and triggers this rerun."
