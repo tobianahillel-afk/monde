@@ -167,6 +167,7 @@ affected_docs:
   - registry/reviews/REVIEW-0007.yaml
   - registry/reviews/REVIEW-0008.yaml
   - registry/reviews/REVIEW-0009.yaml
+  - registry/reviews/REVIEW-0010.yaml
   - registry/tests/TEST-0001.yaml
   - registry/tests/TEST-0004.yaml
   - registry/tests/TEST-0005.yaml
@@ -209,7 +210,7 @@ implementation_plan:
     - {id: T3, description: "Define development lifecycle, DoR/DoD and testing strategy.", depends_on: [T2], expected_files: [docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md], status: DONE}
     - {id: T4, description: "Define documentation architecture, development/security rules, threat modeling and ADR process.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/11_ADR/README.md], status: DONE}
     - {id: T5, description: "Add GitHub templates, capability registry, project scorecard and Phase-0 roadmap.", depends_on: [T3, T4], expected_files: [.github/pull_request_template.md, .github/ISSUE_TEMPLATE/feature.yml, .github/ISSUE_TEMPLATE/bug.yml, registry/capabilities/README.md, docs/13_QUALITY/project-scorecard.md, docs/10_ROADMAP/phase-0.md], status: DONE}
-    - {id: T6, description: "Complete post-merge independent assurance review, correct its findings, and synchronize canonical handover state.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/requirements/, registry/reviews/REVIEW-0003.yaml, registry/reviews/REVIEW-0004.yaml, registry/reviews/REVIEW-0005.yaml, registry/reviews/REVIEW-0006.yaml, registry/reviews/REVIEW-0007.yaml, registry/reviews/REVIEW-0008.yaml, registry/reviews/REVIEW-0009.yaml, registry/tests/TEST-0001.yaml, registry/tests/TEST-0004.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
+    - {id: T6, description: "Complete post-merge independent assurance review, correct its findings, and synchronize canonical handover state.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/requirements/, registry/reviews/REVIEW-0003.yaml, registry/reviews/REVIEW-0004.yaml, registry/reviews/REVIEW-0005.yaml, registry/reviews/REVIEW-0006.yaml, registry/reviews/REVIEW-0007.yaml, registry/reviews/REVIEW-0008.yaml, registry/reviews/REVIEW-0009.yaml, registry/reviews/REVIEW-0010.yaml, registry/tests/TEST-0001.yaml, registry/tests/TEST-0004.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
     - {id: T7, description: "Add scientific specification lifecycle, requirements/assumptions/risks, traceability and reproducibility/backtesting contracts.", depends_on: [T3, T4, T5], expected_files: [docs/13_QUALITY/specification-quality.md, docs/13_QUALITY/reproducibility-backtesting.md, registry/requirements/_TEMPLATE.yaml, registry/assumptions/_TEMPLATE.yaml, registry/risks/_TEMPLATE.yaml, registry/traceability/README.md], status: DONE}
     - {id: T8, description: "Add assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols; synchronize state.", depends_on: [T7], expected_files: [docs/13_QUALITY/review-council.md, docs/13_QUALITY/assurance-levels.md, docs/13_QUALITY/advanced-verification.md, docs/13_QUALITY/non-functional-requirements.md, docs/12_RESEARCH/research-protocol.md, registry/reviews/_TEMPLATE.yaml, registry/tests/_TEMPLATE.yaml, registry/experiments/_TEMPLATE.yaml, registry/README.md], status: DONE}
   planned_runs:
@@ -247,8 +248,9 @@ review_plan:
     - "REVIEW-0008/F-1 PR #3 WORK-0002 mirror imported branch-only read_before paths, invalidating the second TEST-0006 PASS"
     - "REVIEW-0009/F-1 progress DONE → IN_REVIEW reopening semantics were missing even though the corrective branch had truthfully reopened dimensions after adverse evidence"
     - "REVIEW-0009/F-2 TEST-0004 immutable history contains a PLANNED → PASS edge requiring an exact reviewed historical migration exception"
-    - "TEST-0007 is PASS on exact corrective tree d1d0b32e321cd56ada21f76c4d3e08856a792db5; result recorded in a280fed4123a476dc5d5a22651b8b8e1c3aa1240 and history pointer in 03b6b85adc9e48b038a609e83c890c16fc313d34."
-    - "Fourth TEST-0006 execution is PASS on exact synchronized contract-v5 tree fa55004d1623ab2aa66c14b62bb036f6e335f041; result recorded in 80eb23da21d76d5b87134164ce46954423a04e95 and history pointer in 772f45b2f7eacb3d2dfbeb39f3c1aca089b19959. Fresh L2 verification is still required before findings close."
+    - "REVIEW-0010/F-1 REQ-0006 forward verification mapping omitted current lifecycle-history proof TEST-0007"
+    - "Fourth TEST-0006 execution is PASS on exact synchronized contract-v5 tree fa55004d1623ab2aa66c14b62bb036f6e335f041; result recorded in 80eb23da21d76d5b87134164ce46954423a04e95 and history pointer in 772f45b2f7eacb3d2dfbeb39f3c1aca089b19959."
+    - "Second TEST-0007 execution is PASS on exact bidirectional-traceability tree c27a98b94c4f59c5778b9c7d30e447536a70a452; result recorded in 07fb9baf3f76437059b73f7805a5edd36d704cc6 and history pointer in 7560d7265c873c8ab25ef7de423f75fab8aa33e0. A fresh L2 is still required before findings close."
 
 required_tests:
   unit: []
@@ -298,8 +300,10 @@ required_tests:
     - "Fresh GitHub Codex re-review executed against PR #3 head cd7bf6a0429b4fab09fd2512c29cb4ba0a8a1e5f and recorded as REVIEW-0008"
     - "Third TEST-0006 execution is PASS on exact corrected tree 0b2c2f6a92051760e759bf2e64518188e8266012; result recorded in badf011c82fc07e86d85d0e5d6efcb21223ca8cb and its history pointer recorded in 5dc3153ceee2db22496186d54180815c09e3afa2"
     - "Fresh GitHub Codex re-review executed against PR #3 head 1e3f539b89afbbb07de63271682a1db06f47550c and recorded as REVIEW-0009; it found missing DONE → IN_REVIEW reopening semantics and the immutable TEST-0004 PLANNED → PASS lifecycle edge"
-    - "TEST-0007 PASS is SHA-bound to exact corrected lifecycle-history tree d1d0b32e321cd56ada21f76c4d3e08856a792db5; result recorded in a280fed4123a476dc5d5a22651b8b8e1c3aa1240 and history pointer in 03b6b85adc9e48b038a609e83c890c16fc313d34"
+    - "TEST-0007 first execution is PASS on exact lifecycle-history tree d1d0b32e321cd56ada21f76c4d3e08856a792db5; result recorded in a280fed4123a476dc5d5a22651b8b8e1c3aa1240 and history pointer in 03b6b85adc9e48b038a609e83c890c16fc313d34"
     - "Fourth TEST-0006 execution followed READY → RUNNING → PASS on exact synchronized tree fa55004d1623ab2aa66c14b62bb036f6e335f041; result recorded in 80eb23da21d76d5b87134164ce46954423a04e95 and history pointer in 772f45b2f7eacb3d2dfbeb39f3c1aca089b19959"
+    - "Fresh GitHub Codex re-review executed against PR #3 head 14c3d3fcc6dd96af9d2e5acd9f02d2d957c03425 and recorded as REVIEW-0010; it found that REQ-0006 forward verification omitted TEST-0007"
+    - "TEST-0007 second execution followed PASS → READY → RUNNING → PASS and passed on exact bidirectional-traceability tree c27a98b94c4f59c5778b9c7d30e447536a70a452; result recorded in 07fb9baf3f76437059b73f7805a5edd36d704cc6 and history pointer in 7560d7265c873c8ab25ef7de423f75fab8aa33e0"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -347,9 +351,12 @@ validation:
     - "The PR #3 WORK-0002 mirror now restricts read_before to current-tree paths and explicitly defers branch-only prerequisites until checkout of feat/work-0002-governance-ci"
     - "Third TEST-0006 execution passed on exact corrected tree 0b2c2f6a92051760e759bf2e64518188e8266012 after full read_before existence and branch-boundary verification; result recorded in badf011c82fc07e86d85d0e5d6efcb21223ca8cb"
     - "REVIEW-0009 reviewed exact head 1e3f539b89afbbb07de63271682a1db06f47550c and exposed two lifecycle-history defects that prevented closure"
-    - "status-machines.yaml version 5 now defines evidence-triggered progress DONE → IN_REVIEW reopening and one exact non-reusable TEST-0004 historical transition exception"
-    - "TEST-0007 followed PLANNED → READY → RUNNING → PASS and verified those corrections against exact Git history on d1d0b32e321cd56ada21f76c4d3e08856a792db5; PASS recorded in a280fed4123a476dc5d5a22651b8b8e1c3aa1240"
-    - "TEST-0006 fourth execution followed READY → RUNNING → PASS and passed on exact synchronized tree fa55004d1623ab2aa66c14b62bb036f6e335f041; PASS recorded in 80eb23da21d76d5b87134164ce46954423a04e95 and its history pointer in 772f45b2f7eacb3d2dfbeb39f3c1aca089b19959"
+    - "status-machines.yaml version 5 defines evidence-triggered progress DONE → IN_REVIEW reopening and one exact non-reusable TEST-0004 historical transition exception"
+    - "TEST-0007 first execution verified those lifecycle-history corrections on d1d0b32e321cd56ada21f76c4d3e08856a792db5"
+    - "TEST-0006 fourth execution passed on exact synchronized tree fa55004d1623ab2aa66c14b62bb036f6e335f041 under status-machine v5"
+    - "REVIEW-0010 reviewed exact head 14c3d3fcc6dd96af9d2e5acd9f02d2d957c03425 and exposed missing forward REQ-0006 → TEST-0007 traceability"
+    - "REQ-0006 now maps to TEST-0007 in verification.test_ids and acceptance_evidence, while TEST-0007 protects REQ-0006"
+    - "TEST-0007 second execution followed READY → RUNNING → PASS on c27a98b94c4f59c5778b9c7d30e447536a70a452 and proved both forward and reverse traceability; PASS recorded in 07fb9baf3f76437059b73f7805a5edd36d704cc6"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -362,11 +369,12 @@ validation:
     - REVIEW-0007
     - REVIEW-0008
     - REVIEW-0009
+    - REVIEW-0010
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
     - TEST-0005
     - "TEST-0006 (PASS on fa55004d1623ab2aa66c14b62bb036f6e335f041 under status contract v5; prior valid execution on 0b2c2f6a remains historical evidence and earlier executions on 331931d/3b4477f remain invalidated)"
-    - "TEST-0007 (PASS on d1d0b32e321cd56ada21f76c4d3e08856a792db5; result a280fed4123a476dc5d5a22651b8b8e1c3aa1240)"
+    - "TEST-0007 (PASS on c27a98b94c4f59c5778b9c7d30e447536a70a452 with bidirectional REQ-0006 traceability; result 07fb9baf3f76437059b73f7805a5edd36d704cc6)"
     - "REQ-0001..REQ-0019"
     - registry/status-machines.yaml
     - "PR #2 live head c50c33009d90f079e645f0ca9e1befe1a4a77ba9"
@@ -374,7 +382,7 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "REVIEW-0009/F-1 and F-2 remain open until another fresh-context L2 independently verifies the corrected frozen PR #3 HEAD; TEST-0006/TEST-0007 PASS alone cannot close them."
+    - "REVIEW-0010/F-1 remains open until another fresh-context L2 independently verifies the corrected frozen PR #3 HEAD; TEST-0007 PASS alone cannot close it."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; six fresh-L2 findings on c50c330 remain open."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -391,7 +399,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; successive fresh L2 reviews REVIEW-0003 through REVIEW-0009 exposed assurance defects. REVIEW-0009 found missing DONE→IN_REVIEW reopening semantics and TEST-0004's immutable PLANNED→PASS edge. Contract v5 is proven by TEST-0007 and the fourth TEST-0006 execution on fa55004d; another fresh L2 is the remaining assurance gate."}
+  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; successive fresh L2 reviews REVIEW-0003 through REVIEW-0010 exposed assurance defects. REVIEW-0010 found missing forward REQ-0006→TEST-0007 traceability. That edge is now bidirectional and the second TEST-0007 execution proves it on c27a98b; another fresh L2 is the remaining assurance gate."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 
@@ -411,6 +419,7 @@ discoveries:
   - "Cross-branch work mirrors must not put branch-only prerequisites into current-tree read_before; branch checkout is an explicit epistemic/context boundary."
   - "Completion evidence may truthfully regress from DONE to IN_REVIEW after new adverse evidence; reopening must be explicit, reviewed and re-gated."
   - "Immutable historical lifecycle mistakes require exact record/commit-bound migration exceptions, not generic future shortcuts or rewritten history."
+  - "Current proof must be reachable both from the requirement's verification mapping and from the test's protected-requirements edge."
   - "CLOSED and COMPLETE review states have different evidence semantics."
   - "A status vocabulary is incomplete as a machine contract without an initial state and transitions."
   - "100% coverage alone is insufficient; test-strength and non-compensable gates are required."
