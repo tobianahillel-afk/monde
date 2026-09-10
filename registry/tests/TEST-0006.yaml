@@ -92,6 +92,7 @@ history:
       reason: "Fresh L2 proved that PROJECT_STATE described WORK-0002 as IN_REVIEW while the WORK-0002 record and matrix at the tested SHA still said PLANNED, so the active-work-routing happy path was false."
     - commit_sha: "3b4477f00953f1a352fe7c40497853fc01e103b6"
       recorded_result: PASS
+      recorded_in_commit: "1558b2d9e85f64c755bacd623d310474ef838719"
       validity: VALID
       invalidated_by: null
       reason: "The rerun rechecked live PR #2 and found PROJECT_STATE, WORK-0002 and the progress matrix synchronized at IN_REVIEW while all original replacement-scope and review-outcome checks passed."

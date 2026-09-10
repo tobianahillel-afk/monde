@@ -241,7 +241,7 @@ review_plan:
     - "REVIEW-0006/F-1 negative COMPLETE review outcomes must never count as approval evidence"
     - "REVIEW-0006/F-2 TEST-0001 supersession must preserve its original protected behavior"
     - "REVIEW-0007/F-1 PROJECT_STATE/WORK-0002/progress-matrix active lifecycle contradiction invalidated the first TEST-0006 PASS"
-    - "WORK-0002/matrix reconciliation is now complete through canonical transitions ending at e93017e6382fa30fa752091ef204edc14ca14d11; TEST-0006 must be rerun on the fully synchronized handover SHA, then another fresh L2 is required."
+    - "TEST-0006 rerun is PASS on exact synchronized tree 3b4477f00953f1a352fe7c40497853fc01e103b6, recorded in 1558b2d9e85f64c755bacd623d310474ef838719; another fresh L2 is still required before any finding is closed."
 
 required_tests:
   unit: []
@@ -286,6 +286,7 @@ required_tests:
     - "Fresh GitHub Codex re-review executed against PR #3 head 71ecfea253066a66df6ae8302172c07f78f35752 and recorded as REVIEW-0007"
     - "Live PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9 and its six unresolved review threads were rechecked before synchronizing WORK-0002 state into PR #3"
     - "WORK-0002 reconciliation on PR #3 preserved canonical status history PLANNED → READY → IN_PROGRESS → IN_REVIEW and ends at e93017e6382fa30fa752091ef204edc14ca14d11"
+    - "TEST-0006 rerun is PASS on exact synchronized handover tree 3b4477f00953f1a352fe7c40497853fc01e103b6; result recorded in 1558b2d9e85f64c755bacd623d310474ef838719"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -327,7 +328,8 @@ validation:
     - "Fourth corrective pass constrains approval evidence to positive review outcomes and replaces TEST-0001 with scope-preserving TEST-0006"
     - "Initial TEST-0006 execution on 331931d21c4ebde3f84911825debde61488f91b3 was later disproved by fresh REVIEW-0007 because WORK-0002 lifecycle state conflicted across PROJECT_STATE, WORK and matrix"
     - "REVIEW-0007 is recorded on exact reviewed head 71ecfea253066a66df6ae8302172c07f78f35752"
-    - "WORK-0002 global state has now been reconciled through legal PLANNED → READY → IN_PROGRESS → IN_REVIEW transitions ending at e93017e6382fa30fa752091ef204edc14ca14d11; TEST-0006 remains READY for rerun on the fully synchronized handover tree"
+    - "WORK-0002 global state was reconciled through legal PLANNED → READY → IN_PROGRESS → IN_REVIEW transitions ending at e93017e6382fa30fa752091ef204edc14ca14d11"
+    - "TEST-0006 was re-executed on exact fully synchronized handover tree 3b4477f00953f1a352fe7c40497853fc01e103b6 after live PR #2 recheck and is PASS; result recorded in 1558b2d9e85f64c755bacd623d310474ef838719"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -341,16 +343,15 @@ validation:
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
     - TEST-0005
-    - "TEST-0006 (READY for rerun; prior execution invalidated by REVIEW-0007/F-1)"
+    - "TEST-0006 (PASS on 3b4477f00953f1a352fe7c40497853fc01e103b6; prior 331931d execution invalidated)"
     - "REQ-0001..REQ-0019"
     - registry/status-machines.yaml
     - "PR #2 live head c50c33009d90f079e645f0ca9e1befe1a4a77ba9"
-    - "PR #3 WORK-0002 synchronized state e93017e6382fa30fa752091ef204edc14ca14d11"
   coverage:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "Rerun TEST-0006 on the exact fully synchronized handover SHA and obtain another fresh L2 before WORK-0001 can complete."
+    - "A fresh-context L2 review of the synchronized PR #3 HEAD is required before WORK-0001 can complete; TEST-0006 PASS alone does not close REVIEW-0007/F-1."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; six fresh-L2 findings on c50c330 remain open."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -367,7 +368,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; successive fresh L2 reviews REVIEW-0003 through REVIEW-0007 exposed assurance defects. REVIEW-0007 invalidated the first TEST-0006 PASS because WORK-0002 lifecycle contradicted PROJECT_STATE. WORK-0002/matrix are now reconciled through canonical transitions to IN_REVIEW; exact-SHA TEST-0006 rerun and another fresh L2 remain."}
+  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; successive fresh L2 reviews REVIEW-0003 through REVIEW-0007 exposed assurance defects. REVIEW-0007 invalidated the first TEST-0006 PASS because WORK-0002 lifecycle contradicted PROJECT_STATE. WORK-0002/matrix were reconciled legally to IN_REVIEW and TEST-0006 reran PASS on 3b4477f; another fresh L2 is now the remaining WORK-0001 gate."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 

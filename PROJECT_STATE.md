@@ -40,11 +40,13 @@ No WORK-0003 or WORK-0004 implementation has started.
 
 `REVIEW-0006` was the fresh-context L2 of PR #3 HEAD `8c2fbc9e44ba9f0c810b768be513d988812f1e5c`. It found two remaining issues: negative COMPLETE review outcomes could still be interpreted as approval, and TEST-0001's replacement did not preserve the original resume/status scope. The fourth corrective pass constrained approval-capable outcomes and made TEST-0006 the scope-preserving replacement.
 
-TEST-0006 was then executed against `331931d21c4ebde3f84911825debde61488f91b3` and initially recorded PASS in `49b0b0aaa818cefe1fe7051dc161f1977d4bac5b`.
+`REVIEW-0007` is the fresh-context L2 of PR #3 HEAD `71ecfea253066a66df6ae8302172c07f78f35752`. It found one R2/P1 defect: the first TEST-0006 tree had PROJECT_STATE describing WORK-0002 as `IN_REVIEW` while the PR #3 WORK-0002 record and progress matrix still said `PLANNED`, invalidating that first PASS.
 
-`REVIEW-0007` is the fresh-context L2 of PR #3 HEAD `71ecfea253066a66df6ae8302172c07f78f35752`. It found one R2/P1 defect: at the TEST-0006 tested tree, PROJECT_STATE called WORK-0002 active and `IN_REVIEW`, while the current-branch WORK-0002 record and progress matrix still said `PLANNED`. That contradiction made TEST-0006's active-work-routing happy path false despite its exact-SHA mechanics being correct.
+The global WORK-0002 snapshot was then reconciled through legal `PLANNED → READY → IN_PROGRESS → IN_REVIEW` transitions, ending at `e93017e6382fa30fa752091ef204edc14ca14d11`. A handover-only update produced exact rerun tree `3b4477f00953f1a352fe7c40497853fc01e103b6`.
 
-The correction is now published through a canonical reconciliation sequence ending at `e93017e6382fa30fa752091ef204edc14ca14d11`: the PR #3 mirror of WORK-0002 moved `PLANNED → READY → IN_PROGRESS → IN_REVIEW`, its progress entry mirrors `IN_REVIEW`, and its six live PR #2 fresh-L2 findings are preserved. The prior TEST-0006 execution remains in machine-readable history but is explicitly `INVALIDATED` by `REVIEW-0007/F-1`; TEST-0006 is `READY` for an exact-SHA rerun on the fully synchronized handover tree produced by the current administrative update.
+TEST-0006 was re-executed against `3b4477f00953f1a352fe7c40497853fc01e103b6` after rechecking live PR #2. The rerun verified that PR #2 remained open at `c50c33009d90f079e645f0ca9e1befe1a4a77ba9` / `IN_REVIEW`, and that PROJECT_STATE, WORK-0002 and the matrix all agree on that lifecycle. It also rechecked the original TEST-0001 resume/status scope and the review-outcome polarity rules. The rerun is **PASS**, recorded in commit `1558b2d9e85f64c755bacd623d310474ef838719`. The earlier `331931d…` execution remains preserved but explicitly `INVALIDATED` by REVIEW-0007/F-1.
+
+No REVIEW-0007 finding is considered resolved solely because TEST-0006 passed. A new fresh-context L2 of the synchronized current PR #3 HEAD is still required before any completion claim.
 
 ## WORK-0002 state
 
@@ -81,14 +83,12 @@ WORK-0001 material bootstrap behavior is represented by `REQ-0001` through `REQ-
 
 ## Next action
 
-1. Execute TEST-0006 against the exact fully synchronized current PR #3 tree while confirming PR #2 is still live at `c50c33009d90f079e645f0ca9e1befe1a4a77ba9` / `IN_REVIEW` and that PROJECT_STATE, WORK-0002 and the matrix agree.
-2. Record PASS only if the cold-resume route has one coherent lifecycle; preserve the invalidated prior execution in TEST-0006 history.
-3. Attach the new exact-SHA proof to REVIEW-0007/F-1 without resolving it, then synchronize WORK-0001/PROJECT_STATE with the result.
-4. Request another fresh-context L2 review of the resulting PR #3 HEAD.
-5. If the reviewer finds anything material, correct and re-prove it; otherwise record the approval-capable review and resolve only verified findings.
-6. Finalize WORK-0001/progress/completion evidence and merge PR #3 only after the approval gate is truly satisfied.
-7. Rebase/update PR #2 on the new main contract, fix its six current findings with regression/mutation tests and exact-SHA CI proof, and obtain its own fresh L2 before merge.
-8. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
+1. Attach the exact TEST-0006 rerun proof (`3b4477f…` tested, `1558b2d…` result record) to REVIEW-0007/F-1 without resolving the thread.
+2. Request another fresh-context L2 review of the synchronized current PR #3 HEAD after this administrative evidence synchronization.
+3. If the reviewer finds anything material, correct and re-prove it; otherwise record the approval-capable review and resolve only verified findings.
+4. Finalize WORK-0001/progress/completion evidence and merge PR #3 only after the approval gate is truly satisfied.
+5. Rebase/update PR #2 on the new main contract, fix its six current findings with regression/mutation tests and exact-SHA CI proof, and obtain its own fresh L2 before merge.
+6. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
 
 ## Resume instructions
 
