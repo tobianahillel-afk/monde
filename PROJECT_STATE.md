@@ -66,15 +66,13 @@ REVIEW-0015 demonstrates this truthful path. Its one-shot authorization exists i
 
 TEST-0007 was reopened for v7 and rerun against exact tree `669dcf7638746e07cc034cd69fa2cb08da133937`. It is **PASS**; result commit `87668f4e64453dca4c987252a8cb46e73793950c`; history pointer `87ec209eec614a0ff3be7a00a7565102042cad3f`.
 
-That run proved from Git history rather than prose that:
+That run proved from Git history rather than prose that REVIEW-0014 is an exact historical replay, REVIEW-0015 authorization predates materialization and is one-shot/bound, pre-v7 REVIEW/REQ imports remain exact, TEST-0004 migration remains isolated, progress reopening remains reviewed, and REQ-0006 ↔ TEST-0007 traceability remains intact.
 
-- Codex source review REVIEW-0014 completed at `2026-09-10T22:43:13Z`, before its first apparent OPEN commit `ec691104...` at `2026-09-10T22:53:36Z`, whose file already carried the final R2 findings and CHANGES_REQUIRED outcome;
-- v7 isolates that exact sequence as historical replay instead of normal review execution;
-- REVIEW-0015 authorization `2b26ed...` is an ancestor of first materialization `877d5bce...`;
-- the authorization, imported record and consumption binding agree on exact reviewed artifact/source/outcome/import SHA and are one-shot;
-- pre-v7 REVIEW/REQ imports, TEST-0004 migration, progress reopening and REQ-0006 ↔ TEST-0007 traceability remain exact and non-reusable.
+TEST-0006 has an earlier valid PASS on exact v6 synchronized tree `bb973b669797e887d6190065a3d74c377aa33c01` (result `7ce54360a2e56f8892ea70354af824bfa8c4df72`, pointer `abae9028bbc54e4f39f67e915626d2b24c2a29d4`). Its earlier FAIL on `ffffb37d680e477fa03f74523dfac624ad74427c` remains preserved.
 
-TEST-0006 has an earlier valid PASS on exact v6 synchronized tree `bb973b669797e887d6190065a3d74c377aa33c01` (result `7ce54360a2e56f8892ea70354af824bfa8c4df72`, pointer `abae9028bbc54e4f39f67e915626d2b24c2a29d4`). Its prior FAIL on `ffffb37d680e477fa03f74523dfac624ad74427c` remains preserved. Because the canonical lifecycle and cold-resume handover have now changed to v7/REVIEW-0015, **TEST-0006 must be reopened and rerun on the synchronized v7 tree before another fresh L2**.
+The first TEST-0006 run under v7 used exact tree `11cca4bccb318d29c422917d544a470870b2cf65` and correctly **FAILED**. v7 and WORK-0001 were current, but PROJECT_STATE's `Next action` still instructed a cold-resuming agent to synchronize WORK-0001 and reopen TEST-0006 even though both actions were already complete at that tree. The FAIL is recorded in commit `35e3c4c892f8c9bc6e5424fbe792c2fc8043eaf8` and is preserved as negative evidence rather than overwritten.
+
+This PROJECT_STATE update removes that stale ordering. The next proof action is now exactly the rerun transition from the preserved FAIL; no already-completed synchronization step precedes it.
 
 REVIEW-0014/F-1, REVIEW-0014/F-2 and REVIEW-0015/F-1 remain unresolved until a later fresh-context L2 independently verifies the current v7 proof. No finding is closed merely because the author produced a PASS.
 
@@ -113,10 +111,10 @@ Historical import/replay exceptions preserve immutable history only when their e
 
 ## Next action
 
-1. Synchronize `WORK-0001` to this REVIEW-0015/v7/TEST-0007 state while keeping WORK-0001, T6, RUN-3 and completion gates non-terminal.
-2. Reopen TEST-0006 from `PASS → READY`; use the resulting synchronized v7 commit as the exact rerun tree, then execute `READY → RUNNING`.
-3. Recheck README/START_HERE cold resume, WORK-0001/PROJECT_STATE currentness, global WORK-0002/matrix state, every current-tree WORK-0002 `read_before`, explicit PR #2 branch handoff, live PR #2, v7 external-import/replay isolation, positive-only review approval and TEST-0001 replacement coverage. Record PASS only if every assertion is true.
-4. Bind the TEST-0006 result, synchronize the final PASS into WORK-0001/PROJECT_STATE, reply to REVIEW-0015/F-1 with exact evidence, and leave all relevant threads unresolved pending independent verification.
+1. Record the TEST-0006 v7 FAIL from exact tree `11cca4bccb318d29c422917d544a470870b2cf65` in WORK-0001 evidence/current gate without changing completion status.
+2. Reopen TEST-0006 `FAIL → READY`. The resulting commit is the exact corrected handover tree for the rerun.
+3. Execute `READY → RUNNING` bound to that SHA. Recheck README/START_HERE cold resume, WORK-0001/PROJECT_STATE currentness, global WORK-0002/matrix state, every current-tree WORK-0002 `read_before`, explicit PR #2 branch handoff, live PR #2, v7 external-import/replay isolation, positive-only review approval and TEST-0001 replacement coverage. Record PASS only if every assertion is true.
+4. Bind the TEST-0006 result, synchronize the final PASS into WORK-0001/PROJECT_STATE, reply to REVIEW-0015/F-1 with exact evidence, and leave relevant threads unresolved pending independent verification.
 5. Freeze the resulting PR #3 HEAD and request a fresh-context L2 on that exact SHA.
 6. If that review reports any material defect, correct and re-prove it. If it reports no material defect, record truthful approval-capable L2 evidence, resolve only findings independently verified as corrected, finalize WORK-0001/progress/completion and merge PR #3.
 7. After PR #3 merge, update PR #2 on the new main contract, correct and re-prove its outstanding fresh-L2 findings, obtain its own fresh L2, and merge only if its gate genuinely passes.
