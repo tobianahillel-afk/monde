@@ -196,7 +196,6 @@ review_plan:
   completed_reviews:
     - REVIEW-0001
   open_findings:
-    - "REVIEW-0001/F-3 repository visibility owner action"
     - "REVIEW-0001/F-5 fresh-context/owner L2 review"
 
 required_tests:
@@ -211,7 +210,7 @@ required_tests:
   regression:
     - "Bootstrap-discovered governance defects become WORK-0002 validator fixtures"
   security:
-    - "Repository visibility reviewed; currently public"
+    - "Repository visibility reviewed; public by explicit owner decision under public-code-safe constraints (no secrets, private/personal datasets or user-identifying runtime data in Git)."
   performance: []
   real_system:
     - "Branch writes performed against actual GitHub repository"
@@ -256,7 +255,7 @@ validation:
   known_gaps:
     - "Governance/document/traceability consistency is not yet enforced automatically in CI"
     - "No CI status checks are currently attached to PR #1"
-    - "Repository visibility remains public until owner action"
+    - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
     - "Fresh-context/owner L2 final review pending"
 
 risk:
@@ -277,14 +276,14 @@ run_log:
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 
 discoveries:
-  - "Repository visibility is currently public."
+  - "Repository intentionally remains public by owner decision; public-code-safe constraints apply."
   - "No GitHub status checks are currently attached to PR #1."
   - "Execution governance alone is insufficient; specification reasoning must be structured, traceable, independently reviewed and falsifiable."
   - "100% coverage alone is insufficient; test-strength and non-compensable gates are required."
 blockers: []
 follow_up_work_items:
   - "WORK-0002: automate governance/specification/traceability and architecture fitness validation in CI."
-  - "WORK-0003: configure repository visibility/branch protection/required checks/security settings."
+  - "WORK-0003: configure branch protection/required checks/security settings while keeping the repository public."
   - "WORK-0004: inventory all previously validated MONDE capabilities and assign stable CAP IDs."
   - "Future: implement MONDE Mini, historical event packs and executable epistemic/architecture invariants."
 
