@@ -109,7 +109,7 @@ history:
       reason: "Fresh L2 proved that the synchronized WORK-0002 read_before list referenced github-control-plane.md and ai-context-routing.md, which were absent from the tested PR #3 tree and existed only on the PR #2 branch, so the cold-resume happy path was still false."
     - commit_sha: "0b2c2f6a92051760e759bf2e64518188e8266012"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "badf011c82fc07e86d85d0e5d6efcb21223ca8cb"
       validity: VALID
       invalidated_by: null
       reason: "All current-tree read_before paths resolved, branch-only prerequisites were explicitly deferred until checkout of the WORK-0002 implementation branch, lifecycle state remained coherent, and the original replacement-scope/review-outcome checks passed."
