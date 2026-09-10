@@ -26,13 +26,47 @@ jobs:
     name: Dependency review
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
+      - name: Probe Dependency Graph availability
+        id: depgraph
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          code="$(curl --silent --show-error --output /tmp/monde-sbom.json --write-out '%{http_code}' \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/dependency-graph/sbom")"
+          case "$code" in
+            200)
+              echo 'supported=true' >> "$GITHUB_OUTPUT"
+              ;;
+            404)
+              echo 'supported=false' >> "$GITHUB_OUTPUT"
+              echo '::notice title=Dependency Graph unavailable::Dependency Review is defined but cannot become an effective hard gate until WORK-0003 enables GitHub Dependency Graph.'
+              ;;
+            *)
+              echo "Unexpected Dependency Graph probe HTTP status: $code" >&2
+              cat /tmp/monde-sbom.json >&2 || true
+              exit 1
+              ;;
+          esac
+
       - name: Review dependency changes
+        if: steps.depgraph.outputs.supported == 'true'
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: moderate
+
+      - name: Record unavailable capability
+        if: steps.depgraph.outputs.supported == 'false'
+        run: |
+          echo 'Dependency Review: UNAVAILABLE (Dependency Graph disabled; tracked by WORK-0003)' >> "$GITHUB_STEP_SUMMARY"
 
   codeql:
     name: CodeQL
@@ -106,7 +140,7 @@ jobs:
             echo '## MONDE Merge Gate'
             echo
             echo '- Deterministic governance: `${{ needs.governance-core.result }}`'
-            echo '- Dependency review: `${{ needs.dependency-review.result }}`'
+            echo '- Dependency review lane: `${{ needs.dependency-review.result }}` (the lane reports UNAVAILABLE when Dependency Graph is disabled; WORK-0003 must enable it)'
             echo '- CodeQL: `${{ needs.codeql.result }}`'
             echo '- Live PR review-thread/head state checked for pull requests.'
             echo
