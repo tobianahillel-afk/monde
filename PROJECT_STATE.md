@@ -32,30 +32,30 @@ No WORK-0003 or WORK-0004 implementation has started.
 
 ## WORK-0001 assurance history
 
-The durable review chain is `REVIEW-0003` through `REVIEW-0009`. Corrective test evidence is `TEST-0004`, `TEST-0005`, `TEST-0006`, and lifecycle-history proof `TEST-0007`; superseded `TEST-0001` remains historical/non-gating evidence.
+The durable review chain is `REVIEW-0003` through `REVIEW-0010`. Corrective test evidence is `TEST-0004`, `TEST-0005`, `TEST-0006`, and `TEST-0007`; superseded `TEST-0001` remains historical/non-gating evidence.
 
 Key current facts:
 
 - `REVIEW-0007` invalidated the first TEST-0006 PASS because PROJECT_STATE, WORK-0002 and the progress matrix disagreed on the global WORK-0002 lifecycle.
 - `REVIEW-0008` invalidated the second TEST-0006 PASS because the PR #3 WORK-0002 mirror referenced two branch-only `read_before` files that were absent from the tested tree.
-- A third TEST-0006 execution passed on exact tree `0b2c2f6a92051760e759bf2e64518188e8266012`; it remains valid for that tested tree.
-- Fresh-context `REVIEW-0009` reviewed PR #3 at `1e3f539b89afbbb07de63271682a1db06f47550c` and found two additional R2/P1 lifecycle-history defects: progress could not truthfully reopen `DONE → IN_REVIEW`, and TEST-0004's immutable historical `PLANNED → PASS` edge violated the newly canonical test lifecycle.
+- `REVIEW-0009`, on `1e3f539b89afbbb07de63271682a1db06f47550c`, found missing reviewed `DONE → IN_REVIEW` reopening semantics and TEST-0004's immutable historical `PLANNED → PASS` edge.
+- `REVIEW-0010`, on `14c3d3fcc6dd96af9d2e5acd9f02d2d957c03425`, confirmed those lifecycle corrections but found one R3/P2 traceability gap: TEST-0007 protected REQ-0006, while REQ-0006 still pointed only to the older TEST-0004.
 
-## REVIEW-0009 correction and proof
+## Current correction and proof
 
-`registry/status-machines.yaml` version 5 now:
+`registry/status-machines.yaml` version 5:
 
-- permits progress `DONE → IN_REVIEW` only as an explicit reviewed reopening after new evidence, a review finding, dependency change, or invalidated proof materially re-questions completion;
-- requires the owning handover/evidence to identify that trigger and requires normal completion gates before returning to DONE;
-- keeps the generic test lifecycle strict as `PLANNED → READY → RUNNING → PASS`;
-- records one exact historical migration exception only for TEST-0004 `PLANNED → PASS`, bound to before-commit `98e8cdccc07bd3c2d8313d81f296f49c97c44379` and transition commit `e8337d833ca0b524bed69318ca4b3691c9ce6c23`;
-- forbids reuse of that exception for any other record or future transition.
+- permits progress `DONE → IN_REVIEW` only as an explicit reviewed reopening when later evidence materially re-questions completion;
+- requires normal completion gates before returning to DONE;
+- keeps generic TEST lifecycle strict as `PLANNED → READY → RUNNING → PASS`;
+- records one exact historical TEST-0004 `PLANNED → PASS` migration exception bound to `98e8cdccc07bd3c2d8313d81f296f49c97c44379 → e8337d833ca0b524bed69318ca4b3691c9ce6c23`;
+- marks that exception historical-only and forbids future reuse.
 
-`TEST-0007` checked these rules against the real PR #3 Git history on exact substantive tree `d1d0b32e321cd56ada21f76c4d3e08856a792db5`. It followed `PLANNED → READY → RUNNING → PASS`; PASS was recorded in `a280fed4123a476dc5d5a22651b8b8e1c3aa1240`, and `03b6b85adc9e48b038a609e83c890c16fc313d34` records the result commit in its history.
+The fourth TEST-0006 execution remains PASS on exact synchronized tree `fa55004d1623ab2aa66c14b62bb036f6e335f041`; result `80eb23da21d76d5b87134164ce46954423a04e95`, history pointer `772f45b2f7eacb3d2dfbeb39f3c1aca089b19959`.
 
-Because the canonical status contract changed, `TEST-0006` was deliberately reopened from `PASS → READY` and rerun. The fourth execution followed `READY → RUNNING → PASS` against exact synchronized tree `fa55004d1623ab2aa66c14b62bb036f6e335f041`. It revalidated cold-resume routing, all current-tree WORK-0002 `read_before` paths, the explicit branch handoff, global lifecycle consistency, TEST-0001 supersession, status-machine v5 and positive-only review approval semantics. PASS was recorded in `80eb23da21d76d5b87134164ce46954423a04e95`; `772f45b2f7eacb3d2dfbeb39f3c1aca089b19959` records that execution in TEST-0006 history.
+For REVIEW-0010/F-1, REQ-0006 now includes TEST-0007 in both `verification.test_ids` and `verification.acceptance_evidence`, while TEST-0007 continues to protect REQ-0006. TEST-0007 was reopened `PASS → READY`, expanded with explicit forward/reverse traceability assertions, and rerun on exact tree `c27a98b94c4f59c5778b9c7d30e447536a70a452` through `READY → RUNNING → PASS`. The PASS result is `07fb9baf3f76437059b73f7805a5edd36d704cc6`; `7560d7265c873c8ab25ef7de423f75fab8aa33e0` records that execution in history.
 
-No REVIEW-0009 finding is considered resolved solely because TEST-0006/TEST-0007 passed. A fresh independent L2 must verify the corrected frozen HEAD.
+No REVIEW-0010 finding is considered resolved solely because TEST-0007 passes. Another fresh independent L2 must verify the resulting frozen HEAD.
 
 ## WORK-0002 cross-branch boundary
 
@@ -90,8 +90,8 @@ A blocking R1/R2 finding may become non-blocking through `ACCEPTED` only with ex
 
 ## Next action
 
-1. Attach TEST-0007 and the fourth TEST-0006 evidence to REVIEW-0009/F-1 and F-2 without resolving the threads prematurely.
-2. Synchronize the PR #3 description with the current review/test history.
+1. Synchronize WORK-0001 and PR #3 metadata with REVIEW-0010 and the second TEST-0007 PASS while keeping WORK-0001 IN_REVIEW/completion gates false.
+2. Reply to REVIEW-0010/F-1 with the exact REQ-0006↔TEST-0007 proof without resolving the thread prematurely.
 3. Freeze the resulting Git HEAD and request another fresh-context L2 explicitly against that SHA.
 4. If that review finds anything material, correct and re-prove it. Only a positive approval-capable L2 with no unresolved blocking issue may allow verified findings and WORK-0001 completion to close.
 5. Merge PR #3 only after the approval gate is genuinely satisfied; then update/rebase PR #2, fix its six existing findings, re-prove CI and obtain its own fresh L2.
@@ -109,7 +109,7 @@ Minimum manual sequence:
 7. `registry/status-machines.yaml`
 8. `registry/progress/matrix.yaml`
 9. `registry/requirements/REQ-0001.yaml` through `REQ-0019.yaml`
-10. `registry/reviews/REVIEW-0003.yaml` through `REVIEW-0009.yaml`
+10. `registry/reviews/REVIEW-0003.yaml` through `REVIEW-0010.yaml`
 11. `registry/tests/TEST-0004.yaml` through `TEST-0007.yaml`, plus superseded historical `TEST-0001.yaml`
 12. live PR #3 reviews/threads
 13. live PR #2 HEAD/checks/unresolved threads
