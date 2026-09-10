@@ -12,8 +12,8 @@ related_requirements: [REQ-0002, REQ-0006]
 semantics: {temporal: false, spatial: false, provenance: false, confidence_uncertainty: false, permissions: false}
 verification:
   method: TEST_AND_REVIEW
-  acceptance_evidence: [TEST-0001, REVIEW-0001, "PR #1"]
-  test_ids: [TEST-0001]
-  real_system_validation: ["Cold resume performed against the real GitHub repository state."]
+  acceptance_evidence: ["WORK-0001/AC-1", "README.md", "docs/00_START_HERE.md"]
+  test_ids: [TEST-0004]
+  real_system_validation: ["Corrective cold-resume drill is executed against PR #3 and recorded as TEST-0004."]
 risk: {criticality: HIGH, failure_impact: "Agents may resume from stale or hidden context and repeat or contradict completed work."}
 history: {created_at: "2026-09-10", updated_at: "2026-09-10", supersedes: [], superseded_by: null}

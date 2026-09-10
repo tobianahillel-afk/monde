@@ -18,7 +18,7 @@ roles:
   - RED_TEAM_SKEPTIC
 
 scope:
-  requirements: [REQ-0001, REQ-0002, REQ-0003, REQ-0004, REQ-0005, REQ-0006, REQ-0007, REQ-0008, REQ-0009, REQ-0010, REQ-0011, REQ-0012, REQ-0013, REQ-0014]
+  requirements: []
   capabilities: []
   contracts:
     - "AI resume protocol"
@@ -64,7 +64,7 @@ findings:
     description: "Current structured review is same-context L1; foundational governance targets a fresh-context L2 review before final confidence."
     evidence: ["Review Council independence policy", "REVIEW-0003 fresh-context Codex review of merged b88e9edf"]
     disposition: RESOLVED
-    resolved_by: "A fresh-context GitHub Codex L2 review was executed against merged commit b88e9edf and recorded as REVIEW-0003. That independent review found three new issues now tracked separately; final approval still requires re-review of their corrections."
+    resolved_by: "A fresh-context GitHub Codex L2 review was executed against merged commit b88e9edf and recorded as REVIEW-0003. That independent review found three new issues tracked by REVIEW-0003; final approval requires review of their correction."
   - id: F-6
     severity: R2_MAJOR
     category: PROCESS_DRIFT
