@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening, historical transition/import migration and lifecycle traceability drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -27,7 +27,7 @@ protects:
     - "The TEST-0004 legacy exception applies only to its exact immutable PLANNED → PASS commit edge"
     - "Review historical imports apply only to REVIEW-0004..REVIEW-0013 at their exact introduction commits; OPEN remains the initial review state and OPEN → IN_PROGRESS → COMPLETE remains the normal execution path"
     - "Requirement historical imports apply only to REQ-0015..REQ-0019 at exact commit 2712795dc9f10c1efed2088313d125f6f915cc98; PROPOSED remains the initial requirement state"
-    - "REVIEW-0014 itself follows OPEN → IN_PROGRESS and is not covered by a historical import exception"
+    - "REVIEW-0014 itself follows OPEN → IN_PROGRESS → COMPLETE and is not covered by a historical import exception"
     - "REQ-0006 verification points to TEST-0007 and TEST-0007 protects REQ-0006 so forward and reverse traceability both reach the current proof"
 
 environment:
@@ -48,7 +48,7 @@ cases:
     - "Each imported review exception is COMPLETE, historical_only, future_reuse_forbidden and tied to REVIEW-0014/F-1 without changing the generic review transition table"
     - "The v6 requirement historical_import_exceptions enumerate only REQ-0015 through REQ-0019, each as ACCEPTED at exact introduction commit 2712795dc9f10c1efed2088313d125f6f915cc98 and tied to REVIEW-0014/F-2"
     - "Each imported requirement exception is historical_only and future_reuse_forbidden without changing initial PROPOSED or the generic PROPOSED → ACCEPTED transition"
-    - "Git history shows REVIEW-0014 first appears OPEN at ec69110468c7e1cd79984dedb835504de8c0b561 and then IN_PROGRESS at 2926a070de8371e7ad3aaebeca0d9e424700d43f"
+    - "Git history shows REVIEW-0014 first appears OPEN at ec69110468c7e1cd79984dedb835504de8c0b561, becomes IN_PROGRESS at 2926a070de8371e7ad3aaebeca0d9e424700d43f, and COMPLETE at b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
     - "registry/requirements/REQ-0006.yaml verification.test_ids contains TEST-0007 and acceptance_evidence includes TEST-0007"
     - "TEST-0007 protects.requirements contains REQ-0006, making the current proof bidirectionally traceable"
   edge_cases:
@@ -75,15 +75,24 @@ cases:
     - "Attempt to introduce a new requirement directly ACCEPTED and verify none of the REQ-0015..0019 exceptions authorizes it"
     - "Inspect each imported review path's Git history rather than inferring its introduction commit from the current record"
     - "Inspect commit 2712795dc9f10c1efed2088313d125f6f915cc98 and verify it introduces REQ-0015..REQ-0019 as ACCEPTED after the lifecycle machine existed"
-    - "Inspect commits ec69110468c7e1cd79984dedb835504de8c0b561 and 2926a070de8371e7ad3aaebeca0d9e424700d43f to verify REVIEW-0014 uses normal OPEN → IN_PROGRESS history"
+    - "Inspect commits ec69110468c7e1cd79984dedb835504de8c0b561, 2926a070de8371e7ad3aaebeca0d9e424700d43f and b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7 to verify REVIEW-0014 uses normal OPEN → IN_PROGRESS → COMPLETE history"
     - "Start a forward traceability walk at REQ-0006 and verify it reaches TEST-0007 without relying on TEST-0007's reverse declaration"
 
 execution:
   command_or_workflow: "Manual exact-SHA GitHub audit of PR #3 lifecycle v6, immutable test transition history, review historical imports, requirement historical imports, REVIEW-0014 normal lifecycle and bidirectional REQ-0006 ↔ TEST-0007 traceability on tree b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
   last_run_at: "2026-09-10"
   commit_sha: "b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
-  result: null
-  evidence: []
+  result: PASS
+  evidence:
+    - "registry/status-machines.yaml v6 @ b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7 keeps review initial OPEN with OPEN → IN_PROGRESS → COMPLETE and requirement initial PROPOSED with PROPOSED → ACCEPTED; no generic shortcut was added"
+    - "status-machines v6 enumerates only REVIEW-0004..REVIEW-0013 as COMPLETE historical imports, each with exact introduction commit, historical_only=true, future_reuse_forbidden=true and REVIEW-0014/F-1 origin"
+    - "GitHub path-history checks returned exact introduction commits: REVIEW-0004 98e8cdccc07bd3c2d8313d81f296f49c97c44379; REVIEW-0005 2712795dc9f10c1efed2088313d125f6f915cc98; REVIEW-0006 2593b93891a7d5c8ba6fa60522cbc48c787c1a96; REVIEW-0007 e93017e6382fa30fa752091ef204edc14ca14d11; REVIEW-0008 f75dd13309caa6d0d55d41cc300fdf4f4ab8b858; REVIEW-0009 c00d32512608afd0e8f60b5413f6067b5af42158; REVIEW-0010 3b78f0f996b1aced47b7f9ab3f17364f27997a99; REVIEW-0011 46fd37beaedcce90b6d8357c314336fbe956f659; REVIEW-0012 319e12aade5e188594ef6da721ec8ff57aa7fdd2; REVIEW-0013 69cb8c083fb7f55c5895f42d4f7e1a1e7820d320"
+    - "Commit 2712795dc9f10c1efed2088313d125f6f915cc98 adds REQ-0015..REQ-0019 as ACCEPTED; v6 binds only those five record IDs and that exact introduction commit as historical imports"
+    - "REVIEW-0014 path history on the tested tree is OPEN at ec69110468c7e1cd79984dedb835504de8c0b561 → IN_PROGRESS at 2926a070de8371e7ad3aaebeca0d9e424700d43f → COMPLETE at b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
+    - "REVIEW-0014 is absent from the review historical_import_exceptions and therefore demonstrates the normal repository-native lifecycle remains usable"
+    - "registry/requirements/REQ-0006.yaml @ b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7 includes TEST-0007 in verification.test_ids and acceptance_evidence"
+    - "The unchanged TEST-0004 migration remains exact and generic TEST PASS remains reachable only from RUNNING"
+    - "Fresh L2 REVIEW-0014 is the source of the two import-history findings; this run validates the correction rather than treating the negative review itself as approval"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -105,3 +114,9 @@ history:
       validity: VALID
       invalidated_by: null
       reason: "Forward REQ-0006 → TEST-0007 and reverse TEST-0007 → REQ-0006 traceability both resolve on the exact tested tree, while lifecycle v5 and the exact historical migration guarantees remain intact. This remains valid for that scope/tree; TEST-0007 is reopened because REVIEW-0014 adds v6 review/requirement historical-import guarantees."
+    - commit_sha: "b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "Lifecycle v6 preserves strict generic transitions while exact post-contract review/requirement imports match immutable Git history, REVIEW-0014 itself follows the normal review lifecycle, and REQ-0006 ↔ TEST-0007 traceability remains intact."
