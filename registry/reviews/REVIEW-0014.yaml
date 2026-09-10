@@ -1,5 +1,5 @@
 id: REVIEW-0014
-status: IN_PROGRESS
+status: COMPLETE
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-3"
@@ -82,7 +82,7 @@ checks:
     - "Rerun TEST-0006 because it inspects the canonical status-machine contract."
 
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-10"
 
 history:
   created_at: "2026-09-10"
