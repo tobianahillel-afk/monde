@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Iterable
 import yaml
 
-PATH_KEYS=("read_before","affected_docs","affected_schemas")
+PATH_KEYS=("read_before","affected_docs","affected_schemas","affected_paths")
 MARKDOWN_LINK=re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 EXTERNAL_PREFIXES=("http://","https://","mailto:","#")
 @dataclass(frozen=True)

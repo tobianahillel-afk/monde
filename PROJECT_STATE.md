@@ -25,7 +25,7 @@ Canonical operational state: Yes
 
 - Branch: `feat/work-0002-governance-ci`
 - Pull request: `#2 — feat(governance): automate MONDE repository validation`
-- PR state in repository prose: draft during substantive P0-P2 proof. Always verify live GitHub state before merge decisions.
+- PR is in review; always verify live GitHub state before merge decisions.
 
 ## Current status
 
@@ -42,13 +42,14 @@ The hardened implementation includes:
 - deterministic registry/status/reference/path validation;
 - JSON Schema validation;
 - DONE progress-dimension and review-evidence validation;
+- hierarchical L0/L1/L2/L3 review independence and canonical outcome checks;
 - reverse WORK↔progress membership;
 - Markdown link-title handling and path containment;
-- base/head and per-commit transition validation;
+- base/head and ordered per-commit transition validation over every path touched in the commit sequence;
 - immutable IDs / published-record deletion guard;
-- post-READY semantic scope-drift and review-freshness guards;
-- meta-governance A3/A4 change guard;
-- immutable Action/Docker pins and high-confidence secret-pattern checks;
+- post-READY semantic scope-drift and review-freshness guards, including review requirements;
+- meta-governance binding to active changed A3/A4 work through `affected_paths`;
+- immutable Action/Docker pins and high-confidence secret checks at HEAD and across PR history;
 - hash-locked Python governance dependencies;
 - reusable governance workflow, Dependency Review and CodeQL;
 - stable `MONDE / Merge Gate`;
@@ -58,16 +59,20 @@ The hardened implementation includes:
 
 ## Review state
 
-The original Codex review on PR #2 identified four unresolved findings on the old HEAD:
+The initial Codex review found four issues on the historical validator; those were fixed and their threads resolved after CI proof.
 
-- review evidence was not validated deeply enough before DONE;
-- DONE progress dimensions could remain incomplete;
-- work items could be absent from the progress matrix;
-- Markdown links with optional titles could false-fail.
+A later fresh-context Codex L2 on HEAD `aab0369e253e7fac75352584a28e2fe8ca885dd5` found six additional material issues:
 
-The substantive P0-P2 hardening implements regressions for all four. Do not resolve those GitHub threads until the new substantive HEAD is pushed and CI proves the fixes there.
+- L3 targets were not enforced distinctly from L2;
+- canonical `APPROVE` / `APPROVE_WITH_FOLLOWUP` outcomes were not accepted;
+- review requirements were excluded from freshness semantics;
+- per-commit validation considered only endpoint-diff paths;
+- meta-governance changes were not bound to the actually affected work item/path;
+- secret scanning did not inspect intermediate PR commits.
 
-`REVIEW-0002` remains the same-context L1 review. A fresh L2 review on the substantive final HEAD is required before `WORK-0002 = DONE`.
+All six are now being corrected with targeted regression tests. Do not mark `WORK-0002` DONE or resolve the six new threads until the corrected HEAD passes GitHub CI and receives another fresh-context independent review.
+
+`REVIEW-0002` remains the same-context L1 review. A new fresh L2 on the corrected substantive HEAD is required before completion.
 
 ## Evidence model
 
@@ -84,11 +89,11 @@ The current GitHub connector can modify repository files/branches/PRs but does n
 
 ## Next action
 
-1. Publish the substantive P0-P2 commit to PR #2.
+1. Publish the six-finding corrective commit to PR #2.
 2. Execute the real MONDE Gate on that exact HEAD.
-3. Fix any real CI discrepancy without weakening gates.
-4. Resolve Codex threads only after the proven fixes are visible.
-5. Move PR out of draft and obtain fresh L2 review on the substantive HEAD.
+3. Fix any discrepancy without weakening gates.
+4. Reply to and resolve the six Codex threads only after proof exists on GitHub.
+5. Obtain a new fresh-context L2 review on the corrected substantive HEAD.
 6. Add only administrative finalization records/statuses, rerun the gate, then merge if all live gates pass.
 7. Start WORK-0003; do not begin WORK-0004 first.
 

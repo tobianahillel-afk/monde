@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "Owner explicitly requested P0-P2 hardening after the first real run and Codex review exposed missing review, progress, scope and GitHub-state controls."
+  rationale: "Owner explicitly requested P0-P2 hardening after the first real run and Codex reviews exposed missing review, progress, scope, GitHub-state, commit-history and meta-governance controls."
 
 scope:
   in:
@@ -21,16 +21,19 @@ scope:
     - JSON Schema validation for registry records
     - reverse progress-matrix membership and DONE-dimension validation
     - review-evidence status/outcome/hat/independence/blocking-finding validation
+    - hierarchical L0/L1/L2/L3 review-independence enforcement
+    - canonical Review Council outcome vocabulary with bounded legacy compatibility
     - work dependency, task/run and cycle validation
     - PROJECT_STATE active-work validation
     - assumption/risk due-date validation
     - Markdown title/path parsing and repository path containment
     - immutable GitHub Action and Docker-action pin validation
-    - high-confidence committed-secret pattern detection
-    - base-to-head and per-commit transition validation
+    - high-confidence committed-secret pattern detection at HEAD and across the PR commit range
+    - base-to-head and per-commit transition validation over the union of paths touched in the commit sequence
     - immutable registry IDs and published-record deletion guard
     - post-READY semantic scope-drift guard
-    - review-freshness guard after substantive changes
+    - review-freshness guard after substantive changes, including review requirements themselves
+    - meta-governance path binding to an active changed A3/A4 work item through affected_paths
     - AI context-manifest generation
     - GitHub live HEAD/mergeability/review-thread gate
     - hash-locked governance Python toolchain
@@ -97,6 +100,13 @@ affected_docs:
   - docs/03_ARCHITECTURE/github-control-plane.md
   - docs/13_QUALITY/ai-context-routing.md
   - registry/progress/matrix.yaml
+affected_paths:
+  - .github/
+  - tools/governance/
+  - tests/governance/
+  - schemas/registry/
+  - scripts/governance_mutation_smoke.py
+  - registry/work-items/_TEMPLATE.yaml
 contracts:
   - "repository governance validation"
   - "GitHub control-plane merge gate"
@@ -108,14 +118,14 @@ impact_analysis:
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs."
+  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative."
 
 implementation_plan:
   tasks:
-    - {id: T1, description: "Fix Codex review/progress/Markdown/reverse-membership findings.", depends_on: [], status: DONE}
+    - {id: T1, description: "Fix initial Codex review/progress/Markdown/reverse-membership findings.", depends_on: [], status: DONE}
     - {id: T2, description: "Add schemas, transition/scope/review-freshness and meta-governance guards.", depends_on: [T1], status: DONE}
     - {id: T3, description: "Add GitHub control plane, context router, live gate and supply-chain hardening.", depends_on: [T2], status: DONE}
-    - {id: T4, description: "Prove the substantive final HEAD in GitHub and complete independent review.", depends_on: [T3], status: IN_REVIEW}
+    - {id: T4, description: "Prove the substantive final HEAD in GitHub and complete independent review, including all fresh Codex findings.", depends_on: [T3], status: IN_REVIEW}
   planned_runs:
     - {id: RUN-1, objective: "Initial deterministic governance implementation", tasks: [T1], status: DONE}
     - {id: RUN-2, objective: "P0-P2 hardening and real GitHub proof", tasks: [T2, T3, T4], status: IN_REVIEW}
@@ -133,8 +143,7 @@ review_plan:
   completed_reviews:
     - REVIEW-0002
   open_findings:
-    - "Fresh-context L2 review remains required after the substantive P0-P2 HEAD is proven."
-    - "Four Codex threads must only be resolved after their fixes are present and CI-proven on GitHub."
+    - "Fresh Codex L2 on aab0369e found six additional material findings; fixes must be CI-proven and then independently re-reviewed on the new substantive HEAD before completion."
 
 required_tests:
   unit: [TEST-0002]
@@ -145,15 +154,22 @@ required_tests:
     - "registry/schema/progress/review/change-control integrity"
   e2e: [TEST-0003]
   regression:
-    - "Codex P1 review-evidence finding"
-    - "Codex P1 DONE progress-dimension finding"
-    - "Codex P2 reverse matrix membership finding"
-    - "Codex P2 Markdown link-title finding"
+    - "initial Codex P1 review-evidence finding"
+    - "initial Codex P1 DONE progress-dimension finding"
+    - "initial Codex P2 reverse matrix membership finding"
+    - "initial Codex P2 Markdown link-title finding"
+    - "L3 independence target cannot be satisfied by L1/L2 evidence"
+    - "canonical APPROVE / APPROVE_WITH_FOLLOWUP outcomes are accepted"
+    - "review requirements are part of review-freshness semantics"
+    - "commit-sequence validation includes paths changed then restored"
+    - "meta-governance changes are bound to affected active A3/A4 work"
+    - "secrets introduced and removed inside the PR remain detectable"
     - "scope drift and review freshness"
   security:
     - "immutable action/digest pins"
     - "hash-locked Python artifacts"
     - "least-privilege workflow tokens"
+    - "commit-range high-confidence secret scanning"
   performance:
     - "governance core remains bounded by CI timeout"
   real_system: [TEST-0003]
@@ -180,11 +196,12 @@ validation:
   executed:
     - "Earlier real GitHub runs established the first validator and path-safety gate."
     - "P0-P2 hardening suite was exercised before publication with full line/branch target and targeted mutation smoke."
+    - "Fresh-context Codex review on aab0369e identified six additional adversarial gaps; targeted regressions were prepared before the next GitHub proof run."
   evidence: [TEST-0002, TEST-0003, REVIEW-0002, "PR #2"]
   coverage: {line: 100, branch: 100}
   known_gaps:
     - "Repository administration/ruleset enforcement belongs to WORK-0003."
-    - "Fresh L2 review and substantive-head GitHub execution remain before DONE."
+    - "New substantive-head CI proof and a new fresh L2 review remain before DONE."
 
 risk:
   security: MEDIUM
@@ -198,12 +215,14 @@ rollback:
 
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Initial validator and real CI established."}
-  - {run: RUN-2, date: "2026-09-10", note: "Codex findings and P0-P2 GitHub/change-control/context/supply-chain hardening implemented; awaiting real substantive-head proof and L2."}
+  - {run: RUN-2, date: "2026-09-10", note: "P0-P2 hardening published; first fresh L2 found six additional gaps in independence, outcome vocabulary, review freshness, commit-path sequence, meta-governance binding and secret history. Fixes prepared for real CI and re-review."}
 
 discoveries:
   - "100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required."
   - "GitHub live state can invalidate stale PROJECT_STATE prose after it is committed."
   - "Test/review definitions must be separated from SHA-bound execution evidence."
+  - "Meta-governance authorization must bind the changed sensitive path to the active work item, not merely observe an unrelated A3/A4 record."
+  - "Security scanning must account for reachable PR commit history until squash-only merge is enforced."
 blockers: []
 follow_up_work_items: [WORK-0003, WORK-0004]
 

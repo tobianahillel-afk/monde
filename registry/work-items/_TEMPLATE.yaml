@@ -37,6 +37,7 @@ affected_capabilities: []
 affected_engines: []
 affected_schemas: []
 affected_docs: []
+affected_paths: []
 contracts: []
 adrs: []
 

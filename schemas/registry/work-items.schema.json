@@ -4,7 +4,12 @@
   "required": ["id", "status"],
   "properties": {
     "id": {"type": "string", "pattern": "^(WORK|CAP|REQ|ASM|RISK|REVIEW|TEST|EXP)-[0-9]+$"},
-    "status": {"type": "string"}
+    "status": {"type": "string"},
+    "affected_paths": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    }
   },
   "additionalProperties": true
 }

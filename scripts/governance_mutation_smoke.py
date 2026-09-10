@@ -11,20 +11,28 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "tools/governance/validate_repo.py"
 MUTATIONS = {
     "review-completion": (
-        'if d.get("status") not in {"COMPLETE","CLOSED"}:self.add(r.path,"DONE_REVIEW",f"review {rid} is not complete")',
-        'if False:self.add(r.path,"DONE_REVIEW",f"review {rid} is not complete")',
+        'if data.get("status") not in {"COMPLETE", "CLOSED"}:',
+        'if False:',
     ),
     "progress-reverse-membership": (
-        'if wid not in found:self.add(p,"PROGRESS_WORK",f"work item {wid} is missing from progress matrix")',
-        'if False:self.add(p,"PROGRESS_WORK",f"work item {wid} is missing from progress matrix")',
+        'if wid not in found:',
+        'if False:',
     ),
     "action-sha-pinning": (
-        'elif not PINNED_ACTION.fullmatch(x):self.add(p,"ACTION_PIN",f"action must use full commit SHA: {x}")',
-        'elif False:self.add(p,"ACTION_PIN",f"action must use full commit SHA: {x}")',
+        'elif not PINNED_ACTION.fullmatch(item):',
+        'elif False:',
     ),
     "done-progress-dimensions": (
-        'if isinstance(val,str) and val in GLOBAL_STATUSES and val not in DONE_PROGRESS_ALLOWED:self.add(p,"PROGRESS_DONE_DIMENSION",f"{wid}.{key}={val} is incomplete for DONE")',
-        'if False:self.add(p,"PROGRESS_DONE_DIMENSION",f"{wid}.{key}={val} is incomplete for DONE")',
+        'if isinstance(value, str) and value in GLOBAL_STATUSES and value not in DONE_PROGRESS_ALLOWED:',
+        'if False:',
+    ),
+    "review-independence-rank": (
+        'if target_rank >= 0 and max_rank < target_rank:',
+        'if False:',
+    ),
+    "canonical-review-outcome": (
+        'if data.get("outcome") not in REVIEW_OUTCOMES_APPROVING:',
+        'if False:',
     ),
 }
 
