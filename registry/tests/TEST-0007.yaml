@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening, historical transition migration and lifecycle traceability drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -58,9 +58,9 @@ cases:
     - "Start a forward traceability walk at REQ-0006 and verify it reaches TEST-0007 without relying on TEST-0007's reverse declaration"
 
 execution:
-  command_or_workflow: null
-  last_run_at: null
-  commit_sha: null
+  command_or_workflow: "Manual exact-SHA GitHub audit of PR #3 lifecycle contract, immutable history and bidirectional REQ-0006 ↔ TEST-0007 traceability on tree c27a98b94c4f59c5778b9c7d30e447536a70a452"
+  last_run_at: "2026-09-10"
+  commit_sha: "c27a98b94c4f59c5778b9c7d30e447536a70a452"
   result: null
   evidence: []
 
