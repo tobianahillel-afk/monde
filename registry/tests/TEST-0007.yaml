@@ -132,7 +132,7 @@ history:
       reason: "Lifecycle v6 preserved strict generic transitions and exact pre-v7 review/requirement imports, but fresh REVIEW-0015 later proved the claimed normal REVIEW-0014 execution path was actually a post-hoc status replay. This execution remains historical evidence for its tested v6 tree but is not sufficient for the v7 replay/import guarantee."
     - commit_sha: "669dcf7638746e07cc034cd69fa2cb08da133937"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "87668f4e64453dca4c987252a8cb46e73793950c"
       validity: VALID
       invalidated_by: null
       reason: "Lifecycle v7 truthfully separates repository-native review execution from external completed-review import: REVIEW-0014's immutable replay is exact/non-reusable, REVIEW-0015 authorization predates materialization and is one-shot/bound, generic transitions remain strict, historical imports remain exact, and REQ-0006 ↔ TEST-0007 traceability remains intact."
