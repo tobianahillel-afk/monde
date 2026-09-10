@@ -239,8 +239,7 @@ review_plan:
     - "REVIEW-0005/F-3 REQ-0010 is compound rather than atomic"
     - "REVIEW-0006/F-1 negative COMPLETE review outcomes must never count as approval evidence"
     - "REVIEW-0006/F-2 TEST-0001 supersession must preserve its original protected behavior"
-    - "TEST-0006 must pass on the exact synchronized fourth-pass tree before another fresh L2."
-    - "Fresh L2 re-review of the corrected PR #3 HEAD is required before completion."
+    - "Fresh L2 re-review of the corrected PR #3 HEAD is required before completion; TEST-0006 is PASS and SHA-bound to 331931d21c4ebde3f84911825debde61488f91b3."
 
 required_tests:
   unit: []
@@ -279,6 +278,7 @@ required_tests:
     - "Fresh GitHub Codex re-review executed against PR #3 head d5be907160c7fad3d86b2e0ce84911a3dcaab7d9 and recorded as REVIEW-0005"
     - "TEST-0005 PASS is SHA-bound to third-pass corrective tree 2712795dc9f10c1efed2088313d125f6f915cc98; result recorded in commit 89d39c75fe29d8bbcbe016cecaa6c87d935f1c47"
     - "Fresh GitHub Codex re-review executed against PR #3 head 8c2fbc9e44ba9f0c810b768be513d988812f1e5c and recorded as REVIEW-0006"
+    - "TEST-0006 PASS is SHA-bound to synchronized fourth-pass corrective tree 331931d21c4ebde3f84911825debde61488f91b3; result recorded in commit 49b0b0aaa818cefe1fe7051dc161f1977d4bac5b"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -317,7 +317,8 @@ validation:
     - "Third corrective pass supersedes unbound TEST-0001, introduces accepted-finding authority evidence, and splits AC-10 normative ownership into REQ-0010 plus REQ-0015 through REQ-0019"
     - "TEST-0005 manually executed against exact corrective tree 2712795dc9f10c1efed2088313d125f6f915cc98 and recorded PASS in 89d39c75fe29d8bbcbe016cecaa6c87d935f1c47"
     - "Fresh-context GitHub Codex re-review executed on PR #3 head 8c2fbc9e44ba9f0c810b768be513d988812f1e5c and recorded as REVIEW-0006"
-    - "Fourth corrective pass constrains approval evidence to positive review outcomes and replaces TEST-0001 with TEST-0006, which re-executes the original protected resume/status scope; TEST-0006 is still pending exact-SHA execution"
+    - "Fourth corrective pass constrains approval evidence to positive review outcomes and replaces TEST-0001 with TEST-0006, which re-executes the original protected resume/status scope"
+    - "TEST-0006 manually executed against exact synchronized fourth-pass corrective tree 331931d21c4ebde3f84911825debde61488f91b3 and recorded PASS in 49b0b0aaa818cefe1fe7051dc161f1977d4bac5b"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -337,8 +338,7 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "TEST-0006 must execute against the exact synchronized fourth-pass corrective tree before another fresh L2 is requested."
-    - "After TEST-0006 PASS is recorded, another fresh L2 is required before WORK-0001 can complete."
+    - "A fresh-context L2 review of the corrected PR #3 HEAD is required before WORK-0001 can complete."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -355,7 +355,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; REVIEW-0003 found three gaps, REVIEW-0004 found six more, REVIEW-0005 found three more, and REVIEW-0006 found two remaining approval/supersession issues. TEST-0004 and TEST-0005 passed on exact corrective trees; the fourth corrective pass is synchronized and TEST-0006 remains pending before another fresh L2."}
+  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; REVIEW-0003 found three gaps, REVIEW-0004 found six more, REVIEW-0005 found three more, and REVIEW-0006 found two remaining approval/supersession issues. TEST-0004, TEST-0005 and TEST-0006 passed on exact corrective trees; another fresh L2 is now the remaining gate."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 

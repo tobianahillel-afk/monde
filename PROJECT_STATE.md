@@ -38,14 +38,16 @@ No WORK-0003 or WORK-0004 implementation has started.
 
 `REVIEW-0005` was a fresh-context L2 of PR #3 at `d5be907160c7fad3d86b2e0ce84911a3dcaab7d9` and found three further issues: TEST-0001 was still an active unbound PASS, R1/R2 acceptance lacked authority evidence, and REQ-0010 remained compound. The next correction superseded TEST-0001 without inventing a historical SHA, made blocking-finding acceptance authority machine-representable, and split AC-10 normative ownership across REQ-0010 plus REQ-0015..REQ-0019. `TEST-0005` passed against exact substantive tree `2712795dc9f10c1efed2088313d125f6f915cc98`; the PASS record was committed as `89d39c75fe29d8bbcbe016cecaa6c87d935f1c47`.
 
-`REVIEW-0006` is the fresh-context L2 of PR #3 HEAD `8c2fbc9e44ba9f0c810b768be513d988812f1e5c`. It found two remaining issues:
+`REVIEW-0006` was the fresh-context L2 of PR #3 HEAD `8c2fbc9e44ba9f0c810b768be513d988812f1e5c`. It found two remaining issues:
 
 1. a review in state `COMPLETE` with outcome `CHANGES_REQUIRED` or `BLOCKED` could still be interpreted as approval evidence because approval-capable outcomes were not explicitly constrained;
 2. TEST-0001 correctly became SUPERSEDED but pointed to TEST-0005, which did not re-execute TEST-0001's original README/PROJECT_STATE resume routing and status-vocabulary scope.
 
-The current fourth corrective pass addresses both findings. `registry/status-machines.yaml` now declares `approval_capable_outcomes: [APPROVE, APPROVE_WITH_FOLLOWUP]` and explicitly states that COMPLETE+CHANGES_REQUIRED/BLOCKED is durable negative evidence, never approval. TEST-0001 now points to `TEST-0006`, which re-executes the original resume-routing, active-work-routing and status-vocabulary contracts on an exact revision and also verifies review-outcome polarity.
+The fourth corrective pass addresses both findings. `registry/status-machines.yaml` now declares `approval_capable_outcomes: [APPROVE, APPROVE_WITH_FOLLOWUP]` and explicitly states that COMPLETE+CHANGES_REQUIRED/BLOCKED is durable negative evidence, never approval. TEST-0001 now points to `TEST-0006`, which re-executes the original resume-routing, active-work-routing and status-vocabulary contracts on an exact revision and also verifies review-outcome polarity.
 
-`TEST-0006` remains **PLANNED** until this synchronized corrective tree has a stable exact commit SHA. It must then follow the canonical PLANNED → READY → RUNNING → PASS lifecycle and may pass only if the cold-resume path and both REVIEW-0006 failure modes are actually absent.
+`TEST-0006` followed the canonical `PLANNED → READY → RUNNING → PASS` lifecycle and was executed against exact synchronized corrective tree `331931d21c4ebde3f84911825debde61488f91b3`. It passed the real cold-read README → START_HERE/AGENTS → PROJECT_STATE → WORK-0001 path, matrix/status single-source check, negative-review-outcome check, and TEST-0001 replacement-scope check. The PASS record is committed as `49b0b0aaa818cefe1fe7051dc161f1977d4bac5b`.
+
+The remaining WORK-0001 gate is another fresh-context L2 review of the synchronized current PR #3 HEAD. No REVIEW-0004/0005/0006 finding is considered closed merely because its corrective test passed.
 
 ## WORK-0002 state
 
@@ -75,14 +77,12 @@ WORK-0001 material bootstrap behavior is represented by `REQ-0001` through `REQ-
 
 ## Next action
 
-1. Commit this synchronized fourth corrective pass and obtain its exact SHA while TEST-0006 remains PLANNED.
-2. Execute TEST-0006 on that exact SHA, including a real cold-read of README → START_HERE/AGENTS → PROJECT_STATE → WORK-0001 and status-machine/matrix checks.
-3. Record TEST-0006 PASS only if all checks succeed, then attach exact-SHA proof to both REVIEW-0006 GitHub threads without resolving them.
-4. Request another fresh-context L2 review of the corrected PR #3 HEAD.
-5. If the reviewer finds anything material, correct and re-prove it; otherwise record the approving review and resolve only verified findings.
-6. Finalize WORK-0001/progress/completion evidence and merge PR #3 only after the approval gate is truly satisfied.
-7. Rebase/update PR #2 on the new main contract, fix its current fresh-L2 findings with regression/mutation tests and exact-SHA CI proof, and obtain its own fresh L2 before merge.
-8. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
+1. Attach TEST-0006 exact-SHA proof to both REVIEW-0006 GitHub threads without resolving them.
+2. Request another fresh-context L2 review of the synchronized current PR #3 HEAD.
+3. If the reviewer finds anything material, correct and re-prove it; otherwise record the approving review and resolve only findings that the new review actually verifies.
+4. Finalize WORK-0001/progress/completion evidence and merge PR #3 only after the approval gate is truly satisfied.
+5. Rebase/update PR #2 on the new main contract, fix its current fresh-L2 findings with regression/mutation tests and exact-SHA CI proof, and obtain its own fresh L2 before merge.
+6. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
 
 ## Resume instructions
 
