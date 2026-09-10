@@ -254,7 +254,7 @@ required_tests:
     - "PR #1 created, reviewed and squash-merged as b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
     - "Fresh GitHub Codex review executed against merged artifact and recorded as REVIEW-0003"
     - "Fresh GitHub Codex re-review executed against PR #3 head 2d4dea7e51a6cc55b159ff3001637e3ca8ec3ee9 and recorded as REVIEW-0004"
-    - "TEST-0004 must execute against the post-correction PR #3 SHA before the six findings can be claimed resolved"
+    - "TEST-0004 PASS is SHA-bound to corrective tree 23ef1a88e9a5106b12144d4c6649868a6a691a8f; result recorded in commit e8337d833ca0b524bed69318ca4b3691c9ce6c23"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -287,6 +287,7 @@ validation:
     - "Registry and progress lifecycle semantics centralized in registry/status-machines.yaml"
     - "Fresh-context GitHub Codex re-review executed on PR #3 head 2d4dea7e51a6cc55b159ff3001637e3ca8ec3ee9 and recorded as REVIEW-0004"
     - "Second corrective pass separates historical evidence, defines progress transitions/single vocabulary, supplies all current N/A justifications and removes REQ-0008 hard-gate overlap"
+    - "TEST-0004 manually executed against exact corrective tree 23ef1a88e9a5106b12144d4c6649868a6a691a8f and recorded PASS in e8337d833ca0b524bed69318ca4b3691c9ce6c23"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -302,8 +303,7 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "TEST-0004 is not PASS until it is executed against the post-correction PR #3 SHA."
-    - "Corrective branch still requires a fresh L2 re-review after TEST-0004 evidence before WORK-0001 can complete."
+    - "Corrective branch requires a fresh L2 re-review after TEST-0004 evidence before WORK-0001 can complete."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -320,7 +320,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; REVIEW-0003 found three assurance gaps. PR #3 corrected those; REVIEW-0004 then found six additional evidence/lifecycle/atomicity gaps. The second corrective pass is published and awaits SHA-bound TEST-0004 plus another fresh L2."}
+  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; REVIEW-0003 found three assurance gaps. PR #3 corrected those; REVIEW-0004 then found six additional evidence/lifecycle/atomicity gaps. The second corrective pass is published and TEST-0004 passed on 23ef1a88; another fresh L2 is now required."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 

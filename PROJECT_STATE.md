@@ -34,16 +34,9 @@ No WORK-0003 or WORK-0004 implementation has started.
 
 Fresh-context Codex review of merged bootstrap commit `b88e9edf2a`, recorded as `REVIEW-0003`, found three material gaps: missing atomic REQ identities, missing registry-specific lifecycle machines, and stale post-merge handover state.
 
-PR #3 corrected that first set and was re-reviewed at HEAD `2d4dea7e51a6cc55b159ff3001637e3ca8ec3ee9`. That fresh L2 found six additional issues, all still open until correction and proof:
+PR #3 corrected that first set and was re-reviewed at HEAD `2d4dea7e51a6cc55b159ff3001637e3ca8ec3ee9`. That L2, recorded as `REVIEW-0004`, found six additional issues: historical TEST/REVIEW evidence had been widened, CLOSED reviews could count as approval, progress lacked explicit transitions/single-source vocabulary, current N/A values lacked justifications, and REQ-0008 overlapped REQ-0012.
 
-1. P1 — TEST-0001 had been retrofitted to claim coverage of corrective files while its execution SHA remained the older merge;
-2. P1 — REVIEW-0001 had been retrofitted with REQ-0001..REQ-0014 although those records did not exist when it ran;
-3. P1 — review `CLOSED` state could incorrectly count as approval evidence;
-4. P1 — progress had a state list but no canonical initial state/transition table and duplicated the matrix vocabulary;
-5. P1 — existing NOT_APPLICABLE dimensions in WORK-0002/0003/0004 lacked work-item justifications;
-6. P2 — REQ-0008 overlapped REQ-0012 by also owning non-compensable hard-gate behavior.
-
-The current correction preserves historical TEST/REVIEW boundaries, makes `status-machines.yaml` the sole lifecycle vocabulary (including progress transitions), supplies all current N/A justifications, and leaves hard-gate ownership exclusively with REQ-0012. A new fresh-context L2 is required after evidence for this corrected HEAD is recorded.
+The second corrective pass is now published. `TEST-0004` was executed against exact corrective tree `23ef1a88e9a5106b12144d4c6649868a6a691a8f` and is PASS; the result is recorded in commit `e8337d833ca0b524bed69318ca4b3691c9ce6c23`. Historical TEST-0001/REVIEW-0001 remain bounded to their original evidence. A new fresh-context L2 must verify these fixes before any REVIEW-0004 finding is considered closed or WORK-0001 becomes DONE.
 
 ## WORK-0002 state
 
@@ -65,17 +58,16 @@ Public-code-safe constraints are mandatory:
 
 `registry/status-machines.yaml` is the single lifecycle source of truth for registry and progress statuses/transitions. `registry/progress/matrix.yaml` stores state instances only and does not define a second vocabulary.
 
-WORK-0001 material bootstrap behavior is normalized into `REQ-0001` through `REQ-0014`. Historical TEST-0001 and REVIEW-0001 remain bound to what actually existed when they ran; corrective evidence is recorded separately.
+WORK-0001 material bootstrap behavior is normalized into `REQ-0001` through `REQ-0014`. Historical TEST-0001 and REVIEW-0001 remain bound to what actually existed when they ran; corrective evidence is `TEST-0004` plus fresh L2 review evidence.
 
 ## Next action
 
-1. Finish the six-finding correction on PR #3 and record a new SHA-bound corrective TEST record.
-2. Reply to the six threads only after that evidence exists; resolve them only after the correction is independently re-reviewed.
-3. Obtain a fresh-context L2 review on the corrected PR #3 HEAD and fix any further material finding.
-4. Only after approval, finalize REVIEW/progress/WORK-0001 completion evidence and merge PR #3.
-5. Rebase/update PR #2 on the new main contract, then fix its six current fresh-L2 findings with regression/mutation tests and exact-SHA CI proof.
-6. Obtain a fresh L2 on corrected PR #2; only then finalize/merge WORK-0002.
-7. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
+1. Request a fresh-context L2 review on the current PR #3 HEAD including TEST-0004 evidence.
+2. If the reviewer finds anything material, correct and re-prove it; otherwise record the approving review and verify the six REVIEW-0004 findings as resolved.
+3. Only after approval, finalize REVIEW/progress/WORK-0001 completion evidence and merge PR #3.
+4. Rebase/update PR #2 on the new main contract, then fix its six current fresh-L2 findings with regression/mutation tests and exact-SHA CI proof.
+5. Obtain a fresh L2 on corrected PR #2; only then finalize/merge WORK-0002.
+6. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
 
 ## Resume instructions
 
@@ -87,9 +79,9 @@ Minimum manual sequence:
 5. `registry/work-items/WORK-0001.yaml`
 6. `registry/status-machines.yaml`
 7. `registry/requirements/REQ-0001.yaml` through `REQ-0014.yaml`
-8. `registry/reviews/REVIEW-0003.yaml` and subsequent PR #3 review evidence
-9. corrective TEST record plus historical `registry/tests/TEST-0001.yaml`
-10. live PR #3 checks/review threads
+8. `registry/reviews/REVIEW-0003.yaml` and `REVIEW-0004.yaml`
+9. `registry/tests/TEST-0004.yaml` plus historical `registry/tests/TEST-0001.yaml`
+10. live PR #3 reviews/threads
 11. live PR #2 checks and unresolved threads
 
 No prior chat history is required.
