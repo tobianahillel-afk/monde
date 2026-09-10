@@ -1,13 +1,15 @@
-version: 4
+version: 5
 canonical: true
 updated_at: "2026-09-10"
 
 principles:
   - "A record status is valid only when declared by the machine for its registry."
-  - "Transitions not listed here are invalid unless a reviewed migration explicitly changes this contract."
+  - "Transitions not listed here are invalid unless an exact reviewed migration exception in this contract applies."
+  - "Migration exceptions are historical, record-specific and commit-bound; they never add a generic transition and may not be reused for future records."
   - "A metadata-only edit may retain the same status; this is not a lifecycle transition."
   - "Terminal and superseded records remain historically addressable; IDs are never reused."
   - "Project/work progress dimensions use their own lifecycle and must not be treated as the status vocabulary of every registry."
+  - "Completion evidence may be reopened when later evidence invalidates or materially re-questions it; reopening is recorded rather than rewriting the prior state."
 
 registry_machines:
   work_items:
@@ -109,6 +111,17 @@ registry_machines:
       SUPERSEDED: []
     pass_rule: "PASS is evidence-bearing: the record must identify what it protects, how it ran, its result, and concrete evidence; every state-bound PASS execution must have a non-null exact tested/reviewed commit_sha."
     historical_pass_rule: "If an older PASS execution has no provable exact revision, do not invent one and do not keep that record as active gating PASS evidence. Preserve its historical execution fields, transition the record to SUPERSEDED, identify replacement evidence that actually re-executes or explicitly partitions the superseded scope, and use revision-bound evidence for current gates."
+    historical_transition_exceptions:
+      - record_id: TEST-0004
+        from: PLANNED
+        to: PASS
+        before_commit: "98e8cdccc07bd3c2d8313d81f296f49c97c44379"
+        transition_commit: "e8337d833ca0b524bed69318ca4b3691c9ce6c23"
+        reason: "TEST-0004 was executed and recorded before the corrective branch consistently applied READY/RUNNING checkpoints. The immutable branch history cannot be repaired by inventing commits; this exact historical edge is retained as a reviewed migration exception while the evidence remains SHA-bound to 23ef1a88e9a5106b12144d4c6649868a6a691a8f."
+        historical_only: true
+        future_reuse_forbidden: true
+        review_origin: "REVIEW-0009/F-2"
+    transition_exception_rule: "A historical transition exception is valid only when record_id, from, to, before_commit and transition_commit all exactly match the recorded Git history. It does not modify the generic transitions table, cannot authorize any future transition, and requires independent review of the migration rationale."
 
   experiments:
     initial: PLANNED
@@ -146,10 +159,11 @@ progress:
     PARTIAL: [IN_PROGRESS, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
     BLOCKED: [READY, IN_PROGRESS, PARTIAL, IN_REVIEW, CANCELLED, NOT_APPLICABLE]
     IN_REVIEW: [IN_PROGRESS, PARTIAL, BLOCKED, DONE, CANCELLED, NOT_APPLICABLE]
-    DONE: [DEPRECATED]
+    DONE: [IN_REVIEW, DEPRECATED]
     DEPRECATED: []
     CANCELLED: []
     NOT_APPLICABLE: [NOT_STARTED, PLANNED]
+  reopening_rule: "DONE → IN_REVIEW is a reviewed reopening transition, not silent regression. It is allowed only when new evidence, a review finding, dependency change, or invalidated proof materially re-questions prior completion. The owning WORK/project handover must identify the trigger and affected evidence, downstream completion assumptions must be re-evaluated, and the reopened dimension must satisfy the normal review/completion gates before returning to DONE."
   work_item_status_rule: "The status field of a WORK entry in the progress matrix mirrors the canonical registry_machines.work_items state and transition; NOT_APPLICABLE is never a WORK record status."
   done_allowed_dimension_states: [DONE, NOT_APPLICABLE]
   not_applicable_rule: "Every NOT_APPLICABLE dimension requires a non-empty justification in the corresponding work item and remains subject to review for non-compensable gates."
