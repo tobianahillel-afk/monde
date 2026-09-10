@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening, historical migration/import/replay and external review provenance drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -90,9 +90,9 @@ cases:
     - "Start a forward traceability walk at REQ-0006 and verify it reaches TEST-0007 without relying on TEST-0007's reverse declaration"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub audit of lifecycle v7, REVIEW-0014 replay isolation, REVIEW-0015 authorization/import/binding ancestry, historical import/migration boundaries and REQ-0006 ↔ TEST-0007 traceability"
-  last_run_at: null
-  commit_sha: null
+  command_or_workflow: "Manual exact-SHA GitHub audit of lifecycle v7, REVIEW-0014 replay isolation, REVIEW-0015 authorization/import/binding ancestry, historical import/migration boundaries and REQ-0006 ↔ TEST-0007 traceability on tree 669dcf7638746e07cc034cd69fa2cb08da133937"
+  last_run_at: "2026-09-11"
+  commit_sha: "669dcf7638746e07cc034cd69fa2cb08da133937"
   result: null
   evidence: []
 
