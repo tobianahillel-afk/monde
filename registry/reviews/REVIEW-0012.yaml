@@ -1,0 +1,66 @@
+id: REVIEW-0012
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "a2a86b96bb3fe39229b9834cd4ab17ee16d8121f"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-a2a86b9"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+scope:
+  work_items: [WORK-0001]
+  requirements: []
+  capabilities: []
+  contracts:
+    - "bounded repository handover"
+    - "active work review-state currentness"
+  risks:
+    - "PROJECT_STATE and the active WORK record expose different latest review gates, allowing a cold-resuming agent to omit the newest finding during closure."
+
+findings:
+  - id: F-1
+    severity: R3_MODERATE
+    category: WORK_REVIEW_CURRENTNESS
+    description: "PROJECT_STATE records REVIEW-0011/F-1 as the current gate, but WORK-0001's review list, validation evidence, known gaps and RUN-3 log still stop at REVIEW-0010. The active WORK record must preserve REVIEW-0011 and the current remaining gate so controlled closure cannot omit it."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head a2a86b96bb3fe39229b9834cd4ab17ee16d8121f"
+      - "PROJECT_STATE.md @ a2a86b96bb3fe39229b9834cd4ab17ee16d8121f records REVIEW-0011 and its pending fresh-L2 gate"
+      - "registry/work-items/WORK-0001.yaml @ a2a86b96bb3fe39229b9834cd4ab17ee16d8121f stops its durable review/evidence/gap/run-log chain at REVIEW-0010"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "Updating PROJECT_STATE alone is sufficient to synchronize the cold-resume handover."
+  omitted_categories_considered:
+    - "active WORK review history"
+    - "validation evidence currentness"
+    - "known-gap currentness"
+    - "run-log currentness"
+  duplicate_or_reuse_search:
+    - "Synchronize the existing WORK-0001 review/evidence fields and PROJECT_STATE; do not create a parallel handover registry."
+  failure_modes_considered:
+    - "A cold-resuming agent reads PROJECT_STATE then WORK-0001 and sees different pending review gates."
+    - "The latest finding is omitted during final thread closure because the work record does not reference it."
+    - "Administrative synchronization accidentally changes tested substantive contracts."
+  evidence_requested:
+    - "Record REVIEW-0011 and REVIEW-0012 in WORK-0001's affected/evidence/review/run-log surfaces and make REVIEW-0012/F-1 the explicit remaining gate."
+    - "Synchronize PROJECT_STATE to the same review chain and obtain another fresh-context L2 on the resulting frozen head."
+    - "Keep WORK-0001 IN_REVIEW and completion gates false until a positive fresh L2 finds no material issue."
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-10"
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"
