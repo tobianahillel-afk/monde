@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 third-pass evidence, authority and requirement-atomicity drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -50,9 +50,9 @@ cases:
     - "Satisfy traceability while omitting failure modes and verify those obligations have separate normative states"
 
 execution:
-  command_or_workflow: null
-  last_run_at: null
-  commit_sha: null
+  command_or_workflow: "Manual exact-SHA GitHub inspection of PR #3 corrective tree 2712795dc9f10c1efed2088313d125f6f915cc98"
+  last_run_at: "2026-09-10"
+  commit_sha: "2712795dc9f10c1efed2088313d125f6f915cc98"
   result: null
   evidence: []
 
