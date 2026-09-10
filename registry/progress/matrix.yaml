@@ -30,10 +30,10 @@ phases:
                 handover: IN_REVIEW
           SUBLOT-0.2:
             name: "Governance automation and GitHub control plane"
-            status: READY
+            status: IN_PROGRESS
             work_items:
               WORK-0002:
-                status: READY
+                status: IN_PROGRESS
                 docs: PARTIAL
                 specification_governance: PARTIAL
                 implementation: PARTIAL
