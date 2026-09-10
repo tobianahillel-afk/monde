@@ -267,7 +267,8 @@ review_plan:
     - "REVIEW-0014/F-1 REVIEW-0004..REVIEW-0013 were post-contract imports materialized directly COMPLETE without an explicit exact import boundary"
     - "REVIEW-0014/F-2 REQ-0015..REQ-0019 were post-contract imports materialized directly ACCEPTED without an explicit exact import boundary"
     - "TEST-0007 third execution is PASS on exact lifecycle-v6 tree b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7; result recorded in 42a36e1b37855ea107eb94a8f3c9a05fe9cd6c67 and history pointer in ffffb37d680e477fa03f74523dfac624ad74427c."
-    - "TEST-0006 execution on exact tree ffffb37d680e477fa03f74523dfac624ad74427c is FAIL because PROJECT_STATE and WORK-0001 still exposed v5/REVIEW-0013 rather than current v6/REVIEW-0014; result recorded in 45088fc916b84c7e809d1305fe926724e85b797c and history pointer in 337324fe083fab0ec6a88c0672d7cd86aadf69af. This synchronization corrects that handover before rerun."
+    - "TEST-0006 first v6 execution on exact tree ffffb37d680e477fa03f74523dfac624ad74427c is preserved as FAIL because the handover still exposed v5/REVIEW-0013; result 45088fc916b84c7e809d1305fe926724e85b797c, pointer 337324fe083fab0ec6a88c0672d7cd86aadf69af."
+    - "TEST-0006 current execution is PASS on exact synchronized v6 tree bb973b669797e887d6190065a3d74c377aa33c01; result 7ce54360a2e56f8892ea70354af824bfa8c4df72, history pointer abae9028bbc54e4f39f67e915626d2b24c2a29d4. Another fresh L2 is the remaining assurance gate."
 
 required_tests:
   unit: []
@@ -331,6 +332,7 @@ required_tests:
     - "registry/status-machines.yaml v6 adds only exact historical import boundaries for those records/commits and leaves generic review OPEN → IN_PROGRESS → COMPLETE and requirement PROPOSED → ACCEPTED semantics unchanged"
     - "TEST-0007 third execution followed PASS → READY → RUNNING → PASS and passed on exact v6 tree b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7; result recorded in 42a36e1b37855ea107eb94a8f3c9a05fe9cd6c67 and history pointer in ffffb37d680e477fa03f74523dfac624ad74427c"
     - "TEST-0006 execution on exact tree ffffb37d680e477fa03f74523dfac624ad74427c correctly FAILED because canonical handover/current-WORK surfaces were still stale at v5/REVIEW-0013; result recorded in 45088fc916b84c7e809d1305fe926724e85b797c and history pointer in 337324fe083fab0ec6a88c0672d7cd86aadf69af"
+    - "After atomic handover synchronization in de83dfd076143ac88d9be3c26d226b7c2b488305, TEST-0006 followed FAIL → READY → RUNNING → PASS on exact tree bb973b669797e887d6190065a3d74c377aa33c01; result recorded in 7ce54360a2e56f8892ea70354af824bfa8c4df72 and history pointer in abae9028bbc54e4f39f67e915626d2b24c2a29d4"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -392,6 +394,7 @@ validation:
     - "status-machines.yaml v6 records only exact historical import exceptions for REVIEW-0004..0013 and REQ-0015..0019; generic initial states and transitions remain strict"
     - "TEST-0007 third execution passed on exact v6 tree b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7; result 42a36e1b37855ea107eb94a8f3c9a05fe9cd6c67, pointer ffffb37d680e477fa03f74523dfac624ad74427c"
     - "TEST-0006 run on ffffb37d680e477fa03f74523dfac624ad74427c failed because PROJECT_STATE/WORK-0001 handover still described v5/REVIEW-0013; result 45088fc916b84c7e809d1305fe926724e85b797c, pointer 337324fe083fab0ec6a88c0672d7cd86aadf69af"
+    - "TEST-0006 rerun after atomic handover synchronization passed on exact tree bb973b669797e887d6190065a3d74c377aa33c01; result 7ce54360a2e56f8892ea70354af824bfa8c4df72, pointer abae9028bbc54e4f39f67e915626d2b24c2a29d4"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -412,7 +415,7 @@ validation:
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
     - TEST-0005
-    - "TEST-0006 (latest execution on ffffb37d680e477fa03f74523dfac624ad74427c is FAIL due stale handover and is preserved as negative evidence; it must be rerun after this synchronization)"
+    - "TEST-0006 (current PASS on exact synchronized v6 tree bb973b669797e887d6190065a3d74c377aa33c01; result 7ce54360a2e56f8892ea70354af824bfa8c4df72; history pointer abae9028bbc54e4f39f67e915626d2b24c2a29d4; prior FAIL on ffffb37d680e477fa03f74523dfac624ad74427c remains preserved)"
     - "TEST-0007 (PASS on exact lifecycle-v6 tree b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7; result 42a36e1b37855ea107eb94a8f3c9a05fe9cd6c67; history pointer ffffb37d680e477fa03f74523dfac624ad74427c)"
     - "REQ-0001..REQ-0019"
     - registry/status-machines.yaml
@@ -421,8 +424,7 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "REVIEW-0014/F-1 and REVIEW-0014/F-2 remain open until a fresh-context L2 verifies the exact v6 historical-import boundaries."
-    - "TEST-0006 is currently FAIL only because the previously tested tree predated this atomic WORK-0001/PROJECT_STATE synchronization; reopen and rerun it against the synchronized tree before requesting fresh L2."
+    - "REVIEW-0014/F-1 and REVIEW-0014/F-2 remain open until another fresh-context L2 verifies the exact v6 historical-import boundaries and current TEST-0006/TEST-0007 evidence."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; its own fresh-L2 work remains separate."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -439,7 +441,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; successive fresh L2 reviews through REVIEW-0014 exposed and narrowed assurance defects. REVIEW-0014 found two post-contract import-history gaps. status-machines v6 now adds exact non-reusable review/requirement import boundaries, TEST-0007 passed on b0388075, and TEST-0006 correctly failed on ffffb37d because WORK-0001/PROJECT_STATE had not yet been synchronized to v6/REVIEW-0014. This atomic synchronization fixes that handover; TEST-0006 rerun plus another fresh L2 remain the gate."}
+  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; successive fresh L2 reviews through REVIEW-0014 exposed and narrowed assurance defects. REVIEW-0014 found two post-contract import-history gaps; status-machines v6 now provides exact non-reusable review/requirement import boundaries. TEST-0007 passed on b0388075. TEST-0006 correctly failed on stale-handover tree ffffb37d, then passed after atomic WORK-0001/PROJECT_STATE synchronization on bb973b66. Another fresh L2 on the resulting frozen head is the remaining assurance gate."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 

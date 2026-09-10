@@ -61,9 +61,11 @@ REVIEW-0014 itself demonstrates the normal review path in immutable Git history:
 
 TEST-0007's third execution is **PASS** on exact lifecycle-v6 tree `b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7`; result commit `42a36e1b37855ea107eb94a8f3c9a05fe9cd6c67`; history pointer `ffffb37d680e477fa03f74523dfac624ad74427c`. It verifies exact review/requirement import boundaries, future-reuse prohibition, REVIEW-0014's normal lifecycle, the prior TEST-0004 migration boundary, progress reopening, and REQ-0006 ↔ TEST-0007 traceability.
 
-TEST-0006 was then rerun on exact tree `ffffb37d680e477fa03f74523dfac624ad74427c` and correctly **FAILED**: the v6 contract was present, but PROJECT_STATE and WORK-0001 still described v5/REVIEW-0013, so a cold-resuming agent could not discover the current gate. The FAIL result is `45088fc916b84c7e809d1305fe926724e85b797c`; history pointer `337324fe083fab0ec6a88c0672d7cd86aadf69af`.
+TEST-0006 first ran against exact tree `ffffb37d680e477fa03f74523dfac624ad74427c` and correctly **FAILED** because PROJECT_STATE and WORK-0001 still described v5/REVIEW-0013. That negative execution is preserved with result `45088fc916b84c7e809d1305fe926724e85b797c` and history pointer `337324fe083fab0ec6a88c0672d7cd86aadf69af`.
 
-This PROJECT_STATE update is paired atomically with the corresponding WORK-0001 synchronization. That fixes the stale-handover cause of the TEST-0006 failure without erasing the negative execution. TEST-0006 must now be reopened and rerun against the resulting synchronized tree before another fresh L2 is requested.
+After WORK-0001 and PROJECT_STATE were synchronized atomically in `de83dfd076143ac88d9be3c26d226b7c2b488305`, TEST-0006 was reopened and rerun through `READY → RUNNING → PASS`. Its current execution is **PASS** on exact synchronized tree `bb973b669797e887d6190065a3d74c377aa33c01`; result commit `7ce54360a2e56f8892ea70354af824bfa8c4df72`; history pointer `abae9028bbc54e4f39f67e915626d2b24c2a29d4`. The run rechecked cold-resume routing, current-tree WORK-0002 prerequisites, the explicit PR #2 checkout boundary, live PR #2 at `c50c33009d90f079e645f0ca9e1befe1a4a77ba9`, v6 import isolation, positive-only review approval, and TEST-0001 replacement coverage.
+
+REVIEW-0014/F-1 and F-2 therefore have corrective evidence, but remain open until another fresh-context L2 independently verifies the resulting frozen PR #3 HEAD. No finding is closed merely because the author produced a PASS.
 
 ## WORK-0002 cross-branch boundary
 
@@ -100,14 +102,12 @@ Historical import exceptions preserve immutable post-contract materialization on
 
 ## Next action
 
-1. Reopen TEST-0006 from `FAIL → READY`, then execute it `READY → RUNNING` against the exact synchronized WORK-0001/PROJECT_STATE tree.
-2. Recheck the complete cold-resume path, all current-tree WORK-0002 `read_before` paths, live PR #2 state, status-machine v6 import isolation, positive-only review approval semantics and TEST-0001 replacement coverage. Record PASS only if every assertion is true.
-3. Reply to REVIEW-0014/F-1 and F-2 with the exact v6 + TEST-0007 + rerun TEST-0006 evidence; do not resolve the threads before independent verification.
-4. Synchronize final TEST-0006 evidence into WORK-0001/PROJECT_STATE, freeze the resulting PR #3 HEAD and request another fresh-context L2 explicitly against that SHA.
-5. If that review reports no material defect, record approval-capable L2 evidence, then resolve only findings independently verified as corrected and finalize WORK-0001/progress/completion. Otherwise correct and re-prove the exact defect.
-6. Merge PR #3 only after WORK-0001's A3 assurance gate genuinely passes.
-7. After PR #3 merge, rebase/update PR #2 on the new main contract, correct/re-prove its outstanding fresh-L2 work and obtain its own fresh L2 before merge.
-8. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
+1. Reply to REVIEW-0014/F-1 and F-2 with the exact status-machine v6, REVIEW-0014 lifecycle, TEST-0007 PASS and TEST-0006 PASS evidence; leave both threads unresolved pending independent verification.
+2. Freeze the resulting PR #3 HEAD and request another fresh-context L2 explicitly against that SHA.
+3. If that review reports any material defect, correct and re-prove the exact defect. If it reports no material defect, record approval-capable L2 evidence using the normal review lifecycle and only then close findings independently verified as corrected.
+4. Finalize WORK-0001/progress/completion and merge PR #3 only after the A3 assurance gate genuinely passes.
+5. After PR #3 merge, rebase/update PR #2 on the new main contract, correct/re-prove its outstanding fresh-L2 work and obtain its own fresh L2 before merge.
+6. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
 
 ## Resume instructions
 
