@@ -21,7 +21,7 @@ PR #1 was already squash-merged into `main` as `b88e9edf2ac445e8f730eb1a2769a6d5
 
 ## Active work
 
-- `WORK-0001` — post-merge assurance correction on branch `chore/work-0001-assurance-closure`; it blocks truthful completion of WORK-0002.
+- `WORK-0001` — post-merge assurance correction on **PR #3** / branch `chore/work-0001-assurance-closure`; it blocks truthful completion of WORK-0002.
 - `WORK-0002` — governance automation on open PR #2 / branch `feat/work-0002-governance-ci`; implementation is advanced but remains `IN_REVIEW` and depends on WORK-0001.
 
 No WORK-0003 or WORK-0004 implementation has started.
@@ -38,7 +38,7 @@ A fresh-context GitHub Codex review was executed against merged bootstrap commit
 2. P1 — registry-specific lifecycle vocabularies/transitions were not canonically defined for REQ/ASM/RISK/REVIEW/TEST/EXP/DEP and related registries;
 3. P2 — this handover file still instructed agents to review/merge PR #1 after it had already merged.
 
-The current corrective branch addresses those findings by adding `REQ-0001` through `REQ-0014`, centralizing lifecycle truth in `registry/status-machines.yaml`, strengthening TEST-0001 traceability, and replacing the stale handover state. These corrections still require a fresh L2 re-review before WORK-0001 can become DONE.
+PR #3 addresses those findings by adding `REQ-0001` through `REQ-0014`, centralizing lifecycle truth in `registry/status-machines.yaml`, strengthening TEST-0001 traceability, and replacing the stale handover state. These corrections still require a fresh L2 re-review before WORK-0001 can become DONE.
 
 ## WORK-0002 state
 
@@ -75,12 +75,11 @@ WORK-0001 material bootstrap behavior is normalized into `REQ-0001` through `REQ
 
 ## Next action
 
-1. Open a corrective PR from `chore/work-0001-assurance-closure` to `main`.
-2. Re-run a fresh-context L2 review on the complete corrective diff; fix any new material finding rather than force-closing it.
-3. Only after the correction is approved, update REVIEW/TEST/progress/WORK-0001 completion evidence and merge the corrective PR.
-4. Rebase/update PR #2 on the new main contract, then fix its six current fresh-L2 findings with regression/mutation tests and exact-SHA CI proof.
-5. Obtain a fresh L2 on the corrected PR #2 head; only then finalize/merge WORK-0002.
-6. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
+1. Perform a fresh-context L2 review of **PR #3** on its current HEAD; fix any new material finding rather than force-closing it.
+2. Only after the correction is approved, update REVIEW/TEST/progress/WORK-0001 completion evidence and merge PR #3.
+3. Rebase/update PR #2 on the new main contract, then fix its six current fresh-L2 findings with regression/mutation tests and exact-SHA CI proof.
+4. Obtain a fresh L2 on the corrected PR #2 head; only then finalize/merge WORK-0002.
+5. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
 
 ## Resume instructions
 
@@ -94,7 +93,7 @@ Minimum manual sequence:
 7. `registry/requirements/REQ-0001.yaml` through `REQ-0014.yaml`
 8. `registry/reviews/REVIEW-0003.yaml`
 9. `registry/tests/TEST-0001.yaml`
-10. live corrective-PR state once opened
+10. live PR #3 checks/review threads
 11. live PR #2 checks and unresolved threads
 
 No prior chat history is required.
