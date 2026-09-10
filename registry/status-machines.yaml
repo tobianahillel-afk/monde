@@ -1,16 +1,17 @@
-version: 6
+version: 7
 canonical: true
-updated_at: "2026-09-10"
+updated_at: "2026-09-11"
 
 principles:
   - "A record status is valid only when declared by the machine for its registry."
-  - "Transitions not listed here are invalid unless an exact reviewed migration or historical-import exception in this contract applies."
-  - "Migration/import exceptions are historical, record-specific and commit-bound; they never add a generic transition or alternate initial state and may not be reused for future records."
+  - "Transitions not listed here are invalid unless an exact reviewed migration, historical-import or historical-replay exception in this contract applies."
+  - "Migration/import/replay exceptions are historical, record-specific and commit-bound; they never add a generic transition or alternate initial state and may not be reused for future records."
   - "A metadata-only edit may retain the same status; this is not a lifecycle transition."
   - "Terminal and superseded records remain historically addressable; IDs are never reused."
   - "Project/work progress dimensions use their own lifecycle and must not be treated as the status vocabulary of every registry."
   - "Completion evidence may be reopened when later evidence invalidates or materially re-questions it; reopening is recorded rather than rewriting the prior state."
-  - "A registry record materialized after an already-completed external governance event may enter Git in its resulting status only when an exact reviewed historical-import exception names that record, status and introduction commit."
+  - "Lifecycle checkpoints represent states that actually existed while the governed activity was occurring; replaying OPEN/IN_PROGRESS after an external review already completed is not evidence that those execution states occurred."
+  - "A review completed externally before registry materialization may be imported in its resulting status only through immutable pre-v7 historical evidence or a one-shot external-import authorization that already exists in a parent commit before materialization and is later bound to the actual import commit."
 
 registry_machines:
   work_items:
@@ -134,6 +135,29 @@ registry_machines:
     accepted_finding_rule: "A finding with disposition ACCEPTED must identify the accepting actor, authority role, non-empty evidence establishing that authority for the reviewed artifact/risk, rationale, acceptance time, and a future review/expiry condition. For an R1/R2 finding to stop blocking A3/A4 completion, that acceptance evidence must demonstrate authority appropriate to the work item's assurance level; an author cannot make a blocking finding non-blocking merely by writing ACCEPTED. A4 additionally requires formal owner approval wherever the assurance policy requires it."
     completion_rule: "Only a COMPLETE review whose outcome is one of approval_capable_outcomes may provide approval evidence. It must be bound to the reviewed artifact/version, include the required executed review roles/independence, and have no unresolved blocking R1/R2 finding unless that finding satisfies accepted_finding_rule. COMPLETE reviews with CHANGES_REQUIRED or BLOCKED are durable negative review evidence and never satisfy a work-item review-completion gate."
     closed_rule: "CLOSED is an administrative terminal state for a review that will not provide approval evidence; CLOSED never satisfies a work-item review-completion gate."
+    external_import_required_fields:
+      - record_id
+      - imported_status
+      - artifact_commit_sha
+      - source_review_id
+      - source_submitted_at
+      - reviewer_context_id
+      - expected_outcome
+      - one_shot
+      - consumed_by_commit
+    external_import_authorizations:
+      - record_id: REVIEW-0015
+        imported_status: COMPLETE
+        artifact_commit_sha: "a27d01a9c0add10d0de220b9443a7f7d113152d9"
+        source_review_id: "PRR_kwDOUUI5ts8AAAABNFp3uw"
+        source_submitted_at: "2026-09-10T23:37:39Z"
+        reviewer_context_id: "fresh-context-pr3-a27d01a9"
+        expected_outcome: CHANGES_REQUIRED
+        one_shot: true
+        consumed_by_commit: null
+        finding_origin: "PRRT_kwDOUUI5ts6hSJ77"
+        reason: "The fresh-context GitHub Codex review of a27d01a9 completed externally before REVIEW-0015 is materialized. This authorization exists first so the finished review can be imported directly as COMPLETE without replaying OPEN/IN_PROGRESS after the fact."
+    external_import_rule: "For an externally completed review materialized after v7, a matching one-shot authorization must already exist in a parent commit before the REVIEW record first appears. The authorization binds record_id, resulting status, reviewed artifact SHA, source review identity/time, reviewer context and expected outcome. The imported REVIEW must declare that authorization. A later metadata-only binding must set consumed_by_commit to the actual first-materialization commit before the imported review may satisfy any work completion gate. An authorization with consumed_by_commit set cannot be reused."
     historical_import_exceptions:
       - record_id: REVIEW-0004
         imported_status: COMPLETE
@@ -205,7 +229,21 @@ registry_machines:
         historical_only: true
         future_reuse_forbidden: true
         review_origin: "REVIEW-0014/F-1"
-    historical_import_rule: "A post-contract review may first appear as COMPLETE only when record_id, imported_status and import_commit exactly match a reviewed exception above and Git history demonstrates that the review was externally completed before registry materialization. The exception is an import boundary only: OPEN remains the initial state, the generic OPEN → IN_PROGRESS → COMPLETE path remains mandatory for repository-native review execution, no OPEN → COMPLETE shortcut is added, and no future record may reuse an exception. Records introduced in the same bootstrap commit that established this machine are baseline state, not post-contract imports."
+    historical_import_rule: "Pre-v7 post-contract reviews may first appear as COMPLETE only when record_id, imported_status and import_commit exactly match a reviewed immutable-history exception above and Git history demonstrates that the review was externally completed before registry materialization. These exceptions are historical only and cannot authorize any future record."
+    historical_replay_exceptions:
+      - record_id: REVIEW-0014
+        source_review_id: "PRR_kwDOUUI5ts8AAAABNFU66A"
+        source_submitted_at: "2026-09-10T22:43:13Z"
+        first_materialization_commit: "ec69110468c7e1cd79984dedb835504de8c0b561"
+        replay_in_progress_commit: "2926a070de8371e7ad3aaebeca0d9e424700d43f"
+        replay_complete_commit: "b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
+        final_status: COMPLETE
+        final_outcome: CHANGES_REQUIRED
+        reason: "REVIEW-0014's external Codex review had already completed before its first registry materialization. The OPEN and IN_PROGRESS commits therefore replayed statuses after the substantive findings/outcome were already known. Immutable history is preserved through this exact exception rather than pretending those commits prove execution-time checkpoints."
+        historical_only: true
+        future_reuse_forbidden: true
+        finding_origin: "PRRT_kwDOUUI5ts6hSJ77"
+    historical_replay_rule: "A lifecycle replay performed after the governed external review activity already completed is invalid evidence of normal review execution. Only an exact sequence listed in historical_replay_exceptions may remain in immutable history, and such an exception cannot be reused. Future externally completed reviews must use external_import_rule rather than replay OPEN/IN_PROGRESS."
 
   tests:
     initial: PLANNED
