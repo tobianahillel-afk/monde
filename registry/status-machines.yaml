@@ -1,4 +1,4 @@
-version: 2
+version: 3
 canonical: true
 updated_at: "2026-09-10"
 
@@ -83,7 +83,15 @@ registry_machines:
     outcomes: [APPROVE, APPROVE_WITH_FOLLOWUP, CHANGES_REQUIRED, BLOCKED]
     finding_severities: [R1_CRITICAL, R2_MAJOR, R3_MODERATE, R4_MINOR]
     finding_dispositions: [OPEN, RESOLVED, ACCEPTED, TRACKED_FOLLOWUP, OWNER_ACTION_REQUIRED]
-    completion_rule: "Only a COMPLETE review may provide approval evidence. It must be bound to the reviewed artifact/version, include the required executed review roles/independence, and have no unresolved blocking R1/R2 finding unless formally ACCEPTED."
+    accepted_finding_required_fields:
+      - acceptance.accepted_by
+      - acceptance.authority_role
+      - acceptance.authority_evidence
+      - acceptance.rationale
+      - acceptance.accepted_at
+      - acceptance.review_condition
+    accepted_finding_rule: "A finding with disposition ACCEPTED must identify the accepting actor, authority role, non-empty evidence establishing that authority for the reviewed artifact/risk, rationale, acceptance time, and a future review/expiry condition. For an R1/R2 finding to stop blocking A3/A4 completion, that acceptance evidence must demonstrate authority appropriate to the work item's assurance level; an author cannot make a blocking finding non-blocking merely by writing ACCEPTED. A4 additionally requires formal owner approval wherever the assurance policy requires it."
+    completion_rule: "Only a COMPLETE review may provide approval evidence. It must be bound to the reviewed artifact/version, include the required executed review roles/independence, and have no unresolved blocking R1/R2 finding unless that finding satisfies accepted_finding_rule."
     closed_rule: "CLOSED is an administrative terminal state for a review that will not provide approval evidence; CLOSED never satisfies a work-item review-completion gate."
 
   tests:
@@ -98,7 +106,8 @@ registry_machines:
       BLOCKED: [READY, CANCELLED, SUPERSEDED]
       CANCELLED: []
       SUPERSEDED: []
-    pass_rule: "PASS is evidence-bearing: the record must identify what it protects, how it ran, its result, and concrete evidence; state-bound executions must identify the reviewed/tested version."
+    pass_rule: "PASS is evidence-bearing: the record must identify what it protects, how it ran, its result, and concrete evidence; every state-bound PASS execution must have a non-null exact tested/reviewed commit_sha."
+    historical_pass_rule: "If an older PASS execution has no provable exact revision, do not invent one and do not keep that record as active gating PASS evidence. Preserve its historical execution fields, transition the record to SUPERSEDED, identify its replacement, and use revision-bound evidence for current gates."
 
   experiments:
     initial: PLANNED

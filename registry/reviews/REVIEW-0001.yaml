@@ -51,6 +51,15 @@ findings:
     evidence: ["Repository metadata inspected 2026-09-10", "Explicit owner decision 2026-09-10: repository remains public", "WORK-0003"]
     disposition: ACCEPTED
     resolved_by: "Owner explicitly accepts a public repository. Repository content must remain public-code-safe: no credentials, secrets, private/personal datasets or user-identifying runtime data may be committed; sensitive runtime data and secrets remain outside Git. WORK-0003 retains branch/ruleset/check/security hardening but not privatization as a requirement."
+    acceptance:
+      accepted_by: "tobianahillel-afk"
+      authority_role: REPOSITORY_OWNER
+      authority_evidence:
+        - "GitHub repository owner identity is tobianahillel-afk."
+        - "Explicit owner decision on 2026-09-10: keep MONDE public subject to public-code-safe constraints."
+      rationale: "Public visibility is an explicit product/repository decision; the accepted risk is bounded by prohibiting credentials, secrets, private/personal datasets and user-identifying runtime data in Git, with sensitive runtime material kept outside Git."
+      accepted_at: "2026-09-10"
+      review_condition: "Re-review if repository visibility, data-handling policy, or the need to store sensitive/private material in Git changes."
   - id: F-4
     severity: R2_MAJOR
     category: SPECIFICATION_PROCESS

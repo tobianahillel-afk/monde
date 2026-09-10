@@ -1,0 +1,65 @@
+id: TEST-0005
+name: "WORK-0001 third-pass evidence, authority and requirement-atomicity drill"
+status: PLANNED
+type: MANUAL_E2E
+
+protects:
+  requirements: [REQ-0010, REQ-0015, REQ-0016, REQ-0017, REQ-0018, REQ-0019]
+  capabilities: []
+  contracts:
+    - "exact-SHA PASS evidence"
+    - "review finding acceptance authority"
+    - "atomic specification requirement ownership"
+    - "WORK-0001 corrective traceability"
+  risks:
+    - "Legacy unbound PASS is treated as current gating evidence"
+    - "Blocking review finding is self-accepted without authority"
+    - "A compound requirement hides partial specification failure"
+  invariants:
+    - "No active PASS state-bound test lacks an exact tested revision"
+    - "An ACCEPTED R1/R2 finding cannot become non-blocking without explicit authority evidence"
+    - "Independently fail-able specification obligations have distinct REQ identities"
+
+environment:
+  kind: REAL_GITHUB_REPOSITORY
+  real_dependencies:
+    - "tobianahillel-afk/monde"
+    - "PR #3"
+  mocked_dependencies: []
+
+cases:
+  happy_path:
+    - "TEST-0001 is SUPERSEDED, preserves its historical execution fields, and explicitly points to TEST-0005 as replacement without inventing a commit SHA"
+    - "registry/status-machines.yaml requires exact commit_sha for active state-bound PASS records"
+    - "registry/reviews/_TEMPLATE.yaml carries structured acceptance authority fields"
+    - "REVIEW-0001/F-3 records the repository owner's acceptance authority, evidence, rationale, date and review condition"
+    - "REQ-0010 owns atomic requirement identity/testability only"
+    - "REQ-0015 through REQ-0019 separately own assumptions/risks, research, failure modes, cross-document consistency and traceability"
+    - "WORK-0001 links all six AC-10 normative owners and does not rely on TEST-0001 as active required test evidence"
+  edge_cases:
+    - "Historical execution evidence remains inspectable even when its record is SUPERSEDED"
+    - "An ACCEPTED finding remains reviewable again when its review condition becomes true"
+  failure_modes:
+    - "TEST status PASS with null state-bound execution.commit_sha"
+    - "R1/R2 disposition ACCEPTED with missing accepted_by, authority_role, authority_evidence, rationale, accepted_at or review_condition"
+    - "REQ-0010 still owns more than one independently fail-able obligation"
+    - "New atomic requirements exist but are absent from WORK-0001 traceability"
+  adversarial_cases:
+    - "Attempt to fabricate a plausible TEST-0001 SHA instead of superseding unprovable evidence"
+    - "Attempt to self-assert ACCEPTED without evidence of authority"
+    - "Satisfy traceability while omitting failure modes and verify those obligations have separate normative states"
+
+execution:
+  command_or_workflow: null
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
+
+coverage:
+  line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+  branch_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"

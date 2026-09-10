@@ -24,6 +24,13 @@ findings:
     evidence: []
     disposition: OPEN
     resolved_by: null
+    acceptance:
+      accepted_by: null
+      authority_role: null
+      authority_evidence: []
+      rationale: null
+      accepted_at: null
+      review_condition: null
 
 checks:
   assumptions_challenged: []

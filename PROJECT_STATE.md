@@ -36,7 +36,15 @@ Fresh-context Codex review of merged bootstrap commit `b88e9edf2a`, recorded as 
 
 PR #3 corrected that first set and was re-reviewed at HEAD `2d4dea7e51a6cc55b159ff3001637e3ca8ec3ee9`. That L2, recorded as `REVIEW-0004`, found six additional issues: historical TEST/REVIEW evidence had been widened, CLOSED reviews could count as approval, progress lacked explicit transitions/single-source vocabulary, current N/A values lacked justifications, and REQ-0008 overlapped REQ-0012.
 
-The second corrective pass is now published. `TEST-0004` was executed against exact corrective tree `23ef1a88e9a5106b12144d4c6649868a6a691a8f` and is PASS; the result is recorded in commit `e8337d833ca0b524bed69318ca4b3691c9ce6c23`. Historical TEST-0001/REVIEW-0001 remain bounded to their original evidence. A new fresh-context L2 must verify these fixes before any REVIEW-0004 finding is considered closed or WORK-0001 becomes DONE.
+`TEST-0004` was then executed against exact corrective tree `23ef1a88e9a5106b12144d4c6649868a6a691a8f` and recorded PASS in commit `e8337d833ca0b524bed69318ca4b3691c9ce6c23`.
+
+A new fresh-context Codex L2 on HEAD `d5be907160c7fad3d86b2e0ce84911a3dcaab7d9`, recorded as `REVIEW-0005`, found three further issues:
+
+1. historical TEST-0001 was still an active PASS despite `execution.commit_sha: null`;
+2. an R1/R2 finding could be marked `ACCEPTED` without explicit accepting authority/evidence;
+3. REQ-0010 was compound and mixed several independently fail-able specification-governance obligations.
+
+The third corrective pass now supersedes TEST-0001 without inventing a historical SHA, makes blocking-finding acceptance authority machine-representable, records the owner authority for REVIEW-0001/F-3, and splits AC-10 normative ownership across atomic REQ-0010 plus REQ-0015..REQ-0019. `TEST-0005` remains PLANNED until this corrective tree has an exact commit SHA; only then may it be executed and recorded PASS.
 
 ## WORK-0002 state
 
@@ -56,18 +64,22 @@ Public-code-safe constraints are mandatory:
 
 ## Canonical lifecycle/traceability correction
 
-`registry/status-machines.yaml` is the single lifecycle source of truth for registry and progress statuses/transitions. `registry/progress/matrix.yaml` stores state instances only and does not define a second vocabulary.
+`registry/status-machines.yaml` is the single lifecycle source of truth for registry and progress statuses/transitions. Active state-bound PASS evidence requires an exact tested commit SHA; unprovable legacy PASS evidence is superseded rather than repaired by guessing.
 
-WORK-0001 material bootstrap behavior is normalized into `REQ-0001` through `REQ-0014`. Historical TEST-0001 and REVIEW-0001 remain bound to what actually existed when they ran; corrective evidence is `TEST-0004` plus fresh L2 review evidence.
+A blocking R1/R2 finding may be non-blocking through `ACCEPTED` only with explicit accepting actor, authority role, authority evidence, rationale, date and review condition appropriate to the work item's assurance level.
+
+WORK-0001 material bootstrap behavior is represented by `REQ-0001` through `REQ-0019`. AC-10 deliberately maps to several atomic normative owners: REQ-0010 and REQ-0015..REQ-0019.
 
 ## Next action
 
-1. Request a fresh-context L2 review on the current PR #3 HEAD including TEST-0004 evidence.
-2. If the reviewer finds anything material, correct and re-prove it; otherwise record the approving review and verify the six REVIEW-0004 findings as resolved.
-3. Only after approval, finalize REVIEW/progress/WORK-0001 completion evidence and merge PR #3.
-4. Rebase/update PR #2 on the new main contract, then fix its six current fresh-L2 findings with regression/mutation tests and exact-SHA CI proof.
-5. Obtain a fresh L2 on corrected PR #2; only then finalize/merge WORK-0002.
-6. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
+1. Publish the third corrective pass on PR #3 and obtain its exact commit SHA.
+2. Execute `TEST-0005` against that exact tree and record PASS only if every REVIEW-0005 failure mode is actually absent.
+3. Reply to the three REVIEW-0005 GitHub threads with exact-SHA proof, leaving them unresolved until independent re-review.
+4. Request another fresh-context L2 review of the corrected PR #3 HEAD.
+5. Only if that L2 finds no blocking issue, resolve verified findings, finalize REVIEW/progress/WORK-0001 completion evidence and merge PR #3.
+6. Rebase/update PR #2 on the new main contract, then fix its six current fresh-L2 findings with regression/mutation tests and exact-SHA CI proof.
+7. Obtain a fresh L2 on corrected PR #2; only then finalize/merge WORK-0002.
+8. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
 
 ## Resume instructions
 
@@ -78,9 +90,9 @@ Minimum manual sequence:
 4. this file
 5. `registry/work-items/WORK-0001.yaml`
 6. `registry/status-machines.yaml`
-7. `registry/requirements/REQ-0001.yaml` through `REQ-0014.yaml`
-8. `registry/reviews/REVIEW-0003.yaml` and `REVIEW-0004.yaml`
-9. `registry/tests/TEST-0004.yaml` plus historical `registry/tests/TEST-0001.yaml`
+7. `registry/requirements/REQ-0001.yaml` through `REQ-0019.yaml`
+8. `registry/reviews/REVIEW-0003.yaml`, `REVIEW-0004.yaml`, and `REVIEW-0005.yaml`
+9. `registry/tests/TEST-0004.yaml`, `TEST-0005.yaml`, plus superseded historical `TEST-0001.yaml`
 10. live PR #3 reviews/threads
 11. live PR #2 checks and unresolved threads
 
