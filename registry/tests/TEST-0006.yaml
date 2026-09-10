@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: PASS
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -71,21 +71,11 @@ cases:
     - "Cold-read README then START_HERE/PROJECT_STATE/WORK-0001 and attempt to resume without conversation memory"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub cold-read, read_before existence, cross-branch handoff and lifecycle review of PR #3 tree 0b2c2f6a92051760e759bf2e64518188e8266012, including live PR #2 head/state verification"
-  last_run_at: "2026-09-10"
-  commit_sha: "0b2c2f6a92051760e759bf2e64518188e8266012"
-  result: PASS
-  evidence:
-    - "Git tree 0358d0e7209dd5659ed2129ee8a57b754f389001 for 0b2c2f6a92051760e759bf2e64518188e8266012 contains every path listed in the PR #3 WORK-0002 read_before list"
-    - "docs/03_ARCHITECTURE/github-control-plane.md and docs/13_QUALITY/ai-context-routing.md are absent from PR #3 but were verified present on feat/work-0002-governance-ci"
-    - "PROJECT_STATE.md @ 0b2c2f6a92051760e759bf2e64518188e8266012 makes the checkout boundary explicit before branch-only WORK-0002 prerequisites become mandatory"
-    - "registry/work-items/WORK-0002.yaml @ 0b2c2f6a92051760e759bf2e64518188e8266012 lists only current-tree read_before paths and records the branch handoff in compatibility/known-gap evidence"
-    - "Live PR #2 remained open and mergeable at c50c33009d90f079e645f0ca9e1befe1a4a77ba9 / WORK-0002 IN_REVIEW immediately before the run"
-    - "registry/progress/matrix.yaml @ 0b2c2f6a92051760e759bf2e64518188e8266012 mirrors WORK-0002 IN_REVIEW and points to registry/status-machines.yaml#progress"
-    - "registry/work-items/WORK-0001.yaml @ 0b2c2f6a92051760e759bf2e64518188e8266012 records REVIEW-0008 and keeps completion gates false/IN_REVIEW"
-    - "registry/reviews/REVIEW-0008.yaml @ 0b2c2f6a92051760e759bf2e64518188e8266012 preserves the finding that invalidated the second run"
-    - "registry/tests/TEST-0001.yaml @ 0b2c2f6a92051760e759bf2e64518188e8266012 remains SUPERSEDED by TEST-0006 with original scope preserved"
-    - "registry/status-machines.yaml @ 0b2c2f6a92051760e759bf2e64518188e8266012 restricts approval evidence to COMPLETE + APPROVE/APPROVE_WITH_FOLLOWUP"
+  command_or_workflow: null
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -112,4 +102,4 @@ history:
       recorded_in_commit: "badf011c82fc07e86d85d0e5d6efcb21223ca8cb"
       validity: VALID
       invalidated_by: null
-      reason: "All current-tree read_before paths resolved, branch-only prerequisites were explicitly deferred until checkout of the WORK-0002 implementation branch, lifecycle state remained coherent, and the original replacement-scope/review-outcome checks passed."
+      reason: "All current-tree read_before paths resolved, branch-only prerequisites were explicitly deferred until checkout of the WORK-0002 implementation branch, lifecycle state remained coherent, and the original replacement-scope/review-outcome checks passed. This remains valid for its tested tree; TEST-0006 is rerun because REVIEW-0009 changes the status-machine contract it inspects."
