@@ -269,6 +269,7 @@ required_tests:
     - "Fresh GitHub Codex re-review executed against PR #3 head 2d4dea7e51a6cc55b159ff3001637e3ca8ec3ee9 and recorded as REVIEW-0004"
     - "TEST-0004 PASS is SHA-bound to corrective tree 23ef1a88e9a5106b12144d4c6649868a6a691a8f; result recorded in commit e8337d833ca0b524bed69318ca4b3691c9ce6c23"
     - "Fresh GitHub Codex re-review executed against PR #3 head d5be907160c7fad3d86b2e0ce84911a3dcaab7d9 and recorded as REVIEW-0005"
+    - "TEST-0005 PASS is SHA-bound to third-pass corrective tree 2712795dc9f10c1efed2088313d125f6f915cc98; result recorded in commit 89d39c75fe29d8bbcbe016cecaa6c87d935f1c47"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -304,7 +305,8 @@ validation:
     - "Second corrective pass separates historical evidence, defines progress transitions/single vocabulary, supplies all current N/A justifications and removes REQ-0008 hard-gate overlap"
     - "TEST-0004 manually executed against exact corrective tree 23ef1a88e9a5106b12144d4c6649868a6a691a8f and recorded PASS in e8337d833ca0b524bed69318ca4b3691c9ce6c23"
     - "Fresh-context GitHub Codex re-review executed on PR #3 head d5be907160c7fad3d86b2e0ce84911a3dcaab7d9 and recorded as REVIEW-0005"
-    - "Third corrective pass supersedes unbound TEST-0001, introduces accepted-finding authority evidence, and splits AC-10 normative ownership into REQ-0010 plus REQ-0015 through REQ-0019; TEST-0005 remains pending until the exact corrective SHA exists"
+    - "Third corrective pass supersedes unbound TEST-0001, introduces accepted-finding authority evidence, and splits AC-10 normative ownership into REQ-0010 plus REQ-0015 through REQ-0019"
+    - "TEST-0005 manually executed against exact corrective tree 2712795dc9f10c1efed2088313d125f6f915cc98 and recorded PASS in 89d39c75fe29d8bbcbe016cecaa6c87d935f1c47"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -322,8 +324,7 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "TEST-0005 must execute against the exact third-pass corrective PR #3 SHA before REVIEW-0005 findings can be claimed corrected."
-    - "After TEST-0005 PASS evidence is recorded, the branch still requires another fresh L2 re-review before WORK-0001 can complete."
+    - "Corrective branch requires another fresh L2 re-review after TEST-0005 evidence before WORK-0001 can complete."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -340,7 +341,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; REVIEW-0003 found three assurance gaps. REVIEW-0004 found six more after the first correction. TEST-0004 passed on 23ef1a88. REVIEW-0005 then found three additional evidence-authority/atomicity issues on d5be907; the third corrective pass is prepared and awaits exact-SHA TEST-0005 plus another fresh L2."}
+  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; REVIEW-0003 found three assurance gaps. REVIEW-0004 found six more after the first correction. TEST-0004 passed on 23ef1a88. REVIEW-0005 then found three additional evidence-authority/atomicity issues on d5be907. The third corrective pass is published; TEST-0005 passed on 2712795 and another fresh L2 is required."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 

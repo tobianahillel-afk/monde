@@ -44,7 +44,9 @@ A new fresh-context Codex L2 on HEAD `d5be907160c7fad3d86b2e0ce84911a3dcaab7d9`,
 2. an R1/R2 finding could be marked `ACCEPTED` without explicit accepting authority/evidence;
 3. REQ-0010 was compound and mixed several independently fail-able specification-governance obligations.
 
-The third corrective pass now supersedes TEST-0001 without inventing a historical SHA, makes blocking-finding acceptance authority machine-representable, records the owner authority for REVIEW-0001/F-3, and splits AC-10 normative ownership across atomic REQ-0010 plus REQ-0015..REQ-0019. `TEST-0005` remains PLANNED until this corrective tree has an exact commit SHA; only then may it be executed and recorded PASS.
+The third corrective pass supersedes TEST-0001 without inventing a historical SHA, makes blocking-finding acceptance authority machine-representable, records the owner authority for REVIEW-0001/F-3, and splits AC-10 normative ownership across atomic REQ-0010 plus REQ-0015..REQ-0019.
+
+`TEST-0005` was executed against exact substantive corrective tree `2712795dc9f10c1efed2088313d125f6f915cc98` and records PASS. Its lifecycle was recorded through PLANNED → READY → RUNNING → PASS; the PASS record is committed as `89d39c75fe29d8bbcbe016cecaa6c87d935f1c47`. Another fresh-context L2 is now required before any REVIEW-0004/REVIEW-0005 finding is closed or WORK-0001 becomes DONE.
 
 ## WORK-0002 state
 
@@ -72,14 +74,13 @@ WORK-0001 material bootstrap behavior is represented by `REQ-0001` through `REQ-
 
 ## Next action
 
-1. Publish the third corrective pass on PR #3 and obtain its exact commit SHA.
-2. Execute `TEST-0005` against that exact tree and record PASS only if every REVIEW-0005 failure mode is actually absent.
-3. Reply to the three REVIEW-0005 GitHub threads with exact-SHA proof, leaving them unresolved until independent re-review.
-4. Request another fresh-context L2 review of the corrected PR #3 HEAD.
-5. Only if that L2 finds no blocking issue, resolve verified findings, finalize REVIEW/progress/WORK-0001 completion evidence and merge PR #3.
-6. Rebase/update PR #2 on the new main contract, then fix its six current fresh-L2 findings with regression/mutation tests and exact-SHA CI proof.
-7. Obtain a fresh L2 on corrected PR #2; only then finalize/merge WORK-0002.
-8. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
+1. Attach TEST-0005 exact-SHA proof to the three REVIEW-0005 GitHub threads without resolving them.
+2. Request another fresh-context L2 review of the current PR #3 HEAD.
+3. If the reviewer finds anything material, correct and re-prove it; otherwise record the approving review and verify the REVIEW-0004/REVIEW-0005 findings as resolved.
+4. Only after approval, finalize REVIEW/progress/WORK-0001 completion evidence and merge PR #3.
+5. Rebase/update PR #2 on the new main contract, then fix its six current fresh-L2 findings with regression/mutation tests and exact-SHA CI proof.
+6. Obtain a fresh L2 on corrected PR #2; only then finalize/merge WORK-0002.
+7. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
 
 ## Resume instructions
 
