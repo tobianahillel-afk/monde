@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening and exact historical transition migration drill"
-status: PLANNED
+status: READY
 type: MANUAL_E2E
 
 protects:
