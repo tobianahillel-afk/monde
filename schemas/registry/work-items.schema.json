@@ -52,7 +52,9 @@
       "required": ["required_hats", "independence_level", "completed_reviews"],
       "properties": {
         "required_hats": {"type": "array"},
-        "independence_level": {"type": "string", "minLength": 1},
+        "independence_level": {
+          "enum": ["L0", "L1", "L2", "L3", "L0_TARGET", "L1_TARGET", "L2_TARGET", "L3_TARGET"]
+        },
         "completed_reviews": {"type": "array"}
       }
     },

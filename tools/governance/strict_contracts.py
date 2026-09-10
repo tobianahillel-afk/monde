@@ -10,11 +10,36 @@ from typing import Any, Iterable
 
 import yaml
 
-from .validate_repo import Issue, PINNED_ACTION, PINNED_DOCKER
+from .validate_repo import GLOBAL_STATUSES, Issue, PINNED_ACTION, PINNED_DOCKER
 
 ACTIVE_DEPENDENCY_CONSUMERS = {"READY", "IN_PROGRESS", "PARTIAL", "IN_REVIEW", "DONE"}
 USABLE_DEPENDENCY_STATES = {"IN_REVIEW", "DONE"}
 TEST_ID = re.compile(r"\bTEST-\d+\b")
+DONE_PROGRESS_ALLOWED = {"DONE", "NOT_APPLICABLE"}
+WORK_PROGRESS_DIMENSIONS = (
+    "docs",
+    "specification_governance",
+    "implementation",
+    "tests",
+    "scientific_validation",
+    "security_review",
+    "real_system_validation",
+    "review",
+    "dependencies",
+    "traceability",
+    "handover",
+)
+REVIEW_SEVERITY_RANK = {
+    "R1_CRITICAL": 1,
+    "R2_MAJOR": 2,
+    "R3_MODERATE": 3,
+    "R4_MINOR": 4,
+    # Bounded compatibility with bootstrap-era spellings.
+    "R0_CRITICAL": 1,
+    "R1_BLOCKER": 1,
+    "R4_LOW": 4,
+}
+BLOCKING_REVIEW_RANK = 2
 
 
 def load_mapping(path: Path) -> dict[str, Any]:
@@ -66,6 +91,21 @@ def review_targets(review: dict[str, Any]) -> set[str]:
     return targets
 
 
+def validate_review_findings(path: str, review_id: str, review: dict[str, Any]) -> list[Issue]:
+    issues: list[Issue] = []
+    for finding in review.get("findings", []) or []:
+        if not isinstance(finding, dict):
+            continue
+        severity = finding.get("severity")
+        rank = REVIEW_SEVERITY_RANK.get(str(severity))
+        if rank is None:
+            issues.append(Issue(path, "DONE_REVIEW_SEVERITY", f"review {review_id} has unknown finding severity {severity!r}"))
+            continue
+        if rank <= BLOCKING_REVIEW_RANK and finding.get("disposition") not in {"RESOLVED", "ACCEPTED"}:
+            issues.append(Issue(path, "DONE_REVIEW_FINDING", f"review {review_id} retains blocking finding {finding.get('id')} with severity {severity}"))
+    return issues
+
+
 def validate_work_lifecycle(root: Path) -> list[Issue]:
     works = load_records(root, "work-items")
     reviews = load_records(root, "reviews")
@@ -85,11 +125,17 @@ def validate_work_lifecycle(root: Path) -> list[Issue]:
         if status != "DONE":
             continue
 
+        completion = work.get("completion")
+        if isinstance(completion, dict) and completion.get("specification_gates_checked") is not True:
+            issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_COMPLETION", "DONE work item requires completion.specification_gates_checked=true"))
+
         completed = ((work.get("review_plan") or {}).get("completed_reviews", []) or [])
         for rid in completed:
             review = reviews.get(rid)
-            if review is not None and wid not in review_targets(review):
-                issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_REVIEW_SCOPE", f"review {rid} is not structurally bound to {wid}"))
+            if review is not None:
+                if wid not in review_targets(review):
+                    issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_REVIEW_SCOPE", f"review {rid} is not structurally bound to {wid}"))
+                issues.extend(validate_review_findings(f"registry/work-items/{wid}.yaml", rid, review))
 
         for tid in sorted(set(iter_test_ids(work.get("required_tests") or {}))):
             test = tests.get(tid)
@@ -105,16 +151,35 @@ def validate_progress_uniqueness(root: Path) -> list[Issue]:
     data = load_mapping(path)
     seen: dict[str, str] = {}
     issues: list[Issue] = []
+    expected_dimensions = set(WORK_PROGRESS_DIMENSIONS)
     for phase_name, phase in (data.get("phases") or {}).items():
         for lot_name, lot in ((phase or {}).get("lots") or {}).items():
             for sub_name, sub in ((lot or {}).get("sublots") or {}).items():
                 location = f"{phase_name}/{lot_name}/{sub_name}"
-                for wid in ((sub or {}).get("work_items") or {}):
+                for wid, state in ((sub or {}).get("work_items") or {}).items():
                     previous = seen.get(wid)
                     if previous is not None:
                         issues.append(Issue("registry/progress/matrix.yaml", "PROGRESS_DUPLICATE", f"{wid} appears in both {previous} and {location}"))
                     else:
                         seen[wid] = location
+                    if not isinstance(state, dict):
+                        issues.append(Issue("registry/progress/matrix.yaml", "PROGRESS_SHAPE", f"{wid} progress entry must be a mapping"))
+                        continue
+                    dimensions = {key for key in state if key != "status"}
+                    for key in sorted(dimensions - expected_dimensions):
+                        issues.append(Issue("registry/progress/matrix.yaml", "PROGRESS_DIMENSION_KEY", f"{wid} has unknown progress dimension {key!r}"))
+                    for key in sorted(dimensions & expected_dimensions):
+                        value = state.get(key)
+                        if value not in GLOBAL_STATUSES:
+                            issues.append(Issue("registry/progress/matrix.yaml", "PROGRESS_DIMENSION_STATUS", f"{wid}.{key} has noncanonical status {value!r}"))
+                    if state.get("status") == "DONE":
+                        missing = expected_dimensions - dimensions
+                        if missing:
+                            issues.append(Issue("registry/progress/matrix.yaml", "PROGRESS_DONE_DIMENSION", f"{wid} DONE entry is missing dimensions {sorted(missing)}"))
+                        for key in sorted(dimensions & expected_dimensions):
+                            value = state.get(key)
+                            if value in GLOBAL_STATUSES and value not in DONE_PROGRESS_ALLOWED:
+                                issues.append(Issue("registry/progress/matrix.yaml", "PROGRESS_DONE_DIMENSION", f"{wid}.{key}={value} is incomplete for DONE"))
     return issues
 
 

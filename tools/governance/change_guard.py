@@ -7,7 +7,7 @@ import subprocess
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 import yaml
 
@@ -52,6 +52,7 @@ SEMANTIC_WORK_KEYS = {
 REVIEW_PLAN_ADMIN_KEYS = {"completed_reviews", "open_findings"}
 GUARD_PATH = "tools/governance/change_guard.py"
 ACTIVE_WORK_STATUSES = {"READY", "IN_PROGRESS", "PARTIAL", "BLOCKED", "IN_REVIEW"}
+REGISTRY_ID = re.compile(r"\b(?:WORK|CAP|REQ|ASM|RISK|REVIEW|TEST|EXP|DEP)-\d+\b")
 SECRET_PATTERNS = (
     re.compile(r"AKIA[0-9A-Z]{16}"),
     re.compile(r"ghp_[A-Za-z0-9]{30,}"),
@@ -155,6 +156,81 @@ def path_is_declared(path: str, declared: list[Any]) -> bool:
         if path == raw:
             return True
     return False
+
+
+def iter_strings(value: Any) -> Iterable[str]:
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from iter_strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from iter_strings(item)
+
+
+def work_scope_paths(work: dict[str, Any]) -> list[str]:
+    paths: list[str] = []
+    for key in ("read_before", "affected_docs", "affected_schemas", "affected_paths"):
+        values = work.get(key, []) or []
+        if isinstance(values, list):
+            paths.extend(x for x in values if isinstance(x, str))
+    plan = work.get("implementation_plan") or {}
+    if isinstance(plan, dict):
+        for task in plan.get("tasks", []) or []:
+            if not isinstance(task, dict):
+                continue
+            expected = task.get("expected_files", []) or []
+            if isinstance(expected, list):
+                paths.extend(x for x in expected if isinstance(x, str))
+    return paths
+
+
+def work_referenced_ids(work: dict[str, Any]) -> set[str]:
+    refs: set[str] = set()
+    for text in iter_strings(semantic_projection(work)):
+        refs.update(REGISTRY_ID.findall(text))
+    wid = work.get("id")
+    if isinstance(wid, str):
+        refs.discard(wid)
+    return refs
+
+
+def registry_id_for_change(root: Path, reviewed: str, head: str, path: str) -> str | None:
+    current = show_yaml(root, head, path) or show_yaml(root, reviewed, path)
+    if not current:
+        return None
+    rid = current.get("id")
+    return rid if isinstance(rid, str) else None
+
+
+def change_relevant_to_work(
+    root: Path,
+    work_path: str,
+    work: dict[str, Any],
+    reviewed: str,
+    head: str,
+    file_path: str,
+) -> bool:
+    if file_path.startswith(ADMIN_PATH_PREFIXES):
+        return False
+    if file_path == work_path:
+        old_work = show_yaml(root, reviewed, work_path)
+        new_work = show_yaml(root, head, work_path)
+        return semantic_projection(old_work) != semantic_projection(new_work)
+
+    declarations = work_scope_paths(work)
+    if path_is_declared(file_path, declarations):
+        return True
+
+    refs = work_referenced_ids(work)
+    changed_id = registry_id_for_change(root, reviewed, head, file_path)
+    if changed_id is not None and changed_id in refs:
+        return True
+
+    # Legacy records may not yet declare scope paths/references. Preserve fail-closed
+    # behavior for those records instead of silently treating all later changes as irrelevant.
+    return not declarations and not refs
 
 
 def commit_added_lines(root: Path, sha: str) -> str:
@@ -267,16 +343,11 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
             except RuntimeError:
                 out.append(ChangeFinding(review_path, "REVIEW_FRESHNESS", "review commit is not available in history"))
                 continue
-            substantive: list[str] = []
-            for file_path in later:
-                if file_path.startswith(ADMIN_PATH_PREFIXES):
-                    continue
-                if file_path == path:
-                    old_work = show_yaml(root, reviewed, path)
-                    new_work = show_yaml(root, head, path)
-                    if semantic_projection(old_work) == semantic_projection(new_work):
-                        continue
-                substantive.append(file_path)
+            substantive = [
+                file_path
+                for file_path in later
+                if change_relevant_to_work(root, path, work, reviewed, head, file_path)
+            ]
             if substantive:
                 out.append(ChangeFinding(review_path, "REVIEW_FRESHNESS", f"review {rid} predates substantive changes: {', '.join(substantive[:8])}"))
     return out
