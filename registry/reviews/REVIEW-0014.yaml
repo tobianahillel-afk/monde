@@ -1,5 +1,5 @@
 id: REVIEW-0014
-status: OPEN
+status: IN_PROGRESS
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-3"
