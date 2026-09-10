@@ -168,6 +168,8 @@ affected_docs:
   - registry/reviews/REVIEW-0008.yaml
   - registry/reviews/REVIEW-0009.yaml
   - registry/reviews/REVIEW-0010.yaml
+  - registry/reviews/REVIEW-0011.yaml
+  - registry/reviews/REVIEW-0012.yaml
   - registry/tests/TEST-0001.yaml
   - registry/tests/TEST-0004.yaml
   - registry/tests/TEST-0005.yaml
@@ -210,7 +212,7 @@ implementation_plan:
     - {id: T3, description: "Define development lifecycle, DoR/DoD and testing strategy.", depends_on: [T2], expected_files: [docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md], status: DONE}
     - {id: T4, description: "Define documentation architecture, development/security rules, threat modeling and ADR process.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/11_ADR/README.md], status: DONE}
     - {id: T5, description: "Add GitHub templates, capability registry, project scorecard and Phase-0 roadmap.", depends_on: [T3, T4], expected_files: [.github/pull_request_template.md, .github/ISSUE_TEMPLATE/feature.yml, .github/ISSUE_TEMPLATE/bug.yml, registry/capabilities/README.md, docs/13_QUALITY/project-scorecard.md, docs/10_ROADMAP/phase-0.md], status: DONE}
-    - {id: T6, description: "Complete post-merge independent assurance review, correct its findings, and synchronize canonical handover state.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/requirements/, registry/reviews/REVIEW-0003.yaml, registry/reviews/REVIEW-0004.yaml, registry/reviews/REVIEW-0005.yaml, registry/reviews/REVIEW-0006.yaml, registry/reviews/REVIEW-0007.yaml, registry/reviews/REVIEW-0008.yaml, registry/reviews/REVIEW-0009.yaml, registry/reviews/REVIEW-0010.yaml, registry/tests/TEST-0001.yaml, registry/tests/TEST-0004.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
+    - {id: T6, description: "Complete post-merge independent assurance review, correct its findings, and synchronize canonical handover state.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/requirements/, registry/reviews/REVIEW-0003.yaml, registry/reviews/REVIEW-0004.yaml, registry/reviews/REVIEW-0005.yaml, registry/reviews/REVIEW-0006.yaml, registry/reviews/REVIEW-0007.yaml, registry/reviews/REVIEW-0008.yaml, registry/reviews/REVIEW-0009.yaml, registry/reviews/REVIEW-0010.yaml, registry/reviews/REVIEW-0011.yaml, registry/reviews/REVIEW-0012.yaml, registry/tests/TEST-0001.yaml, registry/tests/TEST-0004.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
     - {id: T7, description: "Add scientific specification lifecycle, requirements/assumptions/risks, traceability and reproducibility/backtesting contracts.", depends_on: [T3, T4, T5], expected_files: [docs/13_QUALITY/specification-quality.md, docs/13_QUALITY/reproducibility-backtesting.md, registry/requirements/_TEMPLATE.yaml, registry/assumptions/_TEMPLATE.yaml, registry/risks/_TEMPLATE.yaml, registry/traceability/README.md], status: DONE}
     - {id: T8, description: "Add assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols; synchronize state.", depends_on: [T7], expected_files: [docs/13_QUALITY/review-council.md, docs/13_QUALITY/assurance-levels.md, docs/13_QUALITY/advanced-verification.md, docs/13_QUALITY/non-functional-requirements.md, docs/12_RESEARCH/research-protocol.md, registry/reviews/_TEMPLATE.yaml, registry/tests/_TEMPLATE.yaml, registry/experiments/_TEMPLATE.yaml, registry/README.md], status: DONE}
   planned_runs:
@@ -249,8 +251,10 @@ review_plan:
     - "REVIEW-0009/F-1 progress DONE → IN_REVIEW reopening semantics were missing even though the corrective branch had truthfully reopened dimensions after adverse evidence"
     - "REVIEW-0009/F-2 TEST-0004 immutable history contains a PLANNED → PASS edge requiring an exact reviewed historical migration exception"
     - "REVIEW-0010/F-1 REQ-0006 forward verification mapping omitted current lifecycle-history proof TEST-0007"
+    - "REVIEW-0011/F-1 PROJECT_STATE next action still repeated already-completed REVIEW-0010/test synchronization"
+    - "REVIEW-0012/F-1 WORK-0001 did not yet preserve REVIEW-0011 or the latest pending review gate while PROJECT_STATE did"
     - "Fourth TEST-0006 execution is PASS on exact synchronized contract-v5 tree fa55004d1623ab2aa66c14b62bb036f6e335f041; result recorded in 80eb23da21d76d5b87134164ce46954423a04e95 and history pointer in 772f45b2f7eacb3d2dfbeb39f3c1aca089b19959."
-    - "Second TEST-0007 execution is PASS on exact bidirectional-traceability tree c27a98b94c4f59c5778b9c7d30e447536a70a452; result recorded in 07fb9baf3f76437059b73f7805a5edd36d704cc6 and history pointer in 7560d7265c873c8ab25ef7de423f75fab8aa33e0. A fresh L2 is still required before findings close."
+    - "Second TEST-0007 execution is PASS on exact bidirectional-traceability tree c27a98b94c4f59c5778b9c7d30e447536a70a452; result recorded in 07fb9baf3f76437059b73f7805a5edd36d704cc6 and history pointer in 7560d7265c873c8ab25ef7de423f75fab8aa33e0. REVIEW-0012/F-1 is administrative synchronization only; another fresh L2 is required before findings close."
 
 required_tests:
   unit: []
@@ -304,6 +308,8 @@ required_tests:
     - "Fourth TEST-0006 execution followed READY → RUNNING → PASS on exact synchronized tree fa55004d1623ab2aa66c14b62bb036f6e335f041; result recorded in 80eb23da21d76d5b87134164ce46954423a04e95 and history pointer in 772f45b2f7eacb3d2dfbeb39f3c1aca089b19959"
     - "Fresh GitHub Codex re-review executed against PR #3 head 14c3d3fcc6dd96af9d2e5acd9f02d2d957c03425 and recorded as REVIEW-0010; it found that REQ-0006 forward verification omitted TEST-0007"
     - "TEST-0007 second execution followed PASS → READY → RUNNING → PASS and passed on exact bidirectional-traceability tree c27a98b94c4f59c5778b9c7d30e447536a70a452; result recorded in 07fb9baf3f76437059b73f7805a5edd36d704cc6 and history pointer in 7560d7265c873c8ab25ef7de423f75fab8aa33e0"
+    - "Fresh GitHub Codex re-review executed against PR #3 head c8fbfa51ac04b566f337ee606a806e42881b67f2 and recorded as REVIEW-0011; it found only stale PROJECT_STATE next-action ordering after completed synchronization"
+    - "Fresh GitHub Codex re-review executed against PR #3 head a2a86b96bb3fe39229b9834cd4ab17ee16d8121f and recorded as REVIEW-0012; it found that WORK-0001 itself had not yet recorded REVIEW-0011/current gate"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -357,6 +363,8 @@ validation:
     - "REVIEW-0010 reviewed exact head 14c3d3fcc6dd96af9d2e5acd9f02d2d957c03425 and exposed missing forward REQ-0006 → TEST-0007 traceability"
     - "REQ-0006 now maps to TEST-0007 in verification.test_ids and acceptance_evidence, while TEST-0007 protects REQ-0006"
     - "TEST-0007 second execution followed READY → RUNNING → PASS on c27a98b94c4f59c5778b9c7d30e447536a70a452 and proved both forward and reverse traceability; PASS recorded in 07fb9baf3f76437059b73f7805a5edd36d704cc6"
+    - "REVIEW-0011 reviewed c8fbfa51ac04b566f337ee606a806e42881b67f2 and found only stale PROJECT_STATE next-action ordering"
+    - "REVIEW-0012 reviewed a2a86b96bb3fe39229b9834cd4ab17ee16d8121f and found only that WORK-0001 itself had not preserved REVIEW-0011/current gate"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -370,6 +378,8 @@ validation:
     - REVIEW-0008
     - REVIEW-0009
     - REVIEW-0010
+    - REVIEW-0011
+    - REVIEW-0012
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
     - TEST-0005
@@ -382,7 +392,7 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "REVIEW-0010/F-1 remains open until another fresh-context L2 independently verifies the corrected frozen PR #3 HEAD; TEST-0007 PASS alone cannot close it."
+    - "REVIEW-0012/F-1 remains open until WORK-0001 and PROJECT_STATE expose one current review chain/gate and another fresh-context L2 verifies the corrected frozen head; this is administrative synchronization and does not invalidate the existing substantive TEST-0006/TEST-0007 proofs."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; six fresh-L2 findings on c50c330 remain open."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -399,7 +409,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; successive fresh L2 reviews REVIEW-0003 through REVIEW-0010 exposed assurance defects. REVIEW-0010 found missing forward REQ-0006→TEST-0007 traceability. That edge is now bidirectional and the second TEST-0007 execution proves it on c27a98b; another fresh L2 is the remaining assurance gate."}
+  - {run: RUN-3, date: "2026-09-10", note: "PR #1 was merged; successive fresh L2 reviews REVIEW-0003 through REVIEW-0012 exposed and narrowed assurance defects. REVIEW-0011 found stale PROJECT_STATE action ordering; REVIEW-0012 then found WORK-0001 had not recorded that newest gate. Both handover surfaces are now being synchronized without changing substantive tested contracts; another fresh L2 is the remaining gate."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 
@@ -420,6 +430,7 @@ discoveries:
   - "Completion evidence may truthfully regress from DONE to IN_REVIEW after new adverse evidence; reopening must be explicit, reviewed and re-gated."
   - "Immutable historical lifecycle mistakes require exact record/commit-bound migration exceptions, not generic future shortcuts or rewritten history."
   - "Current proof must be reachable both from the requirement's verification mapping and from the test's protected-requirements edge."
+  - "Cold-resume handover currentness must agree in PROJECT_STATE and the active WORK record; updating only one surface is insufficient."
   - "CLOSED and COMPLETE review states have different evidence semantics."
   - "A status vocabulary is incomplete as a machine contract without an initial state and transitions."
   - "100% coverage alone is insufficient; test-strength and non-compensable gates are required."
