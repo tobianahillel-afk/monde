@@ -32,16 +32,16 @@ No WORK-0003 or WORK-0004 implementation has started.
 
 ## WORK-0001 assurance history
 
-The durable review chain is `REVIEW-0003` through `REVIEW-0009`. Earlier corrective tests are `TEST-0004`, `TEST-0005`, `TEST-0006`, and the new lifecycle-history proof `TEST-0007`; superseded `TEST-0001` remains historical/non-gating evidence.
+The durable review chain is `REVIEW-0003` through `REVIEW-0009`. Corrective test evidence is `TEST-0004`, `TEST-0005`, `TEST-0006`, and lifecycle-history proof `TEST-0007`; superseded `TEST-0001` remains historical/non-gating evidence.
 
 Key current facts:
 
 - `REVIEW-0007` invalidated the first TEST-0006 PASS because PROJECT_STATE, WORK-0002 and the progress matrix disagreed on the global WORK-0002 lifecycle.
 - `REVIEW-0008` invalidated the second TEST-0006 PASS because the PR #3 WORK-0002 mirror referenced two branch-only `read_before` files that were absent from the tested tree.
-- A third TEST-0006 execution passed on exact corrected tree `0b2c2f6a92051760e759bf2e64518188e8266012`; result was recorded in `badf011c82fc07e86d85d0e5d6efcb21223ca8cb` and its history pointer in `5dc3153ceee2db22496186d54180815c09e3afa2`.
-- Fresh-context `REVIEW-0009` then reviewed PR #3 at `1e3f539b89afbbb07de63271682a1db06f47550c` and found two additional R2/P1 lifecycle-history defects: progress could not truthfully reopen `DONE → IN_REVIEW`, and TEST-0004's immutable historical `PLANNED → PASS` edge violated the newly canonical test lifecycle.
+- A third TEST-0006 execution passed on exact tree `0b2c2f6a92051760e759bf2e64518188e8266012`; it remains valid for that tested tree.
+- Fresh-context `REVIEW-0009` reviewed PR #3 at `1e3f539b89afbbb07de63271682a1db06f47550c` and found two additional R2/P1 lifecycle-history defects: progress could not truthfully reopen `DONE → IN_REVIEW`, and TEST-0004's immutable historical `PLANNED → PASS` edge violated the newly canonical test lifecycle.
 
-## REVIEW-0009 correction
+## REVIEW-0009 correction and proof
 
 `registry/status-machines.yaml` version 5 now:
 
@@ -51,11 +51,11 @@ Key current facts:
 - records one exact historical migration exception only for TEST-0004 `PLANNED → PASS`, bound to before-commit `98e8cdccc07bd3c2d8313d81f296f49c97c44379` and transition commit `e8337d833ca0b524bed69318ca4b3691c9ce6c23`;
 - forbids reuse of that exception for any other record or future transition.
 
-`TEST-0007` independently checked these rules against the real PR #3 Git history on exact substantive tree `d1d0b32e321cd56ada21f76c4d3e08856a792db5`. It followed `PLANNED → READY → RUNNING → PASS`; PASS was recorded in `a280fed4123a476dc5d5a22651b8b8e1c3aa1240`, and `03b6b85adc9e48b038a609e83c890c16fc313d34` records the result commit in its history.
+`TEST-0007` checked these rules against the real PR #3 Git history on exact substantive tree `d1d0b32e321cd56ada21f76c4d3e08856a792db5`. It followed `PLANNED → READY → RUNNING → PASS`; PASS was recorded in `a280fed4123a476dc5d5a22651b8b8e1c3aa1240`, and `03b6b85adc9e48b038a609e83c890c16fc313d34` records the result commit in its history.
 
-Because the canonical status contract changed, `TEST-0006` was deliberately reopened from `PASS → READY`; its earlier third PASS remains historical evidence for its tested tree, but the current contract/resume behavior must be rerun before another fresh L2.
+Because the canonical status contract changed, `TEST-0006` was deliberately reopened from `PASS → READY` and rerun. The fourth execution followed `READY → RUNNING → PASS` against exact synchronized tree `fa55004d1623ab2aa66c14b62bb036f6e335f041`. It revalidated cold-resume routing, all current-tree WORK-0002 `read_before` paths, the explicit branch handoff, global lifecycle consistency, TEST-0001 supersession, status-machine v5 and positive-only review approval semantics. PASS was recorded in `80eb23da21d76d5b87134164ce46954423a04e95`; `772f45b2f7eacb3d2dfbeb39f3c1aca089b19959` records that execution in TEST-0006 history.
 
-No REVIEW-0009 finding is resolved merely because TEST-0007 passed.
+No REVIEW-0009 finding is considered resolved solely because TEST-0006/TEST-0007 passed. A fresh independent L2 must verify the corrected frozen HEAD.
 
 ## WORK-0002 cross-branch boundary
 
@@ -90,13 +90,12 @@ A blocking R1/R2 finding may become non-blocking through `ACCEPTED` only with ex
 
 ## Next action
 
-1. Synchronize WORK-0001 with REVIEW-0009 and TEST-0007 while keeping completion false/IN_REVIEW.
-2. Recheck live PR #2 and rerun TEST-0006 from its current `READY` state against the resulting exact PR #3 tree, using `READY → RUNNING → PASS`.
-3. Attach TEST-0007 and the new TEST-0006 evidence to REVIEW-0009/F-1 and F-2 without force-closing either thread.
-4. Request another fresh-context L2 on the resulting frozen PR #3 HEAD.
-5. If that review finds anything material, correct and re-prove it. Only a positive approval-capable L2 with no unresolved blocking issue may allow verified findings and WORK-0001 completion to close.
-6. Merge PR #3 only after the approval gate is genuinely satisfied; then update/rebase PR #2, fix its six existing findings, re-prove CI and obtain its own fresh L2.
-7. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
+1. Attach TEST-0007 and the fourth TEST-0006 evidence to REVIEW-0009/F-1 and F-2 without resolving the threads prematurely.
+2. Synchronize the PR #3 description with the current review/test history.
+3. Freeze the resulting Git HEAD and request another fresh-context L2 explicitly against that SHA.
+4. If that review finds anything material, correct and re-prove it. Only a positive approval-capable L2 with no unresolved blocking issue may allow verified findings and WORK-0001 completion to close.
+5. Merge PR #3 only after the approval gate is genuinely satisfied; then update/rebase PR #2, fix its six existing findings, re-prove CI and obtain its own fresh L2.
+6. Start WORK-0003 after WORK-0002; WORK-0004 remains after WORK-0003.
 
 ## Resume instructions
 
