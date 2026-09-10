@@ -1,0 +1,83 @@
+id: REVIEW-0009
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "1e3f539b89afbbb07de63271682a1db06f47550c"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-1e3f539"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+scope:
+  work_items: [WORK-0001]
+  requirements: [REQ-0006]
+  capabilities: []
+  contracts:
+    - "registry lifecycle/status-machine contract"
+    - "progress lifecycle and reopening semantics"
+    - "test execution lifecycle"
+    - "historical transition migration semantics"
+  risks:
+    - "The branch records truthful regression to IN_REVIEW but the canonical progress machine rejects it."
+    - "Historical corrective test evidence bypasses required READY/RUNNING states and later automation rejects the branch history."
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: PROGRESS_REOPENING_TRANSITION
+    description: "The canonical progress machine makes DONE terminal except DEPRECATED, but PR #3 commit 4ef4bfd27e28973fcebead8b2b5065422c4a8883 truthfully reopened WORK-0001 and repository quality dimensions from DONE to IN_REVIEW after the machine had been introduced in caaa27d716c38e28728e1e22412b1c43770096ef. The accumulated branch therefore violates its own fail-closed lifecycle unless reviewed regression/reopening semantics are defined."
+    evidence:
+      - "PR #3 inline review on registry/status-machines.yaml @ 1e3f539b89afbbb07de63271682a1db06f47550c"
+      - "caaa27d716c38e28728e1e22412b1c43770096ef introduced registry/status-machines.yaml"
+      - "4ef4bfd27e28973fcebead8b2b5065422c4a8883 changed multiple progress dimensions DONE → IN_REVIEW"
+    disposition: OPEN
+    resolved_by: null
+  - id: F-2
+    severity: R2_MAJOR
+    category: TEST_LIFECYCLE_HISTORY
+    description: "TEST-0004 was introduced as PLANNED in 98e8cdccc07bd3c2d8313d81f296f49c97c44379 and changed directly to PASS in e8337d833ca0b524bed69318ca4b3691c9ce6c23, although the canonical test machine requires PLANNED → READY → RUNNING → PASS. The immutable branch history needs a narrowly scoped reviewed migration exception rather than a generic shortcut or rewritten evidence."
+    evidence:
+      - "PR #3 inline review on registry/status-machines.yaml @ 1e3f539b89afbbb07de63271682a1db06f47550c"
+      - "98e8cdccc07bd3c2d8313d81f296f49c97c44379 created TEST-0004 as PLANNED"
+      - "e8337d833ca0b524bed69318ca4b3691c9ce6c23 changed TEST-0004 PLANNED → PASS"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "DONE progress is permanently terminal even when later evidence invalidates a completion claim."
+    - "Historical lifecycle violations can be silently tolerated because the evidence itself was otherwise substantive."
+  omitted_categories_considered:
+    - "reopening after adverse evidence"
+    - "immutable historical migration"
+    - "exact transition exception scope"
+    - "future misuse of a legacy exception"
+  duplicate_or_reuse_search:
+    - "Reuse the canonical status-machine contract rather than inventing a parallel migration registry."
+    - "Reuse PASS → READY rerun semantics for current tests; the legacy exception applies only to the immutable TEST-0004 commit pair."
+  failure_modes_considered:
+    - "A required dimension cannot truthfully re-enter review after new adverse evidence."
+    - "DONE → IN_REVIEW becomes a general unreviewed regression path."
+    - "PLANNED → PASS becomes generically allowed for all tests."
+    - "A broad migration window hides unrelated historical transition errors."
+  evidence_requested:
+    - "Define a reviewed DONE → IN_REVIEW reopening transition with an evidence/rationale rule."
+    - "Keep generic TEST transitions strict and whitelist only the exact historical TEST-0004 PLANNED → PASS commit pair."
+    - "Verify the corrected contract against the actual Git history and rerun status-sensitive tests on the exact corrected tree."
+    - "Obtain another fresh-context L2 after correction."
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-10"
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"
