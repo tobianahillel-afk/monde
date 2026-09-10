@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 third-pass evidence, authority and requirement-atomicity drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -53,8 +53,17 @@ execution:
   command_or_workflow: "Manual exact-SHA GitHub inspection of PR #3 corrective tree 2712795dc9f10c1efed2088313d125f6f915cc98"
   last_run_at: "2026-09-10"
   commit_sha: "2712795dc9f10c1efed2088313d125f6f915cc98"
-  result: null
-  evidence: []
+  result: PASS
+  evidence:
+    - "PR #3 corrective tree @ 2712795dc9f10c1efed2088313d125f6f915cc98"
+    - "registry/status-machines.yaml @ 2712795dc9f10c1efed2088313d125f6f915cc98"
+    - "registry/tests/TEST-0001.yaml @ 2712795dc9f10c1efed2088313d125f6f915cc98"
+    - "registry/tests/TEST-0004.yaml @ 2712795dc9f10c1efed2088313d125f6f915cc98"
+    - "registry/reviews/_TEMPLATE.yaml @ 2712795dc9f10c1efed2088313d125f6f915cc98"
+    - "registry/reviews/REVIEW-0001.yaml @ 2712795dc9f10c1efed2088313d125f6f915cc98"
+    - "registry/requirements/REQ-0010.yaml and REQ-0015..REQ-0019 @ 2712795dc9f10c1efed2088313d125f6f915cc98"
+    - "registry/work-items/WORK-0001.yaml @ 2712795dc9f10c1efed2088313d125f6f915cc98"
+    - "REVIEW-0005"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
