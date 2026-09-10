@@ -123,7 +123,7 @@ history:
       reason: "Contract v5, current handover, WORK-0002 cross-branch boundary, global lifecycle consistency, TEST-0001 supersession and positive-only review approval semantics all passed on the exact synchronized tree. This remains valid for that scope/tree; TEST-0006 is reopened because REVIEW-0014 changes the canonical status-machine contract to v6."
     - commit_sha: "ffffb37d680e477fa03f74523dfac624ad74427c"
       recorded_result: FAIL
-      recorded_in_commit: null
+      recorded_in_commit: "45088fc916b84c7e809d1305fe926724e85b797c"
       validity: VALID
       invalidated_by: null
       reason: "The v6 contract is correct, but the exact tested tree still exposes stale v5/REVIEW-0013 handover and WORK-0001 currentness, so a cold-resuming agent cannot discover REVIEW-0014 as the current gate from canonical repository state."
