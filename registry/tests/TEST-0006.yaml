@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -78,9 +78,9 @@ cases:
     - "Cold-read README then START_HERE/PROJECT_STATE/WORK-0001 and attempt to resume without conversation memory"
 
 execution:
-  command_or_workflow: null
-  last_run_at: null
-  commit_sha: null
+  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v6/import-isolation and review-outcome audit of PR #3 tree ffffb37d680e477fa03f74523dfac624ad74427c, including live PR #2 head/state verification"
+  last_run_at: "2026-09-10"
+  commit_sha: "ffffb37d680e477fa03f74523dfac624ad74427c"
   result: null
   evidence: []
 
