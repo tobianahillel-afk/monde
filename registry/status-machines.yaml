@@ -157,6 +157,17 @@ registry_machines:
         consumed_by_commit: "877d5bce12c7854701843747783891558ab05d37"
         finding_origin: "PRRT_kwDOUUI5ts6hSJ77"
         reason: "The fresh-context GitHub Codex review of a27d01a9 completed externally before REVIEW-0015 is materialized. This authorization exists first so the finished review can be imported directly as COMPLETE without replaying OPEN/IN_PROGRESS after the fact."
+      - record_id: REVIEW-0016
+        imported_status: COMPLETE
+        artifact_commit_sha: "7c9cc98fefc45eab2e500925dca846f23bd2936e"
+        source_review_id: "PRR_kwDOUUI5ts8AAAABNGFLJg"
+        source_submitted_at: "2026-09-11T00:36:00Z"
+        reviewer_context_id: "fresh-context-pr3-7c9cc98f"
+        expected_outcome: CHANGES_REQUIRED
+        one_shot: true
+        consumed_by_commit: null
+        finding_origin: "PRRT_kwDOUUI5ts6hTD9-"
+        reason: "The fresh-context GitHub Codex review of 7c9cc98f completed externally before REVIEW-0016 is materialized. This authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native lifecycle checkpoints."
     external_import_rule: "For an externally completed review materialized after v7, a matching one-shot authorization must already exist in a parent commit before the REVIEW record first appears. The authorization binds record_id, resulting status, reviewed artifact SHA, source review identity/time, reviewer context and expected outcome. The imported REVIEW must declare that authorization. A later metadata-only binding must set consumed_by_commit to the actual first-materialization commit before the imported review may satisfy any work completion gate. An authorization with consumed_by_commit set cannot be reused."
     historical_import_exceptions:
       - record_id: REVIEW-0004
