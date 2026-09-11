@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: PASS
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -23,6 +23,7 @@ protects:
     - "An active work mirror references branch-only prerequisites that are unreadable in the current tree"
     - "Historical import/replay exceptions accidentally weaken normal review or requirement lifecycle semantics"
     - "An externally completed review is represented as repository-native lifecycle execution or is imported without truthful one-shot provenance"
+    - "A handover sends a cold-resuming agent backward into administrative synchronization already complete at the tested SHA"
   invariants:
     - "Repository state, not chat history, is sufficient to resume active work"
     - "registry/status-machines.yaml is the single lifecycle source of truth"
@@ -31,6 +32,7 @@ protects:
     - "Every current-tree read_before path is resolvable before an agent is instructed to edit; branch-only prerequisites become mandatory only after an explicit checkout handoff"
     - "Historical import/replay exceptions remain exact, historical-only and future-reuse-forbidden and do not alter generic initial states/transitions"
     - "Post-v7 external completed-review imports require a one-shot authorization that predates materialization and is bound to the exact import commit"
+    - "PROJECT_STATE advances from the current review/test state and never orders a synchronization or evidence-recording step already complete at the tested SHA"
 
 environment:
   kind: REAL_GITHUB_REPOSITORY
@@ -44,17 +46,17 @@ cases:
   happy_path:
     - "README directs a new agent to START_HERE, AGENTS and PROJECT_STATE before implementation"
     - "docs/00_START_HERE.md gives an ordered cold-resume path through PROJECT_STATE, active WORK, read_before, linked registries and live work discussion"
-    - "PROJECT_STATE and WORK-0001 expose REVIEW-0015, status-machine v7, current TEST-0007 PASS and TEST-0006 as the active proof gate without telling the agent to repeat already-completed synchronization/test-state steps"
+    - "PROJECT_STATE and WORK-0001 expose REVIEW-0016, status-machine v7, current TEST-0007 proof and TEST-0006 as the current proof run without telling the agent to repeat already-completed synchronization/evidence steps"
     - "PROJECT_STATE, registry/work-items/WORK-0002.yaml and registry/progress/matrix.yaml agree that live PR #2 / WORK-0002 is IN_REVIEW while WORK-0001 remains the blocking dependency"
     - "Every read_before entry declared by the PR #3 WORK-0002 mirror resolves in the PR #3 tree"
     - "PROJECT_STATE/WORK-0002 explicitly require switching to feat/work-0002-governance-ci before branch-only WORK-0002 prerequisites such as github-control-plane.md and ai-context-routing.md are read for implementation work"
-    - "WORK-0001 exposes read_before, dependencies, review plan, tests, evidence and remaining gate"
+    - "WORK-0001 exposes read_before, dependencies, review plan, tests, REVIEW-0016 evidence and the remaining gate"
     - "registry/progress/matrix.yaml points to registry/status-machines.yaml#progress and does not embed a second status vocabulary"
     - "all progress/status values used by the inspected active routing are declared by the canonical lifecycle machine"
     - "registry/status-machines.yaml declares approval_capable_outcomes as APPROVE and APPROVE_WITH_FOLLOWUP only"
     - "review completion_rule explicitly requires an approval-capable outcome and explicitly rejects COMPLETE+CHANGES_REQUIRED/BLOCKED as approval evidence"
     - "status-machines v7 keeps generic review OPEN → IN_PROGRESS → COMPLETE and requirement PROPOSED → ACCEPTED semantics unchanged while isolating exact historical imports/replay"
-    - "status-machines v7 requires truthful one-shot preauthorized provenance for externally completed post-v7 reviews and binds REVIEW-0015 to its actual import commit"
+    - "status-machines v7 requires truthful one-shot preauthorized provenance for externally completed post-v7 reviews and binds both REVIEW-0015 and REVIEW-0016 to their actual import commits"
     - "TEST-0001 is SUPERSEDED and points to TEST-0006, whose protected contracts include every original TEST-0001 contract"
   edge_cases:
     - "A concurrently active work item on another PR is represented by one consistent global lifecycle in PROJECT_STATE, its WORK record and the matrix"
@@ -64,10 +66,11 @@ cases:
     - "Historical import/replay exceptions can preserve immutable legacy history without changing generic lifecycle semantics"
     - "An externally completed negative review may be imported truthfully but remains negative evidence"
     - "Historical TEST-0001 remains inspectable while no longer serving as gating PASS evidence"
+    - "A prior TEST-0006 PASS remains valid for its exact historical tree while a later handover edit can require a new current-head rerun"
   failure_modes:
     - "README/START_HERE does not route to the current project state and active work"
     - "PROJECT_STATE cannot identify current work and its next gate without chat history"
-    - "PROJECT_STATE and WORK-0001 disagree on REVIEW-0015/v7/current proof state"
+    - "PROJECT_STATE and WORK-0001 disagree on REVIEW-0016/v7/current proof state"
     - "PROJECT_STATE instructs a cold-resuming agent to perform administrative or TEST state transitions already complete at the tested SHA"
     - "PROJECT_STATE, WORK-0002 and matrix disagree on WORK-0002 lifecycle"
     - "A current-tree WORK-0002 read_before path does not resolve"
@@ -76,34 +79,24 @@ cases:
     - "COMPLETE+CHANGES_REQUIRED or COMPLETE+BLOCKED can satisfy review completion"
     - "A historical import/replay exception adds a generic OPEN → COMPLETE review transition, alternate COMPLETE initial state, alternate ACCEPTED requirement initial state, or authorizes a future record"
     - "A post-v7 externally completed review is materialized before authorization, has mismatched provenance, or reuses a consumed authorization"
+    - "REVIEW-0016 authorization/import/binding/consumption do not agree on the exact imported commit"
     - "TEST-0001 is superseded by evidence that omits any of its original protected contracts"
   adversarial_cases:
     - "Resolve every PR #3 WORK-0002 read_before path at the exact tested SHA rather than assuming branch-local files exist"
     - "Verify branch-only prerequisites on feat/work-0002-governance-ci and confirm the current tree does not falsely claim they are locally readable"
     - "Compare PR #2 live HEAD/state with the synchronized global WORK-0002 and matrix snapshot before accepting the cold-resume assertion"
     - "Resolve every R1/R2 finding on a CHANGES_REQUIRED review and verify its negative outcome still prevents approval"
-    - "Attempt to reuse a v7 historical import/replay exception or consumed REVIEW-0015 authorization for another record and verify the contract forbids it"
+    - "Attempt to reuse a v7 historical import/replay exception or consumed REVIEW-0015/REVIEW-0016 authorization for another record and verify the contract forbids it"
     - "Follow TEST-0001.supersession and compare original protected contracts/invariant with TEST-0006 coverage"
     - "Cold-read README then START_HERE/PROJECT_STATE/WORK-0001 and attempt to resume without conversation memory"
+    - "Walk PROJECT_STATE Next action in order and verify no step preceding the actual pending test/review work is already complete at the exact tested SHA"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3 tree d6f012abe31263f0fa83003646405c039b23611e"
-  last_run_at: "2026-09-11"
-  commit_sha: "d6f012abe31263f0fa83003646405c039b23611e"
-  result: PASS
-  evidence:
-    - "README.md and docs/00_START_HERE.md @ d6f012abe31263f0fa83003646405c039b23611e route cold resume through PROJECT_STATE, active WORK, read_before, linked registries/tests/reviews and live PR discussion without requiring chat history."
-    - "PROJECT_STATE.md @ d6f012abe31263f0fa83003646405c039b23611e is transition-stable: it identifies REVIEW-0015/status-machine v7/TEST-0007 PASS, preserves the two prior TEST-0006 v7 FAILs, and instructs continuation from TEST-0006's current lifecycle state rather than replaying already-completed transitions."
-    - "WORK-0001 @ d6f012abe31263f0fa83003646405c039b23611e remains IN_REVIEW with T6/RUN-3 non-terminal, includes REVIEW-0015/F-1 and the v7 TEST-0007 evidence, and keeps TEST-0006 as the current rerun gate."
-    - "registry/progress/matrix.yaml @ d6f012abe31263f0fa83003646405c039b23611e records WORK-0001 IN_REVIEW and WORK-0002 IN_REVIEW and points to the canonical status-machine progress lifecycle instead of defining a competing vocabulary."
-    - "registry/work-items/WORK-0002.yaml @ d6f012abe31263f0fa83003646405c039b23611e is IN_REVIEW, depends_on WORK-0001, and every declared current-tree read_before path was fetched successfully from the exact tested tree."
-    - "The WORK-0002 mirror explicitly defers docs/03_ARCHITECTURE/github-control-plane.md and docs/13_QUALITY/ai-context-routing.md until checkout of feat/work-0002-governance-ci; both files were fetched successfully from that branch during this execution."
-    - "Live PR #2 was rechecked open, non-draft and mergeable at exact head c50c33009d90f079e645f0ca9e1befe1a4a77ba9 during this execution, matching the mirrored WORK-0002 IN_REVIEW lifecycle."
-    - "registry/status-machines.yaml @ d6f012abe31263f0fa83003646405c039b23611e is version 7, preserves strict generic review/requirement/test lifecycles, isolates exact historical import/replay exceptions, and requires a one-shot authorization that predates post-v7 external review materialization."
-    - "REVIEW-0015's authorization/import binding remains exact: authorization 2b26ed4384e2098e04c10f5e5d2db3da949b6718 predates first materialization 877d5bce12c7854701843747783891558ab05d37 and is consumed by that exact commit."
-    - "Review completion remains positive-outcome-only: COMPLETE with CHANGES_REQUIRED or BLOCKED cannot satisfy approval evidence."
-    - "TEST-0001 @ d6f012abe31263f0fa83003646405c039b23611e is SUPERSEDED/non-gating and names TEST-0006 as its revision-bound replacement; TEST-0006 protects all three original contracts AI resume protocol, status vocabulary consistency and active work routing."
-    - "The earlier v7 FAIL executions on 11cca4bccb318d29c422917d544a470870b2cf65 and 75d3df4486d05ab95d9d65daee2fd7ac77072a47 remain preserved; this PASS demonstrates their stale-handover causes were corrected rather than erased."
+  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3 after REVIEW-0016 handover correction"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -166,4 +159,4 @@ history:
       recorded_in_commit: "788a2948054cdd90130c72b17910d745fd36d927"
       validity: VALID
       invalidated_by: null
-      reason: "The exact v7 tree has a transition-stable cold-resume handover, coherent WORK-0001/WORK-0002/matrix lifecycle, resolvable current-tree prerequisites, explicit branch-only handoff, matching live PR #2 state, strict v7 import/replay/provenance semantics, positive-only review approval, and scope-preserving TEST-0001 supersession."
+      reason: "The exact v7 tree has a transition-stable cold-resume handover, coherent WORK-0001/WORK-0002/matrix lifecycle, resolvable current-tree prerequisites, explicit branch-only handoff, matching live PR #2 state, strict v7 import/replay/provenance semantics, positive-only review approval, and scope-preserving TEST-0001 supersession. REVIEW-0016 later found that administrative synchronization after this tree reintroduced a stale first Next action, so a new current-head execution is required without invalidating this historical PASS."
