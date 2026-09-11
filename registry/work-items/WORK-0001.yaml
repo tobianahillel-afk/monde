@@ -289,9 +289,9 @@ review_plan:
     - "REVIEW-0017/F-1 WORK-0001 exposed an obsolete TEST-0006 current-execution triple after the finalized-handover rerun"
     - "REVIEW-0017/F-2 REQ-0005 combined independently fail-able DoR, DoD and verification-strategy obligations"
     - "REVIEW-0018/F-1 REQ-0020/REQ-0021/REQ-0022 were accepted before independent Review Council/cold-read acceptance evidence existed"
-    - "TEST-0005 must be rerun on the PROPOSED REQ-0023/REQ-0024/REQ-0025 tree as pre-acceptance cold-read evidence before another fresh L2."
+    - "TEST-0005 current pre-acceptance execution is PASS on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7. REQ-0023/REQ-0024/REQ-0025 remain PROPOSED and this PASS does not approve them."
     - "TEST-0007 current generic v7 execution remains PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f. REVIEW-0018 does not change the generic lifecycle contract."
-    - "TEST-0006 current execution is authoritative in registry/tests/TEST-0006.yaml. A final rerun will be required after REVIEW-0018 handover synchronization before the next fresh L2."
+    - "TEST-0006 current execution is authoritative in registry/tests/TEST-0006.yaml. One final rerun is required on the synchronized REVIEW-0018 + pre-acceptance TEST-0005 handover before the next fresh L2."
 
 required_tests:
   unit: []
@@ -346,6 +346,7 @@ required_tests:
     - "REQ-0023/REQ-0024/REQ-0025 first materialized together as PROPOSED in 772616269581f622605416b2e34f6d4e270241df and remain unaccepted pending independent evidence"
     - "REQ-0020/REQ-0021/REQ-0022 transitioned legally ACCEPTED → SUPERSEDED together in 9ca6b975e7abef9eadf86573f2c9e1cb07b89e3d; their premature acceptance remains inspectable history"
     - "REQ-0005 remains SUPERSEDED and historically addressable; active ownership no longer routes through its compound statement"
+    - "TEST-0005 current pre-acceptance execution passed on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7"
     - "TEST-0007 current generic v7 execution passed on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; pointer 87ec209eec614a0ff3be7a00a7565102042cad3f"
     - "TEST-0006 prior REVIEW-0017-corrected execution passed on exact tree 626f9fb99605ff4bc78f8bb7986540825cabbdf3; result 85bfd4b8686c51f4d415b972a72d39ca101c29d1; history binding 8f0aea5b9c1cd9387b59da40ff2d08a8a975d1a1"
   epistemic:
@@ -375,6 +376,7 @@ validation:
     - "REQ-0001..REQ-0019 established normative bootstrap ownership; REQ-0005 remains superseded after atomic decomposition"
     - "Prematurely accepted REQ-0020/REQ-0021/REQ-0022 are preserved as SUPERSEDED history after REVIEW-0018/F-1"
     - "Current AC-5 owners REQ-0023/REQ-0024/REQ-0025 are PROPOSED and deliberately not accepted before independent Review Council/cold-read evidence"
+    - "TEST-0005 supplied exact-SHA pre-acceptance cold-read evidence while REQ-0023/REQ-0024/REQ-0025 remained PROPOSED; that author-produced PASS does not approve acceptance"
     - "status-machines v7 is the canonical lifecycle source, retaining exact pre-v7 import/migration history and separating historical status replay from truthful external review import provenance"
     - "REVIEW-0018 is truthfully imported through a one-shot authorization committed before materialization and consumed by its exact import commit"
     - "WORK-0001 and PROJECT_STATE use transition-stable current-proof routing; current TEST execution identity remains canonical in each TEST record"
@@ -401,8 +403,8 @@ validation:
     - REVIEW-0018
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
-    - "TEST-0005 (must be rerun as pre-acceptance cold-read evidence for PROPOSED REQ-0023/REQ-0024/REQ-0025)"
-    - "TEST-0006 (current execution authoritative in registry/tests/TEST-0006.yaml; final rerun required after this REVIEW-0018 handover correction)"
+    - "TEST-0005 (current pre-acceptance PASS on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7; REQ-0023/0024/0025 remain PROPOSED)"
+    - "TEST-0006 (current execution authoritative in registry/tests/TEST-0006.yaml; one final rerun required on synchronized REVIEW-0018 + pre-acceptance TEST-0005 handover)"
     - "TEST-0007 (current generic v7 PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f)"
     - "REQ-0020/REQ-0021/REQ-0022 (SUPERSEDED premature-acceptance history)"
     - REQ-0023
@@ -415,10 +417,9 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "TEST-0005 must produce exact-SHA cold-read/traceability evidence while REQ-0023/REQ-0024/REQ-0025 are still PROPOSED."
     - "A fresh-context L2 must review the proposed requirements and accumulated PR before they may transition to ACCEPTED."
     - "REVIEW-0018/F-1 remains open until that independent approval-capable review verifies the corrected acceptance sequence."
-    - "After handover synchronization, TEST-0006 must be rerun once if its latest valid tree predates the synchronized state."
+    - "TEST-0006 must be rerun once on this synchronized REVIEW-0018 + pre-acceptance TEST-0005 handover before that fresh L2."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; its own fresh-L2 work remains separate."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -435,9 +436,9 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0018 narrowed assurance debt. REVIEW-0018 found that atomic replacements 0020/21/22 were accepted before independent review. They are preserved as superseded history; new 0023/24/25 remain PROPOSED pending TEST-0005 cold-read evidence and a fresh approval-capable L2."
-  - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
-  - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
+  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0018 narrowed assurance debt. REVIEW-0018 found that atomic replacements 0020/21/22 were accepted before independent review. They are preserved as superseded history; new 0023/24/25 remain PROPOSED. Pre-acceptance TEST-0005 passed on efd48467 with result ce962ec2 and binding 79a95e7c; one final TEST-0006 rerun plus fresh approval-capable L2 remain."
+  - {id: RUN-4, objective: "Scientific/documentation governance hardening", tasks: [T7], exit_condition: "Canonical documentation is governed as rigorously as implementation", status: DONE}
+  - {id: RUN-5, objective: "Assurance, research and advanced verification hardening", tasks: [T8], exit_condition: "Quality dimensions/review evidence are explicit and synchronized", status: DONE}
 
 discoveries:
   - "Repository intentionally remains public by owner decision; public-code-safe constraints apply."
@@ -485,4 +486,4 @@ completion:
   review_complete: false
   docs_updated: true
   registries_updated: true
-  project_state_updated: false
+  project_state_updated: true
