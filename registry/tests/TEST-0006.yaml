@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: FAIL
 type: MANUAL_E2E
 
 protects:
@@ -44,7 +44,7 @@ cases:
   happy_path:
     - "README directs a new agent to START_HERE, AGENTS and PROJECT_STATE before implementation"
     - "docs/00_START_HERE.md gives an ordered cold-resume path through PROJECT_STATE, active WORK, read_before, linked registries and live work discussion"
-    - "PROJECT_STATE and WORK-0001 expose REVIEW-0015, status-machine v7, current TEST-0007 PASS and TEST-0006 rerun as the remaining proof gate"
+    - "PROJECT_STATE and WORK-0001 expose REVIEW-0015, status-machine v7, current TEST-0007 PASS and TEST-0006 as the active proof gate without telling the agent to repeat already-completed synchronization/test-state steps"
     - "PROJECT_STATE, registry/work-items/WORK-0002.yaml and registry/progress/matrix.yaml agree that live PR #2 / WORK-0002 is IN_REVIEW while WORK-0001 remains the blocking dependency"
     - "Every read_before entry declared by the PR #3 WORK-0002 mirror resolves in the PR #3 tree"
     - "PROJECT_STATE/WORK-0002 explicitly require switching to feat/work-0002-governance-ci before branch-only WORK-0002 prerequisites such as github-control-plane.md and ai-context-routing.md are read for implementation work"
@@ -68,7 +68,7 @@ cases:
     - "README/START_HERE does not route to the current project state and active work"
     - "PROJECT_STATE cannot identify current work and its next gate without chat history"
     - "PROJECT_STATE and WORK-0001 disagree on REVIEW-0015/v7/current proof state"
-    - "PROJECT_STATE still instructs a cold-resuming agent to perform synchronization or test-state transitions that are already complete at the tested SHA"
+    - "PROJECT_STATE instructs a cold-resuming agent to perform administrative or TEST state transitions already complete at the tested SHA"
     - "PROJECT_STATE, WORK-0002 and matrix disagree on WORK-0002 lifecycle"
     - "A current-tree WORK-0002 read_before path does not resolve"
     - "The handoff to the WORK-0002 implementation branch is implicit or requires guessing"
@@ -90,8 +90,11 @@ execution:
   command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3 tree 75d3df4486d05ab95d9d65daee2fd7ac77072a47"
   last_run_at: "2026-09-11"
   commit_sha: "75d3df4486d05ab95d9d65daee2fd7ac77072a47"
-  result: null
-  evidence: []
+  result: FAIL
+  evidence:
+    - "PROJECT_STATE.md @ 75d3df4486d05ab95d9d65daee2fd7ac77072a47 still starts Next action by recording the prior FAIL into WORK-0001 and reopening TEST-0006, although WORK-0001 already contains that FAIL and TEST-0006 is already READY at this tree."
+    - "The content is substantively correct about v7/REVIEW-0015, but the ordered handover would send a fresh agent backward into already-completed proof-state administration."
+    - "This run is therefore FAIL; the next handover revision must be durable across TEST state transitions rather than naming a step that becomes stale immediately after it is performed."
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -130,7 +133,7 @@ history:
       recorded_in_commit: "45088fc916b84c7e809d1305fe926724e85b797c"
       validity: VALID
       invalidated_by: null
-      reason: "The v6 contract is correct, but the exact tested tree still exposes stale v5/REVIEW-0013 handover and WORK-0001 currentness, so a cold-resuming agent cannot discover REVIEW-0014 as the current gate from canonical repository state. The failure remains preserved after synchronization and triggers this rerun."
+      reason: "The v6 contract is correct, but the exact tested tree still exposes stale v5/REVIEW-0013 handover and WORK-0001 currentness, so a cold-resuming agent cannot discover REVIEW-0014 as the current gate from canonical repository state."
     - commit_sha: "bb973b669797e887d6190065a3d74c377aa33c01"
       recorded_result: PASS
       recorded_in_commit: "7ce54360a2e56f8892ea70354af824bfa8c4df72"
@@ -142,4 +145,10 @@ history:
       recorded_in_commit: "35e3c4c892f8c9bc6e5424fbe792c2fc8043eaf8"
       validity: VALID
       invalidated_by: null
-      reason: "The v7 contract and WORK-0001 were current, but PROJECT_STATE still instructed a cold-resuming agent to repeat already-completed WORK-0001 synchronization and TEST-0006 reopen actions. The handover was advanced in 334fd31604054dcb05c1ae2c7732cacabf8b68d9 before this rerun."
+      reason: "The v7 contract and WORK-0001 were current, but PROJECT_STATE still instructed a cold-resuming agent to repeat already-completed WORK-0001 synchronization and TEST-0006 reopen actions."
+    - commit_sha: "75d3df4486d05ab95d9d65daee2fd7ac77072a47"
+      recorded_result: FAIL
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "The v7 handover was closer but still named two actions already complete at the tested READY tree: recording the previous FAIL in WORK-0001 and reopening TEST-0006. The next handover must remain correct across the test's FAIL/READY/RUNNING state changes."
