@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -90,11 +90,22 @@ cases:
     - "Attempt to reuse a consumed v7 external-review authorization"
 
 execution:
-  command_or_workflow: "Pending exact-SHA cold-resume rerun on final transition-stable REVIEW-0021 handover"
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  command_or_workflow: "Manual exact-SHA cold-resume rerun on final transition-stable REVIEW-0021 handover"
+  last_run_at: "2026-09-11"
+  commit_sha: "f21985ae608373ec8a3d93f92c5a76a2b11bd1ee"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree f21985ae608373ec8a3d93f92c5a76a2b11bd1ee"
+    - "PROJECT_STATE, WORK-0001 and registry/progress/matrix.yaml agree WORK-0001 is IN_REVIEW and WORK-0002 is IN_REVIEW; WORK-0001 completion gates remain false"
+    - "REQ-0023, REQ-0024 and REQ-0025 @ f21985ae remain PROPOSED and each verification.test_ids contains TEST-0005 and TEST-0006; TEST-0006 protects all three"
+    - "TEST-0005 exact PASS result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe resolves to test(governance): pass pre-acceptance TEST-0005"
+    - "PR #3 WORK-0002 mirror exposes locally resolvable prerequisites and no branch-local REVIEW-0002/TEST-0002/TEST-0003 structured proof IDs; branch-local proof exists only after the explicit feat/work-0002-governance-ci boundary"
+    - "Live PR #2 is open, non-draft and mergeable at ab62faa1743705600a0f11335579db68a2166ab3; WORK-0002 remains IN_REVIEW and depends on WORK-0001"
+    - "REVIEW-0021 remains COMPLETE with CHANGES_REQUIRED and F-1 OPEN; no author-produced PASS is treated as approval"
+    - "REVIEW-0021 v7 provenance resolves in order: authorization c059a18749426cae3c2c3429893f35ec6db8b0ff → import aca6010aaf59a923e59a8cc587cc9b8689ce8425 → review binding 4903934af7a263a8a16171329bf7bbb3a12df886 → authorization consumption 038b2d35e19d93fd6a665ca0ae6c8261f7a165fe"
+    - "registry/status-machines.yaml remains v7 and only APPROVE/APPROVE_WITH_FOLLOWUP are approval-capable review outcomes"
+    - "TEST-0001 remains SUPERSEDED and names TEST-0006 as its revision-bound scope-preserving replacement"
+    - "Independent YAML parser confirmation of WORK-0001 and approval-capable fresh-context L2 remain subsequent review gates; this PASS does not satisfy or bypass them"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -121,3 +132,4 @@ history:
     - {commit_sha: "45a8dae7fa9f199c63651f15306dcfa6f880b248", recorded_result: PASS, recorded_in_commit: "9bb81e07b7f119bc874bfcf689a5b84dcb769d71", validity: VALID, invalidated_by: null, reason: "REVIEW-0019 structural YAML/SHA corrections passed; independent parse confirmation remained pending."}
     - {commit_sha: "d0c985933e66960a781513ad61bd3567c91e5344", recorded_result: PASS, recorded_in_commit: "af4c50ba5a442a8bd06717c2802170bb4cbde54e", validity: VALID, invalidated_by: null, reason: "REVIEW-0020 cross-branch proof boundary passed with requirements still PROPOSED."}
     - {commit_sha: "20544cc6af2c690ba9e0593ea554c0c1596466e4", recorded_result: PASS, recorded_in_commit: "4b28d2218a5e9256d0348c73d031328ba2ef2d2f", validity: VALID, invalidated_by: null, reason: "REVIEW-0021 reciprocal requirement↔TEST-0006 traceability, current handover, cross-branch proof boundary, exact SHA integrity, pre-acceptance sequencing and v7 provenance all pass on the exact tested tree; independent YAML parse remains a fresh-L2 gate."}
+    - {commit_sha: "f21985ae608373ec8a3d93f92c5a76a2b11bd1ee", recorded_result: PASS, recorded_in_commit: null, validity: VALID, invalidated_by: null, reason: "Final transition-stable REVIEW-0021 handover passes reciprocal REQ↔TEST traceability, exact TEST-0005 SHA integrity, cross-branch proof isolation, live PR #2 lifecycle, positive-only approval semantics and v7 one-shot provenance; independent YAML parse and approval-capable fresh L2 remain subsequent gates."}
