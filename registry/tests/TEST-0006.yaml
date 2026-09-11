@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: PASS
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -21,36 +21,28 @@ protects:
     - "pre-acceptance Review Council/cold-read sequencing"
     - "machine-readable active WORK state"
     - "exact evidence SHA integrity"
+    - "bidirectional requirement-test traceability"
   risks:
     - "AI resumes from stale or incomplete context"
-    - "Unknown or competing status semantics cause governance drift"
     - "A negative COMPLETE review is treated as approval evidence"
-    - "Superseding an unbound historical test drops its original coverage"
-    - "An active work mirror references branch-only prerequisites that are unreadable in the current tree"
-    - "An active work mirror exposes branch-local review/test IDs as though they are locally traversable evidence"
-    - "Historical import/replay exceptions accidentally weaken normal review or requirement lifecycle semantics"
-    - "An externally completed review is represented as repository-native lifecycle execution or is imported without truthful one-shot provenance"
-    - "A handover sends a cold-resuming agent backward into administrative synchronization already complete at the tested SHA"
-    - "WORK/PROJECT_STATE duplicates volatile TEST or PR heads and becomes stale immediately after evidence changes"
-    - "Cold resume routes active ownership through superseded requirements or treats author test evidence as approval"
-    - "A mandatory WORK record is visually plausible but not parseable YAML"
-    - "An exact-SHA proof surface copies a truncated or non-resolvable commit identifier"
+    - "An active work mirror exposes branch-local review/test IDs as locally traversable evidence"
+    - "An externally completed review is imported without truthful one-shot provenance"
+    - "A handover sends a cold-resuming agent backward into already-complete work"
+    - "A mandatory WORK record is not parseable YAML"
+    - "An exact-SHA proof surface copies a truncated identifier"
+    - "TEST-0006 claims to protect a requirement whose forward verification mapping omits TEST-0006"
   invariants:
     - "Repository state, not chat history, is sufficient to resume active work"
     - "registry/status-machines.yaml is the single lifecycle source of truth"
     - "Only COMPLETE reviews with APPROVE or APPROVE_WITH_FOLLOWUP may provide approval evidence"
-    - "A superseding test re-executes the protected behavior represented by the superseded test"
-    - "Every current-tree read_before path is resolvable before an agent is instructed to edit; branch-only prerequisites become mandatory only after an explicit checkout handoff"
-    - "The PR #3 WORK-0002 mirror contains no branch-local review/test IDs in locally traversable structured proof fields; those records become authoritative only after explicit checkout of the WORK-0002 implementation branch"
-    - "Historical import/replay exceptions remain exact, historical-only and future-reuse-forbidden and do not alter generic initial states/transitions"
-    - "Post-v7 external completed-review imports require a one-shot authorization that predates materialization and is bound to the exact import commit"
-    - "PROJECT_STATE advances from the current review/test state and never orders a synchronization or evidence-recording step already complete at the tested SHA"
-    - "The current TEST execution is authoritative in the TEST record; handover prose may retain reviewed baselines but does not become a second mutable result registry"
-    - "Live PR #2 HEAD/check/thread truth is queried from GitHub rather than canonized as a volatile repository-state constant"
-    - "REQ-0005 and prematurely accepted REQ-0020/REQ-0021/REQ-0022 remain historical/superseded while REQ-0023/REQ-0024/REQ-0025 are the active PROPOSED AC-5 owners"
-    - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED until an approval-capable independent review inspects them"
-    - "WORK-0001 has the exact parser-breaking RUN-3 flow mapping defect corrected; full-file parseability remains an independent-review assertion rather than an author-fabricated parser run"
-    - "Every copied exact evidence SHA used by the current proof is a full resolvable commit identifier"
+    - "Every current-tree read_before path is resolvable before editing"
+    - "The PR #3 WORK-0002 mirror contains no branch-local review/test IDs in locally traversable structured proof fields"
+    - "Post-v7 external completed-review imports require one-shot preauthorization and exact import binding"
+    - "The current TEST execution is authoritative in the TEST record"
+    - "Live PR #2 truth is queried from GitHub rather than canonized as a volatile constant"
+    - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED until approval-capable independent review"
+    - "REQ-0023/REQ-0024/REQ-0025 each list TEST-0006 in verification.test_ids and TEST-0006 protects all three"
+    - "Every copied exact evidence SHA used by current proof is full and resolvable"
 
 environment:
   kind: REAL_GITHUB_REPOSITORY
@@ -62,85 +54,47 @@ environment:
 
 cases:
   happy_path:
-    - "README directs a new agent to START_HERE, AGENTS and PROJECT_STATE before implementation"
-    - "docs/00_START_HERE.md gives an ordered cold-resume path through PROJECT_STATE, active WORK, read_before, linked registries and live work discussion"
-    - "PROJECT_STATE and WORK-0001 expose REVIEW-0020, exact TEST-0005 pre-acceptance proof, status-machine v7, current TEST-0007 generic lifecycle proof and TEST-0006/fresh-L2 gating without telling the agent to repeat completed steps"
-    - "WORK-0001's exact REVIEW-0019 parser-breaking defect is corrected: RUN-3 is a closed flow mapping; the next independent L2 must perform/confirm full machine parseability"
-    - "PROJECT_STATE and TEST-0006 both reference exact TEST-0005 PASS result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe wherever that proof is copied"
-    - "PROJECT_STATE, registry/work-items/WORK-0002.yaml and registry/progress/matrix.yaml agree that WORK-0002 is IN_REVIEW while WORK-0001 remains the blocking dependency"
-    - "PROJECT_STATE deliberately does not duplicate a volatile PR #2 HEAD and instead requires live GitHub recheck before resume/merge decisions"
-    - "Every read_before entry declared by the PR #3 WORK-0002 mirror resolves in the PR #3 tree"
-    - "PR #3 WORK-0002 mirror completed_reviews and required_tests contain no branch-local REVIEW-0002/TEST-0002/TEST-0003 IDs"
-    - "PROJECT_STATE/WORK-0002 explicitly require switching to feat/work-0002-governance-ci before branch-local WORK-0002 documents and proof records become mandatory"
-    - "WORK-0001 active requirements include REQ-0023/REQ-0024/REQ-0025 and omit superseded REQ-0005/REQ-0020/REQ-0021/REQ-0022 from active normative ownership"
-    - "REQ-0023/REQ-0024/REQ-0025 are each PROPOSED and separately own DoR, DoD and verification strategy"
-    - "TEST-0005 is PASS on exact pre-acceptance tree efd48467352c0ce4ec344ebe410fd9e98d938721 with exact result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe and history binding 79a95e7cda3b62b68208e333ddc1593c510167f7"
-    - "registry/progress/matrix.yaml points to registry/status-machines.yaml#progress and does not embed a second status vocabulary"
-    - "all progress/status values used by the inspected active routing are declared by the canonical lifecycle machine"
-    - "registry/status-machines.yaml declares approval_capable_outcomes as APPROVE and APPROVE_WITH_FOLLOWUP only"
-    - "review completion_rule explicitly rejects COMPLETE+CHANGES_REQUIRED/BLOCKED as approval evidence"
-    - "status-machines v7 keeps generic review OPEN → IN_PROGRESS → COMPLETE and requirement PROPOSED → ACCEPTED semantics unchanged while isolating exact historical imports/replay"
-    - "status-machines v7 truthfully binds REVIEW-0015 through REVIEW-0020 external completions to one-shot provenance"
-    - "TEST-0001 is SUPERSEDED and points to TEST-0006, whose protected contracts include every original TEST-0001 contract"
+    - "README/START_HERE route cold resume through PROJECT_STATE and active WORK"
+    - "PROJECT_STATE and WORK-0001 expose REVIEW-0021 and the current TEST/fresh-L2 gate without repeating completed steps"
+    - "WORK-0001 remains IN_REVIEW and includes REVIEW-0021 in scope/evidence while completion gates remain false"
+    - "PROJECT_STATE, WORK-0002 and matrix agree WORK-0002 is IN_REVIEW and depends on WORK-0001"
+    - "Every PR #3 WORK-0002 read_before path resolves locally"
+    - "PR #3 WORK-0002 mirror contains no branch-local REVIEW-0002/TEST-0002/TEST-0003 structured proof IDs"
+    - "Branch-local proof is available only after explicit checkout of feat/work-0002-governance-ci"
+    - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED and separately own DoR, DoD and verification strategy"
+    - "Each REQ-0023/REQ-0024/REQ-0025 verification.test_ids contains TEST-0006 while TEST-0006 protects all three"
+    - "TEST-0005 remains PASS on exact pre-acceptance evidence and does not approve the proposed requirements"
+    - "REVIEW-0021 remains COMPLETE/CHANGES_REQUIRED with truthful one-shot v7 provenance"
+    - "status-machines v7 generic review/requirement/test transitions remain unchanged and positive-only approval remains enforced"
+    - "TEST-0001 remains SUPERSEDED and points to TEST-0006 as scope-preserving revision-bound replacement"
   edge_cases:
-    - "A concurrently active work item on another PR is represented by one consistent global lifecycle while volatile live PR metadata remains external"
-    - "Branch-local documents and proof records remain discoverable after explicit checkout without being duplicated into the PR #3 mirror"
-    - "A COMPLETE review with all findings resolved but outcome CHANGES_REQUIRED remains negative evidence and cannot approve"
-    - "A COMPLETE review with outcome APPROVE_WITH_FOLLOWUP may approve only subject to other completion and blocking-finding rules"
-    - "Historical import/replay exceptions can preserve immutable legacy history without changing generic lifecycle semantics"
-    - "An externally completed negative review may be imported truthfully but remains negative evidence"
-    - "Historical TEST-0001 remains inspectable while no longer serving as gating PASS evidence"
-    - "A prior TEST-0006 PASS remains inspectable after a later independent review invalidates or re-questions current proof assertions"
-    - "A prematurely accepted requirement remains inspectable as superseded history while a new owner remains PROPOSED"
+    - "A concurrently active PR remains externally queryable without duplicating its volatile HEAD in PROJECT_STATE"
+    - "A prior TEST-0006 PASS remains historical when later review changes current proof obligations"
+    - "A proposed requirement may carry test mappings without becoming accepted"
   failure_modes:
-    - "README/START_HERE does not route to the current project state and active work"
-    - "PROJECT_STATE cannot identify current work and its next gate without chat history"
-    - "PROJECT_STATE and WORK-0001 disagree on REVIEW-0020/current proof state"
-    - "The exact REVIEW-0019 parser-breaking RUN-3 mapping remains unclosed or another independent parser review still finds WORK-0001 invalid"
-    - "PROJECT_STATE or TEST-0006 contains the truncated TEST-0005 result ce962ec2ad199dd914ee4e4a66ec4e110fbfbe"
-    - "PROJECT_STATE instructs a cold-resuming agent to perform administrative or TEST transitions already complete at the tested SHA"
-    - "PROJECT_STATE or WORK-0001 hardcodes a volatile current TEST result or PR #2 HEAD as a second mutable source of truth"
-    - "PROJECT_STATE, WORK-0002 and matrix disagree on WORK-0002 lifecycle"
-    - "A current-tree WORK-0002 read_before path does not resolve"
-    - "PR #3 WORK-0002 mirror exposes REVIEW-0002, TEST-0002 or TEST-0003 as locally traversable structured proof before checkout"
-    - "The handoff to the WORK-0002 implementation branch is implicit or requires guessing"
-    - "COMPLETE+CHANGES_REQUIRED or COMPLETE+BLOCKED can satisfy review completion"
-    - "A historical import/replay exception authorizes a future record or weakens generic lifecycle"
-    - "REVIEW-0020 authorization/import/binding/consumption do not agree"
-    - "TEST-0001 is superseded by evidence that omits original protected contracts"
-    - "WORK-0001 still uses superseded AC-5 owners or omits one of REQ-0023/REQ-0024/REQ-0025"
-    - "REQ-0023/REQ-0024/REQ-0025 becomes ACCEPTED before the next approval-capable independent review"
+    - "PROJECT_STATE and WORK-0001 disagree on REVIEW-0021/current proof state"
+    - "WORK-0001 omits REVIEW-0021 from current review evidence"
+    - "REQ-0023/REQ-0024/REQ-0025 is ACCEPTED before approval-capable L2"
+    - "Any REQ-0023/REQ-0024/REQ-0025 forward verification mapping omits TEST-0006"
+    - "TEST-0006 stops protecting one of REQ-0023/REQ-0024/REQ-0025"
+    - "PR #3 WORK-0002 mirror exposes branch-local proof IDs before checkout"
+    - "COMPLETE+CHANGES_REQUIRED or COMPLETE+BLOCKED can satisfy approval"
+    - "REVIEW-0021 authorization/import/binding/consumption disagree"
+    - "TEST-0001 replacement omits original protected contracts"
   adversarial_cases:
-    - "Have the fresh independent L2 load/validate WORK-0001 as YAML instead of relying on author visual inspection"
-    - "Resolve every copied TEST-0005 result SHA and verify it equals ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe"
-    - "Resolve every PR #3 WORK-0002 read_before path and structured review/test ID at the exact tested SHA rather than assuming another branch contains it"
-    - "After explicit checkout of feat/work-0002-governance-ci, verify branch-only prerequisites and REVIEW-0002/TEST-0002/TEST-0003 are available there"
-    - "Query live PR #2 and compare its lifecycle with synchronized WORK-0002/matrix state without requiring PROJECT_STATE to duplicate its volatile HEAD"
-    - "Resolve every R1/R2 finding on a CHANGES_REQUIRED review and verify its negative outcome still prevents approval"
-    - "Attempt to reuse a consumed v7 external-review authorization and verify the contract forbids it"
-    - "Follow TEST-0001.supersession and compare original protected contracts/invariant with TEST-0006 coverage"
-    - "Cold-read README then START_HERE/PROJECT_STATE/WORK-0001 and attempt to resume without conversation memory"
-    - "Walk PROJECT_STATE Next action at READY/RUNNING/PASS and verify it continues from current TEST-0006 state instead of ordering a completed transition"
-    - "Walk AC-5 ownership from WORK-0001 and verify active proposed owners are REQ-0023/REQ-0024/REQ-0025"
-    - "Attempt to treat TEST-0005 PASS as approval authority and verify REQ-0023/24/25 remain PROPOSED"
+    - "Fresh L2 must parse WORK-0001 as YAML rather than rely on visual plausibility"
+    - "Resolve every copied TEST-0005 result SHA to the exact commit"
+    - "Start from each REQ-0023/REQ-0024/REQ-0025 and reach TEST-0006, then traverse TEST-0006 back to all three"
+    - "Resolve current-tree WORK-0002 prerequisites and only then cross the explicit branch checkout boundary"
+    - "Query live PR #2 and compare lifecycle without relying on stale repository prose"
+    - "Attempt to reuse a consumed v7 external-review authorization"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub cold-read of REVIEW-0020-synchronized PR #3 tree, including cross-branch proof-record boundary; full-file YAML parseability remains reserved for independent fresh-L2 confirmation"
-  last_run_at: "2026-09-11"
-  commit_sha: "d0c985933e66960a781513ad61bd3567c91e5344"
-  result: PASS
-  evidence:
-    - "Exact tested PR #3 READY tree d0c985933e66960a781513ad61bd3567c91e5344"
-    - "Compare 45a8dae7fa9f199c63651f15306dcfa6f880b248 → d0c985933e66960a781513ad61bd3567c91e5344 changes only PROJECT_STATE, REVIEW-0020, status-machine REVIEW-0020 metadata, TEST-0006, WORK-0001 and WORK-0002; no progress-matrix or WORK-0002 read_before target changed"
-    - "PR #3 WORK-0002 @ d0c985 has completed_reviews=[] and no TEST-0002/TEST-0003 IDs in unit/integration/e2e/real_system required-test fields"
-    - "REVIEW-0002 is absent from the d0c985 PR #3 tree and present after explicit checkout of feat/work-0002-governance-ci; TEST-0002 and TEST-0003 are likewise present on that implementation branch"
-    - "REQ-0023, REQ-0024 and REQ-0025 @ d0c985 are each status PROPOSED and independently own DoR, DoD and verification strategy"
-    - "REVIEW-0020 remains COMPLETE/CHANGES_REQUIRED and is v7-bound: authorization 53d2b3861b35ad3b17ea9718794c99a594ca4557 predates import f7955c10d4c932df86c3238c8e91322c24ce6929; review binding 0c0ff92c75f80e53640c62b86c283d230382a510; authorization consumption d3a17e7049ff264b22107585bff4145f46fddac3"
-    - "TEST-0005 exact result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe resolves to the actual 'test(governance): pass pre-acceptance TEST-0005' commit"
-    - "WORK-0001 @ d0c985 remains IN_REVIEW with definition_of_done_checked/specification_gates_checked/traceability_checked/review_complete all false"
-    - "Progress matrix @ d0c985 records WORK-0001 IN_REVIEW and WORK-0002 IN_REVIEW and points to the canonical status machine"
-    - "Live PR #2 was rechecked open, non-draft and mergeable at HEAD ab62faa1743705600a0f11335579db68a2166ab3"
-    - "Fresh independent L2 remains required to parse/load full WORK-0001 YAML, independently verify REVIEW-0018/0019/0020 corrections and approve any requirement acceptance or WORK-0001 completion"
+  command_or_workflow: "Pending exact-SHA cold-resume rerun after REVIEW-0021 reciprocal traceability correction"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -150,99 +104,19 @@ history:
   created_at: "2026-09-10"
   updated_at: "2026-09-11"
   executions:
-    - commit_sha: "331931d21c4ebde3f84911825debde61488f91b3"
-      recorded_result: PASS
-      recorded_in_commit: "49b0b0aaa818cefe1fe7051dc161f1977d4bac5b"
-      validity: INVALIDATED
-      invalidated_by: "REVIEW-0007/F-1"
-      reason: "Fresh L2 proved that PROJECT_STATE described WORK-0002 as IN_REVIEW while the WORK-0002 record and matrix at the tested SHA still said PLANNED, so the active-work-routing happy path was false."
-    - commit_sha: "3b4477f00953f1a352fe7c40497853fc01e103b6"
-      recorded_result: PASS
-      recorded_in_commit: "1558b2d9e85f64c755bacd623d310474ef838719"
-      validity: INVALIDATED
-      invalidated_by: "REVIEW-0008/F-1"
-      reason: "Fresh L2 proved that synchronized WORK-0002 read_before referenced branch-only paths absent from the tested PR #3 tree."
-    - commit_sha: "0b2c2f6a92051760e759bf2e64518188e8266012"
-      recorded_result: PASS
-      recorded_in_commit: "badf011c82fc07e86d85d0e5d6efcb21223ca8cb"
-      validity: VALID
-      invalidated_by: null
-      reason: "Current-tree prerequisites resolved, branch-only prerequisites were explicitly deferred, lifecycle state was coherent, and replacement-scope/review-outcome checks passed."
-    - commit_sha: "fa55004d1623ab2aa66c14b62bb036f6e335f041"
-      recorded_result: PASS
-      recorded_in_commit: "80eb23da21d76d5b87134164ce46954423a04e95"
-      validity: VALID
-      invalidated_by: null
-      reason: "Contract v5, handover, branch boundary, lifecycle consistency, TEST-0001 supersession and positive-only review semantics passed on that exact tree."
-    - commit_sha: "ffffb37d680e477fa03f74523dfac624ad74427c"
-      recorded_result: FAIL
-      recorded_in_commit: "45088fc916b84c7e809d1305fe926724e85b797c"
-      validity: VALID
-      invalidated_by: null
-      reason: "The v6 contract was correct but the tested tree exposed stale v5/REVIEW-0013 handover."
-    - commit_sha: "bb973b669797e887d6190065a3d74c377aa33c01"
-      recorded_result: PASS
-      recorded_in_commit: "7ce54360a2e56f8892ea70354af824bfa8c4df72"
-      validity: VALID
-      invalidated_by: null
-      reason: "After synchronization, the exact v6 tree exposed current state, valid branch boundary, isolated historical imports and TEST-0001 replacement coverage."
-    - commit_sha: "11cca4bccb318d29c422917d544a470870b2cf65"
-      recorded_result: FAIL
-      recorded_in_commit: "35e3c4c892f8c9bc6e5424fbe792c2fc8043eaf8"
-      validity: VALID
-      invalidated_by: null
-      reason: "The v7 contract and WORK were current but PROJECT_STATE still ordered completed synchronization/reopen actions."
-    - commit_sha: "75d3df4486d05ab95d9d65daee2fd7ac77072a47"
-      recorded_result: FAIL
-      recorded_in_commit: "49a772c224cb3dd4811f48f4bc0431c155b01e74"
-      validity: VALID
-      invalidated_by: null
-      reason: "The handover still named actions already complete at the tested READY tree."
-    - commit_sha: "d6f012abe31263f0fa83003646405c039b23611e"
-      recorded_result: PASS
-      recorded_in_commit: "788a2948054cdd90130c72b17910d745fd36d927"
-      validity: VALID
-      invalidated_by: null
-      reason: "Transition-stable v7 cold resume, coherent lifecycle, resolvable prerequisites, strict provenance, positive-only approval and TEST-0001 supersession passed."
-    - commit_sha: "8c921bf5a6553463a1343b5fe0b987966be33208"
-      recorded_result: PASS
-      recorded_in_commit: "2e038194f149c667ffe680286ed275435734e5ee"
-      validity: VALID
-      invalidated_by: null
-      reason: "After REVIEW-0016, the exact tested tree advanced directly from current state and preserved provenance/lifecycle/branch-boundary semantics."
-    - commit_sha: "b8180dff075ea5c8328ee56d1683380576c984ba"
-      recorded_result: PASS
-      recorded_in_commit: "e9e41c96a826cfa8d6a1056f9795776c9d0431b4"
-      validity: VALID
-      invalidated_by: null
-      reason: "The finalized handover exposed fresh L2 as sole gate while keeping lifecycle and branch boundary coherent."
-    - commit_sha: "626f9fb99605ff4bc78f8bb7986540825cabbdf3"
-      recorded_result: PASS
-      recorded_in_commit: "85bfd4b8686c51f4d415b972a72d39ca101c29d1"
-      validity: VALID
-      invalidated_by: null
-      reason: "The REVIEW-0017-corrected handover is cold-resumable and transition-stable, current proof routing no longer duplicates mutable heads, REVIEW-0017 provenance is truthful, AC-5 ownership is atomic, lifecycle/branch boundaries resolve, and TEST-0001 replacement/positive-only review semantics remain intact."
-    - commit_sha: "19b1854f4438800637237a90a3e9e3e90b398548"
-      recorded_result: PASS
-      recorded_in_commit: "9e55ba41f2f057292d6da86f3fc3f9d2892be701"
-      validity: VALID
-      invalidated_by: null
-      reason: "The REVIEW-0018-corrected handover is cold-resumable while REQ-0023/REQ-0024/REQ-0025 remain PROPOSED; pre-acceptance TEST-0005 evidence is discoverable, author evidence cannot approve acceptance, lifecycle/branch/provenance semantics remain coherent, and the next gate is independent fresh L2."
-    - commit_sha: "c58ddee0b98097514a4c73c5a8dc8acfb9cd977e"
-      recorded_result: PASS
-      recorded_in_commit: "b02f4fbdbbd8104b2b8c3cf9cc88f15102d51f48"
-      validity: INVALIDATED
-      invalidated_by: "REVIEW-0019/F-1;REVIEW-0019/F-2"
-      reason: "Fresh L2 proved this execution did not establish the mandatory machine-readable cold-resume path because WORK-0001 YAML was malformed, and its TEST-0005 evidence copied a truncated non-exact result SHA. The immutable PASS remains historical but is not current gating proof."
-    - commit_sha: "45a8dae7fa9f199c63651f15306dcfa6f880b248"
-      recorded_result: PASS
-      recorded_in_commit: "9bb81e07b7f119bc874bfcf689a5b84dcb769d71"
-      validity: VALID
-      invalidated_by: null
-      reason: "After REVIEW-0019, the exact tested tree carries the structural RUN-3 YAML fix, exact TEST-0005 result SHA, synchronized REVIEW-0019 handover, PROPOSED AC-5 replacements, truthful v7 provenance, coherent WORK-0002/matrix/branch boundary and preserved TEST-0001 replacement scope. Full WORK-0001 parser validation remains an explicit independent-L2 check before acceptance/completion."
-    - commit_sha: "d0c985933e66960a781513ad61bd3567c91e5344"
-      recorded_result: PASS
-      recorded_in_commit: "af4c50ba5a442a8bd06717c2802170bb4cbde54e"
-      validity: VALID
-      invalidated_by: null
-      reason: "After REVIEW-0020, the exact tested tree preserves all prior corrected handover/acceptance/provenance semantics while the PR #3 WORK-0002 mirror exposes no branch-local review/test IDs before checkout; branch-local proof remains available after explicit checkout and WORK-0001/WORK-0002/matrix remain coherently non-terminal."
+    - {commit_sha: "331931d21c4ebde3f84911825debde61488f91b3", recorded_result: PASS, recorded_in_commit: "49b0b0aaa818cefe1fe7051dc161f1977d4bac5b", validity: INVALIDATED, invalidated_by: "REVIEW-0007/F-1", reason: "Global WORK-0002 lifecycle contradiction."}
+    - {commit_sha: "3b4477f00953f1a352fe7c40497853fc01e103b6", recorded_result: PASS, recorded_in_commit: "1558b2d9e85f64c755bacd623d310474ef838719", validity: INVALIDATED, invalidated_by: "REVIEW-0008/F-1", reason: "Branch-only prerequisites were falsely exposed as current-tree paths."}
+    - {commit_sha: "0b2c2f6a92051760e759bf2e64518188e8266012", recorded_result: PASS, recorded_in_commit: "badf011c82fc07e86d85d0e5d6efcb21223ca8cb", validity: VALID, invalidated_by: null, reason: "Current-tree prerequisites and branch boundary passed."}
+    - {commit_sha: "fa55004d1623ab2aa66c14b62bb036f6e335f041", recorded_result: PASS, recorded_in_commit: "80eb23da21d76d5b87134164ce46954423a04e95", validity: VALID, invalidated_by: null, reason: "v5 lifecycle/handover/review semantics passed."}
+    - {commit_sha: "ffffb37d680e477fa03f74523dfac624ad74427c", recorded_result: FAIL, recorded_in_commit: "45088fc916b84c7e809d1305fe926724e85b797c", validity: VALID, invalidated_by: null, reason: "v6 contract existed but handover remained stale."}
+    - {commit_sha: "bb973b669797e887d6190065a3d74c377aa33c01", recorded_result: PASS, recorded_in_commit: "7ce54360a2e56f8892ea70354af824bfa8c4df72", validity: VALID, invalidated_by: null, reason: "Synchronized v6 state passed."}
+    - {commit_sha: "11cca4bccb318d29c422917d544a470870b2cf65", recorded_result: FAIL, recorded_in_commit: "35e3c4c892f8c9bc6e5424fbe792c2fc8043eaf8", validity: VALID, invalidated_by: null, reason: "PROJECT_STATE ordered completed actions."}
+    - {commit_sha: "75d3df4486d05ab95d9d65daee2fd7ac77072a47", recorded_result: FAIL, recorded_in_commit: "49a772c224cb3dd4811f48f4bc0431c155b01e74", validity: VALID, invalidated_by: null, reason: "Handover still named completed actions."}
+    - {commit_sha: "d6f012abe31263f0fa83003646405c039b23611e", recorded_result: PASS, recorded_in_commit: "788a2948054cdd90130c72b17910d745fd36d927", validity: VALID, invalidated_by: null, reason: "Transition-stable v7 cold resume passed."}
+    - {commit_sha: "8c921bf5a6553463a1343b5fe0b987966be33208", recorded_result: PASS, recorded_in_commit: "2e038194f149c667ffe680286ed275435734e5ee", validity: VALID, invalidated_by: null, reason: "REVIEW-0016-corrected handover passed."}
+    - {commit_sha: "b8180dff075ea5c8328ee56d1683380576c984ba", recorded_result: PASS, recorded_in_commit: "e9e41c96a826cfa8d6a1056f9795776c9d0431b4", validity: VALID, invalidated_by: null, reason: "Finalized pre-REVIEW-0017 handover passed."}
+    - {commit_sha: "626f9fb99605ff4bc78f8bb7986540825cabbdf3", recorded_result: PASS, recorded_in_commit: "85bfd4b8686c51f4d415b972a72d39ca101c29d1", validity: VALID, invalidated_by: null, reason: "REVIEW-0017-corrected transition-stable handover passed."}
+    - {commit_sha: "19b1854f4438800637237a90a3e9e3e90b398548", recorded_result: PASS, recorded_in_commit: "9e55ba41f2f057292d6da86f3fc3f9d2892be701", validity: VALID, invalidated_by: null, reason: "REVIEW-0018 pre-acceptance handover passed with replacement requirements PROPOSED."}
+    - {commit_sha: "c58ddee0b98097514a4c73c5a8dc8acfb9cd977e", recorded_result: PASS, recorded_in_commit: "b02f4fbdbbd8104b2b8c3cf9cc88f15102d51f48", validity: INVALIDATED, invalidated_by: "REVIEW-0019/F-1;REVIEW-0019/F-2", reason: "WORK-0001 was malformed YAML and copied TEST-0005 SHA was truncated."}
+    - {commit_sha: "45a8dae7fa9f199c63651f15306dcfa6f880b248", recorded_result: PASS, recorded_in_commit: "9bb81e07b7f119bc874bfcf689a5b84dcb769d71", validity: VALID, invalidated_by: null, reason: "REVIEW-0019 structural YAML/SHA corrections passed; independent parse confirmation remained pending."}
+    - {commit_sha: "d0c985933e66960a781513ad61bd3567c91e5344", recorded_result: PASS, recorded_in_commit: "af4c50ba5a442a8bd06717c2802170bb4cbde54e", validity: VALID, invalidated_by: null, reason: "REVIEW-0020 cross-branch proof boundary passed with requirements still PROPOSED."}
