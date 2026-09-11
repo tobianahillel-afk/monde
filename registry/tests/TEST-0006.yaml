@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -92,9 +92,9 @@ cases:
     - "Walk PROJECT_STATE Next action in order and verify no step preceding the actual pending review work is already complete at the exact tested SHA"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3 finalized handover tree"
-  last_run_at: null
-  commit_sha: null
+  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3 finalized handover tree b8180dff075ea5c8328ee56d1683380576c984ba"
+  last_run_at: "2026-09-11"
+  commit_sha: "b8180dff075ea5c8328ee56d1683380576c984ba"
   result: null
   evidence: []
 
@@ -117,7 +117,7 @@ history:
       recorded_in_commit: "1558b2d9e85f64c755bacd623d310474ef838719"
       validity: INVALIDATED
       invalidated_by: "REVIEW-0008/F-1"
-      reason: "Fresh L2 proved that the synchronized WORK-0002 read_before list referenced github-control-plane.md and ai-context-routing.md, which were absent from the tested PR #3 tree and existed only on the PR #2 branch, so the cold-resume happy path was still false."
+      reason: "Fresh L2 proved that the synchronized WORK-0002 read_before list referenced github-control-plane.md and ai-context-routing.md, which were absent from the tested PR #3 tree and existed only on the PR #2 branch, so the cold-resume happy path was false."
     - commit_sha: "0b2c2f6a92051760e759bf2e64518188e8266012"
       recorded_result: PASS
       recorded_in_commit: "badf011c82fc07e86d85d0e5d6efcb21223ca8cb"
