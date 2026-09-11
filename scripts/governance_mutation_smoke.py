@@ -89,6 +89,31 @@ MUTATIONS = {
         'if change_relevant_to_work(root, path, work, reviewed, head, file_path)',
         'if True',
     ),
+    "assurance-min-review": (
+        "tools/governance/strict_contracts.py",
+        'if assurance_level in ASSURANCE_MIN_REVIEW_RANK and declared_rank < ASSURANCE_MIN_REVIEW_RANK[assurance_level]:',
+        'if False:',
+    ),
+    "review-complete-sha": (
+        "tools/governance/strict_contracts.py",
+        'if review.get("status") == "COMPLETE" and not reviewed_sha:',
+        'if False:',
+    ),
+    "na-justification": (
+        "tools/governance/strict_contracts.py",
+        'if state.get("status") == "DONE" and value == "NOT_APPLICABLE":',
+        'if False:',
+    ),
+    "context-registry-change-seed": (
+        "tools/governance/context_manifest.py",
+        'if rel in files:',
+        'if False:',
+    ),
+    "test-pass-protected-contract-schema": (
+        "schemas/registry/tests.schema.json",
+        '"contracts": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}',
+        '"contracts": {"type": "array", "items": {"type": "string", "minLength": 1}}',
+    ),
 }
 
 

@@ -5,7 +5,7 @@ phase: PHASE-0
 lot: LOT-0
 sublot: SUBLOT-0.3
 created_at: "2026-09-10"
-updated_at: "2026-09-10"
+updated_at: "2026-09-11"
 
 purpose: |
   Make GitHub enforce MONDE's repository rules so merge safety no longer depends on agent discipline alone.
@@ -35,6 +35,10 @@ acceptance_criteria:
   - {id: AC-3, description: "The stable MONDE / Merge Gate is required on the exact merge candidate HEAD.", status: NOT_STARTED}
   - {id: AC-4, description: "Applicable GitHub security/supply-chain protections are enabled and verified on the real repository.", status: NOT_STARTED}
   - {id: AC-5, description: "Actual settings, limitations, rollback and owner actions are documented and cold-start resumable.", status: NOT_STARTED}
+
+progress_justifications:
+  implementation: "WORK-0003 primarily changes GitHub repository/control-plane settings and governance configuration rather than MONDE product/runtime implementation."
+  scientific_validation: "WORK-0003 makes no scientific/model claim; applicable assurance is security, governance and real-repository validation."
 
 read_before:
   - docs/03_ARCHITECTURE/github-control-plane.md

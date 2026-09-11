@@ -149,10 +149,10 @@ def build(root: Path, base: str, head: str) -> dict[str, Any]:
         levels.append((d.get("assurance") or {}).get("level"))
 
     for rid, (path, data) in records.items():
-        if not rid.startswith("WORK-"):
-            continue
         rel = str(path.relative_to(root))
-        if rel in files or any(path_matches(fp, declared_paths(data)) for fp in files):
+        if rel in files:
+            seeds.add(rid)
+        if rid.startswith("WORK-") and any(path_matches(fp, declared_paths(data)) for fp in files):
             seeds.add(rid)
 
     selected = dependency_closure(records, seeds)

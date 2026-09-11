@@ -99,6 +99,50 @@
           "completion"
         ]
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "assurance": {
+            "type": "object",
+            "properties": {"level": {"const": "A3"}},
+            "required": ["level"]
+          }
+        },
+        "required": ["assurance"]
+      },
+      "then": {
+        "required": ["review_plan"],
+        "properties": {
+          "review_plan": {
+            "properties": {
+              "independence_level": {"enum": ["L2", "L3", "L2_TARGET", "L3_TARGET"]}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "assurance": {
+            "type": "object",
+            "properties": {"level": {"const": "A4"}},
+            "required": ["level"]
+          }
+        },
+        "required": ["assurance"]
+      },
+      "then": {
+        "required": ["review_plan"],
+        "properties": {
+          "review_plan": {
+            "properties": {
+              "independence_level": {"enum": ["L3", "L3_TARGET"]}
+            }
+          }
+        }
+      }
     }
   ],
   "additionalProperties": true

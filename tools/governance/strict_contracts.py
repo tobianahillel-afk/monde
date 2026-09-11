@@ -10,12 +10,13 @@ from typing import Any, Iterable
 
 import yaml
 
-from .validate_repo import GLOBAL_STATUSES, Issue, PINNED_ACTION, PINNED_DOCKER
+from .validate_repo import GLOBAL_STATUSES, Issue, PINNED_ACTION, PINNED_DOCKER, independence_rank
 
 ACTIVE_DEPENDENCY_CONSUMERS = {"READY", "IN_PROGRESS", "PARTIAL", "IN_REVIEW", "DONE"}
 USABLE_DEPENDENCY_STATES = {"IN_REVIEW", "DONE"}
 TEST_ID = re.compile(r"\bTEST-\d+\b")
 DONE_PROGRESS_ALLOWED = {"DONE", "NOT_APPLICABLE"}
+ASSURANCE_MIN_REVIEW_RANK = {"A3": 2, "A4": 3}
 WORK_PROGRESS_DIMENSIONS = (
     "docs",
     "specification_governance",
@@ -122,6 +123,12 @@ def validate_work_lifecycle(root: Path) -> list[Issue]:
                 if target is not None and target.get("status") not in allowed:
                     issues.append(Issue(f"registry/work-items/{wid}.yaml", "WORK_DEP_STATE", f"dependency {dep} has unusable status {target.get('status')!r} for {status}"))
 
+        assurance_level = str(((work.get("assurance") or {}).get("level") or ""))
+        declared_rank = independence_rank((work.get("review_plan") or {}).get("independence_level"))
+        if assurance_level in ASSURANCE_MIN_REVIEW_RANK and declared_rank < ASSURANCE_MIN_REVIEW_RANK[assurance_level]:
+            minimum = "L2" if assurance_level == "A3" else "L3"
+            issues.append(Issue(f"registry/work-items/{wid}.yaml", "REVIEW_ASSURANCE_INDEPENDENCE", f"{assurance_level} requires review independence at least {minimum}"))
+
         if status != "DONE":
             continue
 
@@ -133,6 +140,9 @@ def validate_work_lifecycle(root: Path) -> list[Issue]:
         for rid in completed:
             review = reviews.get(rid)
             if review is not None:
+                reviewed_sha = str(((review.get("artifact") or {}).get("commit_sha") or "")).strip()
+                if review.get("status") == "COMPLETE" and not reviewed_sha:
+                    issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_REVIEW_SHA", f"review {rid} is COMPLETE but has no artifact.commit_sha"))
                 if wid not in review_targets(review):
                     issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_REVIEW_SCOPE", f"review {rid} is not structurally bound to {wid}"))
                 issues.extend(validate_review_findings(f"registry/work-items/{wid}.yaml", rid, review))
@@ -149,6 +159,7 @@ def validate_work_lifecycle(root: Path) -> list[Issue]:
 def validate_progress_uniqueness(root: Path) -> list[Issue]:
     path = root / "registry/progress/matrix.yaml"
     data = load_mapping(path)
+    works = load_records(root, "work-items")
     seen: dict[str, str] = {}
     issues: list[Issue] = []
     expected_dimensions = set(WORK_PROGRESS_DIMENSIONS)
@@ -172,6 +183,11 @@ def validate_progress_uniqueness(root: Path) -> list[Issue]:
                         value = state.get(key)
                         if value not in GLOBAL_STATUSES:
                             issues.append(Issue("registry/progress/matrix.yaml", "PROGRESS_DIMENSION_STATUS", f"{wid}.{key} has noncanonical status {value!r}"))
+                        if state.get("status") == "DONE" and value == "NOT_APPLICABLE":
+                            justifications = (works.get(wid) or {}).get("progress_justifications") or {}
+                            reason = justifications.get(key) if isinstance(justifications, dict) else None
+                            if not isinstance(reason, str) or not reason.strip():
+                                issues.append(Issue("registry/progress/matrix.yaml", "PROGRESS_NA_JUSTIFICATION", f"{wid}.{key}=NOT_APPLICABLE requires a non-empty work-item progress_justifications.{key}"))
                     if state.get("status") == "DONE":
                         missing = expected_dimensions - dimensions
                         if missing:

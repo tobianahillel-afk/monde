@@ -3,7 +3,7 @@
 Status: Accepted  
 Canonical operational state: Yes
 
-> Fast resume point. Durable intent lives in Git; live PR/check/thread truth lives in GitHub.
+> Fast resume point. Durable intent lives in Git; live PR/check/thread truth lives in GitHub and must be rechecked before merge decisions.
 
 ## Current phase
 
@@ -13,104 +13,70 @@ Canonical operational state: Yes
 
 **LOT-0 — AI-first repository operating system**
 
-## Current sublot
-
-**SUBLOT-0.2 — Governance automation / P0-P2 hardening**
-
 ## Active work
 
-- `WORK-0002` — governance automation and GitHub control-plane hardening.
+- `WORK-0001` — corrective assurance closure on PR #3 / branch `chore/work-0001-assurance-closure`; it remains `IN_REVIEW` and blocks truthful completion of WORK-0002 until independently approved and merged.
+- `WORK-0002` — governance automation on PR #2 / branch `feat/work-0002-governance-ci`; it remains `IN_REVIEW`.
 
-## Current branch / PR
+No WORK-0003 or WORK-0004 implementation has started.
 
-- Branch: `feat/work-0002-governance-ci`
-- Pull request: `#2 — feat(governance): automate MONDE repository validation`
-- PR is in review; always verify live GitHub state before merge decisions.
+## Current WORK-0001 gate
 
-## Current status
-
-`IN_REVIEW`
-
-## Last completed milestone
-
-PR #1 — `docs: bootstrap AI-first MONDE repository governance and assurance` was squash-merged into `main` at `b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1`.
+PR #3 is the blocking dependency. Its current candidate was frozen at `06dbb76c68287130169d41f50b2464bc4f878bb5` with TEST-0006 PASS on finalized handover tree `b8180dff075ea5c8328ee56d1683380576c984ba` and TEST-0007 PASS on `669dcf7638746e07cc034cd69fa2cb08da133937`. A fresh-context L2 has been requested on the frozen PR #3 candidate. Recheck live PR #3 before any WORK-0002 completion or merge decision.
 
 ## WORK-0002 current scope
 
-The hardened implementation includes:
+The branch implements deterministic governance validation, schema/status/reference/path checks, progress and review gates, lifecycle/change-control enforcement, context routing, live GitHub gating, supply-chain controls, CodeQL/Dependency Review, mutation smoke and the stable `MONDE / Merge Gate`.
 
-- deterministic registry/status/reference/path validation;
-- JSON Schema validation;
-- DONE progress-dimension and review-evidence validation;
-- hierarchical L0/L1/L2/L3 review independence and canonical outcome checks;
-- reverse WORK↔progress membership;
-- Markdown link-title handling and path containment;
-- base/head and ordered per-commit transition validation over every path touched in the commit sequence;
-- immutable IDs / published-record deletion guard;
-- post-READY semantic scope-drift and review-freshness guards, including review requirements;
-- meta-governance binding to active changed A3/A4 work through `affected_paths`;
-- immutable Action/Docker pins and high-confidence secret checks at HEAD and across PR history;
-- hash-locked Python governance dependencies;
-- reusable governance workflow, Dependency Review and CodeQL;
-- stable `MONDE / Merge Gate`;
-- SHA-bound live GitHub HEAD/mergeability/unresolved-thread gate;
-- AI context manifest with MUST_READ / SHOULD_READ / ON_DEMAND tiers;
-- CI evidence artifacts and job summaries.
+The last fully green substantive predecessor was `c50c33009d90f079e645f0ca9e1befe1a4a77ba9`, with 76 tests, 100% line/branch coverage, 16/16 critical mutations, zero repository/strict/path/change-guard errors, CodeQL success and a green final live gate after the then-known threads were resolved.
 
-## Review state
+## Latest fresh-context findings on PR #2
 
-The initial Codex review found four issues on the historical validator; those were fixed and their threads resolved after CI proof.
+The latest Codex L2 on `c50c33009d90f079e645f0ca9e1befe1a4a77ba9` found six material gaps that define the current corrective slice:
 
-A later fresh-context Codex L2 on HEAD `aab0369e253e7fac75352584a28e2fe8ca885dd5` found six additional material issues:
+1. A3/A4 assurance did not itself impose minimum review independence (`A3 ≥ L2`, `A4 ≥ L3`).
+2. A COMPLETE review could be used without `artifact.commit_sha`, preventing exact freshness binding.
+3. `status: PASS` test records could be structurally empty and still be trusted.
+4. `NOT_APPLICABLE` progress dimensions were accepted without a non-empty work-item justification.
+5. Context routing did not seed dependency closure from a changed non-WORK registry record such as `REQ-*`.
+6. This handover still described obsolete pre-`c50c330` correction work instead of the actual current dependency/review state.
 
-- L3 targets were not enforced distinctly from L2;
-- canonical `APPROVE` / `APPROVE_WITH_FOLLOWUP` outcomes were not accepted;
-- review requirements were excluded from freshness semantics;
-- per-commit validation considered only endpoint-diff paths;
-- meta-governance changes were not bound to the actually affected work item/path;
-- secret scanning did not inspect intermediate PR commits.
+The current corrective commit must address all six with dedicated regression coverage and must not weaken prior gates.
 
-All six are now being corrected with targeted regression tests. Do not mark `WORK-0002` DONE or resolve the six new threads until the corrected HEAD passes GitHub CI and receives another fresh-context independent review.
+## Current gate for WORK-0002
 
-`REVIEW-0002` remains the same-context L1 review. A new fresh L2 on the corrected substantive HEAD is required before completion.
+1. Keep WORK-0002 `IN_REVIEW`; do not mark it DONE while WORK-0001/PR #3 is unmerged.
+2. Run the complete MONDE Gate on the current PR #2 HEAD after the six-finding correction. Treat any validator, coverage, mutation, CodeQL or live-gate failure as blocking evidence.
+3. Reply to the six current Codex threads with exact-SHA proof after the real run. Do not close a finding merely because the author believes the fix is correct.
+4. Once PR #3 merges, integrate the new `main` governance/lifecycle contract into PR #2 before claiming final freshness. Re-run the full gate after integration.
+5. Obtain a new fresh-context L2 on the final integrated PR #2 HEAD. Only a clean/approval-capable independent result may close the remaining review gate.
+6. After independent verification, finalize WORK-0002/progress/completion without rewriting historical evidence, run the gate on the merge candidate, and merge only if all live gates pass.
+7. Continue with WORK-0003, then WORK-0004, in roadmap order.
 
-## Evidence model
+## Repository visibility
 
-`TEST-*` / `REVIEW-*` records define durable obligations. GitHub checks, artifacts, review threads and run logs are live SHA-bound executions. A historical run must never be relabeled as proof of a later HEAD.
+MONDE intentionally remains **public** by explicit owner decision. Never commit credentials, tokens, secrets, private/personal datasets or user-identifying runtime data. Sensitive runtime material stays outside Git. WORK-0003 owns repository/ruleset/required-check/security-setting hardening while preserving public visibility.
 
-## Planned next work
+## Product/UI/UX owner gate
 
-- `WORK-0003` — intentional repository visibility, main/ruleset protection, required gate, merge/security policy and real-setting verification.
-- `WORK-0004` — exhaustive capability inventory only after WORK-0003 is complete.
-
-## Owner/admin limitation
-
-The current GitHub connector can modify repository files/branches/PRs but does not expose full repository-administration mutations such as visibility/ruleset changes. WORK-0003 must distinguish settings applied through available tooling from explicit owner actions still required in GitHub UI/API.
-
-## Next action
-
-1. Publish the six-finding corrective commit to PR #2.
-2. Execute the real MONDE Gate on that exact HEAD.
-3. Fix any discrepancy without weakening gates.
-4. Reply to and resolve the six Codex threads only after proof exists on GitHub.
-5. Obtain a new fresh-context L2 review on the corrected substantive HEAD.
-6. Add only administrative finalization records/statuses, rerun the gate, then merge if all live gates pass.
-7. Start WORK-0003; do not begin WORK-0004 first.
+Product specification and product identity are owner-gated decisions. Agents must not silently canonize the product experience, UI/UX, visual identity, brand, color system, interface density, interaction language, emotional/psychovisual tone, or other strong design choices. Before those areas become canonical, stop for an explicit co-design loop with the owner: present alternatives, ask focused questions, record the selected direction and only then proceed. The same rule applies to major product-function decisions: ask the owner rather than inventing irreversible product choices.
 
 ## Resume instructions
 
-Use the AI context manifest when available. Minimum manual sequence:
-
+Minimum sequence:
 1. `README.md`
 2. `AGENTS.md`
 3. `docs/00_START_HERE.md`
 4. this file
-5. `registry/work-items/WORK-0002.yaml`
-6. `docs/03_ARCHITECTURE/github-control-plane.md`
-7. `docs/13_QUALITY/ai-context-routing.md`
-8. `.github/workflows/governance.yml`
-9. `tools/governance/`
-10. `tests/governance/`
-11. live PR #2 checks and unresolved threads
+5. `registry/work-items/WORK-0001.yaml`
+6. `registry/work-items/WORK-0002.yaml`
+7. `registry/status-machines.yaml`
+8. `registry/progress/matrix.yaml`
+9. current PR #3 reviews/threads and HEAD
+10. current PR #2 reviews/threads/checks and HEAD
+11. `docs/03_ARCHITECTURE/github-control-plane.md`
+12. `docs/13_QUALITY/ai-context-routing.md`
+13. `tools/governance/`
+14. `tests/governance/`
 
-No previous chat history is required.
+No prior chat history is required.
