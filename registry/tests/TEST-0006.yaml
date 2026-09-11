@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -90,8 +90,20 @@ execution:
   command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3 tree d6f012abe31263f0fa83003646405c039b23611e"
   last_run_at: "2026-09-11"
   commit_sha: "d6f012abe31263f0fa83003646405c039b23611e"
-  result: null
-  evidence: []
+  result: PASS
+  evidence:
+    - "README.md and docs/00_START_HERE.md @ d6f012abe31263f0fa83003646405c039b23611e route cold resume through PROJECT_STATE, active WORK, read_before, linked registries/tests/reviews and live PR discussion without requiring chat history."
+    - "PROJECT_STATE.md @ d6f012abe31263f0fa83003646405c039b23611e is transition-stable: it identifies REVIEW-0015/status-machine v7/TEST-0007 PASS, preserves the two prior TEST-0006 v7 FAILs, and instructs continuation from TEST-0006's current lifecycle state rather than replaying already-completed transitions."
+    - "WORK-0001 @ d6f012abe31263f0fa83003646405c039b23611e remains IN_REVIEW with T6/RUN-3 non-terminal, includes REVIEW-0015/F-1 and the v7 TEST-0007 evidence, and keeps TEST-0006 as the current rerun gate."
+    - "registry/progress/matrix.yaml @ d6f012abe31263f0fa83003646405c039b23611e records WORK-0001 IN_REVIEW and WORK-0002 IN_REVIEW and points to the canonical status-machine progress lifecycle instead of defining a competing vocabulary."
+    - "registry/work-items/WORK-0002.yaml @ d6f012abe31263f0fa83003646405c039b23611e is IN_REVIEW, depends_on WORK-0001, and every declared current-tree read_before path was fetched successfully from the exact tested tree."
+    - "The WORK-0002 mirror explicitly defers docs/03_ARCHITECTURE/github-control-plane.md and docs/13_QUALITY/ai-context-routing.md until checkout of feat/work-0002-governance-ci; both files were fetched successfully from that branch during this execution."
+    - "Live PR #2 was rechecked open, non-draft and mergeable at exact head c50c33009d90f079e645f0ca9e1befe1a4a77ba9 during this execution, matching the mirrored WORK-0002 IN_REVIEW lifecycle."
+    - "registry/status-machines.yaml @ d6f012abe31263f0fa83003646405c039b23611e is version 7, preserves strict generic review/requirement/test lifecycles, isolates exact historical import/replay exceptions, and requires a one-shot authorization that predates post-v7 external review materialization."
+    - "REVIEW-0015's authorization/import binding remains exact: authorization 2b26ed4384e2098e04c10f5e5d2db3da949b6718 predates first materialization 877d5bce12c7854701843747783891558ab05d37 and is consumed by that exact commit."
+    - "Review completion remains positive-outcome-only: COMPLETE with CHANGES_REQUIRED or BLOCKED cannot satisfy approval evidence."
+    - "TEST-0001 @ d6f012abe31263f0fa83003646405c039b23611e is SUPERSEDED/non-gating and names TEST-0006 as its revision-bound replacement; TEST-0006 protects all three original contracts AI resume protocol, status vocabulary consistency and active work routing."
+    - "The earlier v7 FAIL executions on 11cca4bccb318d29c422917d544a470870b2cf65 and 75d3df4486d05ab95d9d65daee2fd7ac77072a47 remain preserved; this PASS demonstrates their stale-handover causes were corrected rather than erased."
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -149,3 +161,9 @@ history:
       validity: VALID
       invalidated_by: null
       reason: "The v7 handover was closer but still named two actions already complete at the tested READY tree. PROJECT_STATE b0fb0d63c368e209a3180496b33a0fbc184612ae and WORK-0001 d4ae8ce57c3b7d74f55a0f23b8069662520f45ba now direct continuation from TEST-0006's current lifecycle state instead."
+    - commit_sha: "d6f012abe31263f0fa83003646405c039b23611e"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "The exact v7 tree has a transition-stable cold-resume handover, coherent WORK-0001/WORK-0002/matrix lifecycle, resolvable current-tree prerequisites, explicit branch-only handoff, matching live PR #2 state, strict v7 import/replay/provenance semantics, positive-only review approval, and scope-preserving TEST-0001 supersession."
