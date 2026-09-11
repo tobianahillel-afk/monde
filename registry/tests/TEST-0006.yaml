@@ -207,7 +207,7 @@ history:
       reason: "The REVIEW-0017-corrected handover is cold-resumable and transition-stable, current proof routing no longer duplicates mutable heads, REVIEW-0017 provenance is truthful, AC-5 ownership is atomic, lifecycle/branch boundaries resolve, and TEST-0001 replacement/positive-only review semantics remain intact."
     - commit_sha: "19b1854f4438800637237a90a3e9e3e90b398548"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "9e55ba41f2f057292d6da86f3fc3f9d2892be701"
       validity: VALID
       invalidated_by: null
       reason: "The REVIEW-0018-corrected handover is cold-resumable while REQ-0023/REQ-0024/REQ-0025 remain PROPOSED; pre-acceptance TEST-0005 evidence is discoverable, author evidence cannot approve acceptance, lifecycle/branch/provenance semantics remain coherent, and the next gate is independent fresh L2."
