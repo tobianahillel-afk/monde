@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -106,11 +106,25 @@ cases:
     - "Walk AC-5 requirement ownership from WORK-0001 and verify it reaches three atomic active requirements while REQ-0005 remains only historical/superseded"
 
 execution:
-  command_or_workflow: "Pending exact-SHA cold-resume rerun after REVIEW-0017 handover and AC-5 atomicity corrections"
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  command_or_workflow: "Manual exact-SHA GitHub cold-read and handover audit after REVIEW-0017 corrections"
+  last_run_at: "2026-09-11"
+  commit_sha: "626f9fb99605ff4bc78f8bb7986540825cabbdf3"
+  result: PASS
+  evidence:
+    - "PROJECT_STATE.md @ 626f9fb99605ff4bc78f8bb7986540825cabbdf3 routes from the current TEST-0006 lifecycle state, keeps REVIEW-0017/F-1/F-2 open pending independent verification, avoids volatile PR #2/test-result duplication, and makes fresh L2 the next gate after qualifying TEST-0006 PASS."
+    - "WORK-0001 @ 626f9fb99605ff4bc78f8bb7986540825cabbdf3 remains IN_REVIEW with completion gates false, exposes REVIEW-0017 and TEST-0005, and routes active AC-5 ownership to REQ-0020/REQ-0021/REQ-0022 rather than superseded REQ-0005."
+    - "WORK-0002 @ 626f9fb99605ff4bc78f8bb7986540825cabbdf3 remains IN_REVIEW, depends on WORK-0001, and its current-tree read_before list contains only paths present in exact tree 776813d8bc3ab8e180ae7df6b425cc5c88992cfb."
+    - "registry/progress/matrix.yaml @ 626f9fb99605ff4bc78f8bb7986540825cabbdf3 records WORK-0001 IN_REVIEW and WORK-0002 IN_REVIEW and points to registry/status-machines.yaml#progress."
+    - "Exact tree 776813d8bc3ab8e180ae7df6b425cc5c88992cfb contains AGENTS.md, START_HERE, documentation/development/threat/testing/review/advanced-verification documents, registry/README.md and registry/progress/matrix.yaml required by the WORK-0002 mirror."
+    - "Branch-only docs docs/03_ARCHITECTURE/github-control-plane.md and docs/13_QUALITY/ai-context-routing.md were fetched successfully from feat/work-0002-governance-ci during this run."
+    - "Live PR #2 was rechecked open, non-draft and mergeable at head ab62faa1743705600a0f11335579db68a2166ab3; PROJECT_STATE correctly requires live recheck rather than duplicating that volatile head."
+    - "REVIEW-0017 provenance is exact: authorization f6d1e84e79439d1ec2ae071171778063403c3374 predates import 36b0a46e04843937b065feaf5e8e0c53c36b4664; review binding 8ba5be981c2cb45c72d02e83e8429cc091244270; authorization consumption c9d46634409a7ad23da92ab6579fe1865a6a6986; status-machines v7 consumed_by_commit equals the import commit."
+    - "status-machines v7 keeps positive-only approval semantics, normal review OPEN→IN_PROGRESS→COMPLETE, requirement PROPOSED→ACCEPTED, and TEST PASS→READY→RUNNING→PASS reopening/execution semantics without new generic shortcuts."
+    - "REQ-0005 @ 626f9fb99605ff4bc78f8bb7986540825cabbdf3 is SUPERSEDED with replacement set REQ-0020/REQ-0021/REQ-0022; each replacement is ACCEPTED and independently owns DoR, DoD or verification strategy."
+    - "Git commit 7fb731cdf7bc745227bb062d08f385d954806f1c first materializes REQ-0020/REQ-0021/REQ-0022 as PROPOSED; 246820d3bb40fa8a57eee95c70444e5729861f0b transitions them to ACCEPTED; TEST-0005 is PASS on exact split tree d4202e0f21e18d9100234817b4ae56fbb38ca165 with result 568dde0f9fb806f82924ee67066f08039bef777a and history binding 0359569f054e5eb1fbc00706f3d404e95929651f."
+    - "TEST-0001 remains SUPERSEDED/non-gating and names TEST-0006 as the revision-bound replacement preserving AI resume protocol, status vocabulary consistency and active work routing."
+    - "TEST-0006 lifecycle for this run is legal: prior PASS → READY in 97afadf8498490af69d5f184ad3c41cc2d45e95a, READY → RUNNING in exact tested commit 626f9fb99605ff4bc78f8bb7986540825cabbdf3, then PASS is recorded separately."
+    - "Compare 2b2a6f403bfb90eae83437c8b211d37c58878fc4 → 626f9fb99605ff4bc78f8bb7986540825cabbdf3 changes only TEST-0006, so the finalized transition-stable handover being tested was not mutated during READY/RUNNING execution."
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -186,3 +200,9 @@ history:
       validity: VALID
       invalidated_by: null
       reason: "The finalized handover exposes fresh L2 as the sole remaining WORK-0001 gate, keeps WORK-0001/WORK-0002/matrix coherent and non-terminal, preserves the explicit PR #2 branch boundary and current-tree prerequisites, and leaves v7 import/replay/provenance plus TEST-0001 replacement semantics unchanged."
+    - commit_sha: "626f9fb99605ff4bc78f8bb7986540825cabbdf3"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "The REVIEW-0017-corrected handover is cold-resumable and transition-stable, current proof routing no longer duplicates mutable TEST/PR heads, REVIEW-0017 import provenance is truthful, AC-5 active ownership is atomic, WORK-0001/WORK-0002/matrix lifecycle is coherent, branch boundaries resolve, and TEST-0001 replacement/positive-only review semantics remain intact."
