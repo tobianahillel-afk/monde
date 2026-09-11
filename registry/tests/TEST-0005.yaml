@@ -1,28 +1,32 @@
 id: TEST-0005
-name: "WORK-0001 evidence, authority and requirement-atomicity drill"
-status: PASS
+name: "WORK-0001 evidence, authority and requirement-acceptance drill"
+status: READY
 type: MANUAL_E2E
 
 protects:
-  requirements: [REQ-0005, REQ-0010, REQ-0015, REQ-0016, REQ-0017, REQ-0018, REQ-0019, REQ-0020, REQ-0021, REQ-0022]
+  requirements: [REQ-0005, REQ-0010, REQ-0015, REQ-0016, REQ-0017, REQ-0018, REQ-0019, REQ-0020, REQ-0021, REQ-0022, REQ-0023, REQ-0024, REQ-0025]
   capabilities: []
   contracts:
     - "exact-SHA PASS evidence"
     - "review finding acceptance authority"
     - "atomic specification requirement ownership"
     - "requirement supersession traceability"
+    - "pre-acceptance Review Council and cold-read gate"
     - "WORK-0001 corrective traceability"
   risks:
     - "Legacy unbound PASS is treated as current gating evidence"
     - "Blocking review finding is self-accepted without authority"
     - "A compound requirement hides partial specification failure"
     - "A superseded compound requirement remains an active normative owner or its replacement set is incomplete"
+    - "A lifecycle-valid PROPOSED → ACCEPTED transition is performed before independent Review Council/cold-read evidence exists"
   invariants:
     - "No active PASS state-bound test lacks an exact tested revision"
     - "An ACCEPTED R1/R2 finding cannot become non-blocking without explicit authority evidence"
     - "Independently fail-able specification obligations have distinct REQ identities"
-    - "REQ-0005 is superseded rather than silently narrowed, and its complete replacement set is REQ-0020, REQ-0021 and REQ-0022"
-    - "New post-v7 requirements first exist as PROPOSED and reach ACCEPTED only through the normal lifecycle transition"
+    - "REQ-0005 remains superseded rather than silently narrowed"
+    - "Prematurely accepted REQ-0020/REQ-0021/REQ-0022 remain historical SUPERSEDED records"
+    - "Current AC-5 owners REQ-0023/REQ-0024/REQ-0025 remain PROPOSED throughout this pre-acceptance test"
+    - "A post-v7 requirement reaches ACCEPTED only after required independent Review Council and cold-read evidence exists, not merely because PROPOSED → ACCEPTED is a legal transition"
 
 environment:
   kind: REAL_GITHUB_REPOSITORY
@@ -37,47 +41,45 @@ cases:
     - "TEST-0001 is SUPERSEDED, preserves its historical execution fields, and points to revision-bound replacement TEST-0006 without inventing a commit SHA"
     - "registry/status-machines.yaml requires exact commit_sha for active state-bound PASS records"
     - "registry/reviews/_TEMPLATE.yaml carries structured acceptance authority fields"
-    - "REVIEW-0001/F-3 records the repository owner's acceptance authority, evidence, rationale, date and review condition"
+    - "REVIEW-0001/F-3 records repository-owner acceptance authority and evidence"
     - "REQ-0010 owns atomic requirement identity/testability only"
     - "REQ-0015 through REQ-0019 separately own assumptions/risks, research, failure modes, cross-document consistency and traceability"
-    - "REQ-0005 is SUPERSEDED and names REQ-0020, REQ-0021 and REQ-0022 as its complete replacement set"
-    - "REQ-0020 separately owns the Definition of Ready entry gate"
-    - "REQ-0021 separately owns the Definition of Done completion gate"
-    - "REQ-0022 separately owns the verification-strategy contract"
-    - "Git history proves REQ-0020, REQ-0021 and REQ-0022 were first materialized PROPOSED before their ACCEPTED transition"
-    - "WORK-0001 AC-5 traceability reaches all three atomic replacement requirements and does not use superseded REQ-0005 as an active normative owner"
+    - "REQ-0005 is SUPERSEDED and remains historically addressable"
+    - "REQ-0020/REQ-0021/REQ-0022 are SUPERSEDED after their premature acceptance and each points to its proposed successor"
+    - "REQ-0023 separately owns Definition of Ready and remains PROPOSED"
+    - "REQ-0024 separately owns Definition of Done and remains PROPOSED"
+    - "REQ-0025 separately owns verification strategy and remains PROPOSED"
+    - "Git history proves REQ-0023/REQ-0024/REQ-0025 first materialized PROPOSED in 772616269581f622605416b2e34f6d4e270241df"
+    - "WORK-0001 AC-5 active traceability reaches REQ-0023/REQ-0024/REQ-0025 and omits superseded REQ-0005/REQ-0020/REQ-0021/REQ-0022 from active ownership"
+    - "AGENTS.md specification workflow requires Review Council hats and a cold-read before Accepted"
+    - "REVIEW-0018/F-1 remains OPEN; this author-produced PASS is pre-acceptance evidence only and cannot itself approve the proposed requirements"
   edge_cases:
     - "Historical execution evidence remains inspectable even when its record is SUPERSEDED"
-    - "An ACCEPTED finding remains reviewable again when its review condition becomes true"
-    - "The superseded compound requirement remains historically addressable while no longer owning current completion state"
+    - "An accepted requirement that later proves prematurely accepted is superseded through a legal forward transition rather than rolled back to PROPOSED"
+    - "Proposed replacements may have complete text/test mappings while intentionally remaining non-Accepted until independent review"
   failure_modes:
     - "TEST status PASS with null state-bound execution.commit_sha"
-    - "R1/R2 disposition ACCEPTED with missing accepted_by, authority_role, authority_evidence, rationale, accepted_at or review_condition"
+    - "R1/R2 disposition ACCEPTED with missing authority evidence"
     - "REQ-0010 owns more than one independently fail-able obligation"
-    - "REQ-0005 remains ACCEPTED after atomic replacements are established"
-    - "Any of DoR, DoD or verification strategy lacks its own accepted REQ identity"
-    - "REQ-0020, REQ-0021 or REQ-0022 first appears directly ACCEPTED"
-    - "New atomic requirements exist but are absent from WORK-0001 AC-5 traceability"
+    - "REQ-0005 becomes active again after supersession"
+    - "REQ-0020/REQ-0021/REQ-0022 remain active after REVIEW-0018"
+    - "Any of REQ-0023/REQ-0024/REQ-0025 is ACCEPTED before the next approval-capable independent review"
+    - "Any of DoR, DoD or verification strategy lacks a proposed atomic owner"
+    - "WORK-0001 active requirements omit a proposed AC-5 owner or still include a superseded predecessor"
+    - "Cold-read evidence is produced only after requirement acceptance"
   adversarial_cases:
-    - "Attempt to fabricate a plausible TEST-0001 SHA instead of superseding unprovable evidence"
-    - "Attempt to self-assert ACCEPTED without evidence of authority"
-    - "Satisfy Definition of Ready while violating Definition of Done and verify the two obligations have independent normative state"
+    - "Attempt to roll REQ-0020/REQ-0021/REQ-0022 backward from ACCEPTED to PROPOSED and verify the lifecycle forbids it"
+    - "Attempt to treat the prior TEST-0005 PASS on d4202e0f as sufficient acceptance evidence even though it ran after REQ-0020/21/22 acceptance"
+    - "Attempt to accept REQ-0023/REQ-0024/REQ-0025 solely because this test passes, without a fresh approval-capable L2"
+    - "Satisfy Definition of Ready while violating Definition of Done and verify the obligations remain independently visible"
     - "Satisfy DoR and DoD while omitting verification-strategy rules and verify that omission remains independently visible"
-    - "Attempt to narrow REQ-0005 in place instead of preserving its compound historical semantics through supersession"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub inspection for REVIEW-0017/F-2 atomic AC-5 requirement split"
-  last_run_at: "2026-09-11"
-  commit_sha: "d4202e0f21e18d9100234817b4ae56fbb38ca165"
-  result: PASS
-  evidence:
-    - "Exact tested PR #3 tree d4202e0f21e18d9100234817b4ae56fbb38ca165"
-    - "Commit 7fb731cdf7bc745227bb062d08f385d954806f1c first materializes REQ-0020/REQ-0021/REQ-0022 as PROPOSED"
-    - "Commit 246820d3bb40fa8a57eee95c70444e5729861f0b changes each of REQ-0020/REQ-0021/REQ-0022 from PROPOSED to ACCEPTED"
-    - "REQ-0005 @ d4202e0f is SUPERSEDED, retains its original compound normative statement and records superseded_by [REQ-0020, REQ-0021, REQ-0022]"
-    - "REQ-0020 @ d4202e0f independently owns Definition of Ready; REQ-0021 independently owns Definition of Done; REQ-0022 independently owns verification strategy"
-    - "WORK-0001 @ d4202e0f requirements contains REQ-0020/REQ-0021/REQ-0022 and omits superseded REQ-0005 from active normative ownership"
-    - "REVIEW-0017/F-2"
+  command_or_workflow: "Pending exact-SHA pre-acceptance cold-read after REVIEW-0018/F-1"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -92,10 +94,10 @@ history:
       recorded_in_commit: "89d39c75fe29d8bbcbe016cecaa6c87d935f1c47"
       validity: VALID
       invalidated_by: null
-      reason: "Exact-SHA evidence/authority and the REQ-0010 plus REQ-0015..REQ-0019 atomicity split passed for that corrective tree. This remains valid for that scope/tree; REVIEW-0017 later required a new execution for the separate REQ-0005 split."
+      reason: "Exact-SHA evidence/authority and the REQ-0010 plus REQ-0015..REQ-0019 atomicity split passed for that corrective tree. This remains valid for that scope/tree; later reviews required additional AC-5 atomicity and acceptance-sequencing coverage."
     - commit_sha: "d4202e0f21e18d9100234817b4ae56fbb38ca165"
       recorded_result: PASS
       recorded_in_commit: "568dde0f9fb806f82924ee67066f08039bef777a"
       validity: VALID
       invalidated_by: null
-      reason: "REQ-0005 is superseded without semantic rewriting; REQ-0020/REQ-0021/REQ-0022 each own one independently fail-able AC-5 obligation, first existed as PROPOSED, transitioned normally to ACCEPTED, and are linked by WORK-0001 and TEST-0005 on the exact tested tree."
+      reason: "REQ-0005 was superseded without semantic rewriting and REQ-0020/REQ-0021/REQ-0022 were atomic with normal lifecycle. REVIEW-0018 later proved that this run was not sufficient for acceptance because it occurred after those records had already become ACCEPTED; this execution remains valid for its tested atomicity/supersession scope but not as pre-acceptance evidence."
