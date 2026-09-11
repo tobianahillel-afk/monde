@@ -10,7 +10,12 @@
       "properties": {
         "type": {"type": "string"},
         "id_or_path": {"type": "string"},
-        "commit_sha": {"type": "string", "minLength": 1}
+        "commit_sha": {
+          "anyOf": [
+            {"type": "string", "minLength": 1},
+            {"type": "null"}
+          ]
+        }
       },
       "additionalProperties": true
     }
@@ -25,7 +30,10 @@
         "required": ["artifact"],
         "properties": {
           "artifact": {
-            "required": ["commit_sha"]
+            "required": ["commit_sha"],
+            "properties": {
+              "commit_sha": {"type": "string", "minLength": 1}
+            }
           }
         }
       }
