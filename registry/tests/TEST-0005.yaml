@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 evidence, authority and requirement-atomicity drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -67,10 +67,17 @@ cases:
 
 execution:
   command_or_workflow: "Manual exact-SHA GitHub inspection for REVIEW-0017/F-2 atomic AC-5 requirement split"
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  last_run_at: "2026-09-11"
+  commit_sha: "d4202e0f21e18d9100234817b4ae56fbb38ca165"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree d4202e0f21e18d9100234817b4ae56fbb38ca165"
+    - "Commit 7fb731cdf7bc745227bb062d08f385d954806f1c first materializes REQ-0020/REQ-0021/REQ-0022 as PROPOSED"
+    - "Commit 246820d3bb40fa8a57eee95c70444e5729861f0b changes each of REQ-0020/REQ-0021/REQ-0022 from PROPOSED to ACCEPTED"
+    - "REQ-0005 @ d4202e0f is SUPERSEDED, retains its original compound normative statement and records superseded_by [REQ-0020, REQ-0021, REQ-0022]"
+    - "REQ-0020 @ d4202e0f independently owns Definition of Ready; REQ-0021 independently owns Definition of Done; REQ-0022 independently owns verification strategy"
+    - "WORK-0001 @ d4202e0f requirements contains REQ-0020/REQ-0021/REQ-0022 and omits superseded REQ-0005 from active normative ownership"
+    - "REVIEW-0017/F-2"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -85,4 +92,10 @@ history:
       recorded_in_commit: "89d39c75fe29d8bbcbe016cecaa6c87d935f1c47"
       validity: VALID
       invalidated_by: null
-      reason: "Exact-SHA evidence/authority and the REQ-0010 plus REQ-0015..REQ-0019 atomicity split passed for that corrective tree. This execution remains valid for its tested scope; TEST-0005 is reopened because REVIEW-0017/F-2 discovered a separate compound requirement in REQ-0005."
+      reason: "Exact-SHA evidence/authority and the REQ-0010 plus REQ-0015..REQ-0019 atomicity split passed for that corrective tree. This remains valid for that scope/tree; REVIEW-0017 later required a new execution for the separate REQ-0005 split."
+    - commit_sha: "d4202e0f21e18d9100234817b4ae56fbb38ca165"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "REQ-0005 is superseded without semantic rewriting; REQ-0020/REQ-0021/REQ-0022 each own one independently fail-able AC-5 obligation, first existed as PROPOSED, transitioned normally to ACCEPTED, and are linked by WORK-0001 and TEST-0005 on the exact tested tree."
