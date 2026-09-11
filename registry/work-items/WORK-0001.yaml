@@ -298,7 +298,7 @@ review_plan:
     - "REVIEW-0018/F-1 REQ-0020/REQ-0021/REQ-0022 were accepted before independent Review Council/cold-read acceptance evidence existed"
     - "REVIEW-0019/F-1 WORK-0001 RUN-3 flow mapping was malformed YAML at reviewed head 13f6b315"
     - "REVIEW-0019/F-2 TEST-0006 and PROJECT_STATE copied a truncated TEST-0005 PASS result SHA at reviewed head 13f6b315"
-    - "REVIEW-0020/F-1 PR #3 WORK-0002 mirror exposed branch-local REVIEW-0002/TEST-0003 as locally traversable proof IDs"
+    - "REVIEW-0020/F-1 PR #3 WORK-0002 mirror exposed branch-local REVIEW-0002/TEST-0002/TEST-0003 as locally traversable proof IDs"
     - "REVIEW-0021/F-1 REQ-0023/REQ-0024/REQ-0025 forward verification mappings omitted TEST-0006 while TEST-0006 claimed to protect all three"
     - "TEST-0005 current pre-acceptance execution is PASS on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7. REQ-0023/REQ-0024/REQ-0025 remain PROPOSED and this PASS does not approve them."
     - "TEST-0007 current generic v7 execution remains PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f. REVIEW-0021 does not change the generic lifecycle contract."
@@ -319,7 +319,7 @@ required_tests:
   regression:
     - "Bootstrap-discovered governance defects become WORK-0002 validator fixtures"
     - "Material bootstrap acceptance criteria cannot remain outside REQ traceability"
-    - "Historical TEST/REVIEW evidence cannot be widened retroactively to corrective artifacts created later"
+    - "Historical TEST/REVIEW evidence cannot be widened to corrective artifacts created later"
     - "CLOSED review state cannot satisfy approval semantics"
     - "COMPLETE review with CHANGES_REQUIRED or BLOCKED cannot satisfy approval semantics"
     - "Progress state has one canonical vocabulary plus explicit initial state/transitions"
@@ -457,7 +457,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {id: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0021 narrowed assurance debt. REQ-0023/24/25 remain PROPOSED pending independent acceptance review. REVIEW-0019 corrected machine readability/SHA integrity; REVIEW-0020 corrected branch-local proof references; REVIEW-0021 restored reciprocal TEST-0006 mappings. Current TEST-0006 identity is read from its canonical TEST record; once a valid exact execution covers this synchronized handover, fresh L2 is the remaining assurance gate."}
+  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0021 narrowed assurance debt. REQ-0023/24/25 remain PROPOSED pending independent acceptance review. REVIEW-0019 corrected machine readability/SHA integrity; REVIEW-0020 corrected branch-local proof references; REVIEW-0021 restored reciprocal TEST-0006 mappings. Current TEST-0006 identity is read from its canonical TEST record; once a valid exact execution covers this synchronized handover, fresh L2 is the remaining assurance gate."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols; synchronize state."}
 
