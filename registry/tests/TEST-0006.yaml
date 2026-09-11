@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -125,9 +125,9 @@ cases:
     - "Attempt to treat TEST-0005 PASS as approval authority and verify REQ-0023/24/25 remain PROPOSED"
 
 execution:
-  command_or_workflow: "Pending exact-SHA cold-resume rerun after REVIEW-0020 cross-branch proof-boundary correction"
-  last_run_at: null
-  commit_sha: null
+  command_or_workflow: "Manual exact-SHA GitHub cold-read of REVIEW-0020-synchronized PR #3 tree, including cross-branch proof-record boundary; full-file YAML parseability remains reserved for independent fresh-L2 confirmation"
+  last_run_at: "2026-09-11"
+  commit_sha: "d0c985933e66960a781513ad61bd3567c91e5344"
   result: null
   evidence: []
 
