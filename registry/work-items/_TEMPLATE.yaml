@@ -24,6 +24,10 @@ requirements: []
 assumptions: []
 risks: []
 
+# Required whenever the progress matrix uses NOT_APPLICABLE for this work item.
+# Keys are canonical progress dimensions; values explain why the gate truly does not apply.
+progress_justifications: {}
+
 assurance:
   level: A2
   rationale: ""

@@ -1,0 +1,80 @@
+id: REVIEW-0016
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "7c9cc98fefc45eab2e500925dca846f23bd2936e"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-7c9cc98f"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "f19d261032b29ae4180b98a99dff494964b612b7"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNGFLJg"
+  source_submitted_at: "2026-09-11T00:36:00Z"
+  import_commit: "83b98e1b2a06ca0312614b44c8b8e8ccc6468c44"
+
+scope:
+  work_items: [WORK-0001]
+  requirements: []
+  capabilities: []
+  contracts:
+    - "AI resume protocol"
+    - "cold-resume handover currentness"
+    - "review evidence/current-gate synchronization"
+  risks:
+    - "PROJECT_STATE sends a fresh agent backward into an administrative synchronization already completed by the reviewed HEAD."
+    - "A stale first next-action recreates the exact cold-resume failure that TEST-0006 is intended to detect."
+
+findings:
+  - id: F-1
+    severity: R3_MODERATE
+    category: HANDOVER_CURRENTNESS
+    description: "At reviewed HEAD 7c9cc98fefc45eab2e500925dca846f23bd2936e, PROJECT_STATE's first Next action still instructs synchronization of WORK-0001 with the current TEST-0006 PASS, although that HEAD itself already contains that synchronization. Advance the handover directly to processing the current fresh review/current gate so a cold-resuming agent is not sent backward into completed administrative work."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 7c9cc98fefc45eab2e500925dca846f23bd2936e"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNGFLJg submitted 2026-09-11T00:36:00Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hTD9-"
+      - "PROJECT_STATE.md reviewed line 117 begins by instructing WORK-0001 synchronization already completed by 7c9cc98f"
+      - "WORK-0001 at the same reviewed HEAD already states fresh L2 is the sole remaining assurance gate"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "A next-action instruction remains current merely because it was true in the immediately preceding commit."
+    - "Administrative synchronization can be listed as pending after the exact reviewed HEAD already contains it."
+  omitted_categories_considered:
+    - "substantive lifecycle-v7 correctness"
+    - "TEST-0006/TEST-0007 exact-SHA proof"
+    - "WORK-0002 cross-branch handoff"
+    - "historical import/replay provenance"
+  duplicate_or_reuse_search:
+    - "This is the same defect class as REVIEW-0011 and the two preserved TEST-0006 v7 FAILs; fix the handover pattern rather than adding another one-off stale step."
+  failure_modes_considered:
+    - "PROJECT_STATE continues to name a completed sync as first action."
+    - "The fix over-corrects by marking WORK-0001 DONE before independent approval."
+    - "The correction erases prior TEST-0006 failures rather than preserving them."
+    - "A new exact-SHA cold-resume proof is not rerun after the handover changes."
+  evidence_requested:
+    - "advance PROJECT_STATE first action directly to the current fresh-review gate"
+    - "preserve WORK-0001 IN_REVIEW and false completion gates"
+    - "rerun TEST-0006 on an exact corrected tree and preserve prior FAIL/PASS history"
+    - "request another fresh-context L2 on the resulting frozen HEAD before completion"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-11"
+
+history:
+  created_at: "2026-09-11"
+  updated_at: "2026-09-11"

@@ -1,0 +1,109 @@
+id: REVIEW-0004
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "2d4dea7e51a6cc55b159ff3001637e3ca8ec3ee9"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-2d4dea7"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+scope:
+  work_items: [WORK-0001]
+  requirements: [REQ-0001, REQ-0002, REQ-0003, REQ-0004, REQ-0005, REQ-0006, REQ-0007, REQ-0008, REQ-0009, REQ-0010, REQ-0011, REQ-0012, REQ-0013, REQ-0014]
+  capabilities: []
+  contracts:
+    - "bootstrap normative traceability"
+    - "registry lifecycle/status contract"
+    - "test/review evidence integrity"
+    - "progress NOT_APPLICABLE justification"
+    - "post-merge handover truth"
+    - "public-code-safe repository decision"
+  risks: []
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: TEST_EVIDENCE_FRESHNESS
+    description: "TEST-0001 was expanded to claim corrective coverage while its execution remained bound to the older b88e9edf tree."
+    evidence: ["PR #3 inline review on registry/tests/TEST-0001.yaml"]
+    disposition: OPEN
+    resolved_by: null
+  - id: F-2
+    severity: R2_MAJOR
+    category: REVIEW_EVIDENCE_HISTORY
+    description: "REVIEW-0001 was retrofitted to scope REQ-0001..REQ-0014 even though those records did not exist when that review ran."
+    evidence: ["PR #3 inline review on registry/reviews/REVIEW-0001.yaml"]
+    disposition: OPEN
+    resolved_by: null
+  - id: F-3
+    severity: R2_MAJOR
+    category: REVIEW_LIFECYCLE
+    description: "CLOSED review state could satisfy approval semantics without requiring an executed COMPLETE review."
+    evidence: ["PR #3 inline review on registry/status-machines.yaml"]
+    disposition: OPEN
+    resolved_by: null
+  - id: F-4
+    severity: R2_MAJOR
+    category: PROGRESS_LIFECYCLE
+    description: "Progress state had no canonical initial/transition table and duplicated editable vocabulary in the progress matrix."
+    evidence: ["PR #3 inline review on registry/status-machines.yaml"]
+    disposition: OPEN
+    resolved_by: null
+  - id: F-5
+    severity: R2_MAJOR
+    category: NOT_APPLICABLE_JUSTIFICATION
+    description: "Existing NOT_APPLICABLE dimensions in WORK-0002, WORK-0003 and WORK-0004 had no corresponding work-item justification."
+    evidence: ["PR #3 inline review on registry/status-machines.yaml"]
+    disposition: OPEN
+    resolved_by: null
+  - id: F-6
+    severity: R3_MODERATE
+    category: REQUIREMENT_ATOMICITY
+    description: "REQ-0008 duplicated non-compensable hard-gate ownership already represented by REQ-0012."
+    evidence: ["PR #3 inline review on registry/requirements/REQ-0008.yaml"]
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "Historical PASS/review evidence can be widened after execution without rerunning it."
+    - "A generic progress state list is sufficient without transitions."
+    - "CLOSED and COMPLETE are equivalent evidence states."
+    - "Adding a NOT_APPLICABLE rule is safe without validating current users of that state."
+  omitted_categories_considered:
+    - "evidence freshness"
+    - "historical integrity"
+    - "lifecycle completeness"
+    - "requirement atomicity"
+    - "handover truth"
+    - "public-repository safety"
+  duplicate_or_reuse_search:
+    - "REQ-0008/REQ-0012 overlap explicitly examined."
+    - "status-machines versus progress-matrix vocabulary ownership explicitly examined."
+  failure_modes_considered:
+    - "stale PASS evidence"
+    - "retrofitted review scope"
+    - "administrative closure masquerading as approval"
+    - "validator forced to invent progress transitions"
+    - "new N/A rule invalidating existing canonical work"
+    - "two requirements owning the same hard-gate behavior"
+  evidence_requested:
+    - "SHA-bound corrective test execution on the corrected PR #3 tree"
+    - "fresh-context L2 re-review after all six findings are corrected"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-10"
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"

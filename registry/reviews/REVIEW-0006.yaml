@@ -1,0 +1,72 @@
+id: REVIEW-0006
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "8c2fbc9e44ba9f0c810b768be513d988812f1e5c"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-8c2fbc9"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+scope:
+  work_items: [WORK-0001]
+  requirements: []
+  capabilities: []
+  contracts:
+    - "review approval outcome semantics"
+    - "historical test supersession/replacement coverage"
+  risks:
+    - "A negative COMPLETE review is misused as approval evidence."
+    - "Superseding an unbound historical test silently drops the behavior that test represented."
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: REVIEW_APPROVAL_OUTCOME
+    description: "A COMPLETE review with outcome CHANGES_REQUIRED or BLOCKED can satisfy the existing completion rule after its findings are resolved/accepted because approval-capable outcomes are not explicitly constrained."
+    evidence: ["PR #3 inline review on registry/status-machines.yaml @ 8c2fbc9e44ba9f0c810b768be513d988812f1e5c"]
+    disposition: OPEN
+    resolved_by: null
+  - id: F-2
+    severity: R3_MODERATE
+    category: TEST_SUPERSESSION_COVERAGE
+    description: "TEST-0001 points to TEST-0005 as its replacement, but TEST-0005 does not re-execute the original README/PROJECT_STATE resume routing and status-vocabulary scope, so the supersession loses represented behavior."
+    evidence: ["PR #3 inline review on registry/tests/TEST-0001.yaml @ 8c2fbc9e44ba9f0c810b768be513d988812f1e5c"]
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "COMPLETE status alone can distinguish positive from negative review decisions."
+    - "Any newer corrective test is a sufficient replacement for an older superseded test."
+  omitted_categories_considered:
+    - "review decision polarity"
+    - "supersession semantic coverage"
+    - "cold-resume routing"
+  duplicate_or_reuse_search:
+    - "Existing review outcome vocabulary is reused rather than introducing a parallel approval flag."
+    - "Existing TEST-0001 scope is preserved as the source for its replacement test."
+  failure_modes_considered:
+    - "CHANGES_REQUIRED treated as approval"
+    - "BLOCKED treated as approval"
+    - "historical test is superseded but its original protected behavior disappears from active evidence"
+  evidence_requested:
+    - "Define explicit approval-capable review outcomes and require one for approval evidence."
+    - "Replace TEST-0001 with exact-SHA evidence that actually re-executes its original resume/status scope."
+    - "Obtain another fresh-context L2 after those corrections."
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-10"
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"

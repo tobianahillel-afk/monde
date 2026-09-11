@@ -1,0 +1,82 @@
+id: REVIEW-0020
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "13b977bf5e821bbd32464a90c0bee9539b3afefe"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-13b977bf"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "53d2b3861b35ad3b17ea9718794c99a594ca4557"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNKfNCA"
+  source_submitted_at: "2026-09-11T12:00:10Z"
+  import_commit: "f7955c10d4c932df86c3238c8e91322c24ce6929"
+
+scope:
+  work_items: [WORK-0001, WORK-0002]
+  requirements: [REQ-0023, REQ-0024, REQ-0025]
+  capabilities: []
+  contracts:
+    - "cold-resume proof graph resolvability"
+    - "cross-branch work-item handoff"
+    - "machine-readable active-work references"
+    - "pre-acceptance Review Council/cold-read sequencing"
+  risks:
+    - "The main-branch WORK-0002 mirror can expose review/test IDs that do not resolve until PR #2 is checked out."
+    - "A cold-resuming agent can mistake branch-local WORK-0002 proof for proof already present in the current PR #3 tree."
+
+findings:
+  - id: F-1
+    severity: R3_MODERATE
+    category: CROSS_BRANCH_REFERENCE_RESOLVABILITY
+    description: "At reviewed HEAD 13b977bf5e821bbd32464a90c0bee9539b3afefe, the PR #3 mirror of WORK-0002 lists REVIEW-0002 as completed evidence and TEST-0002/TEST-0003 as required/current evidence although those registry records are absent from the PR #3 tree. Unlike the already explicit branch-only document handoff, these proof IDs are presented as locally traversable current references. Defer branch-local review/test evidence behind the explicit checkout boundary or provide resolvable mirror records before merge."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 13b977bf5e821bbd32464a90c0bee9539b3afefe"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNKfNCA submitted 2026-09-11T12:00:10Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hdSzI"
+      - "registry/work-items/WORK-0002.yaml references REVIEW-0002, TEST-0002 and TEST-0003"
+      - "Those records are not present in the reviewed PR #3 tree; the corresponding proof belongs to feat/work-0002-governance-ci until WORK-0002 is integrated"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "A work-item mirror may reference branch-local review/test IDs as though they are locally resolvable merely because another open PR contains them."
+    - "Declaring a branch checkout boundary only for documentation automatically covers review/test registry evidence too."
+  omitted_categories_considered:
+    - "WORK-0001 YAML machine readability"
+    - "exact TEST-0005 SHA integrity"
+    - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED"
+    - "REVIEW-0018/REVIEW-0019 corrections"
+    - "TEST-0006 current exact-SHA proof"
+    - "v7 external-review provenance"
+  duplicate_or_reuse_search:
+    - "F-1 is the proof-graph counterpart of the earlier branch-only read_before finding; the same explicit checkout boundary should own both cases."
+  failure_modes_considered:
+    - "Copying branch-local REVIEW/TEST records into PR #3 and creating duplicate mutable evidence."
+    - "Leaving unresolved IDs in the mirror and relying on chat knowledge that PR #2 contains them."
+    - "Removing WORK-0002 proof requirements from the implementation branch rather than deferring them only in the PR #3 mirror."
+  evidence_requested:
+    - "PR #3 WORK-0002 mirror contains only locally resolvable review/test IDs"
+    - "branch-local REVIEW-0002/TEST-0002/TEST-0003 evidence is explicitly deferred until checkout of feat/work-0002-governance-ci"
+    - "fresh cold-resume TEST-0006 execution after the mirror correction"
+    - "another fresh-context L2 before requirement acceptance or WORK-0001 completion"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-11"
+
+history:
+  created_at: "2026-09-11"
+  updated_at: "2026-09-11"

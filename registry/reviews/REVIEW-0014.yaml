@@ -1,0 +1,89 @@
+id: REVIEW-0014
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "c9b75f677f5b79f66189f90a730cb8efbeb8af0c"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-c9b75f67"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+scope:
+  work_items: [WORK-0001]
+  requirements: [REQ-0015, REQ-0016, REQ-0017, REQ-0018, REQ-0019]
+  capabilities: []
+  contracts:
+    - "registry review lifecycle"
+    - "registry requirement lifecycle"
+    - "per-commit lifecycle validation"
+    - "historical import/migration exceptions"
+  risks:
+    - "Externally completed reviews are materialized directly as COMPLETE with no repository lifecycle path."
+    - "Accepted requirements introduced after the lifecycle contract can appear directly as ACCEPTED with no repository acceptance transition."
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: REVIEW_LIFECYCLE_IMPORT
+    description: "REVIEW-0004 through REVIEW-0013 were materialized in Git directly as COMPLETE after the review lifecycle machine already required OPEN → IN_PROGRESS → COMPLETE. Add a narrow record-specific, commit-bound historical import rule for those externally completed reviews; do not add a generic OPEN → COMPLETE shortcut."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head c9b75f677f5b79f66189f90a730cb8efbeb8af0c"
+      - "REVIEW-0004 introduction: 98e8cdccc07bd3c2d8313d81f296f49c97c44379"
+      - "REVIEW-0005 introduction: 2712795dc9f10c1efed2088313d125f6f915cc98"
+      - "REVIEW-0006 introduction: 2593b93891a7d5c8ba6fa60522cbc48c787c1a96"
+      - "REVIEW-0007 introduction: e93017e6382fa30fa752091ef204edc14ca14d11"
+      - "REVIEW-0008 introduction: f75dd13309caa6d0d55d41cc300fdf4f4ab8b858"
+      - "REVIEW-0009 introduction: c00d32512608afd0e8f60b5413f6067b5af42158"
+      - "REVIEW-0010 introduction: 3b78f0f996b1aced47b7f9ab3f17364f27997a99"
+      - "REVIEW-0011 introduction: 46fd37beaedcce90b6d8357c314336fbe956f659"
+      - "REVIEW-0012 introduction: 319e12aade5e188594ef6da721ec8ff57aa7fdd2"
+      - "REVIEW-0013 introduction: 69cb8c083fb7f55c5895f42d4f7e1a1e7820d320"
+    disposition: OPEN
+    resolved_by: null
+  - id: F-2
+    severity: R2_MAJOR
+    category: REQUIREMENT_LIFECYCLE_IMPORT
+    description: "REQ-0015 through REQ-0019 first appear in commit 2712795dc9f10c1efed2088313d125f6f915cc98 already ACCEPTED after the canonical requirement machine established PROPOSED as initial and PROPOSED → ACCEPTED as the acceptance transition. Add a narrow record-specific, commit-bound historical import rule; do not allow future requirements to bypass PROPOSED."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head c9b75f677f5b79f66189f90a730cb8efbeb8af0c"
+      - "Commit 2712795dc9f10c1efed2088313d125f6f915cc98 introduces REQ-0015, REQ-0016, REQ-0017, REQ-0018 and REQ-0019 directly with status ACCEPTED"
+      - "registry/status-machines.yaml requirement machine already existed before 2712795dc9f10c1efed2088313d125f6f915cc98"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "A record materialized after an external review may skip the repository lifecycle without an explicit import rule."
+    - "Introducing an already accepted requirement is equivalent to executing PROPOSED → ACCEPTED in Git history."
+  omitted_categories_considered:
+    - "bootstrap-bound records introduced in the same commit as the lifecycle machine"
+    - "future generic transitions"
+    - "record-specific immutable history"
+  duplicate_or_reuse_search:
+    - "Reuse the exact historical-exception pattern already established for TEST-0004 rather than creating a second lifecycle authority."
+  failure_modes_considered:
+    - "A generic OPEN → COMPLETE review transition is accidentally introduced."
+    - "A generic initial ACCEPTED requirement state is accidentally introduced."
+    - "An exception is not bound to exact record IDs and exact introduction commits."
+    - "REVIEW-0014 itself is imported directly COMPLETE and repeats the defect."
+  evidence_requested:
+    - "Keep REVIEW-0014 on normal OPEN → IN_PROGRESS → COMPLETE history."
+    - "Add record-specific historical import exceptions only for REVIEW-0004..REVIEW-0013 and REQ-0015..REQ-0019."
+    - "Reopen and rerun TEST-0007 on an exact v6 tree, verifying actual Git history and future-reuse prohibition."
+    - "Rerun TEST-0006 because it inspects the canonical status-machine contract."
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-10"
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"

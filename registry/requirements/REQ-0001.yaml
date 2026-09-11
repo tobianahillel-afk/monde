@@ -1,0 +1,19 @@
+id: REQ-0001
+title: "Bounded repository resume"
+status: ACCEPTED
+type: GOVERNANCE
+normative_statement: "MONDE SHALL provide a bounded repository resume path that lets a fresh competent agent determine current work and required context without relying on private chat history or reading the entire repository."
+rationale: "AI-first development requires durable, repository-local operational memory."
+origin: {source: "WORK-0001/AC-1", decision_date: "2026-09-10", introduced_by_work: WORK-0001, introduced_by_adr: null}
+scope: {capabilities: [], engines: [], experiences: [], schemas: [], data_sources: [], models: []}
+depends_on: []
+conflicts_with: []
+related_requirements: [REQ-0002, REQ-0006]
+semantics: {temporal: false, spatial: false, provenance: false, confidence_uncertainty: false, permissions: false}
+verification:
+  method: TEST_AND_REVIEW
+  acceptance_evidence: ["WORK-0001/AC-1", "README.md", "docs/00_START_HERE.md"]
+  test_ids: [TEST-0004]
+  real_system_validation: ["Corrective cold-resume drill is executed against PR #3 and recorded as TEST-0004."]
+risk: {criticality: HIGH, failure_impact: "Agents may resume from stale or hidden context and repeat or contradict completed work."}
+history: {created_at: "2026-09-10", updated_at: "2026-09-10", supersedes: [], superseded_by: null}

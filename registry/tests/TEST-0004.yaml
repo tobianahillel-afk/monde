@@ -1,0 +1,75 @@
+id: TEST-0004
+name: "WORK-0001 corrective lifecycle and evidence-boundary drill"
+status: PASS
+type: MANUAL_E2E
+
+protects:
+  requirements: [REQ-0001, REQ-0002, REQ-0003, REQ-0004, REQ-0005, REQ-0006, REQ-0007, REQ-0008, REQ-0009, REQ-0011, REQ-0012, REQ-0013, REQ-0014]
+  capabilities: []
+  contracts:
+    - "bootstrap normative traceability"
+    - "registry/status-machines.yaml lifecycle ownership"
+    - "historical test/review evidence boundaries"
+    - "progress NOT_APPLICABLE justification"
+    - "post-merge PROJECT_STATE handover truth"
+  risks:
+    - "Corrective evidence is attributed to an older tree"
+    - "Progress or review lifecycle contains a bypass"
+    - "A new N/A rule invalidates already-tracked work"
+  invariants:
+    - "Historical evidence is never widened to files/requirements that did not exist when it ran"
+    - "Only COMPLETE review evidence can satisfy approval"
+    - "Progress vocabulary/transitions have one canonical source"
+    - "Every current NOT_APPLICABLE work dimension has a non-empty justification"
+
+environment:
+  kind: REAL_GITHUB_REPOSITORY
+  real_dependencies:
+    - "tobianahillel-afk/monde"
+    - "PR #3"
+  mocked_dependencies: []
+
+cases:
+  happy_path:
+    - "REQ-0001..REQ-0014 remain one-to-one with WORK-0001/AC-1..AC-14 and have non-retrofitted verification paths"
+    - "registry/status-machines.yaml defines current registry and progress initial states/transitions"
+    - "registry/progress/matrix.yaml stores instances without a second editable status vocabulary"
+    - "WORK-0002/0003/0004 justify every current NOT_APPLICABLE dimension"
+    - "PROJECT_STATE identifies PR #3, its current review debt, and PR #2 dependency truth"
+  edge_cases:
+    - "A review may be administratively CLOSED without becoming approval evidence"
+    - "NOT_APPLICABLE may be revisited if applicability later changes"
+  failure_modes:
+    - "TEST-0001 claims corrective coverage"
+    - "REVIEW-0001 scopes requirements created after it ran"
+    - "CLOSED review can approve work"
+    - "progress transition is undefined or vocabulary duplicated"
+    - "N/A exists without justification"
+    - "REQ-0008 and REQ-0012 own the same hard-gate obligation"
+  adversarial_cases:
+    - "Treat an old PASS as proof of a new file and verify the evidence boundary rejects that interpretation"
+    - "Attempt to use CLOSED review as completion evidence"
+    - "Search every current matrix NOT_APPLICABLE value for a matching work-item rationale"
+
+execution:
+  command_or_workflow: "Manual SHA-bound inspection through the GitHub connector of the corrective PR #3 tree, cross-checking the six REVIEW-0004 findings against canonical files and current matrix/work-item state."
+  last_run_at: "2026-09-10"
+  commit_sha: "23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+  result: PASS
+  evidence:
+    - "PR #3 corrective tree @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "registry/status-machines.yaml @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "registry/progress/matrix.yaml @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "registry/work-items/WORK-0002.yaml, WORK-0003.yaml and WORK-0004.yaml @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "registry/tests/TEST-0001.yaml and registry/reviews/REVIEW-0001.yaml @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "registry/requirements/REQ-0008.yaml and REQ-0012.yaml @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "PROJECT_STATE.md @ 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+    - "REVIEW-0004"
+
+coverage:
+  line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+  branch_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-11"

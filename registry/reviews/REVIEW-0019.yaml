@@ -1,0 +1,96 @@
+id: REVIEW-0019
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "13f6b315df8d3734e90b212748f730e0d921c33c"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-13f6b315"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "c916d505f190a27d36e5d8fd4e595e970969e269"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNHCCdQ"
+  source_submitted_at: "2026-09-11T03:41:03Z"
+  import_commit: "40050f6fda6787feb42769cb6fa66547d5a1f7fb"
+
+scope:
+  work_items: [WORK-0001]
+  requirements: [REQ-0023, REQ-0024, REQ-0025]
+  capabilities: []
+  contracts:
+    - "machine-readable work-item validity"
+    - "exact-SHA test evidence"
+    - "cold-resume handover currentness"
+    - "pre-acceptance Review Council/cold-read sequencing"
+  risks:
+    - "A malformed active WORK record can make the canonical cold-resume path unparsable while prose-based inspection still appears correct."
+    - "A truncated evidence SHA can make a supposedly exact pre-acceptance proof chain unverifiable."
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: MACHINE_READABILITY
+    description: "At reviewed HEAD 13f6b315df8d3734e90b212748f730e0d921c33c, the RUN-3 flow mapping in registry/work-items/WORK-0001.yaml is missing its closing brace. A standard YAML parser therefore cannot load the active work item, and TEST-0006's c58ddee0 execution did not prove the mandatory machine-readable cold-resume path. Repair the YAML and rerun the affected proof."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 13f6b315df8d3734e90b212748f730e0d921c33c"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNHCCdQ submitted 2026-09-11T03:41:03Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hVPWB"
+      - "WORK-0001 line 440 RUN-3 flow mapping lacks a closing }"
+      - "TEST-0006 tested tree c58ddee0b98097514a4c73c5a8dc8acfb9cd977e contains the same malformed WORK-0001 record"
+    disposition: OPEN
+    resolved_by: null
+  - id: F-2
+    severity: R3_MODERATE
+    category: EVIDENCE_SHA_INTEGRITY
+    description: "At reviewed HEAD 13f6b315df8d3734e90b212748f730e0d921c33c, TEST-0006 and PROJECT_STATE copy the TEST-0005 PASS result as the truncated 38-character value ce962ec2ad199dd914ee4e4a66ec4e110fbfbe. The actual resolvable 40-character TEST-0005 PASS result commit is ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe. Correct every copied value to that exact SHA and revalidate TEST-0006 evidence."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 13f6b315df8d3734e90b212748f730e0d921c33c"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNHCCdQ submitted 2026-09-11T03:41:03Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hVPWG"
+      - "TEST-0005 PASS result commit ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe is the canonical exact result SHA"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "A visually plausible YAML fragment is necessarily machine-parseable."
+    - "A human-readable abbreviated or mistyped SHA is acceptable in exact-SHA evidence."
+    - "A PASS on a tree containing an unparsable mandatory work record proves cold resume."
+  omitted_categories_considered:
+    - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED"
+    - "REVIEW-0018 acceptance-order correction"
+    - "TEST-0005 pre-acceptance evidence"
+    - "TEST-0006 transition-stable routing"
+    - "v7 external-review provenance"
+    - "WORK-0002 cross-branch handoff"
+  duplicate_or_reuse_search:
+    - "F-1 is a machine-readability variant of prior cold-resume currentness defects."
+    - "F-2 is an exact-evidence integrity variant of prior SHA-binding findings."
+  failure_modes_considered:
+    - "Repairing prose without validating YAML parseability."
+    - "Correcting the SHA in only one of several copied surfaces."
+    - "Reusing the invalidated c58ddee0 TEST-0006 execution as current proof after the parser defect is known."
+    - "Accepting REQ-0023/REQ-0024/REQ-0025 before the corrected proof receives a clean independent L2."
+  evidence_requested:
+    - "machine-parseable WORK-0001 YAML"
+    - "exact resolvable TEST-0005 result SHA copied consistently where referenced"
+    - "fresh exact-SHA TEST-0006 execution after both corrections"
+    - "another fresh-context L2 before requirement acceptance or WORK-0001 completion"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-11"
+
+history:
+  created_at: "2026-09-11"
+  updated_at: "2026-09-11"

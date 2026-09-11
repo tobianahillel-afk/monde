@@ -6,7 +6,7 @@ lot: LOT-0
 sublot: SUBLOT-0.1
 owner: "repository bootstrap"
 created_at: "2026-09-10"
-updated_at: "2026-09-10"
+updated_at: "2026-09-11"
 
 purpose: |
   Establish the repository operating system required for MONDE to be safely specified and developed by AI agents without relying on chat history, duplicated work, hidden assumptions or unverifiable completion claims.
@@ -56,9 +56,34 @@ acceptance_criteria:
   - {id: AC-13, description: "Risk-based assurance levels and Review Council roles scale rigor with blast radius and criticality.", status: DONE}
   - {id: AC-14, description: "100% coverage is supplemented by advanced test-strength methods such as mutation/fuzz/property/metamorphic/differential/fault-injection where appropriate.", status: DONE}
 
-requirements: []
+requirements:
+  - REQ-0001
+  - REQ-0002
+  - REQ-0003
+  - REQ-0004
+  - REQ-0006
+  - REQ-0007
+  - REQ-0008
+  - REQ-0009
+  - REQ-0010
+  - REQ-0011
+  - REQ-0012
+  - REQ-0013
+  - REQ-0014
+  - REQ-0015
+  - REQ-0016
+  - REQ-0017
+  - REQ-0018
+  - REQ-0019
+  - REQ-0023
+  - REQ-0024
+  - REQ-0025
 assumptions: []
 risks: []
+
+progress_justifications:
+  implementation: "WORK-0001 is a governance/specification bootstrap and explicitly contains no MONDE product executable implementation."
+  scientific_validation: "WORK-0001 defines scientific-validation and leakage-safe backtesting protocols but implements no scientific/model claim requiring a backtest of its own; the corrective governance contract is verified by independent review and revision-bound corrective tests."
 
 assurance:
   level: A3
@@ -67,12 +92,33 @@ assurance:
     - "constitutional process changes"
     - "repository-wide traceability contract changes"
 
+scope_change:
+  approved: true
+  rationale: "REVIEW-0013/F-1 required current lifecycle proof TEST-0007 in WORK-0001.required_tests.e2e. REVIEW-0014 and REVIEW-0015 refined the already-declared review/lifecycle evidence contract by separating immutable historical imports, historical status replay and truthful preauthorized external-review import provenance. REVIEW-0016/F-1 corrected cold-resume handover currentness. REVIEW-0017/F-1 corrected proof binding/currentness and REVIEW-0017/F-2 atomized the already-existing AC-5 obligations. REVIEW-0018/F-1 requires the replacement atomic owners to remain PROPOSED until independent Review Council/cold-read acceptance evidence exists. REVIEW-0019/F-1/F-2 corrected machine readability and exact evidence SHA integrity. REVIEW-0020/F-1 narrowed only the PR #3 WORK-0002 mirror so branch-local proof IDs are deferred behind the explicit checkout boundary. REVIEW-0021/F-1 restores reciprocal REQ-0023/0024/0025 ↔ TEST-0006 traceability without accepting those requirements or changing their normative statements. REVIEW-0022/F-1 extends the same PR #3 mirror boundary to branch-only schema paths and REVIEW-0022/F-2 removes a stale reverse TEST-0004 → current REQ-0010 edge while keeping TEST-0005 as the current proof. REVIEW-0023/F-1 corrects only cold-resume handover currentness so completed TEST-0006 work cannot be re-presented as pending; none expands product or implementation scope."
+  evidence:
+    - "REVIEW-0013/F-1"
+    - "REVIEW-0014/F-1"
+    - "REVIEW-0014/F-2"
+    - "REVIEW-0015/F-1"
+    - "REVIEW-0016/F-1"
+    - "REVIEW-0017/F-1"
+    - "REVIEW-0017/F-2"
+    - "REVIEW-0018/F-1"
+    - "REVIEW-0019/F-1"
+    - "REVIEW-0019/F-2"
+    - "REVIEW-0020/F-1"
+    - "REVIEW-0021/F-1"
+    - "REVIEW-0022/F-1"
+    - "REVIEW-0022/F-2"
+    - "REVIEW-0023/F-1"
+
 read_before:
   - README.md
   - AGENTS.md
   - docs/00_START_HERE.md
   - PROJECT_STATE.md
   - registry/README.md
+  - registry/status-machines.yaml
   - docs/09_GOVERNANCE/constitution.md
   - docs/03_ARCHITECTURE/documentation-architecture.md
   - docs/10_ROADMAP/development-process.md
@@ -98,6 +144,7 @@ reuses:
 affected_capabilities: []
 affected_engines: []
 affected_schemas:
+  - registry/status-machines.yaml
   - registry/work-items/_TEMPLATE.yaml
   - registry/capabilities/_TEMPLATE.yaml
   - registry/requirements/_TEMPLATE.yaml
@@ -135,11 +182,44 @@ affected_docs:
   - registry/traceability/README.md
   - registry/progress/matrix.yaml
   - registry/reviews/REVIEW-0001.yaml
+  - registry/reviews/REVIEW-0003.yaml
+  - registry/reviews/REVIEW-0004.yaml
+  - registry/reviews/REVIEW-0005.yaml
+  - registry/reviews/REVIEW-0006.yaml
+  - registry/reviews/REVIEW-0007.yaml
+  - registry/reviews/REVIEW-0008.yaml
+  - registry/reviews/REVIEW-0009.yaml
+  - registry/reviews/REVIEW-0010.yaml
+  - registry/reviews/REVIEW-0011.yaml
+  - registry/reviews/REVIEW-0012.yaml
+  - registry/reviews/REVIEW-0013.yaml
+  - registry/reviews/REVIEW-0014.yaml
+  - registry/reviews/REVIEW-0015.yaml
+  - registry/reviews/REVIEW-0016.yaml
+  - registry/reviews/REVIEW-0017.yaml
+  - registry/reviews/REVIEW-0018.yaml
+  - registry/reviews/REVIEW-0019.yaml
+  - registry/reviews/REVIEW-0020.yaml
+  - registry/reviews/REVIEW-0021.yaml
+  - registry/reviews/REVIEW-0022.yaml
+  - registry/reviews/REVIEW-0023.yaml
+  - registry/requirements/REQ-0005.yaml
+  - registry/requirements/REQ-0020.yaml
+  - registry/requirements/REQ-0021.yaml
+  - registry/requirements/REQ-0022.yaml
+  - registry/requirements/REQ-0023.yaml
+  - registry/requirements/REQ-0024.yaml
+  - registry/requirements/REQ-0025.yaml
   - registry/tests/TEST-0001.yaml
+  - registry/tests/TEST-0004.yaml
+  - registry/tests/TEST-0005.yaml
+  - registry/tests/TEST-0006.yaml
+  - registry/tests/TEST-0007.yaml
 contracts:
   - "AI resume protocol"
   - "Work item tracking contract"
   - "Capability registry contract"
+  - "Registry lifecycle/status-machine contract"
   - "Progress tracking contract"
   - "Requirement contract"
   - "Assumption ledger contract"
@@ -163,7 +243,7 @@ impact_analysis:
     - "all future canonical specification work"
     - "all future implementation work"
   migrations_or_reprocessing: []
-  compatibility_notes: "Bootstrap-only repository; contracts are established before production implementation."
+  compatibility_notes: "Bootstrap-only repository. Registry lifecycle semantics and historical evidence boundaries are centralized before automation consumes them; no production data migration exists. External completed-review imports are separated from repository-native review execution through one-shot preauthorized provenance. REQ-0005 remains immutable historical context; prematurely accepted REQ-0020/REQ-0021/REQ-0022 remain inspectable as superseded history; active AC-5 ownership is routed to PROPOSED REQ-0023/REQ-0024/REQ-0025 until independent acceptance evidence exists. Current TEST execution identity is authoritative in each TEST record. Cross-branch mirrors expose only locally resolvable paths/IDs/schemas; branch-local WORK-0002 proof and schemas become authoritative only after explicit checkout of its implementation branch. Reciprocal verification.test_ids on active proposed requirements must reach any TEST that claims to protect them. Historical SHA-bound tests must not claim current reverse coverage for requirement semantics introduced after their tested tree. Cold-resume handover must use conditional current-test routing so a completed qualifying TEST execution is never ordered again as future work."
 
 implementation_plan:
   tasks:
@@ -172,13 +252,13 @@ implementation_plan:
     - {id: T3, description: "Define development lifecycle, DoR/DoD and testing strategy.", depends_on: [T2], expected_files: [docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md], status: DONE}
     - {id: T4, description: "Define documentation architecture, development/security rules, threat modeling and ADR process.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/11_ADR/README.md], status: DONE}
     - {id: T5, description: "Add GitHub templates, capability registry, project scorecard and Phase-0 roadmap.", depends_on: [T3, T4], expected_files: [.github/pull_request_template.md, .github/ISSUE_TEMPLATE/feature.yml, .github/ISSUE_TEMPLATE/bug.yml, registry/capabilities/README.md, docs/13_QUALITY/project-scorecard.md, docs/10_ROADMAP/phase-0.md], status: DONE}
-    - {id: T6, description: "Open/review bootstrap PR and update canonical project state for handover.", depends_on: [T5], expected_files: [PROJECT_STATE.md, registry/work-items/WORK-0001.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
+    - {id: T6, description: "Complete post-merge independent assurance review, correct its findings, and synchronize canonical handover state.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/requirements/, registry/reviews/REVIEW-0003.yaml, registry/reviews/REVIEW-0004.yaml, registry/reviews/REVIEW-0005.yaml, registry/reviews/REVIEW-0006.yaml, registry/reviews/REVIEW-0007.yaml, registry/reviews/REVIEW-0008.yaml, registry/reviews/REVIEW-0009.yaml, registry/reviews/REVIEW-0010.yaml, registry/reviews/REVIEW-0011.yaml, registry/reviews/REVIEW-0012.yaml, registry/reviews/REVIEW-0013.yaml, registry/reviews/REVIEW-0014.yaml, registry/reviews/REVIEW-0015.yaml, registry/reviews/REVIEW-0016.yaml, registry/reviews/REVIEW-0017.yaml, registry/reviews/REVIEW-0018.yaml, registry/reviews/REVIEW-0019.yaml, registry/reviews/REVIEW-0020.yaml, registry/reviews/REVIEW-0021.yaml, registry/reviews/REVIEW-0022.yaml, registry/reviews/REVIEW-0023.yaml, registry/tests/TEST-0001.yaml, registry/tests/TEST-0004.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
     - {id: T7, description: "Add scientific specification lifecycle, requirements/assumptions/risks, traceability and reproducibility/backtesting contracts.", depends_on: [T3, T4, T5], expected_files: [docs/13_QUALITY/specification-quality.md, docs/13_QUALITY/reproducibility-backtesting.md, registry/requirements/_TEMPLATE.yaml, registry/assumptions/_TEMPLATE.yaml, registry/risks/_TEMPLATE.yaml, registry/traceability/README.md], status: DONE}
     - {id: T8, description: "Add assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols; synchronize state.", depends_on: [T7], expected_files: [docs/13_QUALITY/review-council.md, docs/13_QUALITY/assurance-levels.md, docs/13_QUALITY/advanced-verification.md, docs/13_QUALITY/non-functional-requirements.md, docs/12_RESEARCH/research-protocol.md, registry/reviews/_TEMPLATE.yaml, registry/tests/_TEMPLATE.yaml, registry/experiments/_TEMPLATE.yaml, registry/README.md], status: DONE}
   planned_runs:
     - {id: RUN-1, objective: "Repository navigation/governance tracking bootstrap", tasks: [T1, T2], exit_condition: "Core resume/tracking contracts exist", status: DONE}
     - {id: RUN-2, objective: "Quality/lifecycle/GitHub workflow bootstrap", tasks: [T3, T4, T5], exit_condition: "Development gates/templates exist", status: DONE}
-    - {id: RUN-3, objective: "Bootstrap PR review and handover", tasks: [T6], exit_condition: "PR receives final independent/owner review and state is merge-ready", status: IN_REVIEW}
+    - {id: RUN-3, objective: "Post-merge bootstrap assurance correction and fresh re-review", tasks: [T6], exit_condition: "Fresh L2 findings are corrected, SHA-bound evidence exists, and a new independent review has no unresolved blocking finding", status: IN_REVIEW}
     - {id: RUN-4, objective: "Scientific/documentation governance hardening", tasks: [T7], exit_condition: "Canonical documentation is governed as rigorously as implementation", status: DONE}
     - {id: RUN-5, objective: "Assurance, research and advanced verification hardening", tasks: [T8], exit_condition: "Quality dimensions/review evidence are explicit and synchronized", status: DONE}
 
@@ -193,29 +273,115 @@ review_plan:
     - PERFORMANCE_SRE
     - DOCUMENTATION_TRACEABILITY
     - RED_TEAM_SKEPTIC
-  completed_reviews:
-    - REVIEW-0001
+  completed_reviews: []
   open_findings:
-    - "REVIEW-0001/F-3 repository visibility owner action"
-    - "REVIEW-0001/F-5 fresh-context/owner L2 review"
+    - "REVIEW-0004/F-1 corrective TEST evidence freshness"
+    - "REVIEW-0004/F-2 historical REVIEW scope integrity"
+    - "REVIEW-0004/F-3 CLOSED review cannot approve"
+    - "REVIEW-0004/F-4 canonical progress initial state/transitions and single vocabulary"
+    - "REVIEW-0004/F-5 NOT_APPLICABLE justifications for all current users"
+    - "REVIEW-0004/F-6 REQ-0008/REQ-0012 atomic ownership"
+    - "REVIEW-0005/F-1 active historical PASS lacks a provable exact revision"
+    - "REVIEW-0005/F-2 accepted blocking finding lacks structured authority evidence"
+    - "REVIEW-0005/F-3 REQ-0010 is compound rather than atomic"
+    - "REVIEW-0006/F-1 negative COMPLETE review outcomes must never count as approval evidence"
+    - "REVIEW-0006/F-2 TEST-0001 supersession must preserve its original protected behavior"
+    - "REVIEW-0007/F-1 PROJECT_STATE/WORK-0002/progress-matrix active lifecycle contradiction invalidated the first TEST-0006 PASS"
+    - "REVIEW-0008/F-1 PR #3 WORK-0002 mirror imported branch-only read_before paths, invalidating the second TEST-0006 PASS"
+    - "REVIEW-0009/F-1 progress DONE → IN_REVIEW reopening semantics were missing even though the corrective branch had truthfully reopened dimensions after adverse evidence"
+    - "REVIEW-0009/F-2 TEST-0004 immutable history contains a PLANNED → PASS edge requiring an exact reviewed historical migration exception"
+    - "REVIEW-0010/F-1 REQ-0006 forward verification mapping omitted current lifecycle-history proof TEST-0007"
+    - "REVIEW-0011/F-1 PROJECT_STATE next action still repeated already-completed REVIEW-0010/test synchronization"
+    - "REVIEW-0012/F-1 WORK-0001 did not yet preserve REVIEW-0011 or the latest pending review gate while PROJECT_STATE did"
+    - "REVIEW-0013/F-1 WORK-0001.required_tests.e2e omitted current lifecycle proof TEST-0007"
+    - "REVIEW-0014/F-1 REVIEW-0004..REVIEW-0013 were post-contract imports materialized directly COMPLETE without an explicit exact import boundary"
+    - "REVIEW-0014/F-2 REQ-0015..REQ-0019 were post-contract imports materialized directly ACCEPTED without an explicit exact import boundary"
+    - "REVIEW-0015/F-1 REVIEW-0014's apparent OPEN → IN_PROGRESS → COMPLETE sequence was a post-hoc replay after external review completion; future external reviews require truthful one-shot preauthorized import provenance"
+    - "REVIEW-0016/F-1 frozen head 7c9cc98f already synchronized WORK-0001 with the current TEST-0006 PASS while PROJECT_STATE still listed that completed synchronization as its first next action"
+    - "REVIEW-0017/F-1 WORK-0001 exposed an obsolete TEST-0006 current-execution triple after the finalized-handover rerun"
+    - "REVIEW-0017/F-2 REQ-0005 combined independently fail-able DoR, DoD and verification-strategy obligations"
+    - "REVIEW-0018/F-1 REQ-0020/REQ-0021/REQ-0022 were accepted before independent Review Council/cold-read acceptance evidence existed"
+    - "REVIEW-0019/F-1 WORK-0001 RUN-3 flow mapping was malformed YAML at reviewed head 13f6b315"
+    - "REVIEW-0019/F-2 TEST-0006 and PROJECT_STATE copied a truncated TEST-0005 PASS result SHA at reviewed head 13f6b315"
+    - "REVIEW-0020/F-1 PR #3 WORK-0002 mirror exposed branch-local REVIEW-0002/TEST-0002/TEST-0003 as locally traversable proof IDs"
+    - "REVIEW-0021/F-1 REQ-0023/REQ-0024/REQ-0025 forward verification mappings omitted TEST-0006 while TEST-0006 claimed to protect all three"
+    - "REVIEW-0022/F-1 PR #3 WORK-0002 mirror exposed branch-only affected_schemas before explicit checkout"
+    - "REVIEW-0022/F-2 TEST-0004 claimed current reverse protection of REQ-0010 even though current REQ-0010 semantics postdate TEST-0004's exact tested tree"
+    - "REVIEW-0023/F-1 PROJECT_STATE still ordered the already-completed REVIEW-0022 TEST-0006 rerun as future work, invalidating that execution's handover-currentness assertion"
+    - "TEST-0005 current pre-acceptance execution is PASS on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7. REQ-0023/REQ-0024/REQ-0025 remain PROPOSED and this PASS does not approve them."
+    - "TEST-0007 current generic v7 execution remains PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f. REVIEW-0023 does not change the generic lifecycle contract."
+    - "TEST-0006 current lifecycle/execution identity is authoritative in registry/tests/TEST-0006.yaml. If no valid PASS covers the REVIEW-0023-corrected transition-stable WORK/PROJECT_STATE handover, continue its legal lifecycle to obtain exactly one; once a qualifying PASS exists, proceed directly to fresh L2 and do not rerun merely for a newer SHA."
 
 required_tests:
   unit: []
   property: []
   integration: []
   contract:
-    - "Cross-file consistency review of status vocabulary, paths and registry contracts"
+    - "Cross-file consistency review of registry lifecycle machines, progress transitions, REQ links, N/A justifications, evidence boundaries, accepted-finding authority, approval outcomes, active-work routing, current-tree read_before/schema paths, cross-branch handoff semantics, exact historical import/replay boundaries and preauthorized external-review provenance"
   e2e:
-    - TEST-0001
-    - "Cold-read specification workflow determines research/review/traceability without chat context"
+    - TEST-0004
+    - TEST-0005
+    - TEST-0006
+    - TEST-0007
+    - "Cold-read specification workflow determines current work, normative requirements, research/review/traceability without chat context"
   regression:
     - "Bootstrap-discovered governance defects become WORK-0002 validator fixtures"
+    - "Material bootstrap acceptance criteria cannot remain outside REQ traceability"
+    - "Historical TEST/REVIEW evidence cannot be widened to corrective artifacts created later"
+    - "CLOSED review state cannot satisfy approval semantics"
+    - "COMPLETE review with CHANGES_REQUIRED or BLOCKED cannot satisfy approval semantics"
+    - "Progress state has one canonical vocabulary plus explicit initial state/transitions"
+    - "Every current NOT_APPLICABLE progress dimension has a work-item justification"
+    - "REQ-0008 scorecard ownership does not duplicate REQ-0012 hard-gate ownership"
+    - "An active state-bound PASS cannot have a null exact tested commit SHA"
+    - "A superseded historical test must be replaced by revision-bound evidence that preserves or explicitly partitions its original scope"
+    - "An ACCEPTED R1/R2 finding cannot become non-blocking without accepting authority evidence"
+    - "Independently fail-able specification obligations cannot share one compound REQ owner"
+    - "REQ-0005 must remain superseded rather than semantically narrowed"
+    - "Prematurely accepted REQ-0020/REQ-0021/REQ-0022 must remain historical/superseded, not be rolled back to PROPOSED"
+    - "Current AC-5 owners REQ-0023/REQ-0024/REQ-0025 must remain PROPOSED until independent Review Council and cold-read gates pass"
+    - "A normal PROPOSED → ACCEPTED transition is not sufficient by itself; acceptance requires applicable specification review/cold-read evidence"
+    - "Current exact proof must be bidirectionally reachable: TEST-0006 protects REQ-0023/REQ-0024/REQ-0025 and each requirement verification.test_ids includes TEST-0006"
+    - "PROJECT_STATE, active WORK records and the progress matrix cannot disagree on one global work lifecycle"
+    - "A later independent review that disproves a PASS assertion invalidates that execution without deleting its history"
+    - "Every current-tree read_before/schema path for an active mirrored work item must resolve; branch-only prerequisites and schemas require an explicit checkout handoff"
+    - "A cross-branch work mirror must not expose branch-local review/test IDs or branch-only schemas as locally traversable structured evidence before checkout"
+    - "A historical SHA-bound TEST protects edge must not be treated as current reverse proof after the referenced REQ's normative semantics changed; current proof must come from a test that actually inspected the current semantics"
+    - "Post-merge PROJECT_STATE cannot instruct agents to repeat already-completed work"
+    - "Current lifecycle proof TEST-0007 must be enumerated by WORK-0001.required_tests.e2e as well as REQ-0006 verification"
+    - "A post-contract REVIEW or REQ first materialized in a non-initial state requires an exact record/commit-bound historical import exception; generic lifecycle shortcuts and future reuse remain forbidden"
+    - "A syntactically ordered review status replay performed after the external review already completed cannot count as normal lifecycle evidence"
+    - "A post-v7 externally completed review requires a matching one-shot authorization in an earlier parent commit and an exact later import-consumption binding"
+    - "A cold-resume handover must not hardcode an intermediate TEST transition, a volatile PR head, or completed administrative synchronization as its next action"
+    - "The current TEST execution identity is authoritative in the TEST record; WORK/PROJECT_STATE preserve reviewed baselines without becoming a second mutable result registry"
+    - "The active WORK record must remain parseable YAML; visual plausibility is not enough"
+    - "Exact-SHA evidence copied across canonical surfaces must use full resolvable commit identifiers"
+    - "After adverse review invalidates a handover-currentness assertion, preserve the historical PASS and make current rerun need conditional on the canonical TEST record rather than hardcoding already-completed work into PROJECT_STATE"
   security:
-    - "Repository visibility reviewed; currently public"
+    - "Repository visibility reviewed; public by explicit owner decision under public-code-safe constraints (no secrets, private/personal datasets or user-identifying runtime data in Git)."
   performance: []
   real_system:
     - "Branch writes performed against actual GitHub repository"
-    - "Dedicated GitHub pull request created and inspected"
+    - "PR #1 created, reviewed and squash-merged as b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
+    - "Fresh GitHub Codex reviews REVIEW-0003 through REVIEW-0023 successively narrowed post-merge assurance debt rather than author self-approval"
+    - "REVIEW-0018 on exact head 8f0aea5b9c1cd9387b59da40ff2d08a8a975d1a1 found premature acceptance of REQ-0020/REQ-0021/REQ-0022 before review/cold-read gates"
+    - "REVIEW-0019 on exact head 13f6b315df8d3734e90b212748f730e0d921c33c found malformed WORK-0001 YAML and a truncated TEST-0005 result SHA in copied proof surfaces"
+    - "REVIEW-0020 on exact head 13b977bf5e821bbd32464a90c0bee9539b3afefe found branch-local WORK-0002 REVIEW/TEST IDs exposed as locally traversable structured evidence in the PR #3 mirror"
+    - "REVIEW-0021 on exact head f0d0410cd31df1b348fddf09528588e43e956945 found missing forward TEST-0006 mappings on REQ-0023/REQ-0024/REQ-0025"
+    - "REVIEW-0022 on exact head 97be290c21840098f02b92aa26a195a6e1017fbb found branch-only affected_schemas in the PR #3 WORK-0002 mirror and stale TEST-0004 reverse coverage of current REQ-0010"
+    - "REVIEW-0023 on exact head 3a05ec6f14ea71d15b1cc842ef634e00279217e6 found PROJECT_STATE still presenting the already-completed REVIEW-0022 TEST-0006 rerun as future work"
+    - "REVIEW-0022 provenance: authorization c2921a693a2a2b4350ef50c8f77fc69895f17305 → import 5e22bd5b63c723f29a2e20ad07c8d69c9881cae5 → review binding aee461bfee70ade613bcb5a99154a0aeb3b660cb → authorization consumption ff3b6cd85b76cd11f78afd80c4040bb92d3fbad6"
+    - "REVIEW-0023 provenance: authorization bdc52847919696e72b13f63afcad622412739ef3 → import 026849083f8baf7a40a67ec6ac70e2b2e169abbe → review binding 741a8662a61acdec56addca8492cb45341c93e7b → authorization consumption be897be03267a44bf5167a18dca0ada384e42052"
+    - "REVIEW-0023/F-1 PROJECT_STATE transition-stable correction commit 66b1c5d000db7725e29e251e8660f7c477ffd56d routes current TEST identity to TEST-0006 and conditionally skips rerun once qualifying proof exists"
+    - "REVIEW-0022/F-1 correction commit 1ccd23ac7d1ccefea7af065df66a0596b0368b02 removes branch-only affected_schemas from the PR #3 WORK-0002 mirror and explicitly defers schemas behind checkout"
+    - "REVIEW-0022/F-2 correction commit 2356271e2def66e490f10251753224b9876960cc removes current REQ-0010 from TEST-0004 protects.requirements while REQ-0010 continues to map to TEST-0005"
+    - "REQ-0023/REQ-0024/REQ-0025 reciprocal TEST-0006 mappings were added in 8bbb64bbf47e93e135f057cdd16961f6e09767ac / 7a45c349ff3d9550e019100ae784fcbb14f1aaa8 / ce0a6924bc7a3fcaa18a84ae14d73b957895f9b0 while all three remained PROPOSED"
+    - "PR #3 WORK-0002 mirror defers branch-local proof IDs behind explicit checkout boundary as of db1735c2a857ab111bb4ee9c42d522690c16e1d8 and branch-only schemas as of 1ccd23ac7d1ccefea7af065df66a0596b0368b02"
+    - "REQ-0023/REQ-0024/REQ-0025 first materialized together as PROPOSED in 772616269581f622605416b2e34f6d4e270241df and remain unaccepted pending independent evidence"
+    - "REQ-0020/REQ-0021/REQ-0022 transitioned legally ACCEPTED → SUPERSEDED together in 9ca6b975e7abef9eadf86573f2c9e1cb07b89e3d; their premature acceptance remains inspectable history"
+    - "REQ-0005 remains SUPERSEDED and historically addressable; active ownership no longer routes through its compound statement"
+    - "TEST-0005 current pre-acceptance execution passed on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; exact result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7"
+    - "TEST-0007 current generic v7 execution passed on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; pointer 87ec209eec614a0ff3be7a00a7565102042cad3f"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -223,7 +389,7 @@ scientific_validation:
   required: false
   baseline: null
   backtest: []
-  temporal_leakage_check: "Protocol documented; no model/forecast implementation exists yet."
+  temporal_leakage_check: "Protocol documented; no model/forecast implementation exists in WORK-0001."
   reproducibility_manifest: null
   shadow_or_canary: null
 
@@ -237,27 +403,67 @@ observability:
 
 validation:
   executed:
-    - "Actual GitHub repository/main inspected"
-    - "Bootstrap branch created from main"
-    - "Bootstrap documents/registries written on real branch"
-    - "Manual resume/read-path consistency review"
-    - "PR #1 opened and diff reviewed"
-    - "Status-vocabulary inconsistency found and corrected"
-    - "Specification-governance gap analysis performed"
-    - "Review/test evidence contracts exercised with REVIEW-0001 and TEST-0001"
+    - "Actual GitHub repository/main inspected and PR #1 squash merge preserved"
+    - "Successive fresh-context L2 reviews REVIEW-0003 through REVIEW-0023 were used to narrow post-merge assurance debt rather than self-approve it"
+    - "Historical REVIEW-0001 and TEST-0001 remain bounded to what can actually be proven; TEST-0001 is superseded/non-gating"
+    - "REQ-0001..REQ-0019 established normative bootstrap ownership; REQ-0005 remains superseded after atomic decomposition"
+    - "Prematurely accepted REQ-0020/REQ-0021/REQ-0022 are preserved as SUPERSEDED history after REVIEW-0018/F-1"
+    - "Current AC-5 owners REQ-0023/REQ-0024/REQ-0025 are PROPOSED and deliberately not accepted before independent Review Council/cold-read evidence"
+    - "TEST-0005 supplied exact-SHA pre-acceptance evidence while REQ-0023/REQ-0024/REQ-0025 remained PROPOSED; exact PASS result is ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe"
+    - "REVIEW-0019 corrected malformed WORK-0001 YAML and copied SHA integrity; REVIEW-0020 corrected PR #3 mirror proof-graph resolvability"
+    - "REVIEW-0021 corrected bidirectional current-proof traceability while leaving proposed requirement content/status otherwise unchanged"
+    - "REVIEW-0022 corrected branch-only schema exposure in PR #3's WORK-0002 mirror and removed stale TEST-0004 reverse coverage of current REQ-0010"
+    - "REVIEW-0023 identified stale handover routing after the REVIEW-0022 TEST-0006 rerun; PROJECT_STATE is now transition-stable and WORK-0001 is synchronized through that review"
+    - "status-machines v7 is canonical; REVIEW-0023's external import authorization is consumed by exact import commit 026849083f8baf7a40a67ec6ac70e2b2e169abbe"
+    - "WORK-0001 and PROJECT_STATE route current TEST execution identity exclusively through each TEST record and conditionally skip any redundant rerun after qualifying proof"
   evidence:
-    - "Git history on bootstrap/ai-governance"
     - "PR #1"
+    - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
+    - "PR #3"
     - REVIEW-0001
-    - TEST-0001
+    - REVIEW-0003
+    - REVIEW-0004
+    - REVIEW-0005
+    - REVIEW-0006
+    - REVIEW-0007
+    - REVIEW-0008
+    - REVIEW-0009
+    - REVIEW-0010
+    - REVIEW-0011
+    - REVIEW-0012
+    - REVIEW-0013
+    - REVIEW-0014
+    - REVIEW-0015
+    - REVIEW-0016
+    - REVIEW-0017
+    - REVIEW-0018
+    - REVIEW-0019
+    - REVIEW-0020
+    - REVIEW-0021
+    - REVIEW-0022
+    - REVIEW-0023
+    - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
+    - TEST-0004
+    - "TEST-0005 (current pre-acceptance PASS on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; exact result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7; REQ-0023/0024/0025 remain PROPOSED)"
+    - "TEST-0006 (current lifecycle/execution identity is read from registry/tests/TEST-0006.yaml; if no valid PASS covers the REVIEW-0023-corrected handover, continue legally to exactly one qualifying PASS, otherwise proceed directly to fresh L2)"
+    - "TEST-0007 (current generic v7 PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f)"
+    - "REQ-0020/REQ-0021/REQ-0022 (SUPERSEDED premature-acceptance history)"
+    - REQ-0023
+    - REQ-0024
+    - REQ-0025
+    - registry/status-machines.yaml
+    - "REVIEW-0022 authorization c2921a693a2a2b4350ef50c8f77fc69895f17305 → import 5e22bd5b63c723f29a2e20ad07c8d69c9881cae5 → review binding aee461bfee70ade613bcb5a99154a0aeb3b660cb → authorization consumption ff3b6cd85b76cd11f78afd80c4040bb92d3fbad6"
+    - "REVIEW-0023 authorization bdc52847919696e72b13f63afcad622412739ef3 → import 026849083f8baf7a40a67ec6ac70e2b2e169abbe → review binding 741a8662a61acdec56addca8492cb45341c93e7b → authorization consumption be897be03267a44bf5167a18dca0ada384e42052"
+    - "PR #2 live lifecycle is IN_REVIEW and must be queried from GitHub after explicit branch checkout; its volatile HEAD and proof-record/schema IDs are intentionally not canonized in the PR #3 mirror."
   coverage:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "Governance/document/traceability consistency is not yet enforced automatically in CI"
-    - "No CI status checks are currently attached to PR #1"
-    - "Repository visibility remains public until owner action"
-    - "Fresh-context/owner L2 final review pending"
+    - "REVIEW-0023/F-1 invalidated the latest TEST-0006 handover-currentness assertion. Consult TEST-0006: if no valid exact PASS yet covers the corrected transition-stable handover, continue the legal lifecycle once; after qualifying proof exists, proceed directly to fresh L2 without another administrative rerun."
+    - "REVIEW-0018/F-1, REVIEW-0019/F-1/F-2, REVIEW-0020/F-1, REVIEW-0021/F-1, REVIEW-0022/F-1/F-2 and REVIEW-0023/F-1 remain open until a later fresh-context L2 independently verifies the corrections."
+    - "A clean approval-capable L2 must inspect proposed REQ-0023/REQ-0024/REQ-0025 before they may transition to ACCEPTED."
+    - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; its own fresh-L2 work remains separate."
+    - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
 risk:
   security: LOW
@@ -267,32 +473,63 @@ risk:
   operational: MEDIUM
 
 rollback:
-  strategy: "Close/revert bootstrap PR; initial README-only state remains recoverable through Git history."
+  strategy: "Revert the WORK-0001 assurance-correction PR; PR #1 merge remains recoverable and unresolved L2 findings remain explicit."
 
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-10", note: "Opened/reviewed PR #1 and corrected status vocabulary defect; final independent review remains."}
+  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0023 narrowed assurance debt. REQ-0023/24/25 remain PROPOSED pending independent acceptance review. REVIEW-0022 corrected branch-only schema exposure and stale historical TEST reverse coverage; REVIEW-0023 then found the handover still presented that completed rerun as pending. PROJECT_STATE/WORK-0001 now use transition-stable conditional TEST-0006 routing; current TEST identity remains canonical in TEST-0006 and must be re-proven once only if no valid PASS yet covers this corrected handover."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
-  - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
+  - {run: RUN-5, date: "2026-09-10", note: "Added assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols; synchronize state."}
 
 discoveries:
-  - "Repository visibility is currently public."
-  - "No GitHub status checks are currently attached to PR #1."
-  - "Execution governance alone is insufficient; specification reasoning must be structured, traceable, independently reviewed and falsifiable."
+  - "Repository intentionally remains public by owner decision; public-code-safe constraints apply."
+  - "Acceptance criteria are not a substitute for stable atomic REQ identities when behavior is material and normative."
+  - "One broad acceptance criterion may legitimately map to several atomic normative requirements."
+  - "Definition of Ready, Definition of Done and verification strategy are independently fail-able even when one acceptance criterion mentions all three."
+  - "A compound accepted requirement should be superseded, not silently narrowed; post-v7 replacements must follow normal lifecycle checkpoints."
+  - "A syntactically legal PROPOSED → ACCEPTED transition does not itself satisfy specification acceptance; required Review Council hats and cold-read evidence must exist first."
+  - "A prematurely accepted post-v7 requirement cannot be rolled backward to PROPOSED; preserve it as historical evidence and replace it through legal supersession with a proposed owner."
+  - "A visually plausible active WORK record is not sufficient evidence; machine readability must be proven with an actual YAML parse."
+  - "Exact-SHA proof requires the full resolvable identifier everywhere the evidence is copied."
+  - "Cross-branch work mirrors must defer branch-only files, schemas and branch-local review/test registry IDs behind an explicit checkout boundary."
+  - "A historical SHA-bound test cannot provide current reverse proof for a requirement whose normative meaning changed after that tested tree; current semantic proof must come from a later test that inspected the current requirement."
+  - "Bidirectional requirement/test traceability is required for current proof: a TEST protects edge must be reciprocated by the requirement verification mapping."
+  - "Registry status semantics must be registry-specific and machine-readable before CI can enforce transitions safely."
+  - "A post-merge independent review can expose assurance debt that was invisible to same-context review."
+  - "Historical evidence must not be widened retroactively to corrective files or requirements created after execution."
+  - "An unprovable historical tested SHA must not be guessed; the evidence should be superseded and replaced with revision-bound proof."
+  - "Superseding evidence must preserve or explicitly partition the behavior represented by the superseded artifact."
+  - "A blocking review finding marked ACCEPTED needs explicit accepting authority and evidence, not only a disposition token."
+  - "COMPLETE is necessary but not sufficient for approval: only positive outcomes are approval-capable."
+  - "A SHA-bound PASS can remain valid for its exact tree while later independent evidence can invalidate claims it made; invalidation is recorded rather than deleting history."
+  - "Concurrent active work on different PRs still has one global lifecycle truth; PROJECT_STATE, WORK records and progress matrix must agree."
+  - "Completion evidence may truthfully regress from DONE to IN_REVIEW after new adverse evidence; reopening must be explicit, reviewed and re-gated."
+  - "Immutable historical lifecycle mistakes require exact record/commit-bound migration exceptions, not generic future shortcuts or rewritten history."
+  - "Post-contract registry records first materialized after an external completed governance event require exact record/status/commit-bound import evidence; imports are not alternate initial states or reusable transitions."
+  - "A syntactically ordered lifecycle replay after an external review already completed is not execution evidence; immutable replay must be labeled as such rather than passed off as normal lifecycle."
+  - "A future externally completed review needs a one-shot authorization that exists in a parent commit before materialization, followed by exact import-consumption binding; this separates source-review provenance from repository-native lifecycle execution."
+  - "Current proof must be reachable both from the requirement's verification mapping and from the test's protected-requirements edge."
+  - "Cold-resume handover currentness must agree in PROJECT_STATE and the active WORK record; updating only one surface is insufficient."
+  - "A transition-stable handover should route current mutable execution identity to the canonical TEST record and avoid duplicating volatile PR/test SHAs as second sources of truth."
+  - "A transition-stable handover must also conditionally skip an already-qualified TEST execution; otherwise the handover itself can make a valid proof assertion stale."
+  - "Current proof must also be enumerated in the active WORK required-test plan, not only in requirement/test traceability."
+  - "A cold-resume test must fail rather than bless a correct contract when the canonical handover describing that contract is stale."
+  - "CLOSED and COMPLETE review states have different evidence semantics."
+  - "A status vocabulary is incomplete as a machine contract without an initial state and transitions."
   - "100% coverage alone is insufficient; test-strength and non-compensable gates are required."
 blockers: []
 follow_up_work_items:
-  - "WORK-0002: automate governance/specification/traceability and architecture fitness validation in CI."
-  - "WORK-0003: configure repository visibility/branch protection/required checks/security settings."
+  - "WORK-0002: consume the canonical lifecycle/requirement contracts and finish governance automation after WORK-0001 completion."
+  - "WORK-0003: configure branch protection/required checks/security settings while keeping the repository public."
   - "WORK-0004: inventory all previously validated MONDE capabilities and assign stable CAP IDs."
   - "Future: implement MONDE Mini, historical event packs and executable epistemic/architecture invariants."
 
 completion:
   definition_of_ready_checked: true
-  definition_of_done_checked: true
-  specification_gates_checked: true
-  traceability_checked: true
+  definition_of_done_checked: false
+  specification_gates_checked: false
+  traceability_checked: false
   review_complete: false
   docs_updated: true
   registries_updated: true

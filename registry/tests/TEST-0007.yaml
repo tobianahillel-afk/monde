@@ -1,0 +1,138 @@
+id: TEST-0007
+name: "Progress reopening, historical migration/import/replay and external review provenance drill"
+status: PASS
+type: MANUAL_E2E
+
+protects:
+  requirements: [REQ-0006]
+  capabilities: []
+  contracts:
+    - "registry lifecycle/status-machine contract"
+    - "progress reopening semantics"
+    - "test execution lifecycle"
+    - "exact historical transition migration exceptions"
+    - "exact historical registry-import exceptions"
+    - "exact historical review-replay exceptions"
+    - "preauthorized one-shot external review imports"
+    - "bidirectional requirement/test traceability"
+  risks:
+    - "Truthful reopened evidence cannot be represented because DONE progress is terminal"
+    - "Historical lifecycle violations are silently accepted or generalized into future shortcuts"
+    - "A migration/import/replay exception matches more history than the exact legacy record/commit it is intended to preserve"
+    - "An externally completed review is made to look repository-native by replaying statuses after its findings/outcome already exist"
+    - "A future external review can be imported COMPLETE without an earlier authorization, or one authorization can be reused"
+    - "Post-contract accepted requirements first materialized as ACCEPTED are rejected by accumulated-history validation or normalized into an alternate initial state"
+    - "Forward traceability from REQ-0006 omits the current lifecycle-history proof"
+  invariants:
+    - "New adverse evidence can reopen DONE progress to IN_REVIEW without rewriting history"
+    - "Reopening requires an explicit evidence/review trigger and normal gates before returning to DONE"
+    - "Generic TEST transitions still require PLANNED → READY → RUNNING → PASS"
+    - "The TEST-0004 legacy exception applies only to its exact immutable PLANNED → PASS commit edge"
+    - "Review historical imports apply only to REVIEW-0004..REVIEW-0013 at their exact introduction commits; OPEN remains the initial review state and OPEN → IN_PROGRESS → COMPLETE remains the normal repository-native execution path"
+    - "Requirement historical imports apply only to REQ-0015..REQ-0019 at exact commit 2712795dc9f10c1efed2088313d125f6f915cc98; PROPOSED remains the initial requirement state"
+    - "REVIEW-0014's post-hoc OPEN/IN_PROGRESS replay is preserved only by one exact historical replay exception and never treated as execution-time lifecycle evidence"
+    - "Externally completed REVIEW-0015 is imported COMPLETE only because its one-shot authorization exists in an earlier parent commit and is bound to the actual import commit afterward"
+    - "REQ-0006 verification points to TEST-0007 and TEST-0007 protects REQ-0006 so forward and reverse traceability both reach the current proof"
+
+environment:
+  kind: REAL_GITHUB_REPOSITORY
+  real_dependencies:
+    - "tobianahillel-afk/monde"
+    - "PR #3 commit history"
+    - "GitHub Codex review metadata for REVIEW-0014 and REVIEW-0015"
+  mocked_dependencies: []
+
+cases:
+  happy_path:
+    - "registry/status-machines.yaml allows progress DONE → IN_REVIEW and documents why a reviewed reopening is allowed"
+    - "The historical WORK-0001/quality-dimension DONE → IN_REVIEW changes in commit 4ef4bfd27e28973fcebead8b2b5065422c4a8883 are representable under the reopening rule"
+    - "Generic TEST transitions keep PASS reachable only from RUNNING"
+    - "The TEST-0004 exception names record TEST-0004, from PLANNED, to PASS, before commit 98e8cdccc07bd3c2d8313d81f296f49c97c44379 and transition commit e8337d833ca0b524bed69318ca4b3691c9ce6c23"
+    - "The exact Git history confirms TEST-0004 was PLANNED before e8337d833ca0b524bed69318ca4b3691c9ce6c23 and PASS at that transition"
+    - "The v7 review historical_import_exceptions enumerate REVIEW-0004 through REVIEW-0013 with their exact introduction commits and do not alter the generic review transition table"
+    - "The v7 requirement historical_import_exceptions enumerate only REQ-0015 through REQ-0019, each as ACCEPTED at exact introduction commit 2712795dc9f10c1efed2088313d125f6f915cc98"
+    - "The v7 historical_replay_exceptions contains exactly REVIEW-0014 with external source review PRR_kwDOUUI5ts8AAAABNFU66A and immutable sequence ec69110468c7e1cd79984dedb835504de8c0b561 → 2926a070de8371e7ad3aaebeca0d9e424700d43f → b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
+    - "Git history and REVIEW-0014 content confirm the first OPEN materialization already contained the final findings/outcome, so v7 correctly classifies that sequence as a historical replay rather than normal execution"
+    - "The REVIEW-0015 external-import authorization first exists at commit 2b26ed4384e2098e04c10f5e5d2db3da949b6718, before REVIEW-0015 first appears at 877d5bce12c7854701843747783891558ab05d37"
+    - "The authorization binds reviewed artifact a27d01a9c0add10d0de220b9443a7f7d113152d9, source review PRR_kwDOUUI5ts8AAAABNFp3uw, expected CHANGES_REQUIRED outcome and one-shot use"
+    - "REVIEW-0015 external_import references authorization commit 2b26ed4384e2098e04c10f5e5d2db3da949b6718 and actual import commit 877d5bce12c7854701843747783891558ab05d37"
+    - "The v7 authorization is consumed_by_commit 877d5bce12c7854701843747783891558ab05d37, preventing reuse"
+    - "registry/requirements/REQ-0006.yaml verification.test_ids contains TEST-0007 and acceptance_evidence includes TEST-0007"
+    - "TEST-0007 protects.requirements contains REQ-0006, making the current proof bidirectionally traceable"
+  edge_cases:
+    - "A reopened DONE dimension remains IN_REVIEW until its normal gate is re-satisfied"
+    - "An exact migration/import/replay exception preserves immutable history without asserting checkpoints that did not actually occur"
+    - "REVIEW-0003, introduced in the same bootstrap commit that established the lifecycle machine, is baseline state rather than a post-contract import exception"
+    - "An externally completed negative review may be imported as COMPLETE but remains negative evidence and cannot approve work"
+    - "Historical TEST-0004 may remain as prior evidence while current v7 lifecycle proof is separately reachable through TEST-0007"
+  failure_modes:
+    - "DONE progress can only deprecate and cannot re-enter review after new adverse evidence"
+    - "DONE → IN_REVIEW is allowed without any trigger/rationale requirement"
+    - "PLANNED → PASS appears in the generic TEST transition table"
+    - "A generic OPEN → COMPLETE review transition is added instead of exact historical/import provenance"
+    - "COMPLETE is made an alternate initial review state"
+    - "A REVIEW-0004..0013 import exception omits exact record/status/introduction commit or permits future reuse"
+    - "REVIEW-0014 is treated as normal execution merely because statuses were replayed in syntactically valid order"
+    - "REVIEW-0014's replay exception can authorize any other review or commit sequence"
+    - "REVIEW-0015 is materialized before its authorization exists in Git history"
+    - "REVIEW-0015 authorization source review/artifact/outcome does not match the imported record"
+    - "REVIEW-0015 authorization remains unconsumed, is bound to a different import commit, or can be consumed twice"
+    - "ACCEPTED is made an alternate initial requirement state or a requirement may be created directly ACCEPTED without an exact historical import exception"
+    - "A requirement import exception applies beyond REQ-0015..REQ-0019 or beyond exact commit 2712795dc9f10c1efed2088313d125f6f915cc98"
+    - "TEST-0007 protects REQ-0006 but REQ-0006 verification does not point back to TEST-0007"
+  adversarial_cases:
+    - "Attempt to apply the TEST-0004 exception to another TEST record or another commit pair and verify the contract forbids it"
+    - "Attempt to apply a REVIEW-0004..0013 import exception or REVIEW-0014 replay exception to a future review and verify the contract forbids it"
+    - "Attempt to reuse REVIEW-0015's consumed one-shot authorization for another import and verify the contract forbids it"
+    - "Inspect Git ancestry to prove 2b26ed4384e2098e04c10f5e5d2db3da949b6718 predates 877d5bce12c7854701843747783891558ab05d37 rather than trusting current prose"
+    - "Inspect REVIEW-0014 at ec69110468c7e1cd79984dedb835504de8c0b561 and prove final findings/outcome were already present before its replayed IN_PROGRESS/COMPLETE statuses"
+    - "Attempt to introduce a new requirement directly ACCEPTED and verify none of the REQ-0015..0019 exceptions authorizes it"
+    - "Start a forward traceability walk at REQ-0006 and verify it reaches TEST-0007 without relying on TEST-0007's reverse declaration"
+
+execution:
+  command_or_workflow: "Manual exact-SHA GitHub audit of lifecycle v7, REVIEW-0014 replay isolation, REVIEW-0015 authorization/import/binding ancestry, historical import/migration boundaries and REQ-0006 ↔ TEST-0007 traceability on tree 669dcf7638746e07cc034cd69fa2cb08da133937"
+  last_run_at: "2026-09-11"
+  commit_sha: "669dcf7638746e07cc034cd69fa2cb08da133937"
+  result: PASS
+  evidence:
+    - "Compare 2b26ed4384e2098e04c10f5e5d2db3da949b6718 → 877d5bce12c7854701843747783891558ab05d37 is ahead by three commits and adds REVIEW-0015 only after the authorization already existed, proving authorization ancestry."
+    - "REVIEW-0014 at first materialization ec69110468c7e1cd79984dedb835504de8c0b561 has status OPEN but already contains both final R2 findings and outcome CHANGES_REQUIRED; commit time 2026-09-10T22:53:36Z is after external Codex review PRR_kwDOUUI5ts8AAAABNFU66A submitted at 2026-09-10T22:43:13Z."
+    - "registry/status-machines.yaml v7 @ 669dcf7638746e07cc034cd69fa2cb08da133937 keeps normal review OPEN → IN_PROGRESS → COMPLETE, adds no generic OPEN → COMPLETE, and classifies only REVIEW-0014's exact ec691104 → 2926a070 → b038807 sequence as historical replay with future reuse forbidden."
+    - "The v7 one-shot REVIEW-0015 authorization binds artifact a27d01a9c0add10d0de220b9443a7f7d113152d9, source review PRR_kwDOUUI5ts8AAAABNFp3uw, expected CHANGES_REQUIRED outcome and consumed_by_commit 877d5bce12c7854701843747783891558ab05d37."
+    - "REVIEW-0015 records PREAUTHORIZED_EXTERNAL_COMPLETION, authorization commit 2b26ed4384e2098e04c10f5e5d2db3da949b6718 and import commit 877d5bce12c7854701843747783891558ab05d37."
+    - "Pre-v7 REVIEW-0004..REVIEW-0013 and REQ-0015..REQ-0019 remain exact record/status/commit-bound historical imports; no alternate review or requirement initial state was added."
+    - "registry/requirements/REQ-0006.yaml @ 669dcf7638746e07cc034cd69fa2cb08da133937 contains TEST-0007 in verification.test_ids and acceptance_evidence, while TEST-0007 protects REQ-0006."
+    - "Generic TEST PASS remains reachable only from RUNNING and the exact TEST-0004 historical edge remains isolated/non-reusable."
+
+coverage:
+  line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+  branch_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-11"
+  executions:
+    - commit_sha: "d1d0b32e321cd56ada21f76c4d3e08856a792db5"
+      recorded_result: PASS
+      recorded_in_commit: "a280fed4123a476dc5d5a22651b8b8e1c3aa1240"
+      validity: VALID
+      invalidated_by: null
+      reason: "Exact history and status-machine checks passed; reopening is reviewed and generic TEST lifecycle remains strict while the lone legacy edge is commit-bound. This remains valid for that scope/tree; TEST-0007 was rerun because REVIEW-0010 added a bidirectional REQ-0006 traceability assertion."
+    - commit_sha: "c27a98b94c4f59c5778b9c7d30e447536a70a452"
+      recorded_result: PASS
+      recorded_in_commit: "07fb9baf3f76437059b73f7805a5edd36d704cc6"
+      validity: VALID
+      invalidated_by: null
+      reason: "Forward REQ-0006 → TEST-0007 and reverse TEST-0007 → REQ-0006 traceability both resolve on the exact tested tree, while lifecycle v5 and the exact historical migration guarantees remain intact. This remains valid for that scope/tree; TEST-0007 was rerun because REVIEW-0014 added v6 review/requirement historical-import guarantees."
+    - commit_sha: "b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
+      recorded_result: PASS
+      recorded_in_commit: "42a36e1b37855ea107eb94a8f3c9a05fe9cd6c67"
+      validity: VALID
+      invalidated_by: null
+      reason: "Lifecycle v6 preserved strict generic transitions and exact pre-v7 review/requirement imports, but fresh REVIEW-0015 later proved the claimed normal REVIEW-0014 execution path was actually a post-hoc status replay. This execution remains historical evidence for its tested v6 tree but is not sufficient for the v7 replay/import guarantee."
+    - commit_sha: "669dcf7638746e07cc034cd69fa2cb08da133937"
+      recorded_result: PASS
+      recorded_in_commit: "87668f4e64453dca4c987252a8cb46e73793950c"
+      validity: VALID
+      invalidated_by: null
+      reason: "Lifecycle v7 truthfully separates repository-native review execution from external completed-review import: REVIEW-0014's immutable replay is exact/non-reusable, REVIEW-0015 authorization predates materialization and is one-shot/bound, generic transitions remain strict, historical imports remain exact, and REQ-0006 ↔ TEST-0007 traceability remains intact."

@@ -1,0 +1,83 @@
+id: REVIEW-0015
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "a27d01a9c0add10d0de220b9443a7f7d113152d9"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-a27d01a9"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "2b26ed4384e2098e04c10f5e5d2db3da949b6718"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNFp3uw"
+  source_submitted_at: "2026-09-10T23:37:39Z"
+  import_commit: "877d5bce12c7854701843747783891558ab05d37"
+
+scope:
+  work_items: [WORK-0001]
+  requirements: []
+  capabilities: []
+  contracts:
+    - "registry review lifecycle"
+    - "external review import provenance"
+    - "historical replay isolation"
+    - "per-commit lifecycle validation"
+  risks:
+    - "An externally completed review can be made to look repository-native by replaying lifecycle statuses after its findings/outcome are already known."
+    - "A future review can reuse a historical exception instead of proving truthful execution/import provenance."
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: REVIEW_LIFECYCLE_REPLAY
+    description: "REVIEW-0014's OPEN and IN_PROGRESS commits were created after the external Codex review had already completed and already contained its final findings/outcome, so they are an after-the-fact status replay rather than execution-time lifecycle evidence. Preserve that immutable sequence only through an exact non-reusable historical replay exception, and require future externally completed reviews to use a one-shot import authorization that predates registry materialization instead of replaying OPEN/IN_PROGRESS."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head a27d01a9c0add10d0de220b9443a7f7d113152d9"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNFp3uw submitted 2026-09-10T23:37:39Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hSJ77"
+      - "REVIEW-0014 first materialization ec69110468c7e1cd79984dedb835504de8c0b561 already contained final findings and outcome CHANGES_REQUIRED"
+      - "REVIEW-0014 status-only replay commits: 2926a070de8371e7ad3aaebeca0d9e424700d43f and b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "A syntactically valid OPEN → IN_PROGRESS → COMPLETE Git sequence necessarily proves the review was in those states while review activity occurred."
+    - "Future external reviews need to replay repository-native lifecycle states after completion in order to be recorded."
+  omitted_categories_considered:
+    - "repository-native reviews whose lifecycle begins before substantive review activity"
+    - "externally completed reviews imported after the fact"
+    - "immutable pre-v7 historical imports"
+    - "immutable REVIEW-0014 replay history"
+  duplicate_or_reuse_search:
+    - "Reuse the exact/non-reusable historical-exception principle while separating import provenance from execution transitions."
+  failure_modes_considered:
+    - "A generic OPEN → COMPLETE shortcut is added."
+    - "Any future external review reuses REVIEW-0014's replay exception."
+    - "The external-import authorization is created in the same or a later commit than the imported REVIEW record."
+    - "An authorization can be consumed twice or remains unbound to the actual import commit."
+    - "Imported negative review evidence is accidentally treated as approval."
+  evidence_requested:
+    - "status-machines v7 exact REVIEW-0014 historical replay exception, preserving normal review transitions"
+    - "one-shot REVIEW-0015 external-import authorization already present in a parent commit before this file is materialized"
+    - "bind this record's actual first-materialization commit back into the authorization and external_import metadata"
+    - "reopen/rerun TEST-0007 to verify authorization → import → binding order and replay isolation against Git history"
+    - "rerun TEST-0006 after WORK-0001/PROJECT_STATE are synchronized because it protects cold-resume/status-machine currentness"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-10"
+
+history:
+  created_at: "2026-09-11"
+  updated_at: "2026-09-11"

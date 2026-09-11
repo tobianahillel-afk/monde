@@ -10,6 +10,12 @@ reviewer:
   independence_level: L1
 roles: []
 
+# Null for repository-native reviews. For a review that completed externally
+# before registry materialization, replace with a mapping that references a
+# one-shot authorization already present in an earlier commit and later bind
+# the actual import commit.
+external_import: null
+
 scope:
   requirements: []
   capabilities: []
@@ -24,6 +30,13 @@ findings:
     evidence: []
     disposition: OPEN
     resolved_by: null
+    acceptance:
+      accepted_by: null
+      authority_role: null
+      authority_evidence: []
+      rationale: null
+      accepted_at: null
+      review_condition: null
 
 checks:
   assumptions_challenged: []

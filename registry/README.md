@@ -2,7 +2,7 @@
 
 Status: Accepted  
 Canonical: Yes  
-Last Updated: 2026-09-10
+Last Updated: 2026-09-11
 
 ## Purpose
 
@@ -68,11 +68,27 @@ The target relationship is:
 
 `ASM` and `RISK` attach anywhere they materially affect the chain.
 
+A material accepted governance behavior is not exempt merely because no product capability exists yet: it still requires a stable `REQ-*` identity and a verification/review path. Bootstrap requirements may therefore trace directly `REQ → WORK → TEST/REVIEW` until product capability records exist.
+
 ## Status integrity
 
-Each registry defines its allowed lifecycle states. Governance tooling should reject unknown states and invalid transitions.
+`registry/status-machines.yaml` is the single machine-readable lifecycle contract for current registries **and for progress state**. It defines registry initial states, allowed states, valid transitions, review outcome/disposition vocabulary, the progress lifecycle used by phase/lot/sublot/task/run/quality dimensions, and any exact historical migration/import/replay exception needed to preserve immutable Git history.
 
-Do not use vague free-text status such as `almost_done` or `looks_good`.
+Rules:
+1. A registry record may use only states declared for that registry.
+2. A transition must be explicitly allowed by that registry's machine; metadata-only edits may retain the same state.
+3. `registry/progress/matrix.yaml` stores current progress instances only; it does not define or duplicate a status vocabulary.
+4. A matrix WORK status mirrors the `work_items` registry machine; other progress-bearing matrix/task/run/dimension state uses `status-machines.yaml#progress`.
+5. `NOT_APPLICABLE` is a progress-dimension state, not a universal registry state, and requires a non-empty work-item justification.
+6. A progress dimension already marked `DONE` may move back to `IN_REVIEW` only when new evidence, a review finding, dependency change, or invalidated proof materially re-questions prior completion. The owning WORK/project handover must identify the trigger, affected downstream completion assumptions must be re-evaluated, and normal gates apply before it returns to `DONE`.
+7. Historical transition/import/replay exceptions do not create generic shortcuts. Each exception must identify the exact record and exact Git boundary it preserves, explain why immutable history cannot be repaired honestly, forbid future reuse, and receive independent review.
+8. A lifecycle checkpoint is evidence only if that state existed while the governed activity was actually in that state. Replaying `OPEN → IN_PROGRESS → COMPLETE` after an external review already finished is not repository-native execution evidence.
+9. If a review completed externally before its REVIEW record is materialized, the normal post-v7 path is a one-shot preauthorized import: a matching authorization must already exist in an earlier parent commit, bind the record/result/reviewed SHA/source review, and the actual import commit must be recorded afterward before the review can satisfy a completion gate.
+10. An external-import authorization is consumable once. A consumed authorization cannot be reused by another review or commit.
+11. Lifecycle changes are governance changes: update the canonical machine, affected templates/schemas/validators, migrations and review evidence together rather than adding an ad-hoc state locally.
+12. Governance tooling must fail closed on unknown states, invalid transitions, unbound external imports and migration/import/replay-exception mismatches.
+
+Human-readable registry-specific documents may explain these states but must not define a competing lifecycle truth.
 
 ## AI navigation rule
 
@@ -84,14 +100,18 @@ As the repository grows, human-readable tables/search indexes should be generate
 
 ## Validation target
 
-Future governance CI should validate:
+Governance CI should validate:
 - schema correctness;
 - unique IDs;
 - valid references;
-- valid lifecycle transitions;
+- registry-specific and progress lifecycle states/transitions from `registry/status-machines.yaml`;
+- exact matching and non-reusability of any declared historical transition/import/replay exception;
+- external-review import authorization exists in an earlier parent commit, matches the source review/result/artifact, is consumed once and is bound afterward to the actual import commit;
 - required fields by status/risk;
-- no orphan critical records;
+- no orphan critical/material records;
 - `read_before` paths;
 - traceability completeness;
 - assumption/risk review deadlines;
-- DONE/Accepted evidence requirements.
+- DONE/Accepted evidence requirements;
+- progress `NOT_APPLICABLE` justifications;
+- reviewed reopening evidence for any `DONE → IN_REVIEW` progress regression.

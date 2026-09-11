@@ -1,0 +1,80 @@
+id: REVIEW-0021
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "f0d0410cd31df1b348fddf09528588e43e956945"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-f0d0410c"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "c059a18749426cae3c2c3429893f35ec6db8b0ff"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNK7CHA"
+  source_submitted_at: "2026-09-11T12:53:40Z"
+  import_commit: "aca6010aaf59a923e59a8cc587cc9b8689ce8425"
+
+scope:
+  work_items: [WORK-0001]
+  requirements: [REQ-0023, REQ-0024, REQ-0025]
+  capabilities: []
+  contracts:
+    - "bidirectional requirement-test traceability"
+    - "pre-acceptance requirement review sequencing"
+    - "exact-SHA current proof discoverability"
+  risks:
+    - "A forward trace from a high-criticality requirement can omit the exact test that claims to protect it."
+    - "One-way test→requirement links can hide missing current proof from requirement-centric impact analysis."
+
+findings:
+  - id: F-1
+    severity: R3_MODERATE
+    category: TRACEABILITY
+    description: "At reviewed HEAD f0d0410cd31df1b348fddf09528588e43e956945, TEST-0006 declares protects.requirements [REQ-0023, REQ-0024, REQ-0025], but each requirement's verification.test_ids contains only TEST-0005. Add TEST-0006 to the three forward requirement mappings, or remove the reverse protection claims, so requirement-centric traceability reaches the current exact-SHA proof."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head f0d0410cd31df1b348fddf09528588e43e956945"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNK7CHA submitted 2026-09-11T12:53:40Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6heTMK"
+      - "registry/tests/TEST-0006.yaml protects REQ-0023/REQ-0024/REQ-0025"
+      - "registry/requirements/REQ-0023.yaml, REQ-0024.yaml and REQ-0025.yaml verification.test_ids omit TEST-0006"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "A reverse TEST protects edge is sufficient when the requirement record is the starting point for traceability and impact analysis."
+    - "Pre-acceptance status makes forward verification mappings optional."
+  omitted_categories_considered:
+    - "WORK-0001 YAML machine readability"
+    - "exact TEST-0005 SHA integrity"
+    - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED"
+    - "REVIEW-0020 cross-branch proof boundary"
+    - "TEST-0006 exact-SHA proof and v7 provenance"
+  duplicate_or_reuse_search:
+    - "F-1 is the same bidirectional traceability defect class previously corrected for REQ-0006 ↔ TEST-0007."
+  failure_modes_considered:
+    - "Adding TEST-0006 only to prose/evidence while leaving verification.test_ids unchanged."
+    - "Accepting REQ-0023/24/25 before the forward mapping is independently re-reviewed."
+    - "Removing TEST-0006's protection claims and thereby losing the current exact-SHA acceptance-gate proof."
+  evidence_requested:
+    - "REQ-0023/REQ-0024/REQ-0025 each list TEST-0006 in verification.test_ids while remaining PROPOSED"
+    - "TEST-0006 continues to protect all three requirements"
+    - "fresh exact-SHA TEST-0006 rerun after the mapping correction"
+    - "another fresh-context L2 before requirement acceptance or WORK-0001 completion"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-11"
+
+history:
+  created_at: "2026-09-11"
+  updated_at: "2026-09-11"

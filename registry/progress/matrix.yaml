@@ -1,19 +1,6 @@
-version: 2
+version: 4
 updated_at: "2026-09-10"
-
-status_vocabulary:
-  - NOT_STARTED
-  - PROPOSED
-  - PLANNED
-  - READY
-  - IN_PROGRESS
-  - PARTIAL
-  - BLOCKED
-  - IN_REVIEW
-  - DONE
-  - DEPRECATED
-  - CANCELLED
-  - NOT_APPLICABLE
+status_machine: "../status-machines.yaml#progress"
 
 phases:
   PHASE-0:
@@ -30,34 +17,34 @@ phases:
             work_items:
               WORK-0001:
                 status: IN_REVIEW
-                docs: DONE
-                specification_governance: DONE
+                docs: IN_REVIEW
+                specification_governance: IN_REVIEW
                 implementation: NOT_APPLICABLE
+                tests: IN_REVIEW
+                scientific_validation: NOT_APPLICABLE
+                security_review: IN_REVIEW
+                real_system_validation: IN_REVIEW
+                review: IN_REVIEW
+                dependencies: DONE
+                traceability: IN_REVIEW
+                handover: IN_REVIEW
+          SUBLOT-0.2:
+            name: "Governance automation and GitHub control plane"
+            status: IN_REVIEW
+            work_items:
+              WORK-0002:
+                status: IN_REVIEW
+                docs: PARTIAL
+                specification_governance: PARTIAL
+                implementation: PARTIAL
                 tests: PARTIAL
                 scientific_validation: NOT_APPLICABLE
-                security_review: PARTIAL
+                security_review: IN_REVIEW
                 real_system_validation: PARTIAL
                 review: IN_REVIEW
                 dependencies: DONE
-                traceability: DONE
-                handover: DONE
-          SUBLOT-0.2:
-            name: "Governance automation"
-            status: PLANNED
-            work_items:
-              WORK-0002:
-                status: PLANNED
-                docs: PARTIAL
-                specification_governance: PARTIAL
-                implementation: NOT_STARTED
-                tests: NOT_STARTED
-                scientific_validation: NOT_APPLICABLE
-                security_review: NOT_STARTED
-                real_system_validation: NOT_STARTED
-                review: NOT_STARTED
-                dependencies: PLANNED
                 traceability: PARTIAL
-                handover: NOT_STARTED
+                handover: PARTIAL
           SUBLOT-0.3:
             name: "Repository protection and merge discipline"
             status: PLANNED
@@ -98,18 +85,18 @@ phases:
                 handover: NOT_STARTED
 
 quality_dimensions:
-  documentation_current: DONE
+  documentation_current: IN_REVIEW
   documentation_architecture_defined: DONE
   specification_quality_protocol_defined: DONE
   definition_of_ready_defined: DONE
   definition_of_done_defined: DONE
-  requirements_registry_contract: DONE
+  requirements_registry_contract: IN_REVIEW
   assumptions_registry_contract: DONE
   risk_registry_contract: DONE
   review_registry_contract: DONE
   test_registry_contract: DONE
   experiment_registry_contract: DONE
-  traceability_contract: DONE
+  traceability_contract: IN_REVIEW
   review_council_defined: DONE
   assurance_levels_defined: DONE
   non_functional_requirements_defined: DONE
@@ -119,11 +106,11 @@ quality_dimensions:
   threat_modeling_protocol_defined: DONE
   capability_registry_current: PARTIAL
   dependency_registry_current: PARTIAL
-  work_item_tracking_current: DONE
+  work_item_tracking_current: IN_REVIEW
   test_strategy_defined: DONE
   security_rules_defined: DONE
   adr_process_defined: DONE
-  project_state_resumable: DONE
+  project_state_resumable: IN_REVIEW
   github_workflow_defined: DONE
   governance_ci_enforced: NOT_STARTED
   architecture_fitness_functions_enforced: NOT_STARTED
@@ -132,9 +119,10 @@ quality_dimensions:
   product_capability_inventory: NOT_STARTED
 
 rules:
+  - "All progress status values and transitions are defined only by registry/status-machines.yaml#progress; this matrix stores current instances and never defines a competing vocabulary."
   - "Every active work item must appear in this matrix; planned work should also be represented once assigned an ID."
-  - "A work item cannot be DONE while any mandatory applicable dimension is NOT_STARTED, PARTIAL, BLOCKED or IN_REVIEW."
-  - "NOT_APPLICABLE requires justification in the work item."
+  - "A work item's matrix status must mirror the WORK registry lifecycle; a work item cannot be DONE while any mandatory applicable dimension is NOT_STARTED, PARTIAL, BLOCKED or IN_REVIEW."
+  - "NOT_APPLICABLE requires a non-empty justification in the corresponding work item and remains reviewable for non-compensable gates."
   - "Agents update this matrix in the same PR that changes work status."
   - "Policy/documentation may be DONE while automated enforcement remains separately PARTIAL/NOT_STARTED; do not conflate definition with enforcement."
   - "Applicable hard gates are non-compensable regardless of aggregate quality score."

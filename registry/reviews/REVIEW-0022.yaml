@@ -1,0 +1,93 @@
+id: REVIEW-0022
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "97be290c21840098f02b92aa26a195a6e1017fbb"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-97be290c"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "c2921a693a2a2b4350ef50c8f77fc69895f17305"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNNVwjQ"
+  source_submitted_at: "2026-09-11T16:58:46Z"
+  import_commit: "5e22bd5b63c723f29a2e20ad07c8d69c9881cae5"
+
+scope:
+  work_items: [WORK-0001, WORK-0002]
+  requirements: [REQ-0010]
+  capabilities: []
+  contracts:
+    - "cross-branch work-mirror resolvability"
+    - "revision-bound requirement-test traceability"
+    - "cold-resume proof graph integrity"
+  risks:
+    - "An active mirror exposes branch-only schema paths that are unresolvable before the explicit branch checkout boundary."
+    - "A historical SHA-bound test claims current reverse coverage for a requirement whose normative semantics changed after the tested tree."
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: DOCUMENTATION_TRACEABILITY
+    description: "At reviewed HEAD 97be290c21840098f02b92aa26a195a6e1017fbb, the PR #3 mirror of WORK-0002 lists three affected_schemas paths that do not exist in the PR #3 tree, while the explicit checkout handoff defers only branch-local documents and review/test records. The mirror must remove those schema paths or explicitly defer them behind the feat/work-0002-governance-ci checkout boundary so cold resume remains locally resolvable."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 97be290c21840098f02b92aa26a195a6e1017fbb"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNNVwjQ submitted 2026-09-11T16:58:46Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hj-XI"
+      - "registry/work-items/WORK-0002.yaml affected_schemas listed schemas/registry/work-items.schema.json, reviews.schema.json and tests.schema.json before explicit branch checkout"
+    disposition: OPEN
+    resolved_by: null
+
+  - id: F-2
+    severity: R3_MODERATE
+    category: TRACEABILITY
+    description: "At reviewed HEAD 97be290c21840098f02b92aa26a195a6e1017fbb, TEST-0004 still lists current REQ-0010 in protects.requirements even though TEST-0004 ran on 23ef1a88e9a5106b12144d4c6649868a6a691a8f before REQ-0010 was narrowed to the current atomic-requirement semantics in 2712795dc9f10c1efed2088313d125f6f915cc98. Remove or version the stale reverse edge; current REQ-0010 is covered by TEST-0005."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 97be290c21840098f02b92aa26a195a6e1017fbb"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNNVwjQ submitted 2026-09-11T16:58:46Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hj-XR"
+      - "registry/tests/TEST-0004.yaml execution.commit_sha is 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
+      - "registry/requirements/REQ-0010.yaml current verification.test_ids is [TEST-0005]"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "Deferring branch-local read_before and review/test IDs is sufficient even when other structured paths in the mirror still point to branch-only files."
+    - "A historical test's reverse protects edge can follow a requirement ID across later semantic narrowing without version-aware evidence."
+  omitted_categories_considered:
+    - "WORK-0001 YAML machine readability"
+    - "exact TEST-0005 SHA integrity"
+    - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED with reciprocal TEST-0006 mappings"
+    - "REVIEW-0021 one-shot v7 provenance"
+    - "current TEST-0006 final exact-SHA chain"
+  duplicate_or_reuse_search:
+    - "F-1 is the same unresolved-reference class previously found for branch-local WORK-0002 read_before and review/test references."
+    - "F-2 is a revision-bound traceability issue: use existing TEST-0005 rather than inventing another current REQ-0010 proof."
+  failure_modes_considered:
+    - "Removing branch-only docs/review IDs while leaving branch-only affected_schemas in a mandatory structured field."
+    - "Keeping TEST-0004 → REQ-0010 solely because the immutable requirement ID did not change while its normative statement did."
+  evidence_requested:
+    - "PR #3 WORK-0002 mirror contains no branch-only affected_schemas before explicit checkout; implementation-branch schemas remain authoritative after checkout"
+    - "TEST-0004 no longer claims current reverse protection of REQ-0010"
+    - "REQ-0010 continues to point to TEST-0005 as its current verification proof"
+    - "fresh exact-SHA TEST-0006 rerun after synchronized handover updates"
+    - "another fresh-context L2 before requirement acceptance or WORK-0001 completion"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-11"
+
+history:
+  created_at: "2026-09-11"
+  updated_at: "2026-09-11"

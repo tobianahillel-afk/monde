@@ -1,0 +1,77 @@
+id: REVIEW-0023
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "3a05ec6f14ea71d15b1cc842ef634e00279217e6"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-3a05ec6f"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "bdc52847919696e72b13f63afcad622412739ef3"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNNnSjw"
+  source_submitted_at: "2026-09-11T17:27:49Z"
+  import_commit: "026849083f8baf7a40a67ec6ac70e2b2e169abbe"
+
+scope:
+  work_items: [WORK-0001]
+  requirements: []
+  capabilities: []
+  contracts:
+    - "cold-resume handover currentness"
+    - "exact-SHA TEST-0006 proof routing"
+    - "independent-review gate ordering"
+  risks:
+    - "A cold-resuming agent repeats already-completed TEST-0006 synchronization/rerun work instead of proceeding directly to the pending independent-review gate."
+
+findings:
+  - id: F-1
+    severity: R3_MODERATE
+    category: DOCUMENTATION_TRACEABILITY
+    description: "At reviewed HEAD 3a05ec6f14ea71d15b1cc842ef634e00279217e6, PROJECT_STATE still says a fresh TEST-0006 execution is required and its Next action section directs the agent through synchronization/reopening/rerunning, even though TEST-0006 already passed on exact tree 6e6e005fc81b0ea91427fc55ea1f09d818650d7b, the result was recorded in b0fde620d06e0b4e4e5d16ab39680ad468fbf260, and candidate 3a05ec6f14ea71d15b1cc842ef634e00279217e6 binds that result. Advance the handover so the next pending action begins with processing this fresh L2 rather than repeating completed proof work."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 3a05ec6f14ea71d15b1cc842ef634e00279217e6"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNNnSjw submitted 2026-09-11T17:27:49Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hksrz"
+      - "PROJECT_STATE.md TEST-0006 proof-routing and Next action sections still order a rerun already completed by b0fde620d06e0b4e4e5d16ab39680ad468fbf260 and bound by 3a05ec6f14ea71d15b1cc842ef634e00279217e6"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "A handover remains current merely because it names the correct test, even if it still orders already-completed lifecycle steps."
+  omitted_categories_considered:
+    - "WORK-0001 machine-readable YAML requirement from REVIEW-0019"
+    - "exact TEST-0005 SHA integrity"
+    - "REQ-0023/REQ-0024/REQ-0025 proposed-state and reciprocal TEST-0006 traceability"
+    - "WORK-0002 cross-branch schema/proof boundary corrected after REVIEW-0022"
+    - "TEST-0004/REQ-0010 revision-bound traceability corrected after REVIEW-0022"
+  duplicate_or_reuse_search:
+    - "F-1 is the same stale-handover/currentness defect class previously found by REVIEW-0011, REVIEW-0012, REVIEW-0016 and REVIEW-0017; correct the existing PROJECT_STATE routing rather than adding another competing handover surface."
+  failure_modes_considered:
+    - "A cold-resuming agent legally reopens TEST-0006 again solely because PROJECT_STATE presents the already-completed rerun as pending."
+    - "The stale next-action list makes TEST-0006's cold-resume claim false even though its execution evidence itself is valid."
+  evidence_requested:
+    - "PROJECT_STATE records the latest TEST-0006 tree/result/binding as completed proof"
+    - "PROJECT_STATE next action begins with processing REVIEW-0023 and correcting/re-proving only this new handover finding"
+    - "WORK-0001 and PROJECT_STATE remain synchronized after REVIEW-0023 import"
+    - "fresh exact-SHA TEST-0006 rerun only after the handover correction because the handover contract itself changed"
+    - "another fresh-context L2 before requirement acceptance or WORK-0001 completion"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-11"
+
+history:
+  created_at: "2026-09-11"
+  updated_at: "2026-09-11"
