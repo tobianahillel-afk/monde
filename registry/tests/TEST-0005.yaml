@@ -1,69 +1,76 @@
 id: TEST-0005
-name: "WORK-0001 third-pass evidence, authority and requirement-atomicity drill"
-status: PASS
+name: "WORK-0001 evidence, authority and requirement-atomicity drill"
+status: READY
 type: MANUAL_E2E
 
 protects:
-  requirements: [REQ-0010, REQ-0015, REQ-0016, REQ-0017, REQ-0018, REQ-0019]
+  requirements: [REQ-0005, REQ-0010, REQ-0015, REQ-0016, REQ-0017, REQ-0018, REQ-0019, REQ-0020, REQ-0021, REQ-0022]
   capabilities: []
   contracts:
     - "exact-SHA PASS evidence"
     - "review finding acceptance authority"
     - "atomic specification requirement ownership"
+    - "requirement supersession traceability"
     - "WORK-0001 corrective traceability"
   risks:
     - "Legacy unbound PASS is treated as current gating evidence"
     - "Blocking review finding is self-accepted without authority"
     - "A compound requirement hides partial specification failure"
+    - "A superseded compound requirement remains an active normative owner or its replacement set is incomplete"
   invariants:
     - "No active PASS state-bound test lacks an exact tested revision"
     - "An ACCEPTED R1/R2 finding cannot become non-blocking without explicit authority evidence"
     - "Independently fail-able specification obligations have distinct REQ identities"
+    - "REQ-0005 is superseded rather than silently narrowed, and its complete replacement set is REQ-0020, REQ-0021 and REQ-0022"
+    - "New post-v7 requirements first exist as PROPOSED and reach ACCEPTED only through the normal lifecycle transition"
 
 environment:
   kind: REAL_GITHUB_REPOSITORY
   real_dependencies:
     - "tobianahillel-afk/monde"
     - "PR #3"
+    - "PR #3 Git history"
   mocked_dependencies: []
 
 cases:
   happy_path:
-    - "TEST-0001 is SUPERSEDED, preserves its historical execution fields, and explicitly points to TEST-0005 as replacement without inventing a commit SHA"
+    - "TEST-0001 is SUPERSEDED, preserves its historical execution fields, and points to revision-bound replacement TEST-0006 without inventing a commit SHA"
     - "registry/status-machines.yaml requires exact commit_sha for active state-bound PASS records"
     - "registry/reviews/_TEMPLATE.yaml carries structured acceptance authority fields"
     - "REVIEW-0001/F-3 records the repository owner's acceptance authority, evidence, rationale, date and review condition"
     - "REQ-0010 owns atomic requirement identity/testability only"
     - "REQ-0015 through REQ-0019 separately own assumptions/risks, research, failure modes, cross-document consistency and traceability"
-    - "WORK-0001 links all six AC-10 normative owners and does not rely on TEST-0001 as active required test evidence"
+    - "REQ-0005 is SUPERSEDED and names REQ-0020, REQ-0021 and REQ-0022 as its complete replacement set"
+    - "REQ-0020 separately owns the Definition of Ready entry gate"
+    - "REQ-0021 separately owns the Definition of Done completion gate"
+    - "REQ-0022 separately owns the verification-strategy contract"
+    - "Git history proves REQ-0020, REQ-0021 and REQ-0022 were first materialized PROPOSED before their ACCEPTED transition"
+    - "WORK-0001 AC-5 traceability reaches all three atomic replacement requirements and does not use superseded REQ-0005 as an active normative owner"
   edge_cases:
     - "Historical execution evidence remains inspectable even when its record is SUPERSEDED"
     - "An ACCEPTED finding remains reviewable again when its review condition becomes true"
+    - "The superseded compound requirement remains historically addressable while no longer owning current completion state"
   failure_modes:
     - "TEST status PASS with null state-bound execution.commit_sha"
     - "R1/R2 disposition ACCEPTED with missing accepted_by, authority_role, authority_evidence, rationale, accepted_at or review_condition"
-    - "REQ-0010 still owns more than one independently fail-able obligation"
-    - "New atomic requirements exist but are absent from WORK-0001 traceability"
+    - "REQ-0010 owns more than one independently fail-able obligation"
+    - "REQ-0005 remains ACCEPTED after atomic replacements are established"
+    - "Any of DoR, DoD or verification strategy lacks its own accepted REQ identity"
+    - "REQ-0020, REQ-0021 or REQ-0022 first appears directly ACCEPTED"
+    - "New atomic requirements exist but are absent from WORK-0001 AC-5 traceability"
   adversarial_cases:
     - "Attempt to fabricate a plausible TEST-0001 SHA instead of superseding unprovable evidence"
     - "Attempt to self-assert ACCEPTED without evidence of authority"
-    - "Satisfy traceability while omitting failure modes and verify those obligations have separate normative states"
+    - "Satisfy Definition of Ready while violating Definition of Done and verify the two obligations have independent normative state"
+    - "Satisfy DoR and DoD while omitting verification-strategy rules and verify that omission remains independently visible"
+    - "Attempt to narrow REQ-0005 in place instead of preserving its compound historical semantics through supersession"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub inspection of PR #3 corrective tree 2712795dc9f10c1efed2088313d125f6f915cc98"
-  last_run_at: "2026-09-10"
-  commit_sha: "2712795dc9f10c1efed2088313d125f6f915cc98"
-  result: PASS
-  evidence:
-    - "PR #3 corrective tree @ 2712795dc9f10c1efed2088313d125f6f915cc98"
-    - "registry/status-machines.yaml @ 2712795dc9f10c1efed2088313d125f6f915cc98"
-    - "registry/tests/TEST-0001.yaml @ 2712795dc9f10c1efed2088313d125f6f915cc98"
-    - "registry/tests/TEST-0004.yaml @ 2712795dc9f10c1efed2088313d125f6f915cc98"
-    - "registry/reviews/_TEMPLATE.yaml @ 2712795dc9f10c1efed2088313d125f6f915cc98"
-    - "registry/reviews/REVIEW-0001.yaml @ 2712795dc9f10c1efed2088313d125f6f915cc98"
-    - "registry/requirements/REQ-0010.yaml and REQ-0015..REQ-0019 @ 2712795dc9f10c1efed2088313d125f6f915cc98"
-    - "registry/work-items/WORK-0001.yaml @ 2712795dc9f10c1efed2088313d125f6f915cc98"
-    - "REVIEW-0005"
+  command_or_workflow: "Pending exact-SHA rerun after REVIEW-0017/F-2 atomic AC-5 requirement split"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -71,4 +78,11 @@ coverage:
 
 history:
   created_at: "2026-09-10"
-  updated_at: "2026-09-10"
+  updated_at: "2026-09-11"
+  executions:
+    - commit_sha: "2712795dc9f10c1efed2088313d125f6f915cc98"
+      recorded_result: PASS
+      recorded_in_commit: "89d39c75fe29d8bbcbe016cecaa6c87d935f1c47"
+      validity: VALID
+      invalidated_by: null
+      reason: "Exact-SHA evidence/authority and the REQ-0010 plus REQ-0015..REQ-0019 atomicity split passed for that corrective tree. This execution remains valid for its tested scope; TEST-0005 is reopened because REVIEW-0017/F-2 discovered a separate compound requirement in REQ-0005."
