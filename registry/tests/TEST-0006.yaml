@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -101,7 +101,7 @@ cases:
     - "Attempt to reuse a consumed v7 external-review authorization"
 
 execution:
-  command_or_workflow: "Pending exact-SHA cold-resume rerun on synchronized REVIEW-0022 handover"
+  command_or_workflow: "Manual exact-SHA cold-resume rerun on synchronized REVIEW-0022 handover"
   last_run_at: null
   commit_sha: null
   result: null
