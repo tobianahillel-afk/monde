@@ -95,7 +95,7 @@ history:
       reason: "Exact-SHA evidence/authority and the REQ-0010 plus REQ-0015..REQ-0019 atomicity split passed for that corrective tree. This remains valid for that scope/tree; REVIEW-0017 later required a new execution for the separate REQ-0005 split."
     - commit_sha: "d4202e0f21e18d9100234817b4ae56fbb38ca165"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "568dde0f9fb806f82924ee67066f08039bef777a"
       validity: VALID
       invalidated_by: null
       reason: "REQ-0005 is superseded without semantic rewriting; REQ-0020/REQ-0021/REQ-0022 each own one independently fail-able AC-5 obligation, first existed as PROPOSED, transitioned normally to ACCEPTED, and are linked by WORK-0001 and TEST-0005 on the exact tested tree."
