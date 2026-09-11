@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: PASS
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -18,6 +18,8 @@ protects:
     - "transition-stable current-proof routing"
     - "atomic AC-5 replacement discoverability"
     - "pre-acceptance Review Council/cold-read sequencing"
+    - "machine-readable active WORK state"
+    - "exact evidence SHA integrity"
   risks:
     - "AI resumes from stale or incomplete context"
     - "Unknown or competing status semantics cause governance drift"
@@ -29,6 +31,8 @@ protects:
     - "A handover sends a cold-resuming agent backward into administrative synchronization already complete at the tested SHA"
     - "WORK/PROJECT_STATE duplicates volatile TEST or PR heads and becomes stale immediately after evidence changes"
     - "Cold resume routes active ownership through superseded requirements or treats author test evidence as approval"
+    - "A mandatory WORK record is visually plausible but not parseable YAML"
+    - "An exact-SHA proof surface copies a truncated or non-resolvable commit identifier"
   invariants:
     - "Repository state, not chat history, is sufficient to resume active work"
     - "registry/status-machines.yaml is the single lifecycle source of truth"
@@ -42,6 +46,8 @@ protects:
     - "Live PR #2 HEAD/check/thread truth is queried from GitHub rather than canonized as a volatile repository-state constant"
     - "REQ-0005 and prematurely accepted REQ-0020/REQ-0021/REQ-0022 remain historical/superseded while REQ-0023/REQ-0024/REQ-0025 are the active PROPOSED AC-5 owners"
     - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED until an approval-capable independent review inspects them"
+    - "WORK-0001 is loadable by a standard YAML parser"
+    - "Every copied exact evidence SHA used by the current proof is a full resolvable commit identifier"
 
 environment:
   kind: REAL_GITHUB_REPOSITORY
@@ -55,21 +61,22 @@ cases:
   happy_path:
     - "README directs a new agent to START_HERE, AGENTS and PROJECT_STATE before implementation"
     - "docs/00_START_HERE.md gives an ordered cold-resume path through PROJECT_STATE, active WORK, read_before, linked registries and live work discussion"
-    - "PROJECT_STATE and WORK-0001 expose REVIEW-0018, TEST-0005 pre-acceptance proof, status-machine v7, current TEST-0007 generic lifecycle proof and TEST-0006/fresh-L2 gating without telling the agent to repeat completed steps"
+    - "PROJECT_STATE and WORK-0001 expose REVIEW-0019, exact TEST-0005 pre-acceptance proof, status-machine v7, current TEST-0007 generic lifecycle proof and TEST-0006/fresh-L2 gating without telling the agent to repeat completed steps"
+    - "WORK-0001 parses as valid YAML and exposes its RUN-3 mapping as a complete flow mapping"
+    - "PROJECT_STATE and TEST-0006 both reference exact TEST-0005 PASS result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe wherever that proof is copied"
     - "PROJECT_STATE, registry/work-items/WORK-0002.yaml and registry/progress/matrix.yaml agree that WORK-0002 is IN_REVIEW while WORK-0001 remains the blocking dependency"
     - "PROJECT_STATE deliberately does not duplicate a volatile PR #2 HEAD and instead requires live GitHub recheck before resume/merge decisions"
     - "Every read_before entry declared by the PR #3 WORK-0002 mirror resolves in the PR #3 tree"
     - "PROJECT_STATE/WORK-0002 explicitly require switching to feat/work-0002-governance-ci before branch-only WORK-0002 prerequisites become mandatory"
-    - "WORK-0001 exposes read_before, dependencies, REVIEW-0018 evidence and TEST-0005 pre-acceptance proof while remaining non-terminal"
     - "WORK-0001 active requirements include REQ-0023/REQ-0024/REQ-0025 and omit superseded REQ-0005/REQ-0020/REQ-0021/REQ-0022 from active normative ownership"
     - "REQ-0023/REQ-0024/REQ-0025 are each PROPOSED and separately own DoR, DoD and verification strategy"
-    - "TEST-0005 is PASS on exact pre-acceptance tree efd48467352c0ce4ec344ebe410fd9e98d938721 with history binding 79a95e7cda3b62b68208e333ddc1593c510167f7"
+    - "TEST-0005 is PASS on exact pre-acceptance tree efd48467352c0ce4ec344ebe410fd9e98d938721 with exact result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe and history binding 79a95e7cda3b62b68208e333ddc1593c510167f7"
     - "registry/progress/matrix.yaml points to registry/status-machines.yaml#progress and does not embed a second status vocabulary"
     - "all progress/status values used by the inspected active routing are declared by the canonical lifecycle machine"
     - "registry/status-machines.yaml declares approval_capable_outcomes as APPROVE and APPROVE_WITH_FOLLOWUP only"
     - "review completion_rule explicitly rejects COMPLETE+CHANGES_REQUIRED/BLOCKED as approval evidence"
     - "status-machines v7 keeps generic review OPEN → IN_PROGRESS → COMPLETE and requirement PROPOSED → ACCEPTED semantics unchanged while isolating exact historical imports/replay"
-    - "status-machines v7 truthfully binds REVIEW-0015 through REVIEW-0018 external completions to one-shot provenance"
+    - "status-machines v7 truthfully binds REVIEW-0015 through REVIEW-0019 external completions to one-shot provenance"
     - "TEST-0001 is SUPERSEDED and points to TEST-0006, whose protected contracts include every original TEST-0001 contract"
   edge_cases:
     - "A concurrently active work item on another PR is represented by one consistent global lifecycle while volatile live PR metadata remains external"
@@ -79,12 +86,14 @@ cases:
     - "Historical import/replay exceptions can preserve immutable legacy history without changing generic lifecycle semantics"
     - "An externally completed negative review may be imported truthfully but remains negative evidence"
     - "Historical TEST-0001 remains inspectable while no longer serving as gating PASS evidence"
-    - "A prior TEST-0006 PASS remains valid for its exact historical tree while a later handover edit can require a new current-head rerun"
+    - "A prior TEST-0006 PASS remains inspectable after a later independent review invalidates its current proof assertions"
     - "A prematurely accepted requirement remains inspectable as superseded history while a new owner remains PROPOSED"
   failure_modes:
     - "README/START_HERE does not route to the current project state and active work"
     - "PROJECT_STATE cannot identify current work and its next gate without chat history"
-    - "PROJECT_STATE and WORK-0001 disagree on REVIEW-0018/current proof state"
+    - "PROJECT_STATE and WORK-0001 disagree on REVIEW-0019/current proof state"
+    - "WORK-0001 cannot be loaded by a standard YAML parser"
+    - "PROJECT_STATE or TEST-0006 contains the truncated TEST-0005 result ce962ec2ad199dd914ee4e4a66ec4e110fbfbe"
     - "PROJECT_STATE instructs a cold-resuming agent to perform administrative or TEST transitions already complete at the tested SHA"
     - "PROJECT_STATE or WORK-0001 hardcodes a volatile current TEST result or PR #2 HEAD as a second mutable source of truth"
     - "PROJECT_STATE, WORK-0002 and matrix disagree on WORK-0002 lifecycle"
@@ -92,11 +101,13 @@ cases:
     - "The handoff to the WORK-0002 implementation branch is implicit or requires guessing"
     - "COMPLETE+CHANGES_REQUIRED or COMPLETE+BLOCKED can satisfy review completion"
     - "A historical import/replay exception authorizes a future record or weakens generic lifecycle"
-    - "REVIEW-0018 authorization/import/binding/consumption do not agree"
+    - "REVIEW-0019 authorization/import/binding/consumption do not agree"
     - "TEST-0001 is superseded by evidence that omits original protected contracts"
     - "WORK-0001 still uses superseded AC-5 owners or omits one of REQ-0023/REQ-0024/REQ-0025"
     - "REQ-0023/REQ-0024/REQ-0025 becomes ACCEPTED before the next approval-capable independent review"
   adversarial_cases:
+    - "Load WORK-0001 with a standard YAML parser instead of relying on visual inspection"
+    - "Resolve every copied TEST-0005 result SHA and verify it equals ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe"
     - "Resolve every PR #3 WORK-0002 read_before path at the exact tested SHA rather than assuming branch-local files exist"
     - "Verify branch-only prerequisites on feat/work-0002-governance-ci"
     - "Query live PR #2 and compare its lifecycle with synchronized WORK-0002/matrix state without requiring PROJECT_STATE to duplicate its volatile HEAD"
@@ -109,21 +120,11 @@ cases:
     - "Attempt to treat TEST-0005 PASS as approval authority and verify REQ-0023/24/25 remain PROPOSED"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub cold-read of transition-stable REVIEW-0018 final handover"
-  last_run_at: "2026-09-11"
-  commit_sha: "c58ddee0b98097514a4c73c5a8dc8acfb9cd977e"
-  result: PASS
-  evidence:
-    - "Exact tested PR #3 tree c58ddee0b98097514a4c73c5a8dc8acfb9cd977e; legal reopen is PASS → READY at bdf2d6462f510ba21fb46163aae62f034ca4b4a8 then READY → RUNNING at the tested commit."
-    - "Compare 7db53a5fee18614af147b184c3f84dd5b922db1c → c58ddee0b98097514a4c73c5a8dc8acfb9cd977e changes only registry/tests/TEST-0006.yaml, so final transition-stable PROJECT_STATE and WORK-0001 content is unchanged during execution."
-    - "PROJECT_STATE @ c58ddee0 routes from TEST-0006's latest valid exact execution conditionally: if it covers the synchronized handover, proceed to REVIEW-0018 reply/fresh L2; otherwise rerun. This remains true at READY, RUNNING and PASS."
-    - "WORK-0001 @ c58ddee0 remains IN_REVIEW/non-terminal, preserves the REVIEW-0018-era TEST-0006 baseline as historical evidence, routes current test identity to TEST-0006 itself, and conditionally reruns only when current proof no longer covers synchronized semantics."
-    - "REQ-0023/REQ-0024/REQ-0025 @ c58ddee0 remain PROPOSED and independently own DoR/DoD/verification strategy; no author-produced test has accepted them."
-    - "TEST-0005 remains PASS on exact pre-acceptance tree efd48467352c0ce4ec344ebe410fd9e98d938721 with result ce962ec2ad199dd914ee4e4a66ec4e110fbfbe and history binding 79a95e7cda3b62b68208e333ddc1593c510167f7."
-    - "REVIEW-0018 remains COMPLETE/CHANGES_REQUIRED with exact one-shot provenance c90756dd28ad5c0029768a1de41e87194a956ab5 → 85c3b09507d0a4dce48f992eaeee142f82bd768f → b56d0661d343de358844b817e2fec02b4ea39d52 → 8c10f6fa599dbff29285f02f3363778e0e36b319 and therefore cannot approve completion."
-    - "WORK-0002/matrix remain IN_REVIEW with WORK-0002 dependent on WORK-0001; live PR #2 was rechecked open, non-draft and mergeable at HEAD ab62faa1743705600a0f11335579db68a2166ab3, while PROJECT_STATE does not duplicate that volatile SHA."
-    - "Current-tree WORK-0002 read_before paths and the explicit branch-only handoff remain unchanged from previously verified trees because only TEST-0006 changed since the stable handover commit."
-    - "status-machines v7 generic transitions/positive-only approval semantics remain unchanged; TEST-0001 remains SUPERSEDED/non-gating with TEST-0006 as scope-preserving replacement."
+  command_or_workflow: "Pending exact-SHA cold-resume rerun after REVIEW-0019 YAML/SHA corrections"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -214,6 +215,6 @@ history:
     - commit_sha: "c58ddee0b98097514a4c73c5a8dc8acfb9cd977e"
       recorded_result: PASS
       recorded_in_commit: "b02f4fbdbbd8104b2b8c3cf9cc88f15102d51f48"
-      validity: VALID
-      invalidated_by: null
-      reason: "Final transition-stable handover remains correct through PASS: PROJECT_STATE/WORK-0001 conditional proof routing stays current, proposed requirements remain unaccepted, pre-acceptance evidence is discoverable, and the next gate is independent fresh L2 without another synchronization loop."
+      validity: INVALIDATED
+      invalidated_by: "REVIEW-0019/F-1;REVIEW-0019/F-2"
+      reason: "Fresh L2 proved this execution did not establish the mandatory machine-readable cold-resume path because WORK-0001 YAML was malformed, and its TEST-0005 evidence copied a truncated non-exact result SHA. The immutable PASS remains historical but is not current gating proof."
