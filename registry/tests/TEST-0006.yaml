@@ -174,7 +174,7 @@ history:
       reason: "The exact v7 tree has a transition-stable cold-resume handover, coherent WORK-0001/WORK-0002/matrix lifecycle, resolvable current-tree prerequisites, explicit branch-only handoff, matching live PR #2 state, strict v7 import/replay/provenance semantics, positive-only review approval, and scope-preserving TEST-0001 supersession. REVIEW-0016 later found that administrative synchronization after this tree reintroduced a stale first Next action, so a new current-head execution is required without invalidating this historical PASS."
     - commit_sha: "8c921bf5a6553463a1343b5fe0b987966be33208"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "2e038194f149c667ffe680286ed275435734e5ee"
       validity: VALID
       invalidated_by: null
       reason: "After REVIEW-0016, the exact tested tree advances directly from the current review/test state, preserves truthful REVIEW-0016 import provenance, keeps WORK-0001/WORK-0002/matrix coherent, preserves resolvable current-tree/branch-only handoff semantics, positive-only approval and TEST-0001 replacement scope."
