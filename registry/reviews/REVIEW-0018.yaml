@@ -1,0 +1,82 @@
+id: REVIEW-0018
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "8f0aea5b9c1cd9387b59da40ff2d08a8a975d1a1"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-8f0aea5b"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "c90756dd28ad5c0029768a1de41e87194a956ab5"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNG0cVw"
+  source_submitted_at: "2026-09-11T02:49:23Z"
+  import_commit: null
+
+scope:
+  work_items: [WORK-0001]
+  requirements: [REQ-0020, REQ-0021, REQ-0022]
+  capabilities: []
+  contracts:
+    - "requirement acceptance lifecycle"
+    - "Review Council before Accepted"
+    - "cold-read before Accepted"
+  risks:
+    - "A syntactically valid PROPOSED → ACCEPTED transition can expose new high-criticality canonical requirements before independent Review Council/cold-read acceptance evidence exists."
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: PREMATURE_REQUIREMENT_ACCEPTANCE
+    description: "REQ-0020, REQ-0021 and REQ-0022 were transitioned to ACCEPTED before an approval-capable independent review could inspect those new records. REVIEW-0017 reviewed the earlier 06dbb76c tree and was CHANGES_REQUIRED, while TEST-0005 ran only after acceptance. Preserve immutable history, but replace the prematurely accepted owners with requirements that remain PROPOSED until independent Review Council/cold-read gates pass."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 8f0aea5b9c1cd9387b59da40ff2d08a8a975d1a1"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNG0cVw submitted 2026-09-11T02:49:23Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hUtAz"
+      - "AGENTS.md specification workflow requires required Review Council hats and a cold-read test before Accepted"
+      - "REQ-0020/REQ-0021/REQ-0022 became ACCEPTED in 246820d3bb40fa8a57eee95c70444e5729861f0b before any approval-capable review of those records"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "A normal status transition is sufficient acceptance evidence merely because it is lifecycle-valid."
+    - "A prior CHANGES_REQUIRED review of an earlier tree can approve requirements introduced afterward."
+  omitted_categories_considered:
+    - "REVIEW-0017/F-1 handover correction"
+    - "REQ-0005 atomicity split"
+    - "TEST-0005 exact-SHA proof"
+    - "TEST-0006 transition-stable handover proof"
+    - "v7 external-review provenance"
+  duplicate_or_reuse_search:
+    - "The defect is distinct from direct ACCEPTED materialization: these records did pass through PROPOSED, but the acceptance gate lacked independent review evidence."
+  failure_modes_considered:
+    - "Attempting illegal ACCEPTED → PROPOSED rollback on the same IDs."
+    - "Rewriting the acceptance commit out of immutable history."
+    - "Adding a generic lifecycle exception that weakens future acceptance gates."
+    - "Creating replacement requirements directly ACCEPTED."
+    - "Accepting replacements after author tests but before an approval-capable fresh L2."
+  evidence_requested:
+    - "preserve the premature accepted records historically and supersede them through legal lifecycle"
+    - "create replacement requirement IDs in PROPOSED state"
+    - "keep replacements PROPOSED through independent fresh-context L2/cold-read review"
+    - "only transition replacements to ACCEPTED after approval-capable evidence exists"
+    - "update WORK-0001 active ownership and traceability without using prematurely accepted records as current owners"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-11"
+
+history:
+  created_at: "2026-09-11"
+  updated_at: "2026-09-11"
