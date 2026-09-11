@@ -1,0 +1,15 @@
+id: REQ-0022
+title: "Verification strategy contract"
+status: PROPOSED
+type: GOVERNANCE
+normative_statement: "MONDE SHALL maintain a canonical verification strategy that defines the required test and evidence modes used to establish whether specification or implementation work is correct, sufficiently strong, reproducible where applicable, and eligible for completion."
+rationale: "Verification strategy can fail independently from entry readiness and completion criteria, so its normative ownership must be separately traceable and reviewable."
+origin: {source: "WORK-0001/AC-5; REVIEW-0017/F-2", decision_date: "2026-09-11", introduced_by_work: WORK-0001, introduced_by_adr: null}
+scope: {capabilities: [], engines: [], experiences: [], schemas: [], data_sources: [], models: []}
+depends_on: [REQ-0004, REQ-0010]
+conflicts_with: []
+related_requirements: [REQ-0005, REQ-0014, REQ-0020, REQ-0021]
+semantics: {temporal: false, spatial: false, provenance: true, confidence_uncertainty: false, permissions: false}
+verification: {method: TEST_AND_REVIEW, acceptance_evidence: ["WORK-0001/AC-5", "docs/13_QUALITY/testing-strategy.md", "REVIEW-0017/F-2"], test_ids: [TEST-0005], real_system_validation: []}
+risk: {criticality: HIGH, failure_impact: "Work may rely on weak, incomplete, non-reproducible or non-representative evidence while still appearing verified."}
+history: {created_at: "2026-09-11", updated_at: "2026-09-11", supersedes: [], superseded_by: null}
