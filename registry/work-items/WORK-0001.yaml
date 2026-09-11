@@ -270,7 +270,7 @@ review_plan:
     - "REVIEW-0014/F-2 REQ-0015..REQ-0019 were post-contract imports materialized directly ACCEPTED without an explicit exact import boundary"
     - "REVIEW-0015/F-1 REVIEW-0014's apparent OPEN → IN_PROGRESS → COMPLETE sequence was a post-hoc replay after external review completion; future external reviews require truthful one-shot preauthorized import provenance"
     - "TEST-0007 current v7 execution is PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f."
-    - "TEST-0006 v7 executions on 11cca4bccb318d29c422917d544a470870b2cf65 and 75d3df4486d05ab95d9d65daee2fd7ac77072a47 are preserved FAIL evidence because PROJECT_STATE's ordered Next action still named state transitions already complete at those exact trees; result commits 35e3c4c892f8c9bc6e5424fbe792c2fc8043eaf8 and 49a772c224cb3dd4811f48f4bc0431c155b01e74. PROJECT_STATE is now transition-stable at b0fb0d63c368e209a3180496b33a0fbc184612ae; rerun from current TEST-0006 state is required."
+    - "TEST-0006 current v7 execution is PASS on exact tree d6f012abe31263f0fa83003646405c039b23611e; result 788a2948054cdd90130c72b17910d745fd36d927; history pointer 11615248d3cafd3577a2920b5a323daa51040f12. The two earlier v7 FAILs remain preserved as evidence that stale handover wording was not papered over. Fresh L2 is now the remaining assurance gate."
 
 required_tests:
   unit: []
@@ -324,7 +324,7 @@ required_tests:
     - "TEST-0007 current execution passed on exact v7 tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; pointer 87ec209eec614a0ff3be7a00a7565102042cad3f"
     - "TEST-0006 v7 run on 11cca4bccb318d29c422917d544a470870b2cf65 correctly FAILED because PROJECT_STATE Next action lagged completed sync/reopen state; result 35e3c4c892f8c9bc6e5424fbe792c2fc8043eaf8"
     - "TEST-0006 v7 rerun on 75d3df4486d05ab95d9d65daee2fd7ac77072a47 also correctly FAILED because handover still named prior FAIL-recording/reopen actions already complete at that READY tree; result 49a772c224cb3dd4811f48f4bc0431c155b01e74"
-    - "PROJECT_STATE b0fb0d63c368e209a3180496b33a0fbc184612ae now uses a transition-stable instruction to inspect and continue TEST-0006 from its current lifecycle state rather than hardcoding already-completed intermediate transitions"
+    - "TEST-0006 current v7 execution passed on exact transition-stable tree d6f012abe31263f0fa83003646405c039b23611e; result 788a2948054cdd90130c72b17910d745fd36d927; history pointer 11615248d3cafd3577a2920b5a323daa51040f12"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -355,7 +355,7 @@ validation:
     - "REVIEW-0015 was imported through a one-shot authorization that existed before materialization and was subsequently bound/consumed by the exact import commit"
     - "TEST-0007 passed on exact v7 tree 669dcf7638746e07cc034cd69fa2cb08da133937 and proves replay isolation, preauthorization ancestry/consumption, historical import boundaries and REQ-0006 traceability"
     - "TEST-0006 v7 runs on 11cca4bccb318d29c422917d544a470870b2cf65 and 75d3df4486d05ab95d9d65daee2fd7ac77072a47 failed because PROJECT_STATE ordered actions that were already complete at the respective tested trees; both FAILs are preserved"
-    - "PROJECT_STATE is now transition-stable at b0fb0d63c368e209a3180496b33a0fbc184612ae; next test work must continue TEST-0006 from its current lifecycle state rather than replaying administrative state transitions"
+    - "TEST-0006 then passed on exact transition-stable v7 tree d6f012abe31263f0fa83003646405c039b23611e; result 788a2948054cdd90130c72b17910d745fd36d927; history pointer 11615248d3cafd3577a2920b5a323daa51040f12"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -377,7 +377,7 @@ validation:
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
     - TEST-0005
-    - "TEST-0006 (latest tested v7 tree 75d3df4486d05ab95d9d65daee2fd7ac77072a47 is FAIL due non-transition-stable Next-action wording; result 49a772c224cb3dd4811f48f4bc0431c155b01e74; transition-stable handover now at b0fb0d63c368e209a3180496b33a0fbc184612ae; rerun required)"
+    - "TEST-0006 (current PASS on exact transition-stable v7 tree d6f012abe31263f0fa83003646405c039b23611e; result 788a2948054cdd90130c72b17910d745fd36d927; history pointer 11615248d3cafd3577a2920b5a323daa51040f12; two earlier v7 FAILs remain preserved)"
     - "TEST-0007 (current PASS on exact v7 tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f)"
     - "REQ-0001..REQ-0019"
     - registry/status-machines.yaml
@@ -387,8 +387,7 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "REVIEW-0015/F-1 remains open until a later fresh-context L2 verifies the exact v7 historical-replay and preauthorized external-import behavior."
-    - "TEST-0006 must continue from its current FAIL state and be rerun against a tree containing the transition-stable PROJECT_STATE/WORK-0001 handover before fresh L2."
+    - "REVIEW-0014/F-1, REVIEW-0014/F-2 and REVIEW-0015/F-1 remain unresolved until a new fresh-context L2 verifies the exact v7 historical-import/replay/preauthorized external-import behavior and current TEST-0006/TEST-0007 evidence."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; its own fresh-L2 work remains separate."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -405,7 +404,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0015 narrowed assurance debt. v7 now separates immutable review replay from truthful preauthorized external imports. TEST-0007 passed on 669dcf76. TEST-0006 correctly failed on 11cca4bc and 75d3df44 because the handover still named already-completed intermediate state transitions. PROJECT_STATE b0fb0d63 and this WORK record now direct continuation from TEST-0006's current lifecycle state, making the handover transition-stable. A new rerun plus fresh L2 remain the gate."}
+  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0015 narrowed assurance debt. v7 now separates immutable review replay from truthful preauthorized external imports. TEST-0007 passed on 669dcf76. Two TEST-0006 v7 executions correctly failed on stale handover wording; after transition-stable correction, TEST-0006 passed on d6f012ab with result 788a2948 and pointer 11615248. A fresh L2 on the resulting frozen head is now the sole remaining assurance gate."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 
