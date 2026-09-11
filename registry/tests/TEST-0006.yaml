@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -109,11 +109,21 @@ cases:
     - "Attempt to treat TEST-0005 PASS as approval authority and verify REQ-0023/24/25 remain PROPOSED"
 
 execution:
-  command_or_workflow: "Pending exact-SHA cold-resume rerun after REVIEW-0018 and pre-acceptance TEST-0005 synchronization"
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  command_or_workflow: "Manual exact-SHA GitHub cold-read and handover audit after REVIEW-0018 and pre-acceptance TEST-0005 proof"
+  last_run_at: "2026-09-11"
+  commit_sha: "19b1854f4438800637237a90a3e9e3e90b398548"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree 19b1854f4438800637237a90a3e9e3e90b398548; legal reopen is PASS → READY at b9b64943a93ffa8e68626dbffb3c2e98f1bb46b2 then READY → RUNNING at the tested commit."
+    - "Compare ebdf026ba4728ad8dc67c4dca9b113d82b972293 → 19b1854f4438800637237a90a3e9e3e90b398548 changes only registry/tests/TEST-0006.yaml, so synchronized PROJECT_STATE/WORK-0001 handover content is unchanged during execution."
+    - "REQ-0023, REQ-0024 and REQ-0025 @ 19b1854f are each PROPOSED and separately own Definition of Ready, Definition of Done and verification strategy; none was prematurely accepted by author-produced evidence."
+    - "TEST-0005 @ 19b1854f is PASS on exact pre-acceptance tree efd48467352c0ce4ec344ebe410fd9e98d938721; PASS result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7."
+    - "PROJECT_STATE/WORK-0001 synchronized before this run expose REVIEW-0018, proposed AC-5 owners and pre-acceptance TEST-0005 proof while remaining IN_REVIEW/non-terminal; current TEST identity is routed to the TEST record."
+    - "WORK-0002 and registry/progress/matrix.yaml remain IN_REVIEW with WORK-0002 dependent on WORK-0001; live PR #2 was rechecked open, non-draft and mergeable at HEAD ab62faa1743705600a0f11335579db68a2166ab3 without canonizing that volatile SHA in PROJECT_STATE."
+    - "All current-tree WORK-0002 read_before paths remain present because the exact diff from synchronized parent changes only TEST-0006; branch-only github-control-plane.md and ai-context-routing.md were previously re-fetched successfully from feat/work-0002-governance-ci and that branch remains the explicit handoff boundary."
+    - "REVIEW-0018 provenance is exact and one-shot: authorization c90756dd28ad5c0029768a1de41e87194a956ab5 → import 85c3b09507d0a4dce48f992eaeee142f82bd768f → review binding b56d0661d343de358844b817e2fec02b4ea39d52 → authorization consumption 8c10f6fa599dbff29285f02f3363778e0e36b319; REVIEW-0018 remains COMPLETE/CHANGES_REQUIRED and cannot approve completion."
+    - "status-machines v7 @ 19b1854f keeps positive-only approval outcomes, normal review/requirement/test transitions, exact historical exceptions and consumed one-shot external review authorizations without new generic shortcuts."
+    - "TEST-0001 remains SUPERSEDED/non-gating and names TEST-0006 as its revision-bound scope-preserving replacement."
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -195,3 +205,9 @@ history:
       validity: VALID
       invalidated_by: null
       reason: "The REVIEW-0017-corrected handover is cold-resumable and transition-stable, current proof routing no longer duplicates mutable heads, REVIEW-0017 provenance is truthful, AC-5 ownership is atomic, lifecycle/branch boundaries resolve, and TEST-0001 replacement/positive-only review semantics remain intact."
+    - commit_sha: "19b1854f4438800637237a90a3e9e3e90b398548"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "The REVIEW-0018-corrected handover is cold-resumable while REQ-0023/REQ-0024/REQ-0025 remain PROPOSED; pre-acceptance TEST-0005 evidence is discoverable, author evidence cannot approve acceptance, lifecycle/branch/provenance semantics remain coherent, and the next gate is independent fresh L2."
