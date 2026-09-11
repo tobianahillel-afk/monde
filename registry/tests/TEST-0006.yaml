@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -95,8 +95,19 @@ execution:
   command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3 finalized handover tree b8180dff075ea5c8328ee56d1683380576c984ba"
   last_run_at: "2026-09-11"
   commit_sha: "b8180dff075ea5c8328ee56d1683380576c984ba"
-  result: null
-  evidence: []
+  result: PASS
+  evidence:
+    - "PROJECT_STATE.md @ b8180dff075ea5c8328ee56d1683380576c984ba makes fresh-context L2 on the synchronized PR #3 head the sole remaining WORK-0001 gate and explicitly forbids repeating completed REVIEW-0016 import/binding, WORK-0001 synchronization or evidence-recording work."
+    - "WORK-0001 @ b8180dff075ea5c8328ee56d1683380576c984ba remains IN_REVIEW; definition_of_done_checked, specification_gates_checked, traceability_checked and review_complete remain false."
+    - "registry/work-items/WORK-0002.yaml @ b8180dff075ea5c8328ee56d1683380576c984ba remains IN_REVIEW and depends_on WORK-0001."
+    - "registry/progress/matrix.yaml @ b8180dff075ea5c8328ee56d1683380576c984ba records WORK-0001 IN_REVIEW and WORK-0002 IN_REVIEW and points to the canonical status-machine progress lifecycle."
+    - "Compare 8c921bf5a6553463a1343b5fe0b987966be33208 → b8180dff075ea5c8328ee56d1683380576c984ba changes only PROJECT_STATE.md, TEST-0006.yaml and WORK-0001.yaml; WORK-0002, matrix, status-machine v7, REVIEW-0016, TEST-0001 and all WORK-0002 read_before targets remain unchanged from the prior exact-tree PASS."
+    - "Both branch-only WORK-0002 prerequisites, docs/03_ARCHITECTURE/github-control-plane.md and docs/13_QUALITY/ai-context-routing.md, were re-fetched successfully from feat/work-0002-governance-ci during this execution."
+    - "Live PR #2 was rechecked open, non-draft and mergeable at exact head c50c33009d90f079e645f0ca9e1befe1a4a77ba9 during this execution."
+    - "REVIEW-0016 import provenance remains unchanged and exact: authorization f19d261032b29ae4180b98a99dff494964b612b7 predates first materialization 83b98e1b2a06ca0312614b44c8b8e8ccc6468c44, with review binding bf37979755020e0633df0f4966cd5bf3707da94e and authorization consumption 820b32588ec053b2fcfe130fd84d4fd4d9720d22."
+    - "status-machines v7 remains unchanged from the prior PASS and still limits approval evidence to COMPLETE reviews with APPROVE or APPROVE_WITH_FOLLOWUP; CHANGES_REQUIRED/BLOCKED remain negative."
+    - "TEST-0001 remains SUPERSEDED/non-gating and names TEST-0006 as the revision-bound replacement preserving AI resume protocol, status vocabulary consistency and active work routing."
+    - "Prior TEST-0006 FAIL/PASS executions remain preserved; this execution proves the finalized handover itself rather than rewriting earlier evidence."
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -165,4 +176,10 @@ history:
       recorded_in_commit: "2e038194f149c667ffe680286ed275435734e5ee"
       validity: VALID
       invalidated_by: null
-      reason: "After REVIEW-0016, the exact tested tree advances directly from the current review/test state, preserves truthful REVIEW-0016 import provenance, keeps WORK-0001/WORK-0002/matrix coherent, preserves resolvable current-tree/branch-only handoff semantics, positive-only approval and TEST-0001 replacement scope. The test is rerun once more only because PROJECT_STATE was subsequently finalized to expose fresh L2 as the sole remaining gate."
+      reason: "After REVIEW-0016, the exact tested tree advances directly from the current review/test state, preserves truthful REVIEW-0016 import provenance, keeps WORK-0001/WORK-0002/matrix coherent, preserves resolvable current-tree/branch-only handoff semantics, positive-only approval and TEST-0001 replacement scope. The test was rerun once more only because PROJECT_STATE was subsequently finalized to expose fresh L2 as the sole remaining gate."
+    - commit_sha: "b8180dff075ea5c8328ee56d1683380576c984ba"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "The finalized handover exposes fresh L2 as the sole remaining WORK-0001 gate, keeps WORK-0001/WORK-0002/matrix coherent and non-terminal, preserves the explicit PR #2 branch boundary and current-tree prerequisites, and leaves v7 import/replay/provenance plus TEST-0001 replacement semantics unchanged."
