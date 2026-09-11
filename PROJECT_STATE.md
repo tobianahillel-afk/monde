@@ -56,7 +56,7 @@ The acceptance error is preserved, not rewritten:
 
 - REQ-0020/0021/0022 remain inspectable as the prematurely accepted atomic records and transitioned legally `ACCEPTED → SUPERSEDED` together in `9ca6b975e7abef9eadf86573f2c9e1cb07b89e3d`.
 - Replacement REQ-0023 (DoR), REQ-0024 (DoD) and REQ-0025 (verification strategy) first materialized together as **PROPOSED** in `772616269581f622605416b2e34f6d4e270241df`.
-- WORK-0001 active ownership now routes to REQ-0023/0024/0025, not to superseded REQ-0005 or prematurely accepted REQ-0020/0021/0022.
+- WORK-0001 active ownership routes to REQ-0023/0024/0025, not to superseded REQ-0005 or prematurely accepted REQ-0020/0021/0022.
 - REQ-0023/0024/0025 remain PROPOSED pending independent acceptance review; no author-produced test can transition them to ACCEPTED.
 
 This explicitly separates two gates that are both required: a lifecycle-valid `PROPOSED → ACCEPTED` transition and the substantive Review Council/cold-read evidence required **before** that transition.
@@ -76,19 +76,21 @@ TEST-0007 remains the current generic v7 lifecycle proof on exact tree `669dcf76
 
 ## Pre-acceptance proof — complete
 
-TEST-0005 has now supplied the required exact-SHA pre-acceptance cold-read while REQ-0023/0024/0025 remain PROPOSED:
+TEST-0005 supplied the required exact-SHA pre-acceptance cold-read while REQ-0023/0024/0025 remained PROPOSED:
 
 - exact tested tree `efd48467352c0ce4ec344ebe410fd9e98d938721`;
-- PASS result commit `ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe`;
+- PASS result commit `ce962ec2ad199dd914ee4e4a66ec4e110fbfbe`;
 - history binding `79a95e7cda3b62b68208e333ddc1593c510167f7`.
 
 That execution verifies atomic ownership, replacement/supersession traceability, proposal status, Review Council/cold-read sequencing and the prohibition on pre-review acceptance. REVIEW-0018/F-1 remains OPEN and the proposed requirements remain non-Accepted; this author-produced PASS is evidence for the next independent review, not approval itself.
 
-## TEST-0006 cold-resume gate
+## TEST-0006 cold-resume proof routing
 
-The latest valid TEST-0006 execution predates the synchronized REVIEW-0018 + pre-acceptance TEST-0005 handover. One legal TEST-0006 reopen/rerun is therefore required on the synchronized tree before the next fresh L2.
+TEST-0006 has a REVIEW-0018-era PASS baseline on exact tree `19b1854f4438800637237a90a3e9e3e90b398548`, result `9e55ba41f2f057292d6da86f3fc3f9d2892be701`, history binding `60920aac4ed9f345e9e7e35d4398e6162f9a8a82`.
 
-**Transition-stable rule:** the canonical current execution of each TEST lives in its TEST record. WORK-0001 and PROJECT_STATE preserve reviewed historical baselines but do not duplicate mutable TEST-result SHAs as a second source of truth. Likewise, live PR #2 HEAD/check/thread truth remains external and is queried from GitHub rather than copied into canonical handover prose.
+**Transition-stable rule:** the canonical current execution of each TEST lives in its TEST record. At resume, inspect TEST-0006's latest valid exact tested tree. If that execution covers the current synchronized REVIEW-0018 + pre-acceptance handover semantics, do not rerun it merely to obtain a newer SHA; proceed to the independent review gate. If a later substantive handover change makes the latest execution predate or no longer cover the current semantics, reopen/rerun legally once. WORK-0001 and PROJECT_STATE preserve reviewed baselines but do not become a second mutable TEST-result registry.
+
+Likewise, live PR #2 HEAD/check/thread truth remains external and is queried from GitHub rather than copied into canonical handover prose.
 
 ## WORK-0002 cross-branch boundary
 
@@ -108,12 +110,11 @@ No finding is closed because the author produced a test PASS. REVIEW-0018/F-1 re
 
 ## Next action
 
-1. Inspect TEST-0006 and continue it from its current legal state through one exact-SHA READY/RUNNING/PASS execution covering this synchronized REVIEW-0018 + pre-acceptance TEST-0005 handover; do not repeat TEST-0005 and do not accept REQ-0023/0024/0025.
-2. Reply to REVIEW-0018/F-1 with the exact TEST-0005/TEST-0006 evidence and leave the thread unresolved.
-3. Freeze the resulting PR #3 HEAD and request fresh-context L2 on that exact SHA, explicitly asking the reviewer to inspect REQ-0023/0024/0025 while they are still PROPOSED and to review the accumulated PR.
-4. If the L2 finds a defect, record/correct/re-prove it. If clean/approval-capable, record its v7 provenance first, then transition REQ-0023/0024/0025 to ACCEPTED, close only independently verified findings, finalize WORK-0001/progress/completion and merge PR #3.
-5. After PR #3 merge, query live PR #2, integrate new main, rerun its full gate, obtain its own fresh L2, and merge only if all gates genuinely pass.
-6. Continue with WORK-0003 and then WORK-0004 in roadmap order.
+1. Inspect TEST-0006's latest valid exact-SHA execution. If it covers this synchronized handover, do not repeat it; reply to REVIEW-0018/F-1 with the exact TEST-0005/TEST-0006 evidence and continue to fresh L2. If it does not cover this handover because substantive state changed after its tested tree, reopen/rerun it legally before review.
+2. Leave REVIEW-0018/F-1 unresolved, freeze the qualifying PR #3 HEAD, and request fresh-context L2 explicitly on that exact SHA. The reviewer must inspect REQ-0023/0024/0025 while they are still PROPOSED, verify REVIEW-0018/F-1, and review the accumulated PR for any material P0/P1/P2 defect.
+3. If the L2 finds a defect, record/correct/re-prove it. If clean/approval-capable, record its v7 provenance first, then transition REQ-0023/0024/0025 to ACCEPTED as a reviewed administrative state change with no substantive text mutation, close only independently verified findings, finalize WORK-0001/progress/completion and merge PR #3.
+4. After PR #3 merge, query live PR #2, integrate new main, rerun its full gate, obtain its own fresh L2, and merge only if all gates genuinely pass.
+5. Continue with WORK-0003 and then WORK-0004 in roadmap order.
 
 ## Resume instructions
 
