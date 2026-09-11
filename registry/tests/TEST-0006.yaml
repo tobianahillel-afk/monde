@@ -242,7 +242,7 @@ history:
       reason: "After REVIEW-0019, the exact tested tree carries the structural RUN-3 YAML fix, exact TEST-0005 result SHA, synchronized REVIEW-0019 handover, PROPOSED AC-5 replacements, truthful v7 provenance, coherent WORK-0002/matrix/branch boundary and preserved TEST-0001 replacement scope. Full WORK-0001 parser validation remains an explicit independent-L2 check before acceptance/completion."
     - commit_sha: "d0c985933e66960a781513ad61bd3567c91e5344"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "af4c50ba5a442a8bd06717c2802170bb4cbde54e"
       validity: VALID
       invalidated_by: null
       reason: "After REVIEW-0020, the exact tested tree preserves all prior corrected handover/acceptance/provenance semantics while the PR #3 WORK-0002 mirror exposes no branch-local review/test IDs before checkout; branch-local proof remains available after explicit checkout and WORK-0001/WORK-0002/matrix remain coherently non-terminal."
