@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -123,12 +123,20 @@ execution:
   command_or_workflow: "Manual exact-SHA GitHub cold-read after REVIEW-0019 YAML/SHA corrections; full-file YAML parseability is reserved for independent fresh-L2 confirmation because the GitHub connector exposes content but not a YAML execution runtime"
   last_run_at: "2026-09-11"
   commit_sha: "45a8dae7fa9f199c63651f15306dcfa6f880b248"
-  result: null
+  result: PASS
   evidence:
     - "Exact tested PR #3 READY tree 45a8dae7fa9f199c63651f15306dcfa6f880b248"
     - "TEST-0005 exact PASS result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe resolves as the real Git commit 'test(governance): pass pre-acceptance TEST-0005'"
-    - "WORK-0001 at 45a8dae7 contains the corrected closed RUN-3 flow mapping; independent L2 is explicitly required to confirm full parser validity"
-    - "PROJECT_STATE and WORK-0001 are synchronized through REVIEW-0019 and keep REQ-0023/REQ-0024/REQ-0025 PROPOSED"
+    - "WORK-0001 blob 916f636b535c04ba1c8d8b44f004280e9bc28483 at 45a8dae7 has the REVIEW-0019 parser-breaking RUN-3 flow mapping structurally closed; full-file parser confirmation is explicitly delegated to the fresh independent L2"
+    - "PROJECT_STATE at 45a8dae7 is synchronized through REVIEW-0019, uses exact TEST-0005 result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe, and keeps REQ-0023/REQ-0024/REQ-0025 PROPOSED"
+    - "REQ-0023/REQ-0024/REQ-0025 at 45a8dae7 are each PROPOSED and independently own DoR/DoD/verification strategy"
+    - "REVIEW-0019 remains COMPLETE/CHANGES_REQUIRED; authorization c916d505f190a27d36e5d8fd4e595e970969e269 is consumed by exact import 40050f6fda6787feb42769cb6fa66547d5a1f7fb after review binding fd7459fd12ab245f37072a9126777f98a066fc0b"
+    - "WORK-0002 and progress matrix at 45a8dae7 both remain IN_REVIEW and WORK-0002 depends on WORK-0001"
+    - "Compare c58ddee0b98097514a4c73c5a8dc8acfb9cd977e → 45a8dae7fa9f199c63651f15306dcfa6f880b248 changes only PROJECT_STATE, REVIEW-0019, status-machine REVIEW-0019 metadata, TEST-0006 and WORK-0001; no WORK-0002 read_before path or matrix file changed"
+    - "Branch-only WORK-0002 prerequisites github-control-plane.md and ai-context-routing.md were re-fetched successfully from feat/work-0002-governance-ci"
+    - "Live PR #2 was rechecked open, non-draft and mergeable at HEAD ab62faa1743705600a0f11335579db68a2166ab3; PROJECT_STATE intentionally does not duplicate that volatile SHA"
+    - "TEST-0001 remains SUPERSEDED/non-gating and names TEST-0006 as the revision-bound scope-preserving replacement"
+    - "Fresh independent L2 is still required to confirm full WORK-0001 YAML parseability and approve any requirement acceptance or WORK-0001 completion"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -222,3 +230,9 @@ history:
       validity: INVALIDATED
       invalidated_by: "REVIEW-0019/F-1;REVIEW-0019/F-2"
       reason: "Fresh L2 proved this execution did not establish the mandatory machine-readable cold-resume path because WORK-0001 YAML was malformed, and its TEST-0005 evidence copied a truncated non-exact result SHA. The immutable PASS remains historical but is not current gating proof."
+    - commit_sha: "45a8dae7fa9f199c63651f15306dcfa6f880b248"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "After REVIEW-0019, the exact tested tree carries the structural RUN-3 YAML fix, exact TEST-0005 result SHA, synchronized REVIEW-0019 handover, PROPOSED AC-5 replacements, truthful v7 provenance, coherent WORK-0002/matrix/branch boundary and preserved TEST-0001 replacement scope. Full WORK-0001 parser validation remains an explicit independent-L2 check before acceptance/completion."
