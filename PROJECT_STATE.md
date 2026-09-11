@@ -78,7 +78,7 @@ Under v7, two cold-resume runs correctly returned FAIL instead of manufacturing 
 
 The handover was made transition-stable and TEST-0006 then **PASS**ed on exact tree `d6f012abe31263f0fa83003646405c039b23611e`; result `788a2948054cdd90130c72b17910d745fd36d927`; history pointer `11615248d3cafd3577a2920b5a323daa51040f12`.
 
-REVIEW-0016 does not invalidate that historical execution on its tested tree; it shows that a later administrative PROJECT_STATE/WORK-0001 synchronization reintroduced stale next-action wording at `7c9cc98f`. Therefore TEST-0006 must be reopened and rerun after this handover correction before another fresh L2 can close WORK-0001.
+After REVIEW-0016, the handover was corrected again and TEST-0006 was rerun on exact tree `8c921bf5a6553463a1343b5fe0b987966be33208`. That execution is **PASS**; result commit `2e038194f149c667ffe680286ed275435734e5ee`; history pointer `8e62fbcf835d411a6e12909a293f597d1e80dee3`. WORK-0001 was synchronized with that proof in `256681f7e38d3746a266ed4c416cf056ad92b383` while remaining non-terminal.
 
 All prior review findings remain durable evidence. REVIEW-0014/F-1, REVIEW-0014/F-2, REVIEW-0015/F-1 and REVIEW-0016/F-1 remain unresolved until a later fresh-context L2 independently verifies the corrected current head. No finding is closed merely because the author produced a PASS.
 
@@ -118,13 +118,12 @@ Historical import/replay exceptions preserve immutable history only when their e
 
 ## Next action
 
-1. Inspect `registry/tests/TEST-0006.yaml` and continue the **existing REVIEW-0016 proof run from its current lifecycle state**. Do not repeat WORK-0001/PROJECT_STATE synchronization, REVIEW-0016 import/binding, or prior evidence-recording steps already present in Git history.
-2. For the next exact-SHA TEST-0006 execution, recheck README/START_HERE cold resume, PROJECT_STATE/WORK-0001 currentness, global WORK-0002/matrix state, every current-tree WORK-0002 `read_before`, explicit PR #2 branch handoff/live state, v7 REVIEW-0015/0016 import provenance, positive-only review approval and TEST-0001 replacement scope.
-3. If any assertion is false, record FAIL and correct it without erasing prior evidence. If all assertions are true, record PASS and bind its exact tested/result commits. Synchronize only the resulting current PASS metadata while keeping the first pending action pointed at the fresh-review gate rather than an administrative synchronization that has already completed.
-4. Reply to REVIEW-0016/F-1 with exact evidence but leave relevant threads unresolved pending independent verification. Freeze the resulting PR #3 HEAD and request another fresh-context L2 on that exact SHA.
-5. If the next fresh L2 reports a material defect, record/correct/re-prove it. If it reports no material defect, record truthful approval-capable L2 evidence, resolve only findings independently verified as corrected, finalize WORK-0001/progress/completion and merge PR #3.
-6. After PR #3 merge, integrate new main into PR #2, correct/re-prove its six outstanding fresh-L2 findings under the v7 contract, obtain its own fresh L2, and merge only if its gate genuinely passes.
-7. Continue with WORK-0003 and then WORK-0004 in roadmap order.
+1. Treat **fresh-context L2 on the current synchronized PR #3 HEAD** as the sole remaining WORK-0001 assurance gate. Do not repeat REVIEW-0016 import/binding, WORK-0001 synchronization or prior evidence-recording steps already present in Git history.
+2. Before requesting that L2, ensure TEST-0006 has a PASS execution that covers this finalized handover content; if its current exact-SHA execution predates the finalized PROJECT_STATE, reopen from PASS → READY and rerun it once on the finalized tree. If it already covers this handover, do not rerun it merely to create a newer SHA.
+3. Reply to REVIEW-0016/F-1 with the exact current proof, leave relevant threads unresolved pending independent verification, freeze the resulting PR #3 HEAD and request fresh-context L2 explicitly on that SHA.
+4. If the fresh L2 reports a material defect, record/correct/re-prove it. If it reports no material defect, record truthful approval-capable L2 evidence, resolve only findings independently verified as corrected, finalize WORK-0001/progress/completion and merge PR #3.
+5. After PR #3 merge, integrate new main into PR #2, correct/re-prove its six outstanding fresh-L2 findings under the v7 contract, obtain its own fresh L2, and merge only if its gate genuinely passes.
+6. Continue with WORK-0003 and then WORK-0004 in roadmap order.
 
 ## Resume instructions
 
