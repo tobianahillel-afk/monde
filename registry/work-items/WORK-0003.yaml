@@ -1,58 +1,69 @@
 id: WORK-0003
-title: "Configure repository protection and merge policy"
+title: "Configure GitHub control-plane protection and merge policy"
 status: PLANNED
 phase: PHASE-0
 lot: LOT-0
 sublot: SUBLOT-0.3
 created_at: "2026-09-10"
-updated_at: "2026-09-10"
+updated_at: "2026-09-11"
 
 purpose: |
-  Configure GitHub repository-level protections so process rules are enforced at the hosting layer as well as documented in the repository.
+  Make GitHub enforce MONDE's repository rules so merge safety no longer depends on agent discipline alone.
 
 scope:
   in:
-    - decide and configure repository visibility
-    - protect main branch
-    - require pull requests
-    - require selected status checks once available
-    - prevent force-push/deletion of main where supported
-    - define merge strategy
-    - enable applicable secret/dependency/code scanning features
-    - document actual repository settings
+    - intentionally configure repository visibility
+    - protect main and require pull requests
+    - require the stable MONDE / Merge Gate on the current HEAD
+    - require conversation resolution and prevent force-push/deletion where supported
+    - choose one canonical merge strategy, preferring squash
+    - enable applicable secret scanning/push protection, dependency and code scanning
+    - configure GitHub Actions policy, including immutable SHA requirements where available
+    - verify CODEOWNERS/reviewer routing behavior
+    - verify Dependabot for GitHub Actions and Python governance dependencies
+    - document actual settings and unsupported/account-plan limitations
+    - define root-of-trust handling for meta-governance changes
   out:
-    - product implementation
-    - organization-wide GitHub administration unrelated to MONDE
+    - MONDE product implementation
+    - unrelated organization-wide GitHub administration
+    - deployment environments/OIDC until deployment exists
+    - merge queue until concurrency justifies it
 
 acceptance_criteria:
-  - id: AC-1
-    description: "Repository visibility is intentionally configured for MONDE's current sensitivity."
-    status: NOT_STARTED
-  - id: AC-2
-    description: "Main branch merge/protection policy matches canonical development rules."
-    status: NOT_STARTED
-  - id: AC-3
-    description: "Available security and status-check protections are configured and documented."
-    status: NOT_STARTED
+  - {id: AC-1, description: "Repository visibility is intentional and documented before sensitive MONDE inventory work.", status: NOT_STARTED}
+  - {id: AC-2, description: "main is PR-only with applicable force-push/deletion/conversation protections.", status: NOT_STARTED}
+  - {id: AC-3, description: "The stable MONDE / Merge Gate is required on the exact merge candidate HEAD.", status: NOT_STARTED}
+  - {id: AC-4, description: "Applicable GitHub security/supply-chain protections are enabled and verified on the real repository.", status: NOT_STARTED}
+  - {id: AC-5, description: "Actual settings, limitations, rollback and owner actions are documented and cold-start resumable.", status: NOT_STARTED}
+
+progress_justifications:
+  implementation: "WORK-0003 primarily changes GitHub repository/control-plane settings and governance configuration rather than MONDE product/runtime implementation."
+  scientific_validation: "WORK-0003 makes no scientific/model claim; applicable assurance is security, governance and real-repository validation."
 
 read_before:
+  - docs/03_ARCHITECTURE/github-control-plane.md
   - docs/09_GOVERNANCE/development-rules.md
   - docs/10_ROADMAP/development-process.md
   - docs/13_QUALITY/project-scorecard.md
+  - docs/13_QUALITY/ai-context-routing.md
   - registry/work-items/WORK-0002.yaml
 
-depends_on: [WORK-0001]
-blocks: []
+depends_on: [WORK-0001, WORK-0002]
+blocks: [WORK-0004]
 reuses:
-  - "GitHub repository settings"
-  - "PR workflow"
+  - "MONDE / Merge Gate"
+  - "CODEOWNERS"
+  - "Dependabot configuration"
+  - "CodeQL and Dependency Review lanes"
 affected_capabilities: []
 affected_engines: []
 affected_schemas: []
 affected_docs:
   - PROJECT_STATE.md
+  - docs/03_ARCHITECTURE/github-control-plane.md
 contracts:
-  - "main branch protection policy"
+  - "GitHub repository protection"
+  - "main merge policy"
 adrs: []
 
 implementation_plan:
@@ -62,12 +73,12 @@ implementation_plan:
 required_tests:
   unit: []
   integration: []
-  contract: []
+  contract: ["required-check and branch-policy configuration matches canonical docs"]
   e2e: ["attempt representative PR workflow against actual repository settings"]
-  regression: []
-  security: ["verify force-push/deletion/review/status-check behavior where configured"]
+  regression: ["unresolved review thread cannot be merged", "required gate cannot be bypassed through ordinary PR merge"]
+  security: ["force-push/deletion/review/status-check/security-feature behavior"]
   performance: []
-  real_system: ["actual GitHub repository settings"]
+  real_system: ["actual GitHub repository settings and PR behavior"]
 
 validation:
   executed: []
@@ -75,16 +86,9 @@ validation:
   coverage: {line: NOT_APPLICABLE, branch: NOT_APPLICABLE}
   known_gaps: []
 
-risk:
-  security: MEDIUM
-  data: LOW
-  epistemic: NONE
-  performance: NONE
-  operational: MEDIUM
-
+risk: {security: HIGH, data: LOW, epistemic: MEDIUM, performance: NONE, operational: HIGH}
 rollback:
-  strategy: "Revert repository rules/settings through GitHub administration while preserving documentation of the change."
-
+  strategy: "Rollback repository settings through GitHub administration while retaining an audit of what changed and why."
 run_log: []
 discoveries: []
 blockers: []

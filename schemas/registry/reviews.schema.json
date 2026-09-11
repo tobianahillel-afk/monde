@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["id", "status"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^REVIEW-[0-9]+$"},
+    "status": {"type": "string"},
+    "artifact": {
+      "type": "object",
+      "properties": {
+        "type": {"type": "string"},
+        "id_or_path": {"type": "string"},
+        "commit_sha": {
+          "anyOf": [
+            {"type": "string", "minLength": 1},
+            {"type": "null"}
+          ]
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"status": {"const": "COMPLETE"}},
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["artifact"],
+        "properties": {
+          "artifact": {
+            "required": ["commit_sha"],
+            "properties": {
+              "commit_sha": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
+}

@@ -1,106 +1,141 @@
 id: WORK-0002
 title: "Automate repository governance validation"
-status: PLANNED
+status: IN_REVIEW
 phase: PHASE-0
 lot: LOT-0
 sublot: SUBLOT-0.2
+owner: "repository governance"
 created_at: "2026-09-10"
-updated_at: "2026-09-10"
+updated_at: "2026-09-11"
 
 purpose: |
-  Turn the governance contracts introduced by WORK-0001 into executable CI checks so repository state, specifications, traceability and review evidence cannot silently drift.
+  Turn MONDE governance/specification/traceability contracts into executable CI and GitHub control-plane checks so repository state, review evidence, scope and proof cannot silently drift.
+
+scope_change:
+  approved: true
+  rationale: "Owner explicitly requested P0-P2 hardening after the first real run and Codex reviews exposed missing review, progress, scope, GitHub-state, commit-history and meta-governance controls."
 
 scope:
   in:
-    - validate YAML/registry structure
-    - validate allowed statuses and state transitions
-    - validate unique immutable IDs across WORK/CAP/REQ/ASM/RISK/REVIEW/TEST/EXP records
-    - validate referenced work/capability/dependency/requirement/assumption/risk/review/test/experiment IDs
-    - validate read_before paths
-    - validate PROJECT_STATE active work references
-    - validate canonical documentation links/front matter where practical
-    - validate DONE work-item completion requirements
-    - detect orphan Accepted requirements and orphan DONE capabilities where possible
-    - detect broken traceability chains for critical artifacts
-    - validate expired/review-due assumptions and risks
-    - validate review-plan requirements are satisfied before completion
-    - validate accepted canonical docs do not contain unresolved placeholders where detectable
-    - introduce CI workflow and tests for the validator
+    - deterministic registry/status/reference/path validation
+    - JSON Schema validation for registry records
+    - reverse progress-matrix membership and DONE-dimension validation
+    - review-evidence status/outcome/hat/independence/blocking-finding validation
+    - hierarchical L0/L1/L2/L3 review-independence enforcement
+    - assurance-derived minimum review independence for A3/A4
+    - canonical Review Council outcome vocabulary with bounded legacy compatibility
+    - exact reviewed-commit binding for completed review evidence
+    - substantive PASS-test record validation
+    - work dependency, task/run and cycle validation
+    - PROJECT_STATE active-work validation
+    - assumption/risk due-date validation
+    - Markdown title/path parsing and repository path containment
+    - immutable GitHub Action and Docker-action pin validation
+    - high-confidence committed-secret pattern detection at HEAD and across the PR commit range
+    - base-to-head and per-commit transition validation over the union of paths touched in the commit sequence
+    - immutable registry IDs and published-record deletion guard
+    - post-READY semantic scope-drift guard
+    - review-freshness guard after substantive changes, including review requirements themselves
+    - meta-governance path binding to an active changed A3/A4 work item through affected_paths
+    - NOT_APPLICABLE progress-justification enforcement
+    - AI context-manifest generation seeded by changed registry records and dependency closure
+    - GitHub live HEAD/mergeability/review-thread gate
+    - hash-locked governance Python toolchain
+    - reusable GitHub Actions governance core, Dependency Review and CodeQL lanes
+    - CI artifacts and stable MONDE merge gate
   out:
-    - product implementation
-    - full language/toolchain CI for future application code
-    - semantic equivalence detection requiring advanced model reasoning
+    - MONDE product implementation
+    - product-language CI not yet selected
+    - semantic duplicate detection requiring AI reasoning
+    - branch/ruleset/visibility administration owned by WORK-0003
+    - product architecture fitness functions requiring product code
 
 acceptance_criteria:
-  - id: AC-1
-    description: "Invalid registry/status/reference/path state fails CI with actionable diagnostics."
-    status: NOT_STARTED
-  - id: AC-2
-    description: "Governance validator itself has 100% meaningful line and branch coverage."
-    status: NOT_STARTED
-  - id: AC-3
-    description: "CI executes on pull requests and protects against regressions in canonical repository state."
-    status: NOT_STARTED
-  - id: AC-4
-    description: "Critical traceability and review-completion defects are detectable automatically before a work item can claim DONE."
-    status: NOT_STARTED
-  - id: AC-5
-    description: "Accepted specification records are checked for valid linked requirements/assumptions/risks and canonical references where required."
-    status: NOT_STARTED
+  - {id: AC-1, description: "Invalid registry/status/reference/path/schema state fails deterministically with actionable diagnostics.", status: DONE}
+  - {id: AC-2, description: "A DONE work item cannot pass with incomplete progress dimensions or invalid/incomplete review evidence.", status: DONE}
+  - {id: AC-3, description: "Published IDs, records, state transitions and post-READY semantic scope are guarded across the actual PR commit sequence.", status: DONE}
+  - {id: AC-4, description: "GitHub CI uses immutable/hash-locked dependencies, least privilege, CodeQL, dependency review, artifacts and a stable final merge gate.", status: DONE}
+  - {id: AC-5, description: "AI context and live GitHub state are generated/checked without treating stale repository prose as current merge truth.", status: DONE}
+  - {id: AC-6, description: "All Codex findings are proven fixed on the substantive final HEAD and a fresh-context L2 review approves completion.", status: IN_REVIEW}
 
 requirements: []
 assumptions: []
 risks: []
 
+progress_justifications:
+  scientific_validation: "WORK-0002 is deterministic repository-governance automation and introduces no scientific/model claim; applicable validation is engineering, security, CI and real-system verification."
+
+assurance:
+  level: A3
+  rationale: "This code becomes a repository-wide trust gate for future AI-authored work."
+  escalation_triggers:
+    - "changes to DONE/review semantics"
+    - "changes to transition/scope-drift semantics"
+    - "changes to workflow trust boundaries"
+
 read_before:
   - AGENTS.md
   - docs/00_START_HERE.md
   - docs/03_ARCHITECTURE/documentation-architecture.md
+  - docs/03_ARCHITECTURE/github-control-plane.md
   - docs/09_GOVERNANCE/development-rules.md
+  - docs/09_GOVERNANCE/threat-modeling.md
   - docs/10_ROADMAP/development-process.md
+  - docs/13_QUALITY/definition-of-ready.md
+  - docs/13_QUALITY/definition-of-done.md
   - docs/13_QUALITY/testing-strategy.md
-  - docs/13_QUALITY/specification-quality.md
   - docs/13_QUALITY/review-council.md
-  - docs/13_QUALITY/reproducibility-backtesting.md
-  - registry/work-items/_TEMPLATE.yaml
-  - registry/capabilities/_TEMPLATE.yaml
-  - registry/requirements/_TEMPLATE.yaml
-  - registry/assumptions/_TEMPLATE.yaml
-  - registry/risks/_TEMPLATE.yaml
-  - registry/reviews/_TEMPLATE.yaml
-  - registry/tests/_TEMPLATE.yaml
-  - registry/experiments/_TEMPLATE.yaml
-  - registry/traceability/README.md
+  - docs/13_QUALITY/advanced-verification.md
+  - docs/13_QUALITY/ai-context-routing.md
+  - registry/README.md
   - registry/progress/matrix.yaml
 
 depends_on: [WORK-0001]
-blocks: []
+blocks: [WORK-0003, WORK-0004]
 reuses:
   - "status vocabulary"
-  - "work-item registry contract"
-  - "capability registry contract"
-  - "requirement/assumption/risk/review/test/experiment contracts"
-  - "traceability contract"
+  - "registry contracts"
+  - "Review Council and assurance-level contracts"
 affected_capabilities: []
 affected_engines: []
-affected_schemas: []
-affected_docs: []
+affected_schemas:
+  - schemas/registry/work-items.schema.json
+  - schemas/registry/reviews.schema.json
+  - schemas/registry/tests.schema.json
+affected_docs:
+  - PROJECT_STATE.md
+  - docs/03_ARCHITECTURE/github-control-plane.md
+  - docs/13_QUALITY/ai-context-routing.md
+  - registry/progress/matrix.yaml
+affected_paths:
+  - .github/
+  - tools/governance/
+  - tests/governance/
+  - schemas/registry/
+  - scripts/governance_mutation_smoke.py
+  - registry/work-items/_TEMPLATE.yaml
 contracts:
   - "repository governance validation"
+  - "GitHub control-plane merge gate"
+  - "AI context routing"
 adrs: []
 
 impact_analysis:
   blast_radius: CROSS_COMPONENT
   upstream: [WORK-0001]
-  downstream:
-    - "all future PR governance checks"
-    - WORK-0004
+  downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "Validator should initially report actionable failures without rewriting repository state automatically."
+  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative."
 
 implementation_plan:
-  tasks: []
-  planned_runs: []
+  tasks:
+    - {id: T1, description: "Fix initial Codex review/progress/Markdown/reverse-membership findings.", depends_on: [], status: DONE}
+    - {id: T2, description: "Add schemas, transition/scope/review-freshness and meta-governance guards.", depends_on: [T1], status: DONE}
+    - {id: T3, description: "Add GitHub control plane, context router, live gate and supply-chain hardening.", depends_on: [T2], status: DONE}
+    - {id: T4, description: "Prove the substantive final HEAD in GitHub and complete independent review, including all fresh Codex findings.", depends_on: [T3], status: IN_REVIEW}
+  planned_runs:
+    - {id: RUN-1, objective: "Initial deterministic governance implementation", tasks: [T1], status: DONE}
+    - {id: RUN-2, objective: "P0-P2 hardening and real GitHub proof", tasks: [T2, T3, T4], status: IN_REVIEW}
 
 review_plan:
   artifact_class: GOVERNANCE_AUTOMATION
@@ -109,21 +144,56 @@ review_plan:
     - ARCHITECTURE_REUSE
     - VERIFICATION_VALIDATION
     - SECURITY
+    - PERFORMANCE_SRE
     - DOCUMENTATION_TRACEABILITY
-  completed_reviews: []
-  open_findings: []
+    - RED_TEAM_SKEPTIC
+  completed_reviews:
+    - REVIEW-0002
+  open_findings:
+    - "PRRT_kwDOUUI5ts6hMwQk / P1: derive minimum review independence from A3/A4 assurance instead of trusting a lower declared target."
+    - "PRRT_kwDOUUI5ts6hMwQr / P1: COMPLETE review evidence requires non-empty artifact.commit_sha."
+    - "PRRT_kwDOUUI5ts6hMwQy / P1: PASS TEST records require substantive protected-contract/case/execution evidence rather than id/status only."
+    - "PRRT_kwDOUUI5ts6hMwQ4 / P1: every NOT_APPLICABLE progress dimension requires a non-empty work-item justification."
+    - "PRRT_kwDOUUI5ts6hMwQ9 / P2: changed non-WORK registry records must seed dependency-aware context closure."
+    - "PRRT_kwDOUUI5ts6hMwRB / P2: PROJECT_STATE must resume from the current six-finding gate rather than obsolete pre-c50 correction work."
+    - "WORK-0001 / PR #3 remains the blocking dependency and must be independently approved/merged before WORK-0002 can become DONE."
 
 required_tests:
-  unit: ["validator rules"]
-  property: ["ID/reference/status invariants where suitable"]
-  integration: ["validator against repository fixtures"]
-  contract: ["registry schemas/status/reference/traceability integrity"]
-  e2e: ["GitHub Actions PR validation"]
-  regression: ["every governance defect found during bootstrap becomes a fixture"]
-  security: ["workflow permissions and untrusted PR input review"]
-  performance: ["validator remains fast on repository scale"]
-  real_system: ["actual GitHub Actions run on this repository"]
-  epistemic: ["checks protecting accepted epistemic/temporal traceability metadata"]
+  unit: [TEST-0002]
+  property:
+    - "valid/invalid status, ID, reference, path, transition, review and progress variants"
+  integration: [TEST-0003]
+  contract:
+    - "registry/schema/progress/review/change-control integrity"
+  e2e: [TEST-0003]
+  regression:
+    - "initial Codex P1 review-evidence finding"
+    - "initial Codex P1 DONE progress-dimension finding"
+    - "initial Codex P2 reverse matrix membership finding"
+    - "initial Codex P2 Markdown link-title finding"
+    - "L3 independence target cannot be satisfied by L1/L2 evidence"
+    - "canonical APPROVE / APPROVE_WITH_FOLLOWUP outcomes are accepted"
+    - "review requirements are part of review-freshness semantics"
+    - "commit-sequence validation includes paths changed then restored"
+    - "meta-governance changes are bound to affected active A3/A4 work"
+    - "secrets introduced and removed inside the PR remain detectable"
+    - "A3 requires at least L2 review independence and A4 requires L3"
+    - "COMPLETE review evidence cannot omit artifact.commit_sha"
+    - "PASS test records cannot be empty self-declarations"
+    - "NOT_APPLICABLE progress dimensions require work-item justifications"
+    - "changed REQ/REVIEW/TEST/other registry records seed dependency-aware context routing"
+    - "PROJECT_STATE next action is current and transition-stable"
+    - "scope drift and review freshness"
+  security:
+    - "immutable action/digest pins"
+    - "hash-locked Python artifacts"
+    - "least-privilege workflow tokens"
+    - "commit-range high-confidence secret scanning"
+  performance:
+    - "governance core remains bounded by CI timeout"
+  real_system: [TEST-0003]
+  epistemic:
+    - "execution evidence is bound to GitHub SHA rather than silently promoted across heads"
 
 scientific_validation:
   required: false
@@ -135,37 +205,56 @@ scientific_validation:
 
 observability:
   required: true
-  logs: ["actionable validation diagnostics"]
-  metrics: ["validation duration", "error count by rule"]
+  logs: ["rule-coded diagnostics", "GitHub Job Summary"]
+  metrics: ["CI duration", "finding count", "coverage", "mutation smoke"]
   traces: []
-  alerts: []
-  slis_slos: ["PR validator completes within defined CI budget"]
+  alerts: ["required MONDE merge gate failure after WORK-0003"]
+  slis_slos: ["governance core completes inside configured timeout"]
 
 validation:
-  executed: []
-  evidence: []
-  coverage: {line: null, branch: null}
-  known_gaps: []
+  executed:
+    - "Earlier real GitHub runs established the validator, path-safety gate and successive P0-P2 hardening rounds."
+    - "Substantive predecessor c50c33009d90f079e645f0ca9e1befe1a4a77ba9 passed the real MONDE Gate with 76 tests, 100% line/branch coverage, 16/16 critical mutations, zero deterministic validator/change-guard errors and CodeQL success."
+    - "Fresh-context Codex review of c50c33009d90f079e645f0ca9e1befe1a4a77ba9 identified the six current gaps now covered by the final-L2 regression slice; new exact-head CI proof remains required."
+  evidence: [TEST-0002, TEST-0003, REVIEW-0002, "PR #2"]
+  coverage: {line: 100, branch: 100}
+  known_gaps:
+    - "Repository administration/ruleset enforcement belongs to WORK-0003."
+    - "WORK-0001/PR #3 must merge before WORK-0002 completion."
+    - "Current six-finding corrective HEAD still requires real MONDE Gate proof and a fresh L2 after integration of the merged WORK-0001 contract."
 
 risk:
   security: MEDIUM
   data: LOW
-  epistemic: LOW
+  epistemic: MEDIUM
   performance: LOW
   operational: MEDIUM
 
 rollback:
-  strategy: "Revert workflow/validator changes while retaining WORK-0001 documentation contracts."
+  strategy: "Revert the governance hardening commit; keep canonical process documentation authoritative while the gate is repaired."
 
-run_log: []
-discoveries: []
+run_log:
+  - {run: RUN-1, date: "2026-09-10", note: "Initial validator and real CI established."}
+  - {run: RUN-2, date: "2026-09-10", note: "Successive P0-P2 hardening rounds reached c50c330 with a green MONDE Gate; a fresh L2 then found six remaining gaps in assurance-derived independence, exact review SHA binding, substantive PASS proof, N/A justification, registry-change context seeding and handover currentness."}
+  - {run: RUN-2, date: "2026-09-11", note: "Prepared one atomic six-finding correction plus dedicated final-L2 regressions and expanded mutation targets; real GitHub CI and post-WORK-0001 integration proof remain pending before completion."}
+
+discoveries:
+  - "100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required."
+  - "GitHub live state can invalidate stale PROJECT_STATE prose after it is committed."
+  - "Test/review definitions must be separated from SHA-bound execution evidence."
+  - "Meta-governance authorization must bind the changed sensitive path to the active work item, not merely observe an unrelated A3/A4 record."
+  - "Security scanning must account for reachable PR commit history until squash-only merge is enforced."
+  - "Assurance level must impose a minimum review-independence floor rather than trusting a self-declared weaker target."
+  - "A changed registry record is itself an impact-analysis seed; path-only WORK matching is insufficient."
 blockers: []
-follow_up_work_items: []
+follow_up_work_items: [WORK-0003, WORK-0004]
+
 completion:
+  definition_of_ready_checked: true
   definition_of_done_checked: false
-  specification_gates_checked: false
-  traceability_checked: false
+  specification_gates_checked: true
+  traceability_checked: true
   review_complete: false
-  docs_updated: false
-  registries_updated: false
-  project_state_updated: false
+  docs_updated: true
+  registries_updated: true
+  project_state_updated: true

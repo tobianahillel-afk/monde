@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["id", "status"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^TEST-[0-9]+$"},
+    "status": {"type": "string"},
+    "name": {"type": "string", "minLength": 1},
+    "type": {"type": "string", "minLength": 1},
+    "protects": {
+      "type": "object",
+      "properties": {
+        "contracts": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+      },
+      "required": ["contracts"],
+      "additionalProperties": true
+    },
+    "cases": {"type": "object", "minProperties": 1},
+    "execution": {
+      "type": "object",
+      "properties": {
+        "command_or_workflow": {"type": "string", "minLength": 1},
+        "result": {"type": "string", "minLength": 1},
+        "evidence": {"type": "array", "minItems": 1}
+      },
+      "required": ["command_or_workflow", "result", "evidence"],
+      "additionalProperties": true
+    },
+    "execution_definition": {"type": "object", "minProperties": 1},
+    "execution_evidence_policy": {
+      "type": "object",
+      "required": ["source_of_truth", "rule"],
+      "properties": {
+        "source_of_truth": {"type": "string", "minLength": 1},
+        "rule": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"status": {"const": "PASS"}},
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["name", "type", "protects", "cases"],
+        "anyOf": [
+          {"required": ["execution"]},
+          {"required": ["execution_definition", "execution_evidence_policy"]}
+        ]
+      }
+    }
+  ],
+  "additionalProperties": true
+}

@@ -5,63 +5,58 @@ phase: PHASE-0
 lot: LOT-1
 sublot: SUBLOT-1.1
 created_at: "2026-09-10"
-updated_at: "2026-09-10"
+updated_at: "2026-09-11"
 
 purpose: |
-  Build the first exhaustive canonical capability inventory from all previously validated MONDE product discussions so no historical capability is lost, duplicated or renamed ambiguously.
+  Build the first exhaustive canonical capability inventory from all previously validated MONDE product discussions so historical scope is not lost, duplicated or renamed ambiguously.
 
 scope:
   in:
-    - collect all previously validated capabilities
-    - preserve older and newer validated functions
-    - normalize names and synonyms
-    - distinguish duplicates from semantically distinct capabilities
+    - collect all retrievable validated capabilities from repository and prior project context
+    - normalize names and synonyms without silently deleting validated semantics
     - assign immutable CAP IDs
-    - classify by capability family/lens/engine/experience
-    - record dependencies/reuse/risk/status
-    - create a human-readable capability index
+    - classify by family, engines, lenses, experiences, dependencies and risk
+    - create searchable human and machine-readable indexes
+    - run duplicate/related-capability and omission review
+    - perform cold-start discoverability test
   out:
-    - implementation of the capabilities
-    - deletion of validated product scope merely because capabilities overlap
+    - capability implementation
+    - operationalization of high-risk concepts merely because they are documented
 
 acceptance_criteria:
-  - id: AC-1
-    description: "All retrievable validated MONDE capabilities are represented by stable CAP IDs or explicitly mapped as aliases/superseded semantics."
-    status: NOT_STARTED
-  - id: AC-2
-    description: "No capability is silently dropped during deduplication."
-    status: NOT_STARTED
-  - id: AC-3
-    description: "Each capability records family, engines/lenses/experiences where known, dependencies, risk and documentation status."
-    status: NOT_STARTED
-  - id: AC-4
-    description: "A future agent can search the registry to determine whether a requested capability already exists before creating another."
-    status: NOT_STARTED
+  - {id: AC-1, description: "All retrievable validated capabilities are represented by stable CAP IDs or explicit alias/supersession mappings.", status: NOT_STARTED}
+  - {id: AC-2, description: "No validated capability is silently dropped during normalization/deduplication.", status: NOT_STARTED}
+  - {id: AC-3, description: "Capabilities record family, dependencies, relevant engines/lenses/experiences, risk and documentation status where known.", status: NOT_STARTED}
+  - {id: AC-4, description: "A fresh agent can reliably determine whether a requested capability already exists without reading all project files.", status: NOT_STARTED}
+
+progress_justifications:
+  implementation: "WORK-0004 is an inventory/canonicalization activity; capability implementation is explicitly out of scope."
+  scientific_validation: "WORK-0004 does not implement or promote a scientific/model behavior; its applicable validation is coverage, traceability and omission/duplicate review."
+  real_system_validation: "WORK-0004 produces registry/documentation artifacts only and has no runtime/system behavior requiring real-system execution."
 
 read_before:
   - README.md
   - AGENTS.md
   - docs/00_START_HERE.md
   - docs/03_ARCHITECTURE/documentation-architecture.md
+  - docs/03_ARCHITECTURE/github-control-plane.md
+  - docs/13_QUALITY/ai-context-routing.md
   - registry/capabilities/README.md
   - registry/capabilities/_TEMPLATE.yaml
-  - docs/10_ROADMAP/phase-0.md
+  - registry/work-items/WORK-0003.yaml
 
-depends_on: [WORK-0001]
+depends_on: [WORK-0001, WORK-0002, WORK-0003]
 blocks:
   - "detailed capability-family specifications"
   - "implementation roadmap based on stable CAP IDs"
-reuses:
-  - "capability registry contract"
-affected_capabilities:
-  - "ALL historical validated capabilities"
+reuses: ["capability registry contract", "AI context routing", "GitHub protected development process"]
+affected_capabilities: ["ALL historical validated capabilities"]
 affected_engines: []
 affected_schemas:
   - registry/capabilities/_TEMPLATE.yaml
 affected_docs:
   - registry/capabilities/README.md
-contracts:
-  - "immutable CAP ID contract"
+contracts: ["immutable CAP ID contract"]
 adrs: []
 
 implementation_plan:
@@ -71,16 +66,11 @@ implementation_plan:
 required_tests:
   unit: []
   integration: []
-  contract:
-    - "unique CAP IDs"
-    - "valid registry fields/statuses/references"
-  e2e:
-    - "sample new-agent search confirms existing capabilities are discoverable"
-  regression:
-    - "historical capability coverage comparison"
-  security:
-    - "high-risk capabilities classified rather than operationalized implicitly"
-  performance: []
+  contract: ["unique CAP IDs", "valid references/statuses/aliases"]
+  e2e: ["fresh-agent capability lookup and duplicate-avoidance test"]
+  regression: ["historical capability coverage comparison"]
+  security: ["high-risk capabilities classified rather than implicitly operationalized"]
+  performance: ["lookup does not require loading the entire documentation corpus"]
   real_system: []
 
 validation:
@@ -89,19 +79,13 @@ validation:
   coverage: {line: NOT_APPLICABLE, branch: NOT_APPLICABLE}
   known_gaps: []
 
-risk:
-  security: MEDIUM
-  data: NONE
-  epistemic: HIGH
-  performance: NONE
-  operational: MEDIUM
-
+risk: {security: MEDIUM, data: NONE, epistemic: HIGH, performance: LOW, operational: MEDIUM}
 rollback:
-  strategy: "Revert inventory PR; immutable ID assignments must not be reused after publication if downstream work has already referenced them."
-
+  strategy: "Revert inventory PR; never reuse an already published immutable CAP ID for different semantics."
 run_log: []
 discoveries: []
-blockers: []
+blockers:
+  - "WORK-0003 must be complete before sensitive capability inventory begins."
 follow_up_work_items: []
 completion:
   definition_of_done_checked: false
