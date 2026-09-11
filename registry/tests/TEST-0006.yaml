@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: PASS
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -90,24 +90,11 @@ cases:
     - "Attempt to reuse a consumed v7 external-review authorization"
 
 execution:
-  command_or_workflow: "Manual exact-SHA cold-resume and reciprocal traceability rerun after REVIEW-0021; independent YAML parse remains a fresh-L2 requirement"
-  last_run_at: "2026-09-11"
-  commit_sha: "20544cc6af2c690ba9e0593ea554c0c1596466e4"
-  result: PASS
-  evidence:
-    - "Exact tested PR #3 READY tree 20544cc6af2c690ba9e0593ea554c0c1596466e4"
-    - "PROJECT_STATE @ 20544cc6 exposes REVIEW-0021, reciprocal correction, transition-stable TEST-0006 continuation and fresh-L2 gate"
-    - "WORK-0001 @ 20544cc6 is IN_REVIEW, carries REVIEW-0021 evidence, keeps completion gates false and routes active AC-5 ownership to PROPOSED REQ-0023/0024/0025"
-    - "REQ-0023, REQ-0024 and REQ-0025 @ 20544cc6 are each PROPOSED and each verification.test_ids is [TEST-0005, TEST-0006]; TEST-0006 protects all three"
-    - "Progress matrix @ 20544cc6 records WORK-0001 and WORK-0002 IN_REVIEW; WORK-0002 depends on WORK-0001"
-    - "PR #3 WORK-0002 mirror @ 20544cc6 has no branch-local REVIEW-0002/TEST-0002/TEST-0003 structured proof IDs"
-    - "REVIEW-0002, TEST-0002, TEST-0003, github-control-plane.md and ai-context-routing.md were fetched successfully from feat/work-0002-governance-ci after the explicit branch boundary"
-    - "Live PR #2 was rechecked open, non-draft and mergeable at HEAD ab62faa1743705600a0f11335579db68a2166ab3"
-    - "REVIEW-0021 one-shot provenance is exact: authorization c059a18749426cae3c2c3429893f35ec6db8b0ff predates import aca6010aaf59a923e59a8cc587cc9b8689ce8425; review binding 4903934af7a263a8a16171329bf7bbb3a12df886; authorization consumption 038b2d35e19d93fd6a665ca0ae6c8261f7a165fe"
-    - "Exact TEST-0005 result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe resolves to 'test(governance): pass pre-acceptance TEST-0005' and does not approve proposed requirements"
-    - "TEST-0001 remains SUPERSEDED/non-gating and points to TEST-0006 as revision-bound scope-preserving replacement"
-    - "status-machines v7 @ 20544cc6 retains normal PROPOSED→ACCEPTED requirement lifecycle and positive-only approval-capable outcomes"
-    - "Fresh independent L2 remains explicitly responsible for loading/parsing WORK-0001 YAML before any requirement acceptance or WORK-0001 completion"
+  command_or_workflow: "Pending exact-SHA cold-resume rerun on final transition-stable REVIEW-0021 handover"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
