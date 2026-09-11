@@ -10,6 +10,6 @@ depends_on: [REQ-0004, REQ-0010]
 conflicts_with: []
 related_requirements: [REQ-0005, REQ-0020, REQ-0024, REQ-0025]
 semantics: {temporal: false, spatial: false, provenance: true, confidence_uncertainty: false, permissions: false}
-verification: {method: TEST_AND_REVIEW, acceptance_evidence: ["WORK-0001/AC-5", "docs/13_QUALITY/definition-of-ready.md", "REVIEW-0018/F-1"], test_ids: [TEST-0005], real_system_validation: []}
+verification: {method: TEST_AND_REVIEW, acceptance_evidence: ["WORK-0001/AC-5", "docs/13_QUALITY/definition-of-ready.md", "REVIEW-0018/F-1"], test_ids: [TEST-0005, TEST-0006], real_system_validation: []}
 risk: {criticality: HIGH, failure_impact: "Work may begin before mandatory scope, dependency, evidence or review prerequisites are explicit and satisfiable."}
 history: {created_at: "2026-09-11", updated_at: "2026-09-11", supersedes: [REQ-0020], superseded_by: null}
