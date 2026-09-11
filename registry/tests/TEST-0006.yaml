@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -102,10 +102,25 @@ cases:
 
 execution:
   command_or_workflow: "Manual exact-SHA cold-resume rerun on synchronized REVIEW-0022 handover"
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  last_run_at: "2026-09-11"
+  commit_sha: "6e6e005fc81b0ea91427fc55ea1f09d818650d7b"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree 6e6e005fc81b0ea91427fc55ea1f09d818650d7b"
+    - "PROJECT_STATE, WORK-0001 and registry/progress/matrix.yaml agree WORK-0001 is IN_REVIEW and WORK-0002 is IN_REVIEW; completion/review dimensions remain non-terminal"
+    - "WORK-0001 includes REVIEW-0022 in scope/evidence and the handover routes the next independent gate without accepting any requirement"
+    - "REQ-0023, REQ-0024 and REQ-0025 @ 6e6e005f remain PROPOSED and each verification.test_ids contains TEST-0005 and TEST-0006; TEST-0006 protects all three"
+    - "TEST-0005 exact PASS result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe resolves to test(governance): pass pre-acceptance TEST-0005"
+    - "PR #3 WORK-0002 mirror @ 6e6e005f has only locally resolvable read_before prerequisites, exposes no branch-local REVIEW-0002/TEST-0002/TEST-0003 structured proof IDs, and has affected_schemas: []"
+    - "After the explicit PR #2 boundary, schemas/registry/work-items.schema.json, reviews.schema.json and tests.schema.json all resolve on ab62faa1743705600a0f11335579db68a2166ab3"
+    - "Live PR #2 remains open, non-draft and mergeable at ab62faa1743705600a0f11335579db68a2166ab3; WORK-0002 remains IN_REVIEW and depends on WORK-0001"
+    - "TEST-0004 @ 6e6e005f no longer lists REQ-0010 in protects.requirements; current REQ-0010 verification.test_ids remains [TEST-0005]"
+    - "Historical REQ-0010 @ TEST-0004 tree 23ef1a88 is the broad Scientific specification governance requirement with TEST-0004; current atomic REQ-0010 semantics appear by 2712795d with TEST-0005, confirming TEST-0004 must not provide retroactive current semantic coverage"
+    - "REVIEW-0022 remains COMPLETE with CHANGES_REQUIRED; F-1 and F-2 remain OPEN and no author-produced PASS is treated as review approval"
+    - "REVIEW-0022 v7 provenance resolves in order: authorization c2921a693a2a2b4350ef50c8f77fc69895f17305 → import 5e22bd5b63c723f29a2e20ad07c8d69c9881cae5 → review binding aee461bfee70ade613bcb5a99154a0aeb3b660cb → authorization consumption ff3b6cd85b76cd11f78afd80c4040bb92d3fbad6"
+    - "registry/status-machines.yaml remains v7; PASS → READY → RUNNING → PASS is legal and only APPROVE/APPROVE_WITH_FOLLOWUP are approval-capable review outcomes"
+    - "TEST-0001 remains SUPERSEDED and names TEST-0006 as its revision-bound scope-preserving replacement"
+    - "Independent YAML-parser confirmation of the current WORK-0001 record and approval-capable fresh-context L2 remain subsequent independent gates; this author-run PASS does not satisfy or bypass them"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -133,3 +148,4 @@ history:
     - {commit_sha: "d0c985933e66960a781513ad61bd3567c91e5344", recorded_result: PASS, recorded_in_commit: "af4c50ba5a442a8bd06717c2802170bb4cbde54e", validity: VALID, invalidated_by: null, reason: "REVIEW-0020 cross-branch proof boundary passed with requirements still PROPOSED."}
     - {commit_sha: "20544cc6af2c690ba9e0593ea554c0c1596466e4", recorded_result: PASS, recorded_in_commit: "4b28d2218a5e9256d0348c73d031328ba2ef2d2f", validity: VALID, invalidated_by: null, reason: "REVIEW-0021 reciprocal requirement↔TEST-0006 traceability, current handover, cross-branch proof boundary, exact SHA integrity, pre-acceptance sequencing and v7 provenance all pass on the exact tested tree; independent YAML parse remains a fresh-L2 gate."}
     - {commit_sha: "f21985ae608373ec8a3d93f92c5a76a2b11bd1ee", recorded_result: PASS, recorded_in_commit: "eb9e9dcb17f625c53545a3966b8bd64fd165f743", validity: VALID, invalidated_by: null, reason: "Final transition-stable REVIEW-0021 handover passes reciprocal REQ↔TEST traceability, exact TEST-0005 SHA integrity, cross-branch proof isolation, live PR #2 lifecycle, positive-only approval semantics and v7 one-shot provenance; independent YAML parse and approval-capable fresh L2 remain subsequent gates."}
+    - {commit_sha: "6e6e005fc81b0ea91427fc55ea1f09d818650d7b", recorded_result: PASS, recorded_in_commit: null, validity: VALID, invalidated_by: null, reason: "REVIEW-0022-synchronized handover passes branch-only schema isolation, revision-bound TEST-0004/REQ-0010 traceability, reciprocal REQ-0023/24/25↔TEST-0006 proof, exact TEST-0005 SHA integrity, live PR #2 boundary, positive-only approval semantics and one-shot review provenance; independent YAML parse and approval-capable fresh L2 remain subsequent gates."}
