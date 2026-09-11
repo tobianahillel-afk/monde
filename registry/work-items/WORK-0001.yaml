@@ -291,7 +291,7 @@ review_plan:
     - "REVIEW-0018/F-1 REQ-0020/REQ-0021/REQ-0022 were accepted before independent Review Council/cold-read acceptance evidence existed"
     - "TEST-0005 current pre-acceptance execution is PASS on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7. REQ-0023/REQ-0024/REQ-0025 remain PROPOSED and this PASS does not approve them."
     - "TEST-0007 current generic v7 execution remains PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f. REVIEW-0018 does not change the generic lifecycle contract."
-    - "TEST-0006 current execution is authoritative in registry/tests/TEST-0006.yaml. One final rerun is required on the synchronized REVIEW-0018 + pre-acceptance TEST-0005 handover before the next fresh L2."
+    - "TEST-0006 current execution is authoritative in registry/tests/TEST-0006.yaml. Reviewed REVIEW-0018-era baseline is exact tree 19b1854f4438800637237a90a3e9e3e90b398548 → result 9e55ba41f2f057292d6da86f3fc3f9d2892be701 → history binding 60920aac4ed9f345e9e7e35d4398e6162f9a8a82. At resume, rerun only if the latest valid execution no longer covers the synchronized WORK/PROJECT_STATE handover."
 
 required_tests:
   unit: []
@@ -308,7 +308,7 @@ required_tests:
   regression:
     - "Bootstrap-discovered governance defects become WORK-0002 validator fixtures"
     - "Material bootstrap acceptance criteria cannot remain outside REQ traceability"
-    - "Historical TEST/REVIEW evidence cannot be widened to corrective artifacts created later"
+    - "Historical TEST/REVIEW evidence cannot be widened retroactively to corrective artifacts created later"
     - "CLOSED review state cannot satisfy approval semantics"
     - "COMPLETE review with CHANGES_REQUIRED or BLOCKED cannot satisfy approval semantics"
     - "Progress state has one canonical vocabulary plus explicit initial state/transitions"
@@ -346,9 +346,9 @@ required_tests:
     - "REQ-0023/REQ-0024/REQ-0025 first materialized together as PROPOSED in 772616269581f622605416b2e34f6d4e270241df and remain unaccepted pending independent evidence"
     - "REQ-0020/REQ-0021/REQ-0022 transitioned legally ACCEPTED → SUPERSEDED together in 9ca6b975e7abef9eadf86573f2c9e1cb07b89e3d; their premature acceptance remains inspectable history"
     - "REQ-0005 remains SUPERSEDED and historically addressable; active ownership no longer routes through its compound statement"
-    - "TEST-0005 current pre-acceptance execution passed on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7"
+    - "TEST-0005 current pre-acceptance execution passed on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; result ce962ec2ad199dd914ee4e4a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7"
     - "TEST-0007 current generic v7 execution passed on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; pointer 87ec209eec614a0ff3be7a00a7565102042cad3f"
-    - "TEST-0006 prior REVIEW-0017-corrected execution passed on exact tree 626f9fb99605ff4bc78f8bb7986540825cabbdf3; result 85bfd4b8686c51f4d415b972a72d39ca101c29d1; history binding 8f0aea5b9c1cd9387b59da40ff2d08a8a975d1a1"
+    - "TEST-0006 REVIEW-0018-era baseline passed on exact tree 19b1854f4438800637237a90a3e9e3e90b398548; result 9e55ba41f2f057292d6da86f3fc3f9d2892be701; history binding 60920aac4ed9f345e9e7e35d4398e6162f9a8a82"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -377,6 +377,7 @@ validation:
     - "Prematurely accepted REQ-0020/REQ-0021/REQ-0022 are preserved as SUPERSEDED history after REVIEW-0018/F-1"
     - "Current AC-5 owners REQ-0023/REQ-0024/REQ-0025 are PROPOSED and deliberately not accepted before independent Review Council/cold-read evidence"
     - "TEST-0005 supplied exact-SHA pre-acceptance cold-read evidence while REQ-0023/REQ-0024/REQ-0025 remained PROPOSED; that author-produced PASS does not approve acceptance"
+    - "TEST-0006 supplied REVIEW-0018-era exact-SHA cold-resume evidence while the replacement requirements remained PROPOSED; current TEST identity remains canonical in TEST-0006 itself"
     - "status-machines v7 is the canonical lifecycle source, retaining exact pre-v7 import/migration history and separating historical status replay from truthful external review import provenance"
     - "REVIEW-0018 is truthfully imported through a one-shot authorization committed before materialization and consumed by its exact import commit"
     - "WORK-0001 and PROJECT_STATE use transition-stable current-proof routing; current TEST execution identity remains canonical in each TEST record"
@@ -403,8 +404,8 @@ validation:
     - REVIEW-0018
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
-    - "TEST-0005 (current pre-acceptance PASS on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7; REQ-0023/0024/0025 remain PROPOSED)"
-    - "TEST-0006 (current execution authoritative in registry/tests/TEST-0006.yaml; one final rerun required on synchronized REVIEW-0018 + pre-acceptance TEST-0005 handover)"
+    - "TEST-0005 (current pre-acceptance PASS on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; result ce962ec2ad199dd914ee4e4a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7; REQ-0023/0024/0025 remain PROPOSED)"
+    - "TEST-0006 (current execution authoritative in registry/tests/TEST-0006.yaml; reviewed REVIEW-0018-era baseline 19b1854f4438800637237a90a3e9e3e90b398548 → 9e55ba41f2f057292d6da86f3fc3f9d2892be701 → 60920aac4ed9f345e9e7e35d4398e6162f9a8a82; rerun only if latest valid TEST-0006 no longer covers synchronized WORK/PROJECT_STATE semantics)"
     - "TEST-0007 (current generic v7 PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f)"
     - "REQ-0020/REQ-0021/REQ-0022 (SUPERSEDED premature-acceptance history)"
     - REQ-0023
@@ -419,7 +420,7 @@ validation:
   known_gaps:
     - "A fresh-context L2 must review the proposed requirements and accumulated PR before they may transition to ACCEPTED."
     - "REVIEW-0018/F-1 remains open until that independent approval-capable review verifies the corrected acceptance sequence."
-    - "TEST-0006 must be rerun once on this synchronized REVIEW-0018 + pre-acceptance TEST-0005 handover before that fresh L2."
+    - "At resume, compare TEST-0006's latest valid tested tree with this synchronized WORK/PROJECT_STATE handover; rerun once only if the latest proof predates or no longer covers these semantics."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; its own fresh-L2 work remains separate."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -436,9 +437,9 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0018 narrowed assurance debt. REVIEW-0018 found that atomic replacements 0020/21/22 were accepted before independent review. They are preserved as superseded history; new 0023/24/25 remain PROPOSED. Pre-acceptance TEST-0005 passed on efd48467 with result ce962ec2 and binding 79a95e7c; one final TEST-0006 rerun plus fresh approval-capable L2 remain."
-  - {id: RUN-4, objective: "Scientific/documentation governance hardening", tasks: [T7], exit_condition: "Canonical documentation is governed as rigorously as implementation", status: DONE}
-  - {id: RUN-5, objective: "Assurance, research and advanced verification hardening", tasks: [T8], exit_condition: "Quality dimensions/review evidence are explicit and synchronized", status: DONE}
+  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0018 narrowed assurance debt. Prematurely accepted 0020/21/22 are preserved as superseded history; 0023/24/25 remain PROPOSED. Pre-acceptance TEST-0005 and REVIEW-0018-era TEST-0006 baselines are SHA-bound; current proof is read from the TEST records, and the remaining independent gate is a fresh approval-capable L2 before requirement acceptance."
+  - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
+  - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 
 discoveries:
   - "Repository intentionally remains public by owner decision; public-code-safe constraints apply."
@@ -450,7 +451,7 @@ discoveries:
   - "A prematurely accepted post-v7 requirement cannot be rolled backward to PROPOSED; preserve it as historical evidence and replace it through legal supersession with a proposed owner."
   - "Registry status semantics must be registry-specific and machine-readable before CI can enforce transitions safely."
   - "A post-merge independent review can expose assurance debt that was invisible to same-context review."
-  - "Historical evidence must not be widened retroactively to corrective files or requirements created after execution."
+  - "Historical evidence must not be widened retroactively to corrective artifacts created later."
   - "An unprovable historical tested SHA must not be guessed; the evidence should be superseded and replaced with revision-bound proof."
   - "Superseding evidence must preserve or explicitly partition the behavior represented by the superseded artifact."
   - "A blocking review finding marked ACCEPTED needs explicit accepting authority and evidence, not only a disposition token."
