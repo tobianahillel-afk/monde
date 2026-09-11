@@ -163,7 +163,7 @@ history:
       reason: "The v7 handover was closer but still named two actions already complete at the tested READY tree. PROJECT_STATE b0fb0d63c368e209a3180496b33a0fbc184612ae and WORK-0001 d4ae8ce57c3b7d74f55a0f23b8069662520f45ba now direct continuation from TEST-0006's current lifecycle state instead."
     - commit_sha: "d6f012abe31263f0fa83003646405c039b23611e"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "788a2948054cdd90130c72b17910d745fd36d927"
       validity: VALID
       invalidated_by: null
       reason: "The exact v7 tree has a transition-stable cold-resume handover, coherent WORK-0001/WORK-0002/matrix lifecycle, resolvable current-tree prerequisites, explicit branch-only handoff, matching live PR #2 state, strict v7 import/replay/provenance semantics, positive-only review approval, and scope-preserving TEST-0001 supersession."
