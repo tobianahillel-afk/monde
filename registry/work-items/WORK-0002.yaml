@@ -92,10 +92,7 @@ reuses:
   - "Review Council and assurance-level contracts"
 affected_capabilities: []
 affected_engines: []
-affected_schemas:
-  - schemas/registry/work-items.schema.json
-  - schemas/registry/reviews.schema.json
-  - schemas/registry/tests.schema.json
+affected_schemas: []
 affected_docs:
   - PROJECT_STATE.md
   - docs/03_ARCHITECTURE/github-control-plane.md
@@ -119,7 +116,7 @@ impact_analysis:
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative. This PR #3 mirror intentionally carries only locally resolvable read_before paths and no branch-local review/test registry IDs. Before editing or validating WORK-0002 implementation, switch to feat/work-0002-governance-ci and follow that branch's WORK-0002 record; its branch-local documents, completed review evidence and required TEST records become authoritative only after that explicit checkout boundary."
+  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative. This PR #3 mirror intentionally carries only locally resolvable read_before paths, no branch-local review/test registry IDs, and no branch-local affected_schemas paths. Before editing or validating WORK-0002 implementation, switch to feat/work-0002-governance-ci and follow that branch's WORK-0002 record; its branch-local documents, schemas, completed review evidence and required TEST records become authoritative only after that explicit checkout boundary."
 
 implementation_plan:
   tasks:
@@ -209,7 +206,7 @@ validation:
     - "fresh L2 on c50c33009d90f079e645f0ca9e1befe1a4a77ba9"
   coverage: {line: 100, branch: 100}
   known_gaps:
-    - "This PR #3 mirror intentionally carries no branch-local completed-review or required-test IDs. Before editing or validating WORK-0002 implementation, checkout feat/work-0002-governance-ci and follow that branch's WORK-0002 record; only there should its branch-local review/test records and github-control-plane.md / ai-context-routing.md prerequisites be traversed until WORK-0002 is integrated into main."
+    - "This PR #3 mirror intentionally carries no branch-local completed-review or required-test IDs, affected_schemas paths, or branch-only prerequisite documents. Before editing or validating WORK-0002 implementation, checkout feat/work-0002-governance-ci and follow that branch's WORK-0002 record; only there should its branch-local schemas, review/test records and github-control-plane.md / ai-context-routing.md prerequisites be traversed until WORK-0002 is integrated into main."
     - "Six fresh-L2 findings on c50c330 remain to be corrected, re-proven and independently re-reviewed on the implementation branch."
     - "WORK-0002 cannot become DONE while dependency WORK-0001 remains IN_REVIEW."
     - "Repository administration/ruleset enforcement belongs to WORK-0003."
@@ -234,7 +231,7 @@ discoveries:
   - "Test/review definitions must be separated from SHA-bound execution evidence."
   - "Meta-governance authorization must bind the changed sensitive path to the active work item, not merely observe an unrelated A3/A4 record."
   - "Security scanning must account for reachable PR commit history until squash-only merge is enforced."
-  - "Cross-branch work mirrors must not place branch-only files or proof-record IDs into locally traversable fields; the checkout boundary must be explicit before those prerequisites/evidence records become mandatory."
+  - "Cross-branch work mirrors must not place branch-only files, schemas or proof-record IDs into locally traversable fields; the checkout boundary must be explicit before those prerequisites/evidence records become mandatory."
 blockers:
   - "WORK-0001 must become DONE before WORK-0002 can truthfully become DONE."
 follow_up_work_items: [WORK-0003, WORK-0004]
