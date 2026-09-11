@@ -179,7 +179,7 @@ history:
       reason: "After REVIEW-0016, the exact tested tree advances directly from the current review/test state, preserves truthful REVIEW-0016 import provenance, keeps WORK-0001/WORK-0002/matrix coherent, preserves resolvable current-tree/branch-only handoff semantics, positive-only approval and TEST-0001 replacement scope. The test was rerun once more only because PROJECT_STATE was subsequently finalized to expose fresh L2 as the sole remaining gate."
     - commit_sha: "b8180dff075ea5c8328ee56d1683380576c984ba"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "e9e41c96a826cfa8d6a1056f9795776c9d0431b4"
       validity: VALID
       invalidated_by: null
       reason: "The finalized handover exposes fresh L2 as the sole remaining WORK-0001 gate, keeps WORK-0001/WORK-0002/matrix coherent and non-terminal, preserves the explicit PR #2 branch boundary and current-tree prerequisites, and leaves v7 import/replay/provenance plus TEST-0001 replacement semantics unchanged."
