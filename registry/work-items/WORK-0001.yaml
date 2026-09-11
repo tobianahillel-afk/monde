@@ -273,7 +273,7 @@ review_plan:
     - "REVIEW-0015/F-1 REVIEW-0014's apparent OPEN → IN_PROGRESS → COMPLETE sequence was a post-hoc replay after external review completion; future external reviews require truthful one-shot preauthorized import provenance"
     - "REVIEW-0016/F-1 frozen head 7c9cc98f already synchronized WORK-0001 with the current TEST-0006 PASS while PROJECT_STATE still listed that completed synchronization as its first next action"
     - "TEST-0007 current v7 execution is PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f."
-    - "TEST-0006 PASS on exact tree d6f012abe31263f0fa83003646405c039b23611e remains valid for that tree (result 788a2948054cdd90130c72b17910d745fd36d927; pointer 11615248d3cafd3577a2920b5a323daa51040f12), but REVIEW-0016/F-1 proves the later 7c9cc98f handover was stale. TEST-0006 must be reopened/rerun after the current handover correction before another fresh L2."
+    - "TEST-0006 current execution is PASS on exact REVIEW-0016-corrected tree 8c921bf5a6553463a1343b5fe0b987966be33208; result 2e038194f149c667ffe680286ed275435734e5ee; history pointer 8e62fbcf835d411a6e12909a293f597d1e80dee3. Another fresh L2 is now the remaining assurance gate."
 
 required_tests:
   unit: []
@@ -330,7 +330,8 @@ required_tests:
     - "TEST-0006 v7 execution passed on exact transition-stable tree d6f012abe31263f0fa83003646405c039b23611e; result 788a2948054cdd90130c72b17910d745fd36d927; history pointer 11615248d3cafd3577a2920b5a323daa51040f12"
     - "Fresh Codex review REVIEW-0016 on exact head 7c9cc98fefc45eab2e500925dca846f23bd2936e found only the stale first Next action in PROJECT_STATE"
     - "REVIEW-0016 was imported truthfully: authorization f19d261032b29ae4180b98a99dff494964b612b7 predates import 83b98e1b2a06ca0312614b44c8b8e8ccc6468c44; review binding bf37979755020e0633df0f4966cd5bf3707da94e; authorization consumption 820b32588ec053b2fcfe130fd84d4fd4d9720d22"
-    - "PROJECT_STATE handover correction is ead29bdd82830bb5a1f25a4fb19b0bf3e4e1255a; it begins from the current fresh-review gate rather than a completed sync"
+    - "PROJECT_STATE handover correction is ead29bdd82830bb5a1f25a4fb19b0bf3e4e1255a; transition-stable refinement is 3e372beb7fb3865a96a1a41833e3c1213fb43367"
+    - "TEST-0006 current execution passed on exact REVIEW-0016-corrected tree 8c921bf5a6553463a1343b5fe0b987966be33208; result 2e038194f149c667ffe680286ed275435734e5ee; history pointer 8e62fbcf835d411a6e12909a293f597d1e80dee3"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -361,8 +362,9 @@ validation:
     - "REVIEW-0015 and REVIEW-0016 were imported through one-shot authorizations that existed before materialization and were subsequently bound/consumed by their exact import commits"
     - "TEST-0007 passed on exact v7 tree 669dcf7638746e07cc034cd69fa2cb08da133937 and proves replay isolation, preauthorization ancestry/consumption, historical import boundaries and REQ-0006 traceability"
     - "TEST-0006 v7 runs on 11cca4bccb318d29c422917d544a470870b2cf65 and 75d3df4486d05ab95d9d65daee2fd7ac77072a47 failed because PROJECT_STATE ordered actions that were already complete at the respective tested trees; both FAILs are preserved"
-    - "TEST-0006 then passed on exact transition-stable v7 tree d6f012abe31263f0fa83003646405c039b23611e; result 788a2948054cdd90130c72b17910d745fd36d927; history pointer 11615248d3cafd3577a2920b5a323daa51040f12"
-    - "REVIEW-0016 proved that later administrative synchronization reintroduced a stale first Next action at 7c9cc98f; PROJECT_STATE was corrected in ead29bdd82830bb5a1f25a4fb19b0bf3e4e1255a and TEST-0006 now requires an exact-SHA rerun before another fresh L2"
+    - "TEST-0006 passed on exact transition-stable v7 tree d6f012abe31263f0fa83003646405c039b23611e; result 788a2948054cdd90130c72b17910d745fd36d927; history pointer 11615248d3cafd3577a2920b5a323daa51040f12"
+    - "REVIEW-0016 proved that later administrative synchronization reintroduced a stale first Next action at 7c9cc98f; PROJECT_STATE was corrected and made transition-stable, then TEST-0006 passed again on exact tree 8c921bf5a6553463a1343b5fe0b987966be33208"
+    - "Current TEST-0006 result is 2e038194f149c667ffe680286ed275435734e5ee with history pointer 8e62fbcf835d411a6e12909a293f597d1e80dee3"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -385,7 +387,7 @@ validation:
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
     - TEST-0005
-    - "TEST-0006 (PASS on exact transition-stable v7 tree d6f012abe31263f0fa83003646405c039b23611e; result 788a2948054cdd90130c72b17910d745fd36d927; history pointer 11615248d3cafd3577a2920b5a323daa51040f12; REVIEW-0016 requires a current rerun after the latest handover correction)"
+    - "TEST-0006 (current PASS on exact REVIEW-0016-corrected tree 8c921bf5a6553463a1343b5fe0b987966be33208; result 2e038194f149c667ffe680286ed275435734e5ee; history pointer 8e62fbcf835d411a6e12909a293f597d1e80dee3; prior exact-tree FAIL/PASS executions remain preserved)"
     - "TEST-0007 (current PASS on exact v7 tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f)"
     - "REQ-0001..REQ-0019"
     - registry/status-machines.yaml
@@ -396,8 +398,8 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "REVIEW-0014/F-1, REVIEW-0014/F-2, REVIEW-0015/F-1 and REVIEW-0016/F-1 remain unresolved until a new fresh-context L2 verifies the exact v7 historical-import/replay/preauthorized external-import behavior and the rerun current TEST-0006/TEST-0007 evidence."
-    - "TEST-0006 must be reopened and rerun after REVIEW-0016's handover correction before the next fresh L2."
+    - "REVIEW-0014/F-1, REVIEW-0014/F-2, REVIEW-0015/F-1 and REVIEW-0016/F-1 remain unresolved until a new fresh-context L2 verifies the corrected current head and current TEST-0006/TEST-0007 evidence."
+    - "Fresh-context L2 on the resulting synchronized/frozen head is the sole remaining WORK-0001 assurance gate; no author-produced PASS closes it."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; its own fresh-L2 work remains separate."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -414,7 +416,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0016 narrowed assurance debt. v7 separates immutable review replay from truthful preauthorized external imports. TEST-0007 passed on 669dcf76. TEST-0006 passed on d6f012ab after two preserved handover FAILs, but REVIEW-0016 found that the later 7c9cc98f administrative sync reintroduced a stale first Next action. REVIEW-0016 was truthfully imported, PROJECT_STATE corrected in ead29bdd, and TEST-0006 must now be rerun before another fresh L2."}
+  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0016 narrowed assurance debt. v7 separates immutable review replay from truthful preauthorized external imports. REVIEW-0016 found one stale handover action on 7c9cc98f; after truthful import and transition-stable correction, TEST-0006 passed on exact tree 8c921bf5 with result 2e038194 and pointer 8e62fbcf. A fresh L2 on the resulting frozen head is now the sole remaining assurance gate."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 
