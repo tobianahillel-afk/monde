@@ -111,7 +111,7 @@ history:
       reason: "REQ-0005 was superseded without semantic rewriting and REQ-0020/REQ-0021/REQ-0022 were atomic with normal lifecycle. REVIEW-0018 later proved that this run was not sufficient for acceptance because it occurred after those records had already become ACCEPTED; this execution remains valid for its tested atomicity/supersession scope but not as pre-acceptance evidence."
     - commit_sha: "efd48467352c0ce4ec344ebe410fd9e98d938721"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe"
       validity: VALID
       invalidated_by: null
       reason: "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED, atomic and active in WORK-0001; their prematurely accepted predecessors are preserved as SUPERSEDED history; Review Council/cold-read-before-Accepted ordering is explicit and this run supplies exact-SHA pre-acceptance cold-read evidence without self-approving acceptance."
