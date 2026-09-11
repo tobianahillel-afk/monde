@@ -1,6 +1,6 @@
 id: REQ-0020
 title: "Definition of Ready entry gate"
-status: PROPOSED
+status: ACCEPTED
 type: GOVERNANCE
 normative_statement: "MONDE SHALL maintain a canonical Definition of Ready that defines the mandatory prerequisites that must be satisfied before specification or implementation work may start execution."
 rationale: "Readiness is an independently fail-able entry-control obligation and requires its own normative identity rather than sharing state with completion or verification rules."
@@ -12,4 +12,4 @@ related_requirements: [REQ-0005, REQ-0021, REQ-0022]
 semantics: {temporal: false, spatial: false, provenance: true, confidence_uncertainty: false, permissions: false}
 verification: {method: TEST_AND_REVIEW, acceptance_evidence: ["WORK-0001/AC-5", "docs/13_QUALITY/definition-of-ready.md", "REVIEW-0017/F-2"], test_ids: [TEST-0005], real_system_validation: []}
 risk: {criticality: HIGH, failure_impact: "Work may begin before mandatory scope, dependency, evidence or review prerequisites are explicit and satisfiable."}
-history: {created_at: "2026-09-11", updated_at: "2026-09-11", supersedes: [], superseded_by: null}
+history: {created_at: "2026-09-11", updated_at: "2026-09-11", supersedes: [REQ-0005], superseded_by: null}
