@@ -1,0 +1,94 @@
+id: REVIEW-0017
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "06dbb76c68287130169d41f50b2464bc4f878bb5"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-06dbb76c"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "f6d1e84e79439d1ec2ae071171778063403c3374"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNGifMw"
+  source_submitted_at: "2026-09-11T02:01:36Z"
+  import_commit: null
+
+scope:
+  work_items: [WORK-0001]
+  requirements: [REQ-0005, REQ-0010]
+  capabilities: []
+  contracts:
+    - "AI resume protocol"
+    - "work-item evidence currentness"
+    - "atomic requirement ownership"
+  risks:
+    - "WORK-0001 can expose obsolete current-proof metadata after TEST-0006 is rerun."
+    - "A compound accepted requirement can hide partial failure of independently testable governance obligations."
+
+findings:
+  - id: F-1
+    severity: R3_MODERATE
+    category: HANDOVER_CURRENTNESS
+    description: "At reviewed HEAD 06dbb76c68287130169d41f50b2464bc4f878bb5, TEST-0006's current PASS is the finalized-handover execution on b8180dff075ea5c8328ee56d1683380576c984ba, recorded by e9e41c96a826cfa8d6a1056f9795776c9d0431b4 and history-bound in 06dbb76c68287130169d41f50b2464bc4f878bb5, but WORK-0001 still labels the older 8c921bf5/2e038194/8e62fbcf execution current. Bind the work item's validation/evidence/run handover to the final execution triple."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 06dbb76c68287130169d41f50b2464bc4f878bb5"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNGifMw submitted 2026-09-11T02:01:36Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hUHol"
+      - "TEST-0006 final PASS tree b8180dff075ea5c8328ee56d1683380576c984ba; result e9e41c96a826cfa8d6a1056f9795776c9d0431b4; binding 06dbb76c68287130169d41f50b2464bc4f878bb5"
+    disposition: OPEN
+    resolved_by: null
+  - id: F-2
+    severity: R3_MODERATE
+    category: REQUIREMENT_ATOMICITY
+    description: "REQ-0005 still combines three independently fail-able obligations: Definition of Ready, Definition of Done, and verification/testing strategy. Split those normative owners into stable atomic requirement identities with independent verification paths while preserving immutable history and legal lifecycle transitions."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 06dbb76c68287130169d41f50b2464bc4f878bb5"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNGifMw submitted 2026-09-11T02:01:36Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hUHoo"
+      - "REQ-0010 requires every independently fail-able material obligation to have its own stable atomic REQ identity and verification path"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "The newest TEST-0006 result is automatically discoverable from WORK-0001 merely because TEST-0006 itself is current."
+    - "A single acceptance criterion makes every normative obligation inside its wording atomic."
+  omitted_categories_considered:
+    - "lifecycle-v7 provenance"
+    - "TEST-0006 and TEST-0007 exact-SHA evidence"
+    - "requirement identity immutability"
+    - "cold-resume handover currentness"
+    - "WORK-0002 cross-branch dependency boundary"
+  duplicate_or_reuse_search:
+    - "F-1 is a current-proof binding variant of prior handover-currentness defects."
+    - "F-2 is the same atomicity defect class previously corrected for REQ-0010, now found in REQ-0005."
+  failure_modes_considered:
+    - "WORK-0001 continues to call an older TEST-0006 execution current."
+    - "REQ-0005 is narrowed in place and silently changes immutable accepted semantics."
+    - "Replacement requirements first appear directly ACCEPTED instead of following PROPOSED → ACCEPTED."
+    - "A replacement requirement loses one of the DoR, DoD or verification-strategy obligations."
+    - "The handover is updated without rerunning exact-SHA cold-resume proof when currentness semantics change."
+  evidence_requested:
+    - "bind WORK-0001 to the final TEST-0006 execution triple"
+    - "supersede rather than silently rewrite the compound REQ-0005"
+    - "introduce separate DoR, DoD and verification-strategy requirements through normal lifecycle checkpoints"
+    - "provide exact-SHA bidirectional traceability/atomicity proof for the split"
+    - "rerun TEST-0006 if handover/live-routing content changes"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-11"
+
+history:
+  created_at: "2026-09-11"
+  updated_at: "2026-09-11"
