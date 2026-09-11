@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: PASS
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -14,6 +14,7 @@ protects:
     - "historical test supersession coverage"
     - "cross-branch resume boundary"
     - "cross-branch proof-record resolvability"
+    - "cross-branch schema resolvability"
     - "status-machine historical import/replay isolation"
     - "external completed-review provenance"
     - "transition-stable current-proof routing"
@@ -22,27 +23,31 @@ protects:
     - "machine-readable active WORK state"
     - "exact evidence SHA integrity"
     - "bidirectional requirement-test traceability"
+    - "revision-bound historical test coverage"
   risks:
     - "AI resumes from stale or incomplete context"
     - "A negative COMPLETE review is treated as approval evidence"
     - "An active work mirror exposes branch-local review/test IDs as locally traversable evidence"
+    - "An active work mirror exposes branch-only schemas as locally traversable evidence"
     - "An externally completed review is imported without truthful one-shot provenance"
     - "A handover sends a cold-resuming agent backward into already-complete work"
     - "A mandatory WORK record is not parseable YAML"
     - "An exact-SHA proof surface copies a truncated identifier"
     - "TEST-0006 claims to protect a requirement whose forward verification mapping omits TEST-0006"
+    - "A historical SHA-bound test is misrepresented as current proof after a requirement's normative semantics changed"
   invariants:
     - "Repository state, not chat history, is sufficient to resume active work"
     - "registry/status-machines.yaml is the single lifecycle source of truth"
     - "Only COMPLETE reviews with APPROVE or APPROVE_WITH_FOLLOWUP may provide approval evidence"
     - "Every current-tree read_before path is resolvable before editing"
-    - "The PR #3 WORK-0002 mirror contains no branch-local review/test IDs in locally traversable structured proof fields"
+    - "The PR #3 WORK-0002 mirror contains no branch-local review/test IDs or branch-only schemas in locally traversable structured proof fields"
     - "Post-v7 external completed-review imports require one-shot preauthorization and exact import binding"
     - "The current TEST execution is authoritative in the TEST record"
     - "Live PR #2 truth is queried from GitHub rather than canonized as a volatile constant"
     - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED until approval-capable independent review"
     - "REQ-0023/REQ-0024/REQ-0025 each list TEST-0006 in verification.test_ids and TEST-0006 protects all three"
     - "Every copied exact evidence SHA used by current proof is full and resolvable"
+    - "TEST-0004 does not claim current reverse protection of REQ-0010; current REQ-0010 verification routes to TEST-0005"
 
 environment:
   kind: REAL_GITHUB_REPOSITORY
@@ -55,57 +60,52 @@ environment:
 cases:
   happy_path:
     - "README/START_HERE route cold resume through PROJECT_STATE and active WORK"
-    - "PROJECT_STATE and WORK-0001 expose REVIEW-0021 and the current TEST/fresh-L2 gate without repeating completed steps"
-    - "WORK-0001 remains IN_REVIEW and includes REVIEW-0021 in scope/evidence while completion gates remain false"
+    - "PROJECT_STATE and WORK-0001 expose REVIEW-0022 and the current TEST/fresh-L2 gate without repeating completed steps"
+    - "WORK-0001 remains IN_REVIEW and includes REVIEW-0022 in scope/evidence while completion gates remain false"
     - "PROJECT_STATE, WORK-0002 and matrix agree WORK-0002 is IN_REVIEW and depends on WORK-0001"
     - "Every PR #3 WORK-0002 read_before path resolves locally"
-    - "PR #3 WORK-0002 mirror contains no branch-local REVIEW-0002/TEST-0002/TEST-0003 structured proof IDs"
-    - "Branch-local proof is available only after explicit checkout of feat/work-0002-governance-ci"
+    - "PR #3 WORK-0002 mirror contains no branch-local REVIEW-0002/TEST-0002/TEST-0003 structured proof IDs and affected_schemas is empty"
+    - "Branch-local documents, schemas and proof are available only after explicit checkout of feat/work-0002-governance-ci"
     - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED and separately own DoR, DoD and verification strategy"
     - "Each REQ-0023/REQ-0024/REQ-0025 verification.test_ids contains TEST-0006 while TEST-0006 protects all three"
     - "TEST-0005 remains PASS on exact pre-acceptance evidence and does not approve the proposed requirements"
-    - "REVIEW-0021 remains COMPLETE/CHANGES_REQUIRED with truthful one-shot v7 provenance"
+    - "TEST-0004 no longer lists current REQ-0010 in protects.requirements while REQ-0010 verification.test_ids remains [TEST-0005]"
+    - "REVIEW-0022 remains COMPLETE/CHANGES_REQUIRED with truthful one-shot v7 provenance and both findings OPEN"
     - "status-machines v7 generic review/requirement/test transitions remain unchanged and positive-only approval remains enforced"
     - "TEST-0001 remains SUPERSEDED and points to TEST-0006 as scope-preserving revision-bound replacement"
   edge_cases:
     - "A concurrently active PR remains externally queryable without duplicating its volatile HEAD in PROJECT_STATE"
     - "A prior TEST-0006 PASS remains historical when later review changes current proof obligations"
     - "A proposed requirement may carry test mappings without becoming accepted"
+    - "A historical TEST can retain exact old-tree evidence while dropping an invalid claim of current semantic coverage"
   failure_modes:
-    - "PROJECT_STATE and WORK-0001 disagree on REVIEW-0021/current proof state"
-    - "WORK-0001 omits REVIEW-0021 from current review evidence"
+    - "PROJECT_STATE and WORK-0001 disagree on REVIEW-0022/current proof state"
+    - "WORK-0001 omits REVIEW-0022 from current review evidence"
     - "REQ-0023/REQ-0024/REQ-0025 is ACCEPTED before approval-capable L2"
     - "Any REQ-0023/REQ-0024/REQ-0025 forward verification mapping omits TEST-0006"
     - "TEST-0006 stops protecting one of REQ-0023/REQ-0024/REQ-0025"
-    - "PR #3 WORK-0002 mirror exposes branch-local proof IDs before checkout"
+    - "PR #3 WORK-0002 mirror exposes branch-local proof IDs or branch-only affected_schemas before checkout"
+    - "TEST-0004 still claims current reverse protection of REQ-0010"
+    - "REQ-0010 no longer points to TEST-0005 as its current verification proof"
     - "COMPLETE+CHANGES_REQUIRED or COMPLETE+BLOCKED can satisfy approval"
-    - "REVIEW-0021 authorization/import/binding/consumption disagree"
+    - "REVIEW-0022 authorization/import/binding/consumption disagree"
     - "TEST-0001 replacement omits original protected contracts"
   adversarial_cases:
     - "Fresh L2 must parse WORK-0001 as YAML rather than rely on visual plausibility"
     - "Resolve every copied TEST-0005 result SHA to the exact commit"
     - "Start from each REQ-0023/REQ-0024/REQ-0025 and reach TEST-0006, then traverse TEST-0006 back to all three"
-    - "Resolve current-tree WORK-0002 prerequisites and only then cross the explicit branch checkout boundary"
+    - "Resolve every current-tree WORK-0002 prerequisite/schema reference before crossing the explicit branch checkout boundary"
+    - "After explicit checkout, verify WORK-0002 branch-local schemas exist without importing those paths into the PR #3 mirror"
+    - "Compare TEST-0004 exact tested tree with the commit that introduced current REQ-0010 semantics and reject retroactive semantic coverage"
     - "Query live PR #2 and compare lifecycle without relying on stale repository prose"
     - "Attempt to reuse a consumed v7 external-review authorization"
 
 execution:
-  command_or_workflow: "Manual exact-SHA cold-resume rerun on final transition-stable REVIEW-0021 handover"
-  last_run_at: "2026-09-11"
-  commit_sha: "f21985ae608373ec8a3d93f92c5a76a2b11bd1ee"
-  result: PASS
-  evidence:
-    - "Exact tested PR #3 tree f21985ae608373ec8a3d93f92c5a76a2b11bd1ee"
-    - "PROJECT_STATE, WORK-0001 and registry/progress/matrix.yaml agree WORK-0001 is IN_REVIEW and WORK-0002 is IN_REVIEW; WORK-0001 completion gates remain false"
-    - "REQ-0023, REQ-0024 and REQ-0025 @ f21985ae remain PROPOSED and each verification.test_ids contains TEST-0005 and TEST-0006; TEST-0006 protects all three"
-    - "TEST-0005 exact PASS result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe resolves to test(governance): pass pre-acceptance TEST-0005"
-    - "PR #3 WORK-0002 mirror exposes locally resolvable prerequisites and no branch-local REVIEW-0002/TEST-0002/TEST-0003 structured proof IDs; branch-local proof exists only after the explicit feat/work-0002-governance-ci boundary"
-    - "Live PR #2 is open, non-draft and mergeable at ab62faa1743705600a0f11335579db68a2166ab3; WORK-0002 remains IN_REVIEW and depends on WORK-0001"
-    - "REVIEW-0021 remains COMPLETE with CHANGES_REQUIRED and F-1 OPEN; no author-produced PASS is treated as approval"
-    - "REVIEW-0021 v7 provenance resolves in order: authorization c059a18749426cae3c2c3429893f35ec6db8b0ff → import aca6010aaf59a923e59a8cc587cc9b8689ce8425 → review binding 4903934af7a263a8a16171329bf7bbb3a12df886 → authorization consumption 038b2d35e19d93fd6a665ca0ae6c8261f7a165fe"
-    - "registry/status-machines.yaml remains v7 and only APPROVE/APPROVE_WITH_FOLLOWUP are approval-capable review outcomes"
-    - "TEST-0001 remains SUPERSEDED and names TEST-0006 as its revision-bound scope-preserving replacement"
-    - "Independent YAML parser confirmation of WORK-0001 and approval-capable fresh-context L2 remain subsequent review gates; this PASS does not satisfy or bypass them"
+  command_or_workflow: "Pending exact-SHA cold-resume rerun on synchronized REVIEW-0022 handover"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
