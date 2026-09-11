@@ -22,7 +22,7 @@ external_import:
   authorization_commit: "c916d505f190a27d36e5d8fd4e595e970969e269"
   source_review_id: "PRR_kwDOUUI5ts8AAAABNHCCdQ"
   source_submitted_at: "2026-09-11T03:41:03Z"
-  import_commit: null
+  import_commit: "40050f6fda6787feb42769cb6fa66547d5a1f7fb"
 
 scope:
   work_items: [WORK-0001]
@@ -53,12 +53,12 @@ findings:
   - id: F-2
     severity: R3_MODERATE
     category: EVIDENCE_SHA_INTEGRITY
-    description: "At reviewed HEAD 13f6b315df8d3734e90b212748f730e0d921c33c, TEST-0006 and PROJECT_STATE copy the TEST-0005 PASS result as truncated SHA ce962ec2ad199dd914ee4e4a66ec4e110fbfbe. The actual result commit is ce962ec2ad199dd914ee4e4a66ec4e110fbfbe? No: exact Git evidence records ce962ec2ad199dd914ee4e4a66ec4e110fbfbe only if it resolves; the reviewed thread identifies the canonical actual result as ce962ec2ad199dd914ee4e4a66ec4e110fbfbe with the missing segment restored in repository evidence. Correct every copied value to the exact resolvable TEST-0005 result SHA and revalidate TEST-0006 evidence."
+    description: "At reviewed HEAD 13f6b315df8d3734e90b212748f730e0d921c33c, TEST-0006 and PROJECT_STATE copy the TEST-0005 PASS result as the truncated 38-character value ce962ec2ad199dd914ee4e4a66ec4e110fbfbe. The actual resolvable 40-character TEST-0005 PASS result commit is ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe. Correct every copied value to that exact SHA and revalidate TEST-0006 evidence."
     evidence:
       - "PR #3 fresh-context Codex review on exact head 13f6b315df8d3734e90b212748f730e0d921c33c"
       - "GitHub review PRR_kwDOUUI5ts8AAAABNHCCdQ submitted 2026-09-11T03:41:03Z"
       - "Inline finding thread PRRT_kwDOUUI5ts6hVPWG"
-      - "TEST-0005 history records the exact PASS result commit; TEST-0006 and PROJECT_STATE must use that same resolvable full SHA"
+      - "TEST-0005 PASS result commit ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe is the canonical exact result SHA"
     disposition: OPEN
     resolved_by: null
 
