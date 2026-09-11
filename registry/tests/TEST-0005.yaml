@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 evidence, authority and requirement-acceptance drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
