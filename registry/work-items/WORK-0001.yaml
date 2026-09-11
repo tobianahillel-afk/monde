@@ -298,11 +298,11 @@ review_plan:
     - "REVIEW-0018/F-1 REQ-0020/REQ-0021/REQ-0022 were accepted before independent Review Council/cold-read acceptance evidence existed"
     - "REVIEW-0019/F-1 WORK-0001 RUN-3 flow mapping was malformed YAML at reviewed head 13f6b315"
     - "REVIEW-0019/F-2 TEST-0006 and PROJECT_STATE copied a truncated TEST-0005 PASS result SHA at reviewed head 13f6b315"
-    - "REVIEW-0020/F-1 PR #3 WORK-0002 mirror exposed branch-local REVIEW-0002/TEST-0002/TEST-0003 as locally traversable proof IDs"
+    - "REVIEW-0020/F-1 PR #3 WORK-0002 mirror exposed branch-local REVIEW-0002/TEST-0003 as locally traversable proof IDs"
     - "REVIEW-0021/F-1 REQ-0023/REQ-0024/REQ-0025 forward verification mappings omitted TEST-0006 while TEST-0006 claimed to protect all three"
     - "TEST-0005 current pre-acceptance execution is PASS on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7. REQ-0023/REQ-0024/REQ-0025 remain PROPOSED and this PASS does not approve them."
     - "TEST-0007 current generic v7 execution remains PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f. REVIEW-0021 does not change the generic lifecycle contract."
-    - "TEST-0006 current execution is authoritative in registry/tests/TEST-0006.yaml. The last pre-REVIEW-0021 PASS is tree d0c985933e66960a781513ad61bd3567c91e5344; result af4c50ba5a442a8bd06717c2802170bb4cbde54e; binding f0d0410cd31df1b348fddf09528588e43e956945. Rerun once because REVIEW-0021 changed requirement↔test traceability and current handover state."
+    - "TEST-0006 current execution is authoritative in registry/tests/TEST-0006.yaml. At resume, inspect its latest valid exact-SHA execution: if it covers the REVIEW-0021-synchronized WORK/PROJECT_STATE plus reciprocal REQ-0023/0024/0025 mappings, proceed directly to fresh L2; otherwise continue the legal TEST lifecycle until such a PASS exists. Do not rerun merely to manufacture a newer SHA."
 
 required_tests:
   unit: []
@@ -319,7 +319,7 @@ required_tests:
   regression:
     - "Bootstrap-discovered governance defects become WORK-0002 validator fixtures"
     - "Material bootstrap acceptance criteria cannot remain outside REQ traceability"
-    - "Historical TEST/REVIEW evidence cannot be widened to corrective artifacts created later"
+    - "Historical TEST/REVIEW evidence cannot be widened retroactively to corrective artifacts created later"
     - "CLOSED review state cannot satisfy approval semantics"
     - "COMPLETE review with CHANGES_REQUIRED or BLOCKED cannot satisfy approval semantics"
     - "Progress state has one canonical vocabulary plus explicit initial state/transitions"
@@ -425,7 +425,7 @@ validation:
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
     - "TEST-0005 (current pre-acceptance PASS on exact tree efd48467352c0ce4ec344ebe410fd9e98d938721; exact result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe; history binding 79a95e7cda3b62b68208e333ddc1593c510167f7; REQ-0023/0024/0025 remain PROPOSED)"
-    - "TEST-0006 (last pre-REVIEW-0021 PASS tree d0c985933e66960a781513ad61bd3567c91e5344; result af4c50ba5a442a8bd06717c2802170bb4cbde54e; binding f0d0410cd31df1b348fddf09528588e43e956945; rerun once for REVIEW-0021 reciprocal traceability/current handover)"
+    - "TEST-0006 (current execution identity is read from registry/tests/TEST-0006.yaml; at resume verify its latest valid exact tree covers REVIEW-0021-synchronized handover and reciprocal REQ-0023/0024/0025 mappings, otherwise continue the legal TEST lifecycle until a qualifying PASS exists; do not duplicate a volatile result SHA here)"
     - "TEST-0007 (current generic v7 PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f)"
     - "REQ-0020/REQ-0021/REQ-0022 (SUPERSEDED premature-acceptance history)"
     - REQ-0023
@@ -438,7 +438,7 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "The latest valid TEST-0006 execution must cover the REVIEW-0021-synchronized WORK-0001/PROJECT_STATE plus reciprocal REQ-0023/0024/0025 mappings before another fresh-context L2."
+    - "Before fresh L2, inspect registry/tests/TEST-0006.yaml. If its latest valid exact tree already covers the REVIEW-0021-synchronized WORK-0001/PROJECT_STATE plus reciprocal REQ-0023/0024/0025 mappings, fresh L2 is the next gate; otherwise continue TEST-0006 through the normal lifecycle until that condition is true."
     - "REVIEW-0018/F-1, REVIEW-0019/F-1/F-2, REVIEW-0020/F-1 and REVIEW-0021/F-1 remain open until a later fresh-context L2 independently verifies the corrections."
     - "A clean approval-capable L2 must inspect proposed REQ-0023/REQ-0024/REQ-0025 before they may transition to ACCEPTED."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; its own fresh-L2 work remains separate."
@@ -457,7 +457,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0021 narrowed assurance debt. REQ-0023/24/25 remain PROPOSED pending independent acceptance review. REVIEW-0019 corrected machine readability/SHA integrity; REVIEW-0020 corrected branch-local proof references; REVIEW-0021 restored reciprocal TEST-0006 mappings. One exact TEST-0006 rerun plus another fresh L2 remain before completion."}
+  - {id: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0021 narrowed assurance debt. REQ-0023/24/25 remain PROPOSED pending independent acceptance review. REVIEW-0019 corrected machine readability/SHA integrity; REVIEW-0020 corrected branch-local proof references; REVIEW-0021 restored reciprocal TEST-0006 mappings. Current TEST-0006 identity is read from its canonical TEST record; once a valid exact execution covers this synchronized handover, fresh L2 is the remaining assurance gate."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols; synchronize state."}
 
