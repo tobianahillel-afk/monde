@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -92,9 +92,9 @@ cases:
     - "Walk PROJECT_STATE Next action in order and verify no step preceding the actual pending test/review work is already complete at the exact tested SHA"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3 after REVIEW-0016 handover correction"
-  last_run_at: null
-  commit_sha: null
+  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3 tree 8c921bf5a6553463a1343b5fe0b987966be33208 after REVIEW-0016 handover correction"
+  last_run_at: "2026-09-11"
+  commit_sha: "8c921bf5a6553463a1343b5fe0b987966be33208"
   result: null
   evidence: []
 
