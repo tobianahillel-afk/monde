@@ -202,7 +202,7 @@ history:
       reason: "The finalized handover exposes fresh L2 as the sole remaining WORK-0001 gate, keeps WORK-0001/WORK-0002/matrix coherent and non-terminal, preserves the explicit PR #2 branch boundary and current-tree prerequisites, and leaves v7 import/replay/provenance plus TEST-0001 replacement semantics unchanged."
     - commit_sha: "626f9fb99605ff4bc78f8bb7986540825cabbdf3"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "85bfd4b8686c51f4d415b972a72d39ca101c29d1"
       validity: VALID
       invalidated_by: null
       reason: "The REVIEW-0017-corrected handover is cold-resumable and transition-stable, current proof routing no longer duplicates mutable TEST/PR heads, REVIEW-0017 import provenance is truthful, AC-5 active ownership is atomic, WORK-0001/WORK-0002/matrix lifecycle is coherent, branch boundaries resolve, and TEST-0001 replacement/positive-only review semantics remain intact."
