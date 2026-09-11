@@ -213,7 +213,7 @@ history:
       reason: "The REVIEW-0018-corrected handover is cold-resumable while REQ-0023/REQ-0024/REQ-0025 remain PROPOSED; pre-acceptance TEST-0005 evidence is discoverable, author evidence cannot approve acceptance, lifecycle/branch/provenance semantics remain coherent, and the next gate is independent fresh L2."
     - commit_sha: "c58ddee0b98097514a4c73c5a8dc8acfb9cd977e"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "b02f4fbdbbd8104b2b8c3cf9cc88f15102d51f48"
       validity: VALID
       invalidated_by: null
       reason: "Final transition-stable handover remains correct through PASS: PROJECT_STATE/WORK-0001 conditional proof routing stays current, proposed requirements remain unaccepted, pre-acceptance evidence is discoverable, and the next gate is independent fresh L2 without another synchronization loop."
