@@ -61,7 +61,6 @@ requirements:
   - REQ-0002
   - REQ-0003
   - REQ-0004
-  - REQ-0005
   - REQ-0006
   - REQ-0007
   - REQ-0008
@@ -76,6 +75,9 @@ requirements:
   - REQ-0017
   - REQ-0018
   - REQ-0019
+  - REQ-0020
+  - REQ-0021
+  - REQ-0022
 assumptions: []
 risks: []
 
@@ -92,13 +94,15 @@ assurance:
 
 scope_change:
   approved: true
-  rationale: "REVIEW-0013/F-1 required current lifecycle proof TEST-0007 in WORK-0001.required_tests.e2e. REVIEW-0014 and REVIEW-0015 refined the already-declared review/lifecycle evidence contract by separating immutable historical imports, historical status replay and truthful preauthorized external-review import provenance. REVIEW-0016/F-1 is a cold-resume handover-currentness correction within the existing AI resume/project-state scope. These changes do not expand product purpose, acceptance criteria or implementation scope."
+  rationale: "REVIEW-0013/F-1 required current lifecycle proof TEST-0007 in WORK-0001.required_tests.e2e. REVIEW-0014 and REVIEW-0015 refined the already-declared review/lifecycle evidence contract by separating immutable historical imports, historical status replay and truthful preauthorized external-review import provenance. REVIEW-0016/F-1 corrected cold-resume handover currentness. REVIEW-0017/F-1 corrects proof binding only, and REVIEW-0017/F-2 atomizes the already-existing AC-5 DoR/DoD/verification obligations without expanding product or implementation scope."
   evidence:
     - "REVIEW-0013/F-1"
     - "REVIEW-0014/F-1"
     - "REVIEW-0014/F-2"
     - "REVIEW-0015/F-1"
     - "REVIEW-0016/F-1"
+    - "REVIEW-0017/F-1"
+    - "REVIEW-0017/F-2"
 
 read_before:
   - README.md
@@ -184,6 +188,11 @@ affected_docs:
   - registry/reviews/REVIEW-0014.yaml
   - registry/reviews/REVIEW-0015.yaml
   - registry/reviews/REVIEW-0016.yaml
+  - registry/reviews/REVIEW-0017.yaml
+  - registry/requirements/REQ-0005.yaml
+  - registry/requirements/REQ-0020.yaml
+  - registry/requirements/REQ-0021.yaml
+  - registry/requirements/REQ-0022.yaml
   - registry/tests/TEST-0001.yaml
   - registry/tests/TEST-0004.yaml
   - registry/tests/TEST-0005.yaml
@@ -217,7 +226,7 @@ impact_analysis:
     - "all future canonical specification work"
     - "all future implementation work"
   migrations_or_reprocessing: []
-  compatibility_notes: "Bootstrap-only repository. Registry lifecycle semantics and historical evidence boundaries are centralized before automation consumes them; no production data migration exists. External completed-review imports are separated from repository-native review execution through one-shot preauthorized provenance."
+  compatibility_notes: "Bootstrap-only repository. Registry lifecycle semantics and historical evidence boundaries are centralized before automation consumes them; no production data migration exists. External completed-review imports are separated from repository-native review execution through one-shot preauthorized provenance. REQ-0005 remains immutable historical context and is superseded by atomic REQ-0020/REQ-0021/REQ-0022."
 
 implementation_plan:
   tasks:
@@ -226,7 +235,7 @@ implementation_plan:
     - {id: T3, description: "Define development lifecycle, DoR/DoD and testing strategy.", depends_on: [T2], expected_files: [docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md], status: DONE}
     - {id: T4, description: "Define documentation architecture, development/security rules, threat modeling and ADR process.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/11_ADR/README.md], status: DONE}
     - {id: T5, description: "Add GitHub templates, capability registry, project scorecard and Phase-0 roadmap.", depends_on: [T3, T4], expected_files: [.github/pull_request_template.md, .github/ISSUE_TEMPLATE/feature.yml, .github/ISSUE_TEMPLATE/bug.yml, registry/capabilities/README.md, docs/13_QUALITY/project-scorecard.md, docs/10_ROADMAP/phase-0.md], status: DONE}
-    - {id: T6, description: "Complete post-merge independent assurance review, correct its findings, and synchronize canonical handover state.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/requirements/, registry/reviews/REVIEW-0003.yaml, registry/reviews/REVIEW-0004.yaml, registry/reviews/REVIEW-0005.yaml, registry/reviews/REVIEW-0006.yaml, registry/reviews/REVIEW-0007.yaml, registry/reviews/REVIEW-0008.yaml, registry/reviews/REVIEW-0009.yaml, registry/reviews/REVIEW-0010.yaml, registry/reviews/REVIEW-0011.yaml, registry/reviews/REVIEW-0012.yaml, registry/reviews/REVIEW-0013.yaml, registry/reviews/REVIEW-0014.yaml, registry/reviews/REVIEW-0015.yaml, registry/reviews/REVIEW-0016.yaml, registry/tests/TEST-0001.yaml, registry/tests/TEST-0004.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
+    - {id: T6, description: "Complete post-merge independent assurance review, correct its findings, and synchronize canonical handover state.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/requirements/, registry/reviews/REVIEW-0003.yaml, registry/reviews/REVIEW-0004.yaml, registry/reviews/REVIEW-0005.yaml, registry/reviews/REVIEW-0006.yaml, registry/reviews/REVIEW-0007.yaml, registry/reviews/REVIEW-0008.yaml, registry/reviews/REVIEW-0009.yaml, registry/reviews/REVIEW-0010.yaml, registry/reviews/REVIEW-0011.yaml, registry/reviews/REVIEW-0012.yaml, registry/reviews/REVIEW-0013.yaml, registry/reviews/REVIEW-0014.yaml, registry/reviews/REVIEW-0015.yaml, registry/reviews/REVIEW-0016.yaml, registry/reviews/REVIEW-0017.yaml, registry/tests/TEST-0001.yaml, registry/tests/TEST-0004.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
     - {id: T7, description: "Add scientific specification lifecycle, requirements/assumptions/risks, traceability and reproducibility/backtesting contracts.", depends_on: [T3, T4, T5], expected_files: [docs/13_QUALITY/specification-quality.md, docs/13_QUALITY/reproducibility-backtesting.md, registry/requirements/_TEMPLATE.yaml, registry/assumptions/_TEMPLATE.yaml, registry/risks/_TEMPLATE.yaml, registry/traceability/README.md], status: DONE}
     - {id: T8, description: "Add assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols; synchronize state.", depends_on: [T7], expected_files: [docs/13_QUALITY/review-council.md, docs/13_QUALITY/assurance-levels.md, docs/13_QUALITY/advanced-verification.md, docs/13_QUALITY/non-functional-requirements.md, docs/12_RESEARCH/research-protocol.md, registry/reviews/_TEMPLATE.yaml, registry/tests/_TEMPLATE.yaml, registry/experiments/_TEMPLATE.yaml, registry/README.md], status: DONE}
   planned_runs:
@@ -272,8 +281,11 @@ review_plan:
     - "REVIEW-0014/F-2 REQ-0015..REQ-0019 were post-contract imports materialized directly ACCEPTED without an explicit exact import boundary"
     - "REVIEW-0015/F-1 REVIEW-0014's apparent OPEN → IN_PROGRESS → COMPLETE sequence was a post-hoc replay after external review completion; future external reviews require truthful one-shot preauthorized import provenance"
     - "REVIEW-0016/F-1 frozen head 7c9cc98f already synchronized WORK-0001 with the current TEST-0006 PASS while PROJECT_STATE still listed that completed synchronization as its first next action"
-    - "TEST-0007 current v7 execution is PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f."
-    - "TEST-0006 current execution is PASS on exact REVIEW-0016-corrected tree 8c921bf5a6553463a1343b5fe0b987966be33208; result 2e038194f149c667ffe680286ed275435734e5ee; history pointer 8e62fbcf835d411a6e12909a293f597d1e80dee3. Another fresh L2 is now the remaining assurance gate."
+    - "REVIEW-0017/F-1 WORK-0001 exposed an obsolete TEST-0006 current-execution triple after the finalized-handover rerun"
+    - "REVIEW-0017/F-2 REQ-0005 combined independently fail-able DoR, DoD and verification-strategy obligations"
+    - "TEST-0007 current v7 execution is PASS on exact tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f. A rerun will be required for REVIEW-0017 import/lifecycle provenance."
+    - "TEST-0006 final pre-REVIEW-0017 execution is PASS on exact finalized-handover tree b8180dff075ea5c8328ee56d1683380576c984ba; result e9e41c96a826cfa8d6a1056f9795776c9d0431b4; history binding 06dbb76c68287130169d41f50b2464bc4f878bb5. A new final cold-resume rerun will be required after REVIEW-0017 corrections."
+    - "TEST-0005 is reopened READY to prove REQ-0005 supersession plus REQ-0020/REQ-0021/REQ-0022 atomicity and lifecycle."
 
 required_tests:
   unit: []
@@ -300,6 +312,8 @@ required_tests:
     - "A superseded historical test must be replaced by revision-bound evidence that preserves or explicitly partitions its original scope"
     - "An ACCEPTED R1/R2 finding cannot become non-blocking without accepting authority evidence"
     - "Independently fail-able specification obligations cannot share one compound REQ owner"
+    - "REQ-0005 must be superseded rather than semantically narrowed, with DoR, DoD and verification strategy owned by REQ-0020/REQ-0021/REQ-0022"
+    - "Post-v7 replacement requirements must first materialize PROPOSED before normal transition to ACCEPTED"
     - "PROJECT_STATE, active WORK records and the progress matrix cannot disagree on one global work lifecycle"
     - "A later independent review that disproves a PASS assertion invalidates that execution without deleting its history"
     - "Every current-tree read_before path for an active mirrored work item must resolve; branch-only prerequisites require an explicit checkout handoff"
@@ -315,23 +329,25 @@ required_tests:
   real_system:
     - "Branch writes performed against actual GitHub repository"
     - "PR #1 created, reviewed and squash-merged as b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
-    - "Fresh GitHub Codex review executed against merged artifact and recorded as REVIEW-0003"
-    - "Fresh GitHub Codex re-reviews REVIEW-0004 through REVIEW-0013 successively narrowed evidence, lifecycle, traceability, currentness and work-level proof defects"
-    - "REVIEW-0014 on c9b75f677f5b79f66189f90a730cb8efbeb8af0c found pre-v7 direct review/requirement import-history defects"
+    - "Fresh GitHub Codex reviews REVIEW-0003 through REVIEW-0017 successively narrowed post-merge assurance debt rather than author self-approval"
+    - "REVIEW-0017 on exact head 06dbb76c68287130169d41f50b2464bc4f878bb5 found stale WORK-0001 TEST-0006 binding plus compound REQ-0005"
+    - "REVIEW-0017 provenance: authorization f6d1e84e79439d1ec2ae071171778063403c3374 predates import 36b0a46e04843937b065feaf5e8e0c53c36b4664; review binding 8ba5be981c2cb45c72d02e83e8429cc091244270; authorization consumption c9d46634409a7ad23da92ab6579fe1865a6a6986"
+    - "REQ-0020/REQ-0021/REQ-0022 first materialized PROPOSED together in 7fb731cdf7bc745227bb062d08f385d954806f1c and transitioned to ACCEPTED in 246820d3bb40fa8a57eee95c70444e5729861f0b"
+    - "REQ-0005 transitioned legally ACCEPTED → SUPERSEDED in 087d27adbcc42cc251bdfe186dae1bcb5f817d22 without rewriting its historical normative statement"
     - "TEST-0007 v6 execution passed on b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7; result 42a36e1b37855ea107eb94a8f3c9a05fe9cd6c67; pointer ffffb37d680e477fa03f74523dfac624ad74427c"
     - "TEST-0006 on ffffb37d680e477fa03f74523dfac624ad74427c correctly FAILED because handover still exposed v5/REVIEW-0013; result 45088fc916b84c7e809d1305fe926724e85b797c; pointer 337324fe083fab0ec6a88c0672d7cd86aadf69af"
     - "After handover synchronization, TEST-0006 passed on exact v6 tree bb973b669797e887d6190065a3d74c377aa33c01; result 7ce54360a2e56f8892ea70354af824bfa8c4df72; pointer abae9028bbc54e4f39f67e915626d2b24c2a29d4"
     - "Fresh Codex review on exact a27d01a9c0add10d0de220b9443a7f7d113152d9 is REVIEW-0015 and found REVIEW-0014's lifecycle sequence was post-hoc replay"
     - "status-machines v7 preserves REVIEW-0014 only as exact historical replay and adds one-shot preauthorized import for externally completed future reviews"
     - "REVIEW-0015 authorization 2b26ed4384e2098e04c10f5e5d2db3da949b6718 predates import 877d5bce12c7854701843747783891558ab05d37; bindings f46307b88633d362ccfe59309097c8a574e1407f/ecf2619b5194257dbc254bd141ef56bcb0010b36"
-    - "TEST-0007 current execution passed on exact v7 tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; pointer 87ec209eec614a0ff3be7a00a7565102042cad3f"
+    - "TEST-0007 current pre-REVIEW-0017 execution passed on exact v7 tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; pointer 87ec209eec614a0ff3be7a00a7565102042cad3f"
     - "TEST-0006 v7 run on 11cca4bccb318d29c422917d544a470870b2cf65 correctly FAILED because PROJECT_STATE Next action lagged completed sync/reopen state; result 35e3c4c892f8c9bc6e5424fbe792c2fc8043eaf8"
     - "TEST-0006 v7 rerun on 75d3df4486d05ab95d9d65daee2fd7ac77072a47 correctly FAILED because handover still named prior FAIL-recording/reopen actions already complete at that READY tree; result 49a772c224cb3dd4811f48f4bc0431c155b01e74"
     - "TEST-0006 v7 execution passed on exact transition-stable tree d6f012abe31263f0fa83003646405c039b23611e; result 788a2948054cdd90130c72b17910d745fd36d927; history pointer 11615248d3cafd3577a2920b5a323daa51040f12"
     - "Fresh Codex review REVIEW-0016 on exact head 7c9cc98fefc45eab2e500925dca846f23bd2936e found only the stale first Next action in PROJECT_STATE"
     - "REVIEW-0016 was imported truthfully: authorization f19d261032b29ae4180b98a99dff494964b612b7 predates import 83b98e1b2a06ca0312614b44c8b8e8ccc6468c44; review binding bf37979755020e0633df0f4966cd5bf3707da94e; authorization consumption 820b32588ec053b2fcfe130fd84d4fd4d9720d22"
     - "PROJECT_STATE handover correction is ead29bdd82830bb5a1f25a4fb19b0bf3e4e1255a; transition-stable refinement is 3e372beb7fb3865a96a1a41833e3c1213fb43367"
-    - "TEST-0006 current execution passed on exact REVIEW-0016-corrected tree 8c921bf5a6553463a1343b5fe0b987966be33208; result 2e038194f149c667ffe680286ed275435734e5ee; history pointer 8e62fbcf835d411a6e12909a293f597d1e80dee3"
+    - "TEST-0006 final pre-REVIEW-0017 execution passed on exact finalized-handover tree b8180dff075ea5c8328ee56d1683380576c984ba; result e9e41c96a826cfa8d6a1056f9795776c9d0431b4; history binding 06dbb76c68287130169d41f50b2464bc4f878bb5"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -354,17 +370,12 @@ observability:
 validation:
   executed:
     - "Actual GitHub repository/main inspected and PR #1 squash merge preserved"
-    - "Successive fresh-context L2 reviews REVIEW-0003 through REVIEW-0016 were used to narrow post-merge assurance debt rather than self-approve it"
+    - "Successive fresh-context L2 reviews REVIEW-0003 through REVIEW-0017 were used to narrow post-merge assurance debt rather than self-approve it"
     - "Historical REVIEW-0001 and TEST-0001 remain bounded to what can actually be proven; TEST-0001 is superseded/non-gating"
-    - "REQ-0001..REQ-0019 provide atomic normative ownership for material bootstrap obligations"
+    - "REQ-0001..REQ-0019 established normative bootstrap ownership; REVIEW-0017/F-2 superseded compound REQ-0005 with atomic REQ-0020/REQ-0021/REQ-0022 through normal PROPOSED → ACCEPTED lifecycle"
     - "status-machines v7 is the canonical lifecycle source, retaining exact pre-v7 import/migration history and separating historical status replay from truthful external review import provenance"
-    - "REVIEW-0014 first OPEN materialization was verified to already contain final findings/outcome after the source Codex review had completed, so v7 treats it only as exact non-reusable historical replay"
-    - "REVIEW-0015 and REVIEW-0016 were imported through one-shot authorizations that existed before materialization and were subsequently bound/consumed by their exact import commits"
-    - "TEST-0007 passed on exact v7 tree 669dcf7638746e07cc034cd69fa2cb08da133937 and proves replay isolation, preauthorization ancestry/consumption, historical import boundaries and REQ-0006 traceability"
-    - "TEST-0006 v7 runs on 11cca4bccb318d29c422917d544a470870b2cf65 and 75d3df4486d05ab95d9d65daee2fd7ac77072a47 failed because PROJECT_STATE ordered actions that were already complete at the respective tested trees; both FAILs are preserved"
-    - "TEST-0006 passed on exact transition-stable v7 tree d6f012abe31263f0fa83003646405c039b23611e; result 788a2948054cdd90130c72b17910d745fd36d927; history pointer 11615248d3cafd3577a2920b5a323daa51040f12"
-    - "REVIEW-0016 proved that later administrative synchronization reintroduced a stale first Next action at 7c9cc98f; PROJECT_STATE was corrected and made transition-stable, then TEST-0006 passed again on exact tree 8c921bf5a6553463a1343b5fe0b987966be33208"
-    - "Current TEST-0006 result is 2e038194f149c667ffe680286ed275435734e5ee with history pointer 8e62fbcf835d411a6e12909a293f597d1e80dee3"
+    - "REVIEW-0017 is truthfully imported through a one-shot authorization committed before materialization and consumed by the exact import commit"
+    - "WORK-0001 now binds the final pre-REVIEW-0017 TEST-0006 execution triple b8180dff/e9e41c96/06dbb76c instead of the obsolete earlier run"
   evidence:
     - "PR #1"
     - "main@b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1"
@@ -384,22 +395,27 @@ validation:
     - REVIEW-0014
     - REVIEW-0015
     - REVIEW-0016
+    - REVIEW-0017
     - "TEST-0001 (SUPERSEDED historical evidence only; non-gating)"
     - TEST-0004
-    - TEST-0005
-    - "TEST-0006 (current PASS on exact REVIEW-0016-corrected tree 8c921bf5a6553463a1343b5fe0b987966be33208; result 2e038194f149c667ffe680286ed275435734e5ee; history pointer 8e62fbcf835d411a6e12909a293f597d1e80dee3; prior exact-tree FAIL/PASS executions remain preserved)"
-    - "TEST-0007 (current PASS on exact v7 tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f)"
-    - "REQ-0001..REQ-0019"
+    - "TEST-0005 (READY for REVIEW-0017/F-2 exact-SHA rerun; prior 2712795 PASS remains historical exact-tree evidence)"
+    - "TEST-0006 (final pre-REVIEW-0017 PASS on exact finalized-handover tree b8180dff075ea5c8328ee56d1683380576c984ba; result e9e41c96a826cfa8d6a1056f9795776c9d0431b4; history binding 06dbb76c68287130169d41f50b2464bc4f878bb5; a post-correction rerun remains required)"
+    - "TEST-0007 (current pre-REVIEW-0017 PASS on exact v7 tree 669dcf7638746e07cc034cd69fa2cb08da133937; result 87668f4e64453dca4c987252a8cb46e73793950c; history pointer 87ec209eec614a0ff3be7a00a7565102042cad3f; a REVIEW-0017 provenance rerun remains required)"
+    - "REQ-0001..REQ-0019 historical/current set with REQ-0005 SUPERSEDED"
+    - REQ-0020
+    - REQ-0021
+    - REQ-0022
     - registry/status-machines.yaml
     - "REVIEW-0015 authorization 2b26ed4384e2098e04c10f5e5d2db3da949b6718 → import 877d5bce12c7854701843747783891558ab05d37 → bindings f46307b88633d362ccfe59309097c8a574e1407f/ecf2619b5194257dbc254bd141ef56bcb0010b36"
     - "REVIEW-0016 authorization f19d261032b29ae4180b98a99dff494964b612b7 → import 83b98e1b2a06ca0312614b44c8b8e8ccc6468c44 → bindings bf37979755020e0633df0f4966cd5bf3707da94e/820b32588ec053b2fcfe130fd84d4fd4d9720d22"
-    - "PR #2 live head c50c33009d90f079e645f0ca9e1befe1a4a77ba9"
+    - "REVIEW-0017 authorization f6d1e84e79439d1ec2ae071171778063403c3374 → import 36b0a46e04843937b065feaf5e8e0c53c36b4664 → review binding 8ba5be981c2cb45c72d02e83e8429cc091244270 → authorization consumption c9d46634409a7ad23da92ab6579fe1865a6a6986"
+    - "PR #2 live lifecycle is IN_REVIEW and must be rechecked from GitHub at resume time; its HEAD is intentionally not canonized here because it is independently advancing."
   coverage:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "REVIEW-0014/F-1, REVIEW-0014/F-2, REVIEW-0015/F-1 and REVIEW-0016/F-1 remain unresolved until a new fresh-context L2 verifies the corrected current head and current TEST-0006/TEST-0007 evidence."
-    - "Fresh-context L2 on the resulting synchronized/frozen head is the sole remaining WORK-0001 assurance gate; no author-produced PASS closes it."
+    - "REVIEW-0017/F-1 and REVIEW-0017/F-2 corrections require current exact-SHA TEST-0005, TEST-0007 and final TEST-0006 proof before another fresh-context L2."
+    - "No author-produced PASS closes REVIEW-0017; another fresh-context L2 on the fully synchronized frozen head remains mandatory."
     - "Governance automation is implemented in open WORK-0002/PR #2 but cannot truthfully complete until WORK-0001 is DONE; its own fresh-L2 work remains separate."
     - "Repository intentionally remains public by owner decision; public-code-safe constraints apply and sensitive runtime data/secrets remain outside Git. WORK-0003 handles branch/ruleset/check/security hardening, not privatization."
 
@@ -416,7 +432,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0016 narrowed assurance debt. v7 separates immutable review replay from truthful preauthorized external imports. REVIEW-0016 found one stale handover action on 7c9cc98f; after truthful import and transition-stable correction, TEST-0006 passed on exact tree 8c921bf5 with result 2e038194 and pointer 8e62fbcf. A fresh L2 on the resulting frozen head is now the sole remaining assurance gate."}
+  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0017 narrowed assurance debt. REVIEW-0017 found stale final TEST-0006 binding and compound REQ-0005. WORK-0001 is rebound to b8180dff/e9e41c96/06dbb76c; REQ-0005 is superseded by legally proposed/accepted REQ-0020/0021/0022; current reruns and another fresh L2 remain pending."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 
@@ -424,6 +440,8 @@ discoveries:
   - "Repository intentionally remains public by owner decision; public-code-safe constraints apply."
   - "Acceptance criteria are not a substitute for stable atomic REQ identities when behavior is material and normative."
   - "One broad acceptance criterion may legitimately map to several atomic normative requirements."
+  - "Definition of Ready, Definition of Done and verification strategy are independently fail-able even when one acceptance criterion mentions all three."
+  - "A compound accepted requirement should be superseded, not silently narrowed; post-v7 replacements must follow normal lifecycle checkpoints."
   - "Registry status semantics must be registry-specific and machine-readable before CI can enforce transitions safely."
   - "A post-merge independent review can expose assurance debt that was invisible to same-context review."
   - "Historical evidence must not be widened retroactively to corrective files or requirements created after execution."
@@ -462,4 +480,4 @@ completion:
   review_complete: false
   docs_updated: true
   registries_updated: true
-  project_state_updated: true
+  project_state_updated: false
