@@ -242,7 +242,7 @@ registry_machines:
         reviewer_context_id: "fresh-context-pr3-3a05ec6f"
         expected_outcome: CHANGES_REQUIRED
         one_shot: true
-        consumed_by_commit: null
+        consumed_by_commit: "026849083f8baf7a40a67ec6ac70e2b2e169abbe"
         finding_origin: "PRRT_kwDOUUI5ts6hksrz"
         reason: "The fresh-context GitHub Codex review of 3a05ec6f completed externally before REVIEW-0023 is materialized. This authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native lifecycle checkpoints."
     external_import_rule: "For an externally completed review materialized after v7, a matching one-shot authorization must already exist in a parent commit before the REVIEW record first appears. The authorization binds record_id, resulting status, reviewed artifact SHA, source review identity/time, reviewer context and expected outcome. The imported REVIEW must declare that authorization. A later metadata-only binding must set consumed_by_commit to the actual first-materialization commit before the imported review may satisfy any work completion gate. An authorization with consumed_by_commit set cannot be reused."
