@@ -80,9 +80,9 @@ TEST-0007 remains the current generic v7 lifecycle proof on exact tree `669dcf76
 
 The last pre-REVIEW-0017 finalized-handover execution of TEST-0006 is PASS on exact tree `b8180dff075ea5c8328ee56d1683380576c984ba`, result `e9e41c96a826cfa8d6a1056f9795776c9d0431b4`, history binding `06dbb76c68287130169d41f50b2464bc4f878bb5`.
 
-That execution remains valid for its exact tree but REVIEW-0017 materially changed current requirement/handover state, so one fresh TEST-0006 execution is required after this synchronized WORK/PROJECT_STATE content is finalized.
+That execution remains valid for its exact tree. Before the next fresh L2, the latest valid TEST-0006 execution must cover the synchronized REVIEW-0017/WORK-0001/PROJECT_STATE handover semantics. Continue TEST-0006 from its current legal lifecycle state until such a PASS exists; once it does, do not rerun merely to manufacture a newer SHA.
 
-**Transition-stable rule:** the canonical current TEST-0006 execution is the latest valid execution recorded in `registry/tests/TEST-0006.yaml`; WORK-0001 and PROJECT_STATE may preserve reviewed historical baselines, but must not duplicate a volatile test-result SHA as a second source of truth. At resume, compare TEST-0006's latest exact tested tree to this synchronized handover state. If it predates the current handover semantics, rerun once; if it covers them, do not rerun merely to manufacture a newer SHA.
+**Transition-stable rule:** the canonical current TEST-0006 execution is the latest valid execution recorded in `registry/tests/TEST-0006.yaml`; WORK-0001 and PROJECT_STATE may preserve reviewed historical baselines, but must not duplicate a volatile test-result SHA as a second source of truth. At resume, compare TEST-0006's latest exact tested tree to this synchronized handover state. If it predates the current handover semantics, continue/reopen and rerun through the legal lifecycle; if it covers them, proceed directly to fresh L2.
 
 ## WORK-0002 cross-branch boundary
 
@@ -112,13 +112,12 @@ All prior findings remain durable evidence. No finding is closed merely because 
 
 ## Next action
 
-1. Finalize the synchronized WORK-0001/PROJECT_STATE state for REVIEW-0017 without marking any completion gate true.
-2. Reopen TEST-0006 legally from PASS → READY, run the cold-resume/handover drill on the finalized synchronized tree, and bind any PASS to its exact tested SHA while preserving all prior executions.
-3. Reply to REVIEW-0017/F-1 and F-2 with the exact requirement/test/handover evidence and leave the threads unresolved pending independent verification.
-4. Freeze the resulting PR #3 head and request a new fresh-context L2 explicitly on that exact SHA.
-5. If that L2 finds a material defect, record/correct/re-prove it. If it is clean, record truthful approval-capable L2 evidence, resolve only independently verified findings, finalize WORK-0001/progress/completion and merge PR #3.
-6. After PR #3 merge, query live PR #2, integrate new main into it, rerun its full gate, obtain its own fresh L2, resolve only verified threads, and merge only if all gates genuinely pass.
-7. Continue with WORK-0003 and then WORK-0004 in roadmap order.
+1. Inspect the current TEST-0006 state and its latest valid exact-SHA execution. If that execution does not cover the synchronized REVIEW-0017/WORK-0001/PROJECT_STATE handover, continue TEST-0006 from its current legal state through READY/RUNNING/PASS; if it already covers the handover, do not repeat it.
+2. Once qualifying TEST-0006 PASS evidence exists, reply to REVIEW-0017/F-1 and F-2 with the exact requirement/test/handover evidence and leave the threads unresolved pending independent verification.
+3. Freeze the resulting PR #3 head and request a new fresh-context L2 explicitly on that exact SHA.
+4. If that L2 finds a material defect, record/correct/re-prove it. If it is clean, record truthful approval-capable L2 evidence, resolve only independently verified findings, finalize WORK-0001/progress/completion and merge PR #3.
+5. After PR #3 merge, query live PR #2, integrate new main into it, rerun its full gate, obtain its own fresh L2, resolve only verified threads, and merge only if all gates genuinely pass.
+6. Continue with WORK-0003 and then WORK-0004 in roadmap order.
 
 ## Resume instructions
 
