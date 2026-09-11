@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -128,8 +128,19 @@ execution:
   command_or_workflow: "Manual exact-SHA GitHub cold-read of REVIEW-0020-synchronized PR #3 tree, including cross-branch proof-record boundary; full-file YAML parseability remains reserved for independent fresh-L2 confirmation"
   last_run_at: "2026-09-11"
   commit_sha: "d0c985933e66960a781513ad61bd3567c91e5344"
-  result: null
-  evidence: []
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 READY tree d0c985933e66960a781513ad61bd3567c91e5344"
+    - "Compare 45a8dae7fa9f199c63651f15306dcfa6f880b248 → d0c985933e66960a781513ad61bd3567c91e5344 changes only PROJECT_STATE, REVIEW-0020, status-machine REVIEW-0020 metadata, TEST-0006, WORK-0001 and WORK-0002; no progress-matrix or WORK-0002 read_before target changed"
+    - "PR #3 WORK-0002 @ d0c985 has completed_reviews=[] and no TEST-0002/TEST-0003 IDs in unit/integration/e2e/real_system required-test fields"
+    - "REVIEW-0002 is absent from the d0c985 PR #3 tree and present after explicit checkout of feat/work-0002-governance-ci; TEST-0002 and TEST-0003 are likewise present on that implementation branch"
+    - "REQ-0023, REQ-0024 and REQ-0025 @ d0c985 are each status PROPOSED and independently own DoR, DoD and verification strategy"
+    - "REVIEW-0020 remains COMPLETE/CHANGES_REQUIRED and is v7-bound: authorization 53d2b3861b35ad3b17ea9718794c99a594ca4557 predates import f7955c10d4c932df86c3238c8e91322c24ce6929; review binding 0c0ff92c75f80e53640c62b86c283d230382a510; authorization consumption d3a17e7049ff264b22107585bff4145f46fddac3"
+    - "TEST-0005 exact result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe resolves to the actual 'test(governance): pass pre-acceptance TEST-0005' commit"
+    - "WORK-0001 @ d0c985 remains IN_REVIEW with definition_of_done_checked/specification_gates_checked/traceability_checked/review_complete all false"
+    - "Progress matrix @ d0c985 records WORK-0001 IN_REVIEW and WORK-0002 IN_REVIEW and points to the canonical status machine"
+    - "Live PR #2 was rechecked open, non-draft and mergeable at HEAD ab62faa1743705600a0f11335579db68a2166ab3"
+    - "Fresh independent L2 remains required to parse/load full WORK-0001 YAML, independently verify REVIEW-0018/0019/0020 corrections and approve any requirement acceptance or WORK-0001 completion"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -229,3 +240,9 @@ history:
       validity: VALID
       invalidated_by: null
       reason: "After REVIEW-0019, the exact tested tree carries the structural RUN-3 YAML fix, exact TEST-0005 result SHA, synchronized REVIEW-0019 handover, PROPOSED AC-5 replacements, truthful v7 provenance, coherent WORK-0002/matrix/branch boundary and preserved TEST-0001 replacement scope. Full WORK-0001 parser validation remains an explicit independent-L2 check before acceptance/completion."
+    - commit_sha: "d0c985933e66960a781513ad61bd3567c91e5344"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "After REVIEW-0020, the exact tested tree preserves all prior corrected handover/acceptance/provenance semantics while the PR #3 WORK-0002 mirror exposes no branch-local review/test IDs before checkout; branch-local proof remains available after explicit checkout and WORK-0001/WORK-0002/matrix remain coherently non-terminal."
