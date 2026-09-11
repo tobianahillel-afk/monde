@@ -68,16 +68,16 @@ TEST-0007 was reopened for v7 and rerun against exact tree `669dcf7638746e07cc03
 
 That run proved from Git history rather than prose that REVIEW-0014 is an exact historical replay, REVIEW-0015 authorization predates materialization and is one-shot/bound, pre-v7 REVIEW/REQ imports remain exact, TEST-0004 migration remains isolated, progress reopening remains reviewed, and REQ-0006 ↔ TEST-0007 traceability remains intact.
 
-TEST-0006 has an earlier valid PASS on exact v6 synchronized tree `bb973b669797e887d6190065a3d74c377aa33c01` (result `7ce54360a2e56f8892ea70354af824bfa8c4df72`, pointer `abae9028bbc54e4f39f67e915626d2b24c2a29d4`). Its earlier FAIL on `ffffb37d680e477fa03f74523dfac624ad74427c` remains preserved.
-
 Under v7, two cold-resume runs correctly returned FAIL instead of manufacturing a PASS:
 
 - exact tree `11cca4bccb318d29c422917d544a470870b2cf65`: PROJECT_STATE still instructed already-completed WORK-0001 synchronization and TEST-0006 reopen actions; result commit `35e3c4c892f8c9bc6e5424fbe792c2fc8043eaf8`;
 - exact tree `75d3df4486d05ab95d9d65daee2fd7ac77072a47`: the handover still started by recording the prior FAIL and reopening TEST-0006 even though both were already complete at that READY tree; result commit `49a772c224cb3dd4811f48f4bc0431c155b01e74`.
 
-This revision makes the remaining handover **transition-stable**: it no longer assumes TEST-0006 is in a particular intermediate state. A fresh agent must inspect TEST-0006's current lifecycle state and continue that existing proof run forward without repeating completed synchronization or evidence-recording work.
+The handover was then made transition-stable and TEST-0006 was rerun against exact tree `d6f012abe31263f0fa83003646405c039b23611e`. That execution is now **PASS**; result commit `788a2948054cdd90130c72b17910d745fd36d927`; history pointer `11615248d3cafd3577a2920b5a323daa51040f12`.
 
-REVIEW-0014/F-1, REVIEW-0014/F-2 and REVIEW-0015/F-1 remain unresolved until a later fresh-context L2 independently verifies the current v7 proof. No finding is closed merely because the author produced a PASS.
+That PASS rechecked README/START_HERE cold resume, WORK-0001/PROJECT_STATE currentness, global WORK-0002/matrix lifecycle, every current-tree WORK-0002 `read_before`, the explicit PR #2 branch-only handoff, live PR #2 at `c50c33009d90f079e645f0ca9e1befe1a4a77ba9`, v7 external-review import/replay provenance, positive-only review approval semantics and scope-preserving TEST-0001 → TEST-0006 replacement coverage.
+
+REVIEW-0014/F-1, REVIEW-0014/F-2 and REVIEW-0015/F-1 have corrective evidence but remain unresolved until a new fresh-context L2 independently verifies the resulting frozen PR #3 HEAD. No finding is closed merely because the author produced a PASS.
 
 ## WORK-0002 cross-branch boundary
 
@@ -114,13 +114,12 @@ Historical import/replay exceptions preserve immutable history only when their e
 
 ## Next action
 
-1. Inspect `registry/tests/TEST-0006.yaml` and continue its **current** lifecycle state forward toward a new exact-SHA result; do not repeat WORK-0001/PROJECT_STATE synchronization or prior FAIL recording that is already present.
-2. The exact tree used for the next RUNNING execution must include this transition-stable handover and the matching WORK-0001 evidence. Recheck README/START_HERE cold resume, WORK-0001/PROJECT_STATE currentness, global WORK-0002/matrix state, every current-tree WORK-0002 `read_before`, explicit PR #2 branch handoff, live PR #2, v7 external-import/replay isolation, positive-only review approval and TEST-0001 replacement coverage.
-3. If any assertion is false, record FAIL and correct it without erasing prior evidence. If all assertions are true, record PASS, bind the result and synchronize that PASS into WORK-0001/PROJECT_STATE.
-4. Reply to REVIEW-0015/F-1 with exact evidence and leave relevant threads unresolved pending independent verification. Freeze the resulting PR #3 HEAD and request a fresh-context L2 on that exact SHA.
-5. If the fresh L2 reports any material defect, correct and re-prove it. If it reports no material defect, record truthful approval-capable L2 evidence, resolve only findings independently verified as corrected, finalize WORK-0001/progress/completion and merge PR #3.
-6. After PR #3 merge, update PR #2 on the new main contract, correct and re-prove its outstanding fresh-L2 findings, obtain its own fresh L2, and merge only if its gate genuinely passes.
-7. Continue with WORK-0003 and then WORK-0004 in roadmap order.
+1. Synchronize WORK-0001 with the current TEST-0006 PASS (`d6f012abe31263f0fa83003646405c039b23611e` tested; result `788a2948054cdd90130c72b17910d745fd36d927`; history pointer `11615248d3cafd3577a2920b5a323daa51040f12`) while keeping WORK-0001/T6/RUN-3/completion gates non-terminal.
+2. Reply to REVIEW-0015/F-1 with the exact v7 + TEST-0007 + TEST-0006 evidence; leave REVIEW-0014/F-1, REVIEW-0014/F-2 and REVIEW-0015/F-1 unresolved pending independent verification.
+3. Update the PR #3 description to the current v7 proof, freeze the resulting HEAD and request a fresh-context L2 explicitly against that exact SHA.
+4. If the fresh L2 reports any material defect, correct and re-prove it. If it reports no material defect, record truthful approval-capable L2 evidence, resolve only findings independently verified as corrected, finalize WORK-0001/progress/completion and merge PR #3.
+5. After PR #3 merge, update PR #2 on the new main contract, correct and re-prove its outstanding fresh-L2 findings, obtain its own fresh L2, and merge only if its gate genuinely passes.
+6. Continue with WORK-0003 and then WORK-0004 in roadmap order.
 
 ## Resume instructions
 
