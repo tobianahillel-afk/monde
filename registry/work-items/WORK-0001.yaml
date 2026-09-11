@@ -437,7 +437,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap branch and core resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle, testing, security, ADR, GitHub workflow, capability registry, roadmap and scorecard."}
-  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0018 narrowed assurance debt. Prematurely accepted 0020/21/22 are preserved as superseded history; 0023/24/25 remain PROPOSED. Pre-acceptance TEST-0005 and REVIEW-0018-era TEST-0006 baselines are SHA-bound; current proof is read from the TEST records, and the remaining independent gate is a fresh approval-capable L2 before requirement acceptance."
+  - {run: RUN-3, date: "2026-09-11", note: "PR #1 was merged; fresh L2 reviews through REVIEW-0018 narrowed assurance debt. Prematurely accepted 0020/21/22 are preserved as superseded history; 0023/24/25 remain PROPOSED. Pre-acceptance TEST-0005 and REVIEW-0018-era TEST-0006 baselines are SHA-bound; current proof is read from the TEST records, and the remaining independent gate is a fresh approval-capable L2 before requirement acceptance."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle, requirements/assumptions/risks, traceability, Review Council and backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added DoR, NFRs, threat modeling, research protocol, assurance levels, advanced verification and machine-readable REVIEW/TEST/EXP evidence."}
 
@@ -451,7 +451,7 @@ discoveries:
   - "A prematurely accepted post-v7 requirement cannot be rolled backward to PROPOSED; preserve it as historical evidence and replace it through legal supersession with a proposed owner."
   - "Registry status semantics must be registry-specific and machine-readable before CI can enforce transitions safely."
   - "A post-merge independent review can expose assurance debt that was invisible to same-context review."
-  - "Historical evidence must not be widened retroactively to corrective artifacts created later."
+  - "Historical evidence must not be widened retroactively to corrective files or requirements created after execution."
   - "An unprovable historical tested SHA must not be guessed; the evidence should be superseded and replaced with revision-bound proof."
   - "Superseding evidence must preserve or explicitly partition the behavior represented by the superseded artifact."
   - "A blocking review finding marked ACCEPTED needs explicit accepting authority and evidence, not only a disposition token."
