@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: FAIL
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -87,14 +87,11 @@ cases:
     - "Cold-read README then START_HERE/PROJECT_STATE/WORK-0001 and attempt to resume without conversation memory"
 
 execution:
-  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3 tree 75d3df4486d05ab95d9d65daee2fd7ac77072a47"
-  last_run_at: "2026-09-11"
-  commit_sha: "75d3df4486d05ab95d9d65daee2fd7ac77072a47"
-  result: FAIL
-  evidence:
-    - "PROJECT_STATE.md @ 75d3df4486d05ab95d9d65daee2fd7ac77072a47 still starts Next action by recording the prior FAIL into WORK-0001 and reopening TEST-0006, although WORK-0001 already contains that FAIL and TEST-0006 is already READY at this tree."
-    - "The content is substantively correct about v7/REVIEW-0015, but the ordered handover would send a fresh agent backward into already-completed proof-state administration."
-    - "This run is therefore FAIL; the next handover revision must be durable across TEST state transitions rather than naming a step that becomes stale immediately after it is performed."
+  command_or_workflow: "Manual exact-SHA GitHub cold-read, current-tree read_before existence, cross-branch handoff, lifecycle-v7 import/replay/provenance and review-outcome audit of PR #3"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -148,7 +145,7 @@ history:
       reason: "The v7 contract and WORK-0001 were current, but PROJECT_STATE still instructed a cold-resuming agent to repeat already-completed WORK-0001 synchronization and TEST-0006 reopen actions."
     - commit_sha: "75d3df4486d05ab95d9d65daee2fd7ac77072a47"
       recorded_result: FAIL
-      recorded_in_commit: null
+      recorded_in_commit: "49a772c224cb3dd4811f48f4bc0431c155b01e74"
       validity: VALID
       invalidated_by: null
-      reason: "The v7 handover was closer but still named two actions already complete at the tested READY tree: recording the previous FAIL in WORK-0001 and reopening TEST-0006. The next handover must remain correct across the test's FAIL/READY/RUNNING state changes."
+      reason: "The v7 handover was closer but still named two actions already complete at the tested READY tree. PROJECT_STATE b0fb0d63c368e209a3180496b33a0fbc184612ae and WORK-0001 d4ae8ce57c3b7d74f55a0f23b8069662520f45ba now direct continuation from TEST-0006's current lifecycle state instead."
