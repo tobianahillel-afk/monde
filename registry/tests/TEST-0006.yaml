@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -46,7 +46,7 @@ protects:
     - "Live PR #2 HEAD/check/thread truth is queried from GitHub rather than canonized as a volatile repository-state constant"
     - "REQ-0005 and prematurely accepted REQ-0020/REQ-0021/REQ-0022 remain historical/superseded while REQ-0023/REQ-0024/REQ-0025 are the active PROPOSED AC-5 owners"
     - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED until an approval-capable independent review inspects them"
-    - "WORK-0001 is loadable by a standard YAML parser"
+    - "WORK-0001 has the exact parser-breaking RUN-3 flow mapping defect corrected; full-file parseability remains an independent-review assertion rather than an author-fabricated parser run"
     - "Every copied exact evidence SHA used by the current proof is a full resolvable commit identifier"
 
 environment:
@@ -62,7 +62,7 @@ cases:
     - "README directs a new agent to START_HERE, AGENTS and PROJECT_STATE before implementation"
     - "docs/00_START_HERE.md gives an ordered cold-resume path through PROJECT_STATE, active WORK, read_before, linked registries and live work discussion"
     - "PROJECT_STATE and WORK-0001 expose REVIEW-0019, exact TEST-0005 pre-acceptance proof, status-machine v7, current TEST-0007 generic lifecycle proof and TEST-0006/fresh-L2 gating without telling the agent to repeat completed steps"
-    - "WORK-0001 parses as valid YAML and exposes its RUN-3 mapping as a complete flow mapping"
+    - "WORK-0001's exact REVIEW-0019 parser-breaking defect is corrected: RUN-3 is a closed flow mapping; the next independent L2 must perform/confirm full machine parseability"
     - "PROJECT_STATE and TEST-0006 both reference exact TEST-0005 PASS result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe wherever that proof is copied"
     - "PROJECT_STATE, registry/work-items/WORK-0002.yaml and registry/progress/matrix.yaml agree that WORK-0002 is IN_REVIEW while WORK-0001 remains the blocking dependency"
     - "PROJECT_STATE deliberately does not duplicate a volatile PR #2 HEAD and instead requires live GitHub recheck before resume/merge decisions"
@@ -92,7 +92,7 @@ cases:
     - "README/START_HERE does not route to the current project state and active work"
     - "PROJECT_STATE cannot identify current work and its next gate without chat history"
     - "PROJECT_STATE and WORK-0001 disagree on REVIEW-0019/current proof state"
-    - "WORK-0001 cannot be loaded by a standard YAML parser"
+    - "The exact REVIEW-0019 parser-breaking RUN-3 mapping remains unclosed or another independent parser review still finds WORK-0001 invalid"
     - "PROJECT_STATE or TEST-0006 contains the truncated TEST-0005 result ce962ec2ad199dd914ee4e4a66ec4e110fbfbe"
     - "PROJECT_STATE instructs a cold-resuming agent to perform administrative or TEST transitions already complete at the tested SHA"
     - "PROJECT_STATE or WORK-0001 hardcodes a volatile current TEST result or PR #2 HEAD as a second mutable source of truth"
@@ -106,7 +106,7 @@ cases:
     - "WORK-0001 still uses superseded AC-5 owners or omits one of REQ-0023/REQ-0024/REQ-0025"
     - "REQ-0023/REQ-0024/REQ-0025 becomes ACCEPTED before the next approval-capable independent review"
   adversarial_cases:
-    - "Load WORK-0001 with a standard YAML parser instead of relying on visual inspection"
+    - "Have the fresh independent L2 load/validate WORK-0001 as YAML instead of relying on author visual inspection"
     - "Resolve every copied TEST-0005 result SHA and verify it equals ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe"
     - "Resolve every PR #3 WORK-0002 read_before path at the exact tested SHA rather than assuming branch-local files exist"
     - "Verify branch-only prerequisites on feat/work-0002-governance-ci"
@@ -120,11 +120,15 @@ cases:
     - "Attempt to treat TEST-0005 PASS as approval authority and verify REQ-0023/24/25 remain PROPOSED"
 
 execution:
-  command_or_workflow: "Pending exact-SHA cold-resume rerun after REVIEW-0019 YAML/SHA corrections"
-  last_run_at: null
-  commit_sha: null
+  command_or_workflow: "Manual exact-SHA GitHub cold-read after REVIEW-0019 YAML/SHA corrections; full-file YAML parseability is reserved for independent fresh-L2 confirmation because the GitHub connector exposes content but not a YAML execution runtime"
+  last_run_at: "2026-09-11"
+  commit_sha: "45a8dae7fa9f199c63651f15306dcfa6f880b248"
   result: null
-  evidence: []
+  evidence:
+    - "Exact tested PR #3 READY tree 45a8dae7fa9f199c63651f15306dcfa6f880b248"
+    - "TEST-0005 exact PASS result ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe resolves as the real Git commit 'test(governance): pass pre-acceptance TEST-0005'"
+    - "WORK-0001 at 45a8dae7 contains the corrected closed RUN-3 flow mapping; independent L2 is explicitly required to confirm full parser validity"
+    - "PROJECT_STATE and WORK-0001 are synchronized through REVIEW-0019 and keep REQ-0023/REQ-0024/REQ-0025 PROPOSED"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
