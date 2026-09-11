@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 evidence, authority and requirement-atomicity drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -66,7 +66,7 @@ cases:
     - "Attempt to narrow REQ-0005 in place instead of preserving its compound historical semantics through supersession"
 
 execution:
-  command_or_workflow: "Pending exact-SHA rerun after REVIEW-0017/F-2 atomic AC-5 requirement split"
+  command_or_workflow: "Manual exact-SHA GitHub inspection for REVIEW-0017/F-2 atomic AC-5 requirement split"
   last_run_at: null
   commit_sha: null
   result: null
