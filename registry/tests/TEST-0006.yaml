@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -111,10 +111,23 @@ cases:
 
 execution:
   command_or_workflow: "Manual exact-SHA cold-resume rerun on REVIEW-0023-corrected transition-stable handover"
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  last_run_at: "2026-09-11"
+  commit_sha: "683c3493a2876b433e9b833e4d3ea3468dc9f1d3"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree 683c3493a2876b433e9b833e4d3ea3468dc9f1d3; live PR remained open/non-draft/mergeable on that exact head immediately before verdict."
+    - "WORK-0001 exact Git blob 758abccacc846ce72ea5a4a51c6e740fe48bee13 was reconstructed from GitHub line ranges; 43,994 UTF-8 bytes recomputed to the same Git blob SHA and yaml.safe_load parsed successfully as WORK-0001 / IN_REVIEW. RUN-3 parsed IN_REVIEW; definition_of_done_checked, specification_gates_checked, traceability_checked and review_complete all parsed false."
+    - "PROJECT_STATE @ 683c3493 records the completed 6e6e005f → b0fde620 → 3a05ec6f proof as historical, names REVIEW-0023/F-1 as current adverse evidence, makes TEST-0006 the sole execution-identity source, and conditionally proceeds directly to fresh L2 once a qualifying PASS exists."
+    - "WORK-0001 @ 683c3493 includes REVIEW-0023 in affected/evidence surfaces, remains IN_REVIEW and keeps completion gates false."
+    - "REQ-0023, REQ-0024 and REQ-0025 @ 683c3493 are all PROPOSED with verification.test_ids [TEST-0005, TEST-0006]; TEST-0006 protects all three."
+    - "Full TEST-0005 PASS SHA ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe resolves in GitHub to test(governance): pass pre-acceptance TEST-0005 for exact tree efd48467352c0ce4ec344ebe410fd9e98d938721."
+    - "PR #3 WORK-0002 mirror @ 683c3493 is IN_REVIEW, depends on WORK-0001, has completed_reviews empty, no branch-local TEST/REVIEW IDs in local proof fields, locally resolvable read_before paths and affected_schemas []."
+    - "Live PR #2 immediately before verdict is open/non-draft/mergeable at ab62faa1743705600a0f11335579db68a2166ab3 with WORK-0002 still IN_REVIEW. After that explicit boundary, schemas/registry/work-items.schema.json, reviews.schema.json and tests.schema.json all resolve on ab62faa1."
+    - "TEST-0004 @ 683c3493 does not protect current REQ-0010; current REQ-0010 is Atomic specification requirements with verification.test_ids [TEST-0005]."
+    - "REVIEW-0023 @ 683c3493 is COMPLETE/CHANGES_REQUIRED with F-1 OPEN and exact external import metadata: authorization bdc52847919696e72b13f63afcad622412739ef3, import 026849083f8baf7a40a67ec6ac70e2b2e169abbe. status-machines v7 consumes that one-shot authorization with consumed_by_commit 026849083f8baf7a40a67ec6ac70e2b2e169abbe; review binding is 741a8662a61acdec56addca8492cb45341c93e7b and authorization consumption commit is be897be03267a44bf5167a18dca0ada384e42052."
+    - "Progress matrix @ 683c3493 keeps PHASE-0/LOT-0 IN_PROGRESS, SUBLOT-0.1/WORK-0001 IN_REVIEW and SUBLOT-0.2/WORK-0002 IN_REVIEW."
+    - "Prior TEST-0006 execution 6e6e005fc81b0ea91427fc55ea1f09d818650d7b remains preserved but is INVALIDATED by REVIEW-0023/F-1 rather than rewritten or reused as current closure evidence."
+    - "No GitHub Actions workflow run exists for 683c3493; this record therefore claims only the documented manual exact-SHA drill and real parser execution, not CI evidence."
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -143,3 +156,4 @@ history:
     - {commit_sha: "20544cc6af2c690ba9e0593ea554c0c1596466e4", recorded_result: PASS, recorded_in_commit: "4b28d2218a5e9256d0348c73d031328ba2ef2d2f", validity: VALID, invalidated_by: null, reason: "REVIEW-0021 reciprocal requirement↔TEST-0006 traceability, current handover, cross-branch proof boundary, exact SHA integrity, pre-acceptance sequencing and v7 provenance all pass on the exact tested tree; independent YAML parse remains a fresh-L2 gate."}
     - {commit_sha: "f21985ae608373ec8a3d93f92c5a76a2b11bd1ee", recorded_result: PASS, recorded_in_commit: "eb9e9dcb17f625c53545a3966b8bd64fd165f743", validity: VALID, invalidated_by: null, reason: "Final transition-stable REVIEW-0021 handover passes reciprocal REQ↔TEST traceability, exact TEST-0005 SHA integrity, cross-branch proof isolation, live PR #2 lifecycle, positive-only approval semantics and v7 one-shot provenance; independent YAML parse and approval-capable fresh L2 remain subsequent gates."}
     - {commit_sha: "6e6e005fc81b0ea91427fc55ea1f09d818650d7b", recorded_result: PASS, recorded_in_commit: "b0fde620d06e0b4e4e5d16ab39680ad468fbf260", validity: INVALIDATED, invalidated_by: "REVIEW-0023/F-1", reason: "REVIEW-0023 established that PROJECT_STATE still ordered this already-completed rerun as future work, so the execution's handover-currentness assertion was false; immutable PASS result is preserved but cannot gate current closure."}
+    - {commit_sha: "683c3493a2876b433e9b833e4d3ea3468dc9f1d3", recorded_result: PASS, recorded_in_commit: null, validity: VALID, invalidated_by: null, reason: "REVIEW-0023-corrected transition-stable handover passes with WORK-0001 real YAML parsing/hash verification, proposed reciprocal REQ↔TEST traceability, exact TEST-0005 SHA integrity, PR #3 mirror isolation, explicit PR #2 schema boundary, revision-bound REQ-0010 coverage and REVIEW-0022/0023 v7 provenance; fresh approval-capable L2 remains the closure gate."}
