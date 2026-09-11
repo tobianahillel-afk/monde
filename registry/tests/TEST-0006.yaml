@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -104,7 +104,7 @@ cases:
     - "Attempt to reuse a consumed v7 external-review authorization and verify the contract forbids it"
     - "Follow TEST-0001.supersession and compare original protected contracts/invariant with TEST-0006 coverage"
     - "Cold-read README then START_HERE/PROJECT_STATE/WORK-0001 and attempt to resume without conversation memory"
-    - "Walk PROJECT_STATE Next action at READY/RUNNING/PASS and verify it continues from current TEST-0006 state rather than ordering a completed transition"
+    - "Walk PROJECT_STATE Next action at READY/RUNNING/PASS and verify it continues from current TEST-0006 state instead of ordering a completed transition"
     - "Walk AC-5 ownership from WORK-0001 and verify active proposed owners are REQ-0023/REQ-0024/REQ-0025"
     - "Attempt to treat TEST-0005 PASS as approval authority and verify REQ-0023/24/25 remain PROPOSED"
 
