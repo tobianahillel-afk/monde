@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening, historical migration/import/replay and external review provenance drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -106,7 +106,7 @@ cases:
     - "Start a forward traceability walk at REQ-0006 and verify it reaches TEST-0007 without relying on TEST-0007's reverse declaration"
 
 execution:
-  command_or_workflow: "Pending exact-SHA audit of lifecycle v8, REVIEW-0024 provenance, requirement acceptance preconditions and risk acceptance authority"
+  command_or_workflow: "Manual exact-SHA audit of lifecycle v8, REVIEW-0024 provenance, requirement acceptance preconditions and risk acceptance authority"
   last_run_at: null
   commit_sha: null
   result: null
