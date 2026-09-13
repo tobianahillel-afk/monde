@@ -91,28 +91,14 @@ assurance:
 scope_change:
   approved: true
   rationale: |
-    Post-merge fresh-context reviews successively narrowed assurance debt without expanding MONDE product scope. REVIEW-0013..0024 established current lifecycle proof, truthful historical/import boundaries, active AC-5 atomic owners, exact proof SHA integrity, cross-branch isolation and machine-enforced v8 acceptance ordering. REVIEW-0025/F-1/F-2/F-3 further requires exact normative-content binding, a genuinely fresh-context acceptance cold read, and machine-resolvable risk/finding authority. v9 introduces only reusable governance primitives needed to satisfy those findings; no product capability scope is added.
+    Fresh-context reviews successively narrowed foundational assurance debt without adding MONDE product scope. REVIEW-0025 required exact normative-content binding, genuine fresh-context acceptance cold reads and machine-resolvable authority. REVIEW-0026 then found three implementation-level gaps in those corrections: authority evidence was self-referential, normative JSON serialization was not byte-exact across implementations, and the handover repeated already-completed proof work. The current correction binds accepted-finding authority to independent GitHub metadata, makes requirement identity byte-exact through RFC 8785/JCS, and advances the handover directly to the latest external review. No product capability scope is added.
   evidence:
-    - REVIEW-0013/F-1
-    - REVIEW-0014/F-1
-    - REVIEW-0014/F-2
-    - REVIEW-0015/F-1
-    - REVIEW-0016/F-1
-    - REVIEW-0017/F-1
-    - REVIEW-0017/F-2
-    - REVIEW-0018/F-1
-    - REVIEW-0019/F-1
-    - REVIEW-0019/F-2
-    - REVIEW-0020/F-1
-    - REVIEW-0021/F-1
-    - REVIEW-0022/F-1
-    - REVIEW-0022/F-2
-    - REVIEW-0023/F-1
-    - REVIEW-0024/F-1
-    - REVIEW-0024/F-2
     - REVIEW-0025/F-1
     - REVIEW-0025/F-2
     - REVIEW-0025/F-3
+    - REVIEW-0026/F-1
+    - REVIEW-0026/F-2
+    - REVIEW-0026/F-3
 
 read_before:
   - README.md
@@ -123,6 +109,12 @@ read_before:
   - registry/status-machines.yaml
   - registry/content-identity.yaml
   - registry/acceptance-authority.yaml
+  - registry/reviews/REVIEW-0025.yaml
+  - registry/reviews/REVIEW-0026.yaml
+  - registry/tests/TEST-0005.yaml
+  - registry/tests/TEST-0006.yaml
+  - registry/tests/TEST-0007.yaml
+  - registry/tests/TEST-0008.yaml
   - docs/09_GOVERNANCE/constitution.md
   - docs/09_GOVERNANCE/threat-modeling.md
   - docs/10_ROADMAP/development-process.md
@@ -137,11 +129,6 @@ read_before:
   - docs/13_QUALITY/non-functional-requirements.md
   - docs/13_QUALITY/reproducibility-backtesting.md
   - docs/12_RESEARCH/research-protocol.md
-  - registry/reviews/REVIEW-0025.yaml
-  - registry/tests/TEST-0005.yaml
-  - registry/tests/TEST-0006.yaml
-  - registry/tests/TEST-0007.yaml
-  - registry/tests/TEST-0008.yaml
 
 depends_on: []
 blocks:
@@ -190,29 +177,8 @@ affected_docs:
   - registry/README.md
   - registry/progress/matrix.yaml
   - registry/reviews/REVIEW-0001.yaml
-  - registry/reviews/REVIEW-0003.yaml
-  - registry/reviews/REVIEW-0004.yaml
-  - registry/reviews/REVIEW-0005.yaml
-  - registry/reviews/REVIEW-0006.yaml
-  - registry/reviews/REVIEW-0007.yaml
-  - registry/reviews/REVIEW-0008.yaml
-  - registry/reviews/REVIEW-0009.yaml
-  - registry/reviews/REVIEW-0010.yaml
-  - registry/reviews/REVIEW-0011.yaml
-  - registry/reviews/REVIEW-0012.yaml
-  - registry/reviews/REVIEW-0013.yaml
-  - registry/reviews/REVIEW-0014.yaml
-  - registry/reviews/REVIEW-0015.yaml
-  - registry/reviews/REVIEW-0016.yaml
-  - registry/reviews/REVIEW-0017.yaml
-  - registry/reviews/REVIEW-0018.yaml
-  - registry/reviews/REVIEW-0019.yaml
-  - registry/reviews/REVIEW-0020.yaml
-  - registry/reviews/REVIEW-0021.yaml
-  - registry/reviews/REVIEW-0022.yaml
-  - registry/reviews/REVIEW-0023.yaml
-  - registry/reviews/REVIEW-0024.yaml
   - registry/reviews/REVIEW-0025.yaml
+  - registry/reviews/REVIEW-0026.yaml
   - registry/requirements/REQ-0005.yaml
   - registry/requirements/REQ-0020.yaml
   - registry/requirements/REQ-0021.yaml
@@ -258,7 +224,7 @@ impact_analysis:
     - "all future implementation work"
   migrations_or_reprocessing: []
   compatibility_notes: |
-    This active WORK record is intentionally compacted as a current routing/index record; immutable detail remains in linked REQ/REVIEW/TEST records and Git history. v9 preserves prior lifecycle/history semantics while adding deterministic requirement content identity, separately qualified fresh-context acceptance cold reads and a single typed authority matrix. REQ-0023/24/25 remain PROPOSED. Current TEST lifecycle/result identity is authoritative only in each TEST record. Cross-branch WORK-0002 implementation proof remains behind explicit PR #2 checkout.
+    This active WORK record is intentionally compacted as a current routing/index record; immutable detail remains in linked REQ/REVIEW/TEST records and Git history. status-machines v9 remains the lifecycle contract. content-identity v2 clarifies the same REQUIREMENT_NORMATIVE_V1 identity with byte-exact RFC 8785/JCS serialization, which requires current proof reruns even if the active requirement digests remain unchanged. REQ-0023/24/25 remain PROPOSED. TEST-0008 remains independent-only and unqualified. Current TEST lifecycle/result identity is authoritative only in each TEST record. Cross-branch WORK-0002 implementation proof remains behind explicit PR #2 checkout.
 
 implementation_plan:
   tasks:
@@ -267,13 +233,13 @@ implementation_plan:
     - {id: T3, description: "Define development lifecycle, DoR/DoD and testing strategy.", depends_on: [T2], expected_files: [docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md], status: DONE}
     - {id: T4, description: "Define documentation/security/threat-model/ADR governance.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/11_ADR/README.md], status: DONE}
     - {id: T5, description: "Add GitHub templates, capability registry, roadmap and scorecard.", depends_on: [T3, T4], expected_files: [.github/pull_request_template.md, registry/capabilities/README.md, docs/10_ROADMAP/phase-0.md, docs/13_QUALITY/project-scorecard.md], status: DONE}
-    - {id: T6, description: "Complete post-merge independent assurance correction and final fresh re-review.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/content-identity.yaml, registry/acceptance-authority.yaml, registry/reviews/REVIEW-0025.yaml, registry/requirements/REQ-0023.yaml, registry/requirements/REQ-0024.yaml, registry/requirements/REQ-0025.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/tests/TEST-0008.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
+    - {id: T6, description: "Complete post-merge independent assurance correction and final fresh re-review.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/content-identity.yaml, registry/acceptance-authority.yaml, registry/reviews/REVIEW-0026.yaml, registry/requirements/REQ-0023.yaml, registry/requirements/REQ-0024.yaml, registry/requirements/REQ-0025.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/tests/TEST-0008.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
     - {id: T7, description: "Add scientific specification lifecycle, requirements/assumptions/risks, traceability and reproducibility/backtesting contracts.", depends_on: [T3, T4, T5], expected_files: [docs/13_QUALITY/specification-quality.md, docs/13_QUALITY/reproducibility-backtesting.md, registry/requirements/_TEMPLATE.yaml, registry/assumptions/_TEMPLATE.yaml, registry/risks/_TEMPLATE.yaml], status: DONE}
     - {id: T8, description: "Add assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols.", depends_on: [T7], expected_files: [docs/13_QUALITY/review-council.md, docs/13_QUALITY/assurance-levels.md, docs/13_QUALITY/advanced-verification.md, docs/13_QUALITY/non-functional-requirements.md, docs/12_RESEARCH/research-protocol.md], status: DONE}
   planned_runs:
     - {id: RUN-1, objective: "Repository navigation/governance tracking bootstrap", tasks: [T1, T2], exit_condition: "Core resume/tracking contracts exist", status: DONE}
     - {id: RUN-2, objective: "Quality/lifecycle/GitHub workflow bootstrap", tasks: [T3, T4, T5], exit_condition: "Development gates/templates exist", status: DONE}
-    - {id: RUN-3, objective: "Post-merge bootstrap assurance correction and fresh re-review", tasks: [T6], exit_condition: "v9 proof is exact-SHA, TEST-0008 has real fresh-context evidence, fresh L2 is approval-capable, and no unresolved blocking finding remains", status: IN_REVIEW}
+    - {id: RUN-3, objective: "Post-merge bootstrap assurance correction and fresh re-review", tasks: [T6], exit_condition: "Current REVIEW-0026 corrections have revision-bound proof, TEST-0008 has real fresh-context evidence, a later L2 is approval-capable, and no unresolved blocking finding remains", status: IN_REVIEW}
     - {id: RUN-4, objective: "Scientific/documentation governance hardening", tasks: [T7], exit_condition: "Canonical documentation is governed as rigorously as implementation", status: DONE}
     - {id: RUN-5, objective: "Assurance, research and advanced verification hardening", tasks: [T8], exit_condition: "Quality dimensions/review evidence are explicit and synchronized", status: DONE}
 
@@ -321,13 +287,16 @@ review_plan:
     - REVIEW-0025/F-1
     - REVIEW-0025/F-2
     - REVIEW-0025/F-3
+    - REVIEW-0026/F-1
+    - REVIEW-0026/F-2
+    - REVIEW-0026/F-3
 
 required_tests:
   unit: []
   property: []
   integration: []
   contract:
-    - "Cross-file consistency of lifecycle, content identity, acceptance evidence, authority matrix, traceability, cross-branch boundaries and external-review provenance"
+    - "Cross-file consistency of lifecycle, byte-exact content identity, acceptance evidence, authority matrix, traceability, cross-branch boundaries and external-review provenance"
   e2e:
     - TEST-0004
     - TEST-0005
@@ -336,22 +305,25 @@ required_tests:
     - TEST-0008
   regression:
     - "Historical lifecycle/import/replay exceptions remain exact and non-reusable"
+    - "REQUIREMENT_NORMATIVE_V1 uses RFC 8785/JCS exact UTF-8 bytes, not implementation-defined JSON"
     - "Active requirement normative digest must recompute; stale review/cold-read digests fail closed"
     - "Generic author-run PASS TEST cannot satisfy acceptance cold read"
+    - "Accepted finding authority_evidence_ref must resolve independently and establish the claimed actor/role"
     - "Risk/finding authority role/evidence must resolve through registry/acceptance-authority.yaml"
     - "REQ-0023/24/25 remain PROPOSED until exact-digest independent review plus qualifying TEST-0008 evidence exist"
     - "REQ-0023/24/25 ↔ TEST-0006 general proof traceability remains reciprocal"
     - "PROJECT_STATE and WORK-0001 do not duplicate mutable TEST lifecycle/result state"
+    - "PROJECT_STATE resumes from the latest review outcome rather than already-completed proof administration"
     - "PR #3 WORK-0002 mirror never exposes branch-local proof IDs/schemas before explicit checkout"
     - "Historical TEST-0004 does not claim current REQ-0010 semantic coverage"
   security:
-    - "Repository remains public by explicit owner decision under public-code-safe constraints; accepted finding authority is typed under matrix v1"
+    - "Repository remains public by explicit owner decision under public-code-safe constraints; accepted finding authority is typed under matrix v1 and independently resolvable to GitHub repository-owner metadata"
   performance: []
   real_system:
     - "Actual GitHub repository/PR history is used for exact-SHA proof"
-    - "REVIEW-0025 provenance is preauthorized/imported/bound/consumed one-shot"
-    - "TEST-0005 v9: ed716f93116f1d121ed7aa54174b8bdbf1030513 FAIL → df5e766a32cdd5782fdd727e38d73c8b7e8e7355 → 2b3338f500015f100e0a3ab477b95ae111e99c4e; corrected 1562acdff730d832770befdbfe296615fac2a544 PASS → 7abdfbd0655e96239d8ddb511f3edfc0b19571f7 → ae89cf9fd1252ec50e537f014983b3979c44a6ad"
-    - "TEST-0007 v9: 278da4e4f14a9897fa746d29725c8f666b6add2c PASS → 61c64a2c0920a28949377b75aa9df92637aeb371 → 8288143e2915498a06d0a18db8ffbaa607fac948"
+    - "REVIEW-0026 provenance is authorization 018ae267f2b6c63636fdb5f7833f64b1fd68f11b → import 6075c1d87853f8c0c144e7d95bfa767ba476aa72 → review binding 02968f1babd5015a1549efbac46f6ba182d3d910 → authorization consumption d2b6d4a9b4db340d5934e5ee05b1a2d8d64e783c"
+    - "GitHub compare proves authorization → REVIEW-0026 import is ahead_by=1 and the sole added file is registry/reviews/REVIEW-0026.yaml"
+    - "GitHub repository metadata identifies owner.login=tobianahillel-afk and collaborator permission=admin"
     - "TEST-0008 remains reserved for genuine external fresh-context cold-read execution"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
@@ -375,15 +347,16 @@ observability:
 validation:
   executed:
     - "PR #1 merge history and corrective PR #3 history inspected"
-    - "Fresh L2 reviews through REVIEW-0025 used as adverse/approval evidence rather than author self-approval"
+    - "Fresh L2 reviews through REVIEW-0026 are preserved as adverse/approval evidence according to their actual outcome"
     - "REQ-0020/21/22 preserved as SUPERSEDED premature-acceptance history; REQ-0023/24/25 remain PROPOSED"
-    - "v9 deterministic content identity, dedicated fresh-context cold-read contract and authority matrix are present"
-    - "TEST-0005 first v9 digest mismatch failed closed and corrected rerun passed"
-    - "TEST-0007 v9 re-proved exact lifecycle/import/replay and typed authority semantics"
+    - "REVIEW-0026 imported with one-shot parent authorization and exact later binding/consumption"
+    - "REVIEW-0026/F-1 correction binds REVIEW-0001/F-3 to independent GitHub repository-owner metadata"
+    - "REVIEW-0026/F-2 correction makes content identity byte-exact through RFC 8785/JCS"
+    - "REVIEW-0026/F-3 correction advances PROJECT_STATE directly to the latest external review result"
     - "Current TEST execution identity is read only from TEST records"
   evidence:
     - PR-3
-    - REVIEW-0025
+    - REVIEW-0026
     - TEST-0005
     - TEST-0006
     - TEST-0007
@@ -398,8 +371,10 @@ validation:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "REVIEW-0025/F-1/F-2/F-3 remain OPEN until a later fresh-context approval-capable L2 independently verifies v9 corrections."
-    - "TEST-0006 must be rerun after synchronized v9 WORK/PROJECT_STATE unless its record already contains a valid v9 execution."
+    - "REVIEW-0026/F-1/F-2/F-3 remain OPEN until a later fresh-context approval-capable L2 independently verifies their corrections."
+    - "TEST-0005 must be rerun under content-identity v2 / RFC 8785 JCS."
+    - "TEST-0007 must be rerun for REVIEW-0026 provenance and independently-resolvable owner-authority evidence."
+    - "TEST-0006 must be rerun only after REVIEW-0026, PROJECT_STATE and current TEST-0005/0007 proof are synchronized."
     - "TEST-0008 requires real L2/L3 fresh-context execution and must not be self-populated."
     - "REQ-0023/24/25 cannot transition to ACCEPTED until both exact-digest approval review and TEST-0008 evidence qualify under v9."
     - "Historical open findings remain open until a fresh independent review explicitly verifies their corrections; this compact record does not silently resolve them."
@@ -418,16 +393,17 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle/testing/security/ADR/templates/roadmap/scorecard."}
-  - {run: RUN-3, date: "2026-09-14", note: "Fresh L2 chain through REVIEW-0025 narrowed assurance debt. v9 now binds acceptance to exact normative digests, requires genuine fresh-context TEST-0008 cold-read evidence, and resolves risk/finding authority through a canonical matrix. TEST-0005 v9 failed closed on initial digest mismatch then passed after deterministic-projection correction; TEST-0007 v9 passed authority/import/lifecycle proof. Remaining path: v9 TEST-0006 handover proof, frozen-candidate fresh L2 + TEST-0008, then only evidence-valid acceptance/closure."}
+  - {run: RUN-3, date: "2026-09-14", note: "Fresh L2 REVIEW-0026 on frozen 4f8cebee returned CHANGES_REQUIRED: independently-resolvable owner authority evidence, byte-exact normative JSON serialization and transition-stable handover were still incomplete. Corrections are now present, REVIEW-0026 provenance is closed, and current TEST-0005/0007/0006 proof must be rerun before the next frozen-candidate L2. TEST-0008 remains unqualified."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle/requirements/risks/traceability/backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added assurance/review/test/experiment/NFR/research protocols."}
 
 discoveries:
-  - "A requirement remaining PROPOSED does not keep stale proof valid after normative content changes; acceptance proof must bind a deterministic content identity."
+  - "A typed authority field is insufficient when its evidence reference resolves only to the accepting finding itself; authority evidence must independently establish the actor/role."
+  - "Canonical JSON semantics are insufficient for content-addressed identity unless the exact serialized bytes are standardized."
+  - "A transition-stable handover must advance when the independent review arrives; conditional wording that begins with completed administration can still be stale."
+  - "A requirement remaining PROPOSED does not keep stale proof valid after normative content or canonicalization-contract changes."
   - "A generic exact-SHA PASS is not equivalent to an independent cold read; acceptance requires explicit fresh-context provenance and outcomes."
-  - "Risk/finding acceptance authority must be machine-resolvable from closed role/evidence vocabularies and exact matrix rules."
-  - "Fail-closed proof is valuable: the first TEST-0005 v9 execution exposed incorrect digests and was preserved rather than rewritten."
-  - "Active handover records should route to canonical TEST records rather than duplicate mutable test status/results."
+  - "Fail-closed proof preserves useful failures rather than rewriting them."
   - "Cross-branch mirrors must expose only locally resolvable evidence before explicit checkout."
 blockers: []
 follow_up_work_items:
