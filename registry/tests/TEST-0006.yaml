@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: FAIL
 type: MANUAL_E2E
 
 protects:
@@ -38,74 +38,48 @@ protects:
     - "PROJECT_STATE and WORK-0001 do not duplicate mutable TEST lifecycle/result state"
     - "WORK-0001 remains IN_REVIEW/A3, RUN-3 IN_REVIEW and closure gates non-terminal"
     - "REVIEW-0026 remains COMPLETE/CHANGES_REQUIRED with F-1/F-2/F-3 OPEN until independent verification"
-    - "REVIEW-0026 provenance is authorization 018ae267… → import 6075c1d8… → review binding 02968f1b… → consumption d2b6d4a9…"
     - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED and their REQUIREMENT_NORMATIVE_V1/JCS digests recompute exactly"
-    - "Each REQ-0023/24/25 lists TEST-0006 in general test_ids and TEST-0008 in acceptance_cold_read_test_ids; TEST-0006 protects all three"
-    - "TEST-0008 protects all three but remains non-qualifying until real external L2/L3 fresh-context execution"
+    - "TEST-0008 remains non-qualifying until real external L2/L3 fresh-context execution"
     - "TEST-0005 and TEST-0007 current REVIEW-0026 correction proof chains are exact and resolvable"
     - "REVIEW-0001/F-3 authority evidence independently resolves to GitHub repository-owner metadata"
-    - "PR #3 WORK-0002 mirror contains no branch-local review/test IDs or branch-only schemas in locally traversable proof fields"
-    - "Live PR #2 truth is queried after the explicit branch boundary rather than canonized in handover"
+    - "PR #3 WORK-0002 mirror preserves the explicit branch boundary"
     - "TEST-0004 does not claim current reverse protection of REQ-0010; REQ-0010 routes to TEST-0005"
 
 environment:
   kind: REAL_GITHUB_REPOSITORY
-  real_dependencies:
-    - "tobianahillel-afk/monde"
-    - "PR #3"
-    - "PR #2 live lifecycle snapshot"
-    - "independent YAML parse confirmation where local network/runtime cannot fetch the exact Git blob directly"
+  real_dependencies: ["tobianahillel-afk/monde", "PR #3", "PR #2 live lifecycle snapshot"]
   mocked_dependencies: []
 
 cases:
   happy_path:
-    - "README/START_HERE route cold resume through PROJECT_STATE and active WORK"
-    - "WORK-0001 exposes REVIEW-0026/current proof and remains IN_REVIEW/A3 with non-terminal completion"
-    - "PROJECT_STATE starts from REVIEW-0026 and current proof obligations rather than replaying already-completed administration"
-    - "status-machines v9, content-identity v2/RFC 8785 and acceptance-authority v1 resolve"
-    - "REVIEW-0026 one-shot provenance is exact and all three findings remain OPEN"
-    - "REQ-0023/24/25 remain PROPOSED with exact recomputable JCS normative digests"
-    - "Each active requirement maps to TEST-0006 generally and TEST-0008 specifically for acceptance cold read"
-    - "TEST-0008 protects all three requirements and remains qualifies=false before independent execution"
-    - "TEST-0005 current proof is 27c4d591… PASS 786a759a… binding f6caaf77…"
-    - "TEST-0007 current proof is b0d4b4f6… PASS 592b88eb… binding 8e5edd80…"
-    - "REVIEW-0001/F-3 uses GITHUB_REPOSITORY_OWNER_PERMISSION with durable GitHub repo metadata URL and live owner/admin proof"
-    - "WORK-0002 PR #3 mirror remains locally resolvable with affected_schemas [] and no branch-local proof IDs"
-    - "After explicit PR #2 boundary, live PR #2 remains coherent and branch-local schemas/proof resolve there"
-    - "REQ-0010 current proof remains TEST-0005 while TEST-0004 remains historical without reverse current coverage"
+    - "REVIEW-0026 provenance and three OPEN findings remain exact"
+    - "content-identity v2/JCS and acceptance-authority v1 resolve"
+    - "REQ-0023/24/25 remain PROPOSED with exact digests and TEST-0008-only acceptance cold-read link"
+    - "TEST-0005 current proof is 27c4d591… → 786a759a… → f6caaf77…"
+    - "TEST-0007 current proof is b0d4b4f6… → 592b88eb… → 8e5edd80…"
+    - "WORK-0002 mirror and live PR #2 boundary remain coherent"
+    - "REQ-0010 / TEST-0004 historical boundary remains correct"
   edge_cases:
-    - "A prior TEST-0006 PASS remains historical when REVIEW-0026 materially changes handover obligations"
-    - "Evidence-link/history-only edits excluded by REQUIREMENT_NORMATIVE_V1 do not alter normative digests"
-    - "A clean future review is not enough without TEST-0008; a clean TEST-0008 is not enough without approval-capable exact-digest review"
-    - "After one qualifying current TEST-0006 PASS exists, handover skips administrative reruns and proceeds to frozen-candidate external review"
+    - "The handover text must remain correct before, during and after the current TEST-0006 execution"
+    - "A future cold resume after PASS must skip any instruction to execute a rerun already completed"
   failure_modes:
-    - "WORK-0001 is malformed or disagrees with PROJECT_STATE on current work"
-    - "PROJECT_STATE or WORK-0001 copies current TEST status/result/SHA as a second mutable source"
-    - "Status-machine is not v9 or content/authority primitives are missing"
-    - "REVIEW-0026 provenance disagrees or any F-1/F-2/F-3 is author-closed"
-    - "Any active requirement is ACCEPTED or has a non-recomputing normative digest"
-    - "Any active requirement omits TEST-0006 general mapping or TEST-0008 acceptance-cold-read mapping"
-    - "TEST-0008 qualifies without real fresh-context source/executor/outcomes"
-    - "TEST-0005 or TEST-0007 current proof chain is absent/unresolvable"
-    - "REVIEW-0001/F-3 authority_evidence_ref is self-referential or does not establish owner authority"
-    - "PR #3 WORK-0002 mirror exposes branch-local proof IDs or schemas before checkout"
-    - "TEST-0004 claims current REQ-0010 reverse coverage"
-    - "Live PR #2 is treated as a hardcoded stale repository constant"
+    - "PROJECT_STATE unconditionally orders the REVIEW-0026 TEST-0006 rerun after that rerun becomes PASS"
+    - "Any other current proof/lifecycle/traceability boundary is inconsistent"
   adversarial_cases:
-    - "Independently parse exact current WORK-0001 YAML; if parse cannot be executed in the current runtime, keep that as an explicit external L2 gate rather than claim success"
-    - "Recompute all three REQUIREMENT_NORMATIVE_V1 digests under RFC 8785/JCS from exact current requirement records"
-    - "Attempt to use TEST-0005/TEST-0006 as acceptance cold-read evidence and verify v9 rejects that path"
-    - "Attempt A3/R2 finding acceptance as WORK_OWNER or with self-referential authority evidence and verify rejection"
-    - "Traverse each REQ-0023/24/25 → TEST-0006 and TEST-0008, then TEST-0006/0008 → all three"
-    - "Resolve REVIEW-0026 authorization → import → binding → consumption from exact Git history"
-    - "Query live PR #2 only after crossing the explicit branch boundary"
+    - "Read PROJECT_STATE as a brand-new agent immediately after hypothetical PASS and verify it does not send the agent back into TEST-0006"
+    - "Independently parse exact current WORK-0001 YAML in fresh L2; local runtime network cannot fetch the exact blob directly, so no parser success is claimed here"
 
 execution:
-  command_or_workflow: null
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  command_or_workflow: "Manual exact-SHA REVIEW-0026 handover drill with post-PASS cold-resume counterfactual"
+  last_run_at: "2026-09-14"
+  commit_sha: "d3997dd1c377b220e26eb7eeb3fc0a5c80f8b698"
+  result: FAIL
+  evidence:
+    - "Exact tested PR #3 tree d3997dd1c377b220e26eb7eeb3fc0a5c80f8b698; PR remained open/non-draft/mergeable on that exact HEAD during the drill"
+    - "Git compare cfcb4ccc2b86a3cce6cdbb7946227654f9b6a3ec → d3997dd1c377b220e26eb7eeb3fc0a5c80f8b698 changes only registry/tests/TEST-0006.yaml, so synchronized WORK/PROJECT_STATE and current TEST-0005/0007 proof did not mutate during execution"
+    - "REVIEW-0026 provenance, content-identity v2/JCS, TEST-0005/0007 proof, TEST-0008 non-qualification, WORK-0002 boundary, live PR #2 at ab62faa1743705600a0f11335579db68a2166ab3 and REQ-0010/TEST-0004 boundary were coherent"
+    - "Failure: PROJECT_STATE next action still unconditionally says to legally reopen and execute TEST-0006 once because REVIEW-0026 changed the handover. That statement is true while this execution is RUNNING but would remain present after PASS, sending a future cold resume backward into already-completed work. The handover is therefore not transition-stable and the test must fail rather than manufacture PASS."
+    - "Exact current WORK-0001 was not re-parsed with yaml.safe_load in this runtime because the local execution environment cannot resolve GitHub; independent YAML parse remains an explicit fresh-L2 gate and is not falsely claimed as successful evidence"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
