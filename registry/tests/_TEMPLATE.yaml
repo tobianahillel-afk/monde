@@ -25,6 +25,30 @@ cases:
   failure_modes: []
   adversarial_cases: []
 
+# Non-null only when this TEST is intended to qualify as requirement-acceptance
+# cold-read evidence. Generic PASS tests do not qualify by default.
+acceptance_cold_read:
+  qualifies: false
+  source:
+    kind: null
+    source_id: null
+    submitted_at: null
+  executor:
+    actor: null
+    context_id: null
+    independence_level: null
+    fresh_context: false
+    authoring_context_separated: false
+  requirements: {}
+  required_outcomes:
+    understood_without_author_reasoning: null
+    atomic_and_testable: null
+    dependencies_and_conflicts_checked: null
+    omissions_and_failure_modes_checked: null
+    evidence_plan_sufficient: null
+  all_required_outcomes_pass: false
+  completed_at: null
+
 execution:
   command_or_workflow: null
   last_run_at: null
