@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening, historical migration/import/replay and authority-matrix drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -66,11 +66,20 @@ cases:
     - "Attempt to reuse REVIEW-0026's consumed authorization"
 
 execution:
-  command_or_workflow: null
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  command_or_workflow: "Manual exact-SHA audit of lifecycle v9, REVIEW-0026 provenance and independently-resolvable acceptance authority"
+  last_run_at: "2026-09-14"
+  commit_sha: "b0d4b4f68f457a8f9e5bfbf689a9275c203a0715"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree b0d4b4f68f457a8f9e5bfbf689a9275c203a0715; PR remained open/non-draft/mergeable and on that exact HEAD through verdict"
+    - "GitHub compare 018ae267f2b6c63636fdb5f7833f64b1fd68f11b → 6075c1d87853f8c0c144e7d95bfa767ba476aa72 is ahead_by=1 and the sole change adds registry/reviews/REVIEW-0026.yaml"
+    - "REVIEW-0026 binds source review PRR_kwDOUUI5ts8AAAABNYK4AQ, reviewed artifact 4f8cebeeca36d895cc17b1103d7689bcf27b5541, authorization 018ae267f2b6c63636fdb5f7833f64b1fd68f11b and import 6075c1d87853f8c0c144e7d95bfa767ba476aa72"
+    - "status-machines v9 @ b0d4b4f6 consumes REVIEW-0026 authorization exactly by 6075c1d87853f8c0c144e7d95bfa767ba476aa72"
+    - "acceptance-authority v1 @ b0d4b4f6 allows DESIGNATED_RISK_AUTHORITY or REPOSITORY_OWNER for FINDING:A3:R2_MAJOR and applies SECURITY A3 category overrides"
+    - "REVIEW-0001/F-3 @ b0d4b4f6 is R2_MAJOR/ACCEPTED with accepted_by=tobianahillel-afk, authority_role=REPOSITORY_OWNER, authority_evidence_type=GITHUB_REPOSITORY_OWNER_PERMISSION, authority_evidence_ref=https://api.github.com/repos/tobianahillel-afk/monde, matrix version 1 and rule FINDING:A3:R2_MAJOR"
+    - "Live GitHub repository metadata independently identifies owner.login=tobianahillel-afk and repository permissions admin=true; collaborator permission query returns admin"
+    - "REQ-0006 @ b0d4b4f6 includes TEST-0007 in verification.test_ids and acceptance_evidence while TEST-0007 protects REQ-0006"
+    - "REVIEW-0026 remains COMPLETE/CHANGES_REQUIRED; this author-run PASS does not resolve its findings or provide independent approval"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -85,4 +94,4 @@ history:
     - {commit_sha: "b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7", recorded_result: PASS, recorded_in_commit: "42a36e1b37855ea107eb94a8f3c9a05fe9cd6c67", validity: VALID, invalidated_by: null, reason: "Lifecycle v6 preserved strict generic transitions and exact pre-v7 imports."}
     - {commit_sha: "669dcf7638746e07cc034cd69fa2cb08da133937", recorded_result: PASS, recorded_in_commit: "87668f4e64453dca4c987252a8cb46e73793950c", validity: VALID, invalidated_by: null, reason: "Lifecycle v7 established truthful one-shot external-review import provenance."}
     - {commit_sha: "dd21e4f3171669a5f7b47a89988a169f5d8f2e9b", recorded_result: PASS, recorded_in_commit: "734bdbddf528100cb68f186a6f4e87a3c1606eb2", validity: VALID, invalidated_by: null, reason: "Lifecycle v8 added requirement/risk acceptance preconditions."}
-    - {commit_sha: "278da4e4f14a9897fa746d29725c8f666b6add2c", recorded_result: PASS, recorded_in_commit: "61c64a2c0920a28949377b75aa9df92637aeb371", validity: VALID, invalidated_by: null, reason: "Lifecycle v9, REVIEW-0025 provenance and typed authority matrix passed. REVIEW-0026 later proved the owner authority evidence reference itself was not independently resolvable, so this exact earlier proof is insufficient as current authority proof."}
+    - {commit_sha: "278da4e4f14a9897fa746d29725c8f666b6add2c", recorded_result: PASS, recorded_in_commit: "61c64a2c0920a28949377b75aa9df92637aeb371", validity: VALID, invalidated_by: null, reason: "Lifecycle v9 and REVIEW-0025 provenance passed; REVIEW-0026 later exposed self-referential owner-authority evidence, so this earlier exact proof is insufficient as current authority proof."}
