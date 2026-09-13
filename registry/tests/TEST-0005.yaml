@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 evidence, authority and requirement-acceptance guard drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -73,11 +73,21 @@ cases:
     - "Attempt acceptance with TEST-0005 or TEST-0006 as the only PASS test and verify v9 rejects the missing qualified cold read"
 
 execution:
-  command_or_workflow: null
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  command_or_workflow: "Manual exact-SHA RFC 8785/JCS requirement content-identity and acceptance-evidence guard drill"
+  last_run_at: "2026-09-14"
+  commit_sha: "27c4d591d165689e26d399b303722744919b3372"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree 27c4d591d165689e26d399b303722744919b3372; live PR #3 remained open/non-draft/mergeable on that exact HEAD before verdict"
+    - "registry/content-identity.yaml @ 27c4d591 is version 2 and binds REQUIREMENT_NORMATIVE_V1 to exact RFC 8785/JCS UTF-8 bytes, including deterministic string/key/number serialization and fail-closed non-conformant serializers"
+    - "Direct RFC-8785-compatible recomputation of the current ASCII/boolean/list/object normative projections yields REQ-0023 sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b"
+    - "Direct recomputation yields REQ-0024 sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4"
+    - "Direct recomputation yields REQ-0025 sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67"
+    - "Git compare f85fa9e39dd92fa8499f5756bc147b7f233ea698 → 27c4d591d165689e26d399b303722744919b3372 modifies only registry/tests/TEST-0005.yaml, proving the recomputed requirement records did not change before verdict"
+    - "REQ-0023/24/25 remain PROPOSED and retain TEST-0008 as the sole acceptance_cold_read_test_id"
+    - "TEST-0008 @ 27c4d591 remains PLANNED, qualifies=false, with null source/executor/outcomes/execution"
+    - "REVIEW-0026 @ 27c4d591 remains COMPLETE/CHANGES_REQUIRED with F-1/F-2/F-3 OPEN and cold_read_result qualification_provided=false / explicit_outcomes_provided=false"
+    - "This TEST is author-run machine-guard evidence and does not claim independent acceptance-cold-read qualification"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -89,7 +99,7 @@ history:
   executions:
     - {commit_sha: "2712795dc9f10c1efed2088313d125f6f915cc98", recorded_result: PASS, recorded_in_commit: "89d39c75fe29d8bbcbe016cecaa6c87d935f1c47", validity: VALID, invalidated_by: null, reason: "Exact-SHA evidence/authority and REQ-0010 plus REQ-0015..0019 atomicity passed for that tree; later reviews expanded current obligations."}
     - {commit_sha: "d4202e0f21e18d9100234817b4ae56fbb38ca165", recorded_result: PASS, recorded_in_commit: "568dde0f9fb806f82924ee67066f08039bef777a", validity: VALID, invalidated_by: null, reason: "Atomicity/supersession passed; REVIEW-0018 later proved it insufficient as pre-acceptance evidence."}
-    - {commit_sha: "efd48467352c0ce4ec344ebe410fd9e98d938721", recorded_result: PASS, recorded_in_commit: "ce962ec2ad199dd914ee4e8a66ec4e110fbfbe", validity: VALID, invalidated_by: null, reason: "Replacement REQ-0023/24/25 remained PROPOSED on that pre-v8 tree; later acceptance semantics superseded its gating scope."}
+    - {commit_sha: "efd48467352c0ce4ec344ebe410fd9e98d938721", recorded_result: PASS, recorded_in_commit: "ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe", validity: VALID, invalidated_by: null, reason: "Replacement REQ-0023/24/25 remained PROPOSED on that pre-v8 tree; later acceptance semantics superseded its gating scope."}
     - {commit_sha: "dc52009ff2cb31f382544a812da937e686d63c8d", recorded_result: PASS, recorded_in_commit: "f02bf1879180dc3ac80c659c327ea25d1ad72411", validity: VALID, invalidated_by: null, reason: "v8 ordering guard passed; REVIEW-0025 later required exact content binding and a separately qualified fresh-context cold read."}
     - {commit_sha: "ed716f93116f1d121ed7aa54174b8bdbf1030513", recorded_result: FAIL, recorded_in_commit: "df5e766a32cdd5782fdd727e38d73c8b7e8e7355", validity: VALID, invalidated_by: null, reason: "First v9 guard correctly failed closed because initial declared digests disagreed with recomputation."}
     - {commit_sha: "1562acdff730d832770befdbfe296615fac2a544", recorded_result: PASS, recorded_in_commit: "7abdfbd0655e96239d8ddb511f3edfc0b19571f7", validity: VALID, invalidated_by: null, reason: "Corrected v9 guard passed nested-projection digest and TEST-0008 qualification semantics. REVIEW-0026 later required byte-exact cross-implementation JSON serialization; this remains valid for its exact earlier content-identity v1 tree but is insufficient as current proof."}
