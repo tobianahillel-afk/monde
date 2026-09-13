@@ -22,7 +22,7 @@ external_import:
   authorization_commit: "44d465628e88d98f85414d565ef51e110fb1e891"
   source_review_id: "PRR_kwDOUUI5ts8AAAABNN5SgQ"
   source_submitted_at: "2026-09-11T17:59:25Z"
-  import_commit: null
+  import_commit: "0b2ee6f13430d367c99dde55c6be726c13ab561a"
 
 scope:
   work_items: [WORK-0001]
