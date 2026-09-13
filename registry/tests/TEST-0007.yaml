@@ -135,7 +135,7 @@ history:
       reason: "Lifecycle v8 preserved migration/import/replay guarantees while adding requirement-acceptance and authority-bearing risk preconditions; REVIEW-0025 later required exact content binding, fresh-context cold-read qualification and machine-resolvable authority."
     - commit_sha: "278da4e4f14a9897fa746d29725c8f666b6add2c"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "61c64a2c0920a28949377b75aa9df92637aeb371"
       validity: VALID
       invalidated_by: null
       reason: "Lifecycle v9 preserves prior exact lifecycle/import/replay guarantees while adding machine-resolvable authority and content-bound/fresh-context acceptance semantics. REVIEW-0025 provenance and REVIEW-0001/F-3 typed owner authority resolve correctly on the exact tested tree."
