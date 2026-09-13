@@ -127,7 +127,7 @@ history:
       reason: "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED, atomic and active in WORK-0001; their prematurely accepted predecessors are preserved as SUPERSEDED history; Review Council/cold-read-before-Accepted ordering is explicit and this run supplies exact-SHA pre-acceptance cold-read evidence without self-approving acceptance. REVIEW-0024 later required the acceptance precondition to be encoded in the canonical lifecycle machine, so a new v8 execution is required for that additional contract without invalidating this historical pre-v8 proof."
     - commit_sha: "dc52009ff2cb31f382544a812da937e686d63c8d"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "f02bf1879180dc3ac80c659c327ea25d1ad72411"
       validity: VALID
       invalidated_by: null
       reason: "Status-machine v8 turns the requirement acceptance ordering into an enforceable precondition: the three active AC-5 owners remain PROPOSED, this run supplies exact-SHA pre-acceptance cold-read evidence, and existing negative reviews cannot satisfy the independent approval half. A later clean approval-capable L2 is still required before any acceptance transition."
