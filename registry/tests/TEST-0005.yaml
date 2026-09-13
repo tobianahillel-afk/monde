@@ -132,7 +132,7 @@ history:
       reason: "The first v9 guard execution correctly failed closed because all three newly declared REQUIREMENT_NORMATIVE_V1 digests disagreed with direct recomputation from the exact requirement records. The projection contract and digests were then corrected rather than suppressing the failure."
     - commit_sha: "1562acdff730d832770befdbfe296615fac2a544"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "7abdfbd0655e96239d8ddb511f3edfc0b19571f7"
       validity: VALID
       invalidated_by: null
       reason: "Corrected v9 guard passes deterministic requirement digest recomputation, exact-digest review/cold-read acceptance preconditions, explicit TEST-0008 qualification boundary and preservation of the earlier fail-closed execution while all active AC-5 requirements remain PROPOSED."
