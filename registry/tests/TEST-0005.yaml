@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 evidence, authority and requirement-acceptance guard drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -77,10 +77,20 @@ cases:
 
 execution:
   command_or_workflow: "Manual corrected exact-SHA v9 requirement content-identity and acceptance-evidence guard drill"
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  last_run_at: "2026-09-14"
+  commit_sha: "1562acdff730d832770befdbfe296615fac2a544"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree 1562acdff730d832770befdbfe296615fac2a544; live PR #3 remained open/non-draft/mergeable on that exact HEAD before verdict"
+    - "registry/content-identity.yaml @ 1562acd defines REQUIREMENT_NORMATIVE_V1 using nested path projection, recursively sorted compact JSON and SHA256, eliminating the projection ambiguity exposed by the prior FAIL"
+    - "Direct recomputation on exact tree 1562acd yields REQ-0023 sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b, matching its declared content_identity"
+    - "Direct recomputation on exact tree 1562acd yields REQ-0024 sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4, matching its declared content_identity"
+    - "Direct recomputation on exact tree 1562acd yields REQ-0025 sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67, matching its declared content_identity"
+    - "REQ-0023/REQ-0024/REQ-0025 @ 1562acd remain PROPOSED; each points to TEST-0008 through verification.acceptance_cold_read_test_ids and also keeps TEST-0005/0006/0008 in general test_ids"
+    - "TEST-0008 @ 1562acd is PLANNED, protects all three active requirements, carries the same three target digests, and remains acceptance_cold_read.qualifies=false with null source/executor/outcomes/execution; no independent result is fabricated"
+    - "status-machines v9 @ 1562acd requires exact current digest agreement in the requirement, qualifying approval-capable REVIEW and separately qualified L2/L3 fresh-context authoring-separated cold-read TEST with explicit PASS outcomes"
+    - "REVIEW-0025 remains COMPLETE/CHANGES_REQUIRED with F-1/F-2/F-3 OPEN, so this author-run TEST does not claim independent approval"
+    - "The preserved first v9 TEST-0005 execution on ed716f remains FAIL with result binding df5e766a because its three digests did not recompute; it was corrected rather than rewritten"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -120,3 +130,9 @@ history:
       validity: VALID
       invalidated_by: null
       reason: "The first v9 guard execution correctly failed closed because all three newly declared REQUIREMENT_NORMATIVE_V1 digests disagreed with direct recomputation from the exact requirement records. The projection contract and digests were then corrected rather than suppressing the failure."
+    - commit_sha: "1562acdff730d832770befdbfe296615fac2a544"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "Corrected v9 guard passes deterministic requirement digest recomputation, exact-digest review/cold-read acceptance preconditions, explicit TEST-0008 qualification boundary and preservation of the earlier fail-closed execution while all active AC-5 requirements remain PROPOSED."
