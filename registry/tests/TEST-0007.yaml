@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening, historical migration/import/replay and authority-matrix drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -79,7 +79,7 @@ cases:
     - "Attempt requirement acceptance using TEST-0005/TEST-0006 as the cold-read half and verify v9 requires a separately qualified acceptance_cold_read TEST"
 
 execution:
-  command_or_workflow: null
+  command_or_workflow: "Manual exact-SHA audit of lifecycle v9, REVIEW-0025 provenance and acceptance-authority matrix"
   last_run_at: null
   commit_sha: null
   result: null
