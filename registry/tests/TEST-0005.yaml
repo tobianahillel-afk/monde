@@ -125,7 +125,7 @@ history:
       reason: "Status-machine v8 enforced review/test ordering while the three active owners remained PROPOSED. REVIEW-0025 later established that generic author-run PASS evidence is insufficient to qualify as the fresh-context cold-read half under v9; this execution remains valid for its tested v8 machine-guard scope but is not v9 acceptance cold-read evidence."
     - commit_sha: "ed716f93116f1d121ed7aa54174b8bdbf1030513"
       recorded_result: FAIL
-      recorded_in_commit: null
+      recorded_in_commit: "df5e766a32cdd5782fdd727e38d73c8b7e8e7355"
       validity: VALID
       invalidated_by: null
       reason: "The first v9 guard execution correctly failed closed because all three newly declared REQUIREMENT_NORMATIVE_V1 digests disagreed with direct recomputation from the exact requirement records. The cold-read mappings and v9 fail-closed rules were present, so no acceptance could be authorized."
