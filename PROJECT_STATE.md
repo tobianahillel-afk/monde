@@ -109,17 +109,22 @@ New v8 semantics:
 
 ## TEST-0006 cold-resume proof routing
 
-The current TEST-0006 record is still `PASS`, with its latest execution on tree `683c3493a2876b433e9b833e4d3ea3468dc9f1d3`. That execution is preserved and was valid for the REVIEW-0023-corrected v7 handover it tested.
+`registry/tests/TEST-0006.yaml` is the **only** source of truth for the current TEST-0006 lifecycle state, current execution identity and current result. Do not copy its mutable status or latest-execution identity into this handover.
 
-It does **not** by itself prove the current REVIEW-0024/v8 handover because v8, the risk template, REVIEW-0024, TEST-0005/0007 current proofs, and the current WORK/PROJECT_STATE synchronization all postdate that tested tree.
+Historical evidence remains useful when explicitly labeled as historical:
 
-**Transition-stable rule:** `registry/tests/TEST-0006.yaml` remains the sole canonical source for current TEST-0006 lifecycle/execution identity. At resume:
+- the valid PASS on tree `683c3493a2876b433e9b833e4d3ea3468dc9f1d3` proved the REVIEW-0023-corrected v7 handover on that exact tree, but predates REVIEW-0024/status-machine v8 and is not sufficient as the final current v8 proof;
+- the first REVIEW-0024/v8 cold-resume attempt tested exact tree `ea8562ae2ff54e5ff9c73f4f09116c5f6aa82c21` and correctly recorded FAIL in `9212397d4e6af69b5b151e4f2f4dd5c242671083`, bound in `602428a9132a17c46a435c0521732bd27a3f0158`, because the previous version of this section duplicated stale mutable TEST state while the TEST itself was RUNNING.
+
+That failure is preserved as evidence. The correction is to remove duplicated mutable TEST status entirely rather than replace one hardcoded state with another.
+
+**Transition-stable rule:** at every resume, read `registry/tests/TEST-0006.yaml` first for current execution identity. Then:
 
 - if no current valid PASS covers this synchronized REVIEW-0024/v8 WORK-0001 + PROJECT_STATE handover, continue TEST-0006 legally through the minimum required lifecycle until exactly one qualifying PASS exists;
 - once such a PASS exists, proceed directly to a fresh exact-SHA L2;
 - never reopen/rerun merely to manufacture a newer SHA after qualifying proof exists.
 
-The currently known `683c3493…` PASS predates the v8 correction, so it is not the qualifying final cold-resume proof for the present tree. Preserve it; do not rewrite or falsely invalidate the assertions it actually proved on its own tree.
+This wording is intended to remain true while TEST-0006 is FAIL, READY, RUNNING or PASS.
 
 ## WORK-0002 cross-branch boundary
 
@@ -147,8 +152,8 @@ No finding is closed because the author produced a correction or test PASS. REVI
 ## Next action
 
 1. Keep WORK-0001 `IN_REVIEW`, REVIEW-0024/F-1/F-2 `OPEN`, and REQ-0023/0024/0025 `PROPOSED`.
-2. Read `registry/tests/TEST-0006.yaml` for current execution identity. If no valid PASS covers this synchronized REVIEW-0024/v8 WORK-0001 + PROJECT_STATE handover, legally reopen TEST-0006 and obtain exactly one qualifying PASS; once one exists, skip all further administrative reruns.
-3. On the exact qualifying TEST-0006 tree, verify at minimum: WORK-0001 parses as YAML and remains IN_REVIEW; PROJECT_STATE routes from qualifying proof directly to fresh L2; status-machine v8 and risk-template authority fields are present; REVIEW-0024 provenance is exact; TEST-0005 and TEST-0007 current v8 PASS chains resolve; REQ-0023/24/25 remain PROPOSED with reciprocal TEST-0006 mappings; WORK-0002 local/branch boundary remains resolvable; current REQ-0010/TEST-0004 revision boundary remains correct; live PR #2 lifecycle remains coherent after explicit checkout boundary.
+2. Read `registry/tests/TEST-0006.yaml` for current execution identity. If no valid PASS covers this synchronized REVIEW-0024/v8 WORK-0001 + PROJECT_STATE handover, legally continue TEST-0006 and obtain exactly one qualifying PASS; once one exists, skip all further administrative reruns.
+3. On the exact qualifying TEST-0006 tree, verify at minimum: WORK-0001 parses as YAML and remains IN_REVIEW; PROJECT_STATE contains no duplicated mutable TEST-0006 status and routes from qualifying proof directly to fresh L2; status-machine v8 and risk-template authority fields are present; REVIEW-0024 provenance is exact; TEST-0005 and TEST-0007 current v8 PASS chains resolve; REQ-0023/24/25 remain PROPOSED with reciprocal TEST-0006 mappings; WORK-0002 local/branch boundary remains resolvable; current REQ-0010/TEST-0004 revision boundary remains correct; live PR #2 lifecycle remains coherent after explicit checkout boundary.
 4. Freeze the resulting PR #3 HEAD and request a fresh-context L2 explicitly on that exact SHA. Do not mutate the candidate while that review is running.
 5. If the L2 finds a defect, record/correct/re-prove it. If clean/approval-capable, first preserve its one-shot external-review provenance and durable REVIEW record. Then add that qualifying review evidence to REQ-0023/24/25 and perform only the reviewed no-content-change `PROPOSED → ACCEPTED` transitions allowed by v8; resolve only independently verified findings; finalize WORK-0001/progress/completion and merge PR #3.
 6. After PR #3 merge, query live PR #2, integrate new main, rerun its full gate, obtain its own fresh L2, and merge only if all gates genuinely pass.
