@@ -4,7 +4,7 @@ status: PROPOSED
 type: GOVERNANCE
 normative_statement: "MONDE SHALL maintain a canonical Definition of Ready that defines the mandatory prerequisites that must be satisfied before specification or implementation work may start execution."
 rationale: "Readiness is independently fail-able from completion and verification-strategy quality. This replacement remains PROPOSED until independent Review Council and cold-read acceptance gates pass."
-content_identity: {scheme: REQUIREMENT_NORMATIVE_V1, digest: "sha256:26acc84a4bdb93490ad43014ad6651c3f5c9d1a5a0a3d542780d387ff0d6bbec"}
+content_identity: {scheme: REQUIREMENT_NORMATIVE_V1, digest: "sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b"}
 origin: {source: "WORK-0001/AC-5; REVIEW-0018/F-1", decision_date: "2026-09-11", introduced_by_work: WORK-0001, introduced_by_adr: null}
 scope: {capabilities: [], engines: [], experiences: [], schemas: [], data_sources: [], models: []}
 depends_on: [REQ-0004, REQ-0010]
