@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 evidence, authority and requirement-acceptance guard drill"
-status: FAIL
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -46,10 +46,10 @@ cases:
     - "REQ-0005 is SUPERSEDED and remains historically addressable"
     - "REQ-0020/REQ-0021/REQ-0022 remain SUPERSEDED premature-acceptance history"
     - "REQ-0023, REQ-0024 and REQ-0025 remain distinct PROPOSED active AC-5 owners"
-    - "registry/content-identity.yaml defines REQUIREMENT_NORMATIVE_V1 with SHA256 canonical JSON over the exact normative field set"
-    - "REQ-0023 content_identity digest recomputes to sha256:26acc84a4bdb93490ad43014ad6651c3f5c9d1a5a0a3d542780d387ff0d6bbec"
-    - "REQ-0024 content_identity digest recomputes to sha256:79613cd4a3f06a39b34c9cede757559446c6177a8de5eaa987d8ee55f3520601"
-    - "REQ-0025 content_identity digest recomputes to sha256:a3ff4453256e04aaaa77838849f7878bb5c676f09814a8c5d2f2fda5edbedff4"
+    - "registry/content-identity.yaml defines REQUIREMENT_NORMATIVE_V1 as a deterministic nested projection followed by canonical SHA256 JSON"
+    - "REQ-0023 content_identity digest recomputes to sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b"
+    - "REQ-0024 content_identity digest recomputes to sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4"
+    - "REQ-0025 content_identity digest recomputes to sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67"
     - "Each active requirement verification.test_ids contains TEST-0008 and acceptance_cold_read_test_ids is exactly [TEST-0008]"
     - "TEST-0008 exists, protects all three active requirements and is not yet qualifying/PASS before an external fresh-context execution"
     - "status-machines v9 requires a qualifying approval-capable independent REVIEW whose scope.requirement_revisions digest equals the exact current requirement digest"
@@ -76,20 +76,11 @@ cases:
     - "Attempt acceptance with a clean review bound to a prior digest and verify v9 rejects the stale review"
 
 execution:
-  command_or_workflow: "Manual exact-SHA v9 requirement content-identity and acceptance-evidence guard drill"
-  last_run_at: "2026-09-14"
-  commit_sha: "ed716f93116f1d121ed7aa54174b8bdbf1030513"
-  result: FAIL
-  evidence:
-    - "Exact tested PR #3 tree ed716f93116f1d121ed7aa54174b8bdbf1030513"
-    - "registry/content-identity.yaml @ ed716f defines REQUIREMENT_NORMATIVE_V1 as SHA256 of canonical JSON projected from the listed normative fields"
-    - "REQ-0023 @ ed716f declares sha256:26acc84a4bdb93490ad43014ad6651c3f5c9d1a5a0a3d542780d387ff0d6bbec, but direct recomputation from its current normative fields yields sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b"
-    - "REQ-0024 @ ed716f declares sha256:79613cd4a3f06a39b34c9cede757559446c6177a8de5eaa987d8ee55f3520601, but direct recomputation yields sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4"
-    - "REQ-0025 @ ed716f declares sha256:a3ff4453256e04aaaa77838849f7878bb5c676f09814a8c5d2f2fda5edbedff4, but direct recomputation yields sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67"
-    - "REQ-0023/24/25 all remain PROPOSED and correctly map acceptance_cold_read_test_ids to TEST-0008"
-    - "TEST-0008 @ ed716f is PLANNED, protects all three requirements and remains qualifies=false with no fabricated fresh-context result"
-    - "status-machines v9 @ ed716f correctly requires exact digest agreement and fresh-context cold-read qualification; therefore the mismatched declared digests make repository state fail closed rather than allowing acceptance"
-    - "REVIEW-0025 @ ed716f remains COMPLETE/CHANGES_REQUIRED with F-1/F-2/F-3 OPEN"
+  command_or_workflow: "Pending corrected exact-SHA v9 requirement content-identity and acceptance-evidence guard drill"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -128,4 +119,4 @@ history:
       recorded_in_commit: "df5e766a32cdd5782fdd727e38d73c8b7e8e7355"
       validity: VALID
       invalidated_by: null
-      reason: "The first v9 guard execution correctly failed closed because all three newly declared REQUIREMENT_NORMATIVE_V1 digests disagreed with direct recomputation from the exact requirement records. The cold-read mappings and v9 fail-closed rules were present, so no acceptance could be authorized."
+      reason: "The first v9 guard execution correctly failed closed because all three newly declared REQUIREMENT_NORMATIVE_V1 digests disagreed with direct recomputation from the exact requirement records. The projection contract and digests were then corrected rather than suppressing the failure."
