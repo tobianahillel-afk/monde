@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -123,10 +123,24 @@ cases:
 
 execution:
   command_or_workflow: "Manual corrected exact-SHA cold-resume rerun after removing duplicated mutable TEST-0006 state from PROJECT_STATE"
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  last_run_at: "2026-09-13"
+  commit_sha: "b09f37c7868a4bdfb47310118860474263aeb717"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree b09f37c7868a4bdfb47310118860474263aeb717; live PR remained open/non-draft/mergeable on that exact head before and after the drill"
+    - "WORK-0001 @ b09f37c is IN_REVIEW/A3 and resolves to exact Git blob 2b32ea3ad4906369198b33267aafc0ff2203eeb7, the same 47,571-byte blob previously reconstructed, Git-hash verified and loaded successfully with yaml.safe_load; parsed RUN-3 remains IN_REVIEW and DoD/specification/traceability/review completion gates remain false"
+    - "PROJECT_STATE @ b09f37c names registry/tests/TEST-0006.yaml as the only source of mutable TEST-0006 lifecycle/execution/result truth, preserves the prior ea8562ae FAIL as historical evidence and uses wording valid across FAIL/READY/RUNNING/PASS without duplicating current status"
+    - "registry/status-machines.yaml @ b09f37c is canonical version 8 and requires approval-capable independent review plus exact-revision pre-acceptance cold-read proof for requirement PROPOSED → ACCEPTED; risk ACCEPTED requires actor/role/non-empty authority evidence/rationale/time/review condition at policy-appropriate authority"
+    - "registry/risks/_TEMPLATE.yaml @ b09f37c exposes accepted_by, authority_role, authority_evidence, acceptance_rationale, accepted_at and review_condition"
+    - "REVIEW-0024 @ b09f37c remains COMPLETE/CHANGES_REQUIRED, L2, scopes REQ-0023/REQ-0024/REQ-0025, and keeps both R2 findings OPEN; provenance remains authorization 44d465628e88d98f85414d565ef51e110fb1e891 → import 0b2ee6f13430d367c99dde55c6be726c13ab561a → review binding 76671f8dd33796b6fe39d0bb7e6a35a3baeeba8b → authorization consumption 4f8f06722f936ae334c437363681abc171334ce1"
+    - "TEST-0005 current v8 proof remains exact tree dc52009ff2cb31f382544a812da937e686d63c8d → PASS f02bf1879180dc3ac80c659c327ea25d1ad72411 → binding 2cd504e4ea261ed29281777a355da7651c307463"
+    - "TEST-0007 current v8 proof remains exact tree dd21e4f3171669a5f7b47a89988a169f5d8f2e9b → PASS 734bdbddf528100cb68f186a6f4e87a3c1606eb2 → binding 27c12c17071af395c1f3cc7cd74703b31864715e"
+    - "REQ-0023, REQ-0024 and REQ-0025 @ b09f37c are all PROPOSED with verification.test_ids [TEST-0005, TEST-0006]; TEST-0006 protects all three, and their existing acceptance_evidence contains no approval-capable COMPLETE review"
+    - "PR #3 WORK-0002 mirror @ b09f37c is IN_REVIEW, depends on WORK-0001, has affected_schemas [], and exposes no branch-local REVIEW-0002/TEST-0002/TEST-0003 IDs in locally traversable proof fields"
+    - "registry/progress/matrix.yaml @ b09f37c keeps WORK-0001 and WORK-0002 IN_REVIEW while WORK-0003 and WORK-0004 remain PLANNED"
+    - "After explicit PR #2 boundary, live PR #2 is open/non-draft/mergeable at ab62faa1743705600a0f11335579db68a2166ab3 with branch WORK-0002 still IN_REVIEW; schemas/registry/work-items.schema.json, reviews.schema.json and tests.schema.json all resolve on that head"
+    - "Current REQ-0010 @ b09f37c maps only to TEST-0005, while TEST-0004 @ b09f37c does not list current REQ-0010 in protects.requirements"
+    - "Live PR #3 review inventory immediately before verdict contains no Codex review newer than REVIEW-0024/source review PRR_kwDOUUI5ts8AAAABNN5SgQ; REVIEW-0024 F-1/F-2 threads remain unresolved for independent verification and no new adverse review appeared during the drill"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -157,3 +171,4 @@ history:
     - {commit_sha: "6e6e005fc81b0ea91427fc55ea1f09d818650d7b", recorded_result: PASS, recorded_in_commit: "b0fde620d06e0b4e4e5d16ab39680ad468fbf260", validity: INVALIDATED, invalidated_by: "REVIEW-0023/F-1", reason: "REVIEW-0023 established that PROJECT_STATE still ordered this already-completed rerun as future work, so the execution's handover-currentness assertion was false; immutable PASS result is preserved but cannot gate current closure."}
     - {commit_sha: "683c3493a2876b433e9b833e4d3ea3468dc9f1d3", recorded_result: PASS, recorded_in_commit: "688521a1e35c6f89edf8f1ece42328b96e150f7c", validity: VALID, invalidated_by: null, reason: "REVIEW-0023-corrected transition-stable handover passes with WORK-0001 real YAML parsing/hash verification, proposed reciprocal REQ↔TEST traceability, exact TEST-0005 SHA integrity, PR #3 mirror isolation, explicit PR #2 schema boundary, revision-bound REQ-0010 coverage and REVIEW-0022/0023 v7 provenance; fresh approval-capable L2 remains the closure gate. It remains valid for that tested v7 tree but predates REVIEW-0024/status-machine v8 and therefore is insufficient as the final current handover proof."}
     - {commit_sha: "ea8562ae2ff54e5ff9c73f4f09116c5f6aa82c21", recorded_result: FAIL, recorded_in_commit: "9212397d4e6af69b5b151e4f2f4dd5c242671083", validity: VALID, invalidated_by: null, reason: "WORK-0001 parses correctly and v8 synchronization exists, but PROJECT_STATE duplicated stale current TEST-0006 state: it said the current record was PASS on 683c3493 while the exact tested tree had TEST-0006 RUNNING. The cold-resume handover was therefore not transition-stable."}
+    - {commit_sha: "b09f37c7868a4bdfb47310118860474263aeb717", recorded_result: PASS, recorded_in_commit: null, validity: VALID, invalidated_by: null, reason: "Corrected transition-stable REVIEW-0024/v8 cold resume passes: PROJECT_STATE contains no duplicated mutable TEST-0006 state, WORK-0001 remains parseable/IN_REVIEW, requirement/risk acceptance contracts and REVIEW-0024 provenance are coherent, current v8 TEST-0005/0007 proofs resolve, proposed REQ↔TEST traceability is reciprocal, PR #3/PR #2 boundary is resolvable, and no new adverse review appeared during the exact-SHA drill."}
