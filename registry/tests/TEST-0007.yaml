@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening, historical migration/import/replay and authority-matrix drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -34,11 +34,7 @@ protects:
 
 environment:
   kind: REAL_GITHUB_REPOSITORY
-  real_dependencies:
-    - "tobianahillel-afk/monde"
-    - "PR #3 commit history"
-    - "GitHub Codex review metadata through REVIEW-0026"
-    - "GitHub repository metadata and collaborator permission for the repository owner"
+  real_dependencies: ["tobianahillel-afk/monde", "PR #3 commit history", "GitHub Codex review metadata through REVIEW-0026", "GitHub repository metadata and collaborator permission for the repository owner"]
   mocked_dependencies: []
 
 cases:
