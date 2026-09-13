@@ -1,6 +1,6 @@
 version: 1
 canonical: true
-updated_at: "2026-09-13"
+updated_at: "2026-09-14"
 
 purpose: "Define stable machine-recomputable content identities for evidence-bearing registry semantics so review/test proof cannot survive an unreviewed substantive edit."
 
@@ -10,10 +10,14 @@ schemes:
     algorithm: SHA256
     digest_format: "sha256:<64 lowercase hex characters>"
     encoding: UTF-8
+    projection:
+      rule: "Start from an empty object. For every included_fields path, copy the value from the source requirement into the same nested object path. A dotted path such as verification.method therefore materializes {verification: {method: <value>}} rather than a literal key named 'verification.method'. When several included paths share a parent, merge them into that one parent object. Do not copy unlisted siblings."
+      missing_path: FAIL_CLOSED
     canonicalization:
       format: JSON
-      object_keys: SORT_LEXICOGRAPHICALLY
+      object_keys: SORT_LEXICOGRAPHICALLY_RECURSIVELY
       separators: COMPACT
+      whitespace: NONE
       unicode: PRESERVE_CODEPOINTS
       arrays: PRESERVE_RECORDED_ORDER
       nulls: PRESERVE
@@ -40,7 +44,7 @@ schemes:
       - verification.acceptance_cold_read_test_ids
       - verification.real_system_validation
       - history
-    rule: "The digest MUST be recomputed from exactly included_fields using the canonicalization above. Any change to an included field creates a new normative content identity and invalidates review/cold-read acceptance evidence bound to the prior digest. Changes only to excluded lifecycle, provenance-link or evidence-link fields do not change normative identity."
+    rule: "The digest MUST be recomputed from exactly the nested projection of included_fields using the projection and canonicalization above. Any change to an included field creates a new normative content identity and invalidates review/cold-read acceptance evidence bound to the prior digest. Changes only to excluded lifecycle, provenance-link or evidence-link fields do not change normative identity."
 
 validation:
   fail_closed: true
@@ -48,3 +52,4 @@ validation:
     - "A record that declares a content_identity scheme MUST use a known scheme and a digest matching recomputation from that exact record."
     - "Requirement acceptance evidence that declares a content digest MUST use the same scheme and digest as the requirement at the instant of acceptance."
     - "A substantive edit cannot be hidden by retaining the old digest; digest mismatch is invalid repository state."
+    - "Implementations MUST use the nested projection rule above; literal dotted-key projection, copying full unlisted parent mappings, or implementation-defined serialization is invalid."
