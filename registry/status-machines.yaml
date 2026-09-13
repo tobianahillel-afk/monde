@@ -1,6 +1,6 @@
-version: 7
+version: 8
 canonical: true
-updated_at: "2026-09-11"
+updated_at: "2026-09-13"
 
 principles:
   - "A record status is valid only when declared by the machine for its registry."
@@ -53,6 +53,24 @@ registry_machines:
       SUPERSEDED: []
       DEPRECATED: []
       CANCELLED: []
+    acceptance_preconditions:
+      transition: "PROPOSED -> ACCEPTED"
+      independent_review:
+        evidence_field: "verification.acceptance_evidence"
+        required_record_type: REVIEW
+        required_status: COMPLETE
+        required_outcomes: [APPROVE, APPROVE_WITH_FOLLOWUP]
+        minimum_independence_source: "applicable owning-work assurance policy"
+        requirement_must_be_in_scope: true
+        reviewed_while_requirement_status: PROPOSED
+      cold_read:
+        evidence_field: "verification.test_ids"
+        required_record_type: TEST
+        required_status: PASS
+        exact_revision_required: true
+        requirement_must_be_protected: true
+        tested_while_requirement_status: PROPOSED
+      rule: "A normal PROPOSED → ACCEPTED edge is necessary but not sufficient. Before the transition is valid, the requirement must be backed by at least one resolvable COMPLETE independent REVIEW referenced through verification.acceptance_evidence whose outcome is approval-capable, whose independence satisfies the applicable owning-work assurance policy, whose scope includes the requirement, and which inspected the requirement while it was still PROPOSED; and by at least one resolvable exact-revision PASS TEST referenced through verification.test_ids that protects the requirement and executed while it was still PROPOSED. Negative COMPLETE reviews, findings, prose/docs, author assertion, or a lifecycle-valid edge alone never satisfy this precondition."
     historical_import_exceptions:
       - record_id: REQ-0015
         imported_status: ACCEPTED
@@ -112,6 +130,20 @@ registry_machines:
       ACCEPTED: [OPEN, MONITORING, CLOSED, SUPERSEDED]
       CLOSED: [OPEN, SUPERSEDED]
       SUPERSEDED: []
+    acceptance_preconditions:
+      target_status: ACCEPTED
+      required_fields:
+        - resolution.accepted
+        - resolution.accepted_by
+        - resolution.authority_role
+        - resolution.authority_evidence
+        - resolution.acceptance_rationale
+        - resolution.accepted_at
+        - resolution.review_condition
+      accepted_flag_required_value: true
+      authority_evidence_non_empty: true
+      authority_policy_source: "docs/09_GOVERNANCE/threat-modeling.md and docs/13_QUALITY/assurance-levels.md"
+      rule: "Any transition into ACCEPTED requires resolution.accepted=true plus a named accepting actor, authority role, non-empty authority evidence, rationale, acceptance timestamp, and review/expiry condition. The authority evidence must demonstrate authority appropriate to the risk severity/category and the affected work assurance level. An unresolved critical security finding or unknown critical trust boundary may be accepted only by the formally authorized owner or designated security/risk authority required by policy; merely being the risk author or populating the fields is insufficient."
 
   reviews:
     initial: OPEN
