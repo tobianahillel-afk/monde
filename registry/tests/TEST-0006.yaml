@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: FAIL
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -42,6 +42,7 @@ protects:
     - "TEST-0008 remains non-qualifying until real external L2/L3 fresh-context execution"
     - "TEST-0005 and TEST-0007 current REVIEW-0026 correction proof chains are exact and resolvable"
     - "REVIEW-0001/F-3 authority evidence independently resolves to GitHub repository-owner metadata"
+    - "PROJECT_STATE and WORK-0001 conditionally route TEST-0006 so a later PASS skips every further rerun"
     - "PR #3 WORK-0002 mirror preserves the explicit branch boundary"
     - "TEST-0004 does not claim current reverse protection of REQ-0010; REQ-0010 routes to TEST-0005"
 
@@ -57,29 +58,25 @@ cases:
     - "REQ-0023/24/25 remain PROPOSED with exact digests and TEST-0008-only acceptance cold-read link"
     - "TEST-0005 current proof is 27c4d591… → 786a759a… → f6caaf77…"
     - "TEST-0007 current proof is b0d4b4f6… → 592b88eb… → 8e5edd80…"
+    - "PROJECT_STATE and WORK-0001 transition-stable routing remains valid in FAIL/READY/RUNNING/PASS"
     - "WORK-0002 mirror and live PR #2 boundary remain coherent"
     - "REQ-0010 / TEST-0004 historical boundary remains correct"
   edge_cases:
-    - "The handover text must remain correct before, during and after the current TEST-0006 execution"
-    - "A future cold resume after PASS must skip any instruction to execute a rerun already completed"
+    - "The handover text remains correct before, during and after the current TEST-0006 execution"
+    - "A future cold resume after PASS skips every instruction to rerun TEST-0006"
   failure_modes:
-    - "PROJECT_STATE unconditionally orders the REVIEW-0026 TEST-0006 rerun after that rerun becomes PASS"
+    - "PROJECT_STATE or WORK-0001 unconditionally orders the REVIEW-0026 TEST-0006 rerun after PASS"
     - "Any other current proof/lifecycle/traceability boundary is inconsistent"
   adversarial_cases:
-    - "Read PROJECT_STATE as a brand-new agent immediately after hypothetical PASS and verify it does not send the agent back into TEST-0006"
+    - "Read PROJECT_STATE and WORK-0001 as a brand-new agent immediately after hypothetical PASS and verify they route directly to frozen-candidate L2"
     - "Independently parse exact current WORK-0001 YAML in fresh L2; local runtime network cannot fetch the exact blob directly, so no parser success is claimed here"
 
 execution:
-  command_or_workflow: "Manual exact-SHA REVIEW-0026 handover drill with post-PASS cold-resume counterfactual"
-  last_run_at: "2026-09-14"
-  commit_sha: "d3997dd1c377b220e26eb7eeb3fc0a5c80f8b698"
-  result: FAIL
-  evidence:
-    - "Exact tested PR #3 tree d3997dd1c377b220e26eb7eeb3fc0a5c80f8b698; PR remained open/non-draft/mergeable on that exact HEAD during the drill"
-    - "Git compare cfcb4ccc2b86a3cce6cdbb7946227654f9b6a3ec → d3997dd1c377b220e26eb7eeb3fc0a5c80f8b698 changes only registry/tests/TEST-0006.yaml, so synchronized WORK/PROJECT_STATE and current TEST-0005/0007 proof did not mutate during execution"
-    - "REVIEW-0026 provenance, content-identity v2/JCS, TEST-0005/0007 proof, TEST-0008 non-qualification, WORK-0002 boundary, live PR #2 at ab62faa1743705600a0f11335579db68a2166ab3 and REQ-0010/TEST-0004 boundary were coherent"
-    - "Failure: PROJECT_STATE next action still unconditionally said to legally reopen and execute TEST-0006 once because REVIEW-0026 changed the handover. That statement was true while this execution was RUNNING but would remain present after PASS, sending a future cold resume backward into already-completed work. The handover was therefore not transition-stable and the test correctly failed rather than manufacture PASS."
-    - "Exact current WORK-0001 was not re-parsed with yaml.safe_load in this runtime because the local execution environment cannot resolve GitHub; independent YAML parse remains an explicit fresh-L2 gate and is not falsely claimed as successful evidence"
+  command_or_workflow: null
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
