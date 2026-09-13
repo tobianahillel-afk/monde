@@ -65,15 +65,15 @@ acceptance_cold_read:
   requirements:
     REQ-0023:
       content_scheme: REQUIREMENT_NORMATIVE_V1
-      content_digest: "sha256:26acc84a4bdb93490ad43014ad6651c3f5c9d1a5a0a3d542780d387ff0d6bbec"
+      content_digest: "sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b"
       status_at_read: null
     REQ-0024:
       content_scheme: REQUIREMENT_NORMATIVE_V1
-      content_digest: "sha256:79613cd4a3f06a39b34c9cede757559446c6177a8de5eaa987d8ee55f3520601"
+      content_digest: "sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4"
       status_at_read: null
     REQ-0025:
       content_scheme: REQUIREMENT_NORMATIVE_V1
-      content_digest: "sha256:a3ff4453256e04aaaa77838849f7878bb5c676f09814a8c5d2f2fda5edbedff4"
+      content_digest: "sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67"
       status_at_read: null
   required_outcomes:
     understood_without_author_reasoning: null
