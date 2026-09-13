@@ -54,6 +54,10 @@ findings:
     acceptance:
       accepted_by: "tobianahillel-afk"
       authority_role: REPOSITORY_OWNER
+      authority_evidence_type: EXPLICIT_REPOSITORY_OWNER_DECISION
+      authority_evidence_ref: "REVIEW-0001/F-3 owner decision; repository namespace owner is tobianahillel-afk and GitHub collaborator permission was reverified as admin on 2026-09-14"
+      authority_matrix_version: 1
+      authority_rule_id: "FINDING:A3:R2_MAJOR"
       authority_evidence:
         - "GitHub repository owner identity is tobianahillel-afk."
         - "Explicit owner decision on 2026-09-10: keep MONDE public subject to public-code-safe constraints."
@@ -133,4 +137,4 @@ completed_at: null
 
 history:
   created_at: "2026-09-10"
-  updated_at: "2026-09-10"
+  updated_at: "2026-09-14"
