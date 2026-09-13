@@ -4,7 +4,7 @@ status: PROPOSED
 type: GOVERNANCE
 normative_statement: "MONDE SHALL maintain a canonical Definition of Done that defines the mandatory evidence and completion conditions that must be satisfied before specification or implementation work may truthfully become DONE."
 rationale: "Completion is independently fail-able from readiness and verification-strategy definition. This replacement remains PROPOSED until independent Review Council and cold-read acceptance gates pass."
-content_identity: {scheme: REQUIREMENT_NORMATIVE_V1, digest: "sha256:79613cd4a3f06a39b34c9cede757559446c6177a8de5eaa987d8ee55f3520601"}
+content_identity: {scheme: REQUIREMENT_NORMATIVE_V1, digest: "sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4"}
 origin: {source: "WORK-0001/AC-5; REVIEW-0018/F-1", decision_date: "2026-09-11", introduced_by_work: WORK-0001, introduced_by_adr: null}
 scope: {capabilities: [], engines: [], experiences: [], schemas: [], data_sources: [], models: []}
 depends_on: [REQ-0004, REQ-0010]
