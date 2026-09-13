@@ -154,7 +154,7 @@ history:
       reason: "Lifecycle v7 truthfully separates repository-native review execution from external completed-review import: REVIEW-0014's immutable replay is exact/non-reusable, REVIEW-0015 authorization predates materialization and is one-shot/bound, generic transitions remain strict, historical imports remain exact, and REQ-0006 ↔ TEST-0007 traceability remains intact. REVIEW-0024 later introduced v8 acceptance-precondition requirements, so a new execution is required for those additional semantics without invalidating this historical v7 proof."
     - commit_sha: "dd21e4f3171669a5f7b47a89988a169f5d8f2e9b"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "734bdbddf528100cb68f186a6f4e87a3c1606eb2"
       validity: VALID
       invalidated_by: null
       reason: "Lifecycle v8 preserves prior migration/import/replay guarantees while adding enforceable requirement-acceptance evidence and risk-acceptance authority preconditions. REVIEW-0024 import provenance is exact and one-shot, risk records can represent the required authority evidence, and current TEST-0005/REQ-0006 traceability remains coherent."
