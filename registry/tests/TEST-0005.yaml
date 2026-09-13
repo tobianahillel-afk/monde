@@ -1,6 +1,6 @@
 id: TEST-0005
-name: "WORK-0001 evidence, authority and requirement-acceptance drill"
-status: READY
+name: "WORK-0001 evidence, authority and requirement-acceptance guard drill"
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -8,28 +8,29 @@ protects:
   capabilities: []
   contracts:
     - "exact-SHA PASS evidence"
-    - "review finding acceptance authority"
     - "atomic specification requirement ownership"
     - "requirement supersession traceability"
-    - "pre-acceptance Review Council and cold-read gate"
+    - "requirement normative content identity"
+    - "content-bound independent review evidence"
+    - "fresh-context acceptance cold-read qualification"
     - "machine-enforced requirement acceptance preconditions"
     - "WORK-0001 corrective traceability"
   risks:
     - "Legacy unbound PASS is treated as current gating evidence"
-    - "Blocking review finding is self-accepted without authority"
     - "A compound requirement hides partial specification failure"
-    - "A superseded compound requirement remains an active normative owner or its replacement set is incomplete"
     - "A lifecycle-valid PROPOSED → ACCEPTED transition is performed before independent Review Council/cold-read evidence exists"
-    - "A negative or out-of-scope review is mistaken for machine-valid requirement acceptance evidence"
+    - "Review/cold-read proof for an older requirement revision is reused after a substantive edit"
+    - "An author-run generic PASS test is mistaken for a fresh-context acceptance cold read"
+    - "A negative, out-of-scope or digest-mismatched review is mistaken for machine-valid requirement acceptance evidence"
   invariants:
     - "No active PASS state-bound test lacks an exact tested revision"
-    - "An ACCEPTED R1/R2 finding cannot become non-blocking without explicit authority evidence"
     - "Independently fail-able specification obligations have distinct REQ identities"
     - "REQ-0005 remains superseded rather than silently narrowed"
     - "Prematurely accepted REQ-0020/REQ-0021/REQ-0022 remain historical SUPERSEDED records"
-    - "Current AC-5 owners REQ-0023/REQ-0024/REQ-0025 remain PROPOSED throughout this pre-acceptance test"
-    - "A post-v7 requirement reaches ACCEPTED only after required independent Review Council and cold-read evidence exists, not merely because PROPOSED → ACCEPTED is a legal transition"
-    - "Under status-machine v8, only an approval-capable COMPLETE independent review that includes the requirement while PROPOSED plus an exact-revision PASS cold-read test that protects it can satisfy acceptance preconditions"
+    - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED during this author-run machine-guard test"
+    - "Each active AC-5 requirement's REQUIREMENT_NORMATIVE_V1 digest recomputes exactly from the current record"
+    - "v9 acceptance requires the same current normative digest in the requirement, qualifying independent review and qualifying fresh-context cold-read TEST"
+    - "Generic TEST-0005/TEST-0006 PASS evidence cannot satisfy the v9 cold-read half; only explicitly qualified acceptance_cold_read evidence referenced by acceptance_cold_read_test_ids can qualify"
 
 environment:
   kind: REAL_GITHUB_REPOSITORY
@@ -41,52 +42,41 @@ environment:
 
 cases:
   happy_path:
-    - "TEST-0001 is SUPERSEDED, preserves its historical execution fields, and points to revision-bound replacement TEST-0006 without inventing a commit SHA"
-    - "registry/status-machines.yaml requires exact commit_sha for active state-bound PASS records"
-    - "registry/reviews/_TEMPLATE.yaml carries structured acceptance authority fields"
-    - "REVIEW-0001/F-3 records repository-owner acceptance authority and evidence"
-    - "REQ-0010 owns atomic requirement identity/testability only"
-    - "REQ-0015 through REQ-0019 separately own assumptions/risks, research, failure modes, cross-document consistency and traceability"
+    - "TEST-0001 is SUPERSEDED and points to revision-bound replacement TEST-0006 without inventing a commit SHA"
     - "REQ-0005 is SUPERSEDED and remains historically addressable"
-    - "REQ-0020/REQ-0021/REQ-0022 are SUPERSEDED after their premature acceptance and each points to its proposed successor"
-    - "REQ-0023 separately owns Definition of Ready and remains PROPOSED"
-    - "REQ-0024 separately owns Definition of Done and remains PROPOSED"
-    - "REQ-0025 separately owns verification strategy and remains PROPOSED"
-    - "Git history proves REQ-0023/REQ-0024/REQ-0025 first materialized PROPOSED in 772616269581f622605416b2e34f6d4e270241df"
-    - "WORK-0001 AC-5 active traceability reaches REQ-0023/REQ-0024/REQ-0025 and omits superseded REQ-0005/REQ-0020/REQ-0021/REQ-0022 from active ownership"
-    - "AGENTS.md specification workflow requires Review Council hats and a cold-read before Accepted"
-    - "status-machines v8 acceptance_preconditions requires a resolvable COMPLETE approval-capable independent REVIEW from verification.acceptance_evidence that includes the requirement while still PROPOSED"
-    - "status-machines v8 acceptance_preconditions also requires a resolvable exact-revision PASS TEST from verification.test_ids that protects the requirement and ran while it was still PROPOSED"
-    - "REVIEW-0018/F-1 and REVIEW-0024/F-1 are negative findings, so neither REVIEW-0018 nor REVIEW-0024 can satisfy the independent-approval half of v8 acceptance"
-    - "This TEST-0005 execution is pre-acceptance cold-read evidence only and cannot itself supply independent review approval"
+    - "REQ-0020/REQ-0021/REQ-0022 remain SUPERSEDED premature-acceptance history"
+    - "REQ-0023, REQ-0024 and REQ-0025 remain distinct PROPOSED active AC-5 owners"
+    - "registry/content-identity.yaml defines REQUIREMENT_NORMATIVE_V1 with SHA256 canonical JSON over the exact normative field set"
+    - "REQ-0023 content_identity digest recomputes to sha256:26acc84a4bdb93490ad43014ad6651c3f5c9d1a5a0a3d542780d387ff0d6bbec"
+    - "REQ-0024 content_identity digest recomputes to sha256:79613cd4a3f06a39b34c9cede757559446c6177a8de5eaa987d8ee55f3520601"
+    - "REQ-0025 content_identity digest recomputes to sha256:a3ff4453256e04aaaa77838849f7878bb5c676f09814a8c5d2f2fda5edbedff4"
+    - "Each active requirement verification.test_ids contains TEST-0008 and acceptance_cold_read_test_ids is exactly [TEST-0008]"
+    - "TEST-0008 exists, protects all three active requirements and is not yet qualifying/PASS before an external fresh-context execution"
+    - "status-machines v9 requires a qualifying approval-capable independent REVIEW whose scope.requirement_revisions digest equals the exact current requirement digest"
+    - "status-machines v9 requires a PASS TEST from verification.acceptance_cold_read_test_ids with acceptance_cold_read.qualifies=true, L2/L3 fresh authoring-separated context, source identity/time, exact digest/status binding and explicit PASS outcomes"
+    - "REVIEW-0025 is negative evidence and therefore cannot satisfy the approval half even though it reviewed the requirements while PROPOSED"
+    - "This TEST-0005 execution is explicitly author-run machine-guard evidence and is not listed in acceptance_cold_read_test_ids"
   edge_cases:
-    - "Historical execution evidence remains inspectable even when its record is SUPERSEDED"
-    - "An accepted requirement that later proves prematurely accepted is superseded through a legal forward transition rather than rolled back to PROPOSED"
-    - "Proposed replacements may have complete text/test mappings while intentionally remaining non-Accepted until independent review"
-    - "verification.acceptance_evidence may contain contextual docs or negative findings; only a qualifying approval-capable REVIEW record counts for the independent-review precondition"
+    - "Changing only status, evidence links or history fields excluded by REQUIREMENT_NORMATIVE_V1 does not change normative identity"
+    - "A proposed requirement may gain TEST-0008 proof links while keeping the same normative digest"
+    - "Historical v8 TEST-0005 remains valid for its tested machine-guard scope while becoming non-qualifying as v9 cold-read evidence"
   failure_modes:
-    - "TEST status PASS with null state-bound execution.commit_sha"
-    - "R1/R2 disposition ACCEPTED with missing authority evidence"
-    - "REQ-0010 owns more than one independently fail-able obligation"
-    - "REQ-0005 becomes active again after supersession"
-    - "REQ-0020/REQ-0021/REQ-0022 remain active after REVIEW-0018"
-    - "Any of REQ-0023/REQ-0024/REQ-0025 is ACCEPTED before an approval-capable independent review that actually inspected it while PROPOSED"
-    - "A CHANGES_REQUIRED/BLOCKED review is treated as acceptance approval"
-    - "A review that omitted the requirement from scope is treated as acceptance approval"
-    - "A cold-read TEST that does not protect the requirement or ran after acceptance is treated as qualifying pre-acceptance evidence"
-    - "Any of DoR, DoD or verification strategy lacks a proposed atomic owner"
-    - "WORK-0001 active requirements omit a proposed AC-5 owner or still include a superseded predecessor"
+    - "Any declared requirement digest differs from recomputation"
+    - "A field included by REQUIREMENT_NORMATIVE_V1 changes but stale review/cold-read evidence is still accepted"
+    - "A review has approval-capable outcome but omits or mismatches scope.requirement_revisions for the requirement"
+    - "A generic PASS TEST in verification.test_ids is accepted as the cold-read half without being referenced by acceptance_cold_read_test_ids"
+    - "A cold-read TEST qualifies without source identity/time, L2/L3 context, fresh_context=true, authoring_context_separated=true, exact digest/status binding or all required PASS outcomes"
+    - "Any active AC-5 requirement is ACCEPTED before both exact-digest proof halves exist"
   adversarial_cases:
-    - "Attempt to roll REQ-0020/REQ-0021/REQ-0022 backward from ACCEPTED to PROPOSED and verify the lifecycle forbids it"
-    - "Attempt to treat the prior TEST-0005 PASS on d4202e0f as sufficient acceptance evidence even though it ran after REQ-0020/21/22 acceptance"
-    - "Attempt to accept REQ-0023/REQ-0024/REQ-0025 using REVIEW-0024/CHANGES_REQUIRED plus a lifecycle-valid edge and verify v8 rejects it"
-    - "Attempt to accept a requirement with only author-produced PASS tests and no independent approval-capable review and verify v8 rejects it"
-    - "Attempt to use an approval-capable review that inspected the requirement only after it was ACCEPTED and verify v8 rejects it"
-    - "Satisfy Definition of Ready while violating Definition of Done and verify the obligations remain independently visible"
-    - "Satisfy DoR and DoD while omitting verification-strategy rules and verify that omission remains independently visible"
+    - "Mutate normative_statement and verify REQUIREMENT_NORMATIVE_V1 changes so old review/cold-read digests no longer qualify"
+    - "Mutate depends_on and verify the old digest no longer qualifies"
+    - "Mutate verification.method and verify the old digest no longer qualifies"
+    - "Add an evidence link excluded by the identity scheme and verify the normative digest remains unchanged"
+    - "Attempt acceptance with TEST-0005 or TEST-0006 as the only PASS test and verify v9 rejects the missing qualified cold read"
+    - "Attempt acceptance with a clean review bound to a prior digest and verify v9 rejects the stale review"
 
 execution:
-  command_or_workflow: "Pending v9 re-execution after REVIEW-0025/F-1/F-2"
+  command_or_workflow: "Manual exact-SHA v9 requirement content-identity and acceptance-evidence guard drill"
   last_run_at: null
   commit_sha: null
   result: null
@@ -117,10 +107,10 @@ history:
       recorded_in_commit: "ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe"
       validity: VALID
       invalidated_by: null
-      reason: "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED, atomic and active in WORK-0001; their prematurely accepted predecessors are preserved as SUPERSEDED history; Review Council/cold-read-before-Accepted ordering is explicit and this run supplies exact-SHA pre-acceptance cold-read evidence without self-approving acceptance. REVIEW-0024 later required the acceptance precondition to be encoded in the canonical lifecycle machine, so a new v8 execution is required for that additional contract without invalidating this historical pre-v8 proof."
+      reason: "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED, atomic and active in WORK-0001; their prematurely accepted predecessors are preserved as SUPERSEDED history. This remains valid for that pre-v8 tree but does not satisfy later v8/v9 acceptance semantics."
     - commit_sha: "dc52009ff2cb31f382544a812da937e686d63c8d"
       recorded_result: PASS
       recorded_in_commit: "f02bf1879180dc3ac80c659c327ea25d1ad72411"
       validity: VALID
       invalidated_by: null
-      reason: "Status-machine v8 turns the requirement acceptance ordering into an enforceable precondition: the three active AC-5 owners remain PROPOSED, this run supplies exact-SHA pre-acceptance cold-read evidence, and existing negative reviews cannot satisfy the independent approval half. A later clean approval-capable L2 is still required before any acceptance transition. REVIEW-0025 later established that generic author-run PASS evidence is insufficient to qualify as the fresh-context cold-read half under v9; this execution remains valid for its tested v8 machine-guard scope but is not v9 acceptance cold-read evidence."
+      reason: "Status-machine v8 enforced review/test ordering while the three active owners remained PROPOSED. REVIEW-0025 later established that generic author-run PASS evidence is insufficient to qualify as the fresh-context cold-read half under v9; this execution remains valid for its tested v8 machine-guard scope but is not v9 acceptance cold-read evidence."
