@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 evidence, authority and requirement-acceptance guard drill"
-status: PASS
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -11,6 +11,7 @@ protects:
     - "atomic specification requirement ownership"
     - "requirement supersession traceability"
     - "requirement normative content identity"
+    - "RFC 8785/JCS byte-exact requirement serialization"
     - "content-bound independent review evidence"
     - "fresh-context acceptance cold-read qualification"
     - "machine-enforced requirement acceptance preconditions"
@@ -20,6 +21,7 @@ protects:
     - "A compound requirement hides partial specification failure"
     - "A lifecycle-valid PROPOSED → ACCEPTED transition is performed before independent Review Council/cold-read evidence exists"
     - "Review/cold-read proof for an older requirement revision is reused after a substantive edit"
+    - "Semantically equal requirement JSON hashes differently across implementations"
     - "An author-run generic PASS test is mistaken for a fresh-context acceptance cold read"
     - "A negative, out-of-scope or digest-mismatched review is mistaken for machine-valid requirement acceptance evidence"
   invariants:
@@ -28,7 +30,7 @@ protects:
     - "REQ-0005 remains superseded rather than silently narrowed"
     - "Prematurely accepted REQ-0020/REQ-0021/REQ-0022 remain historical SUPERSEDED records"
     - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED during this author-run machine-guard test"
-    - "Each active AC-5 requirement's REQUIREMENT_NORMATIVE_V1 digest recomputes exactly from the current record"
+    - "Each active AC-5 requirement's REQUIREMENT_NORMATIVE_V1 digest recomputes exactly from RFC 8785/JCS canonical UTF-8 bytes"
     - "v9 acceptance requires the same current normative digest in the requirement, qualifying independent review and qualifying fresh-context cold-read TEST"
     - "Generic TEST-0005/TEST-0006 PASS evidence cannot satisfy the v9 cold-read half; only explicitly qualified acceptance_cold_read evidence referenced by acceptance_cold_read_test_ids can qualify"
 
@@ -46,28 +48,30 @@ cases:
     - "REQ-0005 is SUPERSEDED and remains historically addressable"
     - "REQ-0020/REQ-0021/REQ-0022 remain SUPERSEDED premature-acceptance history"
     - "REQ-0023, REQ-0024 and REQ-0025 remain distinct PROPOSED active AC-5 owners"
-    - "registry/content-identity.yaml defines REQUIREMENT_NORMATIVE_V1 as a deterministic nested projection followed by canonical SHA256 JSON"
-    - "REQ-0023 content_identity digest recomputes to sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b"
-    - "REQ-0024 content_identity digest recomputes to sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4"
-    - "REQ-0025 content_identity digest recomputes to sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67"
+    - "registry/content-identity.yaml version 2 defines REQUIREMENT_NORMATIVE_V1 nested projection plus RFC 8785/JCS exact UTF-8 serialization before SHA-256"
+    - "REQ-0023 digest recomputes to sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b"
+    - "REQ-0024 digest recomputes to sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4"
+    - "REQ-0025 digest recomputes to sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67"
     - "Each active requirement verification.test_ids contains TEST-0008 and acceptance_cold_read_test_ids is exactly [TEST-0008]"
     - "TEST-0008 exists, protects all three active requirements and is not yet qualifying/PASS before an external fresh-context execution"
     - "status-machines v9 requires a qualifying approval-capable independent REVIEW whose scope.requirement_revisions digest equals the exact current requirement digest"
-    - "status-machines v9 requires a PASS TEST from verification.acceptance_cold_read_test_ids with acceptance_cold_read.qualifies=true, L2/L3 fresh authoring-separated context, source identity/time, exact digest/status binding and explicit PASS outcomes"
-    - "REVIEW-0025 is negative evidence and therefore cannot satisfy the approval half even though it reviewed the requirements while PROPOSED"
+    - "status-machines v9 requires a PASS TEST from acceptance_cold_read_test_ids with explicit L2/L3 fresh-context provenance and all required PASS outcomes"
+    - "REVIEW-0026 remains negative evidence and explicitly records that TEST-0008 qualification/outcomes were not provided"
     - "This TEST-0005 execution is explicitly author-run machine-guard evidence and is not listed in acceptance_cold_read_test_ids"
   edge_cases:
     - "Changing only status, evidence links or history fields excluded by REQUIREMENT_NORMATIVE_V1 does not change normative identity"
-    - "A proposed requirement may gain TEST-0008 proof links while keeping the same normative digest"
-    - "Historical v8 TEST-0005 remains valid for its tested machine-guard scope while becoming non-qualifying as v9 cold-read evidence"
+    - "A proposed requirement may gain proof links while keeping the same normative digest"
+    - "Current requirements contain only JCS-stable ASCII strings/keys, booleans, arrays and objects, so RFC 8785 clarification preserves their existing digest bytes"
   failure_modes:
-    - "Any declared requirement digest differs from recomputation"
+    - "Any declared requirement digest differs from RFC 8785/JCS recomputation"
     - "A field included by REQUIREMENT_NORMATIVE_V1 changes but stale review/cold-read evidence is still accepted"
+    - "A non-JCS serializer is allowed to choose alternate Unicode escaping, key ordering, number spelling or whitespace"
     - "A review has approval-capable outcome but omits or mismatches scope.requirement_revisions for the requirement"
     - "A generic PASS TEST in verification.test_ids is accepted as the cold-read half without being referenced by acceptance_cold_read_test_ids"
     - "A cold-read TEST qualifies without source identity/time, L2/L3 context, fresh_context=true, authoring_context_separated=true, exact digest/status binding or all required PASS outcomes"
     - "Any active AC-5 requirement is ACCEPTED before both exact-digest proof halves exist"
   adversarial_cases:
+    - "Serialize a non-ASCII string once literally and once as a JSON Unicode escape and verify only RFC 8785/JCS bytes are conformant"
     - "Mutate normative_statement and verify REQUIREMENT_NORMATIVE_V1 changes so old review/cold-read digests no longer qualify"
     - "Mutate depends_on and verify the old digest no longer qualifies"
     - "Mutate verification.method and verify the old digest no longer qualifies"
@@ -76,21 +80,11 @@ cases:
     - "Attempt acceptance with a clean review bound to a prior digest and verify v9 rejects the stale review"
 
 execution:
-  command_or_workflow: "Manual corrected exact-SHA v9 requirement content-identity and acceptance-evidence guard drill"
-  last_run_at: "2026-09-14"
-  commit_sha: "1562acdff730d832770befdbfe296615fac2a544"
-  result: PASS
-  evidence:
-    - "Exact tested PR #3 tree 1562acdff730d832770befdbfe296615fac2a544; live PR #3 remained open/non-draft/mergeable on that exact HEAD before verdict"
-    - "registry/content-identity.yaml @ 1562acd defines REQUIREMENT_NORMATIVE_V1 using nested path projection, recursively sorted compact JSON and SHA256, eliminating the projection ambiguity exposed by the prior FAIL"
-    - "Direct recomputation on exact tree 1562acd yields REQ-0023 sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b, matching its declared content_identity"
-    - "Direct recomputation on exact tree 1562acd yields REQ-0024 sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4, matching its declared content_identity"
-    - "Direct recomputation on exact tree 1562acd yields REQ-0025 sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67, matching its declared content_identity"
-    - "REQ-0023/REQ-0024/REQ-0025 @ 1562acd remain PROPOSED; each points to TEST-0008 through verification.acceptance_cold_read_test_ids and also keeps TEST-0005/0006/0008 in general test_ids"
-    - "TEST-0008 @ 1562acd is PLANNED, protects all three active requirements, carries the same three target digests, and remains acceptance_cold_read.qualifies=false with null source/executor/outcomes/execution; no independent result is fabricated"
-    - "status-machines v9 @ 1562acd requires exact current digest agreement in the requirement, qualifying approval-capable REVIEW and separately qualified L2/L3 fresh-context authoring-separated cold-read TEST with explicit PASS outcomes"
-    - "REVIEW-0025 remains COMPLETE/CHANGES_REQUIRED with F-1/F-2/F-3 OPEN, so this author-run TEST does not claim independent approval"
-    - "The preserved first v9 TEST-0005 execution on ed716f remains FAIL with result binding df5e766a because its three digests did not recompute; it was corrected rather than rewritten"
+  command_or_workflow: null
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -100,39 +94,9 @@ history:
   created_at: "2026-09-10"
   updated_at: "2026-09-14"
   executions:
-    - commit_sha: "2712795dc9f10c1efed2088313d125f6f915cc98"
-      recorded_result: PASS
-      recorded_in_commit: "89d39c75fe29d8bbcbe016cecaa6c87d935f1c47"
-      validity: VALID
-      invalidated_by: null
-      reason: "Exact-SHA evidence/authority and the REQ-0010 plus REQ-0015..REQ-0019 atomicity split passed for that corrective tree. This remains valid for that scope/tree; later reviews required additional AC-5 atomicity and acceptance-sequencing coverage."
-    - commit_sha: "d4202e0f21e18d9100234817b4ae56fbb38ca165"
-      recorded_result: PASS
-      recorded_in_commit: "568dde0f9fb806f82924ee67066f08039bef777a"
-      validity: VALID
-      invalidated_by: null
-      reason: "REQ-0005 was superseded without semantic rewriting and REQ-0020/REQ-0021/REQ-0022 were atomic with normal lifecycle. REVIEW-0018 later proved that this run was not sufficient for acceptance because it occurred after those records had already become ACCEPTED; this execution remains valid for its tested atomicity/supersession scope but not as pre-acceptance evidence."
-    - commit_sha: "efd48467352c0ce4ec344ebe410fd9e98d938721"
-      recorded_result: PASS
-      recorded_in_commit: "ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe"
-      validity: VALID
-      invalidated_by: null
-      reason: "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED, atomic and active in WORK-0001; their prematurely accepted predecessors are preserved as SUPERSEDED history. This remains valid for that pre-v8 tree but does not satisfy later v8/v9 acceptance semantics."
-    - commit_sha: "dc52009ff2cb31f382544a812da937e686d63c8d"
-      recorded_result: PASS
-      recorded_in_commit: "f02bf1879180dc3ac80c659c327ea25d1ad72411"
-      validity: VALID
-      invalidated_by: null
-      reason: "Status-machine v8 enforced review/test ordering while the three active owners remained PROPOSED. REVIEW-0025 later established that generic author-run PASS evidence is insufficient to qualify as the fresh-context cold-read half under v9; this execution remains valid for its tested v8 machine-guard scope but is not v9 acceptance cold-read evidence."
-    - commit_sha: "ed716f93116f1d121ed7aa54174b8bdbf1030513"
-      recorded_result: FAIL
-      recorded_in_commit: "df5e766a32cdd5782fdd727e38d73c8b7e8e7355"
-      validity: VALID
-      invalidated_by: null
-      reason: "The first v9 guard execution correctly failed closed because all three newly declared REQUIREMENT_NORMATIVE_V1 digests disagreed with direct recomputation from the exact requirement records. The projection contract and digests were then corrected rather than suppressing the failure."
-    - commit_sha: "1562acdff730d832770befdbfe296615fac2a544"
-      recorded_result: PASS
-      recorded_in_commit: "7abdfbd0655e96239d8ddb511f3edfc0b19571f7"
-      validity: VALID
-      invalidated_by: null
-      reason: "Corrected v9 guard passes deterministic requirement digest recomputation, exact-digest review/cold-read acceptance preconditions, explicit TEST-0008 qualification boundary and preservation of the earlier fail-closed execution while all active AC-5 requirements remain PROPOSED."
+    - {commit_sha: "2712795dc9f10c1efed2088313d125f6f915cc98", recorded_result: PASS, recorded_in_commit: "89d39c75fe29d8bbcbe016cecaa6c87d935f1c47", validity: VALID, invalidated_by: null, reason: "Exact-SHA evidence/authority and REQ-0010 plus REQ-0015..0019 atomicity passed for that tree; later reviews expanded current obligations."}
+    - {commit_sha: "d4202e0f21e18d9100234817b4ae56fbb38ca165", recorded_result: PASS, recorded_in_commit: "568dde0f9fb806f82924ee67066f08039bef777a", validity: VALID, invalidated_by: null, reason: "Atomicity/supersession passed; REVIEW-0018 later proved it insufficient as pre-acceptance evidence."}
+    - {commit_sha: "efd48467352c0ce4ec344ebe410fd9e98d938721", recorded_result: PASS, recorded_in_commit: "ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe", validity: VALID, invalidated_by: null, reason: "Replacement REQ-0023/24/25 remained PROPOSED on that pre-v8 tree; later acceptance semantics superseded its gating scope."}
+    - {commit_sha: "dc52009ff2cb31f382544a812da937e686d63c8d", recorded_result: PASS, recorded_in_commit: "f02bf1879180dc3ac80c659c327ea25d1ad72411", validity: VALID, invalidated_by: null, reason: "v8 ordering guard passed; REVIEW-0025 later required exact content binding and a separately qualified fresh-context cold read."}
+    - {commit_sha: "ed716f93116f1d121ed7aa54174b8bdbf1030513", recorded_result: FAIL, recorded_in_commit: "df5e766a32cdd5782fdd727e38d73c8b7e8e7355", validity: VALID, invalidated_by: null, reason: "First v9 guard correctly failed closed because initial declared digests disagreed with recomputation."}
+    - {commit_sha: "1562acdff730d832770befdbfe296615fac2a544", recorded_result: PASS, recorded_in_commit: "7abdfbd0655e96239d8ddb511f3edfc0b19571f7", validity: VALID, invalidated_by: null, reason: "Corrected v9 guard passed nested-projection digest and TEST-0008 qualification semantics. REVIEW-0026 later required byte-exact cross-implementation JSON serialization; this remains valid for its exact earlier content-identity v1 tree but is insufficient as current proof."}
