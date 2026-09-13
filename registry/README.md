@@ -2,7 +2,7 @@
 
 Status: Accepted  
 Canonical: Yes  
-Last Updated: 2026-09-11
+Last Updated: 2026-09-14
 
 ## Purpose
 
@@ -70,9 +70,25 @@ The target relationship is:
 
 A material accepted governance behavior is not exempt merely because no product capability exists yet: it still requires a stable `REQ-*` identity and a verification/review path. Bootstrap requirements may therefore trace directly `REQ → WORK → TEST/REVIEW` until product capability records exist.
 
+## Canonical cross-registry contracts
+
+Three repository-root registry contracts are intentionally shared rather than duplicated into individual record types:
+
+- `registry/status-machines.yaml` — lifecycle transitions and evidence-bearing status preconditions;
+- `registry/content-identity.yaml` — machine-recomputable semantic content identities, including `REQUIREMENT_NORMATIVE_V1`;
+- `registry/acceptance-authority.yaml` — machine-resolvable authority roles/evidence for residual-risk and finding acceptance.
+
+Human-readable documents may explain these contracts but must not create competing lifecycle, content-identity or authority rules.
+
+## Requirement normative identity
+
+A requirement that participates in evidence-bearing acceptance declares `content_identity.scheme` and `content_identity.digest`. `registry/content-identity.yaml` defines exactly which fields contribute to the digest and how they are canonicalized.
+
+Review and acceptance-cold-read evidence qualify only when they bind the same exact digest as the requirement at the instant of acceptance. Any edit to a field included by the identity scheme changes the digest and invalidates prior acceptance proof for that requirement revision. Lifecycle/evidence-link metadata excluded by the scheme may change without creating a new normative identity.
+
 ## Status integrity
 
-`registry/status-machines.yaml` is the single machine-readable lifecycle contract for current registries **and for progress state**. It defines registry initial states, allowed states, valid transitions, review outcome/disposition vocabulary, the progress lifecycle used by phase/lot/sublot/task/run/quality dimensions, and any exact historical migration/import/replay exception needed to preserve immutable Git history.
+`registry/status-machines.yaml` is the single machine-readable lifecycle contract for current registries **and for progress state**. It defines registry initial states, allowed states, valid transitions, evidence-bearing acceptance preconditions, review outcome/disposition vocabulary, the progress lifecycle used by phase/lot/sublot/task/run/quality dimensions, and any exact historical migration/import/replay exception needed to preserve immutable Git history.
 
 Rules:
 1. A registry record may use only states declared for that registry.
@@ -85,8 +101,10 @@ Rules:
 8. A lifecycle checkpoint is evidence only if that state existed while the governed activity was actually in that state. Replaying `OPEN → IN_PROGRESS → COMPLETE` after an external review already finished is not repository-native execution evidence.
 9. If a review completed externally before its REVIEW record is materialized, the normal post-v7 path is a one-shot preauthorized import: a matching authorization must already exist in an earlier parent commit, bind the record/result/reviewed SHA/source review, and the actual import commit must be recorded afterward before the review can satisfy a completion gate.
 10. An external-import authorization is consumable once. A consumed authorization cannot be reused by another review or commit.
-11. Lifecycle changes are governance changes: update the canonical machine, affected templates/schemas/validators, migrations and review evidence together rather than adding an ad-hoc state locally.
-12. Governance tooling must fail closed on unknown states, invalid transitions, unbound external imports and migration/import/replay-exception mismatches.
+11. A requirement `PROPOSED → ACCEPTED` transition is evidence-bearing under v9: the exact current normative digest must be matched by an approval-capable independent review and by a separately qualified fresh-context cold-read TEST with explicit outcomes. Generic PASS tests do not qualify automatically.
+12. A risk or blocking finding may be accepted only when its typed authority role/evidence resolves through `registry/acceptance-authority.yaml`; unknown roles/evidence/matrix rules fail closed.
+13. Lifecycle changes are governance changes: update the canonical machine, affected templates/schemas/validators, migrations and review evidence together rather than adding an ad-hoc state locally.
+14. Governance tooling must fail closed on unknown states, invalid transitions, stale requirement digests, unqualified cold-read evidence, unbound external imports, invalid acceptance authority and migration/import/replay-exception mismatches.
 
 Human-readable registry-specific documents may explain these states but must not define a competing lifecycle truth.
 
@@ -105,6 +123,10 @@ Governance CI should validate:
 - unique IDs;
 - valid references;
 - registry-specific and progress lifecycle states/transitions from `registry/status-machines.yaml`;
+- requirement content digests against `registry/content-identity.yaml`;
+- exact requirement-digest agreement across qualifying review and acceptance-cold-read evidence;
+- acceptance cold-read fresh-context provenance, required outcomes and exact tested revision;
+- risk/finding authority resolution against `registry/acceptance-authority.yaml`;
 - exact matching and non-reusability of any declared historical transition/import/replay exception;
 - external-review import authorization exists in an earlier parent commit, matches the source review/result/artifact, is consumed once and is bound afterward to the actual import commit;
 - required fields by status/risk;
