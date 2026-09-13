@@ -18,6 +18,7 @@ external_import: null
 
 scope:
   requirements: []
+  requirement_revisions: {}
   capabilities: []
   contracts: []
   risks: []
@@ -33,7 +34,10 @@ findings:
     acceptance:
       accepted_by: null
       authority_role: null
-      authority_evidence: []
+      authority_evidence_type: null
+      authority_evidence_ref: null
+      authority_matrix_version: null
+      authority_rule_id: null
       rationale: null
       accepted_at: null
       review_condition: null
