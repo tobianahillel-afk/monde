@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: FAIL
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -122,16 +122,11 @@ cases:
     - "Read PROJECT_STATE after a qualifying PASS and verify its conditional wording sends the agent to fresh L2 rather than back to TEST execution"
 
 execution:
-  command_or_workflow: "Manual exact-SHA cold-resume rerun on synchronized REVIEW-0024/v8 handover"
-  last_run_at: "2026-09-13"
-  commit_sha: "ea8562ae2ff54e5ff9c73f4f09116c5f6aa82c21"
-  result: FAIL
-  evidence:
-    - "Exact tested PR #3 tree ea8562ae2ff54e5ff9c73f4f09116c5f6aa82c21"
-    - "WORK-0001 exact Git blob 2b32ea3ad4906369198b33267aafc0ff2203eeb7 was reconstructed as 47,571 UTF-8 bytes, recomputed to the same Git blob SHA, and successfully loaded with yaml.safe_load; WORK-0001=IN_REVIEW, assurance=A3, RUN-3=IN_REVIEW, REVIEW-0024/F-1/F-2 remain open, and DoD/specification/traceability/review completion gates remain false"
-    - "TEST-0006 @ ea8562ae is RUNNING"
-    - "PROJECT_STATE @ ea8562ae still states that the current TEST-0006 record is PASS with latest execution 683c3493a2876b433e9b833e4d3ea3468dc9f1d3, which is false on the tested tree"
-    - "The stale duplicated current-state sentence violates TEST-0006's transition-stable routing invariant even though the surrounding conditional next-action wording is otherwise correct"
+  command_or_workflow: "Pending corrected exact-SHA cold-resume rerun after removing duplicated mutable TEST-0006 state from PROJECT_STATE"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
