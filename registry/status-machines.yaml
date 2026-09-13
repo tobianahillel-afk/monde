@@ -1,6 +1,6 @@
-version: 8
+version: 9
 canonical: true
-updated_at: "2026-09-13"
+updated_at: "2026-09-14"
 
 principles:
   - "A record status is valid only when declared by the machine for its registry."
@@ -12,6 +12,9 @@ principles:
   - "Completion evidence may be reopened when later evidence invalidates or materially re-questions it; reopening is recorded rather than rewriting the prior state."
   - "Lifecycle checkpoints represent states that actually existed while the governed activity was occurring; replaying OPEN/IN_PROGRESS after an external review already completed is not evidence that those execution states occurred."
   - "A review completed externally before registry materialization may be imported in its resulting status only through immutable pre-v7 historical evidence or a one-shot external-import authorization that already exists in a parent commit before materialization and is later bound to the actual import commit."
+  - "Requirement acceptance proof is content-bound: review and cold-read evidence qualify only for the exact normative digest being accepted."
+  - "A generic PASS test is never automatically a requirement-acceptance cold read; qualifying cold reads carry explicit fresh-context provenance, exact requirement digests and required outcomes."
+  - "Risk and blocking-finding acceptance authority is resolved from registry/acceptance-authority.yaml; free-form authority labels or prose evidence alone never grant authority."
 
 registry_machines:
   work_items:
@@ -55,6 +58,11 @@ registry_machines:
       CANCELLED: []
     acceptance_preconditions:
       transition: "PROPOSED -> ACCEPTED"
+      content_identity:
+        scheme_source: "registry/content-identity.yaml#schemes.REQUIREMENT_NORMATIVE_V1"
+        requirement_field: "content_identity"
+        required_scheme: REQUIREMENT_NORMATIVE_V1
+        digest_must_match_recomputation: true
       independent_review:
         evidence_field: "verification.acceptance_evidence"
         required_record_type: REVIEW
@@ -63,14 +71,37 @@ registry_machines:
         minimum_independence_source: "applicable owning-work assurance policy"
         requirement_must_be_in_scope: true
         reviewed_while_requirement_status: PROPOSED
+        revision_binding_field: "scope.requirement_revisions"
+        exact_content_digest_match: true
       cold_read:
-        evidence_field: "verification.test_ids"
+        evidence_field: "verification.acceptance_cold_read_test_ids"
         required_record_type: TEST
         required_status: PASS
+        qualification_field: "acceptance_cold_read.qualifies"
+        qualification_required_value: true
         exact_revision_required: true
         requirement_must_be_protected: true
         tested_while_requirement_status: PROPOSED
-      rule: "A normal PROPOSED → ACCEPTED edge is necessary but not sufficient. Before the transition is valid, the requirement must be backed by at least one resolvable COMPLETE independent REVIEW referenced through verification.acceptance_evidence whose outcome is approval-capable, whose independence satisfies the applicable owning-work assurance policy, whose scope includes the requirement, and which inspected the requirement while it was still PROPOSED; and by at least one resolvable exact-revision PASS TEST referenced through verification.test_ids that protects the requirement and executed while it was still PROPOSED. Negative COMPLETE reviews, findings, prose/docs, author assertion, or a lifecycle-valid edge alone never satisfy this precondition."
+        source_id_required: true
+        source_submitted_at_required: true
+        executor_context_id_required: true
+        allowed_independence_levels: [L2, L3]
+        fresh_context_required: true
+        authoring_context_separated_required: true
+        requirement_binding_field: "acceptance_cold_read.requirements"
+        exact_content_digest_match: true
+        required_status_at_read: PROPOSED
+        required_outcomes:
+          - understood_without_author_reasoning
+          - atomic_and_testable
+          - dependencies_and_conflicts_checked
+          - omissions_and_failure_modes_checked
+          - evidence_plan_sufficient
+        all_required_outcomes_value: PASS
+        all_required_outcomes_pass_field: "acceptance_cold_read.all_required_outcomes_pass"
+        all_required_outcomes_pass_required_value: true
+      invalidation_rule: "If any field included by the requirement's content_identity scheme changes after a qualifying review or cold read, the recomputed digest changes and every acceptance proof bound to the prior digest becomes non-qualifying. Remaining in PROPOSED status does not preserve stale proof. Evidence/provenance-link edits excluded by the identity scheme may occur without changing normative identity."
+      rule: "A normal PROPOSED → ACCEPTED edge is necessary but not sufficient. The requirement's declared normative digest must recompute correctly. At acceptance there must be at least one resolvable COMPLETE approval-capable independent REVIEW referenced through verification.acceptance_evidence whose scope includes the requirement, whose scope.requirement_revisions binds that requirement to the exact current digest, whose independence satisfies policy and which inspected it while PROPOSED; and at least one resolvable PASS TEST referenced through verification.acceptance_cold_read_test_ids that protects the requirement and explicitly qualifies as a fresh-context authoring-separated cold read, binds the same exact digest while PROPOSED, carries durable source/executor provenance and records PASS for every required cold-read outcome. Generic PASS tests, stale digests, negative reviews, prose/docs, author assertion, or a lifecycle-valid edge alone never satisfy this precondition."
     historical_import_exceptions:
       - record_id: REQ-0015
         imported_status: ACCEPTED
@@ -136,14 +167,17 @@ registry_machines:
         - resolution.accepted
         - resolution.accepted_by
         - resolution.authority_role
-        - resolution.authority_evidence
+        - resolution.authority_evidence_type
+        - resolution.authority_evidence_ref
+        - resolution.authority_matrix_version
+        - resolution.authority_rule_id
         - resolution.acceptance_rationale
         - resolution.accepted_at
         - resolution.review_condition
       accepted_flag_required_value: true
-      authority_evidence_non_empty: true
-      authority_policy_source: "docs/09_GOVERNANCE/threat-modeling.md and docs/13_QUALITY/assurance-levels.md"
-      rule: "Any transition into ACCEPTED requires resolution.accepted=true plus a named accepting actor, authority role, non-empty authority evidence, rationale, acceptance timestamp, and review/expiry condition. The authority evidence must demonstrate authority appropriate to the risk severity/category and the affected work assurance level. An unresolved critical security finding or unknown critical trust boundary may be accepted only by the formally authorized owner or designated security/risk authority required by policy; merely being the risk author or populating the fields is insufficient."
+      authority_matrix_source: "registry/acceptance-authority.yaml#risk_acceptance"
+      authority_evidence_contract_source: "registry/acceptance-authority.yaml#evidence_contract"
+      rule: "Any transition into ACCEPTED requires resolution.accepted=true plus a named accepting actor, authority role, typed evidence reference, exact authority-matrix version/rule, rationale, acceptance timestamp and review/expiry condition. The role MUST be allowed by the resolved category + owning-work assurance + assessment.impact matrix rule; the evidence type MUST be allowed for that role; the durable evidence reference MUST establish that the named actor holds that role/delegation. Unknown matrix inputs or free-form/unrecognized roles/evidence fail closed. An unresolved critical security finding or unknown critical trust boundary may be accepted only under the matrix rule applicable to that exact security category, assurance and impact."
 
   reviews:
     initial: OPEN
@@ -160,11 +194,16 @@ registry_machines:
     accepted_finding_required_fields:
       - acceptance.accepted_by
       - acceptance.authority_role
-      - acceptance.authority_evidence
+      - acceptance.authority_evidence_type
+      - acceptance.authority_evidence_ref
+      - acceptance.authority_matrix_version
+      - acceptance.authority_rule_id
       - acceptance.rationale
       - acceptance.accepted_at
       - acceptance.review_condition
-    accepted_finding_rule: "A finding with disposition ACCEPTED must identify the accepting actor, authority role, non-empty evidence establishing that authority for the reviewed artifact/risk, rationale, acceptance time, and a future review/expiry condition. For an R1/R2 finding to stop blocking A3/A4 completion, that acceptance evidence must demonstrate authority appropriate to the work item's assurance level; an author cannot make a blocking finding non-blocking merely by writing ACCEPTED. A4 additionally requires formal owner approval wherever the assurance policy requires it."
+    accepted_finding_authority_matrix_source: "registry/acceptance-authority.yaml#finding_acceptance"
+    accepted_finding_authority_evidence_contract_source: "registry/acceptance-authority.yaml#evidence_contract"
+    accepted_finding_rule: "A finding with disposition ACCEPTED must identify the accepting actor, matrix-authorized role, typed durable authority evidence, matrix version/rule, rationale, acceptance time and a future review/expiry condition. The role MUST be allowed by the finding-acceptance matrix for the owning work assurance level + finding severity, and the evidence type/reference MUST satisfy the authority role contract. Merely authoring the finding, naming an arbitrary role, supplying prose, or populating non-empty fields is insufficient."
     completion_rule: "Only a COMPLETE review whose outcome is one of approval_capable_outcomes may provide approval evidence. It must be bound to the reviewed artifact/version, include the required executed review roles/independence, and have no unresolved blocking R1/R2 finding unless that finding satisfies accepted_finding_rule. COMPLETE reviews with CHANGES_REQUIRED or BLOCKED are durable negative review evidence and never satisfy a work-item review-completion gate."
     closed_rule: "CLOSED is an administrative terminal state for a review that will not provide approval evidence; CLOSED never satisfies a work-item review-completion gate."
     external_import_required_fields:
@@ -400,6 +439,7 @@ registry_machines:
       CANCELLED: []
       SUPERSEDED: []
     pass_rule: "PASS is evidence-bearing: the record must identify what it protects, how it ran, its result, and concrete evidence; every state-bound PASS execution must have a non-null exact tested/reviewed commit_sha."
+    acceptance_cold_read_rule: "A TEST may qualify for requirement acceptance only when acceptance_cold_read.qualifies=true and all v9 requirement cold-read preconditions are satisfied: durable source identity/time, L2/L3 context-separated executor identity, fresh_context=true, authoring_context_separated=true, exact REQUIREMENT_NORMATIVE_V1 digest binding for every covered requirement while PROPOSED, all required outcome keys equal PASS, all_required_outcomes_pass=true, and exact execution.commit_sha/result=PASS. Generic PASS TEST records with no such qualification remain valid test evidence but never satisfy requirement acceptance."
     historical_pass_rule: "If an older PASS execution has no provable exact revision, do not invent one and do not keep that record as active gating PASS evidence. Preserve its historical execution fields, transition the record to SUPERSEDED, identify replacement evidence that actually re-executes or explicitly partitions the superseded scope, and use revision-bound evidence for current gates."
     historical_transition_exceptions:
       - record_id: TEST-0004
