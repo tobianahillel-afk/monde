@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -122,7 +122,7 @@ cases:
     - "Read PROJECT_STATE after a qualifying PASS and verify its conditional wording sends the agent to fresh L2 rather than back to TEST execution"
 
 execution:
-  command_or_workflow: "Pending exact-SHA cold-resume rerun on synchronized REVIEW-0024/v8 handover"
+  command_or_workflow: "Manual exact-SHA cold-resume rerun on synchronized REVIEW-0024/v8 handover"
   last_run_at: null
   commit_sha: null
   result: null
