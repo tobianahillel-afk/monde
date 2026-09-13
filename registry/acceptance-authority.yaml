@@ -1,0 +1,123 @@
+version: 1
+canonical: true
+updated_at: "2026-09-13"
+
+purpose: "Provide the single machine-readable authority policy for accepting residual risks and blocking review findings. Free-form role names or prose evidence alone never establish authority."
+
+vocabulary:
+  assurance_levels: [A0, A1, A2, A3, A4]
+  risk_impacts: [LOW, MEDIUM, HIGH, CRITICAL]
+  risk_categories: [ENGINEERING, SECURITY, PRIVACY_POLICY, DATA_EPISTEMIC, OPERATIONAL, PERFORMANCE, SCIENTIFIC, COMPLIANCE]
+  finding_severities: [R1_CRITICAL, R2_MAJOR, R3_MODERATE, R4_MINOR]
+  authority_roles:
+    WORK_OWNER:
+      allowed_evidence_types: [WORK_ITEM_OWNER_BINDING]
+    DESIGNATED_RISK_AUTHORITY:
+      allowed_evidence_types: [GOVERNANCE_DELEGATION]
+    DESIGNATED_SECURITY_AUTHORITY:
+      allowed_evidence_types: [GOVERNANCE_SECURITY_DELEGATION]
+    REPOSITORY_OWNER:
+      allowed_evidence_types: [GITHUB_REPOSITORY_OWNER_PERMISSION, EXPLICIT_REPOSITORY_OWNER_DECISION]
+
+risk_acceptance:
+  default_matrix:
+    A0:
+      LOW: [WORK_OWNER, DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      MEDIUM: [WORK_OWNER, DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      HIGH: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      CRITICAL: [REPOSITORY_OWNER]
+    A1:
+      LOW: [WORK_OWNER, DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      MEDIUM: [WORK_OWNER, DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      HIGH: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      CRITICAL: [REPOSITORY_OWNER]
+    A2:
+      LOW: [WORK_OWNER, DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      MEDIUM: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      HIGH: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      CRITICAL: [REPOSITORY_OWNER]
+    A3:
+      LOW: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      MEDIUM: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      HIGH: [REPOSITORY_OWNER]
+      CRITICAL: [REPOSITORY_OWNER]
+    A4:
+      LOW: [REPOSITORY_OWNER]
+      MEDIUM: [REPOSITORY_OWNER]
+      HIGH: [REPOSITORY_OWNER]
+      CRITICAL: [REPOSITORY_OWNER]
+  category_overrides:
+    SECURITY:
+      A2:
+        MEDIUM: [DESIGNATED_SECURITY_AUTHORITY, REPOSITORY_OWNER]
+        HIGH: [DESIGNATED_SECURITY_AUTHORITY, REPOSITORY_OWNER]
+        CRITICAL: [REPOSITORY_OWNER]
+      A3:
+        LOW: [DESIGNATED_SECURITY_AUTHORITY, REPOSITORY_OWNER]
+        MEDIUM: [DESIGNATED_SECURITY_AUTHORITY, REPOSITORY_OWNER]
+        HIGH: [DESIGNATED_SECURITY_AUTHORITY, REPOSITORY_OWNER]
+        CRITICAL: [REPOSITORY_OWNER]
+      A4:
+        LOW: [REPOSITORY_OWNER]
+        MEDIUM: [REPOSITORY_OWNER]
+        HIGH: [REPOSITORY_OWNER]
+        CRITICAL: [REPOSITORY_OWNER]
+    PRIVACY_POLICY:
+      A3:
+        HIGH: [REPOSITORY_OWNER]
+        CRITICAL: [REPOSITORY_OWNER]
+      A4:
+        LOW: [REPOSITORY_OWNER]
+        MEDIUM: [REPOSITORY_OWNER]
+        HIGH: [REPOSITORY_OWNER]
+        CRITICAL: [REPOSITORY_OWNER]
+  precedence: "Use the exact category override when one exists for category + assurance + impact; otherwise use default_matrix for assurance + impact."
+
+finding_acceptance:
+  matrix:
+    A0:
+      R1_CRITICAL: [REPOSITORY_OWNER]
+      R2_MAJOR: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      R3_MODERATE: [WORK_OWNER, DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      R4_MINOR: [WORK_OWNER, DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+    A1:
+      R1_CRITICAL: [REPOSITORY_OWNER]
+      R2_MAJOR: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      R3_MODERATE: [WORK_OWNER, DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      R4_MINOR: [WORK_OWNER, DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+    A2:
+      R1_CRITICAL: [REPOSITORY_OWNER]
+      R2_MAJOR: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      R3_MODERATE: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      R4_MINOR: [WORK_OWNER, DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+    A3:
+      R1_CRITICAL: [REPOSITORY_OWNER]
+      R2_MAJOR: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      R3_MODERATE: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+      R4_MINOR: [DESIGNATED_RISK_AUTHORITY, REPOSITORY_OWNER]
+    A4:
+      R1_CRITICAL: [REPOSITORY_OWNER]
+      R2_MAJOR: [REPOSITORY_OWNER]
+      R3_MODERATE: [REPOSITORY_OWNER]
+      R4_MINOR: [REPOSITORY_OWNER]
+
+evidence_contract:
+  required_fields:
+    - accepted_by
+    - authority_role
+    - authority_evidence_type
+    - authority_evidence_ref
+    - authority_matrix_version
+    - authority_rule_id
+  rules:
+    - "authority_role MUST be one of vocabulary.authority_roles and MUST be allowed by the resolved matrix rule."
+    - "authority_evidence_type MUST be allowed for authority_role."
+    - "authority_evidence_ref MUST be a resolvable durable reference establishing the named actor's role/delegation for the acceptance scope."
+    - "authority_matrix_version MUST equal this canonical matrix version and authority_rule_id MUST identify the exact resolved rule."
+    - "The accepting actor MUST be the actor established by authority_evidence_ref; merely authoring the risk/finding or populating fields never grants authority."
+    - "Unknown assurance, impact, category, severity, role, evidence type, matrix version or matrix rule fails closed."
+
+rule_id_format:
+  risk_default: "RISK_DEFAULT:<ASSURANCE>:<IMPACT>"
+  risk_override: "RISK_CATEGORY:<CATEGORY>:<ASSURANCE>:<IMPACT>"
+  finding: "FINDING:<ASSURANCE>:<SEVERITY>"
