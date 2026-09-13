@@ -4,7 +4,7 @@ status: PROPOSED
 type: GOVERNANCE
 normative_statement: "MONDE SHALL maintain a canonical verification strategy that defines the required test and evidence modes used to establish whether specification or implementation work is correct, sufficiently strong, reproducible where applicable, and eligible for completion."
 rationale: "Verification strategy can fail independently from entry readiness and completion criteria. This replacement remains PROPOSED until independent Review Council and cold-read acceptance gates pass."
-content_identity: {scheme: REQUIREMENT_NORMATIVE_V1, digest: "sha256:a3ff4453256e04aaaa77838849f7878bb5c676f09814a8c5d2f2fda5edbedff4"}
+content_identity: {scheme: REQUIREMENT_NORMATIVE_V1, digest: "sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67"}
 origin: {source: "WORK-0001/AC-5; REVIEW-0018/F-1", decision_date: "2026-09-11", introduced_by_work: WORK-0001, introduced_by_adr: null}
 scope: {capabilities: [], engines: [], experiences: [], schemas: [], data_sources: [], models: []}
 depends_on: [REQ-0004, REQ-0010]
