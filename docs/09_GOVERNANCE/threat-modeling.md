@@ -2,7 +2,7 @@
 
 Status: Accepted  
 Canonical: Yes  
-Last Updated: 2026-09-10
+Last Updated: 2026-09-14
 
 ## Purpose
 
@@ -142,9 +142,15 @@ Depending on risk use:
 
 Security findings use severity and status, link to affected work/risk/test records and cannot be dismissed only because exploitation was not observed in the happy-path test.
 
+## Risk-acceptance authority
+
+Risk acceptance is an authority decision, not a free-form annotation. `registry/acceptance-authority.yaml` is the canonical machine-readable source that resolves the allowed accepting role from the risk category, owning-work assurance level and assessed impact. It also defines the evidence types permitted for each authority role.
+
+A `RISK-*` transition to `ACCEPTED` must record the exact matrix version/rule, named actor, allowed role, typed durable authority evidence, rationale, acceptance time and review condition required by `registry/status-machines.yaml`. Unknown matrix inputs, arbitrary role strings or non-empty prose alone fail closed.
+
 ## Release rule
 
-An unresolved critical security finding or unknown critical trust boundary is a non-compensable hard gate. The affected work cannot be `DONE` until resolved, explicitly risk-accepted at the correct authority level, or removed from scope.
+An unresolved critical security finding or unknown critical trust boundary is a non-compensable hard gate. The affected work cannot be `DONE` until resolved, explicitly risk-accepted by an actor authorized by the exact rule in `registry/acceptance-authority.yaml`, or removed from scope.
 
 ## Continuous threat modeling
 
