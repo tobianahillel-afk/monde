@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening, historical migration/import/replay and authority-matrix drill"
-status: PASS
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -18,82 +18,63 @@ protects:
     - "machine-enforced requirement acceptance preconditions"
     - "requirement normative content identity"
     - "risk/finding acceptance authority matrix"
+    - "independently-resolvable accepted-finding authority evidence"
   risks:
-    - "Truthful reopened evidence cannot be represented because DONE progress is terminal"
     - "Historical lifecycle violations are silently generalized into future shortcuts"
     - "An externally completed review can be imported without exact one-shot ancestry/consumption"
-    - "Forward traceability from REQ-0006 omits the current lifecycle-history proof"
-    - "A lifecycle-valid requirement ACCEPTED transition bypasses content-bound review/cold-read evidence"
-    - "A risk or blocking finding can be accepted by arbitrary authority labels or prose evidence"
+    - "Forward traceability from REQ-0006 omits current lifecycle-history proof"
+    - "A risk or blocking finding can be accepted by arbitrary authority labels or self-referential evidence"
   invariants:
-    - "New adverse evidence can reopen DONE progress to IN_REVIEW without rewriting history"
-    - "Generic TEST transitions still require PLANNED → READY → RUNNING → PASS"
-    - "The TEST-0004 legacy exception applies only to its exact immutable PLANNED → PASS commit edge"
-    - "Historical review/requirement import and REVIEW-0014 replay exceptions remain exact and non-reusable"
-    - "Externally completed reviews after v7 require earlier one-shot authorization and later exact consumption binding"
+    - "Generic TEST transitions require PLANNED → READY → RUNNING → PASS, with legal PASS reopen to READY"
+    - "Historical transition/import/replay exceptions remain exact and non-reusable"
+    - "Externally completed reviews after v7 require earlier parent authorization before registry materialization and later exact consumption binding"
     - "REQ-0006 verification points to TEST-0007 and TEST-0007 protects REQ-0006"
     - "Status-machine v9 keeps requirement acceptance content-bound and requires separately qualified fresh-context cold-read evidence"
-    - "Status-machine v9 resolves risk/finding acceptance authority from registry/acceptance-authority.yaml rather than free-form strings"
+    - "Risk/finding authority resolves through registry/acceptance-authority.yaml and durable evidence must independently establish the accepting actor's role"
 
 environment:
   kind: REAL_GITHUB_REPOSITORY
   real_dependencies:
     - "tobianahillel-afk/monde"
     - "PR #3 commit history"
-    - "GitHub Codex review metadata through REVIEW-0025"
-    - "GitHub repository collaborator permission for the repository owner"
+    - "GitHub Codex review metadata through REVIEW-0026"
+    - "GitHub repository metadata and collaborator permission for the repository owner"
   mocked_dependencies: []
 
 cases:
   happy_path:
-    - "registry/status-machines.yaml preserves reviewed progress reopening and strict generic TEST lifecycle"
-    - "TEST-0004 exact historical exception remains record/commit bound"
-    - "REVIEW-0004..0013 exact historical import exceptions and REVIEW-0014 exact replay exception remain non-reusable"
-    - "REVIEW-0025 authorization cf03475f68ea7c62dcd5852bffa92e80490af90b predates first materialization a44296d3e02cc74fa511a471e560e63e75a1cf30"
-    - "REVIEW-0025 external_import binds source review PRR_kwDOUUI5ts8AAAABNX_ZcQ, exact reviewed artifact e405c977f9de58cd4d88849784d425de6a61cd1d and import a44296d3e02cc74fa511a471e560e63e75a1cf30"
-    - "The REVIEW-0025 one-shot authorization is consumed_by_commit a44296d3e02cc74fa511a471e560e63e75a1cf30"
-    - "registry/requirements/REQ-0006.yaml maps forward to TEST-0007 and TEST-0007 maps back to REQ-0006"
-    - "status-machines v9 points risk acceptance and accepted-finding authority to registry/acceptance-authority.yaml"
-    - "acceptance-authority v1 provides closed vocabularies, role/evidence compatibility, assurance/impact/category matrices and exact rule IDs"
-    - "For A3/R2 finding acceptance, only DESIGNATED_RISK_AUTHORITY or REPOSITORY_OWNER are matrix-authorized"
-    - "For A3 SECURITY risk acceptance, category override rules require DESIGNATED_SECURITY_AUTHORITY or REPOSITORY_OWNER for LOW/MEDIUM/HIGH and REPOSITORY_OWNER for CRITICAL"
-    - "REVIEW-0001/F-3 retains its historical accepted decision but now carries typed REPOSITORY_OWNER authority evidence bound to matrix v1/rule FINDING:A3:R2_MAJOR"
+    - "registry/status-machines.yaml preserves strict generic TEST lifecycle and exact historical exceptions"
+    - "REVIEW-0026 authorization 018ae267f2b6c63636fdb5f7833f64b1fd68f11b predates first materialization 6075c1d87853f8c0c144e7d95bfa767ba476aa72"
+    - "REVIEW-0026 external_import binds source review PRR_kwDOUUI5ts8AAAABNYK4AQ, exact artifact 4f8cebeeca36d895cc17b1103d7689bcf27b5541 and import 6075c1d87853f8c0c144e7d95bfa767ba476aa72"
+    - "REVIEW-0026 authorization consumed_by_commit equals 6075c1d87853f8c0c144e7d95bfa767ba476aa72"
+    - "Git compare authorization → import is ahead_by=1 and only adds registry/reviews/REVIEW-0026.yaml"
+    - "REQ-0006 maps forward to TEST-0007 and TEST-0007 maps back to REQ-0006"
+    - "acceptance-authority v1 authorizes only DESIGNATED_RISK_AUTHORITY or REPOSITORY_OWNER for FINDING:A3:R2_MAJOR"
+    - "A3 SECURITY overrides reject DESIGNATED_RISK_AUTHORITY where DESIGNATED_SECURITY_AUTHORITY/REPOSITORY_OWNER is required"
+    - "REVIEW-0001/F-3 keeps the owner decision but uses GITHUB_REPOSITORY_OWNER_PERMISSION and a durable GitHub repository metadata URL"
+    - "GitHub repo metadata independently establishes owner.login=tobianahillel-afk and collaborator permission=admin"
   edge_cases:
-    - "A risk/finding author may also be the accepting actor only when typed durable evidence independently establishes an authorized role"
-    - "A category-specific risk authority override takes precedence over the default assurance/impact matrix"
-    - "Historical v8 proof remains valid for its exact tree but does not substitute for v9 matrix validation"
+    - "A finding author may also accept only when independent durable evidence establishes an allowed role"
+    - "A category-specific authority override takes precedence over default matrix rules"
+    - "A completed negative review import remains negative even when its corrections are later authored"
   failure_modes:
-    - "Unknown assurance, impact, category, severity, authority role, evidence type, matrix version or rule is accepted"
-    - "A role not allowed by the resolved matrix rule is accepted"
-    - "An evidence type not allowed for the claimed role is accepted"
-    - "A non-resolvable prose-only authority reference is treated as sufficient"
-    - "A free-form role string satisfies risk/finding acceptance"
-    - "REVIEW-0025 is materialized before its authorization or its authorization is unconsumed/reused"
-    - "A requirement reaches ACCEPTED with stale/digest-mismatched review or generic author-run TEST evidence"
-    - "TEST-0007 protects REQ-0006 but REQ-0006 does not point back to TEST-0007"
+    - "Unknown authority role/evidence/matrix/rule is accepted"
+    - "A non-resolvable or self-referential authority reference is treated as sufficient"
+    - "REVIEW-0026 materializes before authorization, binds the wrong import, or reuses an already-consumed authorization"
+    - "TEST-0007 protects REQ-0006 but REQ-0006 does not point back"
   adversarial_cases:
-    - "Attempt A3/R2 finding acceptance as WORK_OWNER and verify the matrix rejects it"
-    - "Attempt A3 SECURITY/HIGH risk acceptance as DESIGNATED_RISK_AUTHORITY and verify the SECURITY override rejects it"
-    - "Attempt REPOSITORY_OWNER acceptance with an unrecognized evidence type and verify it fails closed"
-    - "Attempt to reuse REVIEW-0025's consumed one-shot authorization and verify the external-import contract forbids it"
-    - "Attempt requirement acceptance using TEST-0005/TEST-0006 as the cold-read half and verify v9 requires a separately qualified acceptance_cold_read TEST"
+    - "Attempt A3/R2 finding acceptance as WORK_OWNER and verify rejection"
+    - "Attempt A3 SECURITY/HIGH risk acceptance as DESIGNATED_RISK_AUTHORITY and verify override rejection"
+    - "Attempt REPOSITORY_OWNER acceptance with an unrecognized evidence type and verify fail-closed behavior"
+    - "Replace REVIEW-0001/F-3 authority_evidence_ref with self-reference prose and verify it no longer independently establishes authority"
+    - "Attempt to reuse REVIEW-0026's consumed authorization"
 
 execution:
-  command_or_workflow: "Manual exact-SHA audit of lifecycle v9, REVIEW-0025 provenance and acceptance-authority matrix"
-  last_run_at: "2026-09-14"
-  commit_sha: "278da4e4f14a9897fa746d29725c8f666b6add2c"
-  result: PASS
-  evidence:
-    - "Exact tested PR #3 tree 278da4e4f14a9897fa746d29725c8f666b6add2c; PR remained open/non-draft/mergeable and on that exact HEAD through verdict"
-    - "GitHub compare cf03475f68ea7c62dcd5852bffa92e80490af90b → a44296d3e02cc74fa511a471e560e63e75a1cf30 is ahead_by=1 and the sole change adds registry/reviews/REVIEW-0025.yaml, proving authorization ancestry"
-    - "REVIEW-0025 @ 278da4e records PREAUTHORIZED_EXTERNAL_COMPLETION with authorization cf03475f68ea7c62dcd5852bffa92e80490af90b, source review PRR_kwDOUUI5ts8AAAABNX_ZcQ, artifact e405c977f9de58cd4d88849784d425de6a61cd1d and import a44296d3e02cc74fa511a471e560e63e75a1cf30"
-    - "status-machines v9 @ 278da4e binds REVIEW-0025 authorization to that exact source/artifact/outcome and consumes it exactly by a44296d3e02cc74fa511a471e560e63e75a1cf30"
-    - "status-machines v9 @ 278da4e routes risk acceptance to registry/acceptance-authority.yaml#risk_acceptance and accepted findings to #finding_acceptance with typed evidence-contract enforcement"
-    - "acceptance-authority v1 @ 278da4e authorizes only DESIGNATED_RISK_AUTHORITY or REPOSITORY_OWNER for FINDING:A3:R2_MAJOR; WORK_OWNER is not allowed"
-    - "acceptance-authority v1 @ 278da4e applies SECURITY category overrides at A3: DESIGNATED_SECURITY_AUTHORITY/REPOSITORY_OWNER for LOW/MEDIUM/HIGH and REPOSITORY_OWNER for CRITICAL"
-    - "REVIEW-0001/F-3 @ 278da4e is R2_MAJOR/ACCEPTED and carries accepted_by=tobianahillel-afk, authority_role=REPOSITORY_OWNER, authority_evidence_type=EXPLICIT_REPOSITORY_OWNER_DECISION, authority_matrix_version=1 and authority_rule_id=FINDING:A3:R2_MAJOR"
-    - "Live repository metadata confirms owner login tobianahillel-afk and admin permission; collaborator-permission query also returned admin for tobianahillel-afk"
-    - "REQ-0006 @ 278da4e includes TEST-0007 in verification.test_ids and acceptance_evidence, while TEST-0007 protects REQ-0006"
+  command_or_workflow: null
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -103,39 +84,9 @@ history:
   created_at: "2026-09-10"
   updated_at: "2026-09-14"
   executions:
-    - commit_sha: "d1d0b32e321cd56ada21f76c4d3e08856a792db5"
-      recorded_result: PASS
-      recorded_in_commit: "a280fed4123a476dc5d5a22651b8b8e1c3aa1240"
-      validity: VALID
-      invalidated_by: null
-      reason: "Exact history and status-machine checks passed; reopening is reviewed and generic TEST lifecycle remains strict while the lone legacy edge is commit-bound."
-    - commit_sha: "c27a98b94c4f59c5778b9c7d30e447536a70a452"
-      recorded_result: PASS
-      recorded_in_commit: "07fb9baf3f76437059b73f7805a5edd36d704cc6"
-      validity: VALID
-      invalidated_by: null
-      reason: "REQ-0006 ↔ TEST-0007 traceability and lifecycle v5 guarantees passed on that exact tree."
-    - commit_sha: "b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
-      recorded_result: PASS
-      recorded_in_commit: "42a36e1b37855ea107eb94a8f3c9a05fe9cd6c67"
-      validity: VALID
-      invalidated_by: null
-      reason: "Lifecycle v6 preserved strict generic transitions and exact pre-v7 imports; REVIEW-0015 later required truthful replay/import separation."
-    - commit_sha: "669dcf7638746e07cc034cd69fa2cb08da133937"
-      recorded_result: PASS
-      recorded_in_commit: "87668f4e64453dca4c987252a8cb46e73793950c"
-      validity: VALID
-      invalidated_by: null
-      reason: "Lifecycle v7 established truthful one-shot external-review import provenance while preserving prior exact history."
-    - commit_sha: "dd21e4f3171669a5f7b47a89988a169f5d8f2e9b"
-      recorded_result: PASS
-      recorded_in_commit: "734bdbddf528100cb68f186a6f4e87a3c1606eb2"
-      validity: VALID
-      invalidated_by: null
-      reason: "Lifecycle v8 preserved migration/import/replay guarantees while adding requirement-acceptance and authority-bearing risk preconditions; REVIEW-0025 later required exact content binding, fresh-context cold-read qualification and machine-resolvable authority."
-    - commit_sha: "278da4e4f14a9897fa746d29725c8f666b6add2c"
-      recorded_result: PASS
-      recorded_in_commit: "61c64a2c0920a28949377b75aa9df92637aeb371"
-      validity: VALID
-      invalidated_by: null
-      reason: "Lifecycle v9 preserves prior exact lifecycle/import/replay guarantees while adding machine-resolvable authority and content-bound/fresh-context acceptance semantics. REVIEW-0025 provenance and REVIEW-0001/F-3 typed owner authority resolve correctly on the exact tested tree."
+    - {commit_sha: "d1d0b32e321cd56ada21f76c4d3e08856a792db5", recorded_result: PASS, recorded_in_commit: "a280fed4123a476dc5d5a22651b8b8e1c3aa1240", validity: VALID, invalidated_by: null, reason: "Initial exact lifecycle history drill passed."}
+    - {commit_sha: "c27a98b94c4f59c5778b9c7d30e447536a70a452", recorded_result: PASS, recorded_in_commit: "07fb9baf3f76437059b73f7805a5edd36d704cc6", validity: VALID, invalidated_by: null, reason: "REQ-0006 ↔ TEST-0007 traceability and lifecycle v5 guarantees passed."}
+    - {commit_sha: "b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7", recorded_result: PASS, recorded_in_commit: "42a36e1b37855ea107eb94a8f3c9a05fe9cd6c67", validity: VALID, invalidated_by: null, reason: "Lifecycle v6 preserved strict generic transitions and exact pre-v7 imports."}
+    - {commit_sha: "669dcf7638746e07cc034cd69fa2cb08da133937", recorded_result: PASS, recorded_in_commit: "87668f4e64453dca4c987252a8cb46e73793950c", validity: VALID, invalidated_by: null, reason: "Lifecycle v7 established truthful one-shot external-review import provenance."}
+    - {commit_sha: "dd21e4f3171669a5f7b47a89988a169f5d8f2e9b", recorded_result: PASS, recorded_in_commit: "734bdbddf528100cb68f186a6f4e87a3c1606eb2", validity: VALID, invalidated_by: null, reason: "Lifecycle v8 added requirement/risk acceptance preconditions."}
+    - {commit_sha: "278da4e4f14a9897fa746d29725c8f666b6add2c", recorded_result: PASS, recorded_in_commit: "61c64a2c0920a28949377b75aa9df92637aeb371", validity: VALID, invalidated_by: null, reason: "Lifecycle v9, REVIEW-0025 provenance and typed authority matrix passed. REVIEW-0026 later proved the owner authority evidence reference itself was not independently resolvable, so this exact earlier proof is insufficient as current authority proof."}
