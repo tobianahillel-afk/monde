@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening, historical migration/import/replay and authority-matrix drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -80,10 +80,20 @@ cases:
 
 execution:
   command_or_workflow: "Manual exact-SHA audit of lifecycle v9, REVIEW-0025 provenance and acceptance-authority matrix"
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  last_run_at: "2026-09-14"
+  commit_sha: "278da4e4f14a9897fa746d29725c8f666b6add2c"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree 278da4e4f14a9897fa746d29725c8f666b6add2c; PR remained open/non-draft/mergeable and on that exact HEAD through verdict"
+    - "GitHub compare cf03475f68ea7c62dcd5852bffa92e80490af90b → a44296d3e02cc74fa511a471e560e63e75a1cf30 is ahead_by=1 and the sole change adds registry/reviews/REVIEW-0025.yaml, proving authorization ancestry"
+    - "REVIEW-0025 @ 278da4e records PREAUTHORIZED_EXTERNAL_COMPLETION with authorization cf03475f68ea7c62dcd5852bffa92e80490af90b, source review PRR_kwDOUUI5ts8AAAABNX_ZcQ, artifact e405c977f9de58cd4d88849784d425de6a61cd1d and import a44296d3e02cc74fa511a471e560e63e75a1cf30"
+    - "status-machines v9 @ 278da4e binds REVIEW-0025 authorization to that exact source/artifact/outcome and consumes it exactly by a44296d3e02cc74fa511a471e560e63e75a1cf30"
+    - "status-machines v9 @ 278da4e routes risk acceptance to registry/acceptance-authority.yaml#risk_acceptance and accepted findings to #finding_acceptance with typed evidence-contract enforcement"
+    - "acceptance-authority v1 @ 278da4e authorizes only DESIGNATED_RISK_AUTHORITY or REPOSITORY_OWNER for FINDING:A3:R2_MAJOR; WORK_OWNER is not allowed"
+    - "acceptance-authority v1 @ 278da4e applies SECURITY category overrides at A3: DESIGNATED_SECURITY_AUTHORITY/REPOSITORY_OWNER for LOW/MEDIUM/HIGH and REPOSITORY_OWNER for CRITICAL"
+    - "REVIEW-0001/F-3 @ 278da4e is R2_MAJOR/ACCEPTED and carries accepted_by=tobianahillel-afk, authority_role=REPOSITORY_OWNER, authority_evidence_type=EXPLICIT_REPOSITORY_OWNER_DECISION, authority_matrix_version=1 and authority_rule_id=FINDING:A3:R2_MAJOR"
+    - "Live repository metadata confirms owner login tobianahillel-afk and admin permission; collaborator-permission query also returned admin for tobianahillel-afk"
+    - "REQ-0006 @ 278da4e includes TEST-0007 in verification.test_ids and acceptance_evidence, while TEST-0007 protects REQ-0006"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -123,3 +133,9 @@ history:
       validity: VALID
       invalidated_by: null
       reason: "Lifecycle v8 preserved migration/import/replay guarantees while adding requirement-acceptance and authority-bearing risk preconditions; REVIEW-0025 later required exact content binding, fresh-context cold-read qualification and machine-resolvable authority."
+    - commit_sha: "278da4e4f14a9897fa746d29725c8f666b6add2c"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "Lifecycle v9 preserves prior exact lifecycle/import/replay guarantees while adding machine-resolvable authority and content-bound/fresh-context acceptance semantics. REVIEW-0025 provenance and REVIEW-0001/F-3 typed owner authority resolve correctly on the exact tested tree."
