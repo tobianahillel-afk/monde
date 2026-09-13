@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -98,7 +98,7 @@ cases:
     - "Query live PR #2 only after crossing the explicit branch boundary"
 
 execution:
-  command_or_workflow: null
+  command_or_workflow: "Manual exact-SHA REVIEW-0025/v9 cold-resume and handover drill"
   last_run_at: null
   commit_sha: null
   result: null
