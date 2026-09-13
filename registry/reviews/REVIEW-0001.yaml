@@ -54,12 +54,13 @@ findings:
     acceptance:
       accepted_by: "tobianahillel-afk"
       authority_role: REPOSITORY_OWNER
-      authority_evidence_type: EXPLICIT_REPOSITORY_OWNER_DECISION
-      authority_evidence_ref: "REVIEW-0001/F-3 owner decision; repository namespace owner is tobianahillel-afk and GitHub collaborator permission was reverified as admin on 2026-09-14"
+      authority_evidence_type: GITHUB_REPOSITORY_OWNER_PERMISSION
+      authority_evidence_ref: "https://api.github.com/repos/tobianahillel-afk/monde"
       authority_matrix_version: 1
       authority_rule_id: "FINDING:A3:R2_MAJOR"
       authority_evidence:
-        - "GitHub repository owner identity is tobianahillel-afk."
+        - "Independent GitHub repository metadata at https://api.github.com/repos/tobianahillel-afk/monde identifies owner.login=tobianahillel-afk."
+        - "GitHub collaborator-permission query reverified permission=admin for tobianahillel-afk on 2026-09-14."
         - "Explicit owner decision on 2026-09-10: keep MONDE public subject to public-code-safe constraints."
       rationale: "Public visibility is an explicit product/repository decision; the accepted risk is bounded by prohibiting credentials, secrets, private/personal datasets and user-identifying runtime data in Git, with sensitive runtime material kept outside Git."
       accepted_at: "2026-09-10"
