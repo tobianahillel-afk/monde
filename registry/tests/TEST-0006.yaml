@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -99,10 +99,26 @@ cases:
 
 execution:
   command_or_workflow: "Manual exact-SHA REVIEW-0025/v9 cold-resume and handover drill"
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  last_run_at: "2026-09-14"
+  commit_sha: "70d9a8a12cf0727fddb377d6c8a45a7ad47f6583"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree 70d9a8a12cf0727fddb377d6c8a45a7ad47f6583; live PR remained open/non-draft/mergeable and on that exact HEAD through verdict"
+    - "WORK-0001 @ 70d9a8a is IN_REVIEW/A3 and exact blob f3ea01bf0a19b2a5a2a4bed485325c97d4eb1835; the exact content was loaded successfully with yaml.safe_load, with RUN-3 IN_REVIEW and completion DoD/specification/traceability/review gates false"
+    - "PROJECT_STATE @ 70d9a8a is exact blob ec47c8fbd5e2d2b2e83048730eb20982c4c7f07c; it routes REVIEW-0025/v9 current work, identifies TEST records as the only mutable TEST truth and conditionally skips redundant TEST-0006 reruns after qualifying PASS"
+    - "registry/status-machines.yaml @ 70d9a8a is canonical v9 and requires exact normative-digest agreement, approval-capable exact-digest review evidence and separately qualified L2/L3 fresh-context authoring-separated cold-read TEST evidence"
+    - "registry/content-identity.yaml @ 70d9a8a defines deterministic nested-path REQUIREMENT_NORMATIVE_V1 projection with fail-closed missing/digest semantics"
+    - "registry/acceptance-authority.yaml @ 70d9a8a is canonical v1 with closed role/evidence vocabularies, exact risk/finding matrices and category overrides"
+    - "Direct recomputation on exact tree 70d9a8a yields REQ-0023 sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b, REQ-0024 sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4, and REQ-0025 sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67, exactly matching declared content_identity values"
+    - "REQ-0023/REQ-0024/REQ-0025 @ 70d9a8a remain PROPOSED; each general test_ids is [TEST-0005, TEST-0006, TEST-0008] and acceptance_cold_read_test_ids is [TEST-0008]; TEST-0006 protects all three"
+    - "TEST-0008 @ 70d9a8a is PLANNED, protects REQ-0023/24/25, binds the same three digests and remains qualifies=false with null source/executor/outcomes/execution; no independent result is fabricated"
+    - "REVIEW-0025 @ 70d9a8a remains COMPLETE/CHANGES_REQUIRED, L2, with F-1/F-2/F-3 OPEN and exact one-shot provenance authorization cf03475f68ea7c62dcd5852bffa92e80490af90b → import a44296d3e02cc74fa511a471e560e63e75a1cf30 → binding afd3c7514588b72fdb541a41b2b9bdfbba37932b → consumption cefad8c76bff96b7c903e602e708685313232323"
+    - "TEST-0005 @ 70d9a8a is PASS on corrected v9 tree 1562acdff730d832770befdbfe296615fac2a544 with result 7abdfbd0655e96239d8ddb511f3edfc0b19571f7; its prior exact tree ed716f93116f1d121ed7aa54174b8bdbf1030513 FAIL/result df5e766a32cdd5782fdd727e38d73c8b7e8e7355 remains preserved"
+    - "TEST-0007 @ 70d9a8a is PASS on v9 tree 278da4e4f14a9897fa746d29725c8f666b6add2c with result 61c64a2c0920a28949377b75aa9df92637aeb371 and result binding committed in 8288143e2915498a06d0a18db8ffbaa607fac948"
+    - "PR #3 WORK-0002 mirror @ 70d9a8a is IN_REVIEW, depends on WORK-0001, has affected_schemas [], and keeps branch-local REVIEW-0002/TEST-0002/TEST-0003/schema proof behind the explicit checkout boundary"
+    - "registry/progress/matrix.yaml @ 70d9a8a keeps WORK-0001 and WORK-0002 IN_REVIEW, WORK-0003 and WORK-0004 PLANNED"
+    - "After explicit boundary, live PR #2 remains open/non-draft/mergeable at ab62faa1743705600a0f11335579db68a2166ab3; branch WORK-0002 remains IN_REVIEW/depends_on WORK-0001 and schemas/registry/work-items.schema.json, reviews.schema.json and tests.schema.json all resolve on that exact head"
+    - "REQ-0010 @ 70d9a8a maps to TEST-0005 only; TEST-0004 @ 70d9a8a protects REQ-0001..0009 except current REQ-0010 and then REQ-0011..0014, so it does not claim current reverse REQ-0010 coverage"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -134,3 +150,4 @@ history:
     - {commit_sha: "683c3493a2876b433e9b833e4d3ea3468dc9f1d3", recorded_result: PASS, recorded_in_commit: "688521a1e35c6f89edf8f1ece42328b96e150f7c", validity: VALID, invalidated_by: null, reason: "REVIEW-0023-corrected v7 handover passed; later REVIEW-0024/v8 made it insufficient as final current proof."}
     - {commit_sha: "ea8562ae2ff54e5ff9c73f4f09116c5f6aa82c21", recorded_result: FAIL, recorded_in_commit: "9212397d4e6af69b5b151e4f2f4dd5c242671083", validity: VALID, invalidated_by: null, reason: "v8 handover failed because PROJECT_STATE duplicated stale mutable TEST-0006 state."}
     - {commit_sha: "b09f37c7868a4bdfb47310118860474263aeb717", recorded_result: PASS, recorded_in_commit: "5d11298bae60d3031fa342235345e43d36688b5d", validity: VALID, invalidated_by: null, reason: "Corrected transition-stable REVIEW-0024/v8 handover passed; REVIEW-0025/v9 later materially extended current proof obligations."}
+    - {commit_sha: "70d9a8a12cf0727fddb377d6c8a45a7ad47f6583", recorded_result: PASS, recorded_in_commit: null, validity: VALID, invalidated_by: null, reason: "Synchronized REVIEW-0025/v9 handover passes exact YAML parse/current routing, deterministic requirement digests, TEST-0008 non-fabrication boundary, TEST-0005/0007 proof resolution, one-shot review provenance, authority matrix, PR #3/PR #2 isolation and REQ-0010/TEST-0004 historical coverage boundary."}
