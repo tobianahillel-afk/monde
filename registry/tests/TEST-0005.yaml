@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 evidence, authority and requirement-acceptance drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -86,7 +86,7 @@ cases:
     - "Satisfy DoR and DoD while omitting verification-strategy rules and verify that omission remains independently visible"
 
 execution:
-  command_or_workflow: "Pending exact-SHA v8 pre-acceptance cold-read after REVIEW-0024/F-1"
+  command_or_workflow: "Manual exact-SHA v8 pre-acceptance cold-read after REVIEW-0024/F-1"
   last_run_at: null
   commit_sha: null
   result: null
