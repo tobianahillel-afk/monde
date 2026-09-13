@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 evidence, authority and requirement-acceptance guard drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -76,7 +76,7 @@ cases:
     - "Attempt acceptance with a clean review bound to a prior digest and verify v9 rejects the stale review"
 
 execution:
-  command_or_workflow: "Pending corrected exact-SHA v9 requirement content-identity and acceptance-evidence guard drill"
+  command_or_workflow: "Manual corrected exact-SHA v9 requirement content-identity and acceptance-evidence guard drill"
   last_run_at: null
   commit_sha: null
   result: null
