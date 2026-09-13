@@ -1,0 +1,101 @@
+id: TEST-0008
+name: "Fresh-context requirement acceptance cold read"
+status: PLANNED
+type: MANUAL_COLD_READ
+
+protects:
+  requirements: [REQ-0023, REQ-0024, REQ-0025]
+  capabilities: []
+  contracts:
+    - "requirement normative content identity"
+    - "fresh-context requirement acceptance cold read"
+    - "content-bound requirement acceptance evidence"
+  risks:
+    - "A requirement is accepted using review/test evidence for an older normative revision"
+    - "An author-run generic PASS test is mistaken for an independent cold read"
+    - "A cold-read record omits explicit outcomes or fresh-context provenance"
+  invariants:
+    - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED during the cold read"
+    - "Each covered requirement digest matches REQUIREMENT_NORMATIVE_V1 recomputation on the exact execution tree"
+    - "A qualifying cold read is executed in an L2/L3 context separated from the authoring context"
+    - "Every v9 required cold-read outcome is explicitly PASS before this test may qualify or become PASS"
+
+location:
+  test_path: null
+  suite: "governance requirement acceptance cold-read"
+
+environment:
+  kind: REAL_GITHUB_REPOSITORY
+  real_dependencies:
+    - "tobianahillel-afk/monde"
+    - "PR #3 exact frozen candidate"
+    - "independent fresh-context reviewer"
+  mocked_dependencies: []
+
+cases:
+  happy_path:
+    - "A fresh-context L2/L3 reviewer reads the exact proposed requirement revision without relying on author reasoning and records explicit PASS outcomes"
+    - "The reviewer/review record and TEST-0008 bind the same REQUIREMENT_NORMATIVE_V1 digest for each requirement"
+  edge_cases:
+    - "Evidence-link or lifecycle-only edits excluded by REQUIREMENT_NORMATIVE_V1 do not invalidate an otherwise identical normative digest"
+  failure_modes:
+    - "Any included normative field changes after the review/cold read but stale evidence is reused"
+    - "Executor context is missing, same-context, below L2, or not authoring-separated"
+    - "Source review identity/time is missing or unresolvable"
+    - "Any required outcome is absent, non-PASS, or all_required_outcomes_pass is false"
+    - "Any covered requirement is not PROPOSED on the execution tree"
+    - "Any declared content digest fails recomputation"
+  adversarial_cases:
+    - "Change normative_statement after a clean read and verify the old digest no longer qualifies"
+    - "Change depends_on or verification.method after a clean read and verify the old digest no longer qualifies"
+    - "Use a generic author-run PASS TEST with no acceptance_cold_read qualification and verify v9 rejects it"
+
+acceptance_cold_read:
+  qualifies: false
+  source:
+    kind: null
+    source_id: null
+    submitted_at: null
+  executor:
+    actor: null
+    context_id: null
+    independence_level: null
+    fresh_context: false
+    authoring_context_separated: false
+  requirements:
+    REQ-0023:
+      content_scheme: REQUIREMENT_NORMATIVE_V1
+      content_digest: "sha256:26acc84a4bdb93490ad43014ad6651c3f5c9d1a5a0a3d542780d387ff0d6bbec"
+      status_at_read: null
+    REQ-0024:
+      content_scheme: REQUIREMENT_NORMATIVE_V1
+      content_digest: "sha256:79613cd4a3f06a39b34c9cede757559446c6177a8de5eaa987d8ee55f3520601"
+      status_at_read: null
+    REQ-0025:
+      content_scheme: REQUIREMENT_NORMATIVE_V1
+      content_digest: "sha256:a3ff4453256e04aaaa77838849f7878bb5c676f09814a8c5d2f2fda5edbedff4"
+      status_at_read: null
+  required_outcomes:
+    understood_without_author_reasoning: null
+    atomic_and_testable: null
+    dependencies_and_conflicts_checked: null
+    omissions_and_failure_modes_checked: null
+    evidence_plan_sufficient: null
+  all_required_outcomes_pass: false
+  completed_at: null
+
+execution:
+  command_or_workflow: null
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
+
+coverage:
+  line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+  branch_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+
+history:
+  created_at: "2026-09-14"
+  updated_at: "2026-09-14"
+  executions: []
