@@ -1,6 +1,6 @@
 id: TEST-0005
 name: "WORK-0001 evidence, authority and requirement-acceptance drill"
-status: PASS
+status: READY
 type: MANUAL_E2E
 
 protects:
@@ -86,18 +86,11 @@ cases:
     - "Satisfy DoR and DoD while omitting verification-strategy rules and verify that omission remains independently visible"
 
 execution:
-  command_or_workflow: "Manual exact-SHA v8 pre-acceptance cold-read after REVIEW-0024/F-1"
-  last_run_at: "2026-09-13"
-  commit_sha: "dc52009ff2cb31f382544a812da937e686d63c8d"
-  result: PASS
-  evidence:
-    - "Exact tested PR #3 tree dc52009ff2cb31f382544a812da937e686d63c8d"
-    - "status-machines v8 @ dc52009 defines acceptance_preconditions for PROPOSED → ACCEPTED requiring both a COMPLETE approval-capable independent REVIEW from verification.acceptance_evidence and an exact-revision PASS TEST from verification.test_ids, each bound to the requirement while it is still PROPOSED"
-    - "REQ-0023, REQ-0024 and REQ-0025 @ dc52009 are all PROPOSED and each maps to TEST-0005/TEST-0006"
-    - "The current acceptance_evidence on REQ-0023/24/25 contains contextual work/doc references and REVIEW-0018/F-1, but no approval-capable COMPLETE review; therefore v8 does not authorize acceptance"
-    - "REVIEW-0024 @ dc52009 is COMPLETE with outcome CHANGES_REQUIRED, L2, scopes REQ-0023/24/25, and therefore is durable negative evidence rather than qualifying approval"
-    - "WORK-0001 @ dc52009 remains IN_REVIEW/A3 and active requirements include REQ-0023/REQ-0024/REQ-0025"
-    - "TEST-0005 @ dc52009 is RUNNING and protects REQ-0023/REQ-0024/REQ-0025, providing the exact-tree pre-acceptance cold-read execution without claiming independent approval"
+  command_or_workflow: "Pending v9 re-execution after REVIEW-0025/F-1/F-2"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -105,7 +98,7 @@ coverage:
 
 history:
   created_at: "2026-09-10"
-  updated_at: "2026-09-13"
+  updated_at: "2026-09-14"
   executions:
     - commit_sha: "2712795dc9f10c1efed2088313d125f6f915cc98"
       recorded_result: PASS
@@ -130,4 +123,4 @@ history:
       recorded_in_commit: "f02bf1879180dc3ac80c659c327ea25d1ad72411"
       validity: VALID
       invalidated_by: null
-      reason: "Status-machine v8 turns the requirement acceptance ordering into an enforceable precondition: the three active AC-5 owners remain PROPOSED, this run supplies exact-SHA pre-acceptance cold-read evidence, and existing negative reviews cannot satisfy the independent approval half. A later clean approval-capable L2 is still required before any acceptance transition."
+      reason: "Status-machine v8 turns the requirement acceptance ordering into an enforceable precondition: the three active AC-5 owners remain PROPOSED, this run supplies exact-SHA pre-acceptance cold-read evidence, and existing negative reviews cannot satisfy the independent approval half. A later clean approval-capable L2 is still required before any acceptance transition. REVIEW-0025 later established that generic author-run PASS evidence is insufficient to qualify as the fresh-context cold-read half under v9; this execution remains valid for its tested v8 machine-guard scope but is not v9 acceptance cold-read evidence."
