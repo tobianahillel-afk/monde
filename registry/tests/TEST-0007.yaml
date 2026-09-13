@@ -1,6 +1,6 @@
 id: TEST-0007
 name: "Progress reopening, historical migration/import/replay and external review provenance drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -107,10 +107,18 @@ cases:
 
 execution:
   command_or_workflow: "Manual exact-SHA audit of lifecycle v8, REVIEW-0024 provenance, requirement acceptance preconditions and risk acceptance authority"
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  last_run_at: "2026-09-13"
+  commit_sha: "dd21e4f3171669a5f7b47a89988a169f5d8f2e9b"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree dd21e4f3171669a5f7b47a89988a169f5d8f2e9b"
+    - "GitHub compare 44d465628e88d98f85414d565ef51e110fb1e891 → 0b2ee6f13430d367c99dde55c6be726c13ab561a is ahead_by=1 and that single commit adds REVIEW-0024, proving the authorization commit is an ancestor of first materialization"
+    - "REVIEW-0024 @ dd21e4f records PREAUTHORIZED_EXTERNAL_COMPLETION with authorization 44d465628e88d98f85414d565ef51e110fb1e891 and import 0b2ee6f13430d367c99dde55c6be726c13ab561a"
+    - "status-machines v8 @ dd21e4f binds REVIEW-0024 authorization to source review PRR_kwDOUUI5ts8AAAABNN5SgQ / artifact 9551a78c7431d1b7ce3334d4a6529d92ba69ab5a / CHANGES_REQUIRED and consumes it exactly by 0b2ee6f13430d367c99dde55c6be726c13ab561a"
+    - "status-machines v8 @ dd21e4f requires risk ACCEPTED transitions to carry resolution.accepted=true, accepted_by, authority_role, non-empty authority_evidence, acceptance_rationale, accepted_at and review_condition with policy-appropriate authority"
+    - "registry/risks/_TEMPLATE.yaml @ dd21e4f exposes every required v8 risk-acceptance field"
+    - "TEST-0005 v8 PASS is exact tree dc52009ff2cb31f382544a812da937e686d63c8d → result f02bf1879180dc3ac80c659c327ea25d1ad72411 → binding 2cd504e4ea261ed29281777a355da7651c307463"
+    - "REQ-0006 @ dd21e4f maps forward to TEST-0007 in verification.test_ids and acceptance_evidence, while TEST-0007 protects REQ-0006"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -144,3 +152,9 @@ history:
       validity: VALID
       invalidated_by: null
       reason: "Lifecycle v7 truthfully separates repository-native review execution from external completed-review import: REVIEW-0014's immutable replay is exact/non-reusable, REVIEW-0015 authorization predates materialization and is one-shot/bound, generic transitions remain strict, historical imports remain exact, and REQ-0006 ↔ TEST-0007 traceability remains intact. REVIEW-0024 later introduced v8 acceptance-precondition requirements, so a new execution is required for those additional semantics without invalidating this historical v7 proof."
+    - commit_sha: "dd21e4f3171669a5f7b47a89988a169f5d8f2e9b"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "Lifecycle v8 preserves prior migration/import/replay guarantees while adding enforceable requirement-acceptance evidence and risk-acceptance authority preconditions. REVIEW-0024 import provenance is exact and one-shot, risk records can represent the required authority evidence, and current TEST-0005/REQ-0006 traceability remains coherent."
