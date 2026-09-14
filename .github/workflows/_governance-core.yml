@@ -71,7 +71,7 @@ jobs:
       - name: Validate fresh-L2 hardening invariants
         if: inputs.event_name == 'pull_request'
         run: |
-          PYTHONPATH="$PWD" python .github/scripts/governance_l2_hardening.py . \
+          PYTHONPATH="$PWD:$PWD/.github/scripts" python .github/scripts/governance_l2_gate.py . \
             --base '${{ inputs.base_sha }}' \
             --head '${{ inputs.head_sha }}' \
             --json-out l2-hardening-findings.json

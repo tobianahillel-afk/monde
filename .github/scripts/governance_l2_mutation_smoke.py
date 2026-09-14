@@ -8,28 +8,31 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-TARGET = ".github/scripts/governance_l2_hardening.py"
 TESTS = [
     "tests/governance/test_l2_hardening_v2.py",
     "tests/governance/test_l2_hardening_materialization.py",
+    "tests/governance/test_l2_gate_provenance.py",
 ]
 MUTATIONS = {
-    "exact-head-checkout": ('or (checkout.get("with") or {}).get("ref") != CHECKOUT_REF', 'or False'),
-    "complete-review-immutability": ('if review_semantic_projection(previous) != review_semantic_projection(current):', 'if False:'),
-    "authority-actor-binding": ('if actor not in actor_values:', 'if False:'),
-    "review-import-materialization": ('actual_import = first_status_commit(root, path, str(review.get("status") or ""), head)\n    if actual_import != import_commit:', 'actual_import = first_status_commit(root, path, str(review.get("status") or ""), head)\n    if False:'),
-    "requirement-review-import-finalization": ('if not review_import_finalized(root, review, after, review_path):', 'if False:'),
-    "cold-read-revision-reachability": ('if not pass_test_execution_revision_valid(root, test, after):', 'if False:'),
-    "progress-transition-enforcement": ('if new not in allowed:', 'if False:'),
-    "squash-nonreusable-flags": ('if entry.get("historical_only") is not True or entry.get("future_reuse_forbidden") is not True:', 'if False:'),
-    "done-task-run-terminal-state": ('if not isinstance(item, dict) or item.get("status") not in DONE_TASK_RUN_STATES:', 'if False:'),
+    "exact-head-checkout": (".github/scripts/governance_l2_hardening.py", 'or (checkout.get("with") or {}).get("ref") != CHECKOUT_REF', 'or False'),
+    "complete-review-immutability": (".github/scripts/governance_l2_hardening.py", 'if review_semantic_projection(previous) != review_semantic_projection(current):', 'if False:'),
+    "authority-actor-binding": (".github/scripts/governance_l2_hardening.py", 'if actor not in actor_values:', 'if False:'),
+    "review-import-materialization": (".github/scripts/governance_l2_hardening.py", 'actual_import = first_status_commit(root, path, str(review.get("status") or ""), head)\n    if actual_import != import_commit:', 'actual_import = first_status_commit(root, path, str(review.get("status") or ""), head)\n    if False:'),
+    "requirement-review-import-finalization": (".github/scripts/governance_l2_hardening.py", 'if not review_import_finalized(root, review, after, review_path):', 'if False:'),
+    "cold-read-revision-reachability": (".github/scripts/governance_l2_hardening.py", 'if not pass_test_execution_revision_valid(root, test, after):', 'if False:'),
+    "progress-transition-enforcement": (".github/scripts/governance_l2_hardening.py", 'if new not in allowed:', 'if False:'),
+    "squash-nonreusable-flags": (".github/scripts/governance_l2_hardening.py", 'if entry.get("historical_only") is not True or entry.get("future_reuse_forbidden") is not True:', 'if False:'),
+    "done-task-run-terminal-state": (".github/scripts/governance_l2_hardening.py", 'if not isinstance(item, dict) or item.get("status") not in DONE_TASK_RUN_STATES:', 'if False:'),
+    "progress-adoption-nonreusable": (".github/scripts/governance_l2_gate.py", 'or entry.get("historical_only") is not True\n            or entry.get("future_reuse_forbidden") is not True\n            or not h.git_ok(root, "cat-file", "-e", f"{adoption}^{{commit}}")', 'or False\n            or False\n            or not h.git_ok(root, "cat-file", "-e", f"{adoption}^{{commit}}")'),
+    "review-squash-explicit-id": (".github/scripts/governance_l2_gate.py", 'if not isinstance(entry, dict) or review_id not in (entry.get("eligible_review_ids") or []):', 'if not isinstance(entry, dict):'),
 }
 
 
 def main() -> int:
-    original = (ROOT / TARGET).read_text(encoding="utf-8")
+    originals: dict[str, str] = {}
     killed = 0
-    for name, (needle, replacement) in MUTATIONS.items():
+    for name, (target, needle, replacement) in MUTATIONS.items():
+        original = originals.setdefault(target, (ROOT / target).read_text(encoding="utf-8"))
         if original.count(needle) != 1:
             print(f"L2 MUTATION ERROR {name}: target occurrence count != 1", file=sys.stderr)
             return 2
@@ -42,18 +45,11 @@ def main() -> int:
                     shutil.copytree(src, dst)
                 else:
                     shutil.copy2(src, dst)
-            mutated = temp / TARGET
+            mutated = temp / target
             mutated.write_text(original.replace(needle, replacement, 1), encoding="utf-8")
             env = dict(os.environ)
             env["PYTHONPATH"] = str(temp)
-            proc = subprocess.run(
-                [sys.executable, "-m", "pytest", "-q", *TESTS],
-                cwd=temp,
-                env=env,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                check=False,
-            )
+            proc = subprocess.run([sys.executable, "-m", "pytest", "-q", *TESTS], cwd=temp, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
             if proc.returncode == 0:
                 print(f"L2 MUTATION SURVIVED {name}", file=sys.stderr)
                 continue
