@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MUTATIONS = {
     "review-completion": (
         "tools/governance/validate_repo.py",
-        'if data.get("status") not in {"COMPLETE", "CLOSED"}:',
+        'if data.get("status") != "COMPLETE":',
         'if False:',
     ),
     "progress-reverse-membership": (
@@ -51,7 +51,7 @@ MUTATIONS = {
     ),
     "required-test-pass": (
         "tools/governance/strict_contracts.py",
-        'if test is None or not pass_test_has_execution(test):',
+        'if test is None or not pass_test_has_execution(test) or not pass_test_revision_valid(root, test):',
         'if False:',
     ),
     "progress-unique-placement": (
@@ -96,7 +96,7 @@ MUTATIONS = {
     ),
     "review-complete-sha": (
         "tools/governance/strict_contracts.py",
-        'if review.get("status") == "COMPLETE" and not FULL_COMMIT_SHA.fullmatch(reviewed_sha):',
+        'if not FULL_COMMIT_SHA.fullmatch(reviewed_sha):',
         'if False:',
     ),
     "na-justification": (
@@ -144,6 +144,41 @@ MUTATIONS = {
         "endpoint_files = endpoint_changed_files(root, base, head)",
         "endpoint_files = changed_files(root, base, head)",
     ),
+    "duplicate-yaml-key-rejection": (
+        "tools/governance/__init__.py",
+        "yaml.SafeLoader.add_constructor(BaseResolver.DEFAULT_MAPPING_TAG, _construct_unique_mapping)",
+        "# duplicate-key guard removed by mutation",
+    ),
+    "requirement-jcs-recompute": (
+        "tools/governance/change_guard.py",
+        "if requirement_normative_digest(root, requirement, identity_policy) != digest:",
+        "if False:",
+    ),
+    "risk-acceptance-authority": (
+        "tools/governance/change_guard.py",
+        'if kind == "risks" and before != "ACCEPTED" and after == "ACCEPTED" and not risk_acceptance_satisfied(root, sha, current):',
+        'if False:',
+    ),
+    "repository-owner-binding": (
+        "tools/governance/strict_contracts.py",
+        "return repository_owner_evidence_valid(acceptance, policy)",
+        "return True",
+    ),
+    "external-review-import-finalization": (
+        "tools/governance/strict_contracts.py",
+        "if not review_external_import_finalized(review, machine):",
+        "if False:",
+    ),
+    "test-execution-revision-reachability": (
+        "tools/governance/strict_contracts.py",
+        "return pass_test_execution_revision_valid(root, test)",
+        "return True",
+    ),
+    "closed-review-completion": (
+        "tools/governance/strict_contracts.py",
+        'if review.get("status") != "COMPLETE":',
+        'if False:',
+    ),
 }
 
 
@@ -160,7 +195,7 @@ def main() -> int:
             return 2
         with tempfile.TemporaryDirectory(prefix="monde-mutation-") as temp_dir:
             temp = Path(temp_dir)
-            for item in ("tools", "tests", "schemas", "pyproject.toml"):
+            for item in ("tools", "tests", "schemas", "registry", "pyproject.toml"):
                 src = ROOT / item
                 dst = temp / item
                 if src.is_dir():
