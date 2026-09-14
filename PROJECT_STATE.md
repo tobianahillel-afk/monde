@@ -15,42 +15,58 @@ Canonical operational state: Yes
 
 ## WORK-0002 integrated state
 
-PR #2 previously diverged from the newly merged WORK-0001 contract at `ab62faa1743705600a0f11335579db68a2166ab3`. An exact-head merge probe against `main@29086643387ff46ab6636dd2fa3014efccc10165` found four semantic conflicts only: `PROJECT_STATE.md`, `registry/progress/matrix.yaml`, `registry/work-items/WORK-0002.yaml`, and `registry/work-items/WORK-0003.yaml`.
-
-The integration preserves the final WORK-0001/v10 canonical state from `main`, keeps the richer branch-local WORK-0002 implementation/review/test graph from PR #2, and keeps the expanded WORK-0003 control-plane plan from PR #2. Git ancestry confirms `main@29086643387ff46ab6636dd2fa3014efccc10165` is the merge base and ancestor of the current PR #2 line (`behind_by: 0`). WORK-0002 remains `IN_REVIEW`; this integration is not completion evidence.
+PR #2 previously diverged from the newly merged WORK-0001 contract at `ab62faa1743705600a0f11335579db68a2166ab3`. Integration commit `b63fc190a0fa3e02ad1b3e03d0d01b16617c9b49` merged that branch-local history with `main@29086643387ff46ab6636dd2fa3014efccc10165`. Git ancestry confirms the main commit remains the merge base and ancestor of the PR #2 line (`behind_by: 0`). WORK-0002 remains `IN_REVIEW`; integration and author-side proof are not completion or independent-approval evidence.
 
 ## Latest deterministic WORK-0002 proof
 
-The graph-aware v10 change-guard correction was proven before publication on the exact code/test tree later committed as `1678527aec2c6da0c82677d176920ced1edfd864`. GitHub Actions run `34828230186`, job `103925205159`, checked out predecessor `ba9f467fa73a1e1151fb6df13955f1a88e5d8a1f`, applied only the guarded v10 correction/regressions, and passed before pushing:
+REVIEW-0029 recorded six additional fresh-context findings against frozen predecessor `40550a5d3e3e3f75f467c6e6cd29d3fe729a25e5`. Its negative evidence was durably imported and bound before correction. The guarded corrective runner then operated only from exact predecessor `4eb23ffcae5eab9bb6ead05104258893df96c93a` and published correction candidate `a0d4c112294630a7b82e06925292567bb45c8c52` only after the full deterministic proof passed.
 
-- **88/88 tests PASS**;
-- **1165/1165 statements** and **610/610 branches**, 100.00% line + branch coverage;
-- **21/21 critical governance mutations killed**, including the endpoint-scoped `review-freshness-scope` mutation;
-- repository governance validation: **0 errors / 0 warnings**;
+Admin proof run **`34838119366`**, job **`103956543083`**, proves the published correction tree before push:
+
+- **116 tests PASS**;
+- governance implementation: **1306/1306 statements** and **686/686 branches**, **100.00% line + branch coverage**;
+- **27/27 critical governance mutations killed**;
+- repository governance validation: **0 errors / 0 warnings** across 66 records;
 - strict governance validation: **0 errors**;
 - path-safety validation: **0 errors**;
-- base-to-head change guard against `main@29086643387ff46ab6636dd2fa3014efccc10165`: **0 errors**.
+- base-to-head change guard against `main@29086643387ff46ab6636dd2fa3014efccc10165`: **0 errors**;
+- guarded push succeeded from `4eb23ffcae5eab9bb6ead05104258893df96c93a` to exact candidate `a0d4c112294630a7b82e06925292567bb45c8c52`.
 
-The runner then committed exactly the three proved implementation/test files and pushed `1678527aec2c6da0c82677d176920ced1edfd864` to PR #2. The immediately generated pull-request workflow run `34828371537` had `conclusion: action_required` and **zero jobs** because the synchronize event was emitted by `github-actions[bot]`; it is not deterministic test failure evidence and it is not a successful MONDE Gate. Current CI/check truth must therefore always be read live rather than copied here.
+The immediately generated pull-request MONDE Gate run **`34838309139`** on `a0d4c112294630a7b82e06925292567bb45c8c52` ended `action_required` because the synchronize event came from `github-actions[bot]`. It created no usable gate proof and must not be treated as success or deterministic failure. This PROJECT_STATE synchronization is intentionally a transition-stable repository-user commit so the real pull-request gate can execute on the new exact candidate.
+
+## Current WORK-0002 independent-review closure set
+
+There are **12 unresolved PR #2 review threads/findings**. None may be author-resolved.
+
+The six earlier findings require:
+
+1. A3/A4 assurance to impose minimum review independence (`A3 ≥ L2`, `A4 ≥ L3`).
+2. COMPLETE review evidence to bind an exact `artifact.commit_sha`.
+3. PASS TEST records to carry substantive protected-contract/case/execution evidence.
+4. Every `NOT_APPLICABLE` progress dimension to carry a non-empty justification.
+5. Context routing to seed dependency closure from changed non-WORK registry records.
+6. Handover state to remain current and transition-stable.
+
+REVIEW-0029 added six further contract findings requiring:
+
+1. lifecycle validation to enforce canonical initial-state materialization while allowing only exact, record/commit-bound historical or preauthorized imports;
+2. requirement `PROPOSED → ACCEPTED` transitions to enforce the v10 content-bound independent-review and cold-read preconditions;
+3. a current `PASS` TEST used as completion evidence to carry concrete revision-bound execution evidence rather than only a test definition;
+4. blocking finding `ACCEPTED` disposition to resolve and validate the exact authority matrix role/rule/evidence contract;
+5. COMPLETE review artifact evidence to use a full immutable 40-hex commit that exists and is valid in current ancestry/freshness checks;
+6. freshness/change-control to distinguish required TEST contract changes from execution-evidence churn and compute endpoint changes from the actual merge base.
+
+The author-side correction for all 12 findings is now on the PR branch, but correction plus deterministic proof does not itself close any finding.
 
 ## Current WORK-0002 gate
 
-Six fresh-context findings from the earlier L2 on `c50c33009d90f079e645f0ca9e1befe1a4a77ba9` remain the independent-review closure set:
+Required sequence from this handover state:
 
-1. A3/A4 assurance must impose minimum review independence (`A3 ≥ L2`, `A4 ≥ L3`).
-2. COMPLETE review evidence must bind an exact `artifact.commit_sha`.
-3. PASS TEST records must carry substantive protected-contract/case/execution evidence.
-4. Every `NOT_APPLICABLE` progress dimension needs a non-empty work-item justification.
-5. Context routing must seed dependency closure from changed non-WORK registry records.
-6. Handover state must remain current and transition-stable.
-
-All six have author-side corrections and deterministic regression evidence, but their matching PR #2 review threads remain unresolved until fresh independent verification. The required sequence is:
-
-1. Re-query the live PR #2 HEAD and run the complete MONDE Gate on that exact candidate. Treat any deterministic validator, schema/change guard, coverage, mutation, secret scan, Dependency Review, CodeQL or live-gate failure as blocking evidence. A workflow that creates no jobs is not substitute proof.
-2. Recheck the six review threads against the exact gate evidence; do not resolve them by author assertion.
-3. Obtain a new fresh-context L2 on the final integrated PR #2 candidate.
-4. Only a clean approval-capable independent result may close the review gate and allow WORK-0002 completion synchronization.
-5. Run the final merge-candidate gate and merge only with an exact-head guard.
+1. Re-query live PR #2 HEAD after this transition-stable synchronization and require a complete MONDE Gate on that exact SHA. Treat any validator, schema/change guard, coverage, mutation, secret scan, Dependency Review, CodeQL or live-gate failure as blocking evidence. A workflow with no jobs is never substitute proof.
+2. Keep all 12 existing review threads unresolved until independent verification.
+3. Obtain a **fresh-context L2** on the exact final gated PR #2 candidate. The reviewer must inspect the accumulated implementation, all 12 open findings, REVIEW-0029 corrections, historical-integration exceptions, PASS TEST revision binding and graph-aware v10 semantics.
+4. Only an approval-capable independent result with no new blocking finding may justify durable review evidence and subsequent thread/finding closure.
+5. Synchronize WORK-0002 completion only after those independent gates are satisfied, then run the final merge-candidate gate and merge only with an exact-head guard.
 6. Continue with WORK-0003, then WORK-0004.
 
 ## WORK-0001 provenance boundary
@@ -76,8 +92,9 @@ Product specification and product identity remain owner-gated decisions. Agents 
 7. `registry/status-machines.yaml`
 8. `docs/03_ARCHITECTURE/github-control-plane.md`
 9. `docs/13_QUALITY/ai-context-routing.md`
-10. branch-local REVIEW-0002 / TEST-0002 / TEST-0003 records
-11. live PR #2 HEAD, checks, reviews and threads
-12. `tools/governance/` and `tests/governance/`
+10. `registry/reviews/REVIEW-0029.yaml` plus branch-local REVIEW-0002
+11. `registry/tests/TEST-0002.yaml` and `registry/tests/TEST-0003.yaml`
+12. live PR #2 HEAD, checks, reviews and all review threads
+13. `tools/governance/` and `tests/governance/`
 
 No prior chat history is required.
