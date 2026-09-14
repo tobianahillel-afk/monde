@@ -1,0 +1,47 @@
+name: Probe PR2 integration with merged WORK-0001
+
+on:
+  push:
+    branches:
+      - review/test-0008-github-models
+    paths:
+      - .github/workflows/admin-pr2-main-merge-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR2 head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ab62faa1743705600a0f11335579db68a2166ab3
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Probe exact main merge without mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "ab62faa1743705600a0f11335579db68a2166ab3"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "29086643387ff46ab6636dd2fa3014efccc10165"
+          set +e
+          git -c user.name='merge-probe' -c user.email='merge-probe@example.invalid' merge --no-commit --no-ff 29086643387ff46ab6636dd2fa3014efccc10165
+          rc=$?
+          set -e
+          echo "merge_exit=$rc"
+          echo '--- unmerged paths ---'
+          git diff --name-only --diff-filter=U || true
+          echo '--- status ---'
+          git status --short
+          if [ "$rc" -eq 0 ]; then
+            echo 'MERGE_PROBE=CLEAN'
+          else
+            conflicts="$(git diff --name-only --diff-filter=U | wc -l)"
+            echo "MERGE_PROBE=CONFLICT conflicts=$conflicts"
+          fi
+          git merge --abort || true
