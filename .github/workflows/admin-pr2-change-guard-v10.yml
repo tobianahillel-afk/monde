@@ -1,0 +1,115 @@
+name: Admin PR2 change guard v10
+
+on:
+  push:
+    branches: [review/test-0008-github-models]
+    paths:
+      - .github/workflows/admin-pr2-change-guard-v10.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact PR2 branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feat/work-0002-governance-ci
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Guard exact source heads
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "ba9f467fa73a1e1151fb6df13955f1a88e5d8a1f"
+          test "$(git rev-parse origin/main)" = "29086643387ff46ab6636dd2fa3014efccc10165"
+
+      - name: Patch graph-aware v10 change guard and regressions
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('tools/governance/change_guard.py')
+          s=p.read_text()
+
+          # Remove the duplicated pre-v10 transition table; status-machines.yaml is canonical.
+          start=s.index('TRANSITIONS = {\n')
+          end=s.index('META_PATH_PREFIXES =', start)
+          s=s[:start]+s[end:]
+
+          # Replace the old synthetic sequential path helper with graph-aware helpers.
+          start=s.index('def paths_across_sequence(')
+          end=s.index('\ndef path_is_declared', start)
+          helpers='''def canonical_transitions(root: Path, sha: str, kind: str) -> dict[str, set[str]]:\n    machine = show_yaml(root, sha, "registry/status-machines.yaml") or {}\n    registries = machine.get("registry_machines") or {}\n    spec = registries.get(kind.replace("-", "_")) or {}\n    raw = spec.get("transitions") or {}\n    return {str(before): set(after or []) for before, after in raw.items()}\n\n\ndef commit_parents(root: Path, sha: str) -> list[str]:\n    return git(root, "show", "-s", "--format=%P", sha).split()\n\n\ndef is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:\n    proc = subprocess.run(\n        ["git", "merge-base", "--is-ancestor", ancestor, descendant],\n        cwd=root, text=True, capture_output=True, check=False,\n    )\n    return proc.returncode == 0\n\n\ndef comparison_parent(root: Path, base: str, sha: str) -> str:\n    parents = commit_parents(root, sha)\n    base_side = [parent for parent in parents if parent == base or is_ancestor(root, base, parent)]\n    return base_side[0] if base_side else parents[0]\n\n\ndef pr_commit_edges(root: Path, base: str, head: str, require_guard: bool) -> tuple[list[str], list[tuple[str, str]]]:\n    commits = [x for x in git(root, "rev-list", "--reverse", "--topo-order", f"{base}..{head}").splitlines() if x]\n    edges: list[tuple[str, str]] = []\n    for sha in commits:\n        if require_guard and not file_exists_at(root, sha, GUARD_PATH):\n            continue\n        edges.append((comparison_parent(root, base, sha), sha))\n    return commits, edges\n\n\ndef paths_across_edges(root: Path, edges: list[tuple[str, str]]) -> list[str]:\n    paths: set[str] = set()\n    for before, after in edges:\n        paths.update(changed_files(root, before, after))\n    return sorted(paths)\n\n'''
+          s=s[:start]+helpers+s[end+1:]
+
+          old='''    all_commits = [base] + [x for x in git(root, "rev-list", "--reverse", f"{base}..{head}").splitlines() if x]\n    start = 0\n    if not base_has_guard:\n        start = next((i for i, sha in enumerate(all_commits) if file_exists_at(root, sha, GUARD_PATH)), len(all_commits) - 1)\n    sequence = all_commits[start:]\n    sequence_files = paths_across_sequence(root, sequence) if len(sequence) >= 2 else endpoint_files\n\n    for path in sequence_files:\n        kind = registry_kind(path)\n        allowed = TRANSITIONS.get(kind or "")\n        if not allowed or len(sequence) < 2:\n            continue\n        previous = show_yaml(root, sequence[0], path)\n        for sha in sequence[1:]:\n            current = show_yaml(root, sha, path)\n            if previous and current is None:\n                out.append(ChangeFinding(path, "RECORD_DELETE", f"published registry record deleted at {sha[:12]}"))\n                previous = None\n                continue\n            if previous and current:\n                if previous.get("id") != current.get("id"):\n                    out.append(ChangeFinding(path, "ID_IMMUTABLE", f"registry id changed at {sha[:12]}"))\n                before, after = previous.get("status"), current.get("status")\n                if before != after and after not in allowed.get(str(before), set()):\n                    out.append(ChangeFinding(path, "STATE_TRANSITION", f"invalid {kind} transition {before} -> {after} at {sha[:12]}"))\n                if kind == "work-items" and before in ACTIVE_WORK_STATUSES and semantic_projection(previous) != semantic_projection(current):\n                    scope_change = current.get("scope_change") or {}\n                    if scope_change.get("approved") is not True or not scope_change.get("rationale"):\n                        out.append(ChangeFinding(path, "SCOPE_DRIFT", f"semantic scope/AC/review/contracts changed at {sha[:12]} without approved scope_change rationale"))\n            previous = current\n\n'''
+          new='''    exclusive_commits, edges = pr_commit_edges(root, base, head, require_guard=not base_has_guard)\n    all_commits = [base] + exclusive_commits\n    sequence_files = paths_across_edges(root, edges) if edges else endpoint_files\n\n    for previous_sha, sha in edges:\n        for path in changed_files(root, previous_sha, sha):\n            kind = registry_kind(path)\n            if not kind or kind == "progress":\n                continue\n            previous = show_yaml(root, previous_sha, path)\n            current = show_yaml(root, sha, path)\n            if previous and current is None:\n                out.append(ChangeFinding(path, "RECORD_DELETE", f"published registry record deleted at {sha[:12]}"))\n                continue\n            if previous and current:\n                if previous.get("id") != current.get("id"):\n                    out.append(ChangeFinding(path, "ID_IMMUTABLE", f"registry id changed at {sha[:12]}"))\n                before, after = previous.get("status"), current.get("status")\n                allowed = canonical_transitions(root, sha, kind)\n                if before != after and after not in allowed.get(str(before), set()):\n                    out.append(ChangeFinding(path, "STATE_TRANSITION", f"invalid {kind} transition {before} -> {after} at {sha[:12]}"))\n                if kind == "work-items" and before in ACTIVE_WORK_STATUSES and semantic_projection(previous) != semantic_projection(current):\n                    scope_change = current.get("scope_change") or {}\n                    if scope_change.get("approved") is not True or not scope_change.get("rationale"):\n                        out.append(ChangeFinding(path, "SCOPE_DRIFT", f"semantic scope/AC/review/contracts changed at {sha[:12]} without approved scope_change rationale"))\n\n'''
+          assert s.count(old)==1
+          s=s.replace(old,new,1)
+
+          old='''    work_paths = [\n        x for x in git(root, "ls-tree", "-r", "--name-only", head, "registry/work-items").splitlines()\n        if x.endswith(".yaml") and not Path(x).name.startswith("_")\n    ]\n    for path in work_paths:\n        work = show_yaml(root, head, path) or {}\n        plan = work.get("review_plan") or {}\n'''
+          new='''    work_paths = [\n        x for x in git(root, "ls-tree", "-r", "--name-only", head, "registry/work-items").splitlines()\n        if x.endswith(".yaml") and not Path(x).name.startswith("_")\n    ]\n    endpoint_set = set(endpoint_files)\n    for path in work_paths:\n        work = show_yaml(root, head, path) or {}\n        if work.get("status") in {"DONE", "DEPRECATED", "CANCELLED"} and path not in endpoint_set:\n            continue\n        plan = work.get("review_plan") or {}\n'''
+          assert s.count(old)==1
+          s=s.replace(old,new,1)
+
+          old='''            substantive = [\n                file_path\n                for file_path in later\n                if change_relevant_to_work(root, path, work, reviewed, head, file_path)\n            ]\n'''
+          new='''            substantive = [\n                file_path\n                for file_path in later\n                if file_path in endpoint_set\n                and change_relevant_to_work(root, path, work, reviewed, head, file_path)\n            ]\n'''
+          assert s.count(old)==1
+          s=s.replace(old,new,1)
+          p.write_text(s)
+
+          # Bring the change-guard test fixture onto v10 and retain all old behavioral assertions.
+          t=Path('tests/governance/test_change_guard.py')
+          q=t.read_text()
+          old="""    write(tmp_path,'registry/work-items/WORK-1.yaml',w);write(tmp_path,'x.txt','a')\n    if include_guard:write(tmp_path,c.GUARD_PATH,'guard')\n"""
+          new="""    write(tmp_path,'registry/work-items/WORK-1.yaml',w);write(tmp_path,'x.txt','a')\n    write(tmp_path,'registry/status-machines.yaml',{'registry_machines':{\n        'work_items':{'transitions':{'IN_PROGRESS':['IN_REVIEW','PARTIAL','BLOCKED','CANCELLED'],'IN_REVIEW':['IN_PROGRESS','PARTIAL','BLOCKED','DONE'],'DONE':['DEPRECATED'],'CANCELLED':[]}},\n        'reviews':{'transitions':{'OPEN':['IN_PROGRESS','CLOSED'],'IN_PROGRESS':['COMPLETE','CLOSED'],'COMPLETE':[],'CLOSED':[]}},\n        'tests':{'transitions':{'PLANNED':['READY','BLOCKED','CANCELLED'],'READY':['RUNNING','BLOCKED','CANCELLED'],'RUNNING':['PASS','FAIL','BLOCKED'],'PASS':['READY','SUPERSEDED'],'FAIL':['READY','BLOCKED','SUPERSEDED'],'BLOCKED':['READY','CANCELLED','SUPERSEDED'],'CANCELLED':[],'SUPERSEDED':[]}},\n    }})\n    if include_guard:write(tmp_path,c.GUARD_PATH,'guard')\n"""
+          assert q.count(old)==1
+          q=q.replace(old,new,1)
+
+          old="""def test_scope_transition_delete_meta(tmp_path):\n    base=repo(tmp_path);w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text());w['scope']['in']=['b'];w['status']='DONE';write(tmp_path,'registry/work-items/WORK-1.yaml',w);write(tmp_path,'.github/workflows/x.yml','x');head=commit(tmp_path,'change')\n    rules={x.rule for x in c.validate(tmp_path,base,head)};assert 'SCOPE_DRIFT' in rules and 'STATE_TRANSITION' not in rules\n"""
+          new="""def test_scope_transition_delete_meta(tmp_path):\n    base=repo(tmp_path);w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text());w['status']='IN_REVIEW';write(tmp_path,'registry/work-items/WORK-1.yaml',w);base=commit(tmp_path,'review state');w['scope']['in']=['b'];w['status']='DONE';write(tmp_path,'registry/work-items/WORK-1.yaml',w);write(tmp_path,'.github/workflows/x.yml','x');head=commit(tmp_path,'change')\n    rules={x.rule for x in c.validate(tmp_path,base,head)};assert 'SCOPE_DRIFT' in rules and 'STATE_TRANSITION' not in rules\n"""
+          assert q.count(old)==1
+          q=q.replace(old,new,1)
+          old="w['id']='WORK-2';w['status']='CANCELLED';w['assurance']['level']='A1'"
+          new="w['id']='WORK-2';w['status']='DONE';w['assurance']['level']='A1'"
+          assert q.count(old)==1
+          q=q.replace(old,new,1)
+
+          q += '''\n\ndef test_merge_of_current_base_does_not_replay_base_transition(tmp_path):\n    old_base=repo(tmp_path)\n    write(tmp_path,'registry/tests/TEST-1.yaml',{'id':'TEST-1','status':'PASS'})\n    old_base=commit(tmp_path,'old test pass')\n    run(tmp_path,'branch','feature',old_base);run(tmp_path,'branch','mainline',old_base)\n    run(tmp_path,'checkout','feature');write(tmp_path,'feature.txt','feature');commit(tmp_path,'feature change')\n    run(tmp_path,'checkout','mainline');write(tmp_path,'registry/tests/TEST-1.yaml',{'id':'TEST-1','status':'SUPERSEDED'});main=commit(tmp_path,'canonical supersede')\n    run(tmp_path,'checkout','feature');run(tmp_path,'merge','--no-ff','mainline','-m','integrate current main');head=run(tmp_path,'rev-parse','HEAD')\n    findings=c.validate(tmp_path,main,head)\n    assert not [f for f in findings if f.rule=='STATE_TRANSITION' and f.path=='registry/tests/TEST-1.yaml']\n\n\ndef test_done_unmodified_work_review_is_not_reopened_by_downstream_change(tmp_path):\n    base=repo(tmp_path);w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text());w['status']='IN_REVIEW';write(tmp_path,'registry/work-items/WORK-1.yaml',w);reviewed=commit(tmp_path,'reviewed')\n    write(tmp_path,'registry/reviews/REVIEW-1.yaml',{'id':'REVIEW-1','status':'COMPLETE','artifact':{'commit_sha':reviewed}});w['review_plan']['completed_reviews']=['REVIEW-1'];w['status']='DONE';write(tmp_path,'registry/work-items/WORK-1.yaml',w);base=commit(tmp_path,'done on base')\n    write(tmp_path,'x.txt','future downstream behavior');head=commit(tmp_path,'later work')\n    assert not [f for f in c.validate(tmp_path,base,head) if f.rule=='REVIEW_FRESHNESS']\n\n\ndef test_canonical_transition_table_is_enforced(tmp_path):\n    base=repo(tmp_path);write(tmp_path,'registry/tests/TEST-1.yaml',{'id':'TEST-1','status':'PASS'});base=commit(tmp_path,'pass')\n    write(tmp_path,'registry/tests/TEST-1.yaml',{'id':'TEST-1','status':'SUPERSEDED'});head=commit(tmp_path,'supersede')\n    assert 'STATE_TRANSITION' not in {f.rule for f in c.validate(tmp_path,base,head)}\n    machine=yaml.safe_load((tmp_path/'registry/status-machines.yaml').read_text());machine['registry_machines']['tests']['transitions']['PASS']=[];write(tmp_path,'registry/status-machines.yaml',machine);bad=commit(tmp_path,'remove edge')\n    write(tmp_path,'registry/tests/TEST-1.yaml',{'id':'TEST-1','status':'READY'});bad2=commit(tmp_path,'invalid after terminal')\n    assert 'STATE_TRANSITION' in {f.rule for f in c.validate(tmp_path,bad,bad2)}\n'''
+          t.write_text(q)
+          PY
+          git diff --check
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13.15'
+          cache: pip
+          cache-dependency-path: requirements/governance-ci.txt
+
+      - name: Prove patched guard before push
+        run: |
+          set -euo pipefail
+          python -m pip install --require-hashes -r requirements/governance-ci.txt
+          python -m pytest --cov=tools.governance --cov-branch --cov-report=term-missing --cov-fail-under=100
+          python scripts/governance_mutation_smoke.py
+          python -m tools.governance.validate_repo .
+          python -m tools.governance.strict_contracts .
+          python -m tools.governance.path_safety .
+          python -m tools.governance.change_guard . --base 29086643387ff46ab6636dd2fa3014efccc10165 --head ba9f467fa73a1e1151fb6df13955f1a88e5d8a1f
+
+      - name: Commit and push graph-aware correction
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tools/governance/change_guard.py tests/governance/test_change_guard.py
+          git diff --cached --check
+          git commit -m 'fix(governance): make change guard v10 merge-aware'
+          git push origin HEAD:feat/work-0002-governance-ci
+          echo "CORRECTED_HEAD=$(git rev-parse HEAD)"
