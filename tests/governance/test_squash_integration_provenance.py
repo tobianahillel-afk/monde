@@ -5,6 +5,7 @@ from pathlib import Path
 
 import yaml
 
+import tools.governance.proof_contracts as proof_contracts
 from tools.governance.proof_contracts import (
     git_tree_sha,
     pass_test_execution_revision_valid,
@@ -103,11 +104,14 @@ def test_squash_bridge_requires_execution_source_and_integration_ancestry(tmp_pa
     assert tree is not None
     test = {"id": "TEST-1", "execution": {"commit_sha": execution}}
 
-    git(tmp_path, "checkout", "source")
-    (tmp_path / "unrelated.txt").write_text("unrelated\n", encoding="utf-8")
-    unrelated = commit(tmp_path, "unrelated source descendant")
+    base = git(tmp_path, "merge-base", "source", "master")
+    git(tmp_path, "checkout", "-b", "independent-source", base)
+    (tmp_path / "independent.txt").write_text("independent\n", encoding="utf-8")
+    independent_source = commit(tmp_path, "independent source head")
+    independent_tree = git_tree_sha(tmp_path, independent_source)
+    assert independent_tree is not None
     git(tmp_path, "checkout", "master")
-    bad = provenance(unrelated, integrated, git_tree_sha(tmp_path, unrelated) or "f" * 40)
+    bad = provenance(independent_source, integrated, independent_tree)
     dump(tmp_path / "registry/integration-provenance.yaml", bad)
     assert not squash_integration_revision_valid(tmp_path, test, target)
 
@@ -122,7 +126,7 @@ def test_squash_bridge_requires_execution_source_and_integration_ancestry(tmp_pa
     assert not squash_integration_revision_valid(tmp_path, test, target)
 
 
-def test_git_tree_sha_and_missing_target_fail_closed(tmp_path: Path) -> None:
+def test_git_tree_sha_and_missing_target_fail_closed(tmp_path: Path, monkeypatch) -> None:
     assert git_tree_sha(tmp_path, "short") is None
     execution, source_head, integrated, _ = build_squash_graph(tmp_path)
     tree = git_tree_sha(tmp_path, source_head)
@@ -130,3 +134,6 @@ def test_git_tree_sha_and_missing_target_fail_closed(tmp_path: Path) -> None:
     dump(tmp_path / "registry/integration-provenance.yaml", provenance(source_head, integrated, tree))
     test = {"id": "TEST-1", "execution": {"commit_sha": execution}}
     assert not pass_test_execution_revision_valid(tmp_path, test, "f" * 40)
+
+    monkeypatch.setattr(proof_contracts, "current_head", lambda _root: None)
+    assert not pass_test_execution_revision_valid(tmp_path, test)
