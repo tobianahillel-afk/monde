@@ -84,6 +84,14 @@ jobs:
             --head '${{ inputs.head_sha }}' \
             --json-out review-closure-findings.json
 
+      - name: Validate T7 closure invariants
+        if: inputs.event_name == 'pull_request'
+        run: |
+          python -m tools.governance.t7_closure . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --json-out t7-closure-findings.json
+
       - name: Generate AI context manifest
         if: inputs.event_name == 'pull_request'
         run: |
@@ -103,9 +111,9 @@ jobs:
             echo '- Base: `${{ inputs.base_sha }}`'
             echo '- Head: `${{ inputs.head_sha }}`'
             echo '- Checkout: exact requested head SHA (never the synthetic PR merge ref)'
-            echo '- Coverage target: **100% line + branch**, including project-owned L2 gate/hardening/followup scripts'
+            echo '- Coverage target: **100% line + branch**, including project-owned L2/T7 decision logic'
             echo '- Mutation smoke: baseline + fresh-L2 critical governance mutants must be killed'
-            echo '- Static repository, strict lifecycle/proof, path, schema, secret-pattern, action-pin, transition, L2-hardening and independent-review-closure guards executed above'
+            echo '- Static repository, strict lifecycle/proof, path, schema, secret-pattern, action-pin, transition, L2-hardening, independent-review-closure and T7 closure guards executed above'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload governance evidence
@@ -121,6 +129,7 @@ jobs:
             change-findings.json
             l2-hardening-findings.json
             review-closure-findings.json
+            t7-closure-findings.json
             context-manifest.json
           if-no-files-found: warn
           retention-days: 14
