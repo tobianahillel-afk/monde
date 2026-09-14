@@ -16,6 +16,7 @@ TESTS = [
     "tests/governance/test_codex_followup_mutation.py",
     "tests/governance/test_t7_closure.py",
     "tests/governance/test_t7_closure_coverage.py",
+    "tests/governance/test_t8_findings.py",
     "tests/governance/test_github_live_gate.py",
 ]
 MUTATIONS = {
@@ -45,6 +46,13 @@ MUTATIONS = {
     "t7-owner-external-anchor": ("tools/governance/t7_closure.py", 'governed.get("full_name") == actual', 'True'),
     "t7-live-exact-head-approval": ("tools/governance/github_live_gate.py", 'if not approvers:', 'if False:'),
     "t7-durable-finding-set": ("tools/governance/github_live_gate.py", 'if durable is None or len(durable) != len(unresolved):', 'if False:'),
+    "t8-continuing-requirement": ("tools/governance/t8_closure.py", 'if kind == "requirements" and not requirement_acceptance_invariant(root, after, current):', 'if kind == "requirements" and False:'),
+    "t8-continuing-risk": ("tools/governance/t8_closure.py", 'if kind == "risks" and not cg.risk_acceptance_satisfied(root, after, current):', 'if kind == "risks" and False:'),
+    "t8-complete-review-fields": ("tools/governance/t8_closure.py", 'if completion_review_projection(previous) != completion_review_projection(current):', 'if False:'),
+    "t8-policy-history": ("tools/governance/t8_closure.py", 'return not touched', 'return True'),
+    "t8-work-reopening-scope": ("tools/governance/t8_closure.py", 'if not target_work_reopening_triggered(root, before, after, work_id):', 'if False:'),
+    "t8-live-trusted-reviewer": ("tools/governance/github_live_gate.py", 'if reviewer_permission(repo, actor, token) not in TRUSTED_REVIEW_PERMISSIONS:', 'if False:'),
+    "t8-live-l2-attestation": ("tools/governance/github_live_gate.py", 'if not l2_approval_body_valid(str(review.get("body") or ""), head):', 'if False:'),
 }
 
 

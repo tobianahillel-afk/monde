@@ -1,6 +1,8 @@
 import json
+import urllib.error
 from pathlib import Path
 
+import pytest
 import yaml
 
 from tools.governance import github_live_gate as g
@@ -17,18 +19,27 @@ class Resp:
         return json.dumps(self.data).encode()
 
 
+def approval_body(head: str, *, level: str = "L2", fresh: str = "true", separated: str = "true", context: str = "ctx", hats: bool = True) -> str:
+    suffix = "\n".join(sorted(g.REQUIRED_L2_HATS)) if hats else "SECURITY"
+    return (
+        f"{g.L2_APPROVAL_MARKER}\n"
+        f"reviewed_head: {head}\n"
+        f"independence_level: {level}\n"
+        f"fresh_context: {fresh}\n"
+        f"authoring_context_separated: {separated}\n"
+        f"context_id: {context}\n"
+        f"{suffix}\n"
+    )
+
+
 def test_request_data_and_json(monkeypatch):
     monkeypatch.setattr(g.urllib.request, "urlopen", lambda req, timeout: Resp({"x": 1}))
     assert g.request_data("https://x.test", "t") == {"x": 1}
     assert g.request_json("https://x.test", "t") == {"x": 1}
     monkeypatch.setattr(g.urllib.request, "urlopen", lambda req, timeout: Resp([1]))
     assert g.request_data("https://x.test", "t") == [1]
-    try:
+    with pytest.raises(RuntimeError):
         g.request_json("https://x.test", "t")
-    except RuntimeError:
-        pass
-    else:
-        assert False
 
 
 def test_graphql_pagination_and_errors(monkeypatch):
@@ -40,44 +51,24 @@ def test_graphql_pagination_and_errors(monkeypatch):
     assert [item["id"] for item in g.fetch_threads("o/r", 1, "t")] == ["a", "b"]
 
     monkeypatch.setattr(g, "request_json", lambda *a, **k: {"errors": ["x"]})
-    try:
+    with pytest.raises(RuntimeError):
         g.fetch_threads("o/r", 1, "t")
-    except RuntimeError:
-        pass
-    else:
-        assert False
 
     monkeypatch.setattr(g, "request_json", lambda *a, **k: {"data": {}})
-    try:
+    with pytest.raises(RuntimeError):
         g.fetch_threads("o/r", 1, "t")
-    except RuntimeError:
-        pass
-    else:
-        assert False
 
     monkeypatch.setattr(g, "request_json", lambda *a, **k: {"data": {"repository": {"pullRequest": {"reviewThreads": []}}}})
-    try:
+    with pytest.raises(RuntimeError):
         g.fetch_threads("o/r", 1, "t")
-    except RuntimeError:
-        pass
-    else:
-        assert False
 
     monkeypatch.setattr(g, "request_json", lambda *a, **k: {"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": "bad", "pageInfo": {}}}}}})
-    try:
+    with pytest.raises(RuntimeError):
         g.fetch_threads("o/r", 1, "t")
-    except RuntimeError:
-        pass
-    else:
-        assert False
 
     monkeypatch.setattr(g, "request_json", lambda *a, **k: {"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": [], "pageInfo": {"hasNextPage": True}}}}}})
-    try:
+    with pytest.raises(RuntimeError):
         g.fetch_threads("o/r", 1, "t")
-    except RuntimeError:
-        pass
-    else:
-        assert False
 
 
 def test_fetch_reviews_wrapper(monkeypatch):
@@ -96,6 +87,49 @@ def test_independent_exact_head_approvers_latest_state():
         {"author": {"login": "good"}, "commit": {"oid": "h"}, "submittedAt": "1", "state": "COMMENTED"},
     ]
     assert g.independent_exact_head_approvers(reviews, "h", "author") == {"good"}
+
+
+def test_l2_approval_body_contract():
+    head = "a" * 40
+    assert g.l2_approval_body_valid(approval_body(head), head)
+    assert g.l2_approval_body_valid(approval_body(head, level="L3"), head)
+    assert not g.l2_approval_body_valid("reviewed_head: x", head)
+    assert not g.l2_approval_body_valid(approval_body("b" * 40), head)
+    assert not g.l2_approval_body_valid(approval_body(head, level="L1"), head)
+    assert not g.l2_approval_body_valid(approval_body(head, fresh="false"), head)
+    assert not g.l2_approval_body_valid(approval_body(head, separated="false"), head)
+    assert not g.l2_approval_body_valid(approval_body(head, context=""), head)
+    assert not g.l2_approval_body_valid(approval_body(head, hats=False), head)
+
+
+def test_reviewer_permission_fail_closed(monkeypatch):
+    monkeypatch.setattr(g, "request_json", lambda *a, **k: {"permission": "write"})
+    assert g.reviewer_permission("o/r", "reviewer", "t") == "write"
+    monkeypatch.setattr(g, "request_json", lambda *a, **k: {"permission": 7})
+    assert g.reviewer_permission("o/r", "reviewer", "t") is None
+
+    def forbidden(*args, **kwargs):
+        raise urllib.error.HTTPError("https://x", 404, "missing", {}, None)
+    monkeypatch.setattr(g, "request_json", forbidden)
+    assert g.reviewer_permission("o/r", "reviewer", "t") is None
+
+    def broken(*args, **kwargs):
+        raise urllib.error.HTTPError("https://x", 500, "broken", {}, None)
+    monkeypatch.setattr(g, "request_json", broken)
+    with pytest.raises(urllib.error.HTTPError):
+        g.reviewer_permission("o/r", "reviewer", "t")
+
+
+def test_trusted_exact_head_approvers_require_permission_and_l2_body(monkeypatch):
+    head = "h"
+    reviews = [
+        {"id": "r1", "author": {"login": "outside"}, "commit": {"oid": head}, "submittedAt": "1", "state": "APPROVED", "body": approval_body(head)},
+        {"id": "r2", "author": {"login": "trusted"}, "commit": {"oid": head}, "submittedAt": "1", "state": "APPROVED", "body": approval_body(head)},
+        {"id": "r3", "author": {"login": "shallow"}, "commit": {"oid": head}, "submittedAt": "1", "state": "APPROVED", "body": "looks good"},
+        {"id": "r4", "author": {"login": "commenter"}, "commit": {"oid": head}, "submittedAt": "1", "state": "COMMENTED", "body": approval_body(head)},
+    ]
+    monkeypatch.setattr(g, "reviewer_permission", lambda _repo, actor, _token: {"outside": "read", "trusted": "write", "shallow": "write", "commenter": "write"}[actor])
+    assert g.trusted_exact_head_approvers("o/r", reviews, head, "author", "t") == {"trusted"}
 
 
 def test_durable_open_findings(tmp_path: Path):
@@ -149,13 +183,23 @@ def test_validate_draft_and_ready(monkeypatch, tmp_path: Path):
 
 
 def test_validate_happy_exact_head_approval(monkeypatch, tmp_path: Path):
-    info = {"head": {"sha": "h"}, "draft": False, "state": "open", "mergeable": True, "user": {"login": "author"}}
-    monkeypatch.setattr(g, "request_json", lambda *a, **k: info)
+    head = "h"
+    info = {"head": {"sha": head}, "draft": False, "state": "open", "mergeable": True, "user": {"login": "author"}}
+
+    def request(url, *args, **kwargs):
+        if "/collaborators/reviewer/permission" in url:
+            return {"permission": "write"}
+        return info
+
+    monkeypatch.setattr(g, "request_json", request)
     monkeypatch.setattr(g, "validate_repository_owner_permission", lambda *a: [])
     monkeypatch.setattr(g, "fetch_threads", lambda *a: [])
     monkeypatch.setattr(g, "durable_open_findings", lambda *a: [])
-    monkeypatch.setattr(g, "fetch_reviews", lambda *a: [{"author": {"login": "reviewer"}, "commit": {"oid": "h"}, "submittedAt": "1", "state": "APPROVED"}])
-    assert g.validate("o/r", 1, "h", "t", tmp_path) == ([], "READY_CHECKED")
+    monkeypatch.setattr(g, "fetch_reviews", lambda *a: [{
+        "id": "r", "author": {"login": "reviewer"}, "commit": {"oid": head},
+        "submittedAt": "1", "state": "APPROVED", "body": approval_body(head),
+    }])
+    assert g.validate("o/r", 1, head, "t", tmp_path) == ([], "READY_CHECKED")
 
 
 def test_main(monkeypatch, tmp_path):

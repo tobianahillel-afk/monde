@@ -13,6 +13,17 @@ from typing import Any
 
 import yaml
 
+L2_APPROVAL_MARKER = "MONDE-L2-APPROVAL"
+TRUSTED_REVIEW_PERMISSIONS = {"write", "maintain", "admin"}
+REQUIRED_L2_HATS = {
+    "ARCHITECTURE_REUSE",
+    "VERIFICATION_VALIDATION",
+    "SECURITY",
+    "PERFORMANCE_SRE",
+    "DOCUMENTATION_TRACEABILITY",
+    "RED_TEAM_SKEPTIC",
+}
+
 
 @dataclass(frozen=True)
 class LiveFinding:
@@ -91,22 +102,78 @@ def fetch_threads(repo: str, pr: int, token: str) -> list[dict[str, Any]]:
 
 
 def fetch_reviews(repo: str, pr: int, token: str) -> list[dict[str, Any]]:
-    return _paginate_graphql(repo, pr, token, "reviews", "id state submittedAt commit{oid} author{login}")
+    return _paginate_graphql(repo, pr, token, "reviews", "id state submittedAt body commit{oid} author{login}")
 
 
-def independent_exact_head_approvers(reviews: list[dict[str, Any]], head: str, author: str) -> set[str]:
-    latest: dict[str, tuple[str, str]] = {}
+def _latest_exact_head_reviews(reviews: list[dict[str, Any]], head: str, author: str) -> dict[str, dict[str, Any]]:
+    latest: dict[str, dict[str, Any]] = {}
     for review in reviews:
         actor = str(((review.get("author") or {}).get("login") or ""))
         commit = str(((review.get("commit") or {}).get("oid") or ""))
         submitted = str(review.get("submittedAt") or "")
-        state = str(review.get("state") or "")
         if not actor or actor == author or commit != head:
             continue
         previous = latest.get(actor)
-        if previous is None or submitted >= previous[0]:
-            latest[actor] = (submitted, state)
-    return {actor for actor, (_, state) in latest.items() if state == "APPROVED"}
+        if previous is None or submitted >= str(previous.get("submittedAt") or ""):
+            latest[actor] = review
+    return latest
+
+
+def independent_exact_head_approvers(reviews: list[dict[str, Any]], head: str, author: str) -> set[str]:
+    return {
+        actor
+        for actor, review in _latest_exact_head_reviews(reviews, head, author).items()
+        if str(review.get("state") or "") == "APPROVED"
+    }
+
+
+def l2_approval_body_valid(body: str, head: str) -> bool:
+    if L2_APPROVAL_MARKER not in body:
+        return False
+    fields: dict[str, str] = {}
+    for line in body.splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        fields[key.strip().lower()] = value.strip()
+    if fields.get("reviewed_head") != head:
+        return False
+    if fields.get("independence_level", "").upper() not in {"L2", "L3"}:
+        return False
+    if fields.get("fresh_context", "").lower() != "true":
+        return False
+    if fields.get("authoring_context_separated", "").lower() != "true":
+        return False
+    if not fields.get("context_id"):
+        return False
+    return all(hat in body for hat in REQUIRED_L2_HATS)
+
+
+def reviewer_permission(repo: str, actor: str, token: str) -> str | None:
+    try:
+        payload = request_json(
+            f"https://api.github.com/repos/{repo}/collaborators/{urllib.parse.quote(actor, safe='')}/permission",
+            token,
+        )
+    except urllib.error.HTTPError as exc:
+        if exc.code in {403, 404}:
+            return None
+        raise
+    permission = payload.get("permission")
+    return str(permission) if isinstance(permission, str) else None
+
+
+def trusted_exact_head_approvers(repo: str, reviews: list[dict[str, Any]], head: str, author: str, token: str) -> set[str]:
+    trusted: set[str] = set()
+    for actor, review in _latest_exact_head_reviews(reviews, head, author).items():
+        if str(review.get("state") or "") != "APPROVED":
+            continue
+        if not l2_approval_body_valid(str(review.get("body") or ""), head):
+            continue
+        if reviewer_permission(repo, actor, token) not in TRUSTED_REVIEW_PERMISSIONS:
+            continue
+        trusted.add(actor)
+    return trusted
 
 
 def durable_open_findings(root: Path) -> list[str] | None:
@@ -167,9 +234,9 @@ def validate(repo: str, pr: int, head: str, token: str, root: Path | None = None
         findings.append(LiveFinding("DURABLE_FINDING_SET", f"WORK-0002 durable open_findings count={None if durable is None else len(durable)} does not match live unresolved thread count={len(unresolved)}"))
 
     author = str(((info.get("user") or {}).get("login") or ""))
-    approvers = independent_exact_head_approvers(fetch_reviews(repo, pr, token), head, author)
+    approvers = trusted_exact_head_approvers(repo, fetch_reviews(repo, pr, token), head, author, token)
     if not approvers:
-        findings.append(LiveFinding("INDEPENDENT_EXACT_HEAD_APPROVAL", "no independent GitHub APPROVED review is bound to the exact current PR HEAD"))
+        findings.append(LiveFinding("INDEPENDENT_EXACT_HEAD_APPROVAL", "no trusted, context-separated L2/L3 GitHub APPROVED review is bound to the exact current PR HEAD"))
 
     return findings, "READY_CHECKED"
 
