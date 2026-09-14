@@ -219,10 +219,12 @@ class Validator:
                 self.add(r.path, "DONE_REVIEW", f"review evidence {rid} is missing")
                 continue
             data = rr.data
-            if data.get("status") not in {"COMPLETE", "CLOSED"}:
-                self.add(r.path, "DONE_REVIEW", f"review {rid} is not complete")
+            if data.get("status") != "COMPLETE":
+                self.add(r.path, "DONE_REVIEW", f"review {rid} must be COMPLETE to satisfy completion")
+                continue
             if data.get("outcome") not in REVIEW_OUTCOMES_APPROVING:
                 self.add(r.path, "DONE_REVIEW", f"review {rid} outcome does not approve completion")
+                continue
             covered.update(data.get("roles", []) or [])
             max_rank = max(max_rank, independence_rank((data.get("reviewer") or {}).get("independence_level")))
             for finding in data.get("findings", []) or []:
