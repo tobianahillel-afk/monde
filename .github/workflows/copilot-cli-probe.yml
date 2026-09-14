@@ -1,0 +1,26 @@
+name: Copilot CLI fresh-context probe
+
+on:
+  push:
+    branches:
+      - review/test-0008-github-models
+
+permissions:
+  contents: read
+  copilot-requests: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Install pinned Copilot CLI
+        run: npm install -g @github/copilot@1.0.83
+      - name: Probe Copilot
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          copilot -p 'Reply with exactly OK and nothing else.' -s > /tmp/copilot-output.txt
+          cat /tmp/copilot-output.txt
+          grep -qx 'OK' /tmp/copilot-output.txt
