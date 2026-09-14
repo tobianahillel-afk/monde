@@ -179,6 +179,21 @@ MUTATIONS = {
         'if review.get("status") != "COMPLETE":',
         'if False:',
     ),
+    "squash-integration-tree-binding": (
+        "tools/governance/proof_contracts.py",
+        "if source_tree == expected_tree and integrated_tree == expected_tree:",
+        "if True:",
+    ),
+    "squash-integration-reachability-fallback": (
+        "tools/governance/proof_contracts.py",
+        "return squash_integration_revision_valid(root, test, target)",
+        "return True",
+    ),
+    "malformed-yaml-history-binding": (
+        "tools/governance/change_guard.py",
+        "if file_exists_at(root, sha, path) and historical_malformed_yaml_allowed(root, path, sha, head):",
+        "if file_exists_at(root, sha, path):",
+    ),
 }
 
 
