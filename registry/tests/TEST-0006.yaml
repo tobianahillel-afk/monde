@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: READY
+status: RUNNING
 type: MANUAL_E2E
 
 protects:
@@ -91,7 +91,7 @@ history:
     - {commit_sha: "0b2c2f6a92051760e759bf2e64518188e8266012", recorded_result: PASS, recorded_in_commit: "badf011c82fc07e86d85d0e5d6efcb21223ca8cb", validity: VALID, invalidated_by: null, reason: "Current-tree prerequisites and branch boundary passed."}
     - {commit_sha: "fa55004d1623ab2aa66c14b62bb036f6e335f041", recorded_result: PASS, recorded_in_commit: "80eb23da21d76d5b87134164ce46954423a04e95", validity: VALID, invalidated_by: null, reason: "v5 lifecycle/handover/review semantics passed."}
     - {commit_sha: "ffffb37d680e477fa03f74523dfac624ad74427c", recorded_result: FAIL, recorded_in_commit: "45088fc916b84c7e809d1305fe926724e85b797c", validity: VALID, invalidated_by: null, reason: "v6 contract existed but handover remained stale."}
-    - {commit_sha: "bb973b669797e887d6190065a3d74c377aa33c01", recorded_result: PASS, recorded_in_commit: "7ce54360a2e56f889a5b84dcb769d71", validity: VALID, invalidated_by: null, reason: "Synchronized v6 state passed."}
+    - {commit_sha: "bb973b669797e887d6190065a3d74c377aa33c01", recorded_result: PASS, recorded_in_commit: "7ce54360a2e56f8892ea70354af824bfa8c4df72", validity: VALID, invalidated_by: null, reason: "Synchronized v6 state passed."}
     - {commit_sha: "11cca4bccb318d29c422917d544a470870b2cf65", recorded_result: FAIL, recorded_in_commit: "35e3c4c892f8c9bc6e5424fbe792c2fc8043eaf8", validity: VALID, invalidated_by: null, reason: "PROJECT_STATE ordered completed actions."}
     - {commit_sha: "75d3df4486d05ab95d9d65daee2fd7ac77072a47", recorded_result: FAIL, recorded_in_commit: "49a772c224cb3dd4811f48f4bc0431c155b01e74", validity: VALID, invalidated_by: null, reason: "Handover still named completed actions."}
     - {commit_sha: "d6f012abe31263f0fa83003646405c039b23611e", recorded_result: PASS, recorded_in_commit: "788a2948054cdd90130c72b17910d745fd36d927", validity: VALID, invalidated_by: null, reason: "Transition-stable v7 cold resume passed."}
