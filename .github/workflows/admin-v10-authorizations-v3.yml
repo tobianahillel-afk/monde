@@ -1,5 +1,5 @@
-name: One-shot v10 handover synchronization runner
-# trigger: 3
+name: Final v10 fresh-context L2 closure review
+# trigger: 4
 
 on:
   push:
@@ -9,39 +9,111 @@ on:
       - .github/workflows/admin-v10-authorizations-v3.yml
 
 permissions:
-  contents: write
+  contents: read
+  pull-requests: read
+  copilot-requests: write
 
 jobs:
-  synchronize:
+  final-l2:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
-      - name: Checkout admin script
+      - name: Checkout review harness
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: review/test-0008-github-models
           path: admin
           persist-credentials: false
           fetch-depth: 1
-      - name: Checkout exact PR #3 branch
+
+      - name: Checkout exact frozen PR #3 candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: chore/work-0001-assurance-closure
+          ref: b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60
           path: target
-          fetch-depth: 1
-      - name: Synchronize v10 handover
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Freeze live PR state and cross-branch evidence
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(git -C target rev-parse HEAD)" = "74dc253d849e3b6b6570fe55df415f5e9da65ab2"
-          git -C target config user.name 'MONDE governance automation'
-          git -C target config user.email '269188945+tobianahillel-afk@users.noreply.github.com'
-          python admin/tools/admin_v10_sync_handover.py target
-          git -C target diff --check
-          git -C target diff -- PROJECT_STATE.md registry/work-items/WORK-0001.yaml registry/tests/TEST-0008.yaml
-          git -C target add PROJECT_STATE.md registry/work-items/WORK-0001.yaml registry/tests/TEST-0008.yaml
-          git -C target commit -m 'chore(governance): synchronize v10 acceptance handover'
-      - name: Push synchronized candidate
+          mkdir -p /tmp/final-v10
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            'https://api.github.com/repos/tobianahillel-afk/monde/pulls/3' \
+            > /tmp/final-v10/pr3.json
+          python - <<'PY'
+          import json
+          p=json.load(open('/tmp/final-v10/pr3.json'))
+          assert p['head']['sha']=='b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60', p['head']['sha']
+          assert p['state']=='open'
+          assert p['draft'] is False
+          PY
+
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            'https://api.github.com/repos/tobianahillel-afk/monde/pulls/2' \
+            > /tmp/final-v10/pr2.json
+          PR2_REF="$(python - <<'PY'
+          import json
+          print(json.load(open('/tmp/final-v10/pr2.json'))['head']['ref'])
+          PY
+          )"
+          git -C target fetch origin "$PR2_REF" --depth=1
+          git -C target rev-parse FETCH_HEAD > /tmp/final-v10/pr2_sha
+          PR2_SHA="$(cat /tmp/final-v10/pr2_sha)"
+          python - "$PR2_SHA" <<'PY'
+          import json,subprocess,sys
+          sha=sys.argv[1]
+          paths=[
+            'schemas/registry/work-items.schema.json',
+            'schemas/registry/reviews.schema.json',
+            'schemas/registry/tests.schema.json',
+          ]
+          out={p: subprocess.run(['git','-C','target','cat-file','-e',f'{sha}:{p}']).returncode==0 for p in paths}
+          open('/tmp/final-v10/pr2_schemas.json','w').write(json.dumps(out,indent=2))
+          if not all(out.values()): raise SystemExit(out)
+          PY
+
+          gh api graphql \
+            -f owner='tobianahillel-afk' \
+            -f name='monde' \
+            -F number=3 \
+            -f query='query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewThreads(first:100){nodes{id isResolved comments(first:50){nodes{id body path outdated url}}}}}}}' \
+            > /tmp/final-v10/pr3_threads.json
+
+      - name: Build fail-closed final review packet
+        shell: bash
         run: |
           set -euo pipefail
-          git -C target log --oneline -3
-          git -C target push origin HEAD:chore/work-0001-assurance-closure
+          python admin/tools/final_v10_l2_review.py target build
+
+      - name: Install pinned Copilot CLI
+        run: npm install -g @github/copilot@1.0.83
+
+      - name: Execute fresh final Copilot L2
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          COPILOT_HOME: /tmp/monde-final-v10-copilot-home
+        run: |
+          set -euo pipefail
+          copilot -p "$(cat /tmp/final-v10/prompt.txt)" -s > /tmp/final-v10/model_output.txt
+          cat /tmp/final-v10/model_output.txt
+
+      - name: Validate closure verdict fail-closed
+        shell: bash
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python admin/tools/final_v10_l2_review.py target validate
