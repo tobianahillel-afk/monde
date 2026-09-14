@@ -1,4 +1,5 @@
 name: One-shot v10 authorization runner
+# trigger: 1
 
 on:
   push:
