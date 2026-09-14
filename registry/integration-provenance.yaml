@@ -1,0 +1,20 @@
+version: 1
+canonical: true
+updated_at: "2026-09-14"
+purpose: "Preserve exact Git ancestry equivalence when a reviewed source branch is squash-merged and its pre-squash SHA-bound evidence would otherwise become unreachable from the integrated first-parent history."
+
+squash_integrations:
+  - work_item: WORK-0001
+    source_pull_request: 3
+    source_branch: "chore/work-0001-assurance-closure"
+    source_head_sha: "2292b00fe04cbaf47cdd00df1578e1dab670d0cc"
+    integrated_commit_sha: "29086643387ff46ab6636dd2fa3014efccc10165"
+    expected_tree_sha: "b89689ca631c0d64791904e74bf6672908b855c0"
+    eligible_test_ids: [TEST-0004, TEST-0005, TEST-0006, TEST-0007, TEST-0008]
+    historical_only: true
+    future_reuse_forbidden: true
+    reason: |
+      PR #3 was intentionally squash-merged after WORK-0001 reached DONE. GitHub records source HEAD 2292b00fe04cbaf47cdd00df1578e1dab670d0cc and squash commit 29086643387ff46ab6636dd2fa3014efccc10165 with the same exact tree b89689ca631c0d64791904e74bf6672908b855c0. TEST-0004..TEST-0008 execution SHAs are real ancestors of that source HEAD. This record preserves only that exact ancestry bridge; it does not make arbitrary branch commits valid evidence.
+
+validation_rule: |
+  A PASS TEST execution revision that is not an ancestor of the current governed HEAD may qualify through a squash integration only when the TEST id is explicitly eligible, its execution SHA is a real ancestor of the exact source_head_sha, source_head_sha and integrated_commit_sha both resolve to expected_tree_sha, and integrated_commit_sha is an ancestor of the current governed HEAD. Every mismatch fails closed.
