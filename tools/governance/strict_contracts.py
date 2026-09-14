@@ -10,6 +10,11 @@ from typing import Any, Iterable
 
 import yaml
 
+from .proof_contracts import (
+    pass_test_execution_revision_valid,
+    repository_owner_evidence_valid,
+    review_external_import_finalized,
+)
 from .validate_repo import GLOBAL_STATUSES, Issue, PINNED_ACTION, PINNED_DOCKER, independence_rank
 
 ACTIVE_DEPENDENCY_CONSUMERS = {"READY", "IN_PROGRESS", "PARTIAL", "IN_REVIEW", "DONE"}
@@ -103,7 +108,17 @@ def accepted_finding_authorized(root: Path, assurance_level: str, finding: dict[
     evidence_type = acceptance.get("authority_evidence_type")
     role_spec = (((policy.get("vocabulary") or {}).get("authority_roles") or {}).get(role) or {})
     expected_rule = f"FINDING:{assurance_level}:{severity}"
-    required = ("accepted_by", "authority_role", "authority_evidence_type", "authority_evidence_ref", "authority_matrix_version", "authority_rule_id", "rationale", "accepted_at", "review_condition")
+    required = (
+        "accepted_by",
+        "authority_role",
+        "authority_evidence_type",
+        "authority_evidence_ref",
+        "authority_matrix_version",
+        "authority_rule_id",
+        "rationale",
+        "accepted_at",
+        "review_condition",
+    )
     if not all(acceptance.get(key) not in (None, "") for key in required):
         return False
     if role not in allowed_roles or evidence_type not in (role_spec.get("allowed_evidence_types") or []):
@@ -111,10 +126,8 @@ def accepted_finding_authorized(root: Path, assurance_level: str, finding: dict[
     if acceptance.get("authority_matrix_version") != policy.get("version") or acceptance.get("authority_rule_id") != expected_rule:
         return False
     ref = str(acceptance.get("authority_evidence_ref") or "")
-    actor = str(acceptance.get("accepted_by") or "")
     if evidence_type == "GITHUB_REPOSITORY_OWNER_PERMISSION":
-        match = re.fullmatch(r"https://api\.github\.com/repos/([^/]+)/([^/]+)", ref)
-        return bool(match and actor == match.group(1))
+        return repository_owner_evidence_valid(acceptance, policy)
     if evidence_type == "WORK_ITEM_OWNER_BINDING":
         return ref.startswith("registry/work-items/") and (root / ref).exists()
     if evidence_type in {"GOVERNANCE_DELEGATION", "GOVERNANCE_SECURITY_DELEGATION", "EXPLICIT_REPOSITORY_OWNER_DECISION"}:
@@ -155,10 +168,20 @@ def pass_test_has_execution(test: dict[str, Any]) -> bool:
     )
 
 
+def pass_test_revision_valid(root: Path, test: dict[str, Any]) -> bool:
+    # Isolated unit fixtures sometimes exercise lifecycle semantics outside a Git
+    # repository. The real governance gate always runs inside Git; there, revision
+    # existence and ancestry are mandatory and fail closed.
+    if not (root / ".git").exists():
+        return True
+    return pass_test_execution_revision_valid(root, test)
+
+
 def validate_work_lifecycle(root: Path) -> list[Issue]:
     works = load_records(root, "work-items")
     reviews = load_records(root, "reviews")
     tests = load_records(root, "tests")
+    machine = load_mapping(root / "registry/status-machines.yaml")
     issues: list[Issue] = []
 
     for wid, work in works.items():
@@ -188,18 +211,23 @@ def validate_work_lifecycle(root: Path) -> list[Issue]:
         for rid in completed:
             review = reviews.get(rid)
             if review is not None:
+                if review.get("status") != "COMPLETE":
+                    issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_REVIEW_STATE", f"review {rid} must be COMPLETE to satisfy completion"))
+                    continue
                 reviewed_sha = str(((review.get("artifact") or {}).get("commit_sha") or "")).strip()
-                if review.get("status") == "COMPLETE" and not FULL_COMMIT_SHA.fullmatch(reviewed_sha):
+                if not FULL_COMMIT_SHA.fullmatch(reviewed_sha):
                     issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_REVIEW_SHA", f"review {rid} is COMPLETE but artifact.commit_sha is not a full immutable 40-hex object id"))
+                if not review_external_import_finalized(review, machine):
+                    issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_REVIEW_IMPORT", f"review {rid} external import is not fully bound and consumed"))
                 if wid not in review_targets(review):
                     issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_REVIEW_SCOPE", f"review {rid} is not structurally bound to {wid}"))
                 issues.extend(validate_review_findings(root, f"registry/work-items/{wid}.yaml", rid, review, assurance_level))
 
         for tid in sorted(set(iter_test_ids(work.get("required_tests") or {}))):
             test = tests.get(tid)
-            if test is None or not pass_test_has_execution(test):
+            if test is None or not pass_test_has_execution(test) or not pass_test_revision_valid(root, test):
                 actual = None if test is None else test.get("status")
-                issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_TEST_EVIDENCE", f"required test {tid} must have status PASS plus concrete revision-bound execution evidence, got {actual!r}"))
+                issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_TEST_EVIDENCE", f"required test {tid} must have status PASS plus concrete reachable revision-bound execution evidence, got {actual!r}"))
 
     return issues
 
