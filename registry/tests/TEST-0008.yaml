@@ -1,6 +1,6 @@
 id: TEST-0008
 name: "Fresh-context requirement acceptance cold read"
-status: PLANNED
+status: PASS
 type: MANUAL_COLD_READ
 
 protects:
@@ -51,45 +51,56 @@ cases:
     - "Use a generic author-run PASS TEST with no acceptance_cold_read qualification and verify v9 rejects it"
 
 acceptance_cold_read:
-  qualifies: false
+  qualifies: true
   source:
-    kind: null
-    source_id: null
-    submitted_at: null
+    kind: GITHUB_ACTIONS_COPILOT_CLI
+    source_id: "github-actions-run:34793888383:attempt:1"
+    submitted_at: "2026-09-14T00:49:49.870683Z"
   executor:
-    actor: null
-    context_id: null
-    independence_level: null
-    fresh_context: false
-    authoring_context_separated: false
+    actor: "github-copilot-cli@1.0.83"
+    context_id: "github-actions:34793888383:1:test-0008-v2"
+    independence_level: L2
+    fresh_context: true
+    authoring_context_separated: true
   requirements:
     REQ-0023:
       content_scheme: REQUIREMENT_NORMATIVE_V1
       content_digest: "sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b"
-      status_at_read: null
+      status_at_read: PROPOSED
     REQ-0024:
       content_scheme: REQUIREMENT_NORMATIVE_V1
       content_digest: "sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4"
-      status_at_read: null
+      status_at_read: PROPOSED
     REQ-0025:
       content_scheme: REQUIREMENT_NORMATIVE_V1
       content_digest: "sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67"
-      status_at_read: null
+      status_at_read: PROPOSED
   required_outcomes:
-    understood_without_author_reasoning: null
-    atomic_and_testable: null
-    dependencies_and_conflicts_checked: null
-    omissions_and_failure_modes_checked: null
-    evidence_plan_sufficient: null
-  all_required_outcomes_pass: false
-  completed_at: null
+    understood_without_author_reasoning: PASS
+    atomic_and_testable: PASS
+    dependencies_and_conflicts_checked: PASS
+    omissions_and_failure_modes_checked: PASS
+    evidence_plan_sufficient: PASS
+  all_required_outcomes_pass: true
+  completed_at: "2026-09-14T00:49:49.870683Z"
+
+external_import:
+  authorization_source: "registry/status-machines.yaml@4b15dc41c2489239d932827880f612d7ef55bbfa#registry_machines.tests.external_execution_import_authorizations.TEST-0008"
+  import_commit: null
 
 execution:
-  command_or_workflow: null
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  command_or_workflow: "GitHub Actions / TEST-0008 fresh-context L2 v2"
+  last_run_at: "2026-09-14T00:49:49.870683Z"
+  commit_sha: "c12a5b55c89168f20c028c2964da16de6f95ac56"
+  result: PASS
+  evidence:
+    - "Workflow run https://github.com/tobianahillel-afk/monde/actions/runs/34793888383"
+    - "Workflow job 103823151339 completed success and checked out exact target c12a5b55c89168f20c028c2964da16de6f95ac56"
+    - "Independent deterministic YAML parse confirmed WORK-0001 IN_REVIEW / A3 / RUN-3 IN_REVIEW with completion gates false"
+    - "Independent RFC 8785/JCS recomputation matched REQ-0023/REQ-0024/REQ-0025 declared digests while all three were PROPOSED"
+    - "Fresh Copilot L2 returned PASS for all five required cold-read outcomes for each of the three requirements (15/15)"
+    - "Fresh Copilot L2 verified REVIEW-0026/F-1, F-2 and F-3 as PASS, found no material R1/R2/R3 finding and returned APPROVE_WITH_FOLLOWUP"
+    - "REVIEW-0027 durably imports the same source/context and exact requirement revisions"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
@@ -98,4 +109,10 @@ coverage:
 history:
   created_at: "2026-09-14"
   updated_at: "2026-09-14"
-  executions: []
+  executions:
+    - commit_sha: "c12a5b55c89168f20c028c2964da16de6f95ac56"
+      recorded_result: PASS
+      recorded_in_commit: null
+      validity: VALID
+      invalidated_by: null
+      reason: "Fresh-context GitHub Actions Copilot CLI L2 independently parsed the exact target, recomputed all three normative digests, recorded 15/15 required cold-read outcomes PASS, verified REVIEW-0026/F-1/F-2/F-3, and found no material R1/R2/R3 defect."
