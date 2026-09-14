@@ -1,57 +1,60 @@
 id: TEST-0003
-name: "Governance real-repository GitHub control-plane execution"
+name: Governance real-repository GitHub control-plane execution
 status: PASS
 type: REAL_SYSTEM_E2E
-
 protects:
   requirements: []
   capabilities: []
   contracts:
-    - "MONDE GitHub control plane"
-    - "stable merge gate"
-    - "real repository governance execution"
+  - MONDE GitHub control plane
+  - stable merge gate
+  - real repository governance execution
   risks:
-    - "fixtures pass while actual repository/workflow fails"
-    - "stale PR state is mistaken for merge truth"
-    - "supply-chain hardening breaks reproducibility"
-
+  - fixtures pass while actual repository/workflow fails
+  - stale PR state is mistaken for merge truth
+  - supply-chain hardening breaks reproducibility
 location:
   test_path: .github/workflows/governance.yml
-  suite: "MONDE Gate"
-
+  suite: MONDE Gate
 environment:
   kind: REAL_GITHUB_ACTIONS
   real_dependencies:
-    - "GitHub-hosted ubuntu-24.04 runner"
-    - "CPython 3.13.15"
-    - "GitHub Pull Request / Checks / reviewThreads APIs"
-
+  - GitHub-hosted ubuntu-24.04 runner
+  - CPython 3.13.15
+  - GitHub Pull Request / Checks / reviewThreads APIs
 cases:
   happy_path:
-    - "hash-locked governance toolchain installs"
-    - "deterministic governance and mutation smoke pass"
-    - "base-to-head guard and context manifest execute"
-    - "Dependency Review and CodeQL execute when applicable"
-    - "final gate evaluates lane results and live GitHub state"
+  - hash-locked governance toolchain installs
+  - deterministic governance and mutation smoke pass
+  - base-to-head guard and context manifest execute
+  - Dependency Review and CodeQL execute when applicable
+  - final gate evaluates lane results and live GitHub state
   failure_modes:
-    - "coverage/governance/change guard failure"
-    - "unresolved live review threads on ready PR"
-    - "HEAD mismatch or non-mergeable PR"
-    - "dependency/code-scanning failure"
+  - coverage/governance/change guard failure
+  - unresolved live review threads on ready PR
+  - HEAD mismatch or non-mergeable PR
+  - dependency/code-scanning failure
   adversarial_cases:
-    - "draft PR defers live merge eligibility without pretending final approval"
-    - "current execution evidence cannot be transferred to another SHA"
-
+  - draft PR defers live merge eligibility without pretending final approval
+  - current execution evidence cannot be transferred to another SHA
 execution_definition:
-  workflow: ".github/workflows/governance.yml"
-  required_final_check: "MONDE / Merge Gate"
-
+  workflow: .github/workflows/governance.yml
+  required_final_check: MONDE / Merge Gate
 execution_evidence_policy:
   source_of_truth: GITHUB_CHECKS_AND_ARTIFACTS
-  rule: "Run IDs, conclusions, summaries and artifacts are live SHA-bound evidence and are not rewritten into this definition after every run."
+  rule: Run IDs, conclusions, summaries and artifacts are live SHA-bound evidence and are not rewritten into this definition
+    after every run.
   historical_examples:
-    - "Earlier WORK-0002 runs proved the first validator and caught a missing review record; they remain historical only."
-
+  - Earlier WORK-0002 runs proved the first validator and caught a missing review record; they remain historical only.
 history:
-  created_at: "2026-09-10"
-  updated_at: "2026-09-10"
+  created_at: '2026-09-10'
+  updated_at: '2026-09-14'
+execution:
+  command_or_workflow: .github/workflows/governance.yml / GitHub Actions MONDE Gate run 34828663346
+  commit_sha: 40550a5d3e3e3f75f467c6e6cd29d3fe729a25e5
+  result: PASS
+  evidence:
+  - 'GitHub Actions run 34828663346 on exact commit 40550a5d3e3e3f75f467c6e6cd29d3fe729a25e5: Governance core, CodeQL and
+    Dependency Review lanes executed successfully.'
+  - Final MONDE merge gate failed closed solely because six review threads were deliberately unresolved, proving live GitHub-state
+    enforcement rather than a false merge-safe result.

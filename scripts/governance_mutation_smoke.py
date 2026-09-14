@@ -51,7 +51,7 @@ MUTATIONS = {
     ),
     "required-test-pass": (
         "tools/governance/strict_contracts.py",
-        'if test is None or test.get("status") != "PASS":',
+        'if test is None or not pass_test_has_execution(test):',
         'if False:',
     ),
     "progress-unique-placement": (
@@ -76,7 +76,7 @@ MUTATIONS = {
     ),
     "canonical-review-severity": (
         "tools/governance/strict_contracts.py",
-        'if rank <= BLOCKING_REVIEW_RANK and finding.get("disposition") not in {"RESOLVED", "ACCEPTED"}:',
+        'if rank <= BLOCKING_REVIEW_RANK:',
         'if False:',
     ),
     "context-dependency-closure": (
@@ -96,7 +96,7 @@ MUTATIONS = {
     ),
     "review-complete-sha": (
         "tools/governance/strict_contracts.py",
-        'if review.get("status") == "COMPLETE" and not reviewed_sha:',
+        'if review.get("status") == "COMPLETE" and not FULL_COMMIT_SHA.fullmatch(reviewed_sha):',
         'if False:',
     ),
     "na-justification": (
@@ -109,10 +109,40 @@ MUTATIONS = {
         'if rel in files:',
         'if False:',
     ),
-    "test-pass-protected-contract-schema": (
+    "test-pass-execution-sha-schema": (
         "schemas/registry/tests.schema.json",
-        '"contracts": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}',
-        '"contracts": {"type": "array", "items": {"type": "string", "minLength": 1}}',
+        '"pattern": "^[0-9a-f]{40}$"',
+        '"type": "string"',
+    ),
+    "lifecycle-initial-state": (
+        "tools/governance/change_guard.py",
+        "if not record_introduction_allowed(root, previous_sha, sha, head, kind, current):",
+        "if False:",
+    ),
+    "requirement-acceptance-precondition": (
+        "tools/governance/change_guard.py",
+        "and not requirement_acceptance_satisfied(root, sha, current):",
+        "and False:",
+    ),
+    "review-full-immutable-sha": (
+        "tools/governance/change_guard.py",
+        "if not FULL_COMMIT_SHA.fullmatch(reviewed):",
+        "if False:",
+    ),
+    "blocking-finding-authority": (
+        "tools/governance/strict_contracts.py",
+        "if disposition == \"ACCEPTED\" and not accepted_finding_authorized(root, assurance_level, finding):",
+        "if False:",
+    ),
+    "required-test-semantic-freshness": (
+        "tools/governance/change_guard.py",
+        "return test_semantic_projection(old_test) != test_semantic_projection(new_test)",
+        "return False",
+    ),
+    "endpoint-merge-base": (
+        "tools/governance/change_guard.py",
+        "endpoint_files = endpoint_changed_files(root, base, head)",
+        "endpoint_files = changed_files(root, base, head)",
     ),
 }
 

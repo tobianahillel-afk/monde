@@ -12,9 +12,10 @@ def repo(tmp_path,include_guard=True):
     w={'id':'WORK-1','status':'IN_PROGRESS','purpose':'p','scope':{'in':['a'],'out':[]},'acceptance_criteria':[{'id':'AC','description':'x','status':'NOT_STARTED'}],'assurance':{'level':'A3'},'review_plan':{'completed_reviews':[]}}
     write(tmp_path,'registry/work-items/WORK-1.yaml',w);write(tmp_path,'x.txt','a')
     write(tmp_path,'registry/status-machines.yaml',{'registry_machines':{
-        'work_items':{'transitions':{'IN_PROGRESS':['IN_REVIEW','PARTIAL','BLOCKED','CANCELLED'],'IN_REVIEW':['IN_PROGRESS','PARTIAL','BLOCKED','DONE'],'DONE':['DEPRECATED'],'CANCELLED':[]}},
-        'reviews':{'transitions':{'OPEN':['IN_PROGRESS','CLOSED'],'IN_PROGRESS':['COMPLETE','CLOSED'],'COMPLETE':[],'CLOSED':[]}},
-        'tests':{'transitions':{'PLANNED':['READY','BLOCKED','CANCELLED'],'READY':['RUNNING','BLOCKED','CANCELLED'],'RUNNING':['PASS','FAIL','BLOCKED'],'PASS':['READY','SUPERSEDED'],'FAIL':['READY','BLOCKED','SUPERSEDED'],'BLOCKED':['READY','CANCELLED','SUPERSEDED'],'CANCELLED':[],'SUPERSEDED':[]}},
+        'work_items':{'initial':'PROPOSED','transitions':{'IN_PROGRESS':['IN_REVIEW','PARTIAL','BLOCKED','CANCELLED'],'IN_REVIEW':['IN_PROGRESS','PARTIAL','BLOCKED','DONE'],'DONE':['DEPRECATED'],'CANCELLED':[]}},
+        'reviews':{'initial':'OPEN','transitions':{'OPEN':['IN_PROGRESS','CLOSED'],'IN_PROGRESS':['COMPLETE','CLOSED'],'COMPLETE':[],'CLOSED':[]}},
+        'requirements':{'initial':'PROPOSED','transitions':{'PROPOSED':['ACCEPTED','CANCELLED'],'ACCEPTED':['SUPERSEDED','DEPRECATED']}},
+        'tests':{'initial':'PLANNED','transitions':{'PLANNED':['READY','BLOCKED','CANCELLED'],'READY':['RUNNING','BLOCKED','CANCELLED'],'RUNNING':['PASS','FAIL','BLOCKED'],'PASS':['READY','SUPERSEDED'],'FAIL':['READY','BLOCKED','SUPERSEDED'],'BLOCKED':['READY','CANCELLED','SUPERSEDED'],'CANCELLED':[],'SUPERSEDED':[]}},
     }})
     if include_guard:write(tmp_path,c.GUARD_PATH,'guard')
     return commit(tmp_path,'base')
@@ -53,7 +54,7 @@ def test_nonwork_transition_and_review_freshness_variants(tmp_path):
     write(tmp_path,'registry/reviews/REVIEW-2.yaml',{'id':'REVIEW-2','status':'OPEN','artifact':{'commit_sha':''}});b2=commit(tmp_path,'review base')
     write(tmp_path,'registry/reviews/REVIEW-2.yaml',{'id':'REVIEW-2','status':'IN_PROGRESS','artifact':{'commit_sha':''}});h2=commit(tmp_path,'review move');assert not c.validate(tmp_path,b2,h2)
     w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text());w['review_plan']['completed_reviews']=['REVIEW-2'];write(tmp_path,'registry/work-items/WORK-1.yaml',w);h3=commit(tmp_path,'ref incomplete');assert not [x for x in c.validate(tmp_path,h2,h3) if x.rule=='REVIEW_FRESHNESS']
-    write(tmp_path,'registry/reviews/REVIEW-2.yaml',{'id':'REVIEW-2','status':'COMPLETE','artifact':{'commit_sha':''}});h4=commit(tmp_path,'complete no sha');assert not [x for x in c.validate(tmp_path,h3,h4) if x.rule=='REVIEW_FRESHNESS']
+    write(tmp_path,'registry/reviews/REVIEW-2.yaml',{'id':'REVIEW-2','status':'COMPLETE','artifact':{'commit_sha':''}});h4=commit(tmp_path,'complete no sha');assert 'REVIEW_FRESHNESS' in {x.rule for x in c.validate(tmp_path,h3,h4)}
     w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text());w['review_plan']['completed_reviews']=[];write(tmp_path,'registry/work-items/WORK-1.yaml',w);reviewed=commit(tmp_path,'review point')
     write(tmp_path,'registry/reviews/REVIEW-3.yaml',{'id':'REVIEW-3','status':'COMPLETE','artifact':{'commit_sha':reviewed}});w['review_plan']['completed_reviews']=['REVIEW-3'];w['scope']['in']=['changed'];w['scope_change']={'approved':True,'rationale':'approved'};write(tmp_path,'registry/work-items/WORK-1.yaml',w);head=commit(tmp_path,'semantic after review');assert 'REVIEW_FRESHNESS' in {x.rule for x in c.validate(tmp_path,reviewed,head)}
 def test_sequence_scope_drift_after_progress(tmp_path):
@@ -105,3 +106,62 @@ def test_review_freshness_ignores_changes_inherited_before_pr_base(tmp_path):
     write(tmp_path,'unrelated.txt','pr-only endpoint')
     head=commit(tmp_path,'unrelated pr change')
     assert not [f for f in c.validate(tmp_path,base,head) if f.rule=='REVIEW_FRESHNESS']
+
+
+
+def test_new_terminal_records_fail_initial_state(tmp_path):
+    base = repo(tmp_path)
+    write(tmp_path, 'registry/tests/TEST-9.yaml', {'id': 'TEST-9', 'status': 'PASS'})
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'COMPLETE', 'artifact': {'commit_sha': base}, 'outcome': 'APPROVE'})
+    write(tmp_path, 'registry/requirements/REQ-9.yaml', {'id': 'REQ-9', 'status': 'ACCEPTED'})
+    head = commit(tmp_path, 'bad terminal introductions')
+    assert len([f for f in c.validate(tmp_path, base, head) if f.rule == 'STATE_INITIAL']) == 3
+
+
+def test_requirement_acceptance_requires_bound_review_and_cold_read(tmp_path):
+    base = repo(tmp_path)
+    req = {'id': 'REQ-1', 'status': 'PROPOSED', 'content_identity': {'scheme': 'REQUIREMENT_NORMATIVE_V1', 'digest': 'sha256:' + 'a' * 64}, 'verification': {'acceptance_evidence': [], 'acceptance_cold_read_test_ids': []}}
+    write(tmp_path, 'registry/requirements/REQ-1.yaml', req)
+    base = commit(tmp_path, 'proposed requirement')
+    req['status'] = 'ACCEPTED'
+    write(tmp_path, 'registry/requirements/REQ-1.yaml', req)
+    head = commit(tmp_path, 'accept without proof')
+    assert 'ACCEPTANCE_PRECONDITION' in {f.rule for f in c.validate(tmp_path, base, head)}
+
+
+def test_review_ref_must_be_full_existing_ancestor(tmp_path):
+    base = repo(tmp_path)
+    w = yaml.safe_load((tmp_path / 'registry/work-items/WORK-1.yaml').read_text())
+    w['status'] = 'IN_REVIEW'; w['review_plan']['completed_reviews'] = ['REVIEW-1']
+    write(tmp_path, 'registry/work-items/WORK-1.yaml', w)
+    write(tmp_path, 'registry/reviews/REVIEW-1.yaml', {'id': 'REVIEW-1', 'status': 'COMPLETE', 'artifact': {'commit_sha': 'HEAD'}})
+    head = commit(tmp_path, 'mutable review ref')
+    assert 'REVIEW_FRESHNESS' in {f.rule for f in c.validate(tmp_path, base, head)}
+
+
+def test_required_test_contract_change_stales_review_but_execution_metadata_does_not(tmp_path):
+    base = repo(tmp_path)
+    w = yaml.safe_load((tmp_path / 'registry/work-items/WORK-1.yaml').read_text())
+    w['status'] = 'IN_REVIEW'; w['required_tests'] = {'unit': ['TEST-1']}
+    write(tmp_path, 'registry/work-items/WORK-1.yaml', w)
+    test = {'id': 'TEST-1', 'status': 'PASS', 'name': 't', 'type': 'UNIT', 'protects': {'contracts': ['c']}, 'cases': {'happy': ['x']}, 'execution_definition': {'command': 'pytest'}, 'execution_evidence_policy': {'source_of_truth': 'CI', 'rule': 'sha'}, 'execution': {'command_or_workflow': 'pytest', 'commit_sha': '0' * 40, 'result': 'PASS', 'evidence': ['x']}}
+    write(tmp_path, 'registry/tests/TEST-1.yaml', test)
+    reviewed = commit(tmp_path, 'reviewed test contract')
+    write(tmp_path, 'registry/reviews/REVIEW-1.yaml', {'id': 'REVIEW-1', 'status': 'COMPLETE', 'artifact': {'commit_sha': reviewed}})
+    w['review_plan']['completed_reviews'] = ['REVIEW-1']; write(tmp_path, 'registry/work-items/WORK-1.yaml', w)
+    admin = commit(tmp_path, 'attach review')
+    test['execution']['evidence'] = ['new run']; write(tmp_path, 'registry/tests/TEST-1.yaml', test)
+    meta = commit(tmp_path, 'execution metadata')
+    assert 'REVIEW_FRESHNESS' not in {f.rule for f in c.validate(tmp_path, admin, meta)}
+    base = meta; test['cases'] = {'happy': ['weakened']}; write(tmp_path, 'registry/tests/TEST-1.yaml', test)
+    head = commit(tmp_path, 'test semantic drift')
+    assert 'REVIEW_FRESHNESS' in {f.rule for f in c.validate(tmp_path, base, head)}
+
+
+def test_endpoint_changes_use_merge_base_not_moved_base_tip(tmp_path):
+    common = repo(tmp_path)
+    run(tmp_path, 'branch', 'feature', common); run(tmp_path, 'branch', 'mainline', common)
+    run(tmp_path, 'checkout', 'feature'); write(tmp_path, 'feature.txt', 'feature'); head = commit(tmp_path, 'feature')
+    run(tmp_path, 'checkout', 'mainline'); write(tmp_path, 'registry/reviews/BASE-ONLY.yaml', {'id': 'REVIEW-99', 'status': 'OPEN'}); base = commit(tmp_path, 'base only')
+    run(tmp_path, 'checkout', 'feature')
+    assert 'registry/reviews/BASE-ONLY.yaml' not in c.endpoint_changed_files(tmp_path, base, head)

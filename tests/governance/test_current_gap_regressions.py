@@ -228,7 +228,7 @@ def test_strict_defensive_gap_branches(tmp_path: Path) -> None:
             {"id": "F-resolved", "severity": "R2_MAJOR", "disposition": "RESOLVED"},
         ]
     }
-    assert validate_review_findings("work.yaml", "REVIEW-1", review) == []
+    assert validate_review_findings(tmp_path, "work.yaml", "REVIEW-1", review, "A3") == []
 
     complete = {key: "DONE" for key in WORK_PROGRESS_DIMENSIONS}
     complete["tests"] = "PARTIAL"

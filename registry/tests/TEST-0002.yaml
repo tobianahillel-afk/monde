@@ -1,53 +1,55 @@
 id: TEST-0002
-name: "Governance deterministic verification suite"
+name: Governance deterministic verification suite
 status: PASS
 type: UNIT_PROPERTY_REGRESSION
-
 protects:
   requirements: []
   capabilities: []
   contracts:
-    - "repository governance validation"
-    - "registry/schema/status/reference/path integrity"
-    - "DONE review/progress semantics"
-    - "change-control and context-routing behavior"
+  - repository governance validation
+  - registry/schema/status/reference/path integrity
+  - DONE review/progress semantics
+  - change-control and context-routing behavior
   risks:
-    - "governance implementation accepts invalid repository state"
-    - "100 percent coverage hides missing behavioral properties"
-
+  - governance implementation accepts invalid repository state
+  - 100 percent coverage hides missing behavioral properties
 location:
   test_path: tests/governance/
   suite: governance
-
 cases:
   happy_path:
-    - "clean representative repositories pass"
-    - "valid L1 plus L2 review evidence jointly satisfies required hats and independence"
-    - "valid administrative post-review finalization remains review-fresh"
+  - clean representative repositories pass
+  - valid L1 plus L2 review evidence jointly satisfies required hats and independence
+  - valid administrative post-review finalization remains review-fresh
   failure_modes:
-    - "invalid YAML/schema/status/reference/path"
-    - "incomplete DONE dimensions or review evidence"
-    - "missing work in progress matrix"
-    - "invalid state transitions, ID changes, record deletion and scope drift"
-    - "review freshness after substantive changes"
-    - "mutable actions/digests and high-confidence committed secret patterns"
-    - "live GitHub malformed/paginated/unresolved-thread states"
+  - invalid YAML/schema/status/reference/path
+  - incomplete DONE dimensions or review evidence
+  - missing work in progress matrix
+  - invalid state transitions, ID changes, record deletion and scope drift
+  - review freshness after substantive changes
+  - mutable actions/digests and high-confidence committed secret patterns
+  - live GitHub malformed/paginated/unresolved-thread states
   adversarial_cases:
-    - "Markdown link titles"
-    - "path traversal/symlink escape"
-    - "scope reduction after READY"
-    - "L1 review attempting to satisfy L2 requirement"
-
+  - Markdown link titles
+  - path traversal/symlink escape
+  - scope reduction after READY
+  - L1 review attempting to satisfy L2 requirement
 execution_definition:
-  command: "python -m pytest --cov=tools.governance --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=100"
+  command: python -m pytest --cov=tools.governance --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=100
   required_line_coverage: 100
   required_branch_coverage: 100
-  mutation_smoke: "python scripts/governance_mutation_smoke.py"
-
+  mutation_smoke: python scripts/governance_mutation_smoke.py
 execution_evidence_policy:
   source_of_truth: GITHUB_CHECKS_AND_ARTIFACTS
-  rule: "This registry record defines the test obligation. A GitHub execution proves only the SHA on which that check ran."
-
+  rule: This registry record defines the test obligation. A GitHub execution proves only the SHA on which that check ran.
 history:
-  created_at: "2026-09-10"
-  updated_at: "2026-09-10"
+  created_at: '2026-09-10'
+  updated_at: '2026-09-14'
+execution:
+  command_or_workflow: GitHub Actions MONDE Gate run 34828663346 / governance pytest+coverage+mutation suite
+  commit_sha: 40550a5d3e3e3f75f467c6e6cd29d3fe729a25e5
+  result: PASS
+  evidence:
+  - 'GitHub Actions run 34828663346 on exact commit 40550a5d3e3e3f75f467c6e6cd29d3fe729a25e5: Governance core success.'
+  - 88/88 tests PASS; 1165/1165 statements and 610/610 branches covered; 21/21 critical mutations killed; repository/strict/path/change
+    validators zero.

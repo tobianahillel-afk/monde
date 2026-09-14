@@ -41,6 +41,7 @@ REVIEW_SEVERITY_RANK = {
     "R4_LOW": 4,
 }
 BLOCKING_REVIEW_RANK = 2
+FULL_COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 
 
 def load_mapping(path: Path) -> dict[str, Any]:
@@ -92,7 +93,36 @@ def review_targets(review: dict[str, Any]) -> set[str]:
     return targets
 
 
-def validate_review_findings(path: str, review_id: str, review: dict[str, Any]) -> list[Issue]:
+def accepted_finding_authorized(root: Path, assurance_level: str, finding: dict[str, Any]) -> bool:
+    policy = load_mapping(root / "registry/acceptance-authority.yaml")
+    acceptance = finding.get("acceptance") or {}
+    severity = str(finding.get("severity") or "")
+    matrix = ((policy.get("finding_acceptance") or {}).get("matrix") or {}).get(assurance_level) or {}
+    allowed_roles = matrix.get(severity) or []
+    role = acceptance.get("authority_role")
+    evidence_type = acceptance.get("authority_evidence_type")
+    role_spec = (((policy.get("vocabulary") or {}).get("authority_roles") or {}).get(role) or {})
+    expected_rule = f"FINDING:{assurance_level}:{severity}"
+    required = ("accepted_by", "authority_role", "authority_evidence_type", "authority_evidence_ref", "authority_matrix_version", "authority_rule_id", "rationale", "accepted_at", "review_condition")
+    if not all(acceptance.get(key) not in (None, "") for key in required):
+        return False
+    if role not in allowed_roles or evidence_type not in (role_spec.get("allowed_evidence_types") or []):
+        return False
+    if acceptance.get("authority_matrix_version") != policy.get("version") or acceptance.get("authority_rule_id") != expected_rule:
+        return False
+    ref = str(acceptance.get("authority_evidence_ref") or "")
+    actor = str(acceptance.get("accepted_by") or "")
+    if evidence_type == "GITHUB_REPOSITORY_OWNER_PERMISSION":
+        match = re.fullmatch(r"https://api\.github\.com/repos/([^/]+)/([^/]+)", ref)
+        return bool(match and actor == match.group(1))
+    if evidence_type == "WORK_ITEM_OWNER_BINDING":
+        return ref.startswith("registry/work-items/") and (root / ref).exists()
+    if evidence_type in {"GOVERNANCE_DELEGATION", "GOVERNANCE_SECURITY_DELEGATION", "EXPLICIT_REPOSITORY_OWNER_DECISION"}:
+        return ref.startswith("registry/") and (root / ref).exists()
+    return False
+
+
+def validate_review_findings(root: Path, path: str, review_id: str, review: dict[str, Any], assurance_level: str) -> list[Issue]:
     issues: list[Issue] = []
     for finding in review.get("findings", []) or []:
         if not isinstance(finding, dict):
@@ -102,9 +132,27 @@ def validate_review_findings(path: str, review_id: str, review: dict[str, Any]) 
         if rank is None:
             issues.append(Issue(path, "DONE_REVIEW_SEVERITY", f"review {review_id} has unknown finding severity {severity!r}"))
             continue
-        if rank <= BLOCKING_REVIEW_RANK and finding.get("disposition") not in {"RESOLVED", "ACCEPTED"}:
-            issues.append(Issue(path, "DONE_REVIEW_FINDING", f"review {review_id} retains blocking finding {finding.get('id')} with severity {severity}"))
+        if rank <= BLOCKING_REVIEW_RANK:
+            disposition = finding.get("disposition")
+            if disposition == "ACCEPTED" and not accepted_finding_authorized(root, assurance_level, finding):
+                issues.append(Issue(path, "DONE_REVIEW_AUTHORITY", f"review {review_id} blocking finding {finding.get('id')} has invalid acceptance authority"))
+            elif disposition not in {"RESOLVED", "ACCEPTED"}:
+                issues.append(Issue(path, "DONE_REVIEW_FINDING", f"review {review_id} retains blocking finding {finding.get('id')} with severity {severity}"))
     return issues
+
+
+def pass_test_has_execution(test: dict[str, Any]) -> bool:
+    execution = test.get("execution") or {}
+    return bool(
+        test.get("status") == "PASS"
+        and isinstance(execution, dict)
+        and execution.get("result") == "PASS"
+        and FULL_COMMIT_SHA.fullmatch(str(execution.get("commit_sha") or ""))
+        and isinstance(execution.get("evidence"), list)
+        and bool(execution.get("evidence"))
+        and isinstance(execution.get("command_or_workflow"), str)
+        and bool(execution.get("command_or_workflow").strip())
+    )
 
 
 def validate_work_lifecycle(root: Path) -> list[Issue]:
@@ -141,17 +189,17 @@ def validate_work_lifecycle(root: Path) -> list[Issue]:
             review = reviews.get(rid)
             if review is not None:
                 reviewed_sha = str(((review.get("artifact") or {}).get("commit_sha") or "")).strip()
-                if review.get("status") == "COMPLETE" and not reviewed_sha:
-                    issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_REVIEW_SHA", f"review {rid} is COMPLETE but has no artifact.commit_sha"))
+                if review.get("status") == "COMPLETE" and not FULL_COMMIT_SHA.fullmatch(reviewed_sha):
+                    issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_REVIEW_SHA", f"review {rid} is COMPLETE but artifact.commit_sha is not a full immutable 40-hex object id"))
                 if wid not in review_targets(review):
                     issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_REVIEW_SCOPE", f"review {rid} is not structurally bound to {wid}"))
-                issues.extend(validate_review_findings(f"registry/work-items/{wid}.yaml", rid, review))
+                issues.extend(validate_review_findings(root, f"registry/work-items/{wid}.yaml", rid, review, assurance_level))
 
         for tid in sorted(set(iter_test_ids(work.get("required_tests") or {}))):
             test = tests.get(tid)
-            if test is None or test.get("status") != "PASS":
+            if test is None or not pass_test_has_execution(test):
                 actual = None if test is None else test.get("status")
-                issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_TEST_EVIDENCE", f"required test {tid} must exist with status PASS, got {actual!r}"))
+                issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_TEST_EVIDENCE", f"required test {tid} must have status PASS plus concrete revision-bound execution evidence, got {actual!r}"))
 
     return issues
 

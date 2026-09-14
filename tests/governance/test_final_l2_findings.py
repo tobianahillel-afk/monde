@@ -95,6 +95,8 @@ def test_complete_review_requires_commit_sha_in_schema_and_done_gate(tmp_path: P
     }
     assert list(Draft202012Validator(review_schema).iter_errors(review))
     review["artifact"]["commit_sha"] = "abc123"
+    assert list(Draft202012Validator(review_schema).iter_errors(review))
+    review["artifact"]["commit_sha"] = "0123456789abcdef0123456789abcdef01234567"
     assert list(Draft202012Validator(review_schema).iter_errors(review)) == []
 
     review["artifact"].pop("commit_sha")
@@ -127,6 +129,7 @@ def test_pass_test_schema_requires_substantive_proof() -> None:
         "cases": {"happy_path": ["works"]},
         "execution": {
             "command_or_workflow": "manual",
+            "commit_sha": "0123456789abcdef0123456789abcdef01234567",
             "result": "PASS",
             "evidence": ["evidence"],
         },
@@ -149,7 +152,7 @@ def test_pass_test_schema_requires_substantive_proof() -> None:
             "rule": "execution is SHA-bound",
         },
     }
-    assert list(validator.iter_errors(definition_backed)) == []
+    assert list(validator.iter_errors(definition_backed))
 
 
 def test_not_applicable_progress_requires_work_justification(tmp_path: Path) -> None:
@@ -206,3 +209,29 @@ def test_changed_registry_record_seeds_context_dependency_closure(tmp_path: Path
     assert "REQ-1" in manifest["dependency_records"]
     assert "WORK-2" in manifest["impacted_work"]
     assert "registry/work-items/WORK-2.yaml" in manifest["context"]["should_read"]
+
+
+
+def test_blocking_accepted_finding_requires_matrix_authority(tmp_path: Path) -> None:
+    policy = yaml.safe_load(Path("registry/acceptance-authority.yaml").read_text(encoding="utf-8"))
+    dump(tmp_path / "registry/acceptance-authority.yaml", policy)
+    review = {
+        "id": "REVIEW-1",
+        "status": "COMPLETE",
+        "artifact": {"type": "WORK_ITEM", "id_or_path": "WORK-1", "commit_sha": "0123456789abcdef0123456789abcdef01234567"},
+        "scope": {"work_items": ["WORK-1"]},
+        "findings": [{
+            "id": "F-1", "severity": "R2_MAJOR", "disposition": "ACCEPTED",
+            "acceptance": {
+                "accepted_by": "author", "authority_role": "WORK_OWNER", "authority_evidence_type": "WORK_ITEM_OWNER_BINDING",
+                "authority_evidence_ref": "registry/work-items/WORK-1.yaml", "authority_matrix_version": 1,
+                "authority_rule_id": "FINDING:A3:R2_MAJOR", "rationale": "x", "accepted_at": "2026-09-14", "review_condition": "later",
+            },
+        }],
+    }
+    dump(tmp_path / "registry/reviews/REVIEW-1.yaml", review)
+    dump(tmp_path / "registry/work-items/WORK-1.yaml", {"id": "WORK-1", "status": "DONE", "depends_on": [], "assurance": {"level": "A3"}, "review_plan": {"independence_level": "L2", "completed_reviews": ["REVIEW-1"]}, "required_tests": {}, "completion": {"specification_gates_checked": True}})
+    assert "DONE_REVIEW_AUTHORITY" in {x.rule for x in validate_work_lifecycle(tmp_path)}
+    review["findings"][0]["acceptance"].update({"accepted_by": "owner", "authority_role": "REPOSITORY_OWNER", "authority_evidence_type": "GITHUB_REPOSITORY_OWNER_PERMISSION", "authority_evidence_ref": "https://api.github.com/repos/owner/repo"})
+    dump(tmp_path / "registry/reviews/REVIEW-1.yaml", review)
+    assert "DONE_REVIEW_AUTHORITY" not in {x.rule for x in validate_work_lifecycle(tmp_path)}
