@@ -107,18 +107,18 @@ def test_done_review_binding_and_test_evidence(tmp_path: Path) -> None:
     current["review_plan"] = {"completed_reviews": ["REVIEW-0001", "REVIEW-4040"]}
     current["required_tests"] = {"unit": ["TEST-0001", "TEST-0002", "TEST-4040"], "notes": "also TEST-0001"}
     dump(root / "registry/work-items/WORK-0002.yaml", current)
-    dump(root / "registry/reviews/REVIEW-0001.yaml", {"id": "REVIEW-0001", "scope": {"work_items": ["WORK-9999"]}})
+    dump(root / "registry/reviews/REVIEW-0001.yaml", {"id": "REVIEW-0001", "status": "COMPLETE", "artifact": {"commit_sha": "0" * 40}, "scope": {"work_items": ["WORK-9999"]}})
     dump(root / "registry/tests/TEST-0001.yaml", {"id": "TEST-0001", "status": "PASS", "execution": {"command_or_workflow": "pytest", "commit_sha": "0" * 40, "result": "PASS", "evidence": ["ci"]}})
     dump(root / "registry/tests/TEST-0002.yaml", {"id": "TEST-0002", "status": "FAIL"})
     assert issue_rules(validate_work_lifecycle(root)) == {"DONE_REVIEW_SCOPE", "DONE_TEST_EVIDENCE"}
 
-    dump(root / "registry/reviews/REVIEW-0001.yaml", {"id": "REVIEW-0001", "scope": {"work_items": ["WORK-0002"]}})
+    dump(root / "registry/reviews/REVIEW-0001.yaml", {"id": "REVIEW-0001", "status": "COMPLETE", "artifact": {"commit_sha": "0" * 40}, "scope": {"work_items": ["WORK-0002"]}})
     current["review_plan"] = {"completed_reviews": ["REVIEW-0001"]}
     current["required_tests"] = {"unit": ["TEST-0001"]}
     dump(root / "registry/work-items/WORK-0002.yaml", current)
     assert validate_work_lifecycle(root) == []
 
-    dump(root / "registry/reviews/REVIEW-0001.yaml", {"id": "REVIEW-0001", "artifact": {"type": "WORK_ITEM", "id_or_path": "WORK-0002"}})
+    dump(root / "registry/reviews/REVIEW-0001.yaml", {"id": "REVIEW-0001", "status": "COMPLETE", "artifact": {"type": "WORK_ITEM", "id_or_path": "WORK-0002", "commit_sha": "0" * 40}})
     assert validate_work_lifecycle(root) == []
 
 
