@@ -43,6 +43,26 @@ def init_repo(root: Path) -> str:
     return commit(root, "base")
 
 
+def requirement_fixture() -> tuple[dict, dict, str]:
+    identity = yaml.safe_load(Path("registry/content-identity.yaml").read_text(encoding="utf-8"))
+    req = {
+        "id": "REQ-1",
+        "title": "Test requirement",
+        "type": "FUNCTIONAL",
+        "normative_statement": "The system SHALL preserve proof.",
+        "scope": {"in": ["proof"], "out": []},
+        "depends_on": [],
+        "conflicts_with": [],
+        "semantics": {"subject": "proof"},
+        "verification": {"method": "independent review"},
+        "risk": {"criticality": "HIGH", "failure_impact": "false acceptance"},
+    }
+    digest = cg.requirement_normative_digest(Path("."), req, identity)
+    assert digest is not None
+    req["content_identity"] = {"scheme": "REQUIREMENT_NORMATIVE_V1", "digest": digest}
+    return identity, req, digest
+
+
 def test_endpoint_helper_requires_merge_base(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(cg, "git", lambda *args, **kwargs: "")
     with pytest.raises(RuntimeError):
@@ -138,9 +158,10 @@ def test_requirement_acceptance_helper_negative_and_positive(monkeypatch, tmp_pa
     bad = {"id": "REQ-1", "content_identity": {"scheme": "bad", "digest": "nope"}}
     assert not cg.requirement_acceptance_satisfied(tmp_path, "h", bad)
 
-    digest = "sha256:" + "a" * 64
-    req = {"id": "REQ-1", "content_identity": {"scheme": "REQUIREMENT_NORMATIVE_V1", "digest": digest}, "verification": {"acceptance_evidence": ["junk", "REVIEW-1"], "acceptance_cold_read_test_ids": ["junk", "TEST-1"]}}
+    identity, req, digest = requirement_fixture()
+    req["verification"].update({"acceptance_evidence": ["junk", "REVIEW-1"], "acceptance_cold_read_test_ids": ["junk", "TEST-1"]})
     records = {
+        "registry/content-identity.yaml": identity,
         "registry/reviews/REVIEW-1.yaml": {"status": "COMPLETE", "outcome": "APPROVE", "reviewer": {"independence_level": "L2"}, "scope": {"requirements": ["REQ-1"], "requirement_revisions": {"REQ-1": {"digest": digest, "status_at_review": "PROPOSED"}}}},
         "registry/tests/TEST-1.yaml": {"status": "PASS", "protects": {"requirements": ["REQ-1"]}, "execution": {"commit_sha": "b" * 40}, "acceptance_cold_read": {"qualifies": True, "executor": {"independence_level": "L2", "fresh_context": True, "authoring_context_separated": True}, "requirements": {"REQ-1": {"content_digest": digest, "status_at_read": "PROPOSED"}}, "required_outcomes": {"understood_without_author_reasoning": "PASS", "atomic_and_testable": "PASS", "dependencies_and_conflicts_checked": "PASS", "omissions_and_failure_modes_checked": "PASS", "evidence_plan_sufficient": "PASS"}, "all_required_outcomes_pass": True}},
     }
@@ -167,6 +188,12 @@ def test_pass_execution_helper() -> None:
 def test_authority_helper_branches(tmp_path: Path) -> None:
     policy = {
         "version": 1,
+        "governed_repository": {
+            "full_name": "owner/repo",
+            "owner_login": "owner",
+            "metadata_url": "https://api.github.com/repos/owner/repo",
+            "permission_proof": "TEST-OWNER",
+        },
         "vocabulary": {"authority_roles": {"REPOSITORY_OWNER": {"allowed_evidence_types": ["GITHUB_REPOSITORY_OWNER_PERMISSION"]}, "WORK_OWNER": {"allowed_evidence_types": ["WORK_ITEM_OWNER_BINDING"]}, "DESIGNATED_RISK_AUTHORITY": {"allowed_evidence_types": ["GOVERNANCE_DELEGATION"]}}},
         "finding_acceptance": {"matrix": {"A3": {"R2_MAJOR": ["REPOSITORY_OWNER", "DESIGNATED_RISK_AUTHORITY"]}}},
     }
@@ -187,7 +214,6 @@ def test_authority_helper_branches(tmp_path: Path) -> None:
     assert accepted_finding_authorized(tmp_path, "A3", delegated)
     delegated["acceptance"]["authority_evidence_type"] = "UNKNOWN"
     assert not accepted_finding_authorized(tmp_path, "A3", delegated)
-
 
 
 def test_projection_without_execution_command_covers_false_branch() -> None:
@@ -227,12 +253,8 @@ def test_import_loops_skip_nonmatching_and_nonmapping_entries(tmp_path: Path) ->
 
 
 def test_acceptance_cold_read_skips_failed_candidate_before_good_one(monkeypatch, tmp_path: Path) -> None:
-    digest = 'sha256:' + 'a' * 64
-    req = {
-        'id': 'REQ-1',
-        'content_identity': {'scheme': 'REQUIREMENT_NORMATIVE_V1', 'digest': digest},
-        'verification': {'acceptance_evidence': ['REVIEW-1'], 'acceptance_cold_read_test_ids': ['TEST-bad', 'TEST-good']},
-    }
+    identity, req, digest = requirement_fixture()
+    req['verification'].update({'acceptance_evidence': ['REVIEW-1'], 'acceptance_cold_read_test_ids': ['TEST-bad', 'TEST-good']})
     good_review = {
         'status': 'COMPLETE', 'outcome': 'APPROVE', 'reviewer': {'independence_level': 'L2'},
         'scope': {'requirements': ['REQ-1'], 'requirement_revisions': {'REQ-1': {'digest': digest, 'status_at_review': 'PROPOSED'}}},
@@ -251,6 +273,7 @@ def test_acceptance_cold_read_skips_failed_candidate_before_good_one(monkeypatch
         },
     }
     records = {
+        'registry/content-identity.yaml': identity,
         'registry/reviews/REVIEW-1.yaml': good_review,
         'registry/tests/TEST-bad.yaml': {'status': 'FAIL'},
         'registry/tests/TEST-good.yaml': good_test,
@@ -329,7 +352,6 @@ def test_authority_helper_final_unknown_evidence_branch(tmp_path: Path) -> None:
         },
     }
     assert not accepted_finding_authorized(tmp_path, 'A3', finding)
-
 
 
 def test_valid_initial_record_edge_when_guard_already_exists(tmp_path: Path) -> None:
