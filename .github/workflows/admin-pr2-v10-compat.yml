@@ -1,0 +1,105 @@
+name: Admin PR2 v10 compatibility
+
+on:
+  push:
+    branches: [review/test-0008-github-models]
+    paths:
+      - .github/workflows/admin-pr2-v10-compat.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR2 branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feat/work-0002-governance-ci
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Guard exact source head
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "ca28d926f13efda159920be0ffb804d2699c7e12"
+          test "$(git rev-parse origin/main)" = "29086643387ff46ab6636dd2fa3014efccc10165"
+
+      - name: Patch v10 compatibility and regressions
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('tools/governance/validate_repo.py')
+          s = p.read_text()
+
+          old = '''    def validate_statuses(self) -> None:\n        for r in self.records:\n            if r.data.get("status") not in STATUS_BY_KIND[r.kind]:\n                self.add(r.path, "STATUS", f"invalid status {r.data.get('status')!r} for {r.kind}")\n'''
+          new = '''    def validate_statuses(self) -> None:\n        machine = self.load_yaml(self.root / "registry/status-machines.yaml")\n        registry_machines = machine.get("registry_machines", {}) if isinstance(machine, dict) else {}\n        for r in self.records:\n            machine_key = r.kind.replace("-", "_")\n            states = set(((registry_machines.get(machine_key) or {}).get("states") or []))\n            if r.data.get("status") not in states:\n                self.add(r.path, "STATUS", f"invalid status {r.data.get('status')!r} for {r.kind}")\n'''
+          assert s.count(old) == 1
+          s = s.replace(old, new, 1)
+
+          old = '''        vocab = set(data.get("status_vocabulary", []) or [])\n        if vocab != GLOBAL_STATUSES:\n            self.add(path, "STATUS_VOCAB", "progress status_vocabulary must equal canonical set")\n        found: dict[str, Any] = {}\n'''
+          new = '''        machine = self.load_yaml(self.root / "registry/status-machines.yaml")\n        progress_states = set(((machine.get("progress") or {}).get("states") or [])) if isinstance(machine, dict) else set()\n        if "status_vocabulary" in data or data.get("status_machine") != "../status-machines.yaml#progress":\n            self.add(path, "STATUS_VOCAB", "progress matrix must reference canonical status-machines.yaml#progress and must not define a competing vocabulary")\n        found: dict[str, Any] = {}\n'''
+          assert s.count(old) == 1
+          s = s.replace(old, new, 1)
+          s = s.replace('if isinstance(value, str) and value in GLOBAL_STATUSES and value not in DONE_PROGRESS_ALLOWED:', 'if isinstance(value, str) and value in progress_states and value not in DONE_PROGRESS_ALLOWED:', 1)
+
+          old = '''        section = self.extract_section(text, "Active work")\n        ids = set(re.findall(r"\\bWORK-\\d+\\b", section))\n        if not ids:\n            self.add(path, "ACTIVE_WORK", "Active work section must reference at least one WORK id")\n        for wid in ids:\n            r = self.by_id.get(wid)\n            if not r:\n                self.add(path, "ACTIVE_WORK", f"unknown active work item {wid}")\n            elif r.data.get("status") in {"DONE", "DEPRECATED", "CANCELLED"}:\n                self.add(path, "ACTIVE_WORK", f"active work item {wid} has terminal status")\n'''
+          new = '''        section = self.extract_section(text, "Active work")\n        if not section:\n            section = self.extract_section(text, "Current phase / lot")\n        ids = set(re.findall(r"\\bWORK-\\d+\\b", section))\n        active_ids: set[str] = set()\n        for wid in ids:\n            r = self.by_id.get(wid)\n            if not r:\n                self.add(path, "ACTIVE_WORK", f"unknown current work item {wid}")\n            elif r.data.get("status") not in {"DONE", "DEPRECATED", "CANCELLED"}:\n                active_ids.add(wid)\n        if not active_ids:\n            self.add(path, "ACTIVE_WORK", "current work section must reference at least one non-terminal WORK id")\n'''
+          assert s.count(old) == 1
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+
+          t = Path('tests/governance/test_validate_repo.py')
+          q = t.read_text()
+          q = q.replace('from tools.governance.validate_repo import GLOBAL_STATUSES, Issue, Validator, main', 'from tools.governance.validate_repo import GLOBAL_STATUSES, STATUS_BY_KIND, Issue, Validator, main', 1)
+          old = '''    return {"status_vocabulary": sorted(GLOBAL_STATUSES), "phases": {"P": {"lots": {"L": {"sublots": {"S": {"work_items": {work["id"]: state}}}}}}}}\n'''
+          new = '''    return {"status_machine": "../status-machines.yaml#progress", "phases": {"P": {"lots": {"L": {"sublots": {"S": {"work_items": {work["id"]: state}}}}}}}}\n'''
+          assert q.count(old) == 1
+          q = q.replace(old, new, 1)
+          old = '''    install_schemas(root)\n    work = work or base_work()\n'''
+          new = '''    install_schemas(root)\n    dump(root / "registry/status-machines.yaml", {\n        "registry_machines": {kind.replace("-", "_"): {"states": sorted(states)} for kind, states in STATUS_BY_KIND.items()},\n        "progress": {"states": sorted(GLOBAL_STATUSES)},\n    })\n    work = work or base_work()\n'''
+          assert q.count(old) == 1
+          q = q.replace(old, new, 1)
+          old = '''    dump(p, {"status_vocabulary": ["BOGUS"], "phases": {"P": {"lots": {"L": {"sublots": {"S": {"work_items": {"WORK-9999": {"status": "PLANNED"}}}}}}}}})\n'''
+          new = '''    dump(p, {"status_machine": "wrong#progress", "phases": {"P": {"lots": {"L": {"sublots": {"S": {"work_items": {"WORK-9999": {"status": "PLANNED"}}}}}}}}})\n'''
+          assert q.count(old) == 1
+          q = q.replace(old, new, 1)
+
+          appendix = '''\n\ndef test_v10_status_machine_and_project_state_contract(tmp_path: Path) -> None:\n    root = make_repo(tmp_path)\n    machine_path = root / "registry/status-machines.yaml"\n    machine = yaml.safe_load(machine_path.read_text())\n    machine["registry_machines"]["tests"]["states"].append("SUPERSEDED")\n    dump(machine_path, machine)\n    dump(root / "registry/tests/TEST-0002.yaml", {"id": "TEST-0002", "status": "SUPERSEDED"})\n    write(root / "PROJECT_STATE.md", "# State\\n\\n## Current phase / lot\\n\\n- WORK-0001 is IN_PROGRESS.\\n")\n    assert Validator(root, today=date(2026, 9, 10)).run() == []\n\n\ndef test_status_machine_must_be_machine_readable(tmp_path: Path) -> None:\n    root = make_repo(tmp_path)\n    write(root / "registry/status-machines.yaml", "- not-a-machine\\n")\n    assert "STATUS" in rules(Validator(root))\n'''
+          assert 'def test_v10_status_machine_and_project_state_contract' not in q
+          q += appendix
+          t.write_text(q)
+          PY
+          git diff --check
+
+      - name: Test patched tree
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13.15'
+          cache: pip
+          cache-dependency-path: requirements/governance-ci.txt
+
+      - name: Run deterministic validation
+        run: |
+          set -euo pipefail
+          python -m pip install --require-hashes -r requirements/governance-ci.txt
+          python -m pytest --cov=tools.governance --cov-branch --cov-report=term-missing --cov-fail-under=100
+          python scripts/governance_mutation_smoke.py
+          python -m tools.governance.validate_repo .
+          python -m tools.governance.strict_contracts .
+          python -m tools.governance.path_safety .
+
+      - name: Commit and push exact correction
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tools/governance/validate_repo.py tests/governance/test_validate_repo.py
+          git diff --cached --check
+          git commit -m 'fix(governance): consume v10 canonical lifecycle contract'
+          git push origin HEAD:feat/work-0002-governance-ci
+          echo "CORRECTED_HEAD=$(git rev-parse HEAD)"
