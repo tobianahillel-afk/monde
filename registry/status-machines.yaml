@@ -598,6 +598,17 @@ registry_machines:
       reason: 'The fresh-context GitHub Codex review of exact PR #2 candidate 40550a5d completed externally before REVIEW-0029
         materialization and produced six material findings. This one-shot authorization is committed first so the negative
         review can be imported truthfully as COMPLETE without replaying OPEN/IN_PROGRESS after the fact.'
+    - record_id: REVIEW-0030
+      imported_status: COMPLETE
+      artifact_commit_sha: cbc2dfc065e73b9086d13a483b8b693ddc2fa6cc
+      source_review_id: PRR_kwDOUUI5ts8AAAABNccy5Q
+      source_submitted_at: '2026-09-14T11:45:39Z'
+      reviewer_context_id: fresh-context-pr2-cbc2dfc
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: null
+      finding_origin: PRRT_kwDOUUI5ts6iF6p2;PRRT_kwDOUUI5ts6iF6qN;PRRT_kwDOUUI5ts6iF6qU;PRRT_kwDOUUI5ts6iF6qY;PRRT_kwDOUUI5ts6iF6qf;PRRT_kwDOUUI5ts6iF6qm
+      reason: 'The fresh-context GitHub Codex review of exact PR #2 candidate cbc2dfc completed externally before REVIEW-0030 materialization and produced six new material P1 findings. This one-shot authorization is committed first so the negative review can be imported truthfully as COMPLETE without replaying OPEN/IN_PROGRESS after the fact.'
     external_import_rule: For an externally completed review materialized after v7, a matching one-shot authorization must
       already exist in a parent commit before the REVIEW record first appears. The authorization binds record_id, resulting
       status, reviewed artifact SHA, source review identity/time, reviewer context and expected outcome. The imported REVIEW
