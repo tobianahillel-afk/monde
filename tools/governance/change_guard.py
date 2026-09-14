@@ -112,22 +112,23 @@ def historical_malformed_yaml_allowed(
     for entry in provenance.get("historical_malformed_yaml", []) or []:
         if not isinstance(entry, dict):
             continue
-        if entry.get("path") != path or entry.get("malformed_commit_sha") != malformed_sha:
+        if entry.get("path") != path:
             continue
+        origin = str(entry.get("malformed_commit_sha") or "")
         repair = str(entry.get("repaired_commit_sha") or "")
         malformed_blob = str(entry.get("malformed_blob_sha") or "")
         repaired_blob = str(entry.get("repaired_blob_sha") or "")
         if repaired_sha is not None and repair != repaired_sha:
             continue
-        if not all(FULL_COMMIT_SHA.fullmatch(value) for value in (malformed_sha, repair, malformed_blob, repaired_blob)):
+        if not all(FULL_COMMIT_SHA.fullmatch(value) for value in (origin, malformed_sha, repair, malformed_blob, repaired_blob)):
             continue
         if entry.get("historical_only") is not True or entry.get("future_reuse_forbidden") is not True:
             continue
-        if blob_sha_at(root, malformed_sha, path) != malformed_blob:
+        if blob_sha_at(root, origin, path) != malformed_blob or blob_sha_at(root, malformed_sha, path) != malformed_blob:
             continue
         if blob_sha_at(root, repair, path) != repaired_blob:
             continue
-        if not is_ancestor(root, malformed_sha, repair) or not is_ancestor(root, repair, head):
+        if not is_ancestor(root, origin, malformed_sha) or not is_ancestor(root, malformed_sha, repair) or not is_ancestor(root, repair, head):
             continue
         return True
     return False
