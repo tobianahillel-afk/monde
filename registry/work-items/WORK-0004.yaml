@@ -38,6 +38,11 @@ acceptance_criteria:
     description: "A future agent can search the registry to determine whether a requested capability already exists before creating another."
     status: NOT_STARTED
 
+progress_justifications:
+  implementation: "WORK-0004 is a canonical inventory/specification work item; implementation of inventoried capabilities is explicitly out of scope."
+  scientific_validation: "The inventory introduces no scientific/model behavior; completeness and semantic deduplication are verified through specification tests and independent review."
+  real_system_validation: "WORK-0004 does not depend on an external runtime system; its source-of-truth inputs and outputs are repository/project-history artifacts and are validated through traceability and review."
+
 read_before:
   - README.md
   - AGENTS.md

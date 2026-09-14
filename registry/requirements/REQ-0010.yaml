@@ -1,0 +1,15 @@
+id: REQ-0010
+title: "Atomic specification requirements"
+status: ACCEPTED
+type: GOVERNANCE
+normative_statement: "MONDE SHALL represent every independently fail-able material specification obligation with its own stable atomic REQ identity and verification path."
+rationale: "A compound requirement can appear satisfied while one independently testable obligation still fails; atomic normative ownership keeps partial failure visible."
+origin: {source: "WORK-0001/AC-10", decision_date: "2026-09-10", introduced_by_work: WORK-0001, introduced_by_adr: null}
+scope: {capabilities: [], engines: [], experiences: [], schemas: [], data_sources: [], models: []}
+depends_on: [REQ-0003, REQ-0006]
+conflicts_with: []
+related_requirements: [REQ-0015, REQ-0016, REQ-0017, REQ-0018, REQ-0019]
+semantics: {temporal: false, spatial: false, provenance: true, confidence_uncertainty: false, permissions: false}
+verification: {method: TEST_AND_REVIEW, acceptance_evidence: ["WORK-0001/AC-10", "docs/13_QUALITY/specification-quality.md#gate-s1--atomic-requirements"], test_ids: [TEST-0005], real_system_validation: []}
+risk: {criticality: HIGH, failure_impact: "A compound normative record can hide partial specification failure and make traceability/test outcomes ambiguous."}
+history: {created_at: "2026-09-10", updated_at: "2026-09-10", supersedes: [], superseded_by: null}

@@ -1,0 +1,99 @@
+id: REVIEW-0024
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "9551a78c7431d1b7ce3334d4a6529d92ba69ab5a"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-9551a78c"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "44d465628e88d98f85414d565ef51e110fb1e891"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNN5SgQ"
+  source_submitted_at: "2026-09-11T17:59:25Z"
+  import_commit: "0b2ee6f13430d367c99dde55c6be726c13ab561a"
+
+scope:
+  work_items: [WORK-0001]
+  requirements: [REQ-0023, REQ-0024, REQ-0025]
+  capabilities: []
+  contracts:
+    - "requirement acceptance lifecycle"
+    - "independent review and cold-read acceptance ordering"
+    - "risk acceptance authority"
+    - "risk registry evidence contract"
+  risks:
+    - "A PROPOSED requirement can transition to ACCEPTED without machine-enforced independent review/cold-read evidence."
+    - "A critical risk can transition to ACCEPTED without recording or validating the accepting authority."
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: VERIFICATION_VALIDATION
+    description: "At reviewed HEAD 9551a78c7431d1b7ce3334d4a6529d92ba69ab5a, registry/status-machines.yaml permits PROPOSED → ACCEPTED for requirements without a machine-readable precondition requiring applicable independent Review Council and cold-read evidence. WORK-0001 already states that a legal transition alone is insufficient, but the canonical lifecycle contract does not enforce that rule. Add a machine-readable acceptance precondition so REQ-0023/REQ-0024/REQ-0025 and future requirements cannot repeat the premature-acceptance failure while passing lifecycle validation."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 9551a78c7431d1b7ce3334d4a6529d92ba69ab5a"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNN5SgQ submitted 2026-09-11T17:59:25Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hlUxy"
+      - "registry/status-machines.yaml requirements transition table allows PROPOSED → ACCEPTED with no acceptance-evidence rule"
+      - "AGENTS.md requires applicable independent Review Council/cold-read evidence before acceptance"
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
+
+  - id: F-2
+    severity: R2_MAJOR
+    category: SECURITY
+    description: "At reviewed HEAD 9551a78c7431d1b7ce3334d4a6529d92ba69ab5a, the risk lifecycle permits OPEN/MITIGATING/MONITORING → ACCEPTED without an authority-bearing acceptance precondition, while registry/risks/_TEMPLATE.yaml records only a boolean and rationale. Governance tooling therefore cannot enforce that a critical/blocking security risk is accepted by an actor with the authority required by the threat-modeling policy. Add machine-readable acceptance-authority requirements and matching risk-record fields."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 9551a78c7431d1b7ce3334d4a6529d92ba69ab5a"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNN5SgQ submitted 2026-09-11T17:59:25Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6hlUx3"
+      - "registry/status-machines.yaml risk transition table allows ACCEPTED without authority evidence"
+      - "registry/risks/_TEMPLATE.yaml resolution carries accepted/acceptance_rationale but no accepting actor, role or authority evidence"
+      - "docs/09_GOVERNANCE/threat-modeling.md requires blocking security risk acceptance at the correct authority level"
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
+
+checks:
+  assumptions_challenged:
+    - "A syntactically legal requirement PROPOSED → ACCEPTED transition is sufficient evidence of valid specification acceptance."
+    - "A risk acceptance rationale without accepting actor/role/authority evidence is sufficient for critical security risk acceptance."
+  omitted_categories_considered:
+    - "REVIEW-0023 transition-stable handover correction"
+    - "WORK-0001 machine-readable YAML parsing"
+    - "exact TEST-0005 SHA integrity"
+    - "REQ-0023/REQ-0024/REQ-0025 reciprocal TEST-0006 traceability"
+    - "WORK-0002 cross-branch proof/schema boundary"
+    - "TEST-0004/REQ-0010 revision-bound traceability"
+  duplicate_or_reuse_search:
+    - "F-1 extends REVIEW-0018's acceptance-order finding into the canonical machine contract rather than creating a second acceptance process."
+    - "F-2 should reuse the authority-evidence shape already used for accepted review findings where applicable, rather than inventing incompatible authority semantics."
+  failure_modes_considered:
+    - "REQ-0023/24/25 are changed to ACCEPTED after this negative L2 based only on the transition table and still pass lifecycle validation."
+    - "A future requirement bypasses independent acceptance evidence because the machine validates only status edges."
+    - "A critical security risk is self-accepted by its author without durable evidence of accepting authority."
+    - "Risk tooling sees status ACCEPTED but cannot determine who accepted the residual risk or whether they were authorized."
+  evidence_requested:
+    - "Requirement acceptance rule encoded in registry/status-machines.yaml and tied to durable independent review/cold-read evidence fields"
+    - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED until the corrected rule is independently verified"
+    - "Risk ACCEPTED transitions require accepting actor, authority role, authority evidence, rationale, acceptance time and review/expiry condition as applicable"
+    - "registry/risks/_TEMPLATE.yaml exposes the authority-bearing fields consumed by the canonical rule"
+    - "revision-bound tests exercise positive and negative acceptance paths before another fresh-context L2"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-11"
+
+history:
+  created_at: "2026-09-13"
+  updated_at: "2026-09-13"

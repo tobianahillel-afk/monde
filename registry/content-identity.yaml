@@ -1,0 +1,62 @@
+version: 2
+canonical: true
+updated_at: "2026-09-14"
+
+purpose: "Define stable machine-recomputable content identities for evidence-bearing registry semantics so review/test proof cannot survive an unreviewed substantive edit."
+
+schemes:
+  REQUIREMENT_NORMATIVE_V1:
+    record_type: REQUIREMENT
+    algorithm: SHA256
+    digest_format: "sha256:<64 lowercase hex characters>"
+    encoding: UTF-8
+    projection:
+      rule: "Start from an empty object. For every included_fields path, copy the value from the source requirement into the same nested object path. A dotted path such as verification.method therefore materializes {verification: {method: <value>}} rather than a literal key named 'verification.method'. When several included paths share a parent, merge them into that one parent object. Do not copy unlisted siblings."
+      missing_path: FAIL_CLOSED
+    canonicalization:
+      standard: RFC_8785_JSON_CANONICALIZATION_SCHEME
+      reference: "RFC 8785"
+      format: JSON
+      encoding: UTF-8
+      object_keys: RFC_8785_UTF16_CODE_UNIT_ORDER
+      strings: RFC_8785_ECMASCRIPT_JSON_STRING_SERIALIZATION
+      numbers: RFC_8785_ECMASCRIPT_NUMBER_SERIALIZATION
+      whitespace: RFC_8785_NONE
+      unicode_normalization: NONE
+      arrays: PRESERVE_RECORDED_ORDER
+      nulls: PRESERVE
+      invalid_unicode: FAIL_CLOSED
+      byte_rule: "The SHA-256 input MUST be exactly the UTF-8 byte sequence produced by an RFC 8785/JCS-conformant serializer for the projected object. A serializer that emits a semantically equivalent but byte-different JSON representation, including different string escaping, key ordering, number spelling or whitespace, is non-conformant and MUST fail closed."
+    included_fields:
+      - id
+      - title
+      - type
+      - normative_statement
+      - scope
+      - depends_on
+      - conflicts_with
+      - semantics
+      - verification.method
+      - risk.criticality
+      - risk.failure_impact
+    excluded_fields:
+      - status
+      - rationale
+      - origin
+      - related_requirements
+      - content_identity
+      - verification.acceptance_evidence
+      - verification.test_ids
+      - verification.acceptance_cold_read_test_ids
+      - verification.real_system_validation
+      - history
+    rule: "The digest MUST be recomputed from exactly the nested projection of included_fields and serialized to bytes exactly under RFC 8785/JCS before SHA-256. Any change to an included field creates a new normative content identity and invalidates review/cold-read acceptance evidence bound to the prior digest. Changes only to excluded lifecycle, provenance-link or evidence-link fields do not change normative identity. Historical proof against an earlier content-identity contract remains historical for its exact tree and is not silently promoted to current proof."
+
+validation:
+  fail_closed: true
+  rules:
+    - "A record that declares a content_identity scheme MUST use a known scheme and a digest matching recomputation from that exact record."
+    - "Requirement acceptance evidence that declares a content digest MUST use the same scheme and digest as the requirement at the instant of acceptance."
+    - "A substantive edit cannot be hidden by retaining the old digest; digest mismatch is invalid repository state."
+    - "Implementations MUST use the nested projection rule above and an RFC 8785/JCS-conformant serializer; literal dotted-key projection, copying full unlisted parent mappings, implementation-defined serialization, or semantically equivalent but byte-different JSON is invalid."
+    - "Current acceptance proof MUST be rerun after any change to this canonicalization contract even if the current requirements happen to recompute to the same digest bytes."

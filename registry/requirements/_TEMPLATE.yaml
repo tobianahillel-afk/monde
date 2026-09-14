@@ -5,6 +5,10 @@ type: FUNCTIONAL
 normative_statement: "MONDE SHALL ..."
 rationale: ""
 
+content_identity:
+  scheme: REQUIREMENT_NORMATIVE_V1
+  digest: null
+
 origin:
   source: ""
   decision_date: null
@@ -34,6 +38,7 @@ verification:
   method: TEST
   acceptance_evidence: []
   test_ids: []
+  acceptance_cold_read_test_ids: []
   real_system_validation: []
 
 risk:

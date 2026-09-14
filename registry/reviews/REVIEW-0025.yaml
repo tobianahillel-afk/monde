@@ -1,0 +1,114 @@
+id: REVIEW-0025
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "e405c977f9de58cd4d88849784d425de6a61cd1d"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-e405c977"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "cf03475f68ea7c62dcd5852bffa92e80490af90b"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNX_ZcQ"
+  source_submitted_at: "2026-09-13T22:36:15Z"
+  import_commit: "a44296d3e02cc74fa511a471e560e63e75a1cf30"
+
+scope:
+  work_items: [WORK-0001]
+  requirements: [REQ-0023, REQ-0024, REQ-0025]
+  capabilities: []
+  contracts:
+    - "requirement acceptance exact-revision binding"
+    - "fresh-context cold-read acceptance evidence"
+    - "risk acceptance authority policy"
+    - "risk acceptance machine-checkability"
+  risks:
+    - "A requirement can be substantively edited after its review/test proofs and still be accepted using stale evidence."
+    - "An author-run exact-SHA test can satisfy the cold-read half of requirement acceptance without verifiable fresh-context execution."
+    - "A risk can be marked ACCEPTED with arbitrary authority-role/evidence strings because the permitted authority is not machine-resolvable."
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: VERIFICATION_VALIDATION
+    description: "At reviewed HEAD e405c977f9de58cd4d88849784d425de6a61cd1d, v8 requires exact-revision cold-read evidence but does not require the requirement content at the later PROPOSED → ACCEPTED transition to be identical to the content inspected by both the qualifying review and cold-read. A requirement may therefore change normative_statement, dependencies, or verification semantics after both proofs while remaining PROPOSED and still satisfy the listed preconditions. Bind the qualifying review and cold-read to the exact requirement content/revision being accepted, or mechanically invalidate those proofs after any substantive requirement edit."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head e405c977f9de58cd4d88849784d425de6a61cd1d"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNX_ZcQ submitted 2026-09-13T22:36:15Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6h8mbR"
+      - "registry/status-machines.yaml requirement acceptance_preconditions do not bind both proofs to the exact requirement content accepted later"
+      - "AGENTS.md requires applicable independent Review Council/cold-read evidence before acceptance"
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
+
+  - id: F-2
+    severity: R2_MAJOR
+    category: VERIFICATION_VALIDATION
+    description: "At reviewed HEAD e405c977f9de58cd4d88849784d425de6a61cd1d, v8 treats any exact-SHA PASS test referenced by verification.test_ids and protecting the requirement as qualifying cold-read evidence. Neither the requirement acceptance contract nor the TEST record shape requires a fresh executor/context identity or durable evidence that the cold-read questions were independently answered. An author-produced test such as TEST-0006 can therefore satisfy this half of acceptance. Require verifiable fresh-context cold-read provenance and explicit outcomes rather than only a structural TEST edge."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head e405c977f9de58cd4d88849784d425de6a61cd1d"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNX_ZcQ submitted 2026-09-13T22:36:15Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6h8mbS"
+      - "registry/status-machines.yaml cold_read preconditions require PASS/exact revision/protection but no fresh-context provenance or executed cold-read outcomes"
+      - "Current TEST records do not make fresh-context executor/context proof mandatory for requirement acceptance"
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
+
+  - id: F-3
+    severity: R2_MAJOR
+    category: SECURITY
+    description: "At reviewed HEAD e405c977f9de58cd4d88849784d425de6a61cd1d, v8 requires authority appropriate to risk severity/category and assurance level but points only to policies that themselves say 'appropriate' or 'correct' authority. No canonical machine-resolvable matrix defines which role may accept each severity/category/assurance combination or what typed evidence establishes delegation. Arbitrary non-empty authority_role and authority_evidence strings therefore cannot be mechanically rejected. Define a resolvable authority matrix or require a typed approval record from an actor authorized by such a matrix."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head e405c977f9de58cd4d88849784d425de6a61cd1d"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNX_ZcQ submitted 2026-09-13T22:36:15Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6h8mbT"
+      - "registry/status-machines.yaml risk acceptance_preconditions accept free-form authority_role/authority_evidence constrained only by policy prose"
+      - "docs/09_GOVERNANCE/threat-modeling.md and docs/13_QUALITY/assurance-levels.md do not currently expose a machine-readable role-by-risk acceptance matrix"
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
+
+checks:
+  assumptions_challenged:
+    - "Exact-SHA evidence remains valid for a requirement even if the requirement is substantively edited before acceptance."
+    - "Any exact-SHA PASS TEST edge is equivalent to a fresh-context cold read."
+    - "Non-empty authority-role/evidence strings are enough to prove risk-acceptance authority."
+  omitted_categories_considered:
+    - "REVIEW-0024 requirement/risk acceptance corrections"
+    - "WORK-0001 YAML parseability"
+    - "PROJECT_STATE transition-stable TEST-0006 routing"
+    - "current TEST-0005/TEST-0007/TEST-0006 revision-bound chains"
+    - "REQ-0023/REQ-0024/REQ-0025 reciprocal TEST-0006 traceability"
+    - "WORK-0002 PR #3 / PR #2 proof and schema boundary"
+    - "TEST-0004 / REQ-0010 historical semantic boundary"
+  duplicate_or_reuse_search:
+    - "F-1 refines REVIEW-0024/F-1 by binding acceptance proofs to the exact requirement content eventually accepted rather than merely an earlier PROPOSED revision."
+    - "F-2 refines REVIEW-0024/F-1 by requiring the cold-read proof to be independently fresh-context, not merely exact-SHA PASS evidence."
+    - "F-3 refines REVIEW-0024/F-2 by making accepting authority mechanically decidable instead of prose-constrained free text."
+  failure_modes_considered:
+    - "REQ-0023/24/25 are edited after a qualifying review/test and then accepted without rerunning either proof."
+    - "TEST-0006 or another author-run test is reused as the only cold-read acceptance proof despite no independent cold-reader identity."
+    - "A risk author writes a plausible authority_role string and arbitrary evidence text and passes the acceptance precondition."
+    - "Different tooling interprets 'appropriate authority' differently because no canonical matrix exists."
+  evidence_requested:
+    - "Requirement acceptance proof objects or equivalent fields bind review and cold-read to a stable requirement content hash/revision and are invalidated by substantive edits"
+    - "Cold-read acceptance evidence records fresh-context executor/context identity, independence, exact requirement revision/content hash and explicit cold-read outcomes"
+    - "A canonical machine-readable risk-acceptance authority matrix maps risk severity/category and affected assurance level to authorized role(s) and acceptable delegation evidence"
+    - "Revision-bound tests exercise stale-requirement-proof rejection, author-run/non-fresh cold-read rejection, valid fresh cold-read acceptance, invalid risk authority rejection and valid typed authority acceptance before another fresh L2"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-13"
+
+history:
+  created_at: "2026-09-13"
+  updated_at: "2026-09-13"

@@ -1,0 +1,15 @@
+id: REQ-0003
+title: "Canonical invariants"
+status: ACCEPTED
+type: GOVERNANCE
+normative_statement: "MONDE SHALL document authoritative product and engineering invariants in canonical repository documentation and require downstream work to preserve them or change them through reviewed governance."
+rationale: "Core semantics must not depend on local implementation assumptions."
+origin: {source: "WORK-0001/AC-3", decision_date: "2026-09-10", introduced_by_work: WORK-0001, introduced_by_adr: null}
+scope: {capabilities: [], engines: [], experiences: [], schemas: [], data_sources: [], models: []}
+depends_on: [REQ-0001]
+conflicts_with: []
+related_requirements: [REQ-0010, REQ-0012]
+semantics: {temporal: true, spatial: true, provenance: true, confidence_uncertainty: true, permissions: true}
+verification: {method: TEST_AND_REVIEW, acceptance_evidence: ["WORK-0001/AC-3", "docs/09_GOVERNANCE/constitution.md"], test_ids: [TEST-0004], real_system_validation: []}
+risk: {criticality: HIGH, failure_impact: "Implementations can silently diverge from MONDE's epistemic and architectural contract."}
+history: {created_at: "2026-09-10", updated_at: "2026-09-10", supersedes: [], superseded_by: null}
