@@ -1,7 +1,7 @@
 version: 1
 canonical: true
 updated_at: "2026-09-14"
-purpose: "Preserve exact Git ancestry equivalence when a reviewed source branch is squash-merged and its pre-squash SHA-bound evidence would otherwise become unreachable from the integrated first-parent history."
+purpose: "Preserve exact Git integration-history equivalence and exact reviewed exceptions when immutable historical commits cannot satisfy newer fail-closed parsing or ancestry rules without fabricating history."
 
 squash_integrations:
   - work_item: WORK-0001
@@ -16,5 +16,20 @@ squash_integrations:
     reason: |
       PR #3 was intentionally squash-merged after WORK-0001 reached DONE. GitHub records source HEAD 2292b00fe04cbaf47cdd00df1578e1dab670d0cc and squash commit 29086643387ff46ab6636dd2fa3014efccc10165 with the same exact tree b89689ca631c0d64791904e74bf6672908b855c0. TEST-0004..TEST-0008 execution SHAs are real ancestors of that source HEAD. This record preserves only that exact ancestry bridge; it does not make arbitrary branch commits valid evidence.
 
+historical_malformed_yaml:
+  - path: "registry/work-items/WORK-0004.yaml"
+    malformed_commit_sha: "b63fc190a0fa3e02ad1b3e03d0d01b16617c9b49"
+    malformed_blob_sha: "6a436898955f301e82bf1b0ad0ec080127c7d071"
+    repaired_commit_sha: "94a6d2601179ccfde6eca7ed6b7e192dd640f2ca"
+    repaired_blob_sha: "dd94bc173354f1bd81e9ad53662753807bf04af2"
+    malformed_condition: "duplicate top-level progress_justifications mapping key"
+    historical_only: true
+    future_reuse_forbidden: true
+    reason: |
+      The WORK-0001/main integration merge combined the branch-local and main-side WORK-0004 progress_justifications blocks, leaving two top-level keys in immutable commit b63fc190a0fa3e02ad1b3e03d0d01b16617c9b49. The file remained present in Git and retained WORK-0004/PLANNED, but the later fail-closed duplicate-key loader correctly refuses to parse that historical blob. Commit 94a6d2601179ccfde6eca7ed6b7e192dd640f2ca repairs exactly that one file by removing the duplicate mapping. This exception prevents the guard from misreporting that exact malformed->repaired episode as deletion/recreation; it never makes malformed YAML valid current state or authorizes another malformed record.
+
 validation_rule: |
   A PASS TEST execution revision that is not an ancestor of the current governed HEAD may qualify through a squash integration only when the TEST id is explicitly eligible, its execution SHA is a real ancestor of the exact source_head_sha, source_head_sha and integrated_commit_sha both resolve to expected_tree_sha, and integrated_commit_sha is an ancestor of the current governed HEAD. Every mismatch fails closed.
+
+historical_malformed_yaml_rule: |
+  A registry path that exists as a Git blob but cannot be parsed by the current fail-closed YAML loader may avoid false deletion/re-introduction findings only for an exact historical_malformed_yaml entry whose path, malformed commit/blob and repaired commit/blob all match Git exactly, whose repair descends from the malformed commit, whose repair is an ancestor of the governed HEAD, and whose historical_only and future_reuse_forbidden flags are true. All unlisted malformed YAML remains invalid and fails closed.
