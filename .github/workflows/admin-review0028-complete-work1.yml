@@ -1,0 +1,224 @@
+name: Admin REVIEW-0028 WORK-0001 completion sync
+
+on:
+  push:
+    branches:
+      - review/test-0008-github-models
+    paths:
+      - .github/workflows/admin-review0028-complete-work1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  complete-work1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout canonical PR branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: chore/work-0001-assurance-closure
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Guard exact closure head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "0147908a483c3705812cf6d35cc6992c9e6226bd"
+
+      - name: Synchronize WORK-0001 completion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('registry/work-items/WORK-0001.yaml')
+          s=p.read_text()
+
+          def one(old,new):
+              global s
+              assert s.count(old)==1, (old, s.count(old))
+              s=s.replace(old,new,1)
+
+          one('status: IN_REVIEW\nphase: PHASE-0', 'status: DONE\nphase: PHASE-0')
+          one('    - REVIEW-0027\n\nread_before:', '    - REVIEW-0027\n    - REVIEW-0028\n\nread_before:')
+          one('  - registry/reviews/REVIEW-0027.yaml\n  - registry/tests/TEST-0005.yaml', '  - registry/reviews/REVIEW-0027.yaml\n  - registry/reviews/REVIEW-0028.yaml\n  - registry/tests/TEST-0005.yaml')
+          one('  - registry/reviews/REVIEW-0027.yaml\n  - registry/requirements/REQ-0005.yaml', '  - registry/reviews/REVIEW-0027.yaml\n  - registry/reviews/REVIEW-0028.yaml\n  - registry/requirements/REQ-0005.yaml')
+          one('Historical findings remain open until the final post-v10 exact-SHA L2 verifies the synchronized handover and import semantics.', 'REVIEW-0028 independently verified the complete post-v10 handover, provenance, accepted requirements, cross-branch boundary and exact set of 41 historical findings; those findings are now RESOLVED by REVIEW-0028 and their matching GitHub threads are resolved.')
+          one('registry/tests/TEST-0008.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}', 'registry/tests/TEST-0008.yaml, registry/reviews/REVIEW-0028.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: DONE}')
+          one('    - {id: RUN-3, objective: "Post-merge bootstrap assurance correction and fresh re-review", tasks: [T6], exit_condition: "REVIEW-0027/TEST-0008/REQ acceptance provenance and status-machines v10 receive one final exact-SHA fresh L2, all material findings are independently resolved or validly dispositioned, and completion gates are synchronized", status: IN_REVIEW}', '    - {id: RUN-3, objective: "Post-merge bootstrap assurance correction and fresh re-review", tasks: [T6], exit_condition: "REVIEW-0028 independently verifies the final-v10 substantive candidate, all historical findings/threads are closed from that evidence, and completion gates are synchronized", status: DONE}')
+          one('  completed_reviews: [REVIEW-0027]\n  open_findings:\n', '  completed_reviews: [REVIEW-0027, REVIEW-0028]\n  open_findings:\n')
+
+          start=s.index('  open_findings:\n')
+          end=s.index('\nrequired_tests:', start)
+          block=s[start:end]
+          assert block.count('REVIEW-')==41, block
+          s=s[:start]+'  open_findings: []\n'+s[end:]
+
+          one('    - "REQ-0023/24/25 were atomically accepted in 74dc253d after REVIEW-0027 and TEST-0008 qualified"\n', '    - "REQ-0023/24/25 were atomically accepted in 74dc253d after REVIEW-0027 and TEST-0008 qualified"\n    - "REVIEW-0028 fresh-context L2 run 34795920644 returned APPROVE_WITH_FOLLOWUP with 9/9 closure checks PASS, no material R1/R2/R3 finding, and all 41 historical findings independently closable"\n    - "REVIEW-0028 was completed in 4c945fa83a6b246365451a4df74f7c0ac34431f5; the exact 41 findings were atomically changed OPEN→RESOLVED with resolved_by REVIEW-0028 in 0147908a483c3705812cf6d35cc6992c9e6226bd, and the matching 41 GitHub review threads were then resolved"\n')
+          one('  evidence: [PR-3, REVIEW-0026, TEST-0005, TEST-0006, TEST-0007, TEST-0008, REQ-0023, REQ-0024, REQ-0025, registry/status-machines.yaml, registry/content-identity.yaml, registry/acceptance-authority.yaml]', '  evidence: [PR-3, REVIEW-0026, REVIEW-0027, REVIEW-0028, TEST-0005, TEST-0006, TEST-0007, TEST-0008, REQ-0023, REQ-0024, REQ-0025, registry/status-machines.yaml, registry/content-identity.yaml, registry/acceptance-authority.yaml]')
+
+          kg_start=s.index('  known_gaps:\n')
+          kg_end=s.index('\n\nrisk:',kg_start)
+          s=s[:kg_start]+'  known_gaps: []'+s[kg_end:]
+
+          old='  - {run: RUN-3, date: "2026-09-14", note: "Fresh-context Copilot L2 run 34793888383 approved exact c12a5b55 with follow-up, independently parsed WORK-0001, verified REVIEW-0026/F-1/F-2/F-3, recomputed all three JCS digests and returned 15/15 TEST-0008 outcomes PASS. status-machines v10 truthfully imported REVIEW-0027 and TEST-0008 without lifecycle replay; REQ-0023/24/25 were atomically ACCEPTED in 74dc253d. RUN-3 remains IN_REVIEW until one final exact-SHA L2 verifies the post-v10 materialization/acceptance/handover state."}'
+          new='  - {run: RUN-3, date: "2026-09-14", note: "Fresh-context REVIEW-0028 run 34795920644 independently approved the final-v10 substantive candidate with follow-up limited to administrative closure, returned 9/9 closure checks PASS, no material R1/R2/R3 finding and 41/41 historical findings closable. REVIEW-0028 was completed in 4c945fa8; all 41 findings were atomically resolved by REVIEW-0028 in 0147908a and all matching GitHub review threads were resolved. RUN-3 completion gates are now synchronized."}'
+          one(old,new)
+
+          one('  definition_of_done_checked: false\n  specification_gates_checked: false\n  traceability_checked: false\n  review_complete: false', '  definition_of_done_checked: true\n  specification_gates_checked: true\n  traceability_checked: true\n  review_complete: true')
+
+          p.write_text(s)
+          PY
+
+      - name: Synchronize progress matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('registry/progress/matrix.yaml')
+          s=p.read_text()
+          old='''          SUBLOT-0.1:\n            name: "Governance bootstrap"\n            status: IN_REVIEW\n            work_items:\n              WORK-0001:\n                status: IN_REVIEW\n                docs: IN_REVIEW\n                specification_governance: IN_REVIEW\n                implementation: NOT_APPLICABLE\n                tests: IN_REVIEW\n                scientific_validation: NOT_APPLICABLE\n                security_review: IN_REVIEW\n                real_system_validation: IN_REVIEW\n                review: IN_REVIEW\n                dependencies: DONE\n                traceability: IN_REVIEW\n                handover: IN_REVIEW\n'''
+          new='''          SUBLOT-0.1:\n            name: "Governance bootstrap"\n            status: DONE\n            work_items:\n              WORK-0001:\n                status: DONE\n                docs: DONE\n                specification_governance: DONE\n                implementation: NOT_APPLICABLE\n                tests: DONE\n                scientific_validation: NOT_APPLICABLE\n                security_review: DONE\n                real_system_validation: DONE\n                review: DONE\n                dependencies: DONE\n                traceability: DONE\n                handover: DONE\n'''
+          assert s.count(old)==1
+          s=s.replace(old,new,1)
+          for k in ['documentation_current','requirements_registry_contract','traceability_contract','work_item_tracking_current','project_state_resumable']:
+              old=f'  {k}: IN_REVIEW\n'
+              new=f'  {k}: DONE\n'
+              assert s.count(old)==1,(k,s.count(old))
+              s=s.replace(old,new,1)
+          s=s.replace('updated_at: "2026-09-10"','updated_at: "2026-09-14"',1)
+          p.write_text(s)
+          PY
+
+      - name: Synchronize PROJECT_STATE handover
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > PROJECT_STATE.md <<'EOF'
+          # MONDE — Project State
+
+          Status: Accepted  
+          Canonical operational state: Yes
+
+          > Fast resume point. Durable intent lives in Git. Live PR/check/thread truth is volatile and must be re-queried before review or merge decisions. Mutable TEST lifecycle/result truth lives only in each `registry/tests/TEST-*.yaml` record.
+
+          ## Current phase / lot / blocker
+
+          - **PHASE-0 — Specification, repository governance and canonical documentation** remains `IN_PROGRESS`.
+          - **LOT-0 — AI-first repository operating system** remains `IN_PROGRESS`.
+          - **SUBLOT-0.1 — Governance bootstrap** is `DONE`.
+          - `WORK-0001` is `DONE / A3` on PR #3 after independent final-v10 review and administrative closure.
+          - `WORK-0002` remains separate `IN_REVIEW` work on PR #2 and is the next active dependency once PR #3 is merged/integrated.
+          - WORK-0003 is `PLANNED`; WORK-0004 is `PLANNED`.
+
+          PR #1 remains historically squash-merged into `main` as `b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1`.
+
+          ## WORK-0001 final independent closure
+
+          REVIEW-0028 followed the normal review lifecycle before its substantive execution: OPEN in `4f303d7e35f4c21b2bfd5c2f8f4420af4633b0f3`, IN_PROGRESS in `2705143a9ce118984a1d193c3fb04d272c31d51f`, then a fresh authoring-separated L2 ran as GitHub Actions run `34795920644` / job `103828868552` against exact substantive candidate `b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60`.
+
+          The independent result was **APPROVE_WITH_FOLLOWUP** with all nine closure checks PASS, no material R1/R2/R3 finding, and the exact canonical set of 41 historical findings independently declared closable. The follow-up was limited to recording REVIEW-0028, closing those verified findings/threads and synchronizing completion state.
+
+          REVIEW-0028 became `COMPLETE / APPROVE_WITH_FOLLOWUP` in `4c945fa83a6b246365451a4df74f7c0ac34431f5`.
+
+          The 41 verified findings were then changed atomically from `OPEN` to `RESOLVED` with `resolved_by: REVIEW-0028` in `0147908a483c3705812cf6d35cc6992c9e6226bd`. The matching 41 GitHub PR #3 review threads were resolved only after that canonical closure. No additional unresolved review thread was present in the post-resolution check.
+
+          ## Requirement acceptance and cold-read provenance
+
+          REQ-0020/0021/0022 remain `SUPERSEDED` premature-acceptance history.
+
+          REQ-0023/0024/0025 were independently cold-read while PROPOSED by TEST-0008 and reviewed by REVIEW-0027, then atomically transitioned `PROPOSED → ACCEPTED` in `74dc253d849e3b6b6570fe55df415f5e9da65ab2` without changing their normative identity.
+
+          Exact accepted normative digests remain:
+
+          - REQ-0023: `sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b`
+          - REQ-0024: `sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4`
+          - REQ-0025: `sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67`
+
+          REVIEW-0027 source: GitHub Actions Copilot CLI run `34793888383`, exact candidate `c12a5b55c89168f20c028c2964da16de6f95ac56`, import `f78d5575a94b49d90abb166003cf4520bf167d3a`.
+
+          TEST-0008 source: the same fresh-context run, exact execution tree `c12a5b55c89168f20c028c2964da16de6f95ac56`, PASS import `4035cbd9fe5a9dc113d95ba83ad3c72d7d0b76f1`, metadata binding `3125334eb00a8a3da28cb94271316856147965eb`.
+
+          `registry/status-machines.yaml` v10, `registry/content-identity.yaml` v2 and `registry/acceptance-authority.yaml` v1 remain the canonical contracts.
+
+          ## WORK-0002 cross-branch boundary
+
+          PR #3 contains only the globally readable WORK-0002 lifecycle/dependency mirror. Before editing or validating WORK-0002 implementation, query live PR #2 and checkout `feat/work-0002-governance-ci` or its integrated successor. Branch-local review/test/schema proof remains behind that explicit boundary.
+
+          ## Repository visibility
+
+          MONDE intentionally remains **public** by explicit owner decision. Never commit credentials/tokens/secrets, private/personal datasets or user-identifying runtime data. Sensitive runtime material remains outside Git.
+
+          ## Next action
+
+          1. Query live PR #3 and verify its current HEAD, mergeability, checks and review-thread state; do not rely on this file for volatile GitHub state.
+          2. Run the post-REVIEW-0028 deterministic completion audit on the exact current PR #3 HEAD. It must confirm WORK-0001/T6/RUN-3 and completion gates are DONE/true, all 41 canonical findings are RESOLVED by REVIEW-0028, all PR review threads are resolved, required TEST-0004..TEST-0008 are PASS, accepted requirements retain their reviewed digests, and no normative v10 contract changed after REVIEW-0028.
+          3. If that administrative audit is clean, merge PR #3 with an expected-head guard.
+          4. After PR #3 merges, integrate the new `main` into PR #2 / WORK-0002, rerun its full governance gate and obtain its own fresh L2 before WORK-0002 completion or merge.
+          5. Then proceed to WORK-0003 and WORK-0004 according to LOT-0/LOT-1 dependencies.
+
+          ## Resume sequence
+
+          1. `README.md`
+          2. `AGENTS.md`
+          3. `docs/00_START_HERE.md`
+          4. this file
+          5. `registry/work-items/WORK-0001.yaml`
+          6. `registry/reviews/REVIEW-0028.yaml`
+          7. `registry/tests/TEST-0008.yaml`
+          8. `registry/requirements/REQ-0023.yaml` through `REQ-0025.yaml`
+          9. `registry/status-machines.yaml`
+          10. `registry/content-identity.yaml`
+          11. `registry/acceptance-authority.yaml`
+          12. `registry/work-items/WORK-0002.yaml` and `registry/progress/matrix.yaml`
+          13. live PR #3 status/threads/checks and live PR #2 state
+
+          No prior chat history is required.
+          EOF
+          sed -i 's/^          //' PROJECT_STATE.md
+
+      - name: Validate synchronized records
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import yaml
+          from pathlib import Path
+          w=yaml.safe_load(Path('registry/work-items/WORK-0001.yaml').read_text())
+          m=yaml.safe_load(Path('registry/progress/matrix.yaml').read_text())
+          assert w['status']=='DONE'
+          assert w['assurance']['level']=='A3'
+          assert all(a['status']=='DONE' for a in w['acceptance_criteria'])
+          t={x['id']:x for x in w['implementation_plan']['tasks']}
+          r={x['id']:x for x in w['implementation_plan']['planned_runs']}
+          assert t['T6']['status']=='DONE'
+          assert r['RUN-3']['status']=='DONE'
+          assert w['review_plan']['completed_reviews']==['REVIEW-0027','REVIEW-0028']
+          assert w['review_plan']['open_findings']==[]
+          assert all(w['completion'].values())
+          mw=m['phases']['PHASE-0']['lots']['LOT-0']['sublots']['SUBLOT-0.1']['work_items']['WORK-0001']
+          assert m['phases']['PHASE-0']['status']=='IN_PROGRESS'
+          assert m['phases']['PHASE-0']['lots']['LOT-0']['status']=='IN_PROGRESS'
+          assert m['phases']['PHASE-0']['lots']['LOT-0']['sublots']['SUBLOT-0.1']['status']=='DONE'
+          assert mw['status']=='DONE'
+          assert all(v in ('DONE','NOT_APPLICABLE') for k,v in mw.items() if k!='status')
+          ps=Path('PROJECT_STATE.md').read_text()
+          assert '`WORK-0001` is `DONE / A3`' in ps
+          assert 'post-REVIEW-0028 deterministic completion audit' in ps
+          PY
+          git diff --check
+          test "$(git diff --name-only | sort)" = "$(printf '%s\n' PROJECT_STATE.md registry/progress/matrix.yaml registry/work-items/WORK-0001.yaml | sort)"
+
+      - name: Commit and push completion sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PROJECT_STATE.md registry/progress/matrix.yaml registry/work-items/WORK-0001.yaml
+          git commit -m 'chore(governance): complete WORK-0001 after REVIEW-0028'
+          git push origin HEAD:chore/work-0001-assurance-closure
