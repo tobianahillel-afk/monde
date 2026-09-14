@@ -13,32 +13,27 @@ Canonical operational state: Yes
 - **SUBLOT-0.2 / WORK-0002** is the active `IN_REVIEW / A3` work on PR #2 / `feat/work-0002-governance-ci`.
 - WORK-0003 and WORK-0004 remain planned downstream work.
 
-## WORK-0002 integrated state
+## Exact WORK-0002 resume checkpoint
 
-PR #2 previously diverged from the newly merged WORK-0001 contract at `ab62faa1743705600a0f11335579db68a2166ab3`. Integration commit `b63fc190a0fa3e02ad1b3e03d0d01b16617c9b49` merged that branch-local history with `main@29086643387ff46ab6636dd2fa3014efccc10165`. Git ancestry confirms the main commit remains the merge base and ancestor of the PR #2 line (`behind_by: 0`). WORK-0002 remains `IN_REVIEW`; integration and author-side proof are not completion or independent-approval evidence.
+The current PR #2 branch checkpoint before this handover synchronization is
+`0d4569b47e7e57f9141b95558bc4ae2c55124051`.
 
-## Latest deterministic WORK-0002 proof
+That commit is the final metadata-only consumption step for REVIEW-0030. REVIEW-0030 itself reviewed exact substantive candidate
+`cbc2dfc065e73b9086d13a483b8b693ddc2fa6cc`, completed externally with `CHANGES_REQUIRED`, and was truthfully handled through the
+v10 one-shot import protocol:
 
-REVIEW-0029 recorded six additional fresh-context findings against frozen predecessor `40550a5d3e3e3f75f467c6e6cd29d3fe729a25e5`. Its negative evidence was durably imported and bound before correction. The guarded corrective runner then operated only from exact predecessor `4eb23ffcae5eab9bb6ead05104258893df96c93a` and published correction candidate `a0d4c112294630a7b82e06925292567bb45c8c52` only after the full deterministic proof passed.
+1. authorization commit `1c7693b4a6ee7b003947599b0bf5ffefd444bcbd`;
+2. review materialization/import commit `630604416bdccd3b07f57c011152e7fe14e0f2b4`;
+3. metadata binding commit `788ade473e8c8c58604c019db7f0072322eb4074`;
+4. authorization-consumption commit `0d4569b47e7e57f9141b95558bc4ae2c55124051`.
 
-Admin proof run **`34838119366`**, job **`103956543083`**, proves the published correction tree before push:
+The import sequence is historical evidence only. It does not mean WORK-0002 is corrected or approved.
 
-- **116 tests PASS**;
-- governance implementation: **1306/1306 statements** and **686/686 branches**, **100.00% line + branch coverage**;
-- **27/27 critical governance mutations killed**;
-- repository governance validation: **0 errors / 0 warnings** across 66 records;
-- strict governance validation: **0 errors**;
-- path-safety validation: **0 errors**;
-- base-to-head change guard against `main@29086643387ff46ab6636dd2fa3014efccc10165`: **0 errors**;
-- guarded push succeeded from `4eb23ffcae5eab9bb6ead05104258893df96c93a` to exact candidate `a0d4c112294630a7b82e06925292567bb45c8c52`.
+## Current independent-review closure set
 
-The immediately generated pull-request MONDE Gate run **`34838309139`** on `a0d4c112294630a7b82e06925292567bb45c8c52` ended `action_required` because the synchronize event came from `github-actions[bot]`. It created no usable gate proof and must not be treated as success or deterministic failure. This PROJECT_STATE synchronization is intentionally a transition-stable repository-user commit so the real pull-request gate can execute on the new exact candidate.
+PR #2 has **18 unresolved material review threads/findings**. None may be author-resolved.
 
-## Current WORK-0002 independent-review closure set
-
-There are **12 unresolved PR #2 review threads/findings**. None may be author-resolved.
-
-The six earlier findings require:
+The first six open findings require:
 
 1. A3/A4 assurance to impose minimum review independence (`A3 ≥ L2`, `A4 ≥ L3`).
 2. COMPLETE review evidence to bind an exact `artifact.commit_sha`.
@@ -47,39 +42,77 @@ The six earlier findings require:
 5. Context routing to seed dependency closure from changed non-WORK registry records.
 6. Handover state to remain current and transition-stable.
 
-REVIEW-0029 added six further contract findings requiring:
+REVIEW-0029 added six further findings requiring:
 
 1. lifecycle validation to enforce canonical initial-state materialization while allowing only exact, record/commit-bound historical or preauthorized imports;
-2. requirement `PROPOSED → ACCEPTED` transitions to enforce the v10 content-bound independent-review and cold-read preconditions;
-3. a current `PASS` TEST used as completion evidence to carry concrete revision-bound execution evidence rather than only a test definition;
-4. blocking finding `ACCEPTED` disposition to resolve and validate the exact authority matrix role/rule/evidence contract;
-5. COMPLETE review artifact evidence to use a full immutable 40-hex commit that exists and is valid in current ancestry/freshness checks;
-6. freshness/change-control to distinguish required TEST contract changes from execution-evidence churn and compute endpoint changes from the actual merge base.
+2. requirement `PROPOSED → ACCEPTED` transitions to enforce content-bound independent-review and cold-read preconditions;
+3. every current `PASS` TEST used as completion evidence to carry concrete revision-bound execution evidence;
+4. blocking finding `ACCEPTED` disposition to resolve the exact authority matrix role/rule/evidence contract;
+5. COMPLETE review artifact evidence to use a full immutable existing commit object ID valid for ancestry/freshness checks;
+6. freshness/change-control to keep required TEST contract changes substantive and use PR merge-base semantics for endpoint scope.
 
-The author-side correction for all 12 findings is now on the PR branch, but correction plus deterministic proof does not itself close any finding.
+REVIEW-0030 added six new `R2_MAJOR` findings against `cbc2dfc065e73b9086d13a483b8b693ddc2fa6cc`:
+
+1. `RISK → ACCEPTED` validates adjacency but not the full canonical acceptance preconditions and authority resolution.
+2. Requirement acceptance repeats a syntactically valid digest but does not recompute `REQUIREMENT_NORMATIVE_V1` from canonical RFC 8785/JCS bytes.
+3. `GITHUB_REPOSITORY_OWNER_PERMISSION` can be spoofed with an unrelated GitHub repository URL rather than proving authority over `tobianahillel-afk/monde`.
+4. A preauthorized imported COMPLETE review can become completion evidence before `external_import.import_commit` and authorization consumption are finalized.
+5. A PASS TEST may cite a fabricated 40-hex `execution.commit_sha` because existence/relevant ancestry is not checked.
+6. A `CLOSED` review with an approving outcome can incorrectly contribute completion roles/independence despite the canonical lifecycle forbidding it.
+
+## Additional resume-audit defect
+
+While reconstructing the exact corrective context, the resume audit found that `registry/work-items/WORK-0004.yaml` currently contains duplicate
+top-level `progress_justifications` keys. The current loader uses ordinary PyYAML mapping behavior, so duplicate keys can silently overwrite earlier
+canonical state.
+
+WORK-0002 therefore also owns a narrow parser-hardening correction: canonical machine-readable YAML must fail closed on duplicate mapping keys, with
+a regression test, and the existing WORK-0004 duplicate must be repaired. This is governance hardening, not MONDE product scope expansion.
+
+## Corrective contract decisions
+
+- **Risk owning work:** the canonical matrix requires an `owning-work assurance` value. If a risk acceptance cannot resolve exactly one owning WORK
+  and its assurance level from canonical scope, acceptance fails closed. No first-item or implicit-max heuristic is allowed.
+- **Repository owner evidence:** the existing TEST-0007 precedent is authoritative for implementation. `GITHUB_REPOSITORY_OWNER_PERMISSION` must
+  be bound to the governed repository `tobianahillel-afk/monde` and establish that the named accepting actor is that repository owner/administrator;
+  an arbitrary repository-shaped URL is insufficient.
+- **Requirement digest:** acceptance must recompute the configured `REQUIREMENT_NORMATIVE_V1` projection and hash exact RFC 8785/JCS UTF-8 bytes.
+- **PASS TEST revision:** the SHA must be a real Git commit reachable in the relevant governed history, except only exact canonical historical/import
+  exceptions already recorded in `registry/status-machines.yaml`.
+- **Imported review completion:** external COMPLETE review evidence is not completion-eligible until import binding and one-shot authorization
+  consumption are both finalized.
 
 ## Current WORK-0002 gate
 
 Required sequence from this handover state:
 
-1. Re-query live PR #2 HEAD after this transition-stable synchronization and require a complete MONDE Gate on that exact SHA. Treat any validator, schema/change guard, coverage, mutation, secret scan, Dependency Review, CodeQL or live-gate failure as blocking evidence. A workflow with no jobs is never substitute proof.
-2. Keep all 12 existing review threads unresolved until independent verification.
-3. Obtain a **fresh-context L2** on the exact final gated PR #2 candidate. The reviewer must inspect the accumulated implementation, all 12 open findings, REVIEW-0029 corrections, historical-integration exceptions, PASS TEST revision binding and graph-aware v10 semantics.
-4. Only an approval-capable independent result with no new blocking finding may justify durable review evidence and subsequent thread/finding closure.
-5. Synchronize WORK-0002 completion only after those independent gates are satisfied, then run the final merge-candidate gate and merge only with an exact-head guard.
-6. Continue with WORK-0003, then WORK-0004.
+1. Correct REVIEW-0030/F-1..F-6 plus the duplicate-key YAML parser defect using the smallest responsible validators/contracts.
+2. Add dedicated regression tests and mutation targets for every corrected property.
+3. Keep all 18 existing review threads unresolved during author-side correction.
+4. Run the full deterministic A3 proof on the exact corrective SHA: pytest with 100% line+branch coverage, mutation smoke, repository validator,
+   strict contracts, path safety, change guard, context manifest, CodeQL and Dependency Review.
+5. Obtain a complete pull-request MONDE Gate on the exact non-bot transition-stable candidate. A workflow with no jobs is never proof.
+6. Obtain a **fresh-context L2** on that exact final candidate. The reviewer must inspect all 18 open findings and the new parser-hardening change.
+7. Only an approval-capable independent result with no new blocking finding may justify durable review evidence and thread/finding closure.
+8. Synchronize WORK-0002 completion only after those independent gates pass, then run the final exact-head merge candidate gate.
+9. Continue with WORK-0003, then WORK-0004.
 
 ## WORK-0001 provenance boundary
 
-WORK-0001 final closure remains canonical on `main`: REVIEW-0028 independently verified the substantive final-v10 candidate; all 41 historical findings and their matching PR #3 threads were closed; the final deterministic audit passed before squash merge. PR #2 consumes that merged contract and must not recreate or rewrite its history.
+WORK-0001 final closure remains canonical on `main`: REVIEW-0028 independently verified its substantive final-v10 candidate; all historical
+WORK-0001 findings/threads were independently closed before squash merge. PR #2 consumes that merged contract and must not recreate or rewrite it.
 
 ## Repository visibility
 
-MONDE intentionally remains **public**. Never commit credentials, tokens, secrets, private/personal datasets or user-identifying runtime data. Sensitive runtime material remains outside Git. WORK-0003 owns repository/ruleset/required-check/security-setting hardening while preserving public visibility.
+MONDE intentionally remains **public**. Never commit credentials, tokens, secrets, private/personal datasets or user-identifying runtime data.
+Sensitive runtime material remains outside Git. WORK-0003 owns repository/ruleset/required-check/security-setting hardening while preserving public
+visibility.
 
 ## Product/UI/UX owner gate
 
-Product specification and product identity remain owner-gated decisions. Agents must not silently canonize product experience, UI/UX, visual identity, brand, color system, interface density, interaction language, emotional/psychovisual tone or other strong design choices. Major product-function decisions require explicit owner co-design rather than irreversible invention.
+Product specification and product identity remain owner-gated decisions. Agents must not silently canonize product experience, UI/UX, visual
+identity, brand, color system, interface density, interaction language, emotional/psychovisual tone or other strong design choices. Major
+product-function decisions require explicit owner co-design rather than irreversible invention.
 
 ## Resume sequence
 
@@ -90,11 +123,12 @@ Product specification and product identity remain owner-gated decisions. Agents 
 5. `registry/work-items/WORK-0002.yaml`
 6. `registry/progress/matrix.yaml`
 7. `registry/status-machines.yaml`
-8. `docs/03_ARCHITECTURE/github-control-plane.md`
-9. `docs/13_QUALITY/ai-context-routing.md`
-10. `registry/reviews/REVIEW-0029.yaml` plus branch-local REVIEW-0002
-11. `registry/tests/TEST-0002.yaml` and `registry/tests/TEST-0003.yaml`
-12. live PR #2 HEAD, checks, reviews and all review threads
-13. `tools/governance/` and `tests/governance/`
+8. `registry/acceptance-authority.yaml`
+9. `registry/content-identity.yaml`
+10. `registry/reviews/REVIEW-0029.yaml`
+11. `registry/reviews/REVIEW-0030.yaml`
+12. `registry/tests/TEST-0002.yaml`, `TEST-0003.yaml`, and `TEST-0007.yaml`
+13. live PR #2 HEAD, checks, reviews and all review threads
+14. `tools/governance/` and `tests/governance/`
 
 No prior chat history is required.
