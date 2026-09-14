@@ -1,4 +1,4 @@
-version: 9
+version: 10
 updated_at: '2026-09-14'
 status_machine: ../status-machines.yaml#progress
 phases:
@@ -35,15 +35,15 @@ phases:
                 status: IN_REVIEW
                 docs: DONE
                 specification_governance: IN_REVIEW
-                implementation: IN_REVIEW
-                tests: IN_REVIEW
+                implementation: DONE
+                tests: DONE
                 scientific_validation: NOT_APPLICABLE
                 security_review: IN_REVIEW
-                real_system_validation: IN_REVIEW
+                real_system_validation: DONE
                 review: IN_REVIEW
                 dependencies: DONE
                 traceability: DONE
-                handover: IN_REVIEW
+                handover: DONE
           SUBLOT-0.3:
             name: Repository protection and merge discipline
             status: PLANNED

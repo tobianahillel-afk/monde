@@ -13,74 +13,69 @@ Canonical operational state: Yes
 - **SUBLOT-0.2 / WORK-0002** remains `IN_REVIEW / A3` on PR #2 / `feat/work-0002-governance-ci`.
 - WORK-0003 and WORK-0004 remain planned downstream work. Do not start them before WORK-0002 is independently closed.
 
-## Latest exact reviewed candidate and proof
+## Exact T8 substantive candidate and proof
 
-Exact candidate `296ef2005de2ab5964d004d6383393b693594de9` passed deterministic lanes in MONDE Gate run `34904175139` / run number **160** against `main@29086643387ff46ab6636dd2fa3014efccc10165`:
+Exact substantive T8 candidate **`a8e576ea9ea32b59a95b397de87727a7a52b2926`** passed GitHub Actions **MONDE Gate #163 / run `34908856210`** against `main@29086643387ff46ab6636dd2fa3014efccc10165`:
 
-- **244/244 tests PASS**;
-- **2801/2801 statements** and **1374/1374 branches**, **100.00% line + branch coverage**;
+- **258/258 tests PASS**;
+- **2998/2998 statements** and **1476/1476 branches**, **100.00% line + branch coverage**;
 - baseline mutation smoke: **37/37 critical mutations killed**;
-- fresh-L2/T7 mutation smoke: **26/26 critical mutations killed**;
+- fresh-L2/T7/T8 mutation smoke: **33/33 critical mutations killed**;
 - repository validator: **0 errors / 0 warnings across 67 records**;
-- strict governance, path safety, change guard, fresh-L2 hardening, review-closure and T7-closure: **0 errors**;
+- strict governance, path safety, change guard, fresh-L2 hardening, review-closure, T7-closure and **T8-closure**: **0 errors**;
 - context manifest: **19 MUST_READ files**;
 - CodeQL: **success**;
 - Dependency Review lane: **success**.
 
-The live merge gate on that exact HEAD failed closed only on the then-expected 46 unresolved threads and absence of an independent exact-head approval. That proof is now **pre-T8 evidence only**: it does not close findings discovered by the subsequent independent review.
+The stable live merge gate on this exact substantive candidate also proved that the durable finding set matches the live GitHub state at **52 unresolved threads**. It failed closed for exactly the two expected independent-closure conditions:
 
-## Fresh independent L2 result — six new material findings
+- `ERROR UNRESOLVED_THREADS: 52 unresolved review thread(s)`
+- `ERROR INDEPENDENT_EXACT_HEAD_APPROVAL: no trusted, context-separated L2/L3 GitHub APPROVED review is bound to the exact current PR HEAD`
 
-Fresh-context GitHub Codex review `PRR_kwDOUUI5ts8AAAABNih5Qw`, submitted on exact candidate `296ef2005de2ab5964d004d6383393b693594de9`, added **six** material findings. The durable closure set is therefore **52**, all intentionally unresolved:
+This red live gate is intentional and is not a T8 implementation failure.
 
-1. `PRRT_kwDOUUI5ts6iTnww` — changed `ACCEPTED` requirements must revalidate canonical digest/review/cold-read acceptance invariants even when status is unchanged.
-2. `PRRT_kwDOUUI5ts6iTnw7` — edited `ACCEPTED` risks must revalidate authority and acceptance invariants even when status is unchanged.
-3. `PRRT_kwDOUUI5ts6iTnw-` — COMPLETE-review immutability must include `checks`, `completed_at` and `verification_result` source/executor provenance, not only the earlier semantic projection.
-4. `PRRT_kwDOUUI5ts6iTnxB` — identity-policy binding must reject **any intervening** `content-identity.yaml` revision between evidence and acceptance, including change-then-revert where endpoint blobs are equal.
-5. `PRRT_kwDOUUI5ts6iTnxE` — exact-head `APPROVED` review is necessary but insufficient: the approver must be trusted/context-separated and bound to qualifying fresh-context L2 evidence.
-6. `PRRT_kwDOUUI5ts6iTnxI` — top-level WORK-status `DONE -> IN_REVIEW` reopening triggers must be tied to the exact reopened WORK and cannot borrow unrelated findings/scope changes.
+## T8 result
 
-No existing or new thread may be author-resolved during correction.
+Fresh-context review `PRR_kwDOUUI5ts8AAAABNih5Qw` on `296ef2005de2ab5964d004d6383393b693594de9` added six material findings. T8 now implements and mutation-protects all six:
 
-## WORK-0002 execution state
+1. same-status edits to an already `ACCEPTED` requirement revalidate the full digest/review/cold-read acceptance invariant;
+2. same-status edits to an already `ACCEPTED` risk revalidate canonical authority and acceptance preconditions;
+3. all completion-bearing COMPLETE-review fields, including `checks`, `completed_at` and verification provenance, are immutable after completion except the explicitly bounded import-finalization field;
+4. any `registry/content-identity.yaml` revision between evidence and acceptance invalidates prior acceptance evidence, including change-then-revert history;
+5. live exact-head approval now requires a trusted repository collaborator plus a structured fresh-context, authoring-context-separated L2/L3 attestation covering the required Review Council hats;
+6. top-level WORK `DONE -> IN_REVIEW` reopening requires a trigger scoped to the exact reopened WORK rather than an unrelated finding or scope change.
 
-- T1, T2, T3, T5, T6 and T7 remain DONE for their historical correction scopes.
-- **T8 — correction of the six `Nih5Qw` findings — is `IN_PROGRESS`.**
-- **T4 — exact final-candidate proof plus approval-capable fresh independent L2 closure — is `BLOCKED` on T8.**
-- WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
-- Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` are reopened to `IN_REVIEW` because new independent evidence invalidated their previous completion claim.
+T8 is therefore **DONE author-side** on exact substantive SHA `a8e576ea...`. This is implementation proof, not independent review approval.
 
 ## Independent-review closure set
 
-The first 46 findings remain exactly the historical closure set already recorded in `registry/work-items/WORK-0002.yaml` and prior review threads. The six `Nih5Qw` findings above extend that set to **52**. The work item is the durable per-finding source; live GitHub remains the authoritative source for current thread resolved/unresolved state.
+There are **52 intentionally unresolved material threads/findings**. The complete per-finding durable set is recorded in `registry/work-items/WORK-0002.yaml`; live GitHub remains authoritative for current resolved/unresolved thread state.
 
-## T8 correction requirements
+No thread has been author-resolved during T8 correction.
 
-T8 must add fail-closed regressions and mutation protection for all six new invariants while preserving every earlier T1–T7 guarantee:
+## WORK-0002 execution state
 
-- revalidate continuing ACCEPTED requirement/risk invariants on same-status semantic edits;
-- expand COMPLETE-review semantic immutability to every field that can make a review newly completion-eligible;
-- detect any identity-policy revision across the full evidence→acceptance ancestry interval, even if reverted;
-- require live exact-head approval to be tied to trusted/context-separated L2 evidence rather than actor inequality alone;
-- scope top-level WORK reopening triggers to the exact target work item;
-- keep all historical exceptions exact, predecessor-bound and future-non-reusable.
+- T1, T2, T3, T5, T6, T7 and **T8** are DONE for their author-side correction scopes.
+- **T4 — exact final metadata-candidate proof plus fresh independent L2 closure — is `IN_PROGRESS`.**
+- WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
+- Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` are DONE based on Gate #163 plus this synchronized handover.
+- `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending independent closure.
 
 ## Current WORK-0002 gate
 
 Required sequence from this state:
 
 1. Keep all **52** material review threads unresolved.
-2. Implement T8 with targeted adversarial regressions and mutation targets; do not weaken earlier gates to make history pass.
-3. Run the full exact-SHA MONDE Gate on the T8 substantive candidate: 100% line+branch, baseline + L2/T7/T8 mutation smoke, repository/strict/path/change/L2/review-closure/T7/T8 gates, CodeQL, Dependency Review and live fail-closed state.
-4. Synchronize TEST records and handover only after exact-SHA proof exists.
-5. Request another fresh-context independent L2 on the exact final candidate, requiring re-verification of **all 52** findings plus active adversarial search for new bypasses.
-6. Require qualifying independent approval evidence on the exact HEAD under the hardened trusted-L2 live-gate contract.
-7. Only after independent verification may the corresponding threads/findings be resolved and durable completion evidence recorded.
-8. Synchronize WORK-0002 completion, run the final exact-head merge candidate gate, merge with exact-head guard, then continue with WORK-0003 and WORK-0004.
+2. Prove the metadata-synchronization descendant of `a8e576ea...` with its **own exact-SHA MONDE Gate**; Gate #163 is SHA-bound and is not silently transferred to later metadata commits.
+3. Once that metadata HEAD is deterministic-green, request another **fresh-context independent L2** on that exact HEAD. The reviewer must reverify all 52 accumulated findings, explicitly recheck the six T8 invariants, and actively search for new bypasses.
+4. If new material findings appear, reopen the affected work and evidence again; do not resolve threads.
+5. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD that satisfies the hardened trusted/context-separated L2/L3 live-gate contract. A shallow approval from an arbitrary external account is insufficient.
+6. Only after both independent semantic verification and trusted exact-head approval may verified threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
+7. Merge with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
 ## Integration-provenance boundary
 
-`registry/integration-provenance.yaml` remains an A3 meta-governance surface containing only exact immutable historical bridges: WORK-0001 squash provenance, progress adoption boundaries and exact malformed-YAML repair episodes. T8 must not introduce a generic historical bypass or move any predecessor-bound adoption marker to accommodate current changes.
+`registry/integration-provenance.yaml` remains an A3 meta-governance surface containing only exact immutable historical bridges: WORK-0001 squash provenance, progress adoption boundaries and exact malformed-YAML repair episodes. T8 introduced no generic historical bypass and moved no predecessor-bound adoption marker.
 
 ## Repository visibility
 

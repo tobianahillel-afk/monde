@@ -214,7 +214,7 @@ implementation_plan:
     description: Prove the substantive final HEAD in GitHub and complete independent review, including all fresh Codex findings.
     depends_on:
     - T8
-    status: BLOCKED
+    status: IN_PROGRESS
   - id: T5
     description: Correct REVIEW-0030 findings, close the duplicate-key YAML parser gap and add regression/mutation protection.
     depends_on:
@@ -234,7 +234,7 @@ implementation_plan:
     description: Correct the six fresh findings from PRR_kwDOUUI5ts8AAAABNih5Qw, including same-status ACCEPTED invariant revalidation, COMPLETE-review field immutability, intervening identity-policy history, L2-eligible exact-head approval and target-scoped WORK reopening triggers.
     depends_on:
     - T7
-    status: IN_PROGRESS
+    status: DONE
   planned_runs:
   - id: RUN-1
     objective: Initial deterministic governance implementation
@@ -430,8 +430,9 @@ validation:
   - Metadata-synchronized exact candidate 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 passed MONDE Gate run 34897431793 / #143 with the same deterministic proof and failed the stable live gate only on 38 unresolved threads.
   - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNiFSzA reviewed exact candidate 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 and opened eight new material findings, expanding the durable closure set to 46.
   - Exact T7-corrected substantive candidate 52e1dd3aad0ee625f824440f9c87b920c58edec2 passed MONDE Gate run 34902136446 / #156: 244/244 tests, 2801/2801 statements, 1374/1374 branches, 100% line+branch coverage, 37/37 baseline plus 26/26 fresh-L2/T7 mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7-closure validators all at zero, context manifest success, CodeQL success and Dependency Review success.
-  - Exact metadata candidate 296ef2005de2ab5964d004d6383393b693594de9 passed deterministic lanes in MONDE Gate run 34904175139 / #160 with the same 244/244 tests, 100% line/branch, 37/37 + 26/26 mutation proof and all deterministic/T7 gates at zero; its live gate failed only on 46 unresolved threads plus missing independent exact-head approval.
+  - Exact metadata candidate 296ef2005de2ab5964d004d6383393b693594de9 passed deterministic lanes in MONDE Gate run 34904175139 / #160 with the same 244/244 tests, 100% line+branch, 37/37 + 26/26 mutation proof and all deterministic/T7 gates at zero; its live gate failed only on 46 unresolved threads plus missing independent exact-head approval.
   - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNih5Qw reviewed exact candidate 296ef2005de2ab5964d004d6383393b693594de9 and opened six new material findings, expanding the durable closure set to 52 and reopening implementation/tests/real-system/handover evidence under T8.
+  - Exact T8 substantive candidate a8e576ea9ea32b59a95b397de87727a7a52b2926 passed MONDE Gate run 34908856210 / #163: 258/258 tests, 2998/2998 statements, 1476/1476 branches, 100% line+branch coverage, 37/37 baseline plus 33/33 fresh-L2/T7/T8 critical mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7-closure/T8-closure validators all at zero, 19-file context manifest, CodeQL success and Dependency Review success. The live gate matched the durable 52-finding count and failed closed only on the 52 unresolved threads plus absence of a trusted context-separated L2/L3 exact-head APPROVED review.
   evidence:
   - TEST-0002
   - TEST-0003
@@ -444,9 +445,9 @@ validation:
     branch: 100
   known_gaps:
   - Repository administration/ruleset enforcement belongs to WORK-0003.
-  - Gate #160 is the last complete pre-T8 author-side proof, on exact reviewed candidate 296ef2005de2ab5964d004d6383393b693594de9; it cannot close the six findings discovered by the subsequent fresh L2.
-  - All 52 material review threads/findings remain intentionally unresolved pending T8 correction plus another fresh independent verification; no author-side resolution counts as completion evidence.
-  - The live gate's exact-head approval contract itself is under T8 correction and must remain fail-closed until trusted L2 eligibility/context separation is enforced.
+  - Gate #163 is the exact substantive T8 author-side proof on a8e576ea9ea32b59a95b397de87727a7a52b2926; later metadata synchronization requires its own exact-SHA Gate before fresh independent review.
+  - All 52 material review threads/findings remain intentionally unresolved pending another fresh independent verification; no author-side resolution counts as completion evidence.
+  - No trusted context-separated L2/L3 GitHub APPROVED review is yet bound to the exact current PR HEAD; the hardened live gate must remain fail-closed until that independent evidence exists.
   - External Codex findings remain truthfully referenced by their GitHub review/thread identities rather than being retroactively rewritten as approving canonical REVIEW records.
   - Historical malformed YAML, WORK-0001 squash bridges and progress-guard adoption boundaries must remain exact fail-closed historical provenance; future reuse is forbidden.
 risk:
@@ -490,7 +491,10 @@ run_log:
   note: 'T7 corrected all eight NiFSzA findings. Exact substantive candidate 52e1dd3aad0ee625f824440f9c87b920c58edec2 passed Gate #156 / run 34902136446 with 244/244 tests, 100% line/branch across 2801 statements/1374 branches, 37/37 + 26/26 mutations and every deterministic/T7 gate at zero. The live gate validated owner/admin and durable 46-finding tracking, then blocked only on 46 unresolved threads plus missing independent exact-HEAD APPROVED review. T7 is DONE author-side; T4 resumed for exact metadata-head proof and fresh L2 closure.'
 - run: RUN-3
   date: '2026-09-14'
-  note: 'Exact metadata candidate 296ef2005de2ab5964d004d6383393b693594de9 passed Gate #160 / run 34904175139, then fresh-context Codex review PRR_kwDOUUI5ts8AAAABNih5Qw opened six new P1/P2 findings. The closure set is now 52; T8 is IN_PROGRESS and T4 is BLOCKED until T8 correction and renewed exact-SHA proof are complete.'
+  note: 'Exact metadata candidate 296ef2005de2ab5964d004d6383393b693594de9 passed Gate #160 / run 34904175139, then fresh-context Codex review PRR_kwDOUUI5ts8AAAABNih5Qw opened six new P1/P2 findings. The closure set became 52; T8 reopened implementation/tests/real-system/handover while T4 was blocked.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'T8 corrected all six Nih5Qw findings. Exact substantive candidate a8e576ea9ea32b59a95b397de87727a7a52b2926 passed Gate #163 / run 34908856210 with 258/258 tests, 100% line+branch across 2998 statements/1476 branches, 37/37 + 33/33 mutations and every deterministic/T7/T8 gate at zero. Live gate matched all 52 unresolved threads and blocked only on those threads plus missing trusted context-separated L2/L3 exact-head approval. T8 is DONE author-side; T4 resumes for exact metadata-head proof and fresh independent closure.'
 discoveries:
 - 100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required.
 - GitHub live state can invalidate stale PROJECT_STATE prose after it is committed.
@@ -515,7 +519,7 @@ discoveries:
 - Progress reopening evidence, including top-level WORK-status reopenings, must be scoped to the exact target rather than borrowing unrelated findings/scope changes.
 - Squash provenance may bridge historical review/test evidence only for explicit eligible IDs and exact equal-tree source/integrated commits.
 blockers:
-- Fresh L2 PRR_kwDOUUI5ts8AAAABNih5Qw opened six new material findings on exact candidate 296ef2005de2ab5964d004d6383393b693594de9. T8 correction, regression/mutation proof, exact-SHA CI and another fresh independent L2 are required before T4 may resume; all 52 review threads remain unresolved.
+- All 52 review findings remain intentionally unresolved. T8 is author-side DONE on exact proof SHA a8e576ea9ea32b59a95b397de87727a7a52b2926; T4 now requires this metadata synchronization to pass its own exact-SHA Gate, followed by a fresh independent L2 over all 52 findings and a trusted context-separated L2/L3 exact-head APPROVED review before any closure or merge.
 follow_up_work_items:
 - WORK-0003
 - WORK-0004
