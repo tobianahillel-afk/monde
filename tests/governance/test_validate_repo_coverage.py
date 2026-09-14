@@ -33,7 +33,10 @@ def test_review_completion_property_isolated(tmp_path: Path) -> None:
     review = Record("reviews", tmp_path / "review.yaml", {"id": "REVIEW-1", "status": "IN_PROGRESS", "outcome": "APPROVED", "roles": ["SECURITY"], "reviewer": {"independence_level": "L2"}, "findings": []})
     v.by_id = {"REVIEW-1": review}
     v.validate_review_evidence(work)
-    assert [x.message for x in v.issues] == ["review REVIEW-1 is not complete"]
+    messages = [x.message for x in v.issues]
+    assert "review REVIEW-1 must be COMPLETE to satisfy completion" in messages
+    assert "completed reviews miss required hats ['SECURITY']" in messages
+    assert "no completed review satisfies independence L2_TARGET" in messages
 
 
 def test_progress_reverse_membership_property_isolated(tmp_path: Path) -> None:
