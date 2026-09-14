@@ -1,8 +1,14 @@
 version: 1
 canonical: true
-updated_at: "2026-09-13"
+updated_at: "2026-09-14"
 
 purpose: "Provide the single machine-readable authority policy for accepting residual risks and blocking review findings. Free-form role names or prose evidence alone never establish authority."
+
+governed_repository:
+  full_name: "tobianahillel-afk/monde"
+  owner_login: "tobianahillel-afk"
+  metadata_url: "https://api.github.com/repos/tobianahillel-afk/monde"
+  permission_proof: "TEST-0007"
 
 vocabulary:
   assurance_levels: [A0, A1, A2, A3, A4]
@@ -113,6 +119,7 @@ evidence_contract:
     - "authority_role MUST be one of vocabulary.authority_roles and MUST be allowed by the resolved matrix rule."
     - "authority_evidence_type MUST be allowed for authority_role."
     - "authority_evidence_ref MUST be a resolvable durable reference establishing the named actor's role/delegation for the acceptance scope."
+    - "GITHUB_REPOSITORY_OWNER_PERMISSION MUST reference governed_repository.metadata_url and accepted_by MUST equal governed_repository.owner_login; TEST-0007 provides the real-GitHub permission proof for that binding."
     - "authority_matrix_version MUST equal this canonical matrix version and authority_rule_id MUST identify the exact resolved rule."
     - "The accepting actor MUST be the actor established by authority_evidence_ref; merely authoring the risk/finding or populating fields never grants authority."
     - "Unknown assurance, impact, category, severity, role, evidence type, matrix version or matrix rule fails closed."
