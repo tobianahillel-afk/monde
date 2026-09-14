@@ -1,5 +1,5 @@
-name: Final v10 fresh-context L2 closure review
-# trigger: 6
+name: REVIEW-0028 fresh-context L2 closure review
+# trigger: 8
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   copilot-requests: write
 
 jobs:
-  final-l2:
+  review-0028:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
 
-      - name: Checkout exact frozen PR #3 candidate
+      - name: Checkout exact substantive artifact
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60
@@ -34,13 +34,25 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Freeze live PR state and cross-branch evidence
+      - name: Checkout live REVIEW-0028 lifecycle head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: chore/work-0001-assurance-closure
+          path: live
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Freeze live lifecycle and cross-branch evidence
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p /tmp/final-v10
+          test "$(git -C live rev-parse HEAD)" = "2705143a9ce118984a1d193c3fb04d272c31d51f"
+          ruby -ryaml -e 'r=YAML.load_file("live/registry/reviews/REVIEW-0028.yaml"); abort unless r["status"]=="IN_PROGRESS" && r.dig("artifact","commit_sha")=="b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60"'
+          cp live/registry/reviews/REVIEW-0028.yaml /tmp/final-v10/review28_live.yaml
+
           curl --fail --silent --show-error \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H 'Accept: application/vnd.github+json' \
@@ -50,7 +62,7 @@ jobs:
           python - <<'PY'
           import json
           p=json.load(open('/tmp/final-v10/pr3.json'))
-          assert p['head']['sha']=='b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60', p['head']['sha']
+          assert p['head']['sha']=='2705143a9ce118984a1d193c3fb04d272c31d51f', p['head']['sha']
           assert p['state']=='open'
           assert p['draft'] is False
           PY
@@ -72,11 +84,7 @@ jobs:
           python - "$PR2_SHA" <<'PY'
           import json,subprocess,sys
           sha=sys.argv[1]
-          paths=[
-            'schemas/registry/work-items.schema.json',
-            'schemas/registry/reviews.schema.json',
-            'schemas/registry/tests.schema.json',
-          ]
+          paths=['schemas/registry/work-items.schema.json','schemas/registry/reviews.schema.json','schemas/registry/tests.schema.json']
           out={p: subprocess.run(['git','-C','target','cat-file','-e',f'{sha}:{p}']).returncode==0 for p in paths}
           open('/tmp/final-v10/pr2_schemas.json','w').write(json.dumps(out,indent=2))
           if not all(out.values()): raise SystemExit(out)
@@ -93,29 +101,41 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('admin/tools/final_v10_l2_review.py')
+          s=p.read_text()
+          old='live_pr3["head"]["sha"] == TARGET_SHA'
+          new='live_pr3["head"]["sha"] == "2705143a9ce118984a1d193c3fb04d272c31d51f"'
+          assert s.count(old)==1, s.count(old)
+          p.write_text(s.replace(old,new,1))
+          PY
           python admin/tools/final_v10_l2_review.py target build
 
-      - name: Build bounded compact evidence packet
+      - name: Build bounded evidence packet
         shell: bash
         run: |
           set -euo pipefail
           python admin/tools/final_v10_compact_prompt_v2.py target
+          printf '\n\n=== LIVE REVIEW-0028 LIFECYCLE (existed before this run) ===\n' >> /tmp/final-v10/prompt.txt
+          cat /tmp/final-v10/review28_live.yaml >> /tmp/final-v10/prompt.txt
+          printf '\nReview activity is lifecycle-native: REVIEW-0028 was OPEN then IN_PROGRESS before this fresh run. The substantive artifact under review remains exactly b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60.\n' >> /tmp/final-v10/prompt.txt
           test "$(wc -c < /tmp/final-v10/prompt.txt)" -lt 80000
 
       - name: Install pinned Copilot CLI
         run: npm install -g @github/copilot@1.0.83
 
-      - name: Execute fresh final Copilot L2
+      - name: Execute fresh REVIEW-0028 L2
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          COPILOT_HOME: /tmp/monde-final-v10-copilot-home
+          COPILOT_HOME: /tmp/monde-review28-copilot-home
         run: |
           set -euo pipefail
           copilot -p "$(cat /tmp/final-v10/prompt.txt)" -s > /tmp/final-v10/model_output.txt
           cat /tmp/final-v10/model_output.txt
 
-      - name: Validate closure verdict fail-closed
+      - name: Validate REVIEW-0028 verdict fail-closed
         shell: bash
         env:
           RUN_ID: ${{ github.run_id }}
