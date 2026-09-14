@@ -1,6 +1,6 @@
 id: TEST-0006
 name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
-status: RUNNING
+status: PASS
 type: MANUAL_E2E
 
 protects:
@@ -72,11 +72,26 @@ cases:
     - "Independently parse exact current WORK-0001 YAML in fresh L2; local runtime network cannot fetch the exact blob directly, so no parser success is claimed here"
 
 execution:
-  command_or_workflow: null
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  command_or_workflow: "Manual exact-SHA REVIEW-0026 transition-stable cold-resume/handover drill"
+  last_run_at: "2026-09-14"
+  commit_sha: "0451291232ed310208dcc66fa95ff76421fa497b"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree 0451291232ed310208dcc66fa95ff76421fa497b; PR remained open/non-draft/mergeable and on that exact HEAD through verdict"
+    - "Git compare c7700d71fdfb33e4a635a9ade8f5db35e5d4561e → 0451291232ed310208dcc66fa95ff76421fa497b changes only registry/tests/TEST-0006.yaml, so corrected PROJECT_STATE/WORK-0001 and all other proof remained stable during execution"
+    - "PROJECT_STATE @ 04512912 uses one state-conditional TEST-0006 rule valid for FAIL/READY/RUNNING/PASS and explicitly skips every further rerun after a qualifying PASS"
+    - "WORK-0001 @ 04512912 remains IN_REVIEW/A3 with RUN-3 IN_REVIEW and non-terminal completion gates; its compatibility/known-gap/run-log routing is also conditional on whether a qualifying TEST-0006 PASS exists"
+    - "REVIEW-0026 @ 04512912 remains COMPLETE/CHANGES_REQUIRED with F-1/F-2/F-3 OPEN, source review PRR_kwDOUUI5ts8AAAABNYK4AQ, exact artifact 4f8cebee..., and no qualifying TEST-0008 result"
+    - "registry/content-identity.yaml @ 04512912 is version 2 and binds REQUIREMENT_NORMATIVE_V1 to exact RFC 8785/JCS UTF-8 bytes"
+    - "REQ-0023/REQ-0024/REQ-0025 @ 04512912 remain PROPOSED with exact declared JCS digests and acceptance_cold_read_test_ids exactly [TEST-0008]"
+    - "Git compare 27c4d591d165689e26d399b303722744919b3372 → 0451291232ed310208dcc66fa95ff76421fa497b changes PROJECT_STATE, TEST-0005/0006/0007 and WORK-0001 only; no requirement record changed after the current TEST-0005 JCS recomputation"
+    - "TEST-0005 @ 04512912 remains PASS on exact tree 27c4d591d165689e26d399b303722744919b3372 with result 786a759a767ea8457d99eb8f528dc676964ca481 and binding f6caaf77a2361f2f0724b6d91b1ce43da8c685f2"
+    - "TEST-0007 @ 04512912 remains PASS on exact tree b0d4b4f68f457a8f9e5bfbf689a9275c203a0715 with result 592b88eb250f92a6e809c76f8646f85a894929b1 and binding 8e5edd80a634f552bbf92cd7da7088f9d6b06a2e"
+    - "TEST-0008 @ 04512912 remains PLANNED / qualifies=false with null source, executor, outcomes and execution; no author-generated cold-read evidence exists"
+    - "PR #3 WORK-0002 mirror @ 04512912 remains IN_REVIEW, depends_on WORK-0001, affected_schemas=[], and defers branch-local review/test/schema traversal until explicit PR #2 checkout"
+    - "After that explicit boundary, live PR #2 remains open/non-draft/mergeable at ab62faa1743705600a0f11335579db68a2166ab3"
+    - "REQ-0010 @ 04512912 maps to TEST-0005 while TEST-0004 @ 04512912 does not list REQ-0010 in protects.requirements, preserving the historical evidence boundary"
+    - "Exact current WORK-0001 YAML is not claimed as independently parser-verified in this runtime; the next fresh L2 must perform that parse and this omission does not masquerade as PASS evidence"
 
 coverage:
   line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
