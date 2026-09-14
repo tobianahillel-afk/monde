@@ -9,7 +9,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TARGET = ".github/scripts/governance_l2_hardening.py"
-TEST = "tests/governance/test_l2_hardening_v2.py"
+TESTS = [
+    "tests/governance/test_l2_hardening_v2.py",
+    "tests/governance/test_l2_hardening_materialization.py",
+]
 MUTATIONS = {
     "exact-head-checkout": ('or (checkout.get("with") or {}).get("ref") != CHECKOUT_REF', 'or False'),
     "complete-review-immutability": ('if review_semantic_projection(previous) != review_semantic_projection(current):', 'if False:'),
@@ -43,7 +46,14 @@ def main() -> int:
             mutated.write_text(original.replace(needle, replacement, 1), encoding="utf-8")
             env = dict(os.environ)
             env["PYTHONPATH"] = str(temp)
-            proc = subprocess.run([sys.executable, "-m", "pytest", "-q", TEST], cwd=temp, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            proc = subprocess.run(
+                [sys.executable, "-m", "pytest", "-q", *TESTS],
+                cwd=temp,
+                env=env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
             if proc.returncode == 0:
                 print(f"L2 MUTATION SURVIVED {name}", file=sys.stderr)
                 continue
