@@ -8,6 +8,8 @@ test "$(git rev-parse HEAD)" = "$TARGET_HEAD"
 git fetch origin feat/work-0002-governance-ci "$ADMIN_BRANCH" main
 test "$(git rev-parse origin/feat/work-0002-governance-ci)" = "$TARGET_HEAD"
 
+python -m pip install --require-hashes -r requirements/governance-ci.txt
+
 git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0029-fixes.py" > /tmp/pr2-review0029-fixes.py
 python /tmp/pr2-review0029-fixes.py
 
@@ -18,7 +20,6 @@ git diff --cached --check
 git commit -m 'fix(governance): close REVIEW-0029 contract gaps'
 CANDIDATE="$(git rev-parse HEAD)"
 
-python -m pip install --require-hashes -r requirements/governance-ci.txt
 python -m pytest -q --cov=tools.governance --cov-branch --cov-report=term-missing --cov-fail-under=100
 python scripts/governance_mutation_smoke.py
 python -m tools.governance.validate_repo .
