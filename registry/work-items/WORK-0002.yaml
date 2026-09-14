@@ -14,7 +14,7 @@ purpose: 'Turn MONDE governance/specification/traceability contracts into execut
 scope_change:
   approved: true
   rationale: |
-    Fresh exact-SHA L2 REVIEW-0030 found six additional risk-acceptance, normative-digest, authority-evidence, external-import-finalization, PASS-test-revision and review-lifecycle defects after the REVIEW-0029 corrective candidate. This corrective scope also includes duplicate-key YAML rejection because the resume audit found WORK-0004 currently contains an ambiguous duplicate top-level key that PyYAML would otherwise silently overwrite. Enforcing real TEST revision ancestry then exposed two immutable integration-history boundaries that must be represented exactly rather than weakened away: WORK-0001 pre-squash test evidence whose source HEAD has the same tree as its squash commit, and the exact malformed WORK-0004 merge blob later repaired by one dedicated commit. These changes harden the existing governance contract without changing MONDE product scope and keep every exception commit/blob/path-bound and non-reusable.
+    Fresh exact-SHA L2 REVIEW-0030 found six additional risk-acceptance, normative-digest, authority-evidence, external-import-finalization, PASS-test-revision and review-lifecycle defects after the REVIEW-0029 corrective candidate. This corrective scope also includes duplicate-key YAML rejection because the resume audit found WORK-0004 contained an ambiguous duplicate top-level key that PyYAML would otherwise silently overwrite. Enforcing real TEST revision ancestry then exposed immutable integration-history boundaries that must be represented exactly rather than weakened away: WORK-0001 pre-squash test evidence whose source HEAD has the same tree as its squash commit, plus exact malformed historical WORK-0004 and WORK-0002 blobs with dedicated repair commits. These changes harden the existing governance contract without changing MONDE product scope and keep every exception commit/blob/path-bound and non-reusable.
 scope:
   in:
   - deterministic registry/status/reference/path validation
@@ -176,12 +176,12 @@ implementation_plan:
     description: Prove the substantive final HEAD in GitHub and complete independent review, including all fresh Codex findings.
     depends_on:
     - T5
-    status: BLOCKED
+    status: IN_PROGRESS
   - id: T5
     description: Correct REVIEW-0030 findings, close the duplicate-key YAML parser gap and add regression/mutation protection.
     depends_on:
     - T3
-    status: IN_PROGRESS
+    status: DONE
   planned_runs:
   - id: RUN-1
     objective: Initial deterministic governance implementation
@@ -313,8 +313,10 @@ validation:
   - Earlier real GitHub runs established the validator, path-safety gate and successive P0-P2 hardening rounds.
   - Substantive predecessor c50c33009d90f079e645f0ca9e1befe1a4a77ba9 passed the real MONDE Gate with 76 tests, 100% line/branch coverage, 16/16
     critical mutations, zero deterministic validator/change-guard errors and CodeQL success.
-  - Fresh-context Codex review of c50c33009d90f079e645f0ca9e1befe1a4a77ba9 identified the six current gaps now covered by the final-L2 regression
-    slice; new exact-head CI proof remains required.
+  - Fresh-context Codex reviews through REVIEW-0030 identified the 18 currently open findings; the author-side correction preserves every thread for independent re-verification.
+  - Exact corrected candidate 42e4e93c0e25294b26d2a00d958660c9124697d1 passed MONDE Gate run 34868556415 with 147 tests, 100% line/branch coverage,
+    37/37 critical mutations, zero repository/strict/path/change errors, a 19-file MUST_READ context manifest, CodeQL success and Dependency Review success.
+  - The same run's final live gate failed closed solely on 18 deliberately unresolved review threads, so author-side correction is proven but independent closure is not.
   evidence:
   - TEST-0002
   - TEST-0003
@@ -325,10 +327,9 @@ validation:
     branch: 100
   known_gaps:
   - Repository administration/ruleset enforcement belongs to WORK-0003.
-  - Merged WORK-0001 contract from main@29086643387ff46ab6636dd2fa3014efccc10165 is now integrated; the integrated HEAD still requires a complete
-    MONDE Gate and fresh L2 before completion.
-  - REVIEW-0030 added six blocking R2 findings after the REVIEW-0029 correction; all remain open pending correction and fresh independent verification.
-  - The resume audit found duplicate top-level YAML keys in WORK-0004; canonical YAML must reject duplicate mapping keys rather than silently overwrite state; the immutable malformed merge blob and its exact repair are now represented only through integration-provenance.
+  - The author-side implementation/correction gate is fully proven on 42e4e93c0e25294b26d2a00d958660c9124697d1; a fresh-context L2 on the exact final metadata-synchronized candidate remains mandatory.
+  - All 18 material review threads/findings remain intentionally unresolved pending fresh independent verification; no author-side resolution counts as completion evidence.
+  - Historical malformed YAML and WORK-0001 squash boundaries are represented only through exact fail-closed integration-provenance entries; future reuse is forbidden.
 risk:
   security: MEDIUM
   data: LOW
@@ -356,8 +357,12 @@ run_log:
 - run: RUN-3
   date: '2026-09-14'
   note: 'REVIEW-0030 was truthfully preauthorized, imported as COMPLETE/CHANGES_REQUIRED, bound to import commit 630604416bdccd3b07f57c011152e7fe14e0f2b4
-    and consumed. Its six new R2 findings reopen implementation/tests/specification/handover evidence. Resume audit also discovered duplicate-key
-    YAML ambiguity in WORK-0004. Correction begins from exact branch HEAD 0d4569b47e7e57f9141b95558bc4ae2c55124051.'
+    and consumed. Its six new R2 findings reopened implementation/tests/specification/handover evidence. Resume audit also discovered duplicate-key
+    YAML ambiguity in WORK-0004. Correction began from exact branch HEAD 0d4569b47e7e57f9141b95558bc4ae2c55124051.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'Exact author-side candidate 42e4e93c0e25294b26d2a00d958660c9124697d1 passed MONDE Gate run 34868556415: 147 tests, 100% line/branch,
+    37/37 mutations, repository/strict/path/change validators zero, context manifest success, CodeQL success and Dependency Review success. Final live gate failed only on the 18 intentionally unresolved threads; T5 is complete and T4 proceeds to fresh L2.'
 discoveries:
 - 100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required.
 - GitHub live state can invalidate stale PROJECT_STATE prose after it is committed.
