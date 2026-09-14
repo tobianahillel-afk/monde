@@ -1,6 +1,6 @@
 id: WORK-0001
 title: "Bootstrap AI-first repository governance"
-status: IN_REVIEW
+status: DONE
 phase: PHASE-0
 lot: LOT-0
 sublot: SUBLOT-0.1
@@ -100,6 +100,7 @@ scope_change:
     - REVIEW-0026/F-2
     - REVIEW-0026/F-3
     - REVIEW-0027
+    - REVIEW-0028
 
 read_before:
   - README.md
@@ -113,6 +114,7 @@ read_before:
   - registry/reviews/REVIEW-0025.yaml
   - registry/reviews/REVIEW-0026.yaml
   - registry/reviews/REVIEW-0027.yaml
+  - registry/reviews/REVIEW-0028.yaml
   - registry/tests/TEST-0005.yaml
   - registry/tests/TEST-0006.yaml
   - registry/tests/TEST-0007.yaml
@@ -178,6 +180,7 @@ affected_docs:
   - registry/reviews/REVIEW-0025.yaml
   - registry/reviews/REVIEW-0026.yaml
   - registry/reviews/REVIEW-0027.yaml
+  - registry/reviews/REVIEW-0028.yaml
   - registry/requirements/REQ-0005.yaml
   - registry/requirements/REQ-0020.yaml
   - registry/requirements/REQ-0021.yaml
@@ -218,7 +221,7 @@ impact_analysis:
   downstream: [WORK-0002, WORK-0003, WORK-0004, "all future canonical specification work", "all future implementation work"]
   migrations_or_reprocessing: []
   compatibility_notes: |
-    This active WORK record is a current routing/index record; immutable detail remains in linked REQ/REVIEW/TEST records and Git history. status-machines v10 is canonical and adds a one-shot, source/executor/exact-revision-bound import path for TEST executions that genuinely completed externally before repository lifecycle materialization; it does not create a generic PLANNED→PASS edge. content-identity v2 remains RFC 8785/JCS byte-exact. REVIEW-0027 is COMPLETE/APPROVE_WITH_FOLLOWUP on exact candidate c12a5b55, TEST-0008 carries the matching L2 cold-read evidence, and REQ-0023/24/25 were atomically ACCEPTED only after both evidence halves resolved. Current TEST lifecycle/result identity remains authoritative only in each TEST record. Historical findings remain open until the final post-v10 exact-SHA L2 verifies the synchronized handover and import semantics. Cross-branch WORK-0002 implementation proof remains behind explicit PR #2 checkout.
+    This active WORK record is a current routing/index record; immutable detail remains in linked REQ/REVIEW/TEST records and Git history. status-machines v10 is canonical and adds a one-shot, source/executor/exact-revision-bound import path for TEST executions that genuinely completed externally before repository lifecycle materialization; it does not create a generic PLANNED→PASS edge. content-identity v2 remains RFC 8785/JCS byte-exact. REVIEW-0027 is COMPLETE/APPROVE_WITH_FOLLOWUP on exact candidate c12a5b55, TEST-0008 carries the matching L2 cold-read evidence, and REQ-0023/24/25 were atomically ACCEPTED only after both evidence halves resolved. Current TEST lifecycle/result identity remains authoritative only in each TEST record. REVIEW-0028 independently verified the complete post-v10 handover, provenance, accepted requirements, cross-branch boundary and exact set of 41 historical findings; those findings are now RESOLVED by REVIEW-0028 and their matching GitHub threads are resolved. Cross-branch WORK-0002 implementation proof remains behind explicit PR #2 checkout.
 
 implementation_plan:
   tasks:
@@ -227,13 +230,13 @@ implementation_plan:
     - {id: T3, description: "Define development lifecycle, DoR/DoD and testing strategy.", depends_on: [T2], expected_files: [docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md], status: DONE}
     - {id: T4, description: "Define documentation/security/threat-model/ADR governance.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/11_ADR/README.md], status: DONE}
     - {id: T5, description: "Add GitHub templates, capability registry, roadmap and scorecard.", depends_on: [T3, T4], expected_files: [.github/pull_request_template.md, registry/capabilities/README.md, docs/10_ROADMAP/phase-0.md, docs/13_QUALITY/project-scorecard.md], status: DONE}
-    - {id: T6, description: "Complete post-merge independent assurance correction and final fresh re-review.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/content-identity.yaml, registry/acceptance-authority.yaml, registry/reviews/REVIEW-0026.yaml, registry/reviews/REVIEW-0027.yaml, registry/requirements/REQ-0023.yaml, registry/requirements/REQ-0024.yaml, registry/requirements/REQ-0025.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/tests/TEST-0008.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
+    - {id: T6, description: "Complete post-merge independent assurance correction and final fresh re-review.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/content-identity.yaml, registry/acceptance-authority.yaml, registry/reviews/REVIEW-0026.yaml, registry/reviews/REVIEW-0027.yaml, registry/requirements/REQ-0023.yaml, registry/requirements/REQ-0024.yaml, registry/requirements/REQ-0025.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/tests/TEST-0008.yaml, registry/reviews/REVIEW-0028.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: DONE}
     - {id: T7, description: "Add scientific specification lifecycle, requirements/assumptions/risks, traceability and reproducibility/backtesting contracts.", depends_on: [T3, T4, T5], expected_files: [docs/13_QUALITY/specification-quality.md, docs/13_QUALITY/reproducibility-backtesting.md, registry/requirements/_TEMPLATE.yaml, registry/assumptions/_TEMPLATE.yaml, registry/risks/_TEMPLATE.yaml], status: DONE}
     - {id: T8, description: "Add assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols.", depends_on: [T7], expected_files: [docs/13_QUALITY/review-council.md, docs/13_QUALITY/assurance-levels.md, docs/13_QUALITY/advanced-verification.md, docs/13_QUALITY/non-functional-requirements.md, docs/12_RESEARCH/research-protocol.md], status: DONE}
   planned_runs:
     - {id: RUN-1, objective: "Repository navigation/governance tracking bootstrap", tasks: [T1, T2], exit_condition: "Core resume/tracking contracts exist", status: DONE}
     - {id: RUN-2, objective: "Quality/lifecycle/GitHub workflow bootstrap", tasks: [T3, T4, T5], exit_condition: "Development gates/templates exist", status: DONE}
-    - {id: RUN-3, objective: "Post-merge bootstrap assurance correction and fresh re-review", tasks: [T6], exit_condition: "REVIEW-0027/TEST-0008/REQ acceptance provenance and status-machines v10 receive one final exact-SHA fresh L2, all material findings are independently resolved or validly dispositioned, and completion gates are synchronized", status: IN_REVIEW}
+    - {id: RUN-3, objective: "Post-merge bootstrap assurance correction and fresh re-review", tasks: [T6], exit_condition: "REVIEW-0028 independently verifies the final-v10 substantive candidate, all historical findings/threads are closed from that evidence, and completion gates are synchronized", status: DONE}
     - {id: RUN-4, objective: "Scientific/documentation governance hardening", tasks: [T7], exit_condition: "Canonical documentation is governed as rigorously as implementation", status: DONE}
     - {id: RUN-5, objective: "Assurance, research and advanced verification hardening", tasks: [T8], exit_condition: "Quality dimensions/review evidence are explicit and synchronized", status: DONE}
 
@@ -241,49 +244,8 @@ review_plan:
   artifact_class: FOUNDATIONAL_GOVERNANCE
   independence_level: L2_TARGET
   required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, DATA_EPISTEMIC, PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY, RED_TEAM_SKEPTIC]
-  completed_reviews: [REVIEW-0027]
-  open_findings:
-    - REVIEW-0004/F-1
-    - REVIEW-0004/F-2
-    - REVIEW-0004/F-3
-    - REVIEW-0004/F-4
-    - REVIEW-0004/F-5
-    - REVIEW-0004/F-6
-    - REVIEW-0005/F-1
-    - REVIEW-0005/F-2
-    - REVIEW-0005/F-3
-    - REVIEW-0006/F-1
-    - REVIEW-0006/F-2
-    - REVIEW-0007/F-1
-    - REVIEW-0008/F-1
-    - REVIEW-0009/F-1
-    - REVIEW-0009/F-2
-    - REVIEW-0010/F-1
-    - REVIEW-0011/F-1
-    - REVIEW-0012/F-1
-    - REVIEW-0013/F-1
-    - REVIEW-0014/F-1
-    - REVIEW-0014/F-2
-    - REVIEW-0015/F-1
-    - REVIEW-0016/F-1
-    - REVIEW-0017/F-1
-    - REVIEW-0017/F-2
-    - REVIEW-0018/F-1
-    - REVIEW-0019/F-1
-    - REVIEW-0019/F-2
-    - REVIEW-0020/F-1
-    - REVIEW-0021/F-1
-    - REVIEW-0022/F-1
-    - REVIEW-0022/F-2
-    - REVIEW-0023/F-1
-    - REVIEW-0024/F-1
-    - REVIEW-0024/F-2
-    - REVIEW-0025/F-1
-    - REVIEW-0025/F-2
-    - REVIEW-0025/F-3
-    - REVIEW-0026/F-1
-    - REVIEW-0026/F-2
-    - REVIEW-0026/F-3
+  completed_reviews: [REVIEW-0027, REVIEW-0028]
+  open_findings: []
 
 required_tests:
   unit: []
@@ -352,15 +314,13 @@ validation:
     - "status-machines v10 preauthorized and then consumed truthful external imports for REVIEW-0027 and TEST-0008 without replaying lifecycle checkpoints after completion"
     - "TEST-0008 result import 4035cbd9 is exact-SHA-bound to c12a5b55 and was metadata-bound/consumed by 3125334e"
     - "REQ-0023/24/25 were atomically accepted in 74dc253d after REVIEW-0027 and TEST-0008 qualified"
-  evidence: [PR-3, REVIEW-0026, TEST-0005, TEST-0006, TEST-0007, TEST-0008, REQ-0023, REQ-0024, REQ-0025, registry/status-machines.yaml, registry/content-identity.yaml, registry/acceptance-authority.yaml]
+    - "REVIEW-0028 fresh-context L2 run 34795920644 returned APPROVE_WITH_FOLLOWUP with 9/9 closure checks PASS, no material R1/R2/R3 finding, and all 41 historical findings independently closable"
+    - "REVIEW-0028 was completed in 4c945fa83a6b246365451a4df74f7c0ac34431f5; the exact 41 findings were atomically changed OPEN→RESOLVED with resolved_by REVIEW-0028 in 0147908a483c3705812cf6d35cc6992c9e6226bd, and the matching 41 GitHub review threads were then resolved"
+  evidence: [PR-3, REVIEW-0026, REVIEW-0027, REVIEW-0028, TEST-0005, TEST-0006, TEST-0007, TEST-0008, REQ-0023, REQ-0024, REQ-0025, registry/status-machines.yaml, registry/content-identity.yaml, registry/acceptance-authority.yaml]
   coverage:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
-  known_gaps:
-    - "status-machines v10, REVIEW-0027/TEST-0008 materialization, requirement acceptance and this synchronized handover are newer than the c12a5b55 L2 and require one final exact-SHA fresh-context L2 before WORK-0001 can complete."
-    - "Historical open findings remain OPEN until that final independent review explicitly verifies closure or a policy-valid disposition is recorded."
-    - "WORK-0001 T6, RUN-3 and hard completion gates remain IN_REVIEW/false until the final v10 review passes."
-    - "WORK-0002/PR #2 remains separate IN_REVIEW work and must integrate merged WORK-0001 before closure."
+  known_gaps: []
 
 risk:
   security: LOW
@@ -375,7 +335,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle/testing/security/ADR/templates/roadmap/scorecard."}
-  - {run: RUN-3, date: "2026-09-14", note: "Fresh-context Copilot L2 run 34793888383 approved exact c12a5b55 with follow-up, independently parsed WORK-0001, verified REVIEW-0026/F-1/F-2/F-3, recomputed all three JCS digests and returned 15/15 TEST-0008 outcomes PASS. status-machines v10 truthfully imported REVIEW-0027 and TEST-0008 without lifecycle replay; REQ-0023/24/25 were atomically ACCEPTED in 74dc253d. RUN-3 remains IN_REVIEW until one final exact-SHA L2 verifies the post-v10 materialization/acceptance/handover state."}
+  - {run: RUN-3, date: "2026-09-14", note: "Fresh-context REVIEW-0028 run 34795920644 independently approved the final-v10 substantive candidate with follow-up limited to administrative closure, returned 9/9 closure checks PASS, no material R1/R2/R3 finding and 41/41 historical findings closable. REVIEW-0028 was completed in 4c945fa8; all 41 findings were atomically resolved by REVIEW-0028 in 0147908a and all matching GitHub review threads were resolved. RUN-3 completion gates are now synchronized."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle/requirements/risks/traceability/backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added assurance/review/test/experiment/NFR/research protocols."}
 
@@ -395,10 +355,10 @@ follow_up_work_items:
 
 completion:
   definition_of_ready_checked: true
-  definition_of_done_checked: false
-  specification_gates_checked: false
-  traceability_checked: false
-  review_complete: false
+  definition_of_done_checked: true
+  specification_gates_checked: true
+  traceability_checked: true
+  review_complete: true
   docs_updated: true
   registries_updated: true
   project_state_updated: true

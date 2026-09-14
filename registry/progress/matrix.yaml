@@ -1,5 +1,5 @@
 version: 4
-updated_at: "2026-09-10"
+updated_at: "2026-09-14"
 status_machine: "../status-machines.yaml#progress"
 
 phases:
@@ -13,21 +13,21 @@ phases:
         sublots:
           SUBLOT-0.1:
             name: "Governance bootstrap"
-            status: IN_REVIEW
+            status: DONE
             work_items:
               WORK-0001:
-                status: IN_REVIEW
-                docs: IN_REVIEW
-                specification_governance: IN_REVIEW
+                status: DONE
+                docs: DONE
+                specification_governance: DONE
                 implementation: NOT_APPLICABLE
-                tests: IN_REVIEW
+                tests: DONE
                 scientific_validation: NOT_APPLICABLE
-                security_review: IN_REVIEW
-                real_system_validation: IN_REVIEW
-                review: IN_REVIEW
+                security_review: DONE
+                real_system_validation: DONE
+                review: DONE
                 dependencies: DONE
-                traceability: IN_REVIEW
-                handover: IN_REVIEW
+                traceability: DONE
+                handover: DONE
           SUBLOT-0.2:
             name: "Governance automation and GitHub control plane"
             status: IN_REVIEW
@@ -85,18 +85,18 @@ phases:
                 handover: NOT_STARTED
 
 quality_dimensions:
-  documentation_current: IN_REVIEW
+  documentation_current: DONE
   documentation_architecture_defined: DONE
   specification_quality_protocol_defined: DONE
   definition_of_ready_defined: DONE
   definition_of_done_defined: DONE
-  requirements_registry_contract: IN_REVIEW
+  requirements_registry_contract: DONE
   assumptions_registry_contract: DONE
   risk_registry_contract: DONE
   review_registry_contract: DONE
   test_registry_contract: DONE
   experiment_registry_contract: DONE
-  traceability_contract: IN_REVIEW
+  traceability_contract: DONE
   review_council_defined: DONE
   assurance_levels_defined: DONE
   non_functional_requirements_defined: DONE
@@ -106,11 +106,11 @@ quality_dimensions:
   threat_modeling_protocol_defined: DONE
   capability_registry_current: PARTIAL
   dependency_registry_current: PARTIAL
-  work_item_tracking_current: IN_REVIEW
+  work_item_tracking_current: DONE
   test_strategy_defined: DONE
   security_rules_defined: DONE
   adr_process_defined: DONE
-  project_state_resumable: IN_REVIEW
+  project_state_resumable: DONE
   github_workflow_defined: DONE
   governance_ci_enforced: NOT_STARTED
   architecture_fitness_functions_enforced: NOT_STARTED
