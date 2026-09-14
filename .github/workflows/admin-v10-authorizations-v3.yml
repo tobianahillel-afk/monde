@@ -1,0 +1,45 @@
+name: One-shot v10 authorization runner
+
+on:
+  push:
+    branches:
+      - review/test-0008-github-models
+    paths:
+      - .github/workflows/admin-v10-authorizations-v3.yml
+
+permissions:
+  contents: write
+
+jobs:
+  authorize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout admin script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: review/test-0008-github-models
+          path: admin
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout exact PR #3 branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: chore/work-0001-assurance-closure
+          path: target
+          fetch-depth: 1
+      - name: Apply guarded change
+        run: |
+          set -euo pipefail
+          test "$(git -C target rev-parse HEAD)" = "c12a5b55c89168f20c028c2964da16de6f95ac56"
+          python admin/tools/admin_v10_authorize.py target
+          git -C target diff --check
+          git -C target diff -- registry/status-machines.yaml registry/tests/_TEMPLATE.yaml
+      - name: Commit and push authorization parent
+        run: |
+          set -euo pipefail
+          git -C target config user.name 'MONDE governance automation'
+          git -C target config user.email '269188945+tobianahillel-afk@users.noreply.github.com'
+          git -C target add registry/status-machines.yaml registry/tests/_TEMPLATE.yaml
+          git -C target commit -m 'feat(governance): authorize external L2 and TEST-0008 import'
+          git -C target push origin HEAD:chore/work-0001-assurance-closure
