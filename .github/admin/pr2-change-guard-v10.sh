@@ -12,8 +12,10 @@ python -m pip install --require-hashes -r requirements/governance-ci.txt
 
 git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0029-fixes.py" > /tmp/pr2-review0029-fixes.py
 git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0029-test-fixes.py" > /tmp/pr2-review0029-test-fixes.py
+git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0029-coverage-final.py" > /tmp/pr2-review0029-coverage-final.py
 python /tmp/pr2-review0029-fixes.py
 python /tmp/pr2-review0029-test-fixes.py
+python /tmp/pr2-review0029-coverage-final.py
 
 git config user.name 'github-actions[bot]'
 git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -21,11 +23,6 @@ git add tools/governance/change_guard.py tools/governance/strict_contracts.py sc
 git diff --cached --check
 git commit -m 'fix(governance): close REVIEW-0029 contract gaps'
 CANDIDATE="$(git rev-parse HEAD)"
-
-printf '%s\n' '--- change_guard remaining-coverage source ---'
-nl -ba tools/governance/change_guard.py | sed -n '118,195p;238,252p;360,375p;432,445p;495,512p'
-printf '%s\n' '--- strict_contracts remaining-coverage source ---'
-nl -ba tools/governance/strict_contracts.py | sed -n '114,126p'
 
 python -m pytest -q --cov=tools.governance --cov-branch --cov-report=term-missing --cov-fail-under=100
 python scripts/governance_mutation_smoke.py
