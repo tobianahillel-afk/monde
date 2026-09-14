@@ -1,0 +1,134 @@
+name: Integrate merged WORK-0001 into PR2
+
+on:
+  push:
+    branches:
+      - review/test-0008-github-models
+    paths:
+      - .github/workflows/admin-pr2-integrate-main.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout PR2 branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: feat/work-0002-governance-ci
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Guard exact heads
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "ab62faa1743705600a0f11335579db68a2166ab3"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "29086643387ff46ab6636dd2fa3014efccc10165"
+
+      - name: Merge main and resolve four reviewed conflicts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          set +e
+          git merge --no-commit --no-ff 29086643387ff46ab6636dd2fa3014efccc10165
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          actual="$(git diff --name-only --diff-filter=U | sort)"
+          expected="$(printf '%s\n' PROJECT_STATE.md registry/progress/matrix.yaml registry/work-items/WORK-0002.yaml registry/work-items/WORK-0003.yaml | sort)"
+          test "$actual" = "$expected"
+
+          # WORK-0002 and WORK-0003 implementation-branch detail is authoritative for these branch-local records.
+          git checkout --ours registry/work-items/WORK-0002.yaml registry/work-items/WORK-0003.yaml
+
+          python - <<'PY'
+          from pathlib import Path
+          import yaml, subprocess
+
+          # Update WORK-0002 only for the now-satisfied WORK-0001 integration dependency.
+          p=Path('registry/work-items/WORK-0002.yaml')
+          s=p.read_text()
+          s=s.replace('updated_at: "2026-09-11"','updated_at: "2026-09-14"',1)
+          blocker='    - "WORK-0001 / PR #3 remains the blocking dependency and must be independently approved/merged before WORK-0002 can become DONE."\n'
+          assert blocker in s
+          s=s.replace(blocker,'',1)
+          gap='    - "WORK-0001/PR #3 must merge before WORK-0002 completion."\n'
+          assert gap in s
+          s=s.replace(gap,'    - "Merged WORK-0001 contract from main@29086643387ff46ab6636dd2fa3014efccc10165 is now integrated; the integrated HEAD still requires a complete MONDE Gate and fresh L2 before completion."\n',1)
+          marker='  - {run: RUN-2, date: "2026-09-11", note: "Prepared one atomic six-finding correction plus dedicated final-L2 regressions and expanded mutation targets; real GitHub CI and post-WORK-0001 integration proof remain pending before completion."}\n'
+          assert marker in s
+          s=s.replace(marker, marker+'  - {run: RUN-2, date: "2026-09-14", note: "Integrated merged WORK-0001/main@29086643387ff46ab6636dd2fa3014efccc10165 into PR #2 after an exact-head merge probe. WORK-0002 remains IN_REVIEW pending full integrated CI proof and fresh L2."}\n',1)
+          p.write_text(s)
+
+          # Matrix: use post-WORK-0001 main as canonical base, then overlay branch-local WORK-0002 progress.
+          main=yaml.safe_load(subprocess.check_output(['git','show','29086643387ff46ab6636dd2fa3014efccc10165:registry/progress/matrix.yaml'], text=True))
+          ours=yaml.safe_load(subprocess.check_output(['git','show','ab62faa1743705600a0f11335579db68a2166ab3:registry/progress/matrix.yaml'], text=True))
+          main['version']=6
+          main['updated_at']='2026-09-14'
+          lot=main['phases']['PHASE-0']['lots']['LOT-0']
+          ours_lot=ours['phases']['PHASE-0']['lots']['LOT-0']
+          lot['sublots']['SUBLOT-0.2']=ours_lot['sublots']['SUBLOT-0.2']
+          lot['sublots']['SUBLOT-0.3']=ours_lot['sublots']['SUBLOT-0.3']
+          q=main['quality_dimensions']
+          for k in ['ai_context_routing_defined','github_control_plane_defined','governance_ci_enforced','automated_traceability_validation','automated_specification_validation']:
+              q[k]=ours['quality_dimensions'][k]
+          Path('registry/progress/matrix.yaml').write_text(yaml.safe_dump(main, sort_keys=False, allow_unicode=True))
+
+          # Transition-stable post-integration handover.
+          Path('PROJECT_STATE.md').write_text('''# MONDE — Project State\n\nStatus: Accepted  \nCanonical operational state: Yes\n\n> Fast resume point. Durable intent lives in Git. Live PR/check/thread truth is volatile and must be re-queried before review or merge decisions.\n\n## Current phase / lot\n\n- **PHASE-0 — Specification and repository governance** is `IN_PROGRESS`.\n- **LOT-0 — AI-first repository operating system** is `IN_PROGRESS`.\n- **SUBLOT-0.1 / WORK-0001** is `DONE / A3` and was squash-merged to `main` as `29086643387ff46ab6636dd2fa3014efccc10165`.\n- **SUBLOT-0.2 / WORK-0002** is the active `IN_REVIEW / A3` work on PR #2 / `feat/work-0002-governance-ci`.\n- WORK-0003 and WORK-0004 remain planned downstream work.\n\n## WORK-0002 integrated state\n\nPR #2 previously diverged from the newly merged WORK-0001 contract at `ab62faa1743705600a0f11335579db68a2166ab3`. An exact-head merge probe against `main@29086643387ff46ab6636dd2fa3014efccc10165` found four semantic conflicts only: `PROJECT_STATE.md`, `registry/progress/matrix.yaml`, `registry/work-items/WORK-0002.yaml`, and `registry/work-items/WORK-0003.yaml`.\n\nThe integration preserves the final WORK-0001/v10 canonical state from `main`, keeps the richer branch-local WORK-0002 implementation/review/test graph from PR #2, and keeps the expanded WORK-0003 control-plane plan from PR #2. WORK-0002 remains `IN_REVIEW`; this integration is not completion evidence.\n\n## Current WORK-0002 gate\n\nThe latest branch-local corrective slice addresses six fresh-context findings from the earlier L2 on `c50c33009d90f079e645f0ca9e1befe1a4a77ba9`:\n\n1. A3/A4 assurance must impose minimum review independence (`A3 ≥ L2`, `A4 ≥ L3`).\n2. COMPLETE review evidence must bind an exact `artifact.commit_sha`.\n3. PASS TEST records must carry substantive protected-contract/case/execution evidence.\n4. Every `NOT_APPLICABLE` progress dimension needs a non-empty work-item justification.\n5. Context routing must seed dependency closure from changed non-WORK registry records.\n6. Handover state must remain current and transition-stable.\n\nAfter this main integration, the required sequence is:\n\n1. Run the complete MONDE Gate on the exact integrated PR #2 HEAD. Treat any deterministic validator, schema/change guard, coverage, mutation, secret scan, Dependency Review, CodeQL or live-gate failure as blocking evidence.\n2. Recheck the six review threads against exact integrated evidence; do not resolve them by author assertion.\n3. Obtain a new fresh-context L2 on the final integrated PR #2 candidate.\n4. Only a clean approval-capable independent result may close the review gate and allow WORK-0002 completion synchronization.\n5. Run the final merge-candidate gate and merge only with an exact-head guard.\n6. Continue with WORK-0003, then WORK-0004.\n\n## WORK-0001 provenance boundary\n\nWORK-0001 final closure remains canonical on `main`: REVIEW-0028 independently verified the substantive final-v10 candidate; all 41 historical findings and their matching PR #3 threads were closed; the final deterministic audit passed before squash merge. PR #2 must consume that merged contract, not recreate or rewrite its history.\n\n## Repository visibility\n\nMONDE intentionally remains **public**. Never commit credentials, tokens, secrets, private/personal datasets or user-identifying runtime data. Sensitive runtime material remains outside Git. WORK-0003 owns repository/ruleset/required-check/security-setting hardening while preserving public visibility.\n\n## Product/UI/UX owner gate\n\nProduct specification and product identity remain owner-gated decisions. Agents must not silently canonize product experience, UI/UX, visual identity, brand, color system, interface density, interaction language, emotional/psychovisual tone or other strong design choices. Major product-function decisions require explicit owner co-design rather than irreversible invention.\n\n## Resume sequence\n\n1. `README.md`\n2. `AGENTS.md`\n3. `docs/00_START_HERE.md`\n4. this file\n5. `registry/work-items/WORK-0002.yaml`\n6. `registry/progress/matrix.yaml`\n7. `registry/status-machines.yaml`\n8. `docs/03_ARCHITECTURE/github-control-plane.md`\n9. `docs/13_QUALITY/ai-context-routing.md`\n10. branch-local REVIEW-0002 / TEST-0002 / TEST-0003 records\n11. live PR #2 HEAD, checks, reviews and threads\n12. `tools/governance/` and `tests/governance/`\n\nNo prior chat history is required.\n''')
+          PY
+
+          git add PROJECT_STATE.md registry/progress/matrix.yaml registry/work-items/WORK-0002.yaml registry/work-items/WORK-0003.yaml
+          test -z "$(git diff --name-only --diff-filter=U)"
+          git diff --check --cached
+
+      - name: Validate integrated semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import yaml
+          from pathlib import Path
+          w1=yaml.safe_load(Path('registry/work-items/WORK-0001.yaml').read_text())
+          w2=yaml.safe_load(Path('registry/work-items/WORK-0002.yaml').read_text())
+          w3=yaml.safe_load(Path('registry/work-items/WORK-0003.yaml').read_text())
+          m=yaml.safe_load(Path('registry/progress/matrix.yaml').read_text())
+          assert w1['status']=='DONE'
+          assert w2['status']=='IN_REVIEW' and w2['depends_on']==['WORK-0001']
+          assert w3['status']=='PLANNED' and w3['depends_on']==['WORK-0001','WORK-0002']
+          assert w2['affected_schemas']==['schemas/registry/work-items.schema.json','schemas/registry/reviews.schema.json','schemas/registry/tests.schema.json']
+          assert w2['required_tests']['unit']==['TEST-0002']
+          assert w2['required_tests']['integration']==['TEST-0003']
+          assert w2['required_tests']['e2e']==['TEST-0003']
+          assert 'REVIEW-0002' in w2['review_plan']['completed_reviews']
+          assert len(w2['review_plan']['open_findings'])==6
+          p=m['phases']['PHASE-0']['lots']['LOT-0']['sublots']
+          assert p['SUBLOT-0.1']['status']=='DONE' and p['SUBLOT-0.1']['work_items']['WORK-0001']['status']=='DONE'
+          assert p['SUBLOT-0.2']['status']=='IN_REVIEW' and p['SUBLOT-0.2']['work_items']['WORK-0002']['status']=='IN_REVIEW'
+          assert p['SUBLOT-0.2']['work_items']['WORK-0002']['implementation']=='DONE'
+          assert p['SUBLOT-0.3']['work_items']['WORK-0003']['status']=='PLANNED'
+          assert m['status_machine']=='../status-machines.yaml#progress'
+          assert 'status_vocabulary' not in m
+          assert m['quality_dimensions']['governance_ci_enforced']=='PARTIAL'
+          assert m['quality_dimensions']['automated_traceability_validation']=='DONE'
+          assert m['quality_dimensions']['ai_context_routing_defined']=='DONE'
+          assert m['quality_dimensions']['github_control_plane_defined']=='DONE'
+          ps=Path('PROJECT_STATE.md').read_text()
+          assert '29086643387ff46ab6636dd2fa3014efccc10165' in ps
+          assert 'WORK-0002' in ps and 'IN_REVIEW / A3' in ps
+          PY
+
+      - name: Commit merge integration and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          git commit -m 'merge(main): integrate completed WORK-0001 into WORK-0002'
+          git push origin HEAD:feat/work-0002-governance-ci
+          echo "INTEGRATED_HEAD=$(git rev-parse HEAD)"
