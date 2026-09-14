@@ -17,7 +17,13 @@ from .proof_contracts import (
     resolve_risk_authority_rule,
 )
 
-META_PATH_PREFIXES = (".github/", "tools/governance/", "schemas/registry/", "scripts/governance_")
+META_PATH_PREFIXES = (
+    ".github/",
+    "tools/governance/",
+    "schemas/registry/",
+    "scripts/governance_",
+    "registry/integration-provenance.yaml",
+)
 ADMIN_PATH_PREFIXES = ("registry/reviews/", "registry/progress/", "PROJECT_STATE.md")
 FULL_COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 SEMANTIC_WORK_KEYS = {
@@ -85,6 +91,46 @@ def file_exists_at(root: Path, sha: str, path: str) -> bool:
         return True
     except RuntimeError:
         return False
+
+
+def blob_sha_at(root: Path, sha: str, path: str) -> str | None:
+    try:
+        value = git(root, "rev-parse", f"{sha}:{path}").strip()
+    except RuntimeError:
+        return None
+    return value if FULL_COMMIT_SHA.fullmatch(value) else None
+
+
+def historical_malformed_yaml_allowed(
+    root: Path,
+    path: str,
+    malformed_sha: str,
+    head: str,
+    repaired_sha: str | None = None,
+) -> bool:
+    provenance = show_yaml(root, head, "registry/integration-provenance.yaml") or {}
+    for entry in provenance.get("historical_malformed_yaml", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("path") != path or entry.get("malformed_commit_sha") != malformed_sha:
+            continue
+        repair = str(entry.get("repaired_commit_sha") or "")
+        malformed_blob = str(entry.get("malformed_blob_sha") or "")
+        repaired_blob = str(entry.get("repaired_blob_sha") or "")
+        if repaired_sha is not None and repair != repaired_sha:
+            continue
+        if not all(FULL_COMMIT_SHA.fullmatch(value) for value in (malformed_sha, repair, malformed_blob, repaired_blob)):
+            continue
+        if entry.get("historical_only") is not True or entry.get("future_reuse_forbidden") is not True:
+            continue
+        if blob_sha_at(root, malformed_sha, path) != malformed_blob:
+            continue
+        if blob_sha_at(root, repair, path) != repaired_blob:
+            continue
+        if not is_ancestor(root, malformed_sha, repair) or not is_ancestor(root, repair, head):
+            continue
+        return True
+    return False
 
 
 def registry_kind(path: str) -> str | None:
@@ -501,9 +547,13 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
             previous = show_yaml(root, previous_sha, path)
             current = show_yaml(root, sha, path)
             if previous and current is None:
+                if file_exists_at(root, sha, path) and historical_malformed_yaml_allowed(root, path, sha, head):
+                    continue
                 out.append(ChangeFinding(path, "RECORD_DELETE", f"published registry record deleted at {sha[:12]}"))
                 continue
             if previous is None and current:
+                if file_exists_at(root, previous_sha, path) and historical_malformed_yaml_allowed(root, path, previous_sha, head, repaired_sha=sha):
+                    continue
                 if not record_introduction_allowed(root, previous_sha, sha, head, kind, current):
                     out.append(ChangeFinding(path, "STATE_INITIAL", f"new {kind} record {current.get('id')} materialized as {current.get('status')!r} without canonical initial state or exact import exception at {sha[:12]}"))
                 continue
