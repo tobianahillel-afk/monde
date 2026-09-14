@@ -358,7 +358,7 @@ registry_machines:
         reviewer_context_id: "github-actions:34793888383:1:test-0008-v2"
         expected_outcome: APPROVE_WITH_FOLLOWUP
         one_shot: true
-        consumed_by_commit: null
+        consumed_by_commit: "f78d5575a94b49d90abb166003cf4520bf167d3a"
         source_kind: GITHUB_ACTIONS_COPILOT_CLI
         reason: "A fresh-context GitHub Actions Copilot CLI L2 completed against exact frozen candidate c12a5b55 before REVIEW-0027 materialization. It independently parsed WORK-0001, recomputed all three requirement digests, verified REVIEW-0026/F-1/F-2/F-3, recorded all fifteen TEST-0008 cold-read outcomes PASS, returned APPROVE_WITH_FOLLOWUP with no material findings, and is therefore preauthorized for one-shot truthful import without replaying OPEN/IN_PROGRESS."
     external_import_rule: "For an externally completed review materialized after v7, a matching one-shot authorization must already exist in a parent commit before the REVIEW record first appears. The authorization binds record_id, resulting status, reviewed artifact SHA, source review identity/time, reviewer context and expected outcome. The imported REVIEW must declare that authorization. A later metadata-only binding must set consumed_by_commit to the actual first-materialization commit before the imported review may satisfy any work completion gate. An authorization with consumed_by_commit set cannot be reused."
