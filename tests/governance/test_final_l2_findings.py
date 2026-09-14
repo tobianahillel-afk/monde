@@ -211,7 +211,6 @@ def test_changed_registry_record_seeds_context_dependency_closure(tmp_path: Path
     assert "registry/work-items/WORK-2.yaml" in manifest["context"]["should_read"]
 
 
-
 def test_blocking_accepted_finding_requires_matrix_authority(tmp_path: Path) -> None:
     policy = yaml.safe_load(Path("registry/acceptance-authority.yaml").read_text(encoding="utf-8"))
     dump(tmp_path / "registry/acceptance-authority.yaml", policy)
@@ -232,6 +231,6 @@ def test_blocking_accepted_finding_requires_matrix_authority(tmp_path: Path) -> 
     dump(tmp_path / "registry/reviews/REVIEW-1.yaml", review)
     dump(tmp_path / "registry/work-items/WORK-1.yaml", {"id": "WORK-1", "status": "DONE", "depends_on": [], "assurance": {"level": "A3"}, "review_plan": {"independence_level": "L2", "completed_reviews": ["REVIEW-1"]}, "required_tests": {}, "completion": {"specification_gates_checked": True}})
     assert "DONE_REVIEW_AUTHORITY" in {x.rule for x in validate_work_lifecycle(tmp_path)}
-    review["findings"][0]["acceptance"].update({"accepted_by": "owner", "authority_role": "REPOSITORY_OWNER", "authority_evidence_type": "GITHUB_REPOSITORY_OWNER_PERMISSION", "authority_evidence_ref": "https://api.github.com/repos/owner/repo"})
+    review["findings"][0]["acceptance"].update({"accepted_by": "tobianahillel-afk", "authority_role": "REPOSITORY_OWNER", "authority_evidence_type": "GITHUB_REPOSITORY_OWNER_PERMISSION", "authority_evidence_ref": "https://api.github.com/repos/tobianahillel-afk/monde"})
     dump(tmp_path / "registry/reviews/REVIEW-1.yaml", review)
     assert "DONE_REVIEW_AUTHORITY" not in {x.rule for x in validate_work_lifecycle(tmp_path)}
