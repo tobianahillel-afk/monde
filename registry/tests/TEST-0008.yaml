@@ -86,7 +86,7 @@ acceptance_cold_read:
 
 external_import:
   authorization_source: "registry/status-machines.yaml@4b15dc41c2489239d932827880f612d7ef55bbfa#registry_machines.tests.external_execution_import_authorizations.TEST-0008"
-  import_commit: null
+  import_commit: "4035cbd9fe5a9dc113d95ba83ad3c72d7d0b76f1"
 
 execution:
   command_or_workflow: "GitHub Actions / TEST-0008 fresh-context L2 v2"
@@ -112,7 +112,7 @@ history:
   executions:
     - commit_sha: "c12a5b55c89168f20c028c2964da16de6f95ac56"
       recorded_result: PASS
-      recorded_in_commit: null
+      recorded_in_commit: "4035cbd9fe5a9dc113d95ba83ad3c72d7d0b76f1"
       validity: VALID
       invalidated_by: null
       reason: "Fresh-context GitHub Actions Copilot CLI L2 independently parsed the exact target, recomputed all three normative digests, recorded 15/15 required cold-read outcomes PASS, verified REVIEW-0026/F-1/F-2/F-3, and found no material R1/R2/R3 defect."
