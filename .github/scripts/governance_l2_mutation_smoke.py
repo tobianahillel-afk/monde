@@ -14,6 +14,9 @@ TESTS = [
     "tests/governance/test_l2_gate_provenance.py",
     "tests/governance/test_codex_followup_five.py",
     "tests/governance/test_codex_followup_mutation.py",
+    "tests/governance/test_t7_closure.py",
+    "tests/governance/test_t7_closure_coverage.py",
+    "tests/governance/test_github_live_gate.py",
 ]
 MUTATIONS = {
     "exact-head-checkout": (".github/scripts/governance_l2_hardening.py", 'or (checkout.get("with") or {}).get("ref") != CHECKOUT_REF', 'or False'),
@@ -34,6 +37,14 @@ MUTATIONS = {
     "done-test-import-consumption": ("tools/governance/strict_contracts.py", 'elif not test_external_import_bound_and_consumed(test, machine):', 'elif False:'),
     "context-merge-base": ("tools/governance/context_manifest.py", 'merge_base = git(root, "merge-base", base, head).strip()', 'merge_base = base'),
     "done-test-import-materialization": (".github/scripts/governance_l2_followup.py", 'if test.get("external_import") is not None and not test_import_finalized(root, test, head, path):', 'if False:'),
+    "t7-policy-predecessor-authority": ("tools/governance/t7_closure.py", 'if not active_predecessor_work_covers(root, before, path):', 'if False:'),
+    "t7-adoption-git-binding": ("tools/governance/t7_closure.py", 'entry.get("adoption_commit_sha") != actual', 'False'),
+    "t7-review-co-satisfaction": ("tools/governance/t7_closure.py", 'if not any(review_qualifies(root, after, current, digest, floor, review) for review in reviews):', 'if False:'),
+    "t7-cold-read-co-satisfaction": ("tools/governance/t7_closure.py", 'if not any(cold_read_qualifies(root, after, current, digest, floor, test) for test in tests):', 'if False:'),
+    "t7-policy-revision-binding": ("tools/governance/t7_closure.py", 'and policy_blob(root, reviewed_sha) == policy_blob(root, acceptance_sha)', 'and True'),
+    "t7-owner-external-anchor": ("tools/governance/t7_closure.py", 'governed.get("full_name") == actual', 'True'),
+    "t7-live-exact-head-approval": ("tools/governance/github_live_gate.py", 'if not approvers:', 'if False:'),
+    "t7-durable-finding-set": ("tools/governance/github_live_gate.py", 'if durable is None or len(durable) != len(unresolved):', 'if False:'),
 }
 
 
