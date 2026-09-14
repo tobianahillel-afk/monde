@@ -117,10 +117,11 @@ jobs:
             *) exit 1 ;;
           esac
 
-      - name: Checkout current PR merge ref
+      - name: Checkout exact current PR head
         if: github.event_name == 'pull_request'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
       - name: Verify live GitHub review state
@@ -132,6 +133,7 @@ jobs:
             --repo '${{ github.repository }}' \
             --pr '${{ github.event.pull_request.number }}' \
             --head '${{ github.event.pull_request.head.sha }}' \
+            --root . \
             --json-out github-live-gate.json
 
       - name: Write final gate summary
@@ -144,7 +146,7 @@ jobs:
             echo '- Deterministic governance: `${{ needs.governance-core.result }}`'
             echo '- Dependency review lane: `${{ needs.dependency-review.result }}` (the lane reports UNAVAILABLE when Dependency Graph is disabled; WORK-0003 must enable it)'
             echo '- CodeQL: `${{ needs.codeql.result }}`'
-            echo '- Live PR review-thread/head state checked for pull requests.'
+            echo '- Live PR exact-head state, durable finding count, repository-owner permission and independent exact-head APPROVED review are checked for pull requests.'
             echo
             echo '**Only this stable final gate should become the required MONDE status check.**'
           } >> "$GITHUB_STEP_SUMMARY"
