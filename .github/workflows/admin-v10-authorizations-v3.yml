@@ -1,5 +1,5 @@
 name: Final v10 fresh-context L2 closure review
-# trigger: 5
+# trigger: 6
 
 on:
   push:
@@ -95,12 +95,12 @@ jobs:
           set -euo pipefail
           python admin/tools/final_v10_l2_review.py target build
 
-      - name: Compact fresh-context evidence packet
+      - name: Build bounded compact evidence packet
         shell: bash
         run: |
           set -euo pipefail
-          python admin/tools/final_v10_compact_prompt.py target
-          test "$(wc -c < /tmp/final-v10/prompt.txt)" -lt 90000
+          python admin/tools/final_v10_compact_prompt_v2.py target
+          test "$(wc -c < /tmp/final-v10/prompt.txt)" -lt 80000
 
       - name: Install pinned Copilot CLI
         run: npm install -g @github/copilot@1.0.83
