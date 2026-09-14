@@ -132,8 +132,9 @@ def test_progress_status_mismatch(tmp_path: Path) -> None:
     path = tmp_path / "registry/progress/matrix.yaml"
     path.parent.mkdir(parents=True)
     work = Record("work-items", tmp_path / "registry/work-items/WORK-1.yaml", {"id": "WORK-1", "status": "IN_PROGRESS"})
+    (tmp_path / "registry/status-machines.yaml").write_text(yaml.safe_dump({"progress": {"states": sorted(GLOBAL_STATUSES)}}), encoding="utf-8")
     path.write_text(yaml.safe_dump({
-        "status_vocabulary": sorted(GLOBAL_STATUSES),
+        "status_machine": "../status-machines.yaml#progress",
         "phases": {"P": {"lots": {"L": {"sublots": {"S": {"work_items": {"WORK-1": {"status": "PLANNED"}}}}}}}},
     }), encoding="utf-8")
     validator = Validator(tmp_path)

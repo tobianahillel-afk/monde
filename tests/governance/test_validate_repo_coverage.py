@@ -39,7 +39,8 @@ def test_review_completion_property_isolated(tmp_path: Path) -> None:
 def test_progress_reverse_membership_property_isolated(tmp_path: Path) -> None:
     p = tmp_path / "registry/progress/matrix.yaml"
     p.parent.mkdir(parents=True)
-    p.write_text(yaml.safe_dump({"status_vocabulary": sorted(GLOBAL_STATUSES), "phases": {}}), encoding="utf-8")
+    (tmp_path / "registry/status-machines.yaml").write_text(yaml.safe_dump({"progress": {"states": sorted(GLOBAL_STATUSES)}}), encoding="utf-8")
+    p.write_text(yaml.safe_dump({"status_machine": "../status-machines.yaml#progress", "phases": {}}), encoding="utf-8")
     work = Record("work-items", tmp_path / "registry/work-items/WORK-1.yaml", {"id": "WORK-1", "status": "IN_PROGRESS"})
     v = Validator(tmp_path)
     v.records = [work]

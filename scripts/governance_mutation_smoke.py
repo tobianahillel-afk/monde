@@ -26,7 +26,7 @@ MUTATIONS = {
     ),
     "done-progress-dimensions": (
         "tools/governance/validate_repo.py",
-        'if isinstance(value, str) and value in GLOBAL_STATUSES and value not in DONE_PROGRESS_ALLOWED:',
+        'if isinstance(value, str) and value in progress_states and value not in DONE_PROGRESS_ALLOWED:',
         'if False:',
     ),
     "review-independence-rank": (

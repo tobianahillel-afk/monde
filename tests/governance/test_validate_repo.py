@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from tools.governance.validate_repo import GLOBAL_STATUSES, Issue, Validator, main
+from tools.governance.validate_repo import GLOBAL_STATUSES, STATUS_BY_KIND, Issue, Validator, main
 
 
 def write(path: Path, content: str) -> None:
@@ -61,13 +61,17 @@ def matrix_for(work: dict, extra: dict | None = None) -> dict:
     state = {"status": work["status"]}
     if extra:
         state.update(extra)
-    return {"status_vocabulary": sorted(GLOBAL_STATUSES), "phases": {"P": {"lots": {"L": {"sublots": {"S": {"work_items": {work["id"]: state}}}}}}}}
+    return {"status_machine": "../status-machines.yaml#progress", "phases": {"P": {"lots": {"L": {"sublots": {"S": {"work_items": {work["id"]: state}}}}}}}}
 
 
 def make_repo(tmp_path: Path, work: dict | None = None) -> Path:
     root = tmp_path / "repo"
     write(root / "README.md", "# Repo\n")
     install_schemas(root)
+    dump(root / "registry/status-machines.yaml", {
+        "registry_machines": {kind.replace("-", "_"): {"states": sorted(states)} for kind, states in STATUS_BY_KIND.items()},
+        "progress": {"states": sorted(GLOBAL_STATUSES)},
+    })
     work = work or base_work()
     dump(root / "registry/work-items/WORK-0001.yaml", work)
     dump(root / "registry/progress/matrix.yaml", matrix_for(work))
@@ -194,7 +198,7 @@ def test_progress_reverse_mismatch_and_done_dimensions(tmp_path: Path) -> None:
     assert "PROGRESS_REQUIRED" in rules(Validator(root))
     write(p, "- bad\n")
     Validator(root).run()
-    dump(p, {"status_vocabulary": ["BOGUS"], "phases": {"P": {"lots": {"L": {"sublots": {"S": {"work_items": {"WORK-9999": {"status": "PLANNED"}}}}}}}}})
+    dump(p, {"status_machine": "wrong#progress", "phases": {"P": {"lots": {"L": {"sublots": {"S": {"work_items": {"WORK-9999": {"status": "PLANNED"}}}}}}}}})
     found = rules(Validator(root))
     assert {"STATUS_VOCAB", "PROGRESS_WORK"} <= found
 
@@ -265,3 +269,20 @@ def test_yaml_oserror_template_skip_and_secret_binary_skip(tmp_path: Path, monke
     monkeypatch.setattr(Path, "read_text", fake)
     assert v.load_yaml(path) is None
     assert v.issues[-1].rule == "YAML_PARSE"
+
+
+def test_v10_status_machine_and_project_state_contract(tmp_path: Path) -> None:
+    root = make_repo(tmp_path)
+    machine_path = root / "registry/status-machines.yaml"
+    machine = yaml.safe_load(machine_path.read_text())
+    machine["registry_machines"]["tests"]["states"].append("SUPERSEDED")
+    dump(machine_path, machine)
+    dump(root / "registry/tests/TEST-0002.yaml", {"id": "TEST-0002", "status": "SUPERSEDED"})
+    write(root / "PROJECT_STATE.md", "# State\n\n## Current phase / lot\n\n- WORK-0001 is IN_PROGRESS.\n")
+    assert Validator(root, today=date(2026, 9, 10)).run() == []
+
+
+def test_status_machine_must_be_machine_readable(tmp_path: Path) -> None:
+    root = make_repo(tmp_path)
+    write(root / "registry/status-machines.yaml", "- not-a-machine\n")
+    assert "STATUS" in rules(Validator(root))

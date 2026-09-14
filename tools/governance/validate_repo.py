@@ -142,8 +142,12 @@ class Validator:
                 self.add(r.path, "SCHEMA", error.message)
 
     def validate_statuses(self) -> None:
+        machine = self.load_yaml(self.root / "registry/status-machines.yaml")
+        registry_machines = machine.get("registry_machines", {}) if isinstance(machine, dict) else {}
         for r in self.records:
-            if r.data.get("status") not in STATUS_BY_KIND[r.kind]:
+            machine_key = r.kind.replace("-", "_")
+            states = set(((registry_machines.get(machine_key) or {}).get("states") or []))
+            if r.data.get("status") not in states:
                 self.add(r.path, "STATUS", f"invalid status {r.data.get('status')!r} for {r.kind}")
 
     def iter_strings(self, value: Any) -> Iterable[str]:
@@ -328,9 +332,10 @@ class Validator:
         data = self.load_yaml(path)
         if not isinstance(data, dict):
             return
-        vocab = set(data.get("status_vocabulary", []) or [])
-        if vocab != GLOBAL_STATUSES:
-            self.add(path, "STATUS_VOCAB", "progress status_vocabulary must equal canonical set")
+        machine = self.load_yaml(self.root / "registry/status-machines.yaml")
+        progress_states = set(((machine.get("progress") or {}).get("states") or [])) if isinstance(machine, dict) else set()
+        if "status_vocabulary" in data or data.get("status_machine") != "../status-machines.yaml#progress":
+            self.add(path, "STATUS_VOCAB", "progress matrix must reference canonical status-machines.yaml#progress and must not define a competing vocabulary")
         found: dict[str, Any] = {}
         for phase in (data.get("phases") or {}).values():
             for lot in (phase.get("lots") or {}).values():
@@ -353,7 +358,7 @@ class Validator:
                 for key, value in state.items():
                     if key == "status":
                         continue
-                    if isinstance(value, str) and value in GLOBAL_STATUSES and value not in DONE_PROGRESS_ALLOWED:
+                    if isinstance(value, str) and value in progress_states and value not in DONE_PROGRESS_ALLOWED:
                         self.add(path, "PROGRESS_DONE_DIMENSION", f"{wid}.{key}={value} is incomplete for DONE")
 
     def validate_project_state(self) -> None:
@@ -367,15 +372,18 @@ class Validator:
             self.add(path, "PROJECT_STATE_READ", str(exc))
             return
         section = self.extract_section(text, "Active work")
+        if not section:
+            section = self.extract_section(text, "Current phase / lot")
         ids = set(re.findall(r"\bWORK-\d+\b", section))
-        if not ids:
-            self.add(path, "ACTIVE_WORK", "Active work section must reference at least one WORK id")
+        active_ids: set[str] = set()
         for wid in ids:
             r = self.by_id.get(wid)
             if not r:
-                self.add(path, "ACTIVE_WORK", f"unknown active work item {wid}")
-            elif r.data.get("status") in {"DONE", "DEPRECATED", "CANCELLED"}:
-                self.add(path, "ACTIVE_WORK", f"active work item {wid} has terminal status")
+                self.add(path, "ACTIVE_WORK", f"unknown current work item {wid}")
+            elif r.data.get("status") not in {"DONE", "DEPRECATED", "CANCELLED"}:
+                active_ids.add(wid)
+        if not active_ids:
+            self.add(path, "ACTIVE_WORK", "current work section must reference at least one non-terminal WORK id")
 
     @staticmethod
     def extract_section(text: str, heading: str) -> str:
