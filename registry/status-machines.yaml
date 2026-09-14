@@ -606,7 +606,7 @@ registry_machines:
       reviewer_context_id: fresh-context-pr2-cbc2dfc
       expected_outcome: CHANGES_REQUIRED
       one_shot: true
-      consumed_by_commit: null
+      consumed_by_commit: 630604416bdccd3b07f57c011152e7fe14e0f2b4
       finding_origin: PRRT_kwDOUUI5ts6iF6p2;PRRT_kwDOUUI5ts6iF6qN;PRRT_kwDOUUI5ts6iF6qU;PRRT_kwDOUUI5ts6iF6qY;PRRT_kwDOUUI5ts6iF6qf;PRRT_kwDOUUI5ts6iF6qm
       reason: 'The fresh-context GitHub Codex review of exact PR #2 candidate cbc2dfc completed externally before REVIEW-0030 materialization and produced six new material P1 findings. This one-shot authorization is committed first so the negative review can be imported truthfully as COMPLETE without replaying OPEN/IN_PROGRESS after the fact.'
     external_import_rule: For an externally completed review materialized after v7, a matching one-shot authorization must
