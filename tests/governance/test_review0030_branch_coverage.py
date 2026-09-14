@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import yaml
 
 import tools.governance.change_guard as cg
-from tools.governance.validate_repo import Validator
+from tools.governance.proof_contracts import requirement_normative_digest
+from tools.governance.strict_contracts import pass_test_revision_valid, validate_work_lifecycle
+from tools.governance.validate_repo import Record, Validator
 
 
 def risk_policy() -> dict:
@@ -97,6 +100,27 @@ def evaluate(monkeypatch, tmp_path: Path, risk: dict, records: dict) -> bool:
     return cg.risk_acceptance_satisfied(tmp_path, "sha", risk)
 
 
+def dump(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(value, sort_keys=False), encoding="utf-8")
+
+
+def git(root: Path, *args: str) -> str:
+    return subprocess.run(["git", *args], cwd=root, text=True, capture_output=True, check=True).stdout.strip()
+
+
+def init_git(root: Path) -> None:
+    git(root, "init")
+    git(root, "config", "user.email", "review0030-coverage@example.invalid")
+    git(root, "config", "user.name", "review0030-coverage")
+
+
+def commit(root: Path, message: str) -> str:
+    git(root, "add", "-A")
+    git(root, "commit", "-m", message)
+    return git(root, "rev-parse", "HEAD")
+
+
 def test_risk_acceptance_preconditions_fail_closed(monkeypatch, tmp_path: Path) -> None:
     risk = base_risk()
     records = records_for(risk)
@@ -168,6 +192,119 @@ def test_risk_work_owner_and_delegation_evidence(monkeypatch, tmp_path: Path) ->
 
     delegated["resolution"]["authority_evidence_type"] = "UNKNOWN"
     assert not evaluate(monkeypatch, tmp_path, delegated, records)
+
+    unsupported = base_risk()
+    unsupported["resolution"]["authority_evidence_type"] = "CUSTOM_EVIDENCE"
+    records = records_for(unsupported)
+    records["registry/acceptance-authority.yaml"]["vocabulary"]["authority_roles"]["REPOSITORY_OWNER"]["allowed_evidence_types"] = ["CUSTOM_EVIDENCE"]
+    assert not evaluate(monkeypatch, tmp_path, unsupported, records)
+
+
+def test_requirement_acceptance_without_cold_read_fails_closed(monkeypatch, tmp_path: Path) -> None:
+    identity = {
+        "schemes": {
+            "REQUIREMENT_NORMATIVE_V1": {
+                "algorithm": "SHA256",
+                "canonicalization": {"standard": "RFC_8785_JSON_CANONICALIZATION_SCHEME"},
+                "included_fields": ["id"],
+            }
+        }
+    }
+    requirement = {"id": "REQ-1"}
+    digest = requirement_normative_digest(tmp_path, requirement, identity)
+    assert digest is not None
+    requirement["content_identity"] = {"scheme": "REQUIREMENT_NORMATIVE_V1", "digest": digest}
+    requirement["verification"] = {"acceptance_evidence": [], "acceptance_cold_read_test_ids": []}
+    monkeypatch.setattr(cg, "show_yaml", lambda root, sha, path: identity if path == "registry/content-identity.yaml" else None)
+    assert not cg.requirement_acceptance_satisfied(tmp_path, "head", requirement)
+
+
+def test_change_guard_reports_invalid_risk_acceptance_transition(tmp_path: Path) -> None:
+    init_git(tmp_path)
+    (tmp_path / cg.GUARD_PATH).parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / cg.GUARD_PATH).write_text("guard\n", encoding="utf-8")
+    dump(
+        tmp_path / "registry/status-machines.yaml",
+        {
+            "registry_machines": {
+                "risks": {
+                    "initial": "OPEN",
+                    "transitions": {"OPEN": ["ACCEPTED"], "ACCEPTED": []},
+                    "acceptance_preconditions": {"required_fields": ["resolution.accepted"]},
+                }
+            }
+        },
+    )
+    risk = {
+        "id": "RISK-1",
+        "status": "OPEN",
+        "category": "ENGINEERING",
+        "scope": {"work_items": ["WORK-1"]},
+        "assessment": {"impact": "HIGH"},
+        "resolution": {"accepted": False},
+    }
+    dump(tmp_path / "registry/risks/RISK-1.yaml", risk)
+    base = commit(tmp_path, "open risk")
+    risk["status"] = "ACCEPTED"
+    dump(tmp_path / "registry/risks/RISK-1.yaml", risk)
+    head = commit(tmp_path, "accept risk without authority")
+    assert "RISK_ACCEPTANCE_PRECONDITION" in {finding.rule for finding in cg.validate(tmp_path, base, head)}
+
+
+def test_strict_review_sha_and_revision_branches(tmp_path: Path) -> None:
+    init_git(tmp_path)
+    (tmp_path / "proof.txt").write_text("proof", encoding="utf-8")
+    tested = commit(tmp_path, "tested revision")
+    assert pass_test_revision_valid(tmp_path, {"execution": {"commit_sha": tested}})
+
+    dump(
+        tmp_path / "registry/work-items/WORK-1.yaml",
+        {
+            "id": "WORK-1",
+            "status": "DONE",
+            "depends_on": [],
+            "review_plan": {"completed_reviews": ["REVIEW-1"]},
+            "required_tests": {},
+            "completion": {"specification_gates_checked": True},
+        },
+    )
+    dump(
+        tmp_path / "registry/reviews/REVIEW-1.yaml",
+        {
+            "id": "REVIEW-1",
+            "status": "COMPLETE",
+            "artifact": {"type": "WORK_ITEM", "id_or_path": "WORK-1", "commit_sha": "short"},
+            "scope": {"work_items": ["WORK-1"]},
+        },
+    )
+    assert "DONE_REVIEW_SHA" in {issue.rule for issue in validate_work_lifecycle(tmp_path)}
+
+
+def test_validate_repo_reports_unresolved_blocking_review_finding(tmp_path: Path) -> None:
+    validator = Validator(tmp_path)
+    work = Record(
+        "work-items",
+        tmp_path / "registry/work-items/WORK-1.yaml",
+        {
+            "id": "WORK-1",
+            "review_plan": {"required_hats": [], "independence_level": "L0", "completed_reviews": ["REVIEW-1"]},
+        },
+    )
+    review = Record(
+        "reviews",
+        tmp_path / "registry/reviews/REVIEW-1.yaml",
+        {
+            "id": "REVIEW-1",
+            "status": "COMPLETE",
+            "outcome": "APPROVE",
+            "roles": [],
+            "reviewer": {"independence_level": "L0"},
+            "findings": [{"id": "F-1", "severity": "R2_MAJOR", "disposition": "OPEN"}],
+        },
+    )
+    validator.by_id = {"REVIEW-1": review}
+    validator.validate_review_evidence(work)
+    assert any("retains blocking finding F-1" in issue.message for issue in validator.issues)
 
 
 def test_duplicate_yaml_unhashable_key_is_parse_error(tmp_path: Path) -> None:
