@@ -11,6 +11,12 @@ from typing import Any, Iterable
 
 import yaml
 
+from .proof_contracts import (
+    requirement_normative_digest,
+    repository_owner_evidence_valid,
+    resolve_risk_authority_rule,
+)
+
 META_PATH_PREFIXES = (".github/", "tools/governance/", "schemas/registry/", "scripts/governance_")
 ADMIN_PATH_PREFIXES = ("registry/reviews/", "registry/progress/", "PROJECT_STATE.md")
 FULL_COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
@@ -212,6 +218,9 @@ def requirement_acceptance_satisfied(root: Path, sha: str, requirement: dict[str
     digest = ident.get("digest")
     if ident.get("scheme") != "REQUIREMENT_NORMATIVE_V1" or not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
         return False
+    identity_policy = show_yaml(root, sha, "registry/content-identity.yaml") or {}
+    if requirement_normative_digest(root, requirement, identity_policy) != digest:
+        return False
     verification = requirement.get("verification") or {}
     review_ok = False
     for review_id in verification.get("acceptance_evidence", []) or []:
@@ -262,6 +271,64 @@ def requirement_acceptance_satisfied(root: Path, sha: str, requirement: dict[str
     return review_ok and cold_ok
 
 
+def risk_acceptance_satisfied(root: Path, sha: str, risk: dict[str, Any]) -> bool:
+    spec = canonical_machine_spec(root, sha, "risks")
+    preconditions = spec.get("acceptance_preconditions") or {}
+    resolution = risk.get("resolution") or {}
+    required_fields = preconditions.get("required_fields") or []
+    if not isinstance(resolution, dict) or resolution.get("accepted") is not True:
+        return False
+    for dotted in required_fields:
+        if not isinstance(dotted, str) or not dotted.startswith("resolution."):
+            return False
+        key = dotted.split(".", 1)[1]
+        if resolution.get(key) in (None, ""):
+            return False
+
+    policy = show_yaml(root, sha, "registry/acceptance-authority.yaml") or {}
+    resolved = resolve_risk_authority_rule(
+        root,
+        risk,
+        policy,
+        lambda path: show_yaml(root, sha, path),
+    )
+    if resolved is None:
+        return False
+    rule_id, allowed_roles = resolved
+    role = resolution.get("authority_role")
+    evidence_type = resolution.get("authority_evidence_type")
+    role_spec = (((policy.get("vocabulary") or {}).get("authority_roles") or {}).get(role) or {})
+    if role not in allowed_roles or evidence_type not in (role_spec.get("allowed_evidence_types") or []):
+        return False
+    if resolution.get("authority_matrix_version") != policy.get("version") or resolution.get("authority_rule_id") != rule_id:
+        return False
+
+    evidence = {
+        "accepted_by": resolution.get("accepted_by"),
+        "authority_evidence_type": evidence_type,
+        "authority_evidence_ref": resolution.get("authority_evidence_ref"),
+    }
+    if evidence_type == "GITHUB_REPOSITORY_OWNER_PERMISSION":
+        return repository_owner_evidence_valid(evidence, policy)
+
+    ref = str(resolution.get("authority_evidence_ref") or "")
+    if evidence_type == "WORK_ITEM_OWNER_BINDING":
+        scope = risk.get("scope") or {}
+        work_items = scope.get("work_items") or []
+        if len(work_items) != 1 or ref != f"registry/work-items/{work_items[0]}.yaml":
+            return False
+        work = show_yaml(root, sha, ref) or {}
+        return work.get("owner") == resolution.get("accepted_by")
+
+    if evidence_type in {"GOVERNANCE_DELEGATION", "GOVERNANCE_SECURITY_DELEGATION", "EXPLICIT_REPOSITORY_OWNER_DECISION"}:
+        if not ref.startswith("registry/"):
+            return False
+        authority_record = show_yaml(root, sha, ref) or {}
+        actor = resolution.get("accepted_by")
+        return actor in {authority_record.get("actor"), authority_record.get("delegate"), authority_record.get("accepted_by")}
+    return False
+
+
 def commit_parents(root: Path, sha: str) -> list[str]:
     return git(root, "show", "-s", "--format=%P", sha).split()
 
@@ -295,6 +362,7 @@ def paths_across_edges(root: Path, edges: list[tuple[str, str]]) -> list[str]:
     for before, after in edges:
         paths.update(changed_files(root, before, after))
     return sorted(paths)
+
 
 def path_is_declared(path: str, declared: list[Any]) -> bool:
     for raw in declared:
@@ -447,7 +515,9 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
                 if before != after and after not in allowed.get(str(before), set()):
                     out.append(ChangeFinding(path, "STATE_TRANSITION", f"invalid {kind} transition {before} -> {after} at {sha[:12]}"))
                 if kind == "requirements" and before == "PROPOSED" and after == "ACCEPTED" and not requirement_acceptance_satisfied(root, sha, current):
-                    out.append(ChangeFinding(path, "ACCEPTANCE_PRECONDITION", f"requirement {current.get('id')} accepted without qualifying exact-revision review and cold-read evidence at {sha[:12]}"))
+                    out.append(ChangeFinding(path, "ACCEPTANCE_PRECONDITION", f"requirement {current.get('id')} accepted without qualifying content-bound review and cold-read evidence at {sha[:12]}"))
+                if kind == "risks" and before != "ACCEPTED" and after == "ACCEPTED" and not risk_acceptance_satisfied(root, sha, current):
+                    out.append(ChangeFinding(path, "RISK_ACCEPTANCE_PRECONDITION", f"risk {current.get('id')} accepted without canonical authority/precondition evidence at {sha[:12]}"))
                 if kind == "work-items" and before in ACTIVE_WORK_STATUSES and semantic_projection(previous) != semantic_projection(current):
                     scope_change = current.get("scope_change") or {}
                     if scope_change.get("approved") is not True or not scope_change.get("rationale"):
