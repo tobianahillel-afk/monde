@@ -43,7 +43,6 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          import re
 
           expected = {
             'REVIEW-0004': ['F-1','F-2','F-3','F-4','F-5','F-6'],
@@ -89,9 +88,9 @@ jobs:
                   end=min(ends)
                   block=text[start:end]
                   assert block.count('    disposition: OPEN\n') == 1, f'{review_id}/{fid} not uniquely OPEN'
-                  assert block.count('    resolved_by: null\n') == 1, f'{review_id}/{fid} resolved_by unexpected'
+                  assert block.count('    resolved_by: null') == 1, f'{review_id}/{fid} resolved_by unexpected'
                   block=block.replace('    disposition: OPEN\n','    disposition: RESOLVED\n',1)
-                  block=block.replace('    resolved_by: null\n','    resolved_by: REVIEW-0028\n',1)
+                  block=block.replace('    resolved_by: null','    resolved_by: REVIEW-0028',1)
                   text=text[:start]+block+text[end:]
                   seen.append(f'{review_id}/{fid}')
               assert text != original
