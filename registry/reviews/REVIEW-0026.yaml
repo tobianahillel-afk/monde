@@ -1,0 +1,119 @@
+id: REVIEW-0026
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "4f8cebeeca36d895cc17b1103d7689bcf27b5541"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr3-4f8cebee"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "018ae267f2b6c63636fdb5f7833f64b1fd68f11b"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNYK4AQ"
+  source_submitted_at: "2026-09-13T23:27:28Z"
+  import_commit: "6075c1d87853f8c0c144e7d95bfa767ba476aa72"
+
+scope:
+  work_items: [WORK-0001]
+  requirements: [REQ-0023, REQ-0024, REQ-0025]
+  capabilities: []
+  contracts:
+    - "accepted-finding authority evidence resolvability"
+    - "requirement normative content identity canonical serialization"
+    - "transition-stable cold-resume handover"
+    - "fresh-context requirement acceptance cold read"
+  risks:
+    - "An accepted blocking finding can cite itself as authority evidence instead of independently resolvable role proof."
+    - "Two conforming implementations can hash semantically identical requirement JSON differently because string serialization is not byte-exact."
+    - "A cold-resuming agent can be routed back through already-completed proof work rather than the current independent-review result."
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: SECURITY
+    description: "At reviewed HEAD 4f8cebeeca36d895cc17b1103d7689bcf27b5541, REVIEW-0001/F-3 authority_evidence_ref resolves only to the finding itself plus prose asserting owner/admin status. It does not point to the independent GitHub repository-owner/permission evidence used by TEST-0007 or another durable role/delegation artifact, so the accepted A3/R2 finding still fails v9's typed authority-evidence contract."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 4f8cebeeca36d895cc17b1103d7689bcf27b5541"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNYK4AQ submitted 2026-09-13T23:27:28Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6h8-Hz"
+      - "Inline review comment database id 4001274195"
+      - "registry/reviews/REVIEW-0001.yaml authority_evidence_ref was self-referential prose"
+      - "registry/acceptance-authority.yaml requires a resolvable durable reference establishing the accepting actor's role/delegation"
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
+
+  - id: F-2
+    severity: R3_MODERATE
+    category: VERIFICATION_VALIDATION
+    description: "At reviewed HEAD 4f8cebeeca36d895cc17b1103d7689bcf27b5541, REQUIREMENT_NORMATIVE_V1 specified compact JSON and preserved Unicode code points but did not define byte-exact JSON string serialization. Equivalent serializers may emit literal Unicode versus \\uXXXX or otherwise different legal byte sequences, so SHA-256 identity is not deterministic across implementations."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 4f8cebeeca36d895cc17b1103d7689bcf27b5541"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNYK4AQ submitted 2026-09-13T23:27:28Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6h8-H0"
+      - "Inline review comment database id 4001274197"
+      - "registry/content-identity.yaml canonicalization used PRESERVE_CODEPOINTS without an exact canonical JSON string-serialization standard"
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
+
+  - id: F-3
+    severity: R3_MODERATE
+    category: DOCUMENTATION_TRACEABILITY
+    description: "At reviewed HEAD 4f8cebeeca36d895cc17b1103d7689bcf27b5541, PROJECT_STATE still ordered synchronization and conditional TEST-0006 execution/freezing even though TEST-0006 had already PASSed and was bound by that frozen candidate. The handover therefore routed a cold-resuming agent through completed administration instead of directly to the fresh L2/TEST-0008 result."
+    evidence:
+      - "PR #3 fresh-context Codex review on exact head 4f8cebeeca36d895cc17b1103d7689bcf27b5541"
+      - "GitHub review PRR_kwDOUUI5ts8AAAABNYK4AQ submitted 2026-09-13T23:27:28Z"
+      - "Inline finding thread PRRT_kwDOUUI5ts6h8-H2"
+      - "Inline review comment database id 4001274199"
+      - "TEST-0006 exact tree 70d9a8a12cf0727fddb377d6c8a45a7ad47f6583 → PASS 673d8f4891f713bf9d230ea908f9c1fc8acba090 → binding 4f8cebeeca36d895cc17b1103d7689bcf27b5541 already existed at review time"
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
+
+checks:
+  assumptions_challenged:
+    - "A non-empty authority evidence reference is sufficient even when it is self-referential."
+    - "Preserving Unicode code points is sufficient to define canonical JSON bytes."
+    - "Conditional rerun wording remains transition-stable after the referenced proof is already complete."
+  omitted_categories_considered:
+    - "REVIEW-0025 exact-content/fresh-context/authority-matrix corrections"
+    - "REQ-0023/REQ-0024/REQ-0025 current PROPOSED state and normative digests"
+    - "TEST-0005/TEST-0007/TEST-0006 v9 proof chains"
+    - "TEST-0008 qualification boundary"
+    - "WORK-0002 PR #3 / PR #2 boundary"
+    - "REQ-0010 / TEST-0004 historical semantic boundary"
+  duplicate_or_reuse_search:
+    - "F-1 refines REVIEW-0025/F-3 by testing whether typed authority evidence actually resolves independently."
+    - "F-2 refines REVIEW-0025/F-1 by testing cross-implementation determinism of the normative digest serialization."
+    - "F-3 is a new transition-stable handover recurrence after TEST-0006 was completed/bound."
+  failure_modes_considered:
+    - "An accepted finding references itself and passes a non-empty-string validator without proving authority."
+    - "Two JSON implementations serialize the same Unicode string to different bytes and derive different normative digests."
+    - "A resume agent repeats completed TEST work and mutates the candidate before processing the actual independent review."
+  evidence_requested:
+    - "REVIEW-0001/F-3 authority_evidence_ref points to independently resolvable GitHub owner/permission proof or an equivalent durable delegation artifact"
+    - "REQUIREMENT_NORMATIVE_V1 adopts an exact byte-level canonical JSON serialization standard, including string escaping"
+    - "PROJECT_STATE first next action begins with the completed fresh L2 result rather than synchronization/rerun already completed before that review"
+    - "Revision-bound tests re-prove authority, requirement digest determinism and transition-stable handover after correction"
+
+cold_read_result:
+  requested_test: TEST-0008
+  qualification_provided: false
+  explicit_outcomes_provided: false
+  reason: "The source review returned material findings and did not provide explicit PASS outcomes for every TEST-0008 cold-read question; TEST-0008 must remain unqualified."
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-13"
+
+history:
+  created_at: "2026-09-14"
+  updated_at: "2026-09-14"

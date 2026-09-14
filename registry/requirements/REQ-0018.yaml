@@ -1,0 +1,15 @@
+id: REQ-0018
+title: "Cross-document specification consistency"
+status: ACCEPTED
+type: GOVERNANCE
+normative_statement: "MONDE SHALL check related canonical documentation for duplicate, stale, conflicting or incompatible semantics and reconcile or explicitly supersede affected material before accepting a specification change."
+rationale: "Canonical truth becomes unsafe when related documents retain incompatible definitions, defaults or lifecycle semantics."
+origin: {source: "WORK-0001/AC-10", decision_date: "2026-09-10", introduced_by_work: WORK-0001, introduced_by_adr: null}
+scope: {capabilities: [], engines: [], experiences: [], schemas: [], data_sources: [], models: []}
+depends_on: [REQ-0010]
+conflicts_with: []
+related_requirements: [REQ-0015, REQ-0016, REQ-0017, REQ-0019]
+semantics: {temporal: true, spatial: true, provenance: true, confidence_uncertainty: false, permissions: true}
+verification: {method: TEST_AND_REVIEW, acceptance_evidence: ["WORK-0001/AC-10", "docs/13_QUALITY/specification-quality.md#gate-s8--cross-document-consistency-review"], test_ids: [TEST-0005], real_system_validation: []}
+risk: {criticality: HIGH, failure_impact: "Different canonical documents can encode competing truths for the same concept."}
+history: {created_at: "2026-09-10", updated_at: "2026-09-10", supersedes: [], superseded_by: null}

@@ -35,7 +35,15 @@ review_by: null
 
 resolution:
   accepted: false
+  accepted_by: null
+  authority_role: null
+  authority_evidence_type: null
+  authority_evidence_ref: null
+  authority_matrix_version: null
+  authority_rule_id: null
   acceptance_rationale: null
+  accepted_at: null
+  review_condition: null
   closed_at: null
 
 history:

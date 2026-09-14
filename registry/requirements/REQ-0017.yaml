@@ -1,0 +1,15 @@
+id: REQ-0017
+title: "Specification failure-mode coverage"
+status: ACCEPTED
+type: GOVERNANCE
+normative_statement: "MONDE SHALL identify and review applicable failure modes plus adversarial or counterexample cases before accepting a material canonical specification."
+rationale: "A happy-path-only specification leaves independently testable failure semantics undefined."
+origin: {source: "WORK-0001/AC-10", decision_date: "2026-09-10", introduced_by_work: WORK-0001, introduced_by_adr: null}
+scope: {capabilities: [], engines: [], experiences: [], schemas: [], data_sources: [], models: []}
+depends_on: [REQ-0010]
+conflicts_with: []
+related_requirements: [REQ-0015, REQ-0016, REQ-0018, REQ-0019]
+semantics: {temporal: false, spatial: false, provenance: true, confidence_uncertainty: false, permissions: false}
+verification: {method: TEST_AND_REVIEW, acceptance_evidence: ["WORK-0001/AC-10", "docs/13_QUALITY/specification-quality.md#gate-s5--complete-behavioral-specification", "docs/13_QUALITY/specification-quality.md#gate-s6--examples-adversarial-cases-and-counterexamples"], test_ids: [TEST-0005], real_system_validation: []}
+risk: {criticality: HIGH, failure_impact: "Material failure behavior can remain unspecified until implementation or production."}
+history: {created_at: "2026-09-10", updated_at: "2026-09-10", supersedes: [], superseded_by: null}

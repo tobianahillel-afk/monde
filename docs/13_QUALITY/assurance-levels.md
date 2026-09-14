@@ -2,7 +2,7 @@
 
 Status: Accepted  
 Canonical: Yes  
-Last Updated: 2026-09-10
+Last Updated: 2026-09-14
 
 ## Purpose
 
@@ -74,7 +74,7 @@ Requires A2 plus:
 - performance/resource benchmark;
 - rollback/replay validation;
 - operational/observability review;
-- no unresolved R1/R2 findings unless formally accepted at appropriate authority.
+- no unresolved R1/R2 findings unless formally accepted by a role authorized by the exact applicable rule in `registry/acceptance-authority.yaml`.
 
 ## A4 — Constitutional / High-Risk / Systemic
 
@@ -91,7 +91,7 @@ Requires A3 plus:
 - multi-reviewer/adversarial `L3` target;
 - explicit alternatives and reversibility analysis;
 - migration/reprocessing plan;
-- formal owner approval where required;
+- formal owner approval where required by `registry/acceptance-authority.yaml`;
 - staged/shadow/canary rollout where runtime behavior is involved;
 - independent validation of critical tests/evidence;
 - post-deployment/merge review plan.
@@ -134,6 +134,12 @@ For A3/A4, the authoring agent should not be the only source of:
 - interpretation of benchmark/backtest results.
 
 Use a fresh reviewer/context or human review where practical to reduce correlated reasoning errors.
+
+For requirement acceptance, `registry/status-machines.yaml` may impose a stronger rule than the general work-level minimum: a qualifying acceptance cold-read must carry explicit L2/L3 fresh-context provenance and bind the exact normative requirement digest defined by `registry/content-identity.yaml`. A generic author-run PASS test cannot substitute for that cold read.
+
+## Acceptance authority
+
+`registry/acceptance-authority.yaml` is the canonical machine-readable authority source for residual risk acceptance and accepted review findings. It resolves permitted authority roles from assurance plus risk impact/category or finding severity and constrains the allowed evidence type for each role. Unknown or unmatched authority fails closed.
 
 ## Non-compensable gates
 

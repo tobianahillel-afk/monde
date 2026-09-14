@@ -2,7 +2,7 @@
 
 Status: Accepted  
 Canonical: Yes  
-Last Updated: 2026-09-10
+Last Updated: 2026-09-14
 
 ## Purpose
 
@@ -166,7 +166,22 @@ Each review records:
 - unresolved questions;
 - decision: `APPROVE`, `APPROVE_WITH_FOLLOWUP`, `CHANGES_REQUIRED`, `BLOCKED`.
 
+When a review is intended to qualify as requirement-acceptance evidence, it must additionally bind every scoped requirement to the exact current normative digest from `registry/content-identity.yaml` through the review record's `scope.requirement_revisions`. Approval for one digest does not transfer to a later substantive revision.
+
 A critical finding cannot be closed only by changing prose; the reviewer verifies the correction/evidence.
+
+## Requirement acceptance cold read
+
+The acceptance cold read is a separate evidence contract even when the same fresh review session performs it. A generic PASS test or the author's own test does not qualify. The qualifying `TEST-*` record must satisfy `registry/status-machines.yaml` and record:
+
+- a durable source identity and submission time;
+- L2/L3 executor/context identity;
+- `fresh_context: true` and authoring-context separation;
+- the exact `REQUIREMENT_NORMATIVE_V1` digest for every requirement while still `PROPOSED`;
+- explicit outcomes for understanding without author reasoning, atomicity/testability, dependencies/conflicts, omission/failure-mode search and evidence-plan sufficiency;
+- PASS for every required outcome and the exact execution revision.
+
+If the normative digest later changes, the earlier review and cold read are stale for acceptance even when the requirement never left `PROPOSED`.
 
 ## Severity
 
@@ -186,6 +201,10 @@ A critical finding cannot be closed only by changing prose; the reviewer verifie
 7. Include false-confidence search: "what result could look correct while being semantically wrong?"
 8. Prefer executable/observable evidence over persuasive narrative.
 
+## Finding/risk acceptance authority
+
+Review perspective is not acceptance authority. When a finding is accepted rather than resolved, the role and evidence must satisfy the exact `finding_acceptance` rule in `registry/acceptance-authority.yaml` for the owning work's assurance level and the finding severity. A free-form role name, reviewer status or non-empty prose does not establish authority.
+
 ## Completion rule
 
-A work item cannot claim review complete until all required hats for its risk/artifact class have a recorded outcome and all blocking findings are resolved or explicitly accepted through the appropriate governance path.
+A work item cannot claim review complete until all required hats for its risk/artifact class have a recorded outcome and all blocking findings are resolved or explicitly accepted through the machine-resolvable authority path in `registry/acceptance-authority.yaml` and `registry/status-machines.yaml`.

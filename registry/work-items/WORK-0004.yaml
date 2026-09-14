@@ -34,6 +34,11 @@ progress_justifications:
   scientific_validation: "WORK-0004 does not implement or promote a scientific/model behavior; its applicable validation is coverage, traceability and omission/duplicate review."
   real_system_validation: "WORK-0004 produces registry/documentation artifacts only and has no runtime/system behavior requiring real-system execution."
 
+progress_justifications:
+  implementation: "WORK-0004 is a canonical inventory/specification work item; implementation of inventoried capabilities is explicitly out of scope."
+  scientific_validation: "The inventory introduces no scientific/model behavior; completeness and semantic deduplication are verified through specification tests and independent review."
+  real_system_validation: "WORK-0004 does not depend on an external runtime system; its source-of-truth inputs and outputs are repository/project-history artifacts and are validated through traceability and review."
+
 read_before:
   - README.md
   - AGENTS.md

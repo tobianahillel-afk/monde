@@ -6,7 +6,7 @@ lot: LOT-0
 sublot: SUBLOT-0.2
 owner: "repository governance"
 created_at: "2026-09-10"
-updated_at: "2026-09-11"
+updated_at: "2026-09-14"
 
 purpose: |
   Turn MONDE governance/specification/traceability contracts into executable CI and GitHub control-plane checks so repository state, review evidence, scope and proof cannot silently drift.
@@ -156,7 +156,6 @@ review_plan:
     - "PRRT_kwDOUUI5ts6hMwQ4 / P1: every NOT_APPLICABLE progress dimension requires a non-empty work-item justification."
     - "PRRT_kwDOUUI5ts6hMwQ9 / P2: changed non-WORK registry records must seed dependency-aware context closure."
     - "PRRT_kwDOUUI5ts6hMwRB / P2: PROJECT_STATE must resume from the current six-finding gate rather than obsolete pre-c50 correction work."
-    - "WORK-0001 / PR #3 remains the blocking dependency and must be independently approved/merged before WORK-0002 can become DONE."
 
 required_tests:
   unit: [TEST-0002]
@@ -220,7 +219,7 @@ validation:
   coverage: {line: 100, branch: 100}
   known_gaps:
     - "Repository administration/ruleset enforcement belongs to WORK-0003."
-    - "WORK-0001/PR #3 must merge before WORK-0002 completion."
+    - "Merged WORK-0001 contract from main@29086643387ff46ab6636dd2fa3014efccc10165 is now integrated; the integrated HEAD still requires a complete MONDE Gate and fresh L2 before completion."
     - "Current six-finding corrective HEAD still requires real MONDE Gate proof and a fresh L2 after integration of the merged WORK-0001 contract."
 
 risk:
@@ -237,6 +236,7 @@ run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Initial validator and real CI established."}
   - {run: RUN-2, date: "2026-09-10", note: "Successive P0-P2 hardening rounds reached c50c330 with a green MONDE Gate; a fresh L2 then found six remaining gaps in assurance-derived independence, exact review SHA binding, substantive PASS proof, N/A justification, registry-change context seeding and handover currentness."}
   - {run: RUN-2, date: "2026-09-11", note: "Prepared one atomic six-finding correction plus dedicated final-L2 regressions and expanded mutation targets; real GitHub CI and post-WORK-0001 integration proof remain pending before completion."}
+  - {run: RUN-2, date: "2026-09-14", note: "Integrated merged WORK-0001/main@29086643387ff46ab6636dd2fa3014efccc10165 into PR #2 after an exact-head merge probe. WORK-0002 remains IN_REVIEW pending full integrated CI proof and fresh L2."}
 
 discoveries:
   - "100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required."

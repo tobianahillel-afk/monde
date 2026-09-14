@@ -1,0 +1,118 @@
+id: TEST-0008
+name: "Fresh-context requirement acceptance cold read"
+status: PASS
+type: MANUAL_COLD_READ
+
+protects:
+  requirements: [REQ-0023, REQ-0024, REQ-0025]
+  capabilities: []
+  contracts:
+    - "requirement normative content identity"
+    - "fresh-context requirement acceptance cold read"
+    - "content-bound requirement acceptance evidence"
+  risks:
+    - "A requirement is accepted using review/test evidence for an older normative revision"
+    - "An author-run generic PASS test is mistaken for an independent cold read"
+    - "A cold-read record omits explicit outcomes or fresh-context provenance"
+  invariants:
+    - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED during the cold read"
+    - "Each covered requirement digest matches REQUIREMENT_NORMATIVE_V1 recomputation on the exact execution tree"
+    - "A qualifying cold read is executed in an L2/L3 context separated from the authoring context"
+    - "Every v10 required cold-read outcome is explicitly PASS before this test may qualify or become PASS"
+
+location:
+  test_path: null
+  suite: "governance requirement acceptance cold-read"
+
+environment:
+  kind: REAL_GITHUB_REPOSITORY
+  real_dependencies:
+    - "tobianahillel-afk/monde"
+    - "PR #3 exact frozen candidate"
+    - "independent fresh-context reviewer"
+  mocked_dependencies: []
+
+cases:
+  happy_path:
+    - "A fresh-context L2/L3 reviewer reads the exact proposed requirement revision without relying on author reasoning and records explicit PASS outcomes"
+    - "The reviewer/review record and TEST-0008 bind the same REQUIREMENT_NORMATIVE_V1 digest for each requirement"
+  edge_cases:
+    - "Evidence-link or lifecycle-only edits excluded by REQUIREMENT_NORMATIVE_V1 do not invalidate an otherwise identical normative digest"
+  failure_modes:
+    - "Any included normative field changes after the review/cold read but stale evidence is reused"
+    - "Executor context is missing, same-context, below L2, or not authoring-separated"
+    - "Source review identity/time is missing or unresolvable"
+    - "Any required outcome is absent, non-PASS, or all_required_outcomes_pass is false"
+    - "Any covered requirement is not PROPOSED on the execution tree"
+    - "Any declared content digest fails recomputation"
+  adversarial_cases:
+    - "Change normative_statement after a clean read and verify the old digest no longer qualifies"
+    - "Change depends_on or verification.method after a clean read and verify the old digest no longer qualifies"
+    - "Use a generic author-run PASS TEST with no acceptance_cold_read qualification and verify v10 rejects it"
+
+acceptance_cold_read:
+  qualifies: true
+  source:
+    kind: GITHUB_ACTIONS_COPILOT_CLI
+    source_id: "github-actions-run:34793888383:attempt:1"
+    submitted_at: "2026-09-14T00:49:49.870683Z"
+  executor:
+    actor: "github-copilot-cli@1.0.83"
+    context_id: "github-actions:34793888383:1:test-0008-v2"
+    independence_level: L2
+    fresh_context: true
+    authoring_context_separated: true
+  requirements:
+    REQ-0023:
+      content_scheme: REQUIREMENT_NORMATIVE_V1
+      content_digest: "sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b"
+      status_at_read: PROPOSED
+    REQ-0024:
+      content_scheme: REQUIREMENT_NORMATIVE_V1
+      content_digest: "sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4"
+      status_at_read: PROPOSED
+    REQ-0025:
+      content_scheme: REQUIREMENT_NORMATIVE_V1
+      content_digest: "sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67"
+      status_at_read: PROPOSED
+  required_outcomes:
+    understood_without_author_reasoning: PASS
+    atomic_and_testable: PASS
+    dependencies_and_conflicts_checked: PASS
+    omissions_and_failure_modes_checked: PASS
+    evidence_plan_sufficient: PASS
+  all_required_outcomes_pass: true
+  completed_at: "2026-09-14T00:49:49.870683Z"
+
+external_import:
+  authorization_source: "registry/status-machines.yaml@4b15dc41c2489239d932827880f612d7ef55bbfa#registry_machines.tests.external_execution_import_authorizations.TEST-0008"
+  import_commit: "4035cbd9fe5a9dc113d95ba83ad3c72d7d0b76f1"
+
+execution:
+  command_or_workflow: "GitHub Actions / TEST-0008 fresh-context L2 v2"
+  last_run_at: "2026-09-14T00:49:49.870683Z"
+  commit_sha: "c12a5b55c89168f20c028c2964da16de6f95ac56"
+  result: PASS
+  evidence:
+    - "Workflow run https://github.com/tobianahillel-afk/monde/actions/runs/34793888383"
+    - "Workflow job 103823151339 completed success and checked out exact target c12a5b55c89168f20c028c2964da16de6f95ac56"
+    - "Independent deterministic YAML parse confirmed WORK-0001 IN_REVIEW / A3 / RUN-3 IN_REVIEW with completion gates false"
+    - "Independent RFC 8785/JCS recomputation matched REQ-0023/REQ-0024/REQ-0025 declared digests while all three were PROPOSED"
+    - "Fresh Copilot L2 returned PASS for all five required cold-read outcomes for each of the three requirements (15/15)"
+    - "Fresh Copilot L2 verified REVIEW-0026/F-1, F-2 and F-3 as PASS, found no material R1/R2/R3 finding and returned APPROVE_WITH_FOLLOWUP"
+    - "REVIEW-0027 durably imports the same source/context and exact requirement revisions"
+
+coverage:
+  line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+  branch_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+
+history:
+  created_at: "2026-09-14"
+  updated_at: "2026-09-14"
+  executions:
+    - commit_sha: "c12a5b55c89168f20c028c2964da16de6f95ac56"
+      recorded_result: PASS
+      recorded_in_commit: "4035cbd9fe5a9dc113d95ba83ad3c72d7d0b76f1"
+      validity: VALID
+      invalidated_by: null
+      reason: "Fresh-context GitHub Actions Copilot CLI L2 independently parsed the exact target, recomputed all three normative digests, recorded 15/15 required cold-read outcomes PASS, verified REVIEW-0026/F-1/F-2/F-3, and found no material R1/R2/R3 defect."

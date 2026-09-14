@@ -1,0 +1,128 @@
+id: TEST-0006
+name: "Revision-bound bootstrap resume/status replacement and review-outcome drill"
+status: PASS
+type: MANUAL_E2E
+
+protects:
+  requirements: [REQ-0023, REQ-0024, REQ-0025]
+  capabilities: []
+  contracts:
+    - "AI resume protocol"
+    - "status vocabulary consistency"
+    - "active work routing"
+    - "review approval outcome semantics"
+    - "historical test supersession coverage"
+    - "cross-branch resume/proof/schema boundary"
+    - "status-machine historical import/replay isolation"
+    - "external completed-review provenance"
+    - "transition-stable current-proof routing"
+    - "machine-readable active WORK state"
+    - "exact evidence SHA integrity"
+    - "bidirectional requirement-test traceability"
+    - "RFC 8785/JCS requirement normative-content identity"
+    - "qualified fresh-context acceptance cold read"
+    - "independently-resolvable risk/finding acceptance authority"
+  risks:
+    - "AI resumes from stale or incomplete context"
+    - "A negative COMPLETE review is treated as approval evidence"
+    - "A handover duplicates mutable TEST state or orders already-complete work"
+    - "A mandatory WORK record is malformed YAML"
+    - "REQ-0023/24/25 proof is stale after normative content or canonicalization changes"
+    - "A generic author-run PASS is treated as an acceptance cold read"
+    - "A risk/finding is accepted with self-referential or arbitrary authority evidence"
+    - "PR #3 WORK-0002 mirror leaks branch-local proof or schemas"
+    - "Historical SHA-bound evidence is misrepresented as current semantic proof"
+  invariants:
+    - "Repository state, not chat history, is sufficient to resume active work"
+    - "registry/status-machines.yaml v9 is the single lifecycle source of truth"
+    - "PROJECT_STATE and WORK-0001 do not duplicate mutable TEST lifecycle/result state"
+    - "WORK-0001 remains IN_REVIEW/A3, RUN-3 IN_REVIEW and closure gates non-terminal"
+    - "REVIEW-0026 remains COMPLETE/CHANGES_REQUIRED with F-1/F-2/F-3 OPEN until independent verification"
+    - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED and their REQUIREMENT_NORMATIVE_V1/JCS digests recompute exactly"
+    - "TEST-0008 remains non-qualifying until real external L2/L3 fresh-context execution"
+    - "TEST-0005 and TEST-0007 current REVIEW-0026 correction proof chains are exact and resolvable"
+    - "REVIEW-0001/F-3 authority evidence independently resolves to GitHub repository-owner metadata"
+    - "PROJECT_STATE and WORK-0001 conditionally route TEST-0006 so a later PASS skips every further rerun"
+    - "PR #3 WORK-0002 mirror preserves the explicit branch boundary"
+    - "TEST-0004 does not claim current reverse protection of REQ-0010; REQ-0010 routes to TEST-0005"
+
+environment:
+  kind: REAL_GITHUB_REPOSITORY
+  real_dependencies: ["tobianahillel-afk/monde", "PR #3", "PR #2 live lifecycle snapshot"]
+  mocked_dependencies: []
+
+cases:
+  happy_path:
+    - "REVIEW-0026 provenance and three OPEN findings remain exact"
+    - "content-identity v2/JCS and acceptance-authority v1 resolve"
+    - "REQ-0023/24/25 remain PROPOSED with exact digests and TEST-0008-only acceptance cold-read link"
+    - "TEST-0005 current proof is 27c4d591… → 786a759a… → f6caaf77…"
+    - "TEST-0007 current proof is b0d4b4f6… → 592b88eb… → 8e5edd80…"
+    - "PROJECT_STATE and WORK-0001 transition-stable routing remains valid in FAIL/READY/RUNNING/PASS"
+    - "WORK-0002 mirror and live PR #2 boundary remain coherent"
+    - "REQ-0010 / TEST-0004 historical boundary remains correct"
+  edge_cases:
+    - "The handover text remains correct before, during and after the current TEST-0006 execution"
+    - "A future cold resume after PASS skips every instruction to rerun TEST-0006"
+  failure_modes:
+    - "PROJECT_STATE or WORK-0001 unconditionally orders the REVIEW-0026 TEST-0006 rerun after PASS"
+    - "Any other current proof/lifecycle/traceability boundary is inconsistent"
+  adversarial_cases:
+    - "Read PROJECT_STATE and WORK-0001 as a brand-new agent immediately after hypothetical PASS and verify they route directly to frozen-candidate L2"
+    - "Independently parse exact current WORK-0001 YAML in fresh L2; local runtime network cannot fetch the exact blob directly, so no parser success is claimed here"
+
+execution:
+  command_or_workflow: "Manual exact-SHA REVIEW-0026 transition-stable cold-resume/handover drill"
+  last_run_at: "2026-09-14"
+  commit_sha: "0451291232ed310208dcc66fa95ff76421fa497b"
+  result: PASS
+  evidence:
+    - "Exact tested PR #3 tree 0451291232ed310208dcc66fa95ff76421fa497b; PR remained open/non-draft/mergeable and on that exact HEAD through verdict"
+    - "Git compare c7700d71fdfb33e4a635a9ade8f5db35e5d4561e → 0451291232ed310208dcc66fa95ff76421fa497b changes only registry/tests/TEST-0006.yaml, so corrected PROJECT_STATE/WORK-0001 and all other proof remained stable during execution"
+    - "PROJECT_STATE @ 04512912 uses one state-conditional TEST-0006 rule valid for FAIL/READY/RUNNING/PASS and explicitly skips every further rerun after a qualifying PASS"
+    - "WORK-0001 @ 04512912 remains IN_REVIEW/A3 with RUN-3 IN_REVIEW and non-terminal completion gates; its compatibility/known-gap/run-log routing is also conditional on whether a qualifying TEST-0006 PASS exists"
+    - "REVIEW-0026 @ 04512912 remains COMPLETE/CHANGES_REQUIRED with F-1/F-2/F-3 OPEN, source review PRR_kwDOUUI5ts8AAAABNYK4AQ, exact artifact 4f8cebee..., and no qualifying TEST-0008 result"
+    - "registry/content-identity.yaml @ 04512912 is version 2 and binds REQUIREMENT_NORMATIVE_V1 to exact RFC 8785/JCS UTF-8 bytes"
+    - "REQ-0023/REQ-0024/REQ-0025 @ 04512912 remain PROPOSED with exact declared JCS digests and acceptance_cold_read_test_ids exactly [TEST-0008]"
+    - "Git compare 27c4d591d165689e26d399b303722744919b3372 → 0451291232ed310208dcc66fa95ff76421fa497b changes PROJECT_STATE, TEST-0005/0006/0007 and WORK-0001 only; no requirement record changed after the current TEST-0005 JCS recomputation"
+    - "TEST-0005 @ 04512912 remains PASS on exact tree 27c4d591d165689e26d399b303722744919b3372 with result 786a759a767ea8457d99eb8f528dc676964ca481 and binding f6caaf77a2361f2f0724b6d91b1ce43da8c685f2"
+    - "TEST-0007 @ 04512912 remains PASS on exact tree b0d4b4f68f457a8f9e5bfbf689a9275c203a0715 with result 592b88eb250f92a6e809c76f8646f85a894929b1 and binding 8e5edd80a634f552bbf92cd7da7088f9d6b06a2e"
+    - "TEST-0008 @ 04512912 remains PLANNED / qualifies=false with null source, executor, outcomes and execution; no author-generated cold-read evidence exists"
+    - "PR #3 WORK-0002 mirror @ 04512912 remains IN_REVIEW, depends_on WORK-0001, affected_schemas=[], and defers branch-local review/test/schema traversal until explicit PR #2 checkout"
+    - "After that explicit boundary, live PR #2 remains open/non-draft/mergeable at ab62faa1743705600a0f11335579db68a2166ab3"
+    - "REQ-0010 @ 04512912 maps to TEST-0005 while TEST-0004 @ 04512912 does not list REQ-0010 in protects.requirements, preserving the historical evidence boundary"
+    - "Exact current WORK-0001 YAML is not claimed as independently parser-verified in this runtime; the next fresh L2 must perform that parse and this omission does not masquerade as PASS evidence"
+
+coverage:
+  line_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+  branch_contribution: NOT_APPLICABLE_NO_EXECUTABLE_CODE
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-14"
+  executions:
+    - {commit_sha: "331931d21c4ebde3f84911825debde61488f91b3", recorded_result: PASS, recorded_in_commit: "49b0b0aaa818cefe1fe7051dc161f1977d4bac5b", validity: INVALIDATED, invalidated_by: "REVIEW-0007/F-1", reason: "Global WORK-0002 lifecycle contradiction."}
+    - {commit_sha: "3b4477f00953f1a352fe7c40497853fc01e103b6", recorded_result: PASS, recorded_in_commit: "1558b2d9e85f64c755bacd623d310474ef838719", validity: INVALIDATED, invalidated_by: "REVIEW-0008/F-1", reason: "Branch-only prerequisites were falsely exposed as current-tree paths."}
+    - {commit_sha: "0b2c2f6a92051760e759bf2e64518188e8266012", recorded_result: PASS, recorded_in_commit: "badf011c82fc07e86d85d0e5d6efcb21223ca8cb", validity: VALID, invalidated_by: null, reason: "Current-tree prerequisites and branch boundary passed."}
+    - {commit_sha: "fa55004d1623ab2aa66c14b62bb036f6e335f041", recorded_result: PASS, recorded_in_commit: "80eb23da21d76d5b87134164ce46954423a04e95", validity: VALID, invalidated_by: null, reason: "v5 lifecycle/handover/review semantics passed."}
+    - {commit_sha: "ffffb37d680e477fa03f74523dfac624ad74427c", recorded_result: FAIL, recorded_in_commit: "45088fc916b84c7e809d1305fe926724e85b797c", validity: VALID, invalidated_by: null, reason: "v6 contract existed but handover remained stale."}
+    - {commit_sha: "bb973b669797e887d6190065a3d74c377aa33c01", recorded_result: PASS, recorded_in_commit: "7ce54360a2e56f8892ea70354af824bfa8c4df72", validity: VALID, invalidated_by: null, reason: "Synchronized v6 state passed."}
+    - {commit_sha: "11cca4bccb318d29c422917d544a470870b2cf65", recorded_result: FAIL, recorded_in_commit: "35e3c4c892f8c9bc6e5424fbe792c2fc8043eaf8", validity: VALID, invalidated_by: null, reason: "PROJECT_STATE ordered completed actions."}
+    - {commit_sha: "75d3df4486d05ab95d9d65daee2fd7ac77072a47", recorded_result: FAIL, recorded_in_commit: "49a772c224cb3dd4811f48f4bc0431c155b01e74", validity: VALID, invalidated_by: null, reason: "Handover still named completed actions."}
+    - {commit_sha: "d6f012abe31263f0fa83003646405c039b23611e", recorded_result: PASS, recorded_in_commit: "788a2948054cdd90130c72b17910d745fd36d927", validity: VALID, invalidated_by: null, reason: "Transition-stable v7 cold resume passed."}
+    - {commit_sha: "8c921bf5a6553463a1343b5fe0b987966be33208", recorded_result: PASS, recorded_in_commit: "2e038194f149c667ffe680286ed275435734e5ee", validity: VALID, invalidated_by: null, reason: "REVIEW-0016-corrected handover passed."}
+    - {commit_sha: "b8180dff075ea5c8328ee56d1683380576c984ba", recorded_result: PASS, recorded_in_commit: "e9e41c96a826cfa8d6a1056f9795776c9d0431b4", validity: VALID, invalidated_by: null, reason: "Finalized pre-REVIEW-0017 handover passed."}
+    - {commit_sha: "626f9fb99605ff4bc78f8bb7986540825cabbdf3", recorded_result: PASS, recorded_in_commit: "85bfd4b8686c51f4d415b972a72d39ca101c29d1", validity: VALID, invalidated_by: null, reason: "REVIEW-0017-corrected transition-stable handover passed."}
+    - {commit_sha: "19b1854f4438800637237a90a3e9e3e90b398548", recorded_result: PASS, recorded_in_commit: "9e55ba41f2f057292d6da86f3fc3f9d2892be701", validity: VALID, invalidated_by: null, reason: "REVIEW-0018 pre-acceptance handover passed with replacement requirements PROPOSED."}
+    - {commit_sha: "c58ddee0b98097514a4c73c5a8dc8acfb9cd977e", recorded_result: PASS, recorded_in_commit: "b02f4fbdbbd8104b2b8c3cf9cc88f15102d51f48", validity: INVALIDATED, invalidated_by: "REVIEW-0019/F-1;REVIEW-0019/F-2", reason: "WORK-0001 was malformed YAML and copied TEST-0005 SHA was truncated."}
+    - {commit_sha: "45a8dae7fa9f199c63651f15306dcfa6f880b248", recorded_result: PASS, recorded_in_commit: "9bb81e07b7f119bc874bfcf689a5b84dcb769d71", validity: VALID, invalidated_by: null, reason: "REVIEW-0019 structural YAML/SHA corrections passed; independent parse confirmation remained pending."}
+    - {commit_sha: "d0c985933e66960a781513ad61bd3567c91e5344", recorded_result: PASS, recorded_in_commit: "af4c50ba5a442a8bd06717c2802170bb4cbde54e", validity: VALID, invalidated_by: null, reason: "REVIEW-0020 cross-branch proof boundary passed with requirements still PROPOSED."}
+    - {commit_sha: "20544cc6af2c690ba9e0593ea554c0c1596466e4", recorded_result: PASS, recorded_in_commit: "4b28d2218a5e9256d0348c73d031328ba2ef2d2f", validity: VALID, invalidated_by: null, reason: "REVIEW-0021 reciprocal requirement↔TEST-0006 traceability and current handover passed; independent YAML parse remained a fresh-L2 gate."}
+    - {commit_sha: "f21985ae608373ec8a3d93f92c5a76a2b11bd1ee", recorded_result: PASS, recorded_in_commit: "eb9e9dcb17f625c53545a3966b8bd64fd165f743", validity: VALID, invalidated_by: null, reason: "Final transition-stable REVIEW-0021 handover passed; independent YAML parse and approval-capable fresh L2 remained subsequent gates."}
+    - {commit_sha: "6e6e005fc81b0ea91427fc55ea1f09d818650d7b", recorded_result: PASS, recorded_in_commit: "b0fde620d06e0b4e4e5d16ab39680ad468fbf260", validity: INVALIDATED, invalidated_by: "REVIEW-0023/F-1", reason: "PROJECT_STATE still ordered this already-completed rerun as future work; immutable PASS preserved but not gating current closure."}
+    - {commit_sha: "683c3493a2876b433e9b833e4d3ea3468dc9f1d3", recorded_result: PASS, recorded_in_commit: "688521a1e35c6f89edf8f1ece42328b96e150f7c", validity: VALID, invalidated_by: null, reason: "REVIEW-0023-corrected v7 handover passed; later REVIEW-0024/v8 made it insufficient as final current proof."}
+    - {commit_sha: "ea8562ae2ff54e5ff9c73f4f09116c5f6aa82c21", recorded_result: FAIL, recorded_in_commit: "9212397d4e6af69b5b151e4f2f4dd5c242671083", validity: VALID, invalidated_by: null, reason: "v8 handover failed because PROJECT_STATE duplicated stale mutable TEST-0006 state."}
+    - {commit_sha: "b09f37c7868a4bdfb47310118860474263aeb717", recorded_result: PASS, recorded_in_commit: "5d11298bae60d3031fa342235345e43d36688b5d", validity: VALID, invalidated_by: null, reason: "Corrected transition-stable REVIEW-0024/v8 handover passed; REVIEW-0025/v9 later materially extended current proof obligations."}
+    - {commit_sha: "70d9a8a12cf0727fddb377d6c8a45a7ad47f6583", recorded_result: PASS, recorded_in_commit: "673d8f4891f713bf9d230ea908f9c1fc8acba090", validity: VALID, invalidated_by: null, reason: "Synchronized REVIEW-0025/v9 handover passed. REVIEW-0026 later proved that handover stale and extended current proof obligations."}
+    - {commit_sha: "d3997dd1c377b220e26eb7eeb3fc0a5c80f8b698", recorded_result: FAIL, recorded_in_commit: "09c43f5f130a3baa71df4c2654b005380283f2ef", validity: VALID, invalidated_by: null, reason: "REVIEW-0026 correction proof was otherwise coherent, but PROJECT_STATE still unconditionally ordered the TEST-0006 rerun. That instruction would become stale immediately after PASS, so the handover was not transition-stable."}
+    - {commit_sha: "0451291232ed310208dcc66fa95ff76421fa497b", recorded_result: PASS, recorded_in_commit: "e051803986b489090860c533dc1c3bfbec5e26ed", validity: VALID, invalidated_by: null, reason: "Transition-stable REVIEW-0026 handover passes exact current routing, REVIEW-0026 negative/open semantics, JCS requirement identity continuity, TEST-0005/0007 proof, TEST-0008 non-fabrication, PR #3/PR #2 isolation and REQ-0010/TEST-0004 evidence boundary; independent WORK-0001 YAML parsing remains explicitly delegated to the next fresh L2."}
