@@ -49,6 +49,12 @@ acceptance_cold_read:
   all_required_outcomes_pass: false
   completed_at: null
 
+# Non-null only for a status/result imported from a pre-authorized external
+# execution that completed before repository lifecycle materialization.
+external_import:
+  authorization_source: null
+  import_commit: null
+
 execution:
   command_or_workflow: null
   last_run_at: null

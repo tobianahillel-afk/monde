@@ -1,4 +1,4 @@
-version: 9
+version: 10
 canonical: true
 updated_at: "2026-09-14"
 
@@ -12,6 +12,7 @@ principles:
   - "Completion evidence may be reopened when later evidence invalidates or materially re-questions it; reopening is recorded rather than rewriting the prior state."
   - "Lifecycle checkpoints represent states that actually existed while the governed activity was occurring; replaying OPEN/IN_PROGRESS after an external review already completed is not evidence that those execution states occurred."
   - "A review completed externally before registry materialization may be imported in its resulting status only through immutable pre-v7 historical evidence or a one-shot external-import authorization that already exists in a parent commit before materialization and is later bound to the actual import commit."
+  - "A TEST execution completed externally while its registry record is still non-terminal may be imported in its resulting status only through an exact one-shot external-execution authorization that exists in a parent commit before result materialization, binds the source/executor/exact tested revision, and is later bound and consumed by the actual import commit; normal lifecycle checkpoints must never be replayed after the external execution already finished."
   - "Requirement acceptance proof is content-bound: review and cold-read evidence qualify only for the exact normative digest being accepted."
   - "A generic PASS test is never automatically a requirement-acceptance cold read; qualifying cold reads carry explicit fresh-context provenance, exact requirement digests and required outcomes."
   - "Risk and blocking-finding acceptance authority is resolved from registry/acceptance-authority.yaml; free-form authority labels or prose evidence alone never grant authority."
@@ -349,6 +350,17 @@ registry_machines:
         consumed_by_commit: "6075c1d87853f8c0c144e7d95bfa767ba476aa72"
         finding_origin: "PRRT_kwDOUUI5ts6h8-Hz;PRRT_kwDOUUI5ts6h8-H0;PRRT_kwDOUUI5ts6h8-H2"
         reason: "The fresh-context GitHub Codex review of exact frozen candidate 4f8cebee completed externally before REVIEW-0026 is materialized. This one-shot authorization is committed before first materialization so the completed negative review can be imported truthfully without replaying OPEN/IN_PROGRESS after the fact."
+      - record_id: REVIEW-0027
+        imported_status: COMPLETE
+        artifact_commit_sha: "c12a5b55c89168f20c028c2964da16de6f95ac56"
+        source_review_id: "github-actions-run:34793888383:attempt:1"
+        source_submitted_at: "2026-09-14T00:49:49.870683Z"
+        reviewer_context_id: "github-actions:34793888383:1:test-0008-v2"
+        expected_outcome: APPROVE_WITH_FOLLOWUP
+        one_shot: true
+        consumed_by_commit: null
+        source_kind: GITHUB_ACTIONS_COPILOT_CLI
+        reason: "A fresh-context GitHub Actions Copilot CLI L2 completed against exact frozen candidate c12a5b55 before REVIEW-0027 materialization. It independently parsed WORK-0001, recomputed all three requirement digests, verified REVIEW-0026/F-1/F-2/F-3, recorded all fifteen TEST-0008 cold-read outcomes PASS, returned APPROVE_WITH_FOLLOWUP with no material findings, and is therefore preauthorized for one-shot truthful import without replaying OPEN/IN_PROGRESS."
     external_import_rule: "For an externally completed review materialized after v7, a matching one-shot authorization must already exist in a parent commit before the REVIEW record first appears. The authorization binds record_id, resulting status, reviewed artifact SHA, source review identity/time, reviewer context and expected outcome. The imported REVIEW must declare that authorization. A later metadata-only binding must set consumed_by_commit to the actual first-materialization commit before the imported review may satisfy any work completion gate. An authorization with consumed_by_commit set cannot be reused."
     historical_import_exceptions:
       - record_id: REVIEW-0004
@@ -450,7 +462,32 @@ registry_machines:
       CANCELLED: []
       SUPERSEDED: []
     pass_rule: "PASS is evidence-bearing: the record must identify what it protects, how it ran, its result, and concrete evidence; every state-bound PASS execution must have a non-null exact tested/reviewed commit_sha."
-    acceptance_cold_read_rule: "A TEST may qualify for requirement acceptance only when acceptance_cold_read.qualifies=true and all v9 requirement cold-read preconditions are satisfied: durable source identity/time, L2/L3 context-separated executor identity, fresh_context=true, authoring_context_separated=true, exact REQUIREMENT_NORMATIVE_V1 digest binding for every covered requirement while PROPOSED, all required outcome keys equal PASS, all_required_outcomes_pass=true, and exact execution.commit_sha/result=PASS. Generic PASS TEST records with no such qualification remain valid test evidence but never satisfy requirement acceptance."
+    acceptance_cold_read_rule: "A TEST may qualify for requirement acceptance only when acceptance_cold_read.qualifies=true and all v10 requirement cold-read preconditions are satisfied: durable source identity/time, L2/L3 context-separated executor identity, fresh_context=true, authoring_context_separated=true, exact REQUIREMENT_NORMATIVE_V1 digest binding for every covered requirement while PROPOSED, all required outcome keys equal PASS, all_required_outcomes_pass=true, and exact execution.commit_sha/result=PASS. Generic PASS TEST records with no such qualification remain valid test evidence but never satisfy requirement acceptance."
+    external_execution_import_required_fields:
+      - record_id
+      - from_status
+      - imported_status
+      - execution_commit_sha
+      - source_id
+      - source_submitted_at
+      - executor_context_id
+      - expected_result
+      - one_shot
+      - consumed_by_commit
+    external_execution_import_authorizations:
+      - record_id: TEST-0008
+        from_status: PLANNED
+        imported_status: PASS
+        execution_commit_sha: "c12a5b55c89168f20c028c2964da16de6f95ac56"
+        source_id: "github-actions-run:34793888383:attempt:1"
+        source_submitted_at: "2026-09-14T00:49:49.870683Z"
+        executor_context_id: "github-actions:34793888383:1:test-0008-v2"
+        expected_result: PASS
+        one_shot: true
+        consumed_by_commit: null
+        source_kind: GITHUB_ACTIONS_COPILOT_CLI
+        reason: "TEST-0008 was genuinely executed outside the registry lifecycle by a fresh-context GitHub Actions Copilot CLI L2 while the canonical record remained PLANNED. The run inspected exact candidate c12a5b55 while REQ-0023/24/25 were PROPOSED, independently parsed WORK-0001, recomputed the exact JCS digests, returned PASS for all fifteen required cold-read outcomes, verified REVIEW-0026/F-1/F-2/F-3 and produced approval-capable evidence. This authorization permits exactly one truthful PLANNED -> PASS result import instead of fabricating READY/RUNNING checkpoints after execution."
+    external_execution_import_rule: "A TEST execution that already completed externally may bypass the normal repository-native state path only when an exact matching authorization above existed in a parent commit before the result/status import. The authorization must bind record_id, actual pre-import status, imported status/result, exact execution.commit_sha, durable source identity/time and executor context. The imported TEST must declare external_import.authorization_source and initially external_import.import_commit=null. A later metadata-only binding must set external_import.import_commit to the actual result-import commit and set the authorization consumed_by_commit to that same import commit before the TEST may satisfy any requirement-acceptance or work-completion gate. No READY/RUNNING checkpoints may be invented retroactively, and a consumed authorization cannot be reused."
     historical_pass_rule: "If an older PASS execution has no provable exact revision, do not invent one and do not keep that record as active gating PASS evidence. Preserve its historical execution fields, transition the record to SUPERSEDED, identify replacement evidence that actually re-executes or explicitly partitions the superseded scope, and use revision-bound evidence for current gates."
     historical_transition_exceptions:
       - record_id: TEST-0004
