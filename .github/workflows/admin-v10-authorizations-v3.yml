@@ -1,5 +1,5 @@
-name: One-shot v10 TEST-0008 materialization runner
-# trigger: 2
+name: One-shot v10 handover synchronization runner
+# trigger: 3
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  materialize:
+  synchronize:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -29,34 +29,19 @@ jobs:
           ref: chore/work-0001-assurance-closure
           path: target
           fetch-depth: 1
-      - name: Consume REVIEW-0027 authorization
+      - name: Synchronize v10 handover
         run: |
           set -euo pipefail
-          test "$(git -C target rev-parse HEAD)" = "db2f737ceda531916590c4cc32d9f46964d601e0"
+          test "$(git -C target rev-parse HEAD)" = "74dc253d849e3b6b6570fe55df415f5e9da65ab2"
           git -C target config user.name 'MONDE governance automation'
           git -C target config user.email '269188945+tobianahillel-afk@users.noreply.github.com'
-          python admin/tools/admin_v10_materialize_test8.py target consume-review
+          python admin/tools/admin_v10_sync_handover.py target
           git -C target diff --check
-          git -C target add registry/status-machines.yaml
-          git -C target commit -m 'chore(governance): consume REVIEW-0027 authorization'
-      - name: Import TEST-0008 external PASS
+          git -C target diff -- PROJECT_STATE.md registry/work-items/WORK-0001.yaml registry/tests/TEST-0008.yaml
+          git -C target add PROJECT_STATE.md registry/work-items/WORK-0001.yaml registry/tests/TEST-0008.yaml
+          git -C target commit -m 'chore(governance): synchronize v10 acceptance handover'
+      - name: Push synchronized candidate
         run: |
           set -euo pipefail
-          python admin/tools/admin_v10_materialize_test8.py target import-test
-          git -C target diff --check
-          git -C target add registry/tests/TEST-0008.yaml
-          git -C target commit -m 'chore(governance): import TEST-0008 external L2 PASS'
-          git -C target rev-parse HEAD > /tmp/test8_import_sha
-      - name: Bind TEST-0008 and consume authorization
-        run: |
-          set -euo pipefail
-          TEST8_IMPORT_SHA="$(cat /tmp/test8_import_sha)"
-          python admin/tools/admin_v10_materialize_test8.py target bind-test "$TEST8_IMPORT_SHA"
-          git -C target diff --check
-          git -C target add registry/tests/TEST-0008.yaml registry/status-machines.yaml
-          git -C target commit -m 'chore(governance): bind and consume TEST-0008 external import'
-      - name: Push exact commit chain
-        run: |
-          set -euo pipefail
-          git -C target log --oneline -4
+          git -C target log --oneline -3
           git -C target push origin HEAD:chore/work-0001-assurance-closure
