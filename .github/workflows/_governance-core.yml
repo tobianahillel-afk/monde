@@ -79,7 +79,7 @@ jobs:
       - name: Validate independent-review closure invariants
         if: inputs.event_name == 'pull_request'
         run: |
-          python -m tools.governance.review_closure . \
+          python -m tools.governance.review_closure_gate . \
             --base '${{ inputs.base_sha }}' \
             --head '${{ inputs.head_sha }}' \
             --json-out review-closure-findings.json
