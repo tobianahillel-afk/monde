@@ -24,7 +24,7 @@ external_import:
   source_review_id: "github-actions-run:34793888383:attempt:1"
   source_submitted_at: "2026-09-14T00:49:49.870683Z"
   workflow_run_url: "https://github.com/tobianahillel-afk/monde/actions/runs/34793888383"
-  import_commit: null
+  import_commit: "f78d5575a94b49d90abb166003cf4520bf167d3a"
 
 scope:
   work_items: [WORK-0001]
