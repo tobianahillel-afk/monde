@@ -36,43 +36,43 @@ findings:
     category: TEST_EVIDENCE_FRESHNESS
     description: "TEST-0001 was expanded to claim corrective coverage while its execution remained bound to the older b88e9edf tree."
     evidence: ["PR #3 inline review on registry/tests/TEST-0001.yaml"]
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
   - id: F-2
     severity: R2_MAJOR
     category: REVIEW_EVIDENCE_HISTORY
     description: "REVIEW-0001 was retrofitted to scope REQ-0001..REQ-0014 even though those records did not exist when that review ran."
     evidence: ["PR #3 inline review on registry/reviews/REVIEW-0001.yaml"]
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
   - id: F-3
     severity: R2_MAJOR
     category: REVIEW_LIFECYCLE
     description: "CLOSED review state could satisfy approval semantics without requiring an executed COMPLETE review."
     evidence: ["PR #3 inline review on registry/status-machines.yaml"]
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
   - id: F-4
     severity: R2_MAJOR
     category: PROGRESS_LIFECYCLE
     description: "Progress state had no canonical initial/transition table and duplicated editable vocabulary in the progress matrix."
     evidence: ["PR #3 inline review on registry/status-machines.yaml"]
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
   - id: F-5
     severity: R2_MAJOR
     category: NOT_APPLICABLE_JUSTIFICATION
     description: "Existing NOT_APPLICABLE dimensions in WORK-0002, WORK-0003 and WORK-0004 had no corresponding work-item justification."
     evidence: ["PR #3 inline review on registry/status-machines.yaml"]
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
   - id: F-6
     severity: R3_MODERATE
     category: REQUIREMENT_ATOMICITY
     description: "REQ-0008 duplicated non-compensable hard-gate ownership already represented by REQ-0012."
     evidence: ["PR #3 inline review on registry/requirements/REQ-0008.yaml"]
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

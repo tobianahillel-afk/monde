@@ -47,8 +47,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6heTMK"
       - "registry/tests/TEST-0006.yaml protects REQ-0023/REQ-0024/REQ-0025"
       - "registry/requirements/REQ-0023.yaml, REQ-0024.yaml and REQ-0025.yaml verification.test_ids omit TEST-0006"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

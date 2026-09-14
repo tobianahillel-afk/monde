@@ -48,8 +48,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6hdSzI"
       - "registry/work-items/WORK-0002.yaml references REVIEW-0002, TEST-0002 and TEST-0003"
       - "Those records are not present in the reviewed PR #3 tree; the corresponding proof belongs to feat/work-0002-governance-ci until WORK-0002 is integrated"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

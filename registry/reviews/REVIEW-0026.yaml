@@ -50,8 +50,8 @@ findings:
       - "Inline review comment database id 4001274195"
       - "registry/reviews/REVIEW-0001.yaml authority_evidence_ref was self-referential prose"
       - "registry/acceptance-authority.yaml requires a resolvable durable reference establishing the accepting actor's role/delegation"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
   - id: F-2
     severity: R3_MODERATE
@@ -63,8 +63,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6h8-H0"
       - "Inline review comment database id 4001274197"
       - "registry/content-identity.yaml canonicalization used PRESERVE_CODEPOINTS without an exact canonical JSON string-serialization standard"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
   - id: F-3
     severity: R3_MODERATE
@@ -76,8 +76,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6h8-H2"
       - "Inline review comment database id 4001274199"
       - "TEST-0006 exact tree 70d9a8a12cf0727fddb377d6c8a45a7ad47f6583 → PASS 673d8f4891f713bf9d230ea908f9c1fc8acba090 → binding 4f8cebeeca36d895cc17b1103d7689bcf27b5541 already existed at review time"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

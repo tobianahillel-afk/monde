@@ -48,8 +48,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6hVPWB"
       - "WORK-0001 line 440 RUN-3 flow mapping lacks a closing }"
       - "TEST-0006 tested tree c58ddee0b98097514a4c73c5a8dc8acfb9cd977e contains the same malformed WORK-0001 record"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
   - id: F-2
     severity: R3_MODERATE
     category: EVIDENCE_SHA_INTEGRITY
@@ -59,8 +59,8 @@ findings:
       - "GitHub review PRR_kwDOUUI5ts8AAAABNHCCdQ submitted 2026-09-11T03:41:03Z"
       - "Inline finding thread PRRT_kwDOUUI5ts6hVPWG"
       - "TEST-0005 PASS result commit ce962ec2ad199dd914ee4e4e8a66ec4e110fbfbe is the canonical exact result SHA"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

@@ -37,8 +37,8 @@ findings:
       - "PR #3 fresh-context Codex review on exact head 14c3d3fcc6dd96af9d2e5acd9f02d2d957c03425"
       - "registry/tests/TEST-0007.yaml protects.requirements includes REQ-0006"
       - "registry/requirements/REQ-0006.yaml verification mapping lists only TEST-0004 at the reviewed head"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

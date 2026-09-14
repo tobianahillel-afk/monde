@@ -48,8 +48,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6hSJ77"
       - "REVIEW-0014 first materialization ec69110468c7e1cd79984dedb835504de8c0b561 already contained final findings and outcome CHANGES_REQUIRED"
       - "REVIEW-0014 status-only replay commits: 2926a070de8371e7ad3aaebeca0d9e424700d43f and b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

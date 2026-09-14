@@ -34,15 +34,15 @@ findings:
     category: REVIEW_APPROVAL_OUTCOME
     description: "A COMPLETE review with outcome CHANGES_REQUIRED or BLOCKED can satisfy the existing completion rule after its findings are resolved/accepted because approval-capable outcomes are not explicitly constrained."
     evidence: ["PR #3 inline review on registry/status-machines.yaml @ 8c2fbc9e44ba9f0c810b768be513d988812f1e5c"]
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
   - id: F-2
     severity: R3_MODERATE
     category: TEST_SUPERSESSION_COVERAGE
     description: "TEST-0001 points to TEST-0005 as its replacement, but TEST-0005 does not re-execute the original README/PROJECT_STATE resume routing and status-vocabulary scope, so the supersession loses represented behavior."
     evidence: ["PR #3 inline review on registry/tests/TEST-0001.yaml @ 8c2fbc9e44ba9f0c810b768be513d988812f1e5c"]
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

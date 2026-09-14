@@ -36,8 +36,8 @@ findings:
       - "PR #3 fresh-context Codex review on exact head c8fbfa51ac04b566f337ee606a806e42881b67f2"
       - "PROJECT_STATE.md next-action section at reviewed head"
       - "Commit 6eada71 synchronized PROJECT_STATE and commit c8fbfa51 synchronized WORK-0001 before this review."
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

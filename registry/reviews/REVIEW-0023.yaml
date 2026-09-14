@@ -45,8 +45,8 @@ findings:
       - "GitHub review PRR_kwDOUUI5ts8AAAABNNnSjw submitted 2026-09-11T17:27:49Z"
       - "Inline finding thread PRRT_kwDOUUI5ts6hksrz"
       - "PROJECT_STATE.md TEST-0006 proof-routing and Next action sections still order a rerun already completed by b0fde620d06e0b4e4e5d16ab39680ad468fbf260 and bound by 3a05ec6f14ea71d15b1cc842ef634e00279217e6"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

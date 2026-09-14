@@ -46,8 +46,8 @@ findings:
       - "GitHub review PRR_kwDOUUI5ts8AAAABNNVwjQ submitted 2026-09-11T16:58:46Z"
       - "Inline finding thread PRRT_kwDOUUI5ts6hj-XI"
       - "registry/work-items/WORK-0002.yaml affected_schemas listed schemas/registry/work-items.schema.json, reviews.schema.json and tests.schema.json before explicit branch checkout"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
   - id: F-2
     severity: R3_MODERATE
@@ -59,8 +59,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6hj-XR"
       - "registry/tests/TEST-0004.yaml execution.commit_sha is 23ef1a88e9a5106b12144d4c6649868a6a691a8f"
       - "registry/requirements/REQ-0010.yaml current verification.test_ids is [TEST-0005]"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

@@ -38,8 +38,8 @@ findings:
     evidence:
       - "PR #3 inline review on registry/work-items/WORK-0002.yaml @ cd7bf6a0429b4fab09fd2512c29cb4ba0a8a1e5f"
       - "Both paths return 404 on PR #3 and resolve on feat/work-0002-governance-ci."
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

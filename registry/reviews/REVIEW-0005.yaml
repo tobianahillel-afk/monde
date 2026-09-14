@@ -36,22 +36,22 @@ findings:
     category: TEST_EVIDENCE_REVISION
     description: "TEST-0001 remains an active PASS while execution.commit_sha is null, so its state-bound historical result cannot satisfy the canonical exact-revision PASS rule."
     evidence: ["PR #3 inline review on registry/status-machines.yaml @ d5be907160c7fad3d86b2e0ce84911a3dcaab7d9"]
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
   - id: F-2
     severity: R2_MAJOR
     category: REVIEW_RISK_ACCEPTANCE_AUTHORITY
     description: "An R1/R2 finding can be marked ACCEPTED without recording who accepted the risk or evidence that the actor has authority appropriate to the assurance level."
     evidence: ["PR #3 inline review on registry/status-machines.yaml @ d5be907160c7fad3d86b2e0ce84911a3dcaab7d9", "docs/13_QUALITY/assurance-levels.md"]
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
   - id: F-3
     severity: R3_MODERATE
     category: REQUIREMENT_ATOMICITY
     description: "REQ-0010 combines atomic requirements, assumptions/risks, external research, failure modes, cross-document consistency and traceability into one normative record even though those obligations can fail independently."
     evidence: ["PR #3 inline review on registry/requirements/REQ-0010.yaml @ d5be907160c7fad3d86b2e0ce84911a3dcaab7d9", "docs/13_QUALITY/specification-quality.md"]
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

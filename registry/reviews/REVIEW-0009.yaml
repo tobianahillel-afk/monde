@@ -39,8 +39,8 @@ findings:
       - "PR #3 inline review on registry/status-machines.yaml @ 1e3f539b89afbbb07de63271682a1db06f47550c"
       - "caaa27d716c38e28728e1e22412b1c43770096ef introduced registry/status-machines.yaml"
       - "4ef4bfd27e28973fcebead8b2b5065422c4a8883 changed multiple progress dimensions DONE → IN_REVIEW"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
   - id: F-2
     severity: R2_MAJOR
     category: TEST_LIFECYCLE_HISTORY
@@ -49,8 +49,8 @@ findings:
       - "PR #3 inline review on registry/status-machines.yaml @ 1e3f539b89afbbb07de63271682a1db06f47550c"
       - "98e8cdccc07bd3c2d8313d81f296f49c97c44379 created TEST-0004 as PLANNED"
       - "e8337d833ca0b524bed69318ca4b3691c9ce6c23 changed TEST-0004 PLANNED → PASS"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

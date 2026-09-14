@@ -37,8 +37,8 @@ findings:
       - "registry/work-items/WORK-0001.yaml @ 9f9bcaa0b91b975296b169cf2511edc297a83e1f required_tests.e2e omits TEST-0007"
       - "registry/requirements/REQ-0006.yaml maps current lifecycle proof to TEST-0007"
       - "registry/tests/TEST-0007.yaml protects REQ-0006 and has a valid second PASS on c27a98b94c4f59c5778b9c7d30e447536a70a452"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

@@ -40,8 +40,8 @@ findings:
       - "PROJECT_STATE.md @ 331931d21c4ebde3f84911825debde61488f91b3"
       - "registry/work-items/WORK-0002.yaml @ 331931d21c4ebde3f84911825debde61488f91b3"
       - "registry/progress/matrix.yaml @ 331931d21c4ebde3f84911825debde61488f91b3"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

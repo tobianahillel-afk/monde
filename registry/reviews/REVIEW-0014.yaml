@@ -47,8 +47,8 @@ findings:
       - "REVIEW-0011 introduction: 46fd37beaedcce90b6d8357c314336fbe956f659"
       - "REVIEW-0012 introduction: 319e12aade5e188594ef6da721ec8ff57aa7fdd2"
       - "REVIEW-0013 introduction: 69cb8c083fb7f55c5895f42d4f7e1a1e7820d320"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
   - id: F-2
     severity: R2_MAJOR
     category: REQUIREMENT_LIFECYCLE_IMPORT
@@ -57,8 +57,8 @@ findings:
       - "PR #3 fresh-context Codex review on exact head c9b75f677f5b79f66189f90a730cb8efbeb8af0c"
       - "Commit 2712795dc9f10c1efed2088313d125f6f915cc98 introduces REQ-0015, REQ-0016, REQ-0017, REQ-0018 and REQ-0019 directly with status ACCEPTED"
       - "registry/status-machines.yaml requirement machine already existed before 2712795dc9f10c1efed2088313d125f6f915cc98"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

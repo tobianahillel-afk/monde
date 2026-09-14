@@ -46,8 +46,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6hUtAz"
       - "AGENTS.md specification workflow requires required Review Council hats and a cold-read test before Accepted"
       - "REQ-0020/REQ-0021/REQ-0022 became ACCEPTED in 246820d3bb40fa8a57eee95c70444e5729861f0b before any approval-capable review of those records"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

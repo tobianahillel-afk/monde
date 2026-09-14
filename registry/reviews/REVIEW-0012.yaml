@@ -36,8 +36,8 @@ findings:
       - "PR #3 fresh-context Codex review on exact head a2a86b96bb3fe39229b9834cd4ab17ee16d8121f"
       - "PROJECT_STATE.md @ a2a86b96bb3fe39229b9834cd4ab17ee16d8121f records REVIEW-0011 and its pending fresh-L2 gate"
       - "registry/work-items/WORK-0001.yaml @ a2a86b96bb3fe39229b9834cd4ab17ee16d8121f stops its durable review/evidence/gap/run-log chain at REVIEW-0010"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

@@ -48,8 +48,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6hlUxy"
       - "registry/status-machines.yaml requirements transition table allows PROPOSED → ACCEPTED with no acceptance-evidence rule"
       - "AGENTS.md requires applicable independent Review Council/cold-read evidence before acceptance"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
   - id: F-2
     severity: R2_MAJOR
@@ -62,8 +62,8 @@ findings:
       - "registry/status-machines.yaml risk transition table allows ACCEPTED without authority evidence"
       - "registry/risks/_TEMPLATE.yaml resolution carries accepted/acceptance_rationale but no accepting actor, role or authority evidence"
       - "docs/09_GOVERNANCE/threat-modeling.md requires blocking security risk acceptance at the correct authority level"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

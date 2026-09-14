@@ -46,8 +46,8 @@ findings:
       - "GitHub review PRR_kwDOUUI5ts8AAAABNGifMw submitted 2026-09-11T02:01:36Z"
       - "Inline finding thread PRRT_kwDOUUI5ts6hUHol"
       - "TEST-0006 final PASS tree b8180dff075ea5c8328ee56d1683380576c984ba; result e9e41c96a826cfa8d6a1056f9795776c9d0431b4; binding 06dbb76c68287130169d41f50b2464bc4f878bb5"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
   - id: F-2
     severity: R3_MODERATE
     category: REQUIREMENT_ATOMICITY
@@ -57,8 +57,8 @@ findings:
       - "GitHub review PRR_kwDOUUI5ts8AAAABNGifMw submitted 2026-09-11T02:01:36Z"
       - "Inline finding thread PRRT_kwDOUUI5ts6hUHoo"
       - "REQ-0010 requires every independently fail-able material obligation to have its own stable atomic REQ identity and verification path"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

@@ -47,8 +47,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6hTD9-"
       - "PROJECT_STATE.md reviewed line 117 begins by instructing WORK-0001 synchronization already completed by 7c9cc98f"
       - "WORK-0001 at the same reviewed HEAD already states fresh L2 is the sole remaining assurance gate"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:

@@ -49,8 +49,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6h8mbR"
       - "registry/status-machines.yaml requirement acceptance_preconditions do not bind both proofs to the exact requirement content accepted later"
       - "AGENTS.md requires applicable independent Review Council/cold-read evidence before acceptance"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
   - id: F-2
     severity: R2_MAJOR
@@ -62,8 +62,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6h8mbS"
       - "registry/status-machines.yaml cold_read preconditions require PASS/exact revision/protection but no fresh-context provenance or executed cold-read outcomes"
       - "Current TEST records do not make fresh-context executor/context proof mandatory for requirement acceptance"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
   - id: F-3
     severity: R2_MAJOR
@@ -75,8 +75,8 @@ findings:
       - "Inline finding thread PRRT_kwDOUUI5ts6h8mbT"
       - "registry/status-machines.yaml risk acceptance_preconditions accept free-form authority_role/authority_evidence constrained only by policy prose"
       - "docs/09_GOVERNANCE/threat-modeling.md and docs/13_QUALITY/assurance-levels.md do not currently expose a machine-readable role-by-risk acceptance matrix"
-    disposition: OPEN
-    resolved_by: null
+    disposition: RESOLVED
+    resolved_by: REVIEW-0028
 
 checks:
   assumptions_challenged:
