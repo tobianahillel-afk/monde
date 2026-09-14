@@ -202,7 +202,7 @@ implementation_plan:
     description: Prove the substantive final HEAD in GitHub and complete independent review, including all fresh Codex findings.
     depends_on:
     - T7
-    status: BLOCKED
+    status: IN_PROGRESS
   - id: T5
     description: Correct REVIEW-0030 findings, close the duplicate-key YAML parser gap and add regression/mutation protection.
     depends_on:
@@ -217,7 +217,7 @@ implementation_plan:
     description: Correct the eight fresh findings from PRR_kwDOUUI5ts8AAAABNiFSzA, including protected trust anchors, immutable adoption boundaries, evidence co-satisfaction, identity-policy binding, live independent approval and complete durable finding tracking.
     depends_on:
     - T6
-    status: IN_PROGRESS
+    status: DONE
   planned_runs:
   - id: RUN-1
     objective: Initial deterministic governance implementation
@@ -398,7 +398,9 @@ validation:
   - Fresh-context Codex reviews through REVIEW-0030 identified the first 18 open findings; later GitHub Codex reviews expanded the live closure set without being retroactively converted into approving canonical review evidence.
   - Exact author-side candidate 965d484e7063d5c11c9964faa89bd7cf8d5aa75c passed MONDE Gate run 34897096930 / #142: 219/219 tests, 2530/2530 statements, 1282/1282 branches, 100% line+branch coverage including all three project-owned L2 decision scripts, 37/37 baseline plus 18/18 fresh-L2 mutations killed, all repository/strict/path/change/L2-hardening/review-closure validators at zero, 19 MUST_READ context files, CodeQL success and Dependency Review success.
   - Metadata-synchronized exact candidate 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 passed MONDE Gate run 34897431793 / #143 with the same deterministic proof and failed the stable live gate only on 38 unresolved threads.
-  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNiFSzA reviewed exact candidate 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 and opened eight new material findings. The live closure set is therefore 46 and T7 is now required before a new final-candidate proof/L2 attempt.
+  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNiFSzA reviewed exact candidate 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 and opened eight new material findings, expanding the durable closure set to 46.
+  - Exact T7-corrected substantive candidate 52e1dd3aad0ee625f824440f9c87b920c58edec2 passed MONDE Gate run 34902136446 / #156: 244/244 tests, 2801/2801 statements, 1374/1374 branches, 100% line+branch coverage, 37/37 baseline plus 26/26 fresh-L2/T7 mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7-closure validators all at zero, context manifest success, CodeQL success and Dependency Review success.
+  - The Gate #156 live merge gate verified the exact PR HEAD, actual repository-owner/admin permission and durable 46-finding cardinality, then failed closed only on 46 intentionally unresolved review threads and the absence of an independent APPROVED review bound to exact HEAD.
   evidence:
   - TEST-0002
   - TEST-0003
@@ -410,8 +412,9 @@ validation:
     branch: 100
   known_gaps:
   - Repository administration/ruleset enforcement belongs to WORK-0003.
-  - Gate #143 proves only the pre-T7 candidate; its deterministic success cannot close the eight findings from PRR_kwDOUUI5ts8AAAABNiFSzA.
-  - All 46 material review threads/findings remain intentionally unresolved pending correction plus fresh independent verification; no author-side resolution counts as completion evidence.
+  - Gate #156 is the complete author-side proof of the T7-corrected substantive implementation at 52e1dd3aad0ee625f824440f9c87b920c58edec2; later metadata descendants require current checks but do not inherit approval.
+  - All 46 material review threads/findings remain intentionally unresolved pending fresh independent verification; no author-side resolution counts as completion evidence.
+  - The live gate still requires an eligible independent APPROVED review on the exact current HEAD before merge eligibility.
   - External Codex findings remain truthfully referenced by their GitHub review/thread identities rather than being retroactively rewritten as approving canonical REVIEW records.
   - Historical malformed YAML, WORK-0001 squash bridges and progress-guard adoption boundaries must remain exact fail-closed historical provenance; future reuse is forbidden.
 risk:
@@ -449,7 +452,10 @@ run_log:
   note: 'Exact author-side candidate 965d484e7063d5c11c9964faa89bd7cf8d5aa75c passed Gate #142 with 219/219 tests, 100% line/branch across 2530 statements/1282 branches including project-owned L2 scripts, 37/37 + 18/18 mutations and every deterministic validator/hardening gate at zero; metadata descendant 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 passed Gate #143 with the same proof and live gate blocked only on 38 threads.'
 - run: RUN-3
   date: '2026-09-14'
-  note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNiFSzA on exact HEAD 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 opened eight new P1/P2 findings. The durable closure set is now 46; T7 is IN_PROGRESS and T4 is BLOCKED until T7 correction and exact-SHA proof are complete.'
+  note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNiFSzA on exact HEAD 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 opened eight new P1/P2 findings. The durable closure set became 46 and T7 was opened.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'T7 corrected all eight NiFSzA findings. Exact substantive candidate 52e1dd3aad0ee625f824440f9c87b920c58edec2 passed Gate #156 / run 34902136446 with 244/244 tests, 100% line/branch across 2801 statements/1374 branches, 37/37 + 26/26 mutations and every deterministic/T7 gate at zero. The live gate validated owner/admin and durable 46-finding tracking, then blocked only on 46 unresolved threads plus missing independent exact-HEAD APPROVED review. T7 is DONE author-side; T4 resumes for exact metadata-head proof and fresh L2 closure.'
 discoveries:
 - 100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required.
 - GitHub live state can invalidate stale PROJECT_STATE prose after it is committed.
@@ -471,7 +477,7 @@ discoveries:
 - New fail-closed lifecycle rules need immutable predecessor-bound, non-reusable adoption boundaries so candidate state cannot move the enforcement start point.
 - Squash provenance may bridge historical review/test evidence only for explicit eligible IDs and exact equal-tree source/integrated commits.
 blockers:
-- Fresh L2 PRR_kwDOUUI5ts8AAAABNiFSzA opened eight new material findings; T7 correction and proof are required before T4 can resume.
+- Fresh independent L2 re-verification of the complete 46-finding closure set is required on the exact final metadata candidate; until then all 46 review threads remain unresolved and the live gate must continue to fail closed for unresolved threads and missing independent exact-HEAD approval.
 follow_up_work_items:
 - WORK-0003
 - WORK-0004
@@ -483,4 +489,4 @@ completion:
   review_complete: false
   docs_updated: true
   registries_updated: true
-  project_state_updated: false
+  project_state_updated: true
