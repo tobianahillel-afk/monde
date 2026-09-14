@@ -27,7 +27,7 @@ jobs:
       - name: Checkout exact frozen target
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ env.TARGET_SHA }}
+          ref: c12a5b55c89168f20c028c2964da16de6f95ac56
           path: target
           persist-credentials: false
           fetch-depth: 1
@@ -164,7 +164,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import datetime, json, os, pathlib, re, sys, urllib.request, urllib.error
+          import datetime, json, os, pathlib, re, sys, urllib.request
 
           root = pathlib.Path('target')
           out_dir = pathlib.Path('/tmp/monde-review')
@@ -219,7 +219,7 @@ jobs:
               'definition_of_done_checked': False,
               'specification_gates_checked': False,
               'traceability_checked': False,
-              'review_complete': False,
+              'review_complete': False
             },
             'digests': {
               rid: {'content_digest': facts['requirements'][rid]['recomputed_digest'], 'status_at_read': facts['requirements'][rid]['status_at_read']}
@@ -231,7 +231,7 @@ jobs:
                 'atomic_and_testable': 'PASS|FAIL',
                 'dependencies_and_conflicts_checked': 'PASS|FAIL',
                 'omissions_and_failure_modes_checked': 'PASS|FAIL',
-                'evidence_plan_sufficient': 'PASS|FAIL',
+                'evidence_plan_sufficient': 'PASS|FAIL'
               } for rid in ['REQ-0023','REQ-0024','REQ-0025']
             },
             'review_0026_corrections': {'F-1': 'PASS|FAIL', 'F-2': 'PASS|FAIL', 'F-3': 'PASS|FAIL'},
@@ -266,8 +266,8 @@ Repository evidence:
             'max_tokens': 6000,
             'messages': [
               {'role':'system','content':system},
-              {'role':'user','content':user},
-            ],
+              {'role':'user','content':user}
+            ]
           }
           req = urllib.request.Request(
               'https://models.github.ai/inference/chat/completions',
@@ -280,16 +280,16 @@ Repository evidence:
               'kind': 'GITHUB_ACTIONS_GITHUB_MODELS',
               'source_id': f'github-actions-run:{run_id}:attempt:{run_attempt}',
               'workflow_run_url': f'https://github.com/{repo}/actions/runs/{run_id}',
-              'submitted_at': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00','Z'),
+              'submitted_at': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00','Z')
             },
             'executor': {
               'actor': f'github-models:{model}',
               'context_id': f'github-actions:{run_id}:{run_attempt}:test-0008',
               'independence_level': 'L2',
               'fresh_context': True,
-              'authoring_context_separated': True,
+              'authoring_context_separated': True
             },
-            'deterministic': facts,
+            'deterministic': facts
           }
           try:
               with urllib.request.urlopen(req, timeout=180) as resp:
@@ -323,7 +323,7 @@ Repository evidence:
                 'cold_read_15_ok': cold_ok,
                 'review_0026_corrections_ok': corrections_ok,
                 'approval_capable': approval_ok,
-                'material_r1_r2_r3_present': material_blocking,
+                'material_r1_r2_r3_present': material_blocking
               }
           except Exception as exc:
               envelope['qualification_candidate'] = False
@@ -366,7 +366,7 @@ Repository evidence:
               'Authorization': 'Bearer ' + os.environ['GITHUB_TOKEN'],
               'Accept': 'application/vnd.github+json',
               'X-GitHub-Api-Version': '2022-11-28',
-              'Content-Type': 'application/json',
+              'Content-Type': 'application/json'
           })
           with urllib.request.urlopen(req, timeout=30) as resp:
               print(resp.read().decode('utf-8'))
@@ -377,7 +377,7 @@ Repository evidence:
         shell: bash
         run: |
           python - <<'PY'
-          import json, pathlib, sys
+          import json, pathlib
           p = pathlib.Path('/tmp/monde-review/independent-result.json')
           if not p.exists():
               raise SystemExit('missing independent-result.json')
