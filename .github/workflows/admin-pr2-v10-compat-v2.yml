@@ -73,6 +73,13 @@ jobs:
           new='''    (tmp_path / "registry/status-machines.yaml").write_text(yaml.safe_dump({"progress": {"states": sorted(GLOBAL_STATUSES)}}), encoding="utf-8")\n    p.write_text(yaml.safe_dump({"status_machine": "../status-machines.yaml#progress", "phases": {}}), encoding="utf-8")\n'''
           assert q.count(old)==1
           t.write_text(q.replace(old,new,1))
+
+          t=Path('scripts/governance_mutation_smoke.py')
+          q=t.read_text()
+          old="'if isinstance(value, str) and value in GLOBAL_STATUSES and value not in DONE_PROGRESS_ALLOWED:',"
+          new="'if isinstance(value, str) and value in progress_states and value not in DONE_PROGRESS_ALLOWED:',"
+          assert q.count(old)==1
+          t.write_text(q.replace(old,new,1))
           PY
           git diff --check
 
@@ -98,7 +105,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add tools/governance/validate_repo.py tests/governance/test_validate_repo.py tests/governance/test_l2_findings.py tests/governance/test_validate_repo_coverage.py
+          git add tools/governance/validate_repo.py tests/governance/test_validate_repo.py tests/governance/test_l2_findings.py tests/governance/test_validate_repo_coverage.py scripts/governance_mutation_smoke.py
           git diff --cached --check
           git commit -m 'fix(governance): consume v10 canonical lifecycle contract'
           git push origin HEAD:feat/work-0002-governance-ci
