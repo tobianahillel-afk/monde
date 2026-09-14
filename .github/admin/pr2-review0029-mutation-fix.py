@@ -19,6 +19,11 @@ replacements = [
         '''    "review-complete-sha": (\n        "tools/governance/strict_contracts.py",\n        'if review.get("status") == "COMPLETE" and not FULL_COMMIT_SHA.fullmatch(reviewed_sha):',\n        'if False:',\n    ),\n''',
         "review-complete-sha mutation target",
     ),
+    (
+        '''    "test-pass-protected-contract-schema": (\n        "schemas/registry/tests.schema.json",\n        '\"contracts\": {\"type\": \"array\", \"minItems\": 1, \"items\": {\"type\": \"string\", \"minLength\": 1}}',\n        '\"contracts\": {\"type\": \"array\", \"items\": {\"type\": \"string\", \"minLength\": 1}}',\n    ),\n''',
+        '''    "test-pass-execution-sha-schema": (\n        "schemas/registry/tests.schema.json",\n        '\"pattern\": \"^[0-9a-f]{40}$\"',\n        '\"type\": \"string\"',\n    ),\n''',
+        "test-pass execution SHA schema mutation target",
+    ),
 ]
 
 for old, new, label in replacements:
