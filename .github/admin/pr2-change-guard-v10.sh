@@ -25,6 +25,19 @@ Path('/tmp/reapply-pr2-change-guard.sh').write_text(script)
 PY
 bash /tmp/reapply-pr2-change-guard.sh
 
+# Regression for the endpoint-scoped freshness rule: a review may predate changes
+# already inherited in the PR base; those base-side changes must not be re-opened
+# merely because this PR changes an unrelated endpoint file.
+python - <<'PY'
+from pathlib import Path
+p = Path('tests/governance/test_change_guard.py')
+s = p.read_text()
+name = 'def test_review_freshness_ignores_changes_inherited_before_pr_base(tmp_path):'
+assert name not in s
+s += '''\n\ndef test_review_freshness_ignores_changes_inherited_before_pr_base(tmp_path):\n    reviewed=repo(tmp_path)\n    w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text())\n    w['status']='IN_REVIEW'\n    w['affected_paths']=['x.txt']\n    w['scope_change']={'approved':True,'rationale':'declare reviewed scope'}\n    write(tmp_path,'registry/work-items/WORK-1.yaml',w)\n    reviewed=commit(tmp_path,'reviewed scoped work')\n    write(tmp_path,'registry/reviews/REVIEW-1.yaml',{'id':'REVIEW-1','status':'COMPLETE','artifact':{'commit_sha':reviewed}})\n    w['review_plan']['completed_reviews']=['REVIEW-1']\n    write(tmp_path,'registry/work-items/WORK-1.yaml',w)\n    write(tmp_path,'x.txt','base inherited behavior')\n    base=commit(tmp_path,'base inherits post-review change')\n    write(tmp_path,'unrelated.txt','pr-only endpoint')\n    head=commit(tmp_path,'unrelated pr change')\n    assert not [f for f in c.validate(tmp_path,base,head) if f.rule=='REVIEW_FRESHNESS']\n'''
+p.write_text(s)
+PY
+
 # Align the mutation harness with the new endpoint-scoped review freshness predicate.
 python - <<'PY'
 from pathlib import Path
