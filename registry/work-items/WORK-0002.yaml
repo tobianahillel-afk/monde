@@ -13,8 +13,11 @@ purpose: 'Turn MONDE governance/specification/traceability contracts into execut
   '
 scope_change:
   approved: true
-  rationale: Fresh exact-SHA L2 REVIEW-0029 found six additional lifecycle/evidence/authority/freshness/merge-base defects after the v10 integration;
-    owner authorizes correcting those defects without changing product scope.
+  rationale: Fresh exact-SHA L2 REVIEW-0030 found six additional risk-acceptance, normative-digest, authority-evidence,
+    external-import-finalization, PASS-test-revision and review-lifecycle defects after the REVIEW-0029 corrective candidate.
+    This corrective scope also includes duplicate-key YAML rejection because the resume audit found WORK-0004 currently contains
+    an ambiguous duplicate top-level key that PyYAML would otherwise silently overwrite. These changes harden the existing
+    governance contract without changing MONDE product scope.
 scope:
   in:
   - deterministic registry/status/reference/path validation
@@ -25,7 +28,12 @@ scope:
   - assurance-derived minimum review independence for A3/A4
   - canonical Review Council outcome vocabulary with bounded legacy compatibility
   - exact reviewed-commit binding for completed review evidence
-  - substantive PASS-test record validation
+  - substantive PASS-test record validation, including real Git commit existence/ancestry
+  - canonical RFC 8785/JCS recomputation for requirement normative digests
+  - risk-acceptance preconditions and authority-matrix enforcement
+  - repository-owner authority evidence bound to the governed MONDE repository
+  - external review-import finalization before completion eligibility
+  - duplicate-key YAML rejection for canonical machine-readable records
   - work dependency, task/run and cycle validation
   - PROJECT_STATE active-work validation
   - assumption/risk due-date validation
@@ -111,12 +119,17 @@ affected_capabilities: []
 affected_engines: []
 affected_schemas:
 - schemas/registry/work-items.schema.json
+- schemas/registry/requirements.schema.json
+- schemas/registry/risks.schema.json
 - schemas/registry/reviews.schema.json
 - schemas/registry/tests.schema.json
 affected_docs:
 - PROJECT_STATE.md
 - docs/03_ARCHITECTURE/github-control-plane.md
 - docs/13_QUALITY/ai-context-routing.md
+- registry/acceptance-authority.yaml
+- registry/content-identity.yaml
+- registry/status-machines.yaml
 - registry/progress/matrix.yaml
 affected_paths:
 - .github/
@@ -159,8 +172,13 @@ implementation_plan:
   - id: T4
     description: Prove the substantive final HEAD in GitHub and complete independent review, including all fresh Codex findings.
     depends_on:
+    - T5
+    status: BLOCKED
+  - id: T5
+    description: Correct REVIEW-0030 findings, close the duplicate-key YAML parser gap and add regression/mutation protection.
+    depends_on:
     - T3
-    status: IN_REVIEW
+    status: IN_PROGRESS
   planned_runs:
   - id: RUN-1
     objective: Initial deterministic governance implementation
@@ -172,8 +190,13 @@ implementation_plan:
     tasks:
     - T2
     - T3
+    status: DONE
+  - id: RUN-3
+    objective: REVIEW-0030 correction, renewed exact-SHA proof and independent closure
+    tasks:
+    - T5
     - T4
-    status: IN_REVIEW
+    status: IN_PROGRESS
 review_plan:
   artifact_class: GOVERNANCE_AUTOMATION
   independence_level: L2_TARGET
@@ -199,6 +222,12 @@ review_plan:
   - 'REVIEW-0029/F-4 / P1: blocking finding ACCEPTED requires matrix-authorized typed durable authority evidence.'
   - 'REVIEW-0029/F-5 / P1: required TEST semantic contracts remain review-freshness-relevant while execution metadata may be administrative.'
   - 'REVIEW-0029/F-6 / P2: endpoint scope uses PR merge-base semantics while commit-edge validation uses true parents.'
+  - 'REVIEW-0030/F-1 / R2: enforce all canonical RISK ACCEPTED preconditions and fail closed when owning-work assurance cannot be resolved.'
+  - 'REVIEW-0030/F-2 / R2: recompute REQUIREMENT_NORMATIVE_V1 from the canonical RFC 8785/JCS projection before acceptance.'
+  - 'REVIEW-0030/F-3 / R2: bind repository-owner authority evidence to the governed MONDE repository and independently established actor.'
+  - 'REVIEW-0030/F-4 / R2: imported COMPLETE reviews are ineligible for completion until import_commit and one-shot authorization consumption are bound.'
+  - 'REVIEW-0030/F-5 / R2: PASS TEST execution revisions must exist and belong to relevant Git ancestry.'
+  - 'REVIEW-0030/F-6 / R2: CLOSED reviews never satisfy a work-item completion gate.'
 required_tests:
   unit:
   - TEST-0002
@@ -234,6 +263,13 @@ required_tests:
   - blocking accepted findings fail without canonical authority matrix evidence
   - required-test semantic weakening stales review while execution-only evidence changes remain administrative
   - endpoint scope excludes base-only changes by using merge-base semantics
+  - RISK ACCEPTED transitions fail without all canonical acceptance fields, resolvable owning-work assurance and allowed authority evidence
+  - requirement acceptance rejects an invented but internally repeated digest by recomputing REQUIREMENT_NORMATIVE_V1 through RFC 8785/JCS
+  - repository-owner evidence cannot point at an unrelated GitHub repository
+  - externally imported COMPLETE reviews cannot satisfy completion before import/authorization consumption is finalized
+  - PASS TEST evidence rejects nonexistent or irrelevant execution commit SHAs
+  - CLOSED reviews never contribute completion hats, independence or approval
+  - duplicate YAML mapping keys fail parsing instead of silently overwriting earlier canonical state
   security:
   - immutable action/digest pins
   - hash-locked Python artifacts
@@ -286,7 +322,8 @@ validation:
   - Repository administration/ruleset enforcement belongs to WORK-0003.
   - Merged WORK-0001 contract from main@29086643387ff46ab6636dd2fa3014efccc10165 is now integrated; the integrated HEAD still requires a complete
     MONDE Gate and fresh L2 before completion.
-  - Current six-finding corrective HEAD still requires real MONDE Gate proof and a fresh L2 after integration of the merged WORK-0001 contract.
+  - REVIEW-0030 added six blocking R2 findings after the REVIEW-0029 correction; all remain open pending correction and fresh independent verification.
+  - The resume audit found duplicate top-level YAML keys in WORK-0004; canonical YAML must reject duplicate mapping keys rather than silently overwrite state.
 risk:
   security: MEDIUM
   data: LOW
@@ -309,8 +346,13 @@ run_log:
     integration proof remain pending before completion.
 - run: RUN-2
   date: '2026-09-14'
-  note: 'Integrated merged WORK-0001/main@29086643387ff46ab6636dd2fa3014efccc10165 into PR #2 after an exact-head merge probe. WORK-0002 remains
+  note: 'Integrated merged WORK-0001/main@29086643387ff46ab6636dd2fa3014efccc10165 into PR #2 after an exact-head merge probe. WORK-0002 remained
     IN_REVIEW pending full integrated CI proof and fresh L2.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'REVIEW-0030 was truthfully preauthorized, imported as COMPLETE/CHANGES_REQUIRED, bound to import commit 630604416bdccd3b07f57c011152e7fe14e0f2b4
+    and consumed. Its six new R2 findings reopen implementation/tests/specification/handover evidence. Resume audit also discovered duplicate-key
+    YAML ambiguity in WORK-0004. Correction begins from exact branch HEAD 0d4569b47e7e57f9141b95558bc4ae2c55124051.'
 discoveries:
 - 100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required.
 - GitHub live state can invalidate stale PROJECT_STATE prose after it is committed.
@@ -319,6 +361,9 @@ discoveries:
 - Security scanning must account for reachable PR commit history until squash-only merge is enforced.
 - Assurance level must impose a minimum review-independence floor rather than trusting a self-declared weaker target.
 - A changed registry record is itself an impact-analysis seed; path-only WORK matching is insufficient.
+- Repository-owner authority evidence must bind the exact governed repository and establish the named actor, not merely match a URL path segment.
+- Canonical YAML must fail closed on duplicate mapping keys; last-key-wins parsing can silently corrupt durable project state.
+- A risk cannot enter ACCEPTED when its owning-work assurance cannot be resolved deterministically from canonical scope; ambiguous ownership fails closed.
 blockers: []
 follow_up_work_items:
 - WORK-0003
