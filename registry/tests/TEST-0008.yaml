@@ -18,7 +18,7 @@ protects:
     - "REQ-0023/REQ-0024/REQ-0025 remain PROPOSED during the cold read"
     - "Each covered requirement digest matches REQUIREMENT_NORMATIVE_V1 recomputation on the exact execution tree"
     - "A qualifying cold read is executed in an L2/L3 context separated from the authoring context"
-    - "Every v9 required cold-read outcome is explicitly PASS before this test may qualify or become PASS"
+    - "Every v10 required cold-read outcome is explicitly PASS before this test may qualify or become PASS"
 
 location:
   test_path: null
@@ -48,7 +48,7 @@ cases:
   adversarial_cases:
     - "Change normative_statement after a clean read and verify the old digest no longer qualifies"
     - "Change depends_on or verification.method after a clean read and verify the old digest no longer qualifies"
-    - "Use a generic author-run PASS TEST with no acceptance_cold_read qualification and verify v9 rejects it"
+    - "Use a generic author-run PASS TEST with no acceptance_cold_read qualification and verify v10 rejects it"
 
 acceptance_cold_read:
   qualifies: true

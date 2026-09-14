@@ -99,6 +99,7 @@ scope_change:
     - REVIEW-0026/F-1
     - REVIEW-0026/F-2
     - REVIEW-0026/F-3
+    - REVIEW-0027
 
 read_before:
   - README.md
@@ -111,6 +112,7 @@ read_before:
   - registry/acceptance-authority.yaml
   - registry/reviews/REVIEW-0025.yaml
   - registry/reviews/REVIEW-0026.yaml
+  - registry/reviews/REVIEW-0027.yaml
   - registry/tests/TEST-0005.yaml
   - registry/tests/TEST-0006.yaml
   - registry/tests/TEST-0007.yaml
@@ -175,6 +177,7 @@ affected_docs:
   - registry/reviews/REVIEW-0001.yaml
   - registry/reviews/REVIEW-0025.yaml
   - registry/reviews/REVIEW-0026.yaml
+  - registry/reviews/REVIEW-0027.yaml
   - registry/requirements/REQ-0005.yaml
   - registry/requirements/REQ-0020.yaml
   - registry/requirements/REQ-0021.yaml
@@ -215,7 +218,7 @@ impact_analysis:
   downstream: [WORK-0002, WORK-0003, WORK-0004, "all future canonical specification work", "all future implementation work"]
   migrations_or_reprocessing: []
   compatibility_notes: |
-    This active WORK record is a current routing/index record; immutable detail remains in linked REQ/REVIEW/TEST records and Git history. status-machines v9 remains canonical. content-identity v2 clarifies REQUIREMENT_NORMATIVE_V1 with byte-exact RFC 8785/JCS serialization. REQ-0023/24/25 remain PROPOSED. TEST-0008 remains independent-only and unqualified. Current TEST lifecycle/result identity is authoritative only in each TEST record. PROJECT_STATE and this WORK use conditional TEST-0006 routing that is intended to remain correct before, during and after a qualifying PASS. Cross-branch WORK-0002 implementation proof remains behind explicit PR #2 checkout.
+    This active WORK record is a current routing/index record; immutable detail remains in linked REQ/REVIEW/TEST records and Git history. status-machines v10 is canonical and adds a one-shot, source/executor/exact-revision-bound import path for TEST executions that genuinely completed externally before repository lifecycle materialization; it does not create a generic PLANNED→PASS edge. content-identity v2 remains RFC 8785/JCS byte-exact. REVIEW-0027 is COMPLETE/APPROVE_WITH_FOLLOWUP on exact candidate c12a5b55, TEST-0008 carries the matching L2 cold-read evidence, and REQ-0023/24/25 were atomically ACCEPTED only after both evidence halves resolved. Current TEST lifecycle/result identity remains authoritative only in each TEST record. Historical findings remain open until the final post-v10 exact-SHA L2 verifies the synchronized handover and import semantics. Cross-branch WORK-0002 implementation proof remains behind explicit PR #2 checkout.
 
 implementation_plan:
   tasks:
@@ -224,13 +227,13 @@ implementation_plan:
     - {id: T3, description: "Define development lifecycle, DoR/DoD and testing strategy.", depends_on: [T2], expected_files: [docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md], status: DONE}
     - {id: T4, description: "Define documentation/security/threat-model/ADR governance.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/11_ADR/README.md], status: DONE}
     - {id: T5, description: "Add GitHub templates, capability registry, roadmap and scorecard.", depends_on: [T3, T4], expected_files: [.github/pull_request_template.md, registry/capabilities/README.md, docs/10_ROADMAP/phase-0.md, docs/13_QUALITY/project-scorecard.md], status: DONE}
-    - {id: T6, description: "Complete post-merge independent assurance correction and final fresh re-review.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/content-identity.yaml, registry/acceptance-authority.yaml, registry/reviews/REVIEW-0026.yaml, registry/requirements/REQ-0023.yaml, registry/requirements/REQ-0024.yaml, registry/requirements/REQ-0025.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/tests/TEST-0008.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
+    - {id: T6, description: "Complete post-merge independent assurance correction and final fresh re-review.", depends_on: [T5, T7, T8], expected_files: [PROJECT_STATE.md, registry/status-machines.yaml, registry/content-identity.yaml, registry/acceptance-authority.yaml, registry/reviews/REVIEW-0026.yaml, registry/reviews/REVIEW-0027.yaml, registry/requirements/REQ-0023.yaml, registry/requirements/REQ-0024.yaml, registry/requirements/REQ-0025.yaml, registry/tests/TEST-0005.yaml, registry/tests/TEST-0006.yaml, registry/tests/TEST-0007.yaml, registry/tests/TEST-0008.yaml, registry/work-items/WORK-0001.yaml, registry/work-items/WORK-0002.yaml, registry/progress/matrix.yaml], status: IN_REVIEW}
     - {id: T7, description: "Add scientific specification lifecycle, requirements/assumptions/risks, traceability and reproducibility/backtesting contracts.", depends_on: [T3, T4, T5], expected_files: [docs/13_QUALITY/specification-quality.md, docs/13_QUALITY/reproducibility-backtesting.md, registry/requirements/_TEMPLATE.yaml, registry/assumptions/_TEMPLATE.yaml, registry/risks/_TEMPLATE.yaml], status: DONE}
     - {id: T8, description: "Add assurance levels, review/test/experiment evidence, advanced verification, NFR and research protocols.", depends_on: [T7], expected_files: [docs/13_QUALITY/review-council.md, docs/13_QUALITY/assurance-levels.md, docs/13_QUALITY/advanced-verification.md, docs/13_QUALITY/non-functional-requirements.md, docs/12_RESEARCH/research-protocol.md], status: DONE}
   planned_runs:
     - {id: RUN-1, objective: "Repository navigation/governance tracking bootstrap", tasks: [T1, T2], exit_condition: "Core resume/tracking contracts exist", status: DONE}
     - {id: RUN-2, objective: "Quality/lifecycle/GitHub workflow bootstrap", tasks: [T3, T4, T5], exit_condition: "Development gates/templates exist", status: DONE}
-    - {id: RUN-3, objective: "Post-merge bootstrap assurance correction and fresh re-review", tasks: [T6], exit_condition: "Current REVIEW-0026 corrections have revision-bound proof, TEST-0008 has real fresh-context evidence, a later L2 is approval-capable, and no unresolved blocking finding remains", status: IN_REVIEW}
+    - {id: RUN-3, objective: "Post-merge bootstrap assurance correction and fresh re-review", tasks: [T6], exit_condition: "REVIEW-0027/TEST-0008/REQ acceptance provenance and status-machines v10 receive one final exact-SHA fresh L2, all material findings are independently resolved or validly dispositioned, and completion gates are synchronized", status: IN_REVIEW}
     - {id: RUN-4, objective: "Scientific/documentation governance hardening", tasks: [T7], exit_condition: "Canonical documentation is governed as rigorously as implementation", status: DONE}
     - {id: RUN-5, objective: "Assurance, research and advanced verification hardening", tasks: [T8], exit_condition: "Quality dimensions/review evidence are explicit and synchronized", status: DONE}
 
@@ -238,7 +241,7 @@ review_plan:
   artifact_class: FOUNDATIONAL_GOVERNANCE
   independence_level: L2_TARGET
   required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, DATA_EPISTEMIC, PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY, RED_TEAM_SKEPTIC]
-  completed_reviews: []
+  completed_reviews: [REVIEW-0027]
   open_findings:
     - REVIEW-0004/F-1
     - REVIEW-0004/F-2
@@ -296,7 +299,7 @@ required_tests:
     - "Generic author-run PASS TEST cannot satisfy acceptance cold read"
     - "Accepted finding authority_evidence_ref must resolve independently and establish the claimed actor/role"
     - "Risk/finding authority role/evidence must resolve through registry/acceptance-authority.yaml"
-    - "REQ-0023/24/25 remain PROPOSED until exact-digest independent review plus qualifying TEST-0008 evidence exist"
+    - "REQ-0023/24/25 may become ACCEPTED only after exact-digest independent review plus qualifying TEST-0008 evidence resolve under the canonical acceptance machine"
     - "REQ-0023/24/25 ↔ TEST-0006 general proof traceability remains reciprocal"
     - "PROJECT_STATE and WORK-0001 do not duplicate mutable TEST lifecycle/result state"
     - "PROJECT_STATE/WORK-0001 conditional TEST-0006 routing remains correct in FAIL, READY, RUNNING and PASS states"
@@ -311,7 +314,9 @@ required_tests:
     - "TEST-0007 current correction proof: b0d4b4f68f457a8f9e5bfbf689a9275c203a0715 PASS → 592b88eb250f92a6e809c76f8646f85a894929b1 → 8e5edd80a634f552bbf92cd7da7088f9d6b06a2e"
     - "TEST-0006 REVIEW-0026 first handover attempt: d3997dd1c377b220e26eb7eeb3fc0a5c80f8b698 FAIL → 09c43f5f130a3baa71df4c2654b005380283f2ef → 8e8e54a3dc2f2c083831a230cbc5344694a79de5; the failure preserves the stale post-PASS rerun-routing defect instead of hiding it"
     - "GitHub repository metadata identifies owner.login=tobianahillel-afk and collaborator permission=admin"
-    - "TEST-0008 remains reserved for genuine external fresh-context cold-read execution"
+    - "REVIEW-0027 external L2: c12a5b55c89168f20c028c2964da16de6f95ac56 reviewed by GitHub Actions Copilot CLI run 34793888383; import f78d5575a94b49d90abb166003cf4520bf167d3a → binding db2f737ceda531916590c4cc32d9f46964d601e0; authorization metadata consumed in e247a0e4c92b401828625007ce3479c90182b944"
+    - "TEST-0008 external cold-read result: exact execution tree c12a5b55c89168f20c028c2964da16de6f95ac56 → PASS import 4035cbd9fe5a9dc113d95ba83ad3c72d7d0b76f1 → binding/authorization consumption metadata 3125334eb00a8a3da28cb94271316856147965eb"
+    - "REQ-0023/24/25 atomic acceptance commit: 74dc253d849e3b6b6570fe55df415f5e9da65ab2"
   epistemic:
     - "Scientific/backtesting protocol enforces knowledge-at-T rather than hindsight data"
 
@@ -343,17 +348,18 @@ validation:
     - "TEST-0006 exact tree d3997dd1 correctly FAILed because the then-current PROJECT_STATE rerun instruction would become stale immediately after PASS"
     - "PROJECT_STATE was then corrected to state-conditional TEST-0006 routing rather than hardcoding a replacement current TEST status"
     - "Current TEST execution identity is read only from TEST records"
+    - "REVIEW-0027 is COMPLETE/APPROVE_WITH_FOLLOWUP from fresh-context GitHub Actions Copilot CLI run 34793888383 on exact c12a5b55; all three requirement digests matched and all fifteen cold-read outcomes were PASS"
+    - "status-machines v10 preauthorized and then consumed truthful external imports for REVIEW-0027 and TEST-0008 without replaying lifecycle checkpoints after completion"
+    - "TEST-0008 result import 4035cbd9 is exact-SHA-bound to c12a5b55 and was metadata-bound/consumed by 3125334e"
+    - "REQ-0023/24/25 were atomically accepted in 74dc253d after REVIEW-0027 and TEST-0008 qualified"
   evidence: [PR-3, REVIEW-0026, TEST-0005, TEST-0006, TEST-0007, TEST-0008, REQ-0023, REQ-0024, REQ-0025, registry/status-machines.yaml, registry/content-identity.yaml, registry/acceptance-authority.yaml]
   coverage:
     line: NOT_APPLICABLE_NO_EXECUTABLE_CODE
     branch: NOT_APPLICABLE_NO_EXECUTABLE_CODE
   known_gaps:
-    - "REVIEW-0026/F-1/F-2/F-3 remain OPEN until a later fresh-context approval-capable L2 independently verifies their corrections."
-    - "Read TEST-0006 for current state: if no valid current PASS covers the synchronized REVIEW-0026 handover, continue it legally through the minimum lifecycle; once a qualifying PASS exists, skip every further administrative rerun and freeze/request fresh L2."
-    - "Independent YAML parse of the exact current WORK-0001 remains a required fresh-L2 check because the local runtime could not fetch the exact Git blob for yaml.safe_load in this turn."
-    - "TEST-0008 requires real L2/L3 fresh-context execution and must not be self-populated."
-    - "REQ-0023/24/25 cannot transition to ACCEPTED until both exact-digest approval review and TEST-0008 evidence qualify under v9."
-    - "Historical open findings remain open until a fresh independent review explicitly verifies their corrections."
+    - "status-machines v10, REVIEW-0027/TEST-0008 materialization, requirement acceptance and this synchronized handover are newer than the c12a5b55 L2 and require one final exact-SHA fresh-context L2 before WORK-0001 can complete."
+    - "Historical open findings remain OPEN until that final independent review explicitly verifies closure or a policy-valid disposition is recorded."
+    - "WORK-0001 T6, RUN-3 and hard completion gates remain IN_REVIEW/false until the final v10 review passes."
     - "WORK-0002/PR #2 remains separate IN_REVIEW work and must integrate merged WORK-0001 before closure."
 
 risk:
@@ -369,7 +375,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Created bootstrap resume/tracking/Constitution foundations."}
   - {run: RUN-2, date: "2026-09-10", note: "Added lifecycle/testing/security/ADR/templates/roadmap/scorecard."}
-  - {run: RUN-3, date: "2026-09-14", note: "REVIEW-0026 returned CHANGES_REQUIRED on frozen 4f8cebee. Corrections now use independently-resolvable GitHub owner authority, RFC 8785/JCS byte-exact requirement identity and a current review-first handover. TEST-0005 and TEST-0007 have current exact-SHA PASS chains. The first synchronized TEST-0006 REVIEW-0026 attempt on d3997dd1 correctly FAILed because handover text would still order the rerun after PASS; that FAIL is bound in 8e8e54a3 and PROJECT_STATE is now conditionally transition-stable. Continue TEST-0006 only until one qualifying current PASS exists, then freeze and request fresh L2 + TEST-0008 cold read."}
+  - {run: RUN-3, date: "2026-09-14", note: "Fresh-context Copilot L2 run 34793888383 approved exact c12a5b55 with follow-up, independently parsed WORK-0001, verified REVIEW-0026/F-1/F-2/F-3, recomputed all three JCS digests and returned 15/15 TEST-0008 outcomes PASS. status-machines v10 truthfully imported REVIEW-0027 and TEST-0008 without lifecycle replay; REQ-0023/24/25 were atomically ACCEPTED in 74dc253d. RUN-3 remains IN_REVIEW until one final exact-SHA L2 verifies the post-v10 materialization/acceptance/handover state."}
   - {run: RUN-4, date: "2026-09-10", note: "Added specification lifecycle/requirements/risks/traceability/backtesting rigor."}
   - {run: RUN-5, date: "2026-09-10", note: "Added assurance/review/test/experiment/NFR/research protocols."}
 
