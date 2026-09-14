@@ -1,0 +1,110 @@
+name: TEST-0008 fresh Copilot CLI L2 review v2
+
+on:
+  push:
+    branches:
+      - review/test-0008-github-models
+
+permissions:
+  contents: read
+  copilot-requests: write
+
+concurrency:
+  group: test-0008-copilot-review-v2
+  cancel-in-progress: false
+
+jobs:
+  cold-read:
+    name: TEST-0008 fresh-context L2 v2
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      TARGET_SHA: c12a5b55c89168f20c028c2964da16de6f95ac56
+      COPILOT_HOME: /tmp/monde-copilot-home-v2
+    steps:
+      - name: Checkout exact frozen target
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: c12a5b55c89168f20c028c2964da16de6f95ac56
+          path: target
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Independently parse and recompute deterministic facts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/monde-review
+          for path in registry/content-identity.yaml registry/work-items/WORK-0001.yaml registry/requirements/REQ-0023.yaml registry/requirements/REQ-0024.yaml registry/requirements/REQ-0025.yaml; do
+            ruby -ryaml -rjson -e 'print JSON.generate(YAML.load_file(ARGV[0]))' "target/$path" > "/tmp/monde-review/$(basename "$path").json"
+          done
+          cat > /tmp/monde-review/check.mjs <<'NODE'
+          import fs from 'node:fs'; import crypto from 'node:crypto';
+          const d='/tmp/monde-review',load=n=>JSON.parse(fs.readFileSync(`${d}/${n}.json`,'utf8'));
+          const ci=load('content-identity.yaml'),w=load('WORK-0001.yaml'),ids=['REQ-0023','REQ-0024','REQ-0025'];
+          const expected={'REQ-0023':'sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b','REQ-0024':'sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4','REQ-0025':'sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67'};
+          const s=ci.schemes.REQUIREMENT_NORMATIVE_V1;
+          function get(o,p){let c=o;for(const k of p.split('.')){if(c===null||typeof c!=='object'||!(k in c))throw Error(`missing ${p}`);c=c[k]}return c}
+          function set(o,p,v){const a=p.split('.');let c=o;for(let i=0;i<a.length-1;i++){c[a[i]]??={};c=c[a[i]]}c[a.at(-1)]=v}
+          function j(v){if(Array.isArray(v))return v.map(j);if(v&&typeof v==='object'){const o={};for(const k of Object.keys(v).sort())o[k]=j(v[k]);return o}return v}
+          let ok=true;const req={};for(const id of ids){const r=load(`${id}.yaml`),p={};for(const x of s.included_fields)set(p,x,get(r,x));const canonical=JSON.stringify(j(p)),digest='sha256:'+crypto.createHash('sha256').update(Buffer.from(canonical,'utf8')).digest('hex');const pass=r.status==='PROPOSED'&&digest===r.content_identity?.digest&&digest===expected[id];ok&&=pass;req[id]={status_at_read:r.status,declared_digest:r.content_identity?.digest,recomputed_digest:digest,digest_match:pass}}
+          const run3=w.implementation_plan?.planned_runs?.find(x=>x.id==='RUN-3'),c=w.completion||{};const work={yaml_parse_success:true,status:w.status,assurance_level:w.assurance?.level,run_3_status:run3?.status,definition_of_done_checked:c.definition_of_done_checked,specification_gates_checked:c.specification_gates_checked,traceability_checked:c.traceability_checked,review_complete:c.review_complete};const wok=work.status==='IN_REVIEW'&&work.assurance_level==='A3'&&work.run_3_status==='IN_REVIEW'&&work.definition_of_done_checked===false&&work.specification_gates_checked===false&&work.traceability_checked===false&&work.review_complete===false;ok&&=wok;const out={target_sha:process.env.TARGET_SHA,contract_version:ci.version,canonicalization:s.canonicalization?.standard,work,requirements:req,deterministic_pass:ok};fs.writeFileSync(`${d}/facts.json`,JSON.stringify(out,null,2));console.log(JSON.stringify(out,null,2));if(!ok)process.exit(1);
+          NODE
+          TARGET_SHA="$TARGET_SHA" node /tmp/monde-review/check.mjs
+
+      - name: Resolve durable repository-owner role evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' 'https://api.github.com/repos/tobianahillel-afk/monde' > /tmp/monde-review/repo.json
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/monde-review/repo.json'))
+          out={'authority_evidence_ref':'https://api.github.com/repos/tobianahillel-afk/monde','repository_full_name':r['full_name'],'owner_login':r['owner']['login'],'evidence_semantics':'The repository owner field establishes the named actor as REPOSITORY_OWNER. Any repo.permissions field would describe the calling credential and is intentionally not used as actor-role evidence.'}
+          print(json.dumps(out,indent=2));open('/tmp/monde-review/authority.json','w').write(json.dumps(out,indent=2))
+          if out['owner_login']!='tobianahillel-afk': raise SystemExit('owner mismatch')
+          PY
+
+      - name: Build bounded review packet
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          root=pathlib.Path('target'); facts=json.loads(pathlib.Path('/tmp/monde-review/facts.json').read_text()); authority=json.loads(pathlib.Path('/tmp/monde-review/authority.json').read_text())
+          paths=['registry/requirements/REQ-0023.yaml','registry/requirements/REQ-0024.yaml','registry/requirements/REQ-0025.yaml','registry/requirements/REQ-0004.yaml','registry/requirements/REQ-0010.yaml','registry/content-identity.yaml','registry/acceptance-authority.yaml','registry/reviews/REVIEW-0026.yaml','registry/reviews/REVIEW-0001.yaml','registry/tests/TEST-0008.yaml','registry/work-items/WORK-0001.yaml','PROJECT_STATE.md','docs/13_QUALITY/definition-of-ready.md','docs/13_QUALITY/definition-of-done.md','docs/13_QUALITY/testing-strategy.md','docs/13_QUALITY/review-council.md','docs/13_QUALITY/assurance-levels.md']
+          chunks=[f'===== {p} =====\n'+(root/p).read_text(encoding='utf-8') for p in paths]
+          sm=(root/'registry/status-machines.yaml').read_text();a=sm.find('  requirements:');b=sm.find('\n  assumptions:',a);chunks.append('===== registry/status-machines.yaml :: requirements =====\n'+sm[a:b])
+          shape={'reviewed_commit':facts['target_sha'],'yaml_parse':{'success':True,'WORK-0001.status':'IN_REVIEW','WORK-0001.assurance_level':'A3','RUN-3.status':'IN_REVIEW','definition_of_done_checked':False,'specification_gates_checked':False,'traceability_checked':False,'review_complete':False},'digests':{r:{'content_digest':facts['requirements'][r]['recomputed_digest'],'status_at_read':'PROPOSED'} for r in ['REQ-0023','REQ-0024','REQ-0025']},'cold_read':{r:{k:'PASS|FAIL' for k in ['understood_without_author_reasoning','atomic_and_testable','dependencies_and_conflicts_checked','omissions_and_failure_modes_checked','evidence_plan_sufficient']} for r in ['REQ-0023','REQ-0024','REQ-0025']},'review_0026_corrections':{'F-1':'PASS|FAIL','F-2':'PASS|FAIL','F-3':'PASS|FAIL'},'all_15_pass':'boolean','approval_outcome':'APPROVE|APPROVE_WITH_FOLLOWUP|CHANGES_REQUIRED|BLOCKED','material_findings':[{'severity':'R1_CRITICAL|R2_MAJOR|R3_MODERATE|R4_MINOR','summary':'string','evidence':'string'}],'rationale':'concise independent rationale'}
+          prompt=f'''Act as a fresh-context L2 verification reviewer. You did not author MONDE. Ignore author reasoning and decide from the exact artifacts below. Fail closed.\n\nTarget: {facts['target_sha']}\nIndependent deterministic facts:\n{json.dumps(facts,indent=2)}\nIndependent durable owner-role lookup:\n{json.dumps(authority,indent=2)}\n\nImportant evidence interpretation to verify against the supplied acceptance-authority contract: authority_evidence_ref points to the GitHub repository resource. The relevant role fact is that resource's `owner.login`; do not use a `permissions` object belonging to whatever credential fetched the resource as if it were the owner's permission. Decide yourself whether the durable owner field establishes the named REPOSITORY_OWNER under the canonical evidence contract.\n\nTasks: verify REVIEW-0026/F-1/F-2/F-3; independently perform all five TEST-0008 checks for each REQ-0023/24/25; search for any R1/R2/R3 issue. APPROVE only if all 15 PASS, the three corrections PASS, digests/status/YAML are coherent, and no material finding remains. Requirements stay PROPOSED during this read. Return ONLY JSON with concrete values matching:\n{json.dumps(shape,indent=2)}\n\nEvidence:\n'''+ '\n\n'.join(chunks)
+          pathlib.Path('/tmp/monde-review/prompt.txt').write_text(prompt);print('prompt_bytes=',len(prompt.encode()))
+          PY
+
+      - name: Install pinned Copilot CLI
+        run: npm install -g @github/copilot@1.0.83
+
+      - name: Execute fresh Copilot L2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          copilot -p "$(cat /tmp/monde-review/prompt.txt)" -s > /tmp/monde-review/output.txt
+          cat /tmp/monde-review/output.txt
+
+      - name: Validate result and emit durable envelope
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import datetime,json,os,pathlib,re
+          facts=json.loads(pathlib.Path('/tmp/monde-review/facts.json').read_text());raw=pathlib.Path('/tmp/monde-review/output.txt').read_text().strip();raw=re.sub(r'^```(?:json)?\s*','',raw);raw=re.sub(r'\s*```$','',raw);m=json.loads(raw)
+          rs=['REQ-0023','REQ-0024','REQ-0025'];oset=['understood_without_author_reasoning','atomic_and_testable','dependencies_and_conflicts_checked','omissions_and_failure_modes_checked','evidence_plan_sufficient'];y={'success':True,'WORK-0001.status':'IN_REVIEW','WORK-0001.assurance_level':'A3','RUN-3.status':'IN_REVIEW','definition_of_done_checked':False,'specification_gates_checked':False,'traceability_checked':False,'review_complete':False}
+          checks={'commit_ok':m.get('reviewed_commit')==facts['target_sha'],'yaml_ok':m.get('yaml_parse')==y,'digests_ok':all(m.get('digests',{}).get(r,{}).get('content_digest')==facts['requirements'][r]['recomputed_digest'] and m.get('digests',{}).get(r,{}).get('status_at_read')=='PROPOSED' for r in rs),'cold_read_15_ok':all(m.get('cold_read',{}).get(r,{}).get(k)=='PASS' for r in rs for k in oset),'review_0026_corrections_ok':all(m.get('review_0026_corrections',{}).get(f)=='PASS' for f in ['F-1','F-2','F-3']),'approval_capable':m.get('approval_outcome') in {'APPROVE','APPROVE_WITH_FOLLOWUP'},'all_15_flag':m.get('all_15_pass') is True}
+          material=m.get('material_findings') or [];checks['material_r1_r2_r3_present']=any(isinstance(x,dict) and x.get('severity') in {'R1_CRITICAL','R2_MAJOR','R3_MODERATE'} for x in material)
+          q=bool(facts['deterministic_pass'] and all([checks['commit_ok'],checks['yaml_ok'],checks['digests_ok'],checks['cold_read_15_ok'],checks['review_0026_corrections_ok'],checks['approval_capable'],checks['all_15_flag']]) and not checks['material_r1_r2_r3_present'])
+          e={'source':{'kind':'GITHUB_ACTIONS_COPILOT_CLI','source_id':f"github-actions-run:{os.environ['RUN_ID']}:attempt:{os.environ['RUN_ATTEMPT']}",'workflow_run_url':f"https://github.com/{os.environ['REPOSITORY']}/actions/runs/{os.environ['RUN_ID']}",'submitted_at':datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00','Z')},'executor':{'actor':'github-copilot-cli@1.0.83','context_id':f"github-actions:{os.environ['RUN_ID']}:{os.environ['RUN_ATTEMPT']}:test-0008-v2",'independence_level':'L2','fresh_context':True,'authoring_context_separated':True},'deterministic':facts,'model_output':m,'validation':checks,'qualification_candidate':q};print('MONDE_TEST_0008_V2='+json.dumps(e,separators=(',',':')));print(json.dumps(e,indent=2));
+          if not q: raise SystemExit('non-qualifying')
+          PY
