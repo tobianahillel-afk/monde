@@ -26,6 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.head_sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -49,7 +50,9 @@ jobs:
             --cov-fail-under=100
 
       - name: Critical mutation smoke
-        run: python scripts/governance_mutation_smoke.py
+        run: |
+          python scripts/governance_mutation_smoke.py
+          python .github/scripts/governance_l2_mutation_smoke.py
 
       - name: Validate repository state
         run: |
@@ -64,6 +67,14 @@ jobs:
             --base '${{ inputs.base_sha }}' \
             --head '${{ inputs.head_sha }}' \
             --json-out change-findings.json
+
+      - name: Validate fresh-L2 hardening invariants
+        if: inputs.event_name == 'pull_request'
+        run: |
+          python .github/scripts/governance_l2_hardening.py . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --json-out l2-hardening-findings.json
 
       - name: Generate AI context manifest
         if: inputs.event_name == 'pull_request'
@@ -83,9 +94,10 @@ jobs:
             echo '- Event: `${{ inputs.event_name }}`'
             echo '- Base: `${{ inputs.base_sha }}`'
             echo '- Head: `${{ inputs.head_sha }}`'
+            echo '- Checkout: exact requested head SHA (never the synthetic PR merge ref)'
             echo '- Coverage target: **100% line + branch**'
-            echo '- Mutation smoke: critical governance mutants must be killed'
-            echo '- Static repository, strict lifecycle/proof, path, schema, secret-pattern, action-pin and transition guards executed above'
+            echo '- Mutation smoke: baseline + fresh-L2 critical governance mutants must be killed'
+            echo '- Static repository, strict lifecycle/proof, path, schema, secret-pattern, action-pin, transition and L2-hardening guards executed above'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload governance evidence
@@ -99,6 +111,7 @@ jobs:
             strict-findings.json
             path-findings.json
             change-findings.json
+            l2-hardening-findings.json
             context-manifest.json
           if-no-files-found: warn
           retention-days: 14
