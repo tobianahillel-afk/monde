@@ -1,11 +1,11 @@
 id: REVIEW-0028
-status: OPEN
+status: IN_PROGRESS
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-3"
   commit_sha: "b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60"
 reviewer:
-  actor: null
+  actor: "GitHub Copilot CLI fresh-context reviewer"
   context_id: null
   independence_level: L2
 roles:
