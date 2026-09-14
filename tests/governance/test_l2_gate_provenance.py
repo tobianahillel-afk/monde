@@ -39,6 +39,8 @@ def commit(root: Path, message: str) -> str:
 
 def test_progress_adoption_is_exact_and_nonreusable(tmp_path: Path) -> None:
     init(tmp_path)
+    dump(tmp_path / "baseline.yaml", {"baseline": True})
+    commit(tmp_path, "baseline")
     dump(tmp_path / ".github/scripts/governance_l2_hardening.py", {"guard": True})
     adoption = commit(tmp_path, "adopt guard")
     dump(tmp_path / "registry/integration-provenance.yaml", {"enforcement_adoptions": [{"rule_id": g.RULE_ID, "adoption_commit_sha": adoption, "guard_path": ".github/scripts/governance_l2_hardening.py", "historical_only": True, "future_reuse_forbidden": True}]})
