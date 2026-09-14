@@ -13,14 +13,8 @@ purpose: 'Turn MONDE governance/specification/traceability contracts into execut
   '
 scope_change:
   approved: true
-  rationale: Fresh exact-SHA L2 REVIEW-0030 found six additional risk-acceptance, normative-digest, authority-evidence,
-    external-import-finalization, PASS-test-revision and review-lifecycle defects after the REVIEW-0029 corrective candidate.
-    This corrective scope also includes duplicate-key YAML rejection because the resume audit found WORK-0004 currently contains
-    an ambiguous duplicate top-level key that PyYAML would otherwise silently overwrite. Enforcing real TEST revision ancestry
-    then exposed two immutable integration-history boundaries that must be represented exactly rather than weakened away: WORK-0001
-    pre-squash test evidence whose source HEAD has the same tree as its squash commit, and the exact malformed WORK-0004 merge
-    blob later repaired by one dedicated commit. These changes harden the existing governance contract without changing MONDE
-    product scope and keep every exception commit/blob/path-bound and non-reusable.
+  rationale: |
+    Fresh exact-SHA L2 REVIEW-0030 found six additional risk-acceptance, normative-digest, authority-evidence, external-import-finalization, PASS-test-revision and review-lifecycle defects after the REVIEW-0029 corrective candidate. This corrective scope also includes duplicate-key YAML rejection because the resume audit found WORK-0004 currently contains an ambiguous duplicate top-level key that PyYAML would otherwise silently overwrite. Enforcing real TEST revision ancestry then exposed two immutable integration-history boundaries that must be represented exactly rather than weakened away: WORK-0001 pre-squash test evidence whose source HEAD has the same tree as its squash commit, and the exact malformed WORK-0004 merge blob later repaired by one dedicated commit. These changes harden the existing governance contract without changing MONDE product scope and keep every exception commit/blob/path-bound and non-reusable.
 scope:
   in:
   - deterministic registry/status/reference/path validation
