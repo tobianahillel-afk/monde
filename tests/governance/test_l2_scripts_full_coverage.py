@@ -345,6 +345,11 @@ def test_flatten_and_reopening_trigger_defensive_shapes(monkeypatch: pytest.Monk
 def test_squash_done_and_orchestration_branches(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(h, "load_mapping", lambda path: {"squash_integrations": ["bad", {}, {"historical_only": True, "future_reuse_forbidden": True}]})
     assert {x.rule for x in h.validate_squash_flags(tmp_path)} == {"SQUASH_PROVENANCE_SHAPE", "SQUASH_PROVENANCE_REUSE"}
+    monkeypatch.setattr(
+        h,
+        "load_mapping",
+        lambda path: (yaml.safe_load(path.read_text(encoding="utf-8")) or {}) if path.exists() else {},
+    )
 
     work_dir = tmp_path / "registry/work-items"; work_dir.mkdir(parents=True)
     review_dir = tmp_path / "registry/reviews"; review_dir.mkdir(parents=True)
