@@ -7,6 +7,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 import tools.governance.change_guard as cg
 
 ADOPTION_PATH = "tools/governance/review_closure.py"
@@ -23,6 +25,14 @@ class Finding:
 
     def render(self) -> str:
         return f"ERROR {self.rule} {self.path}: {self.message}"
+
+
+def load_mapping(path: Path) -> dict[str, Any]:
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def nonempty(value: Any) -> bool:
@@ -277,7 +287,7 @@ def validate_progress_reopening(root: Path, edges: list[tuple[str, str]]) -> lis
 def validate_done_review_substance(root: Path) -> list[Finding]:
     out: list[Finding] = []
     for path in sorted((root / "registry/work-items").glob("WORK-*.yaml")):
-        work = cg.load_mapping(path)
+        work = load_mapping(path)
         if work.get("status") != "DONE":
             continue
         target = cg.review_independence_rank(((work.get("review_plan") or {}).get("independence_level")))
@@ -285,7 +295,7 @@ def validate_done_review_substance(root: Path) -> list[Finding]:
         if floor < 2:
             continue
         for review_id in ((work.get("review_plan") or {}).get("completed_reviews") or []):
-            review = cg.load_mapping(root / f"registry/reviews/{review_id}.yaml")
+            review = load_mapping(root / f"registry/reviews/{review_id}.yaml")
             if review.get("status") == "COMPLETE" and cg.review_independence_rank((review.get("reviewer") or {}).get("independence_level")) >= floor and not substantive_review(review, floor):
                 out.append(Finding(f"registry/reviews/{review_id}.yaml", "REVIEW_SUBSTANTIVE_L2", f"L{floor}+ completion evidence requires durable reviewer/context identity, completion time, checks, roles and source provenance"))
     return out
