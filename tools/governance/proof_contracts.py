@@ -46,6 +46,20 @@ def git_commit_is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
     return proc.returncode == 0
 
 
+def git_tree_sha(root: Path, sha: str) -> str | None:
+    if not git_commit_exists(root, sha):
+        return None
+    proc = subprocess.run(
+        ["git", "rev-parse", f"{sha}^{{tree}}"],
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    value = proc.stdout.strip()
+    return value if proc.returncode == 0 and FULL_COMMIT_SHA.fullmatch(value) else None
+
+
 def current_head(root: Path) -> str | None:
     try:
         proc = subprocess.run(
@@ -61,13 +75,40 @@ def current_head(root: Path) -> str | None:
     return value if proc.returncode == 0 and FULL_COMMIT_SHA.fullmatch(value) else None
 
 
+def squash_integration_revision_valid(root: Path, test: dict[str, Any], target: str) -> bool:
+    provenance = load_mapping(root / "registry/integration-provenance.yaml")
+    test_id = test.get("id")
+    execution_sha = str(((test.get("execution") or {}).get("commit_sha") or ""))
+    for entry in provenance.get("squash_integrations", []) or []:
+        if not isinstance(entry, dict) or test_id not in (entry.get("eligible_test_ids") or []):
+            continue
+        source_head = str(entry.get("source_head_sha") or "")
+        integrated = str(entry.get("integrated_commit_sha") or "")
+        expected_tree = str(entry.get("expected_tree_sha") or "")
+        if not all(FULL_COMMIT_SHA.fullmatch(value) for value in (source_head, integrated, expected_tree)):
+            continue
+        if not git_commit_is_ancestor(root, execution_sha, source_head):
+            continue
+        if not git_commit_is_ancestor(root, integrated, target):
+            continue
+        source_tree = git_tree_sha(root, source_head)
+        integrated_tree = git_tree_sha(root, integrated)
+        if source_tree == expected_tree and integrated_tree == expected_tree:
+            return True
+    return False
+
+
 def pass_test_execution_revision_valid(root: Path, test: dict[str, Any], head: str | None = None) -> bool:
     execution = test.get("execution") or {}
     sha = str(execution.get("commit_sha") or "")
     if not git_commit_exists(root, sha):
         return False
     target = head or current_head(root)
-    return bool(target and git_commit_is_ancestor(root, sha, target))
+    if not target:
+        return False
+    if git_commit_is_ancestor(root, sha, target):
+        return True
+    return squash_integration_revision_valid(root, test, target)
 
 
 def _copy_nested_path(source: dict[str, Any], target: dict[str, Any], dotted_path: str) -> bool:
