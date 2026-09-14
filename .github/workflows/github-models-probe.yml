@@ -1,0 +1,30 @@
+name: GitHub Models permission probe
+
+on:
+  push:
+    branches:
+      - review/test-0008-github-models
+
+permissions:
+  contents: read
+  models: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Probe model inference
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          code="$(curl --silent --show-error --output /tmp/model.json --write-out '%{http_code}' \
+            'https://models.github.ai/inference/chat/completions' \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -d '{"messages":[{"role":"user","content":"Reply with exactly OK"}],"model":"openai/gpt-4.1","temperature":0,"max_tokens":16}')"
+          echo "HTTP ${code}"
+          cat /tmp/model.json
+          test "$code" = "200"
