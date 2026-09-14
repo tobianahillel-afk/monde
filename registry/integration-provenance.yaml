@@ -27,6 +27,16 @@ historical_malformed_yaml:
     future_reuse_forbidden: true
     reason: |
       The WORK-0001/main integration merge combined the branch-local and main-side WORK-0004 progress_justifications blocks, leaving two top-level keys in immutable commit b63fc190a0fa3e02ad1b3e03d0d01b16617c9b49. The file remained present in Git and retained WORK-0004/PLANNED, but the later fail-closed duplicate-key loader correctly refuses to parse that historical blob. Commit 94a6d2601179ccfde6eca7ed6b7e192dd640f2ca repairs exactly that one file by removing the duplicate mapping. This exception prevents the guard from misreporting that exact malformed->repaired episode as deletion/recreation; it never makes malformed YAML valid current state or authorizes another malformed record.
+  - path: "registry/work-items/WORK-0002.yaml"
+    malformed_commit_sha: "cab03c2b27e544212afe4fe52f38668d5fa0529d"
+    malformed_blob_sha: "7097e6e48b6fc5bba2b6bddf940458cc1c5883e5"
+    repaired_commit_sha: "12105d7537cb0742b428c39929a3d79ad67edbac"
+    repaired_blob_sha: "5058b77637a9238a918633299873a00500a726d6"
+    malformed_condition: "plain YAML scope_change.rationale contained an unquoted colon"
+    historical_only: true
+    future_reuse_forbidden: true
+    reason: |
+      Commit cab03c2b27e544212afe4fe52f38668d5fa0529d extended WORK-0002 governance provenance text but accidentally left a colon inside a multiline plain scalar, so the later fail-closed loader correctly cannot parse that immutable blob. Commit 12105d7537cb0742b428c39929a3d79ad67edbac immediately repairs exactly that field as a literal block without changing the intended governance semantics. This exception prevents the change guard from misreporting only that exact malformed->repaired episode as deletion/recreation; it does not make malformed YAML acceptable at HEAD or authorize reuse for another path/blob/commit.
 
 validation_rule: |
   A PASS TEST execution revision that is not an ancestor of the current governed HEAD may qualify through a squash integration only when the TEST id is explicitly eligible, its execution SHA is a real ancestor of the exact source_head_sha, source_head_sha and integrated_commit_sha both resolve to expected_tree_sha, and integrated_commit_sha is an ancestor of the current governed HEAD. Every mismatch fails closed.
