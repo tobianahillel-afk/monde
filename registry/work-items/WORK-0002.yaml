@@ -16,8 +16,11 @@ scope_change:
   rationale: Fresh exact-SHA L2 REVIEW-0030 found six additional risk-acceptance, normative-digest, authority-evidence,
     external-import-finalization, PASS-test-revision and review-lifecycle defects after the REVIEW-0029 corrective candidate.
     This corrective scope also includes duplicate-key YAML rejection because the resume audit found WORK-0004 currently contains
-    an ambiguous duplicate top-level key that PyYAML would otherwise silently overwrite. These changes harden the existing
-    governance contract without changing MONDE product scope.
+    an ambiguous duplicate top-level key that PyYAML would otherwise silently overwrite. Enforcing real TEST revision ancestry
+    then exposed two immutable integration-history boundaries that must be represented exactly rather than weakened away: WORK-0001
+    pre-squash test evidence whose source HEAD has the same tree as its squash commit, and the exact malformed WORK-0004 merge
+    blob later repaired by one dedicated commit. These changes harden the existing governance contract without changing MONDE
+    product scope and keep every exception commit/blob/path-bound and non-reusable.
 scope:
   in:
   - deterministic registry/status/reference/path validation
@@ -29,6 +32,7 @@ scope:
   - canonical Review Council outcome vocabulary with bounded legacy compatibility
   - exact reviewed-commit binding for completed review evidence
   - substantive PASS-test record validation, including real Git commit existence/ancestry
+  - exact squash and malformed-YAML integration provenance with fail-closed commit/blob/tree binding
   - canonical RFC 8785/JCS recomputation for requirement normative digests
   - risk-acceptance preconditions and authority-matrix enforcement
   - repository-owner authority evidence bound to the governed MONDE repository
@@ -106,6 +110,7 @@ read_before:
 - docs/13_QUALITY/ai-context-routing.md
 - registry/README.md
 - registry/progress/matrix.yaml
+- registry/integration-provenance.yaml
 depends_on:
 - WORK-0001
 blocks:
@@ -130,6 +135,7 @@ affected_docs:
 - registry/acceptance-authority.yaml
 - registry/content-identity.yaml
 - registry/status-machines.yaml
+- registry/integration-provenance.yaml
 - registry/progress/matrix.yaml
 affected_paths:
 - .github/
@@ -138,6 +144,7 @@ affected_paths:
 - schemas/registry/
 - scripts/governance_mutation_smoke.py
 - registry/work-items/_TEMPLATE.yaml
+- registry/integration-provenance.yaml
 contracts:
 - repository governance validation
 - GitHub control-plane merge gate
@@ -152,7 +159,9 @@ impact_analysis:
   - WORK-0004
   migrations_or_reprocessing: []
   compatibility_notes: Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than
-    being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative.
+    being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative. Exact
+    integration-provenance entries preserve only verified immutable squash/tree and malformed->repair commit/blob relationships; they do not
+    create generic ancestry or YAML-parsing bypasses.
 implementation_plan:
   tasks:
   - id: T1
@@ -270,6 +279,8 @@ required_tests:
   - PASS TEST evidence rejects nonexistent or irrelevant execution commit SHAs
   - CLOSED reviews never contribute completion hats, independence or approval
   - duplicate YAML mapping keys fail parsing instead of silently overwriting earlier canonical state
+  - squash-integrated PASS evidence qualifies only through exact source-head/tree/integrated-commit provenance
+  - an exact historical malformed YAML blob may suppress only the false delete/recreate interpretation of its one bound repair commit
   security:
   - immutable action/digest pins
   - hash-locked Python artifacts
@@ -323,7 +334,7 @@ validation:
   - Merged WORK-0001 contract from main@29086643387ff46ab6636dd2fa3014efccc10165 is now integrated; the integrated HEAD still requires a complete
     MONDE Gate and fresh L2 before completion.
   - REVIEW-0030 added six blocking R2 findings after the REVIEW-0029 correction; all remain open pending correction and fresh independent verification.
-  - The resume audit found duplicate top-level YAML keys in WORK-0004; canonical YAML must reject duplicate mapping keys rather than silently overwrite state.
+  - The resume audit found duplicate top-level YAML keys in WORK-0004; canonical YAML must reject duplicate mapping keys rather than silently overwrite state; the immutable malformed merge blob and its exact repair are now represented only through integration-provenance.
 risk:
   security: MEDIUM
   data: LOW
@@ -364,6 +375,8 @@ discoveries:
 - Repository-owner authority evidence must bind the exact governed repository and establish the named actor, not merely match a URL path segment.
 - Canonical YAML must fail closed on duplicate mapping keys; last-key-wins parsing can silently corrupt durable project state.
 - A risk cannot enter ACCEPTED when its owning-work assurance cannot be resolved deterministically from canonical scope; ambiguous ownership fails closed.
+- Squash merging preserves tree state but destroys direct branch ancestry, so exact source-head/tree/integrated-commit provenance is required for historical SHA-bound test evidence.
+- A fail-closed parser must distinguish an exact known malformed historical blob from a deleted file without making malformed YAML generically acceptable.
 blockers: []
 follow_up_work_items:
 - WORK-0003
