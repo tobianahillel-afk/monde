@@ -1,0 +1,155 @@
+name: Final WORK-0001 post-REVIEW-0028 completion audit
+
+on:
+  push:
+    branches:
+      - review/test-0008-github-models
+    paths:
+      - .github/workflows/admin-review0028-final-audit.yml
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact completion candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 2292b00fe04cbaf47cdd00df1578e1dab670d0cc
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify deterministic completion state
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "2292b00fe04cbaf47cdd00df1578e1dab670d0cc"
+          python - <<'PY'
+          import yaml, pathlib, subprocess
+
+          work=yaml.safe_load(pathlib.Path('registry/work-items/WORK-0001.yaml').read_text())
+          matrix=yaml.safe_load(pathlib.Path('registry/progress/matrix.yaml').read_text())
+          review=yaml.safe_load(pathlib.Path('registry/reviews/REVIEW-0028.yaml').read_text())
+
+          assert work['status']=='DONE'
+          assert work['assurance']['level']=='A3'
+          assert all(x['status']=='DONE' for x in work['acceptance_criteria'])
+          tasks={x['id']:x for x in work['implementation_plan']['tasks']}
+          runs={x['id']:x for x in work['implementation_plan']['planned_runs']}
+          assert tasks['T6']['status']=='DONE'
+          assert runs['RUN-3']['status']=='DONE'
+          assert work['review_plan']['completed_reviews']==['REVIEW-0027','REVIEW-0028']
+          assert work['review_plan']['open_findings']==[]
+          assert all(work['completion'].values())
+          assert work['validation']['known_gaps']==[]
+
+          assert review['status']=='COMPLETE'
+          assert review['outcome']=='APPROVE_WITH_FOLLOWUP'
+          vr=review['verification_result']
+          assert vr['reviewed_commit']=='b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60'
+          assert vr['source']['source_id']=='github-actions-run:34795920644:attempt:1'
+          assert vr['executor']['independence_level']=='L2'
+          assert vr['executor']['fresh_context'] is True
+          assert vr['executor']['authoring_context_separated'] is True
+          assert all(v=='PASS' for v in vr['checks'].values())
+          assert vr['historical_findings']['total']==41
+          assert vr['historical_findings']['all_closable'] is True
+          assert len(vr['historical_findings']['closable_ids'])==41
+          assert vr['material_findings']==[]
+
+          expected = {
+            'REVIEW-0004': ['F-1','F-2','F-3','F-4','F-5','F-6'],
+            'REVIEW-0005': ['F-1','F-2','F-3'], 'REVIEW-0006': ['F-1','F-2'],
+            'REVIEW-0007': ['F-1'], 'REVIEW-0008': ['F-1'], 'REVIEW-0009': ['F-1','F-2'],
+            'REVIEW-0010': ['F-1'], 'REVIEW-0011': ['F-1'], 'REVIEW-0012': ['F-1'], 'REVIEW-0013': ['F-1'],
+            'REVIEW-0014': ['F-1','F-2'], 'REVIEW-0015': ['F-1'], 'REVIEW-0016': ['F-1'],
+            'REVIEW-0017': ['F-1','F-2'], 'REVIEW-0018': ['F-1'], 'REVIEW-0019': ['F-1','F-2'],
+            'REVIEW-0020': ['F-1'], 'REVIEW-0021': ['F-1'], 'REVIEW-0022': ['F-1','F-2'],
+            'REVIEW-0023': ['F-1'], 'REVIEW-0024': ['F-1','F-2'], 'REVIEW-0025': ['F-1','F-2','F-3'],
+            'REVIEW-0026': ['F-1','F-2','F-3'],
+          }
+          found=[]
+          for rid,fids in expected.items():
+              r=yaml.safe_load(pathlib.Path(f'registry/reviews/{rid}.yaml').read_text())
+              by={f['id']:f for f in r['findings']}
+              for fid in fids:
+                  f=by[fid]
+                  assert f['disposition']=='RESOLVED',(rid,fid,f['disposition'])
+                  assert f['resolved_by']=='REVIEW-0028',(rid,fid,f['resolved_by'])
+                  found.append(f'{rid}/{fid}')
+          assert len(found)==41
+          assert found==vr['historical_findings']['closable_ids']
+
+          for tid in range(4,9):
+              t=yaml.safe_load(pathlib.Path(f'registry/tests/TEST-{tid:04d}.yaml').read_text())
+              assert t['status']=='PASS',(tid,t['status'])
+
+          digests={
+            23:'sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b',
+            24:'sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4',
+            25:'sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67',
+          }
+          for n,d in digests.items():
+              r=yaml.safe_load(pathlib.Path(f'registry/requirements/REQ-{n:04d}.yaml').read_text())
+              assert r['status']=='ACCEPTED'
+              assert r['content_identity']['digest']==d
+              assert 'REVIEW-0027' in r['verification']['acceptance_evidence']
+              assert 'TEST-0008' in r['verification']['acceptance_cold_read_test_ids']
+
+          wi=matrix['phases']['PHASE-0']['lots']['LOT-0']['sublots']['SUBLOT-0.1']['work_items']['WORK-0001']
+          assert matrix['phases']['PHASE-0']['status']=='IN_PROGRESS'
+          assert matrix['phases']['PHASE-0']['lots']['LOT-0']['status']=='IN_PROGRESS'
+          assert matrix['phases']['PHASE-0']['lots']['LOT-0']['sublots']['SUBLOT-0.1']['status']=='DONE'
+          assert wi['status']=='DONE'
+          assert all(v in ('DONE','NOT_APPLICABLE') for k,v in wi.items() if k!='status')
+          assert matrix['phases']['PHASE-0']['lots']['LOT-0']['sublots']['SUBLOT-0.2']['work_items']['WORK-0002']['status']=='IN_REVIEW'
+          assert matrix['phases']['PHASE-0']['lots']['LOT-0']['sublots']['SUBLOT-0.3']['work_items']['WORK-0003']['status']=='PLANNED'
+
+          ps=pathlib.Path('PROJECT_STATE.md').read_text()
+          assert '`WORK-0001` is `DONE / A3`' in ps
+          assert 'run `34795920644`' in ps
+          assert '0147908a483c3705812cf6d35cc6992c9e6226bd' in ps
+          assert 'merge PR #3 with an expected-head guard' in ps
+
+          changed=subprocess.check_output(['git','diff','--name-only','b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60..HEAD'],text=True).splitlines()
+          allowed={'PROJECT_STATE.md','registry/progress/matrix.yaml','registry/work-items/WORK-0001.yaml','registry/reviews/REVIEW-0028.yaml'}
+          allowed.update(f'registry/reviews/REVIEW-{i:04d}.yaml' for i in range(4,27))
+          assert set(changed)==allowed,(set(changed)-allowed,allowed-set(changed))
+          forbidden=[p for p in changed if p.startswith('registry/requirements/') or p.startswith('registry/tests/') or p in ('registry/status-machines.yaml','registry/content-identity.yaml','registry/acceptance-authority.yaml')]
+          assert forbidden==[],forbidden
+          print('deterministic_completion_state=PASS findings=41 tests=5 normative_changes_after_review=0')
+          PY
+
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            'https://api.github.com/repos/tobianahillel-afk/monde/pulls/3' > /tmp/pr3.json
+          python - <<'PY'
+          import json
+          p=json.load(open('/tmp/pr3.json'))
+          assert p['head']['sha']=='2292b00fe04cbaf47cdd00df1578e1dab670d0cc'
+          assert p['state']=='open' and p['draft'] is False
+          assert p['mergeable'] is not False
+          print('live_pr3_guard=PASS')
+          PY
+
+          gh api graphql \
+            -f owner='tobianahillel-afk' -f name='monde' -F number=3 \
+            -f query='query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewThreads(first:100){nodes{id isResolved}}}}}' > /tmp/threads.json
+          python - <<'PY'
+          import json
+          nodes=json.load(open('/tmp/threads.json'))['data']['repository']['pullRequest']['reviewThreads']['nodes']
+          assert len(nodes)==41,len(nodes)
+          assert all(n['isResolved'] for n in nodes)
+          print('github_review_threads=PASS total=41 unresolved=0')
+          PY
+
+          git diff --check b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60..HEAD
+          echo 'FINAL_WORK0001_AUDIT=PASS candidate=2292b00fe04cbaf47cdd00df1578e1dab670d0cc'
