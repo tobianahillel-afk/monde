@@ -14,6 +14,11 @@ replacements = [
         '''    "canonical-review-severity": (\n        "tools/governance/strict_contracts.py",\n        'if rank <= BLOCKING_REVIEW_RANK:',\n        'if False:',\n    ),\n''',
         "canonical-review-severity mutation target",
     ),
+    (
+        '''    "review-complete-sha": (\n        "tools/governance/strict_contracts.py",\n        'if review.get("status") == "COMPLETE" and not reviewed_sha:',\n        'if False:',\n    ),\n''',
+        '''    "review-complete-sha": (\n        "tools/governance/strict_contracts.py",\n        'if review.get("status") == "COMPLETE" and not FULL_COMMIT_SHA.fullmatch(reviewed_sha):',\n        'if False:',\n    ),\n''',
+        "review-complete-sha mutation target",
+    ),
 ]
 
 for old, new, label in replacements:
