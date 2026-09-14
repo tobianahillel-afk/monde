@@ -47,13 +47,16 @@ def git_commit_is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
 
 
 def current_head(root: Path) -> str | None:
-    proc = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=root,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except OSError:
+        return None
     value = proc.stdout.strip()
     return value if proc.returncode == 0 and FULL_COMMIT_SHA.fullmatch(value) else None
 
@@ -134,8 +137,10 @@ def review_external_import_finalized(
     machine: dict[str, Any],
 ) -> bool:
     ext = review.get("external_import")
-    if not isinstance(ext, dict):
+    if ext is None:
         return True
+    if not isinstance(ext, dict):
+        return False
     if ext.get("mode") != "PREAUTHORIZED_EXTERNAL_COMPLETION":
         return False
     import_commit = str(ext.get("import_commit") or "")
