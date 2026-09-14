@@ -177,6 +177,37 @@ def pass_test_revision_valid(root: Path, test: dict[str, Any]) -> bool:
     return pass_test_execution_revision_valid(root, test)
 
 
+def test_external_import_bound_and_consumed(test: dict[str, Any], machine: dict[str, Any]) -> bool:
+    ext = test.get("external_import")
+    if ext is None:
+        return True
+    if not isinstance(ext, dict):
+        return False
+    source = str(ext.get("authorization_source") or "")
+    match = re.fullmatch(r"registry/status-machines\.yaml@([0-9a-f]{40})#.+", source)
+    import_commit = str(ext.get("import_commit") or "")
+    if match is None or not FULL_COMMIT_SHA.fullmatch(import_commit):
+        return False
+    cold = test.get("acceptance_cold_read") or {}
+    source_meta = cold.get("source") or {}
+    executor = cold.get("executor") or {}
+    execution = test.get("execution") or {}
+    authorizations = ((((machine.get("registry_machines") or {}).get("tests") or {}).get("external_execution_import_authorizations") or []))
+    return any(
+        isinstance(auth, dict)
+        and auth.get("record_id") == test.get("id")
+        and auth.get("imported_status") == test.get("status")
+        and auth.get("execution_commit_sha") == execution.get("commit_sha")
+        and auth.get("source_id") == source_meta.get("source_id")
+        and auth.get("source_submitted_at") == source_meta.get("submitted_at")
+        and auth.get("executor_context_id") == executor.get("context_id")
+        and auth.get("expected_result") == execution.get("result")
+        and auth.get("one_shot") is True
+        and auth.get("consumed_by_commit") == import_commit
+        for auth in authorizations
+    )
+
+
 def validate_work_lifecycle(root: Path) -> list[Issue]:
     works = load_records(root, "work-items")
     reviews = load_records(root, "reviews")
@@ -228,6 +259,8 @@ def validate_work_lifecycle(root: Path) -> list[Issue]:
             if test is None or not pass_test_has_execution(test) or not pass_test_revision_valid(root, test):
                 actual = None if test is None else test.get("status")
                 issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_TEST_EVIDENCE", f"required test {tid} must have status PASS plus concrete reachable revision-bound execution evidence, got {actual!r}"))
+            elif not test_external_import_bound_and_consumed(test, machine):
+                issues.append(Issue(f"registry/work-items/{wid}.yaml", "DONE_TEST_IMPORT", f"required test {tid} external import is not fully bound and consumed"))
 
     return issues
 

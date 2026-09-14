@@ -93,6 +93,19 @@ def file_exists_at(root: Path, sha: str, path: str) -> bool:
         return False
 
 
+def commit_exists(root: Path, sha: str) -> bool:
+    if not FULL_COMMIT_SHA.fullmatch(str(sha or "")):
+        return False
+    proc = subprocess.run(
+        ["git", "cat-file", "-e", f"{sha}^{{commit}}"],
+        cwd=root,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    return proc.returncode == 0
+
+
 def blob_sha_at(root: Path, sha: str, path: str) -> str | None:
     try:
         value = git(root, "rev-parse", f"{sha}:{path}").strip()
@@ -198,6 +211,14 @@ def review_independence_rank(raw: Any) -> int:
     return {"L0": 0, "L1": 1, "L2": 2, "L3": 3}.get(value, -1)
 
 
+def _values(value: Any) -> set[str]:
+    if isinstance(value, str):
+        return {value}
+    if isinstance(value, list):
+        return {item for item in value if isinstance(item, str)}
+    return set()
+
+
 def historical_import_allowed(root: Path, parent_sha: str, materialize_sha: str, policy_sha: str, kind: str, current: dict[str, Any]) -> bool:
     rid, status = current.get("id"), current.get("status")
     current_spec = canonical_machine_spec(root, policy_sha, kind)
@@ -256,7 +277,70 @@ def record_introduction_allowed(root: Path, parent_sha: str, materialize_sha: st
     initial = spec.get("initial")
     if initial is not None and current.get("status") == initial:
         return True
+    if kind == "tests":
+        rid, status = current.get("id"), current.get("status")
+        policy = canonical_machine_spec(root, policy_sha, kind)
+        return any(
+            isinstance(exc, dict)
+            and exc.get("record_id") == rid
+            and exc.get("imported_status") == status
+            and exc.get("import_commit") == materialize_sha
+            for exc in policy.get("historical_import_exceptions", []) or []
+        )
     return historical_import_allowed(root, parent_sha, materialize_sha, policy_sha, kind, current)
+
+
+def review_requirement_revision_valid(root: Path, acceptance_sha: str, requirement_id: str, digest: str, review: dict[str, Any]) -> bool:
+    reviewed_sha = str(((review.get("artifact") or {}).get("commit_sha") or ""))
+    if not commit_exists(root, reviewed_sha) or not is_ancestor(root, reviewed_sha, acceptance_sha):
+        return False
+    reviewed_requirement = show_yaml(root, reviewed_sha, f"registry/requirements/{requirement_id}.yaml") or {}
+    if reviewed_requirement.get("status") != "PROPOSED":
+        return False
+    identity_policy = show_yaml(root, reviewed_sha, "registry/content-identity.yaml") or {}
+    return requirement_normative_digest(root, reviewed_requirement, identity_policy) == digest
+
+
+def test_external_execution_transition_allowed(
+    root: Path,
+    parent_sha: str,
+    transition_sha: str,
+    previous: dict[str, Any],
+    current: dict[str, Any],
+) -> bool:
+    ext = current.get("external_import")
+    if not isinstance(ext, dict) or ext.get("import_commit") is not None:
+        return False
+    auth_source = str(ext.get("authorization_source") or "")
+    match = re.fullmatch(r"registry/status-machines\.yaml@([0-9a-f]{40})#registry_machines\.tests\.external_execution_import_authorizations\.[A-Za-z0-9_-]+", auth_source)
+    if match is None:
+        return False
+    auth_commit = match.group(1)
+    if not commit_exists(root, auth_commit) or not is_ancestor(root, auth_commit, parent_sha):
+        return False
+    spec = canonical_machine_spec(root, auth_commit, "tests")
+    cold = current.get("acceptance_cold_read") or {}
+    source = cold.get("source") or {}
+    executor = cold.get("executor") or {}
+    execution = current.get("execution") or {}
+    for auth in spec.get("external_execution_import_authorizations", []) or []:
+        if not isinstance(auth, dict):
+            continue
+        if (
+            auth.get("record_id") == current.get("id")
+            and previous.get("id") == current.get("id")
+            and auth.get("from_status") == previous.get("status")
+            and auth.get("imported_status") == current.get("status")
+            and auth.get("execution_commit_sha") == execution.get("commit_sha")
+            and auth.get("source_id") == source.get("source_id")
+            and auth.get("source_submitted_at") == source.get("submitted_at")
+            and auth.get("executor_context_id") == executor.get("context_id")
+            and auth.get("expected_result") == execution.get("result")
+            and auth.get("one_shot") is True
+            and auth.get("consumed_by_commit") is None
+        ):
+            return True
+    return False
 
 
 def requirement_acceptance_satisfied(root: Path, sha: str, requirement: dict[str, Any]) -> bool:
@@ -283,6 +367,7 @@ def requirement_acceptance_satisfied(root: Path, sha: str, requirement: dict[str
             and revision.get("digest") == digest
             and revision.get("status_at_review") == "PROPOSED"
             and review_independence_rank((review.get("reviewer") or {}).get("independence_level")) >= 2
+            and review_requirement_revision_valid(root, sha, str(rid), digest, review)
         ):
             review_ok = True
             break
@@ -359,20 +444,32 @@ def risk_acceptance_satisfied(root: Path, sha: str, risk: dict[str, Any]) -> boo
         return repository_owner_evidence_valid(evidence, policy)
 
     ref = str(resolution.get("authority_evidence_ref") or "")
+    scope = risk.get("scope") or {}
+    work_items = scope.get("work_items") or []
     if evidence_type == "WORK_ITEM_OWNER_BINDING":
-        scope = risk.get("scope") or {}
-        work_items = scope.get("work_items") or []
         if len(work_items) != 1 or ref != f"registry/work-items/{work_items[0]}.yaml":
             return False
         work = show_yaml(root, sha, ref) or {}
         return work.get("owner") == resolution.get("accepted_by")
 
     if evidence_type in {"GOVERNANCE_DELEGATION", "GOVERNANCE_SECURITY_DELEGATION", "EXPLICIT_REPOSITORY_OWNER_DECISION"}:
-        if not ref.startswith("registry/"):
+        if len(work_items) != 1 or not ref.startswith("registry/"):
             return False
         authority_record = show_yaml(root, sha, ref) or {}
-        actor = resolution.get("accepted_by")
-        return actor in {authority_record.get("actor"), authority_record.get("delegate"), authority_record.get("accepted_by")}
+        actor = str(resolution.get("accepted_by") or "")
+        actor_values = _values(authority_record.get("actor")) | _values(authority_record.get("delegate")) | _values(authority_record.get("accepted_by")) | _values(authority_record.get("owner"))
+        role_values = _values(authority_record.get("role")) | _values(authority_record.get("authority_role")) | _values(authority_record.get("roles")) | _values(authority_record.get("authority_roles"))
+        authority_scope = authority_record.get("scope") or {}
+        if not isinstance(authority_scope, dict):
+            return False
+        work_scope = _values(authority_scope.get("work_items"))
+        repo_scope = _values(authority_scope.get("repositories")) | _values(authority_scope.get("repository")) | _values(authority_scope.get("full_name"))
+        governed = policy.get("governed_repository") or {}
+        return bool(
+            actor in actor_values
+            and str(role or "") in role_values
+            and (str(work_items[0]) in work_scope or str(governed.get("full_name") or "") in repo_scope)
+        )
     return False
 
 
@@ -563,7 +660,12 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
                     out.append(ChangeFinding(path, "ID_IMMUTABLE", f"registry id changed at {sha[:12]}"))
                 before, after = previous.get("status"), current.get("status")
                 allowed = canonical_transitions(root, sha, kind)
-                if before != after and after not in allowed.get(str(before), set()):
+                external_test_import = bool(
+                    kind == "tests"
+                    and before != after
+                    and test_external_execution_transition_allowed(root, previous_sha, sha, previous, current)
+                )
+                if before != after and after not in allowed.get(str(before), set()) and not external_test_import:
                     out.append(ChangeFinding(path, "STATE_TRANSITION", f"invalid {kind} transition {before} -> {after} at {sha[:12]}"))
                 if kind == "requirements" and before == "PROPOSED" and after == "ACCEPTED" and not requirement_acceptance_satisfied(root, sha, current):
                     out.append(ChangeFinding(path, "ACCEPTANCE_PRECONDITION", f"requirement {current.get('id')} accepted without qualifying content-bound review and cold-read evidence at {sha[:12]}"))

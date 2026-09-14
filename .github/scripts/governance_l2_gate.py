@@ -7,6 +7,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+import governance_l2_followup as f
 import governance_l2_hardening as h
 
 RULE_ID = "PROGRESS_LIFECYCLE_EDGE_ENFORCEMENT_V1"
@@ -120,6 +121,7 @@ def run(root: Path, base: str, head: str) -> list[h.Finding]:
         findings.extend(h.validate_progress_lifecycle(root, progress_edges))
         findings.extend(h.validate_squash_flags(root))
         findings.extend(h.validate_done_tasks_runs_and_authority(root, head))
+        findings.extend(f.run(root, base, head))
     finally:
         h.review_import_finalized = original
     return findings

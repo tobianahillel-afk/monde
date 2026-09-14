@@ -22,7 +22,8 @@ def git(root: Path, *args: str) -> str:
 
 
 def changed(root: Path, base: str, head: str) -> list[str]:
-    return [x for x in git(root, "diff", "--name-only", f"{base}..{head}").splitlines() if x]
+    merge_base = git(root, "merge-base", base, head).strip()
+    return [x for x in git(root, "diff", "--name-only", f"{merge_base}..{head}").splitlines() if x]
 
 
 def load(path: Path) -> dict[str, Any]:

@@ -12,6 +12,7 @@ TESTS = [
     "tests/governance/test_l2_hardening_v2.py",
     "tests/governance/test_l2_hardening_materialization.py",
     "tests/governance/test_l2_gate_provenance.py",
+    "tests/governance/test_codex_followup_five.py",
 ]
 MUTATIONS = {
     "exact-head-checkout": (".github/scripts/governance_l2_hardening.py", 'or (checkout.get("with") or {}).get("ref") != CHECKOUT_REF', 'or False'),
@@ -25,6 +26,13 @@ MUTATIONS = {
     "done-task-run-terminal-state": (".github/scripts/governance_l2_hardening.py", 'if not isinstance(item, dict) or item.get("status") not in DONE_TASK_RUN_STATES:', 'if False:'),
     "progress-adoption-nonreusable": (".github/scripts/governance_l2_gate.py", 'or entry.get("historical_only") is not True\n            or entry.get("future_reuse_forbidden") is not True\n            or not h.git_ok(root, "cat-file", "-e", f"{adoption}^{{commit}}")', 'or False\n            or False\n            or not h.git_ok(root, "cat-file", "-e", f"{adoption}^{{commit}}")'),
     "review-squash-explicit-id": (".github/scripts/governance_l2_gate.py", 'if not isinstance(entry, dict) or review_id not in (entry.get("eligible_review_ids") or []):', 'if not isinstance(entry, dict):'),
+    "requirement-review-real-revision": ("tools/governance/change_guard.py", 'and review_requirement_revision_valid(root, sha, str(rid), digest, review)', 'and True'),
+    "risk-delegation-role-scope": ("tools/governance/change_guard.py", 'and (str(work_items[0]) in work_scope or str(governed.get("full_name") or "") in repo_scope)', 'and True'),
+    "test-import-transition-boundary": ("tools/governance/change_guard.py", 'and not external_test_import:', 'and True:'),
+    "test-import-not-initial-state": ("tools/governance/change_guard.py", 'if kind == "tests":\n        rid, status = current.get("id"), current.get("status")\n        policy = canonical_machine_spec(root, policy_sha, kind)', 'if False:\n        rid, status = current.get("id"), current.get("status")\n        policy = canonical_machine_spec(root, policy_sha, kind)'),
+    "done-test-import-consumption": ("tools/governance/strict_contracts.py", 'elif not test_external_import_bound_and_consumed(test, machine):', 'elif False:'),
+    "context-merge-base": ("tools/governance/context_manifest.py", 'merge_base = git(root, "merge-base", base, head).strip()', 'merge_base = base'),
+    "done-test-import-materialization": (".github/scripts/governance_l2_followup.py", 'if test.get("external_import") is not None and not test_import_finalized(root, test, head, path):', 'if False:'),
 }
 
 
