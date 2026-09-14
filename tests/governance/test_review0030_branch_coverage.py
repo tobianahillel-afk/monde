@@ -284,6 +284,37 @@ def test_strict_review_sha_and_revision_branches(tmp_path: Path) -> None:
     assert "DONE_REVIEW_SCOPE" in {issue.rule for issue in validate_work_lifecycle(tmp_path)}
 
 
+def test_strict_rejects_unfinalized_external_review_import(tmp_path: Path) -> None:
+    dump(
+        tmp_path / "registry/work-items/WORK-1.yaml",
+        {
+            "id": "WORK-1",
+            "status": "DONE",
+            "depends_on": [],
+            "review_plan": {"completed_reviews": ["REVIEW-1"]},
+            "required_tests": {},
+            "completion": {"specification_gates_checked": True},
+        },
+    )
+    dump(
+        tmp_path / "registry/reviews/REVIEW-1.yaml",
+        {
+            "id": "REVIEW-1",
+            "status": "COMPLETE",
+            "artifact": {"type": "WORK_ITEM", "id_or_path": "WORK-1", "commit_sha": "a" * 40},
+            "scope": {"work_items": ["WORK-1"]},
+            "external_import": {
+                "mode": "PREAUTHORIZED_EXTERNAL_COMPLETION",
+                "authorization_commit": "b" * 40,
+                "source_review_id": "SRC",
+                "import_commit": "c" * 40,
+            },
+        },
+    )
+    dump(tmp_path / "registry/status-machines.yaml", {"registry_machines": {"reviews": {"external_import_authorizations": []}}})
+    assert "DONE_REVIEW_IMPORT" in {issue.rule for issue in validate_work_lifecycle(tmp_path)}
+
+
 def test_validate_repo_reports_unresolved_blocking_review_finding(tmp_path: Path) -> None:
     validator = Validator(tmp_path)
     work = Record(
