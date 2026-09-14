@@ -11,14 +11,19 @@ def repo(tmp_path,include_guard=True):
     run(tmp_path,'init');run(tmp_path,'config','user.email','x@y');run(tmp_path,'config','user.name','x')
     w={'id':'WORK-1','status':'IN_PROGRESS','purpose':'p','scope':{'in':['a'],'out':[]},'acceptance_criteria':[{'id':'AC','description':'x','status':'NOT_STARTED'}],'assurance':{'level':'A3'},'review_plan':{'completed_reviews':[]}}
     write(tmp_path,'registry/work-items/WORK-1.yaml',w);write(tmp_path,'x.txt','a')
+    write(tmp_path,'registry/status-machines.yaml',{'registry_machines':{
+        'work_items':{'transitions':{'IN_PROGRESS':['IN_REVIEW','PARTIAL','BLOCKED','CANCELLED'],'IN_REVIEW':['IN_PROGRESS','PARTIAL','BLOCKED','DONE'],'DONE':['DEPRECATED'],'CANCELLED':[]}},
+        'reviews':{'transitions':{'OPEN':['IN_PROGRESS','CLOSED'],'IN_PROGRESS':['COMPLETE','CLOSED'],'COMPLETE':[],'CLOSED':[]}},
+        'tests':{'transitions':{'PLANNED':['READY','BLOCKED','CANCELLED'],'READY':['RUNNING','BLOCKED','CANCELLED'],'RUNNING':['PASS','FAIL','BLOCKED'],'PASS':['READY','SUPERSEDED'],'FAIL':['READY','BLOCKED','SUPERSEDED'],'BLOCKED':['READY','CANCELLED','SUPERSEDED'],'CANCELLED':[],'SUPERSEDED':[]}},
+    }})
     if include_guard:write(tmp_path,c.GUARD_PATH,'guard')
     return commit(tmp_path,'base')
 def test_scope_transition_delete_meta(tmp_path):
-    base=repo(tmp_path);w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text());w['scope']['in']=['b'];w['status']='DONE';write(tmp_path,'registry/work-items/WORK-1.yaml',w);write(tmp_path,'.github/workflows/x.yml','x');head=commit(tmp_path,'change')
+    base=repo(tmp_path);w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text());w['status']='IN_REVIEW';write(tmp_path,'registry/work-items/WORK-1.yaml',w);base=commit(tmp_path,'review state');w['scope']['in']=['b'];w['status']='DONE';write(tmp_path,'registry/work-items/WORK-1.yaml',w);write(tmp_path,'.github/workflows/x.yml','x');head=commit(tmp_path,'change')
     rules={x.rule for x in c.validate(tmp_path,base,head)};assert 'SCOPE_DRIFT' in rules and 'STATE_TRANSITION' not in rules
     base=head;(tmp_path/'registry/work-items/WORK-1.yaml').unlink();head=commit(tmp_path,'delete');assert 'RECORD_DELETE' in {x.rule for x in c.validate(tmp_path,base,head)}
 def test_id_bad_transition_and_meta_without_a3(tmp_path):
-    base=repo(tmp_path);w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text());w['id']='WORK-2';w['status']='CANCELLED';w['assurance']['level']='A1';w['scope_change']={'approved':True,'rationale':'x'};write(tmp_path,'registry/work-items/WORK-1.yaml',w);write(tmp_path,'tools/governance/x.py','x');head=commit(tmp_path,'bad');rules={x.rule for x in c.validate(tmp_path,base,head)};assert {'ID_IMMUTABLE','STATE_TRANSITION','META_GOVERNANCE'}<=rules
+    base=repo(tmp_path);w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text());w['id']='WORK-2';w['status']='DONE';w['assurance']['level']='A1';w['scope_change']={'approved':True,'rationale':'x'};write(tmp_path,'registry/work-items/WORK-1.yaml',w);write(tmp_path,'tools/governance/x.py','x');head=commit(tmp_path,'bad');rules={x.rule for x in c.validate(tmp_path,base,head)};assert {'ID_IMMUTABLE','STATE_TRANSITION','META_GOVERNANCE'}<=rules
 def test_review_freshness_and_admin_neutral(tmp_path):
     base=repo(tmp_path);w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text());w['status']='IN_REVIEW';write(tmp_path,'registry/work-items/WORK-1.yaml',w);reviewed=commit(tmp_path,'reviewed')
     rev={'id':'REVIEW-1','status':'COMPLETE','artifact':{'commit_sha':reviewed}};write(tmp_path,'registry/reviews/REVIEW-1.yaml',rev);w['review_plan']['completed_reviews']=['REVIEW-1'];write(tmp_path,'registry/work-items/WORK-1.yaml',w);head=commit(tmp_path,'admin');assert not [x for x in c.validate(tmp_path,reviewed,head) if x.rule=='REVIEW_FRESHNESS']
@@ -54,3 +59,49 @@ def test_nonwork_transition_and_review_freshness_variants(tmp_path):
 def test_sequence_scope_drift_after_progress(tmp_path):
     base=repo(tmp_path);w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text());w['status']='IN_REVIEW';write(tmp_path,'registry/work-items/WORK-1.yaml',w);commit(tmp_path,'progress')
     w['scope']['in']=['late'];write(tmp_path,'registry/work-items/WORK-1.yaml',w);head=commit(tmp_path,'late drift');assert 'SCOPE_DRIFT' in {x.rule for x in c.validate(tmp_path,base,head)}
+
+
+def test_merge_of_current_base_does_not_replay_base_transition(tmp_path):
+    old_base=repo(tmp_path)
+    write(tmp_path,'registry/tests/TEST-1.yaml',{'id':'TEST-1','status':'PASS'})
+    old_base=commit(tmp_path,'old test pass')
+    run(tmp_path,'branch','feature',old_base);run(tmp_path,'branch','mainline',old_base)
+    run(tmp_path,'checkout','feature');write(tmp_path,'feature.txt','feature');commit(tmp_path,'feature change')
+    run(tmp_path,'checkout','mainline');write(tmp_path,'registry/tests/TEST-1.yaml',{'id':'TEST-1','status':'SUPERSEDED'});main=commit(tmp_path,'canonical supersede')
+    run(tmp_path,'checkout','feature');run(tmp_path,'merge','--no-ff','mainline','-m','integrate current main');head=run(tmp_path,'rev-parse','HEAD')
+    findings=c.validate(tmp_path,main,head)
+    assert not [f for f in findings if f.rule=='STATE_TRANSITION' and f.path=='registry/tests/TEST-1.yaml']
+
+
+def test_done_unmodified_work_review_is_not_reopened_by_downstream_change(tmp_path):
+    base=repo(tmp_path);w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text());w['status']='IN_REVIEW';write(tmp_path,'registry/work-items/WORK-1.yaml',w);reviewed=commit(tmp_path,'reviewed')
+    write(tmp_path,'registry/reviews/REVIEW-1.yaml',{'id':'REVIEW-1','status':'COMPLETE','artifact':{'commit_sha':reviewed}});w['review_plan']['completed_reviews']=['REVIEW-1'];w['status']='DONE';write(tmp_path,'registry/work-items/WORK-1.yaml',w);base=commit(tmp_path,'done on base')
+    write(tmp_path,'x.txt','future downstream behavior');head=commit(tmp_path,'later work')
+    assert not [f for f in c.validate(tmp_path,base,head) if f.rule=='REVIEW_FRESHNESS']
+
+
+def test_canonical_transition_table_is_enforced(tmp_path):
+    base=repo(tmp_path);write(tmp_path,'registry/tests/TEST-1.yaml',{'id':'TEST-1','status':'PASS'});base=commit(tmp_path,'pass')
+    write(tmp_path,'registry/tests/TEST-1.yaml',{'id':'TEST-1','status':'SUPERSEDED'});head=commit(tmp_path,'supersede')
+    assert 'STATE_TRANSITION' not in {f.rule for f in c.validate(tmp_path,base,head)}
+    machine=yaml.safe_load((tmp_path/'registry/status-machines.yaml').read_text());machine['registry_machines']['tests']['transitions']['PASS']=[];write(tmp_path,'registry/status-machines.yaml',machine);bad=commit(tmp_path,'remove edge')
+    write(tmp_path,'registry/tests/TEST-1.yaml',{'id':'TEST-1','status':'READY'});bad2=commit(tmp_path,'invalid after terminal')
+    assert 'STATE_TRANSITION' in {f.rule for f in c.validate(tmp_path,bad,bad2)}
+
+
+def test_review_freshness_ignores_changes_inherited_before_pr_base(tmp_path):
+    reviewed=repo(tmp_path)
+    w=yaml.safe_load((tmp_path/'registry/work-items/WORK-1.yaml').read_text())
+    w['status']='IN_REVIEW'
+    w['affected_paths']=['x.txt']
+    w['scope_change']={'approved':True,'rationale':'declare reviewed scope'}
+    write(tmp_path,'registry/work-items/WORK-1.yaml',w)
+    reviewed=commit(tmp_path,'reviewed scoped work')
+    write(tmp_path,'registry/reviews/REVIEW-1.yaml',{'id':'REVIEW-1','status':'COMPLETE','artifact':{'commit_sha':reviewed}})
+    w['review_plan']['completed_reviews']=['REVIEW-1']
+    write(tmp_path,'registry/work-items/WORK-1.yaml',w)
+    write(tmp_path,'x.txt','base inherited behavior')
+    base=commit(tmp_path,'base inherits post-review change')
+    write(tmp_path,'unrelated.txt','pr-only endpoint')
+    head=commit(tmp_path,'unrelated pr change')
+    assert not [f for f in c.validate(tmp_path,base,head) if f.rule=='REVIEW_FRESHNESS']

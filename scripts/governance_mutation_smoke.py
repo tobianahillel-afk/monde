@@ -86,8 +86,8 @@ MUTATIONS = {
     ),
     "review-freshness-scope": (
         "tools/governance/change_guard.py",
+        'if file_path in endpoint_set\n                and change_relevant_to_work(root, path, work, reviewed, head, file_path)',
         'if change_relevant_to_work(root, path, work, reviewed, head, file_path)',
-        'if True',
     ),
     "assurance-min-review": (
         "tools/governance/strict_contracts.py",

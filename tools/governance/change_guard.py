@@ -11,37 +11,6 @@ from typing import Any, Iterable
 
 import yaml
 
-TRANSITIONS = {
-    "work-items": {
-        "NOT_STARTED": {"PROPOSED", "PLANNED"},
-        "PROPOSED": {"PLANNED", "CANCELLED"},
-        "PLANNED": {"READY", "IN_PROGRESS", "BLOCKED", "CANCELLED"},
-        "READY": {"IN_PROGRESS", "BLOCKED"},
-        "IN_PROGRESS": {"PARTIAL", "BLOCKED", "IN_REVIEW", "DONE"},
-        "PARTIAL": {"IN_PROGRESS", "BLOCKED", "IN_REVIEW"},
-        "BLOCKED": {"IN_PROGRESS", "CANCELLED"},
-        "IN_REVIEW": {"IN_PROGRESS", "DONE", "BLOCKED"},
-        "DONE": {"DEPRECATED"},
-        "DEPRECATED": set(),
-        "CANCELLED": set(),
-        "NOT_APPLICABLE": set(),
-    },
-    "reviews": {
-        "OPEN": {"IN_PROGRESS", "CLOSED"},
-        "IN_PROGRESS": {"COMPLETE", "CLOSED"},
-        "COMPLETE": {"CLOSED"},
-        "CLOSED": set(),
-    },
-    "tests": {
-        "NOT_STARTED": {"PLANNED", "READY"},
-        "PLANNED": {"READY", "BLOCKED"},
-        "READY": {"PASS", "FAIL", "BLOCKED"},
-        "PASS": {"FAIL", "DEPRECATED"},
-        "FAIL": {"READY", "BLOCKED", "DEPRECATED"},
-        "BLOCKED": {"READY", "DEPRECATED"},
-        "DEPRECATED": set(),
-    },
-}
 META_PATH_PREFIXES = (".github/", "tools/governance/", "schemas/registry/", "scripts/governance_")
 ADMIN_PATH_PREFIXES = ("registry/reviews/", "registry/tests/", "registry/progress/", "PROJECT_STATE.md")
 SEMANTIC_WORK_KEYS = {
@@ -140,12 +109,47 @@ def semantic_projection(data: dict[str, Any] | None) -> dict[str, Any]:
     return out
 
 
-def paths_across_sequence(root: Path, sequence: list[str]) -> list[str]:
+def canonical_transitions(root: Path, sha: str, kind: str) -> dict[str, set[str]]:
+    machine = show_yaml(root, sha, "registry/status-machines.yaml") or {}
+    registries = machine.get("registry_machines") or {}
+    spec = registries.get(kind.replace("-", "_")) or {}
+    raw = spec.get("transitions") or {}
+    return {str(before): set(after or []) for before, after in raw.items()}
+
+
+def commit_parents(root: Path, sha: str) -> list[str]:
+    return git(root, "show", "-s", "--format=%P", sha).split()
+
+
+def is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
+    proc = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=root, text=True, capture_output=True, check=False,
+    )
+    return proc.returncode == 0
+
+
+def comparison_parent(root: Path, base: str, sha: str) -> str:
+    parents = commit_parents(root, sha)
+    base_side = [parent for parent in parents if parent == base or is_ancestor(root, base, parent)]
+    return base_side[0] if base_side else parents[0]
+
+
+def pr_commit_edges(root: Path, base: str, head: str, require_guard: bool) -> tuple[list[str], list[tuple[str, str]]]:
+    commits = [x for x in git(root, "rev-list", "--reverse", "--topo-order", f"{base}..{head}").splitlines() if x]
+    edges: list[tuple[str, str]] = []
+    for sha in commits:
+        if require_guard and not file_exists_at(root, sha, GUARD_PATH):
+            continue
+        edges.append((comparison_parent(root, base, sha), sha))
+    return commits, edges
+
+
+def paths_across_edges(root: Path, edges: list[tuple[str, str]]) -> list[str]:
     paths: set[str] = set()
-    for before, after in zip(sequence, sequence[1:]):
+    for before, after in edges:
         paths.update(changed_files(root, before, after))
     return sorted(paths)
-
 
 def path_is_declared(path: str, declared: list[Any]) -> bool:
     for raw in declared:
@@ -265,36 +269,31 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
                 if scope_change.get("approved") is not True or not scope_change.get("rationale"):
                     out.append(ChangeFinding(path, "SCOPE_DRIFT", "semantic scope/AC/review/contracts changed after READY without approved scope_change rationale"))
 
-    all_commits = [base] + [x for x in git(root, "rev-list", "--reverse", f"{base}..{head}").splitlines() if x]
-    start = 0
-    if not base_has_guard:
-        start = next((i for i, sha in enumerate(all_commits) if file_exists_at(root, sha, GUARD_PATH)), len(all_commits) - 1)
-    sequence = all_commits[start:]
-    sequence_files = paths_across_sequence(root, sequence) if len(sequence) >= 2 else endpoint_files
+    exclusive_commits, edges = pr_commit_edges(root, base, head, require_guard=not base_has_guard)
+    all_commits = [base] + exclusive_commits
+    sequence_files = paths_across_edges(root, edges) if edges else endpoint_files
 
-    for path in sequence_files:
-        kind = registry_kind(path)
-        allowed = TRANSITIONS.get(kind or "")
-        if not allowed or len(sequence) < 2:
-            continue
-        previous = show_yaml(root, sequence[0], path)
-        for sha in sequence[1:]:
+    for previous_sha, sha in edges:
+        for path in changed_files(root, previous_sha, sha):
+            kind = registry_kind(path)
+            if not kind or kind == "progress":
+                continue
+            previous = show_yaml(root, previous_sha, path)
             current = show_yaml(root, sha, path)
             if previous and current is None:
                 out.append(ChangeFinding(path, "RECORD_DELETE", f"published registry record deleted at {sha[:12]}"))
-                previous = None
                 continue
             if previous and current:
                 if previous.get("id") != current.get("id"):
                     out.append(ChangeFinding(path, "ID_IMMUTABLE", f"registry id changed at {sha[:12]}"))
                 before, after = previous.get("status"), current.get("status")
+                allowed = canonical_transitions(root, sha, kind)
                 if before != after and after not in allowed.get(str(before), set()):
                     out.append(ChangeFinding(path, "STATE_TRANSITION", f"invalid {kind} transition {before} -> {after} at {sha[:12]}"))
                 if kind == "work-items" and before in ACTIVE_WORK_STATUSES and semantic_projection(previous) != semantic_projection(current):
                     scope_change = current.get("scope_change") or {}
                     if scope_change.get("approved") is not True or not scope_change.get("rationale"):
                         out.append(ChangeFinding(path, "SCOPE_DRIFT", f"semantic scope/AC/review/contracts changed at {sha[:12]} without approved scope_change rationale"))
-            previous = current
 
     meta_paths = [path for path in sequence_files if path.startswith(META_PATH_PREFIXES)]
     if meta_paths:
@@ -327,8 +326,11 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
         x for x in git(root, "ls-tree", "-r", "--name-only", head, "registry/work-items").splitlines()
         if x.endswith(".yaml") and not Path(x).name.startswith("_")
     ]
+    endpoint_set = set(endpoint_files)
     for path in work_paths:
         work = show_yaml(root, head, path) or {}
+        if work.get("status") in {"DONE", "DEPRECATED", "CANCELLED"} and path not in endpoint_set:
+            continue
         plan = work.get("review_plan") or {}
         for rid in plan.get("completed_reviews", []) or []:
             review_path = f"registry/reviews/{rid}.yaml"
@@ -346,7 +348,8 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
             substantive = [
                 file_path
                 for file_path in later
-                if change_relevant_to_work(root, path, work, reviewed, head, file_path)
+                if file_path in endpoint_set
+                and change_relevant_to_work(root, path, work, reviewed, head, file_path)
             ]
             if substantive:
                 out.append(ChangeFinding(review_path, "REVIEW_FRESHNESS", f"review {rid} predates substantive changes: {', '.join(substantive[:8])}"))
