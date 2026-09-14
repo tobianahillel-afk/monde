@@ -278,6 +278,7 @@ def test_strict_review_sha_and_revision_branches(tmp_path: Path) -> None:
     assert "DONE_REVIEW_SHA" in {issue.rule for issue in validate_work_lifecycle(tmp_path)}
 
     review["artifact"]["commit_sha"] = tested
+    review["artifact"]["id_or_path"] = "WORK-OTHER"
     review["scope"]["work_items"] = ["WORK-OTHER"]
     dump(tmp_path / "registry/reviews/REVIEW-1.yaml", review)
     assert "DONE_REVIEW_SCOPE" in {issue.rule for issue in validate_work_lifecycle(tmp_path)}
