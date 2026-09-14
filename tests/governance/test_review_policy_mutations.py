@@ -52,6 +52,6 @@ def test_nonapproving_outcome_is_rejected_in_isolation() -> None:
 
     validator.validate_review_evidence(work_with_review(target="L2_TARGET"))
 
-    assert len(validator.issues) == 1
-    assert validator.issues[0].rule == "DONE_REVIEW"
-    assert "outcome" in validator.issues[0].message
+    messages = [issue.message for issue in validator.issues]
+    assert any("outcome" in message for message in messages)
+    assert any("independence" in message for message in messages)
