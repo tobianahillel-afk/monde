@@ -46,10 +46,10 @@ history:
   created_at: '2026-09-10'
   updated_at: '2026-09-14'
 execution:
-  command_or_workflow: GitHub Actions MONDE Gate run 34868556415 / governance pytest+coverage+mutation suite
-  commit_sha: 42e4e93c0e25294b26d2a00d958660c9124697d1
+  command_or_workflow: GitHub Actions MONDE Gate run 34880597687 / governance pytest+coverage+baseline+fresh-L2 mutation suites
+  commit_sha: 214664e4646a257ee38452e5cb4889075d45b37c
   result: PASS
   evidence:
-  - 'GitHub Actions run 34868556415 on exact commit 42e4e93c0e25294b26d2a00d958660c9124697d1: Governance core success.'
-  - 147/147 tests PASS; 1578/1578 statements and 818/818 branches covered; 37/37 critical mutations killed.
-  - Repository governance validation, strict governance, path safety and base-to-head change guard each reported zero errors; context manifest generated 19 MUST_READ files.
+  - 'GitHub Actions run 34880597687 on exact commit 214664e4646a257ee38452e5cb4889075d45b37c: Governance core success.'
+  - 161/161 tests PASS; 1578/1578 statements and 818/818 branches covered; 37/37 baseline plus 11/11 fresh-L2 critical mutations killed.
+  - Repository governance validation, strict governance, path safety, base-to-head change guard and fresh-L2 hardening gate each reported zero errors; context manifest generated 19 MUST_READ files.

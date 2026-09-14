@@ -50,10 +50,10 @@ history:
   created_at: '2026-09-10'
   updated_at: '2026-09-14'
 execution:
-  command_or_workflow: .github/workflows/governance.yml / GitHub Actions MONDE Gate run 34868556415
-  commit_sha: 42e4e93c0e25294b26d2a00d958660c9124697d1
+  command_or_workflow: .github/workflows/governance.yml / GitHub Actions MONDE Gate run 34880597687
+  commit_sha: 214664e4646a257ee38452e5cb4889075d45b37c
   result: PASS
   evidence:
-  - 'GitHub Actions run 34868556415 on exact commit 42e4e93c0e25294b26d2a00d958660c9124697d1: Governance core, CodeQL and Dependency Review lanes executed successfully.'
-  - Governance core proved 147 tests, 100% line+branch coverage, 37/37 critical mutations, zero repository/strict/path/change errors and a 19-file MUST_READ context manifest.
-  - Final MONDE merge gate failed closed solely because 18 review threads were deliberately unresolved, proving live GitHub-state enforcement rather than a false merge-safe result.
+  - 'GitHub Actions run 34880597687 on exact commit 214664e4646a257ee38452e5cb4889075d45b37c: Governance core, CodeQL and Dependency Review lanes executed successfully.'
+  - Governance core proved 161 tests, 100% line+branch coverage, 37/37 baseline plus 11/11 fresh-L2 critical mutations, zero repository/strict/path/change/L2-hardening errors and a 19-file MUST_READ context manifest.
+  - Final MONDE merge gate failed closed solely because 27 review threads were deliberately unresolved, proving live GitHub-state enforcement rather than a false merge-safe result.
