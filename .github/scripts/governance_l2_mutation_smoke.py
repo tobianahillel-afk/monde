@@ -13,6 +13,7 @@ TESTS = [
     "tests/governance/test_l2_hardening_materialization.py",
     "tests/governance/test_l2_gate_provenance.py",
     "tests/governance/test_codex_followup_five.py",
+    "tests/governance/test_codex_followup_mutation.py",
 ]
 MUTATIONS = {
     "exact-head-checkout": (".github/scripts/governance_l2_hardening.py", 'or (checkout.get("with") or {}).get("ref") != CHECKOUT_REF', 'or False'),
