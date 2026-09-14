@@ -1,5 +1,5 @@
 name: Final v10 fresh-context L2 closure review
-# trigger: 4
+# trigger: 5
 
 on:
   push:
@@ -89,11 +89,18 @@ jobs:
             -f query='query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewThreads(first:100){nodes{id isResolved comments(first:50){nodes{id body path outdated url}}}}}}}' \
             > /tmp/final-v10/pr3_threads.json
 
-      - name: Build fail-closed final review packet
+      - name: Build fail-closed deterministic evidence
         shell: bash
         run: |
           set -euo pipefail
           python admin/tools/final_v10_l2_review.py target build
+
+      - name: Compact fresh-context evidence packet
+        shell: bash
+        run: |
+          set -euo pipefail
+          python admin/tools/final_v10_compact_prompt.py target
+          test "$(wc -c < /tmp/final-v10/prompt.txt)" -lt 90000
 
       - name: Install pinned Copilot CLI
         run: npm install -g @github/copilot@1.0.83
