@@ -33,7 +33,7 @@ ADOPTION_RULES = {
     ),
     "PROGRESS_REOPENING_EVIDENCE_V1": (
         ".github/workflows/_governance-core.yml",
-        "tools.governance.review_closure_gate",
+        "tools.governance.review_closure",
     ),
 }
 
