@@ -1,0 +1,56 @@
+id: REVIEW-0028
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-3"
+  commit_sha: "b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60"
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - DATA_EPISTEMIC
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import: null
+
+scope:
+  work_items: [WORK-0001]
+  requirements: [REQ-0023, REQ-0024, REQ-0025]
+  capabilities: []
+  contracts:
+    - "status-machines v10 narrow external import semantics"
+    - "REVIEW-0027 and TEST-0008 provenance"
+    - "REQ-0023/24/25 accepted-state preconditions and normative identity stability"
+    - "WORK-0001/PROJECT_STATE completion handover"
+    - "historical finding closure exact-set gate"
+    - "WORK-0002 cross-branch isolation"
+    - "REQ-0010/TEST-0004 historical boundary"
+  risks:
+    - "Administrative closure could hide an unresolved material historical finding."
+    - "Post-review provenance materialization could weaken the reviewed v10 semantics."
+    - "WORK-0001 could be marked DONE before every hard gate and historical finding is independently verified."
+
+findings: []
+
+checks:
+  assumptions_challenged: []
+  omitted_categories_considered: []
+  duplicate_or_reuse_search: []
+  failure_modes_considered: []
+  evidence_requested:
+    - "Fresh exact-SHA L2 over b7f8eb1d with all nine closure checks"
+    - "Exact-set independent disposition of every canonical open finding"
+    - "No material R1/R2/R3 defect"
+
+outcome: CHANGES_REQUIRED
+completed_at: null
+
+history:
+  created_at: "2026-09-14"
+  updated_at: "2026-09-14"
