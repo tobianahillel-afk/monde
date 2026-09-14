@@ -14,16 +14,18 @@ git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0029-fixes.py" > /tmp/pr2
 git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0029-test-fixes.py" > /tmp/pr2-review0029-test-fixes.py
 git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0029-coverage-final.py" > /tmp/pr2-review0029-coverage-final.py
 git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0029-coverage-last.py" > /tmp/pr2-review0029-coverage-last.py
+git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0029-schema-conditional-fix.py" > /tmp/pr2-review0029-schema-conditional-fix.py
 git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0029-mutation-fix.py" > /tmp/pr2-review0029-mutation-fix.py
 python /tmp/pr2-review0029-fixes.py
 python /tmp/pr2-review0029-test-fixes.py
 python /tmp/pr2-review0029-coverage-final.py
 python /tmp/pr2-review0029-coverage-last.py
+python /tmp/pr2-review0029-schema-conditional-fix.py
 python /tmp/pr2-review0029-mutation-fix.py
 
 git config user.name 'github-actions[bot]'
 git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-git add tools/governance/change_guard.py tools/governance/strict_contracts.py schemas/registry/tests.schema.json schemas/registry/reviews.schema.json registry/tests/TEST-0002.yaml registry/tests/TEST-0003.yaml registry/status-machines.yaml tests/governance/test_change_guard.py tests/governance/test_final_l2_findings.py tests/governance/test_current_gap_regressions.py tests/governance/test_strict_contracts.py tests/governance/test_review0029_branches.py scripts/governance_mutation_smoke.py registry/work-items/WORK-0002.yaml
+git add tools/governance/change_guard.py tools/governance/strict_contracts.py schemas/registry/tests.schema.json schemas/registry/reviews.schema.json registry/tests/TEST-0002.yaml registry/tests/TEST-0003.yaml registry/status-machines.yaml tests/governance/test_change_guard.py tests/governance/test_final_l2_findings.py tests/governance/test_current_gap_regressions.py tests/governance/test_strict_contracts.py tests/governance/test_review0029_branches.py tests/governance/test_review0029_test_schema.py scripts/governance_mutation_smoke.py registry/work-items/WORK-0002.yaml
 git diff --cached --check
 git commit -m 'fix(governance): close REVIEW-0029 contract gaps'
 CANDIDATE="$(git rev-parse HEAD)"
