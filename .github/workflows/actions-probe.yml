@@ -1,0 +1,17 @@
+name: Actions branch probe
+
+on:
+  push:
+    branches:
+      - review/test-0008-github-models
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Echo
+        run: echo OK
