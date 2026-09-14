@@ -1,4 +1,4 @@
-version: 6
+version: 7
 updated_at: '2026-09-14'
 status_machine: ../status-machines.yaml#progress
 phases:
@@ -34,16 +34,16 @@ phases:
               WORK-0002:
                 status: IN_REVIEW
                 docs: DONE
-                specification_governance: DONE
-                implementation: DONE
-                tests: DONE
+                specification_governance: IN_REVIEW
+                implementation: IN_REVIEW
+                tests: IN_REVIEW
                 scientific_validation: NOT_APPLICABLE
                 security_review: IN_REVIEW
                 real_system_validation: IN_REVIEW
                 review: IN_REVIEW
                 dependencies: DONE
                 traceability: DONE
-                handover: DONE
+                handover: IN_REVIEW
           SUBLOT-0.3:
             name: Repository protection and merge discipline
             status: PLANNED
@@ -90,9 +90,9 @@ quality_dimensions:
   definition_of_done_defined: DONE
   requirements_registry_contract: DONE
   assumptions_registry_contract: DONE
-  risk_registry_contract: DONE
-  review_registry_contract: DONE
-  test_registry_contract: DONE
+  risk_registry_contract: IN_REVIEW
+  review_registry_contract: IN_REVIEW
+  test_registry_contract: IN_REVIEW
   experiment_registry_contract: DONE
   traceability_contract: DONE
   review_council_defined: DONE
@@ -104,11 +104,11 @@ quality_dimensions:
   threat_modeling_protocol_defined: DONE
   capability_registry_current: PARTIAL
   dependency_registry_current: PARTIAL
-  work_item_tracking_current: DONE
+  work_item_tracking_current: IN_REVIEW
   test_strategy_defined: DONE
   security_rules_defined: DONE
   adr_process_defined: DONE
-  project_state_resumable: DONE
+  project_state_resumable: IN_REVIEW
   github_workflow_defined: DONE
   governance_ci_enforced: PARTIAL
   architecture_fitness_functions_enforced: NOT_STARTED
