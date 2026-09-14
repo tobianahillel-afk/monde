@@ -15,8 +15,10 @@ python -m pip install --require-hashes -r requirements/governance-ci.txt
 
 git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0030-fixes.py" > /tmp/pr2-review0030-fixes.py
 git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0030-hotfix.py" > /tmp/pr2-review0030-hotfix.py
+git show "origin/$ADMIN_BRANCH:.github/admin/pr2-review0030-tests-hotfix.py" > /tmp/pr2-review0030-tests-hotfix.py
 python /tmp/pr2-review0030-hotfix.py
 python /tmp/pr2-review0030-fixes.py
+python /tmp/pr2-review0030-tests-hotfix.py
 
 git config user.name 'github-actions[bot]'
 git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -27,8 +29,11 @@ git add \
   registry/acceptance-authority.yaml \
   registry/reviews/REVIEW-0001.yaml \
   registry/work-items/WORK-0002.yaml \
+  tests/governance/test_final_l2_findings.py \
   tests/governance/test_review0029_branches.py \
   tests/governance/test_review0030_findings.py \
+  tests/governance/test_strict_contracts.py \
+  tests/governance/test_validate_repo_coverage.py \
   scripts/governance_mutation_smoke.py
 
 git diff --cached --check
