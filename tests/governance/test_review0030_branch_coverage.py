@@ -268,16 +268,19 @@ def test_strict_review_sha_and_revision_branches(tmp_path: Path) -> None:
             "completion": {"specification_gates_checked": True},
         },
     )
-    dump(
-        tmp_path / "registry/reviews/REVIEW-1.yaml",
-        {
-            "id": "REVIEW-1",
-            "status": "COMPLETE",
-            "artifact": {"type": "WORK_ITEM", "id_or_path": "WORK-1", "commit_sha": "short"},
-            "scope": {"work_items": ["WORK-1"]},
-        },
-    )
+    review = {
+        "id": "REVIEW-1",
+        "status": "COMPLETE",
+        "artifact": {"type": "WORK_ITEM", "id_or_path": "WORK-1", "commit_sha": "short"},
+        "scope": {"work_items": ["WORK-1"]},
+    }
+    dump(tmp_path / "registry/reviews/REVIEW-1.yaml", review)
     assert "DONE_REVIEW_SHA" in {issue.rule for issue in validate_work_lifecycle(tmp_path)}
+
+    review["artifact"]["commit_sha"] = tested
+    review["scope"]["work_items"] = ["WORK-OTHER"]
+    dump(tmp_path / "registry/reviews/REVIEW-1.yaml", review)
+    assert "DONE_REVIEW_SCOPE" in {issue.rule for issue in validate_work_lifecycle(tmp_path)}
 
 
 def test_validate_repo_reports_unresolved_blocking_review_finding(tmp_path: Path) -> None:
