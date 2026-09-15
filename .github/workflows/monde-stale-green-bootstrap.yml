@@ -1,4 +1,5 @@
 name: MONDE Stale-Green Bootstrap
+# REVIEW-0039 lifecycle proof trigger; comment-only, no executable semantics changed.
 
 on:
   pull_request:
