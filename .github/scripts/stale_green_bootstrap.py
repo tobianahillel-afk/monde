@@ -71,6 +71,18 @@ def _nonempty_string(value: Any) -> bool:
     return isinstance(value, str) and bool(value)
 
 
+def _timestamp(value: Any, label: str) -> datetime:
+    if not _nonempty_string(value):
+        raise RuntimeError(f"GitHub returned malformed {label}")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise RuntimeError(f"GitHub returned malformed {label}") from exc
+    if parsed.tzinfo is None:
+        raise RuntimeError(f"GitHub returned malformed {label}")
+    return parsed
+
+
 def _pr_head_identity(pr: dict[str, Any]) -> HeadIdentity:
     head = pr.get("head")
     if not isinstance(head, dict):
@@ -94,6 +106,14 @@ def _run_head_identity(run: dict[str, Any]) -> HeadIdentity:
     return (repo_name, branch, sha)
 
 
+def _pr_created_at(pr: dict[str, Any]) -> datetime:
+    return _timestamp(pr.get("created_at"), "open pull request created_at")
+
+
+def _run_created_at(run: dict[str, Any]) -> datetime:
+    return _timestamp(run.get("created_at"), "canonical MONDE Gate created_at")
+
+
 def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
     items = paged(f"https://api.github.com/repos/{repo}/pulls?state=open", token)
     seen: dict[HeadIdentity, int] = {}
@@ -102,6 +122,7 @@ def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
         if not _positive_int(number):
             raise RuntimeError("GitHub returned malformed open pull request")
         identity = _pr_head_identity(item)
+        _pr_created_at(item)
         previous = seen.get(identity)
         if previous is not None and previous != number:
             raise RuntimeError(
@@ -112,22 +133,18 @@ def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
 
 
 def _updated_at(value: Any) -> datetime:
-    if not _nonempty_string(value):
-        raise RuntimeError("GitHub returned malformed canonical MONDE Gate updated_at")
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise RuntimeError("GitHub returned malformed canonical MONDE Gate updated_at") from exc
-    if parsed.tzinfo is None:
-        raise RuntimeError("GitHub returned malformed canonical MONDE Gate updated_at")
-    return parsed
+    return _timestamp(value, "canonical MONDE Gate updated_at")
 
 
 def _run_recency(run: dict[str, Any]) -> tuple[datetime, int, int]:
     return (_updated_at(run.get("updated_at")), int(run["run_number"]), int(run["id"]))
 
 
-def latest_completed_gate_runs(repo: str, token: str) -> dict[HeadIdentity, dict[str, Any]]:
+def latest_completed_gate_runs(
+    repo: str,
+    token: str,
+    minimum_created_at: dict[HeadIdentity, datetime] | None = None,
+) -> dict[HeadIdentity, dict[str, Any]]:
     runs = paged(
         f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?status=completed",
         token,
@@ -155,7 +172,12 @@ def latest_completed_gate_runs(repo: str, token: str) -> dict[HeadIdentity, dict
         ):
             raise RuntimeError("GitHub returned malformed canonical MONDE Gate run")
         _updated_at(run.get("updated_at"))
+        created_at = _run_created_at(run)
         key = _run_head_identity(run)
+        if minimum_created_at is not None:
+            threshold = minimum_created_at.get(key)
+            if threshold is None or created_at < threshold:
+                continue
         previous = latest.get(key)
         if previous is None or _run_recency(run) > _run_recency(previous):
             latest[key] = run
@@ -187,7 +209,9 @@ def unresolved_review_threads(repo: str, pr: int, token: str) -> bool:
             "variables": {"owner": owner, "name": name, "number": pr, "cursor": cursor},
         }
         result = request_data("https://api.github.com/graphql", token, "POST", payload)
-        if not isinstance(result, dict) or result.get("errors"):
+        if not isinstance(result, dict):
+            raise RuntimeError(f"malformed GraphQL response: {result!r}")
+        if "errors" in result and result["errors"] != []:
             raise RuntimeError(f"malformed GraphQL response: {result!r}")
         try:
             page = result["data"]["repository"]["pullRequest"]["reviewThreads"]
@@ -221,10 +245,15 @@ def rerun_workflow(repo: str, run_id: int, token: str) -> None:
     request_data(f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/rerun", token, "POST", {})
 
 
+def _current_pr_thresholds(prs: list[dict[str, Any]]) -> dict[HeadIdentity, datetime]:
+    return {_pr_head_identity(pr): _pr_created_at(pr) for pr in prs}
+
+
 def poll(repo: str, token: str) -> list[int]:
     rerun_ids: list[int] = []
     prs = open_pull_requests(repo, token)
     runs = latest_completed_gate_runs(repo, token)
+    current_runs = latest_completed_gate_runs(repo, token, _current_pr_thresholds(prs))
     effective = effective_gate_runs_by_head(runs)
     for pr in prs:
         number = pr["number"]
@@ -233,10 +262,10 @@ def poll(repo: str, token: str) -> list[int]:
         effective_run = effective.get(head)
         if effective_run is None or effective_run["conclusion"] != "success":
             continue
-        target_run = runs.get(identity)
+        target_run = current_runs.get(identity)
         if target_run is None:
             raise RuntimeError(
-                f"effective successful MONDE Gate for head {head} has no run bound to open PR #{number} head identity"
+                f"effective successful MONDE Gate for head {head} has no run created during current PR #{number} incarnation"
             )
         if not unresolved_review_threads(repo, number, token):
             continue
@@ -251,11 +280,12 @@ def validate_github_contract(repo: str, pr_number: int, token: str) -> tuple[int
     current = [pr for pr in prs if pr["number"] == pr_number]
     if len(current) != 1:
         raise RuntimeError(f"expected exactly one open PR #{pr_number}, observed {len(current)}")
-    runs = latest_completed_gate_runs(repo, token)
+    thresholds = _current_pr_thresholds(current)
+    runs = latest_completed_gate_runs(repo, token, thresholds)
     effective_gate_runs_by_head(runs)
     identity = _pr_head_identity(current[0])
     if identity not in runs:
-        raise RuntimeError(f"no canonical MONDE Gate run is bound to open PR #{pr_number} head identity")
+        raise RuntimeError(f"no canonical MONDE Gate run is bound to current incarnation of open PR #{pr_number}")
     unresolved = unresolved_review_threads(repo, pr_number, token)
     return len(prs), len(runs), unresolved
 
