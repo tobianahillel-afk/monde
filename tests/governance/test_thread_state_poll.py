@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 import tools.governance.thread_state_poll as poller
@@ -32,17 +30,39 @@ def test_paged_rejects_malformed_and_unbounded(monkeypatch) -> None:
         poller._paged("https://example.invalid", "t")
 
 
-def test_open_prs_and_latest_runs(monkeypatch) -> None:
-    monkeypatch.setattr(poller, "_paged", lambda url, token, collection_key=None: [{"number": 1}] if "/pulls?" in url else [
-        {"head_sha": "h", "run_number": 1, "id": 10},
-        {"head_sha": "", "run_number": 99, "id": 99},
-        {"head_sha": "h", "run_number": 2, "id": 20},
-        {"head_sha": "other", "run_number": None, "id": 30},
-    ])
+def test_open_prs_and_latest_runs_include_review_family(monkeypatch) -> None:
+    rows = [
+        {"event": "pull_request", "head_sha": "h", "run_number": 1, "id": 10},
+        {"event": "pull_request_review", "head_sha": "h", "run_number": 2, "id": 20},
+        {"event": "pull_request_review_comment", "head_sha": "other", "run_number": 3, "id": 30},
+        {"event": "push", "head_sha": "h", "run_number": 99, "id": 99},
+        {"event": "pull_request", "head_sha": "", "run_number": 100, "id": 100},
+    ]
+
+    def fake_paged(url, _token, collection_key=None):
+        if "/pulls?" in url:
+            return [{"number": 1}]
+        assert "event=pull_request" not in url
+        assert collection_key == "workflow_runs"
+        return rows
+
+    monkeypatch.setattr(poller, "_paged", fake_paged)
     assert poller.open_pull_requests("o/r", "t") == [{"number": 1}]
     latest = poller.latest_completed_pr_runs("o/r", "t")
     assert latest["h"]["id"] == 20
     assert latest["other"]["id"] == 30
+
+
+def test_latest_runs_keeps_newer_existing_entry(monkeypatch) -> None:
+    monkeypatch.setattr(
+        poller,
+        "_paged",
+        lambda *_a, **_k: [
+            {"event": "pull_request_review", "head_sha": "h", "run_number": 2, "id": 20},
+            {"event": "pull_request", "head_sha": "h", "run_number": 1, "id": 10},
+        ],
+    )
+    assert poller.latest_completed_pr_runs("o/r", "t")["h"]["id"] == 20
 
 
 def test_rerun_workflow_validates_status(monkeypatch) -> None:
