@@ -14,6 +14,7 @@ FILTERED_WORKFLOW_RUN_SEARCH_LIMIT = 1000
 CANONICAL_WORKFLOW_ID = 354465551
 CANONICAL_WORKFLOW_PATH = ".github/workflows/governance.yml"
 REQUIRED_GATE_JOB_NAME = "MONDE / Merge Gate"
+GITHUB_ACTIONS_APP_ID = 15368
 PR_FAMILY_EVENTS = {"pull_request", "pull_request_review", "pull_request_review_comment"}
 TERMINAL_CONCLUSIONS = {
     "success",
@@ -26,6 +27,7 @@ TERMINAL_CONCLUSIONS = {
     "stale",
     "startup_failure",
 }
+CHECK_RUN_STATUSES = {"queued", "in_progress", "requested", "waiting", "pending", "completed"}
 MERGE_ACCEPTABLE_CONCLUSIONS = {"success", "neutral", "skipped"}
 HeadIdentity = tuple[str, str, str]
 PrWindow = tuple[datetime, datetime]
@@ -60,9 +62,11 @@ def paged(
     *,
     require_total_count: bool = False,
     max_total_count: int | None = None,
+    unique_id_field: str | None = None,
 ) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     expected_total: int | None = None
+    seen_ids: set[int] = set()
     for page in range(1, MAX_PAGES + 1):
         sep = "&" if "?" in url else "?"
         payload = request_data(f"{url}{sep}per_page=100&page={page}", token)
@@ -86,6 +90,14 @@ def paged(
             items = None
         if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
             raise RuntimeError("GitHub returned malformed paginated JSON")
+        if unique_id_field is not None:
+            for item in items:
+                value = item.get(unique_id_field)
+                if type(value) is not int:
+                    raise RuntimeError("GitHub returned malformed paginated record identity")
+                if value in seen_ids:
+                    raise RuntimeError("GitHub returned duplicate paginated record identity")
+                seen_ids.add(value)
         out.extend(items)
         if require_total_count:
             assert expected_total is not None
@@ -150,6 +162,10 @@ def _pr_created_at(pr: dict[str, Any]) -> datetime:
     return _timestamp(pr.get("created_at"), "pull request created_at")
 
 
+def _pr_updated_at(pr: dict[str, Any]) -> datetime:
+    return _timestamp(pr.get("updated_at"), "closed pull request updated_at")
+
+
 def _run_created_at(run: dict[str, Any]) -> datetime:
     return _timestamp(run.get("created_at"), "canonical MONDE Gate created_at")
 
@@ -185,29 +201,77 @@ def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
     return items
 
 
+def _closed_pr_history(
+    repo: str,
+    token: str,
+    owner: str,
+    branch: str,
+    cutoff: datetime,
+) -> list[dict[str, Any]]:
+    query = urllib.parse.urlencode(
+        {
+            "state": "closed",
+            "head": f"{owner}:{branch}",
+            "sort": "updated",
+            "direction": "desc",
+        }
+    )
+    out: list[dict[str, Any]] = []
+    previous_updated: datetime | None = None
+    for page in range(1, MAX_PAGES + 1):
+        payload = request_data(
+            f"https://api.github.com/repos/{repo}/pulls?{query}&per_page=100&page={page}",
+            token,
+        )
+        if not isinstance(payload, list) or any(not isinstance(item, dict) for item in payload):
+            raise RuntimeError("GitHub returned malformed closed pull request history")
+        cutoff_reached = False
+        for item in payload:
+            number = item.get("number")
+            if not _positive_int(number) or item.get("state") != "closed":
+                raise RuntimeError("GitHub returned malformed closed pull request")
+            _pr_head_identity(item)
+            created = _pr_created_at(item)
+            closed = _closed_pr_at(item)
+            updated = _pr_updated_at(item)
+            if closed < created or updated < closed:
+                raise RuntimeError("GitHub returned closed pull request with invalid lifetime")
+            if previous_updated is not None and updated > previous_updated:
+                raise RuntimeError("GitHub returned closed pull request history out of requested order")
+            previous_updated = updated
+            if updated < cutoff:
+                cutoff_reached = True
+                break
+            out.append(item)
+        if cutoff_reached or len(payload) < 100:
+            return out
+    raise RuntimeError("closed pull request history exceeded bounded pagination before active-incarnation cutoff")
+
+
 def overlapping_closed_pr_windows(
     repo: str,
     token: str,
     current_prs: dict[HeadIdentity, dict[str, Any]],
 ) -> dict[HeadIdentity, list[PrWindow]]:
     windows: dict[HeadIdentity, list[PrWindow]] = {identity: [] for identity in current_prs}
-    cache: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    branch_bounds: dict[tuple[str, str], datetime] = {}
+    for identity, pr in current_prs.items():
+        key = (_head_owner(identity), identity[1])
+        created = _pr_created_at(pr)
+        previous = branch_bounds.get(key)
+        if previous is None or created < previous:
+            branch_bounds[key] = created
+    histories = {
+        key: _closed_pr_history(repo, token, key[0], key[1], bound)
+        for key, bound in branch_bounds.items()
+    }
     for identity, current_pr in current_prs.items():
         current_created = _pr_created_at(current_pr)
-        owner = _head_owner(identity)
-        cache_key = (owner, identity[1])
-        if cache_key not in cache:
-            query = urllib.parse.urlencode({"state": "closed", "head": f"{owner}:{identity[1]}"})
-            cache[cache_key] = paged(f"https://api.github.com/repos/{repo}/pulls?{query}", token)
-        for historical_pr in cache[cache_key]:
-            number = historical_pr.get("number")
-            if not _positive_int(number) or historical_pr.get("state") != "closed":
-                raise RuntimeError("GitHub returned malformed closed pull request")
+        key = (_head_owner(identity), identity[1])
+        for historical_pr in histories[key]:
             historical_identity = _pr_head_identity(historical_pr)
             historical_created = _pr_created_at(historical_pr)
             historical_closed = _closed_pr_at(historical_pr)
-            if historical_closed < historical_created:
-                raise RuntimeError("GitHub returned closed pull request with invalid lifetime")
             same_repo_branch = historical_identity[:2] == identity[:2]
             if not same_repo_branch or historical_closed < current_created:
                 continue
@@ -248,15 +312,11 @@ def _github_search_time(value: datetime) -> str:
 
 
 def _run_snapshot_fingerprint(runs: list[dict[str, Any]]) -> tuple[tuple[int, str], ...]:
-    seen: set[int] = set()
     fingerprint: list[tuple[int, str]] = []
     for run in runs:
         run_id = run.get("id")
         if not _positive_int(run_id):
             raise RuntimeError("GitHub returned malformed canonical MONDE Gate run id in filtered snapshot")
-        if run_id in seen:
-            raise RuntimeError("GitHub returned duplicate canonical MONDE Gate run id in filtered snapshot")
-        seen.add(run_id)
         try:
             encoded = json.dumps(run, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
         except (TypeError, ValueError) as exc:
@@ -286,6 +346,7 @@ def _read_completed_gate_window(
         "workflow_runs",
         require_total_count=True,
         max_total_count=FILTERED_WORKFLOW_RUN_SEARCH_LIMIT,
+        unique_id_field="id",
     )
 
 
@@ -350,6 +411,7 @@ def latest_completed_gate_runs(
             f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?status=completed",
             token,
             "workflow_runs",
+            unique_id_field="id",
         )
     else:
         runs = _scoped_completed_gate_runs(repo, token, active_prs)
@@ -358,7 +420,7 @@ def latest_completed_gate_runs(
         workflow_id = run.get("workflow_id")
         path = run.get("path")
         event = run.get("event")
-        if workflow_id != CANONICAL_WORKFLOW_ID or path != CANONICAL_WORKFLOW_PATH:
+        if not _positive_int(workflow_id) or workflow_id != CANONICAL_WORKFLOW_ID or path != CANONICAL_WORKFLOW_PATH:
             raise RuntimeError("canonical workflow endpoint returned mismatched workflow identity")
         if not _nonempty_string(event):
             raise RuntimeError("GitHub returned malformed canonical MONDE Gate event")
@@ -396,13 +458,49 @@ def latest_completed_gate_runs(
     return latest
 
 
-def effective_gate_runs_by_head(runs: dict[HeadIdentity, dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    latest: dict[str, dict[str, Any]] = {}
-    for (_repo_name, _branch, head), run in runs.items():
-        previous = latest.get(head)
-        if previous is None or _run_recency(run) > _run_recency(previous):
-            latest[head] = run
-    return latest
+def latest_required_check(repo: str, head: str, token: str) -> dict[str, Any] | None:
+    query = urllib.parse.urlencode(
+        {
+            "check_name": REQUIRED_GATE_JOB_NAME,
+            "filter": "latest",
+            "app_id": GITHUB_ACTIONS_APP_ID,
+            "per_page": 100,
+        }
+    )
+    payload = request_data(f"https://api.github.com/repos/{repo}/commits/{head}/check-runs?{query}", token)
+    if not isinstance(payload, dict):
+        raise RuntimeError("GitHub returned malformed required-check response")
+    total_count = payload.get("total_count")
+    checks = payload.get("check_runs")
+    if type(total_count) is not int or total_count < 0 or not isinstance(checks, list):
+        raise RuntimeError("GitHub returned malformed required-check response")
+    if any(not isinstance(check, dict) for check in checks) or len(checks) != total_count:
+        raise RuntimeError("GitHub returned incomplete required-check response")
+    if total_count == 0:
+        return None
+    if total_count != 1:
+        raise RuntimeError(f"GitHub returned {total_count} latest required checks for head {head}; expected exactly one")
+    check = checks[0]
+    app = check.get("app")
+    status = check.get("status")
+    conclusion = check.get("conclusion")
+    if (
+        not _positive_int(check.get("id"))
+        or check.get("name") != REQUIRED_GATE_JOB_NAME
+        or check.get("head_sha") != head
+        or not isinstance(app, dict)
+        or not _positive_int(app.get("id"))
+        or app.get("id") != GITHUB_ACTIONS_APP_ID
+        or app.get("slug") != "github-actions"
+        or status not in CHECK_RUN_STATUSES
+    ):
+        raise RuntimeError("GitHub returned malformed required MONDE Merge Gate check")
+    if status == "completed":
+        if not isinstance(conclusion, str) or conclusion not in TERMINAL_CONCLUSIONS:
+            raise RuntimeError("GitHub returned malformed completed required MONDE Merge Gate check")
+    elif conclusion is not None:
+        raise RuntimeError("GitHub returned incomplete required MONDE Merge Gate check with a conclusion")
+    return check
 
 
 def required_merge_gate_conclusion(repo: str, run: dict[str, Any], token: str) -> str:
@@ -416,6 +514,7 @@ def required_merge_gate_conclusion(repo: str, run: dict[str, Any], token: str) -
         token,
         "jobs",
         require_total_count=True,
+        unique_id_field="id",
     )
     required_jobs: list[dict[str, Any]] = []
     for job in jobs:
@@ -507,7 +606,6 @@ def poll(repo: str, token: str) -> list[int]:
     prs = open_pull_requests(repo, token)
     current_prs = _current_prs(prs)
     overlap_windows = overlapping_closed_pr_windows(repo, token, current_prs)
-    runs = latest_completed_gate_runs(repo, token, active_prs=current_prs)
     current_runs = latest_completed_gate_runs(
         repo,
         token,
@@ -515,25 +613,27 @@ def poll(repo: str, token: str) -> list[int]:
         overlap_windows,
         active_prs=current_prs,
     )
-    effective = effective_gate_runs_by_head(runs)
+    check_cache: dict[str, dict[str, Any] | None] = {}
+    target_job_cache: dict[tuple[int, int], str] = {}
     for pr in prs:
         number = pr["number"]
         identity = _pr_head_identity(pr)
         head = identity[2]
-        effective_run = effective.get(head)
-        if effective_run is None:
+        if head not in check_cache:
+            check_cache[head] = latest_required_check(repo, head, token)
+        check = check_cache[head]
+        if check is None or check["status"] != "completed" or check["conclusion"] not in MERGE_ACCEPTABLE_CONCLUSIONS:
             continue
-        required_conclusion = required_merge_gate_conclusion(repo, effective_run, token)
-        if required_conclusion not in MERGE_ACCEPTABLE_CONCLUSIONS:
+        if not unresolved_review_threads(repo, number, token):
             continue
         target_run = current_runs.get(identity)
         if target_run is None:
             raise RuntimeError(
                 f"effective merge-acceptable MONDE Gate for head {head} has no unambiguous run bound to open PR #{number} current incarnation"
             )
-        required_merge_gate_conclusion(repo, target_run, token)
-        if not unresolved_review_threads(repo, number, token):
-            continue
+        cache_key = (target_run["id"], target_run["run_attempt"])
+        if cache_key not in target_job_cache:
+            target_job_cache[cache_key] = required_merge_gate_conclusion(repo, target_run, token)
         run_id = target_run["id"]
         rerun_workflow(repo, run_id, token)
         rerun_ids.append(run_id)
@@ -554,10 +654,12 @@ def validate_github_contract(repo: str, pr_number: int, token: str) -> tuple[int
         overlap_windows,
         active_prs=current_prs,
     )
-    effective_gate_runs_by_head(runs)
     identity = _pr_head_identity(current[0])
     if identity not in runs:
         raise RuntimeError(f"no unambiguous canonical MONDE Gate run is bound to current incarnation of open PR #{pr_number}")
+    check = latest_required_check(repo, identity[2], token)
+    if check is None:
+        raise RuntimeError(f"no latest {REQUIRED_GATE_JOB_NAME!r} check exists for open PR #{pr_number} head")
     required_merge_gate_conclusion(repo, runs[identity], token)
     unresolved = unresolved_review_threads(repo, pr_number, token)
     return len(prs), len(runs), unresolved
