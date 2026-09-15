@@ -23,6 +23,7 @@ TERMINAL_CONCLUSIONS = {
     "stale",
     "startup_failure",
 }
+HeadIdentity = tuple[str, str, str]
 
 
 def request_data(url: str, token: str, method: str = "GET", body: dict[str, Any] | None = None) -> Any:
@@ -66,30 +67,52 @@ def _positive_int(value: Any) -> bool:
     return type(value) is int and value > 0
 
 
+def _nonempty_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value)
+
+
+def _pr_head_identity(pr: dict[str, Any]) -> HeadIdentity:
+    head = pr.get("head")
+    if not isinstance(head, dict):
+        raise RuntimeError("GitHub returned malformed open pull request head")
+    head_repo = head.get("repo")
+    repo_name = head_repo.get("full_name") if isinstance(head_repo, dict) else None
+    branch = head.get("ref")
+    sha = head.get("sha")
+    if not (_nonempty_string(repo_name) and _nonempty_string(branch) and _nonempty_string(sha)):
+        raise RuntimeError("GitHub returned malformed open pull request head identity")
+    return (repo_name, branch, sha)
+
+
+def _run_head_identity(run: dict[str, Any]) -> HeadIdentity:
+    head_repo = run.get("head_repository")
+    repo_name = head_repo.get("full_name") if isinstance(head_repo, dict) else None
+    branch = run.get("head_branch")
+    sha = run.get("head_sha")
+    if not (_nonempty_string(repo_name) and _nonempty_string(branch) and _nonempty_string(sha)):
+        raise RuntimeError("GitHub returned malformed canonical MONDE Gate head identity")
+    return (repo_name, branch, sha)
+
+
 def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
     items = paged(f"https://api.github.com/repos/{repo}/pulls?state=open", token)
+    seen: dict[HeadIdentity, int] = {}
     for item in items:
-        head = item.get("head")
-        if not _positive_int(item.get("number")) or not isinstance(head, dict) or not isinstance(head.get("sha"), str) or not head["sha"]:
+        number = item.get("number")
+        if not _positive_int(number):
             raise RuntimeError("GitHub returned malformed open pull request")
+        identity = _pr_head_identity(item)
+        previous = seen.get(identity)
+        if previous is not None and previous != number:
+            raise RuntimeError(
+                f"open PRs #{previous} and #{number} share indistinguishable head identity {identity!r}"
+            )
+        seen[identity] = number
     return items
 
 
-def _run_pr_number(run: dict[str, Any]) -> int:
-    associations = run.get("pull_requests")
-    if not isinstance(associations, list) or len(associations) != 1:
-        raise RuntimeError("canonical PR-family MONDE Gate run must bind exactly one pull request")
-    association = associations[0]
-    if not isinstance(association, dict):
-        raise RuntimeError("canonical PR-family MONDE Gate run has malformed pull request association")
-    number = association.get("number")
-    if not _positive_int(number):
-        raise RuntimeError("canonical PR-family MONDE Gate run has malformed pull request association")
-    return number
-
-
 def _updated_at(value: Any) -> datetime:
-    if not isinstance(value, str) or not value:
+    if not _nonempty_string(value):
         raise RuntimeError("GitHub returned malformed canonical MONDE Gate updated_at")
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
@@ -104,48 +127,44 @@ def _run_recency(run: dict[str, Any]) -> tuple[datetime, int, int]:
     return (_updated_at(run.get("updated_at")), int(run["run_number"]), int(run["id"]))
 
 
-def latest_completed_gate_runs(repo: str, token: str) -> dict[tuple[int, str], dict[str, Any]]:
+def latest_completed_gate_runs(repo: str, token: str) -> dict[HeadIdentity, dict[str, Any]]:
     runs = paged(
         f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?status=completed",
         token,
         "workflow_runs",
     )
-    latest: dict[tuple[int, str], dict[str, Any]] = {}
+    latest: dict[HeadIdentity, dict[str, Any]] = {}
     for run in runs:
         workflow_id = run.get("workflow_id")
         path = run.get("path")
         event = run.get("event")
         if workflow_id != CANONICAL_WORKFLOW_ID or path != CANONICAL_WORKFLOW_PATH:
             raise RuntimeError("canonical workflow endpoint returned mismatched workflow identity")
-        if not isinstance(event, str) or not event:
+        if not _nonempty_string(event):
             raise RuntimeError("GitHub returned malformed canonical MONDE Gate event")
         if event not in PR_FAMILY_EVENTS:
             continue
-        head = run.get("head_sha")
         run_number = run.get("run_number")
         run_id = run.get("id")
         conclusion = run.get("conclusion")
         if (
-            not isinstance(head, str)
-            or not head
-            or not _positive_int(run_number)
+            not _positive_int(run_number)
             or not _positive_int(run_id)
             or not isinstance(conclusion, str)
             or conclusion not in TERMINAL_CONCLUSIONS
         ):
             raise RuntimeError("GitHub returned malformed canonical MONDE Gate run")
         _updated_at(run.get("updated_at"))
-        pr_number = _run_pr_number(run)
-        key = (pr_number, head)
+        key = _run_head_identity(run)
         previous = latest.get(key)
         if previous is None or _run_recency(run) > _run_recency(previous):
             latest[key] = run
     return latest
 
 
-def effective_gate_runs_by_head(runs: dict[tuple[int, str], dict[str, Any]]) -> dict[str, dict[str, Any]]:
+def effective_gate_runs_by_head(runs: dict[HeadIdentity, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     latest: dict[str, dict[str, Any]] = {}
-    for (_pr_number, head), run in runs.items():
+    for (_repo_name, _branch, head), run in runs.items():
         previous = latest.get(head)
         if previous is None or _run_recency(run) > _run_recency(previous):
             latest[head] = run
@@ -155,7 +174,8 @@ def effective_gate_runs_by_head(runs: dict[tuple[int, str], dict[str, Any]]) -> 
 def unresolved_review_threads(repo: str, pr: int, token: str) -> bool:
     owner, name = repo.split("/", 1)
     cursor: str | None = None
-    while True:
+    seen_cursors: set[str] = set()
+    for _page_number in range(1, MAX_PAGES + 1):
         query = (
             "query($owner:String!,$name:String!,$number:Int!,$cursor:String){"
             "repository(owner:$owner,name:$name){pullRequest(number:$number){"
@@ -187,9 +207,14 @@ def unresolved_review_threads(repo: str, pr: int, token: str) -> bool:
             return True
         if not info["hasNextPage"]:
             return False
-        cursor = info.get("endCursor")
-        if not isinstance(cursor, str) or not cursor:
+        next_cursor = info.get("endCursor")
+        if not _nonempty_string(next_cursor):
             raise RuntimeError("reviewThreads pagination missing cursor")
+        if next_cursor in seen_cursors:
+            raise RuntimeError("reviewThreads pagination repeated cursor")
+        seen_cursors.add(next_cursor)
+        cursor = next_cursor
+    raise RuntimeError(f"reviewThreads pagination exceeded {MAX_PAGES} pages")
 
 
 def rerun_workflow(repo: str, run_id: int, token: str) -> None:
@@ -198,17 +223,21 @@ def rerun_workflow(repo: str, run_id: int, token: str) -> None:
 
 def poll(repo: str, token: str) -> list[int]:
     rerun_ids: list[int] = []
+    prs = open_pull_requests(repo, token)
     runs = latest_completed_gate_runs(repo, token)
     effective = effective_gate_runs_by_head(runs)
-    for pr in open_pull_requests(repo, token):
+    for pr in prs:
         number = pr["number"]
-        head = pr["head"]["sha"]
+        identity = _pr_head_identity(pr)
+        head = identity[2]
         effective_run = effective.get(head)
         if effective_run is None or effective_run["conclusion"] != "success":
             continue
-        target_run = runs.get((number, head))
+        target_run = runs.get(identity)
         if target_run is None:
-            raise RuntimeError(f"effective successful MONDE Gate for head {head} has no run bound to open PR #{number}")
+            raise RuntimeError(
+                f"effective successful MONDE Gate for head {head} has no run bound to open PR #{number} head identity"
+            )
         if not unresolved_review_threads(repo, number, token):
             continue
         run_id = target_run["id"]
@@ -224,6 +253,9 @@ def validate_github_contract(repo: str, pr_number: int, token: str) -> tuple[int
         raise RuntimeError(f"expected exactly one open PR #{pr_number}, observed {len(current)}")
     runs = latest_completed_gate_runs(repo, token)
     effective_gate_runs_by_head(runs)
+    identity = _pr_head_identity(current[0])
+    if identity not in runs:
+        raise RuntimeError(f"no canonical MONDE Gate run is bound to open PR #{pr_number} head identity")
     unresolved = unresolved_review_threads(repo, pr_number, token)
     return len(prs), len(runs), unresolved
 
