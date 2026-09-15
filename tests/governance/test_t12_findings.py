@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import tools.governance.github_live_gate as live
 import tools.governance.t11_closure as t11
 import tools.governance.thread_state_poll as poller
 
@@ -32,22 +33,25 @@ def test_terminal_external_import_without_binding_fails_closed(monkeypatch, tmp_
 
 def test_parallel_first_status_boundaries_are_rejected(monkeypatch, tmp_path: Path) -> None:
     path = "registry/reviews/REVIEW-X.yaml"
-    record = {"id": "REVIEW-X", "status": "COMPLETE", "external_import": {"import_commit": "a"}}
+    first = "a" * 40
+    second = "b" * 40
+    record = {"id": "REVIEW-X", "status": "COMPLETE", "external_import": {"import_commit": first}}
     monkeypatch.setattr(t11, "_registry_paths", lambda _r, _h, directory: iter([path]) if directory == "reviews" else iter([]))
     monkeypatch.setattr(t11.cg, "show_yaml", lambda *_: record)
-    monkeypatch.setattr(t11, "first_status_boundaries_full_history", lambda *_: ["a", "b"])
+    monkeypatch.setattr(t11, "first_status_boundaries_full_history", lambda *_: [first, second])
     findings = t11.validate_ambiguous_import_materialization_history(tmp_path, "head")
     assert len(findings) == 1
     assert findings[0].rule == "IMPORT_FIRST_STATUS_AMBIGUOUS"
-    assert "['a', 'b']" in findings[0].message
+    assert first in findings[0].message and second in findings[0].message
 
 
 def test_single_first_status_boundary_is_not_ambiguous(monkeypatch, tmp_path: Path) -> None:
     path = "registry/tests/TEST-X.yaml"
-    record = {"id": "TEST-X", "status": "PASS", "external_import": {"import_commit": "a"}}
+    first = "a" * 40
+    record = {"id": "TEST-X", "status": "PASS", "external_import": {"import_commit": first}}
     monkeypatch.setattr(t11, "_registry_paths", lambda _r, _h, directory: iter([path]) if directory == "tests" else iter([]))
     monkeypatch.setattr(t11.cg, "show_yaml", lambda *_: record)
-    monkeypatch.setattr(t11, "first_status_boundaries_full_history", lambda *_: ["a"])
+    monkeypatch.setattr(t11, "first_status_boundaries_full_history", lambda *_: [first])
     assert t11.validate_ambiguous_import_materialization_history(tmp_path, "head") == []
 
 
@@ -57,6 +61,19 @@ def test_workflow_command_matching_requires_executable_argv() -> None:
     assert not t11._steps_execute_prefix({"steps": [{"run": "# python -m tools.governance.thread_state_poll\necho safe"}]}, expected)
     assert not t11._steps_execute_prefix({"steps": [{"run": "echo 'unterminated"}]}, expected)
     assert t11._steps_execute_prefix({"steps": [{"run": "python -m \\\n tools.governance.thread_state_poll --extra value"}]}, expected)
+
+
+def test_logical_run_parser_covers_nonsteps_and_trailing_continuations() -> None:
+    assert t11._logical_run_commands({}) == []
+    assert t11._logical_run_commands({"steps": ["bad", {"run": 123}]}) == []
+
+    trailing = "python -m tools.governance.thread_state_poll " + "\\"
+    assert t11._logical_run_commands({"steps": [{"run": trailing}]}) == [
+        ["python", "-m", "tools.governance.thread_state_poll"]
+    ]
+
+    malformed_trailing = "echo 'unterminated " + "\\"
+    assert t11._logical_run_commands({"steps": [{"run": malformed_trailing}]}) == [[]]
 
 
 def test_legacy_substring_helper_is_not_used_for_security_wiring() -> None:
@@ -76,3 +93,8 @@ def test_review_event_can_be_latest_stale_green_gate(monkeypatch) -> None:
     ]
     monkeypatch.setattr(poller, "_paged", lambda *_a, **_k: rows)
     assert poller.latest_completed_pr_runs("o/r", "t")["h"]["id"] == 21
+
+
+def test_durable_open_findings_fails_closed_when_work_cannot_load(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(live, "_load_work", lambda *_: None)
+    assert live.durable_open_findings(tmp_path, "registry/work-items/WORK-X.yaml") is None
