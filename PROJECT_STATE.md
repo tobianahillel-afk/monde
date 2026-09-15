@@ -20,28 +20,30 @@ Fresh independent L2 review of PR #2 established that its stale-green review-thr
 The temporary trusted poll now:
 
 - queries only canonical MONDE Gate workflow ID `354465551` and verifies `.github/workflows/governance.yml`;
+- scopes canonical workflow-run discovery to each currently open head SHA and the earliest active PR-incarnation `created_at` bound for that SHA rather than traversing the workflow's lifetime history;
 - accepts PR-family events `pull_request`, `pull_request_review`, and `pull_request_review_comment`;
 - validates every PR-family run record before identity filtering: positive IDs, exact `status=completed`, supported terminal conclusion, structured `owner/repo` identity, timezone-aware `created_at`/`updated_at`, and `updated_at >= created_at`;
+- validates Actions `workflow_runs` and `jobs` envelope `total_count` as a non-negative exact integer, requires it to stay stable across pages, rejects over-count and short/incomplete collections, and returns only when the observed cardinality equals the authoritative total;
 - queries the selected run's **actual protected `MONDE / Merge Gate` job/check** through the GitHub Actions Jobs API instead of treating the aggregate workflow conclusion as branch-protection authority;
-- requires exactly one protected job and validates its positive job ID, exact `run_id`, positive non-Boolean `run_attempt`, exact equality with the workflow run's current positive `run_attempt`, nonempty name, `status=completed`, supported terminal conclusion, and exact `head_sha`;
-- when the effective shared-SHA run differs from the current-incarnation rerun target, validates the target run's own protected `MONDE / Merge Gate` job before any rerun;
+- requires exactly one protected job and validates positive exact-integer job ID, positive exact-integer `run_id`, exact `run_id` equality, positive non-Boolean `run_attempt`, exact equality with the workflow run's current positive `run_attempt`, nonempty name, `status=completed`, supported terminal conclusion, and exact `head_sha`;
+- validates the current-incarnation target run's own protected `MONDE / Merge Gate` job before rerun **even when effective and target records report the same run ID**;
 - treats protected-check conclusions **`success`, `neutral`, and `skipped`** as merge-acceptable stale-green states that require review-thread revalidation even when the overall workflow conclusion differs;
 - validates every item from the open-PR endpoint has positive PR number, complete head identity, valid `created_at`, and exact `state=open`;
 - fails closed when two simultaneously open PRs have indistinguishable `(head repository, branch, SHA)` identity;
 - never treats `workflow_run.pull_requests` association cardinality as authoritative triggering-PR identity;
 - queries closed PR history by head owner + branch and reconstructs lifetime-overlap windows without trusting the closed PR final SHA as complete branch history;
 - excludes pre-current and overlap-window target runs, including force-push/reset history, while preserving legitimate runs created before a later overlap;
-- computes effective commit-scoped gate state across fully validated historical runs so shared-SHA re-greens can re-invalidate an unresolved target PR;
+- computes effective commit-scoped gate state across fully validated **active-head-scoped** runs so shared-SHA re-greens can re-invalidate an unresolved target PR;
 - validates GraphQL reviewThreads nodes/pageInfo fail-closed, including `endCursor` presence/type on terminal pages, nonempty continuation cursors, repeated cursors and bounded pagination;
 - grants `actions: write` only to the trusted scheduled poll job; the exact-head GitHub contract probe remains read-only and non-destructive;
 - runs exact-head self-tests when any `test_stale_green_bootstrap*.py` regression module changes;
 - keeps TEST-0009's canonical `test_path` aligned with all four bootstrap regression modules.
 
-The bridge is temporary. After PR #5 merges, PR #2's canonical `tools/governance/thread_state_poll.py` must **port/reuse this hardened run/job/run-attempt/incarnation contract** before T12 can close; the older permissive implementation on PR #2 is not made safe merely because the predecessor exists on `main`. WORK-0003 may later rationalize/remove redundant bootstrap machinery after the durable poller is independently proven.
+The bridge is temporary. After PR #5 merges, PR #2's canonical `tools/governance/thread_state_poll.py` must **port/reuse this hardened active-head/run/job/run-attempt/target-job/incarnation/pagination contract** before T12 can close; the older permissive implementation on PR #2 is not made safe merely because the predecessor exists on `main`. WORK-0003 may later rationalize/remove redundant bootstrap machinery after the durable poller is independently proven.
 
 ## Stable bootstrap traceability
 
-`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031/0032/0033/0034/0035/0036/0037 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0038 (IN_PROGRESS)`
+`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031/0032/0033/0034/0035/0036/0037/0038 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0039 (OPEN)`
 
 - REVIEW-0031 is terminal on `702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c`.
 - REVIEW-0032 is terminal on `717777da79edca7a671c1754f32f3442da721a72`.
@@ -50,40 +52,47 @@ The bridge is temporary. After PR #5 merges, PR #2's canonical `tools/governance
 - REVIEW-0035 is terminal on `fa41ae51cf5685db02be343818fceb4946f909bf` after one new P1 finding.
 - REVIEW-0036 is terminal on `2caacaea2f3e079495910fc9a91555123dfee23c` after one new P1 finding.
 - REVIEW-0037 is terminal on `9a2921bce4d0fd0649f89b88854f761f18f906fe` after two new P1 findings.
-- REVIEW-0038 is now `IN_PROGRESS`; WORK-0002, PROJECT_STATE and REVIEW-0038 enter this lifecycle checkpoint in one Git tree before any fresh Codex invocation.
+- REVIEW-0038 is terminal on `af55a3f9336bcbcad4b5daf597302848233056da` after four new P1 findings.
+- REVIEW-0039 is `OPEN`; it must not transition to `IN_PROGRESS` until the synchronized REVIEW-0038-terminal / REVIEW-0039-OPEN / WORK / PROJECT checkpoint receives its own exact-head proof.
 - Terminal negative reviews are never reopened or rewritten.
 
-## REVIEW-0037 findings and correction
+## REVIEW-0038 findings and correction
 
-Fresh exact-head review `PRR_kwDOUUI5ts8AAAABNtRRtg` raised the PR #5 material set from 30 to **32 findings**:
+Fresh exact-head review `PRR_kwDOUUI5ts8AAAABNtismA` raised the PR #5 material set from 32 to **36 findings**:
 
-- `PRRT_kwDOUUI5ts6iquVw` — when the effective shared-SHA run belongs to a different PR than the current-incarnation target run, the bootstrap validated only the effective run's protected job and could rerun a target that no longer exposes the protected `MONDE / Merge Gate` context;
-- `PRRT_kwDOUUI5ts6iquV8` — `filter=latest` alone did not prove returned jobs belonged to the workflow run's current attempt, so stale prior-attempt job state could be accepted.
+- `PRRT_kwDOUUI5ts6irVvT` — canonical-workflow scoping still traversed the workflow's complete completed-run history, so the fixed twenty-page ceiling would eventually fail as history exceeded 2,000 runs;
+- `PRRT_kwDOUUI5ts6irVvZ` — Actions envelope `total_count` was ignored, allowing an incomplete short page to masquerade as a complete collection and falsely prove uniqueness/absence;
+- `PRRT_kwDOUUI5ts6irVvh` — target protected-job validation was skipped when independently selected effective/target records shared only the same run ID, even though attempts or other metadata could differ;
+- `PRRT_kwDOUUI5ts6irVvl` — Python equality allowed coercible non-integer `job.run_id` values such as `4.0` to compare equal to integer `4`.
 
-The correction binds workflow and job `run_attempt` with positive non-Boolean integer validation, rejects mismatched or Boolean job attempts, and validates a distinct target run's own protected job before unresolved-thread inspection/rerun. Dedicated regressions cover prior-attempt Jobs responses, malformed/Boolean attempts, shared-SHA distinct target validation and fail-closed invalid target jobs. Run #60 deliberately exposed Python's `True == 1` edge case; the code was corrected and run #61 proves the hardened behavior. Author-side correction is not closure evidence. All **32** material threads remain unresolved.
+The correction scopes canonical workflow queries to active head SHAs plus the earliest active incarnation creation time for each SHA, verifies `total_count` cardinality on sensitive Actions collections, requires positive exact-integer `job.run_id`, and always validates the independently selected target run's protected job regardless of run-ID equality. Regressions exercise malformed/inconsistent/incomplete `total_count`, active-head query parameters, float run IDs, and same-ID/different-attempt target records.
+
+Intermediate Bootstrap #64 / `35017533555` on `03bc96407e6a463035d588914ea1ed4ee7b7bb2d` had **48/48 functional tests and a successful real GitHub probe**, but correctly remained failed because new coverage was only 99%. Test-only descendant `5f60c915c7e1801684f13ad2421c07ff0d0f21b0` then closed the uncovered pagination branches without altering runtime behavior.
+
+Author-side correction is not closure evidence. All **36** material threads remain unresolved.
 
 ## Exact bootstrap proof
 
-Latest substantive executable candidate: **`9739931afea9127d1b69690930a1e957bb8ed4a4`**.
+Latest corrective executable/test candidate: **`5f60c915c7e1801684f13ad2421c07ff0d0f21b0`**.
 
-`MONDE Stale-Green Bootstrap` run **`35014658444` / #61** is fully green on that exact substantive head:
+`MONDE Stale-Green Bootstrap` run **`35017749244` / #65** is fully green on that exact head:
 
 - Bootstrap self-test: **SUCCESS**;
-- **45/45 tests**;
-- **305/305 statements**;
-- **126/126 branches**;
+- **48/48 tests**;
+- **340/340 statements**;
+- **148/148 branches**;
 - **100% line + branch coverage**;
-- Bootstrap GitHub contract probe: **SUCCESS** against live WORK-0002 PR #2, including the real workflow-runs, Actions Jobs, PR-history and review-thread contracts.
+- Bootstrap GitHub contract probe: **SUCCESS** against live WORK-0002 PR #2;
+- real probe environment: `BOOTSTRAP_VALIDATE_PR=2`;
+- real probe result: `open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true`.
 
-The atomic REVIEW-0037-IN_PROGRESS / WORK / PROJECT_STATE candidate **`9a2921bce4d0fd0649f89b88854f761f18f906fe`** passed run **`35012844593` / #59** before REVIEW-0037 opened the two new P1 findings.
+The exact REVIEW-0038-IN_PROGRESS candidate **`af55a3f9336bcbcad4b5daf597302848233056da`** had passed #63 / `35015911546` before REVIEW-0038 opened the four new P1 findings.
 
-The synchronized REVIEW-0037-terminal / REVIEW-0038-OPEN / WORK / PROJECT_STATE descendant **`09c94a2e9708cded60b0b7ec8f260a875d7b3a4f`** passed `MONDE Stale-Green Bootstrap` run **`35015451712` / #62** with **45/45 tests, 305/305 statements, 126/126 branches, 100% line+branch**, plus a successful live GitHub contract probe.
-
-The atomic REVIEW-0038-IN_PROGRESS / WORK / PROJECT_STATE descendant created after #62 must receive its own exact-head proof. The HEAD must then remain frozen throughout REVIEW-0038.
+The next synchronized REVIEW-0038-terminal / REVIEW-0039-OPEN / WORK / PROJECT_STATE descendant must itself pass exact-head Bootstrap before REVIEW-0039 can start.
 
 ## PR #5 material thread set
 
-All **32** material PR #5 review threads remain unresolved:
+All **36** material PR #5 review threads remain unresolved:
 
 - `PRRT_kwDOUUI5ts6ijmtc`
 - `PRRT_kwDOUUI5ts6ijmtj`
@@ -117,8 +126,12 @@ All **32** material PR #5 review threads remain unresolved:
 - `PRRT_kwDOUUI5ts6ipocF`
 - `PRRT_kwDOUUI5ts6iquVw`
 - `PRRT_kwDOUUI5ts6iquV8`
+- `PRRT_kwDOUUI5ts6irVvT`
+- `PRRT_kwDOUUI5ts6irVvZ`
+- `PRRT_kwDOUUI5ts6irVvh`
+- `PRRT_kwDOUUI5ts6irVvl`
 
-Review history includes `PRR_kwDOUUI5ts8AAAABNpylnA`, `Nqb2xg`, `NqnqWQ`, `Nqx3YA`, `Nq6L4g`, `NrJroQ`, `NraMwQ`, `NrvZLg`, `Nr8aMQ`, `NsMHTw`, `NskIgg`, `NswcWg`, and `PRR_kwDOUUI5ts8AAAABNtRRtg`.
+Review history includes `PRR_kwDOUUI5ts8AAAABNpylnA`, `Nqb2xg`, `NqnqWQ`, `Nqx3YA`, `Nq6L4g`, `NrJroQ`, `NraMwQ`, `NrvZLg`, `Nr8aMQ`, `NsMHTw`, `NskIgg`, `NswcWg`, `NtRRtg`, and `PRR_kwDOUUI5ts8AAAABNtismA`.
 
 ## WORK-0002 / PR #2 relationship
 
@@ -126,7 +139,9 @@ PR #2 remains open at **`4046e03b1e00a2051d29ccd6dcf5f0af7426259a`** while PR #5
 
 PR #2 still has **73 unresolved material threads**. Gate #228 / run `34997568781` proves its current core after PR-numbered run-name hardening: Governance Core, CodeQL and Dependency Review are green; its live closure fails only on the 73 unresolved threads, six T12 durable identities not yet integrated, and missing trusted independent exact-head approval.
 
-Important integration finding: PR #2's current `tools/governance/thread_state_poll.py` is still the older permissive poller. It classifies only `conclusion == "success"`, silently filters malformed collection entries, does not carry the full current-incarnation/overlap contract, does not inspect the protected `MONDE / Merge Gate` job through Actions Jobs, does not bind jobs to the current `run_attempt`, and does not validate a distinct target run's protected job before rerun. After PR #5 squash-merges to `main`, PR #2 must integrate the new main through an explicit two-parent merge **and port/reuse the hardened bootstrap contract into the durable poller** while preserving richer branch-local state. That integration must also synchronize the missing T12 PRRT identities for exact durable/live equality and prove the trust surface is base-preexisting, not candidate-created. Then it receives another full MONDE Gate, fresh-context L2, trusted exact-head non-author APPROVED review, independent thread closure and merge decision.
+Important integration finding: PR #2's current `tools/governance/thread_state_poll.py` is still the older permissive poller. After PR #5 squash-merges to `main`, PR #2 must integrate the new main through an explicit two-parent merge **and port/reuse the hardened bootstrap contract into the durable poller** while preserving richer branch-local state. That parity includes canonical workflow identity, active-head/incarnation-scoped run discovery, authoritative Actions `total_count` cardinality, complete fail-closed run/job metadata, protected-job authority, `success|neutral|skipped` merge semantics, strict integer IDs, positive/exact workflow/job `run_attempt`, target protected-job validation regardless run-ID equality, current-incarnation/overlap windows, bounded REST/GraphQL pagination and malformed-record rejection.
+
+That integration must also synchronize the missing T12 PRRT identities for exact durable/live equality and prove the trust surface is base-preexisting, not candidate-created. Then it receives another full MONDE Gate, fresh-context L2, trusted exact-head non-author APPROVED review, independent thread closure and merge decision.
 
 ## Repository visibility
 
@@ -134,14 +149,16 @@ MONDE intentionally remains **public**. Never commit credentials, tokens, secret
 
 ## Current next action
 
-1. Prove the atomic REVIEW-0038 `IN_PROGRESS` + WORK-0002 + PROJECT_STATE checkpoint exact-head.
-2. If green, freeze the HEAD, update PR #5 and PR #2 handover metadata and invoke a fresh-context Codex review under REVIEW-0038.
-3. Keep all **32** material PR #5 threads unresolved while REVIEW-0038 runs.
-4. REVIEW-0038 must re-check all 32 prior findings and actively search the run-attempt / effective-vs-target protected-job / Actions Jobs surface for new bypasses.
-5. If REVIEW-0038 finds another material issue, record it truthfully, correct/re-prove, and create a successor review.
-6. Only a clean independent exact-head review permits approval-capable review completion and independent verification/resolution of historical threads; do not mechanically resolve them.
-7. Only after those conditions may PR #5 squash-merge to `main`, followed by PR #2 integration, durable-poller parity hardening, and WORK-0002 closure.
-8. WORK-0003 and WORK-0004 remain blocked.
+1. Prove the synchronized REVIEW-0038 `COMPLETE/CHANGES_REQUIRED` + REVIEW-0039 `OPEN` + WORK-0002 + PROJECT_STATE checkpoint exact-head.
+2. If green, transition REVIEW-0039 to `IN_PROGRESS` atomically with matching WORK/PROJECT state and record the predecessor proof.
+3. Prove that REVIEW-0039-IN_PROGRESS descendant exact-head.
+4. Freeze that HEAD, update PR #5 and PR #2 handover metadata, and invoke a fresh-context Codex review under REVIEW-0039.
+5. Keep all **36** material PR #5 threads unresolved throughout REVIEW-0039.
+6. REVIEW-0039 must re-check all 36 prior findings and actively search active-head scoping, filtered-history limits, `total_count` snapshot/cardinality, strict identifier typing, same-ID target validation, run-attempt and shared-incarnation surfaces for bypasses.
+7. A new material finding requires correction/re-proof and a successor review; do not mechanically resolve threads.
+8. Only a clean independent exact-head successor review permits independent verification/resolution of historical threads and an exact-head guarded squash merge of PR #5.
+9. After PR #5 merge: integrate main into PR #2, port durable-poller parity, prove T12, run fresh PR #2 L2, obtain eligible non-author exact-head APPROVED review, then consider WORK-0002 closure.
+10. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
@@ -160,8 +177,9 @@ MONDE intentionally remains **public**. Never commit credentials, tokens, secret
 13. `registry/reviews/REVIEW-0036.yaml`
 14. `registry/reviews/REVIEW-0037.yaml`
 15. `registry/reviews/REVIEW-0038.yaml`
-16. live PR #5 exact HEAD/checks/reviews/threads
-17. live PR #2 exact HEAD/checks/reviews/threads
-18. PR #2 branch-local WORK-0002 / PROJECT_STATE after explicit checkout
+16. `registry/reviews/REVIEW-0039.yaml`
+17. live PR #5 exact HEAD/checks/reviews/threads
+18. live PR #2 exact HEAD/checks/reviews/threads
+19. PR #2 branch-local WORK-0002 / PROJECT_STATE after explicit checkout
 
 No prior chat history is required.

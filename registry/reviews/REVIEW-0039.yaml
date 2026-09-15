@@ -1,0 +1,81 @@
+id: REVIEW-0039
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "canonical MONDE Gate workflow history is scoped to active head SHAs and current-incarnation time bounds"
+    - "Actions workflow-runs and Jobs envelope total_count proves paginated collection completeness"
+    - "protected MONDE / Merge Gate job/check is the merge-state authority"
+    - "workflow/job run_attempt and run/job identifiers use strict positive non-Boolean integer semantics"
+    - "current-incarnation target protected-job validation occurs even when effective and target run IDs are equal"
+    - "success, neutral and skipped protected-check conclusions all trigger stale-green revalidation"
+    - "current PR incarnation binding across branch resets and overlapping PR lifetimes"
+    - "fail-closed GitHub REST/GraphQL metadata and bounded pagination"
+    - "bootstrap regression and TEST-0009 traceability completeness"
+  risks:
+    - "Active-head and created-time filtering may omit a relevant effective gate if the query boundary is incomplete."
+    - "REST total_count or page cardinality drift may create false uniqueness or false absence."
+    - "Equal run IDs may alias independently selected effective/target records with different attempts."
+    - "Numeric coercion of IDs may defeat exact GitHub object binding."
+    - "Additional per-head Actions queries may increase rate/latency pressure."
+findings: []
+checks:
+  assumptions_challenged:
+    - "head_sha plus earliest active PR creation time is a complete bound for all merge-relevant current-incarnation gate runs."
+    - "REST total_count remains stable enough across pagination to prove one coherent collection snapshot."
+    - "Equal run IDs imply equivalent attempts and protected-job state."
+    - "All GitHub identifier fields are exact integers unless explicitly rejected."
+    - "The previous fourteen negative reviews exhaust the relevant fail-open surface."
+  omitted_categories_considered:
+    - "active-head/incarnation query completeness and workflow-runs API filtering semantics"
+    - "total_count consistency, truncation and concurrent-pagination behavior"
+    - "same-ID/different-attempt effective-target aliasing"
+    - "strict numeric identifier typing"
+    - "Actions Jobs current-attempt validation and uniqueness"
+    - "shared-SHA, reused-branch, force-push/reset and overlapping PR lifetimes"
+    - "REST and GraphQL schema failure"
+    - "bounded pagination and rate/latency behavior"
+    - "least-privilege Actions permissions"
+    - "requirement/test/work/review traceability"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0038 remain terminal negative evidence and are never reopened or rewritten."
+    - "Bootstrap remains a temporary predecessor; PR #2's durable poller must later reuse/port the hardened contract rather than retain its older permissive implementation."
+  failure_modes_considered:
+    - "relevant gate run is older than an incorrectly chosen active-incarnation lower bound"
+    - "Actions endpoint returns a short or shifting page inconsistent with total_count"
+    - "same run ID is observed with different attempts between effective and target selections"
+    - "run_id or job identifiers use coercible float/Boolean values"
+    - "per-head query cardinality or filtered-history cap is exhausted"
+    - "required job missing, duplicated, malformed, wrong attempt or wrong head_sha"
+    - "historical PR branch reset or overlapping lifetime causes wrong-context rerun"
+    - "malformed GraphQL or review-thread pagination suppresses revalidation"
+  evidence_requested:
+    - "Exact-head 100 percent line and branch suite covering all REVIEW-0038 findings and prior regressions"
+    - "Read-only live GitHub contract probe against WORK-0002 PR #2 exercising scoped workflow-runs, Actions Jobs, PR-history and reviewThreads APIs"
+    - "Synchronized 36/36 finding handover with REVIEW-0038 terminal state"
+    - "Fresh-context exact-head Codex review actively searching for new bypasses"
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-15"

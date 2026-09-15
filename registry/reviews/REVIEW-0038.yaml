@@ -1,12 +1,12 @@
 id: REVIEW-0038
-status: IN_PROGRESS
+status: COMPLETE
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "af55a3f9336bcbcad4b5daf597302848233056da"
 reviewer:
-  actor: null
-  context_id: null
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABNtismA"
   independence_level: L2
 roles:
   - ARCHITECTURE_REUSE
@@ -33,40 +33,51 @@ scope:
   risks:
     - "A stale Jobs response from a prior workflow attempt may misclassify current protected-check state."
     - "A distinct target run may be rerun even though it cannot produce the protected MONDE / Merge Gate context."
-    - "Actions Jobs pagination, malformed job metadata or duplicate required jobs may create a false merge-state classification."
-    - "Shared-SHA and reused-branch histories may still expose wrong-context rerun paths."
-findings: []
+    - "Unbounded canonical workflow history or incomplete REST pagination may hide current merge state."
+    - "Numeric coercion or aliased run identifiers may bypass exact target/job binding."
+findings:
+  - PRRT_kwDOUUI5ts6irVvT
+  - PRRT_kwDOUUI5ts6irVvZ
+  - PRRT_kwDOUUI5ts6irVvh
+  - PRRT_kwDOUUI5ts6irVvl
 checks:
   assumptions_challenged:
     - "filter=latest alone proves every returned job belongs to the workflow run's current attempt."
     - "Validating only the effective shared-SHA run's protected job is enough when the rerun target is a distinct run."
+    - "Canonical-workflow scoping alone makes historical pagination permanently bounded."
+    - "A short REST page proves collection completeness without checking total_count."
+    - "Equal run IDs prove independently selected effective and target records are equivalent."
+    - "Python numeric equality is sufficient type validation for GitHub identifiers."
     - "The previous thirteen negative reviews exhaust the relevant fail-open surface."
   omitted_categories_considered:
     - "workflow run_attempt versus job run_attempt authority"
     - "effective-run versus target-run protected-job parity"
-    - "Actions Jobs API record validation, pagination and uniqueness"
+    - "canonical workflow-run history growth and active-incarnation query bounds"
+    - "Actions REST total_count cardinality and pagination completeness"
+    - "strict integer typing for run/job identifiers"
     - "shared-SHA, reused-branch, force-push/reset and overlapping PR lifetimes"
     - "REST and GraphQL schema failure"
-    - "bounded pagination and rate/latency behavior"
     - "least-privilege Actions permissions"
     - "requirement/test/work/review traceability"
   duplicate_or_reuse_search:
     - "REVIEW-0031 through REVIEW-0037 remain terminal negative evidence and are never reopened or rewritten."
     - "Bootstrap remains a temporary predecessor; PR #2's durable poller must later reuse/port the hardened contract rather than retain its older permissive implementation."
   failure_modes_considered:
+    - "canonical workflow exceeds the global twenty-page bootstrap pagination ceiling"
+    - "workflow-runs or Jobs response returns fewer items than total_count"
+    - "effective and target records share one run ID but differ in attempt or other protected-job metadata"
+    - "job run_id uses a coercible non-integer value such as 4.0"
     - "latest Jobs response contains a completed protected job from an older run attempt"
-    - "effective shared-SHA run is valid but distinct target run has no valid MONDE / Merge Gate job"
-    - "required job missing, duplicated, malformed, wrong run_id, wrong run_attempt or wrong head_sha"
-    - "shared-SHA effective run differs from current-incarnation rerun target"
+    - "effective shared-SHA run is valid but target protected-job state is stale or malformed"
     - "historical PR branch reset or overlapping lifetime causes wrong-context rerun"
     - "malformed GraphQL or review-thread pagination suppresses revalidation"
   evidence_requested:
-    - "Exact-head 100 percent line and branch suite including run-attempt and distinct-target regressions"
+    - "Exact-head 100 percent line and branch suite including active-head history scoping, total_count completeness, strict run_id typing and same-ID target validation"
     - "Read-only live GitHub contract probe against WORK-0002 PR #2 through workflow-runs, Actions Jobs, PR-history and reviewThreads APIs"
-    - "Synchronized 32/32 finding handover with REVIEW-0037 terminal state"
-    - "Fresh-context exact-head Codex review after correction"
+    - "Synchronized 36/36 finding handover with REVIEW-0038 terminal state"
+    - "Fresh-context exact-head successor review after correction"
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-15T19:58:38Z"
 history:
   created_at: "2026-09-15"
   updated_at: "2026-09-15"
