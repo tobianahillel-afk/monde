@@ -17,6 +17,7 @@ TESTS = [
     "tests/governance/test_t7_closure.py",
     "tests/governance/test_t7_closure_coverage.py",
     "tests/governance/test_t8_findings.py",
+    "tests/governance/test_t9_findings.py",
     "tests/governance/test_github_live_gate.py",
 ]
 MUTATIONS = {
@@ -45,7 +46,6 @@ MUTATIONS = {
     "t7-policy-revision-binding": ("tools/governance/t7_closure.py", 'and policy_blob(root, reviewed_sha) == policy_blob(root, acceptance_sha)', 'and True'),
     "t7-owner-external-anchor": ("tools/governance/t7_closure.py", 'governed.get("full_name") == actual', 'True'),
     "t7-live-exact-head-approval": ("tools/governance/github_live_gate.py", 'if not approvers:', 'if False:'),
-    "t7-durable-finding-set": ("tools/governance/github_live_gate.py", 'if durable is None or len(durable) != len(unresolved):', 'if False:'),
     "t8-continuing-requirement": ("tools/governance/t8_closure.py", 'if kind == "requirements" and not requirement_acceptance_invariant(root, after, current):', 'if kind == "requirements" and False:'),
     "t8-continuing-risk": ("tools/governance/t8_closure.py", 'if kind == "risks" and not cg.risk_acceptance_satisfied(root, after, current):', 'if kind == "risks" and False:'),
     "t8-complete-review-fields": ("tools/governance/t8_closure.py", 'if completion_review_projection(previous) != completion_review_projection(current):', 'if False:'),
@@ -53,6 +53,13 @@ MUTATIONS = {
     "t8-work-reopening-scope": ("tools/governance/t8_closure.py", 'if not target_work_reopening_triggered(root, before, after, work_id):', 'if False:'),
     "t8-live-trusted-reviewer": ("tools/governance/github_live_gate.py", 'if reviewer_permission(repo, actor, token) not in TRUSTED_REVIEW_PERMISSIONS:', 'if False:'),
     "t8-live-l2-attestation": ("tools/governance/github_live_gate.py", 'if not l2_approval_body_valid(str(review.get("body") or ""), head):', 'if False:'),
+    "t9-full-history-policy": ("tools/governance/t9_closure.py", '"--full-history",\n            "--topo-order",', '"--topo-order",'),
+    "t9-review-import-continuing": ("tools/governance/t9_closure.py", 'and review_import_finalized(root, review, acceptance_sha, path)', 'and True'),
+    "t9-test-import-continuing": ("tools/governance/t9_closure.py", 'and test_import_finalized(root, test, acceptance_sha, path)', 'and True'),
+    "t9-import-commit-immutability": ("tools/governance/t9_closure.py", 'if old_value in (None, "") and isinstance(new_value, str) and review_import_finalized(root, current, after, path):', 'if True:'),
+    "t9-base-policy-authority": ("tools/governance/t9_closure.py", 'if not base_preexisting_work_covers(root, base, path):', 'if False:'),
+    "t9-new-reopening-trigger": ("tools/governance/t9_closure.py", 'if not new_reopening_trigger(root, before, after, work_id):', 'if False:'),
+    "t9-durable-thread-identities": ("tools/governance/github_live_gate.py", 'if durable_ids != unresolved:', 'if False:'),
 }
 
 
