@@ -13,73 +13,91 @@ Canonical operational state: Yes
 - **SUBLOT-0.2 / WORK-0002** remains `IN_REVIEW / A3` on PR #2 / `feat/work-0002-governance-ci`.
 - WORK-0003 and WORK-0004 remain planned downstream work. Do not start them before WORK-0002 is independently closed.
 
-## Exact T9 substantive candidate and proof
+## T10 trigger
 
-Exact substantive T9 candidate **`3da4047cacaaad4962b647a6625767001d328027`** passed GitHub Actions **MONDE Gate #178 / run `34952991296`** against `main@29086643387ff46ab6636dd2fa3014efccc10165`:
+Fresh-context GitHub Codex review `PRR_kwDOUUI5ts8AAAABNnPvYg`, submitted on 2026-09-15 against exact candidate `9e4144d255590360f99652e59c38a02dbf95ccfa`, opened four new P1 findings:
 
-- **291/291 tests PASS**;
-- **3313/3313 statements** and **1624/1624 branches**, **100.00% line + branch coverage**;
+1. rerun the merge gate when review/review-comment state changes so a prior green live check cannot become stale after later review activity;
+2. treat `registry/integration-provenance.yaml` as a protected trust anchor so a candidate PR cannot authorize its own historical exception policy;
+3. revalidate an already `ACCEPTED` requirement when one of its bound review/cold-read/owning-work/policy dependencies changes even if the requirement file itself is untouched;
+4. revalidate an already `ACCEPTED` risk when its authority/owning-work/policy dependencies change even if the risk file itself is untouched.
+
+The exact new thread identities are:
+
+- `PRRT_kwDOUUI5ts6ieH4A`
+- `PRRT_kwDOUUI5ts6ieH4C`
+- `PRRT_kwDOUUI5ts6ieH4H`
+- `PRRT_kwDOUUI5ts6ieH4L`
+
+This expands the intentionally unresolved material closure set from 58 to **62**. None of these 62 threads is author-resolved.
+
+## Exact T10 substantive candidate and proof
+
+Exact T10 substantive candidate **`ef161b7e54c7f90433e1f303cdfd464827773870`** passed all deterministic/security lanes in GitHub Actions **MONDE Gate #190 / run `34962364980`** against `main@29086643387ff46ab6636dd2fa3014efccc10165`:
+
+- **312/312 tests PASS**;
+- **3482/3482 statements** and **1696/1696 branches**, **100.00% line + branch coverage**;
 - baseline mutation smoke: **37/37 critical mutations killed**;
-- fresh-L2/T7/T8/T9 mutation smoke: **39/39 critical mutations killed**;
+- fresh-L2/T7/T8/T9 mutation smoke: **40/40 critical mutations killed**;
+- dedicated T10 mutation smoke: **5/5 critical mutations killed**;
 - repository validator: **0 errors / 0 warnings across 67 records**;
-- strict governance, path safety, change guard, fresh-L2 hardening, review-closure, T7-closure, T8-closure and **T9-closure**: **0 errors**;
+- strict governance, path safety, change guard, fresh-L2 hardening, review-closure, T7-closure, T8-closure, T9-closure and **T10-closure**: **0 errors**;
 - context manifest: **19 MUST_READ files**;
 - CodeQL: **success**;
 - Dependency Review lane: **success**.
 
-The stable live merge gate on this pre-synchronization substantive candidate observed exactly **58 unresolved review threads** with `stale=[]`. It failed closed for three expected conditions:
+The live gate on `ef161b7...` observed exactly **62 unresolved review threads** and failed closed for the expected state:
 
-- `ERROR UNRESOLVED_THREADS: 58 unresolved review thread(s)`;
-- `ERROR DURABLE_FINDING_SET`: the then-stale WORK-0002 list had not yet been synchronized to the exact 58 live PRRT identities;
-- `ERROR INDEPENDENT_EXACT_HEAD_APPROVAL`: no trusted, context-separated L2/L3 GitHub APPROVED review was bound to the exact current PR HEAD.
+- `ERROR UNRESOLVED_THREADS: 62 unresolved review thread(s)`;
+- `ERROR DURABLE_FINDING_SET`: only the four T10 PRRT identities above were missing from the then-current 58-entry durable set, with `stale=[]`;
+- `ERROR INDEPENDENT_EXACT_HEAD_APPROVAL`: no trusted, context-separated L2/L3 GitHub `APPROVED` review was bound to the exact current PR HEAD.
 
-The deterministic proof is green; the live red gate is intentional until metadata synchronization, fresh independent verification and eligible exact-head approval are complete.
+This handover commit synchronizes the durable 62-thread set and truthfully reopens the implementation/test/real-system/handover dimensions invalidated by the new review. It is metadata, not independent completion evidence, and must receive its own exact-SHA Gate.
 
-## T9 result
+## T10 implementation result
 
-Fresh-context review `PRR_kwDOUUI5ts8AAAABNmehrQ` on exact candidate `061c17e7144396cbfd01963fb4036f3fc3c58ed3` added six material findings. T9 now implements and mutation-protects all six:
+T10 is author-side implemented but remains `IN_PROGRESS` until this synchronized metadata descendant is proven. The substantive implementation on `ef161b7...` now:
 
-1. content-identity stability checks the **full merge history**, so a side-branch policy revision followed by revert/merge cannot disappear through history simplification;
-2. continuing ACCEPTED requirement evidence requires imported review and cold-read evidence to remain fully finalized, not merely syntactically present;
-3. external review `import_commit` may bind exactly once from `null` to the exact earlier first-COMPLETE materialization SHA under matching prior preauthorization, then becomes immutable; later qualification still requires one-shot authorization consumption;
-4. protected-policy amendments require authority from **base-preexisting**, independently approved active A3/A4 work scope rather than scope added earlier in the same PR;
-5. WORK `DONE -> IN_REVIEW` reopening requires a genuinely newly added finding/evidence identity or newly approved scope-change event for the target WORK;
-6. the durable closure set is compared to GitHub by exact unique **PRRT identity set**, never by count alone.
+- protects `registry/integration-provenance.yaml` under the same base-preexisting authority rule as the other canonical policy trust anchors;
+- performs **dependency-driven** continuing acceptance revalidation rather than naively rejudging every historical acceptance under later rules;
+- projects the actual acceptance dependencies of each current ACCEPTED requirement/risk and reruns the invariant only when one of those dependencies changed;
+- reruns the governance workflow on pull-request review and review-comment activity supported by GitHub Actions, while the live gate itself remains fail-closed on the exact current state;
+- keeps all T7/T8/T9 historical adoption/provenance boundaries exact and non-reusable.
 
-The historical REVIEW-0029 and REVIEW-0030 import sequence was explicitly revalidated: the binding commit writes the SHA of the preceding first COMPLETE materialization commit, while authorization consumption occurs separately. T9 distinguishes this bounded legitimate binding from later evidence eligibility without creating a reusable bypass.
-
-T9 is therefore **DONE author-side** on exact substantive SHA `3da4047c...`. This is implementation proof, not independent review approval.
+An earlier T10 draft attempted global revalidation of all ACCEPTED records and correctly failed because it would have retroactively imposed newer T9 rules on historical acceptances. That design was removed; current T10 is dependency-scoped.
 
 ## Independent-review closure set
 
-There are **58 intentionally unresolved material review threads/findings**. Their exact GitHub PRRT identities are now durably recorded one-for-one in `registry/work-items/WORK-0002.yaml`; live GitHub remains authoritative for current resolved/unresolved state.
+There are **62 intentionally unresolved material review threads/findings**. Their exact GitHub PRRT identities are recorded one-for-one in `registry/work-items/WORK-0002.yaml` by this synchronization commit. Live GitHub remains authoritative for current resolved/unresolved state.
 
-No thread has been author-resolved during T9 correction or synchronization.
+No thread has been author-resolved during T10 correction or synchronization.
 
 ## WORK-0002 execution state
 
-- T1, T2, T3, T5, T6, T7, T8 and **T9** are DONE for their author-side correction scopes.
-- **T4 — exact metadata-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`.**
+- T1, T2, T3, T5, T6, T7, T8 and T9 are DONE for their author-side correction scopes.
+- **T10 — four findings from `PRR_kwDOUUI5ts8AAAABNnPvYg` — is `IN_PROGRESS` pending exact-SHA proof of this synchronization descendant.**
+- **T4 — exact final-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`, downstream of T10.**
 - WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
-- Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` are DONE based on the exact T9 proof plus this synchronized handover.
+- Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` are reopened to `IN_REVIEW` until the synchronized T10 descendant is proven.
 - `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending independent closure.
 
 ## Current WORK-0002 gate
 
 Required sequence from this state:
 
-1. Keep all **58** material review threads unresolved.
-2. Prove this metadata-synchronization descendant of `3da4047c...` with its **own exact-SHA MONDE Gate**. Gate #178 is SHA-bound and is not silently transferred to later metadata commits.
-3. The metadata-head live gate should then show exact durable/live identity equality and fail only on the still-unresolved 58 threads plus missing independent exact-head approval.
-4. Once that metadata HEAD is deterministic-green, request another **fresh-context independent L2** on that exact HEAD. The reviewer must reverify all 58 accumulated findings, explicitly recheck all six T9 invariants and every earlier closure invariant, and actively search for new bypasses.
-5. If new material findings appear, reopen the affected work/evidence again; do not resolve threads.
-6. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD that satisfies the hardened trusted/context-separated L2/L3 live-gate contract. A shallow approval from an arbitrary external account is insufficient.
-7. Only after both independent semantic verification and trusted exact-head approval may independently verified threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
-8. Merge with exact-head guard, then continue to WORK-0003 and WORK-0004.
+1. Keep all **62** material review threads unresolved.
+2. Prove this synchronized metadata descendant of `ef161b7...` with its **own exact-SHA MONDE Gate**. Gate #190 is SHA-bound and is not silently transferred to this later commit.
+3. Confirm the live gate now reports exact durable/live PRRT-set equality and fails only on the 62 unresolved threads plus missing trusted context-separated exact-head approval.
+4. If deterministic proof is green, synchronize T10 to `DONE` and restore only the author-side dimensions actually reproven (`implementation`, `tests`, `real_system_validation`, `handover`) before proving that metadata HEAD as well.
+5. Then request another **fresh-context independent L2** on the exact resulting HEAD. The reviewer must reverify all 62 accumulated findings, explicitly recheck all four T10 invariants and every earlier T7/T8/T9 closure invariant, and actively search for new bypasses.
+6. If new material findings appear, reopen affected work/evidence again; do not resolve threads.
+7. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD satisfying the hardened trusted/context-separated L2/L3 contract.
+8. Only after independent semantic verification and trusted exact-head approval may independently verified threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
+9. Merge with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
 ## Integration-provenance boundary
 
-`registry/integration-provenance.yaml` remains an A3 meta-governance surface containing only exact immutable historical bridges: WORK-0001 squash provenance, progress adoption boundaries and exact malformed-YAML repair episodes. T9 adds no generic historical bypass and moves no predecessor-bound adoption marker. The bounded review-import binding rule is derived from real Git history and does not make unconsumed imported evidence eligible.
+`registry/integration-provenance.yaml` is now explicitly treated as an A3 meta-governance trust anchor in T10 because it contains exact historical exception/adoption authority consumed by validators. Candidate state cannot make a same-PR historical exception self-authorizing; authority must come from the independently authorized predecessor boundary. Existing WORK-0001 squash provenance, progress adoption records and malformed-YAML repair episodes remain exact historical-only, future-reuse-forbidden bridges.
 
 ## Repository visibility
 
@@ -101,10 +119,10 @@ Product specification and product identity remain owner-gated decisions. Agents 
 8. `registry/acceptance-authority.yaml`
 9. `registry/content-identity.yaml`
 10. `registry/integration-provenance.yaml`
-11. `registry/reviews/REVIEW-0029.yaml`, `REVIEW-0030.yaml`
-12. `registry/tests/TEST-0002.yaml`, `TEST-0003.yaml`, `TEST-0007.yaml`, `TEST-0008.yaml`
-13. live PR #2 exact HEAD, checks, reviews and all **58 unresolved review threads**
-14. `tools/governance/t9_closure.py`, `tools/governance/github_live_gate.py`, `.github/scripts/governance_l2_mutation_smoke.py`
-15. `tests/governance/test_t9_findings.py`, `test_t9_coverage.py`, `test_t9_full_history_mutation.py`, `test_t9_import_binding.py`, `test_t9_last_coverage.py`
+11. live PR #2 exact HEAD, checks, reviews and all **62 unresolved review threads**
+12. `.github/workflows/governance.yml`, `.github/workflows/_governance-core.yml`
+13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `github_live_gate.py`
+14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`
+15. `tests/governance/test_t10_findings.py`, `test_t10_coverage.py` and prior T7/T8/T9 regression suites
 
 No prior chat history is required.
