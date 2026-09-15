@@ -40,15 +40,16 @@ The bridge is temporary. After PR #2 merges, its canonical poller becomes durabl
 
 The bootstrap has stable non-terminal normative/test ownership and explicit review history:
 
-`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0032 (OPEN)`
+`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0032 (IN_PROGRESS)`
 
 - **REQ-0026 — Trusted stale-green review-state invalidation** owns the atomic material behavior.
 - **TEST-0009** protects REQ-0026 without retroactively materializing previous external runs as a canonical PASS.
 - **REVIEW-0031** was started before the external review, then truthfully completed `CHANGES_REQUIRED` on exact reviewed head `702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c` after Codex found two new material gaps.
-- **REVIEW-0032** is the fresh successor review and is currently `OPEN`; REVIEW-0031 is terminal and will never be reopened or rewritten.
+- **REVIEW-0032** is the fresh successor review and is now `IN_PROGRESS`. REVIEW-0031 is terminal and will never be reopened or rewritten.
+- REVIEW-0032 was transitioned to `IN_PROGRESS` in the **same Git tree checkpoint** as this PROJECT_STATE and WORK-0002 lifecycle synchronization, before any new Codex invocation.
 - REVIEW-0032 is collision-safe with PR #2, which already uses REVIEW-0029/0030 but has no REVIEW-0031/0032.
 
-The bootstrap workflow now includes `registry/reviews/REVIEW-*.yaml` in its PR path triggers so review lifecycle descendants receive their own exact-head self-test and live contract proof.
+The bootstrap workflow includes `registry/reviews/REVIEW-*.yaml` in its PR path triggers so review lifecycle descendants receive their own exact-head self-test and live contract proof.
 
 ## REVIEW-0031 findings and correction
 
@@ -60,7 +61,8 @@ Fresh exact-head review `PRR_kwDOUUI5ts8AAAABNraMwQ` of `702d5ee33e8184e5d3186e8
 Both are corrected author-side:
 
 - target attribution now excludes runs created in exact same-head closed-PR lifetime-overlap windows queried from live GitHub;
-- WORK-0002 now records REVIEW-0031 as terminal `COMPLETE/CHANGES_REQUIRED`, all 19 PRRT identities, its two findings, the new proof, and REVIEW-0032 as the next review.
+- WORK-0002 records REVIEW-0031 as terminal `COMPLETE/CHANGES_REQUIRED`, all 19 PRRT identities, its two findings, the new proof, and REVIEW-0032 as the active successor review;
+- REVIEW-0032, WORK-0002 and PROJECT_STATE enter the `IN_PROGRESS` review checkpoint atomically rather than through contradictory sequential heads.
 
 Author-side correction is not closure evidence. All 19 threads remain unresolved pending a clean fresh review.
 
@@ -79,7 +81,9 @@ Latest **substantive executable** proof is exact candidate **`18a295575b50bc617b
 
 The test suite explicitly covers the adversarial overlap case: another exact same-head PR overlaps the current PR, produces a run during the overlap, later closes, and that run has a newer `updated_at`; it may remain effective commit-scoped state but is excluded as the current PR's rerun target. The suite also proves that a legitimate current run created before a later overlap remains eligible.
 
-Subsequent commits materializing REVIEW-0032, adding review-lifecycle workflow triggers, and synchronizing WORK/PROJECT_STATE are administrative descendants. They must still receive their own exact-head bootstrap run before REVIEW-0032 starts.
+The synchronized REVIEW-0032-OPEN/WORK/PROJECT descendant **`e5d5ee0adf369801252608e5219c8a43bf7bfd6a`** passed `MONDE Stale-Green Bootstrap` run **`34997084061` / #41** with both self-test and live contract probe successful.
+
+The atomic REVIEW-0032-IN_PROGRESS / WORK / PROJECT checkpoint created after that run must receive its own exact-head bootstrap run before Codex is invoked. The HEAD must remain frozen during that review.
 
 ## PR #5 material thread set
 
@@ -136,14 +140,13 @@ MONDE intentionally remains **public**. Never commit credentials, tokens, secret
 
 ## Current next action
 
-1. Obtain an exact-head bootstrap run for the current synchronized PR #5 descendant containing REVIEW-0031 terminal evidence, REVIEW-0032 OPEN, review-lifecycle workflow triggers, WORK-0002 19/19 findings, and this PROJECT_STATE.
-2. If that exact-head proof is green, transition REVIEW-0032 `OPEN -> IN_PROGRESS` and synchronize WORK/PROJECT_STATE in the same lifecycle checkpoint.
-3. Prove that exact REVIEW-0032-IN_PROGRESS descendant, freeze the head, update PR #5 body, and invoke a new fresh-context Codex review under REVIEW-0032.
-4. Keep all **19** material PR #5 threads unresolved while REVIEW-0032 runs.
-5. If REVIEW-0032 finds another material issue, record it truthfully, correct/re-prove, and create a new successor review rather than reopening a terminal review.
-6. Only a clean independent exact-head review permits truthful approval-capable review completion, independent verification/resolution of the 19 threads, and an exact-head guarded squash merge of PR #5 into `main`.
-7. Then integrate new `main` into PR #2 and continue T12/WORK-0002 closure as described above.
-8. WORK-0003 and WORK-0004 remain blocked.
+1. Prove the atomic REVIEW-0032 `IN_PROGRESS` / WORK-0002 / PROJECT_STATE checkpoint with exact-head bootstrap self-test and live PR #2 contract probe.
+2. If that exact-head proof is green, freeze the HEAD, update PR #5 body, and invoke a new fresh-context Codex review under REVIEW-0032.
+3. Keep all **19** material PR #5 threads unresolved while REVIEW-0032 runs.
+4. If REVIEW-0032 finds another material issue, complete it truthfully as negative evidence, correct/re-prove, and create a new successor review rather than reopening a terminal review.
+5. Only a clean independent exact-head review permits truthful approval-capable review completion, independent verification/resolution of the 19 threads, and an exact-head guarded squash merge of PR #5 into `main`.
+6. Then integrate new `main` into PR #2 and continue T12/WORK-0002 closure as described above.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
