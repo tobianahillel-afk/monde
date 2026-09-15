@@ -1,9 +1,9 @@
 id: REVIEW-0040
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "3f31658ca2f892e1dd24c7faa4462e3d7e958aaf"
 reviewer:
   actor: null
   context_id: null
@@ -35,56 +35,29 @@ scope:
     - "fail-closed GitHub Checks/Actions/Pull Requests/GraphQL metadata and bounded pagination"
     - "bootstrap regression and TEST-0009 / WORK-0002 / PROJECT_STATE traceability completeness"
   risks:
-    - "GitHub Checks latest-state semantics or app identity could be misbound, allowing a non-authoritative check to drive stale-green classification."
-    - "Time-window partitioning could overlap, omit a second, or accept an unstable/duplicate filtered snapshot."
-    - "Current-incarnation rerun-target selection could still admit a prior/overlapping PR context despite direct check-state authority."
-    - "Closed-PR history bounding could stop too early or fail to remain complete for lifetimes able to overlap the active incarnation."
-    - "Caching or reduced cadence could accidentally preserve stale authority or still exceed GitHub request budgets under scale."
-findings: []
+    - "Rerun-target history could be snapshotted before the exact check/thread state that makes a PR stale-green."
+findings:
+  - "PRR_kwDOUUI5ts8AAAABNuingg"
 checks:
   assumptions_challenged:
-    - "The Checks API query returns exactly the authoritative latest protected check and rejects same-name checks from another app/context."
-    - "Separating effective check state from rerun-target history fully eliminates pre-incarnation effective-state ambiguity."
-    - "Recursive second-level partitioning plus two identical reads proves filtered workflow-run snapshot completeness below the server cap."
-    - "Closed-PR history can be bounded by earliest active incarnation without omitting any lifetime that may make a target run ambiguous."
-    - "One check lookup per SHA, cached target-job lookups and a ten-minute schedule provide sufficient API headroom."
-    - "All trust-binding numeric fields are exact positive non-Boolean integers."
-    - "The prior fifteen negative reviews exhaust the remaining fail-open surface."
+    - "A target-history snapshot taken before required-check/thread classification remains fresh enough for invalidation."
+    - "Green exact-head tests alone prove the absence of ordering races between Checks, GraphQL and Actions history."
   omitted_categories_considered:
-    - "Checks API app/name/status/conclusion/head binding and duplicate latest check behavior"
-    - "workflow-run server search ceiling, partition boundaries and snapshot stability"
-    - "duplicate IDs and offset-pagination drift"
-    - "current-incarnation target selection across prior reruns, shared SHA, branch reset and overlapping PR lifetimes"
-    - "closed-PR history stop conditions and malformed ordering"
-    - "workflow_id and all trust-binding numeric typing"
-    - "per-poll cache key correctness and API request budget"
-    - "ten-minute scheduled invalidation latency"
-    - "least-privilege checks/actions/pull-requests permissions"
-    - "REST/GraphQL malformed metadata and bounded pagination"
-    - "regression discovery and TEST/WORK/PROJECT/REVIEW lifecycle synchronization"
+    - "cross-API snapshot ordering"
+    - "first/current-incarnation run completing during one poll"
+    - "unnecessary history reads for clean or non-merge-acceptable PRs"
   duplicate_or_reuse_search:
-    - "REVIEW-0031 through REVIEW-0039 remain terminal negative evidence and are never reopened or rewritten."
-    - "All 42 historical PR #5 material threads remain unresolved during REVIEW-0040."
-    - "Bootstrap remains temporary; PR #2's durable poller must port/reuse this corrected positive-authorization contract after trusted-base integration."
+    - "REVIEW-0031 through REVIEW-0039 remain terminal negative evidence and were not rewritten."
+    - "No independent Codex REVIEW-0040 result was submitted before the author-side P1 invalidated the frozen head."
   failure_modes_considered:
-    - "same-name check from a non-GitHub-Actions app is mistaken for the protected required check"
-    - "multiple exact-name latest check records create ambiguous effective state"
-    - "pre-incarnation rerun makes the exact required check green while current-incarnation workflow history is failed"
-    - "filtered workflow search reaches 1,000 results in one interval or one timestamp second"
-    - "two snapshot reads preserve cardinality but change membership"
-    - "adjacent partition ranges overlap or leave a one-second gap"
-    - "closed-PR history exceeds page limits before reaching the active-incarnation lower bound"
-    - "cache aliases different SHA/run/attempt state"
-    - "rate-limit pressure disables scheduled invalidation"
-    - "target run lacks a unique current-attempt protected job"
-    - "malformed Checks/Actions/Pull Requests/GraphQL data is treated as absence or clean state"
+    - "Actions scan_end is fixed, then a current-incarnation run completes and publishes a merge-acceptable check before Checks/GraphQL classification."
+    - "The exact check becomes stale-green while the earlier target snapshot contains no eligible rerun target, causing fail-closed error rather than immediate invalidation."
   evidence_requested:
-    - "Exact-head 100 percent line and branch suite covering all six REVIEW-0039 findings and every prior regression."
-    - "Read-only live GitHub contract probe against WORK-0002 PR #2 exercising Checks, scoped Actions history, target Jobs, Pull Requests history and GraphQL reviewThreads."
-    - "Synchronized 42/42 finding handover with REVIEW-0039 terminal state and REVIEW-0040 OPEN/IN_PROGRESS lifecycle checkpoints."
-    - "Fresh-context exact-head Codex review actively searching for bypasses in the positive-authorization split."
+    - "Classify exact required-check state and unresolved review threads first; discover rerun-target history only for positively proven stale-green PRs afterward."
+    - "Regression proving target discovery ordering and proving clean/non-merge-acceptable PRs never trigger target-history reads."
+    - "Fresh exact-head proof and a successor independent L2 review."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-15T21:55:55Z"
 history:
   created_at: "2026-09-15"
   updated_at: "2026-09-15"

@@ -1,0 +1,89 @@
+id: REVIEW-0041
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "effective merge state is read directly from the exact latest GitHub Actions-owned MONDE / Merge Gate check for the exact head SHA"
+    - "review-thread state is evaluated before any current-incarnation rerun-target history is sampled"
+    - "canonical Actions workflow history is queried only for PRs positively classified stale-green and is never merge-state authority"
+    - "canonical current-incarnation rerun target and protected current-attempt MONDE / Merge Gate job are positively bound before rerun"
+    - "filtered workflow-run searches partition into closed non-overlapping second windows below GitHub's 1,000-result ceiling and require exact stable unique snapshots"
+    - "closed-PR history is bounded to lifetimes capable of overlapping the earliest stale-green active incarnation"
+    - "workflow_id, PR/run/job/check IDs and attempts use exact positive non-Boolean integer semantics"
+    - "success, neutral and skipped exact protected-check conclusions require stale-green review-thread revalidation"
+    - "check and target-job lookups are cached within one poll; scheduled poll cadence is ten minutes"
+    - "malformed or ambiguous GitHub Checks/Actions/Pull Requests/GraphQL metadata fails closed"
+    - "bootstrap regression discovery and TEST-0009 / WORK-0002 / PROJECT_STATE / REVIEW lifecycle traceability stay synchronized"
+  risks:
+    - "Cross-API races may remain between the exact Checks state, GraphQL review-thread state and later Actions target discovery."
+    - "A check or review-thread state may change again after classification but before rerun."
+    - "Filtered history partitioning or closed-history bounds may still admit gaps/ambiguity under concurrent activity."
+    - "Caching and ten-minute cadence may still create request-budget or freshness failure modes under scale."
+findings: []
+checks:
+  assumptions_challenged:
+    - "Deferring target discovery until after stale-green classification fully closes the stale target-snapshot race."
+    - "The exact check and review-thread observations are sufficiently coherent to authorize subsequent target discovery/rerun."
+    - "A PR classified clean or non-merge-acceptable performs no unnecessary Actions/closed-history target discovery."
+    - "Checks API app/name/head/latest semantics identify exactly one authoritative protected check."
+    - "Recursive second-window partitioning and repeated exact snapshots prove complete filtered history below GitHub's server cap."
+    - "Closed-PR history stop conditions preserve every lifetime that can make current-incarnation attribution ambiguous."
+    - "Strict identifier typing and cache keys cannot alias separate GitHub objects/attempts."
+  omitted_categories_considered:
+    - "TOCTOU between Checks, reviewThreads and rerun target discovery"
+    - "first gate run completing during a scheduled poll"
+    - "review-thread state changing after stale-green classification"
+    - "same SHA across multiple open PRs with different thread states"
+    - "duplicate latest check records and non-GitHub-Actions same-name checks"
+    - "filtered-search boundary seconds and snapshot mutation"
+    - "closed-history ordering, pagination and overlap windows"
+    - "API rate budget, cache scope and scheduled latency"
+    - "least-privilege trusted-default-branch execution"
+    - "TEST-0009 six-module discovery and REVIEW/WORK/PROJECT lifecycle consistency"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 remain terminal COMPLETE/CHANGES_REQUIRED evidence."
+    - "REVIEW-0040 is CLOSED administrative negative evidence because its frozen head was invalidated by an author-side P1 before independent review completion."
+    - "The 42 historical inline material PR #5 threads remain unresolved; the REVIEW-0040 race finding is additional author-side negative evidence and not an inline PRRT."
+    - "PR #2 durable thread_state_poll must later port/reuse the final hardened contract after trusted-base integration."
+  failure_modes_considered:
+    - "target history sampled before the gate/check that triggered stale-green classification becomes visible"
+    - "clean/non-merge-acceptable PRs still consume target-history/API budget"
+    - "thread state flips resolved after classification but before rerun"
+    - "newer target run appears after target snapshot while required check remains merge-acceptable"
+    - "shared-head PRs disagree on unresolved-thread state"
+    - "same-name required checks are ambiguous or misbound to another app/head"
+    - "single-second workflow history saturates GitHub's filtered-search ceiling"
+    - "offset pagination duplicates/omits membership at constant total_count"
+    - "closed-PR history stops before a possible overlap lifetime"
+    - "cache key aliases run attempts or heads"
+    - "API failures/rate limits leave stale merge-acceptable checks silently untouched"
+  evidence_requested:
+    - "Exact-head 100 percent line and branch suite including explicit poll-order regressions."
+    - "Read-only live contract probe against WORK-0002 PR #2 using Checks, Actions, Pull Requests and GraphQL."
+    - "Fresh-context independent L2 exact-head review after REVIEW-0041 OPEN and IN_PROGRESS checkpoints are each proven."
+    - "No resolution of historical threads until a clean successor review."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-15"
