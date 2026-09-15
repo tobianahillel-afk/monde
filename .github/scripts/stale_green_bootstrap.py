@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import json
 import os
 import sys
@@ -10,6 +10,7 @@ import urllib.request
 from typing import Any
 
 MAX_PAGES = 20
+FILTERED_WORKFLOW_RUN_SEARCH_LIMIT = 1000
 CANONICAL_WORKFLOW_ID = 354465551
 CANONICAL_WORKFLOW_PATH = ".github/workflows/governance.yml"
 REQUIRED_GATE_JOB_NAME = "MONDE / Merge Gate"
@@ -28,6 +29,10 @@ TERMINAL_CONCLUSIONS = {
 MERGE_ACCEPTABLE_CONCLUSIONS = {"success", "neutral", "skipped"}
 HeadIdentity = tuple[str, str, str]
 PrWindow = tuple[datetime, datetime]
+
+
+class FilteredSearchLimitExceeded(RuntimeError):
+    pass
 
 
 def request_data(url: str, token: str, method: str = "GET", body: dict[str, Any] | None = None) -> Any:
@@ -54,6 +59,7 @@ def paged(
     collection_key: str | None = None,
     *,
     require_total_count: bool = False,
+    max_total_count: int | None = None,
 ) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     expected_total: int | None = None
@@ -68,6 +74,10 @@ def paged(
                 total_count = payload.get("total_count")
                 if type(total_count) is not int or total_count < 0:
                     raise RuntimeError("GitHub returned malformed paginated total_count")
+                if max_total_count is not None and total_count > max_total_count:
+                    raise FilteredSearchLimitExceeded(
+                        f"GitHub filtered collection total_count {total_count} exceeds supported search limit {max_total_count}"
+                    )
                 if expected_total is None:
                     expected_total = total_count
                 elif total_count != expected_total:
@@ -229,12 +239,53 @@ def _active_head_created_bounds(current_prs: dict[HeadIdentity, dict[str, Any]])
     return bounds
 
 
+def _github_search_time(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _bounded_completed_gate_runs(
+    repo: str,
+    token: str,
+    head: str,
+    start: datetime,
+    end: datetime,
+) -> list[dict[str, Any]]:
+    if end < start:
+        return []
+    created_range = f"{_github_search_time(start)}..{_github_search_time(end)}"
+    query = urllib.parse.urlencode(
+        {
+            "status": "completed",
+            "head_sha": head,
+            "created": created_range,
+        }
+    )
+    try:
+        return paged(
+            f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?{query}",
+            token,
+            "workflow_runs",
+            require_total_count=True,
+            max_total_count=FILTERED_WORKFLOW_RUN_SEARCH_LIMIT,
+        )
+    except FilteredSearchLimitExceeded:
+        if end - start <= timedelta(seconds=1):
+            raise RuntimeError(
+                "canonical MONDE Gate filtered history exceeds GitHub search limit within a one-second interval"
+            )
+        midpoint = start + (end - start) / 2
+        return _bounded_completed_gate_runs(repo, token, head, start, midpoint) + _bounded_completed_gate_runs(
+            repo, token, head, midpoint, end
+        )
+
+
 def _scoped_completed_gate_runs(
     repo: str,
     token: str,
     active_prs: dict[HeadIdentity, dict[str, Any]],
 ) -> list[dict[str, Any]]:
     runs: list[dict[str, Any]] = []
+    scan_end = datetime.now(timezone.utc).replace(microsecond=0)
     for head, created in sorted(_active_head_created_bounds(active_prs).items()):
         created_value = created.isoformat().replace("+00:00", "Z")
         query = urllib.parse.urlencode(
@@ -244,14 +295,18 @@ def _scoped_completed_gate_runs(
                 "created": f">={created_value}",
             }
         )
-        runs.extend(
-            paged(
-                f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?{query}",
-                token,
-                "workflow_runs",
-                require_total_count=True,
+        try:
+            runs.extend(
+                paged(
+                    f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?{query}",
+                    token,
+                    "workflow_runs",
+                    require_total_count=True,
+                    max_total_count=FILTERED_WORKFLOW_RUN_SEARCH_LIMIT,
+                )
             )
-        )
+        except FilteredSearchLimitExceeded:
+            runs.extend(_bounded_completed_gate_runs(repo, token, head, created, scan_end))
     return runs
 
 
