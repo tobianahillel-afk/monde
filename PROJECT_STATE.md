@@ -40,7 +40,7 @@ The bridge is temporary. After PR #5 merges, PR #2's canonical `tools/governance
 
 ## Stable bootstrap traceability
 
-`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031/0032/0033/0034/0035/0036 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0037 (OPEN)`
+`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031/0032/0033/0034/0035/0036 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0037 (IN_PROGRESS)`
 
 - REVIEW-0031 is terminal on `702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c`.
 - REVIEW-0032 is terminal on `717777da79edca7a671c1754f32f3442da721a72`.
@@ -48,7 +48,7 @@ The bridge is temporary. After PR #5 merges, PR #2's canonical `tools/governance
 - REVIEW-0034 is terminal on `45ab08c0ef4f6c4ee0ff84b8e29c74f2ab617c83` after seven new findings.
 - REVIEW-0035 is terminal on `fa41ae51cf5685db02be343818fceb4946f909bf` after one new P1 finding.
 - REVIEW-0036 is terminal on `2caacaea2f3e079495910fc9a91555123dfee23c` after one new P1 finding.
-- REVIEW-0037 is the fresh successor and is `OPEN`; it must not become `IN_PROGRESS` until the synchronized lifecycle checkpoint has its own exact-head proof.
+- REVIEW-0037 is now `IN_PROGRESS`; WORK-0002, PROJECT_STATE and REVIEW-0037 enter this lifecycle checkpoint in one Git tree before any fresh Codex invocation.
 - Terminal negative reviews are never reopened or rewritten.
 
 ## REVIEW-0036 finding and correction
@@ -63,7 +63,7 @@ The correction now queries the Actions Jobs API for the selected canonical run, 
 
 Latest substantive executable candidate: **`0b039555948a665dd1a5f739ef68839e2e59a653`**.
 
-`MONDE Stale-Green Bootstrap` run **`35011731991` / #57** is fully green on that exact head:
+`MONDE Stale-Green Bootstrap` run **`35011731991` / #57** is fully green on that exact substantive head:
 
 - Bootstrap self-test: **SUCCESS**;
 - **43/43 tests**;
@@ -72,9 +72,9 @@ Latest substantive executable candidate: **`0b039555948a665dd1a5f739ef68839e2e59
 - **100% line + branch coverage**;
 - Bootstrap GitHub contract probe: **SUCCESS** against live WORK-0002 PR #2, including the real Actions Jobs API contract.
 
-The atomic REVIEW-0036-IN_PROGRESS / WORK / PROJECT_STATE candidate **`2caacaea2f3e079495910fc9a91555123dfee23c`** passed run **`35007993472` / #56** with **40/40 tests, 280/280 statements, 112/112 branches, 100% line+branch**, plus a successful live GitHub contract probe before REVIEW-0036 found the required-job authority gap.
+The synchronized REVIEW-0036-terminal / REVIEW-0037-OPEN / WORK / PROJECT_STATE descendant **`76691b6b996fad8323950b7df21164d053817ac2`** passed `MONDE Stale-Green Bootstrap` run **`35012474858` / #58** with the same **43/43 tests, 301/301 statements, 124/124 branches, 100% line+branch**, plus a successful live GitHub contract probe.
 
-The synchronized REVIEW-0036-terminal / REVIEW-0037-OPEN / WORK / PROJECT_STATE descendant created after run #57 must receive its own exact-head proof before REVIEW-0037 starts.
+The atomic REVIEW-0037-IN_PROGRESS / WORK / PROJECT_STATE descendant created after run #58 must receive its own exact-head proof. The HEAD must then remain frozen throughout REVIEW-0037.
 
 ## PR #5 material thread set
 
@@ -127,12 +127,12 @@ MONDE intentionally remains **public**. Never commit credentials, tokens, secret
 
 ## Current next action
 
-1. Prove the synchronized REVIEW-0036 `COMPLETE/CHANGES_REQUIRED` + REVIEW-0037 `OPEN` + WORK-0002 + PROJECT_STATE checkpoint exact-head.
-2. If green, transition REVIEW-0037 `OPEN -> IN_PROGRESS` and synchronize WORK/PROJECT_STATE in one Git-tree checkpoint.
-3. Prove that exact REVIEW-0037-IN_PROGRESS descendant, freeze the HEAD, update PR #5 and PR #2 handover metadata, and invoke a fresh-context Codex review.
-4. Keep all **30** material PR #5 threads unresolved while REVIEW-0037 runs.
+1. Prove the atomic REVIEW-0037 `IN_PROGRESS` + WORK-0002 + PROJECT_STATE checkpoint exact-head.
+2. If green, freeze the HEAD, update PR #5 and PR #2 handover metadata and invoke a fresh-context Codex review under REVIEW-0037.
+3. Keep all **30** material PR #5 threads unresolved while REVIEW-0037 runs.
+4. REVIEW-0037 must re-check all 30 prior findings and actively search the new Actions Jobs authority/pagination/uniqueness/rate surface for bypasses.
 5. If REVIEW-0037 finds another material issue, record it truthfully, correct/re-prove, and create a successor review.
-6. Only a clean independent exact-head review permits approval-capable review completion and independent verification/resolution of the historical threads; do not mechanically resolve them.
+6. Only a clean independent exact-head review permits approval-capable review completion and independent verification/resolution of historical threads; do not mechanically resolve them.
 7. Only after those conditions may PR #5 squash-merge to `main`, followed by PR #2 integration, durable-poller parity hardening, and WORK-0002 closure.
 8. WORK-0003 and WORK-0004 remain blocked.
 
