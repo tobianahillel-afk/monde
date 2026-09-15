@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "Owner explicitly requested P0-P2 hardening after the first real run and Codex reviews exposed missing review, progress, scope, GitHub-state, commit-history and meta-governance controls. Fresh PR #2 L2 review established that stale-green review-thread invalidation must be pre-deployed from trusted default-branch state before WORK-0002 itself can rely on it, so PR #5 provides a narrow T12 bootstrap predecessor. Repeated fresh PR #5 review then hardened canonical-workflow identity, malformed API handling, shared-SHA behavior, PR-incarnation binding, bounded pagination and stable REQ/TEST/REVIEW traceability."
+  rationale: "Owner explicitly requested P0-P2 hardening after the first real run and Codex reviews exposed missing review, progress, scope, GitHub-state, commit-history and meta-governance controls. Fresh PR #2 L2 review established that stale-green review-thread invalidation must be pre-deployed from trusted default-branch state before WORK-0002 itself can rely on it, so PR #5 provides a narrow T12 bootstrap predecessor. Seven fresh PR #5 review rounds have now hardened canonical-workflow identity, malformed API handling, shared-SHA behavior, reused and overlapping PR incarnations, bounded pagination, exact proof and stable REQ/TEST/REVIEW traceability."
 
 scope:
   in:
@@ -42,9 +42,10 @@ scope:
     - trusted default-branch stale-green bootstrap polling required before PR #2 merge eligibility
     - non-destructive live GitHub contract validation for the bootstrap bridge against PR #2, its actual consumer
     - bootstrap run binding from GitHub-server head repository/ref/SHA rather than workflow_run.pull_requests association cardinality
-    - current PR-incarnation binding using PR.created_at and run.created_at so a rerun from an earlier closed PR cannot become the current target
+    - current PR-incarnation binding using PR/run creation times plus exact same-head closed-PR lifetime windows, so runs created during an overlapping prior/other PR incarnation are never selected as the current target
     - bounded fail-closed REST and GraphQL pagination for the temporary bootstrap
-    - stable REQ-0026 -> WORK-0002 -> TEST-0009 / REVIEW-0031 traceability for the material bootstrap behavior
+    - stable REQ-0026 -> WORK-0002 -> TEST-0009 / REVIEW-0031 / REVIEW-0032 traceability for the material bootstrap behavior
+    - exact-head bootstrap proof on review lifecycle changes as well as executable/work/project changes
   out:
     - MONDE product implementation
     - product-language CI not yet selected
@@ -92,6 +93,7 @@ read_before:
   - registry/requirements/REQ-0026.yaml
   - registry/tests/TEST-0009.yaml
   - registry/reviews/REVIEW-0031.yaml
+  - registry/reviews/REVIEW-0032.yaml
 
 depends_on: [WORK-0001]
 blocks: [WORK-0003, WORK-0004]
@@ -110,12 +112,13 @@ affected_docs:
   - registry/requirements/REQ-0026.yaml
   - registry/tests/TEST-0009.yaml
   - registry/reviews/REVIEW-0031.yaml
+  - registry/reviews/REVIEW-0032.yaml
 affected_paths:
   - .github/
   - requirements/bootstrap-governance-ci.txt
   - registry/requirements/REQ-0026.yaml
   - registry/tests/TEST-0009.yaml
-  - registry/reviews/REVIEW-0031.yaml
+  - registry/reviews/REVIEW-*.yaml
   - tools/governance/
   - tests/governance/
   - schemas/registry/
@@ -132,7 +135,7 @@ impact_analysis:
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative. This default-branch mirror intentionally carries only globally resolvable WORK-0002 lifecycle/dependency state plus the narrow PR #5 stale-green bootstrap predecessor; the richer T7-T12 implementation, review/test registry graph and PR #2 closure identities remain authoritative only after explicit checkout of feat/work-0002-governance-ci until PR #2 is integrated. PR #5 run identity is derived from GitHub-server head repository/ref/SHA, while the current PR incarnation is bounded by PR.created_at/run.created_at; workflow_run.pull_requests is non-authoritative association metadata. REQ-0026, TEST-0009 and REVIEW-0031 provide stable bootstrap trace identities but remain non-terminal until independent verification is actually complete. The bootstrap is temporary and must be removed or rationalized only after the canonical PR #2 poller is integrated and WORK-0003 owns repository protection."
+  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative. This default-branch mirror intentionally carries only globally resolvable WORK-0002 lifecycle/dependency state plus the narrow PR #5 stale-green bootstrap predecessor; the richer T7-T12 implementation, review/test registry graph and PR #2 closure identities remain authoritative only after explicit checkout of feat/work-0002-governance-ci until PR #2 is integrated. PR #5 run identity is derived from GitHub-server head repository/ref/SHA. Current target selection also consults PR.created_at/run.created_at and the lifetime windows of exact same-head closed PRs that overlap the current PR; workflow_run.pull_requests remains non-authoritative association metadata. REVIEW-0031 is durable terminal CHANGES_REQUIRED evidence for 702d5ee3 and is never reopened. REVIEW-0032 is the fresh successor review. The bootstrap is temporary and must be removed or rationalized only after the canonical PR #2 poller is integrated and WORK-0003 owns repository protection."
 
 implementation_plan:
   tasks:
@@ -162,7 +165,7 @@ review_plan:
     - PERFORMANCE_SRE
     - DOCUMENTATION_TRACEABILITY
     - RED_TEAM_SKEPTIC
-  completed_reviews: []
+  completed_reviews: [REVIEW-0031]
   open_findings:
     - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: derive minimum review independence from assurance level."
     - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: require completed reviews to carry an exact reviewed commit SHA."
@@ -187,19 +190,21 @@ review_plan:
     - PRRT_kwDOUUI5ts6imgom
     - PRRT_kwDOUUI5ts6imgor
     - PRRT_kwDOUUI5ts6imgoz
+    - PRRT_kwDOUUI5ts6im_Sc
+    - PRRT_kwDOUUI5ts6im_Sh
 
 required_tests:
   unit:
     - TEST-0009
-    - "PR #5 bootstrap stdlib regression suite covering REST pagination, bounded GraphQL thread pagination, trusted head-identity and current-incarnation run selection, shared-SHA rerun targeting and fail-closed malformed data"
+    - "PR #5 bootstrap stdlib regression suite covering REST pagination, bounded GraphQL thread pagination, trusted head-identity/current-incarnation run selection, overlapping PR lifetimes, shared-SHA rerun targeting and fail-closed malformed data"
   property:
     - "valid/invalid status, ID, reference, path, transition, review and progress variants"
     - "canonical workflow identity and PR-family event selection remain fail closed"
     - "open PR and workflow-run head repository/ref/SHA identities must be complete and unambiguous"
-    - "current-incarnation run selection excludes runs created before the current PR even if an older run is rerun later"
+    - "current-incarnation target selection excludes both pre-current runs and runs created during the lifetime overlap of another exact same-head PR"
   integration:
     - TEST-0009
-    - "PR #5 read-only GitHub contract probe against live PR #2 open-PR, canonical workflow-run and review-thread APIs"
+    - "PR #5 read-only GitHub contract probe against live PR #2 open-PR, closed-PR history, canonical workflow-run and review-thread APIs"
   contract:
     - "registry/schema/progress/review/change-control integrity"
     - "bootstrap GitHub REST/GraphQL/Actions response contract"
@@ -227,8 +232,11 @@ required_tests:
     - "unknown terminal conclusion, Boolean PR number and malformed head metadata fail closed"
     - "reviewThreads repeated cursor and pagination exhaustion fail closed"
     - "a run from a prior closed PR incarnation is excluded even if its updated_at becomes newer after rerun"
+    - "a run created for another exact same-head PR during a lifetime overlap is excluded even when that other PR later closes"
+    - "a current run created before a later duplicate PR opens remains eligible rather than being over-rejected"
+    - "malformed closed-PR number/state/timestamps/lifetime or head repository metadata fails closed"
     - "any present GraphQL errors value other than an empty list fails closed, including falsey malformed values"
-    - "material bootstrap behavior has stable REQ-0026, TEST-0009 and REVIEW-0031 trace identities"
+    - "material bootstrap behavior has stable REQ-0026, TEST-0009 and REVIEW-0031/0032 trace identities"
   security:
     - "immutable action/digest pins"
     - "hash-locked Python artifacts"
@@ -239,13 +247,14 @@ required_tests:
     - "governance core remains bounded by CI timeout"
     - "bootstrap scopes Actions pagination to the canonical workflow and fails closed after a bounded 20 pages"
     - "bootstrap bounds review-thread GraphQL pagination and rejects cursor cycles"
+    - "closed-PR history queries are cached per head owner/branch within each poll"
   real_system:
     - TEST-0009
-    - "PR #5 Bootstrap GitHub contract probe on exact candidate using read-only live GitHub API calls against WORK-0002 PR #2"
+    - "PR #5 Bootstrap GitHub contract probe on exact candidate using read-only live GitHub open/closed-PR, Actions and GraphQL APIs against WORK-0002 PR #2"
   epistemic:
     - "execution evidence is bound to GitHub SHA rather than silently promoted across heads"
     - "candidate PR #2 state cannot self-prove a schedule that exists only after merge; the bridge must be preexisting on main"
-    - "server-reported head repository/ref/SHA plus current PR temporal boundary is the trusted bootstrap binding; candidate-produced artifacts and association-list cardinality are not authority"
+    - "server-reported head repository/ref/SHA plus server-reported PR lifetime metadata is the trusted bootstrap binding; candidate-produced artifacts and workflow_run.pull_requests association-list cardinality are not authority"
 
 scientific_validation:
   required: false
@@ -269,29 +278,34 @@ validation:
   executed:
     - "Real GitHub MONDE Gate run 34509930758 succeeded on substantive head c50c33009d90f079e645f0ca9e1befe1a4a77ba9 before later fresh-context review; this is branch-local implementation evidence, not a locally resolvable registry reference in the default-branch mirror."
     - "PR #5 candidate 68115ec3c548c428d21bd4a7b6ad0c58f13b5752 passed MONDE Stale-Green Bootstrap run 34992248872 / #18 with 23 tests, 207/207 statements, 80/80 branches and a live PR #2 GitHub contract probe."
-    - "Synchronized PR #5 candidate ff68bfd17a7bf8439570398ca333763b6de96429 passed run 34992528784 / #20; fresh review PRR_kwDOUUI5ts8AAAABNrJroQ then opened three new P1 findings covering current PR-incarnation binding, falsey GraphQL errors and missing stable requirement traceability."
-    - "The three NrJroQ findings were corrected by filtering target runs through run.created_at >= current PR.created_at, rejecting any present GraphQL errors value other than [], and materializing REQ-0026 / TEST-0009 / REVIEW-0031 without inventing terminal acceptance or PASS evidence."
-    - "Exact corrective candidate 95cf13f0861ce47ab345655911b5ea8a3ba76ff6 passed MONDE Stale-Green Bootstrap run 34994214744 / #27: 29/29 tests, 224/224 statements, 88/88 branches, 100 percent line and branch coverage, plus successful read-only live GitHub contract probe against PR #2."
-    - "Subsequent trace-only commits preserve the proven executable and remain subject to their own exact-head bootstrap run before another fresh independent review."
+    - "Synchronized PR #5 candidate ff68bfd17a7bf8439570398ca333763b6de96429 passed run 34992528784 / #20; fresh review PRR_kwDOUUI5ts8AAAABNrJroQ then opened three P1 findings covering current PR-incarnation binding, falsey GraphQL errors and missing stable requirement traceability."
+    - "Exact candidate 702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c passed run 34995108486 / #33 with 29 tests, 224/224 statements and 88/88 branches at 100 percent line/branch plus live PR #2 contract probe. REVIEW-0031 / PRR_kwDOUUI5ts8AAAABNraMwQ then completed CHANGES_REQUIRED with two new P1 findings: overlapping prior PR incarnations and unsynchronized WORK review lifecycle."
+    - "REVIEW-0031 was truthfully materialized COMPLETE/CHANGES_REQUIRED on the exact reviewed 702d5ee3 head rather than being reopened or rewritten."
+    - "The overlap correction now queries exact same-head closed PR lifetime history scoped by head owner/branch and excludes target runs created inside any lifetime overlap while preserving legitimate current runs outside the ambiguous window."
+    - "Exact corrective executable candidate 18a295575b50bc617bf75cf4285d60378f4b5f4e passed MONDE Stale-Green Bootstrap run 34996707476 / #37: 32/32 tests, 268/268 statements, 104/104 branches, 100 percent line and branch coverage, plus successful read-only live GitHub contract probe against PR #2 including the closed-PR history contract."
+    - "REVIEW-0032 is materialized OPEN for the next fresh review and has not yet been started."
   evidence:
     - "PR #2 live/branch-local evidence; query GitHub and checkout feat/work-0002-governance-ci before traversing its review/test registry graph"
     - "PR #5"
-    - "MONDE Stale-Green Bootstrap run 34994214744"
+    - "MONDE Stale-Green Bootstrap run 34996707476"
     - REQ-0026
     - TEST-0009
     - REVIEW-0031
+    - REVIEW-0032
     - PRR_kwDOUUI5ts8AAAABNpylnA
     - PRR_kwDOUUI5ts8AAAABNqb2xg
     - PRR_kwDOUUI5ts8AAAABNqnqWQ
     - PRR_kwDOUUI5ts8AAAABNqx3YA
     - PRR_kwDOUUI5ts8AAAABNq6L4g
     - PRR_kwDOUUI5ts8AAAABNrJroQ
+    - PRR_kwDOUUI5ts8AAAABNraMwQ
   coverage: {line: 100, branch: 100}
   known_gaps:
-    - "The default-branch mirror intentionally carries no branch-local completed-review or required-test IDs beyond the bootstrap-local REQ-0026 / TEST-0009 / REVIEW-0031 trace. Before editing or validating the full WORK-0002 implementation, checkout feat/work-0002-governance-ci and follow that branch's richer record."
-    - "This durable-state synchronization commit changes PR #5 HEAD and therefore requires its own exact-head bootstrap run plus another fresh exact-head independent review; run #27 proves its substantive parent, not a later metadata descendant."
-    - "All 17 material PR #5 review threads remain unresolved until independently verified."
-    - "REQ-0026 remains PROPOSED, TEST-0009 remains PLANNED and REVIEW-0031 remains OPEN; none may be promoted by author assertion."
+    - "The default-branch mirror intentionally carries no branch-local completed-review or required-test IDs beyond the bootstrap-local REQ-0026 / TEST-0009 / REVIEW-0031 / REVIEW-0032 trace. Before editing or validating the full WORK-0002 implementation, checkout feat/work-0002-governance-ci and follow that branch's richer record."
+    - "All 19 material PR #5 review threads remain unresolved until independently verified."
+    - "REQ-0026 remains PROPOSED and TEST-0009 remains PLANNED; no prior execution may be retroactively promoted into acceptance/PASS evidence."
+    - "REVIEW-0031 is terminal COMPLETE/CHANGES_REQUIRED for 702d5ee3. REVIEW-0032 is OPEN and must transition to IN_PROGRESS before the next Codex invocation."
+    - "The WORK/PROJECT/REVIEW synchronization descendants after run #37 require their own exact-head bootstrap proof before REVIEW-0032 begins."
     - "After PR #5 merges, its new main must be integrated into PR #2 and T12 must prove the bootstrap predecessor is base-preexisting rather than candidate-created."
     - "PR #2 fresh L2 expanded its unresolved material set to 73 findings; branch-local T12 correction is deterministically proven but final bootstrap integration/independent closure remains pending."
     - "Repository administration/ruleset enforcement belongs to WORK-0003."
@@ -304,14 +318,14 @@ risk:
   operational: MEDIUM
 
 rollback:
-  strategy: "If the default-branch bootstrap misbehaves, revert PR #5's bootstrap workflow/script/test/lockfile and bootstrap-local REQ-0026/TEST-0009/REVIEW-0031 trace while preserving WORK-0002 IN_REVIEW. The bridge fails closed on ambiguous head identity, prior-PR incarnation reuse, malformed GitHub metadata and bounded-pagination exhaustion. Once PR #2's canonical poller is integrated and independently proven, remove or rationalize the temporary bootstrap under WORK-0003 rather than maintaining two competing durable mechanisms."
+  strategy: "If the default-branch bootstrap misbehaves, revert PR #5's bootstrap workflow/script/test/lockfile and bootstrap-local REQ-0026/TEST-0009/REVIEW-0031/REVIEW-0032 trace while preserving WORK-0002 IN_REVIEW. The bridge fails closed on ambiguous open head identity, prior/overlapping PR-incarnation reuse, malformed open/closed PR or workflow metadata and bounded-pagination exhaustion. Once PR #2's canonical poller is integrated and independently proven, remove or rationalize the temporary bootstrap under WORK-0003 rather than maintaining two competing durable mechanisms."
 
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Initial validator and real CI established on the implementation branch; its review/test records are intentionally not mirrored as unresolved IDs into the default-branch mirror."}
   - {run: RUN-2, date: "2026-09-11", note: "Governance automation remains IN_REVIEW on its own branch; the default-branch mirror preserves only global lifecycle/dependency handoff and defers branch-local proof traversal until explicit checkout."}
   - run: RUN-3
     date: "2026-09-15"
-    note: "PR #5 bootstrap hardening has undergone six fresh Codex review rounds and accumulated 17 material P1 threads. The latest corrective executable candidate 95cf13f0861ce47ab345655911b5ea8a3ba76ff6 passed run #27 / 34994214744 with 29 tests, 224/224 statements, 88/88 branches and a successful live PR #2 contract probe. REQ-0026, TEST-0009 and REVIEW-0031 now provide stable non-terminal traceability for the bootstrap. All findings remain unresolved pending another exact-head fresh independent review."
+    note: "PR #5 bootstrap hardening has undergone seven fresh Codex review rounds and accumulated 19 material P1 threads. REVIEW-0031 completed CHANGES_REQUIRED on exact 702d5ee3 with the overlap/lifecycle findings. Corrective executable candidate 18a295575b50bc617bf75cf4285d60378f4b5f4e passed run #37 / 34996707476 with 32 tests, 268/268 statements, 104/104 branches and a successful live PR #2 contract probe using closed-PR history. REVIEW-0032 is OPEN for the next exact-head fresh review."
 
 discoveries:
   - "100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required."
@@ -322,11 +336,13 @@ discoveries:
   - "A polling bridge must query the canonical workflow directly and bound REST/GraphQL pagination."
   - "Mock-only tests are insufficient for foundational GitHub automation; a safe read-only contract probe is required alongside full local coverage."
   - "workflow_run.pull_requests is association metadata, not authoritative triggering-PR identity when multiple PRs share a commit."
-  - "Head repository/ref/SHA is insufficient across PR incarnations when a branch is reused unchanged; the current PR creation boundary must exclude older workflow runs even if those old runs are rerun later."
+  - "Head repository/ref/SHA plus PR.created_at is still insufficient when exact same-head PR lifetimes overlap; target-run attribution must exclude runs created during the other PR's server-reported lifetime window."
+  - "A later overlapping duplicate must not invalidate a legitimate run the current PR created before the overlap began; ambiguity filtering is window-based rather than a single coarse cutoff."
   - "GraphQL errors handling must validate presence and type/value, not truthiness."
   - "Material bootstrap governance behavior is not exempt from atomic REQ identity and TEST/REVIEW traceability."
+  - "Review lifecycle changes must be synchronized across REVIEW, WORK and PROJECT_STATE and must themselves trigger exact-head bootstrap proof."
 blockers:
-  - "This synchronized PR #5 HEAD must pass its own exact-head bootstrap proof and a new fresh independent review before any of the 17 PR #5 review threads may be resolved or the bootstrap merged to main."
+  - "The synchronized PR #5 descendant must pass its own exact-head bootstrap proof, then REVIEW-0032 must transition OPEN -> IN_PROGRESS before a new fresh exact-head Codex review. No one may resolve any of the 19 PR #5 material threads before that independent verification is clean."
   - "After PR #5 merges, PR #2 must integrate the new main and prove the bootstrap is base-preexisting before T12 can be author-side complete."
   - "WORK-0002 final closure still requires an eligible trusted non-author exact-head L2/L3 APPROVED review; Codex is independent semantic review evidence but cannot substitute for the required collaborator approval."
 follow_up_work_items: [WORK-0003, WORK-0004]
@@ -339,4 +355,4 @@ completion:
   review_complete: false
   docs_updated: true
   registries_updated: true
-  project_state_updated: true
+  project_state_updated: false
