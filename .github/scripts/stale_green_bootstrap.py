@@ -122,7 +122,6 @@ def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
         if not _positive_int(number):
             raise RuntimeError("GitHub returned malformed open pull request")
         identity = _pr_head_identity(item)
-        _pr_created_at(item)
         previous = seen.get(identity)
         if previous is not None and previous != number:
             raise RuntimeError(
@@ -143,7 +142,7 @@ def _run_recency(run: dict[str, Any]) -> tuple[datetime, int, int]:
 def latest_completed_gate_runs(
     repo: str,
     token: str,
-    minimum_created_at: dict[HeadIdentity, datetime] | None = None,
+    current_prs: dict[HeadIdentity, dict[str, Any]] | None = None,
 ) -> dict[HeadIdentity, dict[str, Any]]:
     runs = paged(
         f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?status=completed",
@@ -172,11 +171,12 @@ def latest_completed_gate_runs(
         ):
             raise RuntimeError("GitHub returned malformed canonical MONDE Gate run")
         _updated_at(run.get("updated_at"))
-        created_at = _run_created_at(run)
         key = _run_head_identity(run)
-        if minimum_created_at is not None:
-            threshold = minimum_created_at.get(key)
-            if threshold is None or created_at < threshold:
+        if current_prs is not None:
+            pr = current_prs.get(key)
+            if pr is None:
+                continue
+            if _run_created_at(run) < _pr_created_at(pr):
                 continue
         previous = latest.get(key)
         if previous is None or _run_recency(run) > _run_recency(previous):
@@ -245,15 +245,15 @@ def rerun_workflow(repo: str, run_id: int, token: str) -> None:
     request_data(f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/rerun", token, "POST", {})
 
 
-def _current_pr_thresholds(prs: list[dict[str, Any]]) -> dict[HeadIdentity, datetime]:
-    return {_pr_head_identity(pr): _pr_created_at(pr) for pr in prs}
+def _current_prs(prs: list[dict[str, Any]]) -> dict[HeadIdentity, dict[str, Any]]:
+    return {_pr_head_identity(pr): pr for pr in prs}
 
 
 def poll(repo: str, token: str) -> list[int]:
     rerun_ids: list[int] = []
     prs = open_pull_requests(repo, token)
     runs = latest_completed_gate_runs(repo, token)
-    current_runs = latest_completed_gate_runs(repo, token, _current_pr_thresholds(prs))
+    current_runs = latest_completed_gate_runs(repo, token, _current_prs(prs))
     effective = effective_gate_runs_by_head(runs)
     for pr in prs:
         number = pr["number"]
@@ -280,8 +280,7 @@ def validate_github_contract(repo: str, pr_number: int, token: str) -> tuple[int
     current = [pr for pr in prs if pr["number"] == pr_number]
     if len(current) != 1:
         raise RuntimeError(f"expected exactly one open PR #{pr_number}, observed {len(current)}")
-    thresholds = _current_pr_thresholds(current)
-    runs = latest_completed_gate_runs(repo, token, thresholds)
+    runs = latest_completed_gate_runs(repo, token, _current_prs(current))
     effective_gate_runs_by_head(runs)
     identity = _pr_head_identity(current[0])
     if identity not in runs:
