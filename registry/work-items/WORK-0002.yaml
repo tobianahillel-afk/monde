@@ -140,7 +140,7 @@ impact_analysis:
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative. This default-branch mirror intentionally carries only globally resolvable WORK-0002 lifecycle/dependency state plus the narrow PR #5 stale-green bootstrap predecessor; the richer T7-T12 implementation, review/test registry graph and PR #2 closure identities remain authoritative only after explicit checkout of feat/work-0002-governance-ci until PR #2 is integrated. Every canonical PR-family run now validates created_at before any current-PR identity filter, so effective shared-SHA state and filtered target selection consume the same fail-closed temporal contract. Current target selection also consults PR.created_at/run.created_at and same-repository/same-branch closed-PR lifetime windows without trusting the closed PR final SHA as complete history; workflow_run.pull_requests remains non-authoritative association metadata. REVIEW-0031, REVIEW-0032 and REVIEW-0033 are durable terminal CHANGES_REQUIRED evidence and are never reopened. REVIEW-0034 is the fresh successor review. The bootstrap is temporary and must be removed or rationalized only after the canonical PR #2 poller is integrated and WORK-0003 owns repository protection."
+  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative. This default-branch mirror intentionally carries only globally resolvable WORK-0002 lifecycle/dependency state plus the narrow PR #5 stale-green bootstrap predecessor; the richer T7-T12 implementation, review/test registry graph and PR #2 closure identities remain authoritative only after explicit checkout of feat/work-0002-governance-ci until PR #2 is integrated. Every canonical PR-family run now validates created_at before any current-PR identity filter, so effective shared-SHA state and filtered target selection consume the same fail-closed temporal contract. Current target selection also consults PR.created_at/run.created_at and same-repository/same-branch closed-PR lifetime windows without trusting the closed PR final SHA as complete history; workflow_run.pull_requests remains non-authoritative association metadata. REVIEW-0031, REVIEW-0032 and REVIEW-0033 are durable terminal CHANGES_REQUIRED evidence and are never reopened. REVIEW-0034 is IN_PROGRESS for the next fresh review, and REVIEW/WORK/PROJECT are synchronized in one Git tree checkpoint before external invocation. The bootstrap is temporary and must be removed or rationalized only after the canonical PR #2 poller is integrated and WORK-0003 owns repository protection."
 
 implementation_plan:
   tasks:
@@ -299,11 +299,13 @@ validation:
     - "Synchronized REVIEW-0032-terminal / REVIEW-0033-OPEN / WORK / PROJECT descendant de5cf707c94e00df3c695de5cba7335f741bc7d5 passed MONDE Stale-Green Bootstrap run 34999773505 / #45 with self-test and live contract probe SUCCESS."
     - "Atomic REVIEW-0033-IN_PROGRESS / WORK / PROJECT candidate 55d471ac5d9b09f37aa93c6fce342a6a60a2b6ff passed run 35000090466 / #46 with 33 tests, 269/269 statements, 104/104 branches and live PR #2 contract probe. Fresh review PRR_kwDOUUI5ts8AAAABNr8aMQ then opened PRRT_kwDOUUI5ts6in_r4: every PR-family run created_at must be validated before identity filtering."
     - "Global created_at corrective candidate 1c0093b84504e23cb47e5b1b7730d34e141c8fb5 passed MONDE Stale-Green Bootstrap run 35000892195 / #48: 35/35 tests, 269/269 statements, 104/104 branches, 100 percent line and branch coverage, plus successful read-only live GitHub contract probe against PR #2."
-    - "REVIEW-0033 is terminal CHANGES_REQUIRED for exact reviewed head 55d471ac; REVIEW-0034 is materialized OPEN as its fresh successor and must not start until the synchronized lifecycle descendant has its own exact-head proof."
+    - "Synchronized REVIEW-0033-terminal / REVIEW-0034-OPEN / WORK / PROJECT descendant 4f31158c795a25671e1b4e4015bae1ae1e64ad7d passed MONDE Stale-Green Bootstrap run 35001453029 / #49 with self-test and live contract probe SUCCESS."
+    - "REVIEW-0034 is now IN_PROGRESS in the same Git tree checkpoint as matching WORK-0002 and PROJECT_STATE lifecycle state; this exact descendant must be proven before Codex invocation."
   evidence:
     - "PR #2 live/branch-local evidence; query GitHub and checkout feat/work-0002-governance-ci before traversing its review/test registry graph"
     - "PR #5"
     - "MONDE Stale-Green Bootstrap run 35000892195"
+    - "MONDE Stale-Green Bootstrap run 35001453029"
     - REQ-0026
     - TEST-0009
     - REVIEW-0031
@@ -324,7 +326,7 @@ validation:
     - "The default-branch mirror intentionally carries no branch-local completed-review or required-test IDs beyond the bootstrap-local REQ-0026 / TEST-0009 / REVIEW-0031 / REVIEW-0032 / REVIEW-0033 / REVIEW-0034 trace. Before editing or validating the full WORK-0002 implementation, checkout feat/work-0002-governance-ci and follow that branch's richer record."
     - "All 21 material PR #5 review threads remain unresolved until independently verified."
     - "REQ-0026 remains PROPOSED and TEST-0009 remains PLANNED; no prior execution may be retroactively promoted into acceptance/PASS evidence."
-    - "REVIEW-0031, REVIEW-0032 and REVIEW-0033 are terminal COMPLETE/CHANGES_REQUIRED. REVIEW-0034 is OPEN and must transition to IN_PROGRESS only after the synchronized lifecycle descendant is proven."
+    - "REVIEW-0031, REVIEW-0032 and REVIEW-0033 are terminal COMPLETE/CHANGES_REQUIRED. REVIEW-0034 is IN_PROGRESS; no Codex invocation may occur until the exact synchronized descendant is green."
     - "After PR #5 merges, its new main must be integrated into PR #2 and T12 must prove the bootstrap predecessor is base-preexisting rather than candidate-created."
     - "PR #2 fresh L2 expanded its unresolved material set to 73 findings; branch-local T12 correction is deterministically proven but final bootstrap integration/independent closure remains pending."
     - "Repository administration/ruleset enforcement belongs to WORK-0003."
@@ -344,7 +346,7 @@ run_log:
   - {run: RUN-2, date: "2026-09-11", note: "Governance automation remains IN_REVIEW on its own branch; the default-branch mirror preserves only global lifecycle/dependency handoff and defers branch-local proof traversal until explicit checkout."}
   - run: RUN-3
     date: "2026-09-15"
-    note: "PR #5 bootstrap hardening has undergone nine fresh Codex review rounds and accumulated 21 material P1 threads. REVIEW-0033 completed CHANGES_REQUIRED on exact 55d471ac after detecting that a nonmatching same-SHA run could escape created_at validation before identity filtering. Global created_at corrective candidate 1c0093b84504e23cb47e5b1b7730d34e141c8fb5 passed run #48 / 35000892195 with 35 tests, 269/269 statements, 104/104 branches and a successful live PR #2 contract probe. REVIEW-0034 is OPEN for the next exact-head fresh review after its synchronized lifecycle checkpoint is itself proven."
+    note: "PR #5 bootstrap hardening has undergone nine fresh Codex review rounds and accumulated 21 material P1 threads. REVIEW-0033 completed CHANGES_REQUIRED on exact 55d471ac after detecting that a nonmatching same-SHA run could escape created_at validation before identity filtering. Global created_at corrective candidate 1c0093b84504e23cb47e5b1b7730d34e141c8fb5 passed run #48 / 35000892195 with 35 tests, 269/269 statements, 104/104 branches and a successful live PR #2 contract probe. Synchronized terminal/open checkpoint 4f31158c passed run #49 / 35001453029. REVIEW-0034 is now IN_PROGRESS in an atomic WORK/PROJECT/REVIEW checkpoint pending its own exact-head proof and fresh review."
 
 discoveries:
   - "100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required."
@@ -363,7 +365,7 @@ discoveries:
   - "Material bootstrap governance behavior is not exempt from atomic REQ identity and TEST/REVIEW traceability."
   - "Review lifecycle changes must be synchronized across REVIEW, WORK and PROJECT_STATE and must themselves trigger exact-head bootstrap proof."
 blockers:
-  - "The synchronized REVIEW-0033 terminal / REVIEW-0034 OPEN / WORK / PROJECT_STATE descendant must pass its own exact-head bootstrap proof before REVIEW-0034 may transition to IN_PROGRESS. All 21 PR #5 material threads remain unresolved."
+  - "The atomic REVIEW-0034 IN_PROGRESS / WORK / PROJECT_STATE descendant must pass its own exact-head bootstrap proof before Codex is invoked. All 21 PR #5 material threads remain unresolved."
   - "After PR #5 merges, PR #2 must integrate the new main and prove the bootstrap is base-preexisting before T12 can be author-side complete."
   - "WORK-0002 final closure still requires an eligible trusted non-author exact-head L2/L3 APPROVED review; Codex is independent semantic review evidence but cannot substitute for the required collaborator approval."
 follow_up_work_items: [WORK-0003, WORK-0004]

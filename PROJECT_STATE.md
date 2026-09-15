@@ -39,12 +39,12 @@ The bridge is temporary. After PR #2 merges, its canonical poller becomes durabl
 
 ## Stable bootstrap traceability
 
-`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0032 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0033 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0034 (OPEN)`
+`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0032 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0033 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0034 (IN_PROGRESS)`
 
 - **REVIEW-0031** is terminal `CHANGES_REQUIRED` on exact reviewed head `702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c`.
 - **REVIEW-0032** is terminal `CHANGES_REQUIRED` on exact reviewed head `717777da79edca7a671c1754f32f3442da721a72`.
 - **REVIEW-0033** is terminal `CHANGES_REQUIRED` on exact reviewed head `55d471ac5d9b09f37aa93c6fce342a6a60a2b6ff` after fresh review exposed run-`created_at` validation order.
-- **REVIEW-0034** is the fresh successor review and is `OPEN`; it must not transition to `IN_PROGRESS` until this synchronized lifecycle descendant has exact-head bootstrap proof.
+- **REVIEW-0034** is the fresh successor review and is now `IN_PROGRESS`; WORK-0002, PROJECT_STATE and REVIEW-0034 enter this lifecycle checkpoint in one Git tree before any new Codex invocation.
 - REVIEW-0031/0032/0033 are durable negative evidence and are never reopened or rewritten.
 
 The bootstrap workflow includes `registry/reviews/REVIEW-*.yaml` in its PR path triggers so review lifecycle descendants receive exact-head self-test and live contract proof.
@@ -72,12 +72,14 @@ The latest substantive executable candidate is **`1c0093b84504e23cb47e5b1b7730d3
 - **100% line + branch coverage** over `.github/scripts/stale_green_bootstrap.py`;
 - Bootstrap GitHub contract probe: **SUCCESS** against live WORK-0002 PR #2.
 
+The synchronized REVIEW-0033-terminal / REVIEW-0034-OPEN / WORK / PROJECT_STATE descendant **`4f31158c795a25671e1b4e4015bae1ae1e64ad7d`** passed `MONDE Stale-Green Bootstrap` run **`35001453029` / #49** with both self-test and live GitHub contract probe **SUCCESS**.
+
 Earlier lifecycle/executable proofs remain historical:
 - `23bf9372...` / run #44 `34999284396` proved branch-reset correction;
 - `de5cf707...` / run #45 `34999773505` proved REVIEW-0032-terminal / REVIEW-0033-OPEN synchronization;
 - `55d471ac...` / run #46 `35000090466` proved the exact REVIEW-0033-IN_PROGRESS candidate subsequently reviewed by Codex.
 
-The synchronized REVIEW-0033-terminal / REVIEW-0034-OPEN / WORK / PROJECT_STATE descendant created after run #48 must receive its own exact-head bootstrap proof before REVIEW-0034 starts.
+The atomic REVIEW-0034-IN_PROGRESS / WORK / PROJECT_STATE descendant created after run #49 must receive its own exact-head bootstrap proof before Codex is invoked. The HEAD must remain frozen during that review.
 
 ## PR #5 material thread set
 
@@ -132,14 +134,13 @@ MONDE intentionally remains **public**. Never commit credentials, tokens, secret
 
 ## Current next action
 
-1. Prove the synchronized REVIEW-0033 `COMPLETE/CHANGES_REQUIRED` + REVIEW-0034 `OPEN` + WORK-0002 + PROJECT_STATE checkpoint with exact-head bootstrap self-test and live PR #2 contract probe.
-2. If green, transition REVIEW-0034 `OPEN -> IN_PROGRESS` and synchronize WORK/PROJECT_STATE in one Git-tree checkpoint.
-3. Prove that exact REVIEW-0034-IN_PROGRESS descendant, freeze the HEAD, update PR #5 body, and invoke a fresh-context Codex review.
-4. Keep all **21** material PR #5 threads unresolved while REVIEW-0034 runs.
-5. If REVIEW-0034 finds another material issue, record it truthfully, correct/re-prove, and create a successor review rather than reopening a terminal review.
-6. Only a clean independent exact-head review permits truthful approval-capable review completion, independent verification/resolution of the 21 threads, and an exact-head guarded squash merge of PR #5 into `main`.
-7. Then integrate new `main` into PR #2 and continue T12/WORK-0002 closure.
-8. WORK-0003 and WORK-0004 remain blocked.
+1. Prove the atomic REVIEW-0034 `IN_PROGRESS` + WORK-0002 + PROJECT_STATE checkpoint with exact-head bootstrap self-test and live PR #2 contract probe.
+2. If green, freeze the HEAD, update PR #5 body, and invoke a fresh-context Codex review under REVIEW-0034.
+3. Keep all **21** material PR #5 threads unresolved while REVIEW-0034 runs.
+4. If REVIEW-0034 finds another material issue, record it truthfully, correct/re-prove, and create a successor review rather than reopening a terminal review.
+5. Only a clean independent exact-head review permits truthful approval-capable review completion, independent verification/resolution of the 21 threads, and an exact-head guarded squash merge of PR #5 into `main`.
+6. Then integrate new `main` into PR #2 and continue T12/WORK-0002 closure.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
