@@ -1,183 +1,478 @@
 id: WORK-0002
-title: "Automate repository governance validation"
+title: Automate repository governance validation
 status: IN_REVIEW
 phase: PHASE-0
 lot: LOT-0
 sublot: SUBLOT-0.2
-owner: "repository governance"
-created_at: "2026-09-10"
-updated_at: "2026-09-11"
+owner: repository governance
+created_at: '2026-09-10'
+updated_at: '2026-09-15'
+purpose: 'Turn MONDE governance/specification/traceability contracts into executable CI and GitHub control-plane checks so repository state, review
+  evidence, scope and proof cannot silently drift.
 
-purpose: |
-  Turn MONDE governance/specification/traceability contracts into executable CI and GitHub control-plane checks so repository state, review evidence, scope and proof cannot silently drift.
-
+  '
 scope_change:
   approved: true
-  rationale: "Owner explicitly requested P0-P2 hardening after the first real run and Codex reviews exposed missing review, progress, scope, GitHub-state, commit-history and meta-governance controls."
-
+  rationale: |
+    Fresh exact-SHA L2 REVIEW-0030 found six additional risk-acceptance, normative-digest, authority-evidence, external-import-finalization, PASS-test-revision and review-lifecycle defects after the REVIEW-0029 corrective candidate. GitHub Codex review PRR_kwDOUUI5ts8AAAABNfhWLQ on 5e4dd33995d17587be1452265b830f2b32e0f89b added nine further findings; PRR_kwDOUUI5ts8AAAABNgjLtg and PRR_kwDOUUI5ts8AAAABNgxnRw on 6e6f7a68ed63262e7ff9af56521695d79f6d015b added five and six more. Fresh-context review PRR_kwDOUUI5ts8AAAABNiFSzA on exact candidate 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 added eight further findings covering canonical-policy trust anchors, immutable adoption boundaries, same-evidence acceptance binding, identity-policy revision binding, repository-owner proof anchored outside mutable policy, exact-head independent approval in the live merge gate, and durable tracking of the complete closure set. Fresh-context review PRR_kwDOUUI5ts8AAAABNih5Qw on exact candidate 296ef2005de2ab5964d004d6383393b693594de9 then added six further findings: same-status ACCEPTED requirement and risk invariant revalidation, immutability of all completion-bearing COMPLETE-review fields, detection of intervening content-identity-policy revisions even when reverted, L2 eligibility/trust binding for exact-head approvers, and target-scoped WORK-status reopening triggers. Fresh-context review PRR_kwDOUUI5ts8AAAABNmehrQ on exact candidate 061c17e7144396cbfd01963fb4036f3fc3c58ed3 added six T9 findings covering full merge-history policy traversal, continuing imported-evidence finalization, one-shot import_commit immutability, base-preexisting protected-policy authority, genuinely new reopening triggers, and exact durable/live thread-identity equality. Fresh-context review PRR_kwDOUUI5ts8AAAABNnPvYg on exact candidate 9e4144d255590360f99652e59c38a02dbf95ccfa added four T10 P1 findings covering review-state-triggered live-gate reruns, integration-provenance trust-anchor protection, dependency-driven continuing ACCEPTED requirement revalidation and dependency-driven continuing ACCEPTED risk revalidation. Fresh-context review PRR_kwDOUUI5ts8AAAABNoalkw on exact candidate cc6e98d542fbedf097a8ffbb7eb5dcf128237c84 added five T11 findings covering pre-T10 provenance bootstrap auditing, full-history import materialization, stale-green invalidation after review-thread unresolve, raw committed-blob secret scanning, and structural workflow-trigger parsing. These GitHub reviews remain adverse live source evidence and are not retroactively converted into approving canonical review evidence. The corrective scope also includes duplicate-key YAML rejection and exact immutable integration-history bridges already discovered during earlier correction rounds. These changes harden the existing governance contract without changing MONDE product scope; every historical exception remains exact and non-reusable.
+  evidence:
+  - PRR_kwDOUUI5ts8AAAABNiFSzA
+  - PRRT_kwDOUUI5ts6iSi_N
+  - PRRT_kwDOUUI5ts6iSi_R
+  - PRRT_kwDOUUI5ts6iSi_V
+  - PRRT_kwDOUUI5ts6iSi_a
+  - PRRT_kwDOUUI5ts6iSi_b
+  - PRRT_kwDOUUI5ts6iSi_h
+  - PRRT_kwDOUUI5ts6iSi_k
+  - PRRT_kwDOUUI5ts6iSi_r
+  - PRR_kwDOUUI5ts8AAAABNih5Qw
+  - PRRT_kwDOUUI5ts6iTnww
+  - PRRT_kwDOUUI5ts6iTnw7
+  - PRRT_kwDOUUI5ts6iTnw-
+  - PRRT_kwDOUUI5ts6iTnxB
+  - PRRT_kwDOUUI5ts6iTnxE
+  - PRRT_kwDOUUI5ts6iTnxI
+  - PRR_kwDOUUI5ts8AAAABNmehrQ
+  - PRRT_kwDOUUI5ts6icYEJ
+  - PRRT_kwDOUUI5ts6icYER
+  - PRRT_kwDOUUI5ts6icYEW
+  - PRRT_kwDOUUI5ts6icYEh
+  - PRRT_kwDOUUI5ts6icYEm
+  - PRRT_kwDOUUI5ts6icYEo
+  - PRR_kwDOUUI5ts8AAAABNnPvYg
+  - PRRT_kwDOUUI5ts6ieH4A
+  - PRRT_kwDOUUI5ts6ieH4C
+  - PRRT_kwDOUUI5ts6ieH4H
+  - PRRT_kwDOUUI5ts6ieH4L
+  - PRR_kwDOUUI5ts8AAAABNoalkw
+  - PRRT_kwDOUUI5ts6igleE
+  - PRRT_kwDOUUI5ts6igleI
+  - PRRT_kwDOUUI5ts6igleM
+  - PRRT_kwDOUUI5ts6igleS
+  - PRRT_kwDOUUI5ts6igleV
 scope:
   in:
-    - deterministic registry/status/reference/path validation
-    - JSON Schema validation for registry records
-    - reverse progress-matrix membership and DONE-dimension validation
-    - review-evidence status/outcome/hat/independence/blocking-finding validation
-    - hierarchical L0/L1/L2/L3 review-independence enforcement
-    - canonical Review Council outcome vocabulary with bounded legacy compatibility
-    - work dependency, task/run and cycle validation
-    - PROJECT_STATE active-work validation
-    - assumption/risk due-date validation
-    - Markdown title/path parsing and repository path containment
-    - immutable GitHub Action and Docker-action pin validation
-    - high-confidence committed-secret pattern detection at HEAD and across the PR commit range
-    - base-to-head and per-commit transition validation over the union of paths touched in the commit sequence
-    - immutable registry IDs and published-record deletion guard
-    - post-READY semantic scope-drift guard
-    - review-freshness guard after substantive changes, including review requirements themselves
-    - meta-governance path binding to an active changed A3/A4 work item through affected_paths
-    - AI context-manifest generation
-    - GitHub live HEAD/mergeability/review-thread gate
-    - hash-locked governance Python toolchain
-    - reusable GitHub Actions governance core, Dependency Review and CodeQL lanes
-    - CI artifacts and stable MONDE merge gate
+  - deterministic registry/status/reference/path validation
+  - JSON Schema validation for registry records
+  - reverse progress-matrix membership and DONE-dimension validation
+  - review-evidence status/outcome/hat/independence/blocking-finding validation
+  - hierarchical L0/L1/L2/L3 review-independence enforcement
+  - assurance-derived minimum review independence for A3/A4
+  - canonical Review Council outcome vocabulary with bounded legacy compatibility
+  - exact reviewed-commit binding for completed review evidence
+  - substantive PASS-test record validation, including real Git commit existence/ancestry
+  - exact squash and malformed-YAML integration provenance with fail-closed commit/blob/tree binding
+  - canonical RFC 8785/JCS recomputation for requirement normative digests
+  - risk-acceptance preconditions and authority-matrix enforcement
+  - repository-owner authority evidence bound to the governed MONDE repository
+  - external review-import finalization before completion eligibility
+  - duplicate-key YAML rejection for canonical machine-readable records
+  - work dependency, task/run and cycle validation
+  - PROJECT_STATE active-work validation
+  - assumption/risk due-date validation
+  - Markdown title/path parsing and repository path containment
+  - immutable GitHub Action and Docker-action pin validation
+  - high-confidence committed-secret pattern detection at HEAD and across the PR commit range
+  - raw changed-blob secret-history scanning across every PR commit with an explicit fail-closed size bound
+  - base-to-head and per-commit transition validation over the union of paths touched in the commit sequence
+  - immutable registry IDs and published-record deletion guard
+  - post-READY semantic scope-drift guard
+  - review-freshness guard after substantive changes, including review requirements themselves
+  - meta-governance path binding to an active changed A3/A4 work item through affected_paths
+  - canonical status/authority/content-identity/integration-provenance policy registries treated as protected meta-governance trust anchors
+  - exact immutable five-commit audit of the pre-T10 integration-provenance bootstrap
+  - NOT_APPLICABLE progress-justification enforcement
+  - AI context-manifest generation seeded by changed registry records and dependency closure
+  - GitHub live HEAD/mergeability/review-thread gate
+  - exact-head independent approval verification in the live merge gate
+  - review/review-comment event-driven live-gate reruns on supported GitHub Actions events
+  - scheduled stale-green invalidation when an existing review conversation is later unresolved
+  - effective workflow trigger and poller structure validated by parsed YAML rather than source-text snippets
+  - hash-locked governance Python toolchain
+  - reusable GitHub Actions governance core, Dependency Review and CodeQL lanes
+  - CI artifacts and stable MONDE merge gate
+  - exact pull-request HEAD checkout for deterministic proof
+  - immutable/fresh completed-review approval semantics
+  - authority evidence that resolves the claimed actor and governed scope
+  - Git-history verification of external-review materialization commits
+  - full merge-history first-status materialization checks for imported REVIEW/TEST evidence
+  - exact squash-tree history recovery kept separate from review/test evidence-eligibility allowlists
+  - requirement-acceptance review-import finalization and cold-read reachability
+  - same review and same cold-read records satisfying the complete acceptance contract and owning-WORK floor
+  - acceptance evidence bound to the exact content-identity policy revision
+  - ACCEPTED requirement and risk invariants revalidated on same-status edits
+  - dependency-driven revalidation of current ACCEPTED requirements and risks when bound evidence, authority, owning work or policy dependencies change
+  - all completion-bearing COMPLETE-review fields immutable after completion
+  - content-identity policy full merge history between review/cold-read and acceptance must contain no intervening revision, including side-branch change-then-revert
+  - exact-head approvers must be trusted and bound to qualifying fresh-context L2 evidence, not merely differ from the PR author
+  - canonical progress lifecycle/reopening enforcement after immutable predecessor-bound adoption
+  - WORK-status reopening triggers scoped to the exact reopened WORK and requiring a newly added finding/evidence identity or newly approved scope event
+  - protected-policy amendment authority anchored to base-preexisting independently approved active A3/A4 scope
+  - explicit non-reusable squash provenance flags and review-ID eligibility
+  - one-shot external review import_commit binding to the exact first COMPLETE materialization commit, frozen after binding
+  - durable per-finding closure set compared by exact unique GitHub thread identities rather than cardinality
+  - DONE task/run terminal-state enforcement
   out:
-    - MONDE product implementation
-    - product-language CI not yet selected
-    - semantic duplicate detection requiring AI reasoning
-    - branch/ruleset/visibility administration owned by WORK-0003
-    - product architecture fitness functions requiring product code
-
+  - MONDE product implementation
+  - product-language CI not yet selected
+  - semantic duplicate detection requiring AI reasoning
+  - branch/ruleset/visibility administration owned by WORK-0003
+  - product architecture fitness functions requiring product code
 acceptance_criteria:
-  - {id: AC-1, description: "Invalid registry/status/reference/path/schema state fails deterministically with actionable diagnostics.", status: DONE}
-  - {id: AC-2, description: "A DONE work item cannot pass with incomplete progress dimensions or invalid/incomplete review evidence.", status: DONE}
-  - {id: AC-3, description: "Published IDs, records, state transitions and post-READY semantic scope are guarded across the actual PR commit sequence.", status: DONE}
-  - {id: AC-4, description: "GitHub CI uses immutable/hash-locked dependencies, least privilege, CodeQL, dependency review, artifacts and a stable final merge gate.", status: DONE}
-  - {id: AC-5, description: "AI context and live GitHub state are generated/checked without treating stale repository prose as current merge truth.", status: DONE}
-  - {id: AC-6, description: "All Codex findings are proven fixed on the substantive final HEAD and a fresh-context L2 review approves completion.", status: IN_REVIEW}
-
+- id: AC-1
+  description: Invalid registry/status/reference/path/schema state fails deterministically with actionable diagnostics.
+  status: DONE
+- id: AC-2
+  description: A DONE work item cannot pass with incomplete progress dimensions or invalid/incomplete review evidence.
+  status: DONE
+- id: AC-3
+  description: Published IDs, records, state transitions and post-READY semantic scope are guarded across the actual PR commit sequence.
+  status: DONE
+- id: AC-4
+  description: GitHub CI uses immutable/hash-locked dependencies, least privilege, CodeQL, dependency review, artifacts and a stable final merge gate.
+  status: DONE
+- id: AC-5
+  description: AI context and live GitHub state are generated/checked without treating stale repository prose as current merge truth.
+  status: DONE
+- id: AC-6
+  description: All Codex findings are proven fixed on the substantive final HEAD and a fresh-context L2 review approves completion.
+  status: IN_REVIEW
 requirements: []
 assumptions: []
 risks: []
-
 progress_justifications:
-  scientific_validation: "WORK-0002 is deterministic repository-governance automation and introduces no scientific/model claim; applicable validation is engineering, security, CI and real-system verification."
-
+  scientific_validation: WORK-0002 is deterministic repository-governance automation and introduces no scientific/model claim; applicable validation is engineering, security, CI and real-system verification.
 assurance:
   level: A3
-  rationale: "This code becomes a repository-wide trust gate for future AI-authored work."
+  rationale: This code becomes a repository-wide trust gate for future AI-authored work.
   escalation_triggers:
-    - "changes to DONE/review semantics"
-    - "changes to transition/scope-drift semantics"
-    - "changes to workflow trust boundaries"
-
+  - changes to DONE/review semantics
+  - changes to transition/scope-drift semantics
+  - changes to workflow trust boundaries
 read_before:
-  - AGENTS.md
-  - docs/00_START_HERE.md
-  - docs/03_ARCHITECTURE/documentation-architecture.md
-  - docs/09_GOVERNANCE/development-rules.md
-  - docs/09_GOVERNANCE/threat-modeling.md
-  - docs/10_ROADMAP/development-process.md
-  - docs/13_QUALITY/definition-of-ready.md
-  - docs/13_QUALITY/definition-of-done.md
-  - docs/13_QUALITY/testing-strategy.md
-  - docs/13_QUALITY/review-council.md
-  - docs/13_QUALITY/advanced-verification.md
-  - registry/README.md
-  - registry/progress/matrix.yaml
-
-depends_on: [WORK-0001]
-blocks: [WORK-0003, WORK-0004]
+- AGENTS.md
+- docs/00_START_HERE.md
+- docs/03_ARCHITECTURE/documentation-architecture.md
+- docs/03_ARCHITECTURE/github-control-plane.md
+- docs/09_GOVERNANCE/development-rules.md
+- docs/09_GOVERNANCE/threat-modeling.md
+- docs/10_ROADMAP/development-process.md
+- docs/13_QUALITY/definition-of-ready.md
+- docs/13_QUALITY/definition-of-done.md
+- docs/13_QUALITY/testing-strategy.md
+- docs/13_QUALITY/review-council.md
+- docs/13_QUALITY/advanced-verification.md
+- docs/13_QUALITY/ai-context-routing.md
+- registry/README.md
+- registry/progress/matrix.yaml
+- registry/integration-provenance.yaml
+depends_on:
+- WORK-0001
+blocks:
+- WORK-0003
+- WORK-0004
 reuses:
-  - "status vocabulary"
-  - "registry contracts"
-  - "Review Council and assurance-level contracts"
+- status vocabulary
+- registry contracts
+- Review Council and assurance-level contracts
 affected_capabilities: []
 affected_engines: []
-affected_schemas: []
+affected_schemas:
+- schemas/registry/work-items.schema.json
+- schemas/registry/requirements.schema.json
+- schemas/registry/risks.schema.json
+- schemas/registry/reviews.schema.json
+- schemas/registry/tests.schema.json
 affected_docs:
-  - PROJECT_STATE.md
-  - docs/03_ARCHITECTURE/github-control-plane.md
-  - docs/13_QUALITY/ai-context-routing.md
-  - registry/progress/matrix.yaml
+- PROJECT_STATE.md
+- docs/03_ARCHITECTURE/github-control-plane.md
+- docs/13_QUALITY/ai-context-routing.md
+- registry/acceptance-authority.yaml
+- registry/content-identity.yaml
+- registry/status-machines.yaml
+- registry/integration-provenance.yaml
+- registry/progress/matrix.yaml
 affected_paths:
-  - .github/
-  - tools/governance/
-  - tests/governance/
-  - schemas/registry/
-  - scripts/governance_mutation_smoke.py
-  - registry/work-items/_TEMPLATE.yaml
+- .github/
+- tools/governance/
+- tests/governance/
+- schemas/registry/
+- scripts/governance_mutation_smoke.py
+- registry/work-items/_TEMPLATE.yaml
+- registry/status-machines.yaml
+- registry/acceptance-authority.yaml
+- registry/content-identity.yaml
+- registry/integration-provenance.yaml
 contracts:
-  - "repository governance validation"
-  - "GitHub control-plane merge gate"
-  - "AI context routing"
+- repository governance validation
+- GitHub control-plane merge gate
+- AI context routing
 adrs: []
-
 impact_analysis:
   blast_radius: CROSS_COMPONENT
-  upstream: [WORK-0001]
-  downstream: [WORK-0003, WORK-0004]
+  upstream:
+  - WORK-0001
+  downstream:
+  - WORK-0003
+  - WORK-0004
   migrations_or_reprocessing: []
-  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative. This PR #3 mirror intentionally carries only locally resolvable read_before paths, no branch-local review/test registry IDs, and no branch-local affected_schemas paths. Before editing or validating WORK-0002 implementation, switch to feat/work-0002-governance-ci and follow that branch's WORK-0002 record; its branch-local documents, schemas, completed review evidence and required TEST records become authoritative only after that explicit checkout boundary."
-
+  compatibility_notes: |
+    Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative. Exact integration-provenance entries preserve only verified immutable squash/tree and malformed->repair commit/blob relationships; they do not create generic ancestry or YAML-parsing bypasses. New adoption boundaries must be anchored to immutable predecessor history rather than trusted from the candidate policy itself. One-shot external review binding may set import_commit only from null to the exact first COMPLETE materialization SHA under matching prior preauthorization; subsequent qualification still requires consumed authorization and the field is immutable thereafter. Continuing ACCEPTED requirement/risk revalidation is dependency-driven from exact referenced proof/authority/owning-work/policy paths so later hardening is not retroactively imposed on unrelated historical records. T11 distinguishes exact historical first-status recovery through a tree-equivalent squash from evidence eligibility: the former may establish where a record was actually materialized, while T7/T9 still require explicit eligible review/test IDs before that record can count as acceptance evidence.
 implementation_plan:
   tasks:
-    - {id: T1, description: "Fix initial Codex review/progress/Markdown/reverse-membership findings.", depends_on: [], status: DONE}
-    - {id: T2, description: "Add schemas, transition/scope/review-freshness and meta-governance guards.", depends_on: [T1], status: DONE}
-    - {id: T3, description: "Add GitHub control plane, context router, live gate and supply-chain hardening.", depends_on: [T2], status: DONE}
-    - {id: T4, description: "Prove the substantive final HEAD in GitHub and complete independent review, including all fresh Codex findings.", depends_on: [T3], status: IN_REVIEW}
+  - id: T1
+    description: Fix initial Codex review/progress/Markdown/reverse-membership findings.
+    depends_on: []
+    status: DONE
+  - id: T2
+    description: Add schemas, transition/scope/review-freshness and meta-governance guards.
+    depends_on:
+    - T1
+    status: DONE
+  - id: T3
+    description: Add GitHub control plane, context router, live gate and supply-chain hardening.
+    depends_on:
+    - T2
+    status: DONE
+  - id: T4
+    description: Prove the substantive final HEAD in GitHub and complete independent review, including all fresh Codex findings.
+    depends_on:
+    - T11
+    status: IN_PROGRESS
+  - id: T5
+    description: Correct REVIEW-0030 findings, close the duplicate-key YAML parser gap and add regression/mutation protection.
+    depends_on:
+    - T3
+    status: DONE
+  - id: T6
+    description: Correct the nine fresh Codex findings from PRR_kwDOUUI5ts8AAAABNfhWLQ and bind the new L2 hardening adoption/provenance boundaries.
+    depends_on:
+    - T5
+    status: DONE
+  - id: T7
+    description: Correct the eight fresh findings from PRR_kwDOUUI5ts8AAAABNiFSzA, including protected trust anchors, immutable adoption boundaries, evidence co-satisfaction, identity-policy binding, live independent approval and complete durable finding tracking.
+    depends_on:
+    - T6
+    status: DONE
+  - id: T8
+    description: Correct the six fresh findings from PRR_kwDOUUI5ts8AAAABNih5Qw, including same-status ACCEPTED invariant revalidation, COMPLETE-review field immutability, intervening identity-policy history, L2-eligible exact-head approval and target-scoped WORK reopening triggers.
+    depends_on:
+    - T7
+    status: DONE
+  - id: T9
+    description: Correct the six fresh findings from PRR_kwDOUUI5ts8AAAABNmehrQ, including full-history identity-policy traversal, continuing imported-evidence finalization, one-shot import_commit binding/immutability, base-preexisting policy authority, newly added reopening triggers and exact durable/live thread identity equality.
+    depends_on:
+    - T8
+    status: DONE
+  - id: T10
+    description: Correct the four fresh P1 findings from PRR_kwDOUUI5ts8AAAABNnPvYg, including review-state live-gate reruns, integration-provenance trust-anchor protection, and dependency-driven continuing ACCEPTED requirement/risk revalidation.
+    depends_on:
+    - T9
+    status: DONE
+  - id: T11
+    description: Correct the five fresh findings from PRR_kwDOUUI5ts8AAAABNoalkw, including provenance-bootstrap auditing, full-history import materialization, stale-green thread-state invalidation, raw-blob secret scanning and structural workflow-trigger validation.
+    depends_on:
+    - T10
+    status: DONE
   planned_runs:
-    - {id: RUN-1, objective: "Initial deterministic governance implementation", tasks: [T1], status: DONE}
-    - {id: RUN-2, objective: "P0-P2 hardening and real GitHub proof", tasks: [T2, T3, T4], status: IN_REVIEW}
-
+  - id: RUN-1
+    objective: Initial deterministic governance implementation
+    tasks:
+    - T1
+    status: DONE
+  - id: RUN-2
+    objective: P0-P2 hardening and real GitHub proof
+    tasks:
+    - T2
+    - T3
+    status: DONE
+  - id: RUN-3
+    objective: REVIEW-0030 plus successive fresh-L2 corrections, renewed exact-SHA proof and independent closure
+    tasks:
+    - T5
+    - T6
+    - T7
+    - T8
+    - T9
+    - T10
+    - T11
+    - T4
+    status: IN_PROGRESS
 review_plan:
   artifact_class: GOVERNANCE_AUTOMATION
   independence_level: L2_TARGET
   required_hats:
-    - ARCHITECTURE_REUSE
-    - VERIFICATION_VALIDATION
-    - SECURITY
-    - PERFORMANCE_SRE
-    - DOCUMENTATION_TRACEABILITY
-    - RED_TEAM_SKEPTIC
-  completed_reviews: []
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+  completed_reviews:
+  - REVIEW-0002
   open_findings:
-    - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: derive minimum review independence from assurance level."
-    - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: require completed reviews to carry an exact reviewed commit SHA."
-    - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: require substantive proof fields for PASS test records."
-    - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: enforce reviewed justification for every NOT_APPLICABLE progress dimension."
-    - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: seed context routing directly from changed non-WORK registry records."
-    - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: refresh stale PROJECT_STATE handover before completion."
-
+  - PRRT_kwDOUUI5ts6hMwQ4
+  - PRRT_kwDOUUI5ts6hMwQ9
+  - PRRT_kwDOUUI5ts6hMwQk
+  - PRRT_kwDOUUI5ts6hMwQr
+  - PRRT_kwDOUUI5ts6hMwQy
+  - PRRT_kwDOUUI5ts6hMwRB
+  - PRRT_kwDOUUI5ts6iD2t-
+  - PRRT_kwDOUUI5ts6iD2t4
+  - PRRT_kwDOUUI5ts6iD2uH
+  - PRRT_kwDOUUI5ts6iD2uL
+  - PRRT_kwDOUUI5ts6iD2uQ
+  - PRRT_kwDOUUI5ts6iD2ub
+  - PRRT_kwDOUUI5ts6iF6p2
+  - PRRT_kwDOUUI5ts6iF6qN
+  - PRRT_kwDOUUI5ts6iF6qU
+  - PRRT_kwDOUUI5ts6iF6qY
+  - PRRT_kwDOUUI5ts6iF6qf
+  - PRRT_kwDOUUI5ts6iF6qm
+  - PRRT_kwDOUUI5ts6iMs-B
+  - PRRT_kwDOUUI5ts6iMs-G
+  - PRRT_kwDOUUI5ts6iMs-K
+  - PRRT_kwDOUUI5ts6iMs-O
+  - PRRT_kwDOUUI5ts6iMs93
+  - PRRT_kwDOUUI5ts6iMs96
+  - PRRT_kwDOUUI5ts6iMs9l
+  - PRRT_kwDOUUI5ts6iMs9q
+  - PRRT_kwDOUUI5ts6iMs9x
+  - PRRT_kwDOUUI5ts6iPDaB
+  - PRRT_kwDOUUI5ts6iPDaJ
+  - PRRT_kwDOUUI5ts6iPDaP
+  - PRRT_kwDOUUI5ts6iPDaW
+  - PRRT_kwDOUUI5ts6iPDaa
+  - PRRT_kwDOUUI5ts6iPj8G
+  - PRRT_kwDOUUI5ts6iPj8O
+  - PRRT_kwDOUUI5ts6iPj8Q
+  - PRRT_kwDOUUI5ts6iPj8W
+  - PRRT_kwDOUUI5ts6iPj8a
+  - PRRT_kwDOUUI5ts6iPj8e
+  - PRRT_kwDOUUI5ts6iSi_N
+  - PRRT_kwDOUUI5ts6iSi_R
+  - PRRT_kwDOUUI5ts6iSi_V
+  - PRRT_kwDOUUI5ts6iSi_a
+  - PRRT_kwDOUUI5ts6iSi_b
+  - PRRT_kwDOUUI5ts6iSi_h
+  - PRRT_kwDOUUI5ts6iSi_k
+  - PRRT_kwDOUUI5ts6iSi_r
+  - PRRT_kwDOUUI5ts6iTnw-
+  - PRRT_kwDOUUI5ts6iTnw7
+  - PRRT_kwDOUUI5ts6iTnww
+  - PRRT_kwDOUUI5ts6iTnxB
+  - PRRT_kwDOUUI5ts6iTnxE
+  - PRRT_kwDOUUI5ts6iTnxI
+  - PRRT_kwDOUUI5ts6icYEJ
+  - PRRT_kwDOUUI5ts6icYER
+  - PRRT_kwDOUUI5ts6icYEW
+  - PRRT_kwDOUUI5ts6icYEh
+  - PRRT_kwDOUUI5ts6icYEm
+  - PRRT_kwDOUUI5ts6icYEo
+  - PRRT_kwDOUUI5ts6ieH4A
+  - PRRT_kwDOUUI5ts6ieH4C
+  - PRRT_kwDOUUI5ts6ieH4H
+  - PRRT_kwDOUUI5ts6ieH4L
+  - PRRT_kwDOUUI5ts6igleE
+  - PRRT_kwDOUUI5ts6igleI
+  - PRRT_kwDOUUI5ts6igleM
+  - PRRT_kwDOUUI5ts6igleS
+  - PRRT_kwDOUUI5ts6igleV
 required_tests:
-  unit: []
+  unit:
+  - TEST-0002
   property:
-    - "valid/invalid status, ID, reference, path, transition, review and progress variants"
-  integration: []
+  - valid/invalid status, ID, reference, path, transition, review and progress variants
+  integration:
+  - TEST-0003
   contract:
-    - "registry/schema/progress/review/change-control integrity"
-  e2e: []
+  - registry/schema/progress/review/change-control integrity
+  e2e:
+  - TEST-0003
   regression:
-    - "initial Codex P1 review-evidence finding"
-    - "initial Codex P1 DONE progress-dimension finding"
-    - "initial Codex P2 reverse matrix membership finding"
-    - "initial Codex P2 Markdown link-title finding"
-    - "L3 independence target cannot be satisfied by L1/L2 evidence"
-    - "canonical APPROVE / APPROVE_WITH_FOLLOWUP outcomes are accepted"
-    - "review requirements are part of review-freshness semantics"
-    - "commit-sequence validation includes paths changed then restored"
-    - "meta-governance changes are bound to affected active A3/A4 work"
-    - "secrets introduced and removed inside the PR remain detectable"
-    - "scope drift and review freshness"
+  - initial Codex P1 review-evidence finding
+  - initial Codex P1 DONE progress-dimension finding
+  - initial Codex P2 reverse matrix membership finding
+  - initial Codex P2 Markdown link-title finding
+  - L3 independence target cannot be satisfied by L1/L2 evidence
+  - canonical APPROVE / APPROVE_WITH_FOLLOWUP outcomes are accepted
+  - review requirements are part of review-freshness semantics
+  - commit-sequence validation includes paths changed then restored
+  - meta-governance changes are bound to affected active A3/A4 work
+  - secrets introduced and removed inside the PR remain detectable
+  - A3 requires at least L2 review independence and A4 requires L3
+  - COMPLETE review evidence cannot omit artifact.commit_sha
+  - PASS test records cannot be empty self-declarations
+  - NOT_APPLICABLE progress dimensions require work-item justifications
+  - changed REQ/REVIEW/TEST/other registry records seed dependency-aware context routing
+  - PROJECT_STATE next action is current and transition-stable
+  - scope drift and review freshness
+  - new non-initial TEST/REVIEW/REQ terminal records fail unless covered by exact historical/import exception
+  - PROPOSED to ACCEPTED requirements fail without exact bound independent review and cold-read evidence
+  - mutable/short/nonexistent review commit references fail freshness
+  - blocking accepted findings fail without canonical authority matrix evidence
+  - required-test semantic weakening stales review while execution-only evidence changes remain administrative
+  - endpoint scope excludes base-only changes by using merge-base semantics
+  - RISK ACCEPTED transitions fail without all canonical acceptance fields, resolvable owning-work assurance and allowed authority evidence
+  - requirement acceptance rejects an invented but internally repeated digest by recomputing REQUIREMENT_NORMATIVE_V1 through RFC 8785/JCS
+  - repository-owner evidence cannot point at an unrelated GitHub repository
+  - externally imported COMPLETE reviews cannot satisfy completion before import/authorization consumption is finalized
+  - PASS TEST evidence rejects nonexistent or irrelevant execution commit SHAs
+  - CLOSED reviews never contribute completion hats, independence or approval
+  - duplicate YAML mapping keys fail parsing instead of silently overwriting earlier canonical state
+  - squash-integrated PASS evidence qualifies only through exact source-head/tree/integrated-commit provenance
+  - an exact historical malformed YAML blob may suppress only the false delete/recreate interpretation of its one bound repair commit
+  - pull-request governance proof checks out the exact requested head SHA
+  - completed review approval-bearing fields cannot be administratively rewritten after review
+  - accepted-finding evidence resolves the claimed actor/role/scope
+  - imported COMPLETE review binding equals the real first COMPLETE materialization commit
+  - requirement acceptance rejects an unfinalized externally imported review
+  - requirement cold-read evidence rejects nonexistent or irrelevant execution revisions
+  - progress transitions/reopenings are enforced from an exact non-reusable adoption boundary
+  - squash provenance requires non-reusable flags and explicit eligible review/test IDs
+  - DONE work rejects unfinished implementation tasks or planned runs
+  - canonical status/authority/content-identity/integration-provenance policy registries are protected meta-governance and candidate policy cannot self-authorize its own weakening
+  - progress adoption boundaries reject candidate-only movement and remain pinned to immutable predecessor history
+  - one requirement review must co-satisfy scope/digest/revision/provenance/import/floor checks
+  - one cold-read TEST must co-satisfy requirement revision, qualification, outcomes, provenance, reachability and floor checks
+  - requirement acceptance evidence becomes stale when the content-identity policy revision changes even if the digest string remains equal
+  - repository-owner evidence is checked against the actual GitHub repository and real permission proof
+  - live merge gate rejects resolved threads without eligible independent exact-head approval
+  - durable WORK open_findings exactly covers every live material closure thread before completion
+  - same-status ACCEPTED requirement edits revalidate canonical acceptance evidence and digest
+  - same-status ACCEPTED risk edits revalidate canonical authority/acceptance evidence
+  - COMPLETE review checks/completed_at/verification provenance cannot be added or changed after completion
+  - content-identity policy change-then-revert between evidence and acceptance still invalidates prior evidence
+  - exact-head APPROVED review does not satisfy merge eligibility without trusted L2/context-separated reviewer evidence
+  - WORK-status reopening cannot borrow an unrelated WORK finding or scope trigger
+  - content-identity stability inspects full merge history so side-branch policy revisions cannot be hidden by a merge/revert
+  - continuing ACCEPTED requirement evidence rejects unfinalized imported reviews or cold-read tests
+  - review import_commit permits only one null-to-first-COMPLETE binding under matching prior preauthorization and is frozen thereafter
+  - protected policy amendments cannot acquire authority by editing WORK affected_paths earlier in the same PR
+  - DONE-to-IN_REVIEW reopening requires a newly added finding/evidence identity or newly approved scope-change event
+  - durable finding synchronization compares the unique exact PRRT set to live unresolved threads
+  - review submissions/dismissals and review-comment activity rerun the live merge gate on supported GitHub Actions events
+  - integration-provenance amendments require base-preexisting independently authorized A3/A4 scope
+  - ACCEPTED requirement revalidation is triggered by changes to its bound review/cold-read/owning-work/policy dependencies
+  - ACCEPTED risk revalidation is triggered by changes to its authority/owning-work/policy dependencies
+  - pre-T10 integration-provenance bootstrap must equal the exact independently reviewed immutable five-commit history
+  - imported COMPLETE/PASS first-status discovery traverses full merge history and cannot hide side-branch materialization
+  - exact squash-tree history recovery does not silently broaden evidence-eligibility allowlists
+  - a previously successful live gate is invalidated when an existing review conversation later becomes unresolved
+  - binary-classified committed blobs remain subject to high-confidence secret-history scanning
+  - workflow review/poll triggers are validated from effective parsed YAML structure rather than comments or source snippets
   security:
-    - "immutable action/digest pins"
-    - "hash-locked Python artifacts"
-    - "least-privilege workflow tokens"
-    - "commit-range high-confidence secret scanning"
+  - immutable action/digest pins
+  - hash-locked Python artifacts
+  - least-privilege workflow tokens
+  - commit-range high-confidence secret scanning
+  - raw changed-blob scanning with fail-closed size limits
   performance:
-    - "governance core remains bounded by CI timeout"
-  real_system: []
+  - governance core remains bounded by CI timeout
+  real_system:
+  - TEST-0003
   epistemic:
-    - "execution evidence is bound to GitHub SHA rather than silently promoted across heads"
-
+  - execution evidence is bound to GitHub SHA rather than silently promoted across heads
 scientific_validation:
   required: false
   baseline: null
@@ -185,63 +480,153 @@ scientific_validation:
   temporal_leakage_check: null
   reproducibility_manifest: null
   shadow_or_canary: null
-
 observability:
   required: true
-  logs: ["rule-coded diagnostics", "GitHub Job Summary"]
-  metrics: ["CI duration", "finding count", "coverage", "mutation smoke"]
+  logs:
+  - rule-coded diagnostics
+  - GitHub Job Summary
+  metrics:
+  - CI duration
+  - finding count
+  - coverage
+  - mutation smoke
   traces: []
-  alerts: ["required MONDE merge gate failure after WORK-0003"]
-  slis_slos: ["governance core completes inside configured timeout"]
-
+  alerts:
+  - required MONDE merge gate failure after WORK-0003
+  slis_slos:
+  - governance core completes inside configured timeout
 validation:
   executed:
-    - "Real GitHub MONDE Gate run 34509930758 succeeded on substantive head c50c33009d90f079e645f0ca9e1befe1a4a77ba9 before the latest fresh-context review; this historical fact is branch-local implementation evidence, not a locally resolvable registry reference in the PR #3 mirror."
-    - "76 governance tests passed with 1122/1122 statements and 596/596 branches covered (100 percent line and branch) on the WORK-0002 implementation branch before the latest fresh-context review."
-    - "16/16 targeted critical mutations were killed; repository/strict/path/change guards and CodeQL were green on the WORK-0002 implementation branch."
-    - "Fresh-context Codex L2 on c50c33009d90f079e645f0ca9e1befe1a4a77ba9 then found six additional material gaps now represented in review_plan.open_findings."
+  - Earlier real GitHub runs established the validator, path-safety gate and successive P0-P2 hardening rounds.
+  - Substantive predecessor c50c33009d90f079e645f0ca9e1befe1a4a77ba9 passed the real MONDE Gate with 76 tests, 100% line/branch coverage, 16/16 critical mutations, zero deterministic validator/change-guard errors and CodeQL success.
+  - Fresh-context Codex reviews through REVIEW-0030 identified the first 18 open findings; later GitHub Codex reviews expanded the live closure set without being retroactively converted into approving canonical review evidence.
+  - Exact author-side candidate 965d484e7063d5c11c9964faa89bd7cf8d5aa75c passed MONDE Gate run 34897096930 / #142: 219/219 tests, 2530/2530 statements, 1282/1282 branches, 100% line+branch coverage including all three project-owned L2 decision scripts, 37/37 baseline plus 18/18 fresh-L2 mutations killed, all repository/strict/path/change/L2-hardening/review-closure validators at zero, 19 MUST_READ context files, CodeQL success and Dependency Review success.
+  - Metadata-synchronized exact candidate 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 passed MONDE Gate run 34897431793 / #143 with the same deterministic proof and failed the stable live gate only on 38 unresolved threads.
+  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNiFSzA reviewed exact candidate 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 and opened eight new material findings, expanding the durable closure set to 46.
+  - Exact T7-corrected substantive candidate 52e1dd3aad0ee625f824440f9c87b920c58edec2 passed MONDE Gate run 34902136446 / #156: 244/244 tests, 2801/2801 statements, 1374/1374 branches, 100% line+branch coverage, 37/37 baseline plus 26/26 fresh-L2/T7 mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7-closure validators all at zero, context manifest success, CodeQL success and Dependency Review success.
+  - Exact metadata candidate 296ef2005de2ab5964d004d6383393b693594de9 passed deterministic lanes in MONDE Gate run 34904175139 / #160 with the same 244/244 tests, 100% line+branch, 37/37 + 26/26 mutation proof and all deterministic/T7 gates at zero; its live gate failed only on 46 unresolved threads plus missing independent exact-head approval.
+  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNih5Qw reviewed exact candidate 296ef2005de2ab5964d004d6383393b693594de9 and opened six new material findings, expanding the durable closure set to 52 and reopening implementation/tests/real-system/handover evidence under T8.
+  - Exact T8 substantive candidate a8e576ea9ea32b59a95b397de87727a7a52b2926 passed MONDE Gate run 34908856210 / #163: 258/258 tests, 2998/2998 statements, 1476/1476 branches, 100% line+branch coverage, 37/37 baseline plus 33/33 fresh-L2/T7/T8 critical mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7-closure/T8-closure validators all at zero, 19-file context manifest, CodeQL success and Dependency Review success. The live gate matched the durable 52-finding count and failed closed only on the 52 unresolved threads plus absence of a trusted context-separated L2/L3 exact-head APPROVED review.
+  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNmehrQ reviewed exact candidate 061c17e7144396cbfd01963fb4036f3fc3c58ed3 and opened six new P1/P2 findings, expanding the live closure set from 52 to 58 and opening T9.
+  - Exact T9 substantive candidate 3da4047cacaaad4962b647a6625767001d328027 passed MONDE Gate run 34952991296 / #178: 291/291 tests, 3313/3313 statements, 1624/1624 branches, 100% line+branch coverage, 37/37 baseline plus 39/39 fresh-L2/T7/T8/T9 critical mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7-closure/T8-closure/T9-closure validators all at zero, 19-file context manifest, CodeQL success and Dependency Review success. Its pre-synchronization live gate observed exactly 58 unresolved threads with stale=[] and failed closed on the expected durable-ID mismatch plus absence of a trusted context-separated L2/L3 exact-head APPROVED review.
+  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNnPvYg reviewed exact candidate 9e4144d255590360f99652e59c38a02dbf95ccfa and opened four new P1 findings, expanding the live closure set from 58 to 62 and opening T10.
+  - Exact T10 substantive candidate ef161b7e54c7f90433e1f303cdfd464827773870 passed deterministic/security lanes in MONDE Gate run 34962364980 / #190: 312/312 tests, 3482/3482 statements, 1696/1696 branches, 100% line+branch coverage, 37/37 baseline plus 40/40 fresh-L2/T7/T8/T9 mutations plus 5/5 dedicated T10 mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7/T8/T9/T10 validators all at zero, 19-file context manifest, CodeQL success and Dependency Review success. Its live gate observed exactly 62 unresolved threads and failed closed only on those threads, the expected four-entry durable-set lag, and missing independent exact-head approval.
+  - Exact synchronized T10 candidate 002926039c964e9e362b3c396a0d710323d9f1cf passed deterministic/security lanes in MONDE Gate run 34965242824 / #191 with the same 312/312 tests, 3482/3482 statements, 1696/1696 branches, 100% line+branch coverage, 37/37 + 40/40 + 5/5 mutations and every deterministic/T7/T8/T9/T10 gate at zero. Its live gate confirmed exact durable/live 62/62 identity equality and failed only on the 62 intentionally unresolved threads plus missing trusted context-separated exact-head approval.
+  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNoalkw reviewed exact candidate cc6e98d542fbedf097a8ffbb7eb5dcf128237c84 and opened five new material findings, expanding the live closure set from 62 to 67 and opening T11.
+  - Exact T11 substantive candidate 5e7af51bcc08698de930eed5dba62ab9ba3e74af passed deterministic/security lanes in MONDE Gate run 34973462479 / #201: 344/344 tests, 3761/3761 statements, 1808/1808 branches, 100% line+branch coverage, 37/37 baseline plus 40/40 fresh-L2/T7/T8/T9 plus 5/5 T10 plus 8/8 T11 critical mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7/T8/T9/T10/T11 validators all at zero, 19-file context manifest, CodeQL success and Dependency Review success. Its live gate observed exactly 67 unresolved threads and reported only the expected five-entry durable-set lag (missing the five T11 PRRT identities, stale=[]), plus absence of a trusted context-separated L2/L3 exact-head APPROVED review.
   evidence:
-    - "PR #2 live/branch-local evidence; query GitHub and checkout feat/work-0002-governance-ci before traversing its review/test registry graph"
-    - "MONDE Gate run 34509930758"
-    - "fresh L2 on c50c33009d90f079e645f0ca9e1befe1a4a77ba9"
-  coverage: {line: 100, branch: 100}
+  - TEST-0002
+  - TEST-0003
+  - REVIEW-0002
+  - 'PR #2'
+  - PRR_kwDOUUI5ts8AAAABNiFSzA
+  - PRR_kwDOUUI5ts8AAAABNih5Qw
+  - PRR_kwDOUUI5ts8AAAABNmehrQ
+  - PRR_kwDOUUI5ts8AAAABNnPvYg
+  - PRR_kwDOUUI5ts8AAAABNoalkw
+  coverage:
+    line: 100
+    branch: 100
   known_gaps:
-    - "This PR #3 mirror intentionally carries no branch-local completed-review or required-test IDs, affected_schemas paths, or branch-only prerequisite documents. Before editing or validating WORK-0002 implementation, checkout feat/work-0002-governance-ci and follow that branch's WORK-0002 record; only there should its branch-local schemas, review/test records and github-control-plane.md / ai-context-routing.md prerequisites be traversed until WORK-0002 is integrated into main."
-    - "Six fresh-L2 findings on c50c330 remain to be corrected, re-proven and independently re-reviewed on the implementation branch."
-    - "WORK-0002 cannot become DONE while dependency WORK-0001 remains IN_REVIEW."
-    - "Repository administration/ruleset enforcement belongs to WORK-0003."
-
+  - Repository administration/ruleset enforcement belongs to WORK-0003.
+  - Gate #201 is the exact substantive T11 author-side proof on 5e7af51bcc08698de930eed5dba62ab9ba3e74af; this durable-state synchronization commit changes HEAD and therefore requires its own exact-SHA Gate before fresh independent review.
+  - All 67 material review threads/findings remain intentionally unresolved pending another fresh independent verification; no author-side resolution counts as completion evidence.
+  - No trusted context-separated L2/L3 GitHub APPROVED review is yet bound to the exact current PR HEAD; the hardened live gate must remain fail-closed until that independent evidence exists.
+  - External Codex findings remain truthfully referenced by their GitHub review/thread identities rather than being retroactively rewritten as approving canonical REVIEW records.
+  - Historical malformed YAML, WORK-0001 squash bridges and progress-guard adoption boundaries must remain exact fail-closed historical provenance; future reuse is forbidden.
 risk:
   security: MEDIUM
   data: LOW
   epistemic: MEDIUM
   performance: LOW
   operational: MEDIUM
-
 rollback:
-  strategy: "Revert the governance hardening commit; keep canonical process documentation authoritative while the gate is repaired."
-
+  strategy: Revert the governance hardening commit; keep canonical process documentation authoritative while the gate is repaired.
 run_log:
-  - {run: RUN-1, date: "2026-09-10", note: "Initial validator and real CI established on the implementation branch; its review/test records are intentionally not mirrored as unresolved IDs into PR #3."}
-  - {run: RUN-2, date: "2026-09-11", note: "Governance automation remains IN_REVIEW on its own branch; this PR #3 mirror preserves only global lifecycle/dependency handoff and defers branch-local proof traversal until explicit checkout."}
-
+- run: RUN-1
+  date: '2026-09-10'
+  note: Initial validator and real CI established.
+- run: RUN-2
+  date: '2026-09-10'
+  note: Successive P0-P2 hardening rounds reached c50c330 with a green MONDE Gate; a fresh L2 then found six remaining gaps in assurance-derived independence, exact review SHA binding, substantive PASS proof, N/A justification, registry-change context seeding and handover currentness.
+- run: RUN-2
+  date: '2026-09-11'
+  note: Prepared one atomic six-finding correction plus dedicated final-L2 regressions and expanded mutation targets; real GitHub CI and post-WORK-0001 integration proof remained pending before completion.
+- run: RUN-2
+  date: '2026-09-14'
+  note: 'Integrated merged WORK-0001/main@29086643387ff46ab6636dd2fa3014efccc10165 into PR #2 after an exact-head merge probe. WORK-0002 remained IN_REVIEW pending full integrated CI proof and fresh L2.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'REVIEW-0030 was truthfully preauthorized, imported as COMPLETE/CHANGES_REQUIRED, bound to import commit 630604416bdccd3b07f57c011152e7fe14e0f2b4 and consumed. Its six new R2 findings reopened implementation/tests/specification/handover evidence. Resume audit also discovered duplicate-key YAML ambiguity in WORK-0004.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'Exact author-side candidate 42e4e93c0e25294b26d2a00d958660c9124697d1 passed MONDE Gate run 34868556415: 147 tests, 100% line/branch, 37/37 mutations, repository/strict/path/change validators zero, context manifest success, CodeQL success and Dependency Review success. Final live gate failed only on 18 intentionally unresolved threads.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'GitHub Codex review PRR_kwDOUUI5ts8AAAABNfhWLQ on 5e4dd33995d17587be1452265b830f2b32e0f89b added nine material findings. T6 corrected all nine with exact-head checkout, immutable review semantics, actor-bound authority, real import materialization, requirement evidence finalization/reachability, progress lifecycle enforcement, non-reusable squash provenance and DONE task/run checks.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'Exact author-side candidate 965d484e7063d5c11c9964faa89bd7cf8d5aa75c passed Gate #142 with 219/219 tests, 100% line/branch across 2530 statements/1282 branches including project-owned L2 scripts, 37/37 + 18/18 mutations and every deterministic validator/hardening gate at zero; metadata descendant 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 passed Gate #143 with the same proof and live gate blocked only on 38 threads.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNiFSzA on exact HEAD 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 opened eight new P1/P2 findings. The durable closure set became 46 and T7 was opened.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'T7 corrected all eight NiFSzA findings. Exact substantive candidate 52e1dd3aad0ee625f824440f9c87b920c58edec2 passed Gate #156 / run 34902136446 with 244/244 tests, 100% line/branch across 2801 statements/1374 branches, 37/37 + 26/26 mutations and every deterministic/T7 gate at zero. The live gate validated owner/admin and durable 46-finding tracking, then blocked only on 46 unresolved threads plus missing independent exact-HEAD APPROVED review. T7 is DONE author-side; T4 resumed for exact metadata-head proof and fresh L2 closure.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'Exact metadata candidate 296ef2005de2ab5964d004d6383393b693594de9 passed Gate #160 / run 34904175139, then fresh-context Codex review PRR_kwDOUUI5ts8AAAABNih5Qw opened six new P1/P2 findings. The closure set became 52; T8 reopened implementation/tests/real-system/handover while T4 was blocked.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'T8 corrected all six Nih5Qw findings. Exact substantive candidate a8e576ea9ea32b59a95b397de87727a7a52b2926 passed Gate #163 / run 34908856210 with 258/258 tests, 100% line+branch across 2998 statements/1476 branches, 37/37 + 33/33 mutations and every deterministic/T7/T8 gate at zero. Live gate matched all 52 unresolved threads and blocked only on those threads plus missing trusted context-separated L2/L3 exact-head approval. T8 is DONE author-side; T4 resumes for exact metadata-head proof and fresh independent closure.'
+- run: RUN-3
+  date: '2026-09-15'
+  note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNmehrQ on exact HEAD 061c17e7144396cbfd01963fb4036f3fc3c58ed3 opened six new P1/P2 findings and expanded the live closure set to 58. T9 corrected all six. Exact substantive candidate 3da4047cacaaad4962b647a6625767001d328027 passed Gate #178 / run 34952991296 with 291/291 tests, 100% line+branch across 3313 statements/1624 branches, 37/37 + 39/39 mutations and every deterministic/T7/T8/T9 gate at zero. The pre-sync live gate observed all 58 threads and correctly rejected the stale durable set plus missing independent exact-head approval. T9 is DONE author-side; T4 remains IN_PROGRESS for metadata-head proof and fresh independent closure.'
+- run: RUN-3
+  date: '2026-09-15'
+  note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNnPvYg on exact HEAD 9e4144d255590360f99652e59c38a02dbf95ccfa opened four new P1 findings and expanded the live closure set to 62. T10 corrected all four with dedicated regression and mutation protection. Exact substantive candidate ef161b7e54c7f90433e1f303cdfd464827773870 passed Gate #190 / run 34962364980. Synchronized descendant 002926039c964e9e362b3c396a0d710323d9f1cf passed Gate #191 / run 34965242824 with 312/312 tests, 100% line+branch across 3482 statements/1696 branches, 37/37 + 40/40 + 5/5 mutations, every deterministic/T7/T8/T9/T10 gate at zero, 19-file context manifest, CodeQL success and Dependency Review success; live durable identity equality is 62/62. T10 is DONE author-side; T4 resumes for exact closure-metadata proof and fresh independent review.'
+- run: RUN-3
+  date: '2026-09-15'
+  note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNoalkw on exact HEAD cc6e98d542fbedf097a8ffbb7eb5dcf128237c84 opened five new material findings and expanded the live closure set to 67. T11 corrected all five. Exact substantive candidate 5e7af51bcc08698de930eed5dba62ab9ba3e74af passed Gate #201 / run 34973462479 with 344/344 tests, 100% line+branch across 3761 statements/1808 branches, 37/37 + 40/40 + 5/5 + 8/8 mutations, every deterministic/T7/T8/T9/T10/T11 validator at zero, 19-file context manifest, CodeQL success and Dependency Review success. The live gate observed all 67 unresolved threads, exactly the five expected durable IDs missing and no stale IDs, plus no trusted exact-head approval. T11 is DONE author-side; T4 remains IN_PROGRESS for synchronized-metadata proof and fresh independent closure.'
 discoveries:
-  - "100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required."
-  - "GitHub live state can invalidate stale PROJECT_STATE prose after it is committed."
-  - "Test/review definitions must be separated from SHA-bound execution evidence."
-  - "Meta-governance authorization must bind the changed sensitive path to the active work item, not merely observe an unrelated A3/A4 record."
-  - "Security scanning must account for reachable PR commit history until squash-only merge is enforced."
-  - "Cross-branch work mirrors must not place branch-only files, schemas or proof-record IDs into locally traversable fields; the checkout boundary must be explicit before those prerequisites/evidence records become mandatory."
+- 100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required.
+- GitHub live state can invalidate stale PROJECT_STATE prose after it is committed.
+- Test/review definitions must be separated from SHA-bound execution evidence.
+- Meta-governance authorization must bind the changed sensitive path to the active work item, not merely observe an unrelated A3/A4 record.
+- Canonical policy registries that define validators, including integration-provenance exception policy, are themselves meta-governance trust anchors and cannot authorize their own weakening from candidate state.
+- Security scanning must account for reachable PR commit history until squash-only merge is enforced; textual patches alone are insufficient because Git may classify a secret-bearing blob as binary.
+- Assurance level must impose a minimum review-independence floor rather than trusting a self-declared weaker target.
+- Requirement acceptance must use one qualifying review and one qualifying cold-read record that each co-satisfy their full contract; properties cannot be split across unrelated evidence records.
+- Acceptance evidence must bind the exact content-identity policy revision as well as the resulting digest, and no intervening policy revision may be hidden by a later byte-for-byte revert or merge-history simplification.
+- ACCEPTED requirement/risk records are continuing invariants: same-status edits and later dependency changes must not bypass the original acceptance contract.
+- Dependency-driven continuing acceptance is required; globally rejudging every historical ACCEPTED record under later rules is also incorrect because it creates retroactive governance.
+- A changed registry record is itself an impact-analysis seed; path-only WORK matching is insufficient.
+- Repository-owner authority evidence must bind the actual GitHub repository and independently verify the named actor/permission rather than trust mutable policy-internal agreement.
+- Exact-head GitHub approval is necessary but not sufficient; the approver must be trusted, context-separated and bound to qualifying L2 evidence.
+- The live merge gate must prove exact-head independent approval and must be rerun when supported review state changes rather than relying on stale success; unsupported review-thread state changes require a trusted bounded polling bridge.
+- Canonical YAML must fail closed on duplicate mapping keys; last-key-wins parsing can silently corrupt durable project state.
+- A risk cannot enter ACCEPTED when its owning-work assurance cannot be resolved deterministically from canonical scope; ambiguous ownership fails closed.
+- Squash merging preserves tree state but destroys direct branch ancestry, so exact source-head/tree/integrated-commit provenance is required for historical SHA-bound test evidence.
+- Historical first-status materialization through an exact tree-equivalent squash is distinct from whether that record is eligible as acceptance evidence; evidence allowlists remain a separate fail-closed contract.
+- A fail-closed parser must distinguish an exact known malformed historical blob from a deleted file without making malformed YAML generically acceptable.
+- Exact-head proof must separate the PR head from GitHub's synthetic merge ref; otherwise base-only history can contaminate ancestry and current-tree claims.
+- New fail-closed lifecycle rules need immutable predecessor-bound, non-reusable adoption boundaries so candidate state cannot move the enforcement start point.
+- Progress reopening evidence, including top-level WORK-status reopenings, must be scoped to the exact target and must represent a genuinely new trigger rather than reorder/delete/prose churn.
+- Squash provenance may bridge historical review/test evidence only for explicit eligible IDs and exact equal-tree source/integrated commits.
+- One-shot review import binding and import eligibility are distinct phases: the field may bind once to the exact earlier first-COMPLETE materialization commit under prior authorization, while later evidence use additionally requires consumed authorization.
+- Durable closure integrity is an identity-set property: equal counts cannot substitute for exact one-to-one PRRT coverage.
+- Effective workflow semantics must be validated from parsed YAML structure rather than textual snippets that comments or formatting can mimic.
 blockers:
-  - "WORK-0001 must become DONE before WORK-0002 can truthfully become DONE."
-follow_up_work_items: [WORK-0003, WORK-0004]
-
+- All 67 review findings remain intentionally unresolved. T11 is author-side DONE with exact proof on 5e7af51bcc08698de930eed5dba62ab9ba3e74af / Gate #201 / run 34973462479. This durable-state synchronization commit must pass its own exact-SHA Gate and establish 67/67 durable/live identity equality; then T4 requires a fresh independent L2 over all 67 findings and a trusted context-separated L2/L3 exact-head APPROVED review before any closure or merge.
+follow_up_work_items:
+- WORK-0003
+- WORK-0004
 completion:
   definition_of_ready_checked: true
   definition_of_done_checked: false
   specification_gates_checked: true
   traceability_checked: true
   review_complete: false
-  docs_updated: false
-  registries_updated: false
-  project_state_updated: false
+  docs_updated: true
+  registries_updated: true
+  project_state_updated: true

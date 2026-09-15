@@ -3,62 +3,114 @@
 Status: Accepted  
 Canonical operational state: Yes
 
-> Fast resume point. Durable intent lives in Git. Live PR/check/thread truth is volatile and must be re-queried before review or merge decisions. Mutable TEST lifecycle/result truth lives only in each `registry/tests/TEST-*.yaml` record.
+> Fast resume point. Durable intent lives in Git. Live PR/check/thread truth is volatile and must be re-queried before review or merge decisions.
 
-## Current phase / lot / blocker
+## Current phase / lot
 
-- **PHASE-0 — Specification, repository governance and canonical documentation** remains `IN_PROGRESS`.
-- **LOT-0 — AI-first repository operating system** remains `IN_PROGRESS`.
-- **SUBLOT-0.1 — Governance bootstrap** is `DONE`.
-- `WORK-0001` is `DONE / A3` on PR #3 after independent final-v10 review and administrative closure.
-- `WORK-0002` remains separate `IN_REVIEW` work on PR #2 and is the next active dependency once PR #3 is merged/integrated.
-- WORK-0003 is `PLANNED`; WORK-0004 is `PLANNED`.
+- **PHASE-0 — Specification and repository governance** is `IN_PROGRESS`.
+- **LOT-0 — AI-first repository operating system** is `IN_PROGRESS`.
+- **SUBLOT-0.1 / WORK-0001** is `DONE / A3` and was squash-merged to `main` as `29086643387ff46ab6636dd2fa3014efccc10165`.
+- **SUBLOT-0.2 / WORK-0002** remains `IN_REVIEW / A3` on PR #2 / `feat/work-0002-governance-ci`.
+- WORK-0003 and WORK-0004 remain planned downstream work. Do not start them before WORK-0002 is independently closed.
 
-PR #1 remains historically squash-merged into `main` as `b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1`.
+## T11 trigger and closure state
 
-## WORK-0001 final independent closure
+Fresh-context GitHub Codex review `PRR_kwDOUUI5ts8AAAABNoalkw` against exact candidate `cc6e98d542fbedf097a8ffbb7eb5dcf128237c84` opened five material findings:
 
-REVIEW-0028 followed the normal review lifecycle before its substantive execution: OPEN in `4f303d7e35f4c21b2bfd5c2f8f4420af4633b0f3`, IN_PROGRESS in `2705143a9ce118984a1d193c3fb04d272c31d51f`, then a fresh authoring-separated L2 ran as GitHub Actions run `34795920644` / job `103828868552` against exact substantive candidate `b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60`.
+1. audit the pre-T10 `registry/integration-provenance.yaml` bootstrap rather than skipping those historical edits;
+2. traverse full merge history when locating the first imported `COMPLETE` / `PASS` materialization;
+3. invalidate a previously successful merge gate when an existing review conversation is later unresolved even though GitHub Actions has no native review-thread trigger;
+4. scan committed Git blobs rather than textual patches so binary-classified secret-bearing blobs cannot bypass history scanning;
+5. validate effective workflow-trigger structure from parsed YAML rather than matching source snippets.
 
-The independent result was **APPROVE_WITH_FOLLOWUP** with all nine closure checks PASS, no material R1/R2/R3 finding, and the exact canonical set of 41 historical findings independently declared closable. The follow-up was limited to recording REVIEW-0028, closing those verified findings/threads and synchronizing completion state.
+The exact new thread identities are:
 
-REVIEW-0028 became `COMPLETE / APPROVE_WITH_FOLLOWUP` in `4c945fa83a6b246365451a4df74f7c0ac34431f5`.
+- `PRRT_kwDOUUI5ts6igleE`
+- `PRRT_kwDOUUI5ts6igleI`
+- `PRRT_kwDOUUI5ts6igleM`
+- `PRRT_kwDOUUI5ts6igleS`
+- `PRRT_kwDOUUI5ts6igleV`
 
-The 41 verified findings were then changed atomically from `OPEN` to `RESOLVED` with `resolved_by: REVIEW-0028` in `0147908a483c3705812cf6d35cc6992c9e6226bd`. The matching 41 GitHub PR #3 review threads were resolved only after that canonical closure. No additional unresolved review thread was present in the post-resolution check.
+This expands the material closure set from 62 to **67**. None of these 67 threads is author-resolved.
 
-## Requirement acceptance and cold-read provenance
+T11 corrected all five and is **DONE author-side**. T4 independent closure remains `IN_PROGRESS`.
 
-REQ-0020/0021/0022 remain `SUPERSEDED` premature-acceptance history.
+## Exact T11 proof
 
-REQ-0023/0024/0025 were independently cold-read while PROPOSED by TEST-0008 and reviewed by REVIEW-0027, then atomically transitioned `PROPOSED → ACCEPTED` in `74dc253d849e3b6b6570fe55df415f5e9da65ab2` without changing their normative identity.
+The first T11 candidate `0b943783c80e22e7d47c854b3a4db0b79ebe9f0f` reached MONDE Gate #199 / run `34971757299`: all 339 tests passed, but the 100% coverage gate correctly failed on newly introduced T11/poller branches. The coverage-only descendant `b3daae25ec569b960e95c12d98f387a44f562abe` reached Gate #200 / run `34972089486`, where coverage and mutations passed but the T11 validator exposed 12 historical WORK-0001 review imports whose source-side materialization was hidden by squash integration.
 
-Exact accepted normative digests remain:
+The correction deliberately did **not** modify the `integration-provenance` trust anchor. Instead T11 now separates two contracts:
 
-- REQ-0023: `sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b`
-- REQ-0024: `sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4`
-- REQ-0025: `sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67`
+- exact historical first-status recovery may follow an already-authorized tree-equivalent squash bridge when the source/import/integrated commits, ancestry, expected tree and non-reuse flags all match exactly;
+- evidence qualification remains separately fail-closed under T7/T9 and still requires explicit eligible review/test IDs.
 
-REVIEW-0027 source: GitHub Actions Copilot CLI run `34793888383`, exact candidate `c12a5b55c89168f20c028c2964da16de6f95ac56`, import `f78d5575a94b49d90abb166003cf4520bf167d3a`.
+Exact substantive T11 SHA **`5e7af51bcc08698de930eed5dba62ab9ba3e74af`** passed deterministic/security lanes in **MONDE Gate #201 / run `34973462479`** with:
 
-TEST-0008 source: the same fresh-context run, exact execution tree `c12a5b55c89168f20c028c2964da16de6f95ac56`, PASS import `4035cbd9fe5a9dc113d95ba83ad3c72d7d0b76f1`, metadata binding `3125334eb00a8a3da28cb94271316856147965eb`.
+- **344/344 tests PASS**;
+- **3761/3761 statements** and **1808/1808 branches**, **100.00% line + branch coverage**;
+- baseline mutation smoke **37/37**;
+- fresh-L2/T7/T8/T9 mutation smoke **40/40**;
+- dedicated T10 mutation smoke **5/5**;
+- dedicated T11 mutation smoke **8/8**;
+- repository validator **0 errors / 0 warnings across 67 records**;
+- strict governance, path safety, change guard, fresh-L2 hardening, review-closure, T7, T8, T9, T10 and **T11** closure validators **0 errors**;
+- context manifest **19 MUST_READ files**;
+- CodeQL **success**;
+- Dependency Review lane **success**.
 
-`registry/status-machines.yaml` v10, `registry/content-identity.yaml` v2 and `registry/acceptance-authority.yaml` v1 remain the canonical contracts.
+The exact live gate on `5e7af51...` observed **67 unresolved review threads** and failed closed only on:
 
-## WORK-0002 cross-branch boundary
+- `ERROR UNRESOLVED_THREADS: 67 unresolved review thread(s)`;
+- `ERROR DURABLE_FINDING_SET`: exactly the five T11 identities above were missing from the then-current 62-entry durable set, with `stale=[]`;
+- `ERROR INDEPENDENT_EXACT_HEAD_APPROVAL`: no trusted, context-separated L2/L3 GitHub `APPROVED` review was bound to that exact HEAD.
 
-PR #3 contains only the globally readable WORK-0002 lifecycle/dependency mirror. Before editing or validating WORK-0002 implementation, query live PR #2 and checkout `feat/work-0002-governance-ci` or its integrated successor. Branch-local review/test/schema proof remains behind that explicit boundary.
+This durable-state synchronization commit adds exactly those five PRRT identities and no author-side resolutions. Because it changes HEAD, it must receive its own exact-SHA MONDE Gate before the next independent review; Gate #201 proves its substantive parent, not this later metadata state.
+
+## T11 implementation result
+
+T11 now enforces that:
+
+1. the pre-T10 `integration-provenance` bootstrap equals the exact immutable five-commit history already independently reviewed;
+2. imported REVIEW/TEST first-status discovery uses full merge history and cannot hide a side-branch materialization;
+3. exact squash-tree history recovery proves materialization without silently broadening acceptance-evidence allowlists;
+4. changed committed blobs are scanned directly for high-confidence secrets with an explicit fail-closed size bound, including blobs Git classifies as binary;
+5. supported review/review-comment events rerun the live gate immediately, while a bounded scheduled poll invalidates a previously green gate if an existing review thread is later unresolved;
+6. workflow review/poll triggers and T11 wiring are validated from effective parsed YAML structure rather than comments or text fragments.
+
+## WORK-0002 execution state
+
+- T1, T2, T3, T5, T6, T7, T8, T9, T10 and **T11** are DONE for their author-side scopes.
+- **T4 — exact final-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`.**
+- WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
+- Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` after exact author-side T11 proof and this refreshed handover.
+- `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending independent closure.
+
+## Current WORK-0002 gate
+
+Required sequence from this state:
+
+1. Keep all **67** material review threads unresolved.
+2. Prove this exact durable-state synchronization HEAD with its own MONDE Gate.
+3. Confirm the live gate reports exact durable/live **67/67 PRRT identity equality** and fails only on the 67 intentionally unresolved threads plus missing trusted context-separated exact-head approval.
+4. Request another **fresh-context independent L2** on that exact proven HEAD. It must reverify all 67 accumulated findings, explicitly recheck T11 plus the T7/T8/T9/T10 trust-anchor, lifecycle, import/finalization, authority, identity-policy history, exact-head approval, reopening, raw-blob scanning, workflow-structure and durable-thread invariants, and actively search for new bypasses.
+5. If new material findings appear, reopen affected work/evidence again and add their exact identities durably; do not resolve existing threads.
+6. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD satisfying the hardened trusted/context-separated L2/L3 contract.
+7. Only after independent semantic verification and trusted exact-head approval may independently verified threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
+8. Merge with exact-head guard, then continue to WORK-0003 and WORK-0004.
+
+## Integration-provenance boundary
+
+`registry/integration-provenance.yaml` is an A3 meta-governance trust anchor because validators consume it as exact historical exception/adoption authority. Candidate state cannot make a same-PR exception self-authorizing. Existing WORK-0001 squash provenance, progress adoption records and malformed-YAML repair episodes remain exact historical-only, future-reuse-forbidden bridges.
+
+Historical **materialization** and evidence **eligibility** are intentionally distinct: an exact equal-tree squash bridge may recover where a record first reached its evidence-bearing status, while acceptance/completion qualification still requires the separately authorized eligible review/test identity and every current proof contract.
 
 ## Repository visibility
 
-MONDE intentionally remains **public** by explicit owner decision. Never commit credentials/tokens/secrets, private/personal datasets or user-identifying runtime data. Sensitive runtime material remains outside Git.
+MONDE intentionally remains **public**. Never commit credentials, tokens, secrets, private/personal datasets or user-identifying runtime data. Sensitive runtime material remains outside Git. WORK-0003 owns repository/ruleset/required-check/security-setting hardening while preserving public visibility.
 
-## Next action
+## Product/UI/UX owner gate
 
-1. Query live PR #3 and verify its current HEAD, mergeability, checks and review-thread state; do not rely on this file for volatile GitHub state.
-2. Run the post-REVIEW-0028 deterministic completion audit on the exact current PR #3 HEAD. It must confirm WORK-0001/T6/RUN-3 and completion gates are DONE/true, all 41 canonical findings are RESOLVED by REVIEW-0028, all PR review threads are resolved, required TEST-0004..TEST-0008 are PASS, accepted requirements retain their reviewed digests, and no normative v10 contract changed after REVIEW-0028.
-3. If that administrative audit is clean, merge PR #3 with an expected-head guard.
-4. After PR #3 merges, integrate the new `main` into PR #2 / WORK-0002, rerun its full governance gate and obtain its own fresh L2 before WORK-0002 completion or merge.
-5. Then proceed to WORK-0003 and WORK-0004 according to LOT-0/LOT-1 dependencies.
+Product specification and product identity remain owner-gated decisions. Agents must not silently canonize product experience, UI/UX, visual identity, brand, color system, interface density, interaction language, emotional/psychovisual tone or other strong design choices. Major product-function decisions require explicit owner co-design rather than irreversible invention.
 
 ## Resume sequence
 
@@ -66,14 +118,16 @@ MONDE intentionally remains **public** by explicit owner decision. Never commit 
 2. `AGENTS.md`
 3. `docs/00_START_HERE.md`
 4. this file
-5. `registry/work-items/WORK-0001.yaml`
-6. `registry/reviews/REVIEW-0028.yaml`
-7. `registry/tests/TEST-0008.yaml`
-8. `registry/requirements/REQ-0023.yaml` through `REQ-0025.yaml`
-9. `registry/status-machines.yaml`
-10. `registry/content-identity.yaml`
-11. `registry/acceptance-authority.yaml`
-12. `registry/work-items/WORK-0002.yaml` and `registry/progress/matrix.yaml`
-13. live PR #3 status/threads/checks and live PR #2 state
+5. `registry/work-items/WORK-0002.yaml`
+6. `registry/progress/matrix.yaml`
+7. `registry/status-machines.yaml`
+8. `registry/acceptance-authority.yaml`
+9. `registry/content-identity.yaml`
+10. `registry/integration-provenance.yaml`
+11. live PR #2 exact HEAD, checks, reviews and all **67 unresolved review threads**
+12. `.github/workflows/governance.yml`, `.github/workflows/_governance-core.yml`
+13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `t11_closure.py`, `github_live_gate.py`, `thread_state_poll.py`
+14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_t11_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`
+15. `tests/governance/test_t11_findings.py`, `test_t11_additional_coverage.py`, `test_thread_state_poll.py` and prior T7/T8/T9/T10 regression suites
 
 No prior chat history is required.
