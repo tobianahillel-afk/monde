@@ -1,4 +1,5 @@
 name: MONDE Gate
+run-name: MONDE Gate PR #${{ github.event.pull_request.number || 'non-pr' }}
 
 on:
   pull_request:
