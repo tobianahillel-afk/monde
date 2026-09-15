@@ -1,0 +1,91 @@
+name: MONDE Stale-Green Bootstrap
+# REVIEW-0041 PR-collection snapshot correction; executable semantics changed.
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/monde-stale-green-bootstrap.yml
+      - .github/scripts/stale_green_bootstrap.py
+      - .github/scripts/stale_green_bootstrap_pr_snapshot.py
+      - '.github/scripts/test_stale_green_bootstrap*.py'
+      - requirements/bootstrap-governance-ci.txt
+      - registry/requirements/REQ-0026.yaml
+      - registry/tests/TEST-0009.yaml
+      - registry/reviews/REVIEW-*.yaml
+      - registry/work-items/WORK-0002.yaml
+      - PROJECT_STATE.md
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  self-test:
+    name: Bootstrap self-test
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact PR head or default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install hash-locked coverage tool
+        run: python3 -m pip install --require-hashes -r requirements/bootstrap-governance-ci.txt
+      - name: Run bootstrap tests with 100 percent line and branch coverage
+        run: |
+          python3 -m coverage erase
+          python3 -m coverage run --branch -m unittest discover \
+            -s .github/scripts \
+            -p 'test_stale_green_bootstrap*.py'
+          python3 -m coverage report \
+            --include='.github/scripts/stale_green_bootstrap.py,.github/scripts/stale_green_bootstrap_pr_snapshot.py' \
+            --fail-under=100 \
+            --show-missing
+
+  github-contract:
+    name: Bootstrap GitHub contract probe
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Validate live GitHub REST GraphQL Checks and Actions contracts against WORK-0002 PR
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # PR #2 is the consumer this temporary default-branch predecessor must protect.
+          # It has the canonical MONDE Gate runs/checks that PR #5 itself intentionally lacks.
+          BOOTSTRAP_VALIDATE_PR: '2'
+        run: python3 .github/scripts/stale_green_bootstrap_pr_snapshot.py
+
+  stale-green-poll:
+    name: Bootstrap stale-green poll
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      checks: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Invalidate stale successful MONDE gates
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/stale_green_bootstrap_pr_snapshot.py

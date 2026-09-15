@@ -1,0 +1,82 @@
+id: REVIEW-0042
+status: IN_PROGRESS
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "effective merge state is the exact latest GitHub Actions-owned MONDE / Merge Gate check for the exact head SHA"
+    - "review-thread state is evaluated before target-history discovery"
+    - "open Pull Requests authority uses exact unique PR identities and two identical authority-field snapshots"
+    - "bounded closed Pull Requests history uses exact unique PR identities and two identical authority-field snapshots"
+    - "Actions history is queried only for positively stale-green PRs and only as rerun-capability evidence"
+    - "filtered workflow-run windows are complete below the 1,000-result ceiling through non-overlapping partitioning plus exact stable unique snapshots"
+    - "current-incarnation target and protected current-attempt MONDE / Merge Gate job are positively bound before rerun"
+    - "closed-history overlap semantics remain branch-reset safe and bounded by the earliest stale-green active incarnation"
+    - "strict positive non-Boolean identifiers/attempts and fail-closed REST/GraphQL/Checks/Actions metadata"
+    - "ten-minute schedule, per-poll caches and least-privilege write boundary"
+    - "TEST-0009 seven-module regression discovery and WORK/PROJECT/REVIEW traceability"
+  risks:
+    - "Cross-API TOCTOU may remain between stable PR snapshots, Checks, reviewThreads, later Actions target discovery and rerun."
+    - "Double PR snapshots may create request-budget pressure or still bind insufficient authority fields."
+    - "A stable snapshot could be internally valid yet semantically insufficient for branch/incarnation ambiguity."
+    - "Wrapper installation could fail to cover every runtime path that reaches open/closed PR authority."
+findings: []
+checks:
+  assumptions_challenged:
+    - "The PR snapshot adapter is installed for both live validation and scheduled mutation paths before core.main executes."
+    - "Fingerprint fields include every PR attribute used by stale classification and incarnation reasoning without binding irrelevant volatile fields."
+    - "Two complete unique authority snapshots fail closed on offset-pagination drift without breaking legitimate record reordering."
+    - "Closed-history double reads preserve cutoff/order/lifetime semantics and cannot omit a relevant overlap record silently."
+    - "The extra PR reads retain sufficient API budget at the ten-minute cadence."
+  omitted_categories_considered:
+    - "wrapper import/install ordering"
+    - "duplicate PR number on one page or across pages"
+    - "same-cardinality open/closed membership drift"
+    - "authority-field mutation between snapshots"
+    - "benign record order changes"
+    - "closed-history cutoff movement and updated_at reordering"
+    - "shared-head PRs with divergent review-thread state"
+    - "remaining Checks/GraphQL/Actions TOCTOU"
+    - "API request budget and timeout"
+    - "workflow/test-path/coverage discovery for the adapter"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 remain terminal COMPLETE/CHANGES_REQUIRED evidence."
+    - "REVIEW-0040 and REVIEW-0041 are CLOSED administrative negative evidence after author-side findings invalidated their frozen heads before independent review completion."
+    - "All 42 historical inline material PR #5 threads remain unresolved."
+    - "PR #2 durable poller must later integrate the final behavior directly after trusted-base merge."
+  failure_modes_considered:
+    - "adapter is covered in tests but live/scheduled workflow still calls the unwrapped core script"
+    - "duplicate PR membership survives because only head identity, not PR number, is checked"
+    - "same-cardinality membership drift survives because ordering is normalized without comparing membership"
+    - "closed lifetime or updated_at changes between snapshots escape the fingerprint"
+    - "double snapshots amplify rate-limit failure and leave stale green state"
+    - "new material bypass remains in exact check, thread, target-history or rerun ordering"
+  evidence_requested:
+    - "Exact-head suite at 100 percent line and branch across core and PR snapshot adapter."
+    - "Read-only live PR #2 contract probe executing the adapter path."
+    - "Fresh-context exact-head independent L2 review after OPEN and IN_PROGRESS lifecycle checkpoints are each proven."
+    - "No historical thread resolution before clean independent successor review."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-15"

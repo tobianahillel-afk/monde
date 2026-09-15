@@ -1,0 +1,63 @@
+id: REVIEW-0040
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "3f31658ca2f892e1dd24c7faa4462e3d7e958aaf"
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "effective merge state is read directly from the exact latest GitHub Actions-owned MONDE / Merge Gate check for the exact head SHA"
+    - "canonical Actions workflow history is used only to discover a current-incarnation rerun target, never as merge-state authority"
+    - "filtered workflow-run searches are partitioned into closed non-overlapping second windows below GitHub's 1,000-result ceiling"
+    - "accepted filtered workflow-run windows have unique exact IDs and identical repeated snapshots before use"
+    - "closed-PR history is bounded to lifetimes capable of overlapping the earliest active incarnation"
+    - "workflow_id, run/job/check IDs and attempts use strict positive non-Boolean integer semantics"
+    - "the current-incarnation rerun target exposes exactly one valid protected MONDE / Merge Gate job before rerun"
+    - "success, neutral and skipped exact protected-check conclusions all trigger stale-green revalidation"
+    - "check/run/job lookups are cached within one poll and the scheduled poll cadence is ten minutes"
+    - "fail-closed GitHub Checks/Actions/Pull Requests/GraphQL metadata and bounded pagination"
+    - "bootstrap regression and TEST-0009 / WORK-0002 / PROJECT_STATE traceability completeness"
+  risks:
+    - "Rerun-target history could be snapshotted before the exact check/thread state that makes a PR stale-green."
+findings:
+  - "PRR_kwDOUUI5ts8AAAABNuingg"
+checks:
+  assumptions_challenged:
+    - "A target-history snapshot taken before required-check/thread classification remains fresh enough for invalidation."
+    - "Green exact-head tests alone prove the absence of ordering races between Checks, GraphQL and Actions history."
+  omitted_categories_considered:
+    - "cross-API snapshot ordering"
+    - "first/current-incarnation run completing during one poll"
+    - "unnecessary history reads for clean or non-merge-acceptable PRs"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 remain terminal negative evidence and were not rewritten."
+    - "No independent Codex REVIEW-0040 result was submitted before the author-side P1 invalidated the frozen head."
+  failure_modes_considered:
+    - "Actions scan_end is fixed, then a current-incarnation run completes and publishes a merge-acceptable check before Checks/GraphQL classification."
+    - "The exact check becomes stale-green while the earlier target snapshot contains no eligible rerun target, causing fail-closed error rather than immediate invalidation."
+  evidence_requested:
+    - "Classify exact required-check state and unresolved review threads first; discover rerun-target history only for positively proven stale-green PRs afterward."
+    - "Regression proving target discovery ordering and proving clean/non-merge-acceptable PRs never trigger target-history reads."
+    - "Fresh exact-head proof and a successor independent L2 review."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-15T21:55:55Z"
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-15"

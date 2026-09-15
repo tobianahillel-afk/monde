@@ -6,14 +6,14 @@ lot: LOT-0
 sublot: SUBLOT-0.2
 owner: "repository governance"
 created_at: "2026-09-10"
-updated_at: "2026-09-11"
+updated_at: "2026-09-15"
 
 purpose: |
   Turn MONDE governance/specification/traceability contracts into executable CI and GitHub control-plane checks so repository state, review evidence, scope and proof cannot silently drift.
 
 scope_change:
   approved: true
-  rationale: "Owner explicitly requested P0-P2 hardening after the first real run and Codex reviews exposed missing review, progress, scope, GitHub-state, commit-history and meta-governance controls."
+  rationale: "Owner explicitly requested P0-P2 hardening after real runs and repeated adversarial review exposed missing review, progress, scope, GitHub-state, commit-history, meta-governance and control-plane guarantees. PR #5 remains the narrow T12 trusted-default-branch predecessor required before PR #2 can safely close. The bootstrap has now hardened canonical workflow/check authority, stale-green-first target discovery, current-incarnation attribution, filtered-search server-cap handling, stable unique Actions snapshots, stable unique Pull Requests authority snapshots, bounded closed-PR history, protected-job/current-attempt authority, strict identifier typing, shared-SHA and branch-reset behavior, API-budget controls, regression discovery and durable REQ/TEST/REVIEW traceability."
 
 scope:
   in:
@@ -39,6 +39,35 @@ scope:
     - hash-locked governance Python toolchain
     - reusable GitHub Actions governance core, Dependency Review and CodeQL lanes
     - CI artifacts and stable MONDE merge gate
+    - trusted default-branch stale-green bootstrap polling required before PR #2 merge eligibility
+    - non-destructive live GitHub contract validation for the bootstrap bridge against PR #2, its actual consumer
+    - effective merge state is read directly from the exact latest GitHub Actions-owned MONDE / Merge Gate check for the exact SHA
+    - exact required-check state and unresolved review-thread state are positively classified before any current-incarnation rerun-target history is sampled
+    - clean, incomplete and non-merge-acceptable PRs do not trigger target-history or closed-history discovery
+    - canonical MONDE Gate workflow-run history is used only to discover the current-incarnation rerun target explicitly allowed for a positively proven stale-green PR
+    - bootstrap run binding uses GitHub-server head repository/ref/SHA rather than workflow_run.pull_requests association cardinality
+    - complete fail-closed validation of every canonical PR-family run record used for rerun targeting, including status=completed, structured owner/repo identity and timezone-aware created_at/updated_at with updated_at >= created_at
+    - filtered workflow-run searches split into closed non-overlapping second ranges whenever GitHub's 1000-result filtered-search ceiling is reached; a saturated single timestamp second fails closed
+    - filtered workflow-run windows are accepted only with exact unique run IDs and two identical snapshots; stable total_count alone is insufficient authority
+    - Actions workflow-runs and Jobs envelope total_count is a typed authoritative cardinality contract; pagination rejects malformed, inconsistent, over-count, incomplete-short and duplicate-identity collections
+    - open Pull Requests authority is accepted only after two identical canonical authority-field snapshots with unique exact positive PR numbers
+    - bounded closed Pull Requests history authority is accepted only after two identical canonical authority-field snapshots with unique exact positive PR numbers
+    - Pull Requests snapshot fingerprints bind PR number, state, repository/ref/SHA and created_at, plus closed_at/updated_at for closed history
+    - the Pull Requests snapshot adapter is the executable entrypoint for both live validation and trusted scheduled mutation paths
+    - effective exact protected-check state is read through Checks API; selected current-incarnation rerun target's protected MONDE / Merge Gate job is independently validated through Actions Jobs API
+    - GitHub merge-acceptable required-check conclusions success, neutral and skipped all trigger stale-green review-thread revalidation
+    - required-job records fail closed on malformed id/run_id/run_attempt/name/status/conclusion/head_sha; identifiers and attempts are positive exact non-Boolean integers and the protected job is unique per selected run
+    - workflow_id and all other numeric trust bindings are exact positive non-Boolean integers rather than relying on Python coercive equality
+    - open-PR collection members explicitly report state=open before authority use
+    - current PR-incarnation binding uses PR/run creation times plus same-repository/same-branch closed-PR lifetime windows independent of the closed PR's final SHA snapshot
+    - closed PR history is ordered by updated desc and bounded to lifetimes capable of overlapping the earliest stale-green active incarnation instead of traversing branch lifetime
+    - one-poll caches bind exact required-check state by SHA and protected target-job state by run/attempt
+    - scheduled stale-green polling runs every ten minutes while retaining the five-minute job timeout to bound GitHub API pressure
+    - bounded fail-closed REST and GraphQL pagination, including typed endCursor metadata on terminal and continuing pages
+    - bootstrap pull-request trigger covers the complete test_stale_green_bootstrap*.py regression family and the PR snapshot adapter
+    - TEST-0009 canonically lists all seven bootstrap regression modules
+    - stable REQ-0026 -> WORK-0002 -> TEST-0009 / REVIEW-0031 / REVIEW-0032 / REVIEW-0033 / REVIEW-0034 / REVIEW-0035 / REVIEW-0036 / REVIEW-0037 / REVIEW-0038 / REVIEW-0039 / REVIEW-0040 / REVIEW-0041 / REVIEW-0042 traceability for the material bootstrap behavior
+    - exact-head bootstrap proof on review lifecycle changes as well as executable/work/project changes
   out:
     - MONDE product implementation
     - product-language CI not yet selected
@@ -52,9 +81,9 @@ acceptance_criteria:
   - {id: AC-3, description: "Published IDs, records, state transitions and post-READY semantic scope are guarded across the actual PR commit sequence.", status: DONE}
   - {id: AC-4, description: "GitHub CI uses immutable/hash-locked dependencies, least privilege, CodeQL, dependency review, artifacts and a stable final merge gate.", status: DONE}
   - {id: AC-5, description: "AI context and live GitHub state are generated/checked without treating stale repository prose as current merge truth.", status: DONE}
-  - {id: AC-6, description: "All Codex findings are proven fixed on the substantive final HEAD and a fresh-context L2 review approves completion.", status: IN_REVIEW}
+  - {id: AC-6, description: "All material findings are proven fixed on the substantive final HEAD and a fresh-context L2 review approves completion.", status: IN_REVIEW}
 
-requirements: []
+requirements: [REQ-0026]
 assumptions: []
 risks: []
 
@@ -83,6 +112,20 @@ read_before:
   - docs/13_QUALITY/advanced-verification.md
   - registry/README.md
   - registry/progress/matrix.yaml
+  - registry/requirements/REQ-0026.yaml
+  - registry/tests/TEST-0009.yaml
+  - registry/reviews/REVIEW-0031.yaml
+  - registry/reviews/REVIEW-0032.yaml
+  - registry/reviews/REVIEW-0033.yaml
+  - registry/reviews/REVIEW-0034.yaml
+  - registry/reviews/REVIEW-0035.yaml
+  - registry/reviews/REVIEW-0036.yaml
+  - registry/reviews/REVIEW-0037.yaml
+  - registry/reviews/REVIEW-0038.yaml
+  - registry/reviews/REVIEW-0039.yaml
+  - registry/reviews/REVIEW-0040.yaml
+  - registry/reviews/REVIEW-0041.yaml
+  - registry/reviews/REVIEW-0042.yaml
 
 depends_on: [WORK-0001]
 blocks: [WORK-0003, WORK-0004]
@@ -98,8 +141,26 @@ affected_docs:
   - docs/03_ARCHITECTURE/github-control-plane.md
   - docs/13_QUALITY/ai-context-routing.md
   - registry/progress/matrix.yaml
+  - registry/requirements/REQ-0026.yaml
+  - registry/tests/TEST-0009.yaml
+  - registry/reviews/REVIEW-0031.yaml
+  - registry/reviews/REVIEW-0032.yaml
+  - registry/reviews/REVIEW-0033.yaml
+  - registry/reviews/REVIEW-0034.yaml
+  - registry/reviews/REVIEW-0035.yaml
+  - registry/reviews/REVIEW-0036.yaml
+  - registry/reviews/REVIEW-0037.yaml
+  - registry/reviews/REVIEW-0038.yaml
+  - registry/reviews/REVIEW-0039.yaml
+  - registry/reviews/REVIEW-0040.yaml
+  - registry/reviews/REVIEW-0041.yaml
+  - registry/reviews/REVIEW-0042.yaml
 affected_paths:
   - .github/
+  - requirements/bootstrap-governance-ci.txt
+  - registry/requirements/REQ-0026.yaml
+  - registry/tests/TEST-0009.yaml
+  - registry/reviews/REVIEW-*.yaml
   - tools/governance/
   - tests/governance/
   - schemas/registry/
@@ -116,67 +177,123 @@ impact_analysis:
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative. This PR #3 mirror intentionally carries only locally resolvable read_before paths, no branch-local review/test registry IDs, and no branch-local affected_schemas paths. Before editing or validating WORK-0002 implementation, switch to feat/work-0002-governance-ci and follow that branch's WORK-0002 record; its branch-local documents, schemas, completed review evidence and required TEST records become authoritative only after that explicit checkout boundary."
+  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains SHA-bound. The default-branch mirror carries globally resolvable WORK-0002 lifecycle/dependency state plus the narrow PR #5 predecessor; richer PR #2 implementation/review state remains branch-local until integration. Effective merge state is the exact latest GitHub Actions-owned MONDE / Merge Gate check. Target history is sampled only after exact check + unresolved-thread stale-green classification. Actions filtered history uses stable unique time-partition snapshots below GitHub's 1000-result ceiling. Pull Requests authority passes through a narrow adapter that double-reads open and bounded closed collections, rejects duplicate PR numbers, and compares canonical authority-field fingerprints before core logic consumes them. Both live probe and scheduled poll execute this adapter. REVIEW-0031 through REVIEW-0039 are terminal COMPLETE/CHANGES_REQUIRED. REVIEW-0040 and REVIEW-0041 are CLOSED administrative negative evidence after author-side findings invalidated their frozen heads before independent review returned. REVIEW-0042 is IN_PROGRESS in the synchronized WORK/PROJECT/REVIEW checkpoint and must receive exact-head proof before external review invocation. After PR #5 merge, PR #2's older permissive thread_state_poll must directly port/reuse the final hardened contract before T12 can close."
 
 implementation_plan:
   tasks:
     - {id: T1, description: "Fix initial Codex review/progress/Markdown/reverse-membership findings.", depends_on: [], status: DONE}
     - {id: T2, description: "Add schemas, transition/scope/review-freshness and meta-governance guards.", depends_on: [T1], status: DONE}
     - {id: T3, description: "Add GitHub control plane, context router, live gate and supply-chain hardening.", depends_on: [T2], status: DONE}
-    - {id: T4, description: "Prove the substantive final HEAD in GitHub and complete independent review, including all fresh Codex findings.", depends_on: [T3], status: IN_REVIEW}
+    - {id: T4, description: "Prove the substantive final HEAD in GitHub and complete independent review, including all fresh findings.", depends_on: [T3, T12], status: IN_REVIEW}
+    - {id: T12, description: "Pre-deploy and independently prove the default-branch stale-green review-thread polling bridge required by fresh PR #2 L2 before final WORK-0002 closure.", depends_on: [T3], status: IN_REVIEW}
   planned_runs:
     - {id: RUN-1, objective: "Initial deterministic governance implementation", tasks: [T1], status: DONE}
     - {id: RUN-2, objective: "P0-P2 hardening and real GitHub proof", tasks: [T2, T3, T4], status: IN_REVIEW}
+    - {id: RUN-3, objective: "Default-branch stale-green bootstrap predecessor, real GitHub contract proof and fresh independent re-review", tasks: [T12], status: IN_REVIEW}
 
 review_plan:
   artifact_class: GOVERNANCE_AUTOMATION
   independence_level: L2_TARGET
-  required_hats:
-    - ARCHITECTURE_REUSE
-    - VERIFICATION_VALIDATION
-    - SECURITY
-    - PERFORMANCE_SRE
-    - DOCUMENTATION_TRACEABILITY
-    - RED_TEAM_SKEPTIC
-  completed_reviews: []
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY, RED_TEAM_SKEPTIC]
+  completed_reviews: [REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039]
   open_findings:
-    - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: derive minimum review independence from assurance level."
-    - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: require completed reviews to carry an exact reviewed commit SHA."
-    - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: require substantive proof fields for PASS test records."
-    - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: enforce reviewed justification for every NOT_APPLICABLE progress dimension."
-    - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: seed context routing directly from changed non-WORK registry records."
-    - "Fresh L2 on PR #2 head c50c33009d90f079e645f0ca9e1befe1a4a77ba9: refresh stale PROJECT_STATE handover before completion."
+    - "PR #2 branch-local unresolved material findings remain pending final integration/review."
+    - PRRT_kwDOUUI5ts6ijmtc
+    - PRRT_kwDOUUI5ts6ijmtj
+    - PRRT_kwDOUUI5ts6ijmtr
+    - PRRT_kwDOUUI5ts6ilBFN
+    - PRRT_kwDOUUI5ts6ilBFV
+    - PRRT_kwDOUUI5ts6ilBFb
+    - PRRT_kwDOUUI5ts6ilBFl
+    - PRRT_kwDOUUI5ts6ilcBE
+    - PRRT_kwDOUUI5ts6ilcBL
+    - PRRT_kwDOUUI5ts6ilysF
+    - PRRT_kwDOUUI5ts6ilysW
+    - PRRT_kwDOUUI5ts6ilysm
+    - PRRT_kwDOUUI5ts6imDdU
+    - PRRT_kwDOUUI5ts6imDdZ
+    - PRRT_kwDOUUI5ts6imgom
+    - PRRT_kwDOUUI5ts6imgor
+    - PRRT_kwDOUUI5ts6imgoz
+    - PRRT_kwDOUUI5ts6im_Sc
+    - PRRT_kwDOUUI5ts6im_Sh
+    - PRRT_kwDOUUI5ts6inm7v
+    - PRRT_kwDOUUI5ts6in_r4
+    - PRRT_kwDOUUI5ts6iofZr
+    - PRRT_kwDOUUI5ts6iofZu
+    - PRRT_kwDOUUI5ts6iofZ1
+    - PRRT_kwDOUUI5ts6iofZ_
+    - PRRT_kwDOUUI5ts6iofaG
+    - PRRT_kwDOUUI5ts6iofaK
+    - PRRT_kwDOUUI5ts6iofaP
+    - PRRT_kwDOUUI5ts6ipPZM
+    - PRRT_kwDOUUI5ts6ipocF
+    - PRRT_kwDOUUI5ts6iquVw
+    - PRRT_kwDOUUI5ts6iquV8
+    - PRRT_kwDOUUI5ts6irVvT
+    - PRRT_kwDOUUI5ts6irVvZ
+    - PRRT_kwDOUUI5ts6irVvh
+    - PRRT_kwDOUUI5ts6irVvl
+    - PRRT_kwDOUUI5ts6is6A-
+    - PRRT_kwDOUUI5ts6is6BA
+    - PRRT_kwDOUUI5ts6is6BF
+    - PRRT_kwDOUUI5ts6is6BL
+    - PRRT_kwDOUUI5ts6is6BR
+    - PRRT_kwDOUUI5ts6is6BX
+    - "PRR_kwDOUUI5ts8AAAABNuingg — REVIEW-0040 author-side ordering-race P1."
+    - "PRR_kwDOUUI5ts8AAAABNvBAIQ — REVIEW-0041 author-side unstable Pull Requests pagination P1."
 
 required_tests:
-  unit: []
+  unit:
+    - TEST-0009
+    - "Bootstrap regression suite covers exact Checks authority, stable/unique Pull Requests authority, Actions pagination/snapshots, GraphQL pagination, stale-green-first target discovery, run/job/current-attempt authority, strict typing, incarnation overlap, caching, schedule and workflow discovery."
   property:
-    - "valid/invalid status, ID, reference, path, transition, review and progress variants"
-  integration: []
+    - "exact latest GitHub Actions-owned MONDE / Merge Gate check is the only effective merge-state authority"
+    - "target history is sampled only after stale-green classification"
+    - "open and bounded closed Pull Requests authority reject duplicate identities and same-cardinality authority drift"
+    - "PR authority fingerprints bind decision-relevant state/head/lifetime fields and normalize ordering"
+    - "filtered workflow-run discovery partitions below the GitHub 1000-result ceiling with stable unique membership"
+    - "target MONDE / Merge Gate job is unique, exact-run/current-attempt bound and terminal"
+    - "all trust-binding identifiers use exact non-Boolean integer semantics"
+    - "current-incarnation target selection excludes pre-current and overlap-window runs"
+  integration:
+    - TEST-0009
+    - "Read-only live PR #2 contract probe executes stale_green_bootstrap_pr_snapshot.py."
   contract:
     - "registry/schema/progress/review/change-control integrity"
+    - "bootstrap GitHub Checks/REST/GraphQL/Actions control-plane contract"
   e2e: []
   regression:
-    - "initial Codex P1 review-evidence finding"
-    - "initial Codex P1 DONE progress-dimension finding"
-    - "initial Codex P2 reverse matrix membership finding"
-    - "initial Codex P2 Markdown link-title finding"
-    - "L3 independence target cannot be satisfied by L1/L2 evidence"
-    - "canonical APPROVE / APPROVE_WITH_FOLLOWUP outcomes are accepted"
-    - "review requirements are part of review-freshness semantics"
-    - "commit-sequence validation includes paths changed then restored"
-    - "meta-governance changes are bound to affected active A3/A4 work"
-    - "secrets introduced and removed inside the PR remain detectable"
-    - "scope drift and review freshness"
+    - "All historical PR #5 findings remain covered."
+    - "TEST-0009 lists all seven bootstrap regression modules."
+    - "success, neutral and skipped required checks use GitHub merge semantics"
+    - "target-history discovery occurs after stale-green classification"
+    - "clean/non-merge-acceptable PRs skip target-history/closed-history discovery"
+    - "open PR snapshots reject duplicate PR numbers and same-cardinality membership drift"
+    - "bounded closed-history snapshots reject duplicate PR numbers and same-cardinality membership drift"
+    - "benign ordering differences between identical PR authority snapshots are accepted"
+    - "live and scheduled jobs execute the snapshot adapter"
+    - "material bootstrap behavior has stable REQ-0026, TEST-0009 and REVIEW-0031..REVIEW-0042 trace identities"
   security:
     - "immutable action/digest pins"
     - "hash-locked Python artifacts"
     - "least-privilege workflow tokens"
     - "commit-range high-confidence secret scanning"
+    - "live probe read-only; actions:write only in trusted scheduled default-branch job"
   performance:
     - "governance core remains bounded by CI timeout"
-  real_system: []
+    - "clean/non-merge-acceptable PRs avoid target-history/closed-history reads"
+    - "open PR authority uses two bounded traversals per poll/probe"
+    - "closed PR authority uses two bounded traversals only for stale-green branch identities"
+    - "fresh REVIEW-0042 independently evaluates request budget after snapshot doubling"
+  real_system:
+    - TEST-0009
+    - "Exact-candidate live read-only PR #2 probe executes adapter path."
   epistemic:
-    - "execution evidence is bound to GitHub SHA rather than silently promoted across heads"
+    - "execution evidence is exact-SHA bound"
+    - "PR #2 cannot self-prove trusted pre-merge schedule state"
+    - "exact required check is merge-state authority and workflow history is rerun-capability evidence"
+    - "Pull Requests authority is accepted only after unique stable authority snapshots"
 
 scientific_validation:
   required: false
@@ -188,52 +305,71 @@ scientific_validation:
 
 observability:
   required: true
-  logs: ["rule-coded diagnostics", "GitHub Job Summary"]
-  metrics: ["CI duration", "finding count", "coverage", "mutation smoke"]
+  logs: ["rule-coded diagnostics", "GitHub Job Summary", "bootstrap poll rerun count"]
+  metrics: ["CI duration", "finding count", "coverage", "mutation smoke", "bootstrap stale-green rerun count"]
   traces: []
   alerts: ["required MONDE merge gate failure after WORK-0003"]
-  slis_slos: ["governance core completes inside configured timeout"]
+  slis_slos: ["governance core completes inside configured timeout", "bootstrap poll completes inside five-minute job timeout"]
 
 validation:
   executed:
-    - "Real GitHub MONDE Gate run 34509930758 succeeded on substantive head c50c33009d90f079e645f0ca9e1befe1a4a77ba9 before the latest fresh-context review; this historical fact is branch-local implementation evidence, not a locally resolvable registry reference in the PR #3 mirror."
-    - "76 governance tests passed with 1122/1122 statements and 596/596 branches covered (100 percent line and branch) on the WORK-0002 implementation branch before the latest fresh-context review."
-    - "16/16 targeted critical mutations were killed; repository/strict/path/change guards and CodeQL were green on the WORK-0002 implementation branch."
-    - "Fresh-context Codex L2 on c50c33009d90f079e645f0ca9e1befe1a4a77ba9 then found six additional material gaps now represented in review_plan.open_findings."
+    - "Historical PR #5 proof chain through REVIEW-0039 remains preserved in prior commits."
+    - "Race correction e594e88c1c635d3fd8a5180e37930719dc4c0103 passed #87 / 35028626562 at 65 tests, 457 statements, 204 branches, 100 percent plus live probe."
+    - "REVIEW-0041 OPEN 558dfdc7f6d34e2c38d0bda2245548add671d46c passed #89 / 35029137723; IN_PROGRESS 91ba0314392038862a278e93922fcecef80423b5 passed #90 / 35033497071 before PRR_kwDOUUI5ts8AAAABNvBAIQ invalidated it."
+    - "Pull Requests snapshot correction 5d4e3a5578d4ccf26ca8b89d0717a150d6d6102b passed #91 / 35034183087: 72/72 tests; core 457 statements/204 branches; adapter 49 statements/18 branches; total 506 statements/222 branches, all 100 percent, plus live adapter-based PR #2 probe SUCCESS."
+    - "Synchronized REVIEW-0041-CLOSED / REVIEW-0042-OPEN descendant e629ca97ed608f523802375f184c72580b0c7e3a passed #92 / 35034454790 with self-test and live adapter probe SUCCESS."
+    - "REVIEW-0042 is now IN_PROGRESS in the synchronized WORK/PROJECT/REVIEW checkpoint; its exact descendant must be proven before external Codex invocation."
   evidence:
-    - "PR #2 live/branch-local evidence; query GitHub and checkout feat/work-0002-governance-ci before traversing its review/test registry graph"
-    - "MONDE Gate run 34509930758"
-    - "fresh L2 on c50c33009d90f079e645f0ca9e1befe1a4a77ba9"
+    - "PR #5"
+    - "MONDE Stale-Green Bootstrap run 35034183087"
+    - "MONDE Stale-Green Bootstrap run 35034454790"
+    - REQ-0026
+    - TEST-0009
+    - REVIEW-0031
+    - REVIEW-0032
+    - REVIEW-0033
+    - REVIEW-0034
+    - REVIEW-0035
+    - REVIEW-0036
+    - REVIEW-0037
+    - REVIEW-0038
+    - REVIEW-0039
+    - REVIEW-0040
+    - REVIEW-0041
+    - REVIEW-0042
+    - PRR_kwDOUUI5ts8AAAABNuingg
+    - PRR_kwDOUUI5ts8AAAABNvBAIQ
   coverage: {line: 100, branch: 100}
   known_gaps:
-    - "This PR #3 mirror intentionally carries no branch-local completed-review or required-test IDs, affected_schemas paths, or branch-only prerequisite documents. Before editing or validating WORK-0002 implementation, checkout feat/work-0002-governance-ci and follow that branch's WORK-0002 record; only there should its branch-local schemas, review/test records and github-control-plane.md / ai-context-routing.md prerequisites be traversed until WORK-0002 is integrated into main."
-    - "Six fresh-L2 findings on c50c330 remain to be corrected, re-proven and independently re-reviewed on the implementation branch."
-    - "WORK-0002 cannot become DONE while dependency WORK-0001 remains IN_REVIEW."
-    - "Repository administration/ruleset enforcement belongs to WORK-0003."
+    - "All 42 historical inline material PR #5 threads remain unresolved; REVIEW-0040/0041 add author-side negative review evidence but no new inline PRRTs."
+    - "REQ-0026 remains PROPOSED and TEST-0009 remains PLANNED."
+    - "REVIEW-0031..0039 are COMPLETE/CHANGES_REQUIRED; REVIEW-0040/0041 are CLOSED; REVIEW-0042 is IN_PROGRESS and must be exact-head proven before Codex invocation."
+    - "After PR #5 merge, PR #2 must integrate main and directly port/reuse the final contract into tools/governance/thread_state_poll.py before T12 can close."
+    - "PR #2 retains 73 unresolved material findings pending trusted-bootstrap integration and fresh closure."
 
-risk:
-  security: MEDIUM
-  data: LOW
-  epistemic: MEDIUM
-  performance: LOW
-  operational: MEDIUM
+risk: {security: MEDIUM, data: LOW, epistemic: MEDIUM, performance: LOW, operational: MEDIUM}
 
 rollback:
-  strategy: "Revert the governance hardening commit; keep canonical process documentation authoritative while the gate is repaired."
+  strategy: "If the bootstrap misbehaves, revert PR #5 workflow/core/snapshot-adapter/tests and bootstrap trace while preserving WORK-0002 IN_REVIEW. Once PR #2 durable poller is integrated and independently proven with the same contract, remove or rationalize the temporary bootstrap under WORK-0003."
 
 run_log:
-  - {run: RUN-1, date: "2026-09-10", note: "Initial validator and real CI established on the implementation branch; its review/test records are intentionally not mirrored as unresolved IDs into PR #3."}
-  - {run: RUN-2, date: "2026-09-11", note: "Governance automation remains IN_REVIEW on its own branch; this PR #3 mirror preserves only global lifecycle/dependency handoff and defers branch-local proof traversal until explicit checkout."}
+  - {run: RUN-1, date: "2026-09-10", note: "Initial validator and real CI established on implementation branch."}
+  - {run: RUN-2, date: "2026-09-11", note: "Governance automation remains IN_REVIEW; default-branch mirror preserves global lifecycle/dependency handoff."}
+  - {run: RUN-3, date: "2026-09-15", note: "PR #5 retains 42 historical inline material threads. REVIEW-0040 closed after ordering-race P1; REVIEW-0041 closed after unstable PR-pagination P1. Snapshot corrective candidate 5d4e3a5 passed #91 at 72 tests / 506 statements / 222 branches / 100 percent + live adapter probe. REVIEW-0042 OPEN checkpoint e629ca9 passed #92 and REVIEW-0042 is now IN_PROGRESS pending its exact-head proof before fresh review invocation."}
 
 discoveries:
-  - "100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required."
-  - "GitHub live state can invalidate stale PROJECT_STATE prose after it is committed."
-  - "Test/review definitions must be separated from SHA-bound execution evidence."
-  - "Meta-governance authorization must bind the changed sensitive path to the active work item, not merely observe an unrelated A3/A4 record."
-  - "Security scanning must account for reachable PR commit history until squash-only merge is enforced."
-  - "Cross-branch work mirrors must not place branch-only files, schemas or proof-record IDs into locally traversable fields; the checkout boundary must be explicit before those prerequisites/evidence records become mandatory."
+  - "100 percent coverage does not replace adversarial property review."
+  - "Execution evidence is SHA-bound."
+  - "Exact required check is merge-state authority; Actions history is rerun-capability evidence."
+  - "Target history must be sampled after stale-green classification."
+  - "Offset-paginated PR collections used as authority need unique stable snapshots, not only record validation/order checks."
+  - "Authority fingerprints should bind decision-relevant fields and normalize benign ordering."
+  - "Review lifecycle changes synchronize REVIEW, WORK and PROJECT_STATE and are exact-head proven."
+  - "A review invalidated before independent response closes administratively rather than becoming fake approval evidence."
 blockers:
-  - "WORK-0001 must become DONE before WORK-0002 can truthfully become DONE."
+  - "The synchronized REVIEW-0042 IN_PROGRESS / WORK / PROJECT_STATE descendant must pass exact-head bootstrap proof before Codex is invoked. All 42 historical inline PR #5 threads remain unresolved."
+  - "After PR #5 merge, PR #2 must integrate new main and port final durable poller parity before T12 can close."
+  - "WORK-0002 final closure requires eligible trusted non-author exact-head L2/L3 APPROVED collaborator evidence; Codex semantic review cannot substitute."
 follow_up_work_items: [WORK-0003, WORK-0004]
 
 completion:
@@ -242,6 +378,6 @@ completion:
   specification_gates_checked: true
   traceability_checked: true
   review_complete: false
-  docs_updated: false
-  registries_updated: false
-  project_state_updated: false
+  docs_updated: true
+  registries_updated: true
+  project_state_updated: true
