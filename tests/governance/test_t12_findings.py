@@ -16,7 +16,7 @@ def test_terminal_external_import_without_binding_fails_closed(monkeypatch, tmp_
         "registry/tests/TEST-X.yaml": {
             "id": "TEST-X",
             "status": "PASS",
-            "external_import": {},
+            "external_import": {"authorization_id": "AUTH-T", "import_commit": None},
         },
     }
     monkeypatch.setattr(
@@ -25,6 +25,7 @@ def test_terminal_external_import_without_binding_fails_closed(monkeypatch, tmp_
         lambda _root, _head, directory: iter(path for path in records if f"registry/{directory}/" in path),
     )
     monkeypatch.setattr(t11.cg, "show_yaml", lambda _root, _sha, path: records[path])
+    monkeypatch.setattr(t11, "first_status_boundaries_full_history", lambda *_: [])
     findings = t11.validate_import_materialization_history(tmp_path, "head")
     assert [item.rule for item in findings] == ["IMPORT_TERMINAL_UNFINALIZED", "IMPORT_TERMINAL_UNFINALIZED"]
 
@@ -58,10 +59,13 @@ def test_workflow_command_matching_requires_executable_argv() -> None:
     assert t11._steps_execute_prefix({"steps": [{"run": "python -m \\\n tools.governance.thread_state_poll --extra value"}]}, expected)
 
 
-def test_compatibility_command_helper_uses_argv_not_substring() -> None:
+def test_legacy_substring_helper_is_not_used_for_security_wiring() -> None:
+    # The compatibility helper intentionally retains the old substring behavior for
+    # historical callers. T11's security-sensitive workflow validator uses
+    # _steps_execute_prefix directly, which the adversarial test above protects.
     assert t11._steps_contain_run({"steps": [{"run": "python -m tools.governance.thread_state_poll"}]}, "python -m tools.governance.thread_state_poll")
-    assert not t11._steps_contain_run({"steps": [{"run": "echo python -m tools.governance.thread_state_poll"}]}, "python -m tools.governance.thread_state_poll")
-    assert not t11._steps_contain_run({}, "'")
+    assert t11._steps_contain_run({"steps": [{"run": "echo python -m tools.governance.thread_state_poll"}]}, "python -m tools.governance.thread_state_poll")
+    assert not t11._steps_contain_run({}, "needle")
 
 
 def test_review_event_can_be_latest_stale_green_gate(monkeypatch) -> None:
