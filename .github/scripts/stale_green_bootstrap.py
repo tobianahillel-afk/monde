@@ -260,8 +260,9 @@ def effective_gate_runs_by_head(runs: dict[HeadIdentity, dict[str, Any]]) -> dic
 
 def required_merge_gate_conclusion(repo: str, run: dict[str, Any], token: str) -> str:
     run_id = run.get("id")
+    run_attempt = run.get("run_attempt")
     head_sha = run.get("head_sha")
-    if not _positive_int(run_id) or not _nonempty_string(head_sha):
+    if not _positive_int(run_id) or not _positive_int(run_attempt) or not _nonempty_string(head_sha):
         raise RuntimeError("GitHub returned malformed canonical MONDE Gate run for required-check lookup")
     jobs = paged(
         f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?filter=latest",
@@ -274,6 +275,7 @@ def required_merge_gate_conclusion(repo: str, run: dict[str, Any], token: str) -
         if (
             not _positive_int(job.get("id"))
             or job.get("run_id") != run_id
+            or job.get("run_attempt") != run_attempt
             or not _nonempty_string(job.get("name"))
             or job.get("status") != "completed"
             or not isinstance(conclusion, str)
@@ -371,6 +373,8 @@ def poll(repo: str, token: str) -> list[int]:
             raise RuntimeError(
                 f"effective merge-acceptable MONDE Gate for head {head} has no unambiguous run bound to open PR #{number} current incarnation"
             )
+        if target_run.get("id") != effective_run.get("id"):
+            required_merge_gate_conclusion(repo, target_run, token)
         if not unresolved_review_threads(repo, number, token):
             continue
         run_id = target_run["id"]
