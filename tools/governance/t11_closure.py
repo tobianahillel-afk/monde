@@ -171,7 +171,8 @@ def validate_ambiguous_import_materialization_history(root: Path, head: str) -> 
         for path in _registry_paths(root, head, directory):
             record = cg.show_yaml(root, head, path) or {}
             ext = record.get("external_import")
-            if not isinstance(ext, dict) or record.get("status") != terminal_status or not ext.get("import_commit"):
+            raw_import = ext.get("import_commit") if isinstance(ext, dict) else None
+            if record.get("status") != terminal_status or not isinstance(raw_import, str) or not cg.FULL_COMMIT_SHA.fullmatch(raw_import):
                 continue
             boundaries = first_status_boundaries_full_history(root, path, terminal_status, head)
             if len(boundaries) > 1:
