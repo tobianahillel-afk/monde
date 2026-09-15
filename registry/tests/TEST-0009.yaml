@@ -14,31 +14,36 @@ protects:
     - "malformed or ambiguous GitHub REST/GraphQL state fails closed"
     - "filtered workflow-run history is accepted only through closed stable windows whose cardinality stays below GitHub's 1000-result search ceiling"
     - "time-partitioned workflow-run windows are non-overlapping and a saturated single timestamp second fails closed"
+    - "current-incarnation target history is discovered only after the exact required check and unresolved review threads positively classify a PR as stale-green"
+    - "clean, incomplete or non-merge-acceptable PRs do not incur target-history or closed-history discovery"
 location:
-  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py"
+  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py; .github/scripts/test_stale_green_bootstrap_poll_order.py"
   suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
 environment:
   kind: GITHUB_ACTIONS
   real_dependencies:
-    - "GitHub REST Actions and Pull Requests APIs"
+    - "GitHub REST Actions, Checks and Pull Requests APIs"
     - "GitHub GraphQL reviewThreads API"
   mocked_dependencies:
-    - "adversarial unit fixtures for malformed responses, shared SHA, prior PR incarnation, merge-acceptable conclusions and capped/unstable filtered workflow-run searches"
+    - "adversarial unit fixtures for malformed responses, shared SHA, prior PR incarnation, merge-acceptable conclusions, capped/unstable filtered workflow-run searches and stale-green classification/target-discovery ordering"
 cases:
   happy_path:
     - "current PR incarnation has a canonical exact-head gate run and resolved or unresolved review state is classified correctly"
+    - "a positively proven stale-green PR discovers its current-incarnation rerun target only after check/thread classification"
   edge_cases:
     - "distinct PR branches share the same head SHA"
     - "an earlier closed PR reused the same repository/ref/SHA before the current PR was opened"
     - "reviewThreads spans multiple GraphQL pages"
-    - "effective canonical run concludes success, neutral or skipped"
+    - "effective required check concludes success, neutral or skipped"
     - "a filtered workflow-run interval reaches GitHub's 1000-result ceiling and is recursively partitioned into non-overlapping second ranges"
+    - "clean and non-merge-acceptable PRs coexist with stale-green candidates without expanding the target-history scope"
   failure_modes:
     - "canonical workflow identity or required run metadata is malformed"
     - "no current-incarnation gate run exists while an effective stale merge-acceptable check exists"
     - "REST or GraphQL pagination exceeds the bounded limit"
     - "two reads of one closed filtered workflow-run window disagree"
     - "a one-second filtered workflow-run window still reaches GitHub's server-side search ceiling"
+    - "rerun-target history is snapshotted before stale-green classification and can therefore miss the run that produced the effective required check"
   adversarial_cases:
     - "workflow_run.pull_requests contains zero, one or multiple associations and is not trusted as triggering-PR identity"
     - "an old run is rerun after the current PR opens and has a newer updated_at"
@@ -47,6 +52,7 @@ cases:
     - "GraphQL pagination repeats a cursor"
     - "filtered workflow-run snapshots contain duplicate or malformed run IDs"
     - "partition boundaries cannot duplicate the midpoint second or silently omit the next second"
+    - "a canonical run completes between the first check of open PRs and rerun-target discovery; target history must be sampled after stale-green classification"
 acceptance_cold_read:
   qualifies: false
   source:
