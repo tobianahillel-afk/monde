@@ -20,6 +20,7 @@ TESTS = [
     "tests/governance/test_t9_findings.py",
     "tests/governance/test_t9_full_history_mutation.py",
     "tests/governance/test_t9_import_binding.py",
+    "tests/governance/test_live_thread_id_parser.py",
     "tests/governance/test_github_live_gate.py",
 ]
 MUTATIONS = {
@@ -62,6 +63,7 @@ MUTATIONS = {
     "t9-base-policy-authority": ("tools/governance/t9_closure.py", 'if not base_preexisting_work_covers(root, base, path):', 'if False:'),
     "t9-new-reopening-trigger": ("tools/governance/t9_closure.py", 'if not new_reopening_trigger(root, before, after, work_id):', 'if False:'),
     "t9-durable-thread-identities": ("tools/governance/github_live_gate.py", 'if durable_ids != unresolved:', 'if False:'),
+    "t9-thread-id-base64url": ("tools/governance/github_live_gate.py", 'THREAD_ID = re.compile(r"(?<![A-Za-z0-9_-])(PRRT_[A-Za-z0-9_-]+)(?![A-Za-z0-9_-])")', 'THREAD_ID = re.compile(r"\\b(PRRT_[A-Za-z0-9_-]+)\\b")'),
 }
 
 
