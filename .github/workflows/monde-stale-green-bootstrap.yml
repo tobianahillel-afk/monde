@@ -54,10 +54,12 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - name: Validate live GitHub REST GraphQL and Actions contracts without mutation
+      - name: Validate live GitHub REST GraphQL and Actions contracts against WORK-0002 PR
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          BOOTSTRAP_VALIDATE_PR: ${{ github.event.pull_request.number }}
+          # PR #2 is the consumer this temporary default-branch predecessor must protect.
+          # It has the canonical MONDE Gate runs that PR #5 itself intentionally lacks.
+          BOOTSTRAP_VALIDATE_PR: '2'
         run: python3 .github/scripts/stale_green_bootstrap.py
 
   stale-green-poll:
