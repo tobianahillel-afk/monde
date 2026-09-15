@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import json
 import os
 import sys
@@ -11,6 +12,17 @@ MAX_PAGES = 20
 CANONICAL_WORKFLOW_ID = 354465551
 CANONICAL_WORKFLOW_PATH = ".github/workflows/governance.yml"
 PR_FAMILY_EVENTS = {"pull_request", "pull_request_review", "pull_request_review_comment"}
+TERMINAL_CONCLUSIONS = {
+    "success",
+    "failure",
+    "neutral",
+    "cancelled",
+    "skipped",
+    "timed_out",
+    "action_required",
+    "stale",
+    "startup_failure",
+}
 
 
 def request_data(url: str, token: str, method: str = "GET", body: dict[str, Any] | None = None) -> Any:
@@ -50,11 +62,15 @@ def paged(url: str, token: str, collection_key: str | None = None) -> list[dict[
     raise RuntimeError(f"GitHub pagination exceeded {MAX_PAGES} pages")
 
 
+def _positive_int(value: Any) -> bool:
+    return type(value) is int and value > 0
+
+
 def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
     items = paged(f"https://api.github.com/repos/{repo}/pulls?state=open", token)
     for item in items:
         head = item.get("head")
-        if not isinstance(item.get("number"), int) or not isinstance(head, dict) or not isinstance(head.get("sha"), str) or not head["sha"]:
+        if not _positive_int(item.get("number")) or not isinstance(head, dict) or not isinstance(head.get("sha"), str) or not head["sha"]:
             raise RuntimeError("GitHub returned malformed open pull request")
     return items
 
@@ -67,9 +83,25 @@ def _run_pr_number(run: dict[str, Any]) -> int:
     if not isinstance(association, dict):
         raise RuntimeError("canonical PR-family MONDE Gate run has malformed pull request association")
     number = association.get("number")
-    if not isinstance(number, int) or number < 1:
+    if not _positive_int(number):
         raise RuntimeError("canonical PR-family MONDE Gate run has malformed pull request association")
     return number
+
+
+def _updated_at(value: Any) -> datetime:
+    if not isinstance(value, str) or not value:
+        raise RuntimeError("GitHub returned malformed canonical MONDE Gate updated_at")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise RuntimeError("GitHub returned malformed canonical MONDE Gate updated_at") from exc
+    if parsed.tzinfo is None:
+        raise RuntimeError("GitHub returned malformed canonical MONDE Gate updated_at")
+    return parsed
+
+
+def _run_recency(run: dict[str, Any]) -> tuple[datetime, int, int]:
+    return (_updated_at(run.get("updated_at")), int(run["run_number"]), int(run["id"]))
 
 
 def latest_completed_gate_runs(repo: str, token: str) -> dict[tuple[int, str], dict[str, Any]]:
@@ -93,13 +125,30 @@ def latest_completed_gate_runs(repo: str, token: str) -> dict[tuple[int, str], d
         run_number = run.get("run_number")
         run_id = run.get("id")
         conclusion = run.get("conclusion")
-        if not isinstance(head, str) or not head or not isinstance(run_number, int) or not isinstance(run_id, int) or not isinstance(conclusion, str):
+        if (
+            not isinstance(head, str)
+            or not head
+            or not _positive_int(run_number)
+            or not _positive_int(run_id)
+            or not isinstance(conclusion, str)
+            or conclusion not in TERMINAL_CONCLUSIONS
+        ):
             raise RuntimeError("GitHub returned malformed canonical MONDE Gate run")
+        _updated_at(run.get("updated_at"))
         pr_number = _run_pr_number(run)
         key = (pr_number, head)
         previous = latest.get(key)
-        if previous is None or run_number > int(previous["run_number"]):
+        if previous is None or _run_recency(run) > _run_recency(previous):
             latest[key] = run
+    return latest
+
+
+def effective_gate_runs_by_head(runs: dict[tuple[int, str], dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    latest: dict[str, dict[str, Any]] = {}
+    for (_pr_number, head), run in runs.items():
+        previous = latest.get(head)
+        if previous is None or _run_recency(run) > _run_recency(previous):
+            latest[head] = run
     return latest
 
 
@@ -150,15 +199,19 @@ def rerun_workflow(repo: str, run_id: int, token: str) -> None:
 def poll(repo: str, token: str) -> list[int]:
     rerun_ids: list[int] = []
     runs = latest_completed_gate_runs(repo, token)
+    effective = effective_gate_runs_by_head(runs)
     for pr in open_pull_requests(repo, token):
         number = pr["number"]
         head = pr["head"]["sha"]
-        run = runs.get((number, head))
-        if run is None or run["conclusion"] != "success":
+        effective_run = effective.get(head)
+        if effective_run is None or effective_run["conclusion"] != "success":
             continue
+        target_run = runs.get((number, head))
+        if target_run is None:
+            raise RuntimeError(f"effective successful MONDE Gate for head {head} has no run bound to open PR #{number}")
         if not unresolved_review_threads(repo, number, token):
             continue
-        run_id = run["id"]
+        run_id = target_run["id"]
         rerun_workflow(repo, run_id, token)
         rerun_ids.append(run_id)
     return rerun_ids
@@ -170,6 +223,7 @@ def validate_github_contract(repo: str, pr_number: int, token: str) -> tuple[int
     if len(current) != 1:
         raise RuntimeError(f"expected exactly one open PR #{pr_number}, observed {len(current)}")
     runs = latest_completed_gate_runs(repo, token)
+    effective_gate_runs_by_head(runs)
     unresolved = unresolved_review_threads(repo, pr_number, token)
     return len(prs), len(runs), unresolved
 
