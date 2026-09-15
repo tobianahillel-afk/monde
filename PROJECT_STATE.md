@@ -9,77 +9,81 @@ Canonical operational state: Yes
 
 - **PHASE-0 — Specification and repository governance** is `IN_PROGRESS`.
 - **LOT-0 — AI-first repository operating system** is `IN_PROGRESS`.
-- **WORK-0001** is `DONE / A3` and is integrated on `main` at `29086643387ff46ab6636dd2fa3014efccc10165`.
+- **WORK-0001** is `DONE / A3`, integrated on `main` at `29086643387ff46ab6636dd2fa3014efccc10165`.
 - **WORK-0002** remains `IN_REVIEW / A3` on PR #2 / `feat/work-0002-governance-ci`.
-- WORK-0003 and WORK-0004 remain blocked until WORK-0002 is independently closed.
+- WORK-0003 and WORK-0004 remain blocked until WORK-0002 independently closes.
 
 ## WORK-0002 default-branch bootstrap predecessor
 
-Fresh independent L2 review of PR #2 established that its stale-green review-thread poll cannot protect PR #2 before merge because GitHub scheduled workflows execute from the trusted default branch. A narrow predecessor is therefore being proven separately in **PR #5 — `fix(governance): bootstrap stale-green thread polling`**.
+Fresh independent L2 review of PR #2 established that its stale-green review-thread poll cannot protect PR #2 before merge because GitHub scheduled workflows execute from trusted default-branch state. **PR #5 — `fix(governance): bootstrap stale-green thread polling`** is the narrow default-branch predecessor required by WORK-0002/T12.
 
-This bridge belongs to WORK-0002/T12. It is not a product capability and does not weaken any governance rule. Its sole purpose is to provide a trusted `main`-resident five-minute invalidation bridge while PR #2 remains open.
+The temporary trusted poll now:
 
-The current bridge:
+- queries only canonical MONDE Gate workflow ID `354465551` and verifies `.github/workflows/governance.yml`;
+- accepts PR-family events `pull_request`, `pull_request_review`, and `pull_request_review_comment`;
+- validates server-reported open-PR `head.repo.full_name`, `head.ref`, `head.sha`, `created_at` and positive PR number;
+- fails closed when two simultaneously open PRs have indistinguishable full `(head repository, branch, SHA)` identity;
+- validates canonical run head repo/ref/SHA, event, id/run-number, supported terminal conclusion, `created_at`, and timezone-aware `updated_at`;
+- never treats `workflow_run.pull_requests` association cardinality as authoritative triggering-PR identity;
+- queries **closed PR history scoped by server-reported head owner + branch**, then filters exact repo/ref/SHA and reconstructs lifetime-overlap windows;
+- excludes target runs created before the current PR and excludes runs created inside any lifetime window where another exact same-head PR overlapped the current PR, even when that other PR later closes;
+- preserves legitimate current runs created before a later duplicate PR opens rather than using a single coarse cutoff;
+- still computes effective commit-scoped MONDE Gate state across historical validated runs, so a shared-SHA re-green can trigger re-invalidation of the unresolved target PR;
+- rejects malformed open/closed PR metadata, invalid lifetimes, malformed workflow metadata, unknown terminal conclusions, and Boolean-as-int IDs;
+- accepts GraphQL `errors` only when absent or exactly `[]`; falsey malformed `{}`, `""`, `0`, or `null` fail closed;
+- bounds canonical Actions pagination and GraphQL review-thread pagination, including repeated/missing cursor failure;
+- grants `actions: write` only to the trusted scheduled poll job; the PR contract probe remains read-only and non-destructive.
 
-- enumerates open PRs and validates their server-reported `head.repo.full_name`, `head.ref`, `head.sha`, and `created_at`;
-- rejects two open PRs whose complete `(head repository, branch, SHA)` identity is indistinguishable instead of guessing which PR a run belongs to;
-- queries only canonical MONDE Gate workflow ID `354465551` and verifies path `.github/workflows/governance.yml`;
-- validates each PR-family run using GitHub-server `head_repository.full_name`, `head_branch`, `head_sha`, `created_at`, `updated_at`, run number/id and supported terminal conclusion;
-- deliberately does **not** treat the ambiguous `workflow_run.pull_requests` association list as triggering-PR identity;
-- treats a run as eligible target context for the current PR only when `run.created_at >= PR.created_at`, so a closed earlier PR that used the same repo/ref/SHA cannot be revived as the rerun context for a later PR incarnation;
-- considers `pull_request`, `pull_request_review`, and `pull_request_review_comment` gate runs;
-- computes the newest effective commit-scoped gate state across validated historical runs, while selecting the current PR's rerun target only from runs inside the current PR-incarnation time boundary;
-- when another PR sharing a SHA re-greens the commit, reruns the target PR's own current-incarnation head-identity-bound run if that PR still has unresolved threads;
-- validates GraphQL `errors` fail-closed: the field may be absent or exactly an empty list only; malformed/falsey alternatives such as `{}`, `""`, `0` or `null` are rejected;
-- bounds REST pagination and GraphQL review-thread pagination to `MAX_PAGES`, rejecting malformed metadata, missing/repeated cursors and exhaustion;
-- grants `actions: write` only to the trusted scheduled poll job; the PR validation probe remains read-only and non-destructive.
-
-The bootstrap is temporary. After PR #2 is merged, its canonical poller becomes the durable implementation; WORK-0003 may then rationalize/remove redundant bootstrap machinery when repository protection and merge discipline are configured.
+The bridge is temporary. After PR #2 merges, its canonical poller becomes durable; WORK-0003 may then rationalize/remove redundant bootstrap machinery.
 
 ## Stable bootstrap traceability
 
-Fresh PR #5 review identified that this material governance behavior requires a stable normative identity rather than living only as WORK prose. The bootstrap now has a non-terminal canonical trace:
+The bootstrap has stable non-terminal normative/test ownership and explicit review history:
 
-`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031 (IN_PROGRESS)`
+`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0032 (OPEN)`
 
-- **REQ-0026 — Trusted stale-green review-state invalidation** defines the atomic bootstrap obligation.
-- **TEST-0009** protects REQ-0026 and records the intended unit/contract/live-GitHub verification path without retroactively importing prior executions as a canonical PASS.
-- **REVIEW-0031** is the repository-native lifecycle record for the next fresh independent bootstrap review. It was transitioned from `OPEN` to `IN_PROGRESS` before invoking Codex, so no external-completion replay is fabricated later. It is intentionally numbered after REVIEW-0029/0030, which already exist on PR #2, preventing a cross-branch registry-ID collision when `main` is later integrated into PR #2.
+- **REQ-0026 — Trusted stale-green review-state invalidation** owns the atomic material behavior.
+- **TEST-0009** protects REQ-0026 without retroactively materializing previous external runs as a canonical PASS.
+- **REVIEW-0031** was started before the external review, then truthfully completed `CHANGES_REQUIRED` on exact reviewed head `702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c` after Codex found two new material gaps.
+- **REVIEW-0032** is the fresh successor review and is currently `OPEN`; REVIEW-0031 is terminal and will never be reopened or rewritten.
+- REVIEW-0032 is collision-safe with PR #2, which already uses REVIEW-0029/0030 but has no REVIEW-0031/0032.
 
-REQ-0026 remains `PROPOSED` and TEST-0009 remains `PLANNED`. REVIEW-0031 is `IN_PROGRESS` while the next fresh review is prepared/executed. No retrospective ACCEPTED/PASS/COMPLETE state is fabricated.
+The bootstrap workflow now includes `registry/reviews/REVIEW-*.yaml` in its PR path triggers so review lifecycle descendants receive their own exact-head self-test and live contract proof.
+
+## REVIEW-0031 findings and correction
+
+Fresh exact-head review `PRR_kwDOUUI5ts8AAAABNraMwQ` of `702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c` raised the PR #5 material set from 17 to **19 P1 findings**:
+
+- `PRRT_kwDOUUI5ts6im_Sc` — `PR.created_at` alone does not distinguish overlapping exact same-head PR lifetimes; a run for the other PR may be created after the current PR opens and survive after the other PR closes.
+- `PRRT_kwDOUUI5ts6im_Sh` — WORK-0002 still described REVIEW-0031 as OPEN while REVIEW-0031 and PROJECT_STATE had already moved to IN_PROGRESS.
+
+Both are corrected author-side:
+
+- target attribution now excludes runs created in exact same-head closed-PR lifetime-overlap windows queried from live GitHub;
+- WORK-0002 now records REVIEW-0031 as terminal `COMPLETE/CHANGES_REQUIRED`, all 19 PRRT identities, its two findings, the new proof, and REVIEW-0032 as the next review.
+
+Author-side correction is not closure evidence. All 19 threads remain unresolved pending a clean fresh review.
 
 ## Exact bootstrap proof
 
-Latest exact proven bootstrap candidate before the REVIEW-0031 lifecycle transition: **`f59121b3c9ed1de00b642669044fe49fbdb67796`**.
+Latest **substantive executable** proof is exact candidate **`18a295575b50bc617bf75cf4285d60378f4b5f4e`**.
 
-GitHub Actions run **`34994933798` / MONDE Stale-Green Bootstrap #31** is fully green on that exact head:
+`MONDE Stale-Green Bootstrap` run **`34996707476` / #37** is fully green on that exact head:
 
-- **Bootstrap self-test: SUCCESS**;
-- **Bootstrap GitHub contract probe: SUCCESS** against **PR #2**, the actual WORK-0002 consumer;
-- the executable/test tree was previously proven on run **`34994214744` / #27** at `95cf13f0861ce47ab345655911b5ea8a3ba76ff6` with **29/29 tests**, **224/224 statements**, **88/88 branches**, and **100% line + branch coverage**;
-- the live read-only probe validates open-PR metadata, canonical MONDE Gate run metadata and review-thread GraphQL state while binding reruns to the current PR incarnation rather than an earlier closed PR sharing the same repo/ref/SHA.
+- Bootstrap self-test: **SUCCESS**;
+- **32/32 tests**;
+- **268/268 statements**;
+- **104/104 branches**;
+- **100% line + branch coverage** over `.github/scripts/stale_green_bootstrap.py`;
+- Bootstrap GitHub contract probe: **SUCCESS** against PR #2, including the new read-only closed-PR history contract.
 
-Run **#30 `34994621227`** was also fully green on `3dbaddb610bd1eab1b6d5ccdeec10fcf7b0f5c16`, proving the WORK synchronization descendant. Earlier run **#26 `34994081272`** intentionally exposed one stale test expectation after the PR-incarnation diagnostic changed; the live GitHub contract probe already passed there. The next commit preserved the more precise diagnostic while retaining compatibility, and run #27 then proved the corrected suite at 100% coverage.
+The test suite explicitly covers the adversarial overlap case: another exact same-head PR overlaps the current PR, produces a run during the overlap, later closes, and that run has a newer `updated_at`; it may remain effective commit-scoped state but is excluded as the current PR's rerun target. The suite also proves that a legitimate current run created before a later overlap remains eligible.
 
-## PR #5 independent review state
+Subsequent commits materializing REVIEW-0032, adding review-lifecycle workflow triggers, and synchronizing WORK/PROJECT_STATE are administrative descendants. They must still receive their own exact-head bootstrap run before REVIEW-0032 starts.
 
-All material PR #5 review threads remain unresolved. Successive fresh Codex reviews have identified **17 P1 findings** so far.
+## PR #5 material thread set
 
-The first five review rounds produced 14 findings:
-
-- `PRR_kwDOUUI5ts8AAAABNpylnA`: canonical workflow identity; malformed REST collection handling; malformed GraphQL metadata;
-- `PRR_kwDOUUI5ts8AAAABNqb2xg`: canonical-workflow pagination scope; durable WORK/PROJECT_STATE ownership; 100% coverage; real-system GitHub validation;
-- `PRR_kwDOUUI5ts8AAAABNqnqWQ`: validate run event before filtering; distinguish runs sharing a commit;
-- `PRR_kwDOUUI5ts8AAAABNqx3YA`: reinvalidate shared-head cross-PR success; reject unknown conclusions; reject Boolean PR numbers;
-- `PRR_kwDOUUI5ts8AAAABNq6L4g`: do not treat `workflow_run.pull_requests` association cardinality as triggering-PR identity; record exact current proof in durable repository state.
-
-Fresh exact-head review **`PRR_kwDOUUI5ts8AAAABNrJroQ`** on `ff68bfd17a7bf8439570398ca333763b6de96429` added three more P1 findings:
-
-- `PRRT_kwDOUUI5ts6imgom` — bind reruns to the current PR incarnation so an earlier closed PR run with the same repo/ref/SHA cannot be reused;
-- `PRRT_kwDOUUI5ts6imgor` — reject malformed but falsey GraphQL `errors` values rather than accepting partial data;
-- `PRRT_kwDOUUI5ts6imgoz` — give the material bootstrap behavior a stable REQ identity and TEST/REVIEW verification path.
-
-The exact 17 material thread identities are:
+All **19** material PR #5 review threads remain unresolved:
 
 - `PRRT_kwDOUUI5ts6ijmtc`
 - `PRRT_kwDOUUI5ts6ijmtj`
@@ -98,21 +102,33 @@ The exact 17 material thread identities are:
 - `PRRT_kwDOUUI5ts6imgom`
 - `PRRT_kwDOUUI5ts6imgor`
 - `PRRT_kwDOUUI5ts6imgoz`
+- `PRRT_kwDOUUI5ts6im_Sc`
+- `PRRT_kwDOUUI5ts6im_Sh`
 
-Author-side correction is not closure evidence. These threads stay open until REVIEW-0031's fresh exact-head independent pass verifies the synchronized final candidate.
+Review history:
 
-## WORK-0002 / T12 relationship
+- `PRR_kwDOUUI5ts8AAAABNpylnA`
+- `PRR_kwDOUUI5ts8AAAABNqb2xg`
+- `PRR_kwDOUUI5ts8AAAABNqnqWQ`
+- `PRR_kwDOUUI5ts8AAAABNqx3YA`
+- `PRR_kwDOUUI5ts8AAAABNq6L4g`
+- `PRR_kwDOUUI5ts8AAAABNrJroQ`
+- `PRR_kwDOUUI5ts8AAAABNraMwQ` -> REVIEW-0031 `CHANGES_REQUIRED`
 
-PR #2 has the richer branch-local WORK-0002 record and remains authoritative for T7-T12 implementation history. The default-branch mirror records only the bootstrap predecessor and cross-branch handoff. After PR #5 is independently clean and merged, `main` must be integrated into PR #2 without discarding that richer state. T12 must then prove the bootstrap is genuinely **base-preexisting** rather than candidate-created.
+## WORK-0002 / PR #2 relationship
 
-The fresh PR #2 L2 that opened T12 expanded its material unresolved set from 67 to **73** findings. All 73 remain unresolved. Its six T12 findings cover:
+PR #2 remains open and intentionally unchanged at **`99c7a10e5faa99128d74a39ff6886c23110247bd`** until PR #5 is independently clean. Its richer branch-local WORK-0002 state remains authoritative for T7-T12 implementation history.
 
-1. pre-merge deployment of stale-green polling on the default branch;
-2. inclusion of review-event gate runs in stale-green selection;
-3. ambiguity of imported terminal status across parallel history;
-4. rejection of terminal external imports without `import_commit` binding;
-5. executable-command proof for workflow wiring rather than substring matching;
-6. dynamic binding of live closure findings to the changed active WORK rather than hard-coded `WORK-0002`.
+PR #2 still has **73 unresolved material threads**. Gate #226 / run `34989363043` proved its deterministic/security core: 355/355 tests, 100% line+branch, mutation suites, repository validators, CodeQL and Dependency Review green; live closure deliberately fails while review state is unresolved.
+
+After PR #5 squash-merges to `main`, PR #2 must integrate the new main through an explicit two-parent merge that:
+
+- preserves PR #2's richer WORK/PROJECT_STATE history rather than replacing it with the bootstrap mirror;
+- imports the trusted bootstrap files and REQ-0026/TEST-0009/REVIEW records from the new base;
+- synchronizes the six T12 PRRT identities for exact **73/73** durable/live equality;
+- deterministically proves the bootstrap trust surface is **base-preexisting**, not candidate-created.
+
+Only then does PR #2 receive another full MONDE Gate, fresh-context L2, trusted exact-head non-author APPROVED review, independent thread closure and merge decision.
 
 ## Repository visibility
 
@@ -120,16 +136,14 @@ MONDE intentionally remains **public**. Never commit credentials, tokens, secret
 
 ## Current next action
 
-1. Prove the exact descendant containing the REVIEW-0031 `IN_PROGRESS` transition plus this PROJECT_STATE synchronization with the bootstrap self-test and live PR #2 GitHub contract probe.
-2. Update PR #5's body to identify that exact candidate, all 17 open P1 findings, REQ-0026/TEST-0009/REVIEW-0031, and the exact-head proof.
-3. Invoke a new fresh-context independent Codex review of that exact PR #5 HEAD under REVIEW-0031. Keep all **17** PR #5 material threads unresolved while it runs and keep the HEAD frozen.
-4. If new material findings appear, record them in REVIEW-0031/WORK/PROJECT_STATE, correct them with dedicated regression/real-system evidence, return REVIEW-0031 through the permitted lifecycle as required, and repeat the exact-head review cycle.
-5. If the fresh review is clean, record REVIEW-0031 truthfully before independently resolving only the verified PR #5 threads, then squash-merge PR #5 into `main` with an exact-head guard.
-6. Re-query the new `main`, integrate it into PR #2 with an explicit two-parent merge that preserves the richer branch-local WORK-0002 tree, synchronize the six T12 PRRT identities for exact **73/73** durable/live equality, and add deterministic proof that the bootstrap trust surface is base-preexisting.
-7. Re-prove PR #2 tests, 100% coverage, mutations, deterministic validators and live gate on the exact new HEAD.
-8. Run another fresh-context independent L2 on PR #2. Do not resolve its 73 material threads before independent verification.
-9. WORK-0002 still ultimately requires an eligible non-author exact-head GitHub `APPROVED` review satisfying the trusted/context-separated L2/L3 contract. Codex cannot substitute for that collaborator approval.
-10. Only after WORK-0002 closes may WORK-0003 and WORK-0004 start.
+1. Obtain an exact-head bootstrap run for the current synchronized PR #5 descendant containing REVIEW-0031 terminal evidence, REVIEW-0032 OPEN, review-lifecycle workflow triggers, WORK-0002 19/19 findings, and this PROJECT_STATE.
+2. If that exact-head proof is green, transition REVIEW-0032 `OPEN -> IN_PROGRESS` and synchronize WORK/PROJECT_STATE in the same lifecycle checkpoint.
+3. Prove that exact REVIEW-0032-IN_PROGRESS descendant, freeze the head, update PR #5 body, and invoke a new fresh-context Codex review under REVIEW-0032.
+4. Keep all **19** material PR #5 threads unresolved while REVIEW-0032 runs.
+5. If REVIEW-0032 finds another material issue, record it truthfully, correct/re-prove, and create a new successor review rather than reopening a terminal review.
+6. Only a clean independent exact-head review permits truthful approval-capable review completion, independent verification/resolution of the 19 threads, and an exact-head guarded squash merge of PR #5 into `main`.
+7. Then integrate new `main` into PR #2 and continue T12/WORK-0002 closure as described above.
+8. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
@@ -141,8 +155,9 @@ MONDE intentionally remains **public**. Never commit credentials, tokens, secret
 6. `registry/requirements/REQ-0026.yaml`
 7. `registry/tests/TEST-0009.yaml`
 8. `registry/reviews/REVIEW-0031.yaml`
-9. live PR #5 exact HEAD/checks/reviews/threads
-10. live PR #2 exact HEAD/checks/reviews/threads
-11. PR #2 branch-local WORK-0002 / PROJECT_STATE after explicit checkout
+9. `registry/reviews/REVIEW-0032.yaml`
+10. live PR #5 exact HEAD/checks/reviews/threads
+11. live PR #2 exact HEAD/checks/reviews/threads
+12. PR #2 branch-local WORK-0002 / PROJECT_STATE after explicit checkout
 
 No prior chat history is required.
