@@ -44,7 +44,7 @@ The bridge is temporary. After PR #5 merges, PR #2's canonical `tools/governance
 
 ## Stable bootstrap traceability
 
-`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031/0032/0033/0034/0035/0036/0037/0038/0039 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0040 (OPEN)`
+`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031/0032/0033/0034/0035/0036/0037/0038/0039 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0040 (IN_PROGRESS)`
 
 - REVIEW-0031 is terminal on `702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c`.
 - REVIEW-0032 is terminal on `717777da79edca7a671c1754f32f3442da721a72`.
@@ -55,7 +55,7 @@ The bridge is temporary. After PR #5 merges, PR #2's canonical `tools/governance
 - REVIEW-0037 is terminal on `9a2921bce4d0fd0649f89b88854f761f18f906fe` after two new P1 findings.
 - REVIEW-0038 is terminal on `af55a3f9336bcbcad4b5daf597302848233056da` after four new P1 findings.
 - REVIEW-0039 is terminal on `402519d73d55a2b45507b23e319c8fb42ad440f1`; independent review `PRR_kwDOUUI5ts8AAAABNuOmoQ` added six new P1 findings.
-- REVIEW-0040 is `OPEN`; it must not be moved to `IN_PROGRESS` until this synchronized OPEN checkpoint has an exact-head bootstrap proof.
+- REVIEW-0040 is now `IN_PROGRESS` in the same Git-tree checkpoint as WORK-0002 and PROJECT_STATE. No external reviewer may be invoked until this exact descendant passes its own bootstrap proof.
 - Terminal negative reviews are never reopened or rewritten.
 
 ## REVIEW-0038 findings and correction
@@ -86,7 +86,11 @@ The correction deliberately avoids another blacklist layer. Effective merge stat
 
 Latest corrective executable/test candidate: **`9f2fccc254937ca1b1e28be26bcbad60f85308e0`**.
 
-`MONDE Stale-Green Bootstrap` run **`35026563188` / #80** is fully green on that exact head:
+`MONDE Stale-Green Bootstrap` run **`35026563188` / #80** is fully green on that exact head with **63/63 tests, 450/450 statements, 200/200 branches, 100% line+branch** and a successful live PR #2 contract probe.
+
+The synchronized REVIEW-0039-terminal / REVIEW-0040-OPEN state was published atomically at `bd65d6b09ade710f331089889afd9c9d3725a33f`. Because the pure state checkpoint did not immediately produce a covered check suite, comment-only workflow descendant **`ce2581d4cb112251296aff611490023f878caa92`** triggered an exact-head proof without executable semantic change.
+
+`MONDE Stale-Green Bootstrap` run **`35027740434` / #81** is fully green on exact `ce2581d4...`:
 
 - Bootstrap self-test: **SUCCESS**;
 - **63/63 tests**;
@@ -94,10 +98,10 @@ Latest corrective executable/test candidate: **`9f2fccc254937ca1b1e28be26bcbad60
 - **200/200 branches**;
 - **100% line + branch coverage**;
 - Bootstrap GitHub contract probe: **SUCCESS** against live WORK-0002 PR #2;
-- probe token permissions include `Actions: read`, `Checks: read`, `Contents: read`, `PullRequests: read`;
-- real probe result: `open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true`.
+- probe permissions: `Actions: read`, `Checks: read`, `Contents: read`, `PullRequests: read`;
+- result: `open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true`.
 
-This proof establishes the corrected executable/test candidate only. The synchronized REVIEW-0039-terminal / REVIEW-0040-OPEN / WORK / PROJECT_STATE checkpoint created after #80 must receive its own exact-head proof before REVIEW-0040 can move to `IN_PROGRESS`.
+The atomic REVIEW-0040-IN_PROGRESS / WORK / PROJECT_STATE descendant created after #81 must now receive its own exact-head proof. That exact head is then frozen before the fresh REVIEW-0040 invocation.
 
 ## PR #5 material thread set
 
@@ -164,11 +168,11 @@ MONDE intentionally remains **public**. Never commit credentials, tokens, secret
 
 ## Current next action
 
-1. Prove the synchronized REVIEW-0039 `COMPLETE/CHANGES_REQUIRED` + REVIEW-0040 `OPEN` + WORK-0002 + PROJECT_STATE checkpoint exact-head.
-2. Keep all **42** material PR #5 threads unresolved.
-3. If the OPEN checkpoint is green, atomically transition REVIEW-0040 / WORK-0002 / PROJECT_STATE to `IN_PROGRESS`, then prove that exact descendant too.
-4. Only after the `IN_PROGRESS` descendant is green, invoke fresh-context Codex REVIEW-0040 on that exact frozen HEAD.
-5. REVIEW-0040 must re-check all 42 prior findings and actively red-team direct Checks authority, filtered-search partitions/snapshots, current-incarnation target binding, bounded closed history, strict identifiers, caching/rate budget, permissions and traceability.
+1. Prove the atomic REVIEW-0040 `IN_PROGRESS` + WORK-0002 + PROJECT_STATE descendant exact-head.
+2. Keep all **42** material PR #5 threads unresolved while REVIEW-0040 runs.
+3. If green, freeze the exact HEAD and update PR #5 handoff metadata to the REVIEW-0040 state.
+4. Invoke a fresh-context Codex review under REVIEW-0040 only after that exact-head proof is terminal green.
+5. REVIEW-0040 must re-check all 42 prior findings and actively red-team direct Checks authority, app/name uniqueness, filtered-search partitions/snapshots, current-incarnation target binding, bounded closed history, strict identifiers, caching/rate budget, permissions and traceability.
 6. Any new material finding requires correction/re-proof and a successor review; do not mechanically resolve threads.
 7. Only a clean independent exact-head successor review permits independent verification/resolution of historical threads and an exact-head guarded squash merge of PR #5.
 8. After PR #5 merge: integrate main into PR #2, port durable-poller parity, prove T12, run fresh PR #2 L2, obtain eligible non-author exact-head APPROVED review, then consider WORK-0002 closure.
