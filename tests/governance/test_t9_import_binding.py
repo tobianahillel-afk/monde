@@ -132,3 +132,15 @@ def test_binding_rejects_missing_matching_preauthorization(monkeypatch, tmp_path
         },
     )
     assert not t9.review_import_binding_allowed(tmp_path, value, "d" * 40, "registry/reviews/REVIEW-1.yaml")
+
+
+def test_immutability_rejects_arbitrary_null_to_string_binding(monkeypatch, tmp_path: Path) -> None:
+    path = "registry/reviews/REVIEW-1.yaml"
+    before = {"status": "COMPLETE", "external_import": {"import_commit": None}}
+    after = {"status": "COMPLETE", "external_import": {"import_commit": "f" * 40}}
+    monkeypatch.setattr(t9.cg, "changed_files", lambda *_: [path])
+    monkeypatch.setattr(t9.cg, "show_yaml", lambda _r, sha, _p: before if sha == "before" else after)
+    monkeypatch.setattr(t9, "review_import_binding_allowed", lambda *_: False)
+    monkeypatch.setattr(t9, "review_import_finalized", lambda *_: False)
+    findings = t9.validate_import_commit_immutability(tmp_path, [("before", "after")])
+    assert [item.rule for item in findings] == ["REVIEW_IMPORT_COMMIT_IMMUTABLE"]
