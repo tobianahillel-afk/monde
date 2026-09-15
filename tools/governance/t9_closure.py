@@ -139,6 +139,34 @@ def review_import_finalized(root: Path, review: dict[str, Any], head: str, path:
     )
 
 
+def review_import_binding_allowed(root: Path, review: dict[str, Any], head: str, path: str) -> bool:
+    ext = review.get("external_import")
+    if not isinstance(ext, dict) or ext.get("mode") != "PREAUTHORIZED_EXTERNAL_COMPLETION":
+        return False
+    import_commit = str(ext.get("import_commit") or "")
+    auth_commit = str(ext.get("authorization_commit") or "")
+    if not FULL_COMMIT_SHA.fullmatch(import_commit) or not FULL_COMMIT_SHA.fullmatch(auth_commit):
+        return False
+    if not cg.commit_exists(root, import_commit) or not cg.commit_exists(root, auth_commit):
+        return False
+    if _first_status_commit(root, path, str(review.get("status") or ""), head) != import_commit:
+        return False
+    if not cg.is_ancestor(root, import_commit, head):
+        return False
+    if auth_commit == import_commit or not cg.is_ancestor(root, auth_commit, import_commit):
+        return False
+    materialized = cg.show_yaml(root, import_commit, path) or {}
+    materialized_ext = materialized.get("external_import") or {}
+    if not isinstance(materialized_ext, dict) or materialized_ext.get("import_commit") not in (None, ""):
+        return False
+    for key in ("mode", "authorization_commit", "source_review_id", "source_submitted_at"):
+        if materialized_ext.get(key) != ext.get(key):
+            return False
+    before_machine = cg.show_yaml(root, auth_commit, "registry/status-machines.yaml") or {}
+    before_auths = ((((before_machine.get("registry_machines") or {}).get("reviews") or {}).get("external_import_authorizations") or []))
+    return any(isinstance(auth, dict) and _review_authorization_matches(auth, review, None) for auth in before_auths)
+
+
 def _test_authorization_matches(auth: dict[str, Any], test: dict[str, Any], consumed: Any) -> bool:
     cold = test.get("acceptance_cold_read") or {}
     source = cold.get("source") or {}
@@ -261,7 +289,10 @@ def validate_import_commit_immutability(root: Path, edges: list[tuple[str, str]]
             new_value = new_ext.get("import_commit")
             if old_value == new_value:
                 continue
-            if old_value in (None, "") and isinstance(new_value, str) and review_import_finalized(root, current, after, path):
+            if old_value in (None, "") and isinstance(new_value, str) and (
+                review_import_binding_allowed(root, current, after, path)
+                or review_import_finalized(root, current, after, path)
+            ):
                 continue
             out.append(Finding(path, "REVIEW_IMPORT_COMMIT_IMMUTABLE", f"external review import_commit changed outside its one allowed null-to-materialization finalization at {after[:12]}"))
     return out
