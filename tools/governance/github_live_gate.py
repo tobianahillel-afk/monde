@@ -24,7 +24,7 @@ REQUIRED_L2_HATS = {
     "DOCUMENTATION_TRACEABILITY",
     "RED_TEAM_SKEPTIC",
 }
-THREAD_ID = re.compile(r"\b(PRRT_[A-Za-z0-9_-]+)\b")
+THREAD_ID = re.compile(r"(?<![A-Za-z0-9_-])(PRRT_[A-Za-z0-9_-]+)(?![A-Za-z0-9_-])")
 
 
 @dataclass(frozen=True)
