@@ -168,7 +168,8 @@ def overlapping_closed_pr_windows(
             historical_closed = _closed_pr_at(historical_pr)
             if historical_closed < historical_created:
                 raise RuntimeError("GitHub returned closed pull request with invalid lifetime")
-            if historical_identity != identity or historical_closed < current_created:
+            same_repo_branch = historical_identity[:2] == identity[:2]
+            if not same_repo_branch or historical_closed < current_created:
                 continue
             overlap_start = max(current_created, historical_created)
             windows[identity].append((overlap_start, historical_closed))
