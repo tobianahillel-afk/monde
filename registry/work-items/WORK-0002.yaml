@@ -255,7 +255,7 @@ implementation_plan:
     description: Correct the four fresh P1 findings from PRR_kwDOUUI5ts8AAAABNnPvYg, including review-state live-gate reruns, integration-provenance trust-anchor protection, and dependency-driven continuing ACCEPTED requirement/risk revalidation.
     depends_on:
     - T9
-    status: IN_PROGRESS
+    status: DONE
   planned_runs:
   - id: RUN-1
     objective: Initial deterministic governance implementation
@@ -480,6 +480,7 @@ validation:
   - Exact T9 substantive candidate 3da4047cacaaad4962b647a6625767001d328027 passed MONDE Gate run 34952991296 / #178: 291/291 tests, 3313/3313 statements, 1624/1624 branches, 100% line+branch coverage, 37/37 baseline plus 39/39 fresh-L2/T7/T8/T9 critical mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7-closure/T8-closure/T9-closure validators all at zero, 19-file context manifest, CodeQL success and Dependency Review success. Its pre-synchronization live gate observed exactly 58 unresolved threads with stale=[] and failed closed on the expected durable-ID mismatch plus absence of a trusted context-separated L2/L3 exact-head APPROVED review.
   - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNnPvYg reviewed exact candidate 9e4144d255590360f99652e59c38a02dbf95ccfa and opened four new P1 findings, expanding the live closure set from 58 to 62 and opening T10.
   - Exact T10 substantive candidate ef161b7e54c7f90433e1f303cdfd464827773870 passed deterministic/security lanes in MONDE Gate run 34962364980 / #190: 312/312 tests, 3482/3482 statements, 1696/1696 branches, 100% line+branch coverage, 37/37 baseline plus 40/40 fresh-L2/T7/T8/T9 mutations plus 5/5 dedicated T10 mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7/T8/T9/T10 validators all at zero, 19-file context manifest, CodeQL success and Dependency Review success. Its live gate observed exactly 62 unresolved threads and failed closed only on those threads, the expected four-entry durable-set lag, and missing independent exact-head approval.
+  - Exact synchronized T10 candidate 002926039c964e9e362b3c396a0d710323d9f1cf passed deterministic/security lanes in MONDE Gate run 34965242824 / #191 with the same 312/312 tests, 3482/3482 statements, 1696/1696 branches, 100% line+branch coverage, 37/37 + 40/40 + 5/5 mutations and every deterministic/T7/T8/T9/T10 gate at zero. Its live gate confirmed exact durable/live 62/62 identity equality and failed only on the 62 intentionally unresolved threads plus missing trusted context-separated exact-head approval.
   evidence:
   - TEST-0002
   - TEST-0003
@@ -494,7 +495,7 @@ validation:
     branch: 100
   known_gaps:
   - Repository administration/ruleset enforcement belongs to WORK-0003.
-  - Gate #190 is the exact substantive T10 author-side proof on ef161b7e54c7f90433e1f303cdfd464827773870; this durable synchronization changes HEAD and therefore requires its own exact-SHA Gate before T10 can be marked DONE author-side.
+  - Gate #191 is the exact synchronized T10 author-side proof on 002926039c964e9e362b3c396a0d710323d9f1cf; this T10-closure metadata commit changes HEAD again and therefore requires its own exact-SHA Gate before fresh independent review.
   - All 62 material review threads/findings remain intentionally unresolved pending another fresh independent verification; no author-side resolution counts as completion evidence.
   - No trusted context-separated L2/L3 GitHub APPROVED review is yet bound to the exact current PR HEAD; the hardened live gate must remain fail-closed until that independent evidence exists.
   - External Codex findings remain truthfully referenced by their GitHub review/thread identities rather than being retroactively rewritten as approving canonical REVIEW records.
@@ -549,7 +550,7 @@ run_log:
   note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNmehrQ on exact HEAD 061c17e7144396cbfd01963fb4036f3fc3c58ed3 opened six new P1/P2 findings and expanded the live closure set to 58. T9 corrected all six. Exact substantive candidate 3da4047cacaaad4962b647a6625767001d328027 passed Gate #178 / run 34952991296 with 291/291 tests, 100% line+branch across 3313 statements/1624 branches, 37/37 + 39/39 mutations and every deterministic/T7/T8/T9 gate at zero. The pre-sync live gate observed all 58 threads and correctly rejected the stale durable set plus missing independent exact-head approval. T9 is DONE author-side; T4 remains IN_PROGRESS for metadata-head proof and fresh independent closure.'
 - run: RUN-3
   date: '2026-09-15'
-  note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNnPvYg on exact HEAD 9e4144d255590360f99652e59c38a02dbf95ccfa opened four new P1 findings and expanded the live closure set to 62. T10 implemented all four with dedicated regression and mutation protection. Exact substantive candidate ef161b7e54c7f90433e1f303cdfd464827773870 passed Gate #190 / run 34962364980 with 312/312 tests, 100% line+branch across 3482 statements/1696 branches, 37/37 + 40/40 + 5/5 mutations, every deterministic/T7/T8/T9/T10 gate at zero, 19-file context manifest, CodeQL success and Dependency Review success. T10 remains IN_PROGRESS until this synchronization descendant is independently reproven.'
+  note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNnPvYg on exact HEAD 9e4144d255590360f99652e59c38a02dbf95ccfa opened four new P1 findings and expanded the live closure set to 62. T10 corrected all four with dedicated regression and mutation protection. Exact substantive candidate ef161b7e54c7f90433e1f303cdfd464827773870 passed Gate #190 / run 34962364980. Synchronized descendant 002926039c964e9e362b3c396a0d710323d9f1cf passed Gate #191 / run 34965242824 with 312/312 tests, 100% line+branch across 3482 statements/1696 branches, 37/37 + 40/40 + 5/5 mutations, every deterministic/T7/T8/T9/T10 gate at zero, 19-file context manifest, CodeQL success and Dependency Review success; live durable identity equality is 62/62. T10 is DONE author-side; T4 resumes for exact closure-metadata proof and fresh independent review.'
 discoveries:
 - 100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required.
 - GitHub live state can invalidate stale PROJECT_STATE prose after it is committed.
@@ -577,7 +578,7 @@ discoveries:
 - One-shot review import binding and import eligibility are distinct phases: the field may bind once to the exact earlier first-COMPLETE materialization commit under prior authorization, while later evidence use additionally requires consumed authorization.
 - Durable closure integrity is an identity-set property: equal counts cannot substitute for exact one-to-one PRRT coverage.
 blockers:
-- All 62 review findings remain intentionally unresolved. T10 is author-side implemented on exact substantive proof SHA ef161b7e54c7f90433e1f303cdfd464827773870; this synchronization descendant must pass its own exact-SHA Gate before T10 can be marked DONE and before a fresh independent L2 over all 62 findings can begin. A trusted context-separated L2/L3 exact-head APPROVED review remains mandatory before any closure or merge.
+- All 62 review findings remain intentionally unresolved. T10 is author-side DONE with exact proof chain ef161b7e54c7f90433e1f303cdfd464827773870 -> 002926039c964e9e362b3c396a0d710323d9f1cf. This T10-closure metadata descendant must pass its own exact-SHA Gate, then T4 requires a fresh independent L2 over all 62 findings and a trusted context-separated L2/L3 exact-head APPROVED review before any closure or merge.
 follow_up_work_items:
 - WORK-0003
 - WORK-0004
