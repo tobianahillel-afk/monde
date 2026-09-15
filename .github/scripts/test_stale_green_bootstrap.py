@@ -14,7 +14,18 @@ bootstrap = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(bootstrap)
 
 
-def gate_run(*, event: str, head: str, run_number: int, run_id: int, conclusion: str = "success", workflow_id: int | None = None, path: str | None = None):
+def gate_run(
+    *,
+    event,
+    head: str,
+    run_number: int,
+    run_id: int,
+    conclusion: str = "success",
+    workflow_id: int | None = None,
+    path: str | None = None,
+    pr_number: int = 2,
+    pull_requests=None,
+):
     return {
         "workflow_id": bootstrap.CANONICAL_WORKFLOW_ID if workflow_id is None else workflow_id,
         "path": bootstrap.CANONICAL_WORKFLOW_PATH if path is None else path,
@@ -23,6 +34,7 @@ def gate_run(*, event: str, head: str, run_number: int, run_id: int, conclusion:
         "run_number": run_number,
         "id": run_id,
         "conclusion": conclusion,
+        "pull_requests": [{"number": pr_number}] if pull_requests is None else pull_requests,
     }
 
 
@@ -88,22 +100,32 @@ class BootstrapPollTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "malformed open pull request"):
                     bootstrap.open_pull_requests("o/r", "t")
 
-    def test_latest_gate_runs_scope_to_canonical_workflow_and_review_family(self) -> None:
+    def test_latest_gate_runs_scope_to_canonical_workflow_review_family_and_pr(self) -> None:
         rows = [
-            gate_run(event="pull_request", head="h", run_number=1, run_id=10),
-            gate_run(event="pull_request_review", head="h", run_number=2, run_id=20),
-            gate_run(event="pull_request", head="h", run_number=1, run_id=11),
-            gate_run(event="pull_request_review_comment", head="c", run_number=3, run_id=30),
-            gate_run(event="push", head="ignored", run_number=99, run_id=99),
+            gate_run(event="pull_request", head="h", run_number=1, run_id=10, pr_number=2),
+            gate_run(event="pull_request_review", head="h", run_number=2, run_id=20, pr_number=2),
+            gate_run(event="pull_request", head="h", run_number=1, run_id=11, pr_number=2),
+            gate_run(event="pull_request_review_comment", head="c", run_number=3, run_id=30, pr_number=5),
+            gate_run(event="push", head="ignored", run_number=99, run_id=99, pr_number=9),
         ]
         with mock.patch.object(bootstrap, "paged", return_value=rows) as paged:
             latest = bootstrap.latest_completed_gate_runs("o/r", "t")
-        self.assertEqual(latest["h"]["id"], 20)
-        self.assertEqual(latest["c"]["id"], 30)
-        self.assertNotIn("ignored", latest)
+        self.assertEqual(latest[(2, "h")]["id"], 20)
+        self.assertEqual(latest[(5, "c")]["id"], 30)
+        self.assertNotIn((9, "ignored"), latest)
         self.assertIn(f"actions/workflows/{bootstrap.CANONICAL_WORKFLOW_ID}/runs?status=completed", paged.call_args.args[0])
 
-    def test_latest_gate_runs_rejects_wrong_identity_and_malformed_run(self) -> None:
+    def test_latest_gate_runs_keep_same_head_separate_by_pr(self) -> None:
+        rows = [
+            gate_run(event="pull_request", head="shared", run_number=10, run_id=210, pr_number=2),
+            gate_run(event="pull_request", head="shared", run_number=11, run_id=511, pr_number=5),
+        ]
+        with mock.patch.object(bootstrap, "paged", return_value=rows):
+            latest = bootstrap.latest_completed_gate_runs("o/r", "t")
+        self.assertEqual(latest[(2, "shared")]["id"], 210)
+        self.assertEqual(latest[(5, "shared")]["id"], 511)
+
+    def test_latest_gate_runs_rejects_wrong_identity_malformed_event_and_run(self) -> None:
         for bad in (
             gate_run(event="pull_request", head="h", run_number=1, run_id=10, workflow_id=999),
             gate_run(event="pull_request", head="h", run_number=1, run_id=10, path=".github/workflows/impostor.yml"),
@@ -111,10 +133,36 @@ class BootstrapPollTests(unittest.TestCase):
             with self.subTest(bad=bad), mock.patch.object(bootstrap, "paged", return_value=[bad]):
                 with self.assertRaisesRegex(RuntimeError, "mismatched workflow identity"):
                     bootstrap.latest_completed_gate_runs("o/r", "t")
+
+        malformed_event = gate_run(event=None, head="h", run_number=1, run_id=10)
+        with mock.patch.object(bootstrap, "paged", return_value=[malformed_event]):
+            with self.assertRaisesRegex(RuntimeError, "malformed canonical MONDE Gate event"):
+                bootstrap.latest_completed_gate_runs("o/r", "t")
+
         malformed = gate_run(event="pull_request", head="h", run_number=1, run_id=10)
         malformed["id"] = "not-int"
         with mock.patch.object(bootstrap, "paged", return_value=[malformed]):
             with self.assertRaisesRegex(RuntimeError, "malformed canonical MONDE Gate run"):
+                bootstrap.latest_completed_gate_runs("o/r", "t")
+
+    def test_pr_family_run_requires_one_valid_pr_association(self) -> None:
+        malformed_associations = (
+            [],
+            [{"number": 2}, {"number": 5}],
+            [None],
+            [{}],
+            [{"number": "2"}],
+            [{"number": 0}],
+        )
+        for associations in malformed_associations:
+            run = gate_run(event="pull_request_review", head="h", run_number=1, run_id=10, pull_requests=associations)
+            with self.subTest(associations=associations), mock.patch.object(bootstrap, "paged", return_value=[run]):
+                with self.assertRaisesRegex(RuntimeError, "pull request"):
+                    bootstrap.latest_completed_gate_runs("o/r", "t")
+        missing = gate_run(event="pull_request", head="h", run_number=1, run_id=10)
+        del missing["pull_requests"]
+        with mock.patch.object(bootstrap, "paged", return_value=[missing]):
+            with self.assertRaisesRegex(RuntimeError, "exactly one pull request"):
                 bootstrap.latest_completed_gate_runs("o/r", "t")
 
     def test_review_threads_false_true_and_pagination(self) -> None:
@@ -164,29 +212,31 @@ class BootstrapPollTests(unittest.TestCase):
             bootstrap.rerun_workflow("o/r", 123, "t")
         self.assertEqual(req.call_args.args, ("https://api.github.com/repos/o/r/actions/runs/123/rerun", "t", "POST", {}))
 
-    def test_poll_reruns_only_stale_success(self) -> None:
+    def test_poll_reruns_only_stale_success_and_preserves_pr_binding(self) -> None:
         prs = [
             {"number": 1, "head": {"sha": "missing"}},
             {"number": 2, "head": {"sha": "failed"}},
             {"number": 3, "head": {"sha": "clean"}},
-            {"number": 4, "head": {"sha": "stale"}},
+            {"number": 4, "head": {"sha": "shared"}},
+            {"number": 5, "head": {"sha": "shared"}},
         ]
         runs = {
-            "failed": gate_run(event="pull_request", head="failed", run_number=1, run_id=1, conclusion="failure"),
-            "clean": gate_run(event="pull_request_review", head="clean", run_number=2, run_id=2),
-            "stale": gate_run(event="pull_request_review", head="stale", run_number=3, run_id=3),
+            (2, "failed"): gate_run(event="pull_request", head="failed", run_number=1, run_id=1, conclusion="failure", pr_number=2),
+            (3, "clean"): gate_run(event="pull_request_review", head="clean", run_number=2, run_id=2, pr_number=3),
+            (4, "shared"): gate_run(event="pull_request_review", head="shared", run_number=3, run_id=4, pr_number=4),
+            (5, "shared"): gate_run(event="pull_request_review", head="shared", run_number=4, run_id=5, pr_number=5),
         }
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=prs), \
              mock.patch.object(bootstrap, "latest_completed_gate_runs", return_value=runs), \
              mock.patch.object(bootstrap, "unresolved_review_threads", side_effect=lambda _repo, n, _token: n == 4), \
              mock.patch.object(bootstrap, "rerun_workflow") as rerun:
-            self.assertEqual(bootstrap.poll("o/r", "t"), [3])
-        rerun.assert_called_once_with("o/r", 3, "t")
+            self.assertEqual(bootstrap.poll("o/r", "t"), [4])
+        rerun.assert_called_once_with("o/r", 4, "t")
 
     def test_validate_github_contract(self) -> None:
         prs = [{"number": 5, "head": {"sha": "h"}}, {"number": 2, "head": {"sha": "x"}}]
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=prs), \
-             mock.patch.object(bootstrap, "latest_completed_gate_runs", return_value={"x": {}}), \
+             mock.patch.object(bootstrap, "latest_completed_gate_runs", return_value={(2, "x"): {}}), \
              mock.patch.object(bootstrap, "unresolved_review_threads", return_value=True):
             self.assertEqual(bootstrap.validate_github_contract("o/r", 5, "t"), (2, 1, True))
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=[]):
