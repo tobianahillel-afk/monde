@@ -25,6 +25,9 @@ REQUIRED_L2_HATS = {
     "RED_TEAM_SKEPTIC",
 }
 THREAD_ID = re.compile(r"(?<![A-Za-z0-9_-])(PRRT_[A-Za-z0-9_-]+)(?![A-Za-z0-9_-])")
+WORK_ITEM_PATH = re.compile(r"^registry/work-items/(WORK-\d+)\.yaml$")
+CLOSURE_WORK_STATUSES = {"READY", "IN_PROGRESS", "PARTIAL", "BLOCKED", "IN_REVIEW", "DONE"}
+MAX_PAGES = 20
 
 
 @dataclass(frozen=True)
@@ -107,6 +110,23 @@ def fetch_reviews(repo: str, pr: int, token: str) -> list[dict[str, Any]]:
     return _paginate_graphql(repo, pr, token, "reviews", "id state submittedAt body commit{oid} author{login}")
 
 
+def fetch_pr_files(repo: str, pr: int, token: str) -> list[str]:
+    files: list[str] = []
+    for page in range(1, MAX_PAGES + 1):
+        payload = request_data(
+            f"https://api.github.com/repos/{repo}/pulls/{pr}/files?per_page=100&page={page}",
+            token,
+        )
+        if not isinstance(payload, list):
+            raise RuntimeError("GitHub returned malformed pull-request file list")
+        for item in payload:
+            if isinstance(item, dict) and isinstance(item.get("filename"), str):
+                files.append(item["filename"])
+        if len(payload) < 100:
+            return files
+    raise RuntimeError(f"pull-request file pagination exceeded {MAX_PAGES} pages")
+
+
 def _latest_exact_head_reviews(reviews: list[dict[str, Any]], head: str, author: str) -> dict[str, dict[str, Any]]:
     latest: dict[str, dict[str, Any]] = {}
     for review in reviews:
@@ -178,13 +198,33 @@ def trusted_exact_head_approvers(repo: str, reviews: list[dict[str, Any]], head:
     return trusted
 
 
-def durable_open_findings(root: Path) -> list[str] | None:
-    path = root / "registry/work-items/WORK-0002.yaml"
+def _load_work(root: Path, path: str) -> dict[str, Any] | None:
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        data = yaml.safe_load((root / path).read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError):
         return None
-    if not isinstance(data, dict):
+    return data if isinstance(data, dict) else None
+
+
+def resolve_closure_work(root: Path, changed_files: list[str]) -> tuple[str, str] | None:
+    candidates: list[tuple[str, str]] = []
+    for path in sorted(set(changed_files)):
+        match = WORK_ITEM_PATH.fullmatch(path)
+        if match is None:
+            continue
+        work = _load_work(root, path)
+        if not work or work.get("status") not in CLOSURE_WORK_STATUSES:
+            continue
+        work_id = str(work.get("id") or "")
+        if work_id != match.group(1):
+            continue
+        candidates.append((path, work_id))
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def durable_open_findings(root: Path, work_path: str) -> list[str] | None:
+    data = _load_work(root, work_path)
+    if data is None:
         return None
     review_plan = data.get("review_plan") or {}
     values = review_plan.get("open_findings") if isinstance(review_plan, dict) else None
@@ -239,22 +279,34 @@ def validate(repo: str, pr: int, head: str, token: str, root: Path | None = None
 
     findings.extend(validate_repository_owner_permission(repo, token))
 
+    changed = fetch_pr_files(repo, pr, token)
+    closure_work = resolve_closure_work(root, changed)
+    if closure_work is None:
+        findings.append(
+            LiveFinding(
+                "ACTIVE_WORK_RESOLUTION",
+                "exactly one changed closure-bearing WORK in READY/IN_PROGRESS/PARTIAL/BLOCKED/IN_REVIEW/DONE must own the PR live finding set",
+            )
+        )
+
     threads = fetch_threads(repo, pr, token)
     unresolved = {str(item.get("id") or "") for item in threads if not item.get("isResolved") and item.get("id")}
     if unresolved:
         findings.append(LiveFinding("UNRESOLVED_THREADS", f"{len(unresolved)} unresolved review thread(s)"))
 
-    durable = durable_open_findings(root)
-    durable_ids = durable_finding_ids(durable)
-    if durable_ids != unresolved:
-        missing = sorted(unresolved - (durable_ids or set()))
-        stale = sorted((durable_ids or set()) - unresolved)
-        findings.append(
-            LiveFinding(
-                "DURABLE_FINDING_SET",
-                f"WORK-0002 durable thread identities do not match live unresolved threads; missing={missing}, stale={stale}",
+    if closure_work is not None:
+        work_path, work_id = closure_work
+        durable = durable_open_findings(root, work_path)
+        durable_ids = durable_finding_ids(durable)
+        if durable_ids != unresolved:
+            missing = sorted(unresolved - (durable_ids or set()))
+            stale = sorted((durable_ids or set()) - unresolved)
+            findings.append(
+                LiveFinding(
+                    "DURABLE_FINDING_SET",
+                    f"{work_id} durable thread identities do not match live unresolved threads; missing={missing}, stale={stale}",
+                )
             )
-        )
 
     author = str(((info.get("user") or {}).get("login") or ""))
     approvers = trusted_exact_head_approvers(repo, fetch_reviews(repo, pr, token), head, author, token)
