@@ -10,6 +10,7 @@ on:
       - requirements/bootstrap-governance-ci.txt
       - registry/requirements/REQ-0026.yaml
       - registry/tests/TEST-0009.yaml
+      - registry/reviews/REVIEW-*.yaml
       - registry/work-items/WORK-0002.yaml
       - PROJECT_STATE.md
   schedule:
