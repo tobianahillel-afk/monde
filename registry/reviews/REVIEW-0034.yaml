@@ -1,0 +1,68 @@
+id: REVIEW-0034
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "global fail-closed validation of canonical PR-family run metadata before identity filtering"
+    - "current PR incarnation binding across branch resets and overlapping PR lifetimes"
+    - "fail-closed GitHub REST/GraphQL metadata and bounded pagination"
+    - "WORK / PROJECT_STATE / REVIEW lifecycle synchronization"
+  risks:
+    - "A stale successful gate may remain green after review state becomes unresolved."
+    - "Malformed metadata on another same-SHA branch may alter effective gate state while escaping filtered validation."
+    - "A rerun may execute an earlier or overlapping PR context and preserve false merge eligibility."
+    - "Durable resume sources may disagree on the active review lifecycle."
+findings: []
+checks:
+  assumptions_challenged:
+    - "Run metadata may be validated only after current-PR identity matching."
+    - "Effective shared-SHA state may consume partially validated records."
+    - "A closed PR's final head.sha is sufficient history for run attribution."
+    - "workflow_run.pull_requests association cardinality is authoritative triggering-PR identity."
+  omitted_categories_considered:
+    - "global validation order before filtering"
+    - "default-branch trust boundary"
+    - "shared-SHA, reused-branch, force-push/reset and overlapping PR lifetimes"
+    - "REST and GraphQL schema failure"
+    - "bounded pagination and cursor cycles"
+    - "least-privilege Actions permissions"
+    - "requirement/test/work/review traceability"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031, REVIEW-0032 and REVIEW-0033 remain terminal CHANGES_REQUIRED evidence and are never reopened or rewritten."
+    - "Bootstrap remains a temporary predecessor for PR #2's canonical poller rather than a second permanent governance mechanism."
+  failure_modes_considered:
+    - "other-branch same-SHA run has malformed created_at and terminal failure or success"
+    - "filtered current-target pass skips malformed nonmatching identity while unfiltered effective pass consumes it"
+    - "historical PR uses SHA S, branch moves to S2 before close, then current PR later uses S again"
+    - "cross-PR shared-SHA state re-greens or suppresses unresolved-thread invalidation"
+    - "malformed REST/GraphQL metadata and pagination"
+  evidence_requested:
+    - "Exact-head 100 percent line and branch suite including nonmatching-run created_at regression"
+    - "Read-only live GitHub contract probe against WORK-0002 PR #2"
+    - "Synchronized 21/21 PR #5 finding handover and REVIEW-0033 terminal state"
+    - "Fresh-context independent exact-head Codex review after correction"
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-15"

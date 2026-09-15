@@ -1,12 +1,12 @@
 id: REVIEW-0033
-status: IN_PROGRESS
+status: COMPLETE
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "55d471ac5d9b09f37aa93c6fce342a6a60a2b6ff"
 reviewer:
-  actor: null
-  context_id: null
+  actor: "chatgpt-codex-connector"
+  context_id: "fresh-context-pr5-55d471ac"
   independence_level: L2
 roles:
   - ARCHITECTURE_REUSE
@@ -28,16 +28,39 @@ scope:
     - "WORK / PROJECT_STATE / REVIEW lifecycle synchronization"
   risks:
     - "A stale successful gate may remain green after review state becomes unresolved."
+    - "A malformed canonical PR-family run may influence effective shared-SHA state while escaping filtered validation."
     - "A rerun may execute an earlier or overlapping PR context and preserve false merge eligibility."
-    - "A closed PR final head SHA may hide an earlier same-branch SHA used during an overlapping lifetime."
     - "Durable resume sources may disagree on the active review lifecycle."
-findings: []
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: FAIL_CLOSED_METADATA
+    description: "Canonical PR-family run created_at was validated only after current-PR identity matching. A malformed run from another branch sharing the same SHA could influence effective shared-SHA state while the filtered pass skipped it before timestamp validation, bypassing unresolved-thread invalidation."
+    evidence:
+      - PRRT_kwDOUUI5ts6in_r4
+      - ".github/scripts/stale_green_bootstrap.py"
+      - ".github/scripts/test_stale_green_bootstrap_run_created_at.py"
+      - "PRR_kwDOUUI5ts8AAAABNr8aMQ"
+    disposition: OPEN
+    resolved_by: null
+    acceptance:
+      accepted_by: null
+      authority_role: null
+      authority_evidence_type: null
+      authority_evidence_ref: null
+      authority_matrix_version: null
+      authority_rule_id: null
+      rationale: null
+      accepted_at: null
+      review_condition: null
 checks:
   assumptions_challenged:
+    - "Metadata for a run that does not match current_prs can be ignored before validation."
+    - "Effective shared-SHA state can safely consume less metadata than current-target selection."
     - "A closed PR's final head.sha is sufficient history for run attribution."
-    - "PR.created_at plus exact final SHA uniquely separates every overlapping PR incarnation."
     - "workflow_run.pull_requests association cardinality is authoritative triggering-PR identity."
   omitted_categories_considered:
+    - "global fail-closed validation before identity filtering"
     - "default-branch trust boundary"
     - "shared-SHA, reused-branch, force-push/reset and overlapping PR lifetimes"
     - "REST and GraphQL schema failure"
@@ -45,23 +68,21 @@ checks:
     - "least-privilege Actions permissions"
     - "requirement/test/work/review traceability"
   duplicate_or_reuse_search:
-    - "REVIEW-0031 and REVIEW-0032 remain terminal CHANGES_REQUIRED evidence and are never reopened or rewritten."
+    - "REVIEW-0031 and REVIEW-0032 remain terminal CHANGES_REQUIRED evidence and are not reopened."
     - "Bootstrap remains a temporary predecessor for PR #2's canonical poller rather than a second permanent governance mechanism."
   failure_modes_considered:
+    - "other-branch same-SHA canonical run has malformed created_at and terminal failure"
+    - "effective state consumes a malformed run that filtered target selection silently skips"
     - "historical PR uses SHA S, branch moves to S2 before close, then current PR later uses S again"
-    - "another same-branch PR produces a gate run while lifetimes overlap and later closes"
-    - "old PR run is rerun after current PR opens and gets a newer updated_at"
-    - "cross-PR shared-SHA success re-greens the commit"
-    - "malformed closed-PR lifetime metadata"
-    - "falsey GraphQL errors or cursor cycles"
-    - "WORK / PROJECT_STATE / REVIEW lifecycle drift"
+    - "cross-PR shared-SHA success or failure changes effective required-check state"
+    - "malformed GitHub REST/GraphQL metadata"
   evidence_requested:
-    - "Exact-head 100 percent line and branch bootstrap suite including branch-reset overlap regression"
+    - "Exact-head 100 percent line and branch bootstrap suite including nonmatching-run created_at regression"
     - "Read-only live GitHub contract probe against WORK-0002 PR #2"
-    - "Synchronized 20/20 PR #5 finding handover and REVIEW-0032 terminal state"
-    - "Fresh-context independent exact-head Codex review after correction"
+    - "Synchronized 21/21 PR #5 finding handover and REVIEW-0033 terminal state"
+    - "Fresh-context independent exact-head review after correction"
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-15T17:20:44Z"
 history:
   created_at: "2026-09-15"
   updated_at: "2026-09-15"
