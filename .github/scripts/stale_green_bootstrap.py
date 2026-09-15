@@ -59,30 +59,47 @@ def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
     return items
 
 
-def latest_completed_gate_runs(repo: str, token: str) -> dict[str, dict[str, Any]]:
+def _run_pr_number(run: dict[str, Any]) -> int:
+    associations = run.get("pull_requests")
+    if not isinstance(associations, list) or len(associations) != 1:
+        raise RuntimeError("canonical PR-family MONDE Gate run must bind exactly one pull request")
+    association = associations[0]
+    if not isinstance(association, dict):
+        raise RuntimeError("canonical PR-family MONDE Gate run has malformed pull request association")
+    number = association.get("number")
+    if not isinstance(number, int) or number < 1:
+        raise RuntimeError("canonical PR-family MONDE Gate run has malformed pull request association")
+    return number
+
+
+def latest_completed_gate_runs(repo: str, token: str) -> dict[tuple[int, str], dict[str, Any]]:
     runs = paged(
         f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?status=completed",
         token,
         "workflow_runs",
     )
-    latest: dict[str, dict[str, Any]] = {}
+    latest: dict[tuple[int, str], dict[str, Any]] = {}
     for run in runs:
         workflow_id = run.get("workflow_id")
         path = run.get("path")
         event = run.get("event")
+        if workflow_id != CANONICAL_WORKFLOW_ID or path != CANONICAL_WORKFLOW_PATH:
+            raise RuntimeError("canonical workflow endpoint returned mismatched workflow identity")
+        if not isinstance(event, str) or not event:
+            raise RuntimeError("GitHub returned malformed canonical MONDE Gate event")
+        if event not in PR_FAMILY_EVENTS:
+            continue
         head = run.get("head_sha")
         run_number = run.get("run_number")
         run_id = run.get("id")
         conclusion = run.get("conclusion")
-        if workflow_id != CANONICAL_WORKFLOW_ID or path != CANONICAL_WORKFLOW_PATH:
-            raise RuntimeError("canonical workflow endpoint returned mismatched workflow identity")
-        if event not in PR_FAMILY_EVENTS:
-            continue
         if not isinstance(head, str) or not head or not isinstance(run_number, int) or not isinstance(run_id, int) or not isinstance(conclusion, str):
             raise RuntimeError("GitHub returned malformed canonical MONDE Gate run")
-        previous = latest.get(head)
+        pr_number = _run_pr_number(run)
+        key = (pr_number, head)
+        previous = latest.get(key)
         if previous is None or run_number > int(previous["run_number"]):
-            latest[head] = run
+            latest[key] = run
     return latest
 
 
@@ -136,7 +153,7 @@ def poll(repo: str, token: str) -> list[int]:
     for pr in open_pull_requests(repo, token):
         number = pr["number"]
         head = pr["head"]["sha"]
-        run = runs.get(head)
+        run = runs.get((number, head))
         if run is None or run["conclusion"] != "success":
             continue
         if not unresolved_review_threads(repo, number, token):
