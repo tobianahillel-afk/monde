@@ -73,6 +73,7 @@ def run(
         "head_repository": {"full_name": "o/r"},
         "run_number": run_id,
         "id": run_id,
+        "status": "completed",
         "conclusion": conclusion,
         "created_at": created_at,
         "updated_at": updated_at,

@@ -105,6 +105,9 @@ def _run_head_identity(run: dict[str, Any]) -> HeadIdentity:
     sha = run.get("head_sha")
     if not (_nonempty_string(repo_name) and _nonempty_string(branch) and _nonempty_string(sha)):
         raise RuntimeError("GitHub returned malformed canonical MONDE Gate head identity")
+    repo_parts = repo_name.split("/")
+    if len(repo_parts) != 2 or not all(repo_parts):
+        raise RuntimeError("GitHub returned malformed canonical MONDE Gate head repository full_name")
     return (repo_name, branch, sha)
 
 
@@ -136,6 +139,8 @@ def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
             raise RuntimeError("GitHub returned malformed open pull request")
         identity = _pr_head_identity(item)
         _pr_created_at(item)
+        if item.get("state") != "open":
+            raise RuntimeError("GitHub returned malformed open pull request state")
         previous = seen.get(identity)
         if previous is not None and previous != number:
             raise RuntimeError(
@@ -212,16 +217,20 @@ def latest_completed_gate_runs(
             continue
         run_number = run.get("run_number")
         run_id = run.get("id")
+        status = run.get("status")
         conclusion = run.get("conclusion")
         if (
             not _positive_int(run_number)
             or not _positive_int(run_id)
+            or status != "completed"
             or not isinstance(conclusion, str)
             or conclusion not in TERMINAL_CONCLUSIONS
         ):
             raise RuntimeError("GitHub returned malformed canonical MONDE Gate run")
         run_created = _run_created_at(run)
-        _updated_at(run.get("updated_at"))
+        run_updated = _updated_at(run.get("updated_at"))
+        if run_updated < run_created:
+            raise RuntimeError("GitHub returned canonical MONDE Gate run with invalid lifetime")
         key = _run_head_identity(run)
         if current_prs is not None:
             pr = current_prs.get(key)
@@ -281,13 +290,15 @@ def unresolved_review_threads(repo: str, pr: int, token: str) -> bool:
             raise RuntimeError("malformed reviewThreads nodes")
         if not isinstance(info, dict) or not isinstance(info.get("hasNextPage"), bool):
             raise RuntimeError("malformed reviewThreads pageInfo")
+        if "endCursor" not in info or (info["endCursor"] is not None and not isinstance(info["endCursor"], str)):
+            raise RuntimeError("malformed reviewThreads pageInfo")
+        next_cursor = info["endCursor"]
+        if info["hasNextPage"] and not _nonempty_string(next_cursor):
+            raise RuntimeError("reviewThreads pagination missing cursor")
         if any(node["isResolved"] is False for node in nodes):
             return True
         if not info["hasNextPage"]:
             return False
-        next_cursor = info.get("endCursor")
-        if not _nonempty_string(next_cursor):
-            raise RuntimeError("reviewThreads pagination missing cursor")
         if next_cursor in seen_cursors:
             raise RuntimeError("reviewThreads pagination repeated cursor")
         seen_cursors.add(next_cursor)

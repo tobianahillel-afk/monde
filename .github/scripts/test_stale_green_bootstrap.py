@@ -61,6 +61,7 @@ def gate_run(
         "head_repository": {"full_name": repo_name},
         "run_number": run_number,
         "id": run_id,
+        "status": "completed",
         "conclusion": conclusion,
         "created_at": created_at or f"2026-09-15T14:30:{run_id % 60:02d}Z",
         "updated_at": updated_at or f"2026-09-15T15:00:{run_id % 60:02d}Z",
@@ -161,6 +162,12 @@ class BootstrapPollTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "malformed .*pull request|malformed pull request"):
                     bootstrap.open_pull_requests("o/r", "t")
 
+        for state in ("closed", None, ""):
+            bad_state = pull_request(2, "h", branch="feature", repo_name="owner/repo", state=state)
+            with self.subTest(state=state), mock.patch.object(bootstrap, "paged", return_value=[bad_state]):
+                with self.assertRaisesRegex(RuntimeError, "malformed open pull request state"):
+                    bootstrap.open_pull_requests("o/r", "t")
+
         same_identity = [pull_request(2, "same", branch="same"), pull_request(5, "same", branch="same")]
         with mock.patch.object(bootstrap, "paged", return_value=same_identity):
             with self.assertRaisesRegex(RuntimeError, "indistinguishable head identity"):
@@ -179,6 +186,11 @@ class BootstrapPollTests(unittest.TestCase):
             with self.subTest(field=field):
                 with self.assertRaisesRegex(RuntimeError, "malformed canonical MONDE Gate head identity"):
                     bootstrap._run_head_identity(bad)
+        for repo_name in ("malformed", "owner/", "/repo", "owner/repo/extra"):
+            bad_repo = gate_run(event="pull_request", head="h", run_number=1, run_id=1, repo_name=repo_name)
+            with self.subTest(repo_name=repo_name):
+                with self.assertRaisesRegex(RuntimeError, "head repository full_name"):
+                    bootstrap._run_head_identity(bad_repo)
 
     def test_updated_at_requires_valid_aware_timestamp(self) -> None:
         self.assertIsNotNone(bootstrap._updated_at("2026-09-15T15:00:00Z").tzinfo)
@@ -243,18 +255,32 @@ class BootstrapPollTests(unittest.TestCase):
             ("id", "not-int"),
             ("id", True),
             ("run_number", True),
+            ("status", None),
+            ("status", "in_progress"),
             ("conclusion", ""),
             ("conclusion", "mystery"),
         ):
             malformed = gate_run(event="pull_request", head="h", run_number=1, run_id=10)
             malformed[field] = value
-            with self.subTest(field=field), mock.patch.object(bootstrap, "paged", return_value=[malformed]):
+            with self.subTest(field=field, value=value), mock.patch.object(bootstrap, "paged", return_value=[malformed]):
                 with self.assertRaisesRegex(RuntimeError, "malformed canonical MONDE Gate run"):
                     bootstrap.latest_completed_gate_runs("o/r", "t")
 
         bad_time = gate_run(event="pull_request", head="h", run_number=1, run_id=10, updated_at="not-a-date")
         with mock.patch.object(bootstrap, "paged", return_value=[bad_time]):
             with self.assertRaisesRegex(RuntimeError, "malformed canonical MONDE Gate updated_at"):
+                bootstrap.latest_completed_gate_runs("o/r", "t")
+
+        backwards_time = gate_run(
+            event="pull_request",
+            head="h",
+            run_number=1,
+            run_id=10,
+            created_at="2026-09-15T15:01:00Z",
+            updated_at="2026-09-15T15:00:00Z",
+        )
+        with mock.patch.object(bootstrap, "paged", return_value=[backwards_time]):
+            with self.assertRaisesRegex(RuntimeError, "invalid lifetime"):
                 bootstrap.latest_completed_gate_runs("o/r", "t")
 
         bad_head = gate_run(event="pull_request", head="h", run_number=1, run_id=10)
@@ -375,7 +401,7 @@ class BootstrapPollTests(unittest.TestCase):
 
         bad_node = {
             "data": {"repository": {"pullRequest": {"reviewThreads": {
-                "nodes": [{}], "pageInfo": {"hasNextPage": False}
+                "nodes": [{}], "pageInfo": {"hasNextPage": False, "endCursor": None}
             }}}}
         }
         with mock.patch.object(bootstrap, "request_data", return_value=bad_node):
@@ -390,6 +416,16 @@ class BootstrapPollTests(unittest.TestCase):
         with mock.patch.object(bootstrap, "request_data", return_value=bad_info):
             with self.assertRaisesRegex(RuntimeError, "malformed reviewThreads pageInfo"):
                 bootstrap.unresolved_review_threads("o/r", 2, "t")
+
+        for bad_end_cursor in ({"hasNextPage": False}, {"hasNextPage": False, "endCursor": 7}, {"hasNextPage": False, "endCursor": {}}):
+            payload = {
+                "data": {"repository": {"pullRequest": {"reviewThreads": {
+                    "nodes": [], "pageInfo": bad_end_cursor
+                }}}}
+            }
+            with self.subTest(pageInfo=bad_end_cursor), mock.patch.object(bootstrap, "request_data", return_value=payload):
+                with self.assertRaisesRegex(RuntimeError, "malformed reviewThreads pageInfo"):
+                    bootstrap.unresolved_review_threads("o/r", 2, "t")
 
         bad_cursor = {
             "data": {"repository": {"pullRequest": {"reviewThreads": {

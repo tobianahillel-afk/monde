@@ -5,8 +5,7 @@ on:
     paths:
       - .github/workflows/monde-stale-green-bootstrap.yml
       - .github/scripts/stale_green_bootstrap.py
-      - .github/scripts/test_stale_green_bootstrap.py
-      - .github/scripts/test_stale_green_bootstrap_incarnation.py
+      - '.github/scripts/test_stale_green_bootstrap*.py'
       - requirements/bootstrap-governance-ci.txt
       - registry/requirements/REQ-0026.yaml
       - registry/tests/TEST-0009.yaml
