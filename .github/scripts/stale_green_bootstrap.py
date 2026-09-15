@@ -12,6 +12,7 @@ from typing import Any
 MAX_PAGES = 20
 CANONICAL_WORKFLOW_ID = 354465551
 CANONICAL_WORKFLOW_PATH = ".github/workflows/governance.yml"
+REQUIRED_GATE_JOB_NAME = "MONDE / Merge Gate"
 PR_FAMILY_EVENTS = {"pull_request", "pull_request_review", "pull_request_review_comment"}
 TERMINAL_CONCLUSIONS = {
     "success",
@@ -257,6 +258,38 @@ def effective_gate_runs_by_head(runs: dict[HeadIdentity, dict[str, Any]]) -> dic
     return latest
 
 
+def required_merge_gate_conclusion(repo: str, run: dict[str, Any], token: str) -> str:
+    run_id = run.get("id")
+    head_sha = run.get("head_sha")
+    if not _positive_int(run_id) or not _nonempty_string(head_sha):
+        raise RuntimeError("GitHub returned malformed canonical MONDE Gate run for required-check lookup")
+    jobs = paged(
+        f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?filter=latest",
+        token,
+        "jobs",
+    )
+    required_jobs: list[dict[str, Any]] = []
+    for job in jobs:
+        conclusion = job.get("conclusion")
+        if (
+            not _positive_int(job.get("id"))
+            or job.get("run_id") != run_id
+            or not _nonempty_string(job.get("name"))
+            or job.get("status") != "completed"
+            or not isinstance(conclusion, str)
+            or conclusion not in TERMINAL_CONCLUSIONS
+            or job.get("head_sha") != head_sha
+        ):
+            raise RuntimeError("GitHub returned malformed canonical MONDE Gate job")
+        if job["name"] == REQUIRED_GATE_JOB_NAME:
+            required_jobs.append(job)
+    if len(required_jobs) != 1:
+        raise RuntimeError(
+            f"canonical workflow run {run_id} exposes {len(required_jobs)} {REQUIRED_GATE_JOB_NAME!r} jobs; expected exactly one"
+        )
+    return required_jobs[0]["conclusion"]
+
+
 def unresolved_review_threads(repo: str, pr: int, token: str) -> bool:
     owner, name = repo.split("/", 1)
     cursor: str | None = None
@@ -328,7 +361,10 @@ def poll(repo: str, token: str) -> list[int]:
         identity = _pr_head_identity(pr)
         head = identity[2]
         effective_run = effective.get(head)
-        if effective_run is None or effective_run["conclusion"] not in MERGE_ACCEPTABLE_CONCLUSIONS:
+        if effective_run is None:
+            continue
+        required_conclusion = required_merge_gate_conclusion(repo, effective_run, token)
+        if required_conclusion not in MERGE_ACCEPTABLE_CONCLUSIONS:
             continue
         target_run = current_runs.get(identity)
         if target_run is None:
@@ -355,6 +391,7 @@ def validate_github_contract(repo: str, pr_number: int, token: str) -> tuple[int
     identity = _pr_head_identity(current[0])
     if identity not in runs:
         raise RuntimeError(f"no unambiguous canonical MONDE Gate run is bound to current incarnation of open PR #{pr_number}")
+    required_merge_gate_conclusion(repo, runs[identity], token)
     unresolved = unresolved_review_threads(repo, pr_number, token)
     return len(prs), len(runs), unresolved
 

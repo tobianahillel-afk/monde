@@ -495,6 +495,8 @@ class BootstrapPollTests(unittest.TestCase):
         ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=runs
         ), mock.patch.object(
+            bootstrap, "required_merge_gate_conclusion", return_value="success"
+        ), mock.patch.object(
             bootstrap, "unresolved_review_threads", side_effect=lambda _repo, n, _token: n == 4
         ), mock.patch.object(bootstrap, "rerun_workflow") as rerun:
             self.assertEqual(bootstrap.poll("o/r", "t"), [4])
@@ -516,6 +518,8 @@ class BootstrapPollTests(unittest.TestCase):
             bootstrap, "overlapping_closed_pr_windows", return_value={}
         ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=runs
+        ), mock.patch.object(
+            bootstrap, "required_merge_gate_conclusion", return_value="failure"
         ), mock.patch.object(bootstrap, "unresolved_review_threads") as threads, mock.patch.object(
             bootstrap, "rerun_workflow"
         ) as rerun:
@@ -534,6 +538,8 @@ class BootstrapPollTests(unittest.TestCase):
             bootstrap, "overlapping_closed_pr_windows", return_value={}
         ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=clean_runs
+        ), mock.patch.object(
+            bootstrap, "required_merge_gate_conclusion", return_value="success"
         ), mock.patch.object(bootstrap, "unresolved_review_threads", return_value=False), mock.patch.object(
             bootstrap, "rerun_workflow"
         ) as rerun:
@@ -550,6 +556,8 @@ class BootstrapPollTests(unittest.TestCase):
             bootstrap, "overlapping_closed_pr_windows", return_value={}
         ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=only_other
+        ), mock.patch.object(
+            bootstrap, "required_merge_gate_conclusion", return_value="success"
         ):
             with self.assertRaisesRegex(RuntimeError, "no unambiguous run bound to open PR #4"):
                 bootstrap.poll("o/r", "t")
@@ -569,6 +577,8 @@ class BootstrapPollTests(unittest.TestCase):
             bootstrap, "overlapping_closed_pr_windows", return_value={}
         ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=runs
+        ), mock.patch.object(
+            bootstrap, "required_merge_gate_conclusion", return_value="failure"
         ), mock.patch.object(bootstrap, "unresolved_review_threads", return_value=True):
             self.assertEqual(bootstrap.validate_github_contract("o/r", 5, "t"), (2, 2, True))
 

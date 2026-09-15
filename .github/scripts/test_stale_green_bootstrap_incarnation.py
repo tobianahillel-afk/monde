@@ -391,6 +391,10 @@ class BootstrapIncarnationTests(unittest.TestCase):
             bootstrap,
             "latest_completed_gate_runs",
             side_effect=[effective, current_only],
+        ), mock.patch.object(
+            bootstrap,
+            "required_merge_gate_conclusion",
+            return_value="success",
         ), mock.patch.object(bootstrap, "unresolved_review_threads", return_value=True), mock.patch.object(
             bootstrap,
             "rerun_workflow",
