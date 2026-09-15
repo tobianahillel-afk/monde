@@ -1,5 +1,5 @@
 name: MONDE Stale-Green Bootstrap
-# REVIEW-0040 IN_PROGRESS exact-head proof trigger; comment-only, no executable semantics changed.
+# REVIEW-0041 OPEN exact-head proof trigger; comment-only, no executable semantics changed.
 
 on:
   pull_request:
