@@ -1,12 +1,12 @@
-id: REVIEW-0035
-status: COMPLETE
+id: REVIEW-0036
+status: OPEN
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: "fa41ae51cf5685db02be343818fceb4946f909bf"
+  commit_sha: null
 reviewer:
-  actor: "chatgpt-codex-connector"
-  context_id: "fresh-context-pr5-fa41ae51"
+  actor: null
+  context_id: null
   independence_level: L2
 roles:
   - ARCHITECTURE_REUSE
@@ -24,7 +24,7 @@ scope:
   contracts:
     - "trusted default-branch stale-green review-state invalidation"
     - "complete fail-closed validation of canonical PR-family run records before selection"
-    - "merge-acceptable required-check conclusion semantics"
+    - "all GitHub merge-acceptable required-check conclusions are revalidated after review-state changes"
     - "current PR incarnation binding across branch resets and overlapping PR lifetimes"
     - "fail-closed GitHub REST/GraphQL metadata and bounded pagination"
     - "bootstrap regression trigger and TEST-0009 traceability completeness"
@@ -32,43 +32,37 @@ scope:
     - "A merge-acceptable canonical gate may remain stale after review threads become unresolved."
     - "A malformed canonical run or PR record may suppress unresolved-thread inspection."
     - "A rerun may execute an earlier or overlapping PR context and preserve false merge eligibility."
-findings:
-  - id: F-1
-    severity: R2_MAJOR
-    category: CONTROL_PLANE_BINDING
-    description: "The stale-green poll revalidated only conclusion=success, while GitHub also treats neutral and skipped required checks as satisfying merge protection."
-    evidence: [PRRT_kwDOUUI5ts6ipPZM, ".github/scripts/stale_green_bootstrap.py", PRR_kwDOUUI5ts8AAAABNskIgg]
-    disposition: OPEN
-    resolved_by: null
-    acceptance: {accepted_by: null, authority_role: null, authority_evidence_type: null, authority_evidence_ref: null, authority_matrix_version: null, authority_rule_id: null, rationale: null, accepted_at: null, review_condition: null}
+findings: []
 checks:
   assumptions_challenged:
-    - "Only conclusion=success can satisfy the required MONDE status check."
-    - "A terminal conclusion that is not literal success cannot leave the PR merge-eligible."
-    - "Every field returned by a filtered GitHub endpoint is trustworthy without explicit validation."
+    - "Literal success is the only conclusion that can satisfy a required status check."
+    - "Effective shared-SHA state may use a narrower merge-acceptable vocabulary than GitHub branch protection."
+    - "The previous ten negative reviews exhaust the relevant fail-open surface."
   omitted_categories_considered:
-    - "required-check merge semantics for success, neutral and skipped"
+    - "success, neutral and skipped required-check semantics"
     - "complete record validation and cross-field invariants"
     - "default-branch trust boundary"
     - "shared-SHA, reused-branch, force-push/reset and overlapping PR lifetimes"
     - "REST and GraphQL schema failure"
     - "bounded pagination and cursor cycles"
+    - "least-privilege Actions permissions"
     - "requirement/test/work/review traceability"
   duplicate_or_reuse_search:
-    - "REVIEW-0031 through REVIEW-0034 remain terminal negative evidence and are never reopened or rewritten."
+    - "REVIEW-0031 through REVIEW-0035 remain terminal negative evidence and are never reopened or rewritten."
     - "Bootstrap remains a temporary predecessor for PR #2's canonical poller rather than a second permanent governance mechanism."
   failure_modes_considered:
-    - "neutral or skipped canonical required check remains merge-acceptable after a thread becomes unresolved"
+    - "neutral or skipped effective gate remains merge-acceptable while a thread is unresolved"
     - "non-completed or temporally impossible canonical run alters effective shared-SHA state"
+    - "malformed repository or PR identity influences target selection"
     - "historical PR branch reset or overlapping lifetime causes wrong-context rerun"
-    - "malformed REST/GraphQL metadata or pagination suppresses revalidation"
+    - "malformed GraphQL or pagination state suppresses unresolved-thread detection"
   evidence_requested:
-    - "Exact-head regression proving success, neutral and skipped all trigger unresolved-thread revalidation"
-    - "Exact-head 100 percent line and branch suite"
+    - "Exact-head 100 percent line and branch suite including success/neutral/skipped regression"
     - "Read-only live GitHub contract probe against WORK-0002 PR #2"
-    - "Fresh-context independent exact-head successor review"
+    - "Synchronized 29/29 PR #5 finding handover and REVIEW-0035 terminal state"
+    - "Fresh-context independent exact-head Codex review after correction"
 outcome: CHANGES_REQUIRED
-completed_at: "2026-09-15T18:19:57Z"
+completed_at: null
 history:
   created_at: "2026-09-15"
   updated_at: "2026-09-15"
