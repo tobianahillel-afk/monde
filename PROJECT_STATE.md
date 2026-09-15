@@ -25,8 +25,8 @@ The temporary trusted poll now:
 - fails closed when two simultaneously open PRs have indistinguishable full `(head repository, branch, SHA)` identity;
 - validates canonical run head repo/ref/SHA, event, id/run-number, supported terminal conclusion, `created_at`, and timezone-aware `updated_at`;
 - never treats `workflow_run.pull_requests` association cardinality as authoritative triggering-PR identity;
-- queries **closed PR history scoped by server-reported head owner + branch**, then filters exact repo/ref/SHA and reconstructs lifetime-overlap windows;
-- excludes target runs created before the current PR and excludes runs created inside any lifetime window where another exact same-head PR overlapped the current PR, even when that other PR later closes;
+- queries **closed PR history scoped by server-reported head owner + branch** and reconstructs lifetime-overlap windows without trusting the closed PR final `head.sha` as the complete history of that branch;
+- excludes target runs created before the current PR and excludes runs created inside any same-repository/same-branch overlap window, including when the historical PR moved to another SHA before close and the branch later returned to the current SHA;
 - preserves legitimate current runs created before a later duplicate PR opens rather than using a single coarse cutoff;
 - still computes effective commit-scoped MONDE Gate state across historical validated runs, so a shared-SHA re-green can trigger re-invalidation of the unresolved target PR;
 - rejects malformed open/closed PR metadata, invalid lifetimes, malformed workflow metadata, unknown terminal conclusions, and Boolean-as-int IDs;
@@ -40,54 +40,50 @@ The bridge is temporary. After PR #2 merges, its canonical poller becomes durabl
 
 The bootstrap has stable non-terminal normative/test ownership and explicit review history:
 
-`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0032 (IN_PROGRESS)`
+`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0032 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0033 (OPEN)`
 
 - **REQ-0026 — Trusted stale-green review-state invalidation** owns the atomic material behavior.
 - **TEST-0009** protects REQ-0026 without retroactively materializing previous external runs as a canonical PASS.
-- **REVIEW-0031** was started before the external review, then truthfully completed `CHANGES_REQUIRED` on exact reviewed head `702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c` after Codex found two new material gaps.
-- **REVIEW-0032** is the fresh successor review and is now `IN_PROGRESS`. REVIEW-0031 is terminal and will never be reopened or rewritten.
-- REVIEW-0032 was transitioned to `IN_PROGRESS` in the **same Git tree checkpoint** as this PROJECT_STATE and WORK-0002 lifecycle synchronization, before any new Codex invocation.
-- REVIEW-0032 is collision-safe with PR #2, which already uses REVIEW-0029/0030 but has no REVIEW-0031/0032.
+- **REVIEW-0031** is terminal `CHANGES_REQUIRED` on exact reviewed head `702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c`.
+- **REVIEW-0032** is terminal `CHANGES_REQUIRED` on exact reviewed head `717777da79edca7a671c1754f32f3442da721a72` after fresh review exposed branch-reset history ambiguity.
+- **REVIEW-0033** is the fresh successor review and is `OPEN`; it must not transition to `IN_PROGRESS` until this synchronized lifecycle descendant has its own exact-head bootstrap proof.
+- REVIEW-0031 and REVIEW-0032 are historical negative evidence and will never be reopened or rewritten.
+- REVIEW-0031/0032/0033 are collision-safe with PR #2, which already uses REVIEW-0029/0030 but has no REVIEW-0031/0032/0033.
 
 The bootstrap workflow includes `registry/reviews/REVIEW-*.yaml` in its PR path triggers so review lifecycle descendants receive their own exact-head self-test and live contract proof.
 
-## REVIEW-0031 findings and correction
+## REVIEW-0032 finding and correction
 
-Fresh exact-head review `PRR_kwDOUUI5ts8AAAABNraMwQ` of `702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c` raised the PR #5 material set from 17 to **19 P1 findings**:
+Fresh exact-head review `PRR_kwDOUUI5ts8AAAABNrvZLg` of `717777da79edca7a671c1754f32f3442da721a72` raised the PR #5 material set from 19 to **20 P1 findings**:
 
-- `PRRT_kwDOUUI5ts6im_Sc` — `PR.created_at` alone does not distinguish overlapping exact same-head PR lifetimes; a run for the other PR may be created after the current PR opens and survive after the other PR closes.
-- `PRRT_kwDOUUI5ts6im_Sh` — WORK-0002 still described REVIEW-0031 as OPEN while REVIEW-0031 and PROJECT_STATE had already moved to IN_PROGRESS.
+- `PRRT_kwDOUUI5ts6inm7v` — a closed PR's single final `head.sha` is not the historical SHA set for its branch. A prior overlapping PR may have produced a canonical gate run on SHA S, moved to S2 before close, and the same branch may later return to S; filtering by the final S2 snapshot drops the ambiguity window and can rerun the old PR context.
 
-Both are corrected author-side:
+The independent finding matches the author-side branch-reset audit. It is corrected author-side by scoping historical ambiguity to **same head repository + same branch + overlapping lifetime**, independent of the historical PR's final SHA snapshot. The new regression explicitly closes a PR on `different-sha`, preserves its overlap window for the current SHA, and proves the old run cannot become the current target.
 
-- target attribution now excludes runs created in exact same-head closed-PR lifetime-overlap windows queried from live GitHub;
-- WORK-0002 records REVIEW-0031 as terminal `COMPLETE/CHANGES_REQUIRED`, all 19 PRRT identities, its two findings, the new proof, and REVIEW-0032 as the active successor review;
-- REVIEW-0032, WORK-0002 and PROJECT_STATE enter the `IN_PROGRESS` review checkpoint atomically rather than through contradictory sequential heads.
-
-Author-side correction is not closure evidence. All 19 threads remain unresolved pending a clean fresh review.
+Author-side correction is not closure evidence. All **20** threads remain unresolved pending a clean fresh review.
 
 ## Exact bootstrap proof
 
-Latest **substantive executable** proof is exact candidate **`18a295575b50bc617bf75cf4285d60378f4b5f4e`**.
+The latest substantive executable candidate is **`23bf9372f50e95219eef6fc60a268f6eb3368601`**.
 
-`MONDE Stale-Green Bootstrap` run **`34996707476` / #37** is fully green on that exact head:
+`MONDE Stale-Green Bootstrap` run **`34999284396` / #44** is fully green on that exact head:
 
 - Bootstrap self-test: **SUCCESS**;
-- **32/32 tests**;
-- **268/268 statements**;
+- **33/33 tests**;
+- **269/269 statements**;
 - **104/104 branches**;
 - **100% line + branch coverage** over `.github/scripts/stale_green_bootstrap.py`;
-- Bootstrap GitHub contract probe: **SUCCESS** against PR #2, including the new read-only closed-PR history contract.
+- Bootstrap GitHub contract probe: **SUCCESS** against live WORK-0002 PR #2.
 
-The test suite explicitly covers the adversarial overlap case: another exact same-head PR overlaps the current PR, produces a run during the overlap, later closes, and that run has a newer `updated_at`; it may remain effective commit-scoped state but is excluded as the current PR's rerun target. The suite also proves that a legitimate current run created before a later overlap remains eligible.
+The new regression proves that same-repository/same-branch historical lifetime overlap remains ambiguous even when the closed PR's final SHA differs from the old run SHA because the branch moved/reset during the PR lifetime.
 
-The synchronized REVIEW-0032-OPEN/WORK/PROJECT descendant **`e5d5ee0adf369801252608e5219c8a43bf7bfd6a`** passed `MONDE Stale-Green Bootstrap` run **`34997084061` / #41** with both self-test and live contract probe successful.
+Earlier REVIEW-0032 checkpoint `717777da79edca7a671c1754f32f3442da721a72` passed run #42 `34997423228` with 32 tests, 268/268 statements, 104/104 branches and a live GitHub contract probe before fresh review found the branch-reset gap.
 
-The atomic REVIEW-0032-IN_PROGRESS / WORK / PROJECT checkpoint created after that run must receive its own exact-head bootstrap run before Codex is invoked. The HEAD must remain frozen during that review.
+The synchronized REVIEW-0032-terminal / REVIEW-0033-OPEN / WORK / PROJECT_STATE descendant created after run #44 must receive its own exact-head bootstrap proof before REVIEW-0033 starts.
 
 ## PR #5 material thread set
 
-All **19** material PR #5 review threads remain unresolved:
+All **20** material PR #5 review threads remain unresolved:
 
 - `PRRT_kwDOUUI5ts6ijmtc`
 - `PRRT_kwDOUUI5ts6ijmtj`
@@ -108,6 +104,7 @@ All **19** material PR #5 review threads remain unresolved:
 - `PRRT_kwDOUUI5ts6imgoz`
 - `PRRT_kwDOUUI5ts6im_Sc`
 - `PRRT_kwDOUUI5ts6im_Sh`
+- `PRRT_kwDOUUI5ts6inm7v`
 
 Review history:
 
@@ -118,12 +115,13 @@ Review history:
 - `PRR_kwDOUUI5ts8AAAABNq6L4g`
 - `PRR_kwDOUUI5ts8AAAABNrJroQ`
 - `PRR_kwDOUUI5ts8AAAABNraMwQ` -> REVIEW-0031 `CHANGES_REQUIRED`
+- `PRR_kwDOUUI5ts8AAAABNrvZLg` -> REVIEW-0032 `CHANGES_REQUIRED`
 
 ## WORK-0002 / PR #2 relationship
 
-PR #2 remains open and intentionally unchanged at **`99c7a10e5faa99128d74a39ff6886c23110247bd`** until PR #5 is independently clean. Its richer branch-local WORK-0002 state remains authoritative for T7-T12 implementation history.
+PR #2 remains open at **`4046e03b1e00a2051d29ccd6dcf5f0af7426259a`** while PR #5 is independently hardened. Its richer branch-local WORK-0002 state remains authoritative for T7-T12 implementation history.
 
-PR #2 still has **73 unresolved material threads**. Gate #226 / run `34989363043` proved its deterministic/security core: 355/355 tests, 100% line+branch, mutation suites, repository validators, CodeQL and Dependency Review green; live closure deliberately fails while review state is unresolved.
+PR #2 still has **73 unresolved material threads**. Gate #228 / run `34997568781` proves its current core after the PR-numbered run-name hardening: Governance Core, CodeQL and Dependency Review are green; its live closure deliberately fails only on the 73 unresolved threads, six T12 durable identities not yet integrated, and the missing trusted independent exact-head approval.
 
 After PR #5 squash-merges to `main`, PR #2 must integrate the new main through an explicit two-parent merge that:
 
@@ -140,13 +138,14 @@ MONDE intentionally remains **public**. Never commit credentials, tokens, secret
 
 ## Current next action
 
-1. Prove the atomic REVIEW-0032 `IN_PROGRESS` / WORK-0002 / PROJECT_STATE checkpoint with exact-head bootstrap self-test and live PR #2 contract probe.
-2. If that exact-head proof is green, freeze the HEAD, update PR #5 body, and invoke a new fresh-context Codex review under REVIEW-0032.
-3. Keep all **19** material PR #5 threads unresolved while REVIEW-0032 runs.
-4. If REVIEW-0032 finds another material issue, complete it truthfully as negative evidence, correct/re-prove, and create a new successor review rather than reopening a terminal review.
-5. Only a clean independent exact-head review permits truthful approval-capable review completion, independent verification/resolution of the 19 threads, and an exact-head guarded squash merge of PR #5 into `main`.
-6. Then integrate new `main` into PR #2 and continue T12/WORK-0002 closure as described above.
-7. WORK-0003 and WORK-0004 remain blocked.
+1. Prove the synchronized REVIEW-0032 `COMPLETE/CHANGES_REQUIRED` + REVIEW-0033 `OPEN` + WORK-0002 + PROJECT_STATE checkpoint with exact-head bootstrap self-test and live PR #2 contract probe.
+2. If green, transition REVIEW-0033 `OPEN -> IN_PROGRESS` and synchronize WORK/PROJECT_STATE in one Git-tree checkpoint.
+3. Prove that exact REVIEW-0033-IN_PROGRESS descendant, freeze the HEAD, update PR #5 body, and invoke a fresh-context Codex review.
+4. Keep all **20** material PR #5 threads unresolved while REVIEW-0033 runs.
+5. If REVIEW-0033 finds another material issue, record it truthfully, correct/re-prove, and create a successor review rather than reopening a terminal review.
+6. Only a clean independent exact-head review permits truthful approval-capable review completion, independent verification/resolution of the 20 threads, and an exact-head guarded squash merge of PR #5 into `main`.
+7. Then integrate new `main` into PR #2 and continue T12/WORK-0002 closure as described above.
+8. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
@@ -159,8 +158,9 @@ MONDE intentionally remains **public**. Never commit credentials, tokens, secret
 7. `registry/tests/TEST-0009.yaml`
 8. `registry/reviews/REVIEW-0031.yaml`
 9. `registry/reviews/REVIEW-0032.yaml`
-10. live PR #5 exact HEAD/checks/reviews/threads
-11. live PR #2 exact HEAD/checks/reviews/threads
-12. PR #2 branch-local WORK-0002 / PROJECT_STATE after explicit checkout
+10. `registry/reviews/REVIEW-0033.yaml`
+11. live PR #5 exact HEAD/checks/reviews/threads
+12. live PR #2 exact HEAD/checks/reviews/threads
+13. PR #2 branch-local WORK-0002 / PROJECT_STATE after explicit checkout
 
 No prior chat history is required.
