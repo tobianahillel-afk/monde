@@ -160,7 +160,7 @@ class MergeAcceptableConclusionTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "inconsistent paginated total_count"):
                 bootstrap.paged("https://example.invalid/jobs", "t", "jobs", require_total_count=True)
 
-    def test_active_run_scope_queries_only_current_heads_and_incarnation_window(self) -> None:
+    def test_active_run_scope_uses_earliest_active_incarnation_bound_per_head(self) -> None:
         first = current_pr()
         same_sha_later = current_pr()
         same_sha_later["number"] = 5
@@ -171,17 +171,16 @@ class MergeAcceptableConclusionTests(unittest.TestCase):
             "repo": {"full_name": "o/r"},
         }
         current = bootstrap._current_prs([first, same_sha_later])
-        with mock.patch.object(bootstrap, "paged", return_value=[]) as paged:
+        with mock.patch.object(bootstrap, "_bounded_completed_gate_runs", return_value=[]) as bounded:
             self.assertEqual(
                 bootstrap.latest_completed_gate_runs("o/r", "t", active_prs=current),
                 {},
             )
-        paged.assert_called_once()
-        url = paged.call_args.args[0]
-        self.assertIn(f"actions/workflows/{bootstrap.CANONICAL_WORKFLOW_ID}/runs?", url)
-        self.assertIn("head_sha=h", url)
-        self.assertIn("created=%3E%3D2026-09-15T16%3A00%3A00Z", url)
-        self.assertTrue(paged.call_args.kwargs["require_total_count"])
+        bounded.assert_called_once()
+        repo, token, head, start, end = bounded.call_args.args
+        self.assertEqual((repo, token, head), ("o/r", "t", "h"))
+        self.assertEqual(start.isoformat(), "2026-09-15T16:00:00+00:00")
+        self.assertGreaterEqual(end, start)
 
     def test_all_required_check_merge_acceptable_conclusions_revalidate_even_if_workflow_failed(self) -> None:
         self.assertEqual(bootstrap.MERGE_ACCEPTABLE_CONCLUSIONS, {"success", "neutral", "skipped"})
