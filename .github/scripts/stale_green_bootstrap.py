@@ -265,7 +265,7 @@ def poll(repo: str, token: str) -> list[int]:
         target_run = current_runs.get(identity)
         if target_run is None:
             raise RuntimeError(
-                f"effective successful MONDE Gate for head {head} has no run created during current PR #{number} incarnation"
+                f"effective successful MONDE Gate for head {head} has no run bound to open PR #{number} head identity during current PR incarnation"
             )
         if not unresolved_review_threads(repo, number, token):
             continue
