@@ -54,6 +54,7 @@ jobs:
           python scripts/governance_mutation_smoke.py
           python .github/scripts/governance_l2_mutation_smoke.py
           python .github/scripts/governance_t10_mutation_smoke.py
+          python .github/scripts/governance_t11_mutation_smoke.py
 
       - name: Validate repository state
         run: |
@@ -117,6 +118,14 @@ jobs:
             --head '${{ inputs.head_sha }}' \
             --json-out t10-closure-findings.json
 
+      - name: Validate T11 closure invariants
+        if: startsWith(inputs.event_name, 'pull_request')
+        run: |
+          python -m tools.governance.t11_closure . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --json-out t11-closure-findings.json
+
       - name: Generate AI context manifest
         if: startsWith(inputs.event_name, 'pull_request')
         run: |
@@ -136,9 +145,9 @@ jobs:
             echo '- Base: `${{ inputs.base_sha }}`'
             echo '- Head: `${{ inputs.head_sha }}`'
             echo '- Checkout: exact requested head SHA (never the synthetic PR merge ref)'
-            echo '- Coverage target: **100% line + branch**, including project-owned L2/T7/T8/T9/T10 decision logic'
-            echo '- Mutation smoke: baseline + fresh-L2/T7/T8/T9 + dedicated T10 critical governance mutants must be killed'
-            echo '- Static repository, strict lifecycle/proof, path, schema, secret-pattern, action-pin, transition, L2-hardening, independent-review-closure, T7, T8, T9 and T10 closure guards executed above'
+            echo '- Coverage target: **100% line + branch**, including project-owned L2/T7/T8/T9/T10/T11 decision logic'
+            echo '- Mutation smoke: baseline + fresh-L2/T7/T8/T9 + dedicated T10 + dedicated T11 critical governance mutants must be killed'
+            echo '- Static repository, strict lifecycle/proof, path, schema, secret-pattern, action-pin, transition, L2-hardening, independent-review-closure, T7, T8, T9, T10 and T11 closure guards executed above'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload governance evidence
@@ -158,6 +167,7 @@ jobs:
             t8-closure-findings.json
             t9-closure-findings.json
             t10-closure-findings.json
+            t11-closure-findings.json
             context-manifest.json
           if-no-files-found: warn
           retention-days: 14
