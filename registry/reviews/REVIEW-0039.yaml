@@ -1,12 +1,12 @@
 id: REVIEW-0039
-status: IN_PROGRESS
+status: COMPLETE
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "402519d73d55a2b45507b23e319c8fb42ad440f1"
 reviewer:
-  actor: null
-  context_id: null
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABNuOmoQ"
   independence_level: L2
 roles:
   - ARCHITECTURE_REUSE
@@ -38,44 +38,58 @@ scope:
     - "Equal run IDs may alias independently selected effective/target records with different attempts."
     - "Numeric coercion of IDs may defeat exact GitHub object binding."
     - "Additional per-head Actions queries may increase rate/latency pressure."
-findings: []
+findings:
+  - PRRT_kwDOUUI5ts6is6A-
+  - PRRT_kwDOUUI5ts6is6BA
+  - PRRT_kwDOUUI5ts6is6BF
+  - PRRT_kwDOUUI5ts6is6BL
+  - PRRT_kwDOUUI5ts6is6BR
+  - PRRT_kwDOUUI5ts6is6BX
 checks:
   assumptions_challenged:
-    - "head_sha plus earliest active PR creation time is a complete bound for all merge-relevant current-incarnation gate runs."
-    - "REST total_count remains stable enough across pagination to prove one coherent collection snapshot."
-    - "Equal run IDs imply equivalent attempts and protected-job state."
-    - "All GitHub identifier fields are exact integers unless explicitly rejected."
+    - "head_sha plus earliest active PR creation time is a complete bound for all merge-relevant effective gate state."
+    - "REST total_count plus final cardinality proves a coherent snapshot even if membership changes while paginating."
+    - "Filtered workflow-run searches can enumerate arbitrarily many matching runs."
+    - "A run predating the active incarnation cannot later become the effective protected check after a rerun."
+    - "Python numeric equality is sufficient for workflow_id trust binding."
+    - "Unbounded closed-PR history and five-minute per-PR polling remain operationally safe as repository history/concurrency grow."
     - "The previous fourteen negative reviews exhaust the relevant fail-open surface."
   omitted_categories_considered:
+    - "pre-incarnation reruns versus effective commit-level check state"
+    - "filtered-search 1,000-result server ceiling"
+    - "duplicate membership and constant-cardinality snapshot drift"
+    - "strict workflow_id typing"
+    - "closed-PR history lifetime bounds"
+    - "scheduled GitHub API budget and caching"
     - "active-head/incarnation query completeness and workflow-runs API filtering semantics"
-    - "total_count consistency, truncation and concurrent-pagination behavior"
     - "same-ID/different-attempt effective-target aliasing"
-    - "strict numeric identifier typing"
     - "Actions Jobs current-attempt validation and uniqueness"
     - "shared-SHA, reused-branch, force-push/reset and overlapping PR lifetimes"
     - "REST and GraphQL schema failure"
-    - "bounded pagination and rate/latency behavior"
     - "least-privilege Actions permissions"
     - "requirement/test/work/review traceability"
   duplicate_or_reuse_search:
     - "REVIEW-0031 through REVIEW-0038 remain terminal negative evidence and are never reopened or rewritten."
     - "Bootstrap remains a temporary predecessor; PR #2's durable poller must later reuse/port the hardened contract rather than retain its older permissive implementation."
   failure_modes_considered:
-    - "relevant gate run is older than an incorrectly chosen active-incarnation lower bound"
-    - "Actions endpoint returns a short or shifting page inconsistent with total_count"
-    - "same run ID is observed with different attempts between effective and target selections"
-    - "run_id or job identifiers use coercible float/Boolean values"
-    - "per-head query cardinality or filtered-history cap is exhausted"
+    - "a pre-incarnation run is rerun after the current PR opens and becomes the merge-acceptable exact required check"
+    - "offset pagination duplicates one row and omits another while total_count remains unchanged"
+    - "one active SHA exceeds GitHub's 1,000-result filtered workflow-run search ceiling"
+    - "workflow_id is a coercible float or Boolean instead of an exact integer"
+    - "closed PR history grows beyond the local page ceiling before reaching the active-incarnation boundary"
+    - "scheduled polling consumes the per-repository GITHUB_TOKEN request budget under moderate concurrent PR load"
+    - "same run ID is observed with different attempts between independently selected records"
     - "required job missing, duplicated, malformed, wrong attempt or wrong head_sha"
     - "historical PR branch reset or overlapping lifetime causes wrong-context rerun"
     - "malformed GraphQL or review-thread pagination suppresses revalidation"
   evidence_requested:
-    - "Exact-head 100 percent line and branch suite covering all REVIEW-0038 findings and prior regressions"
-    - "Read-only live GitHub contract probe against WORK-0002 PR #2 exercising scoped workflow-runs, Actions Jobs, PR-history and reviewThreads APIs"
-    - "Synchronized 36/36 finding handover with REVIEW-0038 terminal state"
-    - "Fresh-context exact-head Codex review actively searching for new bypasses"
+    - "Replace reconstructed effective workflow-run state with the exact protected check state GitHub evaluates, while keeping workflow history only for a positively bound rerun target."
+    - "Prove filtered history completeness below GitHub's server cap through stable non-overlapping time partitions and unique record identities."
+    - "Bound closed-PR history and scheduled API cost, preserve exact typing, and regression-test the new contracts."
+    - "Exact-head 100 percent line and branch suite plus a read-only live GitHub contract probe against WORK-0002 PR #2."
+    - "Fresh-context exact-head successor review after correction."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-15T21:17:21Z"
 history:
   created_at: "2026-09-15"
   updated_at: "2026-09-15"

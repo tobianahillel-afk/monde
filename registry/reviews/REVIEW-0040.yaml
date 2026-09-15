@@ -1,0 +1,90 @@
+id: REVIEW-0040
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "effective merge state is read directly from the exact latest GitHub Actions-owned MONDE / Merge Gate check for the exact head SHA"
+    - "canonical Actions workflow history is used only to discover a current-incarnation rerun target, never as merge-state authority"
+    - "filtered workflow-run searches are partitioned into closed non-overlapping second windows below GitHub's 1,000-result ceiling"
+    - "accepted filtered workflow-run windows have unique exact IDs and identical repeated snapshots before use"
+    - "closed-PR history is bounded to lifetimes capable of overlapping the earliest active incarnation"
+    - "workflow_id, run/job/check IDs and attempts use strict positive non-Boolean integer semantics"
+    - "the current-incarnation rerun target exposes exactly one valid protected MONDE / Merge Gate job before rerun"
+    - "success, neutral and skipped exact protected-check conclusions all trigger stale-green revalidation"
+    - "check/run/job lookups are cached within one poll and the scheduled poll cadence is ten minutes"
+    - "fail-closed GitHub Checks/Actions/Pull Requests/GraphQL metadata and bounded pagination"
+    - "bootstrap regression and TEST-0009 / WORK-0002 / PROJECT_STATE traceability completeness"
+  risks:
+    - "GitHub Checks latest-state semantics or app identity could be misbound, allowing a non-authoritative check to drive stale-green classification."
+    - "Time-window partitioning could overlap, omit a second, or accept an unstable/duplicate filtered snapshot."
+    - "Current-incarnation rerun-target selection could still admit a prior/overlapping PR context despite direct check-state authority."
+    - "Closed-PR history bounding could stop too early or fail to remain complete for lifetimes able to overlap the active incarnation."
+    - "Caching or reduced cadence could accidentally preserve stale authority or still exceed GitHub request budgets under scale."
+findings: []
+checks:
+  assumptions_challenged:
+    - "The Checks API query returns exactly the authoritative latest protected check and rejects same-name checks from another app/context."
+    - "Separating effective check state from rerun-target history fully eliminates pre-incarnation effective-state ambiguity."
+    - "Recursive second-level partitioning plus two identical reads proves filtered workflow-run snapshot completeness below the server cap."
+    - "Closed-PR history can be bounded by earliest active incarnation without omitting any lifetime that may make a target run ambiguous."
+    - "One check lookup per SHA, cached target-job lookups and a ten-minute schedule provide sufficient API headroom."
+    - "All trust-binding numeric fields are exact positive non-Boolean integers."
+    - "The prior fifteen negative reviews exhaust the remaining fail-open surface."
+  omitted_categories_considered:
+    - "Checks API app/name/status/conclusion/head binding and duplicate latest check behavior"
+    - "workflow-run server search ceiling, partition boundaries and snapshot stability"
+    - "duplicate IDs and offset-pagination drift"
+    - "current-incarnation target selection across prior reruns, shared SHA, branch reset and overlapping PR lifetimes"
+    - "closed-PR history stop conditions and malformed ordering"
+    - "workflow_id and all trust-binding numeric typing"
+    - "per-poll cache key correctness and API request budget"
+    - "ten-minute scheduled invalidation latency"
+    - "least-privilege checks/actions/pull-requests permissions"
+    - "REST/GraphQL malformed metadata and bounded pagination"
+    - "regression discovery and TEST/WORK/PROJECT/REVIEW lifecycle synchronization"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 remain terminal negative evidence and are never reopened or rewritten."
+    - "All 42 historical PR #5 material threads remain unresolved during REVIEW-0040."
+    - "Bootstrap remains temporary; PR #2's durable poller must port/reuse this corrected positive-authorization contract after trusted-base integration."
+  failure_modes_considered:
+    - "same-name check from a non-GitHub-Actions app is mistaken for the protected required check"
+    - "multiple exact-name latest check records create ambiguous effective state"
+    - "pre-incarnation rerun makes the exact required check green while current-incarnation workflow history is failed"
+    - "filtered workflow search reaches 1,000 results in one interval or one timestamp second"
+    - "two snapshot reads preserve cardinality but change membership"
+    - "adjacent partition ranges overlap or leave a one-second gap"
+    - "closed-PR history exceeds page limits before reaching the active-incarnation lower bound"
+    - "cache aliases different SHA/run/attempt state"
+    - "rate-limit pressure disables scheduled invalidation"
+    - "target run lacks a unique current-attempt protected job"
+    - "malformed Checks/Actions/Pull Requests/GraphQL data is treated as absence or clean state"
+  evidence_requested:
+    - "Exact-head 100 percent line and branch suite covering all six REVIEW-0039 findings and every prior regression."
+    - "Read-only live GitHub contract probe against WORK-0002 PR #2 exercising Checks, scoped Actions history, target Jobs, Pull Requests history and GraphQL reviewThreads."
+    - "Synchronized 42/42 finding handover with REVIEW-0039 terminal state and REVIEW-0040 OPEN/IN_PROGRESS lifecycle checkpoints."
+    - "Fresh-context exact-head Codex review actively searching for bypasses in the positive-authorization split."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-15"
