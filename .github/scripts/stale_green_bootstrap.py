@@ -74,9 +74,9 @@ def paged(
                 total_count = payload.get("total_count")
                 if type(total_count) is not int or total_count < 0:
                     raise RuntimeError("GitHub returned malformed paginated total_count")
-                if max_total_count is not None and total_count > max_total_count:
+                if max_total_count is not None and total_count >= max_total_count:
                     raise FilteredSearchLimitExceeded(
-                        f"GitHub filtered collection total_count {total_count} exceeds supported search limit {max_total_count}"
+                        f"GitHub filtered collection total_count {total_count} reaches supported search limit {max_total_count}"
                     )
                 if expected_total is None:
                     expected_total = total_count
@@ -239,8 +239,54 @@ def _active_head_created_bounds(current_prs: dict[HeadIdentity, dict[str, Any]])
     return bounds
 
 
+def _utc_second(value: datetime) -> datetime:
+    return value.astimezone(timezone.utc).replace(microsecond=0)
+
+
 def _github_search_time(value: datetime) -> str:
-    return value.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    return _utc_second(value).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _run_snapshot_fingerprint(runs: list[dict[str, Any]]) -> tuple[tuple[int, str], ...]:
+    seen: set[int] = set()
+    fingerprint: list[tuple[int, str]] = []
+    for run in runs:
+        run_id = run.get("id")
+        if not _positive_int(run_id):
+            raise RuntimeError("GitHub returned malformed canonical MONDE Gate run id in filtered snapshot")
+        if run_id in seen:
+            raise RuntimeError("GitHub returned duplicate canonical MONDE Gate run id in filtered snapshot")
+        seen.add(run_id)
+        try:
+            encoded = json.dumps(run, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError("GitHub returned non-canonicalizable canonical MONDE Gate run") from exc
+        fingerprint.append((run_id, encoded))
+    return tuple(sorted(fingerprint))
+
+
+def _read_completed_gate_window(
+    repo: str,
+    token: str,
+    head: str,
+    start: datetime,
+    end: datetime,
+) -> list[dict[str, Any]]:
+    created_range = f"{_github_search_time(start)}..{_github_search_time(end)}"
+    query = urllib.parse.urlencode(
+        {
+            "status": "completed",
+            "head_sha": head,
+            "created": created_range,
+        }
+    )
+    return paged(
+        f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?{query}",
+        token,
+        "workflow_runs",
+        require_total_count=True,
+        max_total_count=FILTERED_WORKFLOW_RUN_SEARCH_LIMIT,
+    )
 
 
 def _bounded_completed_gate_runs(
@@ -250,33 +296,34 @@ def _bounded_completed_gate_runs(
     start: datetime,
     end: datetime,
 ) -> list[dict[str, Any]]:
+    start = _utc_second(start)
+    end = _utc_second(end)
     if end < start:
         return []
-    created_range = f"{_github_search_time(start)}..{_github_search_time(end)}"
-    query = urllib.parse.urlencode(
-        {
-            "status": "completed",
-            "head_sha": head,
-            "created": created_range,
-        }
-    )
-    try:
-        return paged(
-            f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?{query}",
-            token,
-            "workflow_runs",
-            require_total_count=True,
-            max_total_count=FILTERED_WORKFLOW_RUN_SEARCH_LIMIT,
-        )
-    except FilteredSearchLimitExceeded:
-        if end - start <= timedelta(seconds=1):
+
+    def split_window() -> list[dict[str, Any]]:
+        if start == end:
             raise RuntimeError(
-                "canonical MONDE Gate filtered history exceeds GitHub search limit within a one-second interval"
+                "canonical MONDE Gate filtered history reaches GitHub search limit within one timestamp second"
             )
-        midpoint = start + (end - start) / 2
+        span_seconds = int((end - start).total_seconds())
+        midpoint = start + timedelta(seconds=span_seconds // 2)
+        right_start = midpoint + timedelta(seconds=1)
         return _bounded_completed_gate_runs(repo, token, head, start, midpoint) + _bounded_completed_gate_runs(
-            repo, token, head, midpoint, end
+            repo, token, head, right_start, end
         )
+
+    try:
+        first = _read_completed_gate_window(repo, token, head, start, end)
+    except FilteredSearchLimitExceeded:
+        return split_window()
+    try:
+        second = _read_completed_gate_window(repo, token, head, start, end)
+    except FilteredSearchLimitExceeded:
+        return split_window()
+    if _run_snapshot_fingerprint(first) != _run_snapshot_fingerprint(second):
+        raise RuntimeError("GitHub returned unstable canonical MONDE Gate filtered snapshot")
+    return first
 
 
 def _scoped_completed_gate_runs(
@@ -285,28 +332,9 @@ def _scoped_completed_gate_runs(
     active_prs: dict[HeadIdentity, dict[str, Any]],
 ) -> list[dict[str, Any]]:
     runs: list[dict[str, Any]] = []
-    scan_end = datetime.now(timezone.utc).replace(microsecond=0)
+    scan_end = _utc_second(datetime.now(timezone.utc))
     for head, created in sorted(_active_head_created_bounds(active_prs).items()):
-        created_value = created.isoformat().replace("+00:00", "Z")
-        query = urllib.parse.urlencode(
-            {
-                "status": "completed",
-                "head_sha": head,
-                "created": f">={created_value}",
-            }
-        )
-        try:
-            runs.extend(
-                paged(
-                    f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?{query}",
-                    token,
-                    "workflow_runs",
-                    require_total_count=True,
-                    max_total_count=FILTERED_WORKFLOW_RUN_SEARCH_LIMIT,
-                )
-            )
-        except FilteredSearchLimitExceeded:
-            runs.extend(_bounded_completed_gate_runs(repo, token, head, created, scan_end))
+        runs.extend(_bounded_completed_gate_runs(repo, token, head, created, scan_end))
     return runs
 
 
