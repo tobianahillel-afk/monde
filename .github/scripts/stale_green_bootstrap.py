@@ -272,10 +272,12 @@ def required_merge_gate_conclusion(repo: str, run: dict[str, Any], token: str) -
     required_jobs: list[dict[str, Any]] = []
     for job in jobs:
         conclusion = job.get("conclusion")
+        job_run_attempt = job.get("run_attempt")
         if (
             not _positive_int(job.get("id"))
             or job.get("run_id") != run_id
-            or job.get("run_attempt") != run_attempt
+            or not _positive_int(job_run_attempt)
+            or job_run_attempt != run_attempt
             or not _nonempty_string(job.get("name"))
             or job.get("status") != "completed"
             or not isinstance(conclusion, str)
