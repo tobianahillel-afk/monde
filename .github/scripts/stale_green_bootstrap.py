@@ -8,7 +8,8 @@ import urllib.request
 from typing import Any
 
 MAX_PAGES = 20
-WORKFLOW_NAME = "MONDE Gate"
+CANONICAL_WORKFLOW_ID = 354465551
+CANONICAL_WORKFLOW_PATH = ".github/workflows/governance.yml"
 PR_FAMILY_EVENTS = {"pull_request", "pull_request_review", "pull_request_review_comment"}
 
 
@@ -41,16 +42,21 @@ def paged(url: str, token: str, collection_key: str | None = None) -> list[dict[
             items = payload.get(collection_key)
         else:
             items = None
-        if not isinstance(items, list):
+        if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
             raise RuntimeError("GitHub returned malformed paginated JSON")
-        out.extend(item for item in items if isinstance(item, dict))
+        out.extend(items)
         if len(items) < 100:
             return out
     raise RuntimeError(f"GitHub pagination exceeded {MAX_PAGES} pages")
 
 
 def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
-    return paged(f"https://api.github.com/repos/{repo}/pulls?state=open", token)
+    items = paged(f"https://api.github.com/repos/{repo}/pulls?state=open", token)
+    for item in items:
+        head = item.get("head")
+        if not isinstance(item.get("number"), int) or not isinstance(head, dict) or not isinstance(head.get("sha"), str) or not head["sha"]:
+            raise RuntimeError("GitHub returned malformed open pull request")
+    return items
 
 
 def latest_completed_gate_runs(repo: str, token: str) -> dict[str, dict[str, Any]]:
@@ -61,15 +67,21 @@ def latest_completed_gate_runs(repo: str, token: str) -> dict[str, dict[str, Any
     )
     latest: dict[str, dict[str, Any]] = {}
     for run in runs:
-        if str(run.get("name") or "") != WORKFLOW_NAME:
+        workflow_id = run.get("workflow_id")
+        path = run.get("path")
+        event = run.get("event")
+        head = run.get("head_sha")
+        run_number = run.get("run_number")
+        run_id = run.get("id")
+        conclusion = run.get("conclusion")
+        if workflow_id != CANONICAL_WORKFLOW_ID or path != CANONICAL_WORKFLOW_PATH:
             continue
-        if str(run.get("event") or "") not in PR_FAMILY_EVENTS:
+        if event not in PR_FAMILY_EVENTS:
             continue
-        head = str(run.get("head_sha") or "")
-        if not head:
-            continue
+        if not isinstance(head, str) or not head or not isinstance(run_number, int) or not isinstance(run_id, int) or not isinstance(conclusion, str):
+            raise RuntimeError("GitHub returned malformed canonical MONDE Gate run")
         previous = latest.get(head)
-        if previous is None or int(run.get("run_number") or 0) > int(previous.get("run_number") or 0):
+        if previous is None or run_number > int(previous["run_number"]):
             latest[head] = run
     return latest
 
@@ -95,16 +107,22 @@ def unresolved_review_threads(repo: str, pr: int, token: str) -> bool:
             page = result["data"]["repository"]["pullRequest"]["reviewThreads"]
         except (KeyError, TypeError) as exc:
             raise RuntimeError("malformed reviewThreads response") from exc
-        nodes = page.get("nodes") if isinstance(page, dict) else None
-        if not isinstance(nodes, list):
+        if not isinstance(page, dict):
+            raise RuntimeError("malformed reviewThreads response")
+        nodes = page.get("nodes")
+        info = page.get("pageInfo")
+        if not isinstance(nodes, list) or any(
+            not isinstance(node, dict) or not isinstance(node.get("isResolved"), bool) for node in nodes
+        ):
             raise RuntimeError("malformed reviewThreads nodes")
-        if any(isinstance(node, dict) and node.get("isResolved") is False for node in nodes):
+        if not isinstance(info, dict) or not isinstance(info.get("hasNextPage"), bool):
+            raise RuntimeError("malformed reviewThreads pageInfo")
+        if any(node["isResolved"] is False for node in nodes):
             return True
-        info = page.get("pageInfo") or {}
-        if not isinstance(info, dict) or not info.get("hasNextPage"):
+        if not info["hasNextPage"]:
             return False
         cursor = info.get("endCursor")
-        if not cursor:
+        if not isinstance(cursor, str) or not cursor:
             raise RuntimeError("reviewThreads pagination missing cursor")
 
 
@@ -116,18 +134,14 @@ def poll(repo: str, token: str) -> list[int]:
     rerun_ids: list[int] = []
     runs = latest_completed_gate_runs(repo, token)
     for pr in open_pull_requests(repo, token):
-        number = pr.get("number")
-        head = str(((pr.get("head") or {}).get("sha") or ""))
-        if not isinstance(number, int) or not head:
-            continue
+        number = pr["number"]
+        head = pr["head"]["sha"]
         run = runs.get(head)
-        if run is None or run.get("conclusion") != "success":
+        if run is None or run["conclusion"] != "success":
             continue
         if not unresolved_review_threads(repo, number, token):
             continue
-        run_id = run.get("id")
-        if not isinstance(run_id, int):
-            raise RuntimeError(f"successful {WORKFLOW_NAME} run for PR #{number} has no numeric id")
+        run_id = run["id"]
         rerun_workflow(repo, run_id, token)
         rerun_ids.append(run_id)
     return rerun_ids
