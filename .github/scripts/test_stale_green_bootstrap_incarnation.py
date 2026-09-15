@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import importlib.util
 from pathlib import Path
 import unittest
@@ -12,14 +13,46 @@ bootstrap = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(bootstrap)
 
 
-def pr(created_at: str = "2026-09-15T16:00:00Z") -> dict:
+def pr(
+    created_at: str = "2026-09-15T16:00:00Z",
+    *,
+    number: int = 7,
+    head: str = "shared",
+    branch: str = "feature",
+    repo_name: str = "o/r",
+) -> dict:
     return {
-        "number": 7,
+        "number": number,
+        "state": "open",
         "created_at": created_at,
+        "closed_at": None,
         "head": {
-            "sha": "shared",
-            "ref": "feature",
-            "repo": {"full_name": "o/r"},
+            "sha": head,
+            "ref": branch,
+            "repo": {"full_name": repo_name},
+        },
+    }
+
+
+def closed_pr(
+    number: int,
+    *,
+    created_at: str,
+    closed_at: str,
+    head: str = "shared",
+    branch: str = "feature",
+    repo_name: str = "o/r",
+    state: str = "closed",
+) -> dict:
+    return {
+        "number": number,
+        "state": state,
+        "created_at": created_at,
+        "closed_at": closed_at,
+        "head": {
+            "sha": head,
+            "ref": branch,
+            "repo": {"full_name": repo_name},
         },
     }
 
@@ -88,6 +121,7 @@ class BootstrapIncarnationTests(unittest.TestCase):
                 "o/r",
                 "t",
                 bootstrap._current_prs([current_pr]),
+                {("o/r", "feature", "shared"): []},
             )
         self.assertEqual(target[("o/r", "feature", "shared")]["id"], 11)
 
@@ -101,11 +135,12 @@ class BootstrapIncarnationTests(unittest.TestCase):
             current_pr = pr()
             current_pr["created_at"] = bad_pr_time
             with self.subTest(pr_created_at=bad_pr_time), mock.patch.object(bootstrap, "paged", return_value=[current]):
-                with self.assertRaisesRegex(RuntimeError, "open pull request created_at"):
+                with self.assertRaisesRegex(RuntimeError, "pull request created_at"):
                     bootstrap.latest_completed_gate_runs(
                         "o/r",
                         "t",
                         bootstrap._current_prs([current_pr]),
+                        {("o/r", "feature", "shared"): []},
                     )
 
         for bad_run_time in (None, "", "not-a-date", "2026-09-15T16:01:00"):
@@ -117,6 +152,7 @@ class BootstrapIncarnationTests(unittest.TestCase):
                         "o/r",
                         "t",
                         bootstrap._current_prs([pr()]),
+                        {("o/r", "feature", "shared"): []},
                     )
 
     def test_current_pr_filter_ignores_runs_for_other_head_identity(self) -> None:
@@ -128,9 +164,143 @@ class BootstrapIncarnationTests(unittest.TestCase):
         other["head_branch"] = "other"
         with mock.patch.object(bootstrap, "paged", return_value=[other]):
             self.assertEqual(
-                bootstrap.latest_completed_gate_runs("o/r", "t", bootstrap._current_prs([pr()])),
+                bootstrap.latest_completed_gate_runs(
+                    "o/r",
+                    "t",
+                    bootstrap._current_prs([pr()]),
+                    {("o/r", "feature", "shared"): []},
+                ),
                 {},
             )
+
+    def test_overlap_windows_capture_prior_and_later_overlapping_pr_lifetimes(self) -> None:
+        current = pr()
+        same_branch_other_sha = pr(number=8, head="current-other")
+        histories = [
+            closed_pr(
+                1,
+                created_at="2026-09-15T15:00:00Z",
+                closed_at="2026-09-15T16:03:00Z",
+            ),
+            closed_pr(
+                2,
+                created_at="2026-09-15T16:02:00Z",
+                closed_at="2026-09-15T16:05:00Z",
+            ),
+            closed_pr(
+                3,
+                created_at="2026-09-15T14:00:00Z",
+                closed_at="2026-09-15T15:59:59Z",
+            ),
+            closed_pr(
+                4,
+                created_at="2026-09-15T15:00:00Z",
+                closed_at="2026-09-15T16:05:00Z",
+                head="different-sha",
+            ),
+        ]
+        current_map = bootstrap._current_prs([current, same_branch_other_sha])
+        with mock.patch.object(bootstrap, "paged", return_value=histories) as paged:
+            windows = bootstrap.overlapping_closed_pr_windows("o/r", "t", current_map)
+        identity = ("o/r", "feature", "shared")
+        self.assertEqual(
+            windows[identity],
+            [
+                (
+                    datetime.fromisoformat("2026-09-15T16:00:00+00:00"),
+                    datetime.fromisoformat("2026-09-15T16:03:00+00:00"),
+                ),
+                (
+                    datetime.fromisoformat("2026-09-15T16:02:00+00:00"),
+                    datetime.fromisoformat("2026-09-15T16:05:00+00:00"),
+                ),
+            ],
+        )
+        self.assertEqual(windows[("o/r", "feature", "current-other")], [])
+        self.assertEqual(paged.call_count, 1)
+        self.assertIn("state=closed", paged.call_args.args[0])
+        self.assertIn("head=o%3Afeature", paged.call_args.args[0])
+
+    def test_overlap_windows_fail_closed_on_malformed_closed_pr_history(self) -> None:
+        identity_map = bootstrap._current_prs([pr()])
+        malformed = [
+            closed_pr(True, created_at="2026-09-15T15:00:00Z", closed_at="2026-09-15T16:01:00Z"),
+            closed_pr(1, created_at="2026-09-15T15:00:00Z", closed_at="2026-09-15T16:01:00Z", state="open"),
+        ]
+        for row in malformed:
+            with self.subTest(row=row), mock.patch.object(bootstrap, "paged", return_value=[row]):
+                with self.assertRaisesRegex(RuntimeError, "malformed closed pull request"):
+                    bootstrap.overlapping_closed_pr_windows("o/r", "t", identity_map)
+
+        bad_closed = closed_pr(1, created_at="2026-09-15T15:00:00Z", closed_at="")
+        with mock.patch.object(bootstrap, "paged", return_value=[bad_closed]):
+            with self.assertRaisesRegex(RuntimeError, "closed pull request closed_at"):
+                bootstrap.overlapping_closed_pr_windows("o/r", "t", identity_map)
+
+        backwards = closed_pr(1, created_at="2026-09-15T16:02:00Z", closed_at="2026-09-15T16:01:00Z")
+        with mock.patch.object(bootstrap, "paged", return_value=[backwards]):
+            with self.assertRaisesRegex(RuntimeError, "invalid lifetime"):
+                bootstrap.overlapping_closed_pr_windows("o/r", "t", identity_map)
+
+        bad_repo = pr(repo_name="malformed")
+        with self.assertRaisesRegex(RuntimeError, "repository full_name"):
+            bootstrap.overlapping_closed_pr_windows("o/r", "t", bootstrap._current_prs([bad_repo]))
+
+    def test_overlap_window_excludes_ambiguous_old_pr_run_but_preserves_pre_overlap_current_run(self) -> None:
+        current_pr = pr()
+        identity = ("o/r", "feature", "shared")
+        windows = {
+            identity: [
+                (
+                    datetime.fromisoformat("2026-09-15T16:00:00+00:00"),
+                    datetime.fromisoformat("2026-09-15T16:03:00+00:00"),
+                )
+            ]
+        }
+        ambiguous_old = run(
+            run_id=10,
+            created_at="2026-09-15T16:01:00Z",
+            updated_at="2026-09-15T16:10:00Z",
+        )
+        current_after_overlap = run(
+            run_id=11,
+            created_at="2026-09-15T16:04:00Z",
+            updated_at="2026-09-15T16:05:00Z",
+            conclusion="failure",
+        )
+        with mock.patch.object(bootstrap, "paged", return_value=[ambiguous_old, current_after_overlap]):
+            effective = bootstrap.latest_completed_gate_runs("o/r", "t")
+        self.assertEqual(effective[identity]["id"], 10)
+        with mock.patch.object(bootstrap, "paged", return_value=[ambiguous_old, current_after_overlap]):
+            target = bootstrap.latest_completed_gate_runs(
+                "o/r",
+                "t",
+                bootstrap._current_prs([current_pr]),
+                windows,
+            )
+        self.assertEqual(target[identity]["id"], 11)
+
+        later_overlap = {
+            identity: [
+                (
+                    datetime.fromisoformat("2026-09-15T17:00:00+00:00"),
+                    datetime.fromisoformat("2026-09-15T17:05:00+00:00"),
+                )
+            ]
+        }
+        pre_overlap_current = run(
+            run_id=12,
+            created_at="2026-09-15T16:30:00Z",
+            updated_at="2026-09-15T16:31:00Z",
+        )
+        with mock.patch.object(bootstrap, "paged", return_value=[pre_overlap_current]):
+            target = bootstrap.latest_completed_gate_runs(
+                "o/r",
+                "t",
+                bootstrap._current_prs([current_pr]),
+                later_overlap,
+            )
+        self.assertEqual(target[identity]["id"], 12)
 
     def test_falsey_graphql_errors_members_are_rejected(self) -> None:
         for errors in ({}, "", 0, None):
@@ -166,6 +336,10 @@ class BootstrapIncarnationTests(unittest.TestCase):
         effective = {("o/r", "feature", "shared"): old}
         current_only = {("o/r", "feature", "shared"): current}
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=[current_pr]), mock.patch.object(
+            bootstrap,
+            "overlapping_closed_pr_windows",
+            return_value={},
+        ), mock.patch.object(
             bootstrap,
             "latest_completed_gate_runs",
             side_effect=[effective, current_only],
