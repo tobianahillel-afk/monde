@@ -7,6 +7,8 @@ on:
       - .github/scripts/stale_green_bootstrap.py
       - .github/scripts/test_stale_green_bootstrap.py
       - requirements/bootstrap-governance-ci.txt
+      - registry/work-items/WORK-0002.yaml
+      - PROJECT_STATE.md
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
