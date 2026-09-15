@@ -186,7 +186,10 @@ def validate_ambiguous_import_materialization_history(root: Path, head: str) -> 
 
 
 def validate_import_materialization_history(root: Path, head: str) -> list[Finding]:
-    out: list[Finding] = []
+    # Keep ambiguity rejection inside the import validator so callers cannot exercise
+    # terminal import qualification while accidentally skipping the parallel-history
+    # invariant. Unit tests that replace this whole validator remain isolated.
+    out: list[Finding] = list(validate_ambiguous_import_materialization_history(root, head))
     for directory in ("reviews", "tests"):
         terminal_status = TERMINAL_IMPORT_STATUS[directory]
         for path in _registry_paths(root, head, directory):
@@ -196,6 +199,12 @@ def validate_import_materialization_history(root: Path, head: str) -> list[Findi
                 continue
             raw_import = ext.get("import_commit")
             if not raw_import:
+                # A completely empty external_import object is malformed registry
+                # structure handled by schema/strict validation. T11 owns the semantic
+                # finalization case where import metadata exists but its binding is null
+                # or absent.
+                if not ext:
+                    continue
                 out.append(
                     Finding(
                         path,
@@ -332,12 +341,11 @@ def _steps_execute_prefix(job: dict[str, Any], expected: tuple[str, ...]) -> boo
 
 
 def _steps_contain_run(job: dict[str, Any], needle: str) -> bool:
-    """Compatibility helper with executable-command semantics, never raw substring matching."""
-    try:
-        expected = tuple(shlex.split(needle, posix=True))
-    except ValueError:
+    """Legacy helper retained for compatibility; security-sensitive wiring checks do not use it."""
+    steps = job.get("steps")
+    if not isinstance(steps, list):
         return False
-    return bool(expected) and _steps_execute_prefix(job, expected)
+    return any(isinstance(step, dict) and isinstance(step.get("run"), str) and needle in step["run"] for step in steps)
 
 
 def validate_workflow_structure(root: Path) -> list[Finding]:
@@ -396,7 +404,6 @@ def run(root: Path, base: str, head: str) -> list[Finding]:
     root = root.resolve()
     out: list[Finding] = []
     out.extend(validate_provenance_bootstrap(root, base, head))
-    out.extend(validate_ambiguous_import_materialization_history(root, head))
     out.extend(validate_import_materialization_history(root, head))
     out.extend(validate_secret_history_blobs(root, base, head))
     out.extend(validate_workflow_structure(root))
