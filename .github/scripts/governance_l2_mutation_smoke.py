@@ -19,6 +19,7 @@ TESTS = [
     "tests/governance/test_t8_findings.py",
     "tests/governance/test_t9_findings.py",
     "tests/governance/test_t9_full_history_mutation.py",
+    "tests/governance/test_t9_import_binding.py",
     "tests/governance/test_github_live_gate.py",
 ]
 MUTATIONS = {
@@ -57,7 +58,7 @@ MUTATIONS = {
     "t9-full-history-policy": ("tools/governance/t9_closure.py", '"--full-history",\n            "--topo-order",', '"--topo-order",'),
     "t9-review-import-continuing": ("tools/governance/t9_closure.py", 'and review_import_finalized(root, review, acceptance_sha, path)', 'and True'),
     "t9-test-import-continuing": ("tools/governance/t9_closure.py", 'and test_import_finalized(root, test, acceptance_sha, path)', 'and True'),
-    "t9-import-commit-immutability": ("tools/governance/t9_closure.py", 'if old_value in (None, "") and isinstance(new_value, str) and review_import_finalized(root, current, after, path):', 'if True:'),
+    "t9-import-commit-immutability": ("tools/governance/t9_closure.py", 'review_import_binding_allowed(root, current, after, path)\n                or review_import_finalized(root, current, after, path)', 'True\n                or review_import_finalized(root, current, after, path)'),
     "t9-base-policy-authority": ("tools/governance/t9_closure.py", 'if not base_preexisting_work_covers(root, base, path):', 'if False:'),
     "t9-new-reopening-trigger": ("tools/governance/t9_closure.py", 'if not new_reopening_trigger(root, before, after, work_id):', 'if False:'),
     "t9-durable-thread-identities": ("tools/governance/github_live_gate.py", 'if durable_ids != unresolved:', 'if False:'),
