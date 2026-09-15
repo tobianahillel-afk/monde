@@ -1,0 +1,48 @@
+name: MONDE Stale-Green Bootstrap
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/monde-stale-green-bootstrap.yml
+      - .github/scripts/stale_green_bootstrap.py
+      - .github/scripts/test_stale_green_bootstrap.py
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  self-test:
+    name: Bootstrap self-test
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact PR head or default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Run bootstrap regression tests
+        run: python3 .github/scripts/test_stale_green_bootstrap.py
+
+  stale-green-poll:
+    name: Bootstrap stale-green poll
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Invalidate stale successful MONDE gates
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/stale_green_bootstrap.py
