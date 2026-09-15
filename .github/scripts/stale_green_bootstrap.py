@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any
 
@@ -24,6 +25,7 @@ TERMINAL_CONCLUSIONS = {
     "startup_failure",
 }
 HeadIdentity = tuple[str, str, str]
+PrWindow = tuple[datetime, datetime]
 
 
 def request_data(url: str, token: str, method: str = "GET", body: dict[str, Any] | None = None) -> Any:
@@ -86,13 +88,13 @@ def _timestamp(value: Any, label: str) -> datetime:
 def _pr_head_identity(pr: dict[str, Any]) -> HeadIdentity:
     head = pr.get("head")
     if not isinstance(head, dict):
-        raise RuntimeError("GitHub returned malformed open pull request head")
+        raise RuntimeError("GitHub returned malformed pull request head")
     head_repo = head.get("repo")
     repo_name = head_repo.get("full_name") if isinstance(head_repo, dict) else None
     branch = head.get("ref")
     sha = head.get("sha")
     if not (_nonempty_string(repo_name) and _nonempty_string(branch) and _nonempty_string(sha)):
-        raise RuntimeError("GitHub returned malformed open pull request head identity")
+        raise RuntimeError("GitHub returned malformed pull request head identity")
     return (repo_name, branch, sha)
 
 
@@ -107,11 +109,22 @@ def _run_head_identity(run: dict[str, Any]) -> HeadIdentity:
 
 
 def _pr_created_at(pr: dict[str, Any]) -> datetime:
-    return _timestamp(pr.get("created_at"), "open pull request created_at")
+    return _timestamp(pr.get("created_at"), "pull request created_at")
 
 
 def _run_created_at(run: dict[str, Any]) -> datetime:
     return _timestamp(run.get("created_at"), "canonical MONDE Gate created_at")
+
+
+def _closed_pr_at(pr: dict[str, Any]) -> datetime:
+    return _timestamp(pr.get("closed_at"), "closed pull request closed_at")
+
+
+def _head_owner(identity: HeadIdentity) -> str:
+    owner, separator, _name = identity[0].partition("/")
+    if not separator or not owner:
+        raise RuntimeError("GitHub returned malformed pull request head repository full_name")
+    return owner
 
 
 def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
@@ -122,6 +135,7 @@ def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
         if not _positive_int(number):
             raise RuntimeError("GitHub returned malformed open pull request")
         identity = _pr_head_identity(item)
+        _pr_created_at(item)
         previous = seen.get(identity)
         if previous is not None and previous != number:
             raise RuntimeError(
@@ -129,6 +143,36 @@ def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
             )
         seen[identity] = number
     return items
+
+
+def overlapping_closed_pr_windows(
+    repo: str,
+    token: str,
+    current_prs: dict[HeadIdentity, dict[str, Any]],
+) -> dict[HeadIdentity, list[PrWindow]]:
+    windows: dict[HeadIdentity, list[PrWindow]] = {identity: [] for identity in current_prs}
+    cache: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for identity, current_pr in current_prs.items():
+        current_created = _pr_created_at(current_pr)
+        owner = _head_owner(identity)
+        cache_key = (owner, identity[1])
+        if cache_key not in cache:
+            query = urllib.parse.urlencode({"state": "closed", "head": f"{owner}:{identity[1]}"})
+            cache[cache_key] = paged(f"https://api.github.com/repos/{repo}/pulls?{query}", token)
+        for historical_pr in cache[cache_key]:
+            number = historical_pr.get("number")
+            if not _positive_int(number) or historical_pr.get("state") != "closed":
+                raise RuntimeError("GitHub returned malformed closed pull request")
+            historical_identity = _pr_head_identity(historical_pr)
+            historical_created = _pr_created_at(historical_pr)
+            historical_closed = _closed_pr_at(historical_pr)
+            if historical_closed < historical_created:
+                raise RuntimeError("GitHub returned closed pull request with invalid lifetime")
+            if historical_identity != identity or historical_closed < current_created:
+                continue
+            overlap_start = max(current_created, historical_created)
+            windows[identity].append((overlap_start, historical_closed))
+    return windows
 
 
 def _updated_at(value: Any) -> datetime:
@@ -139,10 +183,15 @@ def _run_recency(run: dict[str, Any]) -> tuple[datetime, int, int]:
     return (_updated_at(run.get("updated_at")), int(run["run_number"]), int(run["id"]))
 
 
+def _run_is_ambiguous(run_created: datetime, windows: list[PrWindow]) -> bool:
+    return any(start <= run_created <= end for start, end in windows)
+
+
 def latest_completed_gate_runs(
     repo: str,
     token: str,
     current_prs: dict[HeadIdentity, dict[str, Any]] | None = None,
+    overlap_windows: dict[HeadIdentity, list[PrWindow]] | None = None,
 ) -> dict[HeadIdentity, dict[str, Any]]:
     runs = paged(
         f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?status=completed",
@@ -176,7 +225,11 @@ def latest_completed_gate_runs(
             pr = current_prs.get(key)
             if pr is None:
                 continue
-            if _run_created_at(run) < _pr_created_at(pr):
+            run_created = _run_created_at(run)
+            if run_created < _pr_created_at(pr):
+                continue
+            windows = [] if overlap_windows is None else overlap_windows.get(key, [])
+            if _run_is_ambiguous(run_created, windows):
                 continue
         previous = latest.get(key)
         if previous is None or _run_recency(run) > _run_recency(previous):
@@ -252,8 +305,10 @@ def _current_prs(prs: list[dict[str, Any]]) -> dict[HeadIdentity, dict[str, Any]
 def poll(repo: str, token: str) -> list[int]:
     rerun_ids: list[int] = []
     prs = open_pull_requests(repo, token)
+    current_prs = _current_prs(prs)
+    overlap_windows = overlapping_closed_pr_windows(repo, token, current_prs)
     runs = latest_completed_gate_runs(repo, token)
-    current_runs = latest_completed_gate_runs(repo, token, _current_prs(prs))
+    current_runs = latest_completed_gate_runs(repo, token, current_prs, overlap_windows)
     effective = effective_gate_runs_by_head(runs)
     for pr in prs:
         number = pr["number"]
@@ -265,7 +320,7 @@ def poll(repo: str, token: str) -> list[int]:
         target_run = current_runs.get(identity)
         if target_run is None:
             raise RuntimeError(
-                f"effective successful MONDE Gate for head {head} has no run bound to open PR #{number} head identity during current PR incarnation"
+                f"effective successful MONDE Gate for head {head} has no unambiguous run bound to open PR #{number} current incarnation"
             )
         if not unresolved_review_threads(repo, number, token):
             continue
@@ -280,11 +335,13 @@ def validate_github_contract(repo: str, pr_number: int, token: str) -> tuple[int
     current = [pr for pr in prs if pr["number"] == pr_number]
     if len(current) != 1:
         raise RuntimeError(f"expected exactly one open PR #{pr_number}, observed {len(current)}")
-    runs = latest_completed_gate_runs(repo, token, _current_prs(current))
+    current_prs = _current_prs(current)
+    overlap_windows = overlapping_closed_pr_windows(repo, token, current_prs)
+    runs = latest_completed_gate_runs(repo, token, current_prs, overlap_windows)
     effective_gate_runs_by_head(runs)
     identity = _pr_head_identity(current[0])
     if identity not in runs:
-        raise RuntimeError(f"no canonical MONDE Gate run is bound to current incarnation of open PR #{pr_number}")
+        raise RuntimeError(f"no unambiguous canonical MONDE Gate run is bound to current incarnation of open PR #{pr_number}")
     unresolved = unresolved_review_threads(repo, pr_number, token)
     return len(prs), len(runs), unresolved
 
