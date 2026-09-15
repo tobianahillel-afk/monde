@@ -1,12 +1,12 @@
 id: REVIEW-0031
-status: IN_PROGRESS
+status: COMPLETE
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c"
 reviewer:
-  actor: null
-  context_id: null
+  actor: "chatgpt-codex-connector"
+  context_id: "fresh-context-pr5-702d5ee3"
   independence_level: L2
 roles:
   - ARCHITECTURE_REUSE
@@ -28,33 +28,82 @@ scope:
   risks:
     - "A stale successful gate may remain green after review state becomes unresolved."
     - "A rerun may execute an earlier or unrelated PR incarnation and preserve false merge eligibility."
-findings: []
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: CONTROL_PLANE_BINDING
+    description: "The current PR created_at boundary still admits a canonical run created for another same-repo/ref/SHA PR when the two PR lifetimes overlap and the other PR later closes."
+    evidence:
+      - PRRT_kwDOUUI5ts6im_Sc
+      - ".github/scripts/stale_green_bootstrap.py"
+      - "PRR_kwDOUUI5ts8AAAABNraMwQ"
+    disposition: OPEN
+    resolved_by: null
+    acceptance:
+      accepted_by: null
+      authority_role: null
+      authority_evidence_type: null
+      authority_evidence_ref: null
+      authority_matrix_version: null
+      authority_rule_id: null
+      rationale: null
+      accepted_at: null
+      review_condition: null
+  - id: F-2
+    severity: R2_MAJOR
+    category: DOCUMENTATION_TRACEABILITY
+    description: "WORK-0002 still records REVIEW-0031 as OPEN even though REVIEW-0031 and PROJECT_STATE already record the review as IN_PROGRESS."
+    evidence:
+      - PRRT_kwDOUUI5ts6im_Sh
+      - "registry/work-items/WORK-0002.yaml"
+      - "registry/reviews/REVIEW-0031.yaml"
+      - PROJECT_STATE.md
+      - "PRR_kwDOUUI5ts8AAAABNraMwQ"
+    disposition: OPEN
+    resolved_by: null
+    acceptance:
+      accepted_by: null
+      authority_role: null
+      authority_evidence_type: null
+      authority_evidence_ref: null
+      authority_matrix_version: null
+      authority_rule_id: null
+      rationale: null
+      accepted_at: null
+      review_condition: null
 checks:
   assumptions_challenged:
     - "A commit SHA or head repo/ref/SHA tuple alone uniquely identifies the current PR incarnation."
+    - "PR.created_at alone excludes every run attributable to a previous PR incarnation."
     - "workflow_run.pull_requests cardinality is authoritative triggering-PR identity."
     - "Malformed but falsey GraphQL errors metadata is equivalent to no errors."
+    - "Updating the REVIEW and PROJECT_STATE lifecycle mirror without the owning WORK record is sufficient resume-state synchronization."
   omitted_categories_considered:
     - "default-branch trust boundary"
-    - "shared-SHA and reused-branch PR lifecycle"
+    - "shared-SHA, reused-branch and overlapping PR lifetimes"
     - "REST and GraphQL schema failure"
     - "bounded pagination and cursor cycles"
     - "least-privilege Actions permissions"
-    - "requirement/test/work traceability"
+    - "requirement/test/work/review traceability"
   duplicate_or_reuse_search:
     - "Bootstrap remains a temporary predecessor for PR #2's canonical poller rather than a second permanent governance mechanism."
+    - "Run-to-PR association cardinality was not reintroduced as authority; the new finding requires stronger server-history disambiguation."
   failure_modes_considered:
     - "old PR run rerun after a new PR reuses the same head"
+    - "two same-identity PRs overlap and the older/other PR produces a gate run after the current PR opens"
     - "cross-PR shared-SHA success re-greens a commit"
     - "missing or malformed timestamps, event, conclusion or head identity"
     - "falsey GraphQL errors and repeated cursors"
     - "candidate-only scheduled workflow mistaken for preexisting default-branch protection"
+    - "cold-resume sources disagree on review lifecycle state"
   evidence_requested:
     - "Exact-head 100 percent line and branch bootstrap suite"
     - "Read-only live GitHub contract probe against WORK-0002 PR #2"
-    - "Fresh-context independent Codex review actively searching for stale-green bypasses"
+    - "Regression covering overlapping same-identity PR lifetimes"
+    - "Synchronized WORK-0002 / PROJECT_STATE / REVIEW lifecycle state"
+    - "A subsequent fresh-context independent exact-head review after correction"
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-15T16:33:45Z"
 history:
   created_at: "2026-09-15"
   updated_at: "2026-09-15"
