@@ -61,7 +61,7 @@ def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
 
 def latest_completed_gate_runs(repo: str, token: str) -> dict[str, dict[str, Any]]:
     runs = paged(
-        f"https://api.github.com/repos/{repo}/actions/runs?status=completed",
+        f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?status=completed",
         token,
         "workflow_runs",
     )
@@ -75,7 +75,7 @@ def latest_completed_gate_runs(repo: str, token: str) -> dict[str, dict[str, Any
         run_id = run.get("id")
         conclusion = run.get("conclusion")
         if workflow_id != CANONICAL_WORKFLOW_ID or path != CANONICAL_WORKFLOW_PATH:
-            continue
+            raise RuntimeError("canonical workflow endpoint returned mismatched workflow identity")
         if event not in PR_FAMILY_EVENTS:
             continue
         if not isinstance(head, str) or not head or not isinstance(run_number, int) or not isinstance(run_id, int) or not isinstance(conclusion, str):
@@ -147,6 +147,16 @@ def poll(repo: str, token: str) -> list[int]:
     return rerun_ids
 
 
+def validate_github_contract(repo: str, pr_number: int, token: str) -> tuple[int, int, bool]:
+    prs = open_pull_requests(repo, token)
+    current = [pr for pr in prs if pr["number"] == pr_number]
+    if len(current) != 1:
+        raise RuntimeError(f"expected exactly one open PR #{pr_number}, observed {len(current)}")
+    runs = latest_completed_gate_runs(repo, token)
+    unresolved = unresolved_review_threads(repo, pr_number, token)
+    return len(prs), len(runs), unresolved
+
+
 def main() -> int:
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     token = os.environ.get("GITHUB_TOKEN", "")
@@ -154,8 +164,19 @@ def main() -> int:
         print("ERROR BOOTSTRAP_POLL: GITHUB_REPOSITORY and GITHUB_TOKEN are required", file=sys.stderr)
         return 2
     try:
+        validate_pr = os.environ.get("BOOTSTRAP_VALIDATE_PR", "")
+        if validate_pr:
+            pr_number = int(validate_pr)
+            if pr_number < 1:
+                raise ValueError("PR number must be positive")
+            open_count, gate_heads, unresolved = validate_github_contract(repo, pr_number, token)
+            print(
+                f"MONDE bootstrap GitHub contract: open_prs={open_count}, gate_heads={gate_heads}, "
+                f"target_pr={pr_number}, unresolved_threads={str(unresolved).lower()}"
+            )
+            return 0
         reruns = poll(repo, token)
-    except (RuntimeError, urllib.error.URLError, json.JSONDecodeError) as exc:
+    except (RuntimeError, ValueError, urllib.error.URLError, json.JSONDecodeError) as exc:
         print(f"ERROR BOOTSTRAP_POLL: {exc}", file=sys.stderr)
         return 2
     print(f"MONDE bootstrap stale-green poll: reran {len(reruns)} stale successful gate(s)")
