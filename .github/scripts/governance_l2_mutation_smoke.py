@@ -18,6 +18,7 @@ TESTS = [
     "tests/governance/test_t7_closure_coverage.py",
     "tests/governance/test_t8_findings.py",
     "tests/governance/test_t9_findings.py",
+    "tests/governance/test_t9_full_history_mutation.py",
     "tests/governance/test_github_live_gate.py",
 ]
 MUTATIONS = {
