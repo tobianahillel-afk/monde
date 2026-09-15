@@ -111,7 +111,7 @@ def first_status_boundaries_full_history(root: Path, path: str, status: str, hea
 
 def first_status_commit_full_history(root: Path, path: str, status: str, head: str) -> str | None:
     boundaries = first_status_boundaries_full_history(root, path, status, head)
-    return boundaries[0] if len(boundaries) == 1 else None
+    return boundaries[0] if boundaries else None
 
 
 def _registry_paths(root: Path, head: str, directory: str) -> Iterable[str]:
@@ -164,6 +164,27 @@ def squash_bridge_allows_first_status(
     return False
 
 
+def validate_ambiguous_import_materialization_history(root: Path, head: str) -> list[Finding]:
+    out: list[Finding] = []
+    for directory in ("reviews", "tests"):
+        terminal_status = TERMINAL_IMPORT_STATUS[directory]
+        for path in _registry_paths(root, head, directory):
+            record = cg.show_yaml(root, head, path) or {}
+            ext = record.get("external_import")
+            if not isinstance(ext, dict) or record.get("status") != terminal_status or not ext.get("import_commit"):
+                continue
+            boundaries = first_status_boundaries_full_history(root, path, terminal_status, head)
+            if len(boundaries) > 1:
+                out.append(
+                    Finding(
+                        path,
+                        "IMPORT_FIRST_STATUS_AMBIGUOUS",
+                        f"full merge history contains multiple independent first materializations of status {terminal_status!r}: {boundaries}",
+                    )
+                )
+    return out
+
+
 def validate_import_materialization_history(root: Path, head: str) -> list[Finding]:
     out: list[Finding] = []
     for directory in ("reviews", "tests"):
@@ -184,24 +205,14 @@ def validate_import_materialization_history(root: Path, head: str) -> list[Findi
                 )
                 continue
             expected = str(raw_import)
-            boundaries = first_status_boundaries_full_history(root, path, terminal_status, head)
-            if len(boundaries) > 1:
-                out.append(
-                    Finding(
-                        path,
-                        "IMPORT_FIRST_STATUS_AMBIGUOUS",
-                        f"full merge history contains multiple independent first materializations of status {terminal_status!r}: {boundaries}",
-                    )
-                )
-                continue
-            actual = boundaries[0] if boundaries else None
+            actual = first_status_commit_full_history(root, path, terminal_status, head)
             if actual == expected or squash_bridge_allows_first_status(root, path, record, expected, actual, head, directory):
                 continue
             out.append(
                 Finding(
                     path,
                     "IMPORT_FIRST_STATUS_FULL_HISTORY",
-                    f"external import binds import_commit={expected!r}, but full merge history uniquely first materializes status {terminal_status!r} at {actual!r}",
+                    f"external import binds import_commit={expected!r}, but full merge history first materializes status {terminal_status!r} at {actual!r}",
                 )
             )
     return out
@@ -320,6 +331,15 @@ def _steps_execute_prefix(job: dict[str, Any], expected: tuple[str, ...]) -> boo
     return any(tuple(command[: len(expected)]) == expected for command in _logical_run_commands(job))
 
 
+def _steps_contain_run(job: dict[str, Any], needle: str) -> bool:
+    """Compatibility helper with executable-command semantics, never raw substring matching."""
+    try:
+        expected = tuple(shlex.split(needle, posix=True))
+    except ValueError:
+        return False
+    return bool(expected) and _steps_execute_prefix(job, expected)
+
+
 def validate_workflow_structure(root: Path) -> list[Finding]:
     workflow = _load_yaml_mapping(root / WORKFLOW_PATH)
     core = _load_yaml_mapping(root / CORE_WORKFLOW_PATH)
@@ -376,6 +396,7 @@ def run(root: Path, base: str, head: str) -> list[Finding]:
     root = root.resolve()
     out: list[Finding] = []
     out.extend(validate_provenance_bootstrap(root, base, head))
+    out.extend(validate_ambiguous_import_materialization_history(root, head))
     out.extend(validate_import_materialization_history(root, head))
     out.extend(validate_secret_history_blobs(root, base, head))
     out.extend(validate_workflow_structure(root))
