@@ -23,15 +23,33 @@ def test_integration_provenance_requires_base_preexisting_authority(monkeypatch,
     ]
 
 
-def test_global_acceptance_revalidation_catches_dependency_only_changes(monkeypatch, tmp_path: Path) -> None:
+def test_dependency_revalidation_targets_only_changed_requirement_and_risk_evidence(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(t10, "t10_adoption_sha", lambda *_: "adopt")
     monkeypatch.setattr(t10.cg, "pr_commit_edges", lambda *a, **k: ([], [("adopt", "after")]))
     monkeypatch.setattr(t10, "edge_is_enforced", lambda *_: True)
+    monkeypatch.setattr(
+        t10.cg,
+        "changed_files",
+        lambda *_: ["registry/tests/TEST-9.yaml", "registry/delegations/authority.yaml"],
+    )
+
+    requirement = {
+        "id": "REQ-1",
+        "status": "ACCEPTED",
+        "origin": {"introduced_by_work": "WORK-1"},
+        "verification": {"acceptance_evidence": ["REVIEW-9"], "acceptance_cold_read_test_ids": ["TEST-9"]},
+    }
+    risk = {
+        "id": "RISK-1",
+        "status": "ACCEPTED",
+        "scope": {"work_items": ["WORK-1"]},
+        "resolution": {"authority_evidence_ref": "registry/delegations/authority.yaml"},
+    }
 
     def records(_root: Path, _sha: str, kind: str):
         if kind == "requirements":
-            return iter([("registry/requirements/REQ-1.yaml", {"id": "REQ-1", "status": "ACCEPTED"})])
-        return iter([("registry/risks/RISK-1.yaml", {"id": "RISK-1", "status": "ACCEPTED"})])
+            return iter([("registry/requirements/REQ-1.yaml", requirement)])
+        return iter([("registry/risks/RISK-1.yaml", risk)])
 
     monkeypatch.setattr(t10, "registry_records", records)
     monkeypatch.setattr(t10.t9, "requirement_acceptance_invariant", lambda *_: False)
@@ -48,12 +66,82 @@ def test_global_acceptance_revalidation_catches_dependency_only_changes(monkeypa
     assert t10.validate_acceptance_dependencies(tmp_path, "base", "head") == []
 
 
+def test_unrelated_changes_do_not_retroactively_revalidate_legacy_acceptance(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(t10, "t10_adoption_sha", lambda *_: "adopt")
+    monkeypatch.setattr(t10.cg, "pr_commit_edges", lambda *a, **k: ([], [("adopt", "after")]))
+    monkeypatch.setattr(t10, "edge_is_enforced", lambda *_: True)
+    monkeypatch.setattr(t10.cg, "changed_files", lambda *_: ["README.md"])
+    requirement = {
+        "id": "REQ-legacy",
+        "status": "ACCEPTED",
+        "origin": {"introduced_by_work": "WORK-1"},
+        "verification": {"acceptance_evidence": ["REVIEW-1"], "acceptance_cold_read_test_ids": ["TEST-1"]},
+    }
+    monkeypatch.setattr(
+        t10,
+        "registry_records",
+        lambda _r, _s, kind: iter([("registry/requirements/REQ-legacy.yaml", requirement)]) if kind == "requirements" else iter([]),
+    )
+    monkeypatch.setattr(t10.t9, "requirement_acceptance_invariant", lambda *_: (_ for _ in ()).throw(AssertionError()))
+    assert t10.validate_acceptance_dependencies(tmp_path, "base", "head") == []
+
+
+def test_policy_changes_revalidate_accepted_records(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(t10, "t10_adoption_sha", lambda *_: "adopt")
+    monkeypatch.setattr(t10.cg, "pr_commit_edges", lambda *a, **k: ([], [("adopt", "after")]))
+    monkeypatch.setattr(t10, "edge_is_enforced", lambda *_: True)
+    requirement = {"id": "REQ-1", "status": "ACCEPTED", "verification": {}}
+    risk = {"id": "RISK-1", "status": "ACCEPTED", "scope": {"work_items": []}, "resolution": {}}
+
+    def records(_root: Path, _sha: str, kind: str):
+        if kind == "requirements":
+            return iter([("registry/requirements/REQ-1.yaml", requirement)])
+        return iter([("registry/risks/RISK-1.yaml", risk)])
+
+    monkeypatch.setattr(t10, "registry_records", records)
+    monkeypatch.setattr(t10.t9, "requirement_acceptance_invariant", lambda *_: False)
+    monkeypatch.setattr(t10.cg, "risk_acceptance_satisfied", lambda *_: False)
+
+    monkeypatch.setattr(t10.cg, "changed_files", lambda *_: ["registry/content-identity.yaml"])
+    findings = t10.validate_acceptance_dependencies(tmp_path, "base", "head")
+    assert [item.rule for item in findings] == ["REQ_ACCEPTED_DEPENDENCY_INVARIANT"]
+
+    monkeypatch.setattr(t10.cg, "changed_files", lambda *_: ["registry/acceptance-authority.yaml"])
+    findings = t10.validate_acceptance_dependencies(tmp_path, "base", "head")
+    assert [item.rule for item in findings] == ["RISK_ACCEPTED_DEPENDENCY_INVARIANT"]
+
+
 def test_pre_adoption_edges_do_not_retroactively_revalidate(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(t10, "t10_adoption_sha", lambda *_: "adopt")
     monkeypatch.setattr(t10.cg, "pr_commit_edges", lambda *a, **k: ([], [("old", "older")]))
     monkeypatch.setattr(t10, "edge_is_enforced", lambda *_: False)
     monkeypatch.setattr(t10, "registry_records", lambda *_: (_ for _ in ()))
     assert t10.validate_acceptance_dependencies(tmp_path, "base", "head") == []
+
+
+def test_dependency_path_projection() -> None:
+    requirement = {
+        "origin": {"introduced_by_work": "WORK-7"},
+        "verification": {
+            "acceptance_evidence": ["REVIEW-4/F-1", "docs/spec.md", "WORK-2/AC-1", None],
+            "acceptance_cold_read_test_ids": ["TEST-8"],
+        },
+    }
+    deps = t10.requirement_dependency_paths("registry/requirements/REQ-1.yaml", requirement)
+    assert "registry/reviews/REVIEW-4.yaml" in deps
+    assert "registry/work-items/WORK-2.yaml" in deps
+    assert "registry/work-items/WORK-7.yaml" in deps
+    assert "registry/tests/TEST-8.yaml" in deps
+    assert "docs/spec.md" not in deps
+
+    risk = {
+        "scope": {"work_items": ["WORK-7"]},
+        "resolution": {"authority_evidence_ref": "registry/delegations/auth.yaml"},
+    }
+    deps = t10.risk_dependency_paths("registry/risks/RISK-1.yaml", risk)
+    assert "registry/work-items/WORK-7.yaml" in deps
+    assert "registry/delegations/auth.yaml" in deps
+    assert "registry/acceptance-authority.yaml" in deps
 
 
 def test_repository_workflow_has_review_state_reruns_and_t10_wiring() -> None:

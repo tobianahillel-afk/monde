@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -14,6 +15,16 @@ T10_PATH = "tools/governance/t10_closure.py"
 INTEGRATION_PROVENANCE_PATH = "registry/integration-provenance.yaml"
 WORKFLOW_PATH = ".github/workflows/governance.yml"
 CORE_WORKFLOW_PATH = ".github/workflows/_governance-core.yml"
+REQUIREMENT_POLICY_PATHS = {
+    "registry/content-identity.yaml",
+    "registry/status-machines.yaml",
+    "registry/integration-provenance.yaml",
+}
+RISK_POLICY_PATHS = {
+    "registry/acceptance-authority.yaml",
+    "registry/status-machines.yaml",
+}
+REGISTRY_REF = re.compile(r"^(WORK|REVIEW|TEST)-[A-Za-z0-9_-]+")
 
 
 @dataclass(frozen=True)
@@ -101,6 +112,52 @@ def registry_records(root: Path, sha: str, kind: str) -> Iterator[tuple[str, dic
             yield path, record
 
 
+def registry_reference_path(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    match = REGISTRY_REF.match(value)
+    if match is None:
+        return value if value.startswith("registry/") else None
+    identifier = match.group(0)
+    family = match.group(1)
+    directory = {"WORK": "work-items", "REVIEW": "reviews", "TEST": "tests"}[family]
+    return f"registry/{directory}/{identifier}.yaml"
+
+
+def requirement_dependency_paths(path: str, requirement: dict[str, Any]) -> set[str]:
+    deps = set(REQUIREMENT_POLICY_PATHS)
+    deps.add(path)
+    verification = requirement.get("verification") or {}
+    for value in verification.get("acceptance_evidence", []) or []:
+        ref = registry_reference_path(value)
+        if ref:
+            deps.add(ref)
+    for value in verification.get("acceptance_cold_read_test_ids", []) or []:
+        ref = registry_reference_path(value)
+        if ref:
+            deps.add(ref)
+    origin = requirement.get("origin") or {}
+    ref = registry_reference_path(origin.get("introduced_by_work"))
+    if ref:
+        deps.add(ref)
+    return deps
+
+
+def risk_dependency_paths(path: str, risk: dict[str, Any]) -> set[str]:
+    deps = set(RISK_POLICY_PATHS)
+    deps.add(path)
+    resolution = risk.get("resolution") or {}
+    ref = registry_reference_path(resolution.get("authority_evidence_ref"))
+    if ref:
+        deps.add(ref)
+    scope = risk.get("scope") or {}
+    for value in scope.get("work_items", []) or []:
+        ref = registry_reference_path(value)
+        if ref:
+            deps.add(ref)
+    return deps
+
+
 def validate_acceptance_dependencies(root: Path, base: str, head: str) -> list[Finding]:
     adoption = t10_adoption_sha(root, head)
     if adoption is None:
@@ -110,8 +167,9 @@ def validate_acceptance_dependencies(root: Path, base: str, head: str) -> list[F
     for before, after in edges:
         if not edge_is_enforced(root, adoption, before, after):
             continue
+        changed = set(cg.changed_files(root, before, after))
         for path, record in registry_records(root, after, "requirements"):
-            if record.get("status") != "ACCEPTED":
+            if record.get("status") != "ACCEPTED" or not changed.intersection(requirement_dependency_paths(path, record)):
                 continue
             if not t9.requirement_acceptance_invariant(root, after, record):
                 out.append(
@@ -122,7 +180,7 @@ def validate_acceptance_dependencies(root: Path, base: str, head: str) -> list[F
                     )
                 )
         for path, record in registry_records(root, after, "risks"):
-            if record.get("status") != "ACCEPTED":
+            if record.get("status") != "ACCEPTED" or not changed.intersection(risk_dependency_paths(path, record)):
                 continue
             if not cg.risk_acceptance_satisfied(root, after, record):
                 out.append(
