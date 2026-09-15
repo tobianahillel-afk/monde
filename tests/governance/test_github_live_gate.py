@@ -32,6 +32,14 @@ def approval_body(head: str, *, level: str = "L2", fresh: str = "true", separate
     )
 
 
+def write_work(root: Path, work_id: str, findings: list[str] | None = None, status: str = "IN_REVIEW") -> str:
+    path = f"registry/work-items/{work_id}.yaml"
+    target = root / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(yaml.safe_dump({"id": work_id, "status": status, "review_plan": {"open_findings": findings or []}}), encoding="utf-8")
+    return path
+
+
 def test_request_data_and_json(monkeypatch):
     monkeypatch.setattr(g.urllib.request, "urlopen", lambda req, timeout: Resp({"x": 1}))
     assert g.request_data("https://x.test", "t") == {"x": 1}
@@ -64,6 +72,20 @@ def test_graphql_pagination_and_errors(monkeypatch):
 def test_fetch_reviews_wrapper(monkeypatch):
     monkeypatch.setattr(g, "_paginate_graphql", lambda *a: [{"id": "r"}])
     assert g.fetch_reviews("o/r", 1, "t") == [{"id": "r"}]
+
+
+def test_fetch_pr_files_pages_and_malformed(monkeypatch):
+    pages = iter([[{"filename": "a"}] * 100, [{"filename": "b"}, {"nope": "x"}]])
+    monkeypatch.setattr(g, "request_data", lambda *_a, **_k: next(pages))
+    files = g.fetch_pr_files("o/r", 1, "t")
+    assert files.count("a") == 100 and files[-1] == "b"
+    monkeypatch.setattr(g, "request_data", lambda *_a, **_k: {"bad": True})
+    with pytest.raises(RuntimeError, match="malformed pull-request file list"):
+        g.fetch_pr_files("o/r", 1, "t")
+    monkeypatch.setattr(g, "request_data", lambda *_a, **_k: [{"filename": "a"}] * 100)
+    monkeypatch.setattr(g, "MAX_PAGES", 1)
+    with pytest.raises(RuntimeError, match="pagination exceeded"):
+        g.fetch_pr_files("o/r", 1, "t")
 
 
 def test_independent_exact_head_approvers_latest_state():
@@ -117,21 +139,37 @@ def test_trusted_exact_head_approvers_require_permission_and_l2_body(monkeypatch
     assert g.trusted_exact_head_approvers("o/r", reviews, head, "author", "t") == {"trusted"}
 
 
-def test_durable_open_findings_and_thread_ids(tmp_path: Path):
-    assert g.durable_open_findings(tmp_path) is None
-    target = tmp_path / "registry/work-items/WORK-0002.yaml"
-    target.parent.mkdir(parents=True)
-    target.write_text("- bad\n", encoding="utf-8")
-    assert g.durable_open_findings(tmp_path) is None
-    target.write_text("review_plan: bad\n", encoding="utf-8")
-    assert g.durable_open_findings(tmp_path) is None
-    target.write_text("review_plan:\n  open_findings: [ok, '']\n", encoding="utf-8")
-    assert g.durable_open_findings(tmp_path) is None
-    target.write_text(yaml.safe_dump({"review_plan": {"open_findings": ["PRRT_A / P1: one", "PRRT_B / P2: two"]}}), encoding="utf-8")
-    values = g.durable_open_findings(tmp_path)
-    assert values is not None and g.durable_finding_ids(values) == {"PRRT_A", "PRRT_B"}
+def test_dynamic_work_resolution_and_durable_thread_ids(tmp_path: Path):
+    work3 = write_work(tmp_path, "WORK-0003", ["PRRT_A / P1: one", "PRRT_B / P2: two"])
+    assert g.resolve_closure_work(tmp_path, [work3, "tools/x.py"]) == (work3, "WORK-0003")
+    assert g.durable_finding_ids(g.durable_open_findings(tmp_path, work3)) == {"PRRT_A", "PRRT_B"}
+    write_work(tmp_path, "WORK-0004", [])
+    assert g.resolve_closure_work(tmp_path, [work3, "registry/work-items/WORK-0004.yaml"]) is None
+    assert g.resolve_closure_work(tmp_path, ["tools/x.py"]) is None
     assert g.durable_finding_ids(["REVIEW-1/F-1"]) is None
     assert g.durable_finding_ids(["PRRT_A", "PRRT_A duplicate"]) is None
+
+
+def test_work_loader_rejects_bad_records(tmp_path: Path):
+    missing = "registry/work-items/WORK-0009.yaml"
+    assert g._load_work(tmp_path, missing) is None
+    target = tmp_path / missing
+    target.parent.mkdir(parents=True)
+    target.write_text("- bad\n", encoding="utf-8")
+    assert g._load_work(tmp_path, missing) is None
+    target.write_text("id: WRONG\nstatus: IN_REVIEW\n", encoding="utf-8")
+    assert g.resolve_closure_work(tmp_path, [missing]) is None
+    target.write_text("id: WORK-0009\nstatus: PLANNED\n", encoding="utf-8")
+    assert g.resolve_closure_work(tmp_path, [missing]) is None
+
+
+def test_durable_open_findings_validation(tmp_path: Path):
+    path = write_work(tmp_path, "WORK-0008")
+    target = tmp_path / path
+    target.write_text("review_plan: bad\n", encoding="utf-8")
+    assert g.durable_open_findings(tmp_path, path) is None
+    target.write_text("review_plan:\n  open_findings: [ok, '']\n", encoding="utf-8")
+    assert g.durable_open_findings(tmp_path, path) is None
 
 
 def test_repository_owner_permission(monkeypatch):
@@ -149,46 +187,58 @@ def test_repository_owner_permission(monkeypatch):
     assert g.validate_repository_owner_permission("o/r", "t") == []
 
 
-def test_validate_draft_and_ready(monkeypatch, tmp_path: Path):
+def setup_live(monkeypatch, tmp_path: Path, *, head="h", unresolved=None, durable=None, work_id="WORK-0003"):
+    info = {"head": {"sha": head}, "draft": False, "state": "open", "mergeable": True, "user": {"login": "author"}}
+    work_path = write_work(tmp_path, work_id, durable or [])
+    monkeypatch.setattr(g, "request_json", lambda *a, **k: info)
+    monkeypatch.setattr(g, "validate_repository_owner_permission", lambda *a: [])
+    monkeypatch.setattr(g, "fetch_pr_files", lambda *a: [work_path, "tools/governance/x.py"])
+    monkeypatch.setattr(g, "fetch_threads", lambda *a: unresolved or [])
+    monkeypatch.setattr(g, "fetch_reviews", lambda *a: [])
+    return info, work_path
+
+
+def test_validate_draft_and_failure_paths(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(g, "request_json", lambda *a, **k: {"head": {"sha": "h"}, "draft": True, "state": "open", "mergeable": True})
     findings, status = g.validate("o/r", 1, "h", "t", tmp_path)
     assert not findings and status == "DEFERRED_DRAFT"
-    info = {"head": {"sha": "other"}, "draft": False, "state": "closed", "mergeable": None, "user": {"login": "author"}}
-    monkeypatch.setattr(g, "request_json", lambda *a, **k: info)
-    monkeypatch.setattr(g, "validate_repository_owner_permission", lambda *a: [])
-    monkeypatch.setattr(g, "fetch_threads", lambda *a: [{"id": "PRRT_1", "isResolved": False}])
-    monkeypatch.setattr(g, "durable_open_findings", lambda *a: ["PRRT_OTHER / stale"])
-    monkeypatch.setattr(g, "fetch_reviews", lambda *a: [])
+
+    info, _ = setup_live(monkeypatch, tmp_path, head="other", unresolved=[{"id": "PRRT_1", "isResolved": False}], durable=["PRRT_OTHER / stale"])
+    info.update({"state": "closed", "mergeable": None})
     findings, status = g.validate("o/r", 1, "h", "t", tmp_path)
     rules = {item.rule for item in findings}
     assert {"HEAD_MISMATCH", "PR_STATE", "MERGEABLE", "UNRESOLVED_THREADS", "DURABLE_FINDING_SET", "INDEPENDENT_EXACT_HEAD_APPROVAL"} <= rules
     assert status == "READY_CHECKED"
 
 
-def test_validate_happy_exact_head_approval(monkeypatch, tmp_path: Path):
+def test_validate_fails_closed_without_unique_changed_work(monkeypatch, tmp_path: Path):
+    info = {"head": {"sha": "h"}, "draft": False, "state": "open", "mergeable": True, "user": {"login": "author"}}
+    monkeypatch.setattr(g, "request_json", lambda *a, **k: info)
+    monkeypatch.setattr(g, "validate_repository_owner_permission", lambda *a: [])
+    monkeypatch.setattr(g, "fetch_pr_files", lambda *a: ["tools/governance/x.py"])
+    monkeypatch.setattr(g, "fetch_threads", lambda *a: [])
+    monkeypatch.setattr(g, "fetch_reviews", lambda *a: [])
+    findings, _ = g.validate("o/r", 1, "h", "t", tmp_path)
+    assert "ACTIVE_WORK_RESOLUTION" in {item.rule for item in findings}
+
+
+def test_validate_happy_exact_head_approval_on_work0003(monkeypatch, tmp_path: Path):
     head = "h"
-    info = {"head": {"sha": head}, "draft": False, "state": "open", "mergeable": True, "user": {"login": "author"}}
+    info, work_path = setup_live(monkeypatch, tmp_path, head=head)
     def request(url, *args, **kwargs):
         if "/collaborators/reviewer/permission" in url: return {"permission": "write"}
         return info
     monkeypatch.setattr(g, "request_json", request)
-    monkeypatch.setattr(g, "validate_repository_owner_permission", lambda *a: [])
-    monkeypatch.setattr(g, "fetch_threads", lambda *a: [])
-    monkeypatch.setattr(g, "durable_open_findings", lambda *a: [])
+    monkeypatch.setattr(g, "fetch_pr_files", lambda *a: [work_path])
     monkeypatch.setattr(g, "fetch_reviews", lambda *a: [{"id": "r", "author": {"login": "reviewer"}, "commit": {"oid": head}, "submittedAt": "1", "state": "APPROVED", "body": approval_body(head)}])
     assert g.validate("o/r", 1, head, "t", tmp_path) == ([], "READY_CHECKED")
 
 
 def test_validate_identity_matched_open_threads(monkeypatch, tmp_path: Path):
-    head = "h"
-    info = {"head": {"sha": head}, "draft": False, "state": "open", "mergeable": True, "user": {"login": "author"}}
-    monkeypatch.setattr(g, "request_json", lambda *a, **k: info)
-    monkeypatch.setattr(g, "validate_repository_owner_permission", lambda *a: [])
-    monkeypatch.setattr(g, "fetch_threads", lambda *a: [{"id": "PRRT_A", "isResolved": False}])
-    monkeypatch.setattr(g, "durable_open_findings", lambda *a: ["PRRT_A / P1: x"])
-    monkeypatch.setattr(g, "fetch_reviews", lambda *a: [])
-    findings, _ = g.validate("o/r", 1, head, "t", tmp_path)
+    setup_live(monkeypatch, tmp_path, unresolved=[{"id": "PRRT_A", "isResolved": False}], durable=["PRRT_A / P1: x"])
+    findings, _ = g.validate("o/r", 1, "h", "t", tmp_path)
     assert "DURABLE_FINDING_SET" not in {item.rule for item in findings}
+    assert "UNRESOLVED_THREADS" in {item.rule for item in findings}
 
 
 def test_main(monkeypatch, tmp_path):
