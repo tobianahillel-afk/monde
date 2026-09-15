@@ -604,17 +604,13 @@ def _current_prs(prs: list[dict[str, Any]]) -> dict[HeadIdentity, dict[str, Any]
 def poll(repo: str, token: str) -> list[int]:
     rerun_ids: list[int] = []
     prs = open_pull_requests(repo, token)
-    current_prs = _current_prs(prs)
-    overlap_windows = overlapping_closed_pr_windows(repo, token, current_prs)
-    current_runs = latest_completed_gate_runs(
-        repo,
-        token,
-        current_prs,
-        overlap_windows,
-        active_prs=current_prs,
-    )
     check_cache: dict[str, dict[str, Any] | None] = {}
-    target_job_cache: dict[tuple[int, int], str] = {}
+    stale_prs: list[dict[str, Any]] = []
+
+    # First prove which PRs actually need stale-green invalidation. Expensive
+    # current-incarnation history is intentionally deferred until after this
+    # positive classification so its scan window cannot predate the check that
+    # triggered the invalidation decision.
     for pr in prs:
         number = pr["number"]
         identity = _pr_head_identity(pr)
@@ -624,8 +620,26 @@ def poll(repo: str, token: str) -> list[int]:
         check = check_cache[head]
         if check is None or check["status"] != "completed" or check["conclusion"] not in MERGE_ACCEPTABLE_CONCLUSIONS:
             continue
-        if not unresolved_review_threads(repo, number, token):
-            continue
+        if unresolved_review_threads(repo, number, token):
+            stale_prs.append(pr)
+
+    if not stale_prs:
+        return rerun_ids
+
+    stale_current_prs = _current_prs(stale_prs)
+    overlap_windows = overlapping_closed_pr_windows(repo, token, stale_current_prs)
+    current_runs = latest_completed_gate_runs(
+        repo,
+        token,
+        stale_current_prs,
+        overlap_windows,
+        active_prs=stale_current_prs,
+    )
+    target_job_cache: dict[tuple[int, int], str] = {}
+    for pr in stale_prs:
+        number = pr["number"]
+        identity = _pr_head_identity(pr)
+        head = identity[2]
         target_run = current_runs.get(identity)
         if target_run is None:
             raise RuntimeError(
