@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -23,6 +24,7 @@ REQUIRED_L2_HATS = {
     "DOCUMENTATION_TRACEABILITY",
     "RED_TEAM_SKEPTIC",
 }
+THREAD_ID = re.compile(r"\b(PRRT_[A-Za-z0-9_-]+)\b")
 
 
 @dataclass(frozen=True)
@@ -191,6 +193,19 @@ def durable_open_findings(root: Path) -> list[str] | None:
     return values
 
 
+def durable_finding_ids(values: list[str] | None) -> set[str] | None:
+    if values is None:
+        return None
+    ids: list[str] = []
+    for value in values:
+        match = THREAD_ID.search(value)
+        if match is None:
+            return None
+        ids.append(match.group(1))
+    unique = set(ids)
+    return unique if len(unique) == len(ids) else None
+
+
 def validate_repository_owner_permission(repo: str, token: str) -> list[LiveFinding]:
     info = request_json(f"https://api.github.com/repos/{repo}", token)
     owner = str(((info.get("owner") or {}).get("login") or ""))
@@ -225,13 +240,21 @@ def validate(repo: str, pr: int, head: str, token: str, root: Path | None = None
     findings.extend(validate_repository_owner_permission(repo, token))
 
     threads = fetch_threads(repo, pr, token)
-    unresolved = [str(item.get("id") or "") for item in threads if not item.get("isResolved")]
+    unresolved = {str(item.get("id") or "") for item in threads if not item.get("isResolved") and item.get("id")}
     if unresolved:
         findings.append(LiveFinding("UNRESOLVED_THREADS", f"{len(unresolved)} unresolved review thread(s)"))
 
     durable = durable_open_findings(root)
-    if durable is None or len(durable) != len(unresolved):
-        findings.append(LiveFinding("DURABLE_FINDING_SET", f"WORK-0002 durable open_findings count={None if durable is None else len(durable)} does not match live unresolved thread count={len(unresolved)}"))
+    durable_ids = durable_finding_ids(durable)
+    if durable_ids != unresolved:
+        missing = sorted(unresolved - (durable_ids or set()))
+        stale = sorted((durable_ids or set()) - unresolved)
+        findings.append(
+            LiveFinding(
+                "DURABLE_FINDING_SET",
+                f"WORK-0002 durable thread identities do not match live unresolved threads; missing={missing}, stale={stale}",
+            )
+        )
 
     author = str(((info.get("user") or {}).get("login") or ""))
     approvers = trusted_exact_head_approvers(repo, fetch_reviews(repo, pr, token), head, author, token)
