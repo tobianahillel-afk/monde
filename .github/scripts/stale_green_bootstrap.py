@@ -24,6 +24,7 @@ TERMINAL_CONCLUSIONS = {
     "stale",
     "startup_failure",
 }
+MERGE_ACCEPTABLE_CONCLUSIONS = {"success", "neutral", "skipped"}
 HeadIdentity = tuple[str, str, str]
 PrWindow = tuple[datetime, datetime]
 
@@ -327,12 +328,12 @@ def poll(repo: str, token: str) -> list[int]:
         identity = _pr_head_identity(pr)
         head = identity[2]
         effective_run = effective.get(head)
-        if effective_run is None or effective_run["conclusion"] != "success":
+        if effective_run is None or effective_run["conclusion"] not in MERGE_ACCEPTABLE_CONCLUSIONS:
             continue
         target_run = current_runs.get(identity)
         if target_run is None:
             raise RuntimeError(
-                f"effective successful MONDE Gate for head {head} has no unambiguous run bound to open PR #{number} current incarnation"
+                f"effective merge-acceptable MONDE Gate for head {head} has no unambiguous run bound to open PR #{number} current incarnation"
             )
         if not unresolved_review_threads(repo, number, token):
             continue
@@ -380,7 +381,7 @@ def main() -> int:
     except (RuntimeError, ValueError, urllib.error.URLError, json.JSONDecodeError) as exc:
         print(f"ERROR BOOTSTRAP_POLL: {exc}", file=sys.stderr)
         return 2
-    print(f"MONDE bootstrap stale-green poll: reran {len(reruns)} stale successful gate(s)")
+    print(f"MONDE bootstrap stale-green poll: reran {len(reruns)} stale merge-acceptable gate(s)")
     return 0
 
 

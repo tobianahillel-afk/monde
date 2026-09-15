@@ -8,11 +8,12 @@ protects:
   contracts: ["GitHub control-plane merge gate"]
   risks: []
   invariants:
-    - "stale successful canonical gate is invalidated when current PR review threads are unresolved"
+    - "stale merge-acceptable canonical gate is invalidated when current PR review threads are unresolved"
+    - "GitHub merge-acceptable conclusions success, neutral and skipped all require stale-green revalidation"
     - "rerun target belongs to the current PR incarnation, not a prior PR reusing the same head identity"
     - "malformed or ambiguous GitHub REST/GraphQL state fails closed"
 location:
-  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py"
+  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py"
   suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
 environment:
   kind: GITHUB_ACTIONS
@@ -20,7 +21,7 @@ environment:
     - "GitHub REST Actions and Pull Requests APIs"
     - "GitHub GraphQL reviewThreads API"
   mocked_dependencies:
-    - "adversarial unit fixtures for malformed responses, shared SHA and prior PR incarnation"
+    - "adversarial unit fixtures for malformed responses, shared SHA, prior PR incarnation and merge-acceptable conclusions"
 cases:
   happy_path:
     - "current PR incarnation has a canonical exact-head gate run and resolved or unresolved review state is classified correctly"
@@ -28,13 +29,15 @@ cases:
     - "distinct PR branches share the same head SHA"
     - "an earlier closed PR reused the same repository/ref/SHA before the current PR was opened"
     - "reviewThreads spans multiple GraphQL pages"
+    - "effective canonical run concludes success, neutral or skipped"
   failure_modes:
     - "canonical workflow identity or required run metadata is malformed"
-    - "no current-incarnation gate run exists while an effective stale success exists"
+    - "no current-incarnation gate run exists while an effective stale merge-acceptable check exists"
     - "REST or GraphQL pagination exceeds the bounded limit"
   adversarial_cases:
     - "workflow_run.pull_requests contains zero, one or multiple associations and is not trusted as triggering-PR identity"
     - "an old run is rerun after the current PR opens and has a newer updated_at"
+    - "neutral or skipped required check remains merge-acceptable while review threads become unresolved"
     - "GraphQL errors is present with a falsey malformed value"
     - "GraphQL pagination repeats a cursor"
 acceptance_cold_read:
