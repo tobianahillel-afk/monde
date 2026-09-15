@@ -202,24 +202,71 @@ class BootstrapIncarnationTests(unittest.TestCase):
         current_map = bootstrap._current_prs([current, same_branch_other_sha])
         with mock.patch.object(bootstrap, "paged", return_value=histories) as paged:
             windows = bootstrap.overlapping_closed_pr_windows("o/r", "t", current_map)
+        expected = [
+            (
+                datetime.fromisoformat("2026-09-15T16:00:00+00:00"),
+                datetime.fromisoformat("2026-09-15T16:03:00+00:00"),
+            ),
+            (
+                datetime.fromisoformat("2026-09-15T16:02:00+00:00"),
+                datetime.fromisoformat("2026-09-15T16:05:00+00:00"),
+            ),
+            (
+                datetime.fromisoformat("2026-09-15T16:00:00+00:00"),
+                datetime.fromisoformat("2026-09-15T16:05:00+00:00"),
+            ),
+        ]
         identity = ("o/r", "feature", "shared")
+        self.assertEqual(windows[identity], expected)
+        self.assertEqual(windows[("o/r", "feature", "current-other")], expected)
+        self.assertEqual(paged.call_count, 1)
+        self.assertIn("state=closed", paged.call_args.args[0])
+        self.assertIn("head=o%3Afeature", paged.call_args.args[0])
+
+    def test_branch_reset_history_excludes_old_run_when_closed_snapshot_sha_differs(self) -> None:
+        current_pr = pr()
+        identity = ("o/r", "feature", "shared")
+        history = closed_pr(
+            1,
+            created_at="2026-09-15T15:00:00Z",
+            closed_at="2026-09-15T16:05:00Z",
+            head="different-sha",
+        )
+        with mock.patch.object(bootstrap, "paged", return_value=[history]):
+            windows = bootstrap.overlapping_closed_pr_windows(
+                "o/r",
+                "t",
+                bootstrap._current_prs([current_pr]),
+            )
         self.assertEqual(
             windows[identity],
             [
                 (
                     datetime.fromisoformat("2026-09-15T16:00:00+00:00"),
-                    datetime.fromisoformat("2026-09-15T16:03:00+00:00"),
-                ),
-                (
-                    datetime.fromisoformat("2026-09-15T16:02:00+00:00"),
                     datetime.fromisoformat("2026-09-15T16:05:00+00:00"),
-                ),
+                )
             ],
         )
-        self.assertEqual(windows[("o/r", "feature", "current-other")], [])
-        self.assertEqual(paged.call_count, 1)
-        self.assertIn("state=closed", paged.call_args.args[0])
-        self.assertIn("head=o%3Afeature", paged.call_args.args[0])
+
+        ambiguous_old = run(
+            run_id=10,
+            created_at="2026-09-15T16:01:00Z",
+            updated_at="2026-09-15T16:10:00Z",
+        )
+        current_after_overlap = run(
+            run_id=11,
+            created_at="2026-09-15T16:06:00Z",
+            updated_at="2026-09-15T16:07:00Z",
+            conclusion="failure",
+        )
+        with mock.patch.object(bootstrap, "paged", return_value=[ambiguous_old, current_after_overlap]):
+            target = bootstrap.latest_completed_gate_runs(
+                "o/r",
+                "t",
+                bootstrap._current_prs([current_pr]),
+                windows,
+            )
+        self.assertEqual(target[identity]["id"], 11)
 
     def test_overlap_windows_fail_closed_on_malformed_closed_pr_history(self) -> None:
         identity_map = bootstrap._current_prs([pr()])
