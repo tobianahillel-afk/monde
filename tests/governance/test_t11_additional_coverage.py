@@ -85,8 +85,8 @@ def test_latest_runs_keeps_newer_existing_entry(monkeypatch) -> None:
         poller,
         "_paged",
         lambda *_a, **_k: [
-            {"head_sha": "h", "run_number": 2, "id": 20},
-            {"head_sha": "h", "run_number": 1, "id": 10},
+            {"event": "pull_request_review", "head_sha": "h", "run_number": 2, "id": 20},
+            {"event": "pull_request", "head_sha": "h", "run_number": 1, "id": 10},
         ],
     )
     assert poller.latest_completed_pr_runs("o/r", "t")["h"]["id"] == 20
