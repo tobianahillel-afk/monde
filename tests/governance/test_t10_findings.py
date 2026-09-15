@@ -124,7 +124,7 @@ def test_dependency_path_projection() -> None:
         "origin": {"introduced_by_work": "WORK-7"},
         "verification": {
             "acceptance_evidence": ["REVIEW-4/F-1", "docs/spec.md", "WORK-2/AC-1", None],
-            "acceptance_cold_read_test_ids": ["TEST-8"],
+            "acceptance_cold_read_test_ids": ["TEST-8", None],
         },
     }
     deps = t10.requirement_dependency_paths("registry/requirements/REQ-1.yaml", requirement)
@@ -135,7 +135,7 @@ def test_dependency_path_projection() -> None:
     assert "docs/spec.md" not in deps
 
     risk = {
-        "scope": {"work_items": ["WORK-7"]},
+        "scope": {"work_items": ["WORK-7", None]},
         "resolution": {"authority_evidence_ref": "registry/delegations/auth.yaml"},
     }
     deps = t10.risk_dependency_paths("registry/risks/RISK-1.yaml", risk)
