@@ -128,6 +128,32 @@ class MergeAcceptableConclusionTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "malformed paginated total_count"):
                     bootstrap.paged("https://example.invalid/jobs", "t", "jobs", require_total_count=True)
 
+        with mock.patch.object(
+            bootstrap,
+            "request_data",
+            return_value={"total_count": 0, "jobs": [one]},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "exceeds total_count"):
+                bootstrap.paged("https://example.invalid/jobs", "t", "jobs", require_total_count=True)
+
+        with mock.patch.object(
+            bootstrap,
+            "request_data",
+            return_value={"total_count": 0, "jobs": []},
+        ):
+            self.assertEqual(
+                bootstrap.paged("https://example.invalid/jobs", "t", "jobs", require_total_count=True),
+                [],
+            )
+
+        consistent_first = {"total_count": 101, "jobs": [{"id": i} for i in range(100)]}
+        consistent_second = {"total_count": 101, "jobs": [{"id": 100}]}
+        with mock.patch.object(bootstrap, "request_data", side_effect=[consistent_first, consistent_second]):
+            self.assertEqual(
+                len(bootstrap.paged("https://example.invalid/jobs", "t", "jobs", require_total_count=True)),
+                101,
+            )
+
         first = {"total_count": 101, "jobs": [{"id": i} for i in range(100)]}
         second = {"total_count": 102, "jobs": [{"id": 100}]}
         with mock.patch.object(bootstrap, "request_data", side_effect=[first, second]):
