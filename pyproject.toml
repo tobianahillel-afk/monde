@@ -19,7 +19,10 @@ addopts = "-ra --strict-markers"
 [tool.coverage.run]
 branch = true
 source = ["tools.governance", ".github/scripts"]
-omit = [".github/scripts/governance_l2_mutation_smoke.py"]
+omit = [
+  ".github/scripts/governance_l2_mutation_smoke.py",
+  ".github/scripts/governance_t10_mutation_smoke.py",
+]
 
 [tool.coverage.report]
 fail_under = 100
