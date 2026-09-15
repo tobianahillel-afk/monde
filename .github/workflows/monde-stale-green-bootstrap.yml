@@ -6,6 +6,7 @@ on:
       - .github/workflows/monde-stale-green-bootstrap.yml
       - .github/scripts/stale_green_bootstrap.py
       - .github/scripts/test_stale_green_bootstrap.py
+      - requirements/bootstrap-governance-ci.txt
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
@@ -25,8 +26,37 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - name: Run bootstrap regression tests
-        run: python3 .github/scripts/test_stale_green_bootstrap.py
+      - name: Install hash-locked coverage tool
+        run: python3 -m pip install --require-hashes -r requirements/bootstrap-governance-ci.txt
+      - name: Run bootstrap tests with 100 percent line and branch coverage
+        run: |
+          python3 -m coverage erase
+          python3 -m coverage run --branch .github/scripts/test_stale_green_bootstrap.py
+          python3 -m coverage report \
+            --include='.github/scripts/stale_green_bootstrap.py' \
+            --fail-under=100 \
+            --show-missing
+
+  github-contract:
+    name: Bootstrap GitHub contract probe
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Validate live GitHub REST GraphQL and Actions contracts without mutation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BOOTSTRAP_VALIDATE_PR: ${{ github.event.pull_request.number }}
+        run: python3 .github/scripts/stale_green_bootstrap.py
 
   stale-green-poll:
     name: Bootstrap stale-green poll
