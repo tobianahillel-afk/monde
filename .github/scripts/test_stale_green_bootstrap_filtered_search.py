@@ -7,6 +7,7 @@ import unittest
 from unittest import mock
 
 SCRIPT = Path(__file__).with_name("stale_green_bootstrap.py")
+ROOT = SCRIPT.parents[2]
 SPEC = importlib.util.spec_from_file_location("stale_green_bootstrap_filtered_search", SCRIPT)
 assert SPEC and SPEC.loader
 bootstrap = importlib.util.module_from_spec(SPEC)
@@ -61,12 +62,48 @@ class FilteredWorkflowSearchTests(unittest.TestCase):
                 [{"id": 1}],
             )
 
+    def test_paged_unique_identity_rejects_malformed_and_duplicate_records(self) -> None:
+        for bad_id in (None, True, 1.0, "1"):
+            payload = {"total_count": 1, "workflow_runs": [{"id": bad_id}]}
+            with self.subTest(bad_id=bad_id), mock.patch.object(bootstrap, "request_data", return_value=payload):
+                with self.assertRaisesRegex(RuntimeError, "malformed paginated record identity"):
+                    bootstrap.paged(
+                        "https://example.invalid/runs",
+                        "t",
+                        "workflow_runs",
+                        require_total_count=True,
+                        unique_id_field="id",
+                    )
+
+        payload = {"total_count": 2, "workflow_runs": [{"id": 1}, {"id": 1}]}
+        with mock.patch.object(bootstrap, "request_data", return_value=payload):
+            with self.assertRaisesRegex(RuntimeError, "duplicate paginated record identity"):
+                bootstrap.paged(
+                    "https://example.invalid/runs",
+                    "t",
+                    "workflow_runs",
+                    require_total_count=True,
+                    unique_id_field="id",
+                )
+
+        first = {"total_count": 101, "workflow_runs": [{"id": i} for i in range(100)]}
+        second = {"total_count": 101, "workflow_runs": [{"id": 50}]}
+        with mock.patch.object(bootstrap, "request_data", side_effect=[first, second]):
+            with self.assertRaisesRegex(RuntimeError, "duplicate paginated record identity"):
+                bootstrap.paged(
+                    "https://example.invalid/runs",
+                    "t",
+                    "workflow_runs",
+                    require_total_count=True,
+                    unique_id_field="id",
+                )
+
     def test_search_time_normalizes_to_utc_whole_seconds(self) -> None:
         source = datetime(2026, 9, 15, 18, 0, 3, 999999, tzinfo=timezone(timedelta(hours=2)))
         self.assertEqual(bootstrap._utc_second(source), dt(3))
         self.assertEqual(bootstrap._github_search_time(source), "2026-09-15T16:00:03Z")
 
-    def test_snapshot_fingerprint_is_order_independent_and_unique(self) -> None:
+    def test_snapshot_fingerprint_is_order_independent_and_validates_shape(self) -> None:
         first = bootstrap._run_snapshot_fingerprint([run(2), run(1)])
         second = bootstrap._run_snapshot_fingerprint([run(1), run(2)])
         self.assertEqual(first, second)
@@ -78,15 +115,12 @@ class FilteredWorkflowSearchTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "malformed .* run id"):
                     bootstrap._run_snapshot_fingerprint([bad])
 
-        with self.assertRaisesRegex(RuntimeError, "duplicate .* run id"):
-            bootstrap._run_snapshot_fingerprint([run(1), run(1)])
-
         bad_value = run(1)
         bad_value["unsupported"] = object()
         with self.assertRaisesRegex(RuntimeError, "non-canonicalizable"):
             bootstrap._run_snapshot_fingerprint([bad_value])
 
-    def test_read_window_uses_closed_created_range_and_search_limit(self) -> None:
+    def test_read_window_uses_closed_created_range_search_limit_and_unique_ids(self) -> None:
         with mock.patch.object(bootstrap, "paged", return_value=[]) as paged:
             self.assertEqual(bootstrap._read_completed_gate_window("o/r", "t", "h", dt(1), dt(9)), [])
         url = paged.call_args.args[0]
@@ -96,10 +130,8 @@ class FilteredWorkflowSearchTests(unittest.TestCase):
         self.assertIn("created=2026-09-15T16%3A00%3A01Z..2026-09-15T16%3A00%3A09Z", url)
         self.assertEqual(paged.call_args.args[2], "workflow_runs")
         self.assertTrue(paged.call_args.kwargs["require_total_count"])
-        self.assertEqual(
-            paged.call_args.kwargs["max_total_count"],
-            bootstrap.FILTERED_WORKFLOW_RUN_SEARCH_LIMIT,
-        )
+        self.assertEqual(paged.call_args.kwargs["max_total_count"], bootstrap.FILTERED_WORKFLOW_RUN_SEARCH_LIMIT)
+        self.assertEqual(paged.call_args.kwargs["unique_id_field"], "id")
 
     def test_bounded_window_requires_two_identical_snapshots(self) -> None:
         rows = [run(1), run(2)]
@@ -132,13 +164,7 @@ class FilteredWorkflowSearchTests(unittest.TestCase):
 
         self.assertEqual(
             calls,
-            [
-                (dt(0), dt(3)),
-                (dt(0), dt(1)),
-                (dt(0), dt(1)),
-                (dt(2), dt(3)),
-                (dt(2), dt(3)),
-            ],
+            [(dt(0), dt(3)), (dt(0), dt(1)), (dt(0), dt(1)), (dt(2), dt(3)), (dt(2), dt(3))],
         )
 
     def test_bounded_window_repartitions_if_second_snapshot_hits_limit(self) -> None:
@@ -179,17 +205,20 @@ class FilteredWorkflowSearchTests(unittest.TestCase):
         with mock.patch.object(bootstrap, "_read_completed_gate_window", side_effect=[rows, rows]) as read:
             self.assertEqual(
                 bootstrap._bounded_completed_gate_runs(
-                    "o/r",
-                    "t",
-                    "h",
-                    dt(0, microsecond=900000),
-                    dt(1, microsecond=900000),
+                    "o/r", "t", "h", dt(0, microsecond=900000), dt(1, microsecond=900000)
                 ),
                 rows,
             )
         self.assertEqual(read.call_args_list[0].args[3:], (dt(0), dt(1)))
-
         self.assertEqual(bootstrap._bounded_completed_gate_runs("o/r", "t", "h", dt(2), dt(1)), [])
+
+    def test_workflow_polls_every_ten_minutes_and_grants_checks_read_only_where_needed(self) -> None:
+        workflow = (ROOT / ".github/workflows/monde-stale-green-bootstrap.yml").read_text(encoding="utf-8")
+        self.assertIn("cron: '*/10 * * * *'", workflow)
+        self.assertNotIn("cron: '*/5 * * * *'", workflow)
+        self.assertGreaterEqual(workflow.count("checks: read"), 2)
+        self.assertIn("actions: write", workflow)
+        self.assertIn("'.github/scripts/test_stale_green_bootstrap*.py'", workflow)
 
 
 if __name__ == "__main__":
