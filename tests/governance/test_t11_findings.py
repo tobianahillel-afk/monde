@@ -141,7 +141,7 @@ def test_tree_sha(monkeypatch, tmp_path: Path) -> None:
     assert t11._tree_sha(tmp_path, "x") is None
 
 
-def test_squash_bridge_allows_only_exact_bound_bridge(monkeypatch, tmp_path: Path) -> None:
+def test_squash_bridge_proves_history_without_granting_evidence_eligibility(monkeypatch, tmp_path: Path) -> None:
     imp = "1" * 40
     source = "2" * 40
     integrated = "3" * 40
@@ -161,7 +161,10 @@ def test_squash_bridge_allows_only_exact_bound_bridge(monkeypatch, tmp_path: Pat
     monkeypatch.setattr(t11, "_tree_sha", lambda _r, sha: tree if sha in {source, integrated} else None)
     assert t11.squash_bridge_allows_first_status(tmp_path, "p", record, imp, integrated, "head", "reviews") is True
 
-    assert t11.squash_bridge_allows_first_status(tmp_path, "p", {"id": "OTHER", "status": "COMPLETE"}, imp, integrated, "head", "reviews") is False
+    # T11 only proves where the status was first materialized. Evidence qualification
+    # remains a separate T7/T9 concern, so absence from eligible_review_ids must not
+    # make the exact source-history bridge disappear here.
+    assert t11.squash_bridge_allows_first_status(tmp_path, "p", {"id": "OTHER", "status": "COMPLETE"}, imp, integrated, "head", "reviews") is True
     bad = dict(entry, historical_only=False)
     monkeypatch.setattr(t11.cg, "show_yaml", lambda *_: {"squash_integrations": [bad]})
     assert t11.squash_bridge_allows_first_status(tmp_path, "p", record, imp, integrated, "head", "reviews") is False

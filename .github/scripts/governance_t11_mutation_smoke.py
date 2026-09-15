@@ -24,6 +24,11 @@ MUTATIONS = {
         '            "--full-history",\n            "--reverse",\n            "--topo-order",\n            head,\n',
         '            "--reverse",\n            "--topo-order",\n            head,\n',
     ),
+    "t11-squash-history-is-not-evidence-eligibility": (
+        "tools/governance/t11_closure.py",
+        "        if not isinstance(entry, dict):\n            continue\n",
+        "        if not isinstance(entry, dict) or record.get(\"id\") not in (entry.get(\"eligible_review_ids\" if directory == \"reviews\" else \"eligible_test_ids\") or []):\n            continue\n",
+    ),
     "t11-raw-blob-secret-scan": (
         "tools/governance/t11_closure.py",
         "            if any(pattern.search(text) for pattern in cg.SECRET_PATTERNS):\n",

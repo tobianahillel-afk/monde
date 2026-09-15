@@ -130,10 +130,13 @@ def squash_bridge_allows_first_status(
     directory: str,
 ) -> bool:
     provenance = cg.show_yaml(root, head, INTEGRATION_PROVENANCE_PATH) or {}
-    eligible_key = "eligible_review_ids" if directory == "reviews" else "eligible_test_ids"
     for entry in provenance.get("squash_integrations", []) or []:
-        if not isinstance(entry, dict) or record.get("id") not in (entry.get(eligible_key) or []):
+        if not isinstance(entry, dict):
             continue
+        # T11 proves historical materialization, not evidence qualification. An exact
+        # tree-equivalent squash may therefore recover the source-side first status for
+        # any record present in that exact tree. T7/T9 separately keep eligible_*_ids
+        # as the allowlist for whether a review/test may qualify as acceptance evidence.
         source_head = str(entry.get("source_head_sha") or "")
         integrated = str(entry.get("integrated_commit_sha") or "")
         expected_tree = str(entry.get("expected_tree_sha") or "")
