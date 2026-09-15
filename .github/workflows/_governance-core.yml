@@ -55,6 +55,7 @@ jobs:
           python .github/scripts/governance_l2_mutation_smoke.py
           python .github/scripts/governance_t10_mutation_smoke.py
           python .github/scripts/governance_t11_mutation_smoke.py
+          python .github/scripts/governance_t12_mutation_smoke.py
 
       - name: Validate repository state
         run: |
@@ -145,8 +146,8 @@ jobs:
             echo '- Base: `${{ inputs.base_sha }}`'
             echo '- Head: `${{ inputs.head_sha }}`'
             echo '- Checkout: exact requested head SHA (never the synthetic PR merge ref)'
-            echo '- Coverage target: **100% line + branch**, including project-owned L2/T7/T8/T9/T10/T11 decision logic'
-            echo '- Mutation smoke: baseline + fresh-L2/T7/T8/T9 + dedicated T10 + dedicated T11 critical governance mutants must be killed'
+            echo '- Coverage target: **100% line + branch**, including project-owned L2/T7/T8/T9/T10/T11/T12 decision logic'
+            echo '- Mutation smoke: baseline + fresh-L2/T7/T8/T9 + dedicated T10 + T11 + T12 critical governance mutants must be killed'
             echo '- Static repository, strict lifecycle/proof, path, schema, secret-pattern, action-pin, transition, L2-hardening, independent-review-closure, T7, T8, T9, T10 and T11 closure guards executed above'
           } >> "$GITHUB_STEP_SUMMARY"
 
