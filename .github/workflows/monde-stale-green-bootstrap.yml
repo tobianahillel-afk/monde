@@ -1,5 +1,5 @@
 name: MONDE Stale-Green Bootstrap
-# REVIEW-0039 lifecycle proof trigger; comment-only, no executable semantics changed.
+# REVIEW-0039 lifecycle proof trigger; comment-only predecessor retained for review history.
 
 on:
   pull_request:
@@ -14,7 +14,7 @@ on:
       - registry/work-items/WORK-0002.yaml
       - PROJECT_STATE.md
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -52,6 +52,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       actions: read
+      checks: read
       contents: read
       pull-requests: read
     steps:
@@ -60,11 +61,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - name: Validate live GitHub REST GraphQL and Actions contracts against WORK-0002 PR
+      - name: Validate live GitHub REST GraphQL Checks and Actions contracts against WORK-0002 PR
         env:
           GITHUB_TOKEN: ${{ github.token }}
           # PR #2 is the consumer this temporary default-branch predecessor must protect.
-          # It has the canonical MONDE Gate runs that PR #5 itself intentionally lacks.
+          # It has the canonical MONDE Gate runs/checks that PR #5 itself intentionally lacks.
           BOOTSTRAP_VALIDATE_PR: '2'
         run: python3 .github/scripts/stale_green_bootstrap.py
 
@@ -75,6 +76,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       actions: write
+      checks: read
       contents: read
       pull-requests: read
     steps:
