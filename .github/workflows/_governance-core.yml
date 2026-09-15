@@ -61,7 +61,7 @@ jobs:
           python -m tools.governance.path_safety . --json-out path-findings.json
 
       - name: Validate base-to-head transition
-        if: inputs.event_name == 'pull_request'
+        if: startsWith(inputs.event_name, 'pull_request')
         run: |
           python -m tools.governance.change_guard . \
             --base '${{ inputs.base_sha }}' \
@@ -69,7 +69,7 @@ jobs:
             --json-out change-findings.json
 
       - name: Validate fresh-L2 hardening invariants
-        if: inputs.event_name == 'pull_request'
+        if: startsWith(inputs.event_name, 'pull_request')
         run: |
           PYTHONPATH="$PWD:$PWD/.github/scripts" python .github/scripts/governance_l2_gate.py . \
             --base '${{ inputs.base_sha }}' \
@@ -77,7 +77,7 @@ jobs:
             --json-out l2-hardening-findings.json
 
       - name: Validate independent-review closure invariants
-        if: inputs.event_name == 'pull_request'
+        if: startsWith(inputs.event_name, 'pull_request')
         run: |
           python -m tools.governance.review_closure_gate . \
             --base '${{ inputs.base_sha }}' \
@@ -85,7 +85,7 @@ jobs:
             --json-out review-closure-findings.json
 
       - name: Validate T7 closure invariants
-        if: inputs.event_name == 'pull_request'
+        if: startsWith(inputs.event_name, 'pull_request')
         run: |
           python -m tools.governance.t7_closure . \
             --base '${{ inputs.base_sha }}' \
@@ -93,7 +93,7 @@ jobs:
             --json-out t7-closure-findings.json
 
       - name: Validate T8 closure invariants
-        if: inputs.event_name == 'pull_request'
+        if: startsWith(inputs.event_name, 'pull_request')
         run: |
           python -m tools.governance.t8_closure . \
             --base '${{ inputs.base_sha }}' \
@@ -101,15 +101,23 @@ jobs:
             --json-out t8-closure-findings.json
 
       - name: Validate T9 closure invariants
-        if: inputs.event_name == 'pull_request'
+        if: startsWith(inputs.event_name, 'pull_request')
         run: |
           python -m tools.governance.t9_closure . \
             --base '${{ inputs.base_sha }}' \
             --head '${{ inputs.head_sha }}' \
             --json-out t9-closure-findings.json
 
+      - name: Validate T10 closure invariants
+        if: startsWith(inputs.event_name, 'pull_request')
+        run: |
+          python -m tools.governance.t10_closure . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --json-out t10-closure-findings.json
+
       - name: Generate AI context manifest
-        if: inputs.event_name == 'pull_request'
+        if: startsWith(inputs.event_name, 'pull_request')
         run: |
           python -m tools.governance.context_manifest . \
             --base '${{ inputs.base_sha }}' \
@@ -127,9 +135,9 @@ jobs:
             echo '- Base: `${{ inputs.base_sha }}`'
             echo '- Head: `${{ inputs.head_sha }}`'
             echo '- Checkout: exact requested head SHA (never the synthetic PR merge ref)'
-            echo '- Coverage target: **100% line + branch**, including project-owned L2/T7/T8/T9 decision logic'
-            echo '- Mutation smoke: baseline + fresh-L2/T7/T8/T9 critical governance mutants must be killed'
-            echo '- Static repository, strict lifecycle/proof, path, schema, secret-pattern, action-pin, transition, L2-hardening, independent-review-closure, T7, T8 and T9 closure guards executed above'
+            echo '- Coverage target: **100% line + branch**, including project-owned L2/T7/T8/T9/T10 decision logic'
+            echo '- Mutation smoke: baseline + fresh-L2/T7/T8/T9/T10 critical governance mutants must be killed'
+            echo '- Static repository, strict lifecycle/proof, path, schema, secret-pattern, action-pin, transition, L2-hardening, independent-review-closure, T7, T8, T9 and T10 closure guards executed above'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload governance evidence
@@ -148,6 +156,7 @@ jobs:
             t7-closure-findings.json
             t8-closure-findings.json
             t9-closure-findings.json
+            t10-closure-findings.json
             context-manifest.json
           if-no-files-found: warn
           retention-days: 14
