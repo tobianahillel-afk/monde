@@ -220,13 +220,13 @@ def latest_completed_gate_runs(
             or conclusion not in TERMINAL_CONCLUSIONS
         ):
             raise RuntimeError("GitHub returned malformed canonical MONDE Gate run")
+        run_created = _run_created_at(run)
         _updated_at(run.get("updated_at"))
         key = _run_head_identity(run)
         if current_prs is not None:
             pr = current_prs.get(key)
             if pr is None:
                 continue
-            run_created = _run_created_at(run)
             if run_created < _pr_created_at(pr):
                 continue
             windows = [] if overlap_windows is None else overlap_windows.get(key, [])
