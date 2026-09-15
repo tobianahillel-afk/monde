@@ -12,8 +12,10 @@ protects:
     - "GitHub merge-acceptable conclusions success, neutral and skipped all require stale-green revalidation"
     - "rerun target belongs to the current PR incarnation, not a prior PR reusing the same head identity"
     - "malformed or ambiguous GitHub REST/GraphQL state fails closed"
+    - "filtered workflow-run history is accepted only through closed stable windows whose cardinality stays below GitHub's 1000-result search ceiling"
+    - "time-partitioned workflow-run windows are non-overlapping and a saturated single timestamp second fails closed"
 location:
-  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py"
+  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py"
   suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
 environment:
   kind: GITHUB_ACTIONS
@@ -21,7 +23,7 @@ environment:
     - "GitHub REST Actions and Pull Requests APIs"
     - "GitHub GraphQL reviewThreads API"
   mocked_dependencies:
-    - "adversarial unit fixtures for malformed responses, shared SHA, prior PR incarnation and merge-acceptable conclusions"
+    - "adversarial unit fixtures for malformed responses, shared SHA, prior PR incarnation, merge-acceptable conclusions and capped/unstable filtered workflow-run searches"
 cases:
   happy_path:
     - "current PR incarnation has a canonical exact-head gate run and resolved or unresolved review state is classified correctly"
@@ -30,16 +32,21 @@ cases:
     - "an earlier closed PR reused the same repository/ref/SHA before the current PR was opened"
     - "reviewThreads spans multiple GraphQL pages"
     - "effective canonical run concludes success, neutral or skipped"
+    - "a filtered workflow-run interval reaches GitHub's 1000-result ceiling and is recursively partitioned into non-overlapping second ranges"
   failure_modes:
     - "canonical workflow identity or required run metadata is malformed"
     - "no current-incarnation gate run exists while an effective stale merge-acceptable check exists"
     - "REST or GraphQL pagination exceeds the bounded limit"
+    - "two reads of one closed filtered workflow-run window disagree"
+    - "a one-second filtered workflow-run window still reaches GitHub's server-side search ceiling"
   adversarial_cases:
     - "workflow_run.pull_requests contains zero, one or multiple associations and is not trusted as triggering-PR identity"
     - "an old run is rerun after the current PR opens and has a newer updated_at"
     - "neutral or skipped required check remains merge-acceptable while review threads become unresolved"
     - "GraphQL errors is present with a falsey malformed value"
     - "GraphQL pagination repeats a cursor"
+    - "filtered workflow-run snapshots contain duplicate or malformed run IDs"
+    - "partition boundaries cannot duplicate the midpoint second or silently omit the next second"
 acceptance_cold_read:
   qualifies: false
   source:
