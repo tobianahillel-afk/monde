@@ -6,7 +6,10 @@ on:
       - .github/workflows/monde-stale-green-bootstrap.yml
       - .github/scripts/stale_green_bootstrap.py
       - .github/scripts/test_stale_green_bootstrap.py
+      - .github/scripts/test_stale_green_bootstrap_incarnation.py
       - requirements/bootstrap-governance-ci.txt
+      - registry/requirements/REQ-0026.yaml
+      - registry/tests/TEST-0009.yaml
       - registry/work-items/WORK-0002.yaml
       - PROJECT_STATE.md
   schedule:
@@ -33,7 +36,9 @@ jobs:
       - name: Run bootstrap tests with 100 percent line and branch coverage
         run: |
           python3 -m coverage erase
-          python3 -m coverage run --branch .github/scripts/test_stale_green_bootstrap.py
+          python3 -m coverage run --branch -m unittest discover \
+            -s .github/scripts \
+            -p 'test_stale_green_bootstrap*.py'
           python3 -m coverage report \
             --include='.github/scripts/stale_green_bootstrap.py' \
             --fail-under=100 \
