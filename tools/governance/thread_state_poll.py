@@ -11,6 +11,7 @@ from tools.governance import github_live_gate as live
 
 WORKFLOW_FILE = "governance.yml"
 MAX_PAGES = 20
+PR_FAMILY_EVENTS = {"pull_request", "pull_request_review", "pull_request_review_comment"}
 
 
 def _paged(url: str, token: str, collection_key: str | None = None) -> list[dict[str, Any]]:
@@ -38,12 +39,14 @@ def open_pull_requests(repo: str, token: str) -> list[dict[str, Any]]:
 
 def latest_completed_pr_runs(repo: str, token: str) -> dict[str, dict[str, Any]]:
     runs = _paged(
-        f"https://api.github.com/repos/{repo}/actions/workflows/{WORKFLOW_FILE}/runs?event=pull_request&status=completed",
+        f"https://api.github.com/repos/{repo}/actions/workflows/{WORKFLOW_FILE}/runs?status=completed",
         token,
         "workflow_runs",
     )
     latest: dict[str, dict[str, Any]] = {}
     for run in runs:
+        if str(run.get("event") or "") not in PR_FAMILY_EVENTS:
+            continue
         head = str(run.get("head_sha") or "")
         if not head:
             continue
