@@ -1,0 +1,67 @@
+id: REVIEW-0035
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "complete fail-closed validation of canonical PR-family run records before selection"
+    - "current PR incarnation binding across branch resets and overlapping PR lifetimes"
+    - "fail-closed GitHub REST/GraphQL metadata and bounded pagination"
+    - "bootstrap regression trigger and TEST-0009 traceability completeness"
+  risks:
+    - "A malformed canonical run or PR record may suppress unresolved-thread inspection."
+    - "A rerun may execute an earlier or overlapping PR context and preserve false merge eligibility."
+    - "A regression module may drift without exact-head validation or canonical TEST traceability."
+findings: []
+checks:
+  assumptions_challenged:
+    - "Every field returned by a filtered GitHub endpoint is trustworthy without explicit validation."
+    - "Individually valid timestamps imply a valid lifecycle."
+    - "Test discovery, workflow path triggers and TEST registry paths stay synchronized automatically."
+  omitted_categories_considered:
+    - "complete record validation and cross-field invariants"
+    - "default-branch trust boundary"
+    - "shared-SHA, reused-branch, force-push/reset and overlapping PR lifetimes"
+    - "REST and GraphQL schema failure"
+    - "bounded pagination and cursor cycles"
+    - "least-privilege Actions permissions"
+    - "requirement/test/work/review traceability"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0034 remain terminal negative evidence and are never reopened or rewritten."
+    - "Bootstrap remains a temporary predecessor for PR #2's canonical poller rather than a second permanent governance mechanism."
+  failure_modes_considered:
+    - "non-completed or temporally impossible canonical run alters effective shared-SHA state"
+    - "malformed repository identity participates in global effective state"
+    - "non-open PR result becomes current-incarnation authority"
+    - "malformed terminal GraphQL cursor metadata is accepted as resolved state"
+    - "regression-only change bypasses workflow validation or canonical TEST routing"
+    - "historical PR branch reset or overlapping lifetime causes wrong-context rerun"
+  evidence_requested:
+    - "Exact-head 100 percent line and branch suite covering the full REVIEW-0034 finding set"
+    - "Read-only live GitHub contract probe against WORK-0002 PR #2"
+    - "Synchronized 28/28 PR #5 finding handover and REVIEW-0034 terminal state"
+    - "Fresh-context independent exact-head Codex review after correction"
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-15"

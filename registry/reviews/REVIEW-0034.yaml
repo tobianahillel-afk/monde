@@ -1,12 +1,12 @@
 id: REVIEW-0034
-status: IN_PROGRESS
+status: COMPLETE
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "45ab08c0ef4f6c4ee0ff84b8e29c74f2ab617c83"
 reviewer:
-  actor: null
-  context_id: null
+  actor: "chatgpt-codex-connector"
+  context_id: "fresh-context-pr5-45ab08c0"
   independence_level: L2
 roles:
   - ARCHITECTURE_REUSE
@@ -23,46 +23,101 @@ scope:
   capabilities: []
   contracts:
     - "trusted default-branch stale-green review-state invalidation"
-    - "global fail-closed validation of canonical PR-family run metadata before identity filtering"
+    - "complete fail-closed validation of canonical PR-family run records before selection"
     - "current PR incarnation binding across branch resets and overlapping PR lifetimes"
     - "fail-closed GitHub REST/GraphQL metadata and bounded pagination"
-    - "WORK / PROJECT_STATE / REVIEW lifecycle synchronization"
+    - "bootstrap regression trigger and TEST-0009 traceability completeness"
   risks:
-    - "A stale successful gate may remain green after review state becomes unresolved."
-    - "Malformed metadata on another same-SHA branch may alter effective gate state while escaping filtered validation."
+    - "A malformed canonical run record may suppress unresolved-thread inspection."
     - "A rerun may execute an earlier or overlapping PR context and preserve false merge eligibility."
-    - "Durable resume sources may disagree on the active review lifecycle."
-findings: []
+    - "A regression module may drift without exact-head validation or canonical TEST traceability."
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: CONTROL_PLANE_BINDING
+    description: "Canonical PR-family runs were not required to report status=completed even though the endpoint query requested completed runs."
+    evidence: [PRRT_kwDOUUI5ts6iofZr, ".github/scripts/stale_green_bootstrap.py", PRR_kwDOUUI5ts8AAAABNsMHTw]
+    disposition: OPEN
+    resolved_by: null
+    acceptance: {accepted_by: null, authority_role: null, authority_evidence_type: null, authority_evidence_ref: null, authority_matrix_version: null, authority_rule_id: null, rationale: null, accepted_at: null, review_condition: null}
+  - id: F-2
+    severity: R2_MAJOR
+    category: TEMPORAL_VALIDATION
+    description: "Canonical run updated_at could predate created_at and distort effective-run ordering."
+    evidence: [PRRT_kwDOUUI5ts6iofZu, ".github/scripts/stale_green_bootstrap.py", PRR_kwDOUUI5ts8AAAABNsMHTw]
+    disposition: OPEN
+    resolved_by: null
+    acceptance: {accepted_by: null, authority_role: null, authority_evidence_type: null, authority_evidence_ref: null, authority_matrix_version: null, authority_rule_id: null, rationale: null, accepted_at: null, review_condition: null}
+  - id: F-3
+    severity: R2_MAJOR
+    category: CONTROL_PLANE_BINDING
+    description: "Canonical run head_repository.full_name accepted malformed non owner/repo identities before shared-SHA selection."
+    evidence: [PRRT_kwDOUUI5ts6iofZ1, ".github/scripts/stale_green_bootstrap.py", PRR_kwDOUUI5ts8AAAABNsMHTw]
+    disposition: OPEN
+    resolved_by: null
+    acceptance: {accepted_by: null, authority_role: null, authority_evidence_type: null, authority_evidence_ref: null, authority_matrix_version: null, authority_rule_id: null, rationale: null, accepted_at: null, review_condition: null}
+  - id: F-4
+    severity: R2_MAJOR
+    category: CONTROL_PLANE_BINDING
+    description: "Open-PR collection members were not required to report state=open before becoming current-incarnation authority."
+    evidence: [PRRT_kwDOUUI5ts6iofZ_, ".github/scripts/stale_green_bootstrap.py", PRR_kwDOUUI5ts8AAAABNsMHTw]
+    disposition: OPEN
+    resolved_by: null
+    acceptance: {accepted_by: null, authority_role: null, authority_evidence_type: null, authority_evidence_ref: null, authority_matrix_version: null, authority_rule_id: null, rationale: null, accepted_at: null, review_condition: null}
+  - id: F-5
+    severity: R2_MAJOR
+    category: API_CONTRACT
+    description: "Terminal reviewThreads pages did not validate presence/type of endCursor before accepting resolved state."
+    evidence: [PRRT_kwDOUUI5ts6iofaG, ".github/scripts/stale_green_bootstrap.py", PRR_kwDOUUI5ts8AAAABNsMHTw]
+    disposition: OPEN
+    resolved_by: null
+    acceptance: {accepted_by: null, authority_role: null, authority_evidence_type: null, authority_evidence_ref: null, authority_matrix_version: null, authority_rule_id: null, rationale: null, accepted_at: null, review_condition: null}
+  - id: F-6
+    severity: R3_MODERATE
+    category: VERIFICATION_VALIDATION
+    description: "The PR path trigger omitted the created-at regression module even though test discovery executed it."
+    evidence: [PRRT_kwDOUUI5ts6iofaK, ".github/workflows/monde-stale-green-bootstrap.yml", PRR_kwDOUUI5ts8AAAABNsMHTw]
+    disposition: OPEN
+    resolved_by: null
+    acceptance: {accepted_by: null, authority_role: null, authority_evidence_type: null, authority_evidence_ref: null, authority_matrix_version: null, authority_rule_id: null, rationale: null, accepted_at: null, review_condition: null}
+  - id: F-7
+    severity: R3_MODERATE
+    category: DOCUMENTATION_TRACEABILITY
+    description: "TEST-0009 omitted the created-at regression module from its canonical test_path."
+    evidence: [PRRT_kwDOUUI5ts6iofaP, "registry/tests/TEST-0009.yaml", PRR_kwDOUUI5ts8AAAABNsMHTw]
+    disposition: OPEN
+    resolved_by: null
+    acceptance: {accepted_by: null, authority_role: null, authority_evidence_type: null, authority_evidence_ref: null, authority_matrix_version: null, authority_rule_id: null, rationale: null, accepted_at: null, review_condition: null}
 checks:
   assumptions_challenged:
-    - "Run metadata may be validated only after current-PR identity matching."
-    - "Effective shared-SHA state may consume partially validated records."
-    - "A closed PR's final head.sha is sufficient history for run attribution."
-    - "workflow_run.pull_requests association cardinality is authoritative triggering-PR identity."
+    - "A server-side status=completed query makes the returned status field unnecessary to validate."
+    - "Individually valid timestamps imply a valid run lifetime."
+    - "Any nonempty repository full_name is a structurally valid GitHub repository identity."
+    - "A filtered open-PR endpoint makes each item state authoritative without validation."
+    - "Terminal GraphQL pageInfo cursor metadata may be ignored."
+    - "Test discovery and path triggers/TEST records cannot drift from one another."
   omitted_categories_considered:
-    - "global validation order before filtering"
+    - "complete record validation and cross-field invariants"
     - "default-branch trust boundary"
     - "shared-SHA, reused-branch, force-push/reset and overlapping PR lifetimes"
     - "REST and GraphQL schema failure"
-    - "bounded pagination and cursor cycles"
-    - "least-privilege Actions permissions"
-    - "requirement/test/work/review traceability"
+    - "verification trigger completeness and test traceability"
   duplicate_or_reuse_search:
-    - "REVIEW-0031, REVIEW-0032 and REVIEW-0033 remain terminal CHANGES_REQUIRED evidence and are never reopened or rewritten."
-    - "Bootstrap remains a temporary predecessor for PR #2's canonical poller rather than a second permanent governance mechanism."
+    - "REVIEW-0031/0032/0033 remain terminal negative evidence and are not rewritten."
+    - "The bootstrap remains a temporary predecessor for PR #2 rather than a competing permanent gate."
   failure_modes_considered:
-    - "other-branch same-SHA run has malformed created_at and terminal failure or success"
-    - "filtered current-target pass skips malformed nonmatching identity while unfiltered effective pass consumes it"
-    - "historical PR uses SHA S, branch moves to S2 before close, then current PR later uses S again"
-    - "cross-PR shared-SHA state re-greens or suppresses unresolved-thread invalidation"
-    - "malformed REST/GraphQL metadata and pagination"
+    - "non-completed run returned by a completed-runs query"
+    - "updated_at predates created_at and misorders effective state"
+    - "malformed repository identity participates in shared-SHA state"
+    - "non-open collection member becomes current-incarnation authority"
+    - "malformed terminal endCursor is accepted as resolved state"
+    - "regression-only changes bypass exact-head validation or canonical test routing"
   evidence_requested:
-    - "Exact-head 100 percent line and branch suite including nonmatching-run created_at regression"
+    - "Exact-head 100 percent line and branch suite covering all seven findings"
     - "Read-only live GitHub contract probe against WORK-0002 PR #2"
-    - "Synchronized 21/21 PR #5 finding handover and REVIEW-0033 terminal state"
-    - "Fresh-context independent exact-head Codex review after correction"
+    - "Fresh-context independent exact-head successor review"
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-15T17:45:04Z"
 history:
   created_at: "2026-09-15"
   updated_at: "2026-09-15"
