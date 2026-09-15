@@ -1,0 +1,45 @@
+id: REQ-0026
+title: "Trusted stale-green review-state invalidation"
+status: PROPOSED
+type: GOVERNANCE
+normative_statement: "MONDE SHALL maintain trusted default-branch automation that invalidates a stale successful canonical merge-gate state when the current open pull-request incarnation has unresolved review threads, while binding reruns to the canonical workflow and current PR incarnation and failing closed on malformed or ambiguous GitHub control-plane state."
+rationale: "Review-thread state can change without a native GitHub Actions thread-resolution trigger. A stale successful commit-scoped gate must not remain usable when the current PR has become unresolved, and a bootstrap predecessor must not rerun an earlier or unrelated PR context."
+content_identity:
+  scheme: REQUIREMENT_NORMATIVE_V1
+  digest: null
+origin:
+  source: "WORK-0002/T12; PRRT_kwDOUUI5ts6ijUTn; PRRT_kwDOUUI5ts6imgoz"
+  decision_date: "2026-09-15"
+  introduced_by_work: WORK-0002
+  introduced_by_adr: null
+scope:
+  capabilities: []
+  engines: []
+  experiences: []
+  schemas: []
+  data_sources: []
+  models: []
+depends_on: [REQ-0010, REQ-0025]
+conflicts_with: []
+related_requirements: [REQ-0024]
+semantics:
+  temporal: true
+  spatial: false
+  provenance: true
+  confidence_uncertainty: false
+  permissions: true
+verification:
+  method: TEST_AND_REVIEW
+  acceptance_evidence: []
+  test_ids: [TEST-0009]
+  acceptance_cold_read_test_ids: []
+  real_system_validation:
+    - "MONDE Stale-Green Bootstrap read-only GitHub contract probe against WORK-0002 PR #2"
+risk:
+  criticality: HIGH
+  failure_impact: "A stale successful gate can remain green after review state becomes unresolved, or the bridge can rerun the wrong historical PR context and falsely preserve merge eligibility."
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-15"
+  supersedes: []
+  superseded_by: null
