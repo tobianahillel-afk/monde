@@ -30,7 +30,7 @@ semantics:
   permissions: true
 verification:
   method: TEST_AND_REVIEW
-  acceptance_evidence: []
+  acceptance_evidence: [REVIEW-0031]
   test_ids: [TEST-0009]
   acceptance_cold_read_test_ids: []
   real_system_validation:
