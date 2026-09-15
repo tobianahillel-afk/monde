@@ -48,8 +48,15 @@ def request_data(url: str, token: str, method: str = "GET", body: dict[str, Any]
         return json.loads(raw.decode()) if raw else {}
 
 
-def paged(url: str, token: str, collection_key: str | None = None) -> list[dict[str, Any]]:
+def paged(
+    url: str,
+    token: str,
+    collection_key: str | None = None,
+    *,
+    require_total_count: bool = False,
+) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
+    expected_total: int | None = None
     for page in range(1, MAX_PAGES + 1):
         sep = "&" if "?" in url else "?"
         payload = request_data(f"{url}{sep}per_page=100&page={page}", token)
@@ -57,12 +64,28 @@ def paged(url: str, token: str, collection_key: str | None = None) -> list[dict[
             items = payload
         elif isinstance(payload, dict):
             items = payload.get(collection_key)
+            if require_total_count:
+                total_count = payload.get("total_count")
+                if type(total_count) is not int or total_count < 0:
+                    raise RuntimeError("GitHub returned malformed paginated total_count")
+                if expected_total is None:
+                    expected_total = total_count
+                elif total_count != expected_total:
+                    raise RuntimeError("GitHub returned inconsistent paginated total_count")
         else:
             items = None
         if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
             raise RuntimeError("GitHub returned malformed paginated JSON")
         out.extend(items)
+        if require_total_count:
+            assert expected_total is not None
+            if len(out) > expected_total:
+                raise RuntimeError("GitHub paginated collection exceeds total_count")
+            if len(out) == expected_total:
+                return out
         if len(items) < 100:
+            if require_total_count:
+                raise RuntimeError("GitHub returned incomplete paginated collection")
             return out
     raise RuntimeError(f"GitHub pagination exceeded {MAX_PAGES} pages")
 
@@ -195,17 +218,58 @@ def _run_is_ambiguous(run_created: datetime, windows: list[PrWindow]) -> bool:
     return any(start <= run_created <= end for start, end in windows)
 
 
+def _active_head_created_bounds(current_prs: dict[HeadIdentity, dict[str, Any]]) -> dict[str, datetime]:
+    bounds: dict[str, datetime] = {}
+    for identity, pr in current_prs.items():
+        created = _pr_created_at(pr)
+        head = identity[2]
+        previous = bounds.get(head)
+        if previous is None or created < previous:
+            bounds[head] = created
+    return bounds
+
+
+def _scoped_completed_gate_runs(
+    repo: str,
+    token: str,
+    active_prs: dict[HeadIdentity, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    runs: list[dict[str, Any]] = []
+    for head, created in sorted(_active_head_created_bounds(active_prs).items()):
+        created_value = created.isoformat().replace("+00:00", "Z")
+        query = urllib.parse.urlencode(
+            {
+                "status": "completed",
+                "head_sha": head,
+                "created": f">={created_value}",
+            }
+        )
+        runs.extend(
+            paged(
+                f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?{query}",
+                token,
+                "workflow_runs",
+                require_total_count=True,
+            )
+        )
+    return runs
+
+
 def latest_completed_gate_runs(
     repo: str,
     token: str,
     current_prs: dict[HeadIdentity, dict[str, Any]] | None = None,
     overlap_windows: dict[HeadIdentity, list[PrWindow]] | None = None,
+    active_prs: dict[HeadIdentity, dict[str, Any]] | None = None,
 ) -> dict[HeadIdentity, dict[str, Any]]:
-    runs = paged(
-        f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?status=completed",
-        token,
-        "workflow_runs",
-    )
+    if active_prs is None:
+        runs = paged(
+            f"https://api.github.com/repos/{repo}/actions/workflows/{CANONICAL_WORKFLOW_ID}/runs?status=completed",
+            token,
+            "workflow_runs",
+        )
+    else:
+        runs = _scoped_completed_gate_runs(repo, token, active_prs)
     latest: dict[HeadIdentity, dict[str, Any]] = {}
     for run in runs:
         workflow_id = run.get("workflow_id")
@@ -268,14 +332,17 @@ def required_merge_gate_conclusion(repo: str, run: dict[str, Any], token: str) -
         f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?filter=latest",
         token,
         "jobs",
+        require_total_count=True,
     )
     required_jobs: list[dict[str, Any]] = []
     for job in jobs:
         conclusion = job.get("conclusion")
+        job_run_id = job.get("run_id")
         job_run_attempt = job.get("run_attempt")
         if (
             not _positive_int(job.get("id"))
-            or job.get("run_id") != run_id
+            or not _positive_int(job_run_id)
+            or job_run_id != run_id
             or not _positive_int(job_run_attempt)
             or job_run_attempt != run_attempt
             or not _nonempty_string(job.get("name"))
@@ -357,8 +424,14 @@ def poll(repo: str, token: str) -> list[int]:
     prs = open_pull_requests(repo, token)
     current_prs = _current_prs(prs)
     overlap_windows = overlapping_closed_pr_windows(repo, token, current_prs)
-    runs = latest_completed_gate_runs(repo, token)
-    current_runs = latest_completed_gate_runs(repo, token, current_prs, overlap_windows)
+    runs = latest_completed_gate_runs(repo, token, active_prs=current_prs)
+    current_runs = latest_completed_gate_runs(
+        repo,
+        token,
+        current_prs,
+        overlap_windows,
+        active_prs=current_prs,
+    )
     effective = effective_gate_runs_by_head(runs)
     for pr in prs:
         number = pr["number"]
@@ -375,8 +448,7 @@ def poll(repo: str, token: str) -> list[int]:
             raise RuntimeError(
                 f"effective merge-acceptable MONDE Gate for head {head} has no unambiguous run bound to open PR #{number} current incarnation"
             )
-        if target_run.get("id") != effective_run.get("id"):
-            required_merge_gate_conclusion(repo, target_run, token)
+        required_merge_gate_conclusion(repo, target_run, token)
         if not unresolved_review_threads(repo, number, token):
             continue
         run_id = target_run["id"]
@@ -392,7 +464,13 @@ def validate_github_contract(repo: str, pr_number: int, token: str) -> tuple[int
         raise RuntimeError(f"expected exactly one open PR #{pr_number}, observed {len(current)}")
     current_prs = _current_prs(current)
     overlap_windows = overlapping_closed_pr_windows(repo, token, current_prs)
-    runs = latest_completed_gate_runs(repo, token, current_prs, overlap_windows)
+    runs = latest_completed_gate_runs(
+        repo,
+        token,
+        current_prs,
+        overlap_windows,
+        active_prs=current_prs,
+    )
     effective_gate_runs_by_head(runs)
     identity = _pr_head_identity(current[0])
     if identity not in runs:

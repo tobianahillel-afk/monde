@@ -76,6 +76,7 @@ class MergeAcceptableConclusionTests(unittest.TestCase):
         with mock.patch.object(bootstrap, "paged", return_value=rows) as paged:
             self.assertEqual(bootstrap.required_merge_gate_conclusion("o/r", run, "t"), "neutral")
         self.assertEqual(paged.call_args.args[2], "jobs")
+        self.assertTrue(paged.call_args.kwargs["require_total_count"])
         self.assertIn("actions/runs/4/jobs?filter=latest", paged.call_args.args[0])
 
     def test_required_merge_gate_conclusion_fails_closed_on_lookup_and_job_shape(self) -> None:
@@ -94,6 +95,7 @@ class MergeAcceptableConclusionTests(unittest.TestCase):
             [job("success"), job("neutral", job_id=41)],
             [job("success", job_id=True)],
             [job("success", run_id=99)],
+            [job("success", run_id=4.0)],
             [job("success", run_attempt=2)],
             [job("success", run_attempt=True)],
             [job("success", name="")],
@@ -106,6 +108,54 @@ class MergeAcceptableConclusionTests(unittest.TestCase):
             with self.subTest(rows=rows), mock.patch.object(bootstrap, "paged", return_value=rows):
                 with self.assertRaises(RuntimeError):
                     bootstrap.required_merge_gate_conclusion("o/r", effective_run("failure"), "t")
+
+    def test_paged_total_count_is_required_for_sensitive_actions_collections(self) -> None:
+        one = job("success")
+        with mock.patch.object(
+            bootstrap,
+            "request_data",
+            return_value={"total_count": 2, "jobs": [one]},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "incomplete paginated collection"):
+                bootstrap.paged("https://example.invalid/jobs", "t", "jobs", require_total_count=True)
+
+        for bad_count in (None, True, -1, "1"):
+            with self.subTest(total_count=bad_count), mock.patch.object(
+                bootstrap,
+                "request_data",
+                return_value={"total_count": bad_count, "jobs": [one]},
+            ):
+                with self.assertRaisesRegex(RuntimeError, "malformed paginated total_count"):
+                    bootstrap.paged("https://example.invalid/jobs", "t", "jobs", require_total_count=True)
+
+        first = {"total_count": 101, "jobs": [{"id": i} for i in range(100)]}
+        second = {"total_count": 102, "jobs": [{"id": 100}]}
+        with mock.patch.object(bootstrap, "request_data", side_effect=[first, second]):
+            with self.assertRaisesRegex(RuntimeError, "inconsistent paginated total_count"):
+                bootstrap.paged("https://example.invalid/jobs", "t", "jobs", require_total_count=True)
+
+    def test_active_run_scope_queries_only_current_heads_and_incarnation_window(self) -> None:
+        first = current_pr()
+        same_sha_later = current_pr()
+        same_sha_later["number"] = 5
+        same_sha_later["created_at"] = "2026-09-15T17:00:00Z"
+        same_sha_later["head"] = {
+            "sha": "h",
+            "ref": "other",
+            "repo": {"full_name": "o/r"},
+        }
+        current = bootstrap._current_prs([first, same_sha_later])
+        with mock.patch.object(bootstrap, "paged", return_value=[]) as paged:
+            self.assertEqual(
+                bootstrap.latest_completed_gate_runs("o/r", "t", active_prs=current),
+                {},
+            )
+        paged.assert_called_once()
+        url = paged.call_args.args[0]
+        self.assertIn(f"actions/workflows/{bootstrap.CANONICAL_WORKFLOW_ID}/runs?", url)
+        self.assertIn("head_sha=h", url)
+        self.assertIn("created=%3E%3D2026-09-15T16%3A00%3A00Z", url)
+        self.assertTrue(paged.call_args.kwargs["require_total_count"])
 
     def test_all_required_check_merge_acceptable_conclusions_revalidate_even_if_workflow_failed(self) -> None:
         self.assertEqual(bootstrap.MERGE_ACCEPTABLE_CONCLUSIONS, {"success", "neutral", "skipped"})
@@ -128,7 +178,10 @@ class MergeAcceptableConclusionTests(unittest.TestCase):
                 bootstrap, "rerun_workflow"
             ) as rerun:
                 self.assertEqual(bootstrap.poll("o/r", "t"), [4])
-            required.assert_called_once_with("o/r", runs[identity], "t")
+            self.assertEqual(
+                required.call_args_list,
+                [mock.call("o/r", runs[identity], "t"), mock.call("o/r", runs[identity], "t")],
+            )
             threads.assert_called_once_with("o/r", 4, "t")
             rerun.assert_called_once_with("o/r", 4, "t")
 
@@ -158,6 +211,32 @@ class MergeAcceptableConclusionTests(unittest.TestCase):
 
         self.assertEqual(required.call_args_list, [mock.call("o/r", effective, "t"), mock.call("o/r", target, "t")])
         rerun.assert_called_once_with("o/r", 4, "t")
+
+    def test_same_run_id_still_validates_target_record_and_job(self) -> None:
+        pr = current_pr()
+        identity = ("o/r", "feature", "h")
+        effective = effective_run("failure", run_id=4, run_attempt=1)
+        target = effective_run("failure", run_id=4, run_attempt=2)
+        with mock.patch.object(
+            bootstrap, "open_pull_requests", return_value=[pr]
+        ), mock.patch.object(
+            bootstrap, "overlapping_closed_pr_windows", return_value={}
+        ), mock.patch.object(
+            bootstrap, "latest_completed_gate_runs", side_effect=[{identity: effective}, {identity: target}]
+        ), mock.patch.object(
+            bootstrap,
+            "required_merge_gate_conclusion",
+            side_effect=["success", RuntimeError("stale target attempt")],
+        ) as required, mock.patch.object(
+            bootstrap, "unresolved_review_threads"
+        ) as threads, mock.patch.object(
+            bootstrap, "rerun_workflow"
+        ) as rerun:
+            with self.assertRaisesRegex(RuntimeError, "stale target attempt"):
+                bootstrap.poll("o/r", "t")
+        self.assertEqual(required.call_count, 2)
+        threads.assert_not_called()
+        rerun.assert_not_called()
 
     def test_shared_sha_fails_closed_if_distinct_target_required_job_is_invalid(self) -> None:
         pr = current_pr()
