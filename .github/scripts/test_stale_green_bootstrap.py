@@ -20,9 +20,15 @@ def pull_request(
     *,
     branch: str | None = None,
     repo_name: str = "o/r",
+    created_at: str = "2026-09-15T14:00:00Z",
+    state: str = "open",
+    closed_at: str | None = None,
 ):
     return {
         "number": number,
+        "state": state,
+        "created_at": created_at,
+        "closed_at": closed_at,
         "head": {
             "sha": head,
             "ref": branch or f"branch-{number}",
@@ -42,6 +48,7 @@ def gate_run(
     path: str | None = None,
     branch: str = "branch-2",
     repo_name: str = "o/r",
+    created_at: str | None = None,
     updated_at: str | None = None,
     pull_requests=None,
 ):
@@ -55,6 +62,7 @@ def gate_run(
         "run_number": run_number,
         "id": run_id,
         "conclusion": conclusion,
+        "created_at": created_at or f"2026-09-15T14:30:{run_id % 60:02d}Z",
         "updated_at": updated_at or f"2026-09-15T15:00:{run_id % 60:02d}Z",
         "pull_requests": [] if pull_requests is None else pull_requests,
     }
@@ -150,7 +158,7 @@ class BootstrapPollTests(unittest.TestCase):
         ]
         for bad in malformed:
             with self.subTest(bad=bad), mock.patch.object(bootstrap, "paged", return_value=[bad]):
-                with self.assertRaisesRegex(RuntimeError, "malformed open pull request"):
+                with self.assertRaisesRegex(RuntimeError, "malformed .*pull request|malformed pull request"):
                     bootstrap.open_pull_requests("o/r", "t")
 
         same_identity = [pull_request(2, "same", branch="same"), pull_request(5, "same", branch="same")]
@@ -447,6 +455,8 @@ class BootstrapPollTests(unittest.TestCase):
             ),
         }
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=prs), mock.patch.object(
+            bootstrap, "overlapping_closed_pr_windows", return_value={}
+        ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=runs
         ), mock.patch.object(
             bootstrap, "unresolved_review_threads", side_effect=lambda _repo, n, _token: n == 4
@@ -467,6 +477,8 @@ class BootstrapPollTests(unittest.TestCase):
             )
         }
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=prs), mock.patch.object(
+            bootstrap, "overlapping_closed_pr_windows", return_value={}
+        ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=runs
         ), mock.patch.object(bootstrap, "unresolved_review_threads") as threads, mock.patch.object(
             bootstrap, "rerun_workflow"
@@ -483,6 +495,8 @@ class BootstrapPollTests(unittest.TestCase):
             )
         }
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=[clean_pr]), mock.patch.object(
+            bootstrap, "overlapping_closed_pr_windows", return_value={}
+        ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=clean_runs
         ), mock.patch.object(bootstrap, "unresolved_review_threads", return_value=False), mock.patch.object(
             bootstrap, "rerun_workflow"
@@ -497,9 +511,11 @@ class BootstrapPollTests(unittest.TestCase):
             )
         }
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=[target]), mock.patch.object(
+            bootstrap, "overlapping_closed_pr_windows", return_value={}
+        ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=only_other
         ):
-            with self.assertRaisesRegex(RuntimeError, "no run bound to open PR #4 head identity"):
+            with self.assertRaisesRegex(RuntimeError, "no unambiguous run bound to open PR #4"):
                 bootstrap.poll("o/r", "t")
 
     def test_validate_github_contract(self) -> None:
@@ -514,6 +530,8 @@ class BootstrapPollTests(unittest.TestCase):
             ),
         }
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=[target, other]), mock.patch.object(
+            bootstrap, "overlapping_closed_pr_windows", return_value={}
+        ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=runs
         ), mock.patch.object(bootstrap, "unresolved_review_threads", return_value=True):
             self.assertEqual(bootstrap.validate_github_contract("o/r", 5, "t"), (2, 2, True))
@@ -523,9 +541,11 @@ class BootstrapPollTests(unittest.TestCase):
                 bootstrap.validate_github_contract("o/r", 5, "t")
 
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=[target]), mock.patch.object(
+            bootstrap, "overlapping_closed_pr_windows", return_value={}
+        ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value={}
         ):
-            with self.assertRaisesRegex(RuntimeError, "no canonical MONDE Gate run"):
+            with self.assertRaisesRegex(RuntimeError, "no unambiguous canonical MONDE Gate run"):
                 bootstrap.validate_github_contract("o/r", 5, "t")
 
     def test_main_missing_env_poll_success_and_error(self) -> None:
