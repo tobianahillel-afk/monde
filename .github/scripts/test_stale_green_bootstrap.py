@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
+import runpy
 import unittest
 from unittest import mock
 
@@ -55,7 +56,6 @@ class BootstrapPollTests(unittest.TestCase):
 
     def test_paged_list_collection_multiple_pages_and_query_separator(self) -> None:
         first = [{"id": i} for i in range(100)]
-        calls = []
         with mock.patch.object(bootstrap, "request_data", side_effect=[first, [{"id": 100}]]) as req:
             self.assertEqual(len(bootstrap.paged("https://example.invalid/items", "t")), 101)
             calls = [call.args[0] for call in req.call_args_list]
@@ -92,6 +92,7 @@ class BootstrapPollTests(unittest.TestCase):
         rows = [
             gate_run(event="pull_request", head="h", run_number=1, run_id=10),
             gate_run(event="pull_request_review", head="h", run_number=2, run_id=20),
+            gate_run(event="pull_request", head="h", run_number=1, run_id=11),
             gate_run(event="pull_request_review_comment", head="c", run_number=3, run_id=30),
             gate_run(event="push", head="ignored", run_number=99, run_id=99),
         ]
@@ -212,6 +213,12 @@ class BootstrapPollTests(unittest.TestCase):
         for value in ("0", "not-int"):
             with self.subTest(value=value), mock.patch.dict(bootstrap.os.environ, {**env, "BOOTSTRAP_VALIDATE_PR": value}, clear=True):
                 self.assertEqual(bootstrap.main(), 2)
+
+    def test_script_entrypoint_exits_through_main(self) -> None:
+        with mock.patch.dict("os.environ", {}, clear=True):
+            with self.assertRaises(SystemExit) as ctx:
+                runpy.run_path(str(SCRIPT), run_name="__main__")
+        self.assertEqual(ctx.exception.code, 2)
 
 
 if __name__ == "__main__":
