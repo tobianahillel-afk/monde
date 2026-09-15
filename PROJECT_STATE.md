@@ -50,7 +50,7 @@ Additional hardening remains in force:
 - REVIEW-0040 reached `IN_PROGRESS` on exact `3f31658ca2f892e1dd24c7faa4462e3d7e958aaf`, which passed Bootstrap #82 / `35028081680` at 100% line+branch with live probe.
 - Before an independent REVIEW-0040 result returned, author-side adversarial review `PRR_kwDOUUI5ts8AAAABNuingg` found a new P1: rerun-target history was snapshotted before the exact check/thread classification, so a run completing between those observations could publish a stale-green check absent from the earlier target snapshot.
 - REVIEW-0040 is therefore **`CLOSED` administrative negative evidence**, not independent approval evidence.
-- REVIEW-0041 is **`OPEN`** and becomes the next true L2 review target after its lifecycle checkpoints are independently proven exact-head.
+- REVIEW-0041 is **`IN_PROGRESS`** in the same Git-tree checkpoint as matching WORK-0002 and PROJECT_STATE; its exact descendant must pass before fresh independent review invocation.
 
 All **42 historical inline material PR #5 threads remain unresolved**. The REVIEW-0040 race finding is one additional material author-side finding recorded as review `PRR_kwDOUUI5ts8AAAABNuingg`; it is not an inline PRRT and must not be miscounted as a 43rd inline thread.
 
@@ -79,12 +79,13 @@ Explicit regressions were added in `.github/scripts/test_stale_green_bootstrap_p
 - REVIEW-0040 IN_PROGRESS proof descendant `3f31658ca2f892e1dd24c7faa4462e3d7e958aaf` — #82 / `35028081680`: same 63/450/200/100 proof + live probe SUCCESS.
 - Race corrective runtime `e221fece4bcbd438195c06a5431f7759440e6f90` — #85 / `35028424764`: 63 tests, 457/457 statements, 204/204 branches, 100% line+branch, live probe SUCCESS.
 - Regression-complete correction `e594e88c1c635d3fd8a5180e37930719dc4c0103` — #87 / `35028626562`: **65/65 tests, 457/457 statements, 204/204 branches, 100% line+branch**, live PR #2 probe SUCCESS.
+- REVIEW-0041 OPEN proof descendant `558dfdc7f6d34e2c38d0bda2245548add671d46c` — Bootstrap #89 / `35029137723`: **65/65 tests, 457/457 statements, 204/204 branches, 100% line+branch**, live PR #2 probe SUCCESS.
 
-The synchronized REVIEW-0040-CLOSED / REVIEW-0041-OPEN / WORK / PROJECT_STATE checkpoint created after #87 must receive its own exact-head proof before REVIEW-0041 may move `IN_PROGRESS`.
+REVIEW-0041 is now `IN_PROGRESS`; the synchronized REVIEW-0041 / WORK-0002 / PROJECT_STATE descendant must receive its own exact-head proof before fresh independent Codex invocation.
 
 ## Stable bootstrap traceability
 
-`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031..REVIEW-0039 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0040 (CLOSED) + REVIEW-0041 (OPEN)`
+`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031..REVIEW-0039 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0040 (CLOSED) + REVIEW-0041 (IN_PROGRESS)`
 
 REQ-0026 remains `PROPOSED` and TEST-0009 remains `PLANNED`; prior execution evidence is not retroactively promoted into acceptance/PASS evidence.
 
@@ -119,16 +120,14 @@ MONDE intentionally remains public. Never commit credentials, tokens, secrets, p
 
 ## Current next action
 
-1. Prove the synchronized REVIEW-0040 `CLOSED` + REVIEW-0041 `OPEN` + WORK-0002 + PROJECT_STATE checkpoint exact-head.
-2. Keep all 42 historical inline PR #5 material threads unresolved.
-3. If the OPEN checkpoint is green, atomically transition REVIEW-0041 / WORK-0002 / PROJECT_STATE to `IN_PROGRESS`.
-4. Prove that exact IN_PROGRESS descendant.
-5. Freeze the exact head and invoke a fresh-context independent Codex REVIEW-0041.
-6. REVIEW-0041 must re-check all 42 historical inline findings plus the REVIEW-0040 ordering race, and actively red-team remaining TOCTOU between Checks, GraphQL threads and later target discovery, shared-head PRs, exact check ambiguity, target-current-incarnation attribution, filtered snapshots, closed-history bounds, strict typing, cache identity, permissions and API budget.
-7. Any new material finding requires correction/re-proof and another successor review. Do not mechanically resolve historical threads.
-8. Only a clean exact-head independent successor review permits controlled verification/resolution of historical threads and a guarded PR #5 merge decision.
-9. After PR #5 merge, integrate main into PR #2, port durable poller parity, prove T12, run fresh PR #2 L2, obtain eligible non-author exact-head APPROVED review, then consider WORK-0002 closure.
-10. WORK-0003 and WORK-0004 remain blocked.
+1. Keep all 42 historical inline PR #5 material threads unresolved.
+2. Prove the exact synchronized REVIEW-0041 `IN_PROGRESS` + WORK-0002 + PROJECT_STATE descendant.
+3. If green, freeze that exact head and invoke a fresh-context independent Codex REVIEW-0041.
+4. REVIEW-0041 must re-check all 42 historical inline findings plus the REVIEW-0040 ordering race, and actively red-team remaining TOCTOU between Checks, GraphQL threads and later target discovery, shared-head PRs, exact check ambiguity, target-current-incarnation attribution, filtered snapshots, closed-history bounds, strict typing, cache identity, permissions and API budget.
+5. Any new material finding requires correction/re-proof and another successor review. Do not mechanically resolve historical threads.
+6. Only a clean exact-head independent successor review permits controlled verification/resolution of historical threads and a guarded PR #5 merge decision.
+7. After PR #5 merge, integrate main into PR #2, port durable poller parity, prove T12, run fresh PR #2 L2, obtain eligible non-author exact-head APPROVED review, then consider WORK-0002 closure.
+8. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
