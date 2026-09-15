@@ -1,0 +1,75 @@
+id: TEST-0009
+name: "Stale-green bootstrap control-plane contract"
+status: PLANNED
+type: INTEGRATION
+protects:
+  requirements: [REQ-0026]
+  capabilities: []
+  contracts: ["GitHub control-plane merge gate"]
+  risks: []
+  invariants:
+    - "stale successful canonical gate is invalidated when current PR review threads are unresolved"
+    - "rerun target belongs to the current PR incarnation, not a prior PR reusing the same head identity"
+    - "malformed or ambiguous GitHub REST/GraphQL state fails closed"
+location:
+  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py"
+  suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
+environment:
+  kind: GITHUB_ACTIONS
+  real_dependencies:
+    - "GitHub REST Actions and Pull Requests APIs"
+    - "GitHub GraphQL reviewThreads API"
+  mocked_dependencies:
+    - "adversarial unit fixtures for malformed responses, shared SHA and prior PR incarnation"
+cases:
+  happy_path:
+    - "current PR incarnation has a canonical exact-head gate run and resolved or unresolved review state is classified correctly"
+  edge_cases:
+    - "distinct PR branches share the same head SHA"
+    - "an earlier closed PR reused the same repository/ref/SHA before the current PR was opened"
+    - "reviewThreads spans multiple GraphQL pages"
+  failure_modes:
+    - "canonical workflow identity or required run metadata is malformed"
+    - "no current-incarnation gate run exists while an effective stale success exists"
+    - "REST or GraphQL pagination exceeds the bounded limit"
+  adversarial_cases:
+    - "workflow_run.pull_requests contains zero, one or multiple associations and is not trusted as triggering-PR identity"
+    - "an old run is rerun after the current PR opens and has a newer updated_at"
+    - "GraphQL errors is present with a falsey malformed value"
+    - "GraphQL pagination repeats a cursor"
+acceptance_cold_read:
+  qualifies: false
+  source:
+    kind: null
+    source_id: null
+    submitted_at: null
+  executor:
+    actor: null
+    context_id: null
+    independence_level: null
+    fresh_context: false
+    authoring_context_separated: false
+  requirements: {}
+  required_outcomes:
+    understood_without_author_reasoning: null
+    atomic_and_testable: null
+    dependencies_and_conflicts_checked: null
+    omissions_and_failure_modes_checked: null
+    evidence_plan_sufficient: null
+  all_required_outcomes_pass: false
+  completed_at: null
+external_import:
+  authorization_source: null
+  import_commit: null
+execution:
+  command_or_workflow: "MONDE Stale-Green Bootstrap"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence: []
+coverage:
+  line_contribution: null
+  branch_contribution: null
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-15"
