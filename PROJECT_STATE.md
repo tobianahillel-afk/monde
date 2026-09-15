@@ -38,14 +38,14 @@ The bridge is temporary. After PR #2 merges, its canonical poller becomes durabl
 
 ## Stable bootstrap traceability
 
-`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031/0032/0033/0034/0035 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0036 (OPEN)`
+`REQ-0026 (PROPOSED) -> WORK-0002 -> TEST-0009 (PLANNED) + REVIEW-0031/0032/0033/0034/0035 (COMPLETE/CHANGES_REQUIRED) + REVIEW-0036 (IN_PROGRESS)`
 
 - REVIEW-0031 is terminal on `702d5ee33e8184e5d3186e8d0cb2911e0d79ef9c`.
 - REVIEW-0032 is terminal on `717777da79edca7a671c1754f32f3442da721a72`.
 - REVIEW-0033 is terminal on `55d471ac5d9b09f37aa93c6fce342a6a60a2b6ff`.
 - REVIEW-0034 is terminal on `45ab08c0ef4f6c4ee0ff84b8e29c74f2ab617c83` after seven new findings.
 - REVIEW-0035 is terminal on `fa41ae51cf5685db02be343818fceb4946f909bf` after one new P1 finding.
-- REVIEW-0036 is the fresh successor and is `OPEN`; it must not transition to `IN_PROGRESS` until this synchronized lifecycle descendant has exact-head bootstrap proof.
+- REVIEW-0036 is the fresh successor and is now `IN_PROGRESS`; WORK-0002, PROJECT_STATE and REVIEW-0036 enter this lifecycle checkpoint in one Git tree before any new Codex invocation.
 - Terminal negative reviews are never reopened or rewritten.
 
 ## REVIEW-0035 finding and correction
@@ -69,9 +69,11 @@ Latest substantive executable candidate: **`7ab6a3458544a4f27be217e16ecdbff1933f
 - **100% line + branch coverage**;
 - Bootstrap GitHub contract probe: **SUCCESS** against live WORK-0002 PR #2.
 
-The preceding atomic REVIEW-0035-IN_PROGRESS / WORK / PROJECT_STATE candidate **`fa41ae51cf5685db02be343818fceb4946f909bf`** passed run **`35006183807` / #53** with **39/39 tests, 279/279 statements, 112/112 branches, 100% line+branch**, plus a successful live GitHub contract probe before REVIEW-0035 found the merge-acceptable-conclusion gap.
+The preceding atomic REVIEW-0035-IN_PROGRESS / WORK / PROJECT_STATE candidate **`fa41ae51cf5685db02be343818fceb4946f909bf`** passed run **`35006183807` / #53** before REVIEW-0035 found the merge-acceptable-conclusion gap.
 
-The synchronized REVIEW-0035-terminal / REVIEW-0036-OPEN / WORK / PROJECT_STATE descendant created after run #54 must receive its own exact-head proof before REVIEW-0036 starts.
+The synchronized REVIEW-0035-terminal / REVIEW-0036-OPEN / WORK / PROJECT_STATE descendant **`08cd94e9e1507ddb15468b41928d876257535846`** passed `MONDE Stale-Green Bootstrap` run **`35007667970` / #55** with self-test and live GitHub contract probe **SUCCESS**.
+
+The atomic REVIEW-0036-IN_PROGRESS / WORK / PROJECT_STATE descendant created after run #55 must receive its own exact-head proof before Codex is invoked. The HEAD must then remain frozen during the review.
 
 ## PR #5 material thread set
 
@@ -123,14 +125,13 @@ MONDE intentionally remains **public**. Never commit credentials, tokens, secret
 
 ## Current next action
 
-1. Prove the synchronized REVIEW-0035 `COMPLETE/CHANGES_REQUIRED` + REVIEW-0036 `OPEN` + WORK-0002 + PROJECT_STATE checkpoint exact-head.
-2. If green, transition REVIEW-0036 `OPEN -> IN_PROGRESS` and synchronize WORK/PROJECT_STATE in one Git-tree checkpoint.
-3. Prove that exact REVIEW-0036-IN_PROGRESS descendant, freeze the HEAD, update PR #5 and PR #2 handover metadata, and invoke a fresh-context Codex review.
-4. Keep all **29** material PR #5 threads unresolved while REVIEW-0036 runs.
-5. If REVIEW-0036 finds another material issue, record it truthfully, correct/re-prove, and create a successor review.
-6. Only a clean independent exact-head review permits approval-capable review completion and independent verification/resolution of the 29 historical threads; do not mechanically resolve them.
-7. Only after those conditions may PR #5 squash-merge to `main`, followed by PR #2 integration and WORK-0002 closure.
-8. WORK-0003 and WORK-0004 remain blocked.
+1. Prove the atomic REVIEW-0036 `IN_PROGRESS` + WORK-0002 + PROJECT_STATE checkpoint exact-head.
+2. If green, freeze the HEAD, update PR #5 and PR #2 handover metadata and invoke a fresh-context Codex review under REVIEW-0036.
+3. Keep all **29** material PR #5 threads unresolved while REVIEW-0036 runs.
+4. If REVIEW-0036 finds another material issue, record it truthfully, correct/re-prove, and create a successor review.
+5. Only a clean independent exact-head review permits approval-capable review completion and independent verification/resolution of the 29 historical threads; do not mechanically resolve them.
+6. Only after those conditions may PR #5 squash-merge to `main`, followed by PR #2 integration and WORK-0002 closure.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
