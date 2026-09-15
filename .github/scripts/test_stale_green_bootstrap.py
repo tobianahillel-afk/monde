@@ -44,13 +44,14 @@ def gate_run(
     run_number: int,
     run_id: int,
     conclusion: str = "success",
-    workflow_id: int | None = None,
+    workflow_id: int | float | bool | None = None,
     path: str | None = None,
     branch: str = "branch-2",
     repo_name: str = "o/r",
     created_at: str | None = None,
     updated_at: str | None = None,
     pull_requests=None,
+    run_attempt: int = 1,
 ):
     return {
         "workflow_id": bootstrap.CANONICAL_WORKFLOW_ID if workflow_id is None else workflow_id,
@@ -60,12 +61,33 @@ def gate_run(
         "head_branch": branch,
         "head_repository": {"full_name": repo_name},
         "run_number": run_number,
+        "run_attempt": run_attempt,
         "id": run_id,
         "status": "completed",
         "conclusion": conclusion,
         "created_at": created_at or f"2026-09-15T14:30:{run_id % 60:02d}Z",
         "updated_at": updated_at or f"2026-09-15T15:00:{run_id % 60:02d}Z",
         "pull_requests": [] if pull_requests is None else pull_requests,
+    }
+
+
+def check_run(
+    head: str,
+    *,
+    conclusion: str | None = "success",
+    status: str = "completed",
+    check_id: int | bool = 40,
+    name: str | None = None,
+    app_id: int | float | bool = bootstrap.GITHUB_ACTIONS_APP_ID,
+    app_slug: str = "github-actions",
+) -> dict:
+    return {
+        "id": check_id,
+        "name": bootstrap.REQUIRED_GATE_JOB_NAME if name is None else name,
+        "head_sha": head,
+        "status": status,
+        "conclusion": conclusion,
+        "app": {"id": app_id, "slug": app_slug},
     }
 
 
@@ -176,11 +198,7 @@ class BootstrapPollTests(unittest.TestCase):
     def test_run_head_identity_requires_server_head_metadata(self) -> None:
         good = gate_run(event="pull_request", head="h", run_number=1, run_id=1, branch="feature", repo_name="owner/repo")
         self.assertEqual(bootstrap._run_head_identity(good), ("owner/repo", "feature", "h"))
-        for field, value in (
-            ("head_repository", None),
-            ("head_branch", ""),
-            ("head_sha", ""),
-        ):
+        for field, value in (("head_repository", None), ("head_branch", ""), ("head_sha", "")):
             bad = dict(good)
             bad[field] = value
             with self.subTest(field=field):
@@ -201,30 +219,9 @@ class BootstrapPollTests(unittest.TestCase):
 
     def test_latest_gate_runs_bind_to_trusted_head_identity_not_association_list(self) -> None:
         rows = [
-            gate_run(
-                event="pull_request",
-                head="shared",
-                branch="alpha",
-                run_number=1,
-                run_id=10,
-                pull_requests=[{"number": 2}, {"number": 5}],
-            ),
-            gate_run(
-                event="pull_request_review",
-                head="shared",
-                branch="alpha",
-                run_number=2,
-                run_id=20,
-                pull_requests=[],
-            ),
-            gate_run(
-                event="pull_request_review_comment",
-                head="shared",
-                branch="beta",
-                run_number=3,
-                run_id=30,
-                pull_requests=[{"number": 999}],
-            ),
+            gate_run(event="pull_request", head="shared", branch="alpha", run_number=1, run_id=10, pull_requests=[{"number": 2}, {"number": 5}]),
+            gate_run(event="pull_request_review", head="shared", branch="alpha", run_number=2, run_id=20, pull_requests=[]),
+            gate_run(event="pull_request_review_comment", head="shared", branch="beta", run_number=3, run_id=30, pull_requests=[{"number": 999}]),
             gate_run(event="push", head="ignored", branch="main", run_number=99, run_id=99),
         ]
         with mock.patch.object(bootstrap, "paged", return_value=rows) as paged:
@@ -232,14 +229,14 @@ class BootstrapPollTests(unittest.TestCase):
         self.assertEqual(latest[("o/r", "alpha", "shared")]["id"], 20)
         self.assertEqual(latest[("o/r", "beta", "shared")]["id"], 30)
         self.assertNotIn(("o/r", "main", "ignored"), latest)
-        self.assertIn(
-            f"actions/workflows/{bootstrap.CANONICAL_WORKFLOW_ID}/runs?status=completed",
-            paged.call_args.args[0],
-        )
+        self.assertIn(f"actions/workflows/{bootstrap.CANONICAL_WORKFLOW_ID}/runs?status=completed", paged.call_args.args[0])
+        self.assertEqual(paged.call_args.kwargs["unique_id_field"], "id")
 
     def test_latest_gate_runs_rejects_wrong_identity_malformed_event_run_time_and_head(self) -> None:
         for bad in (
             gate_run(event="pull_request", head="h", run_number=1, run_id=10, workflow_id=999),
+            gate_run(event="pull_request", head="h", run_number=1, run_id=10, workflow_id=float(bootstrap.CANONICAL_WORKFLOW_ID)),
+            gate_run(event="pull_request", head="h", run_number=1, run_id=10, workflow_id=True),
             gate_run(event="pull_request", head="h", run_number=1, run_id=10, path=".github/workflows/impostor.yml"),
         ):
             with self.subTest(bad=bad), mock.patch.object(bootstrap, "paged", return_value=[bad]):
@@ -305,58 +302,88 @@ class BootstrapPollTests(unittest.TestCase):
             self.assertEqual(len(bootstrap.latest_completed_gate_runs("o/r", "t")), len(rows))
 
     def test_run_recency_replaces_only_with_newer_record(self) -> None:
-        older = gate_run(
-            event="pull_request",
-            head="h",
-            branch="feature",
-            run_number=10,
-            run_id=10,
-            updated_at="2026-09-15T15:01:00Z",
-        )
-        newer = gate_run(
-            event="pull_request_review",
-            head="h",
-            branch="feature",
-            run_number=11,
-            run_id=11,
-            updated_at="2026-09-15T15:02:00Z",
-        )
-        stale_late_item = gate_run(
-            event="pull_request",
-            head="h",
-            branch="feature",
-            run_number=9,
-            run_id=9,
-            updated_at="2026-09-15T15:00:00Z",
-        )
+        older = gate_run(event="pull_request", head="h", branch="feature", run_number=10, run_id=10, updated_at="2026-09-15T15:01:00Z")
+        newer = gate_run(event="pull_request_review", head="h", branch="feature", run_number=11, run_id=11, updated_at="2026-09-15T15:02:00Z")
+        stale_late_item = gate_run(event="pull_request", head="h", branch="feature", run_number=9, run_id=9, updated_at="2026-09-15T15:00:00Z")
         with mock.patch.object(bootstrap, "paged", return_value=[older, newer, stale_late_item]):
             latest = bootstrap.latest_completed_gate_runs("o/r", "t")
         self.assertEqual(latest[("o/r", "feature", "h")]["id"], 11)
 
-    def test_effective_shared_sha_uses_latest_run_across_distinct_heads(self) -> None:
-        runs = {
-            ("o/r", "alpha", "shared"): gate_run(
-                event="pull_request",
-                head="shared",
-                branch="alpha",
-                run_number=20,
-                run_id=20,
-                conclusion="failure",
-                updated_at="2026-09-15T15:02:00Z",
-            ),
-            ("o/r", "beta", "shared"): gate_run(
-                event="pull_request_review",
-                head="shared",
-                branch="beta",
-                run_number=21,
-                run_id=21,
-                conclusion="success",
-                updated_at="2026-09-15T15:01:00Z",
-            ),
-        }
-        self.assertEqual(bootstrap.effective_gate_runs_by_head(runs)["shared"]["id"], 20)
-        runs[("o/r", "beta", "shared")]["updated_at"] = "2026-09-15T15:03:00Z"
-        self.assertEqual(bootstrap.effective_gate_runs_by_head(runs)["shared"]["id"], 21)
+    def test_latest_required_check_accepts_only_exact_github_actions_check(self) -> None:
+        good = check_run("h")
+        payload = {"total_count": 1, "check_runs": [good]}
+        with mock.patch.object(bootstrap, "request_data", return_value=payload) as request:
+            self.assertEqual(bootstrap.latest_required_check("o/r", "h", "t"), good)
+        url = request.call_args.args[0]
+        self.assertIn("commits/h/check-runs?", url)
+        self.assertIn("check_name=MONDE+%2F+Merge+Gate", url)
+        self.assertIn("filter=latest", url)
+        self.assertIn(f"app_id={bootstrap.GITHUB_ACTIONS_APP_ID}", url)
+
+        with mock.patch.object(bootstrap, "request_data", return_value={"total_count": 0, "check_runs": []}):
+            self.assertIsNone(bootstrap.latest_required_check("o/r", "h", "t"))
+
+    def test_latest_required_check_fails_closed_on_response_and_identity(self) -> None:
+        good = check_run("h")
+        malformed_payloads = [
+            [],
+            {"total_count": True, "check_runs": []},
+            {"total_count": -1, "check_runs": []},
+            {"total_count": 1, "check_runs": "bad"},
+            {"total_count": 1, "check_runs": []},
+            {"total_count": 1, "check_runs": [None]},
+            {"total_count": 2, "check_runs": [good, dict(good)]},
+        ]
+        for payload in malformed_payloads:
+            with self.subTest(payload=payload), mock.patch.object(bootstrap, "request_data", return_value=payload):
+                with self.assertRaises(RuntimeError):
+                    bootstrap.latest_required_check("o/r", "h", "t")
+
+        mutations = [
+            ("id", True),
+            ("name", "other"),
+            ("head_sha", "other"),
+            ("app", None),
+            ("app", {"id": float(bootstrap.GITHUB_ACTIONS_APP_ID), "slug": "github-actions"}),
+            ("app", {"id": bootstrap.GITHUB_ACTIONS_APP_ID, "slug": "other"}),
+            ("status", "mystery"),
+        ]
+        for field, value in mutations:
+            bad = dict(good)
+            bad[field] = value
+            with self.subTest(field=field), mock.patch.object(
+                bootstrap, "request_data", return_value={"total_count": 1, "check_runs": [bad]}
+            ):
+                with self.assertRaisesRegex(RuntimeError, "malformed required MONDE"):
+                    bootstrap.latest_required_check("o/r", "h", "t")
+
+    def test_latest_required_check_validates_status_conclusion_contract(self) -> None:
+        for conclusion in sorted(bootstrap.TERMINAL_CONCLUSIONS):
+            good = check_run("h", conclusion=conclusion)
+            with self.subTest(conclusion=conclusion), mock.patch.object(
+                bootstrap, "request_data", return_value={"total_count": 1, "check_runs": [good]}
+            ):
+                self.assertEqual(bootstrap.latest_required_check("o/r", "h", "t")["conclusion"], conclusion)
+
+        for bad_conclusion in (None, "mystery"):
+            bad = check_run("h", conclusion=bad_conclusion)
+            with self.subTest(bad_conclusion=bad_conclusion), mock.patch.object(
+                bootstrap, "request_data", return_value={"total_count": 1, "check_runs": [bad]}
+            ):
+                with self.assertRaisesRegex(RuntimeError, "malformed completed required"):
+                    bootstrap.latest_required_check("o/r", "h", "t")
+
+        for status in sorted(bootstrap.CHECK_RUN_STATUSES - {"completed"}):
+            pending = check_run("h", status=status, conclusion=None)
+            with self.subTest(status=status), mock.patch.object(
+                bootstrap, "request_data", return_value={"total_count": 1, "check_runs": [pending]}
+            ):
+                self.assertEqual(bootstrap.latest_required_check("o/r", "h", "t")["status"], status)
+
+            bad = check_run("h", status=status, conclusion="success")
+            with mock.patch.object(bootstrap, "request_data", return_value={"total_count": 1, "check_runs": [bad]}):
+                with self.assertRaisesRegex(RuntimeError, "incomplete required"):
+                    bootstrap.latest_required_check("o/r", "h", "t")
 
     def test_review_threads_false_true_and_pagination(self) -> None:
         false_payload = {
@@ -408,156 +435,117 @@ class BootstrapPollTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "malformed reviewThreads nodes"):
                 bootstrap.unresolved_review_threads("o/r", 2, "t")
 
-        bad_info = {
-            "data": {"repository": {"pullRequest": {"reviewThreads": {
-                "nodes": [], "pageInfo": {}
-            }}}}
-        }
+        bad_info = {"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": [], "pageInfo": {}}}}}}
         with mock.patch.object(bootstrap, "request_data", return_value=bad_info):
             with self.assertRaisesRegex(RuntimeError, "malformed reviewThreads pageInfo"):
                 bootstrap.unresolved_review_threads("o/r", 2, "t")
 
         for bad_end_cursor in ({"hasNextPage": False}, {"hasNextPage": False, "endCursor": 7}, {"hasNextPage": False, "endCursor": {}}):
-            payload = {
-                "data": {"repository": {"pullRequest": {"reviewThreads": {
-                    "nodes": [], "pageInfo": bad_end_cursor
-                }}}}
-            }
+            payload = {"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": [], "pageInfo": bad_end_cursor}}}}}
             with self.subTest(pageInfo=bad_end_cursor), mock.patch.object(bootstrap, "request_data", return_value=payload):
                 with self.assertRaisesRegex(RuntimeError, "malformed reviewThreads pageInfo"):
                     bootstrap.unresolved_review_threads("o/r", 2, "t")
 
-        bad_cursor = {
-            "data": {"repository": {"pullRequest": {"reviewThreads": {
-                "nodes": [], "pageInfo": {"hasNextPage": True, "endCursor": None}
-            }}}}
-        }
+        bad_cursor = {"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": [], "pageInfo": {"hasNextPage": True, "endCursor": None}}}}}}
         with mock.patch.object(bootstrap, "request_data", return_value=bad_cursor):
             with self.assertRaisesRegex(RuntimeError, "pagination missing cursor"):
                 bootstrap.unresolved_review_threads("o/r", 2, "t")
 
     def test_review_threads_reject_repeated_cursor_and_page_exhaustion(self) -> None:
-        repeated = {
-            "data": {"repository": {"pullRequest": {"reviewThreads": {
-                "nodes": [], "pageInfo": {"hasNextPage": True, "endCursor": "same"}
-            }}}}
-        }
+        repeated = {"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": [], "pageInfo": {"hasNextPage": True, "endCursor": "same"}}}}}}
         with mock.patch.object(bootstrap, "request_data", side_effect=[repeated, repeated]):
             with self.assertRaisesRegex(RuntimeError, "repeated cursor"):
                 bootstrap.unresolved_review_threads("o/r", 2, "t")
 
-        first = {
-            "data": {"repository": {"pullRequest": {"reviewThreads": {
-                "nodes": [], "pageInfo": {"hasNextPage": True, "endCursor": "next"}
-            }}}}
-        }
-        with mock.patch.object(bootstrap, "MAX_PAGES", 1), mock.patch.object(
-            bootstrap, "request_data", return_value=first
-        ):
+        first = {"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": [], "pageInfo": {"hasNextPage": True, "endCursor": "next"}}}}}}
+        with mock.patch.object(bootstrap, "MAX_PAGES", 1), mock.patch.object(bootstrap, "request_data", return_value=first):
             with self.assertRaisesRegex(RuntimeError, "pagination exceeded"):
                 bootstrap.unresolved_review_threads("o/r", 2, "t")
 
     def test_rerun_workflow_posts_to_exact_run(self) -> None:
         with mock.patch.object(bootstrap, "request_data", return_value={}) as req:
             bootstrap.rerun_workflow("o/r", 123, "t")
-        self.assertEqual(
-            req.call_args.args,
-            ("https://api.github.com/repos/o/r/actions/runs/123/rerun", "t", "POST", {}),
-        )
+        self.assertEqual(req.call_args.args, ("https://api.github.com/repos/o/r/actions/runs/123/rerun", "t", "POST", {}))
 
-    def test_poll_reinvalidates_target_when_other_branch_has_newer_shared_sha_success(self) -> None:
-        prs = [
-            pull_request(4, "shared", branch="alpha"),
-            pull_request(5, "shared", branch="beta"),
-        ]
-        runs = {
-            ("o/r", "alpha", "shared"): gate_run(
-                event="pull_request",
-                head="shared",
-                branch="alpha",
-                run_number=20,
-                run_id=4,
-                conclusion="failure",
-                updated_at="2026-09-15T15:01:00Z",
-            ),
-            ("o/r", "beta", "shared"): gate_run(
-                event="pull_request_review",
-                head="shared",
-                branch="beta",
-                run_number=21,
-                run_id=5,
-                conclusion="success",
-                updated_at="2026-09-15T15:02:00Z",
-            ),
-        }
+    def test_poll_uses_direct_check_once_per_shared_sha_and_only_validates_unresolved_target(self) -> None:
+        prs = [pull_request(4, "shared", branch="alpha"), pull_request(5, "shared", branch="beta")]
+        alpha = gate_run(event="pull_request", head="shared", branch="alpha", run_number=20, run_id=4)
+        beta = gate_run(event="pull_request", head="shared", branch="beta", run_number=21, run_id=5)
+        runs = {("o/r", "alpha", "shared"): alpha, ("o/r", "beta", "shared"): beta}
+        direct = check_run("shared")
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=prs), mock.patch.object(
             bootstrap, "overlapping_closed_pr_windows", return_value={}
         ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=runs
         ), mock.patch.object(
+            bootstrap, "latest_required_check", return_value=direct
+        ) as latest_check, mock.patch.object(
             bootstrap, "required_merge_gate_conclusion", return_value="success"
-        ), mock.patch.object(
+        ) as target_job, mock.patch.object(
             bootstrap, "unresolved_review_threads", side_effect=lambda _repo, n, _token: n == 4
-        ), mock.patch.object(bootstrap, "rerun_workflow") as rerun:
-            self.assertEqual(bootstrap.poll("o/r", "t"), [4])
-        rerun.assert_called_once_with("o/r", 4, "t")
-
-    def test_poll_stops_when_effective_state_is_missing_or_failure(self) -> None:
-        prs = [pull_request(4, "missing", branch="m"), pull_request(5, "failed", branch="f")]
-        runs = {
-            ("o/r", "f", "failed"): gate_run(
-                event="pull_request",
-                head="failed",
-                branch="f",
-                run_number=1,
-                run_id=5,
-                conclusion="failure",
-            )
-        }
-        with mock.patch.object(bootstrap, "open_pull_requests", return_value=prs), mock.patch.object(
-            bootstrap, "overlapping_closed_pr_windows", return_value={}
         ), mock.patch.object(
-            bootstrap, "latest_completed_gate_runs", return_value=runs
-        ), mock.patch.object(
-            bootstrap, "required_merge_gate_conclusion", return_value="failure"
-        ), mock.patch.object(bootstrap, "unresolved_review_threads") as threads, mock.patch.object(
             bootstrap, "rerun_workflow"
         ) as rerun:
+            self.assertEqual(bootstrap.poll("o/r", "t"), [4])
+        latest_check.assert_called_once_with("o/r", "shared", "t")
+        target_job.assert_called_once_with("o/r", alpha, "t")
+        rerun.assert_called_once_with("o/r", 4, "t")
+
+    def test_poll_skips_missing_incomplete_and_non_merge_acceptable_direct_checks(self) -> None:
+        prs = [
+            pull_request(4, "missing", branch="m"),
+            pull_request(5, "pending", branch="p"),
+            pull_request(6, "failed", branch="f"),
+        ]
+        runs = {
+            ("o/r", "m", "missing"): gate_run(event="pull_request", head="missing", branch="m", run_number=1, run_id=4),
+            ("o/r", "p", "pending"): gate_run(event="pull_request", head="pending", branch="p", run_number=1, run_id=5),
+            ("o/r", "f", "failed"): gate_run(event="pull_request", head="failed", branch="f", run_number=1, run_id=6),
+        }
+        with mock.patch.object(bootstrap, "open_pull_requests", return_value=prs), mock.patch.object(
+            bootstrap, "overlapping_closed_pr_windows", return_value={}
+        ), mock.patch.object(
+            bootstrap, "latest_completed_gate_runs", return_value=runs
+        ), mock.patch.object(
+            bootstrap,
+            "latest_required_check",
+            side_effect=[None, {"status": "in_progress", "conclusion": None}, {"status": "completed", "conclusion": "failure"}],
+        ), mock.patch.object(bootstrap, "unresolved_review_threads") as threads, mock.patch.object(
+            bootstrap, "required_merge_gate_conclusion"
+        ) as target_job, mock.patch.object(bootstrap, "rerun_workflow") as rerun:
             self.assertEqual(bootstrap.poll("o/r", "t"), [])
         threads.assert_not_called()
+        target_job.assert_not_called()
         rerun.assert_not_called()
 
-    def test_poll_skips_clean_pr_and_fails_closed_without_target_head_run(self) -> None:
+    def test_poll_skips_clean_pr_and_fails_closed_without_target_run_only_when_thread_unresolved(self) -> None:
         clean_pr = pull_request(3, "clean", branch="clean")
-        clean_runs = {
-            ("o/r", "clean", "clean"): gate_run(
-                event="pull_request", head="clean", branch="clean", run_number=1, run_id=3
-            )
-        }
+        clean_runs = {("o/r", "clean", "clean"): gate_run(event="pull_request", head="clean", branch="clean", run_number=1, run_id=3)}
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=[clean_pr]), mock.patch.object(
             bootstrap, "overlapping_closed_pr_windows", return_value={}
         ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=clean_runs
         ), mock.patch.object(
-            bootstrap, "required_merge_gate_conclusion", return_value="success"
-        ), mock.patch.object(bootstrap, "unresolved_review_threads", return_value=False), mock.patch.object(
+            bootstrap, "latest_required_check", return_value=check_run("clean")
+        ), mock.patch.object(
+            bootstrap, "unresolved_review_threads", return_value=False
+        ), mock.patch.object(bootstrap, "required_merge_gate_conclusion") as target_job, mock.patch.object(
             bootstrap, "rerun_workflow"
         ) as rerun:
             self.assertEqual(bootstrap.poll("o/r", "t"), [])
+        target_job.assert_not_called()
         rerun.assert_not_called()
 
         target = pull_request(4, "shared", branch="alpha")
-        only_other = {
-            ("o/r", "beta", "shared"): gate_run(
-                event="pull_request", head="shared", branch="beta", run_number=1, run_id=5
-            )
-        }
+        only_other = {("o/r", "beta", "shared"): gate_run(event="pull_request", head="shared", branch="beta", run_number=1, run_id=5)}
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=[target]), mock.patch.object(
             bootstrap, "overlapping_closed_pr_windows", return_value={}
         ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=only_other
         ), mock.patch.object(
-            bootstrap, "required_merge_gate_conclusion", return_value="success"
+            bootstrap, "latest_required_check", return_value=check_run("shared")
+        ), mock.patch.object(
+            bootstrap, "unresolved_review_threads", return_value=True
         ):
             with self.assertRaisesRegex(RuntimeError, "no unambiguous run bound to open PR #4"):
                 bootstrap.poll("o/r", "t")
@@ -565,22 +553,21 @@ class BootstrapPollTests(unittest.TestCase):
     def test_validate_github_contract(self) -> None:
         target = pull_request(5, "h", branch="feature")
         other = pull_request(2, "x", branch="other")
-        runs = {
-            ("o/r", "feature", "h"): gate_run(
-                event="pull_request", head="h", branch="feature", run_number=2, run_id=5
-            ),
-            ("o/r", "other", "x"): gate_run(
-                event="pull_request", head="x", branch="other", run_number=1, run_id=2
-            ),
-        }
+        target_run = gate_run(event="pull_request", head="h", branch="feature", run_number=2, run_id=5)
+        runs = {("o/r", "feature", "h"): target_run, ("o/r", "other", "x"): gate_run(event="pull_request", head="x", branch="other", run_number=1, run_id=2)}
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=[target, other]), mock.patch.object(
             bootstrap, "overlapping_closed_pr_windows", return_value={}
         ), mock.patch.object(
             bootstrap, "latest_completed_gate_runs", return_value=runs
         ), mock.patch.object(
+            bootstrap, "latest_required_check", return_value=check_run("h")
+        ), mock.patch.object(
             bootstrap, "required_merge_gate_conclusion", return_value="failure"
-        ), mock.patch.object(bootstrap, "unresolved_review_threads", return_value=True):
+        ) as job, mock.patch.object(
+            bootstrap, "unresolved_review_threads", return_value=True
+        ):
             self.assertEqual(bootstrap.validate_github_contract("o/r", 5, "t"), (2, 2, True))
+        job.assert_called_once_with("o/r", target_run, "t")
 
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=[]):
             with self.assertRaisesRegex(RuntimeError, "exactly one open PR"):
@@ -588,10 +575,16 @@ class BootstrapPollTests(unittest.TestCase):
 
         with mock.patch.object(bootstrap, "open_pull_requests", return_value=[target]), mock.patch.object(
             bootstrap, "overlapping_closed_pr_windows", return_value={}
-        ), mock.patch.object(
-            bootstrap, "latest_completed_gate_runs", return_value={}
-        ):
+        ), mock.patch.object(bootstrap, "latest_completed_gate_runs", return_value={}):
             with self.assertRaisesRegex(RuntimeError, "no unambiguous canonical MONDE Gate run"):
+                bootstrap.validate_github_contract("o/r", 5, "t")
+
+        with mock.patch.object(bootstrap, "open_pull_requests", return_value=[target]), mock.patch.object(
+            bootstrap, "overlapping_closed_pr_windows", return_value={}
+        ), mock.patch.object(
+            bootstrap, "latest_completed_gate_runs", return_value={("o/r", "feature", "h"): target_run}
+        ), mock.patch.object(bootstrap, "latest_required_check", return_value=None):
+            with self.assertRaisesRegex(RuntimeError, "no latest .* check"):
                 bootstrap.validate_github_contract("o/r", 5, "t")
 
     def test_main_missing_env_poll_success_and_error(self) -> None:
@@ -619,9 +612,7 @@ class BootstrapPollTests(unittest.TestCase):
         validate.assert_called_once_with("o/r", 5, "t")
 
         for value in ("0", "not-int"):
-            with self.subTest(value=value), mock.patch.dict(
-                bootstrap.os.environ, {**env, "BOOTSTRAP_VALIDATE_PR": value}, clear=True
-            ):
+            with self.subTest(value=value), mock.patch.dict(bootstrap.os.environ, {**env, "BOOTSTRAP_VALIDATE_PR": value}, clear=True):
                 self.assertEqual(bootstrap.main(), 2)
 
     def test_script_entrypoint_exits_through_main(self) -> None:
