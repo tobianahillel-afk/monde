@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import subprocess
 import sys
 from dataclasses import asdict, dataclass
@@ -19,6 +20,7 @@ CORE_WORKFLOW_PATH = ".github/workflows/_governance-core.yml"
 POLL_SCRIPT_PATH = "tools/governance/thread_state_poll.py"
 POLL_CRON = "*/5 * * * *"
 MAX_SECRET_BLOB_BYTES = 4 * 1024 * 1024
+TERMINAL_IMPORT_STATUS = {"reviews": "COMPLETE", "tests": "PASS"}
 
 EXPECTED_PROVENANCE_BOOTSTRAP_COMMITS = (
     "ac836f37dad997992f5824bfa7dcab805c851112",
@@ -81,7 +83,7 @@ def validate_provenance_bootstrap(root: Path, base: str, head: str) -> list[Find
     ]
 
 
-def first_status_commit_full_history(root: Path, path: str, status: str, head: str) -> str | None:
+def first_status_boundaries_full_history(root: Path, path: str, status: str, head: str) -> list[str]:
     commits = [
         line
         for line in cg.git(
@@ -96,14 +98,20 @@ def first_status_commit_full_history(root: Path, path: str, status: str, head: s
         ).splitlines()
         if line
     ]
+    boundaries: list[str] = []
     for sha in commits:
         current = cg.show_yaml(root, sha, path)
         if not current or current.get("status") != status:
             continue
         parents = cg.commit_parents(root, sha)
         if not parents or all((cg.show_yaml(root, parent, path) or {}).get("status") != status for parent in parents):
-            return sha
-    return None
+            boundaries.append(sha)
+    return boundaries
+
+
+def first_status_commit_full_history(root: Path, path: str, status: str, head: str) -> str | None:
+    boundaries = first_status_boundaries_full_history(root, path, status, head)
+    return boundaries[0] if len(boundaries) == 1 else None
 
 
 def _registry_paths(root: Path, head: str, directory: str) -> Iterable[str]:
@@ -159,20 +167,41 @@ def squash_bridge_allows_first_status(
 def validate_import_materialization_history(root: Path, head: str) -> list[Finding]:
     out: list[Finding] = []
     for directory in ("reviews", "tests"):
+        terminal_status = TERMINAL_IMPORT_STATUS[directory]
         for path in _registry_paths(root, head, directory):
             record = cg.show_yaml(root, head, path) or {}
             ext = record.get("external_import")
-            if not isinstance(ext, dict) or not ext.get("import_commit"):
+            if not isinstance(ext, dict) or record.get("status") != terminal_status:
                 continue
-            expected = str(ext.get("import_commit"))
-            actual = first_status_commit_full_history(root, path, str(record.get("status") or ""), head)
+            raw_import = ext.get("import_commit")
+            if not raw_import:
+                out.append(
+                    Finding(
+                        path,
+                        "IMPORT_TERMINAL_UNFINALIZED",
+                        f"externally imported terminal {directory[:-1]} at status {terminal_status!r} must bind import_commit before it may remain at HEAD",
+                    )
+                )
+                continue
+            expected = str(raw_import)
+            boundaries = first_status_boundaries_full_history(root, path, terminal_status, head)
+            if len(boundaries) > 1:
+                out.append(
+                    Finding(
+                        path,
+                        "IMPORT_FIRST_STATUS_AMBIGUOUS",
+                        f"full merge history contains multiple independent first materializations of status {terminal_status!r}: {boundaries}",
+                    )
+                )
+                continue
+            actual = boundaries[0] if boundaries else None
             if actual == expected or squash_bridge_allows_first_status(root, path, record, expected, actual, head, directory):
                 continue
             out.append(
                 Finding(
                     path,
                     "IMPORT_FIRST_STATUS_FULL_HISTORY",
-                    f"external import binds import_commit={expected!r}, but full merge history first materializes status {record.get('status')!r} at {actual!r}",
+                    f"external import binds import_commit={expected!r}, but full merge history uniquely first materializes status {terminal_status!r} at {actual!r}",
                 )
             )
     return out
@@ -253,11 +282,42 @@ def _event_types(on: dict[str, Any], event: str) -> set[str]:
     return {str(value) for value in values}
 
 
-def _steps_contain_run(job: dict[str, Any], needle: str) -> bool:
+def _logical_run_commands(job: dict[str, Any]) -> list[list[str]]:
     steps = job.get("steps")
     if not isinstance(steps, list):
-        return False
-    return any(isinstance(step, dict) and needle in str(step.get("run") or "") for step in steps)
+        return []
+    commands: list[list[str]] = []
+    for step in steps:
+        if not isinstance(step, dict):
+            continue
+        run = step.get("run")
+        if not isinstance(run, str):
+            continue
+        logical = ""
+        for raw_line in run.splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            continued = line.endswith("\\")
+            piece = line[:-1].rstrip() if continued else line
+            logical = f"{logical} {piece}".strip()
+            if continued:
+                continue
+            try:
+                commands.append(shlex.split(logical, posix=True))
+            except ValueError:
+                commands.append([])
+            logical = ""
+        if logical:
+            try:
+                commands.append(shlex.split(logical, posix=True))
+            except ValueError:
+                commands.append([])
+    return commands
+
+
+def _steps_execute_prefix(job: dict[str, Any], expected: tuple[str, ...]) -> bool:
+    return any(tuple(command[: len(expected)]) == expected for command in _logical_run_commands(job))
 
 
 def validate_workflow_structure(root: Path) -> list[Finding]:
@@ -298,16 +358,16 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
             out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_PERMISSIONS", "poll job requires actions:write plus pull-requests:read and contents:read"))
         if str(poll.get("if") or "") != "github.event_name == 'schedule'":
             out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_SCOPE", "poll job must run only for schedule events"))
-        if not _steps_contain_run(poll, "python -m tools.governance.thread_state_poll"):
+        if not _steps_execute_prefix(poll, ("python", "-m", "tools.governance.thread_state_poll")):
             out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_WIRING", "poll job must execute the trusted review-thread state poller"))
 
     core_jobs = core.get("jobs")
     core_jobs = core_jobs if isinstance(core_jobs, dict) else {}
     validate = core_jobs.get("validate")
     validate = validate if isinstance(validate, dict) else {}
-    if not _steps_contain_run(validate, "python -m tools.governance.t11_closure"):
+    if not _steps_execute_prefix(validate, ("python", "-m", "tools.governance.t11_closure", ".")):
         out.append(Finding(CORE_WORKFLOW_PATH, "T11_GATE_WIRING", "governance core must execute the T11 closure validator"))
-    if not _steps_contain_run(validate, "python .github/scripts/governance_t11_mutation_smoke.py"):
+    if not _steps_execute_prefix(validate, ("python", ".github/scripts/governance_t11_mutation_smoke.py")):
         out.append(Finding(CORE_WORKFLOW_PATH, "T11_MUTATION_WIRING", "governance core must execute the T11 mutation smoke"))
     return out
 
