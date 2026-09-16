@@ -5,7 +5,7 @@ import runpy
 import unittest
 from unittest import mock
 
-from test_stale_green_bootstrap_pr_snapshot import SHA, gate_run, pr as snapshot_pr, snapshot
+from test_stale_green_bootstrap_pr_snapshot import SHA, gate_run as snapshot_gate_run, pr as snapshot_pr, snapshot
 import stale_green_bootstrap_authority as authority
 
 
@@ -36,6 +36,17 @@ def pr(
         "repo": {"full_name": "o/r"},
     }
     item["merge_commit_sha"] = merge_sha
+    return item
+
+
+def gate_run(
+    run_id: int,
+    pr_number: int,
+    **kwargs,
+) -> dict:
+    item = snapshot_gate_run(run_id, pr_number, **kwargs)
+    item["workflow_id"] = authority.core.CANONICAL_WORKFLOW_ID
+    item["path"] = authority.core.CANONICAL_WORKFLOW_PATH
     return item
 
 

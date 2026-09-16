@@ -3,8 +3,7 @@ from __future__ import annotations
 import unittest
 from unittest import mock
 
-from test_stale_green_bootstrap_authority import check
-from test_stale_green_bootstrap_pr_snapshot import gate_run, pr
+from test_stale_green_bootstrap_authority import check, gate_run, pr
 import stale_green_bootstrap_authority as authority
 
 
@@ -35,13 +34,19 @@ class SharedHeadContinuationTests(unittest.TestCase):
             mock.patch.object(
                 authority,
                 "_direct_target_for_pr",
-                side_effect=[(first_run, check(501, 201)), (second_run, check(502, 202))],
+                side_effect=[
+                    ((first_run, check(501, 201)), None),
+                    ((second_run, check(502, 202)), None),
+                ],
             ),
             mock.patch.object(authority, "_current_pr", side_effect=[first, second]),
             mock.patch.object(authority.core, "rerun_workflow") as rerun,
-            mock.patch.object(authority, "_wait_for_invalidation", side_effect=[False, True]),
+            mock.patch.object(authority, "_wait_for_terminal_invalidation", side_effect=[False, True]),
         ):
-            self.assertEqual(authority._process_head_group("o/r", "t", [first, second]), ([202], []))
+            self.assertEqual(
+                authority._process_head_group("o/r", "t", [first, second], 3),
+                ([201, 202], [], None),
+            )
 
         self.assertEqual(
             [call.args[1] for call in rerun.call_args_list],
