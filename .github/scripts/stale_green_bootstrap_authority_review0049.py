@@ -247,9 +247,16 @@ def _current_pending_pr(
     payload = core.request_data(
         f"https://api.github.com/repos/{repo}/pulls/{state.pending_pr}", token
     )
-    if not isinstance(payload, dict) or payload.get("number") != state.pending_pr:
+    if (
+        not isinstance(payload, dict)
+        or not core._positive_int(payload.get("number"))
+        or payload["number"] != state.pending_pr
+    ):
         raise RuntimeError("GitHub returned malformed pending pull-request authority")
-    if payload.get("state") != "open":
+    pr_state = payload.get("state")
+    if pr_state not in {"open", "closed"}:
+        raise RuntimeError("GitHub returned malformed pending pull-request state")
+    if pr_state == "closed":
         return None
     if _authority_digest(payload) != state.pending_authority:
         raise RuntimeError("pending pull-request authority changed before mutation observation completed")
