@@ -267,7 +267,7 @@ class AuthorityBootstrapTests(unittest.TestCase):
         with (
             mock.patch.object(authority, "_read_scheduler_cursor", return_value=1),
             mock.patch.object(authority.snapshot, "open_pull_requests", return_value=[p1, p2, p3]) as open_reader,
-            mock.patch.object(authority, "_process_head_group", side_effect=[([202], []), ([], [])]) as processor,
+            mock.patch.object(authority, "_process_head_group", side_effect=[([202], []), ([], []), ([], [])]) as processor,
             mock.patch.object(authority, "_write_scheduler_cursor") as writer,
         ):
             self.assertEqual(authority.poll("o/r", "t"), [202])
