@@ -1,5 +1,5 @@
 name: MONDE Stale-Green Bootstrap
-# REVIEW-0041 PR-collection snapshot correction; executable semantics changed.
+# REVIEW-0045 bounded direct-authority successor; executable semantics changed.
 
 on:
   pull_request:
@@ -7,6 +7,7 @@ on:
       - .github/workflows/monde-stale-green-bootstrap.yml
       - .github/scripts/stale_green_bootstrap.py
       - .github/scripts/stale_green_bootstrap_pr_snapshot.py
+      - .github/scripts/stale_green_bootstrap_authority.py
       - '.github/scripts/test_stale_green_bootstrap*.py'
       - requirements/bootstrap-governance-ci.txt
       - registry/requirements/REQ-0026.yaml
@@ -42,7 +43,7 @@ jobs:
             -s .github/scripts \
             -p 'test_stale_green_bootstrap*.py'
           python3 -m coverage report \
-            --include='.github/scripts/stale_green_bootstrap.py,.github/scripts/stale_green_bootstrap_pr_snapshot.py' \
+            --include='.github/scripts/stale_green_bootstrap.py,.github/scripts/stale_green_bootstrap_pr_snapshot.py,.github/scripts/stale_green_bootstrap_authority.py' \
             --fail-under=100 \
             --show-missing
 
@@ -65,10 +66,8 @@ jobs:
       - name: Validate live GitHub REST GraphQL Checks and Actions contracts against WORK-0002 PR
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          # PR #2 is the consumer this temporary default-branch predecessor must protect.
-          # It has the canonical MONDE Gate runs/checks that PR #5 itself intentionally lacks.
           BOOTSTRAP_VALIDATE_PR: '2'
-        run: python3 .github/scripts/stale_green_bootstrap_pr_snapshot.py
+        run: python3 .github/scripts/stale_green_bootstrap_authority.py
 
   stale-green-poll:
     name: Bootstrap stale-green poll
@@ -79,6 +78,7 @@ jobs:
       actions: write
       checks: read
       contents: read
+      issues: write
       pull-requests: read
     steps:
       - name: Checkout trusted default branch
@@ -88,4 +88,5 @@ jobs:
       - name: Invalidate stale successful MONDE gates
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 .github/scripts/stale_green_bootstrap_pr_snapshot.py
+          BOOTSTRAP_STATE_ISSUE: '7'
+        run: python3 .github/scripts/stale_green_bootstrap_authority.py
