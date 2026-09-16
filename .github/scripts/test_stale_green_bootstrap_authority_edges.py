@@ -26,6 +26,7 @@ class AuthorityEdgeCoverageTests(unittest.TestCase):
         with mock.patch.object(authority, "_candidate_gate_checks", side_effect=spend_budget):
             with self.assertRaises(authority.DeferredForBudget):
                 authority._direct_target_for_pr("o/r", "t", current)
+        authority._reset_request_budget()
 
         with (
             mock.patch.object(authority, "_candidate_gate_checks", return_value=[candidate]),
