@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0043 independently rejected the previous 60-call cap strategy with two P1s: a fourteen-head zero-progress outage and stale shared-head thread classification. The successor candidate a1441f506fb1a0f42dbdf984d42e1f847e55db51 introduces bounded rotating head scheduling, at most three reruns per invocation, per-sibling target resolution and a final thread-state read immediately before rerun. Bootstrap #103 proves 86 tests, 664 statements, 292 branches, 100 percent line/branch and a live PR #2 probe at 7/60. REVIEW-0044 is OPEN; all 46 inline material threads remain unresolved."
+  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0043 independently rejected the previous 60-call cap strategy with two P1s: a fourteen-head zero-progress outage and stale shared-head thread classification. The successor candidate a1441f506fb1a0f42dbdf984d42e1f847e55db51 introduces bounded rotating head scheduling, at most three reruns per invocation, per-sibling target resolution and a final thread-state read immediately before rerun. Bootstrap #103 proved the code candidate; REVIEW-0044 OPEN checkpoint 71a1d0ff13ec25674f2d27201b261b7cbd149ae2 then passed Bootstrap #104 at the same proof level. REVIEW-0044 is now IN_PROGRESS. All 46 inline material threads remain unresolved."
 
 scope:
   in:
@@ -122,7 +122,7 @@ impact_analysis:
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "Historical detailed WORK state remains immutable in Git. The current candidate retains exact Checks merge-state authority, PR-number authority from canonical refs/pull/N/merge, stable Pull Requests snapshots, partitioned Actions history, protected current-attempt target jobs and the 60-call hard guard. It replaces cap-before-mutation scheduling with seven-head rotating batches, three-rerun maximum, per-sibling target resolution and final thread-state reclassification immediately before rerun. REVIEW-0044 must independently determine whether this closes REVIEW-0043 without introducing fairness, starvation or new TOCTOU failures. PR #2 must later port the final trusted-base behavior after PR #5 merge."
+  compatibility_notes: "Historical detailed WORK state remains immutable in Git. The current candidate retains exact Checks merge-state authority, PR-number authority from canonical refs/pull/N/merge, stable Pull Requests snapshots, partitioned Actions history, protected current-attempt target jobs and the 60-call hard guard. It replaces cap-before-mutation scheduling with seven-head rotating batches, three-rerun maximum, per-sibling target resolution and final thread-state reclassification immediately before rerun. REVIEW-0044 is IN_PROGRESS and must independently determine whether this closes REVIEW-0043 without introducing fairness, starvation or new TOCTOU failures. PR #2 must later port the final trusted-base behavior after PR #5 merge."
 
 implementation_plan:
   tasks:
@@ -250,12 +250,13 @@ validation:
     - "Progress scheduler candidate 38eceaab2da8320bad8a5b3929425bf1f14df54a ran Bootstrap #101 / 35074761258: live probe SUCCESS; self-test exposed one historical per-PR resolver assertion mismatch."
     - "Per-PR target compatibility correction bc1a665f2d38efaa313393565ad2c66f789f8a42 ran #102 / 35074911826: 85 tests PASS and live probe SUCCESS; one new branch remained uncovered so coverage gate correctly failed."
     - "Exact corrective candidate a1441f506fb1a0f42dbdf984d42e1f847e55db51 passed Bootstrap #103 / 35075010644: 86 tests, 664 statements, 292 branches, 100 percent line/branch, live PR #2 probe SUCCESS at 7/60."
+    - "REVIEW-0044 OPEN checkpoint 71a1d0ff13ec25674f2d27201b261b7cbd149ae2 passed Bootstrap #104 / 35075414885 at the same proof level: 86 tests, 664 statements, 292 branches, 100 percent, live PR #2 probe 7/60."
     - "The 14-head adversarial regression requires the first three nominal reruns at request counts 10, 18 and 26."
-  evidence: ["PR #5", "MONDE Stale-Green Bootstrap run 35070576172", "MONDE Stale-Green Bootstrap run 35074761258", "MONDE Stale-Green Bootstrap run 35074911826", "MONDE Stale-Green Bootstrap run 35075010644", REQ-0026, TEST-0009, REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039, REVIEW-0040, REVIEW-0041, REVIEW-0042, REVIEW-0043, REVIEW-0044]
+  evidence: ["PR #5", "MONDE Stale-Green Bootstrap run 35070576172", "MONDE Stale-Green Bootstrap run 35074761258", "MONDE Stale-Green Bootstrap run 35074911826", "MONDE Stale-Green Bootstrap run 35075010644", "MONDE Stale-Green Bootstrap run 35075414885", REQ-0026, TEST-0009, REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039, REVIEW-0040, REVIEW-0041, REVIEW-0042, REVIEW-0043, REVIEW-0044]
   coverage: {line: 100, branch: 100}
   known_gaps:
     - "All 46 inline material PR #5 threads remain unresolved."
-    - "REVIEW-0044 has not yet independently validated fairness, starvation resistance, final shared-head thread-state semantics or the corrected exact head."
+    - "REVIEW-0044 is IN_PROGRESS and has not yet independently validated fairness, starvation resistance, final shared-head thread-state semantics or the corrected exact head."
     - "Time-derived fairness rotation may behave unexpectedly under skipped or duplicated schedules and requires red-team review."
     - "Pathological pagination may still consume the hard 60-call budget within a selected head; fail-closed semantics require independent challenge."
     - "A same-head workflow can still complete after the final thread-state read; remaining TOCTOU must be reviewed."
@@ -269,7 +270,7 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Initial deterministic governance implementation."}
   - {run: RUN-2, date: "2026-09-11", note: "P0-P2 hardening and GitHub proof remains IN_REVIEW."}
-  - {run: RUN-3, date: "2026-09-16", note: "REVIEW-0043 was terminal CHANGES_REQUIRED; corrective candidate a1441f5 is exact-head proven by Bootstrap #103 and REVIEW-0044 is OPEN. 46 inline findings remain unresolved."}
+  - {run: RUN-3, date: "2026-09-16", note: "REVIEW-0043 was terminal CHANGES_REQUIRED; corrective candidate a1441f5 and REVIEW-0044 OPEN checkpoint are exact-head proven, REVIEW-0044 is now IN_PROGRESS. 46 inline findings remain unresolved."}
 discoveries:
   - "100 percent coverage does not replace adversarial property review."
   - "Execution evidence is SHA-bound."
@@ -281,7 +282,7 @@ discoveries:
   - "Final review-thread observation must be close to rerun authority, and shared commit-scoped checks require sibling-aware scheduling."
   - "Fair batching must be challenged for starvation as well as raw API consumption."
 blockers:
-  - "Prove the synchronized REVIEW-0044 OPEN checkpoint, transition to IN_PROGRESS only after green proof, then run a fresh independent exact-head L2 before any of the 46 inline threads are resolved."
+  - "Prove the synchronized REVIEW-0044 IN_PROGRESS checkpoint, freeze that exact head, then run one fresh independent exact-head L2 before any of the 46 inline threads are resolved."
   - "Any REVIEW-0044 material finding requires correction and another successor review."
   - "After PR #5 merge, PR #2 must integrate new main and port durable poller parity before T12 closes."
   - "WORK-0002 final closure requires eligible trusted non-author exact-head APPROVED collaborator evidence."
