@@ -32,9 +32,9 @@ It corrects the six REVIEW-0045 P1 classes without broadening the bootstrap scop
 
 The mutation path remains capped at 100 script-issued GitHub requests with explicit mutation/post-condition/state-write reserves. The live probe remains read-only; only the trusted schedule receives `actions: write` and `issues: write`.
 
-## Exact REVIEW-0046 runtime proof
+## Exact REVIEW-0046 proof chain
 
-Bootstrap **#122 / run `35087404773`** on exact SHA `2ee7c8d9e27d7f402a9619e4da8ea76200ae7f9d` is fully green:
+Bootstrap **#122 / run `35087404773`** on exact runtime SHA `2ee7c8d9e27d7f402a9619e4da8ea76200ae7f9d` is fully green:
 
 - **110/110 tests PASS**;
 - core: 457 statements / 204 branches, 100%;
@@ -44,11 +44,13 @@ Bootstrap **#122 / run `35087404773`** on exact SHA `2ee7c8d9e27d7f402a9619e4da8
 - live PR #2 GitHub contract probe SUCCESS: `open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true`;
 - live probe consumed **7/100** script-issued requests under read-only Actions/Checks/Contents/PullRequests permissions.
 
+The synchronized REVIEW-0046 `OPEN` checkpoint **`4552a42ef352c1b85619e0dc96049d1d7788ca9d`** then passed Bootstrap **#123 / run `35088041064`** with the same **110 tests / 1,087 statements / 488 branches / 100%** proof and live PR #2 probe SUCCESS at **7/100** requests.
+
 Intermediate REVIEW-0046 heads deliberately exposed test-harness and uncovered-path gaps while the live contract remained green; those gaps were corrected before this proof. Dead/unreachable duplicate guard code was removed rather than artificially covered.
 
 ## REVIEW-0046 lifecycle
 
-REVIEW-0046 is now being materialized as `OPEN`. Its fresh independent L2 has **not** started. The OPEN checkpoint must itself pass exact-head self-test and live contract proof before any `IN_PROGRESS` transition.
+REVIEW-0046 is now `IN_PROGRESS`. Its independent L2 has not yet completed. This synchronized IN_PROGRESS checkpoint must itself pass exact-head self-test and live contract proof; after that proof the exact SHA is frozen for one fresh-context independent review.
 
 The fresh review must actively re-check all **55 unresolved material threads** and red-team at minimum:
 
@@ -73,14 +75,13 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 ## Current next action
 
 1. Keep all **55** PR #5 inline material threads unresolved.
-2. Commit TEST-0009 / WORK-0002 / PROJECT_STATE / REVIEW-0046 `OPEN` atomically above the proven `2ee7c8d9...` runtime.
-3. Prove that exact OPEN checkpoint with Bootstrap self-test + live read-only PR #2 contract probe.
-4. If green, transition REVIEW-0046 to `IN_PROGRESS` in one synchronized state-only checkpoint and prove that descendant exact-head.
-5. Freeze the exact `IN_PROGRESS` SHA and re-confirm 55/55 threads remain unresolved and no fresh exact-head review already exists.
-6. Invoke exactly one fresh-context independent L2/Codex review on that frozen SHA.
-7. During REVIEW-0046, do not mutate the Git tree, merge, or resolve historical threads.
-8. Any new material finding requires correction, exact-head re-proof and another successor review.
-9. WORK-0003 and WORK-0004 remain blocked.
+2. Commit REVIEW-0046 `IN_PROGRESS` together with synchronized WORK-0002 / PROJECT_STATE lifecycle state.
+3. Prove that exact IN_PROGRESS checkpoint with Bootstrap self-test + live read-only PR #2 contract probe.
+4. Freeze the exact proven SHA and re-confirm 55/55 threads remain unresolved and no fresh exact-head review already exists.
+5. Invoke exactly one fresh-context independent L2/Codex review on that frozen SHA.
+6. During REVIEW-0046, do not mutate the Git tree, merge, or resolve historical threads.
+7. Any new material finding requires correction, exact-head re-proof and another successor review.
+8. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
