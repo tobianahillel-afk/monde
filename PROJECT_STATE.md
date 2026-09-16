@@ -31,9 +31,9 @@ It corrects the five REVIEW-0046 finding classes without broadening the bootstra
 
 The prior protections remain in force: serialized issue #7 writers, global three-POST cap, at most seven head groups per invocation, 100 script-issued GitHub requests with explicit reserves, fail-closed malformed metadata, and a read-only live PR #2 contract probe.
 
-## Exact REVIEW-0047 runtime proof
+## Exact REVIEW-0047 proof chain
 
-Bootstrap **#127 / run `35102314409`** on exact SHA `efac4c61aa7dd61b17088e5f8a5b1fae82199d3c` is fully green:
+Bootstrap **#127 / run `35102314409`** on exact runtime SHA `efac4c61aa7dd61b17088e5f8a5b1fae82199d3c` is fully green:
 
 - **116/116 tests PASS**;
 - core: 457 statements / 204 branches, 100%;
@@ -45,9 +45,11 @@ Bootstrap **#127 / run `35102314409`** on exact SHA `efac4c61aa7dd61b17088e5f8a5
 
 Two intermediate proof attempts were intentionally not accepted: Bootstrap #125 exposed an old shared-head test harness that mocked only one PR-authority read, and Bootstrap #126 passed all 115 functional tests but exposed five uncovered successor guard paths. Both gaps were corrected before #127; the coverage threshold was never lowered.
 
+The synchronized REVIEW-0047 `OPEN` checkpoint **`f2f94a25acef881d0928e2ef80d073dcd9540c41`** then passed Bootstrap **#128 / run `35103307534`** with the same **116 tests / 1,153 statements / 522 branches / 100%** proof and live PR #2 probe SUCCESS at **7/100** requests.
+
 ## REVIEW-0047 lifecycle
 
-REVIEW-0047 is now materialized as `OPEN`. No independent L2 has started yet. This synchronized `OPEN` checkpoint must itself pass the exact-head bootstrap self-test and live PR #2 probe before any transition to `IN_PROGRESS`.
+REVIEW-0047 is now `IN_PROGRESS`. No independent L2 result has been accepted yet. This synchronized `IN_PROGRESS` checkpoint must itself pass the exact-head bootstrap self-test and live PR #2 probe; after that proof its SHA is frozen for exactly one fresh-context independent L2/Codex review.
 
 The successor review must re-check all **60 unresolved material threads** and red-team at minimum:
 
@@ -71,13 +73,12 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 ## Current next action
 
 1. Keep all **60** PR #5 inline material threads unresolved.
-2. Prove this exact synchronized REVIEW-0047 `OPEN` checkpoint with Bootstrap self-test + live read-only PR #2 contract probe.
-3. If green, transition REVIEW-0047 to `IN_PROGRESS` in one synchronized state-only checkpoint and prove that descendant exact-head.
-4. Freeze the exact proven `IN_PROGRESS` SHA and re-confirm 60/60 threads remain unresolved and no fresh exact-head review already exists.
-5. Invoke exactly one fresh-context independent L2/Codex review on that frozen SHA.
-6. During REVIEW-0047, do not mutate the Git tree, merge, or resolve historical threads.
-7. Any new material finding requires correction, exact-head re-proof and another successor review.
-8. WORK-0003 and WORK-0004 remain blocked.
+2. Prove this exact synchronized REVIEW-0047 `IN_PROGRESS` checkpoint with Bootstrap self-test + live read-only PR #2 contract probe.
+3. Freeze the exact proven SHA and re-confirm 60/60 threads remain unresolved and no fresh exact-head review already exists.
+4. Invoke exactly one fresh-context independent L2/Codex review on that frozen SHA.
+5. During REVIEW-0047, do not mutate the Git tree, merge, or resolve historical threads.
+6. Any new material finding requires correction, exact-head re-proof and another successor review.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 

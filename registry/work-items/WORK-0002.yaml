@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0046 is terminal COMPLETE/CHANGES_REQUIRED on e9c22ab562f724ba77e21f32cf8195b0b1ed5b5b and adds five findings to the prior 55, leaving 60 unresolved inline material threads. The REVIEW-0047 corrective runtime is proven on exact SHA efac4c61aa7dd61b17088e5f8a5b1fae82199d3c by Bootstrap #127 / run 35102314409: 116 tests, 1153 statements, 522 branches, 100% line+branch and a successful live read-only PR #2 contract probe at 7/100 requests. REVIEW-0047 is OPEN; no historical thread has been resolved."
+  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0046 is terminal COMPLETE/CHANGES_REQUIRED on e9c22ab562f724ba77e21f32cf8195b0b1ed5b5b and adds five findings to the prior 55, leaving 60 unresolved inline material threads. The REVIEW-0047 corrective runtime is proven on exact SHA efac4c61aa7dd61b17088e5f8a5b1fae82199d3c by Bootstrap #127 / run 35102314409: 116 tests, 1153 statements, 522 branches, 100% line+branch and a successful live read-only PR #2 contract probe at 7/100 requests. The synchronized REVIEW-0047 OPEN checkpoint f2f94a25acef881d0928e2ef80d073dcd9540c41 then passed Bootstrap #128 / run 35103307534 with the same 116 tests / 1153 statements / 522 branches / 100% proof and live 7/100 probe. REVIEW-0047 is now IN_PROGRESS; no historical thread has been resolved."
 
 scope:
   in:
@@ -98,7 +98,7 @@ review_plan:
   completed_reviews: [REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039, REVIEW-0042, REVIEW-0043, REVIEW-0044, REVIEW-0045, REVIEW-0046]
   open_findings:
     - "PR #2 branch-local unresolved material findings remain pending final integration/review."
-    - "REVIEW-0047 is OPEN; its fresh independent L2 has not started."
+    - "REVIEW-0047 is IN_PROGRESS; its fresh independent L2 is the current gate and has not yet completed."
     - PRRT_kwDOUUI5ts6ijmtc
     - PRRT_kwDOUUI5ts6ijmtj
     - PRRT_kwDOUUI5ts6ijmtr
@@ -212,17 +212,17 @@ validation:
     - "Bootstrap #125 / run 35101931714 exposed an old shared-head test harness incompatible with mutation-boundary double PR revalidation; live PR #2 probe remained green"
     - "Bootstrap #126 / run 35102057746 passed 115 functional tests but exposed five uncovered successor guard paths; coverage threshold remained 100 percent"
     - "Bootstrap #127 / run 35102314409 on REVIEW-0047 corrective runtime efac4c61aa7dd61b17088e5f8a5b1fae82199d3c"
+    - "Bootstrap #128 / run 35103307534 on synchronized REVIEW-0047 OPEN checkpoint f2f94a25acef881d0928e2ef80d073dcd9540c41"
   evidence:
-    - "Bootstrap #127: 116/116 tests PASS"
-    - "Bootstrap #127: 1153 statements / 522 branches at 100 percent line and branch coverage"
-    - "Bootstrap #127 live PR #2 probe SUCCESS: open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true"
-    - "Bootstrap #127 live probe consumed 7/100 script-issued requests under read-only Actions/Checks/Contents/PullRequests permissions"
+    - "Bootstrap #127: 116/116 tests PASS; 1153 statements / 522 branches at 100 percent line and branch coverage"
+    - "Bootstrap #127 live PR #2 probe SUCCESS at 7/100 read-only requests"
+    - "Bootstrap #128 re-proved the synchronized OPEN state exact-head with the same 116 tests / 1153 statements / 522 branches / 100 percent and live PR #2 probe SUCCESS at 7/100"
     - "REVIEW-0046 independently found four P1s and one P2; REVIEW-0047 regressions exercise each failure class"
   coverage: {line: 100, branch: 100}
   known_gaps:
-    - "REVIEW-0047 is OPEN and has not yet been independently executed."
+    - "REVIEW-0047 is IN_PROGRESS and its independent exact-head L2 has not yet completed."
     - "All 60 PR #5 inline material threads remain unresolved."
-    - "The synchronized REVIEW-0047 OPEN checkpoint must pass exact-head proof before transition to IN_PROGRESS."
+    - "The REVIEW-0047 IN_PROGRESS state checkpoint must pass exact-head proof and then remain frozen during the independent review."
     - "PR #2 must later integrate final trusted-base contract and obtain trusted non-author exact-head APPROVED evidence."
 risk: {security: HIGH, data: NONE, epistemic: LOW, performance: HIGH, operational: HIGH}
 rollback:
@@ -230,6 +230,7 @@ rollback:
 run_log:
   - "REVIEW-0046 terminal negative: e9c22ab562f724ba77e21f32cf8195b0b1ed5b5b / PRR_kwDOUUI5ts8AAAABNz-eNg / five new findings."
   - "REVIEW-0047 corrective runtime checkpoint efac4c61aa7dd61b17088e5f8a5b1fae82199d3c passed Bootstrap #127: 116 tests / 1153 statements / 522 branches / 100 percent plus live PR #2 probe 7/100."
+  - "Synchronized REVIEW-0047 OPEN checkpoint f2f94a25acef881d0928e2ef80d073dcd9540c41 passed Bootstrap #128 with the same 116-test / 1153-statement / 522-branch / 100 percent proof and live PR #2 probe 7/100."
 discoveries:
   - "A bounded local rerun waiter is insufficient; pending observation must survive scheduler invocations."
   - "A changed exact-head check is not causal evidence unless its run/job/attempt binds to the observed rerun."
@@ -237,7 +238,7 @@ discoveries:
   - "Durable target-history continuation requires a membership anchor because retained check history can reorder or shrink."
   - "Scheduler issue identity is a trust boundary and uses the same exact-integer discipline as run/job identifiers."
 blockers:
-  - "REVIEW-0047 OPEN checkpoint must be proven, then transitioned atomically to IN_PROGRESS and frozen for one fresh independent L2."
+  - "REVIEW-0047 IN_PROGRESS exact head must be proven and frozen for one fresh independent L2."
   - "60 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
