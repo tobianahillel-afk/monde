@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -19,14 +20,17 @@ TARGET_CHECK_PAGE_SIZE = 12
 MAX_TARGET_PAGES_PER_INVOCATION = 2
 MAX_POSTCONDITION_POLLS = 6
 POSTCONDITION_POLL_SECONDS = 2.0
+POSTCONDITION_REQUEST_RESERVE = MAX_POSTCONDITION_POLLS * 2 + 8
 MIN_TARGET_REQUEST_HEADROOM = 40
 STATE_WRITE_REQUEST_RESERVE = 1
 SCHEDULER_STATE_TITLE = "MONDE stale-green scheduler state — machine managed"
-SCHEDULER_STATE_MARKER = "MONDE_STALE_GREEN_SCHEDULER_V2"
+SCHEDULER_STATE_MARKER = "MONDE_STALE_GREEN_SCHEDULER_V3"
+PREVIOUS_SCHEDULER_STATE_MARKER = "MONDE_STALE_GREEN_SCHEDULER_V2"
 LEGACY_SCHEDULER_STATE_MARKER = "MONDE_STALE_GREEN_SCHEDULER_V1"
 _REUSABLE_WORKFLOW_PATH = ".github/workflows/_governance-core.yml"
 _PULL_REF = re.compile(r"refs/pull/([1-9][0-9]*)/merge")
 _SHA40 = re.compile(r"[0-9a-f]{40}")
+_SHA256 = re.compile(r"[0-9a-f]{64}")
 _request_count = 0
 _ORIGINAL_REQUEST_DATA = snapshot._ORIGINAL_REQUEST_DATA
 
@@ -35,10 +39,24 @@ class DeferredForBudget(RuntimeError):
     pass
 
 
+class DeferredObservation(RuntimeError):
+    pass
+
+
+class ScanPage(int):
+    anchor: str
+
+    def __new__(cls, value: int, anchor: str = "-") -> "ScanPage":
+        obj = int.__new__(cls, value)
+        obj.anchor = anchor
+        return obj
+
+
 class SchedulerState(NamedTuple):
     cursor_pr: int
     scan_pr: int
     scan_page: int
+    scan_anchor: str = "-"
 
 
 def _reset_request_budget() -> None:
@@ -79,26 +97,40 @@ def _scheduler_issue_number() -> int:
 def _validate_scheduler_state(state: SchedulerState) -> SchedulerState:
     if state.cursor_pr < 0 or state.scan_pr < 0 or state.scan_page < 1:
         raise RuntimeError("scheduler state values are outside their allowed range")
-    if state.scan_pr == 0 and state.scan_page != 1:
+    if not isinstance(state.scan_anchor, str) or (
+        state.scan_anchor != "-" and _SHA256.fullmatch(state.scan_anchor) is None
+    ):
+        raise RuntimeError("scheduler scan anchor is malformed")
+    if state.scan_pr == 0 and (state.scan_page != 1 or state.scan_anchor != "-"):
         raise RuntimeError("idle scheduler state must restart target scanning at page 1")
     return state
 
 
-def _scheduler_body(cursor_pr: int, scan_pr: int = 0, scan_page: int = 1) -> str:
-    state = _validate_scheduler_state(SchedulerState(cursor_pr, scan_pr, scan_page))
+def _scheduler_body(
+    cursor_pr: int,
+    scan_pr: int = 0,
+    scan_page: int = 1,
+    scan_anchor: str = "-",
+) -> str:
+    state = _validate_scheduler_state(
+        SchedulerState(cursor_pr, scan_pr, scan_page, scan_anchor)
+    )
     return (
         f"{SCHEDULER_STATE_MARKER}\n"
         f"cursor_pr: {state.cursor_pr}\n"
         f"scan_pr: {state.scan_pr}\n"
-        f"scan_page: {state.scan_page}\n\n"
+        f"scan_page: {state.scan_page}\n"
+        f"scan_anchor: {state.scan_anchor}\n\n"
         "Machine-managed durable cursor for the trusted default-branch stale-green bootstrap. "
         "Do not edit manually. The scheduled bootstrap validates this exact marker before reading or updating the cursor."
     )
 
 
 def _parse_scheduler_state(issue: dict[str, Any], issue_number: int) -> SchedulerState:
+    number = issue.get("number")
     if (
-        issue.get("number") != issue_number
+        not core._positive_int(number)
+        or number != issue_number
         or issue.get("title") != SCHEDULER_STATE_TITLE
         or issue.get("state") != "open"
         or "pull_request" in issue
@@ -117,9 +149,22 @@ def _parse_scheduler_state(issue: dict[str, Any], issue_number: int) -> Schedule
     if legacy is not None:
         return SchedulerState(int(legacy.group(1)), 0, 1)
 
+    previous = re.fullmatch(
+        rf"{re.escape(PREVIOUS_SCHEDULER_STATE_MARKER)}\ncursor_pr: ([0-9]+)\n"
+        r"scan_pr: ([0-9]+)\nscan_page: ([1-9][0-9]*)\n\n"
+        r"Machine-managed durable cursor for the trusted default-branch stale-green bootstrap\. "
+        r"Do not edit manually\. The scheduled bootstrap validates this exact marker before reading or updating the cursor\.",
+        body,
+    )
+    if previous is not None:
+        return _validate_scheduler_state(
+            SchedulerState(int(previous.group(1)), int(previous.group(2)), 1, "-")
+        )
+
     current = re.fullmatch(
         rf"{re.escape(SCHEDULER_STATE_MARKER)}\ncursor_pr: ([0-9]+)\n"
-        r"scan_pr: ([0-9]+)\nscan_page: ([1-9][0-9]*)\n\n"
+        r"scan_pr: ([0-9]+)\nscan_page: ([1-9][0-9]*)\n"
+        r"scan_anchor: (-|[0-9a-f]{64})\n\n"
         r"Machine-managed durable cursor for the trusted default-branch stale-green bootstrap\. "
         r"Do not edit manually\. The scheduled bootstrap validates this exact marker before reading or updating the cursor\.",
         body,
@@ -127,7 +172,12 @@ def _parse_scheduler_state(issue: dict[str, Any], issue_number: int) -> Schedule
     if current is None:
         raise RuntimeError("scheduler state issue body does not match the closed-world cursor contract")
     return _validate_scheduler_state(
-        SchedulerState(int(current.group(1)), int(current.group(2)), int(current.group(3)))
+        SchedulerState(
+            int(current.group(1)),
+            int(current.group(2)),
+            int(current.group(3)),
+            current.group(4),
+        )
     )
 
 
@@ -293,6 +343,24 @@ def _candidate_gate_check_page(
     return [item[2] for item in validated], has_more
 
 
+def _check_page_anchor(checks: list[dict[str, Any]], has_more: bool) -> str:
+    material = [
+        (
+            check.get("id"),
+            check.get("status"),
+            check.get("conclusion"),
+            check.get("completed_at"),
+        )
+        for check in checks
+    ]
+    encoded = json.dumps(
+        {"has_more": has_more, "checks": material},
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def _triggering_pr_authority(repo: str, run: dict[str, Any]) -> tuple[int, str]:
     references = run.get("referenced_workflows")
     if not isinstance(references, list) or not references:
@@ -395,6 +463,7 @@ def _direct_target_for_pr(
     token: str,
     pr: dict[str, Any],
     start_page: int = 1,
+    expected_anchor: str = "-",
 ) -> tuple[tuple[dict[str, Any], dict[str, Any]] | None, int | None]:
     if _remaining_request_budget() < MIN_TARGET_REQUEST_HEADROOM:
         raise DeferredForBudget("insufficient request headroom for bounded target validation and mutation")
@@ -404,12 +473,26 @@ def _direct_target_for_pr(
     if merge_sha is None:
         raise RuntimeError(f"open PR #{number} lacks a current merge-ref SHA")
     page = start_page
+    if page > 1:
+        if _SHA256.fullmatch(expected_anchor) is None:
+            page = 1
+        else:
+            prior_checks, prior_has_more = _candidate_gate_check_page(
+                repo, identity[2], token, page - 1
+            )
+            if (
+                not prior_has_more
+                or _check_page_anchor(prior_checks, prior_has_more) != expected_anchor
+            ):
+                page = 1
+    page_anchor = "-"
     for _ in range(MAX_TARGET_PAGES_PER_INVOCATION):
         if _remaining_request_budget() < MIN_TARGET_REQUEST_HEADROOM:
             raise DeferredForBudget("insufficient request headroom before target check page")
         checks, has_more = _candidate_gate_check_page(repo, identity[2], token, page)
+        page_anchor = _check_page_anchor(checks, has_more)
         for check in checks:
-            if _remaining_request_budget() <= STATE_WRITE_REQUEST_RESERVE + MAX_POSTCONDITION_POLLS + 6:
+            if _remaining_request_budget() <= STATE_WRITE_REQUEST_RESERVE + POSTCONDITION_REQUEST_RESERVE + 5:
                 raise DeferredForBudget("request headroom reached while validating bounded check candidates")
             run_id, job_id = _validate_gate_check(check, identity[2])
             run = core.request_data(f"https://api.github.com/repos/{repo}/actions/runs/{run_id}", token)
@@ -436,7 +519,7 @@ def _direct_target_for_pr(
         if not has_more:
             return None, None
         page += 1
-    return None, page
+    return None, ScanPage(page, page_anchor)
 
 
 def _latest_check_is_merge_acceptable(check: dict[str, Any] | None) -> bool:
@@ -454,8 +537,12 @@ def _wait_for_terminal_invalidation(
     run_id: int,
     previous_attempt: int,
     previous_check_id: int,
+    original_pr: dict[str, Any] | None = None,
+    strict_job_binding: bool = False,
 ) -> bool:
     terminal_run: dict[str, Any] | None = None
+    terminal_attempt = 0
+    protected_conclusion: str | None = None
     for poll_index in range(MAX_POSTCONDITION_POLLS):
         if terminal_run is None:
             run = core.request_data(f"https://api.github.com/repos/{repo}/actions/runs/{run_id}", token)
@@ -466,15 +553,39 @@ def _wait_for_terminal_invalidation(
                 if poll_index + 1 < MAX_POSTCONDITION_POLLS:
                     time.sleep(POSTCONDITION_POLL_SECONDS)
                 continue
-            core.required_merge_gate_conclusion(repo, run, token)
+            protected_conclusion = core.required_merge_gate_conclusion(repo, run, token)
             terminal_run = run
+            terminal_attempt = attempt
 
         latest = core.latest_required_check(repo, head, token)
         if latest is not None and latest.get("id") != previous_check_id:
-            return not _latest_check_is_merge_acceptable(latest)
+            latest_run_id, latest_job_id = _validate_gate_check(latest, head)
+            if latest_run_id == run_id and latest.get("status") == "completed":
+                if latest.get("conclusion") != protected_conclusion:
+                    raise RuntimeError("rerun protected job and effective required check disagree")
+                if strict_job_binding:
+                    job = core.request_data(
+                        f"https://api.github.com/repos/{repo}/actions/jobs/{latest_job_id}", token
+                    )
+                    if not isinstance(job, dict):
+                        raise RuntimeError("GitHub returned malformed rerun protected-job post-condition")
+                    _validate_protected_job(
+                        job,
+                        job_id=latest_job_id,
+                        run_id=run_id,
+                        run_attempt=terminal_attempt,
+                        head=head,
+                    )
+                    if job["conclusion"] != protected_conclusion:
+                        raise RuntimeError("rerun protected job and effective required check disagree")
+                if original_pr is not None and _current_pr(repo, token, original_pr) is None:
+                    raise DeferredObservation("pull request authority changed while observing rerun post-condition")
+                return not _latest_check_is_merge_acceptable(latest)
         if poll_index + 1 < MAX_POSTCONDITION_POLLS:
             time.sleep(POSTCONDITION_POLL_SECONDS)
-    raise RuntimeError("rerun did not reach a terminal required-check post-condition within the bounded observation window")
+    raise DeferredObservation(
+        "rerun did not reach a terminal required-check post-condition within the bounded observation window"
+    )
 
 
 def _ordered_group_for_scan(
@@ -497,12 +608,19 @@ def _process_head_group(
     rerun_slots: int,
     scan_pr: int = 0,
     scan_page: int = 1,
+    scan_anchor: str = "-",
 ) -> tuple[list[int], list[str], tuple[int, int] | None]:
     head = core._pr_head_identity(group[0])[2]
     current_check = core.latest_required_check(repo, head, token)
+    if current_check is None:
+        return [], [], None
+    if current_check.get("status") != "completed":
+        for original in _ordered_group_for_scan(group, scan_pr):
+            if core.unresolved_review_threads(repo, original["number"], token):
+                return [], [], (original["number"], ScanPage(1))
+        return [], [], None
     if not _latest_check_is_merge_acceptable(current_check):
         return [], [], None
-    assert current_check is not None
     errors: list[str] = []
     posted: list[int] = []
     for original in _ordered_group_for_scan(group, scan_pr):
@@ -514,7 +632,12 @@ def _process_head_group(
         if not core.unresolved_review_threads(repo, number, token):
             continue
         start_page = scan_page if number == scan_pr else 1
-        target, next_page = _direct_target_for_pr(repo, token, original, start_page)
+        if number == scan_pr and scan_anchor != "-":
+            target, next_page = _direct_target_for_pr(
+                repo, token, original, start_page, scan_anchor
+            )
+        else:
+            target, next_page = _direct_target_for_pr(repo, token, original, start_page)
         if next_page is not None:
             return posted, errors, (number, next_page)
         if target is None:
@@ -530,20 +653,29 @@ def _process_head_group(
         if not _latest_check_is_merge_acceptable(latest):
             return posted, errors, None
         assert latest is not None
-        if _remaining_request_budget() < MAX_POSTCONDITION_POLLS + STATE_WRITE_REQUEST_RESERVE + 3:
+        mutation_fresh = _current_pr(repo, token, original)
+        if mutation_fresh is None:
+            return posted, errors, (number, ScanPage(1))
+        if _remaining_request_budget() < POSTCONDITION_REQUEST_RESERVE + STATE_WRITE_REQUEST_RESERVE:
             raise DeferredForBudget("insufficient request headroom for rerun post-condition")
         run_id = int(run["id"])
         previous_attempt = int(run["run_attempt"])
         core.rerun_workflow(repo, run_id, token)
         posted.append(run_id)
-        if _wait_for_terminal_invalidation(
-            repo,
-            head,
-            token,
-            run_id,
-            previous_attempt,
-            int(latest["id"]),
-        ):
+        try:
+            invalidated = _wait_for_terminal_invalidation(
+                repo,
+                head,
+                token,
+                run_id,
+                previous_attempt,
+                int(latest["id"]),
+                original,
+                True,
+            )
+        except DeferredObservation:
+            return posted, errors, (number, ScanPage(1))
+        if invalidated:
             return posted, errors, None
         if core.unresolved_review_threads(repo, number, token):
             raise RuntimeError(
@@ -584,6 +716,7 @@ def poll(repo: str, token: str) -> list[int]:
     processed = 0
     active_scan_pr = state.scan_pr
     active_scan_page = state.scan_page
+    active_scan_anchor = state.scan_anchor
 
     for group in groups:
         if processed >= MAX_HEADS_PER_INVOCATION or len(rerun_ids) >= MAX_RERUNS_PER_INVOCATION:
@@ -599,6 +732,7 @@ def poll(repo: str, token: str) -> list[int]:
                 MAX_RERUNS_PER_INVOCATION - len(rerun_ids),
                 active_scan_pr,
                 active_scan_page,
+                active_scan_anchor,
             )
             rerun_ids.extend(head_reruns)
             errors.extend(head_errors)
@@ -609,7 +743,14 @@ def poll(repo: str, token: str) -> list[int]:
             continuation = None
 
         if continuation is not None:
-            next_state = SchedulerState(last_cursor, continuation[0], continuation[1])
+            continuation_page = continuation[1]
+            anchor = getattr(continuation_page, "anchor", "-")
+            next_state = SchedulerState(
+                last_cursor,
+                continuation[0],
+                int(continuation_page),
+                anchor,
+            )
             _write_scheduler_state(repo, token, next_state)
             if errors:
                 raise RuntimeError("; ".join(errors))
@@ -618,6 +759,7 @@ def poll(repo: str, token: str) -> list[int]:
         last_cursor = min(pr["number"] for pr in group)
         active_scan_pr = 0
         active_scan_page = 1
+        active_scan_anchor = "-"
 
     if groups:
         _write_scheduler_state(repo, token, SchedulerState(last_cursor, 0, 1))
