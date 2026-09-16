@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0048 is CLOSED/CHANGES_REQUIRED administrative negative evidence after quota prevented its independent L2 and author-side PRR_kwDOUUI5ts8AAAABN4OKew found missing durable rerun identity across DeferredObservation. REVIEW-0049 added V4 write-ahead pending mutation identity and was technically proven through frozen head c8f1fec24358c25224771a15b647d56c8a2f0287 / Bootstrap #147, but is now CLOSED/CHANGES_REQUIRED after author-side PRR_kwDOUUI5ts8AAAABN4rPMg found that closing the selected pending PR clears an already-issued rerun before its terminal shared-head effect is accounted for. The fresh Codex trigger 5702590288 produced no exact-head review before invalidation. All 63 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW. REVIEW-0050 must preserve pending mutation authority across origin-PR closure and reclassify current open same-head siblings after the exact terminal mutation effect."
+  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0049 is now terminal COMPLETE/CHANGES_REQUIRED independent negative evidence on c8f1fec24358c25224771a15b647d56c8a2f0287 via PRR_kwDOUUI5ts8AAAABN4sxvg, with independent P1s PRRT_kwDOUUI5ts6jEPa- and PRRT_kwDOUUI5ts6jEPa_. REVIEW-0050 addresses both: V5 keeps reversible pending-head authority across origin-PR closure and reclassifies same-head siblings after terminal green; the recovery successor makes unresolved pre-POST write-ahead ambiguity loud and provides only an exact-tuple, operator-confirmed, serialized, no-actions:write break-glass clear path. Exact candidate cbe21fa4cebc1c8f8b3030af17284de5700f9818 passed Bootstrap #154 / run 35152847816 with 194/194 tests, 1856 statements / 842 branches, 100 percent line+branch and live read-only PR #2 probe SUCCESS. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -25,7 +25,7 @@ scope:
     - canonical current-PR rerun authority from refs/pull/<N>/merge plus current merge-ref SHA and current head/base identity
     - bounded selected-PR target discovery with durable scan_pr/scan_page/scan_anchor continuation and drift restart
     - same-invocation page-boundary verification so offset pagination cannot silently skip a retained target
-    - exact positive non-Boolean run/workflow/job/attempt/scheduler-issue/pending-PR identifiers
+    - exact positive non-Boolean run/workflow/job/attempt/scheduler-issue/pending-PR/recovery identifiers
     - no trust in dynamic workflow_run.pull_requests as event-time provenance
     - no exhaustive Actions-history reconstruction on the mutation path
     - durable machine-managed scheduler cursor in issue #7 and serialized trusted writers
@@ -35,12 +35,15 @@ scope:
     - terminal protected-job plus effective exact-head check causal binding before invalidation is accepted
     - durable retention of a PR/head when post-condition observation is deferred or a completed rerun is already stale-green again
     - durable write-ahead pending-mutation identity before rerun POST, sufficient to resume observation without issuing a duplicate POST
-    - pending mutation authority must survive origin-PR closure until the exact external mutation effect is terminally accounted for
-    - terminal merge-acceptable pending results must reclassify current open same-head PRs before scheduler progress can forget the mutation
+    - pending mutation authority survives origin-PR closure until the exact external mutation effect is terminally accounted for
+    - terminal merge-acceptable closed-origin pending results reclassify current open same-head PRs before scheduler progress can forget the mutation
     - ambiguous rerun POST outcomes remain pending and fail closed instead of automatic replay
-    - invocation-wide hard 100-call GitHub request counter with mutation/post-condition/state reserves
-    - fail-closed REST/GraphQL/Checks/Actions/Issue metadata and bounded pagination
-    - least-privilege live read-only probe; actions:write/issues:write only on trusted scheduled path
+    - bounded ambiguous pending observation is loud and retains state rather than silently succeeding
+    - trusted break-glass recovery is exact-tuple bound, operator-confirmed, auditable, serialized and has no actions:write capability
+    - recovery revalidates unchanged baseline attempt, prior effective-check identity and current same-head authority before clearing an operator-confirmed unposted intent
+    - invocation-wide hard 100-call GitHub request counter with mutation/post-condition/state-write reserves
+    - fail-closed REST/GraphQL/Checks/Actions/Issue/PR/recovery metadata and bounded pagination
+    - least-privilege live read-only probe; actions:write only on trusted scheduled invalidation, issues:write on scheduled/recovery trusted paths
     - exact-head line/branch coverage, real GitHub probe and review lifecycle proof
   out:
     - MONDE product implementation
@@ -68,14 +71,14 @@ assurance:
   rationale: "Repository-wide trust gate for future AI-authored work."
   escalation_triggers: ["changes to DONE/review semantics", "changes to transition/scope-drift semantics", "changes to workflow trust boundaries"]
 
-read_before: [AGENTS.md, docs/00_START_HERE.md, docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md, docs/13_QUALITY/review-council.md, docs/13_QUALITY/advanced-verification.md, registry/README.md, registry/progress/matrix.yaml, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0048.yaml, registry/reviews/REVIEW-0049.yaml]
+read_before: [AGENTS.md, docs/00_START_HERE.md, docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md, docs/13_QUALITY/review-council.md, docs/13_QUALITY/advanced-verification.md, registry/README.md, registry/progress/matrix.yaml, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0048.yaml, registry/reviews/REVIEW-0049.yaml, registry/reviews/REVIEW-0050.yaml]
 depends_on: [WORK-0001]
 blocks: [WORK-0003, WORK-0004]
 reuses: ["status vocabulary", "registry contracts", "Review Council and assurance-level contracts"]
 affected_capabilities: []
 affected_engines: []
 affected_schemas: []
-affected_docs: [PROJECT_STATE.md, docs/03_ARCHITECTURE/github-control-plane.md, docs/13_QUALITY/ai-context-routing.md, registry/progress/matrix.yaml, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0031.yaml, registry/reviews/REVIEW-0032.yaml, registry/reviews/REVIEW-0033.yaml, registry/reviews/REVIEW-0034.yaml, registry/reviews/REVIEW-0035.yaml, registry/reviews/REVIEW-0036.yaml, registry/reviews/REVIEW-0037.yaml, registry/reviews/REVIEW-0038.yaml, registry/reviews/REVIEW-0039.yaml, registry/reviews/REVIEW-0040.yaml, registry/reviews/REVIEW-0041.yaml, registry/reviews/REVIEW-0042.yaml, registry/reviews/REVIEW-0043.yaml, registry/reviews/REVIEW-0044.yaml, registry/reviews/REVIEW-0045.yaml, registry/reviews/REVIEW-0046.yaml, registry/reviews/REVIEW-0047.yaml, registry/reviews/REVIEW-0048.yaml, registry/reviews/REVIEW-0049.yaml]
+affected_docs: [PROJECT_STATE.md, docs/03_ARCHITECTURE/github-control-plane.md, docs/13_QUALITY/ai-context-routing.md, registry/progress/matrix.yaml, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0031.yaml, registry/reviews/REVIEW-0032.yaml, registry/reviews/REVIEW-0033.yaml, registry/reviews/REVIEW-0034.yaml, registry/reviews/REVIEW-0035.yaml, registry/reviews/REVIEW-0036.yaml, registry/reviews/REVIEW-0037.yaml, registry/reviews/REVIEW-0038.yaml, registry/reviews/REVIEW-0039.yaml, registry/reviews/REVIEW-0040.yaml, registry/reviews/REVIEW-0041.yaml, registry/reviews/REVIEW-0042.yaml, registry/reviews/REVIEW-0043.yaml, registry/reviews/REVIEW-0044.yaml, registry/reviews/REVIEW-0045.yaml, registry/reviews/REVIEW-0046.yaml, registry/reviews/REVIEW-0047.yaml, registry/reviews/REVIEW-0048.yaml, registry/reviews/REVIEW-0049.yaml, registry/reviews/REVIEW-0050.yaml]
 affected_paths: [.github/, requirements/bootstrap-governance-ci.txt, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-*.yaml, tools/governance/, tests/governance/, schemas/registry/, scripts/governance_mutation_smoke.py, registry/work-items/_TEMPLATE.yaml]
 contracts: ["repository governance validation", "GitHub control-plane merge gate", "AI context routing"]
 adrs: []
@@ -85,7 +88,7 @@ impact_analysis:
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "REVIEW-0049 proved V4 write-ahead duplicate-POST prevention but is terminal negative evidence because origin-PR closure erased an externally in-flight mutation before shared-head consequences were observed. REVIEW-0050 must carry reversible exact pending-head authority independent of the origin PR lifecycle while preserving no-duplicate-POST behavior and all prior guards."
+  compatibility_notes: "REVIEW-0050 preserves all prior exact-check, PR/base/merge-ref, pagination, attempt, budget, shared-head and write-ahead protections. V5 adds reversible pending-head authority after origin-PR closure; the recovery adapter adds an explicit no-replay operator path for an intent positively confirmed unposted. Recovery has no actions:write permission and therefore cannot itself mutate workflow attempts. Technical proof is not independent semantic approval."
 
 implementation_plan:
   tasks:
@@ -103,13 +106,14 @@ review_plan:
   artifact_class: GOVERNANCE_AUTOMATION
   independence_level: L2_TARGET
   required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY, RED_TEAM_SKEPTIC]
-  completed_reviews: [REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039, REVIEW-0042, REVIEW-0043, REVIEW-0044, REVIEW-0045, REVIEW-0046, REVIEW-0047]
+  completed_reviews: [REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039, REVIEW-0042, REVIEW-0043, REVIEW-0044, REVIEW-0045, REVIEW-0046, REVIEW-0047, REVIEW-0049]
   open_findings:
     - "PR #2 branch-local unresolved material findings remain pending final integration/review."
     - "REVIEW-0048 is CLOSED administrative negative evidence; no independent L2 ran because code-review quota rejected comment 5702006501."
     - "PRR_kwDOUUI5ts8AAAABN4OKew — REVIEW-0048 author-side duplicate-rerun P1 remains historical negative evidence."
-    - "REVIEW-0049 is CLOSED administrative negative evidence on c8f1fec24358c25224771a15b647d56c8a2f0287; fresh Codex trigger 5702590288 produced no exact-head review before author-side invalidation."
-    - "PRR_kwDOUUI5ts8AAAABN4rPMg — REVIEW-0049 author-side P1: closing the pending origin PR clears an already-issued rerun before its terminal shared-head effect is observed."
+    - "REVIEW-0049 is COMPLETE/CHANGES_REQUIRED independent negative evidence via PRR_kwDOUUI5ts8AAAABN4sxvg on c8f1fec24358c25224771a15b647d56c8a2f0287."
+    - "PRR_kwDOUUI5ts8AAAABN4rPMg — author-side corroboration of the REVIEW-0049 closed-origin pending race."
+    - "REVIEW-0050 is OPEN; no independent reviewer, reviewed commit, outcome or finding closure is claimed yet."
     - PRRT_kwDOUUI5ts6ijmtc
     - PRRT_kwDOUUI5ts6ijmtj
     - PRRT_kwDOUUI5ts6ijmtr
@@ -173,6 +177,8 @@ review_plan:
     - PRRT_kwDOUUI5ts6i9Tl3
     - PRRT_kwDOUUI5ts6i9Tl_
     - PRRT_kwDOUUI5ts6i9TmE
+    - PRRT_kwDOUUI5ts6jEPa-
+    - PRRT_kwDOUUI5ts6jEPa_
     - "PRR_kwDOUUI5ts8AAAABNuingg — REVIEW-0040 author-side ordering-race P1."
     - "PRR_kwDOUUI5ts8AAAABNvBAIQ — REVIEW-0041 author-side Pull Requests snapshot P1."
     - "PRR_kwDOUUI5ts8AAAABNyyfZA — REVIEW-0044 author-side deep-history P1."
@@ -183,35 +189,38 @@ required_tests:
     - "exact latest GitHub Actions-owned MONDE / Merge Gate check is merge-state authority"
     - "direct target authority uses exact positive non-Boolean run/workflow/job/attempt IDs and binds exact head/current base/current merge-ref/current PR"
     - "selected-PR target discovery is durably resumable and drift-detecting across and within invocations"
-    - "durable cursor cannot regress under overlapping schedule writers"
-    - "one invocation considers at most seven head groups and performs at most three actual rerun POSTs"
+    - "durable cursor cannot regress under overlapping schedule/recovery writers"
+    - "one poll invocation considers at most seven head groups and performs at most three actual rerun POSTs"
     - "post-rerun observation accepts only the exact single next attempt and its causally bound protected job/effective check"
     - "current PR authority is revalidated at mutation and post-condition boundaries"
     - "a rerun already stale-green at final observation retains the head rather than advancing the scheduler"
-    - "an accepted rerun is represented by durable write-ahead pending state before POST and remains represented until exact post-condition observation or fail-closed authority change"
+    - "an accepted rerun is represented by durable write-ahead pending state before POST and remains represented until exact post-condition accounting"
     - "a pending mutation is observation-only across restart and cannot automatically emit a duplicate POST"
-    - "origin-PR closure cannot erase an externally in-flight mutation; exact pending-head effects must be accounted for before clear"
+    - "origin-PR closure cannot erase an externally in-flight mutation; exact pending-head effects are accounted for before clear"
+    - "operator recovery can clear only a positively confirmed unposted pending intent after exact tuple/run/check revalidation and cannot rerun workflows"
   integration: [TEST-0009]
-  contract: ["registry/schema/progress/review/change-control integrity", "bootstrap GitHub Checks/REST/GraphQL/Actions/Issues control-plane contract"]
+  contract: ["registry/schema/progress/review/change-control integrity", "bootstrap GitHub Checks/REST/GraphQL/Actions/Issues/workflow_dispatch control-plane contract"]
   e2e: []
   regression:
-    - "all 63 PR #5 inline findings remain represented and unresolved"
+    - "all 65 PR #5 inline findings remain represented and unresolved"
     - "POST accepted but new run attempt remains invisible across local timeout and next scheduled invocation; no duplicate POST occurs"
     - "write-ahead pending state is durably acknowledged before rerun POST"
     - "ambiguous POST outcome retains pending mutation and forbids automatic replay"
-    - "crash/retry around mutation/pending-state persistence does not lose in-flight identity or double-mutate"
     - "origin PR closes after POST while same-head sibling remains unresolved; pending mutation is not forgotten and later green cannot remain stale"
+    - "write-ahead intent remains at baseline because POST never occurred; normal poll is loudly fail-closed and only exact operator-confirmed recovery may clear it"
+    - "recovery refuses if run attempt or effective check changed after write-ahead"
+    - "recovery requeues current unresolved same-head sibling before clearing pending authority"
     - "rerun remains queued/running beyond one local observation loop and retains durable processing without unsafe scheduler advancement"
     - "concurrent workflow attempts cannot satisfy this invocation's exact-next-attempt post-condition"
     - "PR base/merge-ref changes immediately before mutation or before post-condition acceptance"
     - "selected target history changes membership around a saved continuation anchor or between consecutive pages read in one invocation"
-    - "Boolean/float pending PR numbers and unknown PR state are rejected"
+    - "Boolean/float pending and recovery identifiers and unknown PR state are rejected"
     - "more than three same-head siblings cannot exceed three actual POSTs"
     - "rerun completes merge-acceptable and threads reopen before final observation; head remains selected"
-  security: ["immutable pins", "hash-locked Python artifacts", "least privilege", "live probe read-only", "actions:write/issues:write only on trusted serialized scheduled path"]
-  performance: ["authority successor hard-capped at 100 script-issued GitHub calls per invocation", "one invocation considers at most seven head groups and performs at most three actual rerun POSTs", "selected-PR history scan advances at most two bounded pages per invocation with drift detection", "live exact-candidate PR #2 probe is wiring evidence only, not worst-case capacity"]
+  security: ["immutable pins", "hash-locked Python artifacts", "least privilege", "live probe read-only", "actions:write only on trusted serialized scheduled invalidation", "manual recovery has no actions:write and requires exact tuple + confirmation + reason"]
+  performance: ["authority successor hard-capped at 100 script-issued GitHub calls per invocation", "one poll invocation considers at most seven head groups and performs at most three actual rerun POSTs", "selected-PR history scan advances at most two bounded pages per invocation with drift detection", "live exact-candidate PR #2 probe is wiring evidence only, not worst-case capacity"]
   real_system: [TEST-0009]
-  epistemic: ["execution evidence is exact-SHA bound", "workflow_run.pull_requests dynamic associations are not triggering-PR provenance", "canonical reusable-workflow pull ref plus referenced workflow SHA/current merge_commit_sha provide positive current-PR authority", "technical green proof is not independent semantic approval"]
+  epistemic: ["execution evidence is exact-SHA bound", "workflow_run.pull_requests dynamic associations are not triggering-PR provenance", "canonical reusable-workflow pull ref plus referenced workflow SHA/current merge_commit_sha provide positive current-PR authority", "operator recovery is an explicit human evidence boundary", "technical green proof is not independent semantic approval"]
 
 scientific_validation:
   required: false
@@ -223,33 +232,33 @@ scientific_validation:
 
 observability:
   required: true
-  logs: ["rule-coded diagnostics", "GitHub Job Summary", "bootstrap poll rerun count", "bootstrap request budget", "scheduler cursor/scan/anchor/pending state"]
-  metrics: ["CI duration", "finding count", "coverage", "bootstrap stale-green actual rerun POST count", "bootstrap request count", "scheduler cursor PR/scan page/anchor/pending mutation"]
+  logs: ["rule-coded diagnostics", "GitHub Job Summary", "bootstrap poll rerun count", "bootstrap request budget", "scheduler cursor/scan/anchor/pending state", "operator-confirmed pending recovery tuple and reason"]
+  metrics: ["CI duration", "finding count", "coverage", "bootstrap stale-green actual rerun POST count", "bootstrap request count", "scheduler cursor PR/scan page/anchor/pending mutation", "pending recovery invocation/result"]
   traces: []
-  alerts: ["required MONDE merge gate failure after WORK-0003", "bootstrap request-budget exhaustion", "scheduler-state corruption/concurrency failure", "pending mutation cannot be causally reconciled"]
-  slis_slos: ["governance core completes inside timeout", "bootstrap poll completes inside timeout", "supported stale-green load retains forward invalidation progress", "actual rerun POST cap is three", "cursor progress is serialized and resumable", "in-flight mutation identity survives schedule/crash/API-visibility/origin-PR-lifecycle boundaries"]
+  alerts: ["required MONDE merge gate failure after WORK-0003", "bootstrap request-budget exhaustion", "scheduler-state corruption/concurrency failure", "pending mutation cannot be causally reconciled", "operator recovery required"]
+  slis_slos: ["governance core completes inside timeout", "bootstrap poll completes inside timeout or fails loudly retaining pending authority", "supported stale-green load retains forward invalidation progress", "actual rerun POST cap is three", "cursor progress is serialized and resumable", "in-flight mutation identity survives schedule/crash/API-visibility/origin-PR-lifecycle boundaries"]
 
 validation:
   executed:
     - "Bootstrap #135 / run 35126374186 on REVIEW-0048 corrective runtime 86670f6b9f6ae2c1e288686866986fd737421892"
-    - "Bootstrap #137 / run 35130503995 on frozen REVIEW-0048 IN_PROGRESS head b5932be9a5f2d36c192bf482a3051a8523b97a34"
-    - "Author-side REVIEW-0048 / PRR_kwDOUUI5ts8AAAABN4OKew on b5932be9a5f2d36c192bf482a3051a8523b97a34"
     - "Bootstrap #145 / run 35133808117 on REVIEW-0049 technical candidate 7d7f52fe5beb6bf7466a523b0fb0ea75108ff9a5"
-    - "Bootstrap #146 / run 35134592599 on synchronized REVIEW-0049 OPEN checkpoint 32128d507ed2ee3bbebf90ce51d08515dbf2e9e1"
-    - "Bootstrap #147 / run 35134919307 on frozen REVIEW-0049 IN_PROGRESS head c8f1fec24358c25224771a15b647d56c8a2f0287"
-    - "Author-side REVIEW-0049 / PRR_kwDOUUI5ts8AAAABN4rPMg on c8f1fec24358c25224771a15b647d56c8a2f0287"
+    - "Bootstrap #147 / run 35134919307 on frozen REVIEW-0049 head c8f1fec24358c25224771a15b647d56c8a2f0287"
+    - "Independent REVIEW-0049 / PRR_kwDOUUI5ts8AAAABN4sxvg on c8f1fec24358c25224771a15b647d56c8a2f0287 with P1s PRRT_kwDOUUI5ts6jEPa- and PRRT_kwDOUUI5ts6jEPa_"
+    - "Author-side REVIEW-0049 corroboration PRR_kwDOUUI5ts8AAAABN4rPMg on c8f1fec24358c25224771a15b647d56c8a2f0287"
+    - "Bootstrap #151 / run 35139881249 on REVIEW-0050 closed-origin V5 intermediate 3131d3c8032b2d84fbfd8ac2e9a53dc5c4429ebe"
+    - "Bootstrap #154 / run 35152847816 on REVIEW-0050 recovery candidate cbe21fa4cebc1c8f8b3030af17284de5700f9818"
   evidence:
-    - "Bootstrap #145: 167/167 tests PASS; 1613 statements / 754 branches at 100 percent line and branch coverage"
-    - "Bootstrap #145, #146 and #147 live PR #2 GitHub contract probes SUCCESS"
-    - "All legacy bootstrap modules and REVIEW-0048/0049 authority adapters were included in the enforced 100 percent line/branch report"
-    - "REVIEW-0049 regression development exposed and corrected coercive pending PR-number equality and malformed pending PR-state acceptance before lifecycle opening"
-    - "REVIEW-0049 author red-team then proved origin-PR closure could erase an already-issued pending mutation before its head-scoped terminal effect, invalidating the frozen head despite green technical proof"
+    - "Bootstrap #154: 194/194 tests PASS; 1856 statements / 842 branches at 100 percent line and branch coverage"
+    - "Bootstrap #154 live PR #2 GitHub contract probe SUCCESS"
+    - "Bootstrap #154 recovery job skipped on pull_request and workflow recovery definition has no actions:write permission"
+    - "All legacy bootstrap modules and REVIEW-0048/0049/0050 authority adapters are included in the enforced 100 percent line/branch report"
+    - "V5 preserves exact pending head authority after origin-PR closure and reclassifies current same-head siblings after terminal merge-acceptable observation"
+    - "Recovery candidate converts permanently silent pre-POST ambiguity into an explicit operator-required failure while preserving pending state; break-glass clear requires exact unchanged attempt/check authority and no automatic replay"
   coverage: {line: 100, branch: 100}
   known_gaps:
-    - "REVIEW-0049 is CLOSED/CHANGES_REQUIRED; green technical proof does not close PRR_kwDOUUI5ts8AAAABN4rPMg."
-    - "REVIEW-0050 must preserve exact pending-head mutation authority across origin-PR closure and handle open same-head siblings before clear."
-    - "A pending intent whose write succeeded but whose POST never occurred remains a separate safe liveness ambiguity; successor review must not solve it by unsafe replay."
-    - "All 63 PR #5 inline material threads remain unresolved."
+    - "REVIEW-0050 is OPEN and has no independent L2 result yet; technical proof is not approval."
+    - "Manual recovery depends on trustworthy human confirmation that no rerun POST was issued; this evidence boundary must be independently challenged."
+    - "All 65 PR #5 inline material threads remain unresolved."
     - "PR #2 must later integrate final trusted-base contract and obtain trusted non-author exact-head APPROVED evidence."
 
 risk: {security: HIGH, data: NONE, epistemic: LOW, performance: HIGH, operational: HIGH}
@@ -258,25 +267,23 @@ rollback:
 
 run_log:
   - "REVIEW-0047 terminal negative: d266d73c15b524413209be16d4970ec42928ea04 / PRR_kwDOUUI5ts8AAAABN1lrxA / three new P1 findings."
-  - "REVIEW-0048 runtime and lifecycle checkpoints proved green, then PRR_kwDOUUI5ts8AAAABN4OKew invalidated the frozen head; REVIEW-0048 closed administrative negative."
-  - "REVIEW-0049 V4 candidate 7d7f52fe5beb6bf7466a523b0fb0ea75108ff9a5 passed Bootstrap #145: 167 tests / 1613 statements / 754 branches / 100 percent plus live PR #2 probe."
-  - "REVIEW-0049 OPEN 32128d507ed2ee3bbebf90ce51d08515dbf2e9e1 passed #146; frozen IN_PROGRESS c8f1fec24358c25224771a15b647d56c8a2f0287 passed #147."
-  - "Fresh Codex trigger 5702590288 produced no exact-head review before author-side PRR_kwDOUUI5ts8AAAABN4rPMg invalidated REVIEW-0049."
+  - "REVIEW-0048 closed administrative negative after quota and author-side PRR_kwDOUUI5ts8AAAABN4OKew."
+  - "REVIEW-0049 frozen c8f1fec24358c25224771a15b647d56c8a2f0287 passed #147; independent PRR_kwDOUUI5ts8AAAABN4sxvg later added P1s PRRT_kwDOUUI5ts6jEPa- and PRRT_kwDOUUI5ts6jEPa_."
+  - "REVIEW-0050 V5 closed-origin intermediate 3131d3c8032b2d84fbfd8ac2e9a53dc5c4429ebe passed #151 at 183 tests / 1755 statements / 800 branches / 100 percent."
+  - "REVIEW-0050 recovery candidate cbe21fa4cebc1c8f8b3030af17284de5700f9818 passed #154 at 194 tests / 1856 statements / 842 branches / 100 percent plus live PR #2 probe."
 
 discoveries:
   - "A completed rerun that is already stale again must retain the selected head instead of being treated as completed processing."
   - "A rerun POST must be attributed to exactly one next attempt; arbitrary attempt jumps are ambiguous under concurrent reruns."
   - "Offset pagination drift must be detected between consecutive pages inside the same invocation, not only across saved continuations."
-  - "Bounded deferred post-condition observation must preserve safe scheduler progress without accepting an unproven terminal state."
   - "An accepted rerun must be represented durably while it is not yet externally visible; scan continuation alone cannot prove whether a mutation is already in flight."
-  - "Write-ahead state prevents automatic duplicate POST but creates an intentional safe liveness ambiguity if the process dies after state acknowledgement and before the external POST."
-  - "Pending PR identity must use exact non-Boolean integer and closed-world state validation; Python coercive equality is not authority."
-  - "Origin-PR closure does not terminate an already-issued external rerun; pending mutation authority must survive until its head-scoped terminal effect is accounted for."
+  - "Origin-PR closure does not terminate an already-issued external rerun; reversible pending-head authority must survive until its head-scoped terminal effect is accounted for."
+  - "Write-ahead safety needs an explicit liveness/escalation contract for the pre-POST crash window; silently retaining a baseline pending forever is not sufficient."
+  - "A break-glass recovery path can preserve deny-by-default semantics only when it cannot rerun, requires exact durable authority plus explicit human evidence, revalidates no mutation became visible, and is serialized with the poll."
 
 blockers:
-  - "Exact-head prove the REVIEW-0049 CLOSED state-only checkpoint."
-  - "Build and prove REVIEW-0050 correcting PRR_kwDOUUI5ts8AAAABN4rPMg before any new independent review."
-  - "63 inline material threads remain unresolved."
+  - "Exact-head prove synchronized REVIEW-0050 OPEN and then IN_PROGRESS checkpoints before requesting a fresh independent L2."
+  - "65 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
 follow_up_work_items: []

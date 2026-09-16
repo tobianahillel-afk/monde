@@ -15,38 +15,42 @@ Canonical operational state: Yes
 
 PR #5 (`chore/work-0002-stale-green-bootstrap`) remains the narrow trusted-default-branch predecessor for WORK-0002/T12. No merge and no historical review-thread resolution is permitted while material findings remain open or a successor review is incomplete.
 
-REVIEW-0047 is terminal `COMPLETE / CHANGES_REQUIRED` on exact frozen HEAD `d266d73c15b524413209be16d4970ec42928ea04` via independent review `PRR_kwDOUUI5ts8AAAABN1lrxA`. It added three P1 findings, bringing PR #5 to **63 inline material threads**, all intentionally unresolved.
+REVIEW-0047 is terminal `COMPLETE / CHANGES_REQUIRED` on exact frozen HEAD `d266d73c15b524413209be16d4970ec42928ea04` via independent review `PRR_kwDOUUI5ts8AAAABN1lrxA`.
 
-REVIEW-0048 is `CLOSED / CHANGES_REQUIRED` administrative negative evidence on frozen HEAD `b5932be9a5f2d36c192bf482a3051a8523b97a34`. Bootstrap #137 / run `35130503995` was green, but Codex invocation comment `5702006501` was refused by platform code-review quota, so no independent L2 exists. Author-side `PRR_kwDOUUI5ts8AAAABN4OKew` found the missing durable identity of an already-issued rerun across DeferredObservation.
+REVIEW-0048 is `CLOSED / CHANGES_REQUIRED` administrative negative evidence on frozen HEAD `b5932be9a5f2d36c192bf482a3051a8523b97a34`; its Codex invocation was refused by quota and author-side `PRR_kwDOUUI5ts8AAAABN4OKew` invalidated that candidate.
 
-## REVIEW-0049 — terminal negative evidence
+## REVIEW-0049 — independent terminal negative evidence
 
-The V4 successor added write-ahead pending mutation state in issue #7. Before any rerun POST it durably records selected PR authority digest, exact `run_id`, mutation baseline attempt and prior effective-check id. While pending state exists, later schedules are observation-only and cannot automatically issue another rerun POST.
+REVIEW-0049's V4 write-ahead candidate `7d7f52fe5beb6bf7466a523b0fb0ea75108ff9a5` passed Bootstrap #145, and its frozen lifecycle head `c8f1fec24358c25224771a15b647d56c8a2f0287` passed Bootstrap #147. A fresh Codex L2 ultimately completed on that exact frozen head at `2026-09-16T18:38:10Z` as **`PRR_kwDOUUI5ts8AAAABN4sxvg`**.
 
-Its exact technical candidate **`7d7f52fe5beb6bf7466a523b0fb0ea75108ff9a5`** passed Bootstrap **#145 / run `35133808117` SUCCESS** with **167/167 tests**, **1,613 statements / 754 branches**, **100% line + branch**, and live read-only PR #2 contract probe SUCCESS. REVIEW-0049 `OPEN` checkpoint `32128d507ed2ee3bbebf90ce51d08515dbf2e9e1` passed #146; frozen `IN_PROGRESS` head **`c8f1fec24358c25224771a15b647d56c8a2f0287`** passed Bootstrap **#147 / `35134919307` SUCCESS**.
+REVIEW-0049 is therefore **`COMPLETE / CHANGES_REQUIRED`**, not administrative CLOSED. It added two independent P1 findings:
 
-REVIEW-0049 is nevertheless now **`CLOSED / CHANGES_REQUIRED`**. The fresh Codex trigger comment `5702590288` produced no exact-head review before author-side adversarial review **`PRR_kwDOUUI5ts8AAAABN4rPMg`** invalidated the frozen head.
+- `PRRT_kwDOUUI5ts6jEPa-` — a write-ahead pending intent can remain forever at the baseline if the process dies after the issue PATCH but before the rerun POST; without an explicit safe recovery/escalation path, the global poll is permanently wedged.
+- `PRRT_kwDOUUI5ts6jEPa_` — closing the pending origin PR cannot erase an already-issued rerun before its terminal head-scoped effect is accounted for.
 
-The P1 is lifecycle/authority-critical: when the selected pending PR reports `closed`, V4 clears pending state immediately, before fetching/observing the exact already-issued rerun. A closed PR does not cancel its workflow mutation. If PR A and PR B share one head, A's pending rerun has already been POSTed, A closes, B remains unresolved, and A's rerun later completes merge-acceptable, that head-scoped green check can make B stale-green after V4 has forgotten the mutation.
+Author-side `PRR_kwDOUUI5ts8AAAABN4rPMg` independently corroborated the closed-origin race shortly before the Codex L2 completed. PR #5 now has **65 inline material threads**, all intentionally unresolved.
 
-Therefore PR closure is **not** terminal authorization to delete pending mutation identity. A successor must preserve reversible pending head/run/attempt/check authority after original-PR closure, observe the exact external mutation to a causally-bound terminal result, and if that result is merge-acceptable reclassify/retain current open same-head PRs before clearing pending state. If the external post-condition cannot be proven, behavior must remain fail-closed.
+## REVIEW-0050 technical candidate and OPEN lifecycle
 
-All **63** historical inline material threads remain unresolved. No merge is permitted.
+REVIEW-0050 addresses both independent REVIEW-0049 P1s without weakening prior fail-closed authority:
 
-## REVIEW-0050 next corrective direction
+1. V5 scheduler state carries exact reversible `pending_head` in addition to origin PR/run/baseline/check authority.
+2. Origin-PR closure no longer clears pending state; the exact issued run remains observed to a terminal causally-bound result.
+3. A terminal merge-acceptable closed-origin rerun causes current open same-head PRs to be reclassified; any unresolved sibling is durably retained through `scan_pr` before pending state is released.
+4. Ambiguous bounded pending observation is now **loud** (`PendingRecoveryRequired`) while durable pending state remains intact; automatic replay remains forbidden.
+5. A trusted `workflow_dispatch` break-glass path may clear only an operator-confirmed **unposted** pending intent. It requires the exact pending PR/head/run/baseline/check tuple, an exact confirmation phrase, and an auditable reason.
+6. Recovery revalidates that the run attempt is still exactly the baseline and that the prior effective-check identity is unchanged before clearing state.
+7. Recovery is serialized with the normal poll and has `actions: read` but **no `actions:write`**, so it cannot itself issue a workflow rerun.
 
-REVIEW-0050 should be a new successor rather than rewriting REVIEW-0049. The minimum safe design should:
+Exact technical candidate **`cbe21fa4cebc1c8f8b3030af17284de5700f9818`** passed MONDE Stale-Green Bootstrap **#154 / run `35152847816` SUCCESS**:
 
-- persist an exact `pending_head` (or an equally reversible exact head binding), not only a non-reversible PR-authority digest;
-- keep pending mutation identity after the originating PR closes;
-- observe `pending_run_id` against `pending_baseline_attempt + 1` and the prior effective-check identity without requiring the original PR to remain open;
-- preserve protected-job and effective-check causal binding;
-- on terminal non-merge-acceptable outcome, clear safely;
-- on terminal merge-acceptable outcome, snapshot/reclassify current open PRs sharing `pending_head`, and retain/invalidate any unresolved sibling before scheduler progress advances;
-- preserve the no-duplicate-POST invariant across delayed visibility/restart;
-- keep the separate pre-POST write-ahead liveness ambiguity explicit rather than solving it with unsafe replay;
-- add adversarial regressions for `POST -> origin PR closes -> sibling unresolved -> rerun later green`, delayed visibility and restart boundaries;
-- restore 100% line+branch proof and live read-only PR #2 contract probe before opening REVIEW-0050 lifecycle.
+- **194/194 tests PASS**;
+- **1,856 statements / 842 branches** across core, snapshot and all authority successors;
+- **100% line + branch coverage** with zero missing statements/branches;
+- live read-only GitHub contract probe against PR #2 **SUCCESS**;
+- recovery job correctly skipped on pull-request CI and its workflow permission set excludes `actions:write`.
+
+REVIEW-0050 is now being opened for independent semantic review. Technical proof is evidence only, not approval. T4/T12/AC-6 remain `IN_REVIEW` and all **65** material inline threads remain unresolved.
 
 ## PR #2 relationship
 
@@ -56,15 +60,15 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 
 ## Current next action
 
-1. Keep all **63** PR #5 inline material threads unresolved.
-2. Publish a state-only REVIEW-0049 `CLOSED / CHANGES_REQUIRED` checkpoint and exact-head prove it.
-3. Build REVIEW-0050 as a new adapter/successor; do not rewrite REVIEW-0049 history.
-4. Preserve pending mutation across origin-PR closure and carry exact reversible pending head authority.
-5. Account for the exact issued run/attempt/job/effective-check result before any pending clear.
-6. Reclassify current open same-head siblings after a terminal merge-acceptable closed-origin rerun.
-7. Add delayed-visibility/restart/shared-head adversarial regressions and preserve the three-POST/seven-head/100-request bounds.
-8. Reach exact-head 100% line+branch plus live PR #2 probe before creating REVIEW-0050 `OPEN`.
-9. Then use the normal `OPEN -> proof -> IN_PROGRESS -> proof -> freeze -> fresh L2` lifecycle.
+1. Keep all **65** PR #5 inline material threads unresolved.
+2. Publish the synchronized REVIEW-0049 COMPLETE + REVIEW-0050 OPEN + TEST-0009 + WORK-0002 + PROJECT_STATE checkpoint over the proven `cbe21fa4…` runtime.
+3. Exact-head prove that `OPEN` checkpoint; runtime must remain equivalent to candidate #154.
+4. If green, transition REVIEW-0050 to `IN_PROGRESS` in a second state-only checkpoint and re-prove that exact SHA.
+5. Freeze the resulting SHA, re-query PR #5 HEAD/reviews/65 threads, and update the PR description.
+6. Request exactly one fresh independent L2 on the frozen SHA; do not mutate the Git tree while it runs.
+7. Red-team especially manual recovery evidence quality, false/stale operator assertions, run/check TOCTOU, closed-origin shared-head revival, recovery permissions, writer serialization and all historical findings.
+8. Any material finding requires correction, exact-head re-proof and another successor review.
+9. Only a clean exact-head independent successor review permits controlled verification/resolution and a guarded PR #5 merge decision.
 10. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
@@ -76,10 +80,10 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 5. registry/work-items/WORK-0002.yaml
 6. registry/requirements/REQ-0026.yaml
 7. registry/tests/TEST-0009.yaml
-8. registry/reviews/REVIEW-0048.yaml
-9. registry/reviews/REVIEW-0049.yaml
+8. registry/reviews/REVIEW-0049.yaml
+9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/63 threads
+11. live PR #5 exact HEAD/checks/reviews/65 threads
 12. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.
