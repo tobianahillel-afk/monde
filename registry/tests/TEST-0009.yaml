@@ -11,21 +11,23 @@ protects:
     - "stale merge-acceptable canonical gate is invalidated when current PR review threads are unresolved"
     - "merge-state authority is the exact latest GitHub Actions-owned MONDE / Merge Gate check on the exact head SHA"
     - "rerun authority is positively bound to the current open PR through canonical refs/pull/<N>/merge metadata plus the current merge-ref SHA"
-    - "selected-PR target discovery is bounded and durably resumable through scan_pr/scan_page/scan_anchor state rather than a permanently truncated or drifted candidate prefix"
+    - "selected-PR target discovery is bounded and durably resumable through scan_pr/scan_page/scan_anchor state rather than a permanently truncated candidate prefix"
+    - "offset check-history pagination verifies page-boundary membership both across invocations and between consecutive pages inside one invocation before accepting completeness"
     - "direct run/workflow/job/attempt and scheduler-issue authority require exact positive non-Boolean integer identifiers"
     - "stable open Pull Requests authority uses unique PR numbers and identical authority snapshots"
-    - "current PR revalidation binds head identity, base repository/ref/SHA, and merge_commit_sha both immediately before mutation and before post-condition acceptance"
+    - "current PR revalidation binds head identity, base repository/ref/SHA, and merge_commit_sha immediately before mutation and before post-condition acceptance"
     - "scheduler fairness uses a durable closed-world cursor in machine-managed issue #7 rather than wall-clock rotation"
     - "scheduled cursor writers are serialized by a dedicated GitHub Actions concurrency group"
     - "only selected PRs are revalidated directly; no per-head global open-PR refresh is required"
     - "one invocation inspects at most seven head groups and performs at most three actual rerun POSTs"
     - "the authority adapter hard-caps script-issued GitHub calls at 100 and reserves mutation/post-condition/state-write headroom"
-    - "a rerun is not accepted as invalidation until its exact new workflow attempt is terminal, its exact protected job is validated, and the effective exact-head required check is causally bound to that run/job/attempt and terminal non-merge-acceptable"
-    - "a delayed rerun that remains queued/running beyond the local observation loop keeps the unresolved PR durably selected across scheduled invocations rather than advancing the cursor"
-    - "if a shared-head sibling becomes clean and its rerun returns green, processing continues to another sibling that is still unresolved while counting every POST against the global cap"
+    - "a rerun is not accepted as invalidation until the mutation baseline identifies one exact next workflow attempt, its protected job is validated, and the effective exact-head required check is causally bound and terminal"
+    - "if bounded observation cannot establish the terminal post-condition, the selected PR/head remains durably selected instead of advancing the scheduler"
+    - "if a completed rerun is already stale-green again, the selected PR/head remains selected for immediate or durable reprocessing"
+    - "if a shared-head sibling becomes clean and its rerun returns green, processing continues safely while respecting the invocation-wide POST cap"
     - "malformed REST, GraphQL, Checks, run, job, scheduler-state, or PR authority fails closed"
 location:
-  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py; .github/scripts/test_stale_green_bootstrap_poll_order.py; .github/scripts/test_stale_green_bootstrap_pr_snapshot.py; .github/scripts/test_stale_green_bootstrap_progress.py; .github/scripts/test_stale_green_bootstrap_progress_fallthrough.py; .github/scripts/test_stale_green_bootstrap_authority.py; .github/scripts/test_stale_green_bootstrap_authority_edges.py; .github/scripts/test_stale_green_bootstrap_authority_shared.py; .github/scripts/test_stale_green_bootstrap_authority_review0046.py; .github/scripts/test_stale_green_bootstrap_authority_review0047.py; .github/scripts/test_stale_green_bootstrap_authority_terminal_wait.py"
+  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py; .github/scripts/test_stale_green_bootstrap_poll_order.py; .github/scripts/test_stale_green_bootstrap_pr_snapshot.py; .github/scripts/test_stale_green_bootstrap_progress.py; .github/scripts/test_stale_green_bootstrap_progress_fallthrough.py; .github/scripts/test_stale_green_bootstrap_authority.py; .github/scripts/test_stale_green_bootstrap_authority_edges.py; .github/scripts/test_stale_green_bootstrap_authority_shared.py; .github/scripts/test_stale_green_bootstrap_authority_review0046.py; .github/scripts/test_stale_green_bootstrap_authority_review0047.py; .github/scripts/test_stale_green_bootstrap_authority_terminal_wait.py; .github/scripts/test_stale_green_bootstrap_authority_review0048.py; .github/scripts/test_stale_green_bootstrap_authority_review0048_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0048_final.py"
   suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
 environment:
   kind: GITHUB_ACTIONS
@@ -33,38 +35,40 @@ environment:
     - "GitHub REST Actions, Checks, Pull Requests and Issues APIs"
     - "GitHub GraphQL reviewThreads API"
   mocked_dependencies:
-    - "adversarial fixtures for delayed reruns, causal check/job binding, authority drift, shared heads, malformed metadata, base retargeting, anchored durable cursor progression/continuation, global rerun caps, request reserves and terminal post-conditions"
+    - "adversarial fixtures for delayed reruns, exact attempt attribution, shared-head stale-again interleavings, pagination drift, malformed metadata, base retargeting, anchored durable cursor progression/continuation, global rerun caps, request reserves and terminal post-conditions"
 cases:
   happy_path:
     - "PR-bound direct check -> run -> protected job authority resolves without exhaustive workflow-run history"
     - "live PR #2 probe observes refs/pull/2/merge plus current merge-ref authority and current unresolved-thread state"
-    - "durable scheduler cursor advances across bounded head groups and target-history pages with an anchored continuation"
+    - "durable scheduler cursor advances across bounded head groups and target-history pages with anchored continuation"
   edge_cases:
     - "multiple open PRs share one SHA with divergent or changing review-thread state"
-    - "a first sibling becomes clean after rerun while another same-head sibling remains unresolved"
+    - "selected rerun completes merge-acceptable while the PR becomes unresolved again before final observation"
+    - "another actor reruns the same workflow between discovery and this invocation's mutation"
     - "selected PR target lies behind more than twelve newer sibling checks"
-    - "retained check-history membership changes between continuation invocations"
+    - "retained check-history membership changes between continuation invocations or between two pages read in one invocation"
     - "PR base or merge-ref context changes while head SHA remains unchanged"
     - "rerun remains queued or running beyond the local post-condition polling window"
     - "budget approaches reserved mutation/post-condition/state-write headroom"
-    - "candidate check list contains terminal and non-terminal checks"
   failure_modes:
     - "scheduler issue identity/body is modified outside the closed-world contract or uses a coercible non-integer issue id"
     - "duplicate scheduled writers attempt to overlap"
     - "direct run or protected job metadata does not match expected workflow, head, attempt, exact integer types, PR, base, or merge-ref authority"
+    - "a terminal attempt jump cannot be uniquely attributed to this invocation's POST"
     - "effective required check belongs to unrelated same-head activity rather than the exact rerun run/job/attempt"
     - "PR authority changes immediately before mutation or before post-condition acceptance"
-    - "rerun reaches a new terminal attempt but the causally bound effective required check does not appear before the bounded deadline"
+    - "rerun reaches a terminal attempt but the causally bound required check does not appear before the bounded deadline"
     - "no canonical target exists after complete selected-PR check-history traversal"
     - "request budget cannot preserve reserved mutation/post-condition/state-write headroom"
   adversarial_cases:
-    - "historically deep target history advances through durable selected-PR continuation with a previous-page fingerprint and restarts safely when membership drifts"
+    - "historically deep target history advances through durable selected-PR continuation and restarts safely when membership drifts"
+    - "same-invocation page deletion/insertion/reordering cannot make an offset scan silently skip the only PR-bound target"
     - "skipped or delayed schedules do not reset fairness because cursor and pending scan state are durable"
     - "overlapping schedule executions are serialized so issue #7 cannot be last-write-wins regressed"
-    - "shared-head green revival is followed by current thread reclassification and continuation to another unresolved sibling"
+    - "shared-head green revival is followed by current thread reclassification and retained/repeated processing"
     - "every actual rerun POST counts toward the invocation-wide three-mutation cap"
     - "float/Boolean trust-binding identifiers are rejected"
-    - "V1/V2 scheduler state migrates conservatively to V3 without trusting stale page offsets"
+    - "V1/V2 scheduler state migrates conservatively without trusting stale page offsets"
     - "dead/unreachable guard code is removed rather than artificially covered"
 acceptance_cold_read:
   qualifies: false
@@ -93,14 +97,14 @@ external_import:
 execution:
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-16"
-  commit_sha: "efac4c61aa7dd61b17088e5f8a5b1fae82199d3c"
+  commit_sha: "86670f6b9f6ae2c1e288686866986fd737421892"
   result: PASS
   evidence:
-    - "Bootstrap #127 / run 35102314409: 116/116 tests PASS"
-    - "Bootstrap #127: core 457 statements/204 branches, snapshot 207/88, authority 489/230; total 1153 statements/522 branches at 100 percent line and branch coverage"
-    - "Bootstrap #127 live PR #2 contract probe SUCCESS: open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true"
-    - "Bootstrap #127 live probe consumed 7/100 script-issued GitHub requests under read-only Actions/Checks/Contents/PullRequests permissions"
-    - "REVIEW-0046 exact-head L2 PRR_kwDOUUI5ts8AAAABNz-eNg found five new material issues; REVIEW-0047 regressions cover delayed observation persistence, causal check/job binding, mutation-boundary authority, scan-anchor drift, and exact scheduler issue typing"
+    - "Bootstrap #135 / run 35126374186: 138/138 tests PASS"
+    - "Bootstrap #135: core 457 statements/204 branches, snapshot 207/88, authority 489/230, REVIEW-0048 successor 189/118; total 1342 statements/640 branches at 100 percent line and branch coverage"
+    - "Bootstrap #135 live PR #2 contract probe SUCCESS: open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true"
+    - "Bootstrap #135 live probe consumed 7/100 script-issued GitHub requests under read-only Actions/Checks/Contents/PullRequests permissions"
+    - "REVIEW-0047 exact-head L2 PRR_kwDOUUI5ts8AAAABN1lrxA found three new P1 issues; REVIEW-0048 regressions cover stale-again retention, exact single-attempt attribution, intra-invocation pagination drift and bounded deferred observation"
 coverage:
   line_contribution: 100
   branch_contribution: 100

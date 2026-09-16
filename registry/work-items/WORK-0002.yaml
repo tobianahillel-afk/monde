@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0047 is now terminal COMPLETE/CHANGES_REQUIRED on exact frozen HEAD d266d73c15b524413209be16d4970ec42928ea04 via independent review PRR_kwDOUUI5ts8AAAABN1lrxA. The exact head was proven by Bootstrap #129 / run 35103667502 after the REVIEW-0047 IN_PROGRESS synchronization; runtime remained 116 tests, 1153 statements, 522 branches, 100% line+branch with the live read-only PR #2 contract probe green. REVIEW-0047 added three P1 findings to the prior 60, leaving 63 unresolved inline material threads. No historical thread has been resolved. A successor correction/review is required before PR #5 can become merge-eligible."
+  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0047 is terminal COMPLETE/CHANGES_REQUIRED on d266d73c15b524413209be16d4970ec42928ea04 via independent review PRR_kwDOUUI5ts8AAAABN1lrxA, leaving 63 unresolved inline material threads. The REVIEW-0048 corrective runtime is now exact-head proven on 86670f6b9f6ae2c1e288686866986fd737421892 by Bootstrap #135 / run 35126374186: 138 tests, 1342 statements, 640 branches, 100 percent line+branch, live read-only PR #2 probe SUCCESS at 7/100 requests. No historical thread has been resolved. REVIEW-0048 is opened only for independent successor verification; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -22,21 +22,19 @@ scope:
     - trusted default-branch stale-green bootstrap required before PR #2 closure
     - stable unique open Pull Requests authority snapshots
     - exact latest GitHub Actions-owned MONDE / Merge Gate check as merge-state authority
-    - canonical PR-family triggering authority from exactly one reusable-workflow refs/pull/<N>/merge reference plus its current merge-ref SHA
-    - bounded selected-PR rerun-target discovery with durable scan_pr/scan_page/scan_anchor continuation and drift restart
-    - direct canonical run, protected current-attempt job and scheduler-issue validation with exact positive non-Boolean integer identifiers
+    - canonical current-PR rerun authority from refs/pull/<N>/merge plus current merge-ref SHA and current head/base identity
+    - bounded selected-PR target discovery with durable scan_pr/scan_page/scan_anchor continuation and drift restart
+    - same-invocation page-boundary verification so offset pagination cannot silently skip a retained target
+    - exact positive non-Boolean run/workflow/job/attempt/scheduler-issue identifiers
     - no trust in dynamic workflow_run.pull_requests as event-time provenance
-    - no exhaustive Actions-history reconstruction on mutation path
-    - durable machine-managed scheduler cursor in issue #7 rather than wall-clock rotation
-    - serialized scheduler cursor writers through a dedicated trusted GitHub Actions concurrency group
+    - no exhaustive Actions-history reconstruction on the mutation path
+    - durable machine-managed scheduler cursor in issue #7 and serialized trusted writers
     - at most seven head groups considered and three actual rerun POSTs per invocation
-    - selected-PR direct revalidation including head/base/merge context rather than a second global open-PR refresh
-    - current PR authority revalidation immediately before rerun mutation and again before post-condition acceptance
-    - final current review-thread observation immediately before rerun
-    - delayed rerun selection persisted across scheduler invocations until a causal terminal post-condition is established
-    - exact-run new-attempt terminal post-condition plus protected-job and effective exact-head check causal binding before invalidation is accepted
-    - shared-head continuation when an earlier sibling becomes clean while another remains unresolved
-    - invocation-wide hard 100-call GitHub request counter with explicit mutation/post-condition/state reserves
+    - current PR authority revalidation immediately before mutation and before post-condition acceptance
+    - exact mutation baseline and single-next-attempt attribution around rerun POSTs
+    - terminal protected-job plus effective exact-head check causal binding before invalidation is accepted
+    - durable retention of a PR/head when post-condition observation is deferred or a completed rerun is already stale-green again
+    - invocation-wide hard 100-call GitHub request counter with mutation/post-condition/state reserves
     - fail-closed REST/GraphQL/Checks/Actions/Issue metadata and bounded pagination
     - least-privilege live read-only probe; actions:write/issues:write only on trusted scheduled path
     - exact-head line/branch coverage, real GitHub probe and review lifecycle proof
@@ -54,32 +52,37 @@ acceptance_criteria:
   - {id: AC-4, description: "GitHub CI uses immutable/hash-locked dependencies, least privilege, CodeQL, dependency review, artifacts and a stable final merge gate.", status: DONE}
   - {id: AC-5, description: "AI context and live GitHub state are generated/checked without treating stale repository prose as current merge truth.", status: DONE}
   - {id: AC-6, description: "All material findings are proven fixed on the substantive final HEAD and a fresh-context L2 review approves completion.", status: IN_REVIEW}
+
 requirements: [REQ-0026]
 assumptions: []
 risks: []
 progress_justifications:
   scientific_validation: "No scientific/model claim; engineering, security, CI and real-system verification apply."
+
 assurance:
   level: A3
   rationale: "Repository-wide trust gate for future AI-authored work."
   escalation_triggers: ["changes to DONE/review semantics", "changes to transition/scope-drift semantics", "changes to workflow trust boundaries"]
-read_before: [AGENTS.md, docs/00_START_HERE.md, docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md, docs/13_QUALITY/review-council.md, docs/13_QUALITY/advanced-verification.md, registry/README.md, registry/progress/matrix.yaml, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0047.yaml]
+
+read_before: [AGENTS.md, docs/00_START_HERE.md, docs/03_ARCHITECTURE/documentation-architecture.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/10_ROADMAP/development-process.md, docs/13_QUALITY/definition-of-ready.md, docs/13_QUALITY/definition-of-done.md, docs/13_QUALITY/testing-strategy.md, docs/13_QUALITY/review-council.md, docs/13_QUALITY/advanced-verification.md, registry/README.md, registry/progress/matrix.yaml, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0047.yaml, registry/reviews/REVIEW-0048.yaml]
 depends_on: [WORK-0001]
 blocks: [WORK-0003, WORK-0004]
 reuses: ["status vocabulary", "registry contracts", "Review Council and assurance-level contracts"]
 affected_capabilities: []
 affected_engines: []
 affected_schemas: []
-affected_docs: [PROJECT_STATE.md, docs/03_ARCHITECTURE/github-control-plane.md, docs/13_QUALITY/ai-context-routing.md, registry/progress/matrix.yaml, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0031.yaml, registry/reviews/REVIEW-0032.yaml, registry/reviews/REVIEW-0033.yaml, registry/reviews/REVIEW-0034.yaml, registry/reviews/REVIEW-0035.yaml, registry/reviews/REVIEW-0036.yaml, registry/reviews/REVIEW-0037.yaml, registry/reviews/REVIEW-0038.yaml, registry/reviews/REVIEW-0039.yaml, registry/reviews/REVIEW-0040.yaml, registry/reviews/REVIEW-0041.yaml, registry/reviews/REVIEW-0042.yaml, registry/reviews/REVIEW-0043.yaml, registry/reviews/REVIEW-0044.yaml, registry/reviews/REVIEW-0045.yaml, registry/reviews/REVIEW-0046.yaml, registry/reviews/REVIEW-0047.yaml]
+affected_docs: [PROJECT_STATE.md, docs/03_ARCHITECTURE/github-control-plane.md, docs/13_QUALITY/ai-context-routing.md, registry/progress/matrix.yaml, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0031.yaml, registry/reviews/REVIEW-0032.yaml, registry/reviews/REVIEW-0033.yaml, registry/reviews/REVIEW-0034.yaml, registry/reviews/REVIEW-0035.yaml, registry/reviews/REVIEW-0036.yaml, registry/reviews/REVIEW-0037.yaml, registry/reviews/REVIEW-0038.yaml, registry/reviews/REVIEW-0039.yaml, registry/reviews/REVIEW-0040.yaml, registry/reviews/REVIEW-0041.yaml, registry/reviews/REVIEW-0042.yaml, registry/reviews/REVIEW-0043.yaml, registry/reviews/REVIEW-0044.yaml, registry/reviews/REVIEW-0045.yaml, registry/reviews/REVIEW-0046.yaml, registry/reviews/REVIEW-0047.yaml, registry/reviews/REVIEW-0048.yaml]
 affected_paths: [.github/, requirements/bootstrap-governance-ci.txt, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-*.yaml, tools/governance/, tests/governance/, schemas/registry/, scripts/governance_mutation_smoke.py, registry/work-items/_TEMPLATE.yaml]
 contracts: ["repository governance validation", "GitHub control-plane merge gate", "AI context routing"]
 adrs: []
+
 impact_analysis:
   blast_radius: CROSS_COMPONENT
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "REVIEW-0047 is terminal negative evidence. The successor must preserve all REVIEW-0047 protections while additionally retaining a head when a completed rerun is already stale again, binding each POST to exactly one newly created workflow attempt despite concurrent reruns, making intra-invocation check pagination drift-detecting, and resuming pending rerun observation without duplicate POSTs."
+  compatibility_notes: "REVIEW-0047 remains terminal negative evidence. REVIEW-0048 must preserve all prior protections while proving stale-again retention, exact single-attempt attribution under concurrent reruns, same-invocation pagination drift detection, and bounded deferred observation without unsafe scheduler advancement."
+
 implementation_plan:
   tasks:
     - {id: T1, description: "Fix initial review/progress/Markdown/reverse-membership findings.", depends_on: [], expected_files: [], status: DONE}
@@ -91,6 +94,7 @@ implementation_plan:
     - {id: RUN-1, objective: "Initial deterministic governance implementation", tasks: [T1], exit_condition: "Initial deterministic validator and traceability proof complete.", status: DONE}
     - {id: RUN-2, objective: "P0-P2 hardening and real GitHub proof", tasks: [T2, T3, T4], exit_condition: "Fresh exact-head independent closure and trusted collaborator approval.", status: IN_REVIEW}
     - {id: RUN-3, objective: "Trusted stale-green predecessor, real GitHub proof and independent re-review", tasks: [T12], exit_condition: "Clean successor L2 and guarded PR #5 merge eligibility.", status: IN_REVIEW}
+
 review_plan:
   artifact_class: GOVERNANCE_AUTOMATION
   independence_level: L2_TARGET
@@ -98,7 +102,7 @@ review_plan:
   completed_reviews: [REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039, REVIEW-0042, REVIEW-0043, REVIEW-0044, REVIEW-0045, REVIEW-0046, REVIEW-0047]
   open_findings:
     - "PR #2 branch-local unresolved material findings remain pending final integration/review."
-    - "REVIEW-0047 is terminal COMPLETE/CHANGES_REQUIRED on d266d73c15b524413209be16d4970ec42928ea04; a corrected successor review is required."
+    - "REVIEW-0047 is terminal COMPLETE/CHANGES_REQUIRED on d266d73c15b524413209be16d4970ec42928ea04; REVIEW-0048 is the open successor review."
     - PRRT_kwDOUUI5ts6ijmtc
     - PRRT_kwDOUUI5ts6ijmtj
     - PRRT_kwDOUUI5ts6ijmtr
@@ -165,35 +169,35 @@ review_plan:
     - "PRR_kwDOUUI5ts8AAAABNuingg — REVIEW-0040 author-side ordering-race P1."
     - "PRR_kwDOUUI5ts8AAAABNvBAIQ — REVIEW-0041 author-side Pull Requests snapshot P1."
     - "PRR_kwDOUUI5ts8AAAABNyyfZA — REVIEW-0044 author-side deep-history P1."
+
 required_tests:
   unit: [TEST-0009]
   property:
     - "exact latest GitHub Actions-owned MONDE / Merge Gate check is merge-state authority"
     - "direct target authority uses exact positive non-Boolean run/workflow/job/attempt IDs and binds exact head/current base/current merge-ref/current PR"
-    - "scheduler issue authority uses an exact positive non-Boolean integer identifier"
-    - "selected-PR target discovery remains bounded and durably resumable with drift detection both across invocations and between consecutive pages in one invocation"
-    - "durable cursor cannot regress under overlapping schedule writers because the trusted poll job is serialized"
+    - "selected-PR target discovery is durably resumable and drift-detecting across and within invocations"
+    - "durable cursor cannot regress under overlapping schedule writers"
     - "one invocation considers at most seven head groups and performs at most three actual rerun POSTs"
-    - "post-rerun observation persists across invocations and validates the one exact attempt created by the mutation, its protected job and the causally bound effective exact-head required-check state"
-    - "current PR authority is revalidated at the mutation and post-condition boundaries"
-    - "a rerun that is already stale-green at final thread observation retains the head for immediate/durable reprocessing rather than advancing the scheduler"
+    - "post-rerun observation accepts only the exact single next attempt and its causally bound protected job/effective check"
+    - "current PR authority is revalidated at mutation and post-condition boundaries"
+    - "a rerun already stale-green at final observation retains the head rather than advancing the scheduler"
   integration: [TEST-0009]
   contract: ["registry/schema/progress/review/change-control integrity", "bootstrap GitHub Checks/REST/GraphQL/Actions/Issues control-plane contract"]
   e2e: []
   regression:
-    - "all 63 PR #5 inline findings remain represented and unresolved before the successor review"
-    - "rerun remains queued/running beyond one local observation loop and remains durably selected without issuing a duplicate POST"
-    - "unrelated or concurrently-created workflow attempts cannot satisfy the causal post-condition of this invocation's POST"
+    - "all 63 PR #5 inline findings remain represented and unresolved before REVIEW-0048"
+    - "rerun remains queued/running beyond one local observation loop and retains durable processing without unsafe scheduler advancement"
+    - "concurrent workflow attempts cannot satisfy this invocation's exact next-attempt post-condition"
     - "PR base/merge-ref changes immediately before mutation or before post-condition acceptance"
-    - "selected target history changes membership around a saved continuation anchor or between two pages read in one invocation"
-    - "float/Boolean scheduler issue and direct authority identifiers are rejected"
+    - "selected target history changes membership around a saved continuation anchor or between consecutive pages read in one invocation"
+    - "float/Boolean trust-binding identifiers are rejected"
     - "more than three same-head siblings cannot exceed three actual POSTs"
-    - "two schedule executions cannot concurrently regress issue #7 cursor"
     - "rerun completes merge-acceptable and threads reopen before final observation; head remains selected"
   security: ["immutable pins", "hash-locked Python artifacts", "least privilege", "live probe read-only", "actions:write/issues:write only on trusted serialized scheduled path"]
-  performance: ["authority successor hard-capped at 100 script-issued GitHub calls per invocation", "one invocation considers at most seven head groups and performs at most three actual rerun POSTs", "selected-PR history scan advances at most two 12-check pages per invocation with drift detection", "live exact-candidate PR #2 probe consumed 7/100; wiring evidence only, not worst-case capacity"]
+  performance: ["authority successor hard-capped at 100 script-issued GitHub calls per invocation", "one invocation considers at most seven head groups and performs at most three actual rerun POSTs", "selected-PR history scan advances at most two bounded pages per invocation with drift detection", "live exact-candidate PR #2 probe consumed 7/100; wiring evidence only, not worst-case capacity"]
   real_system: [TEST-0009]
   epistemic: ["execution evidence is exact-SHA bound", "workflow_run.pull_requests dynamic associations are not triggering-PR provenance", "canonical reusable-workflow pull ref plus referenced workflow SHA/current merge_commit_sha provide positive current-PR authority"]
+
 scientific_validation:
   required: false
   baseline: null
@@ -201,6 +205,7 @@ scientific_validation:
   temporal_leakage_check: null
   reproducibility_manifest: null
   shadow_or_canary: null
+
 observability:
   required: true
   logs: ["rule-coded diagnostics", "GitHub Job Summary", "bootstrap poll rerun count", "bootstrap request budget", "scheduler cursor/scan/anchor state"]
@@ -208,52 +213,47 @@ observability:
   traces: []
   alerts: ["required MONDE merge gate failure after WORK-0003", "bootstrap request-budget exhaustion", "scheduler-state corruption/concurrency failure"]
   slis_slos: ["governance core completes inside timeout", "bootstrap poll completes inside timeout", "supported stale-green load retains forward invalidation progress", "actual rerun POST cap is three", "cursor progress is serialized and resumable"]
+
 validation:
   executed:
-    - "Bootstrap #122 / run 35087404773 on REVIEW-0046 corrective runtime 2ee7c8d9e27d7f402a9619e4da8ea76200ae7f9d"
-    - "Bootstrap #123 / run 35088041064 on synchronized REVIEW-0046 OPEN checkpoint 4552a42ef352c1b85619e0dc96049d1d7788ca9d"
-    - "Bootstrap #124 / run 35088303716 on frozen REVIEW-0046 IN_PROGRESS head e9c22ab562f724ba77e21f32cf8195b0b1ed5b5b"
-    - "Independent REVIEW-0046 / PRR_kwDOUUI5ts8AAAABNz-eNg on e9c22ab562f724ba77e21f32cf8195b0b1ed5b5b"
-    - "Bootstrap #125 / run 35101931714 exposed an old shared-head test harness incompatible with mutation-boundary double PR revalidation; live PR #2 probe remained green"
-    - "Bootstrap #126 / run 35102057746 passed 115 functional tests but exposed five uncovered successor guard paths; coverage threshold remained 100 percent"
     - "Bootstrap #127 / run 35102314409 on REVIEW-0047 corrective runtime efac4c61aa7dd61b17088e5f8a5b1fae82199d3c"
     - "Bootstrap #128 / run 35103307534 on synchronized REVIEW-0047 OPEN checkpoint f2f94a25acef881d0928e2ef80d073dcd9540c41"
     - "Bootstrap #129 / run 35103667502 on frozen REVIEW-0047 IN_PROGRESS head d266d73c15b524413209be16d4970ec42928ea04"
     - "Independent REVIEW-0047 / PRR_kwDOUUI5ts8AAAABN1lrxA on d266d73c15b524413209be16d4970ec42928ea04"
+    - "Bootstrap #131-#134 iteratively corrected REVIEW-0048 fixtures/coverage while live PR #2 probe remained green"
+    - "Bootstrap #135 / run 35126374186 on REVIEW-0048 corrective runtime 86670f6b9f6ae2c1e288686866986fd737421892"
   evidence:
-    - "Bootstrap #127: 116/116 tests PASS; 1153 statements / 522 branches at 100 percent line and branch coverage"
-    - "Bootstrap #127 live PR #2 probe SUCCESS at 7/100 read-only requests"
-    - "Bootstrap #128 re-proved the synchronized OPEN state exact-head with the same 116 tests / 1153 statements / 522 branches / 100 percent and live PR #2 probe SUCCESS at 7/100"
-    - "Bootstrap #129 proved the frozen REVIEW-0047 IN_PROGRESS checkpoint; self-test and live PR #2 contract probe both SUCCESS"
-    - "REVIEW-0047 independently found three new P1 findings: retain stale-again head, exact POST-attempt binding under concurrent reruns, and intra-invocation check-pagination drift"
+    - "Bootstrap #135: 138/138 tests PASS; 1342 statements / 640 branches at 100 percent line and branch coverage"
+    - "Bootstrap #135 live PR #2 probe SUCCESS at 7/100 read-only requests"
+    - "REVIEW-0047 independently found three P1 findings: retain stale-again head, exact POST-attempt binding under concurrent reruns, and intra-invocation check-pagination drift"
+    - "REVIEW-0048 regressions cover those three findings plus bounded deferred observation and fail-closed edge paths"
   coverage: {line: 100, branch: 100}
   known_gaps:
-    - "REVIEW-0047 is terminal COMPLETE/CHANGES_REQUIRED; three exact-head P1 findings require correction and a fresh successor L2."
+    - "REVIEW-0048 independent exact-head L2 has not yet run."
     - "All 63 PR #5 inline material threads remain unresolved."
-    - "The successor must also prove pending rerun observation resumes without duplicate POSTs after bounded timeout/restart."
     - "PR #2 must later integrate final trusted-base contract and obtain trusted non-author exact-head APPROVED evidence."
+
 risk: {security: HIGH, data: NONE, epistemic: LOW, performance: HIGH, operational: HIGH}
 rollback:
   strategy: "Do not merge PR #5 until a clean exact-head successor review permits controlled thread resolution; main remains on WORK-0001 governance if PR #5 is rejected."
+
 run_log:
-  - "REVIEW-0046 terminal negative: e9c22ab562f724ba77e21f32cf8195b0b1ed5b5b / PRR_kwDOUUI5ts8AAAABNz-eNg / five new findings."
-  - "REVIEW-0047 corrective runtime checkpoint efac4c61aa7dd61b17088e5f8a5b1fae82199d3c passed Bootstrap #127: 116 tests / 1153 statements / 522 branches / 100 percent plus live PR #2 probe 7/100."
-  - "Synchronized REVIEW-0047 OPEN checkpoint f2f94a25acef881d0928e2ef80d073dcd9540c41 passed Bootstrap #128 with the same 116-test / 1153-statement / 522-branch / 100 percent proof and live PR #2 probe 7/100."
-  - "Frozen REVIEW-0047 IN_PROGRESS checkpoint d266d73c15b524413209be16d4970ec42928ea04 passed Bootstrap #129 / run 35103667502."
-  - "REVIEW-0047 independent L2 PRR_kwDOUUI5ts8AAAABN1lrxA found three P1s; PR #5 now has 63 unresolved inline material threads."
+  - "REVIEW-0047 terminal negative: d266d73c15b524413209be16d4970ec42928ea04 / PRR_kwDOUUI5ts8AAAABN1lrxA / three new P1 findings."
+  - "REVIEW-0048 corrective runtime 86670f6b9f6ae2c1e288686866986fd737421892 passed Bootstrap #135: 138 tests / 1342 statements / 640 branches / 100 percent plus live PR #2 probe 7/100."
+
 discoveries:
-  - "A bounded local rerun waiter is insufficient; pending observation must survive scheduler invocations without duplicate POSTs."
-  - "A changed exact-head check is not causal evidence unless its run/job/attempt binds to the one attempt created by this invocation's mutation."
-  - "PR authority must be revalidated at the mutation and post-condition boundaries, not only during target discovery."
-  - "Durable target-history continuation requires drift detection both across invocations and between consecutive offset pages inside one invocation."
-  - "A rerun can become stale again after evaluating a temporarily clean PR; the scheduler must retain that head instead of advancing."
-  - "Scheduler issue identity is a trust boundary and uses the same exact-integer discipline as run/job identifiers."
+  - "A completed rerun that is already stale again must retain the selected head instead of being treated as completed processing."
+  - "A rerun POST must be attributed to exactly one next attempt; arbitrary attempt jumps are ambiguous under concurrent reruns."
+  - "Offset pagination drift must be detected between consecutive pages inside the same invocation, not only across saved continuations."
+  - "Bounded deferred post-condition observation must preserve safe scheduler progress without accepting an unproven terminal state."
+
 blockers:
-  - "REVIEW-0047 terminal P1 findings must be corrected and re-proven on a successor exact head."
+  - "REVIEW-0048 independent exact-head L2 is required before any historical thread resolution or merge decision."
   - "63 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
 follow_up_work_items: []
+
 completion:
   definition_of_ready_checked: true
   definition_of_done_checked: false
