@@ -16,19 +16,7 @@ Canonical operational state: Yes
 
 PR #5 (`chore/work-0002-stale-green-bootstrap`) remains the narrow trusted-default-branch predecessor for WORK-0002/T12. No merge and no review-thread resolution is permitted while material findings remain open.
 
-The current corrective candidate uses bounded progress-preserving scheduling:
-
-1. stable unique open Pull Requests authority is read;
-2. PRs are grouped by exact head SHA;
-3. head groups rotate by a ten-minute fairness slot;
-4. at most seven head groups are considered per invocation;
-5. exact merge-acceptable required-check state is confirmed per selected head;
-6. stable open authority is refreshed before target resolution;
-7. a PR-bound target is resolved per sibling using canonical `refs/pull/<N>/merge` authority and its protected current-attempt job is validated;
-8. current review-thread state is read immediately before rerun decision;
-9. a now-clean sibling is skipped; at most one unresolved sibling is rerun for a shared SHA in one invocation;
-10. at most three reruns occur per invocation;
-11. the 60-call hard limit remains the last-resort network guard.
+The reviewed candidate at `379b4e00aa973f74c9bb973a1e79381f43332f0b` used bounded head-group scheduling, at most seven selected heads and three reruns, per-sibling PR-bound target resolution, final thread-state reclassification and a 60-call hard guard. REVIEW-0044 proved that these controls are still insufficient.
 
 Only the trusted scheduled default-branch path has `actions: write`; the live PR #2 probe remains read-only.
 
@@ -38,34 +26,30 @@ Only the trusted scheduled default-branch path has `actions: write`; the live PR
 - REVIEW-0040 and REVIEW-0041: `CLOSED` administrative negative evidence.
 - REVIEW-0042: `COMPLETE / CHANGES_REQUIRED` on `1120bbb9d1548bf0b20c6c1052731c0bf4154a00`.
 - REVIEW-0043: `COMPLETE / CHANGES_REQUIRED` on `3bce7808d7d30b361559d54663bc0808ab4cdcf6`; independent review `PRR_kwDOUUI5ts8AAAABNyER4A` added `PRRT_kwDOUUI5ts6i1TEN` and `PRRT_kwDOUUI5ts6i1TES`.
-- PR #5 has **46 inline material threads**, all still unresolved.
-- REVIEW-0044 OPEN checkpoint `71a1d0ff13ec25674f2d27201b261b7cbd149ae2` passed Bootstrap #104 / `35075414885` with **86/86 tests, 664 statements, 292 branches, 100% line+branch, live PR #2 probe 7/60**.
-- REVIEW-0044 is now **`IN_PROGRESS`**. The synchronized IN_PROGRESS descendant must itself pass before any independent Codex invocation.
+- REVIEW-0044: **`COMPLETE / CHANGES_REQUIRED`** on exact head `379b4e00aa973f74c9bb973a1e79381f43332f0b`; independent review `PRR_kwDOUUI5ts8AAAABNytEOQ` added `PRRT_kwDOUUI5ts6i2qvx`, `PRRT_kwDOUUI5ts6i2qv4`, and `PRRT_kwDOUUI5ts6i2qwA`.
+- Author-side exact-head review `PRR_kwDOUUI5ts8AAAABNyyfZA` records a fourth P1: recursive single-head Actions-history partitioning can exhaust the 60-call budget before that head's own mutation.
+- PR #5 now has **49 inline material threads**, all still unresolved. The author-side P1 is additional negative evidence, not an inline PRRT.
 
-## Corrective proof chain after REVIEW-0043
+## Exact proof chain after REVIEW-0043
 
 - `9d66a80104e9f2fc98db362bd41f13f923313cf0` — REVIEW-0043 terminal-negative checkpoint; Bootstrap #100 / `35070576172` green.
 - `38eceaab2da8320bad8a5b3929425bf1f14df54a` — first progress scheduler; #101 live probe green, self-test exposed one historical assertion mismatch.
 - `bc1a665f2d38efaa313393565ad2c66f789f8a42` — per-PR sibling target resolution; #102 had 85 tests PASS and live probe green but one uncovered branch.
 - `a1441f506fb1a0f42dbdf984d42e1f847e55db51` — coverage-only fallthrough regression; #103 / `35075010644`: **86/86 tests, 664 statements / 292 branches, 100%, live probe 7/60**.
-- `71a1d0ff13ec25674f2d27201b261b7cbd149ae2` — REVIEW-0044 OPEN state checkpoint; #104 / `35075414885` repeated the same exact proof: **86/86, 664/292, 100%, live probe 7/60**.
+- `71a1d0ff13ec25674f2d27201b261b7cbd149ae2` — REVIEW-0044 OPEN checkpoint; #104 / `35075414885`: **86/86, 664/292, 100%, live probe 7/60**.
+- `379b4e00aa973f74c9bb973a1e79381f43332f0b` — REVIEW-0044 IN_PROGRESS exact head; Bootstrap #105 / `35075653630`: self-test SUCCESS and live PR #2 probe SUCCESS.
+- Independent exact-head Codex review completed at `2026-09-16T08:52:16Z` and returned three new P1s.
 
-The fourteen-head adversarial regression models the nominal request path and requires the first three reruns at request counts **10, 18 and 26**, rather than 60 calls before the first mutation.
+The nominal fourteen-head regression still demonstrates early mutation at request counts **10, 18 and 26**, but REVIEW-0044 proves that nominal batching is not sufficient to establish durable starvation-free progress.
 
-## REVIEW-0044 mandate
+## REVIEW-0044 findings to correct
 
-REVIEW-0044 must independently challenge:
+1. `PRRT_kwDOUUI5ts6i2qvx` — wall-clock modulo is not a durable scheduler cursor. Skipped/delayed/duplicated cron runs can repeatedly select the same prefix and starve another head indefinitely.
+2. `PRRT_kwDOUUI5ts6i2qv4` — large but supported open-PR collections can consume the 60-call budget during global authority refresh before the first possible mutation.
+3. `PRRT_kwDOUUI5ts6i2qwA` — one asynchronous shared-head rerun is not enough; the bridge must verify the resulting latest required check is non-merge-acceptable while unresolved siblings remain.
+4. `PRR_kwDOUUI5ts8AAAABNyyfZA` — a single high-churn head can consume the budget inside recursive filtered Actions-history partitioning before target-job/final-thread/rerun execution.
 
-- fairness of time-derived ten-minute rotation under missed/delayed/duplicated schedules;
-- starvation when clean heads occupy the seven-head selected window;
-- request-budget exhaustion under pathological pagination/history expansion;
-- whether one-rerun-per-shared-SHA plus final thread reclassification prevents clean-sibling green revival;
-- state changes or independent same-head gate completion after the final GraphQL read;
-- per-PR `refs/pull/<N>/merge` authority, including rerun attempts;
-- target protected-job/current-attempt authority;
-- remaining Checks / PR authority / Actions / GraphQL / rerun TOCTOU;
-- exact test discovery, least privilege, hard-budget accounting and traceability;
-- all **46 unresolved historical material threads**.
+The next correction must therefore provide schedule-independent durable progress, explicit mutation headroom before expensive reads, bounded current-incarnation target discovery, and a verified shared-head invalidation post-condition.
 
 ## PR #2 relationship
 
@@ -77,14 +61,16 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 
 ## Current next action
 
-1. Keep all 46 PR #5 inline material threads unresolved.
-2. Publish REVIEW-0044 `IN_PROGRESS` + WORK-0002 + PROJECT_STATE atomically above the proven OPEN checkpoint.
-3. Prove that exact IN_PROGRESS descendant with Bootstrap self-test and live PR #2 contract probe.
-4. Freeze that exact SHA and invoke exactly one fresh-context independent `@codex review` for REVIEW-0044.
-5. Any new material finding requires correction, re-proof and another successor review; do not resolve historical threads mechanically.
-6. Only a clean exact-head independent successor permits controlled verification/resolution and guarded PR #5 merge consideration.
-7. After PR #5 merge, integrate main into PR #2, port parity, prove T12, run fresh PR #2 L2 and obtain eligible non-author exact-head APPROVED evidence before WORK-0002 closure.
-8. WORK-0003 and WORK-0004 remain blocked.
+1. Keep all **49** PR #5 inline material threads unresolved.
+2. Correct REVIEW-0044's four P1 classes without weakening exact Checks merge-state authority, PR-bound target validation, fail-closed metadata validation, least privilege or the 60-call absolute safety guard.
+3. Replace wall-clock-only rotation with schedule-independent progress semantics.
+4. Avoid per-head full open-PR collection refresh or otherwise reserve enough request headroom for an actual invalidation.
+5. Bound current-incarnation target discovery so one deep Actions history cannot consume the entire request budget before mutation.
+6. After rerun, verify the latest shared-SHA required check becomes/remains non-merge-acceptable while an unresolved sibling exists.
+7. Add adversarial regressions for skipped schedules, large open-PR collections, deep single-head history and shared-head post-rerun races.
+8. Re-prove the substantive corrective head at 100% line+branch plus live read-only PR #2 contract probe.
+9. Synchronize WORK-0002 / TEST-0009 / PROJECT_STATE and open a successor independent L2 review. No historical thread resolution before a clean successor.
+10. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
@@ -97,7 +83,7 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 7. registry/tests/TEST-0009.yaml
 8. registry/reviews/REVIEW-0043.yaml
 9. registry/reviews/REVIEW-0044.yaml
-10. live PR #5 exact HEAD/checks/reviews/46 threads
+10. live PR #5 exact HEAD/checks/reviews/49 threads
 11. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.
