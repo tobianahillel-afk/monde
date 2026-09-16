@@ -37,7 +37,7 @@ Only the trusted scheduled default-branch path has `actions: write`; the live PR
   - `PRRT_kwDOUUI5ts6i0j_C`: duplicate open repo/ref/SHA abort left the shared green check usable;
   - `PRRT_kwDOUUI5ts6i0j_F`: open authority could change after thread classification and before target selection.
 - PR #5 has **44 inline material threads**, all still unresolved.
-- REVIEW-0043 is the fresh successor L2. This checkpoint creates it as `OPEN`; it must be exact-head proven before transition to `IN_PROGRESS`.
+- REVIEW-0043 is now **`IN_PROGRESS`** in the synchronized REVIEW/WORK/PROJECT checkpoint. Its exact descendant must pass before any Codex invocation.
 
 ## Corrective proof chain after REVIEW-0042
 
@@ -45,6 +45,7 @@ Only the trusted scheduled default-branch path has `actions: write`; the live PR
 - `bea8e9fa28a7771c0642c5b3ad79fccbc37b3f40` — shared-head per-PR authority + late open-authority revalidation; Bootstrap #95 / `35068179930`: **79/79 tests**, **638 statements / 286 branches**, 100% line+branch, live PR #2 probe SUCCESS.
 - `4f259e348953c0f45f7f1ed06497cbf554cec789` — global request budget; Bootstrap #96 / `35068715977`: **80/80 tests**, **652 statements / 288 branches**, 100% line+branch, live probe `7/60`; a local test regex emitted a SyntaxWarning.
 - `b4f8e07b108b1ee881498b0a1b8b0e3afd007de0` — warning cleanup only; Bootstrap #97 / `35068890722`: **80/80 tests**, **652 statements / 288 branches**, 100% line+branch, live PR #2 probe SUCCESS with `open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true` and `request budget: 7/60`. No project-code SyntaxWarning remains.
+- REVIEW-0043 OPEN checkpoint `0137f18306af30c5fecf786bbcc864fc0732314d` — Bootstrap #98 / `35069264480`: **80/80 tests**, **652 statements / 288 branches**, 100% line+branch, live PR #2 probe SUCCESS at **7/60**.
 
 ## Historical rate-limit P1
 
@@ -61,14 +62,13 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 ## Current next action
 
 1. Keep all 44 PR #5 inline material threads unresolved.
-2. Prove this synchronized `REVIEW-0043 OPEN` + WORK-0002 + TEST-0009 + PROJECT_STATE checkpoint exactly.
-3. If green, atomically transition REVIEW-0043 to `IN_PROGRESS`, synchronize WORK/PROJECT, and prove that exact descendant.
-4. Freeze the proven IN_PROGRESS SHA and invoke fresh-context independent Codex REVIEW-0043.
-5. REVIEW-0043 must re-check all 44 historical inline findings, both REVIEW-0042 P1s, the reusable-workflow PR-binding contract, remaining TOCTOU and the 60-call resource budget.
-6. Any new material finding requires correction/re-proof and a successor review; do not resolve historical threads mechanically.
-7. Only a clean exact-head independent successor review permits controlled verification/resolution and a guarded PR #5 merge decision.
-8. After PR #5 merge, integrate main into PR #2, port durable parity, prove T12, run fresh PR #2 L2, obtain eligible non-author exact-head APPROVED review, then consider WORK-0002 closure.
-9. WORK-0003 and WORK-0004 remain blocked.
+2. Prove this synchronized `REVIEW-0043 IN_PROGRESS` + WORK-0002 + PROJECT_STATE descendant exactly.
+3. If green, freeze that exact HEAD and invoke one fresh-context independent Codex REVIEW-0043.
+4. REVIEW-0043 must re-check all 44 historical inline findings, both REVIEW-0042 P1s, the reusable-workflow PR-binding contract, remaining TOCTOU and the 60-call resource budget.
+5. Any new material finding requires correction/re-proof and a successor review; do not resolve historical threads mechanically.
+6. Only a clean exact-head independent successor review permits controlled verification/resolution and a guarded PR #5 merge decision.
+7. After PR #5 merge, integrate main into PR #2, port durable parity, prove T12, run fresh PR #2 L2, obtain eligible non-author exact-head APPROVED review, then consider WORK-0002 closure.
+8. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
