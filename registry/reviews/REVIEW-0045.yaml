@@ -8,13 +8,7 @@ reviewer:
   actor: "chatgpt-codex-connector"
   context_id: "PRR_kwDOUUI5ts8AAAABNzc8Sw"
   independence_level: L2
-roles:
-  - ARCHITECTURE_REUSE
-  - VERIFICATION_VALIDATION
-  - SECURITY
-  - PERFORMANCE_SRE
-  - DOCUMENTATION_TRACEABILITY
-  - RED_TEAM_SKEPTIC
+roles: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY, RED_TEAM_SKEPTIC]
 external_import: null
 scope:
   work_items: [WORK-0002]
@@ -24,27 +18,25 @@ scope:
   contracts:
     - "trusted default-branch stale-green review-state invalidation"
     - "exact latest GitHub Actions-owned MONDE / Merge Gate check remains merge-state authority"
-    - "rerun authority is positively bound to one current open PR through canonical refs/pull/<N>/merge metadata"
-    - "mutation-path target discovery is bounded through check candidates plus direct run and protected-job validation"
-    - "scheduler progress uses durable machine-managed issue #7 cursor state"
-    - "selected PRs are revalidated directly rather than by a second global open-PR refresh"
-    - "one invocation considers at most seven head groups, schedules at most three reruns, and hard-caps script-issued GitHub requests at 100"
-    - "mutation and post-condition request headroom is reserved before expensive target validation"
-    - "a rerun must establish a durable non-merge-acceptable exact-head required-check post-condition"
-    - "shared-head processing must preserve unresolved siblings even when another sibling becomes clean"
-    - "malformed REST/GraphQL/Checks/Actions/Issue state fails closed"
-    - "live PR #2 contract probe remains read-only"
+    - "rerun authority is positively bound to the current PR/head/base context"
+    - "rerun-target discovery is bounded but cannot permanently omit a retained selected-PR target"
+    - "scheduler progress is durable and schedule writers cannot regress it"
+    - "actual rerun POST count is invocation-bounded"
+    - "post-rerun invalidation is terminal, exact-head and shared-head safe"
+    - "trust-binding identifiers use exact positive non-Boolean integers"
   risks:
     - "A queued/in-progress successor check was treated as terminal invalidation before its eventual conclusion was known."
     - "Bounded check-candidate truncation could permanently omit the only current-PR rerun target."
     - "Direct PR revalidation did not bind base identity, allowing retarget drift after target discovery."
     - "The declared three-rerun cap was not enforced inside one shared-head sibling loop."
+    - "Direct run/job authority reintroduced coercive numeric equality for trust-binding identifiers."
     - "Issue-backed cursor writes were not serialized, allowing concurrent schedules to regress durable progress."
 findings:
   - "PRRT_kwDOUUI5ts6i4YR8"
   - "PRRT_kwDOUUI5ts6i4YSC"
   - "PRRT_kwDOUUI5ts6i4YSI"
   - "PRRT_kwDOUUI5ts6i4YSM"
+  - "PRRT_kwDOUUI5ts6i4YST"
   - "PRRT_kwDOUUI5ts6i4YSZ"
 checks:
   assumptions_challenged:
@@ -52,31 +44,35 @@ checks:
     - "The twelve newest validated checks always contain the unresolved PR's positively bound target."
     - "Head identity plus created_at is sufficient current-PR authority across base retargets."
     - "The outer rerun-count guard also bounds POSTs performed inside one shared-head group."
+    - "Python numeric equality is sufficient for trust-binding run/workflow/job identifiers."
     - "Issue-backed cursor PATCH is safe without schedule serialization or compare-and-set semantics."
   omitted_categories_considered:
     - "queued/in-progress to eventual-success transition"
     - "shared SHA with more than twelve newer sibling checks"
     - "base repo/ref/SHA retarget after target discovery"
     - "many same-head siblings becoming clean serially"
+    - "float/Boolean/coercible identifiers in direct run/job metadata"
     - "duplicate/overlapping scheduled executions and last-write-wins cursor rollback"
   duplicate_or_reuse_search:
     - "REVIEW-0031 through REVIEW-0039 and REVIEW-0042 through REVIEW-0044 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
     - "REVIEW-0040 and REVIEW-0041 remain CLOSED administrative negative evidence."
     - "All 49 historical inline material findings remained unresolved entering this review."
-    - "REVIEW-0045 adds five exact-head independent P1 findings, leaving 54 inline material threads unresolved."
+    - "REVIEW-0045 adds six exact-head independent P1 findings, leaving 55 inline material threads unresolved."
   failure_modes_considered:
     - "new check appears non-terminal then completes merge-acceptable after the poll exits"
     - "only current-PR target lies outside the newest twelve exact-head check candidates"
     - "PR base changes while head SHA remains identical"
     - "shared-head loop emits more than three rerun POSTs before returning to the outer scheduler"
+    - "float-valued run/workflow/job identifiers pass coercive equality"
     - "overlapping schedules read the same cursor and overwrite one another with different later writes"
   evidence_requested:
-    - "Wait for a terminal new required-check conclusion and only accept non-merge-acceptable terminal state as durable invalidation."
-    - "Replace fixed twelve-check truncation with a bounded continuation/completeness strategy for the selected PR."
-    - "Bind direct PR authority to base repository/ref/SHA and ensure a retarget cannot reuse old-base workflow context."
-    - "Enforce one invocation-wide rerun budget at the mutation point, including shared-head fallthrough attempts."
-    - "Serialize scheduled cursor mutation or introduce versioned compare-and-set/lease semantics."
-    - "Add adversarial regressions for all five P1s and re-prove exact-head 100 percent line/branch plus live read-only GitHub contract."
+    - "Wait for a terminal new required-check conclusion and accept invalidation only when terminal state is non-merge-acceptable."
+    - "Use a bounded continuation/completeness strategy for the selected PR target instead of a fixed twelve-check prefix."
+    - "Bind current PR and rerun authority to base repository/ref/SHA and current merge-ref context."
+    - "Enforce one invocation-wide rerun budget at the actual mutation point."
+    - "Require exact positive non-Boolean integers for direct run/workflow/job identifiers and attempts."
+    - "Serialize scheduled cursor mutation or use versioned compare-and-set/lease semantics."
+    - "Add adversarial regressions for all six P1s and re-prove exact-head 100 percent line/branch plus live read-only GitHub contract."
     - "Run a fresh independent successor L2 before resolving any historical thread."
 outcome: CHANGES_REQUIRED
 completed_at: "2026-09-16T10:14:02Z"
