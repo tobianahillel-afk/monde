@@ -1,0 +1,78 @@
+id: REVIEW-0045
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "exact latest GitHub Actions-owned MONDE / Merge Gate check remains merge-state authority"
+    - "rerun authority is positively bound to one current open PR through canonical refs/pull/<N>/merge metadata"
+    - "mutation-path target discovery is bounded through check candidates plus direct run and protected-job validation; exhaustive Actions history is not required"
+    - "scheduler progress uses durable machine-managed issue #7 cursor state, not wall-clock modulo"
+    - "selected PRs are revalidated directly rather than by a second global open-PR refresh"
+    - "one invocation considers at most seven head groups, schedules at most three reruns, and hard-caps script-issued GitHub requests at 100"
+    - "mutation and post-condition request headroom is reserved before expensive target validation"
+    - "a rerun is accepted as invalidation only after a new exact-head required check is observed non-merge-acceptable or non-completed"
+    - "if one shared-head sibling becomes clean and returns green, processing continues to another sibling that is still unresolved"
+    - "malformed REST/GraphQL/Checks/Actions/Issue state fails closed"
+    - "live PR #2 contract probe remains read-only; actions:write and issues:write exist only on trusted scheduled execution"
+  risks:
+    - "durable cursor state could be corrupted, edited, raced, or become an unintended trust input"
+    - "bounded check history could omit a valid current-PR rerun target under unusual check retention/order behavior"
+    - "100-call cap and cursor advancement could still create starvation or progress loss under adversarial partial failures"
+    - "post-condition polling could observe a sibling completion that is not causally attributable to the requested rerun"
+findings: []
+checks:
+  assumptions_challenged:
+    - "Issue-backed cursor state is durable, closed-world, and update-safe under skipped, duplicated, concurrent or failed schedules."
+    - "Check details URLs provide a sufficiently bounded and authoritative index to the canonical run/job for current PR authority."
+    - "Direct run/job validation plus refs/pull/N/merge is sufficient without exhaustive Actions-history reconstruction."
+    - "The 100-call budget plus explicit reserves guarantees forward invalidation progress at supported scale."
+    - "The observed new required check after rerun is strong enough to establish stale-green invalidation on a shared SHA."
+  omitted_categories_considered:
+    - "manual/tampered issue cursor state and concurrent schedule executions"
+    - "missing, duplicated, reordered or old check-run candidates"
+    - "very large open-PR sets and many same-head siblings"
+    - "deep historical Actions data that is no longer traversed on mutation path"
+    - "rerun completion races and unrelated sibling workflow completions"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039, REVIEW-0042, REVIEW-0043 and REVIEW-0044 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
+    - "REVIEW-0040 and REVIEW-0041 remain CLOSED administrative negative evidence."
+    - "All 49 historical PR #5 inline material threads remain unresolved entering REVIEW-0045."
+  failure_modes_considered:
+    - "cursor issue is edited, closed, replaced or returns malformed state"
+    - "budget defers a head before mutation but cursor advancement causes it never to be revisited"
+    - "current PR authority changes between direct target discovery, final thread read, rerun and post-condition"
+    - "shared-head sibling goes clean while another remains unresolved"
+    - "canonical check points to malformed or wrong run/job/attempt/head authority"
+  evidence_requested:
+    - "Re-check all 49 unresolved historical inline findings against the exact successor head."
+    - "Red-team durable cursor fairness and crash/retry semantics."
+    - "Red-team bounded check -> run -> job target authority and candidate truncation."
+    - "Red-team budget reserves and zero-progress/starvation cases at large PR counts."
+    - "Red-team shared-head rerun post-condition causality and green-revival behavior."
+    - "Confirm exact-head 100 percent line/branch proof plus live read-only PR #2 probe."
+    - "Any material finding requires correction and a successor review; resolve no historical thread during this review."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-16"
+  updated_at: "2026-09-16"
