@@ -17,23 +17,21 @@ PR #5 (`chore/work-0002-stale-green-bootstrap`) remains the narrow trusted-defau
 
 REVIEW-0047 is terminal `COMPLETE / CHANGES_REQUIRED` on exact frozen HEAD `d266d73c15b524413209be16d4970ec42928ea04` via independent review `PRR_kwDOUUI5ts8AAAABN1lrxA`. It added three P1 findings, bringing PR #5 to **63 inline material threads**, all intentionally unresolved.
 
-The REVIEW-0048 corrective runtime is exact-head proven at **`86670f6b9f6ae2c1e288686866986fd737421892`** by Bootstrap **#135 / run `35126374186`**: **138/138 tests**, **1,342 statements / 640 branches**, **100% line + branch**, and live read-only PR #2 contract probe **SUCCESS at 7/100** requests.
+REVIEW-0048 reached exact frozen HEAD **`b5932be9a5f2d36c192bf482a3051a8523b97a34`**, proven by Bootstrap **#137 / run `35130503995` SUCCESS**. Its runtime predecessor **`86670f6b9f6ae2c1e288686866986fd737421892`** passed Bootstrap #135 with **138/138 tests**, **1,342 statements / 640 branches**, **100% line + branch**, and live read-only PR #2 probe **SUCCESS at 7/100** requests.
 
-The synchronized REVIEW-0048 `OPEN` checkpoint **`fd81f349384de1b488edb957645d39908904bf84`** passed Bootstrap **#136 / run `35130228101`** with self-test SUCCESS and live PR #2 probe SUCCESS. REVIEW-0048 is now **`IN_PROGRESS`**; this state-only descendant is the next exact head that must be proven and frozen for the fresh independent L2.
+The REVIEW-0048 Codex invocation comment `5702006501` was refused by platform code-review quota, so **no independent L2 exists for REVIEW-0048**. During the frozen period, author-side review `PRR_kwDOUUI5ts8AAAABN4OKew` found a material P1: scheduler V3 persists only cursor/scan state and does not durably bind an already-issued rerun POST to a pending `run_id / baseline-or-expected-attempt / prior-check / selected-PR authority`. Under delayed Actions/Checks visibility, the next schedule can still see the previous completed attempt and issue a duplicate rerun.
 
-## REVIEW-0048 review mandate
+Accordingly REVIEW-0048 is **`CLOSED / CHANGES_REQUIRED` administrative negative evidence**, not `COMPLETE`. The 63 inline material threads remain unresolved.
 
-The successor preserves prior protections and must independently re-check all 63 historical findings, with particular red-team focus on:
+## Required REVIEW-0049 correction
 
-1. exact POST -> single next workflow attempt -> protected job -> effective required-check causality under concurrent reruns and Actions visibility lag;
-2. stale-again retention when a rerun completes merge-acceptable but thread state is unresolved again before/after final observation;
-3. selected-PR target-history continuation under insertion, deletion, reordering and drift between consecutive pages in the same invocation;
-4. bounded DeferredObservation across scheduler restart/retry without duplicate POST or unsafe cursor advancement;
-5. head/base/merge-ref authority at discovery, mutation and post-condition boundaries;
-6. issue #7 serialization/migration, exact integer identifiers, three-POST cap, seven-head bound and 100-request reserves;
-7. synchronized TEST-0009 / WORK-0002 / PROJECT_STATE / REVIEW-0047 / REVIEW-0048 traceability.
+The next successor must preserve every prior protection and add a positively authorized durable mutation-observation state:
 
-Any new material finding requires correction, exact-head re-proof and another successor review. No historical thread may be resolved while REVIEW-0048 is in progress.
+1. an accepted rerun POST must become durable state that can be resumed without another POST even if GitHub has not yet published the next attempt/check;
+2. durable pending state must bind the selected PR's current authority, `run_id`, mutation baseline/expected next attempt, and prior effective-check identity strongly enough to reject unrelated activity;
+3. restart/crash ordering around state persistence and POST must be explicitly designed and tested—no gap may permit `POST succeeded but durable state says no mutation in flight`;
+4. pending state may clear/advance only after terminal causally-bound post-condition evidence or an explicit fail-closed authority-change path;
+5. existing target-history drift detection, stale-again retention, exact integer typing, issue #7 serialization, seven-head bound, three-POST cap, 100-request reserves and fail-closed metadata remain required.
 
 ## PR #2 relationship
 
@@ -44,11 +42,11 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 ## Current next action
 
 1. Keep all **63** PR #5 inline material threads unresolved.
-2. Prove this REVIEW-0048 `IN_PROGRESS` state-only descendant exact-head with the bootstrap self-test and live PR #2 probe.
-3. If green, freeze that exact SHA and re-query PR #5 HEAD, all 63 threads and the review list.
-4. Update only PR metadata needed for reviewer orientation; do not modify the Git tree after the freeze.
-5. Invoke exactly one fresh-context independent L2 on the frozen SHA.
-6. Any new material finding requires correction, exact-head re-proof and another successor review.
+2. Prove this REVIEW-0048 terminal state-only checkpoint exact-head before functional correction.
+3. Implement durable pending-mutation identity and crash/retry ordering as a narrow REVIEW-0049 successor.
+4. Add adversarial regressions for delayed API visibility across scheduled invocations and crash boundaries around POST/state persistence.
+5. Exact-head prove 100% line+branch and live read-only PR #2 contract probing.
+6. Only then create REVIEW-0049 `OPEN`, prove it, transition to `IN_PROGRESS`, prove/freeze, and request one fresh independent L2 when the review surface is available.
 7. Do not merge or resolve historical threads before a clean successor review.
 8. WORK-0003 and WORK-0004 remain blocked.
 

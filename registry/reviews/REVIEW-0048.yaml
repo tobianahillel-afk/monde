@@ -1,9 +1,9 @@
 id: REVIEW-0048
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "b5932be9a5f2d36c192bf482a3051a8523b97a34"
 reviewer:
   actor: null
   context_id: null
@@ -37,56 +37,38 @@ scope:
     - "malformed REST/GraphQL/Checks/Actions/Issue/PR authority fails closed"
     - "the live PR #2 contract probe remains read-only; actions:write and issues:write exist only on trusted serialized scheduled execution"
   risks:
-    - "Concurrent or delayed workflow attempts may still create an attribution ambiguity not covered by the current exact-next-attempt model."
-    - "Offset check pagination may still admit a deletion/insertion/reordering pattern that survives the page-boundary anchor checks."
-    - "A shared-head clean/unresolved sibling interleaving may revive a merge-acceptable check after the bounded observer returns."
-    - "Deferred observation may still cause duplicate mutation or scheduler starvation across crash/retry or migration boundaries."
-    - "The 100-request reserve model may fail to preserve forward progress under a supported but adversarial combination of siblings, pages and post-condition polling."
-    - "Historical findings may appear fixed locally while an equivalent trust gap remains on another path."
-findings: []
+    - "Deferred rerun observation is not durably bound to the already-issued POST, so API visibility lag can make the next scheduled invocation issue a duplicate rerun."
+findings:
+  - "PRR_kwDOUUI5ts8AAAABN4OKew"
 checks:
   assumptions_challenged:
-    - "Refreshing the mutation baseline immediately before the POST is sufficient to bind the POST to exactly one next attempt under concurrent reruns."
-    - "A previous-page anchor checked during consecutive page reads is sufficient to detect every material intra-invocation offset-pagination drift."
-    - "Returning durable continuation after bounded post-condition deferral cannot cause a duplicate rerun POST or unsafe scheduler advancement on the next invocation."
-    - "A completed rerun that is merge-acceptable and currently stale again is always retained rather than turned into an error path that advances the head."
-    - "The existing shared-head sibling loop cannot leave another unresolved PR behind a later revived merge-acceptable check."
-    - "The seven-head, three-POST and 100-request limits preserve forward progress under all supported load shapes."
+    - "Persisting only scan_pr/scan_page/scan_anchor is enough to resume safely after a rerun POST whose new attempt is not yet visible."
+    - "If the newly POSTed attempt is not visible by the next schedule, the run endpoint cannot still present the previous completed attempt as a valid new mutation baseline."
+    - "Bounded DeferredObservation can be resumed without persisting pending mutation identity."
   omitted_categories_considered:
-    - "manual or automated concurrent reruns of the same workflow before and after the bridge POST"
-    - "Actions visibility lag where run_attempt, jobs and Checks surfaces become visible in different orders"
-    - "check insertion/deletion/reordering between page reads and around a saved continuation anchor"
-    - "thread reopening after rerun evaluation but before or after terminal check publication"
-    - "scheduler restart while a rerun is queued/running or while continuation state is being written"
-    - "PR retarget/base/merge-ref change at discovery, mutation and post-condition boundaries"
-    - "large sibling/history sets near mutation/post-condition/state-write reserves"
-    - "V1/V2/V3 scheduler-state migration and malformed persisted cursor fields"
+    - "POST accepted but Actions run_attempt visibility delayed beyond the local observation window"
+    - "POST accepted but Checks still exposes the prior completed merge-acceptable check on the next scheduled invocation"
+    - "scheduler restart/retry before the new attempt becomes externally visible"
+    - "crash boundaries around mutation and durable state persistence"
   duplicate_or_reuse_search:
     - "REVIEW-0031 through REVIEW-0039 and REVIEW-0042 through REVIEW-0047 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
     - "REVIEW-0040 and REVIEW-0041 remain CLOSED administrative negative evidence."
-    - "All 63 historical PR #5 inline material threads remain unresolved entering REVIEW-0048."
-    - "REVIEW-0048 must re-check every historical finding against the exact frozen successor head rather than assuming regression tests imply semantic closure."
+    - "Codex REVIEW-0048 invocation comment 5702006501 was refused by the platform code-review quota and produced no independent review."
+    - "All 63 historical PR #5 inline material threads remain unresolved."
   failure_modes_considered:
-    - "another actor creates an attempt between the refreshed baseline and bridge POST"
-    - "the bridge-created attempt is delayed while another attempt reaches terminal state first"
-    - "selected rerun completes green and thread state becomes unresolved before or after final observation"
-    - "page membership shifts twice such that a simple previous-page anchor appears stable while a target is omitted"
-    - "continuation state survives but no longer corresponds to the same PR/base/merge authority"
-    - "bounded observer repeatedly defers and consumes scheduler cycles without safe progress"
-    - "malformed metadata is skipped rather than rejected on a successor-only path"
+    - "bridge POST succeeds; waiter sees only previous attempt until timeout; continuation persists only PR/page"
+    - "next invocation still sees previous completed attempt and old green check and POSTS a second rerun"
+    - "a delayed first rerun and duplicate second rerun later race, invalidating exact single-attempt attribution"
+    - "crash after POST but before pending mutation identity can be durably recorded"
   evidence_requested:
-    - "Re-check all 63 unresolved historical inline findings against the exact frozen REVIEW-0048 head."
-    - "Red-team exact POST -> single next attempt -> protected job -> effective terminal check causality under concurrent reruns and delayed visibility."
-    - "Red-team stale-again retention and shared-head sibling fallthrough after a merge-acceptable rerun."
-    - "Red-team target-history continuation under insertion, deletion, reordering and same-invocation page drift."
-    - "Red-team bounded DeferredObservation across scheduler restart/retry to ensure no duplicate POST or unsafe cursor advance."
-    - "Red-team current PR head/base/merge-ref authority at discovery, mutation and post-condition boundaries."
-    - "Red-team exact numeric typing, scheduler-state migration, request reserves, global POST cap and serialization."
-    - "Confirm exact-head 100 percent line/branch proof plus the live read-only PR #2 contract probe."
-    - "Confirm TEST-0009 / WORK-0002 / PROJECT_STATE / REVIEW-0047 / REVIEW-0048 traceability is synchronized on the reviewed head."
-    - "Any material finding requires correction and a successor review; resolve no historical thread during this review."
+    - "Persist a positively validated pending mutation identity sufficient to resume observation without another POST."
+    - "Bind pending state to selected PR authority, run_id, baseline/expected attempt and prior effective-check identity."
+    - "Define and test crash/retry ordering around durable pending state and rerun POST."
+    - "Clear or advance pending state only after a terminal causally-bound post-condition or fail-closed authority change."
+    - "Add regressions for delayed Actions/Checks visibility across scheduled invocations and prove no duplicate POST."
+    - "Re-prove exact-head 100 percent line/branch plus live read-only PR #2 probe and use a successor independent review."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-16T17:54:10Z"
 history:
   created_at: "2026-09-16"
   updated_at: "2026-09-16"

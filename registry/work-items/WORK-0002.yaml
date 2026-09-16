@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0047 is terminal COMPLETE/CHANGES_REQUIRED on d266d73c15b524413209be16d4970ec42928ea04 via independent review PRR_kwDOUUI5ts8AAAABN1lrxA, leaving 63 unresolved inline material threads. The REVIEW-0048 corrective runtime is exact-head proven on 86670f6b9f6ae2c1e288686866986fd737421892 by Bootstrap #135 / run 35126374186: 138 tests, 1342 statements, 640 branches, 100 percent line+branch, live read-only PR #2 probe SUCCESS at 7/100 requests. The synchronized REVIEW-0048 OPEN checkpoint fd81f349384de1b488edb957645d39908904bf84 passed Bootstrap #136 / run 35130228101. REVIEW-0048 is now IN_PROGRESS for a fresh independent exact-head L2. No historical thread has been resolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0047 is terminal COMPLETE/CHANGES_REQUIRED on d266d73c15b524413209be16d4970ec42928ea04. REVIEW-0048 reached frozen exact HEAD b5932be9a5f2d36c192bf482a3051a8523b97a34 with Bootstrap #137 green, but the Codex code-review invocation was refused by quota and no independent L2 ran. Author-side adversarial review PRR_kwDOUUI5ts8AAAABN4OKew found a P1: scheduler V3 does not durably persist an already-issued rerun identity across DeferredObservation, allowing a duplicate rerun if Actions/Checks visibility still exposes the prior completed attempt on the next schedule. REVIEW-0048 is therefore CLOSED/CHANGES_REQUIRED administrative negative evidence. All 63 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -34,6 +34,7 @@ scope:
     - exact mutation baseline and single-next-attempt attribution around rerun POSTs
     - terminal protected-job plus effective exact-head check causal binding before invalidation is accepted
     - durable retention of a PR/head when post-condition observation is deferred or a completed rerun is already stale-green again
+    - durable pending-mutation identity sufficient to resume observation after an accepted rerun POST without issuing a duplicate POST
     - invocation-wide hard 100-call GitHub request counter with mutation/post-condition/state reserves
     - fail-closed REST/GraphQL/Checks/Actions/Issue metadata and bounded pagination
     - least-privilege live read-only probe; actions:write/issues:write only on trusted scheduled path
@@ -81,7 +82,7 @@ impact_analysis:
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "REVIEW-0047 remains terminal negative evidence. REVIEW-0048 is the exact-head successor review for stale-again retention, single-attempt attribution under concurrent reruns, same-invocation pagination drift detection, and bounded deferred observation."
+  compatibility_notes: "REVIEW-0048 is CLOSED administrative negative evidence because no independent L2 ran and author-side exact-head red-team found missing durable pending mutation identity. The next successor must preserve all prior protections while making accepted rerun intent/observation durable across schedule/crash/API-visibility boundaries."
 
 implementation_plan:
   tasks:
@@ -102,7 +103,8 @@ review_plan:
   completed_reviews: [REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039, REVIEW-0042, REVIEW-0043, REVIEW-0044, REVIEW-0045, REVIEW-0046, REVIEW-0047]
   open_findings:
     - "PR #2 branch-local unresolved material findings remain pending final integration/review."
-    - "REVIEW-0048 is IN_PROGRESS; all 63 historical PR #5 material threads remain unresolved pending the fresh exact-head L2."
+    - "REVIEW-0048 is CLOSED administrative negative evidence; no independent L2 ran because code-review quota rejected comment 5702006501."
+    - "PRR_kwDOUUI5ts8AAAABN4OKew — REVIEW-0048 author-side P1: accepted rerun identity is not durably persisted across DeferredObservation, allowing duplicate POST under visibility lag."
     - PRRT_kwDOUUI5ts6ijmtc
     - PRRT_kwDOUUI5ts6ijmtj
     - PRRT_kwDOUUI5ts6ijmtr
@@ -181,11 +183,14 @@ required_tests:
     - "post-rerun observation accepts only the exact single next attempt and its causally bound protected job/effective check"
     - "current PR authority is revalidated at mutation and post-condition boundaries"
     - "a rerun already stale-green at final observation retains the head rather than advancing the scheduler"
+    - "an accepted rerun remains durably represented until its exact post-condition is observed or authority changes fail closed"
   integration: [TEST-0009]
   contract: ["registry/schema/progress/review/change-control integrity", "bootstrap GitHub Checks/REST/GraphQL/Actions/Issues control-plane contract"]
   e2e: []
   regression:
-    - "all 63 PR #5 inline findings remain represented and unresolved during REVIEW-0048"
+    - "all 63 PR #5 inline findings remain represented and unresolved"
+    - "POST accepted but new run attempt remains invisible across local timeout and next scheduled invocation; no duplicate POST occurs"
+    - "crash/retry around mutation/pending-state persistence does not lose in-flight identity or double-mutate"
     - "rerun remains queued/running beyond one local observation loop and retains durable processing without unsafe scheduler advancement"
     - "concurrent workflow attempts cannot satisfy this invocation's exact next-attempt post-condition"
     - "PR base/merge-ref changes immediately before mutation or before post-condition acceptance"
@@ -208,29 +213,28 @@ scientific_validation:
 
 observability:
   required: true
-  logs: ["rule-coded diagnostics", "GitHub Job Summary", "bootstrap poll rerun count", "bootstrap request budget", "scheduler cursor/scan/anchor state"]
-  metrics: ["CI duration", "finding count", "coverage", "bootstrap stale-green actual rerun POST count", "bootstrap request count", "scheduler cursor PR/scan page/anchor"]
+  logs: ["rule-coded diagnostics", "GitHub Job Summary", "bootstrap poll rerun count", "bootstrap request budget", "scheduler cursor/scan/anchor/pending state"]
+  metrics: ["CI duration", "finding count", "coverage", "bootstrap stale-green actual rerun POST count", "bootstrap request count", "scheduler cursor PR/scan page/anchor/pending mutation"]
   traces: []
-  alerts: ["required MONDE merge gate failure after WORK-0003", "bootstrap request-budget exhaustion", "scheduler-state corruption/concurrency failure"]
-  slis_slos: ["governance core completes inside timeout", "bootstrap poll completes inside timeout", "supported stale-green load retains forward invalidation progress", "actual rerun POST cap is three", "cursor progress is serialized and resumable"]
+  alerts: ["required MONDE merge gate failure after WORK-0003", "bootstrap request-budget exhaustion", "scheduler-state corruption/concurrency failure", "pending mutation cannot be causally reconciled"]
+  slis_slos: ["governance core completes inside timeout", "bootstrap poll completes inside timeout", "supported stale-green load retains forward invalidation progress", "actual rerun POST cap is three", "cursor progress is serialized and resumable", "in-flight mutation identity survives schedule/crash/API-visibility boundaries"]
 
 validation:
   executed:
-    - "Bootstrap #127 / run 35102314409 on REVIEW-0047 corrective runtime efac4c61aa7dd61b17088e5f8a5b1fae82199d3c"
-    - "Bootstrap #128 / run 35103307534 on synchronized REVIEW-0047 OPEN checkpoint f2f94a25acef881d0928e2ef80d073dcd9540c41"
-    - "Bootstrap #129 / run 35103667502 on frozen REVIEW-0047 IN_PROGRESS head d266d73c15b524413209be16d4970ec42928ea04"
-    - "Independent REVIEW-0047 / PRR_kwDOUUI5ts8AAAABN1lrxA on d266d73c15b524413209be16d4970ec42928ea04"
-    - "Bootstrap #131-#134 iteratively corrected REVIEW-0048 fixtures/coverage while the live PR #2 probe remained green"
     - "Bootstrap #135 / run 35126374186 on REVIEW-0048 corrective runtime 86670f6b9f6ae2c1e288686866986fd737421892"
     - "Bootstrap #136 / run 35130228101 on synchronized REVIEW-0048 OPEN checkpoint fd81f349384de1b488edb957645d39908904bf84"
+    - "Bootstrap #137 / run 35130503995 on frozen REVIEW-0048 IN_PROGRESS head b5932be9a5f2d36c192bf482a3051a8523b97a34"
+    - "Codex review invocation comment 5702006501 was refused by platform code-review quota; no independent REVIEW-0048 result exists"
+    - "Author-side REVIEW-0048 / PRR_kwDOUUI5ts8AAAABN4OKew on b5932be9a5f2d36c192bf482a3051a8523b97a34"
   evidence:
     - "Bootstrap #135: 138/138 tests PASS; 1342 statements / 640 branches at 100 percent line and branch coverage"
     - "Bootstrap #135 live PR #2 probe SUCCESS at 7/100 read-only requests"
-    - "Bootstrap #136 re-proved the synchronized REVIEW-0048 OPEN checkpoint with self-test SUCCESS and live PR #2 probe SUCCESS"
-    - "REVIEW-0047 independently found three P1 findings: retain stale-again head, exact POST-attempt binding under concurrent reruns, and intra-invocation check-pagination drift"
+    - "Bootstrap #136 and #137 both re-proved state-only successors with self-test and live contract probe SUCCESS"
+    - "Author-side exact-head red-team proves scheduler V3 has no pending run/attempt/check identity, so delayed visibility after an accepted POST can be mistaken for no mutation in flight on the next schedule"
   coverage: {line: 100, branch: 100}
   known_gaps:
-    - "REVIEW-0048 independent exact-head L2 is IN_PROGRESS and has not yet returned a verdict."
+    - "No independent REVIEW-0048 L2 ran because the platform refused the code-review invocation for quota."
+    - "Durable pending mutation identity/correct crash ordering is not yet implemented."
     - "All 63 PR #5 inline material threads remain unresolved."
     - "PR #2 must later integrate final trusted-base contract and obtain trusted non-author exact-head APPROVED evidence."
 
@@ -241,16 +245,18 @@ rollback:
 run_log:
   - "REVIEW-0047 terminal negative: d266d73c15b524413209be16d4970ec42928ea04 / PRR_kwDOUUI5ts8AAAABN1lrxA / three new P1 findings."
   - "REVIEW-0048 corrective runtime 86670f6b9f6ae2c1e288686866986fd737421892 passed Bootstrap #135: 138 tests / 1342 statements / 640 branches / 100 percent plus live PR #2 probe 7/100."
-  - "Synchronized REVIEW-0048 OPEN checkpoint fd81f349384de1b488edb957645d39908904bf84 passed Bootstrap #136 / run 35130228101."
+  - "REVIEW-0048 OPEN fd81f349384de1b488edb957645d39908904bf84 passed Bootstrap #136; IN_PROGRESS b5932be9a5f2d36c192bf482a3051a8523b97a34 passed #137."
+  - "Codex code-review quota rejected REVIEW-0048 invocation; author-side PRR_kwDOUUI5ts8AAAABN4OKew invalidated the frozen head."
 
 discoveries:
   - "A completed rerun that is already stale again must retain the selected head instead of being treated as completed processing."
   - "A rerun POST must be attributed to exactly one next attempt; arbitrary attempt jumps are ambiguous under concurrent reruns."
   - "Offset pagination drift must be detected between consecutive pages inside the same invocation, not only across saved continuations."
   - "Bounded deferred post-condition observation must preserve safe scheduler progress without accepting an unproven terminal state."
+  - "An accepted rerun must also be represented durably while it is not yet externally visible; scan continuation alone cannot prove whether a mutation is already in flight."
 
 blockers:
-  - "REVIEW-0048 fresh independent exact-head L2 is in progress."
+  - "Implement and exact-head prove durable pending-mutation identity and crash/retry ordering before opening REVIEW-0049."
   - "63 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
