@@ -30,7 +30,7 @@ REVIEW-0049 is therefore **`COMPLETE / CHANGES_REQUIRED`**, not administrative C
 
 Author-side `PRR_kwDOUUI5ts8AAAABN4rPMg` independently corroborated the closed-origin race shortly before the Codex L2 completed. PR #5 now has **65 inline material threads**, all intentionally unresolved.
 
-## REVIEW-0050 technical candidate and OPEN lifecycle
+## REVIEW-0050 current lifecycle
 
 REVIEW-0050 addresses both independent REVIEW-0049 P1s without weakening prior fail-closed authority:
 
@@ -50,7 +50,9 @@ Exact technical candidate **`cbe21fa4cebc1c8f8b3030af17284de5700f9818`** passed 
 - live read-only GitHub contract probe against PR #2 **SUCCESS**;
 - recovery job correctly skipped on pull-request CI and its workflow permission set excludes `actions:write`.
 
-REVIEW-0050 is now being opened for independent semantic review. Technical proof is evidence only, not approval. T4/T12/AC-6 remain `IN_REVIEW` and all **65** material inline threads remain unresolved.
+The synchronized REVIEW-0050 `OPEN` checkpoint **`871850ac5b66a43cfd8491ef445d1738ad09d822`** passed Bootstrap **#155 / run `35153416874` SUCCESS** with **194/194 tests**, **1,856 statements / 842 branches**, **100% line + branch**, live PR #2 probe **SUCCESS at 7/100 requests**, and the recovery job skipped on pull-request CI.
+
+REVIEW-0050 is now **`IN_PROGRESS`**. Reviewer actor/context and exact reviewed commit remain unset until a fresh independent L2 actually executes. Technical green proof is evidence only, not semantic approval. T4/T12/AC-6 remain `IN_REVIEW` and all **65** material inline threads remain unresolved.
 
 ## PR #2 relationship
 
@@ -61,15 +63,14 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. Publish the synchronized REVIEW-0049 COMPLETE + REVIEW-0050 OPEN + TEST-0009 + WORK-0002 + PROJECT_STATE checkpoint over the proven `cbe21fa4…` runtime.
-3. Exact-head prove that `OPEN` checkpoint; runtime must remain equivalent to candidate #154.
-4. If green, transition REVIEW-0050 to `IN_PROGRESS` in a second state-only checkpoint and re-prove that exact SHA.
-5. Freeze the resulting SHA, re-query PR #5 HEAD/reviews/65 threads, and update the PR description.
-6. Request exactly one fresh independent L2 on the frozen SHA; do not mutate the Git tree while it runs.
-7. Red-team especially manual recovery evidence quality, false/stale operator assertions, run/check TOCTOU, closed-origin shared-head revival, recovery permissions, writer serialization and all historical findings.
-8. Any material finding requires correction, exact-head re-proof and another successor review.
-9. Only a clean exact-head independent successor review permits controlled verification/resolution and a guarded PR #5 merge decision.
-10. WORK-0003 and WORK-0004 remain blocked.
+2. Exact-head prove this REVIEW-0050 `IN_PROGRESS` state-only checkpoint; runtime must remain equivalent to candidate #154.
+3. If green, freeze that exact SHA and re-query live PR #5 HEAD, reviews and all 65 threads.
+4. Update the PR description to the frozen REVIEW-0050 proof chain without changing the Git tree.
+5. Request exactly one fresh independent L2 on the frozen SHA; do not mutate the Git tree while it runs.
+6. Red-team especially manual recovery evidence quality, false/stale operator assertions, run/check TOCTOU, closed-origin shared-head revival, recovery permissions, writer serialization and all historical findings.
+7. Any material finding requires correction, exact-head re-proof and another successor review.
+8. Only a clean exact-head independent successor review permits controlled verification/resolution and a guarded PR #5 merge decision.
+9. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
