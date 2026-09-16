@@ -288,8 +288,6 @@ def _process_head_group(repo: str, token: str, group: list[dict[str, Any]]) -> t
     errors: list[str] = []
     for original in group:
         number = original["number"]
-        if len(errors) >= len(group):
-            break
         if _remaining_request_budget() < MIN_TARGET_REQUEST_HEADROOM + STATE_WRITE_REQUEST_RESERVE:
             raise DeferredForBudget("insufficient request headroom before sibling evaluation")
         if not core.unresolved_review_threads(repo, number, token):
