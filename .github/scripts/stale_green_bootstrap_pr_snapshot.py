@@ -243,11 +243,9 @@ def poll(repo: str, token: str) -> list[int]:
         if not fresh_group:
             continue
 
-        fresh_by_number = {pr["number"]: pr for pr in fresh_group}
-        current_runs = _latest_runs_by_pr(repo, token, fresh_by_number)
-
         for current in sorted(fresh_group, key=lambda item: item["number"]):
             number = current["number"]
+            current_runs = _latest_runs_by_pr(repo, token, {number: current})
             target_run = current_runs.get(number)
             if target_run is None:
                 if core.unresolved_review_threads(repo, number, token):
