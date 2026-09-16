@@ -89,8 +89,7 @@ class Review0048EdgeTests(unittest.TestCase):
 
     def test_target_scan_filters_non_authoritative_runs_and_rejects_malformed_payloads(self) -> None:
         current = pr(1, branch="shared", head="shared-head")
-        checks = [check(501, 101), check(502, 102), check(503, 103)]
-        wrong_head = gate_run(101, 1, head="other-head")
+        checks = [check(502, 102), check(503, 103)]
         too_old = gate_run(102, 1, created_at="2026-09-15T13:00:00Z")
         wrong_pr = gate_run(103, 2)
         with (
@@ -100,12 +99,24 @@ class Review0048EdgeTests(unittest.TestCase):
             mock.patch.object(
                 subject.core,
                 "request_data",
-                side_effect=[wrong_head, too_old, wrong_pr],
+                side_effect=[too_old, wrong_pr],
             ),
         ):
             self.assertEqual(
                 subject._direct_target_for_pr("o/r", "t", current), (None, None)
             )
+
+        wrong_head = gate_run(101, 1, head="other-head")
+        with (
+            mock.patch.object(
+                base,
+                "_candidate_gate_check_page",
+                return_value=([check(501, 101)], False),
+            ),
+            mock.patch.object(subject.core, "request_data", return_value=wrong_head),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "malformed canonical"):
+                subject._direct_target_for_pr("o/r", "t", current)
 
         with (
             mock.patch.object(
@@ -340,7 +351,9 @@ class Review0048EdgeTests(unittest.TestCase):
 
         with (
             mock.patch.object(
-                subject.core, "latest_required_check", side_effect=[success, failure := check(602, 202, conclusion="failure")]
+                subject.core,
+                "latest_required_check",
+                side_effect=[success, check(602, 202, conclusion="failure")],
             ),
             mock.patch.object(subject.core, "unresolved_review_threads", return_value=True),
             mock.patch.object(subject, "_direct_target_for_pr", return_value=(target, None)),
@@ -412,15 +425,12 @@ class Review0048EdgeTests(unittest.TestCase):
         failure = check(602, 202, conclusion="failure")
         target = (gate_run(101, 1), check(501, 101))
 
-        common = [
+        with (
             mock.patch.object(subject, "_direct_target_for_pr", return_value=(target, None)),
             mock.patch.object(base, "_current_pr", return_value=current),
             mock.patch.object(subject, "_mutation_baseline", return_value=1),
             mock.patch.object(subject.core, "rerun_workflow"),
             mock.patch.object(subject, "_wait_for_terminal_invalidation", return_value=False),
-        ]
-        with (
-            *common,
             mock.patch.object(
                 subject.core,
                 "unresolved_review_threads",
@@ -437,15 +447,12 @@ class Review0048EdgeTests(unittest.TestCase):
                 ([101], [], None),
             )
 
-        common = [
+        with (
             mock.patch.object(subject, "_direct_target_for_pr", return_value=(target, None)),
             mock.patch.object(base, "_current_pr", return_value=current),
             mock.patch.object(subject, "_mutation_baseline", return_value=1),
             mock.patch.object(subject.core, "rerun_workflow"),
             mock.patch.object(subject, "_wait_for_terminal_invalidation", return_value=False),
-        ]
-        with (
-            *common,
             mock.patch.object(
                 subject.core,
                 "unresolved_review_threads",
