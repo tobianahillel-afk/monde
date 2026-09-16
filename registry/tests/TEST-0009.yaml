@@ -10,18 +10,21 @@ protects:
   invariants:
     - "stale merge-acceptable canonical gate is invalidated when current PR review threads are unresolved"
     - "merge-state authority is the exact latest GitHub Actions-owned MONDE / Merge Gate check on the exact head SHA"
-    - "rerun authority is positively bound to the current open PR through canonical refs/pull/<N>/merge metadata"
-    - "mutation-path target discovery is bounded through exact check candidates plus direct run and job validation; exhaustive Actions history is not required"
+    - "rerun authority is positively bound to the current open PR through canonical refs/pull/<N>/merge metadata plus the current merge-ref SHA"
+    - "selected-PR target discovery is bounded and durably resumable through scan_pr/scan_page state rather than a permanently truncated candidate prefix"
+    - "direct run/workflow/job/attempt authority requires exact positive non-Boolean integer identifiers"
     - "stable open Pull Requests authority uses unique PR numbers and identical authority snapshots"
+    - "current PR revalidation binds head identity, base repository/ref/SHA, and merge_commit_sha before mutation"
     - "scheduler fairness uses a durable closed-world cursor in machine-managed issue #7 rather than wall-clock rotation"
+    - "scheduled cursor writers are serialized by a dedicated GitHub Actions concurrency group"
     - "only selected PRs are revalidated directly; no per-head global open-PR refresh is required"
-    - "one invocation inspects at most seven head groups and schedules at most three reruns"
-    - "the authority adapter hard-caps script-issued GitHub calls at 100 and reserves mutation/post-condition headroom"
-    - "a rerun is not accepted as invalidation until a new exact-head required check is observed and is non-merge-acceptable or non-completed"
-    - "if a shared-head sibling becomes clean and its rerun returns green, processing continues to another sibling that is still unresolved"
+    - "one invocation inspects at most seven head groups and performs at most three actual rerun POSTs"
+    - "the authority adapter hard-caps script-issued GitHub calls at 100 and reserves mutation/post-condition/state-write headroom"
+    - "a rerun is not accepted as invalidation until its new workflow attempt is terminal, its protected job is validated, and the effective exact-head required check is terminal non-merge-acceptable"
+    - "if a shared-head sibling becomes clean and its rerun returns green, processing continues to another sibling that is still unresolved while counting every POST against the global cap"
     - "malformed REST, GraphQL, Checks, run, job, scheduler-state, or PR authority fails closed"
 location:
-  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py; .github/scripts/test_stale_green_bootstrap_poll_order.py; .github/scripts/test_stale_green_bootstrap_pr_snapshot.py; .github/scripts/test_stale_green_bootstrap_progress.py; .github/scripts/test_stale_green_bootstrap_progress_fallthrough.py; .github/scripts/test_stale_green_bootstrap_authority.py; .github/scripts/test_stale_green_bootstrap_authority_edges.py; .github/scripts/test_stale_green_bootstrap_authority_shared.py"
+  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py; .github/scripts/test_stale_green_bootstrap_poll_order.py; .github/scripts/test_stale_green_bootstrap_pr_snapshot.py; .github/scripts/test_stale_green_bootstrap_progress.py; .github/scripts/test_stale_green_bootstrap_progress_fallthrough.py; .github/scripts/test_stale_green_bootstrap_authority.py; .github/scripts/test_stale_green_bootstrap_authority_edges.py; .github/scripts/test_stale_green_bootstrap_authority_shared.py; .github/scripts/test_stale_green_bootstrap_authority_review0046.py; .github/scripts/test_stale_green_bootstrap_authority_terminal_wait.py"
   suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
 environment:
   kind: GITHUB_ACTIONS
@@ -29,28 +32,33 @@ environment:
     - "GitHub REST Actions, Checks, Pull Requests and Issues APIs"
     - "GitHub GraphQL reviewThreads API"
   mocked_dependencies:
-    - "adversarial fixtures for authority drift, shared heads, budget exhaustion, malformed metadata, durable cursor progression, bounded target lookup and rerun post-conditions"
+    - "adversarial fixtures for authority drift, shared heads, malformed metadata, base retargeting, durable cursor progression/continuation, global rerun caps, request reserves and terminal post-conditions"
 cases:
   happy_path:
     - "PR-bound direct check -> run -> protected job authority resolves without exhaustive workflow-run history"
-    - "live PR #2 probe observes refs/pull/2/merge authority and current unresolved-thread state"
-    - "durable scheduler cursor advances across bounded head groups"
+    - "live PR #2 probe observes refs/pull/2/merge plus current merge-ref authority and current unresolved-thread state"
+    - "durable scheduler cursor advances across bounded head groups and target-history pages"
   edge_cases:
     - "multiple open PRs share one SHA with divergent or changing review-thread state"
     - "a first sibling becomes clean after rerun while another same-head sibling remains unresolved"
-    - "large open-PR sets do not require a second global refresh before mutation"
-    - "budget approaches reserved mutation headroom"
+    - "selected PR target lies behind more than twelve newer sibling checks"
+    - "PR base or merge-ref context changes while head SHA remains unchanged"
+    - "budget approaches reserved mutation/post-condition/state-write headroom"
     - "candidate check list contains terminal and non-terminal checks"
   failure_modes:
     - "scheduler issue identity/body is modified outside the closed-world contract"
-    - "direct run or protected job metadata does not match expected workflow, head, attempt, or PR authority"
-    - "bounded rerun fails to publish a new required-check post-condition"
-    - "no bounded canonical target exists for an unresolved open PR"
-    - "request budget cannot preserve reserved mutation/post-condition headroom"
+    - "duplicate scheduled writers attempt to overlap"
+    - "direct run or protected job metadata does not match expected workflow, head, attempt, exact integer types, PR, base, or merge-ref authority"
+    - "rerun reaches a new terminal attempt but the effective required check does not change before the bounded deadline"
+    - "no canonical target exists after complete selected-PR check-history traversal"
+    - "request budget cannot preserve reserved mutation/post-condition/state-write headroom"
   adversarial_cases:
-    - "historically deep Actions data cannot force recursive exhaustive target reconstruction because the mutation path no longer performs it"
+    - "historically deep target history advances through durable selected-PR continuation rather than fixed-prefix abandonment or exhaustive Actions-history reconstruction"
     - "skipped or delayed schedules do not reset fairness because cursor state is durable"
+    - "overlapping schedule executions are serialized so issue #7 cannot be last-write-wins regressed"
     - "shared-head green revival is followed by current thread reclassification and continuation to another unresolved sibling"
+    - "every actual rerun POST counts toward the invocation-wide three-mutation cap"
+    - "float/Boolean trust-binding identifiers are rejected"
     - "dead/unreachable guard code is removed rather than artificially covered"
 acceptance_cold_read:
   qualifies: false
@@ -79,13 +87,14 @@ external_import:
 execution:
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-16"
-  commit_sha: "92d8f69689b6f0d2d15ee13e226590d0e0d543bb"
+  commit_sha: "2ee7c8d9e27d7f402a9619e4da8ea76200ae7f9d"
   result: PASS
   evidence:
-    - "Bootstrap #111 / run 35081681865: 103/103 tests PASS"
-    - "Bootstrap #111: core 457 statements/204 branches, snapshot 207/88, authority 265/116; total 929 statements/408 branches at 100 percent line and branch coverage"
-    - "Bootstrap #111 live PR #2 contract probe SUCCESS: open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true"
-    - "Bootstrap #111 live probe consumed 7/100 script-issued GitHub requests under read-only Actions/Checks/Contents/PullRequests permissions"
+    - "Bootstrap #122 / run 35087404773: 110/110 tests PASS"
+    - "Bootstrap #122: core 457 statements/204 branches, snapshot 207/88, authority 423/196; total 1087 statements/488 branches at 100 percent line and branch coverage"
+    - "Bootstrap #122 live PR #2 contract probe SUCCESS: open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true"
+    - "Bootstrap #122 live probe consumed 7/100 script-issued GitHub requests under read-only Actions/Checks/Contents/PullRequests permissions"
+    - "REVIEW-0045 six-P1 regressions cover terminal rerun completion, selected-PR history continuation, base/merge context, exact numeric authority, mutation cap, and serialized cursor writers"
 coverage:
   line_contribution: 100
   branch_contribution: 100

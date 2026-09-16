@@ -1,0 +1,91 @@
+id: REVIEW-0046
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "exact latest GitHub Actions-owned MONDE / Merge Gate check remains merge-state authority"
+    - "rerun authority is positively bound to the current open PR, current head/base context and current merge-ref SHA"
+    - "selected-PR rerun-target discovery is bounded and durably resumable across check-history pages"
+    - "direct run/workflow/job/attempt authority requires exact positive non-Boolean integer identifiers"
+    - "scheduler progress is durable in machine-managed issue #7 and trusted scheduled writers are serialized"
+    - "one invocation considers at most seven head groups and performs at most three actual rerun POSTs"
+    - "rerun invalidation requires a new terminal attempt, protected current-attempt job validation and terminal effective exact-head required-check observation"
+    - "shared-head sibling fallthrough cannot escape the global mutation cap or leave another unresolved sibling behind a revived green check"
+    - "malformed REST/GraphQL/Checks/Actions/Issue/PR authority fails closed"
+    - "the live PR #2 contract probe remains read-only; actions:write and issues:write exist only on trusted serialized scheduled execution"
+  risks:
+    - "terminal rerun observation may still confuse unrelated shared-head activity with causal post-condition evidence"
+    - "durable selected-PR check-page continuation may regress, loop or starve under changing total_count/order/retention"
+    - "base/merge-ref authority may still admit a retarget or merge-context race between discovery and mutation"
+    - "schedule serialization may have gaps for manual reruns, delayed jobs, cancellation or workflow-level concurrency semantics"
+    - "the global three-POST cap and 100-call reserve model may fail under large sibling sets or long retained check history"
+    - "historical findings may appear fixed locally while an equivalent trust gap remains on another path"
+findings: []
+checks:
+  assumptions_challenged:
+    - "Following one exact run_id into a new terminal attempt is sufficient to establish causal stale-green invalidation on a shared SHA."
+    - "Two twelve-check pages per invocation plus durable scan_pr/scan_page progression cannot permanently omit a retained selected-PR target."
+    - "Current head identity, base repository/ref/SHA, merge_commit_sha and reusable-workflow merge ref together close all retarget and merge-context races."
+    - "Exact positive non-Boolean integer validation is applied consistently at every direct trust-binding identifier boundary."
+    - "The invocation-wide actual-POST counter cannot be bypassed by same-head sibling fallthrough or exceptional control flow."
+    - "GitHub Actions concurrency with cancel-in-progress false serializes every writer capable of mutating issue #7."
+    - "The 100-request budget and explicit reserves preserve forward progress instead of repeatedly deferring the same unresolved PR."
+  omitted_categories_considered:
+    - "terminal rerun attempt with delayed or unchanged effective check"
+    - "check total_count growth/shrinkage, page reordering and target retention changes between invocations"
+    - "base retarget and merge_commit_sha changes between target discovery, final thread read and rerun POST"
+    - "Boolean/float identifiers in app/check/run/workflow/job/attempt fields"
+    - "more than three same-head siblings successively becoming clean and returning green"
+    - "duplicate schedules, manual reruns, delayed executions, cancellation and crash/retry around issue #7 writes"
+    - "scheduler V1-to-V2 state migration and stale scan_pr/scan_page references"
+    - "large open-PR collections and long shared-head check history near request-budget reserves"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 and REVIEW-0042 through REVIEW-0045 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
+    - "REVIEW-0040 and REVIEW-0041 remain CLOSED administrative negative evidence."
+    - "All 55 historical PR #5 inline material threads remain unresolved entering REVIEW-0046."
+    - "REVIEW-0046 must re-check every historical finding against the exact frozen successor head rather than assuming regression tests imply semantic closure."
+  failure_modes_considered:
+    - "rerun reaches terminal attempt but no new effective required check appears before the bounded deadline"
+    - "a new effective check appears but belongs to unrelated shared-head activity"
+    - "selected target remains beyond the current bounded pages while cursor persistence regresses or resets"
+    - "PR base or merge-ref context changes after target discovery without head SHA change"
+    - "shared-head loop performs more than three actual POSTs or loses mutation accounting on fallthrough"
+    - "overlapping or manually rerun scheduled jobs both mutate issue #7 despite intended serialization"
+    - "budget exhaustion repeatedly prevents mutation while cursor progression starves one unresolved head"
+    - "malformed metadata is skipped rather than rejected on any trust-binding path"
+  evidence_requested:
+    - "Re-check all 55 unresolved historical inline findings against the exact frozen REVIEW-0046 head."
+    - "Red-team exact rerun attempt -> protected job -> effective terminal check causality, including delayed and unrelated shared-head completions."
+    - "Red-team selected-PR check-page continuation under reordering, total_count drift, retention and repeated budget deferral."
+    - "Red-team current head/base/merge-ref authority and retarget races at each mutation boundary."
+    - "Red-team exact numeric typing across every trust-binding identifier."
+    - "Red-team the actual three-POST cap across many shared-head siblings and exceptional paths."
+    - "Red-team GitHub Actions concurrency semantics for duplicate schedule, manual rerun, cancellation, delayed execution and crash/retry behavior."
+    - "Confirm exact-head 100 percent line/branch proof plus the live read-only PR #2 contract probe."
+    - "Confirm TEST-0009 / WORK-0002 / PROJECT_STATE / REVIEW-0046 traceability is synchronized on the reviewed head."
+    - "Any material finding requires correction and a successor review; resolve no historical thread during this review."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-16"
+  updated_at: "2026-09-16"
