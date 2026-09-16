@@ -1,5 +1,5 @@
 name: MONDE Stale-Green Bootstrap
-# REVIEW-0045 bounded direct-authority successor; executable semantics changed.
+# REVIEW-0046 authority-continuation successor; executable semantics changed.
 
 on:
   pull_request:
@@ -74,6 +74,9 @@ jobs:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    concurrency:
+      group: monde-stale-green-bootstrap-poll
+      cancel-in-progress: false
     permissions:
       actions: write
       checks: read
