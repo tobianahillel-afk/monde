@@ -15,12 +15,12 @@ class Review0048RegressionTests(unittest.TestCase):
 
     def test_target_scan_restarts_when_pages_drift_inside_one_invocation(self) -> None:
         current = pr(1, branch="shared", head="shared-head")
-        first = [check(701, 301)]
-        changed = [check(702, 302)]
+        first: list[dict] = []
+        changed: list[dict] = []
         with mock.patch.object(
             base,
             "_candidate_gate_check_page",
-            side_effect=[(first, True), ([], False), (changed, True)],
+            side_effect=[(first, True), ([], False), (changed, False)],
         ) as pages:
             target, continuation = subject._direct_target_for_pr(
                 "o/r", "t", current
@@ -31,7 +31,7 @@ class Review0048RegressionTests(unittest.TestCase):
 
     def test_target_scan_accepts_stable_second_page_and_validates_target(self) -> None:
         current = pr(1, branch="shared", head="shared-head")
-        first = [check(701, 301)]
+        first: list[dict] = []
         target_check = check(501, 101)
         target_run = gate_run(101, 1)
         target_job = job(501, 101)
@@ -56,7 +56,7 @@ class Review0048RegressionTests(unittest.TestCase):
 
     def test_target_scan_resume_anchor_and_bounded_continuation(self) -> None:
         current = pr(1, branch="shared", head="shared-head")
-        prior = [check(701, 301)]
+        prior: list[dict] = []
         anchor = base._check_page_anchor(prior, True)
         with mock.patch.object(
             base,
