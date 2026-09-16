@@ -1,12 +1,12 @@
 id: REVIEW-0047
-status: IN_PROGRESS
+status: COMPLETE
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "d266d73c15b524413209be16d4970ec42928ea04"
 reviewer:
-  actor: null
-  context_id: null
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABN1lrxA"
   independence_level: L2
 roles:
   - ARCHITECTURE_REUSE
@@ -34,54 +34,44 @@ scope:
     - "malformed REST/GraphQL/Checks/Actions/Issue/PR authority fails closed"
     - "the live PR #2 contract probe remains read-only; actions:write and issues:write exist only on trusted serialized scheduled execution"
   risks:
-    - "A pending rerun may still be forgotten after a bounded local observation window or after scheduler restart."
-    - "Shared-head activity may still satisfy terminal-check tests without being the causal result of the exact rerun attempt."
-    - "A PR retarget or merge-ref replacement may race the rerun POST or terminal acceptance."
-    - "Check retention/reordering may invalidate a persisted page continuation and starve the selected target."
-    - "V1/V2 scheduler-state migration may lose durable progress or accept malformed external identifiers."
-    - "Historical findings may appear fixed in tests while an equivalent trust gap remains on another path."
-findings: []
+    - "A rerun that completes merge-acceptable can become stale again before the final thread read and still let scheduler progress advance."
+    - "A concurrent actor can create an intervening rerun attempt, making attempt-number jumps ambiguous at the post-condition boundary."
+    - "Offset check-history pagination can drift between two pages read in the same invocation and omit the only PR-bound target."
+    - "A pending rerun may be reposted on a later invocation unless its exact run/attempt observation is durably resumed rather than rediscovered."
+findings:
+  - "PRRT_kwDOUUI5ts6i9Tl3"
+  - "PRRT_kwDOUUI5ts6i9Tl_"
+  - "PRRT_kwDOUUI5ts6i9TmE"
 checks:
   assumptions_challenged:
-    - "Persisting scan_pr after a local timeout is sufficient to prevent later stale-green revival under every delayed-rerun interleaving."
-    - "Run id plus conclusion equality is sufficient causal binding without independently validating the effective protected job and attempt."
-    - "Two direct current-PR reads fully close all mutation/post-condition retarget windows."
-    - "A previous-page fingerprint is sufficient to detect every retention/reordering pattern that can move a selected target earlier."
-    - "V1/V2-to-V3 scheduler-state migration cannot accidentally skip or regress work."
-    - "The added authority checks preserve the global request/mutation budgets and shared-head forward progress."
+    - "Detecting a merge-acceptable rerun followed by unresolved threads can safely raise and let the outer scheduler advance the head."
+    - "Any terminal run_attempt greater than the pre-POST attempt can be attributed to this invocation's rerun POST."
+    - "Persisted cross-invocation page anchors also make consecutive offset pages inside one invocation snapshot-safe."
+    - "Persisting only selected PR/page state is sufficient to resume a rerun that is still pending without issuing a duplicate POST."
   omitted_categories_considered:
-    - "rerun queued/running longer than one scheduler invocation"
-    - "unrelated same-head terminal check completing between exact-run and latest-check observations"
-    - "PR retarget immediately before POST and immediately before terminal acceptance"
-    - "history shrink/growth/reorder at the persisted scan boundary"
-    - "malformed float/Boolean identifiers on scheduler issue and check/run/job authority"
-    - "crash/retry around V1/V2 migration and V3 state writes"
-    - "large sibling sets and long retained histories near the 100-call reserve boundary"
+    - "thread resolution and reopening between rerun evaluation and final GraphQL observation"
+    - "concurrent manual or automated rerun of the same workflow between target discovery and this poll's POST"
+    - "check deletion/insertion/reordering between page 1 and page 2 inside one invocation"
+    - "scheduler restart while an exact rerun attempt is queued or running"
   duplicate_or_reuse_search:
     - "REVIEW-0031 through REVIEW-0039 and REVIEW-0042 through REVIEW-0046 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
     - "REVIEW-0040 and REVIEW-0041 remain CLOSED administrative negative evidence."
-    - "All 60 PR #5 inline material threads remain unresolved entering REVIEW-0047."
-    - "REVIEW-0047 must re-check every prior thread against the exact frozen successor head rather than treating 100 percent coverage as semantic closure."
+    - "All 60 historical PR #5 inline material threads remained unresolved entering REVIEW-0047."
+    - "REVIEW-0047 adds three exact-head independent P1 findings, leaving 63 inline material threads unresolved."
   failure_modes_considered:
-    - "new rerun attempt remains non-terminal across one or more scheduled invocations"
-    - "effective required check is terminal but belongs to another run/job on the shared head"
-    - "PR authority changes between target discovery, final thread read, rerun POST and post-condition acceptance"
-    - "saved target page becomes stale because check-history membership changes before the next invocation"
-    - "scheduler issue metadata uses coercible numeric values instead of exact integers"
-    - "request reserves or three-POST accounting regress under delayed-observation continuation"
+    - "rerun completes green while the selected PR becomes unresolved again before the final thread read"
+    - "another actor's attempt completes while this invocation's newly requested attempt remains queued"
+    - "offset pagination shifts membership after the first page and before the second page"
+    - "a bounded post-condition timeout returns to the scheduler without durable exact pending-attempt identity"
   evidence_requested:
-    - "Re-check all 60 unresolved historical inline findings against the exact frozen REVIEW-0047 head."
-    - "Red-team rerun persistence across scheduler invocations and delayed completion beyond the local polling window."
-    - "Red-team exact run_id/run_attempt/protected-job/effective-check causal binding under unrelated shared-head completions."
-    - "Red-team PR authority revalidation at both mutation and post-condition boundaries."
-    - "Red-team target-history continuation anchors under deletion, insertion, reordering and total_count drift."
-    - "Red-team V1/V2-to-V3 issue #7 migration, exact integer typing and crash/retry semantics."
-    - "Confirm the three-POST cap and 100-request reserve model remain enforced under successor control flow."
-    - "Confirm exact-head 100 percent line/branch proof plus the live read-only PR #2 contract probe."
-    - "Confirm TEST-0009 / WORK-0002 / PROJECT_STATE / REVIEW-0046 / REVIEW-0047 traceability is synchronized on the reviewed head."
-    - "Any material finding requires correction and another successor review; resolve no historical thread during this review."
+    - "Retain or immediately retry the selected PR/head when the completed rerun is already stale-green at the final thread observation."
+    - "Refresh the exact mutation baseline and require the post-condition to identify the single workflow attempt created by this POST rather than accepting arbitrary attempt jumps."
+    - "Carry and verify an intra-invocation page-boundary/snapshot anchor before accepting target-history completeness."
+    - "Persist enough pending-rerun identity to resume observation without issuing a duplicate rerun POST after a bounded local timeout or scheduler restart."
+    - "Add adversarial regressions for all three independent findings plus the pending-rerun duplicate-POST interleaving, then re-prove exact-head line/branch coverage and the live read-only GitHub contract."
+    - "Run a fresh independent successor L2 before resolving any historical thread."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-16T13:49:34Z"
 history:
   created_at: "2026-09-16"
   updated_at: "2026-09-16"
