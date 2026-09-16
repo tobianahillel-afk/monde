@@ -388,7 +388,7 @@ class PullRequestSnapshotTests(unittest.TestCase):
                 body = {"rerun": True} if method == "POST" else None
                 self.assertEqual(snapshot._budgeted_request_data("https://api.github.com/x", "t", method, body), {"ok": True})
             self.assertEqual(snapshot._request_count, snapshot.MAX_GITHUB_REQUESTS_PER_INVOCATION)
-            with self.assertRaisesRegex(RuntimeError, "request budget exceeded \(60/60\)"):
+            with self.assertRaisesRegex(RuntimeError, r"request budget exceeded \(60/60\)"):
                 snapshot._budgeted_request_data("https://api.github.com/x", "t")
         self.assertEqual(request.call_count, snapshot.MAX_GITHUB_REQUESTS_PER_INVOCATION)
         self.assertEqual(request.call_args_list[-1].args, ("https://api.github.com/x", "t", "POST", {"rerun": True}))
