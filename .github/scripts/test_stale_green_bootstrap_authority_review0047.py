@@ -229,6 +229,66 @@ class Review0047RegressionTests(unittest.TestCase):
             "o/r", "t", authority.SchedulerState(0, 1, 5, "f" * 64)
         )
 
+    def test_review0047_remaining_guard_paths(self) -> None:
+        current = pr(1, branch="shared", head="shared-head")
+
+        with mock.patch.object(
+            authority, "_candidate_gate_check_page", return_value=([], False)
+        ) as page_reader:
+            self.assertEqual(
+                authority._direct_target_for_pr("o/r", "t", current, 2, "-"),
+                (None, None),
+            )
+        page_reader.assert_called_once_with("o/r", "shared-head", "t", 1)
+
+        terminal = gate_run(101, 1)
+        terminal.update({"run_attempt": 2, "status": "completed", "conclusion": "failure"})
+        mismatched = check(11, 101, conclusion="success")
+        with (
+            mock.patch.object(authority.core, "request_data", return_value=terminal),
+            mock.patch.object(authority.core, "required_merge_gate_conclusion", return_value="failure"),
+            mock.patch.object(authority.core, "latest_required_check", return_value=mismatched),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "disagree"):
+                authority._wait_for_terminal_invalidation(
+                    "o/r", "shared-head", "t", 101, 1, 10, current, True
+                )
+
+        failed = check(11, 101, conclusion="failure")
+        with (
+            mock.patch.object(authority.core, "request_data", side_effect=[terminal, []]),
+            mock.patch.object(authority.core, "required_merge_gate_conclusion", return_value="failure"),
+            mock.patch.object(authority.core, "latest_required_check", return_value=failed),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "malformed rerun protected-job"):
+                authority._wait_for_terminal_invalidation(
+                    "o/r", "shared-head", "t", 101, 1, 10, current, True
+                )
+
+        terminal_failure = check(700, 300, conclusion="failure")
+        with mock.patch.object(authority.core, "latest_required_check", return_value=terminal_failure):
+            self.assertEqual(
+                authority._process_head_group("o/r", "t", [current], 3),
+                ([], [], None),
+            )
+
+        initial = check(701, 301)
+        anchor = "a" * 64
+        with (
+            mock.patch.object(authority.core, "latest_required_check", return_value=initial),
+            mock.patch.object(authority.core, "unresolved_review_threads", return_value=True),
+            mock.patch.object(
+                authority, "_direct_target_for_pr", return_value=(None, None)
+            ) as target_reader,
+        ):
+            posted, errors, continuation = authority._process_head_group(
+                "o/r", "t", [current], 3, 1, 2, anchor
+            )
+        self.assertEqual(posted, [])
+        self.assertEqual(len(errors), 1)
+        self.assertIsNone(continuation)
+        target_reader.assert_called_once_with("o/r", "t", current, 2, anchor)
+
 
 if __name__ == "__main__":
     unittest.main()
