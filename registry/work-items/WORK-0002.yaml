@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "Owner explicitly requested P0-P2 hardening after real runs and repeated adversarial review exposed missing review, progress, scope, GitHub-state, commit-history, meta-governance and control-plane guarantees. PR #5 remains the narrow T12 trusted-default-branch predecessor required before PR #2 can safely close. The bootstrap has hardened canonical workflow/check authority, stale-green-first target discovery, current-incarnation attribution, filtered-search server-cap handling, stable unique Actions snapshots, stable unique Pull Requests authority snapshots, bounded closed-PR history, protected-job/current-attempt authority, strict identifier typing, shared-SHA and branch-reset behavior, regression discovery and durable REQ/TEST/REVIEW traceability. REVIEW-0042 proved that shared-head per-PR authority, late open-authority revalidation and quantitative API-budget closure still require correction."
+  rationale: "Owner explicitly requested P0-P2 hardening after real runs and repeated adversarial review exposed missing review, progress, scope, GitHub-state, commit-history, meta-governance and control-plane guarantees. PR #5 remains the narrow T12 trusted-default-branch predecessor required before PR #2 can safely close. REVIEW-0042 found two fresh P1s around same-head PR identity and late open-authority change. The corrected candidate now binds canonical PR-family runs to their triggering PR through reusable-workflow refs/pull/<N>/merge, revalidates stable open authority immediately before target discovery, and enforces an invocation-wide 60-call GitHub request budget with observable used/60 output. A fresh successor L2 remains required before any historical thread resolution."
 
 scope:
   in:
@@ -42,16 +42,18 @@ scope:
     - trusted default-branch stale-green bootstrap polling required before PR #2 merge eligibility
     - non-destructive live GitHub contract validation for the bootstrap bridge against PR #2, its actual consumer
     - effective merge state is read directly from the exact latest GitHub Actions-owned MONDE / Merge Gate check for the exact SHA
-    - exact required-check state and unresolved review-thread state are positively classified before any current-incarnation rerun-target history is sampled
-    - clean, incomplete and non-merge-acceptable PRs do not trigger target-history or closed-history discovery
-    - canonical MONDE Gate workflow-run history is used only to discover the current-incarnation rerun target explicitly allowed for a positively proven stale-green PR
-    - bootstrap run binding uses GitHub-server head repository/ref/SHA rather than workflow_run.pull_requests association cardinality
+    - exact required-check state and unresolved review-thread state are positively classified before any rerun-target history is sampled
+    - clean, incomplete and non-merge-acceptable PRs do not trigger target-history discovery
+    - canonical MONDE Gate workflow-run history is used only as rerun-capability evidence for positively stale-green PRs
+    - canonical PR-family run triggering authority is derived from exactly one canonical reusable-workflow reference whose ref is refs/pull/<N>/merge; workflow_run.pull_requests association cardinality is not trusted as triggering-PR identity
+    - stable unique open Pull Requests authority is re-read after stale-thread classification and before target selection/rerun
+    - same-repository/ref/SHA open PRs remain distinguishable through PR-number-bound run selection
     - complete fail-closed validation of every canonical PR-family run record used for rerun targeting, including status=completed, structured owner/repo identity and timezone-aware created_at/updated_at with updated_at >= created_at
     - filtered workflow-run searches split into closed non-overlapping second ranges whenever GitHub's 1000-result filtered-search ceiling is reached; a saturated single timestamp second fails closed
     - filtered workflow-run windows are accepted only with exact unique run IDs and two identical snapshots; stable total_count alone is insufficient authority
     - Actions workflow-runs and Jobs envelope total_count is a typed authoritative cardinality contract; pagination rejects malformed, inconsistent, over-count, incomplete-short and duplicate-identity collections
     - open Pull Requests authority is accepted only after two identical canonical authority-field snapshots with unique exact positive PR numbers
-    - bounded closed Pull Requests history authority is accepted only after two identical canonical authority-field snapshots with unique exact positive PR numbers
+    - bounded closed Pull Requests history authority remains available in the core compatibility path only after two identical canonical authority-field snapshots with unique exact positive PR numbers
     - Pull Requests snapshot fingerprints bind PR number, state, repository/ref/SHA and created_at, plus closed_at/updated_at for closed history
     - the Pull Requests snapshot adapter is the executable entrypoint for both live validation and trusted scheduled mutation paths
     - effective exact protected-check state is read through Checks API; selected current-incarnation rerun target's protected MONDE / Merge Gate job is independently validated through Actions Jobs API
@@ -59,14 +61,14 @@ scope:
     - required-job records fail closed on malformed id/run_id/run_attempt/name/status/conclusion/head_sha; identifiers and attempts are positive exact non-Boolean integers and the protected job is unique per selected run
     - workflow_id and all other numeric trust bindings are exact positive non-Boolean integers rather than relying on Python coercive equality
     - open-PR collection members explicitly report state=open before authority use
-    - current PR-incarnation binding uses PR/run creation times plus same-repository/same-branch closed-PR lifetime windows independent of the closed PR's final SHA snapshot
-    - closed PR history is ordered by updated desc and bounded to lifetimes capable of overlapping the earliest stale-green active incarnation instead of traversing branch lifetime
-    - one-poll caches bind exact required-check state by SHA and protected target-job state by run/attempt
-    - scheduled stale-green polling runs every ten minutes while retaining the five-minute job timeout
+    - current PR-incarnation target selection requires run repository/ref/SHA identity, triggering PR number and run creation at or after current PR creation
+    - one invocation-wide request counter wraps core.request_data so REST, GraphQL and rerun POST calls share one conservative budget
+    - the bootstrap allows at most 60 script-issued GitHub API calls per invocation; the 61st fails before network I/O and every invocation logs used/60
+    - scheduled stale-green polling runs every ten minutes while retaining the five-minute job timeout; the 60-call ceiling bounds scheduled script demand to at most 360 calls/hour
     - bounded fail-closed REST and GraphQL pagination, including typed endCursor metadata on terminal and continuing pages
     - bootstrap pull-request trigger covers the complete test_stale_green_bootstrap*.py regression family and the PR snapshot adapter
     - TEST-0009 canonically lists all seven bootstrap regression modules
-    - stable REQ-0026 -> WORK-0002 -> TEST-0009 / REVIEW-0031 / REVIEW-0032 / REVIEW-0033 / REVIEW-0034 / REVIEW-0035 / REVIEW-0036 / REVIEW-0037 / REVIEW-0038 / REVIEW-0039 / REVIEW-0040 / REVIEW-0041 / REVIEW-0042 traceability for the material bootstrap behavior
+    - stable REQ-0026 -> WORK-0002 -> TEST-0009 / REVIEW-0031 / REVIEW-0032 / REVIEW-0033 / REVIEW-0034 / REVIEW-0035 / REVIEW-0036 / REVIEW-0037 / REVIEW-0038 / REVIEW-0039 / REVIEW-0040 / REVIEW-0041 / REVIEW-0042 / REVIEW-0043 traceability for the material bootstrap behavior
     - exact-head bootstrap proof on review lifecycle changes as well as executable/work/project changes
   out:
     - MONDE product implementation
@@ -126,6 +128,7 @@ read_before:
   - registry/reviews/REVIEW-0040.yaml
   - registry/reviews/REVIEW-0041.yaml
   - registry/reviews/REVIEW-0042.yaml
+  - registry/reviews/REVIEW-0043.yaml
 
 depends_on: [WORK-0001]
 blocks: [WORK-0003, WORK-0004]
@@ -155,6 +158,7 @@ affected_docs:
   - registry/reviews/REVIEW-0040.yaml
   - registry/reviews/REVIEW-0041.yaml
   - registry/reviews/REVIEW-0042.yaml
+  - registry/reviews/REVIEW-0043.yaml
 affected_paths:
   - .github/
   - requirements/bootstrap-governance-ci.txt
@@ -177,7 +181,7 @@ impact_analysis:
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains SHA-bound. The default-branch mirror carries globally resolvable WORK-0002 lifecycle/dependency state plus the narrow PR #5 predecessor; richer PR #2 implementation/review state remains branch-local until integration. Effective merge state is the exact latest GitHub Actions-owned MONDE / Merge Gate check. Target history is sampled only after exact check + unresolved-thread stale-green classification. Actions filtered history uses stable unique time-partition snapshots below GitHub's 1000-result ceiling. Pull Requests authority passes through a narrow adapter that double-reads open and bounded closed collections, rejects duplicate PR numbers, and compares canonical authority-field fingerprints before core logic consumes them. Both live probe and scheduled poll execute this adapter. REVIEW-0031 through REVIEW-0039 are terminal COMPLETE/CHANGES_REQUIRED. REVIEW-0040 and REVIEW-0041 are CLOSED administrative negative evidence. REVIEW-0042 is COMPLETE/CHANGES_REQUIRED on frozen head 1120bbb9d1548bf0b20c6c1052731c0bf4154a00 with two new shared-head/open-authority P1 findings, so a corrected successor review is required before thread resolution. After PR #5 merge, PR #2's older permissive thread_state_poll must directly port/reuse the final hardened contract before T12 can close."
+  compatibility_notes: "Validators fail closed and do not rewrite canonical state. Historical execution evidence remains SHA-bound. The default-branch mirror carries globally resolvable WORK-0002 lifecycle/dependency state plus the narrow PR #5 predecessor; richer PR #2 implementation/review state remains branch-local until integration. Exact latest GitHub Actions-owned MONDE / Merge Gate check remains merge-state authority. The adapter now overrides runtime target selection with PR-number authority derived from canonical reusable-workflow refs/pull/<N>/merge, so the scheduled/live executable path no longer depends on closed-history ambiguity resolution for rerun target identity. Stable open PR authority is re-read after thread classification. All adapter-mediated GitHub calls traverse a 60-call invocation budget. REVIEW-0042 is terminal COMPLETE/CHANGES_REQUIRED; REVIEW-0043 is the fresh corrected successor and remains OPEN until its exact lifecycle checkpoint is proven. After PR #5 merge, PR #2's older permissive thread_state_poll must directly port/reuse the final hardened contract before T12 can close."
 
 implementation_plan:
   tasks:
@@ -248,21 +252,22 @@ review_plan:
 required_tests:
   unit:
     - TEST-0009
-    - "Bootstrap regression suite covers exact Checks authority, stable/unique Pull Requests authority, Actions pagination/snapshots, GraphQL pagination, stale-green-first target discovery, run/job/current-attempt authority, strict typing, incarnation overlap, caching, schedule and workflow discovery."
+    - "Bootstrap regression suite covers exact Checks authority, stable/unique Pull Requests authority, Actions pagination/snapshots, GraphQL pagination, stale-green-first target discovery, reusable-workflow triggering-PR authority, run/job/current-attempt authority, strict typing, incarnation timing, request-budget exhaustion, schedule and workflow discovery."
   property:
     - "exact latest GitHub Actions-owned MONDE / Merge Gate check is the only effective merge-state authority"
     - "target history is sampled only after stale-green classification"
-    - "open and bounded closed Pull Requests authority reject duplicate identities and same-cardinality authority drift"
+    - "open Pull Requests authority rejects duplicate identities and same-cardinality authority drift"
     - "PR authority fingerprints bind decision-relevant state/head/lifetime fields and normalize ordering"
-    - "shared-head per-PR authority cannot leave a green shared check usable merely because duplicate open identity was detected"
+    - "shared-head PRs are distinguished by triggering PR number derived from canonical referenced_workflows refs/pull/<N>/merge"
     - "stable open-PR authority is revalidated after thread classification and before target selection/rerun"
     - "filtered workflow-run discovery partitions below the GitHub 1000-result ceiling with stable unique membership"
     - "target MONDE / Merge Gate job is unique, exact-run/current-attempt bound and terminal"
     - "all trust-binding identifiers use exact non-Boolean integer semantics"
-    - "current-incarnation target selection excludes pre-current and overlap-window runs"
+    - "current-incarnation target selection excludes runs before current PR creation or with mismatched head identity"
+    - "all adapter runtime GitHub calls share one request_data counter and the 61st request cannot reach the network"
   integration:
     - TEST-0009
-    - "Read-only live PR #2 contract probe executes stale_green_bootstrap_pr_snapshot.py."
+    - "Read-only live PR #2 contract probe executes stale_green_bootstrap_pr_snapshot.py and proves target_pr=2 with request budget reporting."
   contract:
     - "registry/schema/progress/review/change-control integrity"
     - "bootstrap GitHub Checks/REST/GraphQL/Actions control-plane contract"
@@ -271,13 +276,14 @@ required_tests:
     - "All historical PR #5 findings remain covered."
     - "TEST-0009 lists all bootstrap regression modules."
     - "success, neutral and skipped required checks use GitHub merge semantics"
-    - "target-history discovery occurs after stale-green classification"
-    - "clean/non-merge-acceptable PRs skip target-history/closed-history discovery"
+    - "target-history discovery occurs after stale-green classification and after fresh open-authority revalidation"
+    - "clean/non-merge-acceptable PRs skip target-history discovery"
     - "open PR snapshots reject duplicate PR numbers and same-cardinality membership drift"
-    - "bounded closed-history snapshots reject duplicate PR numbers and same-cardinality membership drift"
     - "benign ordering differences between identical PR authority snapshots are accepted"
-    - "divergent-thread same-repository/ref/SHA open PRs cannot leave the shared exact check green merely by aborting"
-    - "a same-identity PR opening between thread classification and target selection is detected before rerun"
+    - "divergent-thread same-repository/ref/SHA open PRs receive distinct PR-number-bound target runs"
+    - "a same-identity PR opening between thread classification and target selection cannot donate its run to the stale PR"
+    - "canonical reusable-workflow authority rejects malformed, absent, non-pull or ambiguous refs"
+    - "the 60th request is allowed and the 61st is rejected before underlying request_data is called"
     - "live and scheduled jobs execute the snapshot adapter"
     - "material bootstrap behavior has stable REQ-0026, TEST-0009 and REVIEW trace identities"
   security:
@@ -288,18 +294,21 @@ required_tests:
     - "live probe read-only; actions:write only in trusted scheduled default-branch job"
   performance:
     - "governance core remains bounded by CI timeout"
-    - "clean/non-merge-acceptable PRs avoid target-history/closed-history reads"
-    - "open PR authority uses bounded traversals"
-    - "closed PR authority uses bounded traversals only for stale-green branch identities"
-    - "successor review requires quantitative REST/GraphQL request-budget evidence for the supported concurrent stale-green scale; cadence change alone is not proof"
+    - "clean/non-merge-acceptable PRs avoid target-history reads"
+    - "open PR authority uses bounded stable traversals"
+    - "one invocation is hard-capped at 60 script-issued GitHub calls and logs consumption"
+    - "ten-minute cadence bounds scheduled script-issued demand to at most 360 calls/hour"
+    - "live exact-candidate PR #2 probe consumed 7/60 calls; this proves wiring, not worst-case capacity"
+    - "fresh REVIEW-0043 independently evaluates whether the 60-call Phase-0 capacity contract and fail-closed exhaustion semantics are sufficient"
   real_system:
     - TEST-0009
-    - "Exact-candidate live read-only PR #2 probe executes adapter path."
+    - "Exact-candidate live read-only PR #2 probe executes adapter path and reports request budget."
   epistemic:
     - "execution evidence is exact-SHA bound"
     - "PR #2 cannot self-prove trusted pre-merge schedule state"
     - "exact required check is merge-state authority and workflow history is rerun-capability evidence"
-    - "Pull Requests authority is accepted only after unique stable authority snapshots"
+    - "workflow_run.pull_requests dynamic associations are not event-time triggering-PR provenance"
+    - "canonical reusable-workflow pull ref is the current triggering-PR authority candidate under independent review"
 
 scientific_validation:
   required: false
@@ -311,26 +320,26 @@ scientific_validation:
 
 observability:
   required: true
-  logs: ["rule-coded diagnostics", "GitHub Job Summary", "bootstrap poll rerun count"]
-  metrics: ["CI duration", "finding count", "coverage", "mutation smoke", "bootstrap stale-green rerun count"]
+  logs: ["rule-coded diagnostics", "GitHub Job Summary", "bootstrap poll rerun count", "bootstrap request budget used/60"]
+  metrics: ["CI duration", "finding count", "coverage", "mutation smoke", "bootstrap stale-green rerun count", "bootstrap request count per invocation"]
   traces: []
-  alerts: ["required MONDE merge gate failure after WORK-0003"]
-  slis_slos: ["governance core completes inside configured timeout", "bootstrap poll completes inside five-minute job timeout"]
+  alerts: ["required MONDE merge gate failure after WORK-0003", "bootstrap request-budget exhaustion in scheduled job"]
+  slis_slos: ["governance core completes inside configured timeout", "bootstrap poll completes inside five-minute job timeout", "bootstrap script never issues more than 60 GitHub API calls per invocation"]
 
 validation:
   executed:
-    - "Historical PR #5 proof chain through REVIEW-0039 remains preserved in prior commits."
-    - "Race correction e594e88c1c635d3fd8a5180e37930719dc4c0103 passed #87 / 35028626562 at 65 tests, 457 statements, 204 branches, 100 percent plus live probe."
-    - "REVIEW-0041 OPEN 558dfdc7f6d34e2c38d0bda2245548add671d46c passed #89 / 35029137723; IN_PROGRESS 91ba0314392038862a278e93922fcecef80423b5 passed #90 / 35033497071 before PRR_kwDOUUI5ts8AAAABNvBAIQ invalidated it."
-    - "Pull Requests snapshot correction 5d4e3a5578d4ccf26ca8b89d0717a150d6d6102b passed #91 / 35034183087: 72/72 tests; core 457 statements/204 branches; adapter 49 statements/18 branches; total 506 statements/222 branches, all 100 percent, plus live adapter-based PR #2 probe SUCCESS."
-    - "Synchronized REVIEW-0041-CLOSED / REVIEW-0042-OPEN descendant e629ca97ed608f523802375f184c72580b0c7e3a passed #92 / 35034454790 with self-test and live adapter probe SUCCESS."
-    - "REVIEW-0042 IN_PROGRESS frozen HEAD 1120bbb9d1548bf0b20c6c1052731c0bf4154a00 passed #93 / 35034635337: 72/72 tests, 506 statements, 222 branches, 100 percent line+branch plus live adapter-based PR #2 probe SUCCESS."
-    - "Independent Codex REVIEW-0042 PRR_kwDOUUI5ts8AAAABNxvvZg reviewed exact 1120bbb9d1548bf0b20c6c1052731c0bf4154a00 at 2026-09-16T07:07:05Z and returned two new P1 findings PRRT_kwDOUUI5ts6i0j_C and PRRT_kwDOUUI5ts6i0j_F; outcome CHANGES_REQUIRED."
+    - "Historical PR #5 proof chain through REVIEW-0042 remains preserved in prior commits."
+    - "REVIEW-0042 terminal-negative synchronization 682a34d762bcceb24a066016496de7974c1ef046 passed Bootstrap #94 / 35067287447 with self-test and live probe SUCCESS."
+    - "Shared-head per-PR authority and late-open correction bea8e9fa28a7771c0642c5b3ad79fccbc37b3f40 passed Bootstrap #95 / 35068179930: 79/79 tests, 638 statements, 286 branches, 100 percent line+branch, live PR #2 probe SUCCESS."
+    - "Request-budget candidate 4f259e348953c0f45f7f1ed06497cbf554cec789 passed Bootstrap #96 / 35068715977: 80/80 tests, 652 statements, 288 branches, 100 percent line+branch, live PR #2 probe SUCCESS at 7/60; a local test regex emitted a SyntaxWarning."
+    - "Warning-clean exact code candidate b4f8e07b108b1ee881498b0a1b8b0e3afd007de0 passed Bootstrap #97 / 35068890722: 80/80 tests, 652 statements, 288 branches, 100 percent line+branch, live PR #2 probe SUCCESS at 7/60 and no project-code SyntaxWarning."
+    - "The only remaining warning in #97 is coverage package no-ctracer fallback from the third-party coverage wheel; tests and coverage report remain successful."
   evidence:
     - "PR #5"
-    - "MONDE Stale-Green Bootstrap run 35034183087"
-    - "MONDE Stale-Green Bootstrap run 35034454790"
-    - "MONDE Stale-Green Bootstrap run 35034635337"
+    - "MONDE Stale-Green Bootstrap run 35067287447"
+    - "MONDE Stale-Green Bootstrap run 35068179930"
+    - "MONDE Stale-Green Bootstrap run 35068715977"
+    - "MONDE Stale-Green Bootstrap run 35068890722"
     - REQ-0026
     - TEST-0009
     - REVIEW-0031
@@ -345,6 +354,7 @@ validation:
     - REVIEW-0040
     - REVIEW-0041
     - REVIEW-0042
+    - REVIEW-0043
     - PRR_kwDOUUI5ts8AAAABNuingg
     - PRR_kwDOUUI5ts8AAAABNvBAIQ
     - PRR_kwDOUUI5ts8AAAABNxvvZg
@@ -352,10 +362,10 @@ validation:
     - PRRT_kwDOUUI5ts6i0j_F
   coverage: {line: 100, branch: 100}
   known_gaps:
-    - "All 44 inline material PR #5 threads remain unresolved; REVIEW-0040/0041 add author-side negative evidence and REVIEW-0042 adds two independent inline P1 findings."
-    - "Historical rate-limit P1 PRRT_kwDOUUI5ts6is6BX remains unresolved; ten-minute cadence is not yet quantitative resource-budget proof."
+    - "All 44 inline material PR #5 threads remain unresolved."
+    - "Historical rate-limit P1 PRRT_kwDOUUI5ts6is6BX has an executable 60-call correction candidate but remains unresolved until fresh REVIEW-0043 independently validates the capacity/failure semantics."
     - "REQ-0026 remains PROPOSED and TEST-0009 remains PLANNED."
-    - "REVIEW-0031..0039 and REVIEW-0042 are COMPLETE/CHANGES_REQUIRED; REVIEW-0040/0041 are CLOSED. A corrected successor review is required."
+    - "REVIEW-0031..0039 and REVIEW-0042 are COMPLETE/CHANGES_REQUIRED; REVIEW-0040/0041 are CLOSED; REVIEW-0043 is OPEN and must be exact-head proven before IN_PROGRESS."
     - "After PR #5 merge, PR #2 must integrate main and directly port/reuse the final contract into tools/governance/thread_state_poll.py before T12 can close."
     - "PR #2 retains 73 unresolved material findings pending trusted-bootstrap integration and fresh closure."
 
@@ -367,22 +377,25 @@ rollback:
 run_log:
   - {run: RUN-1, date: "2026-09-10", note: "Initial validator and real CI established on implementation branch."}
   - {run: RUN-2, date: "2026-09-11", note: "Governance automation remains IN_REVIEW; default-branch mirror preserves global lifecycle/dependency handoff."}
-  - {run: RUN-3, date: "2026-09-16", note: "REVIEW-0042 independently reviewed frozen 1120bbb9 after #93 green proof and added two P1s: shared-head duplicate-open abort does not invalidate the shared check, and open authority can change after classification before target selection. PR #5 now has 44 unresolved inline material threads; successor correction/review required."}
+  - {run: RUN-3, date: "2026-09-16", note: "REVIEW-0042 independently returned two P1s at 1120bbb9. Corrected candidate b4f8e07 adds PR-number authority via canonical refs/pull/N/merge, late stable-open revalidation and a 60-call invocation budget. Bootstrap #97 is green at 80 tests / 652 statements / 288 branches / 100 percent plus live PR #2 probe 7/60. REVIEW-0043 is OPEN pending exact checkpoint proof."}
 
 discoveries:
   - "100 percent coverage does not replace adversarial property review."
   - "Execution evidence is SHA-bound."
   - "Exact required check is merge-state authority; Actions history is rerun-capability evidence."
-  - "Target history must be sampled after stale-green classification."
+  - "Target history must be sampled after stale-green classification and close to rerun authority use."
   - "Offset-paginated PR collections used as authority need unique stable snapshots, not only record validation/order checks."
   - "Authority fingerprints should bind decision-relevant fields and normalize benign ordering."
   - "Failing closed by aborting a scheduled poll is not equivalent to actively invalidating a shared green check."
+  - "workflow_run.pull_requests is dynamic association data and cannot serve as historical triggering-PR provenance."
+  - "Canonical reusable-workflow refs/pull/N/merge provides a testable per-PR run authority candidate across PR-family events."
   - "Open PR authority must be revalidated close to target selection/rerun because membership can change after stale-thread classification."
+  - "A quantitative hard request ceiling is stronger than cadence-only rate-limit reasoning; budget exhaustion still requires adversarial review of availability semantics."
   - "Review lifecycle changes synchronize REVIEW, WORK and PROJECT_STATE and are exact-head proven."
   - "A review invalidated before independent response closes administratively rather than becoming fake approval evidence."
 blockers:
-  - "REVIEW-0042 is COMPLETE/CHANGES_REQUIRED with PRRT_kwDOUUI5ts6i0j_C and PRRT_kwDOUUI5ts6i0j_F; correct, re-prove and obtain a clean successor L2 before resolving any of the 44 inline threads."
-  - "Historical rate-limit P1 PRRT_kwDOUUI5ts6is6BX still requires quantitative correction/evidence."
+  - "REVIEW-0043 must be exact-head proven OPEN, then IN_PROGRESS, then independently review the corrected exact head before any of the 44 inline threads are resolved."
+  - "Historical rate-limit P1 PRRT_kwDOUUI5ts6is6BX remains unresolved until REVIEW-0043 validates the 60-call correction and failure semantics."
   - "After PR #5 merge, PR #2 must integrate new main and port final durable poller parity before T12 can close."
   - "WORK-0002 final closure requires eligible trusted non-author exact-head L2/L3 APPROVED collaborator evidence; Codex semantic review cannot substitute."
 follow_up_work_items: [WORK-0003, WORK-0004]

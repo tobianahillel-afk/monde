@@ -1,0 +1,98 @@
+id: REVIEW-0043
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "effective merge state is the exact latest GitHub Actions-owned MONDE / Merge Gate check for the exact head SHA"
+    - "review-thread state is evaluated before target-history discovery"
+    - "open Pull Requests authority uses exact unique PR identities and two identical authority-field snapshots"
+    - "open Pull Requests authority is revalidated after stale-thread classification and before target selection/rerun"
+    - "canonical PR-family run triggering identity is derived from exactly one canonical referenced-workflow refs/pull/<N>/merge authority"
+    - "workflow_run.pull_requests association cardinality is not triggering-PR authority"
+    - "same-repository/ref/SHA PRs remain distinguishable by PR number through target selection and rerun"
+    - "Actions history is queried only for positively stale-green PRs and only as rerun-capability evidence"
+    - "filtered workflow-run windows are complete below the 1,000-result ceiling through non-overlapping partitioning plus exact stable unique snapshots"
+    - "selected current-incarnation target and protected current-attempt MONDE / Merge Gate job are positively bound before rerun"
+    - "strict positive non-Boolean identifiers/attempts and fail-closed REST/GraphQL/Checks/Actions metadata"
+    - "one invocation-wide GitHub request counter blocks the 61st request before network I/O and logs used/60"
+    - "ten-minute schedule and 60-call cap bound scheduled script demand to at most 360 GitHub API calls/hour"
+    - "least-privilege write boundary keeps actions:write only on trusted scheduled default-branch execution"
+    - "TEST-0009 regression discovery and WORK/PROJECT/REVIEW traceability"
+  risks:
+    - "The referenced_workflows ref may be absent, mutable, differently shaped or insufficiently authoritative on some PR-family run/rerun paths."
+    - "A remaining cross-API TOCTOU may exist between the second open-PR snapshot, Actions target discovery, protected-job validation and rerun."
+    - "A shared commit-scoped required check may still be revivable by another PR after one stale PR rerun invalidates it."
+    - "The 60-call budget may fail closed under legitimate scale but still leave a stale merge-acceptable check usable until a later poll."
+    - "The request counter may miss a GitHub call path that bypasses core.request_data, or overstate/understate capacity assumptions."
+    - "Filtered Actions history may still become too expensive within the budget under pathological high-churn heads."
+findings: []
+checks:
+  assumptions_challenged:
+    - "Every canonical MONDE Gate PR-family run used as rerun authority exposes exactly one canonical reusable-workflow reference with ref refs/pull/<triggering PR>/merge."
+    - "Rerunning a selected run preserves the triggering PR context represented by referenced_workflows.ref."
+    - "Re-reading stable open authority after thread classification closes the REVIEW-0042 late-open race rather than moving it later."
+    - "Two simultaneous same-head PRs with divergent thread state can be invalidated independently even though the protected check context is commit-scoped."
+    - "All REST, GraphQL and rerun POST calls used by the adapter traverse the budgeted core.request_data entrypoint."
+    - "A 60-call per-invocation fail-closed ceiling plus ten-minute cadence is a sufficient Phase-0 supported-capacity contract under GitHub's token limits."
+    - "Live probe consumption of 7/60 is representative enough to prove wiring, without being misrepresented as production worst-case capacity."
+  omitted_categories_considered:
+    - "pull_request, pull_request_review and pull_request_review_comment referenced_workflow metadata"
+    - "rerun attempts and preservation of refs/pull/N/merge"
+    - "same SHA, same branch, same repository, different base PRs"
+    - "new PR opening or existing PR changing after second open snapshot"
+    - "PR closing between second snapshot and rerun"
+    - "another same-head run completing after target discovery"
+    - "request-budget exhaustion before and after stale classification"
+    - "pagination amplification against the 60-call budget"
+    - "GraphQL and POST counting through request_data"
+    - "wrapper install ordering and bypass paths"
+    - "coverage/test discovery and exact-head proof freshness"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 and REVIEW-0042 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
+    - "REVIEW-0040 and REVIEW-0041 remain CLOSED administrative negative evidence."
+    - "REVIEW-0042 added PRRT_kwDOUUI5ts6i0j_C and PRRT_kwDOUUI5ts6i0j_F, bringing PR #5 to 44 unresolved inline material threads."
+    - "Historical rate-limit finding PRRT_kwDOUUI5ts6is6BX remains unresolved until this successor validates the quantitative budget correction."
+    - "PR #2 durable poller must later port the final trusted-base behavior after PR #5 merge."
+  failure_modes_considered:
+    - "canonical referenced workflow path matches but ref points to a branch or malformed pull ref"
+    - "multiple canonical referenced_workflow entries identify conflicting PR numbers"
+    - "run belongs to a PR number that is no longer present in the revalidated open set"
+    - "run head identity no longer matches the current PR head identity"
+    - "two same-head PRs each have unresolved threads and each require independent rerun targets"
+    - "another same-head PR completes a green gate after stale PR classification"
+    - "budget reaches 60 before the rerun POST and fails without invalidating the stale green check"
+    - "request path bypasses request_data and therefore escapes accounting"
+    - "error handling resets or double-counts budget across one process invocation"
+    - "live probe is green while trusted scheduled mutation path differs materially"
+  evidence_requested:
+    - "Exact-head suite at 100 percent line and branch across core and adapter, including the 60/61 request boundary."
+    - "Read-only live PR #2 contract probe proving canonical refs/pull/2/merge binding and reporting request budget consumption."
+    - "Fresh-context exact-head independent L2 review after OPEN and IN_PROGRESS lifecycle checkpoints are each proven."
+    - "Re-check all 44 unresolved historical inline findings against the corrected exact head before any thread resolution."
+    - "Explicit performance/SRE challenge of worst-case request growth and fail-closed behavior under the 60-call cap."
+    - "No merge and no historical thread resolution before a clean independent successor review."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-16"
+  updated_at: "2026-09-16"

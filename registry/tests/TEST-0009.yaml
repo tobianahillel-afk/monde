@@ -10,13 +10,16 @@ protects:
   invariants:
     - "stale merge-acceptable canonical gate is invalidated when current PR review threads are unresolved"
     - "GitHub merge-acceptable conclusions success, neutral and skipped all require stale-green revalidation"
-    - "rerun target belongs to the current PR incarnation, not a prior PR reusing the same head identity"
+    - "rerun target belongs to the current PR incarnation and triggering PR, including when multiple open PRs share one repository/ref/SHA"
+    - "canonical PR-family run authority comes from the exact reusable-workflow ref refs/pull/<N>/merge, not workflow_run.pull_requests association cardinality"
+    - "stable open Pull Requests authority is re-read after thread classification and before target selection/rerun"
     - "malformed or ambiguous GitHub REST/GraphQL state fails closed"
     - "filtered workflow-run history is accepted only through closed stable windows whose cardinality stays below GitHub's 1000-result search ceiling"
     - "time-partitioned workflow-run windows are non-overlapping and a saturated single timestamp second fails closed"
     - "current-incarnation target history is discovered only after the exact required check and unresolved review threads positively classify a PR as stale-green"
-    - "clean, incomplete or non-merge-acceptable PRs do not incur target-history or closed-history discovery"
+    - "clean, incomplete or non-merge-acceptable PRs do not incur target-history discovery"
     - "open and bounded closed Pull Requests authority is accepted only when PR numbers are unique and two authority-field snapshots are identical"
+    - "all bootstrap GitHub requests pass through one invocation budget that blocks the 61st call and reports used/60"
 location:
   test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py; .github/scripts/test_stale_green_bootstrap_poll_order.py; .github/scripts/test_stale_green_bootstrap_pr_snapshot.py"
   suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
@@ -26,22 +29,26 @@ environment:
     - "GitHub REST Actions, Checks and Pull Requests APIs"
     - "GitHub GraphQL reviewThreads API"
   mocked_dependencies:
-    - "adversarial unit fixtures for malformed responses, shared SHA, prior PR incarnation, merge-acceptable conclusions, capped/unstable filtered workflow-run searches, stale-green classification/target-discovery ordering, and duplicate/unstable Pull Requests snapshots"
+    - "adversarial unit fixtures for malformed responses, shared SHA, prior PR incarnation, merge-acceptable conclusions, capped/unstable filtered workflow-run searches, stale-green classification/target-discovery ordering, duplicate/unstable Pull Requests snapshots, exact reusable-workflow PR refs and request-budget exhaustion"
 cases:
   happy_path:
     - "current PR incarnation has a canonical exact-head gate run and resolved or unresolved review state is classified correctly"
-    - "a positively proven stale-green PR discovers its current-incarnation rerun target only after check/thread classification"
+    - "a positively proven stale-green PR discovers its triggering-PR-bound rerun target only after check/thread classification and fresh open-authority revalidation"
     - "two logically identical Pull Requests authority snapshots are accepted even when record ordering differs"
+    - "the live PR #2 probe observes the exact reusable-workflow refs/pull/2/merge authority and remains below the invocation request budget"
   edge_cases:
-    - "distinct PR branches share the same head SHA"
+    - "two open PRs share the same repository/ref/SHA but have divergent review-thread state"
+    - "a new same-identity PR opens after stale-thread classification and before rerun-target discovery"
     - "an earlier closed PR reused the same repository/ref/SHA before the current PR was opened"
     - "reviewThreads spans multiple GraphQL pages"
     - "effective required check concludes success, neutral or skipped"
     - "a filtered workflow-run interval reaches GitHub's 1000-result ceiling and is recursively partitioned into non-overlapping second ranges"
     - "clean and non-merge-acceptable PRs coexist with stale-green candidates without expanding the target-history scope"
     - "open and closed Pull Requests snapshots return the same authoritative records in a different order"
+    - "the 60th GitHub request is allowed and the 61st is blocked before network I/O"
   failure_modes:
     - "canonical workflow identity or required run metadata is malformed"
+    - "canonical reusable-workflow metadata is missing, malformed, references a non-canonical path, has a non-pull merge ref, or identifies more than one triggering PR"
     - "no current-incarnation gate run exists while an effective stale merge-acceptable check exists"
     - "REST or GraphQL pagination exceeds the bounded limit"
     - "two reads of one closed filtered workflow-run window disagree"
@@ -49,17 +56,20 @@ cases:
     - "rerun-target history is snapshotted before stale-green classification and can therefore miss the run that produced the effective required check"
     - "two open-PR authority reads disagree at the same cardinality"
     - "two bounded closed-history authority reads disagree at the same cardinality"
+    - "invocation demand exceeds 60 GitHub calls and fails explicitly rather than consuming an unbounded token budget"
   adversarial_cases:
     - "workflow_run.pull_requests contains zero, one or multiple associations and is not trusted as triggering-PR identity"
+    - "two same-head PR runs are distinguished by referenced_workflows refs/pull/<N>/merge"
+    - "a same-identity PR appears after initial classification; fresh open authority is consulted before target selection"
     - "an old run is rerun after the current PR opens and has a newer updated_at"
     - "neutral or skipped required check remains merge-acceptable while review threads become unresolved"
     - "GraphQL errors is present with a falsey malformed value"
     - "GraphQL pagination repeats a cursor"
     - "filtered workflow-run snapshots contain duplicate or malformed run IDs"
     - "partition boundaries cannot duplicate the midpoint second or silently omit the next second"
-    - "a canonical run completes between the first check of open PRs and rerun-target discovery; target history must be sampled after stale-green classification"
     - "offset pagination duplicates a Pull Request number and silently displaces another open or closed record"
     - "same-cardinality Pull Requests membership drift between two complete traversals fails closed"
+    - "GET, GraphQL-through-request_data, Actions pagination and POST rerun calls share one conservative request counter"
 acceptance_cold_read:
   qualifies: false
   source:
@@ -95,4 +105,4 @@ coverage:
   branch_contribution: null
 history:
   created_at: "2026-09-15"
-  updated_at: "2026-09-15"
+  updated_at: "2026-09-16"
