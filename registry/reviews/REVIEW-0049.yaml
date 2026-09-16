@@ -1,0 +1,83 @@
+id: REVIEW-0049
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "exact latest GitHub Actions-owned MONDE / Merge Gate check remains merge-state authority"
+    - "current PR rerun authority is bound to exact head/base/merge-ref identity and current selected PR"
+    - "selected-PR rerun-target discovery remains bounded, drift-detecting and durably resumable"
+    - "before any rerun POST, issue #7 durably records write-ahead pending mutation identity"
+    - "pending mutation identity binds selected PR authority digest, exact run_id, baseline attempt and prior effective-check id"
+    - "while pending mutation state exists, scheduled execution resumes observation and must not issue another rerun POST"
+    - "ambiguous rerun POST outcome retains pending state and forbids automatic retry"
+    - "pending state clears only after terminal causally-bound observation or an explicit closed-PR path; authority drift fails closed"
+    - "pending PR number and state use strict non-coercive authority validation"
+    - "terminal invalidation still requires protected-job validation plus a causally bound effective exact-head required check"
+    - "scheduler progress remains durable in issue #7 and trusted scheduled writers remain serialized"
+    - "one invocation considers at most seven head groups and performs at most three actual rerun POSTs"
+    - "the authority adapter remains hard-capped at 100 script-issued GitHub calls with mutation/post-condition/state-write reserves"
+    - "malformed REST/GraphQL/Checks/Actions/Issue/PR authority fails closed"
+    - "the live PR #2 contract probe remains read-only; mutation permissions exist only on trusted serialized scheduled execution"
+  risks:
+    - "A crash after durable write-ahead pending state but before the rerun POST can leave a safe-but-stuck pending intent whose absence of POST cannot be proven automatically."
+    - "A crash or transport failure around the POST is intentionally treated as ambiguous and may require operator recovery rather than unsafe automatic replay."
+    - "V1/V2/V3-to-V4 scheduler migration must not invent or discard pending mutation authority."
+    - "Unrelated concurrent reruns or attempt jumps must never be mistaken for the write-ahead mutation's exact post-condition."
+findings: []
+checks:
+  assumptions_challenged:
+    - "Durable write-ahead intent is sufficient to prevent duplicate mutation across Actions/Checks visibility lag and scheduler restart."
+    - "The pending PR authority digest binds every field that can make an old rerun unsafe after retargeting or merge-ref change."
+    - "Clearing pending state on a closed PR is safe even when the external rerun result is delayed or unavailable."
+    - "A safe liveness strategy exists for write-ahead intent persisted before a POST that never actually occurred."
+  omitted_categories_considered:
+    - "crash after pending-state PATCH acknowledgement but before rerun POST"
+    - "POST accepted but response lost; next attempt remains invisible across multiple schedules"
+    - "pending state survives scheduler restart while PR authority changes"
+    - "concurrent actor advances the same run beyond the single expected attempt"
+    - "malformed Boolean/float pending PR identity or unknown PR state"
+    - "issue #7 migration from legacy idle state into V4"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 and REVIEW-0042 through REVIEW-0047 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
+    - "REVIEW-0040, REVIEW-0041 and REVIEW-0048 remain CLOSED administrative negative evidence."
+    - "REVIEW-0048 author-side finding PRR_kwDOUUI5ts8AAAABN4OKew is the direct predecessor addressed by the V4 write-ahead candidate."
+    - "All 63 historical PR #5 inline material threads remain unresolved and must be re-checked rather than inferred closed from code movement."
+  failure_modes_considered:
+    - "accepted rerun is not yet visible and a later schedule would previously have POSTed again"
+    - "write-ahead state exists but POST never happened, producing a safe liveness wedge"
+    - "transport exception after POST leaves mutation outcome unknowable"
+    - "pending run attempt regresses or advances beyond the exact single expected attempt"
+    - "pending PR closes, retargets, changes merge-ref, or returns malformed authority metadata"
+    - "shared-head sibling activity changes the latest required check during pending observation"
+  evidence_requested:
+    - "Re-check all 63 historical material threads against the exact frozen REVIEW-0049 head."
+    - "Red-team the write-ahead ordering around issue #7 state acknowledgement and rerun POST, including every crash boundary."
+    - "Prove no code path automatically emits a second POST while pending mutation identity is durable."
+    - "Assess safe liveness/recovery for a pending intent whose POST cannot be proven to have occurred."
+    - "Re-check strict integer/state typing, current PR authority, exact attempt/check causality, shared-head fallthrough, budgets and serialization."
+    - "Use the exact-head 167-test / 1613-statement / 754-branch 100-percent proof and live PR #2 probe as verification evidence, not semantic approval."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-16"
+  updated_at: "2026-09-16"
