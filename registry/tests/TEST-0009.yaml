@@ -12,16 +12,19 @@ protects:
     - "GitHub merge-acceptable conclusions success, neutral and skipped all require stale-green revalidation"
     - "rerun target belongs to the current PR incarnation and triggering PR, including when multiple open PRs share one repository/ref/SHA"
     - "canonical PR-family run authority comes from the exact reusable-workflow ref refs/pull/<N>/merge, not workflow_run.pull_requests association cardinality"
-    - "stable open Pull Requests authority is re-read after thread classification and before target selection/rerun"
+    - "stable open Pull Requests authority is re-read before target selection/rerun"
     - "malformed or ambiguous GitHub REST/GraphQL state fails closed"
     - "filtered workflow-run history is accepted only through closed stable windows whose cardinality stays below GitHub's 1000-result search ceiling"
     - "time-partitioned workflow-run windows are non-overlapping and a saturated single timestamp second fails closed"
-    - "current-incarnation target history is discovered only after the exact required check and unresolved review threads positively classify a PR as stale-green"
-    - "clean, incomplete or non-merge-acceptable PRs do not incur target-history discovery"
     - "open and bounded closed Pull Requests authority is accepted only when PR numbers are unique and two authority-field snapshots are identical"
     - "all bootstrap GitHub requests pass through one invocation budget that blocks the 61st call and reports used/60"
+    - "one invocation inspects at most seven rotated head groups and schedules at most three stale-green reruns"
+    - "head-group ordering rotates by ten-minute fairness slots so a large open-PR set cannot permanently starve later heads"
+    - "same-head siblings remain grouped and at most one sibling is rerun for a shared SHA in one invocation"
+    - "the selected target job is validated before review-thread state is read again immediately before the rerun POST"
+    - "a sibling that has become clean is not rerun from a stale saved classification"
 location:
-  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py; .github/scripts/test_stale_green_bootstrap_poll_order.py; .github/scripts/test_stale_green_bootstrap_pr_snapshot.py"
+  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py; .github/scripts/test_stale_green_bootstrap_poll_order.py; .github/scripts/test_stale_green_bootstrap_pr_snapshot.py; .github/scripts/test_stale_green_bootstrap_progress.py; .github/scripts/test_stale_green_bootstrap_progress_fallthrough.py"
   suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
 environment:
   kind: GITHUB_ACTIONS
@@ -29,38 +32,43 @@ environment:
     - "GitHub REST Actions, Checks and Pull Requests APIs"
     - "GitHub GraphQL reviewThreads API"
   mocked_dependencies:
-    - "adversarial unit fixtures for malformed responses, shared SHA, prior PR incarnation, merge-acceptable conclusions, capped/unstable filtered workflow-run searches, stale-green classification/target-discovery ordering, duplicate/unstable Pull Requests snapshots, exact reusable-workflow PR refs and request-budget exhaustion"
+    - "adversarial unit fixtures for malformed responses, shared SHA, prior PR incarnation, merge-acceptable conclusions, capped/unstable filtered workflow-run searches, Pull Requests snapshots, exact reusable-workflow PR refs, request-budget exhaustion, fairness rotation and progress-preserving batching"
 cases:
   happy_path:
-    - "current PR incarnation has a canonical exact-head gate run and resolved or unresolved review state is classified correctly"
-    - "a positively proven stale-green PR discovers its triggering-PR-bound rerun target only after check/thread classification and fresh open-authority revalidation"
+    - "current PR incarnation has a canonical exact-head gate run and current review state is classified correctly"
+    - "a selected head resolves a PR-bound rerun target, validates its protected job, re-reads current thread state and reruns only if still unresolved"
     - "two logically identical Pull Requests authority snapshots are accepted even when record ordering differs"
-    - "the live PR #2 probe observes the exact reusable-workflow refs/pull/2/merge authority and remains below the invocation request budget"
+    - "the live PR #2 probe observes exact reusable-workflow refs/pull/2/merge authority and remains below the invocation request budget"
   edge_cases:
-    - "two open PRs share the same repository/ref/SHA but have divergent review-thread state"
-    - "a new same-identity PR opens after stale-thread classification and before rerun-target discovery"
+    - "two open PRs share the same repository/ref/SHA but have divergent or changing review-thread state"
+    - "fourteen stale-green distinct heads coexist while one invocation remains bounded and makes progress before budget exhaustion"
+    - "more than seven open heads rotate across ten-minute fairness slots"
+    - "a clean selected head falls through to the next head in the same invocation"
+    - "a clean sibling with no target does not block an unresolved same-head sibling"
     - "an earlier closed PR reused the same repository/ref/SHA before the current PR was opened"
     - "reviewThreads spans multiple GraphQL pages"
     - "effective required check concludes success, neutral or skipped"
     - "a filtered workflow-run interval reaches GitHub's 1000-result ceiling and is recursively partitioned into non-overlapping second ranges"
-    - "clean and non-merge-acceptable PRs coexist with stale-green candidates without expanding the target-history scope"
-    - "open and closed Pull Requests snapshots return the same authoritative records in a different order"
     - "the 60th GitHub request is allowed and the 61st is blocked before network I/O"
   failure_modes:
     - "canonical workflow identity or required run metadata is malformed"
     - "canonical reusable-workflow metadata is missing, malformed, references a non-canonical path, has a non-pull merge ref, or identifies more than one triggering PR"
-    - "no current-incarnation gate run exists while an effective stale merge-acceptable check exists"
+    - "no current-incarnation gate run exists while an unresolved current PR still has a merge-acceptable exact-head check"
     - "REST or GraphQL pagination exceeds the bounded limit"
     - "two reads of one closed filtered workflow-run window disagree"
     - "a one-second filtered workflow-run window still reaches GitHub's server-side search ceiling"
-    - "rerun-target history is snapshotted before stale-green classification and can therefore miss the run that produced the effective required check"
     - "two open-PR authority reads disagree at the same cardinality"
     - "two bounded closed-history authority reads disagree at the same cardinality"
     - "invocation demand exceeds 60 GitHub calls and fails explicitly rather than consuming an unbounded token budget"
+    - "resource scheduling fails to mutate before exhaustion or repeats the same prefix forever"
   adversarial_cases:
     - "workflow_run.pull_requests contains zero, one or multiple associations and is not trusted as triggering-PR identity"
     - "two same-head PR runs are distinguished by referenced_workflows refs/pull/<N>/merge"
-    - "a same-identity PR appears after initial classification; fresh open authority is consulted before target selection"
+    - "a sibling changes unresolved to resolved after earlier observations and is skipped by the final thread-state read"
+    - "only one unresolved sibling of a shared SHA is rerun per invocation so a clean sibling cannot finish last and revive green state"
+    - "fourteen distinct stale heads produce the first three nominal reruns at request counts 10, 18 and 26 rather than consuming 60 calls before mutation"
+    - "the head scheduler considers at most seven heads even when every check is non-merge-acceptable"
+    - "fairness rotation preserves each shared-head group while changing which head group is first"
     - "an old run is rerun after the current PR opens and has a newer updated_at"
     - "neutral or skipped required check remains merge-acceptable while review threads become unresolved"
     - "GraphQL errors is present with a falsey malformed value"
@@ -68,7 +76,6 @@ cases:
     - "filtered workflow-run snapshots contain duplicate or malformed run IDs"
     - "partition boundaries cannot duplicate the midpoint second or silently omit the next second"
     - "offset pagination duplicates a Pull Request number and silently displaces another open or closed record"
-    - "same-cardinality Pull Requests membership drift between two complete traversals fails closed"
     - "GET, GraphQL-through-request_data, Actions pagination and POST rerun calls share one conservative request counter"
 acceptance_cold_read:
   qualifies: false
@@ -96,13 +103,17 @@ external_import:
   import_commit: null
 execution:
   command_or_workflow: "MONDE Stale-Green Bootstrap"
-  last_run_at: null
-  commit_sha: null
-  result: null
-  evidence: []
+  last_run_at: "2026-09-16"
+  commit_sha: "a1441f506fb1a0f42dbdf984d42e1f847e55db51"
+  result: PASS
+  evidence:
+    - "Bootstrap #103 / run 35075010644: 86/86 tests PASS"
+    - "Bootstrap #103: 664 statements / 292 branches at 100 percent line and branch coverage"
+    - "Bootstrap #103 live PR #2 contract probe SUCCESS: open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true, request budget 7/60"
+    - "14-head adversarial regression requires progress at nominal request counts 10, 18 and 26"
 coverage:
-  line_contribution: null
-  branch_contribution: null
+  line_contribution: 100
+  branch_contribution: 100
 history:
   created_at: "2026-09-15"
   updated_at: "2026-09-16"

@@ -1,0 +1,98 @@
+id: REVIEW-0044
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "exact latest GitHub Actions-owned MONDE / Merge Gate check remains merge-state authority"
+    - "canonical PR-family triggering identity comes from exactly one reusable-workflow refs/pull/<N>/merge reference"
+    - "stable unique open Pull Requests authority is refreshed before target resolution"
+    - "one invocation considers at most seven rotated head groups and schedules at most three reruns"
+    - "head groups rotate by ten-minute fairness slot rather than repeatedly processing one fixed prefix"
+    - "same-head siblings remain one scheduling group and at most one sibling is rerun for that SHA per invocation"
+    - "rerun targets are resolved per PR number and protected current-attempt MONDE / Merge Gate jobs are validated"
+    - "current review-thread state is read after target-job validation immediately before the rerun decision"
+    - "a now-clean sibling is skipped and cannot be rerun from stale saved thread state"
+    - "the invocation-wide hard budget still blocks request 61 before network I/O"
+    - "filtered Actions history keeps stable partitioned snapshots below GitHub's search ceiling"
+    - "least-privilege actions:write remains only on trusted scheduled default-branch execution"
+    - "TEST-0009 discovers the progress/fairness regressions and WORK/PROJECT/REVIEW traceability remains synchronized"
+  risks:
+    - "Time-derived rotation without persisted cursor may still have pathological starvation under irregular or skipped schedules."
+    - "Seven selected heads can still consume more than the nominal budget when pagination/history expansion is pathological."
+    - "The scheduler may spend budget on clean or non-merge-acceptable heads before reaching a stale candidate."
+    - "A shared-head sibling can change state again after the final GraphQL read and before or during rerun completion."
+    - "One unresolved sibling rerun may be superseded later by an independent same-head workflow completion outside this invocation."
+    - "Reusable-workflow refs/pull/N/merge authority on rerun attempts remains dependent on GitHub metadata semantics."
+    - "Cross-API TOCTOU remains between open authority, exact check, target history, protected job, final thread state and rerun POST."
+findings: []
+checks:
+  assumptions_challenged:
+    - "Rotating only by ten-minute wall-clock slot provides fair eventual service for every open head under the actual scheduled workflow cadence."
+    - "MAX_HEADS_PER_INVOCATION=7 and MAX_RERUNS_PER_INVOCATION=3 preserve enough headroom beneath the 60-call hard cap in realistic and adversarial pagination cases."
+    - "The fourteen-head regression demonstrates forward progress without merely moving the exhaustion point to a later head."
+    - "A clean sibling cannot restore the shared SHA green because only one unresolved sibling is rerun per head per invocation."
+    - "Final reviewThreads observation occurs late enough that stale saved thread state is no longer rerun authority."
+    - "Resolving the target per sibling cannot reintroduce the REVIEW-0040 target-history-before-classification race."
+    - "Fresh stable open authority plus refs/pull/N/merge remains sufficient current-incarnation PR binding."
+    - "The 60-call hard cap remains a last-resort safety guard rather than a normal no-progress control path."
+  omitted_categories_considered:
+    - "scheduler fairness with 8, 14, 100 or more open heads"
+    - "schedule delays, missed cron runs, duplicated workflow runs and wall-clock slot jumps"
+    - "clean heads occupying the seven-head window"
+    - "pagination amplification inside one selected head"
+    - "multiple unresolved siblings on one shared SHA"
+    - "unresolved to resolved and resolved to unresolved transitions during one poll"
+    - "same-head workflow completion after final thread read"
+    - "target job validation failure after earlier heads already made progress"
+    - "hard-cap exhaustion after one or more successful reruns"
+    - "rerun attempts preserving canonical referenced-workflow pull authority"
+    - "live probe versus trusted scheduled mutation-path parity"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039, REVIEW-0042 and REVIEW-0043 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
+    - "REVIEW-0040 and REVIEW-0041 remain CLOSED administrative negative evidence."
+    - "REVIEW-0043 added PRRT_kwDOUUI5ts6i1TEN and PRRT_kwDOUUI5ts6i1TES, bringing PR #5 to 46 unresolved inline material threads."
+    - "Historical rate-limit finding PRRT_kwDOUUI5ts6is6BX remains unresolved and must be rechecked against progress-preserving batching."
+    - "PR #2 durable poller still requires explicit final trusted-base behavior port after PR #5 merge."
+  failure_modes_considered:
+    - "the same first seven heads are repeatedly selected and later stale heads never receive service"
+    - "seven selected clean heads consume cycles while an eighth stale head remains merge-eligible indefinitely"
+    - "pathological Actions or Pull Requests pagination reaches the hard request cap before any mutation"
+    - "three successful reruns are followed by a hard-cap error and earlier progress is not preserved operationally"
+    - "two shared-head siblings are unresolved, one becomes clean, and stale classification tries to rerun both"
+    - "a sibling becomes unresolved after being skipped as clean while another sibling rerun is in flight"
+    - "another same-head gate completes green after the selected unresolved sibling rerun invalidates the check"
+    - "a per-PR target is valid but belongs to an obsolete attempt or wrong triggering PR"
+  evidence_requested:
+    - "Exact-head self-test at 100 percent line and branch including new progress/fairness modules."
+    - "Read-only live PR #2 contract probe with exact refs/pull/2/merge authority and observed request budget."
+    - "Regression proving fourteen distinct stale heads rerun before exhaustion, with first nominal reruns at request counts 10, 18 and 26."
+    - "Regression proving clean shared-head siblings are skipped and only an unresolved sibling is rerun."
+    - "Regression proving clean selected heads fall through to a later head in the same invocation."
+    - "Fresh-context exact-head independent L2 review after OPEN and IN_PROGRESS checkpoints are each proven."
+    - "Re-check all 46 unresolved historical inline findings against the corrected exact head before any thread resolution."
+    - "No merge and no historical thread resolution before a clean independent successor review."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-16"
+  updated_at: "2026-09-16"
