@@ -530,8 +530,6 @@ def _process_head_group(
         if not _latest_check_is_merge_acceptable(latest):
             return posted, errors, None
         assert latest is not None
-        if len(posted) >= rerun_slots:
-            return posted, errors, None
         if _remaining_request_budget() < MAX_POSTCONDITION_POLLS + STATE_WRITE_REQUEST_RESERVE + 3:
             raise DeferredForBudget("insufficient request headroom for rerun post-condition")
         run_id = int(run["id"])
