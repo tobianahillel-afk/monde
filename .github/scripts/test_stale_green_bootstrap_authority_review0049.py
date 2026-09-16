@@ -70,7 +70,7 @@ class Review0049PendingMutationTests(unittest.TestCase):
             mock.patch.object(base, "_scheduler_issue_number", return_value=7),
             mock.patch.object(subject.core, "request_data", return_value={}),
         ):
-            with self.assertRaisesRegex(RuntimeError, "not durably acknowledged"):
+            with self.assertRaisesRegex(RuntimeError, "identity"):
                 subject._write_state("o/r", "t", state)
 
     def test_resume_pending_never_posts_and_retains_unobserved_mutation(self) -> None:
