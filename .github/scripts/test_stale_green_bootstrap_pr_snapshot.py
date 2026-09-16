@@ -379,23 +379,46 @@ class PullRequestSnapshotTests(unittest.TestCase):
             self.assertEqual(snapshot.validate_github_contract("o/r", 1, "t"), (1, 1, True))
         required.assert_called_once_with("o/r", target, "t")
 
+    def test_request_budget_counts_all_calls_and_fails_before_sixty_first(self) -> None:
+        snapshot._reset_request_budget()
+        self.addCleanup(snapshot._reset_request_budget)
+        with mock.patch.object(snapshot, "_ORIGINAL_REQUEST_DATA", return_value={"ok": True}) as request:
+            for index in range(snapshot.MAX_GITHUB_REQUESTS_PER_INVOCATION):
+                method = "POST" if index == snapshot.MAX_GITHUB_REQUESTS_PER_INVOCATION - 1 else "GET"
+                body = {"rerun": True} if method == "POST" else None
+                self.assertEqual(snapshot._budgeted_request_data("https://api.github.com/x", "t", method, body), {"ok": True})
+            self.assertEqual(snapshot._request_count, snapshot.MAX_GITHUB_REQUESTS_PER_INVOCATION)
+            with self.assertRaisesRegex(RuntimeError, "request budget exceeded \(60/60\)"):
+                snapshot._budgeted_request_data("https://api.github.com/x", "t")
+        self.assertEqual(request.call_count, snapshot.MAX_GITHUB_REQUESTS_PER_INVOCATION)
+        self.assertEqual(request.call_args_list[-1].args, ("https://api.github.com/x", "t", "POST", {"rerun": True}))
+
     def test_install_and_main_replace_runtime_authority(self) -> None:
         originals = (
+            snapshot.core.request_data,
             snapshot.core.open_pull_requests,
             snapshot.core._closed_pr_history,
             snapshot.core.poll,
             snapshot.core.validate_github_contract,
         )
-        self.addCleanup(setattr, snapshot.core, "open_pull_requests", originals[0])
-        self.addCleanup(setattr, snapshot.core, "_closed_pr_history", originals[1])
-        self.addCleanup(setattr, snapshot.core, "poll", originals[2])
-        self.addCleanup(setattr, snapshot.core, "validate_github_contract", originals[3])
-        with mock.patch.object(snapshot.core, "main", return_value=7) as core_main:
+        self.addCleanup(setattr, snapshot.core, "request_data", originals[0])
+        self.addCleanup(setattr, snapshot.core, "open_pull_requests", originals[1])
+        self.addCleanup(setattr, snapshot.core, "_closed_pr_history", originals[2])
+        self.addCleanup(setattr, snapshot.core, "poll", originals[3])
+        self.addCleanup(setattr, snapshot.core, "validate_github_contract", originals[4])
+        snapshot._request_count = 17
+        with (
+            mock.patch.object(snapshot.core, "main", return_value=7) as core_main,
+            mock.patch("builtins.print") as printer,
+        ):
             self.assertEqual(snapshot.main(), 7)
+        self.assertIs(snapshot.core.request_data, snapshot._budgeted_request_data)
         self.assertIs(snapshot.core.open_pull_requests, snapshot.open_pull_requests)
         self.assertIs(snapshot.core._closed_pr_history, snapshot.closed_pr_history)
         self.assertIs(snapshot.core.poll, snapshot.poll)
         self.assertIs(snapshot.core.validate_github_contract, snapshot.validate_github_contract)
+        self.assertEqual(snapshot._request_count, 0)
+        printer.assert_called_once_with("MONDE bootstrap GitHub request budget: 0/60")
         core_main.assert_called_once_with()
 
     def test_script_entrypoint_delegates_to_core_main(self) -> None:

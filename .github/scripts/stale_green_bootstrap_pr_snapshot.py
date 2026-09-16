@@ -6,10 +6,33 @@ from typing import Any
 
 import stale_green_bootstrap as core
 
+MAX_GITHUB_REQUESTS_PER_INVOCATION = 60
+_ORIGINAL_REQUEST_DATA = core.request_data
 _ORIGINAL_CLOSED_PR_HISTORY = core._closed_pr_history
 _REUSABLE_WORKFLOW_PATH = ".github/workflows/_governance-core.yml"
 _PULL_REF = re.compile(r"refs/pull/([1-9][0-9]*)/merge")
 _SHA40 = re.compile(r"[0-9a-f]{40}")
+_request_count = 0
+
+
+def _reset_request_budget() -> None:
+    global _request_count
+    _request_count = 0
+
+
+def _budgeted_request_data(
+    url: str,
+    token: str,
+    method: str = "GET",
+    body: dict[str, Any] | None = None,
+) -> Any:
+    global _request_count
+    if _request_count >= MAX_GITHUB_REQUESTS_PER_INVOCATION:
+        raise RuntimeError(
+            f"bootstrap GitHub request budget exceeded ({_request_count}/{MAX_GITHUB_REQUESTS_PER_INVOCATION})"
+        )
+    _request_count += 1
+    return _ORIGINAL_REQUEST_DATA(url, token, method, body)
 
 
 def _pr_snapshot_fingerprint(
@@ -237,6 +260,7 @@ def validate_github_contract(repo: str, pr_number: int, token: str) -> tuple[int
 
 
 def install() -> None:
+    core.request_data = _budgeted_request_data
     core.open_pull_requests = open_pull_requests
     core._closed_pr_history = closed_pr_history
     core.poll = poll
@@ -244,8 +268,12 @@ def install() -> None:
 
 
 def main() -> int:
+    _reset_request_budget()
     install()
-    return core.main()
+    try:
+        return core.main()
+    finally:
+        print(f"MONDE bootstrap GitHub request budget: {_request_count}/{MAX_GITHUB_REQUESTS_PER_INVOCATION}")
 
 
 if __name__ == "__main__":
