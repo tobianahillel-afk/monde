@@ -1,0 +1,87 @@
+id: REVIEW-0047
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "delayed rerun observation remains durably selected across scheduled invocations until a causal terminal post-condition is established"
+    - "effective exact-head required check is causally bound to the exact rerun run_id, new run_attempt and protected job identity/conclusion"
+    - "current PR head/base/merge-ref authority is revalidated at the mutation boundary and before post-condition acceptance"
+    - "selected-PR target-history continuation carries a page-membership anchor and restarts safely when retained history drifts"
+    - "scheduler issue identity and all direct trust-binding identifiers require exact positive non-Boolean integers"
+    - "scheduler progress remains durable in machine-managed issue #7 and trusted scheduled writers remain serialized"
+    - "one invocation considers at most seven head groups and performs at most three actual rerun POSTs"
+    - "the authority adapter remains hard-capped at 100 script-issued GitHub calls with mutation/post-condition/state-write reserves"
+    - "malformed REST/GraphQL/Checks/Actions/Issue/PR authority fails closed"
+    - "the live PR #2 contract probe remains read-only; actions:write and issues:write exist only on trusted serialized scheduled execution"
+  risks:
+    - "A pending rerun may still be forgotten after a bounded local observation window or after scheduler restart."
+    - "Shared-head activity may still satisfy terminal-check tests without being the causal result of the exact rerun attempt."
+    - "A PR retarget or merge-ref replacement may race the rerun POST or terminal acceptance."
+    - "Check retention/reordering may invalidate a persisted page continuation and starve the selected target."
+    - "V1/V2 scheduler-state migration may lose durable progress or accept malformed external identifiers."
+    - "Historical findings may appear fixed in tests while an equivalent trust gap remains on another path."
+findings: []
+checks:
+  assumptions_challenged:
+    - "Persisting scan_pr after a local timeout is sufficient to prevent later stale-green revival under every delayed-rerun interleaving."
+    - "Run id plus conclusion equality is sufficient causal binding without independently validating the effective protected job and attempt."
+    - "Two direct current-PR reads fully close all mutation/post-condition retarget windows."
+    - "A previous-page fingerprint is sufficient to detect every retention/reordering pattern that can move a selected target earlier."
+    - "V1/V2-to-V3 scheduler-state migration cannot accidentally skip or regress work."
+    - "The added authority checks preserve the global request/mutation budgets and shared-head forward progress."
+  omitted_categories_considered:
+    - "rerun queued/running longer than one scheduler invocation"
+    - "unrelated same-head terminal check completing between exact-run and latest-check observations"
+    - "PR retarget immediately before POST and immediately before terminal acceptance"
+    - "history shrink/growth/reorder at the persisted scan boundary"
+    - "malformed float/Boolean identifiers on scheduler issue and check/run/job authority"
+    - "crash/retry around V1/V2 migration and V3 state writes"
+    - "large sibling sets and long retained histories near the 100-call reserve boundary"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 and REVIEW-0042 through REVIEW-0046 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
+    - "REVIEW-0040 and REVIEW-0041 remain CLOSED administrative negative evidence."
+    - "All 60 PR #5 inline material threads remain unresolved entering REVIEW-0047."
+    - "REVIEW-0047 must re-check every prior thread against the exact frozen successor head rather than treating 100 percent coverage as semantic closure."
+  failure_modes_considered:
+    - "new rerun attempt remains non-terminal across one or more scheduled invocations"
+    - "effective required check is terminal but belongs to another run/job on the shared head"
+    - "PR authority changes between target discovery, final thread read, rerun POST and post-condition acceptance"
+    - "saved target page becomes stale because check-history membership changes before the next invocation"
+    - "scheduler issue metadata uses coercible numeric values instead of exact integers"
+    - "request reserves or three-POST accounting regress under delayed-observation continuation"
+  evidence_requested:
+    - "Re-check all 60 unresolved historical inline findings against the exact frozen REVIEW-0047 head."
+    - "Red-team rerun persistence across scheduler invocations and delayed completion beyond the local polling window."
+    - "Red-team exact run_id/run_attempt/protected-job/effective-check causal binding under unrelated shared-head completions."
+    - "Red-team PR authority revalidation at both mutation and post-condition boundaries."
+    - "Red-team target-history continuation anchors under deletion, insertion, reordering and total_count drift."
+    - "Red-team V1/V2-to-V3 issue #7 migration, exact integer typing and crash/retry semantics."
+    - "Confirm the three-POST cap and 100-request reserve model remain enforced under successor control flow."
+    - "Confirm exact-head 100 percent line/branch proof plus the live read-only PR #2 contract probe."
+    - "Confirm TEST-0009 / WORK-0002 / PROJECT_STATE / REVIEW-0046 / REVIEW-0047 traceability is synchronized on the reviewed head."
+    - "Any material finding requires correction and another successor review; resolve no historical thread during this review."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-16"
+  updated_at: "2026-09-16"

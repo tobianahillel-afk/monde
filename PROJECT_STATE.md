@@ -15,71 +15,67 @@ Canonical operational state: Yes
 
 PR #5 (`chore/work-0002-stale-green-bootstrap`) remains the narrow trusted-default-branch predecessor for WORK-0002/T12. No merge and no historical review-thread resolution is permitted while material findings remain open or a successor review is incomplete.
 
-REVIEW-0045 is terminal `COMPLETE / CHANGES_REQUIRED` on exact frozen HEAD `adbc68fb47af26b78edd6a1bd02893c000c3c639` via independent review `PRR_kwDOUUI5ts8AAAABNzc8Sw`. Its six P1 findings remain material negative evidence. PR #5 has **55 inline material threads**, all intentionally unresolved.
+REVIEW-0046 is terminal `COMPLETE / CHANGES_REQUIRED` on exact frozen HEAD `e9c22ab562f724ba77e21f32cf8195b0b1ed5b5b` via independent review `PRR_kwDOUUI5ts8AAAABNz-eNg`. It added five material findings (four P1, one P2), bringing PR #5 to **60 inline material threads**, all intentionally unresolved.
 
-## REVIEW-0046 corrective runtime
+## REVIEW-0047 corrective runtime
 
-The REVIEW-0046 runtime candidate is exact SHA **`2ee7c8d9e27d7f402a9619e4da8ea76200ae7f9d`**.
+The first fully proven REVIEW-0047 runtime checkpoint is exact SHA **`efac4c61aa7dd61b17088e5f8a5b1fae82199d3c`**.
 
-It corrects the six REVIEW-0045 P1 classes without broadening the bootstrap scope:
+It corrects the five REVIEW-0046 finding classes without broadening the bootstrap scope:
 
-1. rerun invalidation follows the exact rerun `run_id`, requires a new terminal `run_attempt`, validates the protected `MONDE / Merge Gate` job, then validates the effective exact-head required check before accepting invalidation;
-2. selected-PR target discovery scans bounded 12-check pages, at most two pages per invocation, and persists `scan_pr + scan_page` in issue #7 so targets behind newer shared-head checks are not permanently abandoned;
-3. direct current-PR authority binds head identity, base repository/ref/SHA, `merge_commit_sha`, canonical `refs/pull/<N>/merge`, and the referenced reusable-workflow SHA;
-4. trust-binding app/run/workflow/job/run-attempt identifiers require exact positive non-Boolean integers;
-5. every actual rerun POST counts against one invocation-wide maximum of three, including shared-head sibling fallthrough;
-6. the trusted scheduled poll uses a dedicated GitHub Actions `concurrency` group with `cancel-in-progress: false`, serializing issue #7 cursor writers.
+1. delayed reruns remain durably selected across scheduled invocations instead of being forgotten after the local observation window;
+2. terminal invalidation is causally bound to the exact rerun `run_id`, new `run_attempt`, protected job identity and effective required check;
+3. the complete current PR head/base/merge-ref authority fingerprint is revalidated immediately before mutation and before accepting the post-condition;
+4. selected-PR target-history continuation persists a page-membership anchor and restarts safely when retained history drifts;
+5. scheduler issue identity requires an exact positive non-Boolean integer, consistent with the other trust-binding identifier boundaries.
 
-The mutation path remains capped at 100 script-issued GitHub requests with explicit mutation/post-condition/state-write reserves. The live probe remains read-only; only the trusted schedule receives `actions: write` and `issues: write`.
+The prior protections remain in force: serialized issue #7 writers, global three-POST cap, at most seven head groups per invocation, 100 script-issued GitHub requests with explicit reserves, fail-closed malformed metadata, and a read-only live PR #2 contract probe.
 
-## Exact REVIEW-0046 proof chain
+## Exact REVIEW-0047 runtime proof
 
-Bootstrap **#122 / run `35087404773`** on exact runtime SHA `2ee7c8d9e27d7f402a9619e4da8ea76200ae7f9d` is fully green:
+Bootstrap **#127 / run `35102314409`** on exact SHA `efac4c61aa7dd61b17088e5f8a5b1fae82199d3c` is fully green:
 
-- **110/110 tests PASS**;
+- **116/116 tests PASS**;
 - core: 457 statements / 204 branches, 100%;
-- authority: 423 statements / 196 branches, 100%;
+- authority: 489 statements / 230 branches, 100%;
 - snapshot: 207 statements / 88 branches, 100%;
-- total: **1,087 statements / 488 branches, 100% line + branch**;
+- total: **1,153 statements / 522 branches, 100% line + branch**;
 - live PR #2 GitHub contract probe SUCCESS: `open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true`;
 - live probe consumed **7/100** script-issued requests under read-only Actions/Checks/Contents/PullRequests permissions.
 
-The synchronized REVIEW-0046 `OPEN` checkpoint **`4552a42ef352c1b85619e0dc96049d1d7788ca9d`** then passed Bootstrap **#123 / run `35088041064`** with the same **110 tests / 1,087 statements / 488 branches / 100%** proof and live PR #2 probe SUCCESS at **7/100** requests.
+Two intermediate proof attempts were intentionally not accepted: Bootstrap #125 exposed an old shared-head test harness that mocked only one PR-authority read, and Bootstrap #126 passed all 115 functional tests but exposed five uncovered successor guard paths. Both gaps were corrected before #127; the coverage threshold was never lowered.
 
-Intermediate REVIEW-0046 heads deliberately exposed test-harness and uncovered-path gaps while the live contract remained green; those gaps were corrected before this proof. Dead/unreachable duplicate guard code was removed rather than artificially covered.
+## REVIEW-0047 lifecycle
 
-## REVIEW-0046 lifecycle
+REVIEW-0047 is now materialized as `OPEN`. No independent L2 has started yet. This synchronized `OPEN` checkpoint must itself pass the exact-head bootstrap self-test and live PR #2 probe before any transition to `IN_PROGRESS`.
 
-REVIEW-0046 is now `IN_PROGRESS`. Its independent L2 has not yet completed. This synchronized IN_PROGRESS checkpoint must itself pass exact-head self-test and live contract proof; after that proof the exact SHA is frozen for one fresh-context independent review.
+The successor review must re-check all **60 unresolved material threads** and red-team at minimum:
 
-The fresh review must actively re-check all **55 unresolved material threads** and red-team at minimum:
-
-- exact rerun attempt -> protected job -> effective exact-head terminal-check causality;
-- selected-PR check-page continuation, total-count/page drift, retained-target starvation and issue #7 continuation integrity;
-- current head/base/merge-ref authority and retarget races;
-- exact numeric typing on every trust boundary;
-- actual global three-POST enforcement across shared-head siblings;
-- GitHub Actions concurrency semantics for delayed, duplicate and manually rerun schedule executions;
-- V1 -> V2 scheduler-state migration, crash/retry behavior and durable progress;
-- 100-call budget reserves under long check histories and shared-head sibling sets;
-- least privilege, historical regression coverage and TEST/WORK/PROJECT/REVIEW traceability.
+- rerun persistence across scheduler invocations and delayed completion beyond one local observation loop;
+- exact `run_id` / `run_attempt` / protected-job / effective-check causal binding under unrelated shared-head completions;
+- PR authority races immediately before POST and immediately before post-condition acceptance;
+- anchored target-history continuation under deletion, insertion, reordering and `total_count` drift;
+- V1/V2-to-V3 issue #7 migration, exact integer typing and crash/retry behavior;
+- global three-POST and 100-request reserve enforcement under long histories and large sibling sets;
+- least privilege, regression discovery and TEST-0009 / WORK-0002 / PROJECT_STATE / REVIEW-0046 / REVIEW-0047 traceability;
+- every historical finding: no assumption that tests or 100% coverage alone prove semantic closure.
 
 No historical thread is resolved merely because the runtime proof is green.
 
 ## PR #2 relationship
 
-PR #2 remains the durable WORK-0002 implementation branch. After PR #5 eventually merges, PR #2 must explicitly integrate new `main` and port/reuse the final proven behavior. Separate handoff remains: pull-request base retargeting must positively create a fresh gate; dynamic `workflow_run.pull_requests[]` is not event-time provenance.
+PR #2 remains the durable WORK-0002 implementation branch. After PR #5 eventually merges, PR #2 must explicitly integrate new `main` and port/reuse the final proven behavior. Pull-request base retargeting must positively create a fresh gate; dynamic `workflow_run.pull_requests[]` is not event-time provenance.
 
-T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure still requires fresh exact-head L2 plus eligible trusted non-author exact-head `APPROVED` collaborator evidence.
+T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure still requires a fresh exact-head L2 plus eligible trusted non-author exact-head `APPROVED` collaborator evidence.
 
 ## Current next action
 
-1. Keep all **55** PR #5 inline material threads unresolved.
-2. Commit REVIEW-0046 `IN_PROGRESS` together with synchronized WORK-0002 / PROJECT_STATE lifecycle state.
-3. Prove that exact IN_PROGRESS checkpoint with Bootstrap self-test + live read-only PR #2 contract probe.
-4. Freeze the exact proven SHA and re-confirm 55/55 threads remain unresolved and no fresh exact-head review already exists.
+1. Keep all **60** PR #5 inline material threads unresolved.
+2. Prove this exact synchronized REVIEW-0047 `OPEN` checkpoint with Bootstrap self-test + live read-only PR #2 contract probe.
+3. If green, transition REVIEW-0047 to `IN_PROGRESS` in one synchronized state-only checkpoint and prove that descendant exact-head.
+4. Freeze the exact proven `IN_PROGRESS` SHA and re-confirm 60/60 threads remain unresolved and no fresh exact-head review already exists.
 5. Invoke exactly one fresh-context independent L2/Codex review on that frozen SHA.
-6. During REVIEW-0046, do not mutate the Git tree, merge, or resolve historical threads.
+6. During REVIEW-0047, do not mutate the Git tree, merge, or resolve historical threads.
 7. Any new material finding requires correction, exact-head re-proof and another successor review.
 8. WORK-0003 and WORK-0004 remain blocked.
 
@@ -92,10 +88,10 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 5. registry/work-items/WORK-0002.yaml
 6. registry/requirements/REQ-0026.yaml
 7. registry/tests/TEST-0009.yaml
-8. registry/reviews/REVIEW-0045.yaml
-9. registry/reviews/REVIEW-0046.yaml
+8. registry/reviews/REVIEW-0046.yaml
+9. registry/reviews/REVIEW-0047.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/55 threads
+11. live PR #5 exact HEAD/checks/reviews/60 threads
 12. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.
