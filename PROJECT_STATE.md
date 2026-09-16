@@ -17,19 +17,23 @@ PR #5 (`chore/work-0002-stale-green-bootstrap`) remains the narrow trusted-defau
 
 REVIEW-0047 is terminal `COMPLETE / CHANGES_REQUIRED` on exact frozen HEAD `d266d73c15b524413209be16d4970ec42928ea04` via independent review `PRR_kwDOUUI5ts8AAAABN1lrxA`. It added three P1 findings, bringing PR #5 to **63 inline material threads**, all intentionally unresolved.
 
-REVIEW-0048 is now `OPEN`. Its corrective runtime is exact-head proven at **`86670f6b9f6ae2c1e288686866986fd737421892`** by Bootstrap **#135 / run `35126374186`**: **138/138 tests**, **1,342 statements / 640 branches**, **100% line + branch**, and a successful live read-only PR #2 contract probe at **7/100** script-issued requests.
+The REVIEW-0048 corrective runtime is exact-head proven at **`86670f6b9f6ae2c1e288686866986fd737421892`** by Bootstrap **#135 / run `35126374186`**: **138/138 tests**, **1,342 statements / 640 branches**, **100% line + branch**, and live read-only PR #2 contract probe **SUCCESS at 7/100** requests.
 
-## REVIEW-0048 corrective contract
+The synchronized REVIEW-0048 `OPEN` checkpoint **`fd81f349384de1b488edb957645d39908904bf84`** passed Bootstrap **#136 / run `35130228101`** with self-test SUCCESS and live PR #2 probe SUCCESS. REVIEW-0048 is now **`IN_PROGRESS`**; this state-only descendant is the next exact head that must be proven and frozen for the fresh independent L2.
 
-The successor preserves prior protections and specifically addresses REVIEW-0047's three P1 classes plus the pending-observation interleaving:
+## REVIEW-0048 review mandate
 
-1. **Stale-again retention.** A completed merge-acceptable rerun followed by a current unresolved-thread observation does not let the scheduler treat the head as safely completed; the selected PR/head remains retained for further processing.
-2. **Exact single-attempt attribution.** The mutation path refreshes its workflow attempt baseline and rejects ambiguous attempt jumps rather than attributing another actor's rerun to this invocation.
-3. **Intra-invocation pagination drift detection.** Consecutive offset pages are boundary-checked; a membership shift restarts the target scan rather than declaring incomplete history complete.
-4. **Bounded deferred observation.** A post-condition that cannot yet be established returns durable continuation rather than accepting an unproven state or silently advancing the head.
-5. **All prior authority and resource guards remain active.** Current head/base/merge authority, exact integer IDs, serialized issue #7 writer, three-POST cap, seven-head bound, 100-request cap/reserves, fail-closed metadata and live read-only probe remain required.
+The successor preserves prior protections and must independently re-check all 63 historical findings, with particular red-team focus on:
 
-The #135 live probe confirms the installed REVIEW-0048 adapter works against real PR #2 GitHub APIs; it is wiring/contract evidence, not an independent semantic approval.
+1. exact POST -> single next workflow attempt -> protected job -> effective required-check causality under concurrent reruns and Actions visibility lag;
+2. stale-again retention when a rerun completes merge-acceptable but thread state is unresolved again before/after final observation;
+3. selected-PR target-history continuation under insertion, deletion, reordering and drift between consecutive pages in the same invocation;
+4. bounded DeferredObservation across scheduler restart/retry without duplicate POST or unsafe cursor advancement;
+5. head/base/merge-ref authority at discovery, mutation and post-condition boundaries;
+6. issue #7 serialization/migration, exact integer identifiers, three-POST cap, seven-head bound and 100-request reserves;
+7. synchronized TEST-0009 / WORK-0002 / PROJECT_STATE / REVIEW-0047 / REVIEW-0048 traceability.
+
+Any new material finding requires correction, exact-head re-proof and another successor review. No historical thread may be resolved while REVIEW-0048 is in progress.
 
 ## PR #2 relationship
 
@@ -40,9 +44,9 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 ## Current next action
 
 1. Keep all **63** PR #5 inline material threads unresolved.
-2. Prove this synchronized REVIEW-0048 `OPEN` checkpoint exact-head with the bootstrap self-test and live PR #2 probe.
-3. If green, transition REVIEW-0048 `OPEN -> IN_PROGRESS` with WORK-0002 and PROJECT_STATE synchronized in one state-only checkpoint.
-4. Prove that exact `IN_PROGRESS` descendant, freeze its SHA, and re-query all 63 threads/reviews.
+2. Prove this REVIEW-0048 `IN_PROGRESS` state-only descendant exact-head with the bootstrap self-test and live PR #2 probe.
+3. If green, freeze that exact SHA and re-query PR #5 HEAD, all 63 threads and the review list.
+4. Update only PR metadata needed for reviewer orientation; do not modify the Git tree after the freeze.
 5. Invoke exactly one fresh-context independent L2 on the frozen SHA.
 6. Any new material finding requires correction, exact-head re-proof and another successor review.
 7. Do not merge or resolve historical threads before a clean successor review.
