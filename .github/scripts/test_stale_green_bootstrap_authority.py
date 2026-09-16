@@ -270,7 +270,7 @@ class AuthorityBootstrapTests(unittest.TestCase):
         self.assertIsNone(next_page)
 
         full_page = {"total_count": 30, "check_runs": [check(700 + i, 300 + i) for i in range(12)]}
-        nonmatching_runs = [gate_run(300 + i, 9, run_number=300 + i) for i in range(12)]
+        nonmatching_runs = [gate_run(300 + i, 9, run_number=300 + i) for i in reversed(range(12))]
         side_effect = [full_page]
         for run in nonmatching_runs:
             side_effect.append(run)
