@@ -17,45 +17,26 @@ PR #5 (`chore/work-0002-stale-green-bootstrap`) remains the narrow trusted-defau
 
 REVIEW-0044 is terminal `COMPLETE / CHANGES_REQUIRED` on `379b4e00aa973f74c9bb973a1e79381f43332f0b`. It added three independent P1s (`PRRT_kwDOUUI5ts6i2qvx`, `PRRT_kwDOUUI5ts6i2qv4`, `PRRT_kwDOUUI5ts6i2qwA`) plus author-side P1 `PRR_kwDOUUI5ts8AAAABNyyfZA`. PR #5 has **49 inline material threads**, all unresolved.
 
-## Current corrective candidate
+## Current corrective contract
 
-The successor code candidate is `92d8f69689b6f0d2d15ee13e226590d0e0d543bb`.
+Runtime candidate `92d8f69689b6f0d2d15ee13e226590d0e0d543bb` replaces REVIEW-0044's rejected wall-clock/exhaustive-history mutation path with durable issue #7 cursor state, bounded direct check->run->protected-job PR authority, explicit request reserves and shared-head post-condition continuation.
 
-It replaces REVIEW-0044's rejected wall-clock/exhaustive-history mutation path with:
+Only the trusted scheduled path receives `actions: write` and `issues: write`; the live contract probe remains read-only.
 
-- durable machine-managed scheduler cursor in repository issue #7 (`MONDE stale-green scheduler state — machine managed`);
-- bounded head processing: at most seven head groups and three reruns per invocation;
-- hard request budget of 100 script-issued GitHub calls with explicit target/mutation/post-condition reserves;
-- no second global open-PR refresh inside the per-head mutation path; selected PRs are revalidated directly;
-- bounded exact-head check candidates as the index to direct canonical run and protected-job validation;
-- positive triggering-PR authority from exactly one canonical `refs/pull/<N>/merge` reusable-workflow ref;
-- no exhaustive Actions-history reconstruction on the mutation path;
-- final current thread-state reclassification immediately before rerun;
-- bounded post-rerun observation requiring a new exact-head required check to become non-merge-acceptable/non-completed before invalidation is accepted;
-- shared-head continuation: if a first sibling becomes clean and returns green, another still-unresolved sibling is evaluated rather than abandoning the SHA.
+## Exact proof chain
 
-Only the trusted scheduled path receives `actions: write` and `issues: write`. The live contract probe remains read-only.
-
-## Exact proof
-
-Bootstrap **#111 / run `35081681865`** on exact candidate `92d8f69689b6f0d2d15ee13e226590d0e0d543bb` is fully green:
-
-- **103/103 tests PASS**;
-- core `457 statements / 204 branches` at 100%;
-- snapshot adapter `207 / 88` at 100%;
-- authority successor `265 / 116` at 100%;
-- total **929 statements / 408 branches at 100% line + branch**;
-- live PR #2 probe SUCCESS: `open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true`;
-- live probe consumed **7/100** script-issued requests under read-only Actions/Checks/Contents/PullRequests permissions.
-
-The prior self-test failures #107-#110 were proof-harness/coverage iterations only; live PR #2 probe remained green throughout. Dead/unreachable guard code was removed rather than artificially covered.
+- Runtime candidate `92d8f69689b6f0d2d15ee13e226590d0e0d543bb` — Bootstrap #111 / `35081681865`: **103/103 tests, 929 statements / 408 branches, 100% line+branch**, live PR #2 probe SUCCESS at **7/100** requests.
+- REVIEW-0045 OPEN checkpoint `3ebc471f510ee30685bf9272b22f0fe7d39f86e0` — Bootstrap #112: live probe SUCCESS, self-test correctly rejected the TEST-0009 wildcard traceability regression.
+- Corrected REVIEW-0045 OPEN checkpoint `2bd5354dac39914f358bff9e6e71e9847dffb182` — Bootstrap #113 / `35083230784`: self-test SUCCESS and live PR #2 probe SUCCESS. TEST-0009 again explicitly names all regression modules.
 
 ## Review lifecycle
 
 - REVIEW-0031..0039: terminal `COMPLETE / CHANGES_REQUIRED` negative evidence.
 - REVIEW-0040..0041: `CLOSED` administrative negative evidence.
 - REVIEW-0042..0044: terminal `COMPLETE / CHANGES_REQUIRED` negative evidence.
-- REVIEW-0045: `OPEN` successor L2 review for the `92d8f696...` corrective contract. It must re-check all 49 unresolved historical inline findings and aggressively red-team cursor durability, bounded check/run/job authority, request-budget forward progress and shared-head post-condition semantics.
+- REVIEW-0045: **`IN_PROGRESS`** successor L2. The next checkpoint is state-only above the proven OPEN head; once that descendant passes its own exact-head proof it must be frozen for a single fresh-context independent review.
+
+REVIEW-0045 must re-check all **49 unresolved historical inline findings** and red-team issue-backed cursor durability/concurrency, bounded check/run/job target authority, request-budget forward progress and shared-head post-condition semantics.
 
 ## PR #2 relationship
 
@@ -66,9 +47,9 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 ## Current next action
 
 1. Keep all **49** PR #5 inline material threads unresolved.
-2. Prove this REVIEW-0045 `OPEN` checkpoint exact-head.
-3. If green, transition REVIEW-0045 to `IN_PROGRESS` atomically with WORK-0002 / PROJECT_STATE and prove that descendant.
-4. Freeze the exact IN_PROGRESS SHA and invoke one fresh-context independent Codex review.
+2. Prove the REVIEW-0045 `IN_PROGRESS` checkpoint exact-head.
+3. If green, freeze that SHA and invoke exactly one fresh-context independent Codex review on it.
+4. Do not mutate the Git tree while REVIEW-0045 runs.
 5. Any new material finding requires correction, exact-head re-proof and a successor review.
 6. Only a clean independent successor review permits controlled historical-thread verification/resolution; no merge before then.
 7. WORK-0003 and WORK-0004 remain blocked.
