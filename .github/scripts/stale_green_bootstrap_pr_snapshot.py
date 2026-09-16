@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 from typing import Any
 
 import stale_green_bootstrap as core
 
 MAX_GITHUB_REQUESTS_PER_INVOCATION = 60
+MAX_HEADS_PER_INVOCATION = 7
+MAX_RERUNS_PER_INVOCATION = 3
+FAIRNESS_SLOT_SECONDS = 600
 _ORIGINAL_REQUEST_DATA = core.request_data
 _ORIGINAL_CLOSED_PR_HISTORY = core._closed_pr_history
 _REUSABLE_WORKFLOW_PATH = ".github/workflows/_governance-core.yml"
@@ -199,44 +202,70 @@ def _revalidate_stale_prs(
     return fresh
 
 
+def _fairness_slot() -> int:
+    return int(datetime.now(timezone.utc).timestamp()) // FAIRNESS_SLOT_SECONDS
+
+
+def _fair_head_groups(
+    pull_requests: list[dict[str, Any]],
+    slot: int,
+) -> list[list[dict[str, Any]]]:
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for pr in sorted(pull_requests, key=lambda item: item["number"]):
+        head = core._pr_head_identity(pr)[2]
+        groups.setdefault(head, []).append(pr)
+    ordered = sorted(groups.values(), key=lambda group: group[0]["number"])
+    if not ordered:
+        return []
+    offset = slot % len(ordered)
+    return ordered[offset:] + ordered[:offset]
+
+
 def poll(repo: str, token: str) -> list[int]:
     prs = open_pull_requests(repo, token)
-    check_cache: dict[str, dict[str, Any] | None] = {}
-    stale_prs: list[dict[str, Any]] = []
-
-    for pr in prs:
-        number = pr["number"]
-        head = core._pr_head_identity(pr)[2]
-        if head not in check_cache:
-            check_cache[head] = core.latest_required_check(repo, head, token)
-        check = check_cache[head]
-        if check is None or check["status"] != "completed" or check["conclusion"] not in core.MERGE_ACCEPTABLE_CONCLUSIONS:
-            continue
-        if core.unresolved_review_threads(repo, number, token):
-            stale_prs.append(pr)
-
-    if not stale_prs:
-        return []
-
-    stale_prs = _revalidate_stale_prs(stale_prs, open_pull_requests(repo, token))
-    if not stale_prs:
-        return []
-
-    stale_by_number = {pr["number"]: pr for pr in stale_prs}
-    current_runs = _latest_runs_by_pr(repo, token, stale_by_number)
     rerun_ids: list[int] = []
-    for pr in stale_prs:
-        number = pr["number"]
-        head = core._pr_head_identity(pr)[2]
-        target_run = current_runs.get(number)
-        if target_run is None:
-            raise RuntimeError(
-                f"effective merge-acceptable MONDE Gate for head {head} has no unambiguous run bound to open PR #{number} current incarnation"
-            )
-        core.required_merge_gate_conclusion(repo, target_run, token)
-        run_id = target_run["id"]
-        core.rerun_workflow(repo, run_id, token)
-        rerun_ids.append(run_id)
+    groups = _fair_head_groups(prs, _fairness_slot())[:MAX_HEADS_PER_INVOCATION]
+
+    for group in groups:
+        if len(rerun_ids) >= MAX_RERUNS_PER_INVOCATION:
+            break
+
+        head = core._pr_head_identity(group[0])[2]
+        check = core.latest_required_check(repo, head, token)
+        if (
+            check is None
+            or check["status"] != "completed"
+            or check["conclusion"] not in core.MERGE_ACCEPTABLE_CONCLUSIONS
+        ):
+            continue
+
+        fresh_group = _revalidate_stale_prs(group, open_pull_requests(repo, token))
+        if not fresh_group:
+            continue
+
+        fresh_by_number = {pr["number"]: pr for pr in fresh_group}
+        current_runs = _latest_runs_by_pr(repo, token, fresh_by_number)
+
+        for current in sorted(fresh_group, key=lambda item: item["number"]):
+            number = current["number"]
+            target_run = current_runs.get(number)
+            if target_run is None:
+                if core.unresolved_review_threads(repo, number, token):
+                    raise RuntimeError(
+                        f"effective merge-acceptable MONDE Gate for head {head} has no unambiguous run "
+                        f"bound to open PR #{number} current incarnation"
+                    )
+                continue
+
+            core.required_merge_gate_conclusion(repo, target_run, token)
+            if not core.unresolved_review_threads(repo, number, token):
+                continue
+
+            run_id = target_run["id"]
+            core.rerun_workflow(repo, run_id, token)
+            rerun_ids.append(run_id)
+            break
+
     return rerun_ids
 
 
