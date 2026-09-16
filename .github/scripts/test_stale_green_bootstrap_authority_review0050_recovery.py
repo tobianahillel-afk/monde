@@ -208,14 +208,25 @@ class Review0050RecoveryTests(unittest.TestCase):
             subject.core.poll = saved["core_poll"]
 
     def test_script_entrypoint(self) -> None:
-        with (
-            mock.patch.object(subject, "install"),
-            mock.patch.object(base, "main", return_value=0),
-            mock.patch.dict(os.environ, {}, clear=True),
-        ):
-            with self.assertRaises(SystemExit) as exited:
-                runpy.run_path(subject.__file__, run_name="__main__")
-        self.assertEqual(exited.exception.code, 0)
+        saved = {
+            "resume": v5.previous._resume_pending,
+            "base_poll": base.poll,
+            "core_poll": subject.core.poll,
+        }
+        try:
+            with (
+                mock.patch.object(v5, "install") as predecessor_install,
+                mock.patch.object(base, "main", return_value=0),
+                mock.patch.dict(os.environ, {}, clear=True),
+            ):
+                with self.assertRaises(SystemExit) as exited:
+                    runpy.run_path(subject.__file__, run_name="__main__")
+            self.assertEqual(exited.exception.code, 0)
+            predecessor_install.assert_called_once_with()
+        finally:
+            v5.previous._resume_pending = saved["resume"]
+            base.poll = saved["base_poll"]
+            subject.core.poll = saved["core_poll"]
 
 
 if __name__ == "__main__":
