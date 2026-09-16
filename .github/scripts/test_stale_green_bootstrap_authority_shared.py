@@ -39,7 +39,11 @@ class SharedHeadContinuationTests(unittest.TestCase):
                     ((second_run, check(502, 202)), None),
                 ],
             ),
-            mock.patch.object(authority, "_current_pr", side_effect=[first, second]),
+            mock.patch.object(
+                authority,
+                "_current_pr",
+                side_effect=[first, first, second, second],
+            ),
             mock.patch.object(authority.core, "rerun_workflow") as rerun,
             mock.patch.object(authority, "_wait_for_terminal_invalidation", side_effect=[False, True]),
         ):
