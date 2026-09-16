@@ -65,7 +65,7 @@ class Review0050ClosedOriginPendingTests(unittest.TestCase):
     def test_state_validation_and_coercion_fail_closed(self) -> None:
         invalid = [
             subject.SchedulerStateV5(True),
-            subject.SchedulerStateV5(0, 1, 2, "-"),
+            subject.SchedulerStateV5(0, 0, 2, "-"),
             subject.SchedulerStateV5(0, 1, 1, "bad"),
             subject.SchedulerStateV5(0, pending_run_id=1),
             subject.SchedulerStateV5(
