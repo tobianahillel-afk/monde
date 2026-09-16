@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0048 is CLOSED/CHANGES_REQUIRED administrative negative evidence after quota prevented its independent L2 and author-side PRR_kwDOUUI5ts8AAAABN4OKew found missing durable rerun identity across DeferredObservation. The REVIEW-0049 V4 successor now uses write-ahead pending mutation state before every rerun POST and observation-only restart behavior; exact candidate 7d7f52fe5beb6bf7466a523b0fb0ea75108ff9a5 passed Bootstrap #145 / run 35133808117 with 167/167 tests, 1613 statements / 754 branches, 100 percent line+branch and live read-only PR #2 contract probe SUCCESS. REVIEW-0049 is being opened for independent semantic review; this proof is not approval. All 63 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0048 is CLOSED/CHANGES_REQUIRED administrative negative evidence after quota prevented its independent L2 and author-side PRR_kwDOUUI5ts8AAAABN4OKew found missing durable rerun identity across DeferredObservation. The REVIEW-0049 V4 successor uses write-ahead pending mutation state before every rerun POST and observation-only restart behavior; exact candidate 7d7f52fe5beb6bf7466a523b0fb0ea75108ff9a5 passed Bootstrap #145 / run 35133808117 with 167/167 tests, 1613 statements / 754 branches, 100 percent line+branch and live read-only PR #2 contract probe SUCCESS. REVIEW-0049 OPEN checkpoint 32128d507ed2ee3bbebf90ce51d08515dbf2e9e1 passed Bootstrap #146 / run 35134592599 with self-test and live probe SUCCESS, so REVIEW-0049 is now IN_PROGRESS for independent semantic review. All 63 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -83,7 +83,7 @@ impact_analysis:
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "REVIEW-0049 candidate preserves the REVIEW-0048 authority/pagination/attempt protections and adds V4 write-ahead pending mutation state. The candidate is technically proven but not independently approved. A pre-POST crash can safely leave an unresolved pending intent; recovery/liveness of that ambiguity is an explicit REVIEW-0049 red-team target and must not be solved by unsafe automatic replay."
+  compatibility_notes: "REVIEW-0049 candidate preserves the REVIEW-0048 authority/pagination/attempt protections and adds V4 write-ahead pending mutation state. The candidate and OPEN lifecycle checkpoint are technically proven but not independently approved. A pre-POST crash can safely leave an unresolved pending intent; recovery/liveness of that ambiguity is an explicit REVIEW-0049 red-team target and must not be solved by unsafe automatic replay."
 
 implementation_plan:
   tasks:
@@ -106,7 +106,7 @@ review_plan:
     - "PR #2 branch-local unresolved material findings remain pending final integration/review."
     - "REVIEW-0048 is CLOSED administrative negative evidence; no independent L2 ran because code-review quota rejected comment 5702006501."
     - "PRR_kwDOUUI5ts8AAAABN4OKew — REVIEW-0048 author-side P1 is addressed by the REVIEW-0049 candidate but remains historical negative evidence pending independent re-check."
-    - "REVIEW-0049 is OPEN; no independent reviewer, review commit, outcome or finding closure is claimed yet."
+    - "REVIEW-0049 is IN_PROGRESS; reviewer identity, exact reviewed commit, independent outcome and finding closure remain unset until a fresh review actually executes."
     - PRRT_kwDOUUI5ts6ijmtc
     - PRRT_kwDOUUI5ts6ijmtj
     - PRRT_kwDOUUI5ts6ijmtr
@@ -197,7 +197,7 @@ required_tests:
     - "ambiguous POST outcome retains pending mutation and forbids automatic replay"
     - "crash/retry around mutation/pending-state persistence does not lose in-flight identity or double-mutate"
     - "rerun remains queued/running beyond one local observation loop and retains durable processing without unsafe scheduler advancement"
-    - "concurrent workflow attempts cannot satisfy this invocation's exact next-attempt post-condition"
+    - "concurrent workflow attempts cannot satisfy this invocation's exact-next-attempt post-condition"
     - "PR base/merge-ref changes immediately before mutation or before post-condition acceptance"
     - "selected target history changes membership around a saved continuation anchor or between consecutive pages read in one invocation"
     - "Boolean/float pending PR numbers and unknown PR state are rejected"
@@ -232,15 +232,17 @@ validation:
     - "Codex review invocation comment 5702006501 was refused by platform code-review quota; no independent REVIEW-0048 result exists"
     - "Author-side REVIEW-0048 / PRR_kwDOUUI5ts8AAAABN4OKew on b5932be9a5f2d36c192bf482a3051a8523b97a34"
     - "Bootstrap #145 / run 35133808117 on REVIEW-0049 technical candidate 7d7f52fe5beb6bf7466a523b0fb0ea75108ff9a5"
+    - "Bootstrap #146 / run 35134592599 on synchronized REVIEW-0049 OPEN checkpoint 32128d507ed2ee3bbebf90ce51d08515dbf2e9e1"
   evidence:
     - "Bootstrap #145: 167/167 tests PASS; 1613 statements / 754 branches at 100 percent line and branch coverage"
     - "Bootstrap #145 live PR #2 GitHub contract probe SUCCESS"
+    - "Bootstrap #146 state-only OPEN checkpoint re-proved self-test and live contract probe SUCCESS"
     - "All legacy bootstrap modules and REVIEW-0048/0049 authority adapters are included in the enforced 100 percent line/branch report"
     - "REVIEW-0049 regression development exposed and corrected coercive pending PR-number equality and malformed pending PR-state acceptance before lifecycle opening"
     - "The V4 candidate writes pending identity before rerun POST and resumes pending state without invoking rerun_workflow"
   coverage: {line: 100, branch: 100}
   known_gaps:
-    - "REVIEW-0049 has no independent L2 result yet; OPEN is lifecycle state, not approval."
+    - "REVIEW-0049 is IN_PROGRESS and has no independent L2 result yet; lifecycle progression is not approval."
     - "A pending intent whose write succeeded but whose POST never occurred is safely non-replayed but can require explicit recovery; liveness semantics must be independently reviewed."
     - "All 63 PR #5 inline material threads remain unresolved."
     - "PR #2 must later integrate final trusted-base contract and obtain trusted non-author exact-head APPROVED evidence."
@@ -255,6 +257,7 @@ run_log:
   - "REVIEW-0048 OPEN fd81f349384de1b488edb957645d39908904bf84 passed Bootstrap #136; IN_PROGRESS b5932be9a5f2d36c192bf482a3051a8523b97a34 passed #137."
   - "Codex code-review quota rejected REVIEW-0048 invocation; author-side PRR_kwDOUUI5ts8AAAABN4OKew invalidated the frozen head."
   - "REVIEW-0049 V4 candidate 7d7f52fe5beb6bf7466a523b0fb0ea75108ff9a5 passed Bootstrap #145: 167 tests / 1613 statements / 754 branches / 100 percent plus live PR #2 probe."
+  - "REVIEW-0049 OPEN checkpoint 32128d507ed2ee3bbebf90ce51d08515dbf2e9e1 passed Bootstrap #146 self-test and live probe SUCCESS."
 
 discoveries:
   - "A completed rerun that is already stale again must retain the selected head instead of being treated as completed processing."
@@ -266,7 +269,7 @@ discoveries:
   - "Pending PR identity must use exact non-Boolean integer and closed-world state validation; Python coercive equality is not authority."
 
 blockers:
-  - "Complete REVIEW-0049 lifecycle, exact-head proof and fresh independent L2 before controlled thread resolution or merge."
+  - "Complete REVIEW-0049 exact-head IN_PROGRESS proof and fresh independent L2 before controlled thread resolution or merge."
   - "63 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
