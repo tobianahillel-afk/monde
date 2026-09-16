@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0044 independently rejected wall-clock fairness, per-head global refresh, asynchronous shared-head invalidation and deep exhaustive Actions-history traversal. The successor candidate 92d8f69689b6f0d2d15ee13e226590d0e0d543bb uses durable issue-backed scheduler state, bounded direct check->run->job PR authority, explicit mutation/post-condition headroom and shared-head continuation. Bootstrap #111 proves 103 tests, 929 statements, 408 branches, 100% line+branch and a live read-only PR #2 probe at 7/100 requests. REVIEW-0045 is OPEN; all 49 inline material threads remain unresolved."
+  rationale: "PR #5 is the narrow trusted-default-branch T12 predecessor. REVIEW-0045 independently reviewed exact frozen HEAD adbc68fb47af26b78edd6a1bd02893c000c3c639 and returned five new P1 findings despite green exact-head proofs. REVIEW-0045 is therefore terminal COMPLETE/CHANGES_REQUIRED. The new findings require terminal post-rerun check observation, a complete bounded selected-PR target strategy beyond twelve checks, base identity binding, actual mutation-point enforcement of the three-rerun cap, and serialized/versioned issue #7 cursor updates. All 54 inline material threads remain unresolved."
 
 scope:
   in:
@@ -23,16 +23,17 @@ scope:
     - stable unique open Pull Requests authority snapshots
     - exact latest GitHub Actions-owned MONDE / Merge Gate check as merge-state authority
     - canonical PR-family triggering authority from exactly one reusable-workflow refs/pull/<N>/merge reference
-    - bounded exact-head check candidates as index to direct canonical run and protected-job validation
+    - bounded exact-head check candidates as an index to direct canonical run and protected-job validation, with selected-PR completeness
     - no trust in dynamic workflow_run.pull_requests as event-time provenance
     - no exhaustive Actions-history reconstruction on mutation path
     - durable machine-managed scheduler cursor in issue #7 rather than wall-clock rotation
-    - at most seven head groups considered and three reruns scheduled per invocation
-    - selected-PR direct revalidation rather than a second global open-PR refresh
+    - serialization or versioned compare-and-set semantics for scheduler cursor writers
+    - at most seven head groups considered and three actual rerun POSTs per invocation
+    - selected-PR direct revalidation, including head and base identity, rather than a second global open-PR refresh
     - final current review-thread observation immediately before rerun
-    - bounded post-rerun required-check observation before invalidation is accepted
+    - terminal post-rerun required-check observation before invalidation is accepted
     - shared-head continuation when an earlier sibling becomes clean while another remains unresolved
-    - invocation-wide hard 100-call GitHub request counter with explicit mutation/post-condition reserves
+    - invocation-wide hard GitHub request counter with explicit mutation/post-condition/state reserves
     - fail-closed REST/GraphQL/Checks/Actions/Issue metadata and bounded pagination
     - least-privilege live read-only probe; actions:write/issues:write only on trusted scheduled path
     - exact-head line/branch coverage, real GitHub probe and review lifecycle proof
@@ -77,7 +78,6 @@ read_before:
   - registry/progress/matrix.yaml
   - registry/requirements/REQ-0026.yaml
   - registry/tests/TEST-0009.yaml
-  - registry/reviews/REVIEW-0044.yaml
   - registry/reviews/REVIEW-0045.yaml
 
 depends_on: [WORK-0001]
@@ -117,7 +117,7 @@ impact_analysis:
   upstream: [WORK-0001]
   downstream: [WORK-0003, WORK-0004]
   migrations_or_reprocessing: []
-  compatibility_notes: "Historical detailed WORK state remains immutable in Git. Current PR #5 mutation authority is bounded and positive: latest exact check for merge state; bounded check candidates to direct canonical run/protected job; refs/pull/N/merge triggering authority; durable issue #7 cursor; direct selected-PR revalidation; 100-call hard cap with reserved mutation/post-condition budget; post-rerun exact-check observation. PR #2 must later port/reuse the final trusted-base behavior after PR #5 merge."
+  compatibility_notes: "Historical detailed WORK state remains immutable in Git. REVIEW-0045 invalidated five assumptions in the adbc68fb successor despite green proof. The next candidate must preserve positive exact-check/run/job/PR authority while adding terminal post-condition proof, base identity binding, selected-PR target completeness beyond a fixed twelve-check prefix, mutation-point rerun accounting and serialized/versioned cursor progress. PR #2 must later port/reuse the final trusted-base behavior after PR #5 merge."
 
 implementation_plan:
   tasks:
@@ -135,7 +135,7 @@ review_plan:
   artifact_class: GOVERNANCE_AUTOMATION
   independence_level: L2_TARGET
   required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY, RED_TEAM_SKEPTIC]
-  completed_reviews: [REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039, REVIEW-0042, REVIEW-0043, REVIEW-0044]
+  completed_reviews: [REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039, REVIEW-0042, REVIEW-0043, REVIEW-0044, REVIEW-0045]
   open_findings:
     - "PR #2 branch-local unresolved material findings remain pending final integration/review."
     - PRRT_kwDOUUI5ts6ijmtc
@@ -187,6 +187,11 @@ review_plan:
     - PRRT_kwDOUUI5ts6i2qvx
     - PRRT_kwDOUUI5ts6i2qv4
     - PRRT_kwDOUUI5ts6i2qwA
+    - PRRT_kwDOUUI5ts6i4YR8
+    - PRRT_kwDOUUI5ts6i4YSC
+    - PRRT_kwDOUUI5ts6i4YSI
+    - PRRT_kwDOUUI5ts6i4YSM
+    - PRRT_kwDOUUI5ts6i4YSZ
     - "PRR_kwDOUUI5ts8AAAABNuingg — REVIEW-0040 author-side ordering-race P1."
     - "PRR_kwDOUUI5ts8AAAABNvBAIQ — REVIEW-0041 author-side Pull Requests snapshot P1."
     - "PRR_kwDOUUI5ts8AAAABNyyfZA — REVIEW-0044 author-side deep-history P1."
@@ -195,31 +200,36 @@ required_tests:
   unit: [TEST-0009]
   property:
     - "exact latest GitHub Actions-owned MONDE / Merge Gate check is merge-state authority"
-    - "direct bounded check -> run -> protected-job authority is exact-head and PR-bound"
-    - "durable issue #7 cursor advances independently of wall-clock schedule delivery"
-    - "one invocation considers at most seven head groups and schedules at most three reruns"
-    - "100-call budget reserves enough headroom for target validation, rerun POST, post-condition and cursor write"
+    - "direct check -> run -> protected-job authority is exact-head, current-attempt, current-base and PR-bound"
+    - "selected-PR target discovery remains bounded without permanently omitting a retained target behind a fixed candidate prefix"
+    - "durable issue #7 cursor advances independently of wall-clock schedule delivery and cannot regress under overlapping schedule writers"
+    - "one invocation considers at most seven head groups and performs at most three actual rerun POSTs"
+    - "request-budget accounting reserves enough headroom for target validation, rerun POST, terminal post-condition and cursor write"
     - "current review-thread state is observed immediately before rerun"
-    - "shared-head processing continues when an earlier sibling becomes clean and returns green"
+    - "post-rerun observation waits for a terminal required-check conclusion before accepting invalidation"
+    - "shared-head processing continues when an earlier sibling becomes clean and eventually returns green"
   integration: [TEST-0009]
   contract: ["registry/schema/progress/review/change-control integrity", "bootstrap GitHub Checks/REST/GraphQL/Actions/Issues control-plane contract"]
   e2e: []
   regression:
-    - "all 49 historical PR #5 inline findings remain represented and unresolved during REVIEW-0045"
+    - "all 54 PR #5 inline findings remain represented and unresolved during correction"
+    - "queued/in-progress successor check later completes success while another same-head sibling remains unresolved"
+    - "selected PR target exists outside the twelve newest sibling checks"
+    - "PR is retargeted to a different base without changing head SHA"
+    - "more than three same-head siblings successively trigger fallthrough attempts"
+    - "two schedule executions overlap and attempt conflicting issue #7 cursor updates"
     - "deep Actions history is not traversed on mutation target path"
-    - "large open-PR sets do not require a second global refresh before per-head mutation"
-    - "shared-head green revival falls through to another unresolved sibling"
     - "malformed scheduler issue, check, run, job and PR authority fails closed"
   security: ["immutable pins", "hash-locked Python artifacts", "least privilege", "live probe read-only", "actions:write/issues:write only on trusted scheduled path"]
   performance:
-    - "authority successor hard-capped at 100 script-issued GitHub calls per invocation"
-    - "one invocation considers at most seven head groups and issues at most three rerun POSTs"
-    - "live exact-candidate PR #2 probe consumed 7/100; wiring evidence only, not worst-case capacity"
+    - "successor remains explicitly request-bounded per invocation"
+    - "one invocation considers at most seven head groups and performs at most three rerun POSTs"
+    - "live proof is wiring evidence and not a substitute for worst-case capacity regressions"
   real_system: [TEST-0009]
   epistemic:
     - "execution evidence is exact-SHA bound"
     - "workflow_run.pull_requests dynamic associations are not triggering-PR provenance"
-    - "canonical reusable-workflow pull ref remains under independent review as triggering-PR authority"
+    - "canonical reusable-workflow pull ref and base identity must both remain positively bound"
 
 scientific_validation:
   required: false
@@ -231,27 +241,30 @@ scientific_validation:
 
 observability:
   required: true
-  logs: ["rule-coded diagnostics", "GitHub Job Summary", "bootstrap poll rerun count", "bootstrap request budget used/100"]
-  metrics: ["CI duration", "finding count", "coverage", "mutation smoke", "bootstrap stale-green rerun count", "bootstrap request count per invocation", "scheduler cursor PR"]
+  logs: ["rule-coded diagnostics", "GitHub Job Summary", "bootstrap poll rerun count", "bootstrap request budget", "scheduler cursor state"]
+  metrics: ["CI duration", "finding count", "coverage", "mutation smoke", "bootstrap stale-green rerun POST count", "bootstrap request count per invocation", "scheduler cursor PR"]
   traces: []
-  alerts: ["required MONDE merge gate failure after WORK-0003", "bootstrap request-budget exhaustion", "scheduler-state corruption"]
-  slis_slos: ["governance core completes inside timeout", "bootstrap poll completes inside timeout", "supported stale-green load retains forward invalidation progress", "authority successor never issues more than 100 script-mediated GitHub calls per invocation"]
+  alerts: ["required MONDE merge gate failure after WORK-0003", "bootstrap request-budget exhaustion", "scheduler-state corruption or concurrency failure"]
+  slis_slos: ["governance core completes inside timeout", "bootstrap poll completes inside timeout", "supported stale-green load retains forward invalidation progress", "rerun cap is enforced at actual POST boundary", "cursor progress is monotonic/serialized"]
 
 validation:
   executed:
     - "Bootstrap #111 / run 35081681865 on 92d8f69689b6f0d2d15ee13e226590d0e0d543bb"
+    - "Bootstrap #113 / run 35083230784 on 2bd5354dac39914f358bff9e6e71e9847dffb182"
+    - "Bootstrap #114 / run 35083395796 on adbc68fb47af26b78edd6a1bd02893c000c3c639"
+    - "Independent REVIEW-0045 / PRR_kwDOUUI5ts8AAAABNzc8Sw on adbc68fb47af26b78edd6a1bd02893c000c3c639"
   evidence:
-    - "103/103 tests PASS"
+    - "103/103 tests PASS on runtime candidate"
     - "929 statements / 408 branches at 100 percent line and branch coverage"
-    - "live PR #2 probe SUCCESS: open_prs=2, gate_heads=1, target_pr=2, unresolved_threads=true"
-    - "live read-only probe consumed 7/100 script-issued GitHub requests"
-    - "dead unreachable sibling guard removed rather than artificially covered"
+    - "live PR #2 probe SUCCESS at 7/100 script-issued requests"
+    - "REVIEW-0045 independently found five new P1s, so green CI did not satisfy AC-6/T4/T12"
   coverage:
     line: 100
     branch: 100
   known_gaps:
-    - "REVIEW-0045 fresh-context independent L2 is not yet complete."
-    - "All 49 historical PR #5 inline material threads remain unresolved."
+    - "REVIEW-0045 is terminal CHANGES_REQUIRED."
+    - "All 54 PR #5 inline material threads remain unresolved."
+    - "Five REVIEW-0045 P1 corrections require implementation, proof and a successor L2."
     - "PR #2 must later integrate the final trusted-base contract and obtain trusted non-author exact-head APPROVED evidence."
 
 risk:
@@ -266,18 +279,20 @@ rollback:
 
 run_log:
   - "REVIEW-0044 terminal negative: 379b4e00aa973f74c9bb973a1e79381f43332f0b"
-  - "Corrective authority implementation began at 2423f61da4b0f9d1ab159cae809faa035a4414e9."
-  - "Proof-harness iterations #107-#110 retained live probe success while closing fixture/coverage gaps."
-  - "92d8f69689b6f0d2d15ee13e226590d0e0d543bb passed Bootstrap #111 at 103 tests / 929 statements / 408 branches / 100 percent plus live PR #2 probe 7/100."
+  - "Corrective authority implementation candidate 92d8f69689b6f0d2d15ee13e226590d0e0d543bb passed Bootstrap #111 at 103 tests / 929 statements / 408 branches / 100 percent plus live PR #2 probe 7/100."
+  - "REVIEW-0045 OPEN correction checkpoint 2bd5354dac39914f358bff9e6e71e9847dffb182 passed Bootstrap #113."
+  - "REVIEW-0045 exact frozen IN_PROGRESS head adbc68fb47af26b78edd6a1bd02893c000c3c639 passed Bootstrap #114."
+  - "Independent REVIEW-0045 PRR_kwDOUUI5ts8AAAABNzc8Sw submitted on the exact frozen head and found five new P1s."
 
 discoveries:
-  - "Exact MONDE Merge Gate check details_url exposes the canonical Actions run/job needed for bounded direct target authority."
+  - "Exact MONDE Merge Gate check details_url exposes the canonical Actions run/job needed for direct target authority."
   - "workflow_run.pull_requests is dynamically refreshed and cannot serve as event-time triggering-PR provenance."
-  - "Durable fairness requires explicit machine state rather than wall-clock modulo."
-  - "Issue #7 now stores the closed-world trusted scheduler cursor contract."
+  - "Durable fairness requires explicit machine state and serialized/versioned writers, not wall-clock modulo plus last-write-wins PATCH."
+  - "A non-terminal replacement check is not durable invalidation; the terminal conclusion is the relevant post-condition."
+  - "Positive selected-PR authority must include base identity as well as head identity and triggering PR."
 blockers:
-  - "REVIEW-0045 must independently re-check the successor on an exact frozen head."
-  - "49 historical inline material threads remain unresolved."
+  - "Five REVIEW-0045 P1 findings require correction and exact-head re-proof."
+  - "54 historical inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
 follow_up_work_items: []
