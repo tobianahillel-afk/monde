@@ -3,77 +3,78 @@
 Status: Accepted  
 Canonical operational state: Yes
 
-> Fast resume point. Durable intent lives in Git. Live PR/check/thread truth is volatile and must be re-queried before review or merge decisions. Mutable TEST lifecycle/result truth lives only in each `registry/tests/TEST-*.yaml` record.
+> Fast resume point. Durable intent lives in Git. Live PR/check/thread truth is volatile and must be re-queried before review or merge decisions.
 
-## Current phase / lot / blocker
+## Current phase / lot
 
-- **PHASE-0 — Specification, repository governance and canonical documentation** remains `IN_PROGRESS`.
-- **LOT-0 — AI-first repository operating system** remains `IN_PROGRESS`.
-- **SUBLOT-0.1 — Governance bootstrap** is `DONE`.
-- `WORK-0001` is `DONE / A3` on PR #3 after independent final-v10 review and administrative closure.
-- `WORK-0002` remains separate `IN_REVIEW` work on PR #2 and is the next active dependency once PR #3 is merged/integrated.
-- WORK-0003 is `PLANNED`; WORK-0004 is `PLANNED`.
+- PHASE-0 / LOT-0 remain `IN_PROGRESS`.
+- WORK-0001 is `DONE / A3`, integrated on `main` at `29086643387ff46ab6636dd2fa3014efccc10165`.
+- WORK-0002 remains `IN_REVIEW / A3`; WORK-0003 and WORK-0004 remain blocked.
 
-PR #1 remains historically squash-merged into `main` as `b88e9edf2ac445e8f730eb1a2769a6d5a06a42f1`.
+## PR #5 / T12 trusted predecessor
 
-## WORK-0001 final independent closure
+PR #5 (`chore/work-0002-stale-green-bootstrap`) remains the narrow trusted-default-branch predecessor for WORK-0002/T12. No merge and no historical review-thread resolution is permitted while material findings remain open or a successor review is incomplete.
 
-REVIEW-0028 followed the normal review lifecycle before its substantive execution: OPEN in `4f303d7e35f4c21b2bfd5c2f8f4420af4633b0f3`, IN_PROGRESS in `2705143a9ce118984a1d193c3fb04d272c31d51f`, then a fresh authoring-separated L2 ran as GitHub Actions run `34795920644` / job `103828868552` against exact substantive candidate `b7f8eb1d82c22cf4eb545bb9cbbec141bb8dba60`.
+REVIEW-0049 is terminal `COMPLETE / CHANGES_REQUIRED` independent negative evidence on exact head `c8f1fec24358c25224771a15b647d56c8a2f0287` via `PRR_kwDOUUI5ts8AAAABN4sxvg`.
 
-The independent result was **APPROVE_WITH_FOLLOWUP** with all nine closure checks PASS, no material R1/R2/R3 finding, and the exact canonical set of 41 historical findings independently declared closable. The follow-up was limited to recording REVIEW-0028, closing those verified findings/threads and synchronizing completion state.
+## REVIEW-0050 — administrative terminal negative evidence
 
-REVIEW-0028 became `COMPLETE / APPROVE_WITH_FOLLOWUP` in `4c945fa83a6b246365451a4df74f7c0ac34431f5`.
+REVIEW-0050 technical candidate `cbe21fa4cebc1c8f8b3030af17284de5700f9818` passed Bootstrap #154 / run `35152847816` with **194/194 tests**, **1,856 statements / 842 branches**, **100% line + branch**, and live read-only PR #2 contract probe SUCCESS. Its OPEN checkpoint `871850ac5b66a43cfd8491ef445d1738ad09d822` passed #155 and frozen IN_PROGRESS head `f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c` passed #156.
 
-The 41 verified findings were then changed atomically from `OPEN` to `RESOLVED` with `resolved_by: REVIEW-0028` in `0147908a483c3705812cf6d35cc6992c9e6226bd`. The matching 41 GitHub PR #3 review threads were resolved only after that canonical closure. No additional unresolved review thread was present in the post-resolution check.
+REVIEW-0050 is nevertheless now **`CLOSED / CHANGES_REQUIRED`**. No exact-head independent L2 was submitted before author-side adversarial review **`PRR_kwDOUUI5ts8AAAABN7LvGQ`** invalidated the frozen head.
 
-## Requirement acceptance and cold-read provenance
+The P1 is a positive-authorization failure in break-glass recovery: recovery reads the baseline run attempt and prior effective-check identity, then later clears issue #7. The workflow concurrency group serializes this bootstrap workflow with itself, but cannot serialize collaborators, GitHub UI, REST clients or another workflow capable of rerunning the canonical run. An external rerun can therefore start after the last GET and before the issue PATCH, leaving a new head-scoped mutation in flight after the only durable pending identity has been erased.
 
-REQ-0020/0021/0022 remain `SUPERSEDED` premature-acceptance history.
+A third or fourth GET cannot solve this TOCTOU. REVIEW-0051 must remove recovery's authority to clear pending state from non-atomic observations.
 
-REQ-0023/0024/0025 were independently cold-read while PROPOSED by TEST-0008 and reviewed by REVIEW-0027, then atomically transitioned `PROPOSED → ACCEPTED` in `74dc253d849e3b6b6570fe55df415f5e9da65ab2` without changing their normative identity.
+All **65** historical inline material threads remain unresolved. No merge is permitted.
 
-Exact accepted normative digests remain:
+## REVIEW-0051 corrective direction
 
-- REQ-0023: `sha256:2c6e649de911822268b7faea6c3004e6c866af15e0b9470cfaba612481dd066b`
-- REQ-0024: `sha256:a9ba33cbb408b322be0ef9093c059ed2c8799be8a72b4468de48cc049d2fb4c4`
-- REQ-0025: `sha256:93a7671272f7c6f38374ac3714af07a8786c645180e0453feb5620fe3a43db67`
+The minimum safe successor is intentionally simpler:
 
-REVIEW-0027 source: GitHub Actions Copilot CLI run `34793888383`, exact candidate `c12a5b55c89168f20c028c2964da16de6f95ac56`, import `f78d5575a94b49d90abb166003cf4520bf167d3a`.
+- preserve the proven REVIEW-0050 V5 poll and closed-origin pending observation behavior;
+- replace break-glass clear with an inspection/authorization runbook that **never writes scheduler state and never automatically reruns**;
+- require the exact durable pending tuple, exact confirmation phrase and auditable reason;
+- positively revalidate unchanged baseline attempt and prior effective-check identity only to establish that the operator is looking at the intended pending record;
+- keep issue #7 pending unchanged throughout recovery inspection;
+- instruct the operator to rerun the exact canonical run manually if they have independently established that the original POST never occurred;
+- let the normal serialized poll observe `baseline+1` under the existing durable pending identity;
+- if another actor races and attribution becomes ambiguous, retain pending state and fail closed rather than erasing authority;
+- keep recovery permissions read-only for Actions and without `actions:write`;
+- add regressions proving recovery cannot call `_write_state` or `rerun_workflow` and cannot clear pending under any accepted request.
 
-TEST-0008 source: the same fresh-context run, exact execution tree `c12a5b55c89168f20c028c2964da16de6f95ac56`, PASS import `4035cbd9fe5a9dc113d95ba83ad3c72d7d0b76f1`, metadata binding `3125334eb00a8a3da28cb94271316856147965eb`.
+## PR #2 relationship
 
-`registry/status-machines.yaml` v10, `registry/content-identity.yaml` v2 and `registry/acceptance-authority.yaml` v1 remain the canonical contracts.
+PR #2 remains the durable WORK-0002 implementation branch on `4046e03b1e00a2051d29ccd6dcf5f0af7426259a` as last re-queried. After PR #5 eventually merges, PR #2 must explicitly integrate new `main` and port/reuse the final proven behavior. Pull-request base retargeting must positively create a fresh gate; dynamic `workflow_run.pull_requests[]` is not event-time provenance.
 
-## WORK-0002 cross-branch boundary
+T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure still requires a fresh exact-head L2 plus eligible trusted non-author exact-head `APPROVED` collaborator evidence.
 
-PR #3 contains only the globally readable WORK-0002 lifecycle/dependency mirror. Before editing or validating WORK-0002 implementation, query live PR #2 and checkout `feat/work-0002-governance-ci` or its integrated successor. Branch-local review/test/schema proof remains behind that explicit boundary.
+## Current next action
 
-## Repository visibility
-
-MONDE intentionally remains **public** by explicit owner decision. Never commit credentials/tokens/secrets, private/personal datasets or user-identifying runtime data. Sensitive runtime material remains outside Git.
-
-## Next action
-
-1. Query live PR #3 and verify its current HEAD, mergeability, checks and review-thread state; do not rely on this file for volatile GitHub state.
-2. Run the post-REVIEW-0028 deterministic completion audit on the exact current PR #3 HEAD. It must confirm WORK-0001/T6/RUN-3 and completion gates are DONE/true, all 41 canonical findings are RESOLVED by REVIEW-0028, all PR review threads are resolved, required TEST-0004..TEST-0008 are PASS, accepted requirements retain their reviewed digests, and no normative v10 contract changed after REVIEW-0028.
-3. If that administrative audit is clean, merge PR #3 with an expected-head guard.
-4. After PR #3 merges, integrate the new `main` into PR #2 / WORK-0002, rerun its full governance gate and obtain its own fresh L2 before WORK-0002 completion or merge.
-5. Then proceed to WORK-0003 and WORK-0004 according to LOT-0/LOT-1 dependencies.
+1. Keep all **65** PR #5 inline material threads unresolved.
+2. Exact-head prove this REVIEW-0050 `CLOSED / CHANGES_REQUIRED` state-only checkpoint.
+3. Implement REVIEW-0051 as a new recovery adapter; do not rewrite REVIEW-0050 history.
+4. Remove every recovery clear/write path and preserve durable pending authority.
+5. Add exact-tuple inspection and manual-rerun runbook regressions.
+6. Preserve live read-only PR #2 probing and 100% line+branch proof.
+7. Only after a fully green runtime create REVIEW-0051 `OPEN`, prove it, then `IN_PROGRESS`, prove/freeze, and request one fresh exact-head L2.
+8. Resolve no historical thread before a clean successor review.
+9. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
-1. `README.md`
-2. `AGENTS.md`
-3. `docs/00_START_HERE.md`
-4. this file
-5. `registry/work-items/WORK-0001.yaml`
-6. `registry/reviews/REVIEW-0028.yaml`
-7. `registry/tests/TEST-0008.yaml`
-8. `registry/requirements/REQ-0023.yaml` through `REQ-0025.yaml`
-9. `registry/status-machines.yaml`
-10. `registry/content-identity.yaml`
-11. `registry/acceptance-authority.yaml`
-12. `registry/work-items/WORK-0002.yaml` and `registry/progress/matrix.yaml`
-13. live PR #3 status/threads/checks and live PR #2 state
+1. README.md
+2. AGENTS.md
+3. docs/00_START_HERE.md
+4. PROJECT_STATE.md
+5. registry/work-items/WORK-0002.yaml
+6. registry/requirements/REQ-0026.yaml
+7. registry/tests/TEST-0009.yaml
+8. registry/reviews/REVIEW-0049.yaml
+9. registry/reviews/REVIEW-0050.yaml
+10. issue #7 scheduler state
+11. live PR #5 exact HEAD/checks/reviews/65 threads
+12. live PR #2 exact HEAD/checks/reviews/threads
 
-No prior chat history is required.
+MONDE remains public. Never commit credentials, tokens or secrets.

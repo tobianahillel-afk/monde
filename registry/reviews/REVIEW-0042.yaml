@@ -1,0 +1,91 @@
+id: REVIEW-0042
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "1120bbb9d1548bf0b20c6c1052731c0bf4154a00"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "fresh-context-pr5-1120bbb9-review0042"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "effective merge state is the exact latest GitHub Actions-owned MONDE / Merge Gate check for the exact head SHA"
+    - "review-thread state is evaluated before target-history discovery"
+    - "open Pull Requests authority uses exact unique PR identities and two identical authority-field snapshots"
+    - "bounded closed Pull Requests history uses exact unique PR identities and two identical authority-field snapshots"
+    - "Actions history is queried only for positively stale-green PRs and only as rerun-capability evidence"
+    - "filtered workflow-run windows are complete below the 1,000-result ceiling through non-overlapping partitioning plus exact stable unique snapshots"
+    - "current-incarnation target and protected current-attempt MONDE / Merge Gate job are positively bound before rerun"
+    - "closed-history overlap semantics remain branch-reset safe and bounded by the earliest stale-green active incarnation"
+    - "strict positive non-Boolean identifiers/attempts and fail-closed REST/GraphQL/Checks/Actions metadata"
+    - "ten-minute schedule, per-poll caches and least-privilege write boundary"
+    - "TEST-0009 seven-module regression discovery and WORK/PROJECT/REVIEW traceability"
+  risks:
+    - "Cross-API TOCTOU may remain between stable PR snapshots, Checks, reviewThreads, later Actions target discovery and rerun."
+    - "Double PR snapshots may create request-budget pressure or still bind insufficient authority fields."
+    - "A stable snapshot could be internally valid yet semantically insufficient for branch/incarnation ambiguity."
+    - "Wrapper installation could fail to cover every runtime path that reaches open/closed PR authority."
+findings:
+  - "PRRT_kwDOUUI5ts6i0j_C"
+  - "PRRT_kwDOUUI5ts6i0j_F"
+checks:
+  assumptions_challenged:
+    - "The PR snapshot adapter is installed for both live validation and scheduled mutation paths before core.main executes."
+    - "Fingerprint fields include every PR attribute used by stale classification and incarnation reasoning without binding irrelevant volatile fields."
+    - "Two complete unique authority snapshots fail closed on offset-pagination drift without breaking legitimate record reordering."
+    - "Closed-history double reads preserve cutoff/order/lifetime semantics and cannot omit a relevant overlap record silently."
+    - "The extra PR reads retain sufficient API budget at the ten-minute cadence."
+    - "Aborting on two simultaneously open PRs with the same repository/ref/SHA safely invalidates a stale shared required check."
+    - "The initial stable open-PR snapshot remains authoritative through later Actions target selection and rerun."
+  omitted_categories_considered:
+    - "wrapper import/install ordering"
+    - "duplicate PR number on one page or across pages"
+    - "same-cardinality open/closed membership drift"
+    - "authority-field mutation between snapshots"
+    - "benign record order changes"
+    - "closed-history cutoff movement and updated_at reordering"
+    - "shared-head PRs with divergent review-thread state"
+    - "remaining Checks/GraphQL/Actions TOCTOU"
+    - "new open PR appearing after stale-green classification but before target selection"
+    - "API request budget and timeout"
+    - "workflow/test-path/coverage discovery for the adapter"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 remain terminal COMPLETE/CHANGES_REQUIRED evidence."
+    - "REVIEW-0040 and REVIEW-0041 are CLOSED administrative negative evidence after author-side findings invalidated their frozen heads before independent review completion."
+    - "REVIEW-0042 independently reviewed exact frozen HEAD 1120bbb9d1548bf0b20c6c1052731c0bf4154a00 and added two new inline P1 findings."
+    - "All 44 inline material PR #5 threads remain unresolved."
+    - "PR #2 durable poller must later integrate the final behavior directly after trusted-base merge."
+  failure_modes_considered:
+    - "adapter is covered in tests but live/scheduled workflow still calls the unwrapped core script"
+    - "duplicate PR membership survives because only head identity, not PR number, is checked"
+    - "same-cardinality membership drift survives because ordering is normalized without comparing membership"
+    - "closed lifetime or updated_at changes between snapshots escape the fingerprint"
+    - "two open PRs share one repository/ref/SHA but divergent review-thread state and the poll abort leaves the shared green check usable"
+    - "a same-identity PR opens after initial snapshot and its newer run becomes the stale PR's rerun target"
+    - "double snapshots amplify rate-limit failure and leave stale green state"
+    - "new material bypass remains in exact check, thread, target-history or rerun ordering"
+  evidence_requested:
+    - "Correct shared-head per-PR authority so duplicate open identity is actively invalidated rather than only aborting."
+    - "Revalidate stable open-PR authority after stale-thread classification and before target selection/rerun, or positively bind triggering PR by another trustworthy contract."
+    - "Add regressions for divergent-thread duplicate-head PRs and a same-identity PR appearing between classification and target selection."
+    - "Re-prove the corrected exact head at 100 percent line and branch with the read-only live PR #2 contract probe."
+    - "Run a fresh-context exact-head independent successor L2 review before any historical thread resolution."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-16T07:07:05Z"
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-16"
