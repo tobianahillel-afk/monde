@@ -1,9 +1,9 @@
 id: REVIEW-0050
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c"
 reviewer:
   actor: null
   context_id: null
@@ -24,60 +24,33 @@ scope:
   contracts:
     - "trusted default-branch stale-green review-state invalidation"
     - "exact latest GitHub Actions-owned MONDE / Merge Gate check remains merge-state authority"
-    - "current PR rerun authority remains bound to exact head/base/merge-ref identity and selected PR"
-    - "selected-PR rerun-target discovery remains bounded, drift-detecting and durably resumable"
-    - "write-ahead pending mutation identity is durable before any rerun POST"
-    - "pending identity includes exact reversible pending head, run_id, baseline attempt, prior effective-check id and origin PR authority"
-    - "origin-PR closure does not erase pending mutation identity before the exact external mutation effect is terminally accounted for"
-    - "terminal merge-acceptable closed-origin reruns trigger current same-head PR reclassification before scheduler progress can forget the mutation"
-    - "ambiguous pending observation is loud and durable; automatic rerun replay remains forbidden"
-    - "operator recovery for a positively confirmed unposted intent is explicit, serialized, exact-tuple bound, auditable and has no actions:write permission"
-    - "operator recovery revalidates unchanged run attempt, prior effective-check identity and current same-head authority before clearing pending state"
-    - "scheduler progress remains durable in issue #7 and trusted poll/recovery writers share one concurrency group"
-    - "one poll invocation considers at most seven head groups and performs at most three actual rerun POSTs"
-    - "the authority path remains hard-capped at 100 script-issued GitHub calls with mutation/post-condition/state-write reserves"
-    - "malformed REST/GraphQL/Checks/Actions/Issue/PR/recovery input authority fails closed"
-    - "live PR #2 contract probe remains read-only; actions:write exists only on trusted scheduled invalidation, never on recovery"
+    - "origin-PR closure does not erase an already-issued pending rerun before its terminal shared-head effect is accounted for"
+    - "pending mutation identity is durable and exact-head/run/attempt/check bound"
+    - "break-glass recovery must never authorize clear from stale non-atomic observations"
   risks:
-    - "Break-glass recovery depends on a human positively establishing that the rerun POST was never issued; false confirmation could clear a mutation that is actually in flight."
-    - "A pending intent whose POST status cannot be positively established remains fail-closed and can require operator intervention rather than unsafe automatic replay."
-    - "Closed-origin terminal green results can revive a shared head and therefore require exact same-head sibling reclassification before pending clear."
-    - "Recovery inputs and issue #7 state are trust-binding control-plane metadata and must remain exact, closed-world and serialized."
-findings: []
+    - "External actors capable of rerunning the canonical workflow are not serialized by the bootstrap workflow concurrency group."
+    - "A check-then-clear recovery protocol can therefore lose an in-flight mutation between its final reads and issue-state clear."
+findings:
+  - "PRR_kwDOUUI5ts8AAAABN7LvGQ"
 checks:
   assumptions_challenged:
-    - "The explicit recovery path is sufficiently constrained that it improves liveness without reintroducing duplicate mutation risk."
-    - "A human confirmation plus exact unchanged run/check authority is adequate evidence that an intent was never posted."
-    - "Closed-origin pending observation correctly handles delayed visibility, terminal green, terminal failure and same-head sibling changes."
-    - "The recovery job's permission boundary prevents any accidental rerun mutation."
+    - "Unchanged run attempt and effective-check identity immediately before clear prove that no mutation can begin before the clear commits."
   omitted_categories_considered:
-    - "operator supplies stale or malformed pending tuple"
-    - "run attempt advances between operator inspection and recovery execution"
-    - "effective check changes between operator inspection and recovery execution"
-    - "origin PR closes or reopens while recovery executes"
-    - "same-head sibling gains or loses unresolved threads during recovery"
-    - "scheduled poll and manual recovery attempt to overlap"
-    - "workflow_dispatch executes on a non-main ref"
+    - "collaborator/UI/API rerun starts after the last recovery GET and before issue #7 clear"
+    - "external rerun later publishes a head-scoped green required check while an unresolved sibling remains"
   duplicate_or_reuse_search:
-    - "REVIEW-0049 is terminal COMPLETE/CHANGES_REQUIRED exact-head independent negative evidence via PRR_kwDOUUI5ts8AAAABN4sxvg."
-    - "REVIEW-0049 independent findings PRRT_kwDOUUI5ts6jEPa- and PRRT_kwDOUUI5ts6jEPa_ are the direct predecessor obligations for REVIEW-0050."
-    - "Author-side PRR_kwDOUUI5ts8AAAABN4rPMg remains corroborating historical evidence for the closed-origin race."
-    - "All 65 PR #5 inline material threads remain unresolved and require semantic re-check rather than inferred closure."
+    - "REVIEW-0049 remains terminal COMPLETE/CHANGES_REQUIRED independent negative evidence."
+    - "PRR_kwDOUUI5ts8AAAABN7LvGQ invalidated REVIEW-0050 before any exact-head independent L2 was submitted."
+    - "All 65 historical inline review threads remain unresolved."
   failure_modes_considered:
-    - "write-ahead state exists and POST never occurred; ordinary schedule now raises an operator-recovery-required error while preserving state"
-    - "write-ahead state exists and POST did occur but remains invisible; recovery must refuse unless unchanged attempt/check authority plus human evidence positively establish non-post"
-    - "origin PR closes while issued rerun is still queued/running"
-    - "closed-origin rerun later completes merge-acceptable while another same-head PR remains unresolved"
-    - "recovery tuple, numeric identity, head SHA, run attempt or check identity is malformed or stale"
+    - "truthful operator confirmation becomes stale before clear because an external rerun starts concurrently"
+    - "pending durable authority is erased while the externally created attempt remains in flight"
   evidence_requested:
-    - "Re-check all 65 historical material inline threads against the exact frozen REVIEW-0050 head."
-    - "Red-team the manual recovery trust model, especially false or stale operator assertions and TOCTOU around run/check revalidation."
-    - "Prove recovery can never emit a rerun POST because the workflow lacks actions:write and the recovery adapter contains no replay path."
-    - "Challenge closed-origin terminal-green sibling handoff and delayed-visibility/restart behavior."
-    - "Use the exact-head 194-test / 1856-statement / 842-branch 100-percent proof and live PR #2 probe as verification evidence, not semantic approval."
-    - "Require another exact-head successor if any material issue is found; resolve no historical thread during REVIEW-0050."
+    - "Remove clear authorization based on non-atomic run/check reads."
+    - "Use a successor recovery protocol that preserves pending authority through any manual/external rerun."
+    - "Restore exact-head 100 percent line/branch proof plus live PR #2 probe before REVIEW-0051 lifecycle opening."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-16T23:34:40Z"
 history:
   created_at: "2026-09-16"
-  updated_at: "2026-09-16"
+  updated_at: "2026-09-17"

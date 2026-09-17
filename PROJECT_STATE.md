@@ -15,44 +15,34 @@ Canonical operational state: Yes
 
 PR #5 (`chore/work-0002-stale-green-bootstrap`) remains the narrow trusted-default-branch predecessor for WORK-0002/T12. No merge and no historical review-thread resolution is permitted while material findings remain open or a successor review is incomplete.
 
-REVIEW-0047 is terminal `COMPLETE / CHANGES_REQUIRED` on exact frozen HEAD `d266d73c15b524413209be16d4970ec42928ea04` via independent review `PRR_kwDOUUI5ts8AAAABN1lrxA`.
+REVIEW-0049 is terminal `COMPLETE / CHANGES_REQUIRED` independent negative evidence on exact head `c8f1fec24358c25224771a15b647d56c8a2f0287` via `PRR_kwDOUUI5ts8AAAABN4sxvg`.
 
-REVIEW-0048 is `CLOSED / CHANGES_REQUIRED` administrative negative evidence on frozen HEAD `b5932be9a5f2d36c192bf482a3051a8523b97a34`; its Codex invocation was refused by quota and author-side `PRR_kwDOUUI5ts8AAAABN4OKew` invalidated that candidate.
+## REVIEW-0050 — administrative terminal negative evidence
 
-## REVIEW-0049 — independent terminal negative evidence
+REVIEW-0050 technical candidate `cbe21fa4cebc1c8f8b3030af17284de5700f9818` passed Bootstrap #154 / run `35152847816` with **194/194 tests**, **1,856 statements / 842 branches**, **100% line + branch**, and live read-only PR #2 contract probe SUCCESS. Its OPEN checkpoint `871850ac5b66a43cfd8491ef445d1738ad09d822` passed #155 and frozen IN_PROGRESS head `f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c` passed #156.
 
-REVIEW-0049's V4 write-ahead candidate `7d7f52fe5beb6bf7466a523b0fb0ea75108ff9a5` passed Bootstrap #145, and its frozen lifecycle head `c8f1fec24358c25224771a15b647d56c8a2f0287` passed Bootstrap #147. A fresh Codex L2 ultimately completed on that exact frozen head at `2026-09-16T18:38:10Z` as **`PRR_kwDOUUI5ts8AAAABN4sxvg`**.
+REVIEW-0050 is nevertheless now **`CLOSED / CHANGES_REQUIRED`**. No exact-head independent L2 was submitted before author-side adversarial review **`PRR_kwDOUUI5ts8AAAABN7LvGQ`** invalidated the frozen head.
 
-REVIEW-0049 is therefore **`COMPLETE / CHANGES_REQUIRED`**, not administrative CLOSED. It added two independent P1 findings:
+The P1 is a positive-authorization failure in break-glass recovery: recovery reads the baseline run attempt and prior effective-check identity, then later clears issue #7. The workflow concurrency group serializes this bootstrap workflow with itself, but cannot serialize collaborators, GitHub UI, REST clients or another workflow capable of rerunning the canonical run. An external rerun can therefore start after the last GET and before the issue PATCH, leaving a new head-scoped mutation in flight after the only durable pending identity has been erased.
 
-- `PRRT_kwDOUUI5ts6jEPa-` — a write-ahead pending intent can remain forever at the baseline if the process dies after the issue PATCH but before the rerun POST; without an explicit safe recovery/escalation path, the global poll is permanently wedged.
-- `PRRT_kwDOUUI5ts6jEPa_` — closing the pending origin PR cannot erase an already-issued rerun before its terminal head-scoped effect is accounted for.
+A third or fourth GET cannot solve this TOCTOU. REVIEW-0051 must remove recovery's authority to clear pending state from non-atomic observations.
 
-Author-side `PRR_kwDOUUI5ts8AAAABN4rPMg` independently corroborated the closed-origin race shortly before the Codex L2 completed. PR #5 now has **65 inline material threads**, all intentionally unresolved.
+All **65** historical inline material threads remain unresolved. No merge is permitted.
 
-## REVIEW-0050 current lifecycle
+## REVIEW-0051 corrective direction
 
-REVIEW-0050 addresses both independent REVIEW-0049 P1s without weakening prior fail-closed authority:
+The minimum safe successor is intentionally simpler:
 
-1. V5 scheduler state carries exact reversible `pending_head` in addition to origin PR/run/baseline/check authority.
-2. Origin-PR closure no longer clears pending state; the exact issued run remains observed to a terminal causally-bound result.
-3. A terminal merge-acceptable closed-origin rerun causes current open same-head PRs to be reclassified; any unresolved sibling is durably retained through `scan_pr` before pending state is released.
-4. Ambiguous bounded pending observation is now **loud** (`PendingRecoveryRequired`) while durable pending state remains intact; automatic replay remains forbidden.
-5. A trusted `workflow_dispatch` break-glass path may clear only an operator-confirmed **unposted** pending intent. It requires the exact pending PR/head/run/baseline/check tuple, an exact confirmation phrase, and an auditable reason.
-6. Recovery revalidates that the run attempt is still exactly the baseline and that the prior effective-check identity is unchanged before clearing state.
-7. Recovery is serialized with the normal poll and has `actions: read` but **no `actions:write`**, so it cannot itself issue a workflow rerun.
-
-Exact technical candidate **`cbe21fa4cebc1c8f8b3030af17284de5700f9818`** passed MONDE Stale-Green Bootstrap **#154 / run `35152847816` SUCCESS**:
-
-- **194/194 tests PASS**;
-- **1,856 statements / 842 branches** across core, snapshot and all authority successors;
-- **100% line + branch coverage** with zero missing statements/branches;
-- live read-only GitHub contract probe against PR #2 **SUCCESS**;
-- recovery job correctly skipped on pull-request CI and its workflow permission set excludes `actions:write`.
-
-The synchronized REVIEW-0050 `OPEN` checkpoint **`871850ac5b66a43cfd8491ef445d1738ad09d822`** passed Bootstrap **#155 / run `35153416874` SUCCESS** with **194/194 tests**, **1,856 statements / 842 branches**, **100% line + branch**, live PR #2 probe **SUCCESS at 7/100 requests**, and the recovery job skipped on pull-request CI.
-
-REVIEW-0050 is now **`IN_PROGRESS`**. Reviewer actor/context and exact reviewed commit remain unset until a fresh independent L2 actually executes. Technical green proof is evidence only, not semantic approval. T4/T12/AC-6 remain `IN_REVIEW` and all **65** material inline threads remain unresolved.
+- preserve the proven REVIEW-0050 V5 poll and closed-origin pending observation behavior;
+- replace break-glass clear with an inspection/authorization runbook that **never writes scheduler state and never automatically reruns**;
+- require the exact durable pending tuple, exact confirmation phrase and auditable reason;
+- positively revalidate unchanged baseline attempt and prior effective-check identity only to establish that the operator is looking at the intended pending record;
+- keep issue #7 pending unchanged throughout recovery inspection;
+- instruct the operator to rerun the exact canonical run manually if they have independently established that the original POST never occurred;
+- let the normal serialized poll observe `baseline+1` under the existing durable pending identity;
+- if another actor races and attribution becomes ambiguous, retain pending state and fail closed rather than erasing authority;
+- keep recovery permissions read-only for Actions and without `actions:write`;
+- add regressions proving recovery cannot call `_write_state` or `rerun_workflow` and cannot clear pending under any accepted request.
 
 ## PR #2 relationship
 
@@ -63,13 +53,13 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. Exact-head prove this REVIEW-0050 `IN_PROGRESS` state-only checkpoint; runtime must remain equivalent to candidate #154.
-3. If green, freeze that exact SHA and re-query live PR #5 HEAD, reviews and all 65 threads.
-4. Update the PR description to the frozen REVIEW-0050 proof chain without changing the Git tree.
-5. Request exactly one fresh independent L2 on the frozen SHA; do not mutate the Git tree while it runs.
-6. Red-team especially manual recovery evidence quality, false/stale operator assertions, run/check TOCTOU, closed-origin shared-head revival, recovery permissions, writer serialization and all historical findings.
-7. Any material finding requires correction, exact-head re-proof and another successor review.
-8. Only a clean exact-head independent successor review permits controlled verification/resolution and a guarded PR #5 merge decision.
+2. Exact-head prove this REVIEW-0050 `CLOSED / CHANGES_REQUIRED` state-only checkpoint.
+3. Implement REVIEW-0051 as a new recovery adapter; do not rewrite REVIEW-0050 history.
+4. Remove every recovery clear/write path and preserve durable pending authority.
+5. Add exact-tuple inspection and manual-rerun runbook regressions.
+6. Preserve live read-only PR #2 probing and 100% line+branch proof.
+7. Only after a fully green runtime create REVIEW-0051 `OPEN`, prove it, then `IN_PROGRESS`, prove/freeze, and request one fresh exact-head L2.
+8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
