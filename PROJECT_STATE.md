@@ -52,7 +52,9 @@ Development now proceeds through a new `stale_green_bootstrap_authority_review00
 
 Technical candidate `63001400659273252771d32c61665203b7d43ef3` passed Bootstrap #159 / run `35708508061`: **200/200 tests**, **1,894 statements / 856 branches**, **100% line + branch**, and the live read-only PR #2 probe succeeded at **7/100** requests. The active 0051 adapter contains no `_write_state()` call and no `rerun_workflow()` call, and the workflow regression proves manual recovery has `actions: read` + `issues: read` with no corresponding write permission.
 
-Because that technical candidate is proved, REVIEW-0051 was opened on `2017a6ef2143574aa3b43028d776352bfa81d401`. Bootstrap #160 / run `35708741464` then proved the `OPEN` state-only checkpoint SUCCESS. REVIEW-0051 is therefore now transitioned to repository lifecycle state `IN_PROGRESS`. Reviewer actor/context and reviewed commit remain unset until a fresh independent L2 actually executes.
+Because that technical candidate is proved, REVIEW-0051 was opened on `2017a6ef2143574aa3b43028d776352bfa81d401`. Bootstrap #160 / run `35708741464` then proved the `OPEN` state-only checkpoint SUCCESS. REVIEW-0051 was transitioned to `IN_PROGRESS`; exact head `dd97f30617f1772032def036cdb94b1030001adf` then passed Bootstrap #161 with **200/200 tests**, **1,894 statements / 856 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests.
+
+Fresh Codex review trigger comment `5773961643` was refused by the platform review quota via comment `5773963162`. **No REVIEW-0051 independent L2 was produced.** Reviewer actor/context and reviewed commit therefore remain unset. This is a tooling-capacity blocker, not approval and not a semantic finding.
 
 ## PR #2 relationship
 
@@ -66,7 +68,7 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 2. REVIEW-0050 `CLOSED / CHANGES_REQUIRED` checkpoint proof is complete on `71c40aeb...` via Bootstrap #157.
 3. Implement the REVIEW-0051 inspection-only recovery adapter without rewriting REVIEW-0050 history.
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
-5. REVIEW-0051 `OPEN` checkpoint proof is complete via Bootstrap #160; prove/freeze this `IN_PROGRESS` head, then request one fresh exact-head L2 and do not mutate the tree while it runs.
+5. REVIEW-0051 `OPEN` proof (#160) and `IN_PROGRESS` proof (#161) are complete; the first fresh Codex L2 trigger was refused by quota. Re-prove this state-only handover checkpoint, then retrigger exactly one fresh exact-head L2 only when review capacity is available.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 

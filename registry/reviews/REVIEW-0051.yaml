@@ -60,6 +60,7 @@ checks:
     - "REVIEW-0049 remains COMPLETE/CHANGES_REQUIRED independent negative evidence."
     - "REVIEW-0051 reuses the REVIEW-0050 V5 poll/closed-origin implementation and replaces only the unsafe recovery authorization boundary."
     - "All 65 historical inline material PR #5 threads remain unresolved."
+    - "Fresh Codex review trigger comment 5773961643 was refused by platform quota via comment 5773963162; no independent REVIEW-0051 L2 result exists yet."
   failure_modes_considered:
     - "accepted inspection mutates issue #7 or clears pending state"
     - "accepted inspection emits an automatic rerun"

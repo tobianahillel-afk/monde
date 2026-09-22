@@ -234,6 +234,7 @@ run_log:
   - "REVIEW-0050 CLOSED checkpoint 71c40aeb7ca7de4968a78953e9d003a5f65c3f9f passed Bootstrap #157 / run 35211526610; REVIEW-0051 implementation run started from that proven checkpoint."
   - "REVIEW-0051 technical candidate 63001400659273252771d32c61665203b7d43ef3 passed Bootstrap #159 / run 35708508061 at 200 tests / 1894 statements / 856 branches / 100 percent plus live PR #2 probe; lifecycle REVIEW-0051 opened only after this proof."
   - "REVIEW-0051 OPEN checkpoint 2017a6ef2143574aa3b43028d776352bfa81d401 passed Bootstrap #160 / run 35708741464; lifecycle transitioned to IN_PROGRESS only after that proof."
+  - "REVIEW-0051 IN_PROGRESS head dd97f30617f1772032def036cdb94b1030001adf passed Bootstrap #161 / run 35708858747 at 200 tests / 1894 statements / 856 branches / 100 percent plus live PR #2 probe; Codex trigger 5773961643 was then refused by quota (5773963162), so no independent review was produced."
 
 discoveries:
   - "A break-glass clear based on non-atomic GET revalidation cannot exclude an external rerun starting before the clear commits."
@@ -241,7 +242,8 @@ discoveries:
 
 blockers:
   - "Freeze and prove this REVIEW-0051 IN_PROGRESS head exact-head before requesting a fresh independent L2."
-  - "Keep the Git tree frozen while the independent L2 executes; any material finding requires a successor correction/review."
+  - "Fresh Codex REVIEW-0051 trigger comment 5773961643 was refused by platform quota via comment 5773963162; no independent L2 exists. Re-prove the current state-only checkpoint and retrigger one fresh exact-head L2 only when review capacity is available."
+  - "Any material finding from that future L2 requires correction, exact-head re-proof and a successor review."
   - "65 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
