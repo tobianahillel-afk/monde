@@ -224,7 +224,7 @@ validation:
     - "REVIEW-0051 is CLOSED/CHANGES_REQUIRED on exact head 151fcd13e2fc5b15420de097635b6c9fbc9795ba after PRR_kwDOUUI5ts8AAAABOoOnSQ reproduced a real multi-check liveness defect; no independent REVIEW-0051 L2 ran."
     - "REVIEW-0052 is CLOSED/CHANGES_REQUIRED on exact head 654e24fdb7df17b5e92cad13bd5264faa128bfab after PRR_kwDOUUI5ts8AAAABOpz-Bg proved the filtered required-check selector is incomplete above 100 legitimate same-head check suites; no independent REVIEW-0052 L2 ran."
     - "REVIEW-0053 is CLOSED/CHANGES_REQUIRED on exact head 56a24864caa67db2af2e830f75ce279c4cc056c3 after PRR_kwDOUUI5ts8AAAABOqC8Gg proved that generic post-POST observation RuntimeError can erase the durable pending mutation through the ordinary poll error path; no independent REVIEW-0053 L2 ran."
-    - "REVIEW-0054 technical candidate 8b8b23072e77b83e3c86dbdc4f0486035e04dd26 passed Bootstrap #191 / run 35735060972 at 210/210 tests, 1927 statements / 860 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; REVIEW-0054 is now OPEN pending exact-head OPEN checkpoint proof."
+    - "REVIEW-0054 technical candidate 8b8b23072e77b83e3c86dbdc4f0486035e04dd26 passed Bootstrap #191 / run 35735060972 at 210/210 tests, 1927 statements / 860 branches, 100 percent line+branch and live PR #2 probe SUCCESS. OPEN checkpoint 1002256314b2988470620172b58422fa08547605 passed Bootstrap #192 / run 35735482885 with the same 210/210, 1927/860, 100 percent and live PR #2 probe SUCCESS at 7/100 requests; REVIEW-0054 is now IN_PROGRESS pending one frozen exact-head proof and fresh independent L2."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -250,6 +250,7 @@ run_log:
   - "REVIEW-0053 OPEN checkpoint e6f77aa0bbd3eff80f136228fc4d00a8c09ad2a8 passed Bootstrap #187 / run 35731526951 at 204/204 tests, 1891 statements / 852 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
   - "REVIEW-0053 frozen head 56a24864caa67db2af2e830f75ce279c4cc056c3 passed Bootstrap #188 / run 35731769188 at 204/204 tests, 1891 statements / 852 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5777137141, then author-side PRR_kwDOUUI5ts8AAAABOqC8Gg exposed the post-POST RuntimeError pending-loss P1."
   - "REVIEW-0054 retention candidate 8b8b23072e77b83e3c86dbdc4f0486035e04dd26 passed Bootstrap #191 / run 35735060972 at 210/210 tests, 1927 statements / 860 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0054 opened only after this proof."
+  - "REVIEW-0054 OPEN checkpoint 1002256314b2988470620172b58422fa08547605 passed Bootstrap #192 / run 35735482885 at 210/210 tests, 1927 statements / 860 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
 
 discoveries:
   - "A break-glass clear based on non-atomic GET revalidation cannot exclude an external rerun starting before the clear commits."
@@ -259,7 +260,7 @@ blockers:
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."
-  - "REVIEW-0054 technical candidate is proved; prove the OPEN checkpoint exact-head before transitioning REVIEW-0054 to IN_PROGRESS."
+  - "REVIEW-0054 OPEN checkpoint is proved; prove/freeze this IN_PROGRESS head exact-head, then request exactly one fresh independent L2 without mutating the tree while it runs."
   - "65 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."

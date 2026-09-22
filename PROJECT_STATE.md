@@ -102,7 +102,7 @@ The REVIEW-0054 successor must preserve all prior recovery/multi-check/paginatio
 
 ## REVIEW-0054 — post-POST pending retention successor
 
-REVIEW-0054 is now **OPEN** after exact technical proof on `8b8b23072e77b83e3c86dbdc4f0486035e04dd26`.
+REVIEW-0054 is now **IN_PROGRESS** after exact technical proof on `8b8b23072e77b83e3c86dbdc4f0486035e04dd26` and OPEN checkpoint proof on `1002256314b2988470620172b58422fa08547605`.
 
 Bootstrap #191 / run `35735060972` passed **210/210 tests**, **1,927 statements / 860 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
@@ -110,7 +110,7 @@ The successor is deliberately narrow: a new adapter wraps only REVIEW-0048 termi
 
 The scheduled poll and live contract probe use REVIEW-0054. Manual pending recovery remains directly wired to the proven REVIEW-0051 inspection-only adapter with `actions: read` and `issues: read`, preserving separation of mutable poll authority from recovery inspection.
 
-This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0054 may transition to `IN_PROGRESS`.
+Bootstrap #192 / run `35735482885` proved the OPEN checkpoint at **210/210 tests**, **1,927 statements / 860 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
 ## Current next action
 
@@ -120,7 +120,7 @@ This OPEN checkpoint must now receive its own exact-head Bootstrap proof before 
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0054 technical candidate is proved via Bootstrap #191 and REVIEW-0054 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
+7. REVIEW-0054 OPEN proof is complete via Bootstrap #192 and REVIEW-0054 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
