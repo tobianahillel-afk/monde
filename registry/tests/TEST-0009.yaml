@@ -1,0 +1,142 @@
+id: TEST-0009
+name: "Stale-green bootstrap control-plane contract"
+status: PLANNED
+type: INTEGRATION
+protects:
+  requirements: [REQ-0026]
+  capabilities: []
+  contracts: ["GitHub control-plane merge gate"]
+  risks: []
+  invariants:
+    - "stale merge-acceptable canonical gate is invalidated when current PR review threads are unresolved"
+    - "merge-state authority is the exact latest GitHub Actions-owned MONDE / Merge Gate check on the exact head SHA"
+    - "when GitHub filter=latest returns multiple legitimate MONDE / Merge Gate checks from distinct check suites on one unchanged head, every candidate is validated and the newest started_at/check-id candidate is selected deterministically"
+    - "rerun authority is positively bound to the current open PR through canonical refs/pull/<N>/merge metadata plus the current merge-ref SHA"
+    - "selected-PR target discovery is bounded and durably resumable through scan_pr/scan_page/scan_anchor state rather than a permanently truncated candidate prefix"
+    - "offset check-history pagination verifies page-boundary membership both across invocations and between consecutive pages inside one invocation before accepting completeness"
+    - "direct run/workflow/job/attempt, scheduler-issue, pending-PR and recovery-input authority require exact positive non-Boolean integer identifiers"
+    - "stable open Pull Requests authority uses unique PR numbers and identical authority snapshots"
+    - "current PR revalidation binds head identity, base repository/ref/SHA, and merge_commit_sha immediately before mutation and before post-condition acceptance"
+    - "scheduler fairness uses a durable closed-world cursor in machine-managed issue #7 rather than wall-clock rotation"
+    - "scheduled poll mutation and manual recovery inspection share the bootstrap concurrency group, while recovery inspection has no scheduler-state write authority"
+    - "only selected PRs are revalidated directly; no per-head global open-PR refresh is required"
+    - "one poll invocation inspects at most seven head groups and performs at most three actual rerun POSTs"
+    - "the authority adapter hard-caps script-issued GitHub calls at 100 and reserves mutation/post-condition/state-write headroom"
+    - "a rerun is not accepted as invalidation until the mutation baseline identifies one exact next workflow attempt, its protected job is validated, and the effective exact-head required check is causally bound and terminal"
+    - "before rerun POST, issue #7 durably records pending selected-PR authority, exact pending head, run_id, baseline attempt and prior check identity"
+    - "while pending mutation state exists, a later schedule resumes observation and does not issue another rerun POST"
+    - "origin-PR closure cannot erase an already-issued pending mutation; exact pending head/run/check authority survives until terminal accounting"
+    - "terminal merge-acceptable closed-origin reruns reclassify current same-head PRs before pending state is released"
+    - "an ambiguous POST result retains pending state and fails closed rather than automatically replaying the mutation"
+    - "bounded pending observation failure is loud and leaves durable state intact instead of silently succeeding"
+    - "operator recovery inspection requires an exact durable pending tuple plus explicit confirmation and reason, and unchanged run-attempt/effective-check identity only to identify the intended pending record; the pending record remains unchanged"
+    - "operator recovery has neither actions:write nor issues:write permission, cannot call scheduler-state writes, and cannot itself rerun a workflow"
+    - "if a completed rerun is already stale-green again, the selected PR/head remains selected for immediate or durable reprocessing"
+    - "if a shared-head sibling becomes clean and its rerun returns green, processing continues safely while respecting the invocation-wide POST cap"
+    - "pending PR authority accepts only exact open/closed state; malformed state or changed authority fails closed"
+    - "malformed REST, GraphQL, Checks, run, job, scheduler-state, PR, or recovery authority fails closed"
+    - "multiple required-check candidates with duplicate ids, malformed identity, wrong app/name/head, invalid status/conclusion, or missing/unparseable recency metadata fail closed"
+location:
+  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py; .github/scripts/test_stale_green_bootstrap_poll_order.py; .github/scripts/test_stale_green_bootstrap_pr_snapshot.py; .github/scripts/test_stale_green_bootstrap_progress.py; .github/scripts/test_stale_green_bootstrap_progress_fallthrough.py; .github/scripts/test_stale_green_bootstrap_authority.py; .github/scripts/test_stale_green_bootstrap_authority_edges.py; .github/scripts/test_stale_green_bootstrap_authority_shared.py; .github/scripts/test_stale_green_bootstrap_authority_review0046.py; .github/scripts/test_stale_green_bootstrap_authority_review0047.py; .github/scripts/test_stale_green_bootstrap_authority_terminal_wait.py; .github/scripts/test_stale_green_bootstrap_authority_review0048.py; .github/scripts/test_stale_green_bootstrap_authority_review0048_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0048_final.py; .github/scripts/test_stale_green_bootstrap_authority_review0049.py; .github/scripts/test_stale_green_bootstrap_authority_review0049_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0049_final_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0050.py; .github/scripts/test_stale_green_bootstrap_authority_review0050_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0050_recovery.py; .github/scripts/test_stale_green_bootstrap_authority_review0050_recovery_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0051_recovery.py"
+  suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
+environment:
+  kind: GITHUB_ACTIONS
+  real_dependencies:
+    - "GitHub REST Actions, Checks, Pull Requests and Issues APIs"
+    - "GitHub GraphQL reviewThreads API"
+    - "GitHub workflow_dispatch and concurrency semantics for the trusted recovery surface"
+  mocked_dependencies:
+    - "adversarial fixtures for delayed reruns, exact attempt attribution, write-ahead pending mutation, closed-origin pending observation, pre-POST recovery ambiguity, shared-head stale-again interleavings, pagination drift, malformed metadata, base retargeting, anchored durable cursor progression/continuation, global rerun caps, request reserves and terminal post-conditions"
+cases:
+  happy_path:
+    - "PR-bound direct check -> run -> protected job authority resolves without exhaustive workflow-run history"
+    - "live PR #2 probe observes refs/pull/2/merge plus current merge-ref authority and current unresolved-thread state"
+    - "live PR #2 probe remains valid after multiple supported review-triggered MONDE Gate runs create more than one legitimate latest check suite"
+    - "durable scheduler cursor advances across bounded head groups and target-history pages with anchored continuation"
+    - "write-ahead pending mutation is durably acknowledged before rerun POST and clears only after terminal observation"
+    - "closed-origin pending mutation remains observable through exact pending head/run/attempt/check identity"
+    - "operator-confirmed unposted intent can be inspected through an exact-tuple read-only path that preserves issue #7 and prints the exact canonical run for manual rerun"
+  edge_cases:
+    - "multiple open PRs share one SHA with divergent or changing review-thread state"
+    - "review/review-comment reruns create multiple legitimate MONDE / Merge Gate check suites for one unchanged head SHA"
+    - "selected rerun completes merge-acceptable while the PR becomes unresolved again before final observation"
+    - "another actor reruns the same workflow between discovery and this invocation's mutation"
+    - "selected PR target lies behind more than twelve newer sibling checks"
+    - "retained check-history membership changes between continuation invocations or between two pages read in one invocation"
+    - "PR base or merge-ref context changes while head SHA remains unchanged"
+    - "rerun remains queued or running beyond the local post-condition polling window"
+    - "POST succeeds but its next attempt/check is not visible before the next scheduled invocation"
+    - "pending write succeeds but POST outcome is ambiguous or POST may not have occurred"
+    - "origin PR closes while its already-issued rerun remains delayed or in flight"
+    - "operator recovery runs after origin PR closes while an unresolved same-head sibling exists"
+    - "budget approaches reserved mutation/post-condition/state-write headroom"
+  failure_modes:
+    - "scheduler issue identity/body is modified outside the closed-world contract or uses a coercible non-integer issue id"
+    - "duplicate scheduled/recovery writers attempt to overlap"
+    - "direct run or protected job metadata does not match expected workflow, head, attempt, exact integer types, PR, base, or merge-ref authority"
+    - "pending PR number is Boolean/float, state is unknown, or authority digest no longer matches current open PR"
+    - "pending run attempt regresses or jumps beyond the exact next attempt"
+    - "a terminal attempt jump cannot be uniquely attributed to this invocation's POST"
+    - "effective required check belongs to unrelated same-head activity rather than the exact rerun run/job/attempt"
+    - "PR authority changes immediately before mutation or before post-condition acceptance"
+    - "rerun reaches a terminal attempt but the causally bound required check does not appear before the bounded deadline"
+    - "pending mutation cannot be causally reconciled after restart; bridge refuses automatic duplicate POST and raises an operator-recovery-required error"
+    - "operator recovery inspection tuple, confirmation, reason, run attempt, or prior check identity is malformed or stale; inspection refuses without changing durable state"
+    - "no canonical target exists after complete selected-PR check-history traversal"
+    - "request budget cannot preserve reserved mutation/post-condition/state-write headroom"
+  adversarial_cases:
+    - "historically deep target history advances through durable selected-PR continuation and restarts safely when membership drifts"
+    - "same-invocation page deletion/insertion/reordering cannot make an offset scan silently skip the only PR-bound target"
+    - "skipped or delayed schedules do not reset fairness because cursor, scan and pending mutation state are durable"
+    - "overlapping schedule/recovery executions are serialized so issue #7 cannot be last-write-wins regressed"
+    - "shared-head green revival is followed by current thread reclassification and retained/repeated processing"
+    - "every actual rerun POST counts toward the invocation-wide three-mutation cap"
+    - "POST accepted but next attempt visibility is delayed across scheduler restart; no second POST is emitted"
+    - "origin PR closes after POST while same-head sibling remains unresolved; pending mutation is not forgotten and later green cannot remain stale"
+    - "write-ahead intent remains at baseline because POST never happened; normal poll is loudly fail-closed and manual recovery requires exact positive evidence rather than replay"
+    - "manual recovery inspection refuses if the run attempt or effective check changed after write-ahead and never clears pending state even when inspection succeeds"
+    - "float/Boolean trust-binding identifiers are rejected"
+    - "V1/V2/V3/V4 idle scheduler state migrates conservatively into V5 without fabricating pending mutation identity"
+    - "dead/unreachable guard code is removed rather than artificially covered"
+acceptance_cold_read:
+  qualifies: false
+  source:
+    kind: null
+    source_id: null
+    submitted_at: null
+  executor:
+    actor: null
+    context_id: null
+    independence_level: null
+    fresh_context: false
+    authoring_context_separated: false
+  requirements: {}
+  required_outcomes:
+    understood_without_author_reasoning: null
+    atomic_and_testable: null
+    dependencies_and_conflicts_checked: null
+    omissions_and_failure_modes_checked: null
+    evidence_plan_sufficient: null
+  all_required_outcomes_pass: false
+  completed_at: null
+external_import:
+  authorization_source: null
+  import_commit: null
+execution:
+  command_or_workflow: "MONDE Stale-Green Bootstrap"
+  last_run_at: "2026-09-22"
+  commit_sha: "deb6190983bd2cc97e3adffcd4769b4e44d58cb8"
+  result: PASS
+  evidence:
+    - "Bootstrap #168 / run 35715152696: 202/202 tests PASS"
+    - "Bootstrap #168: core 462 statements/206 branches, snapshot 207/88, authority 489/230, REVIEW-0048 189/118, REVIEW-0049 271/114, REVIEW-0050 V5 142/46, REVIEW-0050 recovery 101/42, REVIEW-0051 recovery 38/14; total 1899 statements/858 branches at 100 percent line and branch coverage"
+    - "Bootstrap #168 live PR #2 GitHub contract probe SUCCESS against the real multi-check head under read-only Actions/Checks/Contents/PullRequests permissions"
+    - "Bootstrap #168 pending-recovery job is skipped on pull_request events; REVIEW-0051 workflow regression still proves recovery has actions:read + issues:read and neither actions:write nor issues:write"
+    - "REVIEW-0050 author-side PRR_kwDOUUI5ts8AAAABN7LvGQ invalidated recovery clear semantics; REVIEW-0051 candidate removes recovery state mutation entirely while preserving prior V5 poll behavior"
+    - "Bootstrap #163 rehearsal reproduced a live multi-check failure on PR #2; rehearsal Bootstrap #166 proved the selector correction at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch, and live PR #2 probe SUCCESS"
+coverage:
+  line_contribution: 100
+  branch_contribution: 100
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-22"
