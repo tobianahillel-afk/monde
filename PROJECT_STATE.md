@@ -176,13 +176,13 @@ REVIEW-0058 must add a bounded end-of-traversal stability proof for every fetche
 
 ## REVIEW-0058 — end-of-traversal snapshot stability successor
 
-REVIEW-0058 is now **OPEN** after exact technical proof on `4b4d1ae6ec4815e7967f72023f2db63272e1c144`.
+REVIEW-0058 is now **IN_PROGRESS** after exact technical proof on `4b4d1ae6ec4815e7967f72023f2db63272e1c144` and OPEN checkpoint proof on `5e8cf6c9ce1d8ad39b75102963b91712422c37ea`.
 
 Bootstrap #213 / run `35775861240` passed **229/229 tests**, **2,052 statements / 906 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
 The correction retains REVIEW-0057 adjacent boundary revalidation and adds a final stability pass over every fetched page before a multi-page collection may return. A three-page regression proves late page-1 insert/delete drift is caught even after page 1 already passed its first adjacent revalidation. A stable three-page traversal performs the bounded sequence `1,2,1,3,2,1,2,3`. Single-page collections receive no extra final read. With `MAX_PAGES=20`, worst-case pagination stability traffic is 59 requests, below the global 100-request hard cap.
 
-This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0058 may transition to `IN_PROGRESS`.
+Bootstrap #214 / run `35776333361` proved the OPEN checkpoint at **229/229 tests**, **2,052 statements / 906 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
 ## Current next action
 
@@ -192,7 +192,7 @@ This OPEN checkpoint must now receive its own exact-head Bootstrap proof before 
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0058 technical candidate is proved via Bootstrap #213 and REVIEW-0058 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
+7. REVIEW-0058 OPEN proof is complete via Bootstrap #214 and REVIEW-0058 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
