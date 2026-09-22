@@ -291,6 +291,11 @@ implementation_plan:
     depends_on:
     - T11
     status: DONE
+  - id: T14
+    description: Harden post-PR5 two-parent integration semantics so merge-history validators do not rematerialize byte-identical parent-inherited registry/provenance blobs, while ungoverned source history and real conflict resolutions remain fail-closed.
+    depends_on:
+    - T13
+    status: IN_PROGRESS
   planned_runs:
   - id: RUN-1
     objective: Initial deterministic governance implementation
@@ -315,6 +320,7 @@ implementation_plan:
     - T11
     - T12
     - T13
+    - T14
     - T4
     status: IN_PROGRESS
 review_plan:
@@ -564,6 +570,7 @@ validation:
   - Gate #228 / run 34997568781 on exact HEAD 4046e03b1e00a2051d29ccd6dcf5f0af7426259a proved 357/357 tests and 100% coverage, then correctly reported six durable IDs missing from the 73-thread live set.
   - Five of those six later-review findings are already represented by current code: PR-family review events are included in thread polling; ambiguous first-status materializations are rejected; terminal external imports without binding are rejected; workflow command wiring is parsed as executable argv; and live closure work is resolved dynamically rather than hard-coded to WORK-0002.
   - PRRT_kwDOUUI5ts6ijUTn remains structurally dependent on the trusted default-branch stale-green predecessor being delivered by PR #5 before PR #2 can close.
+  - Post-PR5 integration rehearsal PR #11 / exact head c4af0e0c896d7023f64ecebfdddd26a6882eedbe exposed and then proved two branch-local merge-history hardenings: change_guard comparison-parent/inherited-source handling and T11 provenance-history filtering for merge commits that preserve a parent blob. These are tracked as T14 and must be re-proved on PR #2 before T14 may close.
   - No trusted context-separated L2/L3 GitHub APPROVED review is yet bound to the exact current PR HEAD; the hardened live gate must remain fail-closed until that independent evidence exists.
   - External Codex findings remain truthfully referenced by their GitHub review/thread identities rather than being retroactively rewritten as approving canonical REVIEW records.
   - Historical malformed YAML, WORK-0001 squash bridges and progress-guard adoption boundaries must remain exact fail-closed historical provenance; future reuse is forbidden.
@@ -630,6 +637,9 @@ run_log:
 - run: RUN-3
   date: '2026-09-22'
   note: 'Gate #230 / run 35710776945 on 47d7bcc1840af45059e47e979040808e4b202d4e established exact 73/73 durable/live finding identity equality. Gate #231 / run 35711181317 on T12/T13 split head 242f6c9553c4e42bfbb4e6aad2ca27596573ecb2 passed 357/357 tests, 100% line+branch, 37/37 + 40/40 + 5/5 + 8/8 + T13 5/5 mutations, all deterministic closure validators at zero, 19-file context manifest, CodeQL and Dependency Review. Its live gate failed only on the intentionally unresolved 73 threads and absent trusted exact-head approval.'
+- run: RUN-3
+  date: '2026-09-22'
+  note: 'Clean post-PR5 integration rehearsal PR #11 / head c4af0e0c896d7023f64ecebfdddd26a6882eedbe proved the branch-local T14 design before production-branch adoption: 365 tests, 100% line+branch over 3893 statements/1880 branches, 37/37 baseline + 40/40 L2 + 5/5 T10 + 9/9 T11 + 5/5 T13 mutations, repository/strict/path/change/L2/review/T7/T8/T9/T10/T11 validators at zero, context manifest success, CodeQL success, Dependency Review success and MONDE Merge Gate success. Bootstrap #183 independently remained 202/202 and 100% line+branch. This rehearsal is not completion evidence for PR #2; T14 remains IN_PROGRESS until exact PR #2 CI proves the port.'
 discoveries:
 - 100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required.
 - GitHub live state can invalidate stale PROJECT_STATE prose after it is committed.
