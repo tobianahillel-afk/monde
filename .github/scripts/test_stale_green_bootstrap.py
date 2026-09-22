@@ -357,6 +357,35 @@ class BootstrapPollTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "malformed required MONDE"):
                     bootstrap.latest_required_check("o/r", "h", "t")
 
+    def test_latest_required_check_selects_newest_legitimate_check_across_suites(self) -> None:
+        older = check_run("h", check_id=40)
+        older["started_at"] = "2026-09-22T09:42:31Z"
+        newer = check_run("h", check_id=41, conclusion="failure")
+        newer["started_at"] = "2026-09-22T09:47:36Z"
+        payload = {"total_count": 2, "check_runs": [newer, older]}
+        with mock.patch.object(bootstrap, "request_data", return_value=payload):
+            self.assertEqual(bootstrap.latest_required_check("o/r", "h", "t"), newer)
+
+        same_second_newer_id = check_run("h", check_id=42, conclusion="neutral")
+        same_second_newer_id["started_at"] = newer["started_at"]
+        payload = {"total_count": 2, "check_runs": [newer, same_second_newer_id]}
+        with mock.patch.object(bootstrap, "request_data", return_value=payload):
+            self.assertEqual(bootstrap.latest_required_check("o/r", "h", "t"), same_second_newer_id)
+
+    def test_latest_required_check_multiple_candidates_require_valid_recency(self) -> None:
+        good = check_run("h", check_id=40)
+        good["started_at"] = "2026-09-22T09:42:31Z"
+        for started_at in (None, "", "not-a-time"):
+            bad = check_run("h", check_id=41)
+            bad["started_at"] = started_at
+            with self.subTest(started_at=started_at), mock.patch.object(
+                bootstrap,
+                "request_data",
+                return_value={"total_count": 2, "check_runs": [good, bad]},
+            ):
+                with self.assertRaises(RuntimeError):
+                    bootstrap.latest_required_check("o/r", "h", "t")
+
     def test_latest_required_check_validates_status_conclusion_contract(self) -> None:
         for conclusion in sorted(bootstrap.TERMINAL_CONCLUSIONS):
             good = check_run("h", conclusion=conclusion)

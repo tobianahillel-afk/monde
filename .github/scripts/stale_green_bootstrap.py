@@ -478,29 +478,39 @@ def latest_required_check(repo: str, head: str, token: str) -> dict[str, Any] | 
         raise RuntimeError("GitHub returned incomplete required-check response")
     if total_count == 0:
         return None
-    if total_count != 1:
-        raise RuntimeError(f"GitHub returned {total_count} latest required checks for head {head}; expected exactly one")
-    check = checks[0]
-    app = check.get("app")
-    status = check.get("status")
-    conclusion = check.get("conclusion")
-    if (
-        not _positive_int(check.get("id"))
-        or check.get("name") != REQUIRED_GATE_JOB_NAME
-        or check.get("head_sha") != head
-        or not isinstance(app, dict)
-        or not _positive_int(app.get("id"))
-        or app.get("id") != GITHUB_ACTIONS_APP_ID
-        or app.get("slug") != "github-actions"
-        or status not in CHECK_RUN_STATUSES
-    ):
-        raise RuntimeError("GitHub returned malformed required MONDE Merge Gate check")
-    if status == "completed":
-        if not isinstance(conclusion, str) or conclusion not in TERMINAL_CONCLUSIONS:
-            raise RuntimeError("GitHub returned malformed completed required MONDE Merge Gate check")
-    elif conclusion is not None:
-        raise RuntimeError("GitHub returned incomplete required MONDE Merge Gate check with a conclusion")
-    return check
+
+    seen_ids: set[int] = set()
+    for check in checks:
+        app = check.get("app")
+        status = check.get("status")
+        conclusion = check.get("conclusion")
+        check_id = check.get("id")
+        if (
+            not _positive_int(check_id)
+            or check_id in seen_ids
+            or check.get("name") != REQUIRED_GATE_JOB_NAME
+            or check.get("head_sha") != head
+            or not isinstance(app, dict)
+            or not _positive_int(app.get("id"))
+            or app.get("id") != GITHUB_ACTIONS_APP_ID
+            or app.get("slug") != "github-actions"
+            or status not in CHECK_RUN_STATUSES
+        ):
+            raise RuntimeError("GitHub returned malformed required MONDE Merge Gate check")
+        seen_ids.add(check_id)
+        if status == "completed":
+            if not isinstance(conclusion, str) or conclusion not in TERMINAL_CONCLUSIONS:
+                raise RuntimeError("GitHub returned malformed completed required MONDE Merge Gate check")
+        elif conclusion is not None:
+            raise RuntimeError("GitHub returned incomplete required MONDE Merge Gate check with a conclusion")
+
+    if total_count == 1:
+        return checks[0]
+
+    def recency(check: dict[str, Any]) -> tuple[datetime, int]:
+        return (_timestamp(check.get("started_at"), "required MONDE Merge Gate started_at"), int(check["id"]))
+
+    return max(checks, key=recency)
 
 
 def required_merge_gate_conclusion(repo: str, run: dict[str, Any], token: str) -> str:

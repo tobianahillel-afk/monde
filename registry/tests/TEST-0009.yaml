@@ -10,6 +10,7 @@ protects:
   invariants:
     - "stale merge-acceptable canonical gate is invalidated when current PR review threads are unresolved"
     - "merge-state authority is the exact latest GitHub Actions-owned MONDE / Merge Gate check on the exact head SHA"
+    - "when GitHub filter=latest returns multiple legitimate MONDE / Merge Gate checks from distinct check suites on one unchanged head, every candidate is validated and the newest started_at/check-id candidate is selected deterministically"
     - "rerun authority is positively bound to the current open PR through canonical refs/pull/<N>/merge metadata plus the current merge-ref SHA"
     - "selected-PR target discovery is bounded and durably resumable through scan_pr/scan_page/scan_anchor state rather than a permanently truncated candidate prefix"
     - "offset check-history pagination verifies page-boundary membership both across invocations and between consecutive pages inside one invocation before accepting completeness"
@@ -34,6 +35,7 @@ protects:
     - "if a shared-head sibling becomes clean and its rerun returns green, processing continues safely while respecting the invocation-wide POST cap"
     - "pending PR authority accepts only exact open/closed state; malformed state or changed authority fails closed"
     - "malformed REST, GraphQL, Checks, run, job, scheduler-state, PR, or recovery authority fails closed"
+    - "multiple required-check candidates with duplicate ids, malformed identity, wrong app/name/head, invalid status/conclusion, or missing/unparseable recency metadata fail closed"
 location:
   test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py; .github/scripts/test_stale_green_bootstrap_poll_order.py; .github/scripts/test_stale_green_bootstrap_pr_snapshot.py; .github/scripts/test_stale_green_bootstrap_progress.py; .github/scripts/test_stale_green_bootstrap_progress_fallthrough.py; .github/scripts/test_stale_green_bootstrap_authority.py; .github/scripts/test_stale_green_bootstrap_authority_edges.py; .github/scripts/test_stale_green_bootstrap_authority_shared.py; .github/scripts/test_stale_green_bootstrap_authority_review0046.py; .github/scripts/test_stale_green_bootstrap_authority_review0047.py; .github/scripts/test_stale_green_bootstrap_authority_terminal_wait.py; .github/scripts/test_stale_green_bootstrap_authority_review0048.py; .github/scripts/test_stale_green_bootstrap_authority_review0048_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0048_final.py; .github/scripts/test_stale_green_bootstrap_authority_review0049.py; .github/scripts/test_stale_green_bootstrap_authority_review0049_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0049_final_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0050.py; .github/scripts/test_stale_green_bootstrap_authority_review0050_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0050_recovery.py; .github/scripts/test_stale_green_bootstrap_authority_review0050_recovery_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0051_recovery.py"
   suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
@@ -49,12 +51,14 @@ cases:
   happy_path:
     - "PR-bound direct check -> run -> protected job authority resolves without exhaustive workflow-run history"
     - "live PR #2 probe observes refs/pull/2/merge plus current merge-ref authority and current unresolved-thread state"
+    - "live PR #2 probe remains valid after multiple supported review-triggered MONDE Gate runs create more than one legitimate latest check suite"
     - "durable scheduler cursor advances across bounded head groups and target-history pages with anchored continuation"
     - "write-ahead pending mutation is durably acknowledged before rerun POST and clears only after terminal observation"
     - "closed-origin pending mutation remains observable through exact pending head/run/attempt/check identity"
     - "operator-confirmed unposted intent can be inspected through an exact-tuple read-only path that preserves issue #7 and prints the exact canonical run for manual rerun"
   edge_cases:
     - "multiple open PRs share one SHA with divergent or changing review-thread state"
+    - "review/review-comment reruns create multiple legitimate MONDE / Merge Gate check suites for one unchanged head SHA"
     - "selected rerun completes merge-acceptable while the PR becomes unresolved again before final observation"
     - "another actor reruns the same workflow between discovery and this invocation's mutation"
     - "selected PR target lies behind more than twelve newer sibling checks"
@@ -129,6 +133,7 @@ execution:
     - "Bootstrap #159 live PR #2 GitHub contract probe SUCCESS under read-only Actions/Checks/Contents/PullRequests permissions at 7/100 requests"
     - "Bootstrap #159 pending-recovery job is skipped on pull_request events; REVIEW-0051 workflow regression proves recovery has actions:read + issues:read and neither actions:write nor issues:write"
     - "REVIEW-0050 author-side PRR_kwDOUUI5ts8AAAABN7LvGQ invalidated recovery clear semantics; REVIEW-0051 candidate removes recovery state mutation entirely while preserving prior V5 poll behavior"
+    - "Bootstrap #163 rehearsal reproduced a live multi-check failure on PR #2; rehearsal Bootstrap #166 proved the selector correction at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch, and live PR #2 probe SUCCESS"
 coverage:
   line_contribution: 100
   branch_contribution: 100
