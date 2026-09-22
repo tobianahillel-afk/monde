@@ -472,7 +472,6 @@ def latest_required_check(repo: str, head: str, token: str) -> dict[str, Any] | 
         token,
         "check_runs",
         require_total_count=True,
-        unique_id_field="id",
     )
     if not checks:
         return None
@@ -502,7 +501,7 @@ def latest_required_check(repo: str, head: str, token: str) -> dict[str, Any] | 
         elif conclusion is not None:
             raise RuntimeError("GitHub returned incomplete required MONDE Merge Gate check with a conclusion")
 
-    if total_count == 1:
+    if len(checks) == 1:
         return checks[0]
 
     def recency(check: dict[str, Any]) -> tuple[datetime, int]:

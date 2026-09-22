@@ -367,10 +367,10 @@ class BootstrapPollTests(unittest.TestCase):
         newest["started_at"] = "2026-09-22T10:59:59Z"
 
         def response(url: str, _token: str):
-            if "page=1" in url:
-                return {"total_count": 101, "check_runs": checks[:100]}
-            if "page=2" in url:
+            if "&page=2" in url:
                 return {"total_count": 101, "check_runs": checks[100:]}
+            if "&page=1" in url:
+                return {"total_count": 101, "check_runs": checks[:100]}
             raise AssertionError(url)
 
         with mock.patch.object(bootstrap, "request_data", side_effect=response) as request:
@@ -393,7 +393,7 @@ class BootstrapPollTests(unittest.TestCase):
             (
                 {"total_count": 101, "check_runs": first},
                 {"total_count": 101, "check_runs": [dict(first[-1])]},
-                "duplicate paginated record identity",
+                "malformed required MONDE",
             ),
             (
                 {"total_count": 101, "check_runs": first},
