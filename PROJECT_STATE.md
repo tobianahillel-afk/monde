@@ -158,13 +158,13 @@ REVIEW-0057 must add bounded membership drift detection to filtered required-che
 
 ## REVIEW-0057 — drift-detecting required-check pagination successor
 
-REVIEW-0057 is now **OPEN** after exact technical proof on `7ca3c1b3dfa6d1b55c73d3efb41eb290fd43f07d`.
+REVIEW-0057 is now **IN_PROGRESS** after exact technical proof on `7ca3c1b3dfa6d1b55c73d3efb41eb290fd43f07d` and OPEN checkpoint proof on `e9bab74e5a2f45379d8271e0f761d63af0ab15f5`.
 
 Bootstrap #208 / run `35754043037` passed **227/227 tests**, **2,039 statements / 900 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
 The correction extends the shared bounded paginator with optional previous-page stability verification. For filtered required checks, after each additional page fetch the immediately previous page is re-read and its exact ordered integer IDs plus `total_count` are compared against the earlier snapshot. Count-stable insert/delete/reorder drift therefore fails closed instead of silently omitting a newly-created effective check.
 
-This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0057 may transition to `IN_PROGRESS`.
+Bootstrap #209 / run `35758466500` proved the OPEN checkpoint at **227/227 tests**, **2,039 statements / 900 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
 ## Current next action
 
@@ -174,7 +174,7 @@ This OPEN checkpoint must now receive its own exact-head Bootstrap proof before 
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0057 technical candidate is proved via Bootstrap #208 and REVIEW-0057 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
+7. REVIEW-0057 OPEN proof is complete via Bootstrap #209 and REVIEW-0057 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
