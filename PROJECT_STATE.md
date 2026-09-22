@@ -200,7 +200,7 @@ Bootstrap #220 / run `35794235973` passed **245/245 tests**, **2,151 statements 
 
 The proof boundary no longer treats paginated check-runs as a linearizable authority snapshot. They remain conservative candidate discovery only. A merge-acceptable candidate is rebound to its exact canonical MONDE workflow run, protected job and current attempt, then compared against all canonical same-head runs created no later than a timestamp frontier captured after discovery. Any newer canonical run before that frontier makes authority fail closed; runs created after the frontier are outside the chosen linearization point. Filtered-search limits are handled by bounded time-range splitting with duplicate/malformed identity rejection.
 
-Bootstrap #221 / run `35797915783` proved the OPEN checkpoint at **245/245 tests**, **2,151 statements / 942 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
+Bootstrap #221 / run `35797915783` proved the OPEN checkpoint at **245/245 tests**, **2,151 statements / 942 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. Lifecycle transition commit `70079015e492ac0661397001e1bb76eb5792fa89` moved REVIEW-0059 to `IN_PROGRESS`; this state-only descendant is the frozen exact-head proof checkpoint and must pass Bootstrap before any fresh independent L2 is requested.
 
 ## Current next action
 
