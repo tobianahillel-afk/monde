@@ -139,9 +139,6 @@ def _prove_candidate_attempt_frontier(
         raise RuntimeError("candidate required check disagrees with protected job start identity")
     if direct_job.get("conclusion") != candidate.get("conclusion"):
         raise RuntimeError("candidate required check disagrees with protected job conclusion")
-    if direct_job_started > frontier:
-        raise RuntimeError("candidate protected MONDE Gate job started after authority frontier")
-
     rows = _attempt_frontier_runs(repo, head, token, frontier)
     if not rows:
         raise RuntimeError("candidate canonical MONDE Gate run is absent from attempt frontier")

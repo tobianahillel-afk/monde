@@ -204,6 +204,177 @@ class Review0060AttemptAuthorityTests(unittest.TestCase):
         self.assertEqual(bounded.call_args.args[3], subject._ACTIONS_EPOCH)
         self.assertEqual(bounded.call_args.args[4], FRONTIER)
 
+    def test_protected_gate_job_fail_closed_shapes(self) -> None:
+        good_run = run_row(
+            101, 10,
+            created_at="2026-09-22T20:00:00Z",
+            run_started_at="2026-09-22T20:01:00Z",
+            updated_at="2026-09-22T20:10:00Z",
+        )
+        bad_id_run = dict(good_run)
+        bad_id_run["id"] = True
+        with self.assertRaisesRegex(RuntimeError, "malformed canonical MONDE Gate run id"):
+            subject._protected_gate_job("o/r", "t", bad_id_run, HEAD)
+
+        nongate = gate_job(700, 101, started_at="2026-09-22T20:02:00Z")
+        nongate["name"] = "CodeQL"
+        with mock.patch.object(core, "paged", return_value=[nongate]):
+            with self.assertRaisesRegex(RuntimeError, "exposes 0"):
+                subject._protected_gate_job("o/r", "t", good_run, HEAD)
+
+        malformed = gate_job(501, 101, started_at="2026-09-22T20:02:00Z")
+        malformed["run_attempt"] = 2
+        with mock.patch.object(core, "paged", return_value=[malformed]):
+            with self.assertRaisesRegex(RuntimeError, "malformed current protected"):
+                subject._protected_gate_job("o/r", "t", good_run, HEAD)
+
+        bad_completed = gate_job(501, 101, started_at="2026-09-22T20:02:00Z")
+        bad_completed["conclusion"] = "mystery"
+        with mock.patch.object(core, "paged", return_value=[bad_completed]):
+            with self.assertRaisesRegex(RuntimeError, "malformed completed"):
+                subject._protected_gate_job("o/r", "t", good_run, HEAD)
+
+        active = gate_job(
+            501, 101,
+            started_at="2026-09-22T20:02:00Z",
+            status="in_progress",
+            conclusion=None,
+        )
+        active["conclusion"] = "success"
+        with mock.patch.object(core, "paged", return_value=[active]):
+            with self.assertRaisesRegex(RuntimeError, "incomplete current"):
+                subject._protected_gate_job("o/r", "t", good_run, HEAD)
+
+        reversed_lifetime = gate_job(501, 101, started_at="2026-09-22T20:09:00Z")
+        reversed_lifetime["completed_at"] = "2026-09-22T20:08:00Z"
+        with mock.patch.object(core, "paged", return_value=[reversed_lifetime]):
+            with self.assertRaisesRegex(RuntimeError, "invalid lifetime"):
+                subject._protected_gate_job("o/r", "t", good_run, HEAD)
+
+        active_completed_at = gate_job(
+            501, 101,
+            started_at="2026-09-22T20:02:00Z",
+            status="in_progress",
+            conclusion=None,
+        )
+        active_completed_at["completed_at"] = "2026-09-22T20:03:00Z"
+        with mock.patch.object(core, "paged", return_value=[active_completed_at]):
+            with self.assertRaisesRegex(RuntimeError, "with completed_at"):
+                subject._protected_gate_job("o/r", "t", good_run, HEAD)
+
+    def test_attempt_authority_key_and_direct_payload_guards(self) -> None:
+        bad_job = gate_job(501, 101, started_at="2026-09-22T20:02:00Z")
+        bad_job["id"] = True
+        with self.assertRaisesRegex(RuntimeError, "protected MONDE Gate job id"):
+            subject._attempt_authority_key(bad_job)
+
+        candidate = candidate_check()
+        with mock.patch.object(core, "request_data", return_value=[]):
+            with self.assertRaisesRegex(RuntimeError, "malformed candidate canonical"):
+                subject._prove_candidate_attempt_frontier("o/r", HEAD, "t", candidate, FRONTIER)
+
+        run_a = run_row(
+            101, 10, attempt=2,
+            created_at="2026-09-22T20:00:00Z",
+            run_started_at="2026-09-22T21:00:00Z",
+            updated_at="2026-09-22T21:10:00Z",
+        )
+        with mock.patch.object(core, "request_data", side_effect=[run_a, []]):
+            with self.assertRaisesRegex(RuntimeError, "malformed candidate protected"):
+                subject._prove_candidate_attempt_frontier("o/r", HEAD, "t", candidate, FRONTIER)
+
+    def test_frontier_collection_guards(self) -> None:
+        candidate = candidate_check()
+        run_a = run_row(
+            101, 10, attempt=2,
+            created_at="2026-09-22T20:00:00Z",
+            run_started_at="2026-09-22T21:00:00Z",
+            updated_at="2026-09-22T21:10:00Z",
+        )
+        job_a = gate_job(501, 101, attempt=2, started_at="2026-09-22T21:01:00Z")
+
+        def direct_request(url: str, _token: str):
+            return run_a if url.endswith("/actions/runs/101") else job_a
+
+        with (
+            mock.patch.object(core, "request_data", side_effect=direct_request),
+            mock.patch.object(subject, "_attempt_frontier_runs", return_value=[]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "absent from attempt frontier"):
+                subject._prove_candidate_attempt_frontier("o/r", HEAD, "t", candidate, FRONTIER)
+
+        malformed_row = dict(run_a)
+        malformed_row["id"] = True
+        with (
+            mock.patch.object(core, "request_data", side_effect=direct_request),
+            mock.patch.object(subject, "_attempt_frontier_runs", return_value=[malformed_row]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "frontier run id"):
+                subject._prove_candidate_attempt_frontier("o/r", HEAD, "t", candidate, FRONTIER)
+
+        post_frontier = dict(run_a)
+        post_frontier["run_started_at"] = "2026-09-22T21:31:00Z"
+        post_frontier["updated_at"] = "2026-09-22T21:40:00Z"
+        with (
+            mock.patch.object(core, "request_data", side_effect=direct_request),
+            mock.patch.object(subject, "_attempt_frontier_runs", return_value=[post_frontier]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "current attempt started after"):
+                subject._prove_candidate_attempt_frontier("o/r", HEAD, "t", candidate, FRONTIER)
+
+        other = run_row(
+            102, 11,
+            created_at="2026-09-22T20:10:00Z",
+            run_started_at="2026-09-22T20:10:00Z",
+            updated_at="2026-09-22T21:40:00Z",
+        )
+        other_job = gate_job(502, 102, started_at="2026-09-22T21:31:00Z")
+        def paged(url: str, *_args, **_kwargs):
+            return [other_job] if "/102/jobs" in url else [job_a]
+        with (
+            mock.patch.object(core, "request_data", side_effect=direct_request),
+            mock.patch.object(core, "paged", side_effect=paged),
+            mock.patch.object(subject, "_attempt_frontier_runs", return_value=[run_a, other]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "protected job started after"):
+                subject._prove_candidate_attempt_frontier("o/r", HEAD, "t", candidate, FRONTIER)
+
+        unrelated = run_row(
+            102, 11,
+            created_at="2026-09-22T20:10:00Z",
+            run_started_at="2026-09-22T20:10:00Z",
+            updated_at="2026-09-22T20:20:00Z",
+        )
+        unrelated_job = gate_job(502, 102, started_at="2026-09-22T20:11:00Z")
+        def only_other(url: str, *_args, **_kwargs):
+            return [unrelated_job]
+        with (
+            mock.patch.object(core, "request_data", side_effect=direct_request),
+            mock.patch.object(core, "paged", side_effect=only_other),
+            mock.patch.object(subject, "_attempt_frontier_runs", return_value=[unrelated]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "absent or ambiguous"):
+                subject._prove_candidate_attempt_frontier("o/r", HEAD, "t", candidate, FRONTIER)
+
+    def test_main_recovery_guards(self) -> None:
+        with (
+            mock.patch.object(subject, "install"),
+            mock.patch.dict(os.environ, {"BOOTSTRAP_RECOVERY_ACTION": "bad"}, clear=True),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unsupported bootstrap recovery action"):
+                subject.main()
+
+        with (
+            mock.patch.object(subject, "install"),
+            mock.patch.dict(
+                os.environ,
+                {"BOOTSTRAP_RECOVERY_ACTION": subject.RECOVERY_ACTION},
+                clear=True,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "GITHUB_REPOSITORY and GITHUB_TOKEN"):
+                subject.main()
+
     def test_install_and_main_guards(self) -> None:
         with mock.patch.object(previous, "install") as install:
             subject.install()
