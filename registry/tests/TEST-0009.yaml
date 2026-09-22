@@ -138,9 +138,11 @@ external_import:
   authorization_source: null
   import_commit: null
 execution:
+    - "Bootstrap #213 / run 35775861240: 229/229 tests PASS; 2052 statements / 906 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #213 proves stable 3-page final all-page revalidation and detects late page-1 drift after its first adjacent revalidation before effective-check selection"
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-22"
-  commit_sha: "7ca3c1b3dfa6d1b55c73d3efb41eb290fd43f07d"
+  commit_sha: "4b4d1ae6ec4815e7967f72023f2db63272e1c144"
   result: PASS
   evidence:
     - "Bootstrap #168 / run 35715152696: 202/202 tests PASS"

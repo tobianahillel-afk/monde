@@ -61,7 +61,7 @@ reuses: ["status vocabulary", "registry contracts", "Review Council and assuranc
 affected_capabilities: []
 affected_engines: []
 affected_schemas: []
-affected_docs: [PROJECT_STATE.md, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml]
+affected_docs: [PROJECT_STATE.md, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml]
 contracts: ["repository governance validation", "GitHub control-plane merge gate", "AI context routing"]
 adrs: []
 
@@ -228,7 +228,7 @@ validation:
     - "REVIEW-0055 is CLOSED/CHANGES_REQUIRED on exact head c294f6f663424d13d3534a8b7cc5131878936c31 after PRR_kwDOUUI5ts8AAAABOr4qTA proved ambiguous acknowledgement of the initial pending PATCH can leave remote pending state while local pending_active remains false; no independent REVIEW-0055 L2 ran."
     - "REVIEW-0056 is CLOSED/CHANGES_REQUIRED on exact head e83eea9d48b7f42539575dda52e205211d261948 after PRR_kwDOUUI5ts8AAAABOsEGIw proved that filtered required-check offset pagination can silently miss a newly-created effective check under insert/delete drift with unchanged total_count and no duplicate IDs; no independent REVIEW-0056 L2 ran."
     - "REVIEW-0057 is CLOSED/CHANGES_REQUIRED on exact head 33f24d354f513f4b925f0b1f56ad8775da8b8ab2 after PRR_kwDOUUI5ts8AAAABOtCssw proved adjacent-only drift revalidation is insufficient for 3+ page traversals; no independent REVIEW-0057 L2 ran."
-    - "REVIEW-0058 successor is not yet opened; it must preserve all prior fixes while adding bounded final stability revalidation of every fetched page before authority selection."
+    - "REVIEW-0058 technical candidate 4b4d1ae6ec4815e7967f72023f2db63272e1c144 passed Bootstrap #213 / run 35775861240 at 229/229 tests, 2052 statements / 906 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; REVIEW-0058 is now OPEN pending exact-head OPEN checkpoint proof."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -265,6 +265,7 @@ run_log:
   - "REVIEW-0057 drift-detection candidate 7ca3c1b3dfa6d1b55c73d3efb41eb290fd43f07d passed Bootstrap #208 / run 35754043037 at 227/227 tests, 2039 statements / 900 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0057 opened only after this proof."
   - "REVIEW-0057 OPEN checkpoint e9bab74e5a2f45379d8271e0f761d63af0ab15f5 passed Bootstrap #209 / run 35758466500 at 227/227 tests, 2039 statements / 900 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
   - "REVIEW-0057 frozen head 33f24d354f513f4b925f0b1f56ad8775da8b8ab2 passed Bootstrap #210 / run 35758795593 at 227/227 tests, 2039 statements / 900 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5780742232, then author-side PRR_kwDOUUI5ts8AAAABOtCssw exposed late drift of an already-revalidated earlier page in a 3+ page traversal."
+  - "REVIEW-0058 final-snapshot candidate 4b4d1ae6ec4815e7967f72023f2db63272e1c144 passed Bootstrap #213 / run 35775861240 at 229/229 tests, 2052 statements / 906 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0058 opened only after this proof."
 
 discoveries:
   - "A break-glass clear based on non-atomic GET revalidation cannot exclude an external rerun starting before the clear commits."
@@ -272,7 +273,7 @@ discoveries:
 
 blockers:
   - "REVIEW-0057 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0057 approval."
-  - "Implement and exact-head prove end-of-traversal stability revalidation for every fetched required-check page, then open REVIEW-0058 before any fresh independent L2."
+  - "REVIEW-0058 technical candidate is proved; prove the OPEN checkpoint exact-head before transitioning REVIEW-0058 to IN_PROGRESS."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."
