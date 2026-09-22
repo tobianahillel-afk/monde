@@ -48,8 +48,12 @@ class Review0054PendingRetentionTests(unittest.TestCase):
         current = pr(1, branch="shared", head="shared-head")
         latest = check(601, 201)
         target = (gate_run(101, 1), check(501, 101))
-        subject.install()
         with (
+            mock.patch.object(
+                observation,
+                "_wait_for_terminal_invalidation",
+                subject._pending_preserving_wait,
+            ),
             mock.patch.object(pending.core, "latest_required_check", return_value=latest),
             mock.patch.object(pending.core, "unresolved_review_threads", return_value=True),
             mock.patch.object(pending.previous, "_direct_target_for_pr", return_value=(target, None)),
@@ -131,10 +135,15 @@ class Review0054PendingRetentionTests(unittest.TestCase):
         inspect.assert_called_once_with("o/r", "t")
 
     def test_module_entrypoint(self) -> None:
-        with mock.patch.object(subject, "main", return_value=0):
+        with (
+            mock.patch.object(previous, "install") as predecessor_install,
+            mock.patch.object(base, "main", return_value=0),
+            mock.patch.dict(os.environ, {}, clear=True),
+        ):
             with self.assertRaises(SystemExit) as raised:
-                runpy.run_module(subject.__name__, run_name="__main__")
+                runpy.run_path(subject.__file__, run_name="__main__")
         self.assertEqual(raised.exception.code, 0)
+        predecessor_install.assert_called_once_with()
 
 
 if __name__ == "__main__":

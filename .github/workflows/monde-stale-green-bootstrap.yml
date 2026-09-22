@@ -168,4 +168,4 @@ jobs:
           BOOTSTRAP_RECOVERY_CHECK_ID: ${{ inputs.recovery_check_id }}
           BOOTSTRAP_RECOVERY_CONFIRMATION: ${{ inputs.recovery_confirmation }}
           BOOTSTRAP_RECOVERY_REASON: ${{ inputs.recovery_reason }}
-        run: python3 .github/scripts/stale_green_bootstrap_authority_review0054.py
+        run: python3 .github/scripts/stale_green_bootstrap_authority_review0051_recovery.py
