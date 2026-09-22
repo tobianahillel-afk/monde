@@ -94,8 +94,10 @@ T11 now enforces that:
 
 ## WORK-0002 execution state
 
-- T1, T2, T3, T5, T6, T7, T8, T9, T10 and **T11** are DONE for their author-side scopes.
-- **T4 — exact final-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`.**
+- T1, T2, T3, T5, T6, T7, T8, T9, T10, **T11** and **T13** are DONE for their author-side scopes.
+- **T12 — trusted default-branch stale-green predecessor on PR #5 — remains `IN_REVIEW`** pending independent acceptance/integration.
+- T13 is the canonical name for the five branch-local corrections previously carried by files named `t12`; those artifacts are renamed to `t13` so T12 has one durable meaning.
+- **T4 — exact final-integrated-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`.**
 - WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
 - Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` after exact author-side T11 proof and this refreshed handover.
 - `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending independent closure.
@@ -106,9 +108,9 @@ Required sequence from this state:
 
 1. Keep all **73** material review threads unresolved.
 2. Prove this exact durable-state synchronization HEAD with its own MONDE Gate and require exact durable/live **73/73 PRRT identity equality**.
-3. Keep PRRT_kwDOUUI5ts6ijUTn open until PR #5's trusted default-branch stale-green predecessor is independently accepted and integrated; do not substitute PR #2's own cron because scheduled workflows execute only from the default branch.
+3. Keep T12 / PRRT_kwDOUUI5ts6ijUTn open until PR #5's trusted default-branch stale-green predecessor is independently accepted and integrated; do not substitute PR #2's own cron because scheduled workflows execute only from the default branch. T13 already denotes the five corrected branch-local findings.
 4. After PR #5 integration, rerun the full governance gate on the resulting two-parent PR #2 head.
-5. Request another **fresh-context independent L2** on that exact proven integrated HEAD. It must reverify all 73 accumulated findings plus integration effects, explicitly recheck T11/T12 and the T7/T8/T9/T10 trust-anchor, lifecycle, import/finalization, authority, identity-policy history, exact-head approval, reopening, raw-blob scanning, workflow-structure and durable-thread invariants, and actively search for new bypasses.
+5. Request another **fresh-context independent L2** on that exact proven integrated HEAD. It must reverify all 73 accumulated findings plus integration effects, explicitly recheck T11/T12/T13 and the T7/T8/T9/T10 trust-anchor, lifecycle, import/finalization, authority, identity-policy history, exact-head approval, reopening, raw-blob scanning, workflow-structure and durable-thread invariants, and actively search for new bypasses.
 6. If new material findings appear, reopen affected work/evidence again and add their exact identities durably; do not resolve existing threads.
 7. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD satisfying the hardened trusted/context-separated L2/L3 contract.
 8. Only after independent semantic verification and trusted exact-head approval may independently verified threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
@@ -144,6 +146,6 @@ Product specification and product identity remain owner-gated decisions. Agents 
 12. `.github/workflows/governance.yml`, `.github/workflows/_governance-core.yml`
 13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `t11_closure.py`, `github_live_gate.py`, `thread_state_poll.py`
 14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_t11_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`
-15. `tests/governance/test_t11_findings.py`, `test_t11_additional_coverage.py`, `test_thread_state_poll.py` and prior T7/T8/T9/T10 regression suites
+15. `tests/governance/test_t11_findings.py`, `test_t11_additional_coverage.py`, `test_t13_findings.py`, `test_thread_state_poll.py` and prior T7/T8/T9/T10 regression suites
 
 No prior chat history is required.

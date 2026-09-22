@@ -241,9 +241,10 @@ implementation_plan:
     - T2
     status: DONE
   - id: T4
-    description: Prove the substantive final HEAD in GitHub and complete independent review, including all fresh Codex findings.
+    description: Prove the substantive final integrated HEAD in GitHub and complete independent review, including all fresh Codex findings and the trusted default-branch bridge.
     depends_on:
-    - T11
+    - T12
+    - T13
     status: IN_PROGRESS
   - id: T5
     description: Correct REVIEW-0030 findings, close the duplicate-key YAML parser gap and add regression/mutation protection.
@@ -280,6 +281,16 @@ implementation_plan:
     depends_on:
     - T10
     status: DONE
+  - id: T12
+    description: Pre-deploy and independently prove the trusted default-branch stale-green bridge required to close PRRT_kwDOUUI5ts6ijUTn before final PR #2 closure.
+    depends_on:
+    - T3
+    status: IN_REVIEW
+  - id: T13
+    description: Correct the five branch-local findings from PRR_kwDOUUI5ts8AAAABNppdkQ covering PR-family poll events, ambiguous first-status materialization, terminal import binding, executable command proof and active-work binding.
+    depends_on:
+    - T11
+    status: DONE
   planned_runs:
   - id: RUN-1
     objective: Initial deterministic governance implementation
@@ -302,6 +313,8 @@ implementation_plan:
     - T9
     - T10
     - T11
+    - T12
+    - T13
     - T4
     status: IN_PROGRESS
 review_plan:
@@ -545,6 +558,7 @@ validation:
   - Repository administration/ruleset enforcement belongs to WORK-0003.
   - Gate #201 is the exact substantive T11 author-side proof on 5e7af51bcc08698de930eed5dba62ab9ba3e74af; this durable-state synchronization commit changes HEAD and therefore requires its own exact-SHA Gate before fresh independent review.
   - All 73 live material review threads/findings remain intentionally unresolved pending another fresh independent verification; no author-side resolution counts as completion evidence.
+  - Canonical task identity is now explicit: T12 is reserved for the trusted default-branch stale-green predecessor on PR #5, while T13 names the five branch-local corrections already implemented on PR #2. Historical filenames using t12 for that local correction wave are renamed to t13 without changing behavior.
   - Gate #228 / run 34997568781 on exact HEAD 4046e03b1e00a2051d29ccd6dcf5f0af7426259a proved 357/357 tests and 100% coverage, then correctly reported six durable IDs missing from the 73-thread live set.
   - Five of those six later-review findings are already represented by current code: PR-family review events are included in thread polling; ambiguous first-status materializations are rejected; terminal external imports without binding are rejected; workflow command wiring is parsed as executable argv; and live closure work is resolved dynamically rather than hard-coded to WORK-0002.
   - PRRT_kwDOUUI5ts6ijUTn remains structurally dependent on the trusted default-branch stale-green predecessor being delivered by PR #5 before PR #2 can close.
@@ -608,6 +622,9 @@ run_log:
 - run: RUN-3
   date: '2026-09-22'
   note: 'Cold live preflight found 73 unresolved PR #2 review threads while WORK-0002 durably listed 67. Gate #228 / run 34997568781 on exact HEAD 4046e03b1e00a2051d29ccd6dcf5f0af7426259a confirmed missing=[PRRT_kwDOUUI5ts6ijUT4, PRRT_kwDOUUI5ts6ijUTn, PRRT_kwDOUUI5ts6ijUUC, PRRT_kwDOUUI5ts6ijUUK, PRRT_kwDOUUI5ts6ijUUV, PRRT_kwDOUUI5ts6ijUUf], stale=[], with 357/357 deterministic tests and 100% coverage. Five findings are already represented by current code; PRRT_kwDOUUI5ts6ijUTn requires the trusted default-branch predecessor from PR #5. This synchronization adds all six IDs without resolving any thread.'
+- run: RUN-3
+  date: '2026-09-22'
+  note: 'Task-ID collision preflight reserved T12 for the PR #5 trusted default-branch stale-green predecessor and renamed the existing five-finding PR #2 correction wave and its mutation/test artifacts to T13. This is an identity/traceability refactor only; the five branch-local corrections remain unchanged and T13 is DONE author-side, while T12 remains IN_REVIEW until PR #5 obtains independent acceptance and is integrated.'
 discoveries:
 - 100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required.
 - GitHub live state can invalidate stale PROJECT_STATE prose after it is committed.
@@ -638,8 +655,9 @@ discoveries:
 - Effective workflow semantics must be validated from parsed YAML structure rather than textual snippets that comments or formatting can mimic.
 blockers:
 - All 73 live review findings remain intentionally unresolved. This durable-state synchronization must pass its own exact-SHA Gate and establish 73/73 durable/live identity equality.
-- PRRT_kwDOUUI5ts6ijUTn cannot be considered closed until the trusted default-branch stale-green predecessor from PR #5 is independently accepted and merged/integrated.
-- After that predecessor is integrated, T4 requires a fresh independent exact-head L2 over the complete 73-thread set plus any integration findings, and a trusted context-separated L2/L3 exact-head APPROVED review before any closure or merge.
+- T12 / PRRT_kwDOUUI5ts6ijUTn cannot be considered closed until the trusted default-branch stale-green predecessor from PR #5 is independently accepted and merged/integrated.
+- T13 is DONE author-side for the five branch-local findings but remains subject to final exact-head independent re-verification.
+- After T12 is integrated, T4 requires a fresh independent exact-head L2 over the complete 73-thread set plus any integration findings, and a trusted context-separated L2/L3 exact-head APPROVED review before any closure or merge.
 follow_up_work_items:
 - WORK-0003
 - WORK-0004

@@ -23,7 +23,7 @@ omit = [
   ".github/scripts/governance_l2_mutation_smoke.py",
   ".github/scripts/governance_t10_mutation_smoke.py",
   ".github/scripts/governance_t11_mutation_smoke.py",
-  ".github/scripts/governance_t12_mutation_smoke.py",
+  ".github/scripts/governance_t13_mutation_smoke.py",
 ]
 
 [tool.coverage.report]
