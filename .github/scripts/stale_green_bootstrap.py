@@ -467,16 +467,14 @@ def latest_required_check(repo: str, head: str, token: str) -> dict[str, Any] | 
             "per_page": 100,
         }
     )
-    payload = request_data(f"https://api.github.com/repos/{repo}/commits/{head}/check-runs?{query}", token)
-    if not isinstance(payload, dict):
-        raise RuntimeError("GitHub returned malformed required-check response")
-    total_count = payload.get("total_count")
-    checks = payload.get("check_runs")
-    if type(total_count) is not int or total_count < 0 or not isinstance(checks, list):
-        raise RuntimeError("GitHub returned malformed required-check response")
-    if any(not isinstance(check, dict) for check in checks) or len(checks) != total_count:
-        raise RuntimeError("GitHub returned incomplete required-check response")
-    if total_count == 0:
+    checks = paged(
+        f"https://api.github.com/repos/{repo}/commits/{head}/check-runs?{query}",
+        token,
+        "check_runs",
+        require_total_count=True,
+        unique_id_field="id",
+    )
+    if not checks:
         return None
 
     seen_ids: set[int] = set()

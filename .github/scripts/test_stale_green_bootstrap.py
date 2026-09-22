@@ -357,6 +357,57 @@ class BootstrapPollTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "malformed required MONDE"):
                     bootstrap.latest_required_check("o/r", "h", "t")
 
+    def test_latest_required_check_paginates_complete_filtered_collection(self) -> None:
+        checks = []
+        for check_id in range(1, 102):
+            item = check_run("h", check_id=check_id)
+            item["started_at"] = f"2026-09-22T09:{check_id % 60:02d}:00Z"
+            checks.append(item)
+        newest = checks[-1]
+        newest["started_at"] = "2026-09-22T10:59:59Z"
+
+        def response(url: str, _token: str):
+            if "page=1" in url:
+                return {"total_count": 101, "check_runs": checks[:100]}
+            if "page=2" in url:
+                return {"total_count": 101, "check_runs": checks[100:]}
+            raise AssertionError(url)
+
+        with mock.patch.object(bootstrap, "request_data", side_effect=response) as request:
+            self.assertEqual(bootstrap.latest_required_check("o/r", "h", "t"), newest)
+        urls = [call.args[0] for call in request.call_args_list]
+        self.assertEqual(len(urls), 2)
+        self.assertIn("page=1", urls[0])
+        self.assertIn("page=2", urls[1])
+
+    def test_latest_required_check_pagination_fails_closed_on_drift_and_cross_page_duplicate(self) -> None:
+        first = [check_run("h", check_id=i) for i in range(1, 101)]
+        second = check_run("h", check_id=101)
+
+        cases = [
+            (
+                {"total_count": 101, "check_runs": first},
+                {"total_count": 102, "check_runs": [second]},
+                "inconsistent paginated total_count",
+            ),
+            (
+                {"total_count": 101, "check_runs": first},
+                {"total_count": 101, "check_runs": [dict(first[-1])]},
+                "duplicate paginated record identity",
+            ),
+            (
+                {"total_count": 101, "check_runs": first},
+                {"total_count": 101, "check_runs": []},
+                "incomplete paginated collection",
+            ),
+        ]
+        for page1, page2, message in cases:
+            with self.subTest(message=message):
+                responses = iter([page1, page2])
+                with mock.patch.object(bootstrap, "request_data", side_effect=lambda *_args: next(responses)):
+                    with self.assertRaisesRegex(RuntimeError, message):
+                        bootstrap.latest_required_check("o/r", "h", "t")
+
     def test_latest_required_check_selects_newest_legitimate_check_across_suites(self) -> None:
         older = check_run("h", check_id=40)
         older["started_at"] = "2026-09-22T09:42:31Z"

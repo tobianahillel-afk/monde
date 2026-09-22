@@ -11,6 +11,7 @@ protects:
     - "stale merge-acceptable canonical gate is invalidated when current PR review threads are unresolved"
     - "merge-state authority is the exact latest GitHub Actions-owned MONDE / Merge Gate check on the exact head SHA"
     - "when GitHub filter=latest returns multiple legitimate MONDE / Merge Gate checks from distinct check suites on one unchanged head, every candidate is validated and the newest started_at/check-id candidate is selected deterministically"
+    - "filtered required-check authority is collected completely across bounded 100-record pages before selecting an effective check; total-count drift, cross-page duplicate ids, incomplete pages or pagination beyond the configured bound fail closed"
     - "rerun authority is positively bound to the current open PR through canonical refs/pull/<N>/merge metadata plus the current merge-ref SHA"
     - "selected-PR target discovery is bounded and durably resumable through scan_pr/scan_page/scan_anchor state rather than a permanently truncated candidate prefix"
     - "offset check-history pagination verifies page-boundary membership both across invocations and between consecutive pages inside one invocation before accepting completeness"
@@ -59,6 +60,7 @@ cases:
   edge_cases:
     - "multiple open PRs share one SHA with divergent or changing review-thread state"
     - "review/review-comment reruns create multiple legitimate MONDE / Merge Gate check suites for one unchanged head SHA"
+    - "one unchanged head accumulates more than 100 legitimate MONDE / Merge Gate check suites and the effective check lies beyond page 1"
     - "selected rerun completes merge-acceptable while the PR becomes unresolved again before final observation"
     - "another actor reruns the same workflow between discovery and this invocation's mutation"
     - "selected PR target lies behind more than twelve newer sibling checks"
@@ -84,6 +86,7 @@ cases:
     - "operator recovery inspection tuple, confirmation, reason, run attempt, or prior check identity is malformed or stale; inspection refuses without changing durable state"
     - "no canonical target exists after complete selected-PR check-history traversal"
     - "request budget cannot preserve reserved mutation/post-condition/state-write headroom"
+    - "filtered required-check pagination changes total_count between pages, repeats a check id across pages, returns a short incomplete page, or exceeds the bounded page limit"
   adversarial_cases:
     - "historically deep target history advances through durable selected-PR continuation and restarts safely when membership drifts"
     - "same-invocation page deletion/insertion/reordering cannot make an offset scan silently skip the only PR-bound target"
