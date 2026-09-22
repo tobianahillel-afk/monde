@@ -122,13 +122,13 @@ REVIEW-0055 must protect the complete interval from acknowledged pending write u
 
 ## REVIEW-0055 — full pending-lifetime successor
 
-REVIEW-0055 is now **OPEN** after exact technical proof on `ec5cbddfc7f1760dac094cb227c093499c71cd9a`.
+REVIEW-0055 is now **IN_PROGRESS** after exact technical proof on `ec5cbddfc7f1760dac094cb227c093499c71cd9a` and OPEN checkpoint proof on `e1b420eb2cac2a4f950aeae0aa1d9b0a1f404c8a`.
 
 Bootstrap #197 / run `35737368210` passed **217/217 tests**, **1,969 statements / 870 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
 The successor adds a narrow process adapter above the existing REVIEW-0054 chain. It tracks only acknowledged scheduler writes during one `_process_head_group()` call: after a pending write is durably acknowledged, generic `RuntimeError` is promoted to `PendingMutationUncertain` until a safe clear is itself durably acknowledged. Pre-pending errors and errors after confirmed clear retain ordinary behavior. Existing `PendingMutationObservation` / `PendingMutationUncertain` are rethrown unchanged.
 
-This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0055 may transition to `IN_PROGRESS`.
+Bootstrap #198 / run `35737725013` proved the OPEN checkpoint at **217/217 tests**, **1,969 statements / 870 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
 ## Current next action
 
@@ -138,7 +138,7 @@ This OPEN checkpoint must now receive its own exact-head Bootstrap proof before 
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0055 technical candidate is proved via Bootstrap #197 and REVIEW-0055 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
+7. REVIEW-0055 OPEN proof is complete via Bootstrap #198 and REVIEW-0055 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
