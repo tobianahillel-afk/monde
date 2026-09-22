@@ -202,6 +202,14 @@ The proof boundary no longer treats paginated check-runs as a linearizable autho
 
 Bootstrap #221 / run `35797915783` proved the OPEN checkpoint at **245/245 tests**, **2,151 statements / 942 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. Lifecycle transition commit `70079015e492ac0661397001e1bb76eb5792fa89` moved REVIEW-0059 to `IN_PROGRESS`; this state-only descendant is the frozen exact-head proof checkpoint and must pass Bootstrap before any fresh independent L2 is requested.
 
+## REVIEW-0059 — terminal negative evidence
+
+REVIEW-0059 passed frozen exact-head proof on `b3834693cd65074b43866b0ed9cba55b6d7309f1`: Bootstrap #222 / run `35798260021` passed **245/245 tests**, **2,151 statements / 942 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
+
+REVIEW-0059 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOwZrZw` exposed a chronology mismatch. The required-check selector defines authority by fresh check `started_at`, while REVIEW-0059 orders canonical workflow runs by original `created_at`. A rerun of an older run id can therefore produce the newest effective check yet be rejected solely because another run id was created later.
+
+REVIEW-0060 must preserve the canonical Actions frontier but make it attempt-aware. Current run recency/attempt identity—not original run creation alone—must decide which canonical attempt is authoritative at the captured frontier.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -210,7 +218,7 @@ Bootstrap #221 / run `35797915783` proved the OPEN checkpoint at **245/245 tests
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0059 OPEN proof is complete via Bootstrap #221 and REVIEW-0059 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
+7. REVIEW-0059 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOwZrZw exposed creation-time versus rerun-attempt authority mismatch; implement and prove REVIEW-0060 before another independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
