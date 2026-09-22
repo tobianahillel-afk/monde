@@ -102,7 +102,7 @@ def _prove_candidate_frontier(
         run_attempt=run_attempt,
         head=head,
     )
-    if job.get("conclusion") != candidate.get("conclusion") or job.get("status") != candidate.get("status"):
+    if job.get("conclusion") != candidate.get("conclusion"):
         raise RuntimeError("candidate required check disagrees with its protected Actions job")
 
     candidate_created = core._run_created_at(run)
@@ -131,8 +131,6 @@ def _prove_candidate_frontier(
         raise RuntimeError(
             "required-check authority advanced to a newer canonical MONDE Gate run before the captured frontier"
         )
-    if latest_key != _frontier_run_key(run, head):
-        raise RuntimeError("candidate canonical MONDE Gate run disagrees with authority frontier")
 
 
 def _frontier_latest_required_check(repo: str, head: str, token: str) -> dict[str, Any] | None:

@@ -40,6 +40,29 @@ class Review0059AuthorityFrontierTests(unittest.TestCase):
     def tearDown(self) -> None:
         core.latest_required_check = subject._ORIGINAL_LATEST_REQUIRED_CHECK
 
+
+    def test_authority_frontier_and_inverted_range(self) -> None:
+        frontier = subject._authority_frontier()
+        self.assertIsNotNone(frontier.tzinfo)
+        self.assertEqual(frontier.microsecond, 0)
+        with self.assertRaisesRegex(RuntimeError, "frontier precedes"):
+            subject._bounded_frontier_runs(
+                "o/r", HEAD, "t",
+                FRONTIER,
+                datetime(2026, 9, 22, 20, 0, tzinfo=timezone.utc),
+            )
+
+    def test_frontier_run_key_rejects_bad_id_and_run_number(self) -> None:
+        bad_id = candidate_run()
+        bad_id["id"] = True
+        with self.assertRaisesRegex(RuntimeError, "frontier run id"):
+            subject._frontier_run_key(bad_id, HEAD)
+
+        bad_number = candidate_run()
+        bad_number["run_number"] = True
+        with self.assertRaisesRegex(RuntimeError, "frontier run number"):
+            subject._frontier_run_key(bad_number, HEAD)
+
     def test_non_merge_acceptable_candidate_skips_frontier(self) -> None:
         for candidate in (
             None,
@@ -115,8 +138,12 @@ class Review0059AuthorityFrontierTests(unittest.TestCase):
         candidate = candidate_check()
         run = candidate_run()
         protected_job = job(501, 101, head=HEAD, attempt=1, conclusion="success")
-        changed = dict(run)
-        changed["run_attempt"] = 2
+        changed_attempt = dict(run)
+        changed_attempt["run_attempt"] = 2
+        changed_number = dict(run)
+        changed_number["run_number"] = 11
+        changed_created = dict(run)
+        changed_created["created_at"] = "2026-09-22T20:00:01Z"
 
         def request(url: str, _token: str):
             return run if url.endswith("/actions/runs/101") else protected_job
@@ -124,7 +151,9 @@ class Review0059AuthorityFrontierTests(unittest.TestCase):
         for rows, message in (
             ([], "absent"),
             ([candidate_run(run_id=102, run_number=11)], "absent or ambiguous"),
-            ([changed], "changed during authority proof"),
+            ([changed_attempt], "changed during authority proof"),
+            ([changed_number], "changed during authority proof"),
+            ([changed_created], "changed during authority proof"),
         ):
             with (
                 self.subTest(message=message),
@@ -133,6 +162,17 @@ class Review0059AuthorityFrontierTests(unittest.TestCase):
             ):
                 with self.assertRaisesRegex(RuntimeError, message):
                     subject._prove_candidate_frontier("o/r", HEAD, "t", candidate, FRONTIER)
+
+    def test_candidate_run_and_job_payloads_must_be_objects(self) -> None:
+        candidate = candidate_check()
+        with mock.patch.object(core, "request_data", return_value=[]):
+            with self.assertRaisesRegex(RuntimeError, "malformed candidate canonical"):
+                subject._prove_candidate_frontier("o/r", HEAD, "t", candidate, FRONTIER)
+
+        run = candidate_run()
+        with mock.patch.object(core, "request_data", side_effect=[run, []]):
+            with self.assertRaisesRegex(RuntimeError, "malformed candidate protected"):
+                subject._prove_candidate_frontier("o/r", HEAD, "t", candidate, FRONTIER)
 
     def test_candidate_job_must_agree_with_check(self) -> None:
         candidate = candidate_check()
@@ -196,6 +236,21 @@ class Review0059AuthorityFrontierTests(unittest.TestCase):
             subject,
             "_read_frontier_window",
             side_effect=[core.FilteredSearchLimitExceeded("limit"), [row], [dict(row)]],
+        ):
+            with self.assertRaisesRegex(RuntimeError, "duplicate or malformed"):
+                subject._bounded_frontier_runs(
+                    "o/r", HEAD, "t",
+                    datetime(2026, 9, 22, 20, 0, tzinfo=timezone.utc),
+                    datetime(2026, 9, 22, 21, 0, tzinfo=timezone.utc),
+                )
+
+    def test_frontier_split_rejects_malformed_identity(self) -> None:
+        bad = candidate_run()
+        bad["id"] = True
+        with mock.patch.object(
+            subject,
+            "_read_frontier_window",
+            side_effect=[core.FilteredSearchLimitExceeded("limit"), [bad], []],
         ):
             with self.assertRaisesRegex(RuntimeError, "duplicate or malformed"):
                 subject._bounded_frontier_runs(
