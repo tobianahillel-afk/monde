@@ -112,6 +112,14 @@ The scheduled poll and live contract probe use REVIEW-0054. Manual pending recov
 
 Bootstrap #192 / run `35735482885` proved the OPEN checkpoint at **210/210 tests**, **1,927 statements / 860 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
+## REVIEW-0054 — terminal negative evidence
+
+REVIEW-0054 passed frozen exact-head proof on `38e57b16791466114568a8d7b99ba11480c743a9`: Bootstrap #193 / run `35735778963` passed **210/210 tests**, **1,927 statements / 860 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
+
+REVIEW-0054 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOqcmhQ` exposed that protecting only terminal observation is insufficient. After terminal observation returns but before the durable pending clear is acknowledged, review-thread reclassification can still raise `RuntimeError`. REVIEW-0049 poll can then classify that as an ordinary head error and later overwrite pending with idle state.
+
+REVIEW-0055 must protect the complete interval from acknowledged pending write until an acknowledged safe clear. Existing `PendingMutationObservation` and `PendingMutationUncertain` semantics must remain intact; only generic RuntimeError while durable pending is still active may be promoted to pending uncertainty.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -120,7 +128,7 @@ Bootstrap #192 / run `35735482885` proved the OPEN checkpoint at **210/210 tests
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0054 OPEN proof is complete via Bootstrap #192 and REVIEW-0054 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
+7. REVIEW-0054 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOqcmhQ exposed pre-clear pending loss; implement and prove REVIEW-0055 full pending-lifetime retention before another independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 

@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0049 is terminal COMPLETE/CHANGES_REQUIRED independent negative evidence. REVIEW-0050 is CLOSED/CHANGES_REQUIRED after the recovery clear TOCTOU. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after the same-head multi-check liveness defect. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after the >100 filtered-check pagination defect. REVIEW-0053 preserved those fixes but is now CLOSED/CHANGES_REQUIRED after author-side PRR_kwDOUUI5ts8AAAABOqC8Gg proved that a generic post-POST observation RuntimeError can fall through the ordinary head-error path and overwrite durable pending authority. A REVIEW-0054 successor must preserve all prior fixes and make every post-POST observation error pending-preserving and loud. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0049 is terminal COMPLETE/CHANGES_REQUIRED independent negative evidence. REVIEW-0050 is CLOSED/CHANGES_REQUIRED after the recovery clear TOCTOU. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after the same-head multi-check liveness defect. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after the >100 filtered-check pagination defect. REVIEW-0053 is CLOSED/CHANGES_REQUIRED after post-POST terminal-observation RuntimeError could erase pending. REVIEW-0054 protected terminal observation itself but is now CLOSED/CHANGES_REQUIRED after author-side PRR_kwDOUUI5ts8AAAABOqcmhQ proved that RuntimeError after terminal observation and before acknowledged clear can still enter ordinary head-error handling. A REVIEW-0055 successor must protect the full acknowledged-pending lifetime until acknowledged safe clear. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -224,7 +224,8 @@ validation:
     - "REVIEW-0051 is CLOSED/CHANGES_REQUIRED on exact head 151fcd13e2fc5b15420de097635b6c9fbc9795ba after PRR_kwDOUUI5ts8AAAABOoOnSQ reproduced a real multi-check liveness defect; no independent REVIEW-0051 L2 ran."
     - "REVIEW-0052 is CLOSED/CHANGES_REQUIRED on exact head 654e24fdb7df17b5e92cad13bd5264faa128bfab after PRR_kwDOUUI5ts8AAAABOpz-Bg proved the filtered required-check selector is incomplete above 100 legitimate same-head check suites; no independent REVIEW-0052 L2 ran."
     - "REVIEW-0053 is CLOSED/CHANGES_REQUIRED on exact head 56a24864caa67db2af2e830f75ce279c4cc056c3 after PRR_kwDOUUI5ts8AAAABOqC8Gg proved that generic post-POST observation RuntimeError can erase the durable pending mutation through the ordinary poll error path; no independent REVIEW-0053 L2 ran."
-    - "REVIEW-0054 technical candidate 8b8b23072e77b83e3c86dbdc4f0486035e04dd26 passed Bootstrap #191 / run 35735060972 at 210/210 tests, 1927 statements / 860 branches, 100 percent line+branch and live PR #2 probe SUCCESS. OPEN checkpoint 1002256314b2988470620172b58422fa08547605 passed Bootstrap #192 / run 35735482885 with the same 210/210, 1927/860, 100 percent and live PR #2 probe SUCCESS at 7/100 requests; REVIEW-0054 is now IN_PROGRESS pending one frozen exact-head proof and fresh independent L2."
+    - "REVIEW-0054 is CLOSED/CHANGES_REQUIRED on exact head 38e57b16791466114568a8d7b99ba11480c743a9 after PRR_kwDOUUI5ts8AAAABOqcmhQ proved that RuntimeError after terminal observation but before acknowledged pending clear can still erase durable pending authority; no independent REVIEW-0054 L2 ran."
+    - "REVIEW-0055 successor is not yet opened; it must preserve all prior fixes while protecting the entire acknowledged-pending interval until a safe clear is durably acknowledged."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -251,6 +252,7 @@ run_log:
   - "REVIEW-0053 frozen head 56a24864caa67db2af2e830f75ce279c4cc056c3 passed Bootstrap #188 / run 35731769188 at 204/204 tests, 1891 statements / 852 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5777137141, then author-side PRR_kwDOUUI5ts8AAAABOqC8Gg exposed the post-POST RuntimeError pending-loss P1."
   - "REVIEW-0054 retention candidate 8b8b23072e77b83e3c86dbdc4f0486035e04dd26 passed Bootstrap #191 / run 35735060972 at 210/210 tests, 1927 statements / 860 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0054 opened only after this proof."
   - "REVIEW-0054 OPEN checkpoint 1002256314b2988470620172b58422fa08547605 passed Bootstrap #192 / run 35735482885 at 210/210 tests, 1927 statements / 860 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
+  - "REVIEW-0054 frozen head 38e57b16791466114568a8d7b99ba11480c743a9 passed Bootstrap #193 / run 35735778963 at 210/210 tests, 1927 statements / 860 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5777705279, then author-side PRR_kwDOUUI5ts8AAAABOqcmhQ exposed the pre-clear reclassification RuntimeError pending-loss P1."
 
 discoveries:
   - "A break-glass clear based on non-atomic GET revalidation cannot exclude an external rerun starting before the clear commits."
@@ -260,7 +262,8 @@ blockers:
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."
-  - "REVIEW-0054 OPEN checkpoint is proved; prove/freeze this IN_PROGRESS head exact-head, then request exactly one fresh independent L2 without mutating the tree while it runs."
+  - "REVIEW-0054 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0054 approval."
+  - "Implement and exact-head prove full pending-lifetime RuntimeError retention, then open REVIEW-0055 before any fresh independent L2."
   - "65 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
