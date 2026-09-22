@@ -491,6 +491,19 @@ def comparison_parent(root: Path, base: str, sha: str) -> str:
     return base_side[0] if base_side else parents[0]
 
 
+def inherited_merge_blob(root: Path, previous_sha: str, sha: str, path: str) -> bool:
+    parents = commit_parents(root, sha)
+    if len(parents) < 2:
+        return False
+    current_blob = blob_sha_at(root, sha, path)
+    if current_blob is None:
+        return False
+    for parent in parents:
+        if parent != previous_sha and blob_sha_at(root, parent, path) == current_blob:
+            return True
+    return False
+
+
 def pr_commit_edges(root: Path, base: str, head: str, require_guard: bool) -> tuple[list[str], list[tuple[str, str]]]:
     commits = [x for x in git(root, "rev-list", "--reverse", "--topo-order", f"{base}..{head}").splitlines() if x]
     edges: list[tuple[str, str]] = []
@@ -639,6 +652,8 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
 
     for previous_sha, sha in edges:
         for path in changed_files(root, previous_sha, sha):
+            if base_has_guard and inherited_merge_blob(root, previous_sha, sha, path):
+                continue
             kind = registry_kind(path)
             if not kind or kind == "progress":
                 continue
