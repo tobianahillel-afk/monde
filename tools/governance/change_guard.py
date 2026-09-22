@@ -515,13 +515,10 @@ def inherited_merge_record_allowed(
     for parent in parents:
         if parent == previous_sha or blob_sha_at(root, parent, path) != current_blob:
             continue
-        # If the matching parent is already in base history, this merge did not
-        # materialize the record. If it is exclusive source history, that history
-        # is traversed by this same validation. Pre-guard edges remain deliberately
-        # grandfathered by the immutable guard-adoption boundary; post-adoption
-        # edges are validated before their blob can be inherited at the merge.
-        if is_ancestor(root, parent, base):
-            return True
+        # comparison_parent() already selects a parent inherited by the
+        # current base when one exists, so any remaining matching parent is source
+        # history. Only reuse it when that source commit is part of this exact
+        # base..head traversal and already carries the guard; otherwise fail closed.
         if parent in exclusive_commits and file_exists_at(root, parent, GUARD_PATH):
             return True
     return False
