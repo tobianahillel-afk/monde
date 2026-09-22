@@ -445,6 +445,78 @@ class BootstrapPollTests(unittest.TestCase):
             ):
                 bootstrap.latest_required_check("o/r", "h", "t")
 
+    def test_paged_stability_configuration_guards(self) -> None:
+        rows = [{"id": i} for i in range(1, 102)]
+        responses = iter([rows[:100], rows[100:]])
+        with mock.patch.object(
+            bootstrap,
+            "request_data",
+            side_effect=lambda *_args: next(responses),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "requires keyed counted identities",
+            ):
+                bootstrap.paged(
+                    "https://api.github.test/items",
+                    "t",
+                    unique_id_field="id",
+                    verify_previous_page=True,
+                )
+
+        with mock.patch.object(
+            bootstrap,
+            "request_data",
+            return_value={"total_count": 101, "items": rows[:100]},
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "requires record identities",
+            ):
+                bootstrap.paged(
+                    "https://api.github.test/items",
+                    "t",
+                    "items",
+                    require_total_count=True,
+                    verify_previous_page=True,
+                )
+
+    def test_latest_required_check_stability_revalidation_rejects_malformed_responses(self) -> None:
+        checks = [check_run("h", check_id=i) for i in range(1, 102)]
+        page1 = {"total_count": 101, "check_runs": checks[:100]}
+        page2 = {"total_count": 101, "check_runs": checks[100:]}
+        malformed_verify_payloads = [
+            ([], "malformed paginated stability response"),
+            (
+                {"total_count": 102, "check_runs": checks[:100]},
+                "inconsistent paginated total_count",
+            ),
+            (
+                {"total_count": 101, "check_runs": "bad"},
+                "malformed paginated stability response",
+            ),
+            (
+                {
+                    "total_count": 101,
+                    "check_runs": [
+                        ({**item, "id": True} if index == 0 else item)
+                        for index, item in enumerate(checks[:100])
+                    ],
+                },
+                "malformed paginated record identity",
+            ),
+        ]
+        for verify_payload, message in malformed_verify_payloads:
+            with self.subTest(message=message):
+                responses = iter([page1, page2, verify_payload])
+                with mock.patch.object(
+                    bootstrap,
+                    "request_data",
+                    side_effect=lambda *_args: next(responses),
+                ):
+                    with self.assertRaisesRegex(RuntimeError, message):
+                        bootstrap.latest_required_check("o/r", "h", "t")
+
     def test_latest_required_check_selects_newest_legitimate_check_across_suites(self) -> None:
         older = check_run("h", check_id=40)
         older["started_at"] = "2026-09-22T09:42:31Z"
