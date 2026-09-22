@@ -138,6 +138,16 @@ REVIEW-0055 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0056 must classify every failed/ambiguous attempted pending-state write acknowledgement as `PendingMutationUncertain` immediately. No rerun POST or later idle writer may execute in that invocation; if the remote pending write committed, the next invocation must observe it, while if it did not commit then no rerun POST occurred and an idle retry remains safe.
 
+## REVIEW-0056 — ambiguous pending-write acknowledgement successor
+
+REVIEW-0056 is now **OPEN** after exact technical proof on `fcf91076f0b212c3473f53e335503290a0323fc1`.
+
+Bootstrap #202 / run `35751712104` passed **224/224 tests**, **2,011 statements / 880 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+
+The successor adds one narrow wrapper above REVIEW-0055. When a writer call attempts to persist a pending state, any acknowledgement failure is immediately promoted to `PendingMutationUncertain`. Because this occurs before the rerun POST, the same invocation cannot emit a rerun or later overwrite a remotely committed pending record with idle state. Successful pending writes continue into REVIEW-0055 full-lifetime protection; non-pending writes remain transparent.
+
+This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0056 may transition to `IN_PROGRESS`.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -146,7 +156,7 @@ REVIEW-0056 must classify every failed/ambiguous attempted pending-state write a
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0055 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOr4qTA exposed ambiguous pending-write acknowledgement; implement and prove REVIEW-0056 before another independent L2.
+7. REVIEW-0056 technical candidate is proved via Bootstrap #202 and REVIEW-0056 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
