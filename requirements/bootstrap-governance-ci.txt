@@ -1,0 +1,2 @@
+coverage @ https://files.pythonhosted.org/packages/7d/fb/70af542d2d938c778c9373ce253aa4116dbe7c0a5672f78b2b2ae0e1b94b/coverage-7.13.3-py3-none-any.whl \
+    --hash=sha256:90a8af9dba6429b2573199622d72e0ebf024d6276f16abce394ad4d181bb0910

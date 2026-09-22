@@ -1,0 +1,84 @@
+id: REVIEW-0046
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "e9c22ab562f724ba77e21f32cf8195b0b1ed5b5b"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABNz-eNg"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "exact latest GitHub Actions-owned MONDE / Merge Gate check remains merge-state authority"
+    - "rerun authority is positively bound to the current open PR, current head/base context and current merge-ref SHA"
+    - "selected-PR rerun-target discovery is bounded and durably resumable across check-history pages"
+    - "direct run/workflow/job/attempt authority requires exact positive non-Boolean integer identifiers"
+    - "scheduler progress is durable in machine-managed issue #7 and trusted scheduled writers are serialized"
+    - "one invocation considers at most seven head groups and performs at most three actual rerun POSTs"
+    - "rerun invalidation requires a new terminal attempt, protected current-attempt job validation and terminal effective exact-head required-check observation"
+    - "shared-head sibling fallthrough cannot escape the global mutation cap or leave another unresolved sibling behind a revived green check"
+    - "malformed REST/GraphQL/Checks/Actions/Issue/PR authority fails closed"
+    - "the live PR #2 contract probe remains read-only; actions:write and issues:write exist only on trusted serialized scheduled execution"
+  risks:
+    - "A rerun may remain queued or running beyond the bounded local observation window and later restore a green shared-head check."
+    - "An unrelated shared-head check can be mistaken for the causal post-condition of the exact rerun attempt."
+    - "PR base or merge-ref authority can change between the last direct PR read and the rerun mutation/post-condition."
+    - "Persisted target-history page offsets can omit a target after check retention or ordering changes."
+    - "Scheduler issue identity accepted coercible non-integer external metadata."
+findings:
+  - "PRRT_kwDOUUI5ts6i5oXQ"
+  - "PRRT_kwDOUUI5ts6i5oXU"
+  - "PRRT_kwDOUUI5ts6i5oXa"
+  - "PRRT_kwDOUUI5ts6i5oXi"
+  - "PRRT_kwDOUUI5ts6i5oXl"
+checks:
+  assumptions_challenged:
+    - "A roughly twelve-second synchronous waiter is sufficient to observe every rerun before scheduler progress advances."
+    - "Any different exact-head required check after a rerun is causal evidence of the observed rerun attempt."
+    - "One current-PR authority read before final thread/check observations closes the mutation-boundary retarget race."
+    - "A durable page number alone remains complete when retained check history is deleted or reordered between invocations."
+    - "Python numeric equality is sufficient for the scheduler issue identity returned by GitHub."
+  omitted_categories_considered:
+    - "rerun queue/runtime latency longer than the bounded local observation loop"
+    - "unrelated shared-head check completion interleaving with the exact rerun attempt"
+    - "base/merge-ref change immediately before mutation and before post-condition acceptance"
+    - "target moving from a saved page into an earlier page after retention or reordering"
+    - "float/Boolean/coercible scheduler issue identifiers"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 and REVIEW-0042 through REVIEW-0045 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
+    - "REVIEW-0040 and REVIEW-0041 remain CLOSED administrative negative evidence."
+    - "All 55 historical PR #5 inline material threads remained unresolved entering REVIEW-0046."
+    - "REVIEW-0046 adds five exact-head independent findings, leaving 60 inline material threads unresolved."
+  failure_modes_considered:
+    - "rerun remains non-terminal when the local observation window expires and later completes merge-acceptable"
+    - "unrelated shared-head workflow publishes a terminal check between exact rerun job validation and latest-check read"
+    - "PR retarget or merge-ref replacement occurs after target discovery but before rerun POST"
+    - "saved scan_page resumes after earlier page membership shrinks or reorders"
+    - "Issues API returns numeric scheduler identity with a non-integer JSON type"
+  evidence_requested:
+    - "Persist delayed rerun observation across scheduled invocations rather than advancing the head cursor after a bounded local timeout."
+    - "Bind the effective required check to the exact rerun run_id, new run_attempt and protected job identity/conclusion."
+    - "Revalidate the full PR authority fingerprint immediately at the rerun mutation boundary and again before accepting the post-condition."
+    - "Persist a page-membership anchor/fingerprint and restart or reconcile scanning when the saved continuation drifts."
+    - "Require exact positive non-Boolean integer scheduler issue identity metadata."
+    - "Add adversarial regressions for all five findings and re-prove exact-head line/branch coverage plus the live read-only GitHub contract."
+    - "Run a fresh independent successor L2 before resolving any historical thread."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-16T11:11:56Z"
+history:
+  created_at: "2026-09-16"
+  updated_at: "2026-09-16"
