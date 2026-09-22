@@ -138,7 +138,7 @@ external_import:
 execution:
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-22"
-  commit_sha: "fcf91076f0b212c3473f53e335503290a0323fc1"
+  commit_sha: "7ca3c1b3dfa6d1b55c73d3efb41eb290fd43f07d"
   result: PASS
   evidence:
     - "Bootstrap #168 / run 35715152696: 202/202 tests PASS"
@@ -151,6 +151,8 @@ execution:
     - "Bootstrap #191 proves generic post-POST observation RuntimeError becomes PendingMutationUncertain, REVIEW-0049 performs no pending clear on that path, poll performs no idle rewrite, and manual recovery remains directly routed to REVIEW-0051"
     - "Bootstrap #197 / run 35737368210: 217/217 tests PASS; 1969 statements / 870 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #197 proves full acknowledged-pending lifetime retention: pre-pending errors stay ordinary, active-pending errors become uncertainty, failed clear acknowledgement retains pending, post-clear errors stay ordinary, and existing pending exceptions are preserved"
+    - "Bootstrap #208 / run 35754043037: 227/227 tests PASS; 2039 statements / 900 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #208 proves stable 101-check pagination performs bounded previous-page revalidation and count-stable insert/delete drift fails closed on changed page membership"
     - "Bootstrap #202 / run 35751712104: 224/224 tests PASS; 2011 statements / 880 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #202 proves ambiguous initial pending-write acknowledgement becomes PendingMutationUncertain before any rerun POST, successful pending writes still delegate into REVIEW-0055 lifetime protection, and non-pending writes retain ordinary behavior"
     - "REVIEW-0050 author-side PRR_kwDOUUI5ts8AAAABN7LvGQ invalidated recovery clear semantics; REVIEW-0051 candidate removes recovery state mutation entirely while preserving prior V5 poll behavior"
