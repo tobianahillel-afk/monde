@@ -140,13 +140,13 @@ REVIEW-0056 must classify every failed/ambiguous attempted pending-state write a
 
 ## REVIEW-0056 — ambiguous pending-write acknowledgement successor
 
-REVIEW-0056 is now **OPEN** after exact technical proof on `fcf91076f0b212c3473f53e335503290a0323fc1`.
+REVIEW-0056 is now **IN_PROGRESS** after exact technical proof on `fcf91076f0b212c3473f53e335503290a0323fc1` and OPEN checkpoint proof on `105f20d8cc4784d4340dc62814ecac63a217d6d4`.
 
 Bootstrap #202 / run `35751712104` passed **224/224 tests**, **2,011 statements / 880 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
 The successor adds one narrow wrapper above REVIEW-0055. When a writer call attempts to persist a pending state, any acknowledgement failure is immediately promoted to `PendingMutationUncertain`. Because this occurs before the rerun POST, the same invocation cannot emit a rerun or later overwrite a remotely committed pending record with idle state. Successful pending writes continue into REVIEW-0055 full-lifetime protection; non-pending writes remain transparent.
 
-This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0056 may transition to `IN_PROGRESS`.
+Bootstrap #203 / run `35752124326` proved the OPEN checkpoint at **224/224 tests**, **2,011 statements / 880 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
 ## Current next action
 
@@ -156,7 +156,7 @@ This OPEN checkpoint must now receive its own exact-head Bootstrap proof before 
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0056 technical candidate is proved via Bootstrap #202 and REVIEW-0056 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
+7. REVIEW-0056 OPEN proof is complete via Bootstrap #203 and REVIEW-0056 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
