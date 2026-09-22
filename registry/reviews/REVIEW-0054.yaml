@@ -1,0 +1,78 @@
+id: REVIEW-0054
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "REVIEW-0051 inspection-only recovery remains non-mutating and recovery job stays directly wired to REVIEW-0051"
+    - "REVIEW-0052 multi-check candidate validation and deterministic recency selection remain intact"
+    - "REVIEW-0053 complete bounded filtered required-check pagination remains intact"
+    - "after durable pending write and a potentially successful rerun POST, every unexpected post-condition RuntimeError is converted to pending mutation uncertainty"
+    - "post-POST observation failure cannot enter the ordinary head-error path or trigger an idle scheduler-state rewrite"
+    - "next invocation resumes durable pending authority and never automatically emits a duplicate rerun POST"
+    - "DeferredObservation retains its existing pending-observation semantics"
+    - "proven V5 pending/closed-origin/shared-head authority remains unchanged"
+  risks:
+    - "request-budget exhaustion or malformed GitHub metadata after POST can otherwise erase the only durable mutation identity"
+    - "adapter monkey-patching must be isolated to the terminal observation hook and must not mutate recovery authority"
+    - "post-condition failures must remain loud without losing resumability"
+    - "historical REVIEW-0050 recovery code remains present but unreachable from active manual recovery"
+findings: []
+checks:
+  assumptions_challenged:
+    - "only DeferredObservation can occur after a successful rerun POST"
+    - "generic RuntimeError can safely be aggregated as an ordinary head error after write-ahead pending state exists"
+    - "the retention adapter can be layered without rewriting historical REVIEW-0049/0050 evidence"
+  omitted_categories_considered:
+    - "request-budget exhaustion after POST"
+    - "malformed run metadata after POST"
+    - "malformed protected job metadata after POST"
+    - "malformed or incomplete effective-check pagination after POST"
+    - "existing PendingMutationUncertain propagation"
+    - "existing DeferredObservation propagation"
+    - "recovery workflow remains directly routed to REVIEW-0051"
+    - "test isolation so install-time monkey patches do not contaminate unrelated regressions"
+  duplicate_or_reuse_search:
+    - "Existing PendingMutationUncertain is reused as the durable pending-preserving loud failure class."
+    - "REVIEW-0053 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
+    - "PRR_kwDOUUI5ts8AAAABOqC8Gg is the author-side finding that invalidated REVIEW-0053."
+    - "All 65 historical inline PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "post-POST RuntimeError is swallowed into ordinary head errors"
+    - "poll rewrites idle state after a potentially successful mutation"
+    - "adapter converts DeferredObservation incorrectly"
+    - "adapter masks an already-raised PendingMutationUncertain"
+    - "manual recovery is accidentally routed through mutable poll authority"
+    - "test installation leaves monkey patches active across unrelated tests"
+  evidence_requested:
+    - "Exact-head Bootstrap suite with 100 percent line and branch coverage after retention adapter."
+    - "Regression proving generic post-condition RuntimeError becomes PendingMutationUncertain with original cause retained."
+    - "Regression proving REVIEW-0049 process performs exactly the write-ahead pending write and no clear on observation RuntimeError."
+    - "Regression proving poll rethrows PendingMutationUncertain without idle-state write."
+    - "Live PR #2 contract probe remains successful."
+    - "Fresh-context independent L2 on one frozen exact REVIEW-0054 head."
+    - "Resolve no historical inline thread until REVIEW-0054 L2 is clean."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-22"
+  updated_at: "2026-09-22"

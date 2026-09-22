@@ -100,6 +100,18 @@ REVIEW-0053 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 The REVIEW-0054 successor must preserve all prior recovery/multi-check/pagination guarantees and make every post-POST observation RuntimeError retain pending state and fail loud; the next invocation must resume observation from that pending identity without any automatic duplicate POST.
 
+## REVIEW-0054 — post-POST pending retention successor
+
+REVIEW-0054 is now **OPEN** after exact technical proof on `8b8b23072e77b83e3c86dbdc4f0486035e04dd26`.
+
+Bootstrap #191 / run `35735060972` passed **210/210 tests**, **1,927 statements / 860 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+
+The successor is deliberately narrow: a new adapter wraps only REVIEW-0048 terminal post-condition observation. Existing `DeferredObservation` and `PendingMutationUncertain` semantics are preserved; any other `RuntimeError` after a potentially successful rerun POST is promoted to `PendingMutationUncertain`, so REVIEW-0049 poll rethrows before any idle scheduler-state rewrite. The next invocation therefore resumes the durable V5 pending identity without an automatic duplicate POST.
+
+The scheduled poll and live contract probe use REVIEW-0054. Manual pending recovery remains directly wired to the proven REVIEW-0051 inspection-only adapter with `actions: read` and `issues: read`, preserving separation of mutable poll authority from recovery inspection.
+
+This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0054 may transition to `IN_PROGRESS`.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -108,7 +120,7 @@ The REVIEW-0054 successor must preserve all prior recovery/multi-check/paginatio
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0053 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOqC8Gg exposed post-POST RuntimeError pending loss; implement and prove REVIEW-0054 successor semantics before another independent L2.
+7. REVIEW-0054 technical candidate is proved via Bootstrap #191 and REVIEW-0054 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
