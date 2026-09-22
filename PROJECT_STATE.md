@@ -52,7 +52,7 @@ Development now proceeds through a new `stale_green_bootstrap_authority_review00
 
 Technical candidate `63001400659273252771d32c61665203b7d43ef3` passed Bootstrap #159 / run `35708508061`: **200/200 tests**, **1,894 statements / 856 branches**, **100% line + branch**, and the live read-only PR #2 probe succeeded at **7/100** requests. The active 0051 adapter contains no `_write_state()` call and no `rerun_workflow()` call, and the workflow regression proves manual recovery has `actions: read` + `issues: read` with no corresponding write permission.
 
-Because that technical candidate is now proved, REVIEW-0051 is opened in repository lifecycle state `OPEN`. No external L2 may be represented as started until the OPEN checkpoint itself is proved and REVIEW-0051 is explicitly transitioned to `IN_PROGRESS`.
+Because that technical candidate is proved, REVIEW-0051 was opened on `2017a6ef2143574aa3b43028d776352bfa81d401`. Bootstrap #160 / run `35708741464` then proved the `OPEN` state-only checkpoint SUCCESS. REVIEW-0051 is therefore now transitioned to repository lifecycle state `IN_PROGRESS`. Reviewer actor/context and reviewed commit remain unset until a fresh independent L2 actually executes.
 
 ## PR #2 relationship
 
@@ -66,7 +66,7 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 2. REVIEW-0050 `CLOSED / CHANGES_REQUIRED` checkpoint proof is complete on `71c40aeb...` via Bootstrap #157.
 3. Implement the REVIEW-0051 inspection-only recovery adapter without rewriting REVIEW-0050 history.
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
-5. Prove this REVIEW-0051 `OPEN` state-only checkpoint; if green, transition it to `IN_PROGRESS`, prove/freeze that exact head, then request one fresh exact-head L2.
+5. REVIEW-0051 `OPEN` checkpoint proof is complete via Bootstrap #160; prove/freeze this `IN_PROGRESS` head, then request one fresh exact-head L2 and do not mutate the tree while it runs.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
