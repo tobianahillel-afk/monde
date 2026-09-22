@@ -115,6 +115,15 @@ def test_current_base_merge_reuses_guarded_source_history_without_rematerializin
     findings = c.validate(tmp_path, base, head)
     assert not [f for f in findings if f.rule == 'STATE_INITIAL' and f.path == 'registry/reviews/REVIEW-9.yaml']
     assert source in c.pr_commit_edges(tmp_path, base, head, require_guard=False)[0]
+    assert not c.inherited_merge_record_allowed(
+        tmp_path,
+        base,
+        base,
+        head,
+        'registry/reviews/REVIEW-9.yaml',
+        {'id': 'REVIEW-9'},
+        set(),
+    )
 
 
 def test_current_base_merge_does_not_hide_ungoverned_source_introduction(tmp_path):
