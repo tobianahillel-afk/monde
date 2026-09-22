@@ -62,13 +62,22 @@ PR #2 remains the durable WORK-0002 implementation branch on `4046e03b1e00a2051d
 
 T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure still requires a fresh exact-head L2 plus eligible trusted non-author exact-head `APPROVED` collaborator evidence.
 
+## REVIEW-0051 — terminal negative evidence
+
+REVIEW-0051 preserved its successful inspection-only recovery correction, but is now **CLOSED / CHANGES_REQUIRED** on exact head `151fcd13e2fc5b15420de097635b6c9fbc9795ba`.
+
+Integration rehearsal PR #8 reproduced a new real-system P1: PR #2 head `0c06fa7a...` legitimately has two GitHub Actions-owned `MONDE / Merge Gate` checks from Gate #232 and review-event Gate #233. Bootstrap #163 rejected this as malformed because `latest_required_check()` assumed `filter=latest` implies exactly one check globally. Author-side finding `PRR_kwDOUUI5ts8AAAABOoOnSQ` therefore invalidated REVIEW-0051 before any independent L2 ran.
+
+The successor must keep REVIEW-0051's non-mutating recovery semantics while validating every candidate check and selecting the newest legitimate effective check deterministically. Duplicate IDs, malformed identity, wrong app/name/head and invalid status/conclusion remain fail-closed.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
 2. REVIEW-0050 `CLOSED / CHANGES_REQUIRED` checkpoint proof is complete on `71c40aeb...` via Bootstrap #157.
 3. Implement the REVIEW-0051 inspection-only recovery adapter without rewriting REVIEW-0050 history.
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
-5. REVIEW-0051 `OPEN` proof (#160) and `IN_PROGRESS` proof (#161) are complete; the first fresh Codex L2 trigger was refused by quota. Re-prove this state-only handover checkpoint, then retrigger exactly one fresh exact-head L2 only when review capacity is available.
+5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
+6. Port the rehearsal multi-check fix to PR #5, restore 100% bootstrap proof + live PR #2 probe, then open REVIEW-0052 and proceed through its lifecycle before a fresh independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
