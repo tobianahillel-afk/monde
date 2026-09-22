@@ -96,7 +96,7 @@ class Review0055PendingLifetimeTests(unittest.TestCase):
             mock.patch.object(
                 pending.core,
                 "latest_required_check",
-                side_effect=[latest, RuntimeError("late check lookup failed")],
+                side_effect=[latest, latest, RuntimeError("late check lookup failed")],
             ),
             mock.patch.object(pending.core, "unresolved_review_threads", side_effect=[True, True, True, False]),
             mock.patch.object(pending.previous, "_direct_target_for_pr", return_value=(target, None)),
