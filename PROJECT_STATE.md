@@ -192,6 +192,16 @@ REVIEW-0058 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0059 changes the proof boundary: paginated check-runs remain conservative candidate discovery, but a merge-acceptable candidate may authorize mutation only after it is bound to the current attempt of an exact canonical MONDE workflow run and that run is proved to be the newest canonical PR-family run existing at a time frontier captured immediately after candidate discovery. A concurrently-created newer run before that frontier must make authority fail closed; a run created after the frontier is outside the chosen linearization point.
 
+## REVIEW-0059 — canonical Actions frontier successor
+
+REVIEW-0059 is now **OPEN** after exact technical proof on `5c1dc5b2337b275d91dbb07a27becdd88261b317`.
+
+Bootstrap #220 / run `35794235973` passed **245/245 tests**, **2,151 statements / 942 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+
+The proof boundary no longer treats paginated check-runs as a linearizable authority snapshot. They remain conservative candidate discovery only. A merge-acceptable candidate is rebound to its exact canonical MONDE workflow run, protected job and current attempt, then compared against all canonical same-head runs created no later than a timestamp frontier captured after discovery. Any newer canonical run before that frontier makes authority fail closed; runs created after the frontier are outside the chosen linearization point. Filtered-search limits are handled by bounded time-range splitting with duplicate/malformed identity rejection.
+
+This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0059 may transition to `IN_PROGRESS`.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -200,7 +210,7 @@ REVIEW-0059 changes the proof boundary: paginated check-runs remain conservative
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0058 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOuVyaw exposed the missing authority-linearization point; implement and prove REVIEW-0059 canonical Actions frontier semantics before another independent L2.
+7. REVIEW-0059 technical candidate is proved via Bootstrap #220 and REVIEW-0059 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 

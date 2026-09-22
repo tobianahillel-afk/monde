@@ -1,0 +1,87 @@
+id: REVIEW-0059
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "paginated required-check history is conservative candidate discovery only"
+    - "a merge-acceptable candidate is rebound to its exact canonical workflow run, protected job and current run_attempt"
+    - "the candidate run must be the newest canonical PR-family run for the same head created no later than an authority frontier captured after candidate discovery"
+    - "a newer canonical run existing before the captured frontier makes authority fail closed"
+    - "a run created after the captured frontier is outside the chosen authority linearization point"
+    - "frontier search is head-bounded, creation-time bounded, recursively split at GitHub filtered-search limits and globally duplicate-id checked"
+    - "candidate run identity, run_number, run_attempt and created_at must remain identical between direct lookup and frontier proof"
+    - "candidate protected-job conclusion must agree exactly with the selected required check"
+    - "REVIEW-0051 recovery, REVIEW-0052 multi-check selection, REVIEW-0053 pagination and REVIEW-0054 through REVIEW-0056 pending protections remain intact"
+  risks:
+    - "GitHub offset pagination cannot itself provide a linearizable latest-check snapshot under concurrent insert/delete drift"
+    - "canonical Actions run search may exceed filtered-search limits and must be recursively bounded without identity ambiguity"
+    - "candidate check, run and protected job may disagree or change during authority proof"
+    - "a newer canonical same-head run may exist before the frontier while the candidate check still appears merge-acceptable"
+    - "request-budget use must remain bounded under split frontier searches"
+findings: []
+checks:
+  assumptions_challenged:
+    - "sequential page equality can establish latest-check authority under concurrent check-suite churn"
+    - "candidate discovery can authorize mutation without an explicit later authority frontier"
+    - "run creation time plus exact canonical workflow identity can define a defensible bounded linearization point"
+    - "filtered Actions search can be split safely at one-second time boundaries when the result cap is reached"
+  omitted_categories_considered:
+    - "non-merge-acceptable candidate bypasses frontier proof but cannot authorize mutation"
+    - "candidate run created after captured frontier"
+    - "candidate absent from bounded frontier"
+    - "candidate direct lookup disagrees with frontier run_number/run_attempt/created_at"
+    - "newer canonical run exists before frontier"
+    - "newer run exists only after frontier"
+    - "filtered search limit reached over a broad interval"
+    - "filtered search limit reached within one timestamp second"
+    - "duplicate or malformed run ids across recursive frontier partitions"
+    - "candidate protected job disagrees with check conclusion"
+    - "single current canonical candidate"
+  duplicate_or_reuse_search:
+    - "Existing canonical run/job validators and bounded paged() helper are reused."
+    - "REVIEW-0058 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
+    - "PRR_kwDOUUI5ts8AAAABOuVyaw is the author-side finding that invalidated REVIEW-0058."
+    - "All 65 historical inline PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "candidate is older than another canonical same-head run existing before frontier"
+    - "candidate run/job payload is malformed"
+    - "candidate job belongs to wrong attempt or disagrees with required check conclusion"
+    - "candidate run changes between direct lookup and frontier proof"
+    - "frontier range is inverted"
+    - "frontier search saturates within one timestamp second"
+    - "recursive frontier partitions produce duplicate or malformed run identity"
+    - "request-budget exhaustion during frontier proof"
+    - "prior pending/recovery authority is weakened by the new adapter install order"
+  evidence_requested:
+    - "Exact-head Bootstrap suite with 100 percent line and branch coverage after canonical Actions frontier adapter."
+    - "Regression proving a newer canonical same-head run before the captured frontier rejects a stale merge-acceptable candidate."
+    - "Regression proving exact candidate run/job/attempt binding and direct/frontier identity consistency."
+    - "Regressions proving filtered-search split, one-second saturation, duplicate identity and malformed authority fail closed."
+    - "Live PR #2 contract probe remains successful."
+    - "Fresh-context independent L2 on one frozen exact REVIEW-0059 head."
+    - "Resolve no historical inline thread until REVIEW-0059 L2 is clean."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-22"
+  updated_at: "2026-09-22"
