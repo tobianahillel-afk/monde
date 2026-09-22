@@ -72,6 +72,93 @@ def test_merge_of_current_base_does_not_replay_base_transition(tmp_path):
     run(tmp_path,'checkout','feature');run(tmp_path,'merge','--no-ff','mainline','-m','integrate current main');head=run(tmp_path,'rev-parse','HEAD')
     findings=c.validate(tmp_path,main,head)
     assert not [f for f in findings if f.rule=='STATE_TRANSITION' and f.path=='registry/tests/TEST-1.yaml']
+    exclusive = set(c.pr_commit_edges(tmp_path, main, head, require_guard=False)[0])
+    assert not c.inherited_merge_record_allowed(tmp_path, main, main, head, 'missing.yaml', {'id': 'TEST-X'}, exclusive)
+    assert not c.inherited_merge_record_allowed(tmp_path, main, main, head, 'registry/tests/TEST-1.yaml', {}, exclusive)
+
+
+def test_moved_base_does_not_replay_record_inherited_by_historical_merge(tmp_path):
+    common = repo(tmp_path)
+    run(tmp_path, 'branch', 'feature', common); run(tmp_path, 'branch', 'mainline', common)
+    run(tmp_path, 'checkout', 'mainline')
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'OPEN', 'artifact': {'commit_sha': ''}})
+    commit(tmp_path, 'review open')
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'IN_PROGRESS', 'artifact': {'commit_sha': ''}})
+    commit(tmp_path, 'review progress')
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'COMPLETE', 'artifact': {'commit_sha': ''}})
+    old_main = commit(tmp_path, 'review complete')
+    run(tmp_path, 'checkout', 'feature'); write(tmp_path, 'feature.txt', 'feature'); commit(tmp_path, 'feature work')
+    run(tmp_path, 'merge', '--no-ff', 'mainline', '-m', 'historical main integration')
+    historical_merge = run(tmp_path, 'rev-parse', 'HEAD')
+    run(tmp_path, 'checkout', 'mainline'); write(tmp_path, 'later.txt', 'later'); moved_base = commit(tmp_path, 'main moves')
+    run(tmp_path, 'checkout', 'feature'); run(tmp_path, 'merge', '--no-ff', 'mainline', '-m', 'integrate moved main')
+    head = run(tmp_path, 'rev-parse', 'HEAD')
+    findings = c.validate(tmp_path, moved_base, head)
+    assert not [f for f in findings if f.rule == 'STATE_INITIAL' and f.path == 'registry/reviews/REVIEW-9.yaml']
+    assert c.is_ancestor(tmp_path, old_main, moved_base)
+    assert c.comparison_parent(tmp_path, moved_base, historical_merge) == old_main
+
+
+def test_current_base_merge_reuses_guarded_source_history_without_rematerializing(tmp_path):
+    common = repo(tmp_path)
+    run(tmp_path, 'branch', 'feature', common); run(tmp_path, 'branch', 'mainline', common)
+    run(tmp_path, 'checkout', 'feature')
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'OPEN', 'artifact': {'commit_sha': ''}})
+    commit(tmp_path, 'branch review open')
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'IN_PROGRESS', 'artifact': {'commit_sha': ''}})
+    commit(tmp_path, 'branch review progress')
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'COMPLETE', 'artifact': {'commit_sha': ''}})
+    source = commit(tmp_path, 'branch review complete')
+    run(tmp_path, 'checkout', 'mainline'); write(tmp_path, 'main.txt', 'main'); base = commit(tmp_path, 'main advances')
+    run(tmp_path, 'checkout', 'feature'); run(tmp_path, 'merge', '--no-ff', 'mainline', '-m', 'integrate current main')
+    head = run(tmp_path, 'rev-parse', 'HEAD')
+    findings = c.validate(tmp_path, base, head)
+    assert not [f for f in findings if f.rule == 'STATE_INITIAL' and f.path == 'registry/reviews/REVIEW-9.yaml']
+    assert source in c.pr_commit_edges(tmp_path, base, head, require_guard=False)[0]
+    assert not c.inherited_merge_record_allowed(
+        tmp_path,
+        base,
+        base,
+        head,
+        'registry/reviews/REVIEW-9.yaml',
+        {'id': 'REVIEW-9'},
+        set(),
+    )
+
+
+def test_current_base_merge_does_not_hide_ungoverned_source_introduction(tmp_path):
+    common = repo(tmp_path, False)
+    run(tmp_path, 'branch', 'feature', common); run(tmp_path, 'branch', 'mainline', common)
+    run(tmp_path, 'checkout', 'feature')
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'COMPLETE', 'artifact': {'commit_sha': ''}})
+    commit(tmp_path, 'ungoverned terminal review')
+    run(tmp_path, 'checkout', 'mainline')
+    write(tmp_path, c.GUARD_PATH, 'guard')
+    base = commit(tmp_path, 'main adopts guard')
+    run(tmp_path, 'checkout', 'feature'); run(tmp_path, 'merge', '--no-ff', 'mainline', '-m', 'integrate guarded main')
+    head = run(tmp_path, 'rev-parse', 'HEAD')
+    findings = c.validate(tmp_path, base, head)
+    assert [f for f in findings if f.rule == 'STATE_INITIAL' and f.path == 'registry/reviews/REVIEW-9.yaml']
+
+
+def test_merge_conflict_resolution_still_validates_real_status_change(tmp_path):
+    common = repo(tmp_path)
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'OPEN', 'artifact': {'commit_sha': ''}})
+    common = commit(tmp_path, 'review open')
+    run(tmp_path, 'branch', 'feature', common); run(tmp_path, 'branch', 'mainline', common)
+    run(tmp_path, 'checkout', 'feature')
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'IN_PROGRESS', 'artifact': {'commit_sha': ''}})
+    commit(tmp_path, 'feature progresses review')
+    run(tmp_path, 'checkout', 'mainline')
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'CLOSED', 'artifact': {'commit_sha': ''}})
+    base = commit(tmp_path, 'main closes review')
+    run(tmp_path, 'checkout', 'feature')
+    proc = subprocess.run(['git','merge','--no-ff','mainline','-m','conflicting merge'], cwd=tmp_path, text=True, capture_output=True)
+    assert proc.returncode != 0
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'COMPLETE', 'artifact': {'commit_sha': ''}})
+    head = commit(tmp_path, 'resolve conflict to invalid complete')
+    findings = c.validate(tmp_path, base, head)
+    assert [f for f in findings if f.rule == 'STATE_TRANSITION' and f.path == 'registry/reviews/REVIEW-9.yaml']
 
 
 def test_done_unmodified_work_review_is_not_reopened_by_downstream_change(tmp_path):
