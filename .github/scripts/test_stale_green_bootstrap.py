@@ -480,6 +480,8 @@ class BootstrapPollTests(unittest.TestCase):
 
     def test_latest_required_check_final_snapshot_revalidates_all_three_pages(self) -> None:
         checks = [check_run("h", check_id=i) for i in range(1, 202)]
+        for item in checks:
+            item["started_at"] = "2026-09-22T09:00:00Z"
         pages = {
             1: {"total_count": 201, "check_runs": checks[:100]},
             2: {"total_count": 201, "check_runs": checks[100:200]},
