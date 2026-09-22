@@ -50,7 +50,9 @@ The minimum safe successor is intentionally simpler:
 
 Development now proceeds through a new `stale_green_bootstrap_authority_review0051_recovery.py` adapter. Normal scheduled polling still reuses the proven REVIEW-0050 V5 closed-origin/pending-observation semantics. The manual recovery surface becomes inspection-only: it validates the exact durable pending tuple plus explicit confirmation/reason, revalidates unchanged baseline attempt and prior effective-check identity, prints the exact canonical run for a separately authorized manual rerun, and **never clears or writes issue #7 and never calls a rerun API**. Its workflow permissions are read-only for Actions and Issues.
 
-REVIEW-0051 itself must not be opened until this technical candidate passes exact-head bootstrap tests, 100% line/branch coverage, and the live read-only PR #2 probe.
+Technical candidate `63001400659273252771d32c61665203b7d43ef3` passed Bootstrap #159 / run `35708508061`: **200/200 tests**, **1,894 statements / 856 branches**, **100% line + branch**, and the live read-only PR #2 probe succeeded at **7/100** requests. The active 0051 adapter contains no `_write_state()` call and no `rerun_workflow()` call, and the workflow regression proves manual recovery has `actions: read` + `issues: read` with no corresponding write permission.
+
+Because that technical candidate is now proved, REVIEW-0051 is opened in repository lifecycle state `OPEN`. No external L2 may be represented as started until the OPEN checkpoint itself is proved and REVIEW-0051 is explicitly transitioned to `IN_PROGRESS`.
 
 ## PR #2 relationship
 
@@ -63,8 +65,8 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 1. Keep all **65** PR #5 inline material threads unresolved.
 2. REVIEW-0050 `CLOSED / CHANGES_REQUIRED` checkpoint proof is complete on `71c40aeb...` via Bootstrap #157.
 3. Implement the REVIEW-0051 inspection-only recovery adapter without rewriting REVIEW-0050 history.
-4. Prove the technical candidate exact-head with full bootstrap tests, 100% line+branch and live read-only PR #2 probing.
-5. Only after that proof create REVIEW-0051 `OPEN`, prove it, then `IN_PROGRESS`, prove/freeze, and request one fresh exact-head L2.
+4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
+5. Prove this REVIEW-0051 `OPEN` state-only checkpoint; if green, transition it to `IN_PROGRESS`, prove/freeze that exact head, then request one fresh exact-head L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 

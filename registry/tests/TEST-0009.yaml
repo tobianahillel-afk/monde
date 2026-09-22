@@ -120,15 +120,15 @@ external_import:
   import_commit: null
 execution:
   command_or_workflow: "MONDE Stale-Green Bootstrap"
-  last_run_at: "2026-09-16"
-  commit_sha: "cbe21fa4cebc1c8f8b3030af17284de5700f9818"
+  last_run_at: "2026-09-22"
+  commit_sha: "63001400659273252771d32c61665203b7d43ef3"
   result: PASS
   evidence:
-    - "Bootstrap #154 / run 35152847816: 194/194 tests PASS"
-    - "Bootstrap #154: core 457 statements/204 branches, snapshot 207/88, authority 489/230, REVIEW-0048 189/118, REVIEW-0049 271/114, REVIEW-0050 V5 142/46, REVIEW-0050 recovery 101/42; total 1856 statements/842 branches at 100 percent line and branch coverage"
-    - "Bootstrap #154 live PR #2 GitHub contract probe SUCCESS under read-only Actions/Checks/Contents/PullRequests permissions"
-    - "Bootstrap #154 pending-recovery job is skipped on pull_request events; recovery has no actions:write permission in workflow configuration"
-    - "REVIEW-0049 exact-head independent review PRR_kwDOUUI5ts8AAAABN4sxvg produced P1 findings PRRT_kwDOUUI5ts6jEPa- and PRRT_kwDOUUI5ts6jEPa_; both are addressed by the REVIEW-0050 technical candidate but not semantically closed until fresh review"
+    - "Bootstrap #159 / run 35708508061: 200/200 tests PASS"
+    - "Bootstrap #159: core 457 statements/204 branches, snapshot 207/88, authority 489/230, REVIEW-0048 189/118, REVIEW-0049 271/114, REVIEW-0050 V5 142/46, REVIEW-0050 recovery 101/42, REVIEW-0051 recovery 38/14; total 1894 statements/856 branches at 100 percent line and branch coverage"
+    - "Bootstrap #159 live PR #2 GitHub contract probe SUCCESS under read-only Actions/Checks/Contents/PullRequests permissions at 7/100 requests"
+    - "Bootstrap #159 pending-recovery job is skipped on pull_request events; REVIEW-0051 workflow regression proves recovery has actions:read + issues:read and neither actions:write nor issues:write"
+    - "REVIEW-0050 author-side PRR_kwDOUUI5ts8AAAABN7LvGQ invalidated recovery clear semantics; REVIEW-0051 candidate removes recovery state mutation entirely while preserving prior V5 poll behavior"
 coverage:
   line_contribution: 100
   branch_contribution: 100
