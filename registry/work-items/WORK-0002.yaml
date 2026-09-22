@@ -211,6 +211,7 @@ validation:
     - "Bootstrap #160 / run 35708741464 on REVIEW-0051 OPEN checkpoint 2017a6ef2143574aa3b43028d776352bfa81d401"
     - "Bootstrap #167 / run 35714886391 on REVIEW-0051 CLOSED checkpoint 722cfe8782c38350258fdd823709a055a4beeccf reproduced the expected live multi-check contract failure while self-test remained green"
     - "Integration rehearsal Bootstrap #166 / run 35714306323 proved the selector correction at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch and live PR #2 contract probe SUCCESS"
+    - "Bootstrap #168 / run 35715152696 proved the ported PR #5 selector candidate deb6190983bd2cc97e3adffcd4769b4e44d58cb8 at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch and live PR #2 probe SUCCESS"
   evidence:
     - "Bootstrap #154/#155/#156: 194/194 tests PASS; 1856 statements / 842 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS"
     - "Bootstrap #157 re-proved the CLOSED state-only checkpoint at 194/194 tests, 1856 statements / 842 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
@@ -221,7 +222,7 @@ validation:
   known_gaps:
     - "REVIEW-0050 is CLOSED/CHANGES_REQUIRED and not approved."
     - "REVIEW-0051 is CLOSED/CHANGES_REQUIRED on exact head 151fcd13e2fc5b15420de097635b6c9fbc9795ba after PRR_kwDOUUI5ts8AAAABOoOnSQ reproduced a real multi-check liveness defect; no independent REVIEW-0051 L2 ran."
-    - "REVIEW-0052 successor is not yet opened. The exact selector correction proven in rehearsal has now been ported to the PR #5 technical candidate and still requires exact-head Bootstrap proof before lifecycle OPEN."
+    - "REVIEW-0052 is now OPEN only after exact-head technical candidate deb6190983bd2cc97e3adffcd4769b4e44d58cb8 passed Bootstrap #168 at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch and live PR #2 multi-check probe SUCCESS."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -240,6 +241,7 @@ run_log:
   - "REVIEW-0051 IN_PROGRESS head dd97f30617f1772032def036cdb94b1030001adf passed Bootstrap #161 / run 35708858747 at 200 tests / 1894 statements / 856 branches / 100 percent plus live PR #2 probe; Codex trigger 5773961643 was then refused by quota (5773963162), so no independent review was produced."
   - "Integration rehearsal PR #8 / Bootstrap #163 reproduced a live PR #2 contract failure because GitHub returned two legitimate latest MONDE / Merge Gate checks for head 0c06fa7af170de6aff888d178bb00939d8e23afe. Author-side PRR_kwDOUUI5ts8AAAABOoOnSQ closed REVIEW-0051 as CHANGES_REQUIRED before any independent L2."
   - "REVIEW-0051 CLOSED state-only checkpoint 722cfe8782c38350258fdd823709a055a4beeccf / Bootstrap #167 preserved the negative live reproduction. Rehearsal Bootstrap #166 already proved the candidate selector fix; the same code is now ported to PR #5 for exact-head proof."
+  - "PR #5 technical selector candidate deb6190983bd2cc97e3adffcd4769b4e44d58cb8 passed Bootstrap #168 / run 35715152696; REVIEW-0052 was opened only after this proof."
 
 discoveries:
   - "A break-glass clear based on non-atomic GET revalidation cannot exclude an external rerun starting before the clear commits."
@@ -247,7 +249,7 @@ discoveries:
 
 blockers:
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
-  - "Exact-head prove the ported multi-check selector candidate with full bootstrap coverage and live PR #2 probe; only then open REVIEW-0052 before any fresh independent L2."
+  - "Prove this REVIEW-0052 OPEN state-only checkpoint exact-head; only if green transition to IN_PROGRESS and freeze one exact head before fresh independent L2."
   - "Any material finding from that future L2 requires correction, exact-head re-proof and a successor review."
   - "65 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."

@@ -70,7 +70,7 @@ Integration rehearsal PR #8 reproduced a new real-system P1: PR #2 head `0c06fa7
 
 The successor must keep REVIEW-0051's non-mutating recovery semantics while validating every candidate check and selecting the newest legitimate effective check deterministically. Duplicate IDs, malformed identity, wrong app/name/head and invalid status/conclusion remain fail-closed.
 
-A rehearsal-only correction was proved on PR #8: Bootstrap #166 / run `35714306323` passed **202/202 tests**, **1,899 statements / 858 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded against the same multi-check state. The exact proven code has now been ported to PR #5 as the REVIEW-0052 technical candidate; REVIEW-0052 itself remains unopened until this PR #5 head passes its own exact-head proof.
+A rehearsal-only correction was proved on PR #8: Bootstrap #166 / run `35714306323` passed **202/202 tests**, **1,899 statements / 858 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded against the same multi-check state. The exact proven code was then ported to PR #5 at `deb6190983bd2cc97e3adffcd4769b4e44d58cb8`; Bootstrap #168 / run `35715152696` passed **202/202 tests**, **1,899 statements / 858 branches**, **100% line + branch**, and live PR #2 multi-check probe SUCCESS. REVIEW-0052 is therefore now opened in lifecycle state `OPEN`.
 
 ## Current next action
 
@@ -79,8 +79,8 @@ A rehearsal-only correction was proved on PR #8: Bootstrap #166 / run `357143063
 3. Implement the REVIEW-0051 inspection-only recovery adapter without rewriting REVIEW-0050 history.
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
-6. Exact-head prove the ported multi-check selector candidate on PR #5 with 100% bootstrap proof + live PR #2 probe.
-7. Only after that proof open REVIEW-0052, prove OPEN then IN_PROGRESS/frozen exact head, and request one fresh independent L2.
+6. REVIEW-0052 technical candidate proof is complete via Bootstrap #168.
+7. Prove this REVIEW-0052 `OPEN` state-only checkpoint; if green, transition to `IN_PROGRESS`, prove/freeze one exact head, then request one fresh independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
