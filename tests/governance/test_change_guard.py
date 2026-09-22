@@ -89,6 +89,7 @@ def test_moved_base_does_not_replay_record_inherited_by_historical_merge(tmp_pat
     old_main = commit(tmp_path, 'review complete')
     run(tmp_path, 'checkout', 'feature'); write(tmp_path, 'feature.txt', 'feature'); commit(tmp_path, 'feature work')
     run(tmp_path, 'merge', '--no-ff', 'mainline', '-m', 'historical main integration')
+    historical_merge = run(tmp_path, 'rev-parse', 'HEAD')
     run(tmp_path, 'checkout', 'mainline'); write(tmp_path, 'later.txt', 'later'); moved_base = commit(tmp_path, 'main moves')
     run(tmp_path, 'checkout', 'feature'); run(tmp_path, 'merge', '--no-ff', 'mainline', '-m', 'integrate moved main')
     head = run(tmp_path, 'rev-parse', 'HEAD')
