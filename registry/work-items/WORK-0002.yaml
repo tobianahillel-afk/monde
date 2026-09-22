@@ -222,7 +222,7 @@ validation:
   known_gaps:
     - "REVIEW-0050 is CLOSED/CHANGES_REQUIRED and not approved."
     - "REVIEW-0051 is CLOSED/CHANGES_REQUIRED on exact head 151fcd13e2fc5b15420de097635b6c9fbc9795ba after PRR_kwDOUUI5ts8AAAABOoOnSQ reproduced a real multi-check liveness defect; no independent REVIEW-0051 L2 ran."
-    - "REVIEW-0052 is now OPEN only after exact-head technical candidate deb6190983bd2cc97e3adffcd4769b4e44d58cb8 passed Bootstrap #168 at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch and live PR #2 multi-check probe SUCCESS."
+    - "REVIEW-0052 technical candidate deb6190983bd2cc97e3adffcd4769b4e44d58cb8 passed Bootstrap #168; OPEN checkpoint fc7308302bb5fc76467ef55f3d1978cf2a39afc6 passed Bootstrap #169, so REVIEW-0052 is now IN_PROGRESS pending one frozen exact-head proof and fresh independent L2."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -242,6 +242,7 @@ run_log:
   - "Integration rehearsal PR #8 / Bootstrap #163 reproduced a live PR #2 contract failure because GitHub returned two legitimate latest MONDE / Merge Gate checks for head 0c06fa7af170de6aff888d178bb00939d8e23afe. Author-side PRR_kwDOUUI5ts8AAAABOoOnSQ closed REVIEW-0051 as CHANGES_REQUIRED before any independent L2."
   - "REVIEW-0051 CLOSED state-only checkpoint 722cfe8782c38350258fdd823709a055a4beeccf / Bootstrap #167 preserved the negative live reproduction. Rehearsal Bootstrap #166 already proved the candidate selector fix; the same code is now ported to PR #5 for exact-head proof."
   - "PR #5 technical selector candidate deb6190983bd2cc97e3adffcd4769b4e44d58cb8 passed Bootstrap #168 / run 35715152696; REVIEW-0052 was opened only after this proof."
+  - "REVIEW-0052 OPEN checkpoint fc7308302bb5fc76467ef55f3d1978cf2a39afc6 passed Bootstrap #169 / run 35715662864; lifecycle transitioned to IN_PROGRESS only after that proof."
 
 discoveries:
   - "A break-glass clear based on non-atomic GET revalidation cannot exclude an external rerun starting before the clear commits."
@@ -249,7 +250,7 @@ discoveries:
 
 blockers:
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
-  - "Prove this REVIEW-0052 OPEN state-only checkpoint exact-head; only if green transition to IN_PROGRESS and freeze one exact head before fresh independent L2."
+  - "Prove/freeze this REVIEW-0052 IN_PROGRESS head exact-head, then request one fresh independent L2 without mutating the tree while it runs."
   - "Any material finding from that future L2 requires correction, exact-head re-proof and a successor review."
   - "65 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
