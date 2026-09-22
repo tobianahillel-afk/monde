@@ -123,7 +123,7 @@ class Review0059AuthorityFrontierTests(unittest.TestCase):
 
         for rows, message in (
             ([], "absent"),
-            ([candidate_run(run_id=102, run_number=11)], "absent"),
+            ([candidate_run(run_id=102, run_number=11)], "absent or ambiguous"),
             ([changed], "changed during authority proof"),
         ):
             with (

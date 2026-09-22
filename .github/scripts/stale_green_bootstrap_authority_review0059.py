@@ -117,7 +117,7 @@ def _prove_candidate_frontier(
     keyed = [(_frontier_run_key(item, head), item) for item in rows]
     matches = [item for _key, item in keyed if int(item["id"]) == run_id]
     if len(matches) != 1:
-        raise RuntimeError("candidate canonical MONDE Gate run is ambiguous in authority frontier")
+        raise RuntimeError("candidate canonical MONDE Gate run is absent or ambiguous in authority frontier")
     frontier_candidate = matches[0]
     if (
         frontier_candidate.get("run_number") != run.get("run_number")
