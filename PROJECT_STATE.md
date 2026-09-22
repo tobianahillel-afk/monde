@@ -130,6 +130,14 @@ The successor adds a narrow process adapter above the existing REVIEW-0054 chain
 
 Bootstrap #198 / run `35737725013` proved the OPEN checkpoint at **217/217 tests**, **1,969 statements / 870 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
+## REVIEW-0055 — terminal negative evidence
+
+REVIEW-0055 passed frozen exact-head proof on `c294f6f663424d13d3534a8b7cc5131878936c31`: Bootstrap #199 / run `35738070833` passed **217/217 tests**, **1,969 statements / 870 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
+
+REVIEW-0055 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOr4qTA` exposed an acknowledgement-boundary flaw. The active V5 writer PATCHes issue #7 and only then validates the returned state. If that PATCH commits remotely but acknowledgement fails locally, REVIEW-0055 never flips its local `pending_active` flag, so the error can still be treated as pre-pending and followed by an idle overwrite.
+
+REVIEW-0056 must classify every failed/ambiguous attempted pending-state write acknowledgement as `PendingMutationUncertain` immediately. No rerun POST or later idle writer may execute in that invocation; if the remote pending write committed, the next invocation must observe it, while if it did not commit then no rerun POST occurred and an idle retry remains safe.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -138,7 +146,7 @@ Bootstrap #198 / run `35737725013` proved the OPEN checkpoint at **217/217 tests
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0055 OPEN proof is complete via Bootstrap #198 and REVIEW-0055 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
+7. REVIEW-0055 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOr4qTA exposed ambiguous pending-write acknowledgement; implement and prove REVIEW-0056 before another independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
