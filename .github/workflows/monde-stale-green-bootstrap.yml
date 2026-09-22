@@ -123,7 +123,7 @@ jobs:
       actions: write
       checks: read
       contents: read
-      issues: read
+      issues: write
       pull-requests: read
     steps:
       - name: Checkout trusted default branch
@@ -148,7 +148,7 @@ jobs:
       actions: read
       checks: read
       contents: read
-      issues: write
+      issues: read
       pull-requests: read
     steps:
       - name: Checkout trusted default branch
