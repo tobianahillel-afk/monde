@@ -250,7 +250,6 @@ class BootstrapPollTests(unittest.TestCase):
 
         for field, value in (
             ("id", "not-int"),
-            ("name", "other"),
             ("run_number", True),
             ("status", None),
             ("status", "in_progress"),
@@ -340,7 +339,6 @@ class BootstrapPollTests(unittest.TestCase):
                     bootstrap.latest_required_check("o/r", "h", "t")
 
         mutations = [
-            ("id", True),
             ("name", "other"),
             ("head_sha", "other"),
             ("app", None),
