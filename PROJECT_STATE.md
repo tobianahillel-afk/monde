@@ -82,6 +82,16 @@ Author-side adversarial finding `PRR_kwDOUUI5ts8AAAABOpz-Bg` then exposed a new 
 
 The REVIEW-0053 successor must preserve all prior recovery/multi-check guarantees while collecting the filtered required-check set completely under an explicit bounded pagination/request-budget contract, validating every page/candidate and rejecting duplicates, malformed totals, drift or unprovable completeness.
 
+## REVIEW-0053 — bounded required-check pagination successor
+
+REVIEW-0053 is now **OPEN** after exact technical proof on `1470320c1b19f94ad697d0b91e1b90921923ee91`.
+
+Bootstrap #186 / run `35731235939` passed **204/204 tests**, **1,891 statements / 852 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+
+The correction reuses the existing bounded `paged()` helper for filtered required-check authority. A 101-check regression proves page-2 collection and effective-check selection; total-count drift, cross-page duplicate identity and incomplete later-page cases fail closed. Candidate identity/status/conclusion/recency validation remains applied to the full collected set, and REVIEW-0051 inspection-only recovery is unchanged.
+
+This OPEN state must now receive its own exact-head Bootstrap proof before REVIEW-0053 may transition to `IN_PROGRESS`.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -90,7 +100,7 @@ The REVIEW-0053 successor must preserve all prior recovery/multi-check guarantee
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. Implement and exact-head prove the bounded pagination successor, then open REVIEW-0053.
+7. REVIEW-0053 technical candidate is proved via Bootstrap #186 and REVIEW-0053 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 

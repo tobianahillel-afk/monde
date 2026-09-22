@@ -128,13 +128,15 @@ external_import:
 execution:
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-22"
-  commit_sha: "deb6190983bd2cc97e3adffcd4769b4e44d58cb8"
+  commit_sha: "1470320c1b19f94ad697d0b91e1b90921923ee91"
   result: PASS
   evidence:
     - "Bootstrap #168 / run 35715152696: 202/202 tests PASS"
     - "Bootstrap #168: core 462 statements/206 branches, snapshot 207/88, authority 489/230, REVIEW-0048 189/118, REVIEW-0049 271/114, REVIEW-0050 V5 142/46, REVIEW-0050 recovery 101/42, REVIEW-0051 recovery 38/14; total 1899 statements/858 branches at 100 percent line and branch coverage"
     - "Bootstrap #168 live PR #2 GitHub contract probe SUCCESS against the real multi-check head under read-only Actions/Checks/Contents/PullRequests permissions"
     - "Bootstrap #168 pending-recovery job is skipped on pull_request events; REVIEW-0051 workflow regression still proves recovery has actions:read + issues:read and neither actions:write nor issues:write"
+    - "Bootstrap #186 / run 35731235939: 204/204 tests PASS; 1891 statements / 852 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #186 proves 101-check filtered pagination, stable total-count enforcement, cross-page duplicate rejection and incomplete-page fail-closed behavior while reusing core paged()"
     - "REVIEW-0050 author-side PRR_kwDOUUI5ts8AAAABN7LvGQ invalidated recovery clear semantics; REVIEW-0051 candidate removes recovery state mutation entirely while preserving prior V5 poll behavior"
     - "Bootstrap #163 rehearsal reproduced a live multi-check failure on PR #2; rehearsal Bootstrap #166 proved the selector correction at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch, and live PR #2 probe SUCCESS"
 coverage:
