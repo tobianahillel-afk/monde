@@ -53,8 +53,78 @@ def test_provenance_history_uses_full_history(monkeypatch, tmp_path: Path) -> No
         return "a\nb\n"
 
     monkeypatch.setattr(t11.cg, "git", fake_git)
+    monkeypatch.setattr(t11.cg, "commit_parents", lambda *_: [])
     assert t11.provenance_history_commits(tmp_path, "base", "head") == ["a", "b"]
     assert "--full-history" in calls[1]
+
+
+def test_merge_inherits_provenance_blob_shapes(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(t11.cg, "commit_parents", lambda *_: ["p"])
+    assert t11.merge_inherits_provenance_blob(tmp_path, "merge") is False
+
+    monkeypatch.setattr(t11.cg, "commit_parents", lambda *_: ["p1", "p2"])
+    monkeypatch.setattr(t11.cg, "blob_sha_at", lambda *_: None)
+    assert t11.merge_inherits_provenance_blob(tmp_path, "merge") is False
+
+    blobs = {"merge": "m", "p1": "a", "p2": "b"}
+    monkeypatch.setattr(t11.cg, "blob_sha_at", lambda _r, sha, _p: blobs[sha])
+    assert t11.merge_inherits_provenance_blob(tmp_path, "merge") is False
+
+    blobs["p2"] = "m"
+    assert t11.merge_inherits_provenance_blob(tmp_path, "merge") is True
+
+
+def test_provenance_history_ignores_merge_that_inherits_parent_blob(tmp_path: Path) -> None:
+    base = _init_repo(tmp_path)
+    main_branch = _git(tmp_path, "branch", "--show-current")
+    _git(tmp_path, "checkout", "-b", "source")
+    path = tmp_path / t11.INTEGRATION_PROVENANCE_PATH
+    path.parent.mkdir(parents=True)
+    path.write_text("version: 1\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "source provenance")
+    source = _git(tmp_path, "rev-parse", "HEAD")
+
+    _git(tmp_path, "checkout", main_branch)
+    _git(tmp_path, "merge", "--no-ff", "source", "-m", "inherit source provenance")
+    merge = _git(tmp_path, "rev-parse", "HEAD")
+
+    observed = t11.provenance_history_commits(tmp_path, base, merge)
+    assert source in observed
+    assert merge not in observed
+
+
+def test_provenance_history_keeps_merge_with_new_conflict_blob(tmp_path: Path) -> None:
+    base = _init_repo(tmp_path)
+    main_branch = _git(tmp_path, "branch", "--show-current")
+    path = tmp_path / t11.INTEGRATION_PROVENANCE_PATH
+
+    _git(tmp_path, "checkout", "-b", "source")
+    path.parent.mkdir(parents=True)
+    path.write_text("version: source\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "source provenance")
+
+    _git(tmp_path, "checkout", main_branch)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("version: main\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "main provenance")
+
+    proc = subprocess.run(
+        ["git", "merge", "--no-ff", "source", "-m", "conflicting provenance"],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert proc.returncode != 0
+    path.write_text("version: resolved\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-m", "resolve provenance conflict")
+    merge = _git(tmp_path, "rev-parse", "HEAD")
+
+    assert merge in t11.provenance_history_commits(tmp_path, base, merge)
 
 
 def test_first_status_commit_traverses_hidden_side_branch(tmp_path: Path) -> None:

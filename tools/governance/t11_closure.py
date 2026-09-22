@@ -47,11 +47,24 @@ class Finding:
         return f"ERROR {self.rule} {self.path}: {self.message}"
 
 
+def merge_inherits_provenance_blob(root: Path, sha: str) -> bool:
+    parents = cg.commit_parents(root, sha)
+    if len(parents) < 2:
+        return False
+    current_blob = cg.blob_sha_at(root, sha, INTEGRATION_PROVENANCE_PATH)
+    if current_blob is None:
+        return False
+    return any(
+        cg.blob_sha_at(root, parent, INTEGRATION_PROVENANCE_PATH) == current_blob
+        for parent in parents
+    )
+
+
 def provenance_history_commits(root: Path, base: str, head: str) -> list[str]:
     merge_base = cg.git(root, "merge-base", base, head).strip()
     if not merge_base:
         raise RuntimeError("no merge base for integration-provenance bootstrap audit")
-    return [
+    commits = [
         line
         for line in cg.git(
             root,
@@ -65,6 +78,7 @@ def provenance_history_commits(root: Path, base: str, head: str) -> list[str]:
         ).splitlines()
         if line
     ]
+    return [sha for sha in commits if not merge_inherits_provenance_blob(root, sha)]
 
 
 def validate_provenance_bootstrap(root: Path, base: str, head: str) -> list[Finding]:

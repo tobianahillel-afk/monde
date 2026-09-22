@@ -19,6 +19,11 @@ MUTATIONS = {
         "    if observed == EXPECTED_PROVENANCE_BOOTSTRAP_COMMITS:\n        return []\n",
         "    if True:\n        return []\n",
     ),
+    "t11-inherited-provenance-merge-filter": (
+        "tools/governance/t11_closure.py",
+        "    return [sha for sha in commits if not merge_inherits_provenance_blob(root, sha)]\n",
+        "    return commits\n",
+    ),
     "t11-full-history-import-materialization": (
         "tools/governance/t11_closure.py",
         '            "--full-history",\n            "--reverse",\n            "--topo-order",\n            head,\n',
