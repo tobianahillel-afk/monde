@@ -43,6 +43,23 @@ class Review0056PendingWriteAckTests(unittest.TestCase):
         writer.assert_called_once()
         rerun.assert_not_called()
 
+    def test_nonpending_write_success_is_transparent(self) -> None:
+        state = pending.SchedulerStateV4(1)
+        writer = mock.Mock()
+        with (
+            mock.patch.object(pending, "_write_state", writer),
+            mock.patch.object(previous, "_pending_lifetime_process") as process,
+        ):
+            def invoke(*_args, **_kwargs):
+                pending._write_state("o/r", "t", state)
+                return ([], [], None)
+            process.side_effect = invoke
+            self.assertEqual(
+                subject._pending_write_ack_process("o/r", "t", [], 3, state),
+                ([], [], None),
+            )
+        writer.assert_called_once_with("o/r", "t", state)
+
     def test_nonpending_write_failure_is_not_reclassified(self) -> None:
         state = pending.SchedulerStateV4(1)
         writer = mock.Mock(side_effect=RuntimeError("idle write failed"))
