@@ -69,6 +69,37 @@ def paged(
     expected_total: int | None = None
     seen_ids: set[int] = set()
     previous_ids: list[int] | None = None
+    page_snapshots: list[list[int]] = []
+
+    def verify_page_snapshot(page_number: int, expected_ids: list[int]) -> None:
+        if collection_key is None or unique_id_field is None or expected_total is None:
+            raise RuntimeError("paginated stability verification requires keyed counted identities")
+        sep = "&" if "?" in url else "?"
+        verify_payload = request_data(
+            f"{url}{sep}per_page=100&page={page_number}", token
+        )
+        if not isinstance(verify_payload, dict):
+            raise RuntimeError("GitHub returned malformed paginated stability response")
+        verify_total = verify_payload.get("total_count")
+        verify_items = verify_payload.get(collection_key)
+        if type(verify_total) is not int or verify_total != expected_total:
+            raise RuntimeError("GitHub returned inconsistent paginated total_count")
+        if not isinstance(verify_items, list) or any(
+            not isinstance(item, dict) for item in verify_items
+        ):
+            raise RuntimeError("GitHub returned malformed paginated stability response")
+        verify_ids = [item.get(unique_id_field) for item in verify_items]
+        if any(type(value) is not int for value in verify_ids):
+            raise RuntimeError("GitHub returned malformed paginated record identity")
+        if verify_ids != expected_ids:
+            raise RuntimeError("GitHub paginated page membership changed during traversal")
+
+    def verify_final_snapshot() -> None:
+        if not verify_previous_page or len(page_snapshots) <= 1:
+            return
+        for page_number, expected_ids in enumerate(page_snapshots, start=1):
+            verify_page_snapshot(page_number, expected_ids)
+
     for page in range(1, MAX_PAGES + 1):
         sep = "&" if "?" in url else "?"
         payload = request_data(f"{url}{sep}per_page=100&page={page}", token)
@@ -113,37 +144,23 @@ def paged(
                 raise RuntimeError("GitHub returned incomplete paginated collection")
 
         if verify_previous_page and previous_ids is not None:
-            if collection_key is None or unique_id_field is None or expected_total is None:
-                raise RuntimeError("paginated stability verification requires keyed counted identities")
-            verify_payload = request_data(
-                f"{url}{sep}per_page=100&page={page - 1}", token
-            )
-            if not isinstance(verify_payload, dict):
-                raise RuntimeError("GitHub returned malformed paginated stability response")
-            verify_total = verify_payload.get("total_count")
-            verify_items = verify_payload.get(collection_key)
-            if type(verify_total) is not int or verify_total != expected_total:
-                raise RuntimeError("GitHub returned inconsistent paginated total_count")
-            if not isinstance(verify_items, list) or any(
-                not isinstance(item, dict) for item in verify_items
-            ):
-                raise RuntimeError("GitHub returned malformed paginated stability response")
-            verify_ids = [item.get(unique_id_field) for item in verify_items]
-            if any(type(value) is not int for value in verify_ids):
-                raise RuntimeError("GitHub returned malformed paginated record identity")
-            if verify_ids != previous_ids:
-                raise RuntimeError("GitHub paginated page membership changed during traversal")
+            verify_page_snapshot(page - 1, previous_ids)
 
         out.extend(items)
-        if require_total_count:
-            assert expected_total is not None
-            if len(out) == expected_total:
-                return out
-        if len(items) < 100:
-            return out
         if verify_previous_page:
             if current_ids is None:
                 raise RuntimeError("paginated stability verification requires record identities")
+            page_snapshots.append(current_ids)
+
+        if require_total_count:
+            assert expected_total is not None
+            if len(out) == expected_total:
+                verify_final_snapshot()
+                return out
+        if len(items) < 100:
+            verify_final_snapshot()
+            return out
+        if verify_previous_page:
             previous_ids = current_ids
     raise RuntimeError(f"GitHub pagination exceeded {MAX_PAGES} pages")
 

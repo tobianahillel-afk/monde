@@ -387,11 +387,13 @@ class BootstrapPollTests(unittest.TestCase):
         with mock.patch.object(bootstrap, "request_data", side_effect=response) as request:
             self.assertEqual(bootstrap.latest_required_check("o/r", "h", "t"), newest)
         urls = [call.args[0] for call in request.call_args_list]
-        self.assertEqual(len(urls), 3)
+        self.assertEqual(len(urls), 5)
         self.assertIn("page=1", urls[0])
         self.assertIn("page=2", urls[1])
         self.assertIn("page=1", urls[2])
-        self.assertEqual(calls["page1"], 2)
+        self.assertIn("page=1", urls[3])
+        self.assertIn("page=2", urls[4])
+        self.assertEqual(calls["page1"], 3)
 
     def test_latest_required_check_pagination_fails_closed_on_drift_and_cross_page_duplicate(self) -> None:
         first = [check_run("h", check_id=i) for i in range(1, 101)]
@@ -444,6 +446,58 @@ class BootstrapPollTests(unittest.TestCase):
                 "paginated page membership changed during traversal",
             ):
                 bootstrap.latest_required_check("o/r", "h", "t")
+
+    def test_latest_required_check_final_snapshot_detects_late_earlier_page_drift(self) -> None:
+        checks = [check_run("h", check_id=i) for i in range(1, 202)]
+        page1 = {"total_count": 201, "check_runs": checks[:100]}
+        page2 = {"total_count": 201, "check_runs": checks[100:200]}
+        page3 = {"total_count": 201, "check_runs": checks[200:]}
+        changed_page1 = {
+            "total_count": 201,
+            "check_runs": [check_run("h", check_id=999)]
+            + [item for item in checks[:100] if item["id"] != 50],
+        }
+        responses = iter(
+            [
+                page1,
+                page2,
+                page1,
+                page3,
+                page2,
+                changed_page1,
+            ]
+        )
+        with mock.patch.object(
+            bootstrap,
+            "request_data",
+            side_effect=lambda *_args: next(responses),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "paginated page membership changed during traversal",
+            ):
+                bootstrap.latest_required_check("o/r", "h", "t")
+
+    def test_latest_required_check_final_snapshot_revalidates_all_three_pages(self) -> None:
+        checks = [check_run("h", check_id=i) for i in range(1, 202)]
+        pages = {
+            1: {"total_count": 201, "check_runs": checks[:100]},
+            2: {"total_count": 201, "check_runs": checks[100:200]},
+            3: {"total_count": 201, "check_runs": checks[200:]},
+        }
+        seen_pages: list[int] = []
+
+        def response(url: str, _token: str):
+            for page in (1, 2, 3):
+                if f"&page={page}" in url:
+                    seen_pages.append(page)
+                    return pages[page]
+            raise AssertionError(url)
+
+        with mock.patch.object(bootstrap, "request_data", side_effect=response):
+            result = bootstrap.latest_required_check("o/r", "h", "t")
+        self.assertEqual(len(result if isinstance(result, list) else [result]), 1)
+        self.assertEqual(seen_pages, [1, 2, 1, 3, 2, 1, 2, 3])
 
     def test_paged_stability_configuration_guards(self) -> None:
         rows = [{"id": i} for i in range(1, 102)]
