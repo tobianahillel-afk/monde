@@ -23,16 +23,17 @@ def candidate_check(*, conclusion: str = "success", status: str = "completed"):
 
 
 def candidate_run(*, run_id: int = 101, run_number: int = 10, attempt: int = 1, created_at: str = "2026-09-22T20:00:00Z"):
-    return gate_run(
+    item = gate_run(
         run_id,
         2,
         head=HEAD,
         branch="feature",
         run_number=run_number,
-        run_attempt=attempt,
         created_at=created_at,
         updated_at=created_at,
     )
+    item["run_attempt"] = attempt
+    return item
 
 
 class Review0059AuthorityFrontierTests(unittest.TestCase):
