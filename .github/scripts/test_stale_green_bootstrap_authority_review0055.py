@@ -157,6 +157,24 @@ class Review0055PendingLifetimeTests(unittest.TestCase):
             self.assertEqual(subject.main(), 17)
         base_main.assert_called_once()
 
+        with (
+            mock.patch.object(subject, "install"),
+            mock.patch.dict(os.environ, {"BOOTSTRAP_RECOVERY_ACTION": "bad"}, clear=True),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unsupported bootstrap recovery action"):
+                subject.main()
+
+        with (
+            mock.patch.object(subject, "install"),
+            mock.patch.dict(
+                os.environ,
+                {"BOOTSTRAP_RECOVERY_ACTION": subject.RECOVERY_ACTION},
+                clear=True,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "GITHUB_REPOSITORY and GITHUB_TOKEN"):
+                subject.main()
+
         env = {
             "BOOTSTRAP_RECOVERY_ACTION": subject.RECOVERY_ACTION,
             "GITHUB_REPOSITORY": "o/r",
