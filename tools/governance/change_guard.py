@@ -491,15 +491,60 @@ def comparison_parent(root: Path, base: str, sha: str) -> str:
     return base_side[0] if base_side else parents[0]
 
 
-def inherited_merge_blob(root: Path, previous_sha: str, sha: str, path: str) -> bool:
+def merge_history_inheritance_provenance_allowed(
+    root: Path,
+    base: str,
+    source_parent: str,
+    merge_sha: str,
+    head: str,
+    record_id: str,
+) -> bool:
+    provenance = show_yaml(root, head, "registry/integration-provenance.yaml") or {}
+    merge_tree = git(root, "rev-parse", f"{merge_sha}^{{tree}}").strip()
+    parents = set(commit_parents(root, merge_sha))
+    for entry in provenance.get("merge_history_integrations", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        eligible = entry.get("eligible_registry_ids")
+        if (
+            entry.get("base_commit_sha") == base
+            and entry.get("source_head_sha") == source_parent
+            and entry.get("integration_commit_sha") == merge_sha
+            and entry.get("expected_tree_sha") == merge_tree
+            and isinstance(eligible, list)
+            and record_id in eligible
+            and entry.get("historical_only") is True
+            and entry.get("future_reuse_forbidden") is True
+            and base in parents
+            and source_parent in parents
+            and is_ancestor(root, merge_sha, head)
+        ):
+            return True
+    return False
+
+
+def inherited_merge_record_allowed(
+    root: Path,
+    base: str,
+    previous_sha: str,
+    sha: str,
+    head: str,
+    path: str,
+    current: dict[str, Any],
+) -> bool:
     parents = commit_parents(root, sha)
     if len(parents) < 2:
         return False
     current_blob = blob_sha_at(root, sha, path)
-    if current_blob is None:
+    record_id = current.get("id")
+    if current_blob is None or not isinstance(record_id, str):
         return False
     for parent in parents:
-        if parent != previous_sha and blob_sha_at(root, parent, path) == current_blob:
+        if parent == previous_sha or blob_sha_at(root, parent, path) != current_blob:
+            continue
+        if is_ancestor(root, parent, base):
+            return True
+        if merge_history_inheritance_provenance_allowed(root, base, parent, sha, head, record_id):
             return True
     return False
 
@@ -652,13 +697,13 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
 
     for previous_sha, sha in edges:
         for path in changed_files(root, previous_sha, sha):
-            if base_has_guard and inherited_merge_blob(root, previous_sha, sha, path):
-                continue
             kind = registry_kind(path)
             if not kind or kind == "progress":
                 continue
             previous = show_yaml(root, previous_sha, path)
             current = show_yaml(root, sha, path)
+            if current and inherited_merge_record_allowed(root, base, previous_sha, sha, head, path, current):
+                continue
             if previous and current is None:
                 if file_exists_at(root, sha, path) and historical_malformed_yaml_allowed(root, path, sha, head):
                     continue

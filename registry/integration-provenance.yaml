@@ -17,6 +17,21 @@ squash_integrations:
     reason: |
       PR #3 was intentionally squash-merged after WORK-0001 reached DONE. GitHub records source HEAD 2292b00fe04cbaf47cdd00df1578e1dab670d0cc and squash commit 29086643387ff46ab6636dd2fa3014efccc10165 with the same exact tree b89689ca631c0d64791904e74bf6672908b855c0. TEST-0004..TEST-0008 execution SHAs and REVIEW-0027's one-shot external-import materialization are real ancestors/events on that exact source history. This record preserves only those explicitly enumerated evidence IDs across that exact tree-equivalent squash bridge; it does not make arbitrary branch commits or review imports valid evidence.
 
+merge_history_integrations:
+  - work_item: WORK-0002
+    base_commit_sha: "5a0b6d97595206b16ddc22cabb1204fb993171cf"
+    source_head_sha: "0c06fa7af170de6aff888d178bb00939d8e23afe"
+    integration_commit_sha: "aa5a9064cddd6f96e5073115ae3a8199c68e3a3a"
+    expected_tree_sha: "06db4d84e3c566b542ebe1f07a4f4f6118f14cec"
+    eligible_registry_ids: [REVIEW-0002, REVIEW-0029, REVIEW-0030, TEST-0002, TEST-0003]
+    historical_only: true
+    future_reuse_forbidden: true
+    reason: |
+      Rehearsal-only exact bridge for the future two-parent WORK-0002 integration after PR #5. These five branch-local records have already traversed their own reviewed history on the WORK-0002 branch; the merge commit carries their blobs byte-identically from source_head_sha. This entry authorizes only this exact base/source/merge/tree tuple and listed record IDs. It cannot authorize another merge or another record.
+
+merge_history_integration_rule: |
+  A merge may treat a registry record as inherited rather than newly materialized only when the merge result blob is byte-identical to another parent and either that parent is already an ancestor of the PR base or an exact merge_history_integrations entry binds the current base, source parent, merge commit, merge tree and record ID with historical_only=true and future_reuse_forbidden=true. A conflict resolution that differs from every parent is always validated as a real transition.
+
 enforcement_adoptions:
   - rule_id: PROGRESS_LIFECYCLE_EDGE_ENFORCEMENT_V1
     adoption_commit_sha: "cfa15015839acd34743318ffebbbe37185f46e10"

@@ -72,7 +72,6 @@ def test_merge_of_current_base_does_not_replay_base_transition(tmp_path):
     run(tmp_path,'checkout','feature');run(tmp_path,'merge','--no-ff','mainline','-m','integrate current main');head=run(tmp_path,'rev-parse','HEAD')
     findings=c.validate(tmp_path,main,head)
     assert not [f for f in findings if f.rule=='STATE_TRANSITION' and f.path=='registry/tests/TEST-1.yaml']
-    assert not c.inherited_merge_blob(tmp_path, main, head, 'missing.yaml')
 
 
 def test_moved_base_does_not_replay_record_inherited_by_historical_merge(tmp_path):
@@ -95,7 +94,7 @@ def test_moved_base_does_not_replay_record_inherited_by_historical_merge(tmp_pat
     assert c.is_ancestor(tmp_path, old_main, moved_base)
 
 
-def test_current_base_merge_does_not_rematerialize_branch_terminal_record(tmp_path):
+def test_current_base_merge_requires_exact_provenance_for_branch_terminal_record(tmp_path):
     common = repo(tmp_path)
     run(tmp_path, 'branch', 'feature', common); run(tmp_path, 'branch', 'mainline', common)
     run(tmp_path, 'checkout', 'feature')
@@ -104,12 +103,35 @@ def test_current_base_merge_does_not_rematerialize_branch_terminal_record(tmp_pa
     write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'IN_PROGRESS', 'artifact': {'commit_sha': ''}})
     commit(tmp_path, 'branch review progress')
     write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'COMPLETE', 'artifact': {'commit_sha': ''}})
-    commit(tmp_path, 'branch review complete')
+    source = commit(tmp_path, 'branch review complete')
     run(tmp_path, 'checkout', 'mainline'); write(tmp_path, 'main.txt', 'main'); base = commit(tmp_path, 'main advances')
     run(tmp_path, 'checkout', 'feature'); run(tmp_path, 'merge', '--no-ff', 'mainline', '-m', 'integrate current main')
-    head = run(tmp_path, 'rev-parse', 'HEAD')
+    merge = run(tmp_path, 'rev-parse', 'HEAD')
+    assert [f for f in c.validate(tmp_path, base, merge) if f.rule == 'STATE_INITIAL' and f.path == 'registry/reviews/REVIEW-9.yaml']
+
+    tree = run(tmp_path, 'rev-parse', f'{merge}^{{tree}}')
+    write(tmp_path, 'registry/integration-provenance.yaml', {
+        'version': 2,
+        'merge_history_integrations': [{
+            'work_item': 'WORK-1',
+            'base_commit_sha': base,
+            'source_head_sha': source,
+            'integration_commit_sha': merge,
+            'expected_tree_sha': tree,
+            'eligible_registry_ids': ['REVIEW-9'],
+            'historical_only': True,
+            'future_reuse_forbidden': True,
+        }],
+    })
+    head = commit(tmp_path, 'record exact merge history provenance')
     findings = c.validate(tmp_path, base, head)
     assert not [f for f in findings if f.rule == 'STATE_INITIAL' and f.path == 'registry/reviews/REVIEW-9.yaml']
+
+    bad = yaml.safe_load((tmp_path / 'registry/integration-provenance.yaml').read_text())
+    bad['merge_history_integrations'] = ['bad-entry', {**bad['merge_history_integrations'][0], 'expected_tree_sha': '0' * 40}]
+    write(tmp_path, 'registry/integration-provenance.yaml', bad)
+    bad_head = commit(tmp_path, 'break merge history provenance')
+    assert [f for f in c.validate(tmp_path, base, bad_head) if f.rule == 'STATE_INITIAL' and f.path == 'registry/reviews/REVIEW-9.yaml']
 
 
 def test_merge_conflict_resolution_still_validates_real_status_change(tmp_path):
