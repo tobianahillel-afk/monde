@@ -329,6 +329,7 @@ class Review0060AttemptAuthorityTests(unittest.TestCase):
             updated_at="2026-09-22T21:40:00Z",
         )
         other_job = gate_job(502, 102, started_at="2026-09-22T21:31:00Z")
+        other_job["completed_at"] = "2026-09-22T21:40:00Z"
         def paged(url: str, *_args, **_kwargs):
             return [other_job] if "/102/jobs" in url else [job_a]
         with (
