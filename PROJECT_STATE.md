@@ -166,6 +166,14 @@ The correction extends the shared bounded paginator with optional previous-page 
 
 Bootstrap #209 / run `35758466500` proved the OPEN checkpoint at **227/227 tests**, **2,039 statements / 900 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
+## REVIEW-0057 — terminal negative evidence
+
+REVIEW-0057 passed frozen exact-head proof on `33f24d354f513f4b925f0b1f56ad8775da8b8ab2`: Bootstrap #210 / run `35758795593` passed **227/227 tests**, **2,039 statements / 900 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
+
+REVIEW-0057 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOtCssw` exposed that adjacent previous-page revalidation is insufficient over 3+ pages. A page already revalidated after page 2 can drift later before page 3 completes while total_count, uniqueness and the page-2 boundary remain stable, allowing the old collection to omit a newer effective check.
+
+REVIEW-0058 must add a bounded end-of-traversal stability proof for every fetched page before returning the collection. With `MAX_PAGES=20`, retaining the current adjacent checks plus one final re-read of all fetched pages costs at most 59 pagination requests, remaining within the 100-request hard cap.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -174,7 +182,7 @@ Bootstrap #209 / run `35758466500` proved the OPEN checkpoint at **227/227 tests
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0057 OPEN proof is complete via Bootstrap #209 and REVIEW-0057 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
+7. REVIEW-0057 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOtCssw exposed late drift of an earlier page; implement and prove REVIEW-0058 end-of-traversal stability before another independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 

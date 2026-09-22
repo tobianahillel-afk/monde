@@ -1,9 +1,9 @@
 id: REVIEW-0057
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "33f24d354f513f4b925f0b1f56ad8775da8b8ab2"
 reviewer:
   actor: null
   context_id: null
@@ -36,7 +36,8 @@ scope:
     - "insert/delete churn on a previous page can shift records across boundaries"
     - "extra stability reads can exhaust the request budget if not bounded"
     - "drift detection must not weaken all prior pending/recovery authority guarantees"
-findings: []
+findings:
+  - "PRR_kwDOUUI5ts8AAAABOtCssw"
 checks:
   assumptions_challenged:
     - "stable total_count and global uniqueness imply a stable paginated snapshot"
@@ -64,6 +65,7 @@ checks:
     - "revalidation total_count changes"
     - "stability verification is enabled without record identities"
     - "extra revalidation exceeds MAX_PAGES/request budget"
+    - "an earlier page drifts after its adjacent revalidation in a 3+ page traversal while later pages remain stable"
   evidence_requested:
     - "Exact-head Bootstrap suite with 100 percent line and branch coverage after drift-detection correction."
     - "Regression reproducing count-stable insert+delete page-membership drift and proving fail-closed refusal."
@@ -72,8 +74,9 @@ checks:
     - "Live PR #2 contract probe remains successful."
     - "Fresh-context independent L2 on one frozen exact REVIEW-0057 head."
     - "Resolve no historical inline thread until REVIEW-0057 L2 is clean."
+    - "Successor must perform a bounded end-of-traversal stability proof covering every fetched page before effective-check selection."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-22T17:56:20Z"
 history:
   created_at: "2026-09-22"
   updated_at: "2026-09-22"
