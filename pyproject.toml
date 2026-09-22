@@ -24,8 +24,6 @@ omit = [
   ".github/scripts/governance_t10_mutation_smoke.py",
   ".github/scripts/governance_t11_mutation_smoke.py",
   ".github/scripts/governance_t13_mutation_smoke.py",
-  ".github/scripts/stale_green_bootstrap*.py",
-  ".github/scripts/test_stale_green_bootstrap*.py",
 ]
 
 [tool.coverage.report]
