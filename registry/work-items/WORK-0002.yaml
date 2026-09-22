@@ -540,7 +540,9 @@ validation:
   - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNoalkw reviewed exact candidate cc6e98d542fbedf097a8ffbb7eb5dcf128237c84 and opened five new material findings, expanding the live closure set from 62 to 67 and opening T11.
   - Exact T11 substantive candidate 5e7af51bcc08698de930eed5dba62ab9ba3e74af passed deterministic/security lanes in MONDE Gate run 34973462479 / #201: 344/344 tests, 3761/3761 statements, 1808/1808 branches, 100% line+branch coverage, 37/37 baseline plus 40/40 fresh-L2/T7/T8/T9 plus 5/5 T10 plus 8/8 T11 critical mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7/T8/T9/T10/T11 validators all at zero, 19-file context manifest, CodeQL success and Dependency Review success. Its live gate observed exactly 67 unresolved threads and reported only the expected five-entry durable-set lag (missing the five T11 PRRT identities, stale=[]), plus absence of a trusted context-separated L2/L3 exact-head APPROVED review.
   - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNppdkQ on exact candidate 792390305c20439c73b313b0dd3fca92b9c096fa opened six further findings, expanding the live closure set from 67 to 73.
-  - Exact current HEAD 4046e03b1e00a2051d29ccd6dcf5f0af7426259a / Gate #228 / run 34997568781 passed the deterministic lane with 357/357 tests, 100% coverage and zero repository validation warnings/errors; its merge gate failed closed only on 73 unresolved threads, the six expected missing durable IDs, and absence of trusted exact-head approval.
+  - Exact HEAD 4046e03b1e00a2051d29ccd6dcf5f0af7426259a / Gate #228 / run 34997568781 passed the deterministic lane with 357/357 tests, 100% coverage and zero repository validation warnings/errors; its merge gate failed closed on 73 unresolved threads, the six then-missing durable IDs, and absence of trusted exact-head approval.
+  - Exact durable-set correction HEAD 47d7bcc1840af45059e47e979040808e4b202d4e / Gate #230 / run 35710776945 established exact 73/73 durable/live PRRT identity equality: deterministic governance remained green and the live merge gate failed only on 73 unresolved threads plus missing trusted exact-head approval, with no DURABLE_FINDING_SET error.
+  - Exact T12/T13 identity-split HEAD 242f6c9553c4e42bfbb4e6aad2ca27596573ecb2 / Gate #231 / run 35711181317 passed 357/357 tests at 100% line+branch coverage, baseline mutations 37/37, L2 mutations 40/40, T10 5/5, T11 8/8, T13 5/5, repository/strict/path/change/L2/review/T7/T8/T9/T10/T11 validators all at zero, 19-file context manifest, CodeQL and Dependency Review success. Its live gate again failed only on 73 unresolved threads plus missing trusted exact-head approval.
   evidence:
   - TEST-0002
   - TEST-0003
@@ -556,7 +558,7 @@ validation:
     branch: 100
   known_gaps:
   - Repository administration/ruleset enforcement belongs to WORK-0003.
-  - Gate #201 is the exact substantive T11 author-side proof on 5e7af51bcc08698de930eed5dba62ab9ba3e74af; this durable-state synchronization commit changes HEAD and therefore requires its own exact-SHA Gate before fresh independent review.
+  - Gate #231 / run 35711181317 is the exact substantive T13/task-identity proof on 242f6c9553c4e42bfbb4e6aad2ca27596573ecb2. This final handover synchronization changes only WORK-0002/PROJECT_STATE and therefore requires one exact-head state-only Gate before any future integration/review decision.
   - All 73 live material review threads/findings remain intentionally unresolved pending another fresh independent verification; no author-side resolution counts as completion evidence.
   - Canonical task identity is now explicit: T12 is reserved for the trusted default-branch stale-green predecessor on PR #5, while T13 names the five branch-local corrections already implemented on PR #2. Historical filenames using t12 for that local correction wave are renamed to t13 without changing behavior.
   - Gate #228 / run 34997568781 on exact HEAD 4046e03b1e00a2051d29ccd6dcf5f0af7426259a proved 357/357 tests and 100% coverage, then correctly reported six durable IDs missing from the 73-thread live set.
@@ -625,6 +627,9 @@ run_log:
 - run: RUN-3
   date: '2026-09-22'
   note: 'Task-ID collision preflight reserved T12 for the PR #5 trusted default-branch stale-green predecessor and renamed the existing five-finding PR #2 correction wave and its mutation/test artifacts to T13. This is an identity/traceability refactor only; the five branch-local corrections remain unchanged and T13 is DONE author-side, while T12 remains IN_REVIEW until PR #5 obtains independent acceptance and is integrated.'
+- run: RUN-3
+  date: '2026-09-22'
+  note: 'Gate #230 / run 35710776945 on 47d7bcc1840af45059e47e979040808e4b202d4e established exact 73/73 durable/live finding identity equality. Gate #231 / run 35711181317 on T12/T13 split head 242f6c9553c4e42bfbb4e6aad2ca27596573ecb2 passed 357/357 tests, 100% line+branch, 37/37 + 40/40 + 5/5 + 8/8 + T13 5/5 mutations, all deterministic closure validators at zero, 19-file context manifest, CodeQL and Dependency Review. Its live gate failed only on the intentionally unresolved 73 threads and absent trusted exact-head approval.'
 discoveries:
 - 100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required.
 - GitHub live state can invalidate stale PROJECT_STATE prose after it is committed.
@@ -654,7 +659,7 @@ discoveries:
 - Durable closure integrity is an identity-set property: equal counts cannot substitute for exact one-to-one PRRT coverage.
 - Effective workflow semantics must be validated from parsed YAML structure rather than textual snippets that comments or formatting can mimic.
 blockers:
-- All 73 live review findings remain intentionally unresolved. This durable-state synchronization must pass its own exact-SHA Gate and establish 73/73 durable/live identity equality.
+- All 73 live review findings remain intentionally unresolved. Exact 73/73 durable/live identity equality was established by Gate #230 and preserved by Gate #231; this final state-only handover commit must receive its own exact-SHA Gate before further action.
 - T12 / PRRT_kwDOUUI5ts6ijUTn cannot be considered closed until the trusted default-branch stale-green predecessor from PR #5 is independently accepted and merged/integrated.
 - T13 is DONE author-side for the five branch-local findings but remains subject to final exact-head independent re-verification.
 - After T12 is integrated, T4 requires a fresh independent exact-head L2 over the complete 73-thread set plus any integration findings, and a trusted context-separated L2/L3 exact-head APPROVED review before any closure or merge.

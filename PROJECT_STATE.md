@@ -48,7 +48,19 @@ A cold live re-query on 2026-09-22 found **73 unresolved** PR #2 review threads,
 
 Current code already represents the latter five corrections. The first finding is the cross-branch/default-branch bootstrap problem owned by PR #5 / the trusted stale-green predecessor and cannot close until that predecessor is independently accepted and integrated.
 
-Gate #228's deterministic lane passed **357/357 tests**, **100% coverage**, repository validation **0 errors / 0 warnings**. Its merge gate failed closed only on the 73 intentionally unresolved threads, the six missing durable IDs, and absence of trusted context-separated exact-head approval. This synchronization records all six IDs; it resolves none.
+Gate #228's deterministic lane passed **357/357 tests**, **100% coverage**, repository validation **0 errors / 0 warnings**. Its merge gate failed closed on the 73 intentionally unresolved threads, the six then-missing durable IDs, and absence of trusted context-separated exact-head approval.
+
+The exact durable-set correction head `47d7bcc1840af45059e47e979040808e4b202d4e` then reached **Gate #230 / run `35710776945`**. The live gate reported only `UNRESOLVED_THREADS: 73` and `INDEPENDENT_EXACT_HEAD_APPROVAL`: **the DURABLE_FINDING_SET error disappeared, proving exact 73/73 durable/live PRRT identity equality**.
+
+The T12/T13 identity-split head `242f6c9553c4e42bfbb4e6aad2ca27596573ecb2` reached **Gate #231 / run `35711181317`**:
+- **357/357 tests**, **100% line + branch coverage**;
+- mutations **37/37 baseline**, **40/40 L2**, **5/5 T10**, **8/8 T11**, **5/5 T13**;
+- repository/strict/path/change/L2/review/T7/T8/T9/T10/T11 validators **0 errors**;
+- context manifest **19 MUST_READ files**;
+- CodeQL and Dependency Review **success**;
+- live gate failed only on the intentionally unresolved **73 threads** and missing trusted context-separated exact-head approval.
+
+No thread was resolved by these synchronizations.
 
 ## Exact T11 proof
 
@@ -107,7 +119,7 @@ T11 now enforces that:
 Required sequence from this state:
 
 1. Keep all **73** material review threads unresolved.
-2. Prove this exact durable-state synchronization HEAD with its own MONDE Gate and require exact durable/live **73/73 PRRT identity equality**.
+2. Gate #230 established and Gate #231 preserved exact durable/live **73/73 PRRT identity equality**. Prove this final state-only handover descendant with its own exact-SHA MONDE Gate before further integration/review action.
 3. Keep T12 / PRRT_kwDOUUI5ts6ijUTn open until PR #5's trusted default-branch stale-green predecessor is independently accepted and integrated; do not substitute PR #2's own cron because scheduled workflows execute only from the default branch. T13 already denotes the five corrected branch-local findings.
 4. After PR #5 integration, rerun the full governance gate on the resulting two-parent PR #2 head.
 5. Request another **fresh-context independent L2** on that exact proven integrated HEAD. It must reverify all 73 accumulated findings plus integration effects, explicitly recheck T11/T12/T13 and the T7/T8/T9/T10 trust-anchor, lifecycle, import/finalization, authority, identity-policy history, exact-head approval, reopening, raw-blob scanning, workflow-structure and durable-thread invariants, and actively search for new bypasses.
