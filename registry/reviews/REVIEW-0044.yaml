@@ -1,0 +1,80 @@
+id: REVIEW-0044
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "379b4e00aa973f74c9bb973a1e79381f43332f0b"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABNytEOQ"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "exact latest GitHub Actions-owned MONDE / Merge Gate check remains merge-state authority"
+    - "canonical PR-family triggering identity comes from exactly one reusable-workflow refs/pull/<N>/merge reference"
+    - "stable unique open Pull Requests authority is refreshed before target resolution"
+    - "one invocation considers at most seven rotated head groups and schedules at most three reruns"
+    - "head groups rotate by ten-minute fairness slot rather than repeatedly processing one fixed prefix"
+    - "same-head siblings remain one scheduling group and at most one sibling is rerun for that SHA per invocation"
+    - "rerun targets are resolved per PR number and protected current-attempt MONDE / Merge Gate jobs are validated"
+    - "current review-thread state is read after target-job validation immediately before the rerun decision"
+    - "the invocation-wide hard budget blocks request 61 before network I/O"
+    - "filtered Actions history keeps stable partitioned snapshots below GitHub's search ceiling"
+    - "least-privilege actions:write remains only on trusted scheduled default-branch execution"
+  risks:
+    - "Wall-clock rotation is not durable fairness under missed, delayed or duplicated schedules."
+    - "Large open-PR refreshes can consume the request budget before the first mutation."
+    - "Recursive single-head Actions-history partitioning can consume the request budget before that head's mutation."
+    - "A shared-head rerun POST is asynchronous and does not prove the resulting latest required check remains non-merge-acceptable."
+findings:
+  - "PRRT_kwDOUUI5ts6i2qvx"
+  - "PRRT_kwDOUUI5ts6i2qv4"
+  - "PRRT_kwDOUUI5ts6i2qwA"
+  - "PRR_kwDOUUI5ts8AAAABNyyfZA"
+checks:
+  assumptions_challenged:
+    - "Ten-minute wall-clock modulo provides starvation-free eventual service independent of actual cron delivery."
+    - "Seven selected head groups preserve enough request headroom for mutation regardless of open-PR collection size."
+    - "Recursive filtered-history partitioning remains a last-resort read path rather than a repeatable pre-mutation budget sink."
+    - "One unresolved sibling rerun is sufficient without observing the shared-SHA required-check post-condition."
+  omitted_categories_considered:
+    - "skipped, delayed and duplicate schedule executions"
+    - "100-head and larger repositories"
+    - "1401-open-PR authority snapshots"
+    - "single-head deeply partitioned Actions history"
+    - "shared-head rerun completion races and independent sibling workflow completions"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039, REVIEW-0042 and REVIEW-0043 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
+    - "REVIEW-0040 and REVIEW-0041 remain CLOSED administrative negative evidence."
+    - "REVIEW-0043's 46 unresolved inline findings were all retained entering this review."
+    - "REVIEW-0044 adds three independent inline P1 findings and one author-side exact-head P1, leaving 49 inline threads unresolved."
+  failure_modes_considered:
+    - "wall-clock modulo repeatedly selects the same prefix when only matching cron slots execute"
+    - "1401 open PRs consume the 60-call budget during initial and refreshed snapshots before target resolution"
+    - "one long-lived high-churn head consumes the budget inside recursive Actions-history partitioning before target-job lookup"
+    - "selected shared-head sibling becomes clean before rerun completes and the SHA returns merge-acceptable while another sibling remains unresolved"
+  evidence_requested:
+    - "Use durable or schedule-independent scheduling progress instead of wall-clock modulo."
+    - "Reserve explicit mutation headroom and avoid full-collection refreshes inside a per-head path."
+    - "Bound current-incarnation target discovery so deep Actions history cannot consume the whole budget before mutation."
+    - "Observe a non-merge-acceptable shared-SHA required-check post-condition while unresolved siblings remain."
+    - "Add adversarial regressions for each failure mode and re-prove 100 percent line/branch plus the live read-only GitHub probe."
+    - "Run a fresh independent successor L2 before resolving any historical thread."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-16T08:52:16Z"
+history:
+  created_at: "2026-09-16"
+  updated_at: "2026-09-16"

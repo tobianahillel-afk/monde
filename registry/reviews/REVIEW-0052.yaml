@@ -1,0 +1,75 @@
+id: REVIEW-0052
+status: IN_PROGRESS
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "REVIEW-0051 inspection-only recovery remains non-mutating and cannot emit a rerun"
+    - "exact latest GitHub Actions-owned MONDE / Merge Gate check remains merge-state authority"
+    - "multiple legitimate GitHub Actions check suites may coexist on one unchanged head after supported review/review-comment reruns"
+    - "every returned required-check candidate is validated before selection"
+    - "duplicate candidate ids, wrong app/name/head, invalid status/conclusion or malformed recency metadata fail closed"
+    - "for multiple valid candidates, newest started_at wins with exact positive check id as deterministic tie-break"
+    - "single-candidate behavior remains unchanged and does not require synthetic recency metadata beyond GitHub's existing contract"
+    - "proven V5 pending/closed-origin behavior and REVIEW-0051 durable recovery authority remain unchanged"
+  risks:
+    - "GitHub can return multiple filter=latest check runs because latest is scoped per check suite rather than globally by check name."
+    - "Equal-second started_at values require a deterministic tie-break; exact check id ordering must not be confused with semantic approval."
+    - "Selecting a malformed newer candidate instead of rejecting the whole response would allow bad metadata to mask the real effective check."
+    - "The historical REVIEW-0050 recovery module remains in the tree and must remain unreachable from active manual recovery."
+findings: []
+checks:
+  assumptions_challenged:
+    - "GitHub filter=latest returns exactly one check run for one check_name/app/head."
+    - "A fail-closed multi-check selector can preserve exact merge-state authority without weakening candidate validation."
+    - "The selector correction does not reintroduce REVIEW-0050 recovery mutation authority."
+  omitted_categories_considered:
+    - "review-event and review-comment-event runs on an unchanged PR head"
+    - "multiple completed legitimate checks returned in arbitrary API order"
+    - "newer in-progress check superseding an older completed check"
+    - "same-second legitimate checks with distinct ids"
+    - "duplicate ids"
+    - "malformed started_at on one of several otherwise valid candidates"
+    - "wrong app/name/head/status/conclusion hidden behind one valid candidate"
+    - "single valid candidate with legacy test fixture shape"
+  duplicate_or_reuse_search:
+    - "REVIEW-0051 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
+    - "PRR_kwDOUUI5ts8AAAABOoOnSQ is the author-side finding that invalidated REVIEW-0051."
+    - "Rehearsal PR #8 Bootstrap #166 proved the selector before it was ported to PR #5."
+    - "All 65 historical inline PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "bridge aborts whenever more than one legitimate check suite exists"
+    - "selector accepts malformed candidate metadata because another candidate is valid"
+    - "API list order changes selected authority"
+    - "newer pending check is ignored in favor of older completed green"
+    - "recovery inspection regains state-write or rerun authority"
+  evidence_requested:
+    - "Exact-head Bootstrap suite with 100 percent line and branch coverage after selector correction."
+    - "Live PR #2 probe succeeding while two legitimate MONDE / Merge Gate check suites exist on the same head."
+    - "Regression for API-order independence, newer started_at selection, same-second deterministic tie-break, duplicate ids and malformed recency."
+    - "Fresh-context independent L2 on one frozen exact REVIEW-0052 head."
+    - "Resolve no historical inline thread until successor L2 is clean."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-22"
+  updated_at: "2026-09-22"
