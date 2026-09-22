@@ -72,8 +72,9 @@ def test_merge_of_current_base_does_not_replay_base_transition(tmp_path):
     run(tmp_path,'checkout','feature');run(tmp_path,'merge','--no-ff','mainline','-m','integrate current main');head=run(tmp_path,'rev-parse','HEAD')
     findings=c.validate(tmp_path,main,head)
     assert not [f for f in findings if f.rule=='STATE_TRANSITION' and f.path=='registry/tests/TEST-1.yaml']
-    assert not c.inherited_merge_record_allowed(tmp_path, main, main, head, head, 'missing.yaml', {'id': 'TEST-X'})
-    assert not c.inherited_merge_record_allowed(tmp_path, main, main, head, head, 'registry/tests/TEST-1.yaml', {})
+    exclusive = set(c.pr_commit_edges(tmp_path, main, head, require_guard=False)[0])
+    assert not c.inherited_merge_record_allowed(tmp_path, main, main, head, 'missing.yaml', {'id': 'TEST-X'}, exclusive)
+    assert not c.inherited_merge_record_allowed(tmp_path, main, main, head, 'registry/tests/TEST-1.yaml', {}, exclusive)
 
 
 def test_moved_base_does_not_replay_record_inherited_by_historical_merge(tmp_path):
@@ -94,9 +95,10 @@ def test_moved_base_does_not_replay_record_inherited_by_historical_merge(tmp_pat
     findings = c.validate(tmp_path, moved_base, head)
     assert not [f for f in findings if f.rule == 'STATE_INITIAL' and f.path == 'registry/reviews/REVIEW-9.yaml']
     assert c.is_ancestor(tmp_path, old_main, moved_base)
+    assert c.comparison_parent(tmp_path, moved_base, historical_merge) == old_main
 
 
-def test_current_base_merge_requires_exact_provenance_for_branch_terminal_record(tmp_path):
+def test_current_base_merge_reuses_guarded_source_history_without_rematerializing(tmp_path):
     common = repo(tmp_path)
     run(tmp_path, 'branch', 'feature', common); run(tmp_path, 'branch', 'mainline', common)
     run(tmp_path, 'checkout', 'feature')
@@ -108,32 +110,25 @@ def test_current_base_merge_requires_exact_provenance_for_branch_terminal_record
     source = commit(tmp_path, 'branch review complete')
     run(tmp_path, 'checkout', 'mainline'); write(tmp_path, 'main.txt', 'main'); base = commit(tmp_path, 'main advances')
     run(tmp_path, 'checkout', 'feature'); run(tmp_path, 'merge', '--no-ff', 'mainline', '-m', 'integrate current main')
-    merge = run(tmp_path, 'rev-parse', 'HEAD')
-    assert [f for f in c.validate(tmp_path, base, merge) if f.rule == 'STATE_INITIAL' and f.path == 'registry/reviews/REVIEW-9.yaml']
-
-    tree = run(tmp_path, 'rev-parse', f'{merge}^{{tree}}')
-    write(tmp_path, 'registry/integration-provenance.yaml', {
-        'version': 2,
-        'merge_history_integrations': [{
-            'work_item': 'WORK-1',
-            'base_commit_sha': base,
-            'source_head_sha': source,
-            'integration_commit_sha': merge,
-            'expected_tree_sha': tree,
-            'eligible_registry_ids': ['REVIEW-9'],
-            'historical_only': True,
-            'future_reuse_forbidden': True,
-        }],
-    })
-    head = commit(tmp_path, 'record exact merge history provenance')
+    head = run(tmp_path, 'rev-parse', 'HEAD')
     findings = c.validate(tmp_path, base, head)
     assert not [f for f in findings if f.rule == 'STATE_INITIAL' and f.path == 'registry/reviews/REVIEW-9.yaml']
+    assert source in c.pr_commit_edges(tmp_path, base, head, require_guard=False)[0]
 
-    bad = yaml.safe_load((tmp_path / 'registry/integration-provenance.yaml').read_text())
-    bad['merge_history_integrations'] = ['bad-entry', {**bad['merge_history_integrations'][0], 'expected_tree_sha': '0' * 40}]
-    write(tmp_path, 'registry/integration-provenance.yaml', bad)
-    bad_head = commit(tmp_path, 'break merge history provenance')
-    assert [f for f in c.validate(tmp_path, base, bad_head) if f.rule == 'STATE_INITIAL' and f.path == 'registry/reviews/REVIEW-9.yaml']
+
+def test_current_base_merge_does_not_hide_ungoverned_source_introduction(tmp_path):
+    common = repo(tmp_path, False)
+    run(tmp_path, 'branch', 'feature', common); run(tmp_path, 'branch', 'mainline', common)
+    run(tmp_path, 'checkout', 'feature')
+    write(tmp_path, 'registry/reviews/REVIEW-9.yaml', {'id': 'REVIEW-9', 'status': 'COMPLETE', 'artifact': {'commit_sha': ''}})
+    commit(tmp_path, 'ungoverned terminal review')
+    run(tmp_path, 'checkout', 'mainline')
+    write(tmp_path, c.GUARD_PATH, 'guard')
+    base = commit(tmp_path, 'main adopts guard')
+    run(tmp_path, 'checkout', 'feature'); run(tmp_path, 'merge', '--no-ff', 'mainline', '-m', 'integrate guarded main')
+    head = run(tmp_path, 'rev-parse', 'HEAD')
+    findings = c.validate(tmp_path, base, head)
+    assert [f for f in findings if f.rule == 'STATE_INITIAL' and f.path == 'registry/reviews/REVIEW-9.yaml']
 
 
 def test_merge_conflict_resolution_still_validates_real_status_change(tmp_path):

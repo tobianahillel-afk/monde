@@ -487,40 +487,13 @@ def is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
 
 def comparison_parent(root: Path, base: str, sha: str) -> str:
     parents = commit_parents(root, sha)
-    base_side = [parent for parent in parents if parent == base or is_ancestor(root, base, parent)]
-    return base_side[0] if base_side else parents[0]
-
-
-def merge_history_inheritance_provenance_allowed(
-    root: Path,
-    base: str,
-    source_parent: str,
-    merge_sha: str,
-    head: str,
-    record_id: str,
-) -> bool:
-    provenance = show_yaml(root, head, "registry/integration-provenance.yaml") or {}
-    merge_tree = git(root, "rev-parse", f"{merge_sha}^{{tree}}").strip()
-    parents = set(commit_parents(root, merge_sha))
-    for entry in provenance.get("merge_history_integrations", []) or []:
-        if not isinstance(entry, dict):
-            continue
-        eligible = entry.get("eligible_registry_ids")
-        if (
-            entry.get("base_commit_sha") == base
-            and entry.get("source_head_sha") == source_parent
-            and entry.get("integration_commit_sha") == merge_sha
-            and entry.get("expected_tree_sha") == merge_tree
-            and isinstance(eligible, list)
-            and record_id in eligible
-            and entry.get("historical_only") is True
-            and entry.get("future_reuse_forbidden") is True
-            and base in parents
-            and source_parent in parents
-            and is_ancestor(root, merge_sha, head)
-        ):
-            return True
-    return False
+    if base in parents:
+        return base
+    inherited_base_side = [parent for parent in parents if is_ancestor(root, parent, base)]
+    if inherited_base_side:
+        return inherited_base_side[0]
+    base_descendants = [parent for parent in parents if is_ancestor(root, base, parent)]
+    return base_descendants[0] if base_descendants else parents[0]
 
 
 def inherited_merge_record_allowed(
@@ -528,9 +501,9 @@ def inherited_merge_record_allowed(
     base: str,
     previous_sha: str,
     sha: str,
-    head: str,
     path: str,
     current: dict[str, Any],
+    exclusive_commits: set[str],
 ) -> bool:
     parents = commit_parents(root, sha)
     if len(parents) < 2:
@@ -542,9 +515,14 @@ def inherited_merge_record_allowed(
     for parent in parents:
         if parent == previous_sha or blob_sha_at(root, parent, path) != current_blob:
             continue
+        # If the matching parent is already in base history, this merge did not
+        # materialize the record. If it is exclusive source history, that history
+        # is traversed by this same validation. Pre-guard edges remain deliberately
+        # grandfathered by the immutable guard-adoption boundary; post-adoption
+        # edges are validated before their blob can be inherited at the merge.
         if is_ancestor(root, parent, base):
             return True
-        if merge_history_inheritance_provenance_allowed(root, base, parent, sha, head, record_id):
+        if parent in exclusive_commits and file_exists_at(root, parent, GUARD_PATH):
             return True
     return False
 
@@ -692,6 +670,7 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
                     out.append(ChangeFinding(path, "SCOPE_DRIFT", "semantic scope/AC/review/contracts changed after READY without approved scope_change rationale"))
 
     exclusive_commits, edges = pr_commit_edges(root, base, head, require_guard=not base_has_guard)
+    exclusive_commit_set = set(exclusive_commits)
     all_commits = [base] + exclusive_commits
     sequence_files = paths_across_edges(root, edges) if edges else endpoint_files
 
@@ -702,7 +681,9 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
                 continue
             previous = show_yaml(root, previous_sha, path)
             current = show_yaml(root, sha, path)
-            if current and inherited_merge_record_allowed(root, base, previous_sha, sha, head, path, current):
+            if current and inherited_merge_record_allowed(
+                root, base, previous_sha, sha, path, current, exclusive_commit_set
+            ):
                 continue
             if previous and current is None:
                 if file_exists_at(root, sha, path) and historical_malformed_yaml_allowed(root, path, sha, head):
