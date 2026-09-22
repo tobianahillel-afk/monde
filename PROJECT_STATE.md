@@ -106,10 +106,10 @@ T11 now enforces that:
 
 ## WORK-0002 execution state
 
-- T1, T2, T3, T5, T6, T7, T8, T9, T10, **T11** and **T13** are DONE for their author-side scopes.
+- T1, T2, T3, T5, T6, T7, T8, T9, T10, **T11**, **T13** and **T14** are DONE for their author-side scopes.
 - **T12 — trusted default-branch stale-green predecessor on PR #5 — remains `IN_REVIEW`** pending independent acceptance/integration.
 - T13 is the canonical name for the five branch-local corrections previously carried by files named `t12`; those artifacts are renamed to `t13` so T12 has one durable meaning.
-- **T14 — post-PR5 merge-history integration hardening — is `IN_PROGRESS`**. Clean rehearsal PR #11 proved the design; PR #2 must now prove the exact port before T14 can be marked DONE.
+- **T14 — post-PR5 merge-history integration hardening — is `DONE` author-side.** Clean rehearsal PR #11 proved the design and Gate #251 / run `35727146538` re-proved the exact PR #2 port on `e462639ec9b29ecbe3bef3845ab2a3def5bb9a6c`.
 - **T4 — exact final-integrated-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`.**
 - WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
 - Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` after exact author-side T11 proof and this refreshed handover.
@@ -122,7 +122,7 @@ Required sequence from this state:
 1. Keep all **73** material review threads unresolved.
 2. Gate #230 established and Gate #231 preserved exact durable/live **73/73 PRRT identity equality**. Prove this final state-only handover descendant with its own exact-SHA MONDE Gate before further integration/review action.
 3. Keep T12 / PRRT_kwDOUUI5ts6ijUTn open until PR #5's trusted default-branch stale-green predecessor is independently accepted and integrated; do not substitute PR #2's own cron because scheduled workflows execute only from the default branch. T13 already denotes the five corrected branch-local findings.
-4. Prove T14 on the exact PR #2 head. T14 ports only the merge-history validator hardenings already demonstrated by clean rehearsal PR #11; it does not integrate T12 or claim predecessor completion.
+4. Gate #251 / run `35727146538` proved T14 on exact PR #2 head `e462639ec9b29ecbe3bef3845ab2a3def5bb9a6c`. Prove this T14 state-only synchronization descendant with its own exact-SHA Gate before any further integration/review action.
 5. After PR #5 integration, rerun the full governance gate on the resulting two-parent PR #2 head.
 6. Request another **fresh-context independent L2** on that exact proven integrated HEAD. It must reverify all 73 accumulated findings plus integration effects, explicitly recheck T11/T12/T13/T14 and the T7/T8/T9/T10 trust-anchor, lifecycle, import/finalization, authority, identity-policy history, exact-head approval, reopening, raw-blob scanning, workflow-structure and durable-thread invariants, and actively search for new bypasses.
 7. If new material findings appear, reopen affected work/evidence again and add their exact identities durably; do not resolve existing threads.

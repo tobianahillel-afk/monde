@@ -295,7 +295,7 @@ implementation_plan:
     description: Harden post-PR5 two-parent integration semantics so merge-history validators do not rematerialize byte-identical parent-inherited registry/provenance blobs, while ungoverned source history and real conflict resolutions remain fail-closed.
     depends_on:
     - T13
-    status: IN_PROGRESS
+    status: DONE
   planned_runs:
   - id: RUN-1
     objective: Initial deterministic governance implementation
@@ -570,7 +570,7 @@ validation:
   - Gate #228 / run 34997568781 on exact HEAD 4046e03b1e00a2051d29ccd6dcf5f0af7426259a proved 357/357 tests and 100% coverage, then correctly reported six durable IDs missing from the 73-thread live set.
   - Five of those six later-review findings are already represented by current code: PR-family review events are included in thread polling; ambiguous first-status materializations are rejected; terminal external imports without binding are rejected; workflow command wiring is parsed as executable argv; and live closure work is resolved dynamically rather than hard-coded to WORK-0002.
   - PRRT_kwDOUUI5ts6ijUTn remains structurally dependent on the trusted default-branch stale-green predecessor being delivered by PR #5 before PR #2 can close.
-  - Post-PR5 integration rehearsal PR #11 / exact head c4af0e0c896d7023f64ecebfdddd26a6882eedbe exposed and then proved two branch-local merge-history hardenings: change_guard comparison-parent/inherited-source handling and T11 provenance-history filtering for merge commits that preserve a parent blob. These are tracked as T14 and must be re-proved on PR #2 before T14 may close.
+  - Post-PR5 integration rehearsal PR #11 / exact head c4af0e0c896d7023f64ecebfdddd26a6882eedbe exposed and proved two branch-local merge-history hardenings: change_guard comparison-parent/inherited-source handling and T11 provenance-history filtering for merge commits that preserve a parent blob. PR #2 Gate #251 / run 35727146538 then re-proved the exact port on e462639ec9b29ecbe3bef3845ab2a3def5bb9a6c; T14 is DONE author-side. This state-only synchronization descendant still requires its own exact-SHA Gate before any later integration/review action.
   - No trusted context-separated L2/L3 GitHub APPROVED review is yet bound to the exact current PR HEAD; the hardened live gate must remain fail-closed until that independent evidence exists.
   - External Codex findings remain truthfully referenced by their GitHub review/thread identities rather than being retroactively rewritten as approving canonical REVIEW records.
   - Historical malformed YAML, WORK-0001 squash bridges and progress-guard adoption boundaries must remain exact fail-closed historical provenance; future reuse is forbidden.
@@ -676,6 +676,9 @@ blockers:
 follow_up_work_items:
 - WORK-0003
 - WORK-0004
+- run: RUN-3
+  date: '2026-09-22'
+  note: 'Gate #251 / run 35727146538 on exact PR #2 head e462639ec9b29ecbe3bef3845ab2a3def5bb9a6c re-proved T14 on the production branch: 364 tests, 100% line+branch over 3893 statements/1880 branches, 37/37 baseline + 40/40 L2 + 5/5 T10 + 9/9 T11 + 5/5 T13 mutations, repository/strict/path/change/L2/review/T7/T8/T9/T10/T11 validators at zero, 19-file context manifest, CodeQL success and Dependency Review success. The live gate failed closed only on the intentionally unresolved 73 threads and missing trusted context-separated exact-head approval; durable/live finding identity remained matched. T14 is DONE author-side. This metadata-only descendant requires one exact-head Gate before any further action.'
 completion:
   definition_of_ready_checked: true
   definition_of_done_checked: false
