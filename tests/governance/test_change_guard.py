@@ -72,6 +72,8 @@ def test_merge_of_current_base_does_not_replay_base_transition(tmp_path):
     run(tmp_path,'checkout','feature');run(tmp_path,'merge','--no-ff','mainline','-m','integrate current main');head=run(tmp_path,'rev-parse','HEAD')
     findings=c.validate(tmp_path,main,head)
     assert not [f for f in findings if f.rule=='STATE_TRANSITION' and f.path=='registry/tests/TEST-1.yaml']
+    assert not c.inherited_merge_record_allowed(tmp_path, main, main, head, head, 'missing.yaml', {'id': 'TEST-X'})
+    assert not c.inherited_merge_record_allowed(tmp_path, main, main, head, head, 'registry/tests/TEST-1.yaml', {})
 
 
 def test_moved_base_does_not_replay_record_inherited_by_historical_merge(tmp_path):
