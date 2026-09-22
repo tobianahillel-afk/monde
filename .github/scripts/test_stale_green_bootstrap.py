@@ -250,7 +250,7 @@ class BootstrapPollTests(unittest.TestCase):
 
         for field, value in (
             ("id", "not-int"),
-            ("id", True),
+            ("name", "other"),
             ("run_number", True),
             ("status", None),
             ("status", "in_progress"),
@@ -357,6 +357,16 @@ class BootstrapPollTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "malformed required MONDE"):
                     bootstrap.latest_required_check("o/r", "h", "t")
 
+        bad_id = dict(good)
+        bad_id["id"] = True
+        with mock.patch.object(
+            bootstrap,
+            "request_data",
+            return_value={"total_count": 1, "check_runs": [bad_id]},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "malformed paginated record identity"):
+                bootstrap.latest_required_check("o/r", "h", "t")
+
     def test_latest_required_check_paginates_complete_filtered_collection(self) -> None:
         checks = []
         for check_id in range(1, 102):
@@ -366,19 +376,24 @@ class BootstrapPollTests(unittest.TestCase):
         newest = checks[-1]
         newest["started_at"] = "2026-09-22T10:59:59Z"
 
+        calls = {"page1": 0}
+
         def response(url: str, _token: str):
             if "&page=2" in url:
                 return {"total_count": 101, "check_runs": checks[100:]}
             if "&page=1" in url:
+                calls["page1"] += 1
                 return {"total_count": 101, "check_runs": checks[:100]}
             raise AssertionError(url)
 
         with mock.patch.object(bootstrap, "request_data", side_effect=response) as request:
             self.assertEqual(bootstrap.latest_required_check("o/r", "h", "t"), newest)
         urls = [call.args[0] for call in request.call_args_list]
-        self.assertEqual(len(urls), 2)
+        self.assertEqual(len(urls), 3)
         self.assertIn("page=1", urls[0])
         self.assertIn("page=2", urls[1])
+        self.assertIn("page=1", urls[2])
+        self.assertEqual(calls["page1"], 2)
 
     def test_latest_required_check_pagination_fails_closed_on_drift_and_cross_page_duplicate(self) -> None:
         first = [check_run("h", check_id=i) for i in range(1, 101)]
@@ -393,7 +408,7 @@ class BootstrapPollTests(unittest.TestCase):
             (
                 {"total_count": 101, "check_runs": first},
                 {"total_count": 101, "check_runs": [dict(first[-1])]},
-                "malformed required MONDE",
+                "duplicate paginated record identity",
             ),
             (
                 {"total_count": 101, "check_runs": first},
@@ -407,6 +422,30 @@ class BootstrapPollTests(unittest.TestCase):
                 with mock.patch.object(bootstrap, "request_data", side_effect=lambda *_args: next(responses)):
                     with self.assertRaisesRegex(RuntimeError, message):
                         bootstrap.latest_required_check("o/r", "h", "t")
+
+    def test_latest_required_check_fails_closed_on_count_stable_page_membership_drift(self) -> None:
+        initial = [check_run("h", check_id=i) for i in range(1, 102)]
+        changed_page1 = [check_run("h", check_id=999)] + [
+            item for item in initial[:100] if item["id"] != 50
+        ]
+        self.assertEqual(len(changed_page1), 100)
+        responses = iter(
+            [
+                {"total_count": 101, "check_runs": initial[:100]},
+                {"total_count": 101, "check_runs": initial[100:]},
+                {"total_count": 101, "check_runs": changed_page1},
+            ]
+        )
+        with mock.patch.object(
+            bootstrap,
+            "request_data",
+            side_effect=lambda *_args: next(responses),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "paginated page membership changed during traversal",
+            ):
+                bootstrap.latest_required_check("o/r", "h", "t")
 
     def test_latest_required_check_selects_newest_legitimate_check_across_suites(self) -> None:
         older = check_run("h", check_id=40)

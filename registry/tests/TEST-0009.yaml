@@ -12,6 +12,7 @@ protects:
     - "merge-state authority is the exact latest GitHub Actions-owned MONDE / Merge Gate check on the exact head SHA"
     - "when GitHub filter=latest returns multiple legitimate MONDE / Merge Gate checks from distinct check suites on one unchanged head, every candidate is validated and the newest started_at/check-id candidate is selected deterministically"
     - "filtered required-check authority is collected completely across bounded 100-record pages before selecting an effective check; total-count drift, cross-page duplicate ids, incomplete pages or pagination beyond the configured bound fail closed"
+    - "after fetching each additional filtered required-check page, the previous page identity/order is revalidated so offset-page membership drift fails closed even when total_count and global uniqueness remain unchanged"
     - "rerun authority is positively bound to the current open PR through canonical refs/pull/<N>/merge metadata plus the current merge-ref SHA"
     - "selected-PR target discovery is bounded and durably resumable through scan_pr/scan_page/scan_anchor state rather than a permanently truncated candidate prefix"
     - "offset check-history pagination verifies page-boundary membership both across invocations and between consecutive pages inside one invocation before accepting completeness"
@@ -91,6 +92,7 @@ cases:
     - "no canonical target exists after complete selected-PR check-history traversal"
     - "request budget cannot preserve reserved mutation/post-condition/state-write headroom"
     - "filtered required-check pagination changes total_count between pages, repeats a check id across pages, returns a short incomplete page, or exceeds the bounded page limit"
+    - "filtered required-check pagination inserts and removes records between page reads while preserving total_count and unique ids; prior-page membership revalidation detects the drift and refuses authority"
     - "post-rerun observation hits request-budget exhaustion or malformed run/job/check metadata after pending state was written; durable pending remains and the next invocation resumes observation without a duplicate POST"
   adversarial_cases:
     - "historically deep target history advances through durable selected-PR continuation and restarts safely when membership drifts"

@@ -63,10 +63,12 @@ def paged(
     require_total_count: bool = False,
     max_total_count: int | None = None,
     unique_id_field: str | None = None,
+    verify_previous_page: bool = False,
 ) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     expected_total: int | None = None
     seen_ids: set[int] = set()
+    previous_ids: list[int] | None = None
     for page in range(1, MAX_PAGES + 1):
         sep = "&" if "?" in url else "?"
         payload = request_data(f"{url}{sep}per_page=100&page={page}", token)
@@ -90,7 +92,9 @@ def paged(
             items = None
         if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
             raise RuntimeError("GitHub returned malformed paginated JSON")
+        current_ids: list[int] | None = None
         if unique_id_field is not None:
+            current_ids = []
             for item in items:
                 value = item.get(unique_id_field)
                 if type(value) is not int:
@@ -98,17 +102,49 @@ def paged(
                 if value in seen_ids:
                     raise RuntimeError("GitHub returned duplicate paginated record identity")
                 seen_ids.add(value)
+                current_ids.append(value)
+
+        prospective_len = len(out) + len(items)
+        if require_total_count:
+            assert expected_total is not None
+            if prospective_len > expected_total:
+                raise RuntimeError("GitHub paginated collection exceeds total_count")
+            if len(items) < 100 and prospective_len < expected_total:
+                raise RuntimeError("GitHub returned incomplete paginated collection")
+
+        if verify_previous_page and previous_ids is not None:
+            if collection_key is None or unique_id_field is None or expected_total is None:
+                raise RuntimeError("paginated stability verification requires keyed counted identities")
+            verify_payload = request_data(
+                f"{url}{sep}per_page=100&page={page - 1}", token
+            )
+            if not isinstance(verify_payload, dict):
+                raise RuntimeError("GitHub returned malformed paginated stability response")
+            verify_total = verify_payload.get("total_count")
+            verify_items = verify_payload.get(collection_key)
+            if type(verify_total) is not int or verify_total != expected_total:
+                raise RuntimeError("GitHub returned inconsistent paginated total_count")
+            if not isinstance(verify_items, list) or any(
+                not isinstance(item, dict) for item in verify_items
+            ):
+                raise RuntimeError("GitHub returned malformed paginated stability response")
+            verify_ids = [item.get(unique_id_field) for item in verify_items]
+            if any(type(value) is not int for value in verify_ids):
+                raise RuntimeError("GitHub returned malformed paginated record identity")
+            if verify_ids != previous_ids:
+                raise RuntimeError("GitHub paginated page membership changed during traversal")
+
         out.extend(items)
         if require_total_count:
             assert expected_total is not None
-            if len(out) > expected_total:
-                raise RuntimeError("GitHub paginated collection exceeds total_count")
             if len(out) == expected_total:
                 return out
         if len(items) < 100:
-            if require_total_count:
-                raise RuntimeError("GitHub returned incomplete paginated collection")
             return out
+        if verify_previous_page:
+            if current_ids is None:
+                raise RuntimeError("paginated stability verification requires record identities")
+            previous_ids = current_ids
     raise RuntimeError(f"GitHub pagination exceeded {MAX_PAGES} pages")
 
 
@@ -472,6 +508,8 @@ def latest_required_check(repo: str, head: str, token: str) -> dict[str, Any] | 
         token,
         "check_runs",
         require_total_count=True,
+        unique_id_field="id",
+        verify_previous_page=True,
     )
     if not checks:
         return None
