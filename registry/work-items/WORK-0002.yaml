@@ -6,14 +6,14 @@ lot: LOT-0
 sublot: SUBLOT-0.2
 owner: "repository governance"
 created_at: "2026-09-10"
-updated_at: "2026-09-17"
+updated_at: "2026-09-22"
 
 purpose: |
   Turn MONDE governance/specification/traceability contracts into executable CI and GitHub control-plane checks so repository state, review evidence, scope and proof cannot silently drift.
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0049 is terminal COMPLETE/CHANGES_REQUIRED independent negative evidence. REVIEW-0050 is now CLOSED/CHANGES_REQUIRED administrative negative evidence on f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c after author-side PRR_kwDOUUI5ts8AAAABN7LvGQ proved that its operator-confirmed break-glass clear has a check-then-clear TOCTOU against external rerun actors. No exact-head independent REVIEW-0050 L2 was submitted before invalidation. REVIEW-0051 must preserve pending authority through recovery instead of clearing it from non-atomic observations. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0049 is terminal COMPLETE/CHANGES_REQUIRED independent negative evidence. REVIEW-0050 is CLOSED/CHANGES_REQUIRED administrative negative evidence after author-side PRR_kwDOUUI5ts8AAAABN7LvGQ proved the break-glass clear TOCTOU. The CLOSED checkpoint 71c40aeb7ca7de4968a78953e9d003a5f65c3f9f passed Bootstrap #157 with 194/194 tests, 1856 statements / 842 branches at 100 percent line+branch and live PR #2 probe SUCCESS. REVIEW-0051 implementation now replaces recovery clear authority with exact-tuple read-only inspection that preserves durable pending state and only instructs a separately authorized manual rerun. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -206,13 +206,15 @@ validation:
     - "Bootstrap #155 / run 35153416874 on REVIEW-0050 OPEN checkpoint 871850ac5b66a43cfd8491ef445d1738ad09d822"
     - "Bootstrap #156 / run 35162557737 on frozen REVIEW-0050 IN_PROGRESS head f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c"
     - "Author-side REVIEW-0050 / PRR_kwDOUUI5ts8AAAABN7LvGQ on f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c"
+    - "Bootstrap #157 / run 35211526610 on REVIEW-0050 CLOSED checkpoint 71c40aeb7ca7de4968a78953e9d003a5f65c3f9f"
   evidence:
     - "Bootstrap #154/#155/#156: 194/194 tests PASS; 1856 statements / 842 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS"
+    - "Bootstrap #157 re-proved the CLOSED state-only checkpoint at 194/194 tests, 1856 statements / 842 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
     - "REVIEW-0050 was invalidated semantically despite green execution proof because recovery could clear durable pending authority across an external rerun TOCTOU"
   coverage: {line: 100, branch: 100}
   known_gaps:
     - "REVIEW-0050 is CLOSED/CHANGES_REQUIRED and not approved."
-    - "REVIEW-0051 recovery successor is not yet implemented or proved."
+    - "REVIEW-0051 recovery successor implementation is present in the current candidate but still requires exact-head CI/coverage/live-probe proof before lifecycle OPEN."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -225,14 +227,15 @@ run_log:
   - "REVIEW-0050 candidate cbe21fa4cebc1c8f8b3030af17284de5700f9818 passed #154 at 194 tests / 1856 statements / 842 branches / 100 percent plus live PR #2 probe."
   - "REVIEW-0050 OPEN 871850ac5b66a43cfd8491ef445d1738ad09d822 passed #155; frozen IN_PROGRESS f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c passed #156."
   - "Author-side PRR_kwDOUUI5ts8AAAABN7LvGQ invalidated REVIEW-0050 before an exact-head independent L2 was submitted."
+  - "REVIEW-0050 CLOSED checkpoint 71c40aeb7ca7de4968a78953e9d003a5f65c3f9f passed Bootstrap #157 / run 35211526610; REVIEW-0051 implementation run started from that proven checkpoint."
 
 discoveries:
   - "A break-glass clear based on non-atomic GET revalidation cannot exclude an external rerun starting before the clear commits."
   - "Positive authorization requires recovery to preserve durable pending authority rather than erase it when external mutation actors cannot share the same lock."
 
 blockers:
-  - "Exact-head prove this REVIEW-0050 CLOSED state-only checkpoint."
-  - "Implement and prove REVIEW-0051 recovery successor before a new independent review."
+  - "Exact-head prove the REVIEW-0051 technical candidate with full bootstrap tests, 100 percent line/branch coverage and live PR #2 probe."
+  - "Create REVIEW-0051 OPEN only after that technical candidate is green, then prove lifecycle checkpoints before fresh independent review."
   - "65 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."

@@ -17,7 +17,7 @@ protects:
     - "stable open Pull Requests authority uses unique PR numbers and identical authority snapshots"
     - "current PR revalidation binds head identity, base repository/ref/SHA, and merge_commit_sha immediately before mutation and before post-condition acceptance"
     - "scheduler fairness uses a durable closed-world cursor in machine-managed issue #7 rather than wall-clock rotation"
-    - "scheduled poll and manual recovery writers are serialized by the same GitHub Actions concurrency group"
+    - "scheduled poll mutation and manual recovery inspection share the bootstrap concurrency group, while recovery inspection has no scheduler-state write authority"
     - "only selected PRs are revalidated directly; no per-head global open-PR refresh is required"
     - "one poll invocation inspects at most seven head groups and performs at most three actual rerun POSTs"
     - "the authority adapter hard-caps script-issued GitHub calls at 100 and reserves mutation/post-condition/state-write headroom"
@@ -28,14 +28,14 @@ protects:
     - "terminal merge-acceptable closed-origin reruns reclassify current same-head PRs before pending state is released"
     - "an ambiguous POST result retains pending state and fails closed rather than automatically replaying the mutation"
     - "bounded pending observation failure is loud and leaves durable state intact instead of silently succeeding"
-    - "operator recovery is allowed only for an exact durable pending tuple plus explicit confirmation and reason, after unchanged run-attempt and effective-check revalidation"
-    - "operator recovery has no actions:write permission and cannot itself rerun a workflow"
+    - "operator recovery inspection requires an exact durable pending tuple plus explicit confirmation and reason, and unchanged run-attempt/effective-check identity only to identify the intended pending record; the pending record remains unchanged"
+    - "operator recovery has neither actions:write nor issues:write permission, cannot call scheduler-state writes, and cannot itself rerun a workflow"
     - "if a completed rerun is already stale-green again, the selected PR/head remains selected for immediate or durable reprocessing"
     - "if a shared-head sibling becomes clean and its rerun returns green, processing continues safely while respecting the invocation-wide POST cap"
     - "pending PR authority accepts only exact open/closed state; malformed state or changed authority fails closed"
     - "malformed REST, GraphQL, Checks, run, job, scheduler-state, PR, or recovery authority fails closed"
 location:
-  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py; .github/scripts/test_stale_green_bootstrap_poll_order.py; .github/scripts/test_stale_green_bootstrap_pr_snapshot.py; .github/scripts/test_stale_green_bootstrap_progress.py; .github/scripts/test_stale_green_bootstrap_progress_fallthrough.py; .github/scripts/test_stale_green_bootstrap_authority.py; .github/scripts/test_stale_green_bootstrap_authority_edges.py; .github/scripts/test_stale_green_bootstrap_authority_shared.py; .github/scripts/test_stale_green_bootstrap_authority_review0046.py; .github/scripts/test_stale_green_bootstrap_authority_review0047.py; .github/scripts/test_stale_green_bootstrap_authority_terminal_wait.py; .github/scripts/test_stale_green_bootstrap_authority_review0048.py; .github/scripts/test_stale_green_bootstrap_authority_review0048_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0048_final.py; .github/scripts/test_stale_green_bootstrap_authority_review0049.py; .github/scripts/test_stale_green_bootstrap_authority_review0049_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0049_final_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0050.py; .github/scripts/test_stale_green_bootstrap_authority_review0050_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0050_recovery.py; .github/scripts/test_stale_green_bootstrap_authority_review0050_recovery_edges.py"
+  test_path: ".github/scripts/test_stale_green_bootstrap.py; .github/scripts/test_stale_green_bootstrap_incarnation.py; .github/scripts/test_stale_green_bootstrap_run_created_at.py; .github/scripts/test_stale_green_bootstrap_merge_acceptable.py; .github/scripts/test_stale_green_bootstrap_filtered_search.py; .github/scripts/test_stale_green_bootstrap_poll_order.py; .github/scripts/test_stale_green_bootstrap_pr_snapshot.py; .github/scripts/test_stale_green_bootstrap_progress.py; .github/scripts/test_stale_green_bootstrap_progress_fallthrough.py; .github/scripts/test_stale_green_bootstrap_authority.py; .github/scripts/test_stale_green_bootstrap_authority_edges.py; .github/scripts/test_stale_green_bootstrap_authority_shared.py; .github/scripts/test_stale_green_bootstrap_authority_review0046.py; .github/scripts/test_stale_green_bootstrap_authority_review0047.py; .github/scripts/test_stale_green_bootstrap_authority_terminal_wait.py; .github/scripts/test_stale_green_bootstrap_authority_review0048.py; .github/scripts/test_stale_green_bootstrap_authority_review0048_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0048_final.py; .github/scripts/test_stale_green_bootstrap_authority_review0049.py; .github/scripts/test_stale_green_bootstrap_authority_review0049_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0049_final_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0050.py; .github/scripts/test_stale_green_bootstrap_authority_review0050_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0050_recovery.py; .github/scripts/test_stale_green_bootstrap_authority_review0050_recovery_edges.py; .github/scripts/test_stale_green_bootstrap_authority_review0051_recovery.py"
   suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
 environment:
   kind: GITHUB_ACTIONS
@@ -52,7 +52,7 @@ cases:
     - "durable scheduler cursor advances across bounded head groups and target-history pages with anchored continuation"
     - "write-ahead pending mutation is durably acknowledged before rerun POST and clears only after terminal observation"
     - "closed-origin pending mutation remains observable through exact pending head/run/attempt/check identity"
-    - "operator-confirmed unposted intent can be cleared through an exact-tuple serialized recovery path without actions:write"
+    - "operator-confirmed unposted intent can be inspected through an exact-tuple read-only path that preserves issue #7 and prints the exact canonical run for manual rerun"
   edge_cases:
     - "multiple open PRs share one SHA with divergent or changing review-thread state"
     - "selected rerun completes merge-acceptable while the PR becomes unresolved again before final observation"
@@ -77,7 +77,7 @@ cases:
     - "PR authority changes immediately before mutation or before post-condition acceptance"
     - "rerun reaches a terminal attempt but the causally bound required check does not appear before the bounded deadline"
     - "pending mutation cannot be causally reconciled after restart; bridge refuses automatic duplicate POST and raises an operator-recovery-required error"
-    - "operator recovery tuple, confirmation, reason, run attempt, or prior check identity is malformed or stale"
+    - "operator recovery inspection tuple, confirmation, reason, run attempt, or prior check identity is malformed or stale; inspection refuses without changing durable state"
     - "no canonical target exists after complete selected-PR check-history traversal"
     - "request budget cannot preserve reserved mutation/post-condition/state-write headroom"
   adversarial_cases:
@@ -90,7 +90,7 @@ cases:
     - "POST accepted but next attempt visibility is delayed across scheduler restart; no second POST is emitted"
     - "origin PR closes after POST while same-head sibling remains unresolved; pending mutation is not forgotten and later green cannot remain stale"
     - "write-ahead intent remains at baseline because POST never happened; normal poll is loudly fail-closed and manual recovery requires exact positive evidence rather than replay"
-    - "manual recovery refuses if the run attempt or effective check changed after write-ahead"
+    - "manual recovery inspection refuses if the run attempt or effective check changed after write-ahead and never clears pending state even when inspection succeeds"
     - "float/Boolean trust-binding identifiers are rejected"
     - "V1/V2/V3/V4 idle scheduler state migrates conservatively into V5 without fabricating pending mutation identity"
     - "dead/unreachable guard code is removed rather than artificially covered"

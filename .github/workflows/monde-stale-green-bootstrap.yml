@@ -1,5 +1,5 @@
 name: MONDE Stale-Green Bootstrap
-# REVIEW-0050 closed-origin + explicit pre-POST recovery successor; executable semantics changed.
+# REVIEW-0051 inspection-only recovery successor; durable pending authority is never cleared by recovery.
 
 on:
   pull_request:
@@ -12,6 +12,7 @@ on:
       - .github/scripts/stale_green_bootstrap_authority_review0049.py
       - .github/scripts/stale_green_bootstrap_authority_review0050.py
       - .github/scripts/stale_green_bootstrap_authority_review0050_recovery.py
+      - .github/scripts/stale_green_bootstrap_authority_review0051_recovery.py
       - '.github/scripts/test_stale_green_bootstrap*.py'
       - requirements/bootstrap-governance-ci.txt
       - registry/requirements/REQ-0026.yaml
@@ -24,13 +25,13 @@ on:
   workflow_dispatch:
     inputs:
       recovery_action:
-        description: 'Break-glass action; use only after operator inspection'
+        description: 'Inspection-only recovery action; never clears scheduler state or reruns workflows'
         required: true
         default: 'none'
         type: choice
         options:
           - none
-          - confirm-unposted-pending
+          - inspect-unposted-pending
       recovery_pending_pr:
         description: 'Exact pending PR number from issue #7'
         required: false
@@ -84,7 +85,7 @@ jobs:
             -s .github/scripts \
             -p 'test_stale_green_bootstrap*.py'
           python3 -m coverage report \
-            --include='.github/scripts/stale_green_bootstrap.py,.github/scripts/stale_green_bootstrap_pr_snapshot.py,.github/scripts/stale_green_bootstrap_authority.py,.github/scripts/stale_green_bootstrap_authority_review0048.py,.github/scripts/stale_green_bootstrap_authority_review0049.py,.github/scripts/stale_green_bootstrap_authority_review0050.py,.github/scripts/stale_green_bootstrap_authority_review0050_recovery.py' \
+            --include='.github/scripts/stale_green_bootstrap.py,.github/scripts/stale_green_bootstrap_pr_snapshot.py,.github/scripts/stale_green_bootstrap_authority.py,.github/scripts/stale_green_bootstrap_authority_review0048.py,.github/scripts/stale_green_bootstrap_authority_review0049.py,.github/scripts/stale_green_bootstrap_authority_review0050.py,.github/scripts/stale_green_bootstrap_authority_review0050_recovery.py,.github/scripts/stale_green_bootstrap_authority_review0051_recovery.py' \
             --fail-under=100 \
             --show-missing
 
@@ -108,7 +109,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           BOOTSTRAP_VALIDATE_PR: '2'
-        run: python3 .github/scripts/stale_green_bootstrap_authority_review0050_recovery.py
+        run: python3 .github/scripts/stale_green_bootstrap_authority_review0051_recovery.py
 
   stale-green-poll:
     name: Bootstrap stale-green poll
@@ -122,7 +123,7 @@ jobs:
       actions: write
       checks: read
       contents: read
-      issues: write
+      issues: read
       pull-requests: read
     steps:
       - name: Checkout trusted default branch
@@ -133,11 +134,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           BOOTSTRAP_STATE_ISSUE: '7'
-        run: python3 .github/scripts/stale_green_bootstrap_authority_review0050_recovery.py
+        run: python3 .github/scripts/stale_green_bootstrap_authority_review0051_recovery.py
 
   pending-recovery:
     name: Bootstrap pending recovery
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.recovery_action == 'confirm-unposted-pending'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.recovery_action == 'inspect-unposted-pending'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     concurrency:
@@ -155,7 +156,7 @@ jobs:
         with:
           ref: main
           persist-credentials: false
-      - name: Recover operator-confirmed unposted pending mutation
+      - name: Inspect operator-confirmed unposted pending mutation
         env:
           GITHUB_TOKEN: ${{ github.token }}
           BOOTSTRAP_STATE_ISSUE: '7'
@@ -167,4 +168,4 @@ jobs:
           BOOTSTRAP_RECOVERY_CHECK_ID: ${{ inputs.recovery_check_id }}
           BOOTSTRAP_RECOVERY_CONFIRMATION: ${{ inputs.recovery_confirmation }}
           BOOTSTRAP_RECOVERY_REASON: ${{ inputs.recovery_reason }}
-        run: python3 .github/scripts/stale_green_bootstrap_authority_review0050_recovery.py
+        run: python3 .github/scripts/stale_green_bootstrap_authority_review0051_recovery.py

@@ -29,6 +29,8 @@ A third or fourth GET cannot solve this TOCTOU. REVIEW-0051 must remove recovery
 
 All **65** historical inline material threads remain unresolved. No merge is permitted.
 
+The REVIEW-0050 `CLOSED` state-only checkpoint `71c40aeb7ca7de4968a78953e9d003a5f65c3f9f` passed Bootstrap #157 / run `35211526610`: **194/194 tests**, **1,856 statements / 842 branches**, **100% line + branch**, and live read-only PR #2 contract probe SUCCESS at **7/100** requests.
+
 ## REVIEW-0051 corrective direction
 
 The minimum safe successor is intentionally simpler:
@@ -44,6 +46,12 @@ The minimum safe successor is intentionally simpler:
 - keep recovery permissions read-only for Actions and without `actions:write`;
 - add regressions proving recovery cannot call `_write_state` or `rerun_workflow` and cannot clear pending under any accepted request.
 
+## REVIEW-0051 implementation candidate
+
+Development now proceeds through a new `stale_green_bootstrap_authority_review0051_recovery.py` adapter. Normal scheduled polling still reuses the proven REVIEW-0050 V5 closed-origin/pending-observation semantics. The manual recovery surface becomes inspection-only: it validates the exact durable pending tuple plus explicit confirmation/reason, revalidates unchanged baseline attempt and prior effective-check identity, prints the exact canonical run for a separately authorized manual rerun, and **never clears or writes issue #7 and never calls a rerun API**. Its workflow permissions are read-only for Actions and Issues.
+
+REVIEW-0051 itself must not be opened until this technical candidate passes exact-head bootstrap tests, 100% line/branch coverage, and the live read-only PR #2 probe.
+
 ## PR #2 relationship
 
 PR #2 remains the durable WORK-0002 implementation branch on `4046e03b1e00a2051d29ccd6dcf5f0af7426259a` as last re-queried. After PR #5 eventually merges, PR #2 must explicitly integrate new `main` and port/reuse the final proven behavior. Pull-request base retargeting must positively create a fresh gate; dynamic `workflow_run.pull_requests[]` is not event-time provenance.
@@ -53,12 +61,10 @@ T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. Exact-head prove this REVIEW-0050 `CLOSED / CHANGES_REQUIRED` state-only checkpoint.
-3. Implement REVIEW-0051 as a new recovery adapter; do not rewrite REVIEW-0050 history.
-4. Remove every recovery clear/write path and preserve durable pending authority.
-5. Add exact-tuple inspection and manual-rerun runbook regressions.
-6. Preserve live read-only PR #2 probing and 100% line+branch proof.
-7. Only after a fully green runtime create REVIEW-0051 `OPEN`, prove it, then `IN_PROGRESS`, prove/freeze, and request one fresh exact-head L2.
+2. REVIEW-0050 `CLOSED / CHANGES_REQUIRED` checkpoint proof is complete on `71c40aeb...` via Bootstrap #157.
+3. Implement the REVIEW-0051 inspection-only recovery adapter without rewriting REVIEW-0050 history.
+4. Prove the technical candidate exact-head with full bootstrap tests, 100% line+branch and live read-only PR #2 probing.
+5. Only after that proof create REVIEW-0051 `OPEN`, prove it, then `IN_PROGRESS`, prove/freeze, and request one fresh exact-head L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
