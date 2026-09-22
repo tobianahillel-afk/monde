@@ -72,6 +72,16 @@ The successor must keep REVIEW-0051's non-mutating recovery semantics while vali
 
 A rehearsal-only correction was proved on PR #8: Bootstrap #166 / run `35714306323` passed **202/202 tests**, **1,899 statements / 858 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded against the same multi-check state. The exact proven code was then ported to PR #5 at `deb6190983bd2cc97e3adffcd4769b4e44d58cb8`; Bootstrap #168 / run `35715152696` passed **202/202 tests**, **1,899 statements / 858 branches**, **100% line + branch**, and live PR #2 multi-check probe SUCCESS. REVIEW-0052 was opened on `fc7308302bb5fc76467ef55f3d1978cf2a39afc6`; Bootstrap #169 / run `35715662864` passed the OPEN checkpoint SUCCESS. REVIEW-0052 is therefore now transitioned to lifecycle state `IN_PROGRESS`. Reviewer actor/context and reviewed commit remain unset until a fresh independent L2 actually executes.
 
+## REVIEW-0052 — terminal negative evidence
+
+REVIEW-0052 preserved REVIEW-0051's inspection-only recovery and corrected multi-check selection, but is now **CLOSED / CHANGES_REQUIRED** on exact head `654e24fdb7df17b5e92cad13bd5264faa128bfab`.
+
+Bootstrap #170 / run `35715826007` proved that frozen head at **202/202 tests**, **1,899 statements / 858 branches**, **100% line + branch**, with the live PR #2 multi-check probe succeeding at **7/100** requests. Independent Codex review retries were blocked by platform quota.
+
+Author-side adversarial finding `PRR_kwDOUUI5ts8AAAABOpz-Bg` then exposed a new P1 before independent approval: `latest_required_check()` requests the filtered check-runs endpoint with `per_page=100` but never paginates, while requiring `len(check_runs) == total_count`. More than 100 legitimate same-head check suites therefore make every poll fail as an incomplete response, potentially leaving a stale successful merge gate un-invalidated.
+
+The REVIEW-0053 successor must preserve all prior recovery/multi-check guarantees while collecting the filtered required-check set completely under an explicit bounded pagination/request-budget contract, validating every page/candidate and rejecting duplicates, malformed totals, drift or unprovable completeness.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -79,8 +89,8 @@ A rehearsal-only correction was proved on PR #8: Bootstrap #166 / run `357143063
 3. Implement the REVIEW-0051 inspection-only recovery adapter without rewriting REVIEW-0050 history.
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
-6. REVIEW-0052 technical candidate proof is complete via Bootstrap #168.
-7. REVIEW-0052 OPEN proof is complete via Bootstrap #169; prove/freeze this `IN_PROGRESS` head, then request exactly one fresh independent L2.
+6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
+7. Implement and exact-head prove the bounded pagination successor, then open REVIEW-0053.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 

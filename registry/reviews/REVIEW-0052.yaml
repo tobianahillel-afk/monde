@@ -1,9 +1,9 @@
 id: REVIEW-0052
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "654e24fdb7df17b5e92cad13bd5264faa128bfab"
 reviewer:
   actor: null
   context_id: null
@@ -36,7 +36,8 @@ scope:
     - "Equal-second started_at values require a deterministic tie-break; exact check id ordering must not be confused with semantic approval."
     - "Selecting a malformed newer candidate instead of rejecting the whole response would allow bad metadata to mask the real effective check."
     - "The historical REVIEW-0050 recovery module remains in the tree and must remain unreachable from active manual recovery."
-findings: []
+findings:
+  - "PRR_kwDOUUI5ts8AAAABOpz-Bg"
 checks:
   assumptions_challenged:
     - "GitHub filter=latest returns exactly one check run for one check_name/app/head."
@@ -51,6 +52,7 @@ checks:
     - "malformed started_at on one of several otherwise valid candidates"
     - "wrong app/name/head/status/conclusion hidden behind one valid candidate"
     - "single valid candidate with legacy test fixture shape"
+    - "more than 100 legitimate same-head check suites requiring filtered check-run pagination"
   duplicate_or_reuse_search:
     - "REVIEW-0051 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
     - "PRR_kwDOUUI5ts8AAAABOoOnSQ is the author-side finding that invalidated REVIEW-0051."
@@ -62,14 +64,16 @@ checks:
     - "API list order changes selected authority"
     - "newer pending check is ignored in favor of older completed green"
     - "recovery inspection regains state-write or rerun authority"
+    - "filtered required-check result exceeds one 100-record page and permanently wedges latest-check authority"
   evidence_requested:
     - "Exact-head Bootstrap suite with 100 percent line and branch coverage after selector correction."
     - "Live PR #2 probe succeeding while two legitimate MONDE / Merge Gate check suites exist on the same head."
     - "Regression for API-order independence, newer started_at selection, same-second deterministic tie-break, duplicate ids and malformed recency."
     - "Fresh-context independent L2 on one frozen exact REVIEW-0052 head."
     - "Resolve no historical inline thread until successor L2 is clean."
+    - "Successor must prove complete bounded pagination across filtered required-check pages, duplicate-id detection across pages and fail-closed incomplete/drifting pagination."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-22T12:57:09Z"
 history:
   created_at: "2026-09-22"
   updated_at: "2026-09-22"

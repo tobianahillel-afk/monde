@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0049 is terminal COMPLETE/CHANGES_REQUIRED independent negative evidence. REVIEW-0050 is CLOSED/CHANGES_REQUIRED administrative negative evidence after author-side PRR_kwDOUUI5ts8AAAABN7LvGQ proved the break-glass clear TOCTOU. REVIEW-0051 successfully removed recovery clear/rerun authority, but is now CLOSED/CHANGES_REQUIRED after author-side PRR_kwDOUUI5ts8AAAABOoOnSQ proved that latest_required_check incorrectly rejects multiple legitimate GitHub Actions check suites on one unchanged head. A REVIEW-0052 successor must preserve inspection-only recovery and select the newest legitimate effective check deterministically. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0049 is terminal COMPLETE/CHANGES_REQUIRED independent negative evidence. REVIEW-0050 is CLOSED/CHANGES_REQUIRED after the recovery clear TOCTOU. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after the same-head multi-check liveness defect. REVIEW-0052 preserved those fixes but is now CLOSED/CHANGES_REQUIRED after author-side PRR_kwDOUUI5ts8AAAABOpz-Bg proved that latest_required_check does not paginate beyond the first 100 filtered check runs. A REVIEW-0053 successor must preserve inspection-only recovery and multi-check selection while adding complete bounded filtered-check pagination. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -222,7 +222,8 @@ validation:
   known_gaps:
     - "REVIEW-0050 is CLOSED/CHANGES_REQUIRED and not approved."
     - "REVIEW-0051 is CLOSED/CHANGES_REQUIRED on exact head 151fcd13e2fc5b15420de097635b6c9fbc9795ba after PRR_kwDOUUI5ts8AAAABOoOnSQ reproduced a real multi-check liveness defect; no independent REVIEW-0051 L2 ran."
-    - "REVIEW-0052 technical candidate deb6190983bd2cc97e3adffcd4769b4e44d58cb8 passed Bootstrap #168; OPEN checkpoint fc7308302bb5fc76467ef55f3d1978cf2a39afc6 passed Bootstrap #169, so REVIEW-0052 is now IN_PROGRESS pending one frozen exact-head proof and fresh independent L2."
+    - "REVIEW-0052 is CLOSED/CHANGES_REQUIRED on exact head 654e24fdb7df17b5e92cad13bd5264faa128bfab after PRR_kwDOUUI5ts8AAAABOpz-Bg proved the filtered required-check selector is incomplete above 100 legitimate same-head check suites; no independent REVIEW-0052 L2 ran."
+    - "REVIEW-0053 successor is not yet opened; it must preserve REVIEW-0051 inspection-only recovery and REVIEW-0052 multi-check selection while adding bounded complete pagination."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -243,6 +244,7 @@ run_log:
   - "REVIEW-0051 CLOSED state-only checkpoint 722cfe8782c38350258fdd823709a055a4beeccf / Bootstrap #167 preserved the negative live reproduction. Rehearsal Bootstrap #166 already proved the candidate selector fix; the same code is now ported to PR #5 for exact-head proof."
   - "PR #5 technical selector candidate deb6190983bd2cc97e3adffcd4769b4e44d58cb8 passed Bootstrap #168 / run 35715152696; REVIEW-0052 was opened only after this proof."
   - "REVIEW-0052 OPEN checkpoint fc7308302bb5fc76467ef55f3d1978cf2a39afc6 passed Bootstrap #169 / run 35715662864; lifecycle transitioned to IN_PROGRESS only after that proof."
+  - "REVIEW-0052 frozen head 654e24fdb7df17b5e92cad13bd5264faa128bfab passed Bootstrap #170 / run 35715826007 at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch and live PR #2 probe. Codex retries were quota-refused; author-side PRR_kwDOUUI5ts8AAAABOpz-Bg then exposed the >100 filtered-check pagination P1 and closed REVIEW-0052 before any independent L2."
 
 discoveries:
   - "A break-glass clear based on non-atomic GET revalidation cannot exclude an external rerun starting before the clear commits."
@@ -250,8 +252,8 @@ discoveries:
 
 blockers:
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
-  - "Prove/freeze this REVIEW-0052 IN_PROGRESS head exact-head, then request one fresh independent L2 without mutating the tree while it runs."
-  - "Any material finding from that future L2 requires correction, exact-head re-proof and a successor review."
+  - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
+  - "Implement and exact-head prove bounded complete filtered required-check pagination, then open REVIEW-0053 before any fresh independent L2."
   - "65 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
