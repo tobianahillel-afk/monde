@@ -212,12 +212,17 @@ class FilteredWorkflowSearchTests(unittest.TestCase):
         self.assertEqual(read.call_args_list[0].args[3:], (dt(0), dt(1)))
         self.assertEqual(bootstrap._bounded_completed_gate_runs("o/r", "t", "h", dt(2), dt(1)), [])
 
-    def test_workflow_polls_every_ten_minutes_and_grants_checks_read_only_where_needed(self) -> None:
+    def test_workflow_polls_every_ten_minutes_and_uses_least_privilege_for_draft_guard(self) -> None:
         workflow = (ROOT / ".github/workflows/monde-stale-green-bootstrap.yml").read_text(encoding="utf-8")
         self.assertIn("cron: '*/10 * * * *'", workflow)
         self.assertNotIn("cron: '*/5 * * * *'", workflow)
-        self.assertGreaterEqual(workflow.count("checks: read"), 2)
-        self.assertIn("actions: write", workflow)
+        # REVIEW-0070 moves the scheduled safety boundary to PR draft state.
+        # The normal poll no longer needs Actions/Checks mutation authority;
+        # checks:read remains only on the legacy read-only recovery surface.
+        self.assertEqual(workflow.count("checks: read"), 1)
+        self.assertNotIn("actions: write", workflow)
+        self.assertIn("pull-requests: write", workflow)
+        self.assertIn("issues: write", workflow)
         self.assertIn("'.github/scripts/test_stale_green_bootstrap*.py'", workflow)
 
 

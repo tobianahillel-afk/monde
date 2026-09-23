@@ -159,7 +159,7 @@ class Review0070DraftGuardTests(unittest.TestCase):
             with self.subTest(value=type(value).__name__):
                 if isinstance(value, BaseException):
                     patch = mock.patch.object(core, "request_data", side_effect=value)
-                elif isinstance(value, dict) and value.get("data", {}).get("repository", {}).get("pullRequest", {}).get("reviewThreads", {}).get("pageInfo", {}).get("endCursor") == "same":
+                elif value == thread_page([True], has_next=True, cursor="same"):
                     patch = mock.patch.object(
                         core,
                         "request_data",
