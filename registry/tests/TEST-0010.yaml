@@ -1,0 +1,115 @@
+id: TEST-0010
+name: "PR draft fail-closed review-thread guard"
+status: PLANNED
+type: INTEGRATION
+
+protects:
+  requirements: [REQ-0026]
+  capabilities: []
+  contracts: ["GitHub control-plane merge guard"]
+  risks: []
+  invariants:
+    - "a current ready pull request with an unresolved review thread cannot remain merge-authoritative after the trusted scheduled guard processes it"
+    - "if complete resolved-thread state cannot be established within the bounded scan or GitHub returns malformed/ambiguous thread data, the exact current ready pull request is treated as unsafe and converted to draft"
+    - "a pull request already in draft state is never automatically readied and is not mutated by the guard"
+    - "draft mutation is bound to an exact positive PR number plus exact GitHub node id"
+    - "stable open-PR discovery includes draft state, node id, head identity, base identity and merge_commit_sha"
+    - "review-thread state is observed once before direct PR revalidation and once again immediately before draft mutation"
+    - "if the PR closes or becomes draft during revalidation, no further mutation is issued"
+    - "head/base authority drift cannot redirect the mutation because convertPullRequestToDraft targets the exact current PR node; drift remains safe because the resulting state is draft"
+    - "GraphQL convertPullRequestToDraft acknowledgement must return the exact node id, PR number and isDraft=true"
+    - "a direct REST postcondition must expose the same PR node as draft or show the PR already closed"
+    - "the normal draft-guard path performs no Actions, Checks or historical Gate traversal"
+    - "the scheduled guard retains the hard 100-request cap and reserves enough budget for a second thread observation, direct revalidation, draft mutation, postcondition and fairness-state write"
+    - "legacy durable pending rerun state is never overwritten; it is terminally accounted through the predecessor recovery path before draft-guard scanning resumes"
+    - "fairness cursor progression remains durable in issue #7 and bounds each invocation to a finite PR prefix"
+    - "manual Ready for review remains the only transition from draft back to ready; the canonical MONDE Gate workflow already triggers on ready_for_review"
+
+location:
+  test_path: ".github/scripts/test_stale_green_bootstrap_authority_review0070.py"
+  suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
+
+environment:
+  kind: GITHUB_ACTIONS
+  real_dependencies:
+    - "GitHub REST Pull Requests API"
+    - "GitHub GraphQL reviewThreads API"
+    - "GitHub GraphQL convertPullRequestToDraft mutation"
+    - "GitHub pull_request ready_for_review event semantics"
+  mocked_dependencies:
+    - "adversarial review-thread pagination, malformed GraphQL, concurrent PR closure/draft/head drift, exact draft acknowledgement, cursor fairness and legacy pending state"
+
+cases:
+  happy_path:
+    - "ready PR + unresolved thread -> second unresolved observation -> exact PR node converted to draft -> direct REST postcondition confirms draft"
+    - "already-draft PR is skipped without review-thread scan or mutation"
+    - "fully resolved ready PR remains ready and is not mutated"
+    - "human Ready for review after resolving threads triggers the existing canonical MONDE Gate workflow"
+  edge_cases:
+    - "thread becomes resolved between first and second observation; no draft mutation is issued"
+    - "PR closes between observations; no draft mutation is issued"
+    - "PR becomes draft concurrently; duplicate mutation is suppressed"
+    - "PR head/base/merge authority changes between observations while the same node remains ready; guard still safely drafts the exact current PR node"
+    - "reviewThreads needs more than the bounded page limit; state becomes AMBIGUOUS and the PR is drafted rather than left mergeable"
+    - "request headroom approaches the draft-mutation reserve; thread proof becomes AMBIGUOUS before reserve can be consumed"
+    - "more open PRs exist than the per-invocation guard bound; issue #7 cursor advances deterministically across later invocations"
+  failure_modes:
+    - "stable open-PR snapshots disagree on draft/node/head/base/merge authority"
+    - "PR node id, draft flag, number or state is malformed"
+    - "reviewThreads response, cursor, node resolution flag or pageInfo is malformed"
+    - "GraphQL thread read fails or returns errors; state is treated as AMBIGUOUS rather than safe"
+    - "convertPullRequestToDraft response is malformed or acknowledges a different PR"
+    - "post-mutation REST state does not expose the exact PR as draft or closed"
+    - "scheduler-state write or legacy pending accounting fails; mutation safety is not converted into an automatic ready transition"
+  adversarial_cases:
+    - "arbitrarily deep Actions/Check history exists, including >1000 or >2000 same-head suites; draft guard safety remains independent of Actions/Checks APIs"
+    - "arbitrarily deep resolved thread history exceeds the bounded automatic proof; guard fails closed to draft instead of silently accepting resolved state"
+    - "an unresolved thread is added after the first observation but before the second; second observation forces draft"
+    - "thread API is unavailable exactly when stale green would otherwise remain usable; guard treats the state as unsafe"
+    - "a user-authored draft is never automatically readied by the bootstrap"
+    - "legacy rerun pending state exists during migration; issue #7 authority is retained until predecessor terminal accounting"
+
+acceptance_cold_read:
+  qualifies: false
+  source:
+    kind: null
+    source_id: null
+    submitted_at: null
+  executor:
+    actor: null
+    context_id: null
+    independence_level: null
+    fresh_context: false
+    authoring_context_separated: false
+  requirements: {}
+  required_outcomes:
+    understood_without_author_reasoning: null
+    atomic_and_testable: null
+    dependencies_and_conflicts_checked: null
+    omissions_and_failure_modes_checked: null
+    evidence_plan_sufficient: null
+  all_required_outcomes_pass: false
+  completed_at: null
+
+external_import:
+  authorization_source: null
+  import_commit: null
+
+execution:
+  command_or_workflow: "MONDE Stale-Green Bootstrap"
+  last_run_at: null
+  commit_sha: null
+  result: null
+  evidence:
+    - "REVIEW-0069 terminal negative evidence PRR_kwDOUUI5ts8AAAABO346_Q motivates moving merge safety from unbounded commit-scoped history to PR draft state"
+    - "GitHub GraphQL PullRequest.reviewThreads exposes only cursor pagination arguments and no isResolved filter; bounded automatic proof therefore treats incomplete scans as unsafe"
+    - "GitHub draft pull requests are non-mergeable until explicitly marked ready for review"
+    - "MONDE Gate already subscribes to pull_request ready_for_review"
+
+coverage:
+  line_contribution: null
+  branch_contribution: null
+
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"

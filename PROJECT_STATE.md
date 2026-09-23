@@ -332,26 +332,57 @@ REVIEW-0069 must remove request cost linear in the count of overlapping runs fro
 
 ## REVIEW-0069 — terminal negative evidence
 
-REVIEW-0069 proved its bulk Check Run authority through technical candidate `c22f1ea6655adfd11ecb881972c4e36ea3616b57`, OPEN checkpoint `fddf258989427f7a64e57fc05596572e98fd14c6`, and frozen exact head `f047a085e94b4f5bd7c575ba31b4eff3b79daa8f`. Bootstrap #274 / run `35881521467` passed **365/365 tests**, **3,178 statements / 1,356 branches**, **100% line + branch**; REVIEW-0069 itself remained **196 statements / 78 branches at 100%**, and live PR #2 probe succeeded at **7/100** requests.
+REVIEW-0069 is terminal **CLOSED / CHANGES_REQUIRED** on frozen head `f047a085e94b4f5bd7c575ba31b4eff3b79daa8f`. Bootstrap #274 / run `35881521467` passed **365/365 tests**, **3,178 statements / 1,356 branches**, **100% line + branch**; REVIEW-0069 itself was **196 statements / 78 branches at 100%**, and live PR #2 probe succeeded at **7/100** requests.
 
 Fresh Codex L2 request `5797672132` was quota-refused via `5797674597`; no independent REVIEW-0069 L2 was produced.
 
-REVIEW-0069 is now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO346_Q` proved that bulk authority is still page-linear. For N Check Run pages, stable `core.paged(... verify_previous_page=True)` requires **3N-1** requests per complete snapshot because it reads N primary pages, revalidates N-1 previous pages and then revalidates all N final pages. G1 and G2 therefore require **6N-2** Check Run requests.
+Author-side `PRR_kwDOUUI5ts8AAAABO346_Q` proved page-linear starvation remains possible. With **901 valid current same-head suites/runs**, the stable bulk Check Run proof and Actions frontier require a strict lower bound of **108 requests** before earlier scheduler/target work, above the hard **100-request** cap. Above **2,000 Check Runs**, `core.MAX_PAGES=20` prevents the bulk collection from completing at all. No accepted repository contract bounds those states away.
 
-With **901 valid current same-head suites/runs**, both the Check Run collection and Actions frontier span 10 pages while remaining below the Actions 1000-result split threshold. Even ignoring all work before G1, the strict lower bound through the required mutation reserve is **6N + 2R + 28 = 108 requests**, above the hard 100-request cap. No partial bulk proof is persisted, so every scheduled invocation restarts at page 1 and reaches the same wall.
+REVIEW-0069 CLOSED checkpoint `6abe3c352572bb10dae7aeea0deeea2a9b6edd82` passed Bootstrap #275 / run `35882375042` at **365/365**, **3,178 / 1,356**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests.
 
-The absolute failure is stronger above 2000 Check Runs: `core.MAX_PAGES=20` makes the collection raise before completion, again with no durable continuation. The repository has no accepted same-head sibling/suite bound that excludes these states.
+## REVIEW-0070 implementation candidate — PR-scoped draft guard
 
-REVIEW-0070 must make exact bulk authority proof **durably resumable across invocations** or otherwise make proof cost independent of the total same-head page count. It may not raise the hard 100-request cap, weaken stable-page drift detection, or discard REVIEW-0069 suite/run/candidate binding and REVIEW-0068 P1/thread/P2/pending guarantees.
+REVIEW-0070 changes the **security boundary** instead of extending unbounded commit-scoped check-history proof.
+
+The actual requirement is that a stale successful commit-scoped Gate must not remain **merge-authoritative** once the current PR is unresolved. GitHub draft state is PR-scoped and non-mergeable. Therefore the trusted default-branch guard now follows this rule:
+
+- current PR already draft -> do nothing; the bootstrap **never automatically marks a PR ready**;
+- current ready PR + completely proven resolved review-thread state -> leave ready;
+- current ready PR + any unresolved review thread -> convert the exact current PR node to draft;
+- current ready PR + thread state that is malformed, unavailable, too deep for the bounded proof, repeated-cursor, or otherwise not completely provable as resolved -> treat as unsafe and convert to draft.
+
+The normal safety path no longer reads GitHub Actions runs, Check Runs, workflow history or historical Gate pages. REVIEW-0069 states with 901, 2,000 or arbitrarily many same-head suites are therefore **outside the merge-safety path**.
+
+The draft mutation is bound to exact current PR identity:
+1. stable open-PR snapshot includes PR number, node id, draft flag, head identity, base identity and merge_commit_sha;
+2. bounded review-thread observation;
+3. direct current-PR revalidation;
+4. second bounded review-thread observation;
+5. second direct current-PR revalidation;
+6. GraphQL `convertPullRequestToDraft` on the exact node id;
+7. exact mutation acknowledgement requires the same node id + PR number + `isDraft=true`;
+8. direct REST postcondition must expose that same PR as draft or already closed.
+
+If head/base authority changes while the same PR node remains ready, drafting remains safe because the result is still non-mergeable. If the PR closes or becomes draft before mutation, no further mutation is required.
+
+Thread scans are intentionally **bounded**. They do not silently classify a deep history as clean: inability to prove every scanned page resolved produces `AMBIGUOUS`, which is handled exactly like unresolved state and therefore fails closed to draft while preserving mutation headroom.
+
+Issue #7 remains the durable fairness cursor. Any legacy pending rerun state from REVIEW-0049+ is not erased during migration: the predecessor accounting path is resumed first. Once no legacy pending mutation exists, the active safety path no longer emits Actions rerun POSTs.
+
+Human **Ready for review** is the only transition back from draft. The canonical MONDE Gate already subscribes to `pull_request: ready_for_review`, so returning a PR to ready state naturally creates fresh Gate evidence rather than resurrecting stale commit authority.
+
+REQ-0026 is revised while still PROPOSED to describe the invariant in terms of merge authority. New **TEST-0010** is the active draft-guard integration contract; TEST-0009 remains retained historical/non-regression evidence for the predecessor rerun design.
+
+REVIEW-0070 remains a **technical candidate only** until exact tests, 100% line+branch coverage, read-only live PR #2 probe, and a controlled real GitHub draft/ready rehearsal succeed. No REVIEW-0070 lifecycle artifact may be opened before those proofs.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0069 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0069 approval.
-3. Prove this CLOSED state-only checkpoint with Bootstrap.
-4. Design REVIEW-0070 around durable multi-page bulk-authority continuation.
-5. Required real-counter regressions: at least 901 valid current same-head suites/runs across 10 pages, plus a >2000 Check Run case proving no MAX_PAGES deadlock.
-6. Restore exact-head 100% line/branch and live contract proof before opening REVIEW-0070.
+2. REVIEW-0069 remains terminal `CLOSED / CHANGES_REQUIRED`.
+3. Commit the REVIEW-0070 draft-guard candidate atomically from proven checkpoint `6abe3c…`.
+4. Run the complete Bootstrap suite at **100% line + branch** and the read-only live PR #2 contract probe.
+5. If deterministic proof is green, perform a controlled real GitHub draft/ready rehearsal on PR #5 and verify `ready_for_review` produces fresh canonical Gate evidence; do not resolve any thread.
+6. Only after both technical and real-system proofs may REVIEW-0070 be materialized as `OPEN`.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
