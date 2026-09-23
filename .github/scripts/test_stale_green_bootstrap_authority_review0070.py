@@ -383,6 +383,26 @@ class Review0070DraftGuardTests(unittest.TestCase):
             self.assertFalse(subject._guard_one("o/r", "t", ready))
         convert.assert_not_called()
 
+        with (
+            mock.patch.object(
+                subject, "_thread_state", side_effect=["UNRESOLVED", "UNRESOLVED"]
+            ),
+            mock.patch.object(subject, "_direct_pr", side_effect=[ready, None]),
+            mock.patch.object(subject, "_convert_to_draft") as convert,
+        ):
+            self.assertFalse(subject._guard_one("o/r", "t", ready))
+        convert.assert_not_called()
+
+        with (
+            mock.patch.object(
+                subject, "_thread_state", side_effect=["UNRESOLVED", "UNRESOLVED"]
+            ),
+            mock.patch.object(subject, "_direct_pr", side_effect=[ready, drafted]),
+            mock.patch.object(subject, "_convert_to_draft") as convert,
+        ):
+            self.assertFalse(subject._guard_one("o/r", "t", ready))
+        convert.assert_not_called()
+
     def test_guard_one_drafts_unresolved_or_ambiguous_exact_current_pr(self) -> None:
         ready = guard_pr(1)
         changed = guard_pr(1, head="b" * 40)
