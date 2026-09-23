@@ -284,25 +284,25 @@ REVIEW-0064 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0065 must add one final global Gate-authority proof after target baseline plus final PR/thread revalidation and immediately before durable pending write / rerun POST. The final proof must remain merge-acceptable and bind to the same expected authority identity used for the mutation. If the authority advanced, changed, became in-progress/non-acceptable, or cannot be proved exactly, the invocation must emit neither pending write nor rerun POST. REVIEW-0064 temporal binding and every prior pending/recovery/frontier invariant remain mandatory.
 
-## REVIEW-0065 — final mutation-bound Gate-authority successor
+## REVIEW-0065 — terminal negative evidence
 
-REVIEW-0065 is now **IN_PROGRESS** after exact technical proof on `188945f3e2b9db977c0906b57e9bfdf0f29bc27a` and OPEN checkpoint proof on `6d40c6c4d8edc8965003c4e34c199bb14d65935b`. Bootstrap #251 / run `35852981670` passed **312/312 tests**, **2,579 statements / 1,112 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0065 proved final Gate-authority revalidation through technical candidate `188945f3e2b9db977c0906b57e9bfdf0f29bc27a`, OPEN checkpoint `6d40c6c4d8edc8965003c4e34c199bb14d65935b`, and frozen exact head `72814dd559e7ad4f42dbbe5205488b1ed5fa3696`. Bootstrap #253 / run `35853367540` passed **312/312 tests**, **2,579 statements / 1,112 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests.
 
-The successor reuses REVIEW-0064 as the full current Check Run/Actions-frontier authority oracle and REVIEW-0055 as pending-lifetime protection, while superseding REVIEW-0056's pending-write acknowledgement wrapper with a strict superset. Immediately before a non-idle pending state can be written, REVIEW-0065 re-runs `core.latest_required_check(repo, head, token)`; the result must still be merge-acceptable and carry the exact already-recorded `pending_check_id`.
+The fresh Codex L2 request `5793836688` was quota-refused via `5793838794`; no independent REVIEW-0065 L2 was produced.
 
-After that final proof, the full existing `MUTATION_REQUEST_RESERVE` must still remain. Only then may the scheduler PATCH be attempted. Ambiguous acknowledgement of that actual PATCH still becomes `PendingMutationUncertain`, while authority failure before the PATCH remains an ordinary fail-closed pre-mutation error. A different canonical Gate becoming newer in the last window therefore produces **zero pending write and zero rerun POST**.
+REVIEW-0065 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO1L5Mw` proved another cross-object TOCTOU. The exact current PR plus unresolved-thread checks occur before REVIEW-0065 begins its final, potentially multi-request Gate proof. The PR can close, retarget or change merge-ref/base authority — or review threads can resolve — while that Gate proof runs. If the Gate itself remains unchanged, REVIEW-0065 can still write the stale pending PR authority and POST before post-rerun observation discovers the mismatch.
 
-Bootstrap #252 / run `35853220600` proved the OPEN checkpoint at **312/312 tests**, **2,579 statements / 1,112 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested. All **65** PR #5 inline material threads remain unresolved; green CI remains technical evidence, not semantic approval.
+REVIEW-0066 must form one coherent mutation-bound control-plane snapshot: **G1 -> P/T -> G2**. G1 and G2 are full active Gate proofs and must both remain merge-acceptable with the exact `pending_check_id`. Between them, `pending._current_pending_pr(repo, token, pending_state)` must return the exact open authority encoded in `pending_authority`, and unresolved review threads for `pending_pr` must still be true. Only after G1 == G2 around that exact PR/thread observation and after the full mutation reserve remains may the pending PATCH be attempted.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0065 OPEN checkpoint proof is complete via Bootstrap #252 and REVIEW-0065 is now `IN_PROGRESS`.
-3. Prove/freeze this exact IN_PROGRESS head with Bootstrap before requesting any independent review.
-4. Request a fresh-context independent L2 over that frozen REVIEW-0065 head without mutating the tree while review runs.
-5. Any material finding closes REVIEW-0065 as negative evidence and requires a successor review; do not resolve historical threads.
-6. Only a clean independent review can permit controlled PR #5 thread resolution and guarded merge eligibility.
-7. WORK-0003 and WORK-0004 remain blocked.
+2. REVIEW-0065 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0065 approval.
+3. Prove this CLOSED state-only checkpoint with Bootstrap.
+4. Implement REVIEW-0066 coherent G1 -> exact PR authority + unresolved threads -> G2 snapshot without rewriting REVIEW-0065 history.
+5. Add regressions for PR close/retarget/merge-ref drift, thread resolution and Gate advancement inside the final sandwich; every such case must produce zero pending write and zero rerun POST.
+6. Restore exact-head 100% line/branch proof and live PR #2 contract proof before opening REVIEW-0066.
+7. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
