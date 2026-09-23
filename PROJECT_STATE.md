@@ -294,24 +294,22 @@ REVIEW-0065 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0066 must form one coherent mutation-bound control-plane snapshot: **G1 -> P/T -> G2**. G1 and G2 are full active Gate proofs and must both remain merge-acceptable with the exact `pending_check_id`. Between them, `pending._current_pending_pr(repo, token, pending_state)` must return the exact open authority encoded in `pending_authority`, and unresolved review threads for `pending_pr` must still be true. Only after G1 == G2 around that exact PR/thread observation and after the full mutation reserve remains may the pending PATCH be attempted.
 
-## REVIEW-0066 — coherent mutation-bound control-plane snapshot successor
+## REVIEW-0066 — terminal negative evidence
 
-REVIEW-0066 is now **IN_PROGRESS** after exact technical proof on `a816853357a57f5b09c4504129a4630b82754218` and OPEN checkpoint proof on `b2250f25aa4e52f4406f2b730ea1576a72b7a2b4`. Bootstrap #255 / run `35854415761` passed **323/323 tests**, **2,646 statements / 1,136 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0066 proved its Gate-stable sandwich through technical candidate `a816853357a57f5b09c4504129a4630b82754218`, OPEN checkpoint `b2250f25aa4e52f4406f2b730ea1576a72b7a2b4`, and frozen exact head `6f8784bd7f2edf570dcaad34fd729ef8d052bc5f`. Bootstrap #257 / run `35854881781` passed **323/323 tests**, **2,646 statements / 1,136 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. Codex L2 request `5794038865` was quota-refused via `5794040822`.
 
-The successor creates an explicit cross-object mutation snapshot. **G1** performs the full current Gate proof and requires the exact merge-acceptable `pending_check_id`; then the current pending PR is re-read and must remain exactly open with the stored `pending_authority`; review threads must still be unresolved; then **G2** repeats the full Gate proof and requires the same exact `pending_check_id`. Only after the G1/P/T/G2 sandwich and a post-G2 full mutation-reserve check may the scheduler PATCH be attempted.
+REVIEW-0066 is now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO1Ts9g`. G1/P1/T/G2 proves Gate stability around the observation interval but only reads PR authority once. The PR can change after P1 while Gate identity remains unchanged; T and G2 can then succeed and stale `pending_authority` can still be written.
 
-PR close/retarget/merge-ref/base-authority drift, thread resolution, Gate advancement or non-acceptable authority therefore fail before durable pending intent and before rerun POST. Ambiguity of the actual pending PATCH remains `PendingMutationUncertain`. REVIEW-0065/0064 and all earlier pending, recovery, pagination and frontier guarantees remain active.
-
-Bootstrap #256 / run `35854630241` proved the OPEN checkpoint at **323/323 tests**, **2,646 statements / 1,136 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested. All **65** PR #5 inline material threads remain unresolved; green CI remains technical evidence, not semantic approval.
+REVIEW-0067 must establish overlapping Gate-stable and PR-stable intervals using **G1 -> P1 -> T -> P2 -> G2**. P1 and P2 both re-read the exact pending PR and must match the stored open `pending_authority`; T occurs between them; G1/G2 both prove the same merge-acceptable `pending_check_id`. Only after these overlapping intervals and the post-G2 mutation reserve may pending state be written.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0066 OPEN checkpoint proof is complete via Bootstrap #256 and REVIEW-0066 is now `IN_PROGRESS`.
-3. Prove/freeze this exact IN_PROGRESS head with Bootstrap before requesting any independent review.
-4. Request a fresh-context independent L2 over that frozen REVIEW-0066 head without mutating the tree while review runs.
-5. Any material finding closes REVIEW-0066 as negative evidence and requires a successor review; do not resolve historical threads.
-6. Only a clean independent review can permit controlled PR #5 thread resolution and guarded merge eligibility.
+2. REVIEW-0066 is terminal `CLOSED / CHANGES_REQUIRED`.
+3. Prove this CLOSED state-only checkpoint with Bootstrap.
+4. Implement REVIEW-0067 G1 -> P1 -> unresolved threads -> P2 -> G2.
+5. Add regression for PR drift after P1 but before P2 with unchanged Gate and unresolved threads; require zero pending write and zero rerun POST.
+6. Restore exact-head 100% line/branch and live contract proof before opening REVIEW-0067.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence

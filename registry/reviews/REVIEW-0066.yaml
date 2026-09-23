@@ -1,9 +1,9 @@
 id: REVIEW-0066
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "6f8784bd7f2edf570dcaad34fd729ef8d052bc5f"
 reviewer:
   actor: null
   context_id: null
@@ -37,7 +37,8 @@ scope:
     - "cross-object reads without bracketing can never prove one coherent pre-mutation snapshot"
     - "sandwich proof can consume mutation reserve"
     - "actual PATCH acknowledgement ambiguity must remain distinct from pre-write authority failure"
-findings: []
+findings:
+  - "PRR_kwDOUUI5ts8AAAABO1Ts9g"
 checks:
   assumptions_challenged:
     - "a final Gate proof after PR/thread validation is enough to bind current PR incarnation"
@@ -63,6 +64,8 @@ checks:
     - "REVIEW-0065 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
     - "PRR_kwDOUUI5ts8AAAABO1L5Mw is the author-side finding that invalidated REVIEW-0065."
     - "All 65 historical inline PR #5 material threads remain unresolved."
+    - "Bootstrap #257 / run 35854881781 proved frozen exact head 6f8784bd7f2edf570dcaad34fd729ef8d052bc5f at 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests."
+    - "Fresh Codex L2 request 5794038865 was quota-refused by 5794040822; no independent REVIEW-0066 L2 was produced."
   failure_modes_considered:
     - "PR authority changes after earlier final_pr validation but during G1/G2 sandwich"
     - "review threads resolve inside the sandwich"
@@ -71,6 +74,7 @@ checks:
     - "post-G2 mutation reserve is insufficient"
     - "actual pending-state write acknowledgement is malformed or unavailable"
     - "new wrapper weakens REVIEW-0055 lifetime retention or previous Gate temporal proofs"
+    - "PR authority changes after P1 but before thread/G2 reads while Gate identity remains stable, leaving the single PR observation stale even though G1 equals G2"
   evidence_requested:
     - "Technical candidate a816853357a57f5b09c4504129a4630b82754218 / Bootstrap #255 remains exact proof at 323/323 tests, 2646 statements / 1136 branches and 100 percent line+branch."
     - "Bootstrap #255 live PR #2 contract probe remains successful at 7/100 requests."
@@ -83,9 +87,12 @@ checks:
     - "Regression proving actual pending-write acknowledgement ambiguity remains PendingMutationUncertain."
     - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
     - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh-context independent L2."
-    - "Resolve no historical inline thread until a clean REVIEW-0066 L2 permits it."
+    - "Resolve no historical inline thread until a clean successor L2 permits it."
+    - "Successor REVIEW-0067 must add a second exact current PR-authority read so the mutation snapshot becomes G1 -> P1 -> unresolved threads -> P2 -> G2."
+    - "P1 and P2 must both return the exact open authority encoded by pending_authority; G1 and G2 must both retain the exact merge-acceptable pending_check_id."
+    - "Any PR authority drift between P1/P2, thread resolution, Gate drift or post-G2 reserve exhaustion must emit no pending write and no rerun POST."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-23T11:32:00Z"
 history:
   created_at: "2026-09-23"
   updated_at: "2026-09-23"
