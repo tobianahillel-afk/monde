@@ -373,28 +373,36 @@ REVIEW-0072 is **CLOSED / CHANGES_REQUIRED** on frozen exact HEAD `bc5fb064a7955
 
 Bootstrap #290 / run `35919570373` passed **423/423 tests**, **3,610 statements / 1,542 branches**, **100% line + branch**; REVIEW-0072 itself was **67 statements / 28 branches at 100%**, and the live PR #2 contract probe succeeded at **2/100** requests.
 
-Fresh Codex L2 request `5802871704` was quota-refused by `5802873335`; no independent REVIEW-0072 L2 was produced.
+Fresh Codex L2 request `5802871704` was quota-refused by `5802873335`; no independent REVIEW-0072 L2 was produced. Author-side adversarial review **PRR_kwDOUUI5ts8AAAABO7ZUCw** found the coercive exact-identity P1: inherited `_direct_pr` accepts values such as `true == 1` or `5.0 == 5`, and its `closed` branch returns before strict open-PR validation.
 
-Author-side adversarial review **PRR_kwDOUUI5ts8AAAABO7ZUCw** found a new **P1**. REVIEW-0072 correctly rereads every discovered PR, but the inherited REVIEW-0070 `_direct_pr` checks `payload.get("number") != number` with coercive Python equality and returns `None` for `state == "closed"` **before** calling the strict `_guard_pr` validator. A closed response for PR #1 with `number: true`, or PR #5 with `number: 5.0`, can therefore be accepted as exact current identity and allow cursor advancement.
+REVIEW-0072 CLOSED checkpoint `1809ba60d8acb88571fc217a4725efad1283b9df` passed Bootstrap #291 / run `35920235156`.
 
-REVIEW-0073 must strictly bind the current reread to the validated discovery record before any state branch:
-- positive exact non-Boolean integer `number`;
-- exact equality with the discovered number;
-- nonempty exact `node_id` equal to the discovered node id;
-- Boolean `draft`;
-- `state` exactly `open` or `closed`;
-- only then may closed return safe;
-- open continues through the inherited strict guard authority validation.
+## REVIEW-0073 implementation candidate — strict discovered/current PR identity
+
+REVIEW-0073 is **not opened yet**. It is a narrow successor over REVIEW-0072.
+
+The mandatory current reread now binds to the already validated discovery record before any state branch:
+- discovered `number` must itself be a positive exact non-Boolean integer;
+- discovered `node_id` must be nonempty;
+- direct REST response must be an object;
+- direct `number` must be a positive exact non-Boolean integer and equal the discovered number;
+- direct `node_id` must be nonempty and equal the discovered node id;
+- direct `draft` must be an exact Boolean;
+- direct `state` must be exactly `open` or `closed`;
+- only after these checks may `closed` return safe;
+- `open` still passes the inherited strict `_guard_pr` authority validation.
+
+The REVIEW-0073 tests cover valid closed/open authority, malformed discovery identity, `true/1` and `5.0/5` coercion, wrong/empty node id, non-Boolean draft, invalid state, malformed open authority, REVIEW-0072 ready/closed/draft transitions, exact budget floor, 32-record partial progress, pending precedence, terminal wrap and full-page continuation.
 
 All **70/70 PR #5 material threads remain unresolved**.
 
 ## Current next action
 
-1. Keep all **70** PR #5 material threads unresolved.
-2. Commit this REVIEW-0072 `CLOSED` state-only checkpoint and prove it.
-3. Implement REVIEW-0073 only after the closed checkpoint is green.
-4. Restore exact-head 100% line/branch proof and live PR #2 probe.
-5. Open REVIEW-0073 only after technical proof, then follow OPEN -> IN_PROGRESS -> frozen proof.
+1. Commit the REVIEW-0073 implementation candidate atomically from proven REVIEW-0072 CLOSED checkpoint `1809ba60…`.
+2. Run the full Bootstrap suite and require exact **100% line + branch** including REVIEW-0073.
+3. Require live PR #2 contract probe success.
+4. If technical proof is clean, update TEST-0010 / WORK-0002 with exact evidence and only then create REVIEW-0073 as `OPEN`.
+5. Follow OPEN -> IN_PROGRESS -> frozen exact-head proof.
 6. Request fresh independent L2 over all **70 unresolved material threads** only on frozen REVIEW-0073.
 7. WORK-0003 and WORK-0004 remain blocked.
 
