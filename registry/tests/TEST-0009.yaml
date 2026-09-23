@@ -172,9 +172,11 @@ execution:
     - "Bootstrap #246 / run 35850050110: 301/301 tests PASS and live PR #2 probe SUCCESS, but coverage correctly failed because REVIEW-0064 had one uncovered statement and three partial branches; lifecycle opening was withheld"
     - "Bootstrap #247 / run 35850145099: 303/303 tests PASS; 2521 statements / 1092 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #247 proves every current required-check candidate temporal snapshot is fail-closed before selection, selected terminal completion is bounded by the captured frontier, and selected started_at/completed_at bind exactly to the direct protected Actions job with no extra request"
+    - "Bootstrap #251 / run 35852981670: 312/312 tests PASS; 2579 statements / 1112 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #251 proves final global Gate authority is re-proved immediately before pending write, exact pending_check_id must remain current/merge-acceptable, post-proof mutation reserve is preserved, and advancement causes zero pending write / zero rerun POST"
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-23"
-  commit_sha: "7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a"
+  commit_sha: "188945f3e2b9db977c0906b57e9bfdf0f29bc27a"
   result: PASS
   evidence:
     - "Bootstrap #168 / run 35715152696: 202/202 tests PASS"
@@ -196,6 +198,7 @@ execution:
     - "Bootstrap #242 / run 35841368355 proves REVIEW-0063 on exact technical candidate d1a2a6d921ca85c8424f7aa707f893306d939189 with 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #246 / run 35850050110 is retained as negative coverage-gate evidence: all 301 tests and live contract passed but REVIEW-0064 coverage was only 96 percent, so the candidate was not accepted"
     - "Bootstrap #247 / run 35850145099 proves REVIEW-0064 exact technical candidate 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a with 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #251 / run 35852981670 proves REVIEW-0065 exact technical candidate 188945f3e2b9db977c0906b57e9bfdf0f29bc27a with 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
 coverage:
   line_contribution: 100
   branch_contribution: 100

@@ -284,25 +284,25 @@ REVIEW-0064 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0065 must add one final global Gate-authority proof after target baseline plus final PR/thread revalidation and immediately before durable pending write / rerun POST. The final proof must remain merge-acceptable and bind to the same expected authority identity used for the mutation. If the authority advanced, changed, became in-progress/non-acceptable, or cannot be proved exactly, the invocation must emit neither pending write nor rerun POST. REVIEW-0064 temporal binding and every prior pending/recovery/frontier invariant remain mandatory.
 
-## REVIEW-0065 implementation candidate
+## REVIEW-0065 — final mutation-bound Gate-authority successor
 
-Development now proceeds through `stale_green_bootstrap_authority_review0065.py`. The successor reuses REVIEW-0064 for the full Check Run/Actions frontier proof and REVIEW-0055 for pending-lifetime protection, while superseding REVIEW-0056's write-ack wrapper with a strict superset.
+REVIEW-0065 is now **OPEN** after exact technical proof on `188945f3e2b9db977c0906b57e9bfdf0f29bc27a`. Bootstrap #251 / run `35852981670` passed **312/312 tests**, **2,579 statements / 1,112 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
-When the processor is about to write a non-idle pending state, REVIEW-0065 re-runs `core.latest_required_check(repo, head, token)` before any state PATCH. The result must still be merge-acceptable and its exact Check Run id must equal the already-recorded `pending_check_id`. After that proof, the full existing `MUTATION_REQUEST_RESERVE` must still remain. Only then may the actual scheduler-state write be attempted; ambiguity of that actual PATCH is still promoted to `PendingMutationUncertain` exactly as REVIEW-0056 required.
+The successor reuses REVIEW-0064 as the full current Check Run/Actions-frontier authority oracle and REVIEW-0055 as pending-lifetime protection, while superseding REVIEW-0056's pending-write acknowledgement wrapper with a strict superset. Immediately before a non-idle pending state can be written, REVIEW-0065 re-runs `core.latest_required_check(repo, head, token)`; the result must still be merge-acceptable and carry the exact already-recorded `pending_check_id`.
 
-This makes the durable pending write the chosen mutation-bound linearization boundary: a different canonical Gate becoming newer after the earlier proof but before this boundary produces neither a pending write nor a rerun POST. Non-pending writes remain transparent.
+After that final proof, the full existing `MUTATION_REQUEST_RESERVE` must still remain. Only then may the scheduler PATCH be attempted. Ambiguous acknowledgement of that actual PATCH still becomes `PendingMutationUncertain`, while authority failure before the PATCH remains an ordinary fail-closed pre-mutation error. A different canonical Gate becoming newer in the last window therefore produces **zero pending write and zero rerun POST**.
 
-Regressions cover advanced authority, missing/non-acceptable authority, malformed pending check identity, reserve exhaustion after the final proof, actual write-ack ambiguity, existing pending exceptions, non-pending transparency and the full positive process path.
-
+All **65** PR #5 inline material threads remain unresolved. This OPEN state-only checkpoint must pass Bootstrap before REVIEW-0065 may transition to `IN_PROGRESS`; green CI remains technical evidence, not semantic approval.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0064 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0064 approval.
-3. REVIEW-0064 CLOSED checkpoint proof is complete via Bootstrap #250 / run 35852454144.
-4. Prove the REVIEW-0065 implementation candidate at 100% line+branch and live PR #2 contract.
-5. Only after exact technical proof may REVIEW-0065 be materialized as `OPEN`.
-6. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
+2. REVIEW-0064 remains terminal `CLOSED / CHANGES_REQUIRED`.
+3. Prove this REVIEW-0065 `OPEN` state-only checkpoint with Bootstrap.
+4. Only after that proof, transition REVIEW-0065 `OPEN -> IN_PROGRESS` in a state-only commit.
+5. Prove the resulting frozen exact HEAD before requesting any independent review.
+6. Request a fresh-context independent L2 over the frozen REVIEW-0065 head without mutating the tree while review runs.
+7. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
