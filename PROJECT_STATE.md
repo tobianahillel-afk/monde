@@ -302,21 +302,25 @@ REVIEW-0066 is now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5
 
 REVIEW-0067 must establish overlapping Gate-stable and PR-stable intervals using **G1 -> P1 -> T -> P2 -> G2**. P1 and P2 both re-read the exact pending PR and must match the stored open `pending_authority`; T occurs between them; G1/G2 both prove the same merge-acceptable `pending_check_id`. Only after these overlapping intervals and the post-G2 mutation reserve may pending state be written.
 
-## REVIEW-0067 implementation candidate
+## REVIEW-0067 — overlapping PR/Gate mutation-snapshot successor
 
-Development now proceeds through `stale_green_bootstrap_authority_review0067.py`. The pending-write guard now proves **G1 -> P1 -> T -> P2 -> G2**. P1 and P2 both call the existing exact `pending._current_pending_pr` validator against the stored `pending_authority`; T requires unresolved review threads between those reads; G1/G2 retain the exact merge-acceptable `pending_check_id`.
+REVIEW-0067 is now **OPEN** after exact technical proof on `65a155d43e027f7c618a4dfa3a10a67e366f08fb`. Bootstrap #259 / run `35857211412` passed **335/335 tests**, **2,707 statements / 1,158 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
-This creates overlapping intervals: Gate identity is proven on both outer boundaries, while exact PR authority is proven on both sides of the thread observation. PR drift after P1 therefore fails at P2 before G2 and before durable mutation intent. Full mutation reserve is still checked after G2 and actual PATCH ambiguity retains the existing pending semantics.
+The pending-write guard proves **G1 -> P1 -> T -> P2 -> G2**. G1 and G2 are complete active Gate proofs and must retain the exact merge-acceptable `pending_check_id`. P1 and P2 independently re-read the pending PR and must both validate the exact open `pending_authority`. The unresolved-thread observation T occurs between P1 and P2.
 
+This creates overlapping stability intervals: Gate authority is fixed at the outer boundaries while exact PR authority is fixed on both sides of the thread observation. PR closure, retarget/base/merge-ref drift after P1 is therefore detected at P2 before G2, before durable pending intent, and before rerun POST. The full mutation reserve is still checked after G2; ambiguity of the actual pending PATCH remains `PendingMutationUncertain`.
+
+All **65** PR #5 inline material threads remain unresolved. This OPEN state-only checkpoint must pass Bootstrap before REVIEW-0067 may transition to `IN_PROGRESS`; green CI remains technical evidence, not semantic approval.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0066 is terminal `CLOSED / CHANGES_REQUIRED`.
-3. REVIEW-0066 CLOSED checkpoint proof is complete via Bootstrap #258 / run 35855234194.
-4. Prove REVIEW-0067 implementation at 100% line+branch and live PR #2 contract.
-5. Only after exact technical proof may REVIEW-0067 be materialized as `OPEN`.
-6. WORK-0003 and WORK-0004 remain blocked.
+2. REVIEW-0066 remains terminal `CLOSED / CHANGES_REQUIRED`.
+3. Prove this REVIEW-0067 `OPEN` state-only checkpoint with Bootstrap.
+4. Only after that proof, transition REVIEW-0067 `OPEN -> IN_PROGRESS` in a state-only commit.
+5. Prove the resulting frozen exact HEAD before requesting any independent review.
+6. Request a fresh-context independent L2 over the frozen REVIEW-0067 head without mutating the tree while review runs.
+7. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
