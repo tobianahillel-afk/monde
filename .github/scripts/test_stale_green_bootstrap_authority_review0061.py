@@ -128,6 +128,47 @@ class Review0061CrossChronologyTests(unittest.TestCase):
                 "o/r", HEAD, "t", candidate, FRONTIER
             )
 
+    def test_malformed_direct_run_remains_fail_closed_by_review0060(self) -> None:
+        candidate = candidate_check()
+        with mock.patch.object(core, "request_data", return_value=[]):
+            with self.assertRaisesRegex(RuntimeError, "malformed candidate canonical"):
+                subject._chronology_prove_candidate_attempt_frontier(
+                    "o/r", HEAD, "t", candidate, FRONTIER
+                )
+
+    def test_malformed_direct_job_remains_fail_closed_by_review0060(self) -> None:
+        candidate = candidate_check()
+        run_a = run_row(
+            101, 10, attempt=2,
+            created_at="2026-09-22T20:00:00Z",
+            run_started_at="2026-09-22T21:00:00Z",
+            updated_at="2026-09-22T21:10:00Z",
+        )
+        with mock.patch.object(core, "request_data", side_effect=[run_a, []]):
+            with self.assertRaisesRegex(RuntimeError, "malformed candidate protected"):
+                subject._chronology_prove_candidate_attempt_frontier(
+                    "o/r", HEAD, "t", candidate, FRONTIER
+                )
+
+    def test_unrelated_request_is_transparent_to_chronology_wrapper(self) -> None:
+        candidate = candidate_check()
+        original = mock.Mock(return_value={"ok": True})
+
+        def prove(*_args, **_kwargs):
+            self.assertEqual(
+                core.request_data("https://api.github.com/repos/o/r/actions/workflows/1/runs", "t"),
+                {"ok": True},
+            )
+
+        with (
+            mock.patch.object(core, "request_data", original),
+            mock.patch.object(subject, "_ORIGINAL_PROVE", side_effect=prove),
+        ):
+            subject._chronology_prove_candidate_attempt_frontier(
+                "o/r", HEAD, "t", candidate, FRONTIER
+            )
+        original.assert_called_once()
+
     def test_wrapper_restores_request_and_protected_job_hooks_on_error(self) -> None:
         candidate = candidate_check()
         original_request = core.request_data
