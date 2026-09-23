@@ -79,7 +79,23 @@ def overlap_job(job_id: int, run_id: int, started: str) -> dict:
 class Review0068WitnessTests(unittest.TestCase):
     def setUp(self) -> None:
         base._reset_request_budget()
-        self.addCleanup(base._reset_request_budget)
+        self._original_core_request = core.request_data
+        self._original_core_latest = core.latest_required_check
+        self._original_pending_process = pending._process_head_group
+        self._original_terminal_prove = terminal._ORIGINAL_CHRONOLOGY_PROVE
+        self._original_chronology_prove = chronology._chronology_prove_candidate_attempt_frontier
+        self._original_chronology_validator = chronology._validate_attempt_job_chronology
+        self._original_network = base._ORIGINAL_REQUEST_DATA
+
+    def tearDown(self) -> None:
+        core.request_data = self._original_core_request
+        core.latest_required_check = self._original_core_latest
+        pending._process_head_group = self._original_pending_process
+        terminal._ORIGINAL_CHRONOLOGY_PROVE = self._original_terminal_prove
+        chronology._chronology_prove_candidate_attempt_frontier = self._original_chronology_prove
+        chronology._validate_attempt_job_chronology = self._original_chronology_validator
+        base._ORIGINAL_REQUEST_DATA = self._original_network
+        base._reset_request_budget()
 
     def test_snapshots_validate_and_bind_identity(self) -> None:
         run = candidate_run()
@@ -174,7 +190,8 @@ class Review0068WitnessTests(unittest.TestCase):
                     cand_check,
                     core._timestamp("2026-09-23T10:20:00Z", "frontier"),
                 )
-        protected.assert_not_called()
+        self.assertEqual(protected.call_count, 1)
+        self.assertEqual(protected.call_args.args[2]["id"], 116)
 
     def test_bounded_overlap_reads_competitor_and_rejects_newer_job(self) -> None:
         cand_run = candidate_run()
@@ -688,12 +705,24 @@ class Review0068WitnessTests(unittest.TestCase):
 
         original_latest = core.latest_required_check
         original_terminal = terminal._ORIGINAL_CHRONOLOGY_PROVE
-        original_process = pending._process_head_group
+        original_chronology_prove = chronology._chronology_prove_candidate_attempt_frontier
         original_request = core.request_data
         original_network = base._ORIGINAL_REQUEST_DATA
         original_validator = chronology._validate_attempt_job_chronology
         try:
-            subject.install()
+            import stale_green_bootstrap_authority_review0063 as containment
+
+            # Install only the authority chain needed by the liveness proof.
+            # Do not call subject.install(): that recursively rewires global
+            # scheduler hooks and would contaminate unrelated unit tests.
+            terminal._ORIGINAL_CHRONOLOGY_PROVE = subject._bounded_overlap_prove
+            chronology._chronology_prove_candidate_attempt_frontier = (
+                temporal._temporal_prove_candidate_attempt_frontier
+            )
+            chronology._validate_attempt_job_chronology = (
+                containment._validate_full_run_job_containment
+            )
+            core.latest_required_check = temporal._temporal_latest_required_check
             base._reset_request_budget()
             base._ORIGINAL_REQUEST_DATA = network
             core.request_data = base._budgeted_request_data
@@ -738,7 +767,9 @@ class Review0068WitnessTests(unittest.TestCase):
         finally:
             core.latest_required_check = original_latest
             terminal._ORIGINAL_CHRONOLOGY_PROVE = original_terminal
-            pending._process_head_group = original_process
+            chronology._chronology_prove_candidate_attempt_frontier = (
+                original_chronology_prove
+            )
             core.request_data = original_request
             base._ORIGINAL_REQUEST_DATA = original_network
             chronology._validate_attempt_job_chronology = original_validator
