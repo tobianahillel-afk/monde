@@ -274,15 +274,22 @@ REVIEW-0063 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0064 must validate temporal metadata for every current required-check candidate, reject missing/malformed or completion-before-start terminal checks, reject non-completed checks carrying `completed_at`, require the selected terminal candidate to complete no later than the captured authority frontier, and bind its terminal timing to the exact protected Actions job under the proven live contract. REVIEW-0063 run/job lifetime containment and every earlier guarantee remain mandatory.
 
+## REVIEW-0064 implementation candidate
+
+Development now proceeds through `stale_green_bootstrap_authority_review0064.py`. It adds no GitHub request. While the proven REVIEW-0061→0063 authority chain reads the existing filtered latest Check Run collection, REVIEW-0064 validates every candidate's temporal snapshot before selection: parseable `started_at`; completed candidates require parseable `completed_at >= started_at`; incomplete candidates must not carry `completed_at`.
+
+For the selected merge-acceptable candidate, REVIEW-0064 additionally requires `check.completed_at <= captured authority frontier` and exact `started_at/completed_at` agreement with the already-read direct protected Actions job. REVIEW-0062 direct/frontier job terminal stability and REVIEW-0063 full run/job lifetime containment remain unchanged.
+
+Regressions explicitly turn the malformed inherited REVIEW-0060 fixture into negative evidence, test hidden malformed candidates, missing/malformed/pre-start completion, incomplete completion metadata, post-frontier completion, Check Run/job timing disagreement, hook restoration and zero-extra-request delegation.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0063 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0063 approval.
-3. Implement REVIEW-0064 required-check temporal-snapshot validation without rewriting REVIEW-0063 history.
-4. Add regressions for missing/malformed completion, completion-before-start, completion-after-frontier, hidden malformed candidates and Check Run/job temporal disagreement.
-5. Restore exact-head 100% line/branch proof and live PR #2 contract proof before opening REVIEW-0064.
-6. Resolve no historical thread before a clean successor review.
-7. WORK-0003 and WORK-0004 remain blocked.
+2. REVIEW-0063 remains terminal `CLOSED / CHANGES_REQUIRED`.
+3. Prove this REVIEW-0064 technical candidate with Bootstrap at 100% line+branch and live PR #2 contract probe.
+4. Only after exact technical proof may REVIEW-0064 be materialized as `OPEN`.
+5. Resolve no historical thread before a clean successor review.
+6. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
