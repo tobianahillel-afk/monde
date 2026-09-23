@@ -369,7 +369,7 @@ REVIEW-0071 CLOSED checkpoint `a3cde9dc00a64fb36c3fa917be44e87219a2655e` passed 
 
 ## REVIEW-0072 — current PR revalidation successor
 
-REVIEW-0072 is now **OPEN** after exact technical proof on `a003455476468a9ac40343b368c195f4178a5d61`.
+REVIEW-0072 is now **IN_PROGRESS** after exact technical proof on `a003455476468a9ac40343b368c195f4178a5d61` and OPEN checkpoint proof on `494d547f1e66415838f0b0425a4f9c9252c202d2`.
 
 Bootstrap #288 / run `35918943484` passed **423/423 tests**, **3,610 statements / 1,542 branches**, **100% line + branch**; REVIEW-0072 itself is **67 statements / 28 branches at 100%**, and the live PR #2 contract probe succeeded at **2/100** requests.
 
@@ -386,16 +386,16 @@ The active sequence per discovered record is:
 
 The #288 regressions cover draft->ready, closed->ready, ready->closed, ready->draft, safe current ready, exact budget floor, 32 current revalidations in one bounded partial-page pass, legacy pending precedence, terminal page wrap and full-page continuation.
 
-All **70/70 PR #5 material threads remain unresolved**. This OPEN checkpoint must pass before transition to `IN_PROGRESS`.
+Bootstrap #289 / run `35919284637` proved the OPEN checkpoint. All **70/70 PR #5 material threads remain unresolved**. This IN_PROGRESS state must now receive one frozen exact-head proof before fresh independent L2.
 
 ## Current next action
 
 1. Keep all **70** PR #5 material threads unresolved.
-2. Prove this REVIEW-0072 `OPEN` state-only checkpoint.
-3. Transition `OPEN -> IN_PROGRESS` only after that proof.
-4. Prove the resulting frozen exact HEAD.
-5. Request a fresh independent L2 over all **70 unresolved material threads**, REVIEW-0072 and retained negative evidence.
-6. Any material finding closes REVIEW-0072 and requires a successor; resolve nothing beforehand.
+2. REVIEW-0072 OPEN checkpoint proof is complete via Bootstrap #289 and REVIEW-0072 is now `IN_PROGRESS`.
+3. Prove/freeze this exact IN_PROGRESS head with Bootstrap.
+4. Request a fresh independent L2 over all **70 unresolved material threads**, REVIEW-0072 and retained negative evidence without mutating the tree while it runs.
+5. Any material finding closes REVIEW-0072 and requires a successor; resolve nothing beforehand.
+6. Only a clean L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
