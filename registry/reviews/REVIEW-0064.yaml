@@ -1,9 +1,9 @@
 id: REVIEW-0064
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "9292e5f01d389d9a1280878eea4cda4a29dd0aef"
 reviewer:
   actor: null
   context_id: null
@@ -38,7 +38,8 @@ scope:
     - "candidate Check Run and protected Actions job can otherwise disagree on terminal timing while sharing id/start/conclusion identity"
     - "a candidate that completes after the chosen frontier can otherwise be back-projected into pre-frontier authority"
     - "temporary paged/request hooks must restore on every path without weakening prior guarantees"
-findings: []
+findings:
+  - "PRR_kwDOUUI5ts8AAAABO1CeRg"
 checks:
   assumptions_challenged:
     - "valid started_at plus terminal status/conclusion are sufficient Check Run temporal authority"
@@ -64,6 +65,8 @@ checks:
     - "PRR_kwDOUUI5ts8AAAABO0xdhQ is the author-side finding that invalidated REVIEW-0063."
     - "Bootstrap #246 is retained as negative technical evidence that the 100 percent coverage gate rejected an under-covered candidate before lifecycle opening."
     - "All 65 historical inline PR #5 material threads remain unresolved."
+    - "Bootstrap #249 / run 35850591855 proved frozen exact head 9292e5f01d389d9a1280878eea4cda4a29dd0aef at 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests."
+    - "Fresh Codex L2 request 5793447096 was quota-refused by 5793449737; no independent REVIEW-0064 L2 was produced."
   failure_modes_considered:
     - "terminal Check Run completion precedes start but candidate is selected as merge-acceptable"
     - "missing/malformed terminal completion reaches positive authority"
@@ -74,6 +77,7 @@ checks:
     - "temporal wrapper leaks or changes unrelated pagination/request behavior"
     - "new validation adds requests and breaks the 100-call budget"
     - "new validation weakens REVIEW-0063 run/job lifetime containment or REVIEW-0062 terminal stability"
+    - "global Gate authority advances after the last successful latest_required_check proof but before durable pending write / rerun POST while the selected historical target run baseline remains unchanged"
   evidence_requested:
     - "Technical candidate 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a / Bootstrap #247 remains exact proof at 303/303 tests, 2521 statements / 1092 branches and 100 percent line+branch."
     - "Bootstrap #247 live PR #2 contract probe remains successful at 7/100 requests."
@@ -87,9 +91,12 @@ checks:
     - "Regression proving unrelated/non-dict request paths cannot fabricate observed direct-job timing."
     - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
     - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh-context independent L2."
-    - "Resolve no historical inline thread until a clean REVIEW-0064 L2 permits it."
+    - "Resolve no historical inline thread until a clean successor L2 permits it."
+    - "Successor REVIEW-0065 must perform one final mutation-bound global latest_required_check proof after target baseline plus final PR/thread revalidation and before pending write / rerun POST."
+    - "That final proof must remain merge-acceptable and bind to the same expected authority identity; any advancement/change/in-progress/non-acceptable state must emit no pending write and no rerun POST."
+    - "Regression must prove a different canonical Gate becoming newer in the last mutation window is fail-closed even when target-run baseline, PR identity and unresolved threads remain unchanged."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-23T11:03:02Z"
 history:
   created_at: "2026-09-23"
   updated_at: "2026-09-23"

@@ -274,25 +274,25 @@ REVIEW-0063 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0064 must validate temporal metadata for every current required-check candidate, reject missing/malformed or completion-before-start terminal checks, reject non-completed checks carrying `completed_at`, require the selected terminal candidate to complete no later than the captured authority frontier, and bind its terminal timing to the exact protected Actions job under the proven live contract. REVIEW-0063 run/job lifetime containment and every earlier guarantee remain mandatory.
 
-## REVIEW-0064 — required-check temporal-snapshot successor
+## REVIEW-0064 — terminal negative evidence
 
-REVIEW-0064 is now **IN_PROGRESS** after exact technical proof on `7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a` and OPEN checkpoint proof on `9ab74b7d2d775bb764d95921021a70d97cf8a6ca`. Bootstrap #247 / run `35850145099` passed **303/303 tests**, **2,521 statements / 1,092 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0064 proved required-check temporal-snapshot validation through technical candidate `7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a`, OPEN checkpoint `9ab74b7d2d775bb764d95921021a70d97cf8a6ca`, and frozen exact head `9292e5f01d389d9a1280878eea4cda4a29dd0aef`. Bootstrap #249 / run `35850591855` passed **303/303 tests**, **2,521 statements / 1,092 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests.
 
-The initial implementation commit `57fe16eae6c15ae2ec587ac902aa6867f93e2a68` had already passed all **301 tests** and the live contract probe in Bootstrap #246 / run `35850050110`, but MONDE's 100% project-owned coverage gate correctly rejected it because REVIEW-0064 still had one uncovered statement and three partial branches. The test-only descendant `7ad3ff6d...` closed those proof gaps without changing production logic.
+The fresh Codex L2 request `5793447096` was quota-refused via `5793449737`; no independent REVIEW-0064 L2 was produced.
 
-The successor validates every already-fetched current required-check candidate before it can influence selection: parseable `started_at`; completed candidates require parseable `completed_at >= started_at`; incomplete candidates must not carry `completed_at`. For the selected merge-acceptable candidate, `completed_at` must be no later than the captured authority frontier and both `started_at` and `completed_at` must exactly match the already-read direct protected Actions job. No GitHub request is added. REVIEW-0062 terminal stability, REVIEW-0063 full run/job lifetime containment and every prior recovery/pagination/frontier guarantee remain active.
+REVIEW-0064 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO1CeRg` proved a remaining mutation-bound race. The last full `core.latest_required_check()` authority proof occurs before target `_mutation_baseline()`, final PR refresh, final unresolved-thread check, durable pending write and rerun POST. A different canonical `MONDE / Merge Gate` run can therefore advance after that proof while the selected historical target run remains unchanged; target baseline and PR identity still pass and MONDE can POST using stale global authority.
 
-Bootstrap #248 / run `35850458914` proved the OPEN checkpoint at **303/303 tests**, **2,521 statements / 1,092 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested. All **65** PR #5 inline material threads remain unresolved; green CI remains technical evidence, not semantic approval.
+REVIEW-0065 must add one final global Gate-authority proof after target baseline plus final PR/thread revalidation and immediately before durable pending write / rerun POST. The final proof must remain merge-acceptable and bind to the same expected authority identity used for the mutation. If the authority advanced, changed, became in-progress/non-acceptable, or cannot be proved exactly, the invocation must emit neither pending write nor rerun POST. REVIEW-0064 temporal binding and every prior pending/recovery/frontier invariant remain mandatory.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0064 OPEN checkpoint proof is complete via Bootstrap #248 and REVIEW-0064 is now `IN_PROGRESS`.
-3. Prove/freeze this exact IN_PROGRESS head with Bootstrap before requesting any independent review.
-4. Request a fresh-context independent L2 over that frozen REVIEW-0064 head and all retained material findings without mutating the tree while review runs.
-5. Any material finding closes REVIEW-0064 as negative evidence and requires a successor review; do not resolve historical threads.
-6. Only a clean independent review can permit independently verified PR #5 thread resolution and guarded merge eligibility.
-7. WORK-0003 and WORK-0004 remain blocked.
+2. REVIEW-0064 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0064 approval.
+3. Prove this CLOSED state-only checkpoint with Bootstrap.
+4. Implement REVIEW-0065 final mutation-bound global Gate-authority revalidation without rewriting REVIEW-0064 history.
+5. Add a regression where another canonical Gate becomes newer after the earlier proof while target baseline, PR/head/merge-ref and unresolved threads stay unchanged; require zero pending write and zero rerun POST.
+6. Restore exact-head 100% line/branch proof and live PR #2 contract proof before opening REVIEW-0065.
+7. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
