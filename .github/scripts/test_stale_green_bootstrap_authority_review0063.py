@@ -179,6 +179,11 @@ class Review0063FullChronologyTests(unittest.TestCase):
                 "_attempt_frontier_runs",
                 return_value=[run_a, run_b],
             ),
+            mock.patch.object(
+                chronology,
+                "_validate_attempt_job_chronology",
+                subject._validate_full_run_job_containment,
+            ),
         ):
             with self.assertRaisesRegex(RuntimeError, "starting after current workflow run update"):
                 previous._terminal_stability_prove(
