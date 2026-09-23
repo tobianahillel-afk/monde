@@ -1,0 +1,110 @@
+id: REVIEW-0069
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "hard 100-request GitHub invocation cap remains unchanged"
+    - "bulk MONDE Gate Check Runs are collected for the exact head with latest filter and GitHub Actions app/name constraints"
+    - "every canonical Actions run binds to exactly one latest Gate Check Run by check_suite_id"
+    - "Gate Check Run details_url must canonically bind its run/job ids and Check Run id must equal Actions job id"
+    - "bulk Check Run start/completion must remain inside the current canonical run lifetime"
+    - "historical stale-attempt checks fail current-run temporal containment"
+    - "only the selected candidate receives direct Actions run/job verification"
+    - "selected candidate direct run must equal the captured frontier run snapshot"
+    - "selected candidate direct protected job preserves REVIEW-0063 full run/job containment"
+    - "selected candidate Check Run/job start completion and conclusion must agree exactly"
+    - "G1 witness binds exact candidate Check Run, complete bulk Gate Check Run snapshot, complete Actions frontier snapshot and direct candidate job snapshot"
+    - "mutation ordering preserves P1 -> unresolved threads -> P2 before G2"
+    - "G2 re-collects complete bulk Gate Check Runs and Actions frontier snapshots and requires exact equality"
+    - "G2 revalidates selected candidate direct run/job before mutation"
+    - "new rerun changed missing or duplicate suite/run/check authority fails closed before pending write"
+    - "full MUTATION_REQUEST_RESERVE remains after G2 before pending PATCH"
+    - "pending write acknowledgement rerun POST ambiguity pending-lifetime retention and recovery semantics remain fail-closed"
+    - "REVIEW-0068 P1/thread/P2 temporal pending recovery and postcondition guarantees remain intact"
+  risks:
+    - "GitHub check_suite_id or latest Check Run semantics could fail to represent the current run attempt"
+    - "a stale rerun-attempt Check Run could be mistaken for current authority if temporal containment is incomplete"
+    - "bulk pagination or snapshot drift could omit or replace one authority-bearing suite"
+    - "candidate direct run/job verification could diverge from the bulk candidate snapshot"
+    - "dense-overlap liveness could still exceed the request cap if any competitor requires direct job lookup"
+    - "global hook composition could weaken predecessor authority or pending guarantees"
+findings: []
+checks:
+  assumptions_challenged:
+    - "every temporally overlapping canonical run requires a direct protected-job API lookup"
+    - "Actions job authority cannot be represented by bulk Check Runs plus check_suite_id"
+    - "latest bulk Gate Check Runs cannot distinguish stale rerun attempts from current attempts"
+    - "dense shared-head overlap cannot be proven under 100 requests without weakening authority"
+    - "a real 35-overlap regression is unnecessary once 16 historical runs pass"
+  omitted_categories_considered:
+    - "missing malformed duplicate or Boolean check_suite_id on runs/checks"
+    - "Check Run details_url run/job mismatch or Check Run id/job id mismatch"
+    - "multiple latest Gate checks for one check suite"
+    - "canonical Actions frontier duplicate run or duplicate suite identity"
+    - "bulk Check Run starts before current run attempt or completes after run updated_at"
+    - "candidate bulk Check Run absent from the canonical Actions frontier"
+    - "candidate bulk suite disagrees with candidate run suite"
+    - "current canonical attempt starts after captured authority frontier"
+    - "bulk snapshot changes between G1 and G2"
+    - "candidate Check Run disappears or becomes ambiguous"
+    - "candidate run disappears before G2"
+    - "candidate direct run job timing or conclusion drifts"
+    - "P1 P2 or unresolved-thread authority changes before mutation"
+    - "at least thirty-five valid temporally overlapping same-head current runs exist under the real shared request counter"
+  duplicate_or_reuse_search:
+    - "REVIEW-0068 P1/thread/P2 processor and pending semantics are reused."
+    - "REVIEW-0064 Check Run temporal validation is reused."
+    - "REVIEW-0063 full run/job containment is reused for the direct candidate."
+    - "REVIEW-0061 chronology constraints remain inherited."
+    - "REVIEW-0055/0056 pending lifetime and acknowledgement semantics remain inherited."
+    - "REVIEW-0068 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
+    - "PRR_kwDOUUI5ts8AAAABO3Wwiw is the author-side dense-overlap starvation finding that invalidated REVIEW-0068."
+    - "All 65 historical inline PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "old attempt Check Run survives latest collection but fails current run temporal containment"
+    - "new run or rerun changes Actions frontier while bulk Check snapshot is unchanged"
+    - "latest suite Check Run changes while Actions frontier metadata remains unchanged"
+    - "candidate direct job changes while bulk Check snapshot and frontier remain stable"
+    - "suite identity changes or becomes duplicated"
+    - "pagination membership drifts during bulk collection"
+    - "pending PR closes retargets or changes authority between P1 and P2"
+    - "review threads resolve during PR-stable interval"
+    - "request budget falls below initial or final mutation reserve"
+    - "pending PATCH rerun POST or postcondition observation becomes ambiguous"
+  evidence_requested:
+    - "REVIEW-0068 CLOSED checkpoint 467f08d546b369554e09054fb25fe6bf3f1fe564 / Bootstrap #269 remains successful."
+    - "Bootstrap #270 failure is retained negative test-fixture evidence; live contract passed and lifecycle opening remained withheld."
+    - "Bootstrap #271 is retained negative coverage-gate evidence: 364/364 tests and live contract passed but REVIEW-0069 coverage was 96 percent and repository total 99 percent."
+    - "Exact technical candidate c22f1ea6655adfd11ecb881972c4e36ea3616b57 / Bootstrap #272 remains exact proof at 365/365 tests 3178 statements / 1356 branches 100 percent line+branch."
+    - "REVIEW-0069 itself remains 196 statements / 78 branches at 100 percent."
+    - "Bootstrap #272 live PR #2 contract probe remains successful at 7/100 requests."
+    - "Real shared-counter regression with at least 35 temporally overlapping same-head current runs reaches pending-write authorization while preserving the 23-request mutation reserve."
+    - "Regression proves no competitor requires a direct /jobs request."
+    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh-context independent L2."
+    - "Resolve no historical inline thread until a clean REVIEW-0069 L2 permits it."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"
