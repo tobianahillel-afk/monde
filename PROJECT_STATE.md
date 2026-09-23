@@ -377,33 +377,33 @@ Fresh Codex L2 request `5802871704` was quota-refused by `5802873335`; no indepe
 
 REVIEW-0072 CLOSED checkpoint `1809ba60d8acb88571fc217a4725efad1283b9df` passed Bootstrap #291 / run `35920235156`.
 
-## REVIEW-0073 implementation candidate — strict discovered/current PR identity
+## REVIEW-0073 — strict discovered/current PR identity successor
 
-REVIEW-0073 is **not opened yet**. It is a narrow successor over REVIEW-0072.
+REVIEW-0073 is now **OPEN** after exact technical proof on `11289692153cf073d6e9c71f525809d7e66b298d`.
 
-The mandatory current reread now binds to the already validated discovery record before any state branch:
-- discovered `number` must itself be a positive exact non-Boolean integer;
-- discovered `node_id` must be nonempty;
-- direct REST response must be an object;
-- direct `number` must be a positive exact non-Boolean integer and equal the discovered number;
-- direct `node_id` must be nonempty and equal the discovered node id;
-- direct `draft` must be an exact Boolean;
-- direct `state` must be exactly `open` or `closed`;
-- only after these checks may `closed` return safe;
-- `open` still passes the inherited strict `_guard_pr` authority validation.
+Bootstrap #292 / run `35920768442` passed **428/428 tests**, **3,697 statements / 1,578 branches**, **100% line + branch**; REVIEW-0073 itself is **87 statements / 36 branches at 100%**, and the live PR #2 contract probe succeeded at **2/100** requests.
 
-The REVIEW-0073 tests cover valid closed/open authority, malformed discovery identity, `true/1` and `5.0/5` coercion, wrong/empty node id, non-Boolean draft, invalid state, malformed open authority, REVIEW-0072 ready/closed/draft transitions, exact budget floor, 32-record partial progress, pending precedence, terminal wrap and full-page continuation.
+REVIEW-0073 preserves REVIEW-0072 direct current-state revalidation while making the direct identity fail closed before any open/closed branch:
+- positive exact non-Boolean direct PR number;
+- exact equality with the discovered number;
+- exact nonempty node id matching the validated discovery record;
+- exact Boolean draft;
+- state exactly open or closed;
+- closed may return safe only after those checks;
+- open still passes inherited strict guard authority validation.
 
-All **70/70 PR #5 material threads remain unresolved**.
+The #292 regressions explicitly reject `true == 1`, `5.0 == 5`, wrong/empty node ids, non-Boolean draft and invalid state on the closed path, while retaining REVIEW-0072 mutable-state race protection, budget floor and durable-page progression.
+
+All **70/70 PR #5 material threads remain unresolved**. This OPEN checkpoint must pass before transition to `IN_PROGRESS`.
 
 ## Current next action
 
-1. Commit the REVIEW-0073 implementation candidate atomically from proven REVIEW-0072 CLOSED checkpoint `1809ba60…`.
-2. Run the full Bootstrap suite and require exact **100% line + branch** including REVIEW-0073.
-3. Require live PR #2 contract probe success.
-4. If technical proof is clean, update TEST-0010 / WORK-0002 with exact evidence and only then create REVIEW-0073 as `OPEN`.
-5. Follow OPEN -> IN_PROGRESS -> frozen exact-head proof.
-6. Request fresh independent L2 over all **70 unresolved material threads** only on frozen REVIEW-0073.
+1. Keep all **70** PR #5 material threads unresolved.
+2. Prove this REVIEW-0073 `OPEN` state-only checkpoint.
+3. Transition `OPEN -> IN_PROGRESS` only after that proof.
+4. Prove the resulting frozen exact HEAD.
+5. Request a fresh independent L2 over all **70 unresolved material threads**, REVIEW-0073 and retained negative evidence.
+6. Any material finding closes REVIEW-0073 and requires a successor; resolve nothing beforehand.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence

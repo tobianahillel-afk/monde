@@ -116,7 +116,7 @@ external_import:
 execution:
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-23"
-  commit_sha: "a003455476468a9ac40343b368c195f4178a5d61"
+  commit_sha: "11289692153cf073d6e9c71f525809d7e66b298d"
   result: PASS
   evidence:
     - "REVIEW-0069 terminal negative evidence PRR_kwDOUUI5ts8AAAABO346_Q motivates moving merge safety from unbounded commit-scoped history to PR draft state"
@@ -141,7 +141,9 @@ execution:
     - "Bootstrap #290 / run 35919570373 proves frozen REVIEW-0072 at 423/423 tests, 3610 statements / 1542 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 2/100 requests; Codex L2 was quota-refused."
     - "Author-side PRR_kwDOUUI5ts8AAAABO7ZUCw invalidates REVIEW-0072: inherited _direct_pr accepts coercively equal malformed PR numbers on the closed path before strict _guard_pr validation."
     - "Bootstrap #291 / run 35920235156 proves the terminal REVIEW-0072 CLOSED checkpoint before successor implementation."
-    - "REVIEW-0073 technical proof is pending; TEST-0010 remains PLANNED until its lifecycle is advanced truthfully and execution PASS evidence does not retroactively replay READY/RUNNING states"
+    - "Bootstrap #292 / run 35920768442 proves exact REVIEW-0073 technical candidate 11289692153cf073d6e9c71f525809d7e66b298d with 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
+    - "REVIEW-0073 regressions reject true/1 and 5.0/5 closed-path identity coercion, wrong/empty node id, non-Boolean draft and invalid state before cursor advancement while preserving REVIEW-0072 current-state race coverage."
+    - "TEST-0010 remains PLANNED until its lifecycle is advanced truthfully and execution PASS evidence does not retroactively replay READY/RUNNING states"
     - "TEST-0010 remains PLANNED until its lifecycle is advanced truthfully and execution PASS evidence does not retroactively replay READY/RUNNING states"
 
 coverage:
