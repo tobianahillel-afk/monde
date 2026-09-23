@@ -150,9 +150,11 @@ execution:
     - "Bootstrap #220 proves merge-acceptable candidate authority is rebound to exact canonical run/job/attempt and rejected when any newer canonical same-head run exists before the captured Actions frontier; filtered-search splitting and malformed/duplicate frontier identities fail closed"
     - "Bootstrap #227 / run 35800041465: 261/261 tests PASS; 2283 statements / 1008 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #227 proves attempt-aware frontier authority: an older run id rerun later can be authoritative when its exact current protected job is newest by started_at/id, while any newer protected job before the frontier rejects it; exact check/job start identity and malformed/after-frontier current attempts fail closed"
+    - "Bootstrap #232 / run 35835205839: 273/273 tests PASS; 2347 statements / 1028 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #232 proves protected job started_at cannot precede current run_started_at for either direct candidate or frontier competitors; malformed predecessor run/job responses stay fail-closed, unrelated requests remain transparent, and chronology validation adds no GitHub requests"
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-23"
-  commit_sha: "3b72d4f31da6b05ad28d6fe2e8cdc39d3707fe30"
+  commit_sha: "a04569ed115eb5b046b037bf10169b5f39e0d92f"
   result: PASS
   evidence:
     - "Bootstrap #168 / run 35715152696: 202/202 tests PASS"

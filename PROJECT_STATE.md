@@ -228,6 +228,16 @@ REVIEW-0060 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0061 must preserve attempt-aware frontier semantics while enforcing this run/job chronology for both the direct candidate and every frontier run before authority ordering.
 
+## REVIEW-0061 — current-attempt/protected-job chronology successor
+
+REVIEW-0061 is now **OPEN** after exact technical proof on `a04569ed115eb5b046b037bf10169b5f39e0d92f`.
+
+Bootstrap #232 / run `35835205839` passed **273/273 tests**, **2,347 statements / 1,028 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+
+The successor layers one fail-closed invariant on REVIEW-0060 attempt-aware authority: every protected `MONDE / Merge Gate` job used for authority must satisfy `job.started_at >= current run_started_at`. This is enforced for the direct candidate and every frontier run before authority ordering. Candidate check/job `started_at` identity remains exact. The adapter reuses already-fetched payloads and adds no GitHub requests.
+
+This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0061 may transition to `IN_PROGRESS`.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -236,7 +246,7 @@ REVIEW-0061 must preserve attempt-aware frontier semantics while enforcing this 
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0060 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOzV1xw exposed missing run/job cross-object chronology; implement and prove REVIEW-0061 before another independent L2.
+7. REVIEW-0061 technical candidate is proved via Bootstrap #232 and REVIEW-0061 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
