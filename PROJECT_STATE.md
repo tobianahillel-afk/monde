@@ -212,13 +212,13 @@ REVIEW-0060 must preserve the canonical Actions frontier but make it attempt-awa
 
 ## REVIEW-0060 — attempt-aware canonical Actions frontier successor
 
-REVIEW-0060 is now **OPEN** after exact technical proof on `3b72d4f31da6b05ad28d6fe2e8cdc39d3707fe30`.
+REVIEW-0060 is now **IN_PROGRESS** after exact technical proof on `3b72d4f31da6b05ad28d6fe2e8cdc39d3707fe30` and OPEN checkpoint proof on `3fa070761058a5a5e2dbcd197523f04ce78ccff0`.
 
 Bootstrap #227 / run `35800041465` passed **261/261 tests**, **2,283 statements / 1,008 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
 The successor preserves REVIEW-0059's explicit Actions authority frontier but replaces original workflow-run creation chronology with **current-attempt protected-job chronology**. A rerun of an older workflow-run id can therefore become authoritative when its exact current protected `MONDE / Merge Gate` job is the newest by `started_at/id` at the captured frontier. A newer canonical same-head protected job already existing before that frontier makes authority fail closed. Candidate check start identity must match the exact protected job/current attempt.
 
-This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0060 may transition to `IN_PROGRESS`.
+Bootstrap #228 / run `35833351150` proved the OPEN checkpoint at **261/261 tests**, **2,283 statements / 1,008 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
 ## Current next action
 
@@ -228,7 +228,7 @@ This OPEN checkpoint must now receive its own exact-head Bootstrap proof before 
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0060 technical candidate is proved via Bootstrap #227 and REVIEW-0060 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
+7. REVIEW-0060 OPEN proof is complete via Bootstrap #228 and REVIEW-0060 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
