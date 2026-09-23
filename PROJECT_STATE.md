@@ -332,7 +332,7 @@ REVIEW-0069 must remove request cost linear in the count of overlapping runs fro
 
 ## REVIEW-0069 — bulk Check Run authority successor
 
-REVIEW-0069 is now **OPEN** after exact technical proof on `c22f1ea6655adfd11ecb881972c4e36ea3616b57`. Bootstrap #272 / run `35878601779` passed **365/365 tests**, **3,178 statements / 1,356 branches**, **100% line + branch**; REVIEW-0069 itself is **196 statements / 78 branches at 100%**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0069 is now **IN_PROGRESS** after exact technical proof on `c22f1ea6655adfd11ecb881972c4e36ea3616b57` and OPEN checkpoint proof on `fddf258989427f7a64e57fc05596572e98fd14c6`. Bootstrap #272 / run `35878601779` passed **365/365 tests**, **3,178 statements / 1,356 branches**, **100% line + branch**; REVIEW-0069 itself is **196 statements / 78 branches at 100%**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
 The successor keeps the hard **100-request** cap while removing direct protected-job lookup cost from every overlapping competitor. G1 bulk-collects the latest GitHub Actions `MONDE / Merge Gate` Check Runs for the exact head and the canonical Actions run frontier. Each run must bind one-to-one to one latest Gate Check Run through exact `check_suite_id`; the Check Run must retain canonical Actions `details_url` run/job identity, and its start/completion must lie inside the current canonical run lifetime.
 
@@ -342,17 +342,17 @@ G1 emits a witness containing the exact candidate Check Run, complete bulk Gate 
 
 The real shared-counter regression includes **35 valid temporally overlapping same-head current runs across distinct check suites**. It reaches pending-write authorization with the full **23-request** mutation reserve intact and proves no competitor requires a direct `/jobs` lookup.
 
-Bootstrap #270 remains negative fixture evidence; #271 remains negative coverage-gate evidence: all 364 functional tests passed there but REVIEW-0069 was only 96% covered and lifecycle opening was correctly withheld. Green CI remains technical evidence only, not semantic approval.
+Bootstrap #270 remains negative fixture evidence; #271 remains negative coverage-gate evidence: all 364 functional tests passed there but REVIEW-0069 was only 96% covered and lifecycle opening was correctly withheld. Bootstrap #273 / run `35881158808` proved the OPEN checkpoint at **365/365 tests**, **3,178 statements / 1,356 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2. Green CI remains technical evidence only, not semantic approval.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0068 remains terminal `CLOSED / CHANGES_REQUIRED`.
-3. Prove this REVIEW-0069 `OPEN` state-only checkpoint with Bootstrap.
-4. Only after that proof, transition REVIEW-0069 `OPEN -> IN_PROGRESS` in a state-only commit.
-5. Prove the resulting frozen exact HEAD before requesting any independent review.
-6. Request a fresh-context independent L2 over the frozen REVIEW-0069 head without mutating the tree while review runs.
-7. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
+2. REVIEW-0069 OPEN checkpoint proof is complete via Bootstrap #273 and REVIEW-0069 is now `IN_PROGRESS`.
+3. Prove/freeze this exact IN_PROGRESS head with Bootstrap before requesting any independent review.
+4. Request a fresh-context independent L2 over that frozen REVIEW-0069 head without mutating the tree while review runs.
+5. Any material finding closes REVIEW-0069 as negative evidence and requires a successor review; do not resolve historical threads.
+6. Only a clean independent review can permit controlled PR #5 thread resolution and guarded merge eligibility.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
