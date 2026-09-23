@@ -166,9 +166,12 @@ execution:
     - "Bootstrap #237 proves candidate protected-job terminal snapshot stability across direct/frontier reads: success-to-failure, completed-to-in_progress and completed_at drift all fail closed while unchanged snapshots preserve REVIEW-0061 authority"
     - "Bootstrap #242 / run 35841368355: 291/291 tests PASS; 2440 statements / 1060 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #242 proves full run/job lifetime containment: every authority-bearing protected job satisfies run_started_at <= job.started_at <= run.updated_at and completed jobs satisfy job.completed_at <= run.updated_at before authority ordering, while REVIEW-0062 terminal-snapshot stability remains intact"
+    - "Bootstrap #246 / run 35850050110: 301/301 tests PASS and live PR #2 probe SUCCESS, but coverage correctly failed because REVIEW-0064 had one uncovered statement and three partial branches; lifecycle opening was withheld"
+    - "Bootstrap #247 / run 35850145099: 303/303 tests PASS; 2521 statements / 1092 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #247 proves every current required-check candidate temporal snapshot is fail-closed before selection, selected terminal completion is bounded by the captured frontier, and selected started_at/completed_at bind exactly to the direct protected Actions job with no extra request"
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-23"
-  commit_sha: "d1a2a6d921ca85c8424f7aa707f893306d939189"
+  commit_sha: "7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a"
   result: PASS
   evidence:
     - "Bootstrap #168 / run 35715152696: 202/202 tests PASS"
@@ -188,6 +191,8 @@ execution:
     - "REVIEW-0050 author-side PRR_kwDOUUI5ts8AAAABN7LvGQ invalidated recovery clear semantics; REVIEW-0051 candidate removes recovery state mutation entirely while preserving prior V5 poll behavior"
     - "Bootstrap #163 rehearsal reproduced a live multi-check failure on PR #2; rehearsal Bootstrap #166 proved the selector correction at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch, and live PR #2 probe SUCCESS"
     - "Bootstrap #242 / run 35841368355 proves REVIEW-0063 on exact technical candidate d1a2a6d921ca85c8424f7aa707f893306d939189 with 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #246 / run 35850050110 is retained as negative coverage-gate evidence: all 301 tests and live contract passed but REVIEW-0064 coverage was only 96 percent, so the candidate was not accepted"
+    - "Bootstrap #247 / run 35850145099 proves REVIEW-0064 exact technical candidate 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a with 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
 coverage:
   line_contribution: 100
   branch_contribution: 100

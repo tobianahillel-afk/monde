@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0063 are terminal negative evidence for successive recovery, multi-check, pagination, pending-lifetime, acknowledgement, snapshot and chronology/temporal-authority defects. REVIEW-0064 implementation now validates temporal metadata for every current required-check candidate without an extra GitHub request, rejects impossible terminal/incomplete timing, bounds selected completion by the captured frontier and binds selected started_at/completed_at to the exact direct protected Actions job while preserving REVIEW-0063 run/job lifetime containment. Technical proof is pending before REVIEW-0064 may open. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0063 are terminal negative evidence for successive recovery, multi-check, pagination, pending-lifetime, acknowledgement, snapshot and chronology/temporal-authority defects. REVIEW-0064 now carries required-check temporal-snapshot validation: every current candidate is validated before selection, selected completion is bounded by the captured frontier, and selected started_at/completed_at bind to the exact direct protected Actions job without extra GitHub requests while preserving REVIEW-0063 run/job lifetime containment. Technical candidate 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a passed Bootstrap #247 / run 35850145099 at 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests. REVIEW-0064 is OPEN pending its state-only checkpoint proof. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -61,7 +61,7 @@ reuses: ["status vocabulary", "registry contracts", "Review Council and assuranc
 affected_capabilities: []
 affected_engines: []
 affected_schemas: []
-affected_docs: [PROJECT_STATE.md, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml, registry/reviews/REVIEW-0060.yaml, registry/reviews/REVIEW-0061.yaml, registry/reviews/REVIEW-0062.yaml, registry/reviews/REVIEW-0063.yaml, registry/tests/TEST-0009.yaml]
+affected_docs: [PROJECT_STATE.md, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml, registry/reviews/REVIEW-0060.yaml, registry/reviews/REVIEW-0061.yaml, registry/reviews/REVIEW-0062.yaml, registry/reviews/REVIEW-0063.yaml, registry/reviews/REVIEW-0064.yaml]
 contracts: ["repository governance validation", "GitHub control-plane merge gate", "AI context routing"]
 adrs: []
 
@@ -213,6 +213,8 @@ validation:
     - "Integration rehearsal Bootstrap #166 / run 35714306323 proved the selector correction at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch and live PR #2 contract probe SUCCESS"
     - "Bootstrap #168 / run 35715152696 proved the ported PR #5 selector candidate deb6190983bd2cc97e3adffcd4769b4e44d58cb8 at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch and live PR #2 probe SUCCESS"
     - "Bootstrap #242 / run 35841368355 proved REVIEW-0063 technical candidate d1a2a6d921ca85c8424f7aa707f893306d939189 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #246 / run 35850050110 executed REVIEW-0064 initial candidate 57fe16eae6c15ae2ec587ac902aa6867f93e2a68: all 301 tests and live PR #2 probe passed, but 100 percent coverage correctly failed on REVIEW-0064 uncovered branches, so the candidate was not lifecycle-opened"
+    - "Bootstrap #247 / run 35850145099 proved REVIEW-0064 technical candidate 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a at 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
   evidence:
     - "Bootstrap #154/#155/#156: 194/194 tests PASS; 1856 statements / 842 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS"
     - "Bootstrap #157 re-proved the CLOSED state-only checkpoint at 194/194 tests, 1856 statements / 842 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
@@ -220,6 +222,7 @@ validation:
     - "Bootstrap #160 proved the REVIEW-0051 OPEN state-only checkpoint SUCCESS before the lifecycle transition to IN_PROGRESS"
     - "REVIEW-0050 was invalidated semantically despite green execution proof because recovery could clear durable pending authority across an external rerun TOCTOU"
     - "Bootstrap #242 proves REVIEW-0063 full run/job lifetime containment on d1a2a6d921ca85c8424f7aa707f893306d939189 with 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; green execution is technical evidence only, not semantic approval"
+    - "Bootstrap #247 proves REVIEW-0064 required-check temporal validation/binding on 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a with 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; no new GitHub request is added"
   coverage: {line: 100, branch: 100}
   known_gaps:
     - "REVIEW-0050 is CLOSED/CHANGES_REQUIRED and not approved."
@@ -236,7 +239,7 @@ validation:
     - "REVIEW-0061 is CLOSED/CHANGES_REQUIRED on exact head f5bbad18911208b2f408d1aeb245aed32506b742 after PRR_kwDOUUI5ts8AAAABOzuvcA proved candidate protected-job terminal-state drift can preserve an older success snapshot; no independent REVIEW-0061 L2 ran."
     - "REVIEW-0062 is CLOSED/CHANGES_REQUIRED on exact head 589970c57808d0161c78eb6c5f7a07a19c2773ef after PRR_kwDOUUI5ts8AAAABOz4vxA proved protected-job activity is not bounded above by current run.updated_at and can over-rank legitimate authority; no independent REVIEW-0062 L2 ran."
     - "REVIEW-0063 is CLOSED/CHANGES_REQUIRED on exact head 22dd22d5f9e50eea6d3bd351af8e12ab9a935440 after Bootstrap #244 / run 35848734246 proved 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests, Codex L2 was quota-refused by 5793166351, and author-side PRR_kwDOUUI5ts8AAAABO0xdhQ proved malformed terminal Check Run completed_at can cross positive authority; no independent REVIEW-0063 L2 ran."
-    - "REVIEW-0064 implementation candidate is being proved; it validates every current required-check temporal snapshot from the already-fetched filtered collection, bounds selected completion by the authority frontier, and binds selected started_at/completed_at to the direct protected job without adding a request. REVIEW-0064 must not open until exact technical proof succeeds."
+    - "REVIEW-0064 is OPEN after technical proof on 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a / Bootstrap #247; its OPEN state-only checkpoint must pass before transition to IN_PROGRESS, then one frozen exact-head proof is required before any fresh independent L2."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -290,6 +293,7 @@ run_log:
   - "REVIEW-0062 frozen head 589970c57808d0161c78eb6c5f7a07a19c2773ef passed Bootstrap #239 / run 35839947248 at 283/283 tests, 2403 statements / 1046 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5791956923, then author-side PRR_kwDOUUI5ts8AAAABOz4vxA exposed missing protected-job upper chronology containment."
   - "REVIEW-0063 full-lifetime-containment technical candidate d1a2a6d921ca85c8424f7aa707f893306d939189 passed Bootstrap #242 / run 35841368355 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0063 opened only after this proof."
   - "REVIEW-0063 OPEN checkpoint 2b92575013d39257fb61c516c4dfa9ab10f74ebf passed Bootstrap #243 / run 35848570089 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
+  - "REVIEW-0064 initial candidate 57fe16eae6c15ae2ec587ac902aa6867f93e2a68 / Bootstrap #246 passed 301 tests and live PR #2 probe but was rejected by the 100 percent coverage gate; test-only descendant 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a then passed Bootstrap #247 / run 35850145099 at 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; REVIEW-0064 lifecycle opened only after this exact proof."
   - "REVIEW-0063 frozen head 22dd22d5f9e50eea6d3bd351af8e12ab9a935440 passed Bootstrap #244 / run 35848734246 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; fresh Codex L2 request 5793162559 was quota-refused by 5793166351, then author-side PRR_kwDOUUI5ts8AAAABO0xdhQ exposed malformed Check Run terminal temporal metadata being accepted as authority."
 
 discoveries:
@@ -304,7 +308,7 @@ blockers:
   - "REVIEW-0061 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0061 approval."
   - "REVIEW-0062 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0062 approval."
   - "REVIEW-0063 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0063 approval."
-  - "Exact-head prove the REVIEW-0064 temporal-snapshot implementation at 100 percent line+branch plus live PR #2 probe before opening REVIEW-0064."
+  - "REVIEW-0064 is OPEN; prove its state-only OPEN checkpoint before transition to IN_PROGRESS, then freeze/prove one exact head before any fresh independent L2."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."

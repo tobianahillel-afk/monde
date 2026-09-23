@@ -274,22 +274,25 @@ REVIEW-0063 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0064 must validate temporal metadata for every current required-check candidate, reject missing/malformed or completion-before-start terminal checks, reject non-completed checks carrying `completed_at`, require the selected terminal candidate to complete no later than the captured authority frontier, and bind its terminal timing to the exact protected Actions job under the proven live contract. REVIEW-0063 run/job lifetime containment and every earlier guarantee remain mandatory.
 
-## REVIEW-0064 implementation candidate
+## REVIEW-0064 — required-check temporal-snapshot successor
 
-Development now proceeds through `stale_green_bootstrap_authority_review0064.py`. It adds no GitHub request. While the proven REVIEW-0061→0063 authority chain reads the existing filtered latest Check Run collection, REVIEW-0064 validates every candidate's temporal snapshot before selection: parseable `started_at`; completed candidates require parseable `completed_at >= started_at`; incomplete candidates must not carry `completed_at`.
+REVIEW-0064 is now **OPEN** after exact technical proof on `7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a`. Bootstrap #247 / run `35850145099` passed **303/303 tests**, **2,521 statements / 1,092 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
-For the selected merge-acceptable candidate, REVIEW-0064 additionally requires `check.completed_at <= captured authority frontier` and exact `started_at/completed_at` agreement with the already-read direct protected Actions job. REVIEW-0062 direct/frontier job terminal stability and REVIEW-0063 full run/job lifetime containment remain unchanged.
+The initial implementation commit `57fe16eae6c15ae2ec587ac902aa6867f93e2a68` had already passed all **301 tests** and the live contract probe in Bootstrap #246 / run `35850050110`, but MONDE's 100% project-owned coverage gate correctly rejected it because REVIEW-0064 still had one uncovered statement and three partial branches. The test-only descendant `7ad3ff6d...` closed those proof gaps without changing production logic.
 
-Regressions explicitly turn the malformed inherited REVIEW-0060 fixture into negative evidence, test hidden malformed candidates, missing/malformed/pre-start completion, incomplete completion metadata, post-frontier completion, Check Run/job timing disagreement, hook restoration and zero-extra-request delegation.
+The successor validates every already-fetched current required-check candidate before it can influence selection: parseable `started_at`; completed candidates require parseable `completed_at >= started_at`; incomplete candidates must not carry `completed_at`. For the selected merge-acceptable candidate, `completed_at` must be no later than the captured authority frontier and both `started_at` and `completed_at` must exactly match the already-read direct protected Actions job. No GitHub request is added. REVIEW-0062 terminal stability, REVIEW-0063 full run/job lifetime containment and every prior recovery/pagination/frontier guarantee remain active.
+
+All **65** PR #5 inline material threads remain unresolved. This OPEN state-only checkpoint must pass Bootstrap before REVIEW-0064 may transition to `IN_PROGRESS`; green CI remains technical evidence, not semantic approval.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0063 remains terminal `CLOSED / CHANGES_REQUIRED`.
-3. Prove this REVIEW-0064 technical candidate with Bootstrap at 100% line+branch and live PR #2 contract probe.
-4. Only after exact technical proof may REVIEW-0064 be materialized as `OPEN`.
-5. Resolve no historical thread before a clean successor review.
-6. WORK-0003 and WORK-0004 remain blocked.
+2. Prove this REVIEW-0064 `OPEN` state-only checkpoint with Bootstrap.
+3. Only after that proof, transition REVIEW-0064 `OPEN -> IN_PROGRESS` in a state-only commit.
+4. Prove the resulting frozen exact HEAD before requesting any independent review.
+5. Request a fresh-context independent L2 over the frozen REVIEW-0064 head and all retained material findings without mutating the tree while review runs.
+6. Any material finding closes REVIEW-0064 as negative evidence and requires a successor review; do not resolve historical threads.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
