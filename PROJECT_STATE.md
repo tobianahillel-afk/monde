@@ -210,6 +210,16 @@ REVIEW-0059 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0060 must preserve the canonical Actions frontier but make it attempt-aware. Current run recency/attempt identity—not original run creation alone—must decide which canonical attempt is authoritative at the captured frontier.
 
+## REVIEW-0060 — attempt-aware canonical Actions frontier successor
+
+REVIEW-0060 is now **OPEN** after exact technical proof on `3b72d4f31da6b05ad28d6fe2e8cdc39d3707fe30`.
+
+Bootstrap #227 / run `35800041465` passed **261/261 tests**, **2,283 statements / 1,008 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+
+The successor preserves REVIEW-0059's explicit Actions authority frontier but replaces original workflow-run creation chronology with **current-attempt protected-job chronology**. A rerun of an older workflow-run id can therefore become authoritative when its exact current protected `MONDE / Merge Gate` job is the newest by `started_at/id` at the captured frontier. A newer canonical same-head protected job already existing before that frontier makes authority fail closed. Candidate check start identity must match the exact protected job/current attempt.
+
+This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0060 may transition to `IN_PROGRESS`.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -218,7 +228,7 @@ REVIEW-0060 must preserve the canonical Actions frontier but make it attempt-awa
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0059 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOwZrZw exposed creation-time versus rerun-attempt authority mismatch; implement and prove REVIEW-0060 before another independent L2.
+7. REVIEW-0060 technical candidate is proved via Bootstrap #227 and REVIEW-0060 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 

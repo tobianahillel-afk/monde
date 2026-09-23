@@ -6,14 +6,14 @@ lot: LOT-0
 sublot: SUBLOT-0.2
 owner: "repository governance"
 created_at: "2026-09-10"
-updated_at: "2026-09-22"
+updated_at: "2026-09-23"
 
 purpose: |
   Turn MONDE governance/specification/traceability contracts into executable CI and GitHub control-plane checks so repository state, review evidence, scope and proof cannot silently drift.
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0058 are terminal negative evidence for successive recovery, multi-check, pagination, pending-lifetime, acknowledgement and pagination-snapshot defects. REVIEW-0059 introduced a canonical Actions frontier but is now CLOSED/CHANGES_REQUIRED after author-side PRR_kwDOUUI5ts8AAAABOwZrZw proved that ordering by original workflow-run created_at rejects a newer rerun attempt/check from an older run id. A REVIEW-0060 successor must preserve the frontier idea while making authority attempt-aware using current run recency/attempt identity. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0059 are terminal negative evidence for successive recovery, multi-check, pagination, pending-lifetime, acknowledgement, snapshot and chronology defects. REVIEW-0060 now carries the attempt-aware canonical Actions successor: authority is ordered by exact current protected job started_at/id at a captured frontier rather than original run creation chronology. Technical candidate 3b72d4f31da6b05ad28d6fe2e8cdc39d3707fe30 passed Bootstrap #227; REVIEW-0060 is OPEN pending exact-head lifecycle proof. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -61,7 +61,7 @@ reuses: ["status vocabulary", "registry contracts", "Review Council and assuranc
 affected_capabilities: []
 affected_engines: []
 affected_schemas: []
-affected_docs: [PROJECT_STATE.md, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml]
+affected_docs: [PROJECT_STATE.md, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml, registry/reviews/REVIEW-0060.yaml]
 contracts: ["repository governance validation", "GitHub control-plane merge gate", "AI context routing"]
 adrs: []
 
@@ -230,7 +230,7 @@ validation:
     - "REVIEW-0057 is CLOSED/CHANGES_REQUIRED on exact head 33f24d354f513f4b925f0b1f56ad8775da8b8ab2 after PRR_kwDOUUI5ts8AAAABOtCssw proved adjacent-only drift revalidation is insufficient for 3+ page traversals; no independent REVIEW-0057 L2 ran."
     - "REVIEW-0058 is CLOSED/CHANGES_REQUIRED on exact head 11e8b86e67bdb2f69c2db4823b09bd051e211855 after PRR_kwDOUUI5ts8AAAABOuVyaw proved sequential final all-page revalidation is still not a linearizable latest-check authority snapshot; no independent REVIEW-0058 L2 ran."
     - "REVIEW-0059 is CLOSED/CHANGES_REQUIRED on exact head b3834693cd65074b43866b0ed9cba55b6d7309f1 after PRR_kwDOUUI5ts8AAAABOwZrZw proved original run creation chronology conflicts with effective rerun-attempt/check authority; no independent REVIEW-0059 L2 ran."
-    - "REVIEW-0060 successor is not yet opened; it must preserve all prior protections while proving attempt-aware canonical Actions authority."
+    - "REVIEW-0060 technical candidate 3b72d4f31da6b05ad28d6fe2e8cdc39d3707fe30 passed Bootstrap #227 / run 35800041465 at 261/261 tests, 2283 statements / 1008 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; REVIEW-0060 is now OPEN pending exact-head OPEN checkpoint proof."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -273,6 +273,7 @@ run_log:
   - "REVIEW-0059 canonical Actions frontier candidate 5c1dc5b2337b275d91dbb07a27becdd88261b317 passed Bootstrap #220 / run 35794235973 at 245/245 tests, 2151 statements / 942 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0059 opened only after this proof."
   - "REVIEW-0059 OPEN checkpoint d369650372b2cc59c34ca6618c1ab163d23df7d9 passed Bootstrap #221 / run 35797915783 at 245/245 tests, 2151 statements / 942 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
   - "REVIEW-0059 frozen head b3834693cd65074b43866b0ed9cba55b6d7309f1 passed Bootstrap #222 / run 35798260021 at 245/245 tests, 2151 statements / 942 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5786201245, then author-side PRR_kwDOUUI5ts8AAAABOwZrZw exposed creation-time versus rerun-attempt authority mismatch."
+  - "REVIEW-0060 attempt-aware authority candidate 3b72d4f31da6b05ad28d6fe2e8cdc39d3707fe30 passed Bootstrap #227 / run 35800041465 at 261/261 tests, 2283 statements / 1008 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0060 opened only after this proof."
 
 discoveries:
   - "A break-glass clear based on non-atomic GET revalidation cannot exclude an external rerun starting before the clear commits."
@@ -282,7 +283,7 @@ blockers:
   - "REVIEW-0057 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0057 approval."
   - "REVIEW-0058 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0058 approval."
   - "REVIEW-0059 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0059 approval."
-  - "Implement and exact-head prove attempt-aware canonical Actions authority, then open REVIEW-0060 before any fresh independent L2."
+  - "REVIEW-0060 technical candidate is proved; prove the OPEN checkpoint exact-head before transitioning REVIEW-0060 to IN_PROGRESS."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."

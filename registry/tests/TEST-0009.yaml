@@ -146,9 +146,11 @@ execution:
     - "Bootstrap #213 proves stable 3-page final all-page revalidation and detects late page-1 drift after its first adjacent revalidation before effective-check selection"
     - "Bootstrap #220 / run 35794235973: 245/245 tests PASS; 2151 statements / 942 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #220 proves merge-acceptable candidate authority is rebound to exact canonical run/job/attempt and rejected when any newer canonical same-head run exists before the captured Actions frontier; filtered-search splitting and malformed/duplicate frontier identities fail closed"
+    - "Bootstrap #227 / run 35800041465: 261/261 tests PASS; 2283 statements / 1008 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #227 proves attempt-aware frontier authority: an older run id rerun later can be authoritative when its exact current protected job is newest by started_at/id, while any newer protected job before the frontier rejects it; exact check/job start identity and malformed/after-frontier current attempts fail closed"
   command_or_workflow: "MONDE Stale-Green Bootstrap"
-  last_run_at: "2026-09-22"
-  commit_sha: "5c1dc5b2337b275d91dbb07a27becdd88261b317"
+  last_run_at: "2026-09-23"
+  commit_sha: "3b72d4f31da6b05ad28d6fe2e8cdc39d3707fe30"
   result: PASS
   evidence:
     - "Bootstrap #168 / run 35715152696: 202/202 tests PASS"

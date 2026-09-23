@@ -1,0 +1,86 @@
+id: REVIEW-0060
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "paginated required-check history remains conservative candidate discovery only"
+    - "merge-acceptable candidate authority is rebound to exact current canonical workflow run/job/attempt"
+    - "authority ordering is based on current protected MONDE Gate job started_at/id, not original workflow-run creation chronology"
+    - "an older workflow-run id rerun later may be authoritative when its current attempt/protected job is newest at the captured frontier"
+    - "any newer canonical same-head protected gate job existing before the captured frontier rejects an older candidate"
+    - "candidate required-check started_at must equal the protected job started_at for the exact current attempt"
+    - "candidate run_number/run_attempt/created_at/run_started_at and protected job identity must remain stable during frontier proof"
+    - "frontier collection remains bounded, duplicate-id checked and request-budget constrained"
+    - "REVIEW-0051 recovery, REVIEW-0052 multi-check selection, REVIEW-0053 pagination, REVIEW-0054 through REVIEW-0056 pending protections and REVIEW-0059 frontier binding remain intact"
+  risks:
+    - "rerunning an older workflow-run id changes effective authority chronology without changing original run created_at"
+    - "run_started_at may disagree with protected job/check start identity"
+    - "current attempt/job may change during frontier proof"
+    - "multiple current canonical attempts across run ids may race before the authority frontier"
+    - "request-budget use may grow when current protected jobs are fetched for every frontier run"
+findings: []
+checks:
+  assumptions_challenged:
+    - "original workflow-run created_at is a valid proxy for current rerun-attempt authority"
+    - "run_started_at alone can authorize mutation without exact protected-job binding"
+    - "a newer original run id must always outrank a later rerun attempt of an older run id"
+  omitted_categories_considered:
+    - "older run id rerun later and legitimately newest by protected job started_at"
+    - "different run id has a newer protected job before frontier"
+    - "candidate check started_at disagrees with protected job"
+    - "candidate run current attempt starts after frontier"
+    - "frontier row current attempt starts after frontier"
+    - "current protected job starts after frontier"
+    - "candidate direct run/job identity changes during proof"
+    - "active protected job is incomplete but structurally valid"
+    - "malformed current run/job lifetime or identifiers"
+    - "non-merge-acceptable candidate bypasses attempt frontier but cannot authorize mutation"
+  duplicate_or_reuse_search:
+    - "Existing REVIEW-0059 bounded canonical frontier search and run validators are reused."
+    - "Existing protected-job validator/paged helper are reused."
+    - "REVIEW-0059 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
+    - "PRR_kwDOUUI5ts8AAAABOwZrZw is the author-side finding that invalidated REVIEW-0059."
+    - "All 65 historical inline PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "older rerun attempt is incorrectly rejected only because its run id was created earlier"
+    - "candidate is accepted while a newer protected job exists before frontier"
+    - "candidate check/job start chronology differs"
+    - "candidate run attempt changes between direct lookup and frontier proof"
+    - "frontier contains malformed run/job metadata"
+    - "current attempt or protected job exists only after frontier"
+    - "request-budget exhaustion during attempt-aware frontier proof"
+    - "prior pending/recovery protections are weakened by install order"
+  evidence_requested:
+    - "Exact-head Bootstrap suite with 100 percent line and branch coverage after attempt-aware authority adapter."
+    - "Regression proving an older run-id rerun attempt can be newest effective authority."
+    - "Regression proving a newer protected job before the frontier rejects the candidate."
+    - "Regression proving candidate check start identity matches exact protected job/current attempt."
+    - "Regressions proving malformed attempt/job/frontier metadata and after-frontier activity fail closed."
+    - "Live PR #2 contract probe remains successful."
+    - "Fresh-context independent L2 on one frozen exact REVIEW-0060 head."
+    - "Resolve no historical inline thread until REVIEW-0060 L2 is clean."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"
