@@ -194,6 +194,82 @@ class Review0064CheckTemporalAuthorityTests(unittest.TestCase):
                     "o/r", HEAD, "t", candidate, FRONTIER
                 )
 
+    def test_merge_acceptable_proof_requires_terminal_completion(self) -> None:
+        candidate = valid_candidate()
+        candidate["status"] = "in_progress"
+        candidate["conclusion"] = None
+        candidate["completed_at"] = None
+        with self.assertRaisesRegex(RuntimeError, "lacks terminal completion"):
+            subject._temporal_prove_candidate_attempt_frontier(
+                "o/r", HEAD, "t", candidate, FRONTIER
+            )
+
+    def test_guarded_request_ignores_unrelated_and_non_dict_job_payload(self) -> None:
+        candidate = valid_candidate()
+        direct_job = gate_job(
+            501,
+            101,
+            attempt=2,
+            started_at="2026-09-22T21:01:00Z",
+            status="completed",
+            conclusion="success",
+        )
+        direct_job["completed_at"] = "2026-09-22T21:10:00Z"
+
+        def valid_predecessor(*_args, **_kwargs):
+            self.assertEqual(
+                core.request_data(
+                    "https://api.github.com/repos/o/r/actions/runs/999",
+                    "t",
+                ),
+                {"ok": True},
+            )
+            self.assertIs(
+                core.request_data(
+                    "https://api.github.com/repos/o/r/actions/jobs/501",
+                    "t",
+                ),
+                direct_job,
+            )
+
+        with (
+            mock.patch.object(
+                core,
+                "request_data",
+                side_effect=[{"ok": True}, direct_job],
+            ),
+            mock.patch.object(
+                subject,
+                "_ORIGINAL_TERMINAL_PROVE",
+                side_effect=valid_predecessor,
+            ),
+        ):
+            subject._temporal_prove_candidate_attempt_frontier(
+                "o/r", HEAD, "t", candidate, FRONTIER
+            )
+
+        def malformed_predecessor(*_args, **_kwargs):
+            self.assertEqual(
+                core.request_data(
+                    "https://api.github.com/repos/o/r/actions/jobs/501",
+                    "t",
+                ),
+                [],
+            )
+
+        with (
+            mock.patch.object(core, "request_data", return_value=[]),
+            mock.patch.object(
+                subject,
+                "_ORIGINAL_TERMINAL_PROVE",
+                side_effect=malformed_predecessor,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "timing was not observed"):
+                subject._temporal_prove_candidate_attempt_frontier(
+                    "o/r", HEAD, "t", candidate, FRONTIER
+                )
+
     def test_predecessor_error_restores_request_hook(self) -> None:
         candidate = valid_candidate()
         original = core.request_data
