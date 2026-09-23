@@ -1,9 +1,9 @@
 id: REVIEW-0067
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "0c1ccbb1bf80c4328ff24c0e9079c7734d367f52"
 reviewer:
   actor: null
   context_id: null
@@ -37,7 +37,8 @@ scope:
     - "cross-object snapshots require overlapping stability intervals rather than one read per object"
     - "extra P2 read plus G2 proof can exhaust mutation reserve"
     - "actual PATCH acknowledgement ambiguity must remain distinct from pre-write authority failure"
-findings: []
+findings:
+  - "PRR_kwDOUUI5ts8AAAABO1qQqg"
 checks:
   assumptions_challenged:
     - "Gate stability around one PR read is enough to prove current PR incarnation"
@@ -62,6 +63,8 @@ checks:
     - "REVIEW-0066 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
     - "PRR_kwDOUUI5ts8AAAABO1Ts9g is the author-side finding that invalidated REVIEW-0066."
     - "All 65 historical inline PR #5 material threads remain unresolved."
+    - "Bootstrap #261 / run 35857716751 proved frozen exact head 0c1ccbb1bf80c4328ff24c0e9079c7734d367f52 at 335/335 tests, 2707 statements / 1158 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests."
+    - "Fresh Codex L2 request 5794413357 was quota-refused by 5794416378; no independent REVIEW-0067 L2 was produced."
   failure_modes_considered:
     - "PR authority changes after P1 but before P2 while Gate stays stable"
     - "PR closes between P1 and P2"
@@ -71,6 +74,7 @@ checks:
     - "post-G2 mutation reserve is insufficient"
     - "actual pending-state write acknowledgement is malformed or unavailable"
     - "new wrapper weakens REVIEW-0055 lifetime retention or predecessor temporal proofs"
+    - "same-head canonical workflow-run count makes the four full Gate proofs consume the 100-request budget before the mandatory 23-request mutation reserve; DeferredForBudget persists no frontier continuation so the same head restarts forever"
   evidence_requested:
     - "Technical candidate 65a155d43e027f7c618a4dfa3a10a67e366f08fb / Bootstrap #259 remains exact proof at 335/335 tests, 2707 statements / 1158 branches and 100 percent line+branch."
     - "Bootstrap #259 live PR #2 contract probe remains successful at 7/100 requests."
@@ -83,9 +87,12 @@ checks:
     - "Regression proving actual pending-write acknowledgement ambiguity remains PendingMutationUncertain."
     - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
     - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh-context independent L2."
-    - "Resolve no historical inline thread until a clean REVIEW-0067 L2 permits it."
+    - "Resolve no historical inline thread until a clean successor L2 permits it."
+    - "Successor REVIEW-0068 must eliminate permanent O(N)-per-proof starvation while preserving the hard 100-request cap."
+    - "At minimum, >=16 distinct canonical same-head runs must no longer make invalidation mathematically impossible; regression must use the real shared request counter and show durable forward progress rather than mocked proof calls."
+    - "A fix may use a bounded reusable authority witness or a durably resumable frontier scan plus bounded final revalidation, but must preserve REVIEW-0067 snapshot safety and every earlier pending/recovery invariant."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-23T12:11:02Z"
 history:
   created_at: "2026-09-23"
   updated_at: "2026-09-23"

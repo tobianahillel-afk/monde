@@ -302,24 +302,26 @@ REVIEW-0066 is now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5
 
 REVIEW-0067 must establish overlapping Gate-stable and PR-stable intervals using **G1 -> P1 -> T -> P2 -> G2**. P1 and P2 both re-read the exact pending PR and must match the stored open `pending_authority`; T occurs between them; G1/G2 both prove the same merge-acceptable `pending_check_id`. Only after these overlapping intervals and the post-G2 mutation reserve may pending state be written.
 
-## REVIEW-0067 — overlapping PR/Gate mutation-snapshot successor
+## REVIEW-0067 — terminal negative evidence
 
-REVIEW-0067 is now **IN_PROGRESS** after exact technical proof on `65a155d43e027f7c618a4dfa3a10a67e366f08fb` and OPEN checkpoint proof on `e4f994c2b1661427f83ff23b8c9ece21fc296aa1`. Bootstrap #259 / run `35857211412` passed **335/335 tests**, **2,707 statements / 1,158 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0067 proved the G1 -> P1 -> unresolved threads -> P2 -> G2 mutation snapshot through technical candidate `65a155d43e027f7c618a4dfa3a10a67e366f08fb`, OPEN checkpoint `e4f994c2b1661427f83ff23b8c9ece21fc296aa1`, and frozen exact head `0c1ccbb1bf80c4328ff24c0e9079c7734d367f52`. Bootstrap #261 / run `35857716751` passed **335/335 tests**, **2,707 statements / 1,158 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests.
 
-The pending-write guard proves **G1 -> P1 -> T -> P2 -> G2**. G1 and G2 are complete active Gate proofs and must retain the exact merge-acceptable `pending_check_id`. P1 and P2 independently re-read the pending PR and must both validate the exact open `pending_authority`. The unresolved-thread observation T occurs between P1 and P2.
+Fresh Codex L2 request `5794413357` was quota-refused via `5794416378`; no independent REVIEW-0067 L2 was produced.
 
-This creates overlapping stability intervals: Gate authority is fixed at the outer boundaries while exact PR authority is fixed on both sides of the thread observation. PR closure, retarget/base/merge-ref drift after P1 is therefore detected at P2 before G2, before durable pending intent, and before rerun POST. The full mutation reserve is still checked after G2; ambiguity of the actual pending PATCH remains `PendingMutationUncertain`.
+REVIEW-0067 is now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO1qQqg` proved deterministic request-budget starvation. The mutation path executes four full merge-acceptable Gate authority proofs before POST. Under the active Actions-frontier proof, each costs at least `N + 4` GitHub requests for `N` distinct canonical same-head workflow runs because every frontier run requires its current protected-job page. REVIEW-0067 must also leave 23 requests after G2. At only `N = 16`, the lower bound is already `4 × (16 + 4) + 23 = 103`, before any PR/thread/state/target-discovery requests.
 
-Bootstrap #260 / run `35857491772` proved the OPEN checkpoint at **335/335 tests**, **2,707 statements / 1,158 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested. All **65** PR #5 inline material threads remain unresolved; green CI remains technical evidence, not semantic approval.
+When this path raises `DeferredForBudget`, REVIEW-0049 poll breaks without persisting Actions-frontier continuation. For the current first head, the cursor remains unchanged; the next invocation repeats from scratch and hits the same wall. A supported stale-green head can therefore remain merge-eligible indefinitely.
+
+REVIEW-0068 must preserve the hard 100-request cap while eliminating permanent O(N)-per-proof starvation. It may introduce a safely reusable bounded authority witness or durable frontier continuation plus bounded final revalidation, but it must preserve REVIEW-0067 cross-object snapshot safety and every prior pending/recovery invariant. A regression with at least 16 distinct canonical same-head runs must use the real shared request counter and prove durable forward progress; mocking `latest_required_check` is insufficient.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0067 OPEN checkpoint proof is complete via Bootstrap #260 and REVIEW-0067 is now `IN_PROGRESS`.
-3. Prove/freeze this exact IN_PROGRESS head with Bootstrap before requesting any independent review.
-4. Request a fresh-context independent L2 over that frozen REVIEW-0067 head without mutating the tree while review runs.
-5. Any material finding closes REVIEW-0067 as negative evidence and requires a successor review; do not resolve historical threads.
-6. Only a clean independent review can permit controlled PR #5 thread resolution and guarded merge eligibility.
+2. REVIEW-0067 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0067 approval.
+3. Prove this CLOSED state-only checkpoint with Bootstrap.
+4. Design REVIEW-0068 around the 100-request hard cap before changing the authority implementation.
+5. Add a real-budget starvation regression with at least 16 distinct same-head canonical runs.
+6. Restore exact-head 100% line/branch and live contract proof before opening REVIEW-0068.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
