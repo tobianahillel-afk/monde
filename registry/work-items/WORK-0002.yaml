@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0060 are terminal negative evidence for successive recovery, multi-check, pagination, pending-lifetime, acknowledgement, snapshot and chronology defects. REVIEW-0061 now carries the cross-object chronology successor on top of attempt-aware authority: every protected job must start at or after its current workflow attempt before authority ordering. Technical candidate a04569ed115eb5b046b037bf10169b5f39e0d92f passed Bootstrap #232; REVIEW-0061 is OPEN pending exact-head lifecycle proof. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0060 are terminal negative evidence for successive recovery, multi-check, pagination, pending-lifetime, acknowledgement, snapshot and chronology defects. REVIEW-0061 preserved cross-object run/job chronology but is now CLOSED/CHANGES_REQUIRED after author-side PRR_kwDOUUI5ts8AAAABOzuvcA proved that the candidate protected-job terminal state can drift between the direct read and frontier reread without being rejected. A REVIEW-0062 successor must bind candidate authority to an exact terminal job snapshot while preserving all prior attempt-aware chronology guarantees. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -231,7 +231,8 @@ validation:
     - "REVIEW-0058 is CLOSED/CHANGES_REQUIRED on exact head 11e8b86e67bdb2f69c2db4823b09bd051e211855 after PRR_kwDOUUI5ts8AAAABOuVyaw proved sequential final all-page revalidation is still not a linearizable latest-check authority snapshot; no independent REVIEW-0058 L2 ran."
     - "REVIEW-0059 is CLOSED/CHANGES_REQUIRED on exact head b3834693cd65074b43866b0ed9cba55b6d7309f1 after PRR_kwDOUUI5ts8AAAABOwZrZw proved original run creation chronology conflicts with effective rerun-attempt/check authority; no independent REVIEW-0059 L2 ran."
     - "REVIEW-0060 is CLOSED/CHANGES_REQUIRED on exact head 729a3d1b917d4cb14f8e66083b11994947d37e42 after PRR_kwDOUUI5ts8AAAABOzV1xw proved that protected job started_at is not validated against current run_started_at and can under-rank a genuinely newer attempt; no independent REVIEW-0060 L2 ran."
-    - "REVIEW-0061 technical candidate a04569ed115eb5b046b037bf10169b5f39e0d92f passed Bootstrap #232 / run 35835205839 at 273/273 tests, 2347 statements / 1028 branches, 100 percent line+branch and live PR #2 probe SUCCESS. OPEN checkpoint a7a4b9ff75c266718d4da808bdc2f4f5c1234d73 passed Bootstrap #233 / run 35835781074 with the same 273/273, 2347/1028, 100 percent and live PR #2 probe SUCCESS at 7/100 requests; REVIEW-0061 is now IN_PROGRESS pending one frozen exact-head proof and fresh independent L2."
+    - "REVIEW-0061 is CLOSED/CHANGES_REQUIRED on exact head f5bbad18911208b2f408d1aeb245aed32506b742 after PRR_kwDOUUI5ts8AAAABOzuvcA proved candidate protected-job terminal-state drift can preserve an older success snapshot; no independent REVIEW-0061 L2 ran."
+    - "REVIEW-0062 successor is not yet opened; it must preserve REVIEW-0061 chronology while requiring direct/frontier candidate job status, conclusion and completed_at stability."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -279,6 +280,7 @@ run_log:
   - "REVIEW-0060 frozen head 729a3d1b917d4cb14f8e66083b11994947d37e42 passed Bootstrap #229 / run 35833554806 at 261/261 tests, 2283 statements / 1008 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5791098069, then author-side PRR_kwDOUUI5ts8AAAABOzV1xw exposed missing run-start/job-start cross-object chronology validation."
   - "REVIEW-0061 cross-object chronology candidate a04569ed115eb5b046b037bf10169b5f39e0d92f passed Bootstrap #232 / run 35835205839 at 273/273 tests, 2347 statements / 1028 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0061 opened only after this proof."
   - "REVIEW-0061 OPEN checkpoint a7a4b9ff75c266718d4da808bdc2f4f5c1234d73 passed Bootstrap #233 / run 35835781074 at 273/273 tests, 2347 statements / 1028 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
+  - "REVIEW-0061 frozen head f5bbad18911208b2f408d1aeb245aed32506b742 passed Bootstrap #234 / run 35836023032 at 273/273 tests, 2347 statements / 1028 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5791436226, then author-side PRR_kwDOUUI5ts8AAAABOzuvcA exposed candidate terminal-state drift across authority proof."
 
 discoveries:
   - "A break-glass clear based on non-atomic GET revalidation cannot exclude an external rerun starting before the clear commits."
@@ -289,7 +291,8 @@ blockers:
   - "REVIEW-0058 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0058 approval."
   - "REVIEW-0059 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0059 approval."
   - "REVIEW-0060 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0060 approval."
-  - "REVIEW-0061 OPEN checkpoint is proved; prove/freeze this IN_PROGRESS head exact-head, then request exactly one fresh independent L2 without mutating the tree while it runs."
+  - "REVIEW-0061 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0061 approval."
+  - "Implement and exact-head prove candidate protected-job terminal-state stability, then open REVIEW-0062 before any fresh independent L2."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."

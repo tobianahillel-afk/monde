@@ -238,6 +238,14 @@ The successor layers one fail-closed invariant on REVIEW-0060 attempt-aware auth
 
 Bootstrap #233 / run `35835781074` proved the OPEN checkpoint at **273/273 tests**, **2,347 statements / 1,028 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
+## REVIEW-0061 — terminal negative evidence
+
+REVIEW-0061 passed frozen exact-head proof on `f5bbad18911208b2f408d1aeb245aed32506b742`: Bootstrap #234 / run `35836023032` passed **273/273 tests**, **2,347 statements / 1,028 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
+
+REVIEW-0061 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOzuvcA` exposed a candidate terminal-state stability gap. The direct candidate job is bound to the required check's success conclusion, but when the same current job is reread through the attempt frontier the proof compares only run identity, attempt, job id and started_at. A same-id/same-start frontier reread with changed status/conclusion/completed_at can therefore leave the older success check authoritative.
+
+REVIEW-0062 must preserve REVIEW-0061 run/job chronology while binding candidate authority to an exact terminal protected-job snapshot across both reads. Any status, conclusion or completed_at drift must fail closed before authority ordering.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -246,7 +254,7 @@ Bootstrap #233 / run `35835781074` proved the OPEN checkpoint at **273/273 tests
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0061 OPEN proof is complete via Bootstrap #233 and REVIEW-0061 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
+7. REVIEW-0061 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOzuvcA exposed candidate terminal-state drift; implement and prove REVIEW-0062 before another independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 

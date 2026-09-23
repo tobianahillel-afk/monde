@@ -1,9 +1,9 @@
 id: REVIEW-0061
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "f5bbad18911208b2f408d1aeb245aed32506b742"
 reviewer:
   actor: null
   context_id: null
@@ -37,7 +37,8 @@ scope:
     - "a malformed older job timestamp can otherwise make a newer current attempt appear older"
     - "wrapper interception must not hide malformed direct run/job responses or unrelated requests"
     - "install ordering must preserve all predecessor authority and recovery guarantees"
-findings: []
+findings:
+  - "PRR_kwDOUUI5ts8AAAABOzuvcA"
 checks:
   assumptions_challenged:
     - "independent run and job lifetime validation implies valid cross-object chronology"
@@ -64,6 +65,7 @@ checks:
     - "unrelated API calls are modified"
     - "wrapper hooks leak after an exception"
     - "request budget is increased by chronology validation"
+    - "candidate frontier reread preserves id/start but drifts status/conclusion/completed_at, allowing an older success check to remain authoritative"
   evidence_requested:
     - "Exact-head Bootstrap suite with 100 percent line and branch coverage after cross-object chronology adapter."
     - "Regression proving direct candidate job-before-attempt chronology fails closed."
@@ -73,8 +75,9 @@ checks:
     - "Live PR #2 contract probe remains successful."
     - "Fresh-context independent L2 on one frozen exact REVIEW-0061 head."
     - "Resolve no historical inline thread until REVIEW-0061 L2 is clean."
+    - "Successor must bind candidate authority to an exact protected-job terminal snapshot and reject any status/conclusion/completed_at drift between direct and frontier reads."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-23T08:43:07Z"
 history:
   created_at: "2026-09-23"
   updated_at: "2026-09-23"
