@@ -376,6 +376,33 @@ class Review0060AttemptAuthorityTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "GITHUB_REPOSITORY and GITHUB_TOKEN"):
                 subject.main()
 
+    def test_active_protected_job_without_completion_is_valid(self) -> None:
+        current = run_row(
+            101, 10,
+            created_at="2026-09-22T20:00:00Z",
+            run_started_at="2026-09-22T20:01:00Z",
+            updated_at="2026-09-22T20:10:00Z",
+        )
+        active = gate_job(
+            501, 101,
+            started_at="2026-09-22T20:02:00Z",
+            status="in_progress",
+            conclusion=None,
+        )
+        with mock.patch.object(core, "paged", return_value=[active]):
+            self.assertIs(subject._protected_gate_job("o/r", "t", current, HEAD), active)
+
+    def test_merge_acceptable_wrapper_captures_frontier_and_proves_candidate(self) -> None:
+        candidate = candidate_check()
+        with (
+            mock.patch.object(subject, "_ORIGINAL_LATEST_REQUIRED_CHECK", return_value=candidate),
+            mock.patch.object(previous, "_authority_frontier", return_value=FRONTIER) as frontier,
+            mock.patch.object(subject, "_prove_candidate_attempt_frontier") as prove,
+        ):
+            self.assertIs(subject._attempt_latest_required_check("o/r", HEAD, "t"), candidate)
+        frontier.assert_called_once_with()
+        prove.assert_called_once_with("o/r", HEAD, "t", candidate, FRONTIER)
+
     def test_install_and_main_guards(self) -> None:
         with mock.patch.object(previous, "install") as install:
             subject.install()
