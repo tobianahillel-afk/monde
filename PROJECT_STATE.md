@@ -340,50 +340,37 @@ Author-side `PRR_kwDOUUI5ts8AAAABO346_Q` proved page-linear starvation remains p
 
 REVIEW-0069 CLOSED checkpoint `6abe3c352572bb10dae7aeea0deeea2a9b6edd82` passed Bootstrap #275 / run `35882375042` at **365/365**, **3,178 / 1,356**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests.
 
-## REVIEW-0070 implementation candidate — PR-scoped draft guard
+## REVIEW-0070 — PR-scoped draft guard successor
 
-REVIEW-0070 changes the **security boundary** instead of extending unbounded commit-scoped check-history proof.
+REVIEW-0070 is now **OPEN** after exact technical proof on `1611356cbd3ab21be9cd47828acdfecbc1479b16` and a controlled real GitHub control-plane rehearsal.
 
-The actual requirement is that a stale successful commit-scoped Gate must not remain **merge-authoritative** once the current PR is unresolved. GitHub draft state is PR-scoped and non-mergeable. Therefore the trusted default-branch guard now follows this rule:
+Bootstrap #278 / run `35909146544` passed **385/385 tests**, **3,375 statements / 1,438 branches**, **100% line + branch**; REVIEW-0070 itself is **197 statements / 82 branches at 100%**, and the live PR #2 contract probe succeeded at **3/100** requests.
 
-- current PR already draft -> do nothing; the bootstrap **never automatically marks a PR ready**;
-- current ready PR + completely proven resolved review-thread state -> leave ready;
-- current ready PR + any unresolved review thread -> convert the exact current PR node to draft;
-- current ready PR + thread state that is malformed, unavailable, too deep for the bounded proof, repeated-cursor, or otherwise not completely provable as resolved -> treat as unsafe and convert to draft.
+The real rehearsal preserved PR #2 HEAD `90d762af389990b5e57fce83397a558276500dd5` across **ready -> draft -> ready**. Marking the PR ready generated fresh canonical **MONDE Gate run #253 / `35912455093`** on that same HEAD through the existing `ready_for_review` trigger. No review thread was resolved and no branch content changed.
 
-The normal safety path no longer reads GitHub Actions runs, Check Runs, workflow history or historical Gate pages. REVIEW-0069 states with 901, 2,000 or arbitrarily many same-head suites are therefore **outside the merge-safety path**.
+REVIEW-0070 changes the merge-safety boundary from exhaustive commit-scoped check-history invalidation to exact PR draft state:
+- an existing draft is never auto-readied;
+- a ready PR whose review-thread state is fully proven resolved remains ready;
+- a ready PR with unresolved threads is converted to draft;
+- a ready PR whose complete resolved-thread state cannot be proven inside the bounded guard is also converted to draft fail-closed;
+- the normal safety path performs no Actions/Checks history scan;
+- the exact current PR node is revalidated before mutation and confirmed draft by direct REST postcondition;
+- manual Ready for review is the only return to ready state and naturally triggers a fresh canonical Gate.
 
-The draft mutation is bound to exact current PR identity:
-1. stable open-PR snapshot includes PR number, node id, draft flag, head identity, base identity and merge_commit_sha;
-2. bounded review-thread observation;
-3. direct current-PR revalidation;
-4. second bounded review-thread observation;
-5. second direct current-PR revalidation;
-6. GraphQL `convertPullRequestToDraft` on the exact node id;
-7. exact mutation acknowledgement requires the same node id + PR number + `isDraft=true`;
-8. direct REST postcondition must expose that same PR as draft or already closed.
+Bootstrap #276 remains negative fixture/legacy-workflow expectation evidence. Bootstrap #277 remains negative coverage-gate evidence: all **385 functional tests** passed there, but strict repository coverage remained **99%** because one final revalidation branch was unexercised; lifecycle opening was correctly withheld.
 
-If head/base authority changes while the same PR node remains ready, drafting remains safe because the result is still non-mergeable. If the PR closes or becomes draft before mutation, no further mutation is required.
-
-Thread scans are intentionally **bounded**. They do not silently classify a deep history as clean: inability to prove every scanned page resolved produces `AMBIGUOUS`, which is handled exactly like unresolved state and therefore fails closed to draft while preserving mutation headroom.
-
-Issue #7 remains the durable fairness cursor. Any legacy pending rerun state from REVIEW-0049+ is not erased during migration: the predecessor accounting path is resumed first. Once no legacy pending mutation exists, the active safety path no longer emits Actions rerun POSTs.
-
-Human **Ready for review** is the only transition back from draft. The canonical MONDE Gate already subscribes to `pull_request: ready_for_review`, so returning a PR to ready state naturally creates fresh Gate evidence rather than resurrecting stale commit authority.
-
-REQ-0026 is revised while still PROPOSED to describe the invariant in terms of merge authority. New **TEST-0010** is the active draft-guard integration contract; TEST-0009 remains retained historical/non-regression evidence for the predecessor rerun design.
-
-REVIEW-0070 remains a **technical candidate only** until exact tests, 100% line+branch coverage, read-only live PR #2 probe, and a controlled real GitHub draft/ready rehearsal succeed. No REVIEW-0070 lifecycle artifact may be opened before those proofs.
+All **65/65 PR #5 material inline threads remain unresolved**. This OPEN state-only checkpoint must pass before REVIEW-0070 may transition to `IN_PROGRESS`; green technical evidence and the real rehearsal are not semantic L2 approval.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0069 remains terminal `CLOSED / CHANGES_REQUIRED`.
-3. Commit the REVIEW-0070 draft-guard candidate atomically from proven checkpoint `6abe3c…`.
-4. Run the complete Bootstrap suite at **100% line + branch** and the read-only live PR #2 contract probe.
-5. If deterministic proof is green, perform a controlled real GitHub draft/ready rehearsal on PR #5 and verify `ready_for_review` produces fresh canonical Gate evidence; do not resolve any thread.
-6. Only after both technical and real-system proofs may REVIEW-0070 be materialized as `OPEN`.
-7. WORK-0003 and WORK-0004 remain blocked.
+2. Prove this REVIEW-0070 `OPEN` state-only checkpoint with Bootstrap.
+3. Only after that proof, transition REVIEW-0070 `OPEN -> IN_PROGRESS` in a state-only commit.
+4. Prove the resulting frozen exact HEAD.
+5. Request a fresh-context independent **L2 over all 65 unresolved material findings plus REVIEW-0070 and the retained negative evidence**.
+6. If L2 reports any material finding, close REVIEW-0070 as negative evidence and create a successor; do not resolve historical threads.
+7. Only a clean L2 may permit controlled resolution of the 65 threads and guarded PR #5 merge eligibility.
+8. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 

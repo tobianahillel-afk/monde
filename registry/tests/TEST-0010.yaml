@@ -97,18 +97,23 @@ external_import:
 
 execution:
   command_or_workflow: "MONDE Stale-Green Bootstrap"
-  last_run_at: null
-  commit_sha: null
-  result: null
+  last_run_at: "2026-09-23"
+  commit_sha: "1611356cbd3ab21be9cd47828acdfecbc1479b16"
+  result: PASS
   evidence:
     - "REVIEW-0069 terminal negative evidence PRR_kwDOUUI5ts8AAAABO346_Q motivates moving merge safety from unbounded commit-scoped history to PR draft state"
     - "GitHub GraphQL PullRequest.reviewThreads exposes only cursor pagination arguments and no isResolved filter; bounded automatic proof therefore treats incomplete scans as unsafe"
     - "GitHub draft pull requests are non-mergeable until explicitly marked ready for review"
     - "MONDE Gate already subscribes to pull_request ready_for_review"
+    - "Bootstrap #276 / run 35908685567 is retained negative REVIEW-0070 fixture/legacy-workflow expectation evidence; live PR #2 contract probe succeeded and lifecycle opening remained withheld"
+    - "Bootstrap #277 / run 35908922188: 385/385 functional tests PASS and live PR #2 probe SUCCESS, but coverage correctly failed because REVIEW-0070 had one uncovered revalidation branch and repository total was 99 percent; lifecycle opening remained withheld"
+    - "Bootstrap #278 / run 35909146544 proves exact technical candidate 1611356cbd3ab21be9cd47828acdfecbc1479b16 with 385/385 tests, 3375 statements / 1438 branches, 100 percent line+branch, REVIEW-0070 197 statements / 82 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests"
+    - "Real control-plane rehearsal on PR #2 preserved head 90d762af389990b5e57fce83397a558276500dd5 across ready -> draft -> ready; ready_for_review immediately created MONDE Gate run #253 / 35912455093 on that exact head"
+    - "The rehearsal resolved no review thread and changed no branch content"
 
 coverage:
-  line_contribution: null
-  branch_contribution: null
+  line_contribution: 100
+  branch_contribution: 100
 
 history:
   created_at: "2026-09-23"
