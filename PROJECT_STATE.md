@@ -330,28 +330,28 @@ When this path exhausts budget, no G1 witness/frontier continuation is persisted
 
 REVIEW-0069 must remove request cost linear in the count of overlapping runs from one invocation or make exact overlapping-frontier proof durably resumable across invocations, without raising the hard 100-request cap or weakening REVIEW-0068 authority safety. A real shared-counter regression with at least **35 valid temporally overlapping same-head current runs** is mandatory.
 
-## REVIEW-0069 — bulk Check Run authority successor
+## REVIEW-0069 — terminal negative evidence
 
-REVIEW-0069 is now **IN_PROGRESS** after exact technical proof on `c22f1ea6655adfd11ecb881972c4e36ea3616b57` and OPEN checkpoint proof on `fddf258989427f7a64e57fc05596572e98fd14c6`. Bootstrap #272 / run `35878601779` passed **365/365 tests**, **3,178 statements / 1,356 branches**, **100% line + branch**; REVIEW-0069 itself is **196 statements / 78 branches at 100%**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0069 proved its bulk Check Run authority through technical candidate `c22f1ea6655adfd11ecb881972c4e36ea3616b57`, OPEN checkpoint `fddf258989427f7a64e57fc05596572e98fd14c6`, and frozen exact head `f047a085e94b4f5bd7c575ba31b4eff3b79daa8f`. Bootstrap #274 / run `35881521467` passed **365/365 tests**, **3,178 statements / 1,356 branches**, **100% line + branch**; REVIEW-0069 itself remained **196 statements / 78 branches at 100%**, and live PR #2 probe succeeded at **7/100** requests.
 
-The successor keeps the hard **100-request** cap while removing direct protected-job lookup cost from every overlapping competitor. G1 bulk-collects the latest GitHub Actions `MONDE / Merge Gate` Check Runs for the exact head and the canonical Actions run frontier. Each run must bind one-to-one to one latest Gate Check Run through exact `check_suite_id`; the Check Run must retain canonical Actions `details_url` run/job identity, and its start/completion must lie inside the current canonical run lifetime.
+Fresh Codex L2 request `5797672132` was quota-refused via `5797674597`; no independent REVIEW-0069 L2 was produced.
 
-Only the selected candidate receives direct Actions run/job verification. That direct run must equal the captured frontier run snapshot, and the protected job must preserve REVIEW-0063 full run/job containment plus exact Check Run/job start, completion and conclusion equality.
+REVIEW-0069 is now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO346_Q` proved that bulk authority is still page-linear. For N Check Run pages, stable `core.paged(... verify_previous_page=True)` requires **3N-1** requests per complete snapshot because it reads N primary pages, revalidates N-1 previous pages and then revalidates all N final pages. G1 and G2 therefore require **6N-2** Check Run requests.
 
-G1 emits a witness containing the exact candidate Check Run, complete bulk Gate Check Run snapshot, complete canonical Actions frontier snapshot and selected candidate protected-job snapshot. The existing mutation ordering remains **P1 -> unresolved threads -> P2**. G2 re-collects and requires exact equality of the complete Check Run and Actions frontier snapshots, then revalidates the selected candidate direct run/job. New/rerun/changed/disappearing authority therefore fails closed before pending write.
+With **901 valid current same-head suites/runs**, both the Check Run collection and Actions frontier span 10 pages while remaining below the Actions 1000-result split threshold. Even ignoring all work before G1, the strict lower bound through the required mutation reserve is **6N + 2R + 28 = 108 requests**, above the hard 100-request cap. No partial bulk proof is persisted, so every scheduled invocation restarts at page 1 and reaches the same wall.
 
-The real shared-counter regression includes **35 valid temporally overlapping same-head current runs across distinct check suites**. It reaches pending-write authorization with the full **23-request** mutation reserve intact and proves no competitor requires a direct `/jobs` lookup.
+The absolute failure is stronger above 2000 Check Runs: `core.MAX_PAGES=20` makes the collection raise before completion, again with no durable continuation. The repository has no accepted same-head sibling/suite bound that excludes these states.
 
-Bootstrap #270 remains negative fixture evidence; #271 remains negative coverage-gate evidence: all 364 functional tests passed there but REVIEW-0069 was only 96% covered and lifecycle opening was correctly withheld. Bootstrap #273 / run `35881158808` proved the OPEN checkpoint at **365/365 tests**, **3,178 statements / 1,356 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2. Green CI remains technical evidence only, not semantic approval.
+REVIEW-0070 must make exact bulk authority proof **durably resumable across invocations** or otherwise make proof cost independent of the total same-head page count. It may not raise the hard 100-request cap, weaken stable-page drift detection, or discard REVIEW-0069 suite/run/candidate binding and REVIEW-0068 P1/thread/P2/pending guarantees.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0069 OPEN checkpoint proof is complete via Bootstrap #273 and REVIEW-0069 is now `IN_PROGRESS`.
-3. Prove/freeze this exact IN_PROGRESS head with Bootstrap before requesting any independent review.
-4. Request a fresh-context independent L2 over that frozen REVIEW-0069 head without mutating the tree while review runs.
-5. Any material finding closes REVIEW-0069 as negative evidence and requires a successor review; do not resolve historical threads.
-6. Only a clean independent review can permit controlled PR #5 thread resolution and guarded merge eligibility.
+2. REVIEW-0069 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0069 approval.
+3. Prove this CLOSED state-only checkpoint with Bootstrap.
+4. Design REVIEW-0070 around durable multi-page bulk-authority continuation.
+5. Required real-counter regressions: at least 901 valid current same-head suites/runs across 10 pages, plus a >2000 Check Run case proving no MAX_PAGES deadlock.
+6. Restore exact-head 100% line/branch and live contract proof before opening REVIEW-0070.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
