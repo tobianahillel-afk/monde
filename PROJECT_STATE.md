@@ -256,6 +256,14 @@ The successor reuses the full REVIEW-0061 authority proof and adds no GitHub req
 
 Bootstrap #238 / run `35839740175` proved the OPEN checkpoint at **283/283 tests**, **2,403 statements / 1,046 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
+## REVIEW-0062 — terminal negative evidence
+
+REVIEW-0062 passed frozen exact-head proof on `589970c57808d0161c78eb6c5f7a07a19c2773ef`: Bootstrap #239 / run `35839947248` passed **283/283 tests**, **2,403 statements / 1,046 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
+
+REVIEW-0062 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOz4vxA` exposed the missing upper cross-object chronology bound. REVIEW-0061 proves `job.started_at >= run_started_at`, but protected job activity is not required to fit inside the current run's observed lifetime. An impossible job start after `run.updated_at` can therefore be ranked as newer authority; a completed job can likewise report `completed_at > run.updated_at`.
+
+REVIEW-0063 must enforce full containment: `run_started_at <= job.started_at <= run.updated_at`, and completed jobs must also satisfy `job.completed_at <= run.updated_at`, for both the direct candidate and every frontier job before authority ordering.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -264,7 +272,7 @@ Bootstrap #238 / run `35839740175` proved the OPEN checkpoint at **283/283 tests
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0062 OPEN proof is complete via Bootstrap #238 and REVIEW-0062 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
+7. REVIEW-0062 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOz4vxA exposed missing run/job upper chronology containment; implement and prove REVIEW-0063 before another independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
