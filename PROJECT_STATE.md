@@ -266,22 +266,21 @@ REVIEW-0063 must enforce full containment: `run_started_at <= job.started_at <= 
 
 ## REVIEW-0063 — full run/job lifetime-containment successor
 
-REVIEW-0063 is now **OPEN** after exact technical proof on `d1a2a6d921ca85c8424f7aa707f893306d939189`. Bootstrap #242 / run `35841368355` passed **291/291 tests**, **2,440 statements / 1,060 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0063 is now **IN_PROGRESS** after exact technical proof on `d1a2a6d921ca85c8424f7aa707f893306d939189` and OPEN checkpoint proof on `2b92575013d39257fb61c516c4dfa9ab10f74ebf`. Bootstrap #242 / run `35841368355` passed **291/291 tests**, **2,440 statements / 1,060 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
 The successor reuses REVIEW-0062 terminal-snapshot stability and adds one fail-closed cross-object invariant before authority ordering: every protected `MONDE / Merge Gate` job used for direct-candidate or frontier authority must satisfy `run_started_at <= job.started_at <= run.updated_at`; completed jobs must additionally satisfy `job.completed_at <= run.updated_at`. The adapter reuses already-fetched run/job payloads and adds no GitHub requests.
 
-This OPEN state-only checkpoint must pass Bootstrap before REVIEW-0063 may transition to `IN_PROGRESS`. All **65** PR #5 inline material threads remain unresolved, and green CI remains technical evidence rather than semantic approval.
+Bootstrap #243 / run `35848570089` proved the OPEN checkpoint at **291/291 tests**, **2,440 statements / 1,060 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested. All **65** PR #5 inline material threads remain unresolved, and green CI remains technical evidence rather than semantic approval.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. Prove this REVIEW-0063 `OPEN` state-only checkpoint with Bootstrap.
-3. Only after that proof, transition REVIEW-0063 `OPEN -> IN_PROGRESS` in a state-only commit.
-4. Prove the resulting frozen exact HEAD with Bootstrap before requesting any independent review.
-5. Request a fresh-context independent L2 over the frozen REVIEW-0063 head and all retained material findings.
-6. Any material finding closes REVIEW-0063 as negative evidence and requires a successor review; do not resolve historical threads.
-7. Only a clean successor review can permit independently verified PR #5 thread resolution and guarded merge eligibility.
-8. WORK-0003 and WORK-0004 remain blocked.
+2. REVIEW-0063 OPEN checkpoint proof is complete via Bootstrap #243 and REVIEW-0063 is now `IN_PROGRESS`.
+3. Prove/freeze this exact IN_PROGRESS head with Bootstrap before requesting any independent review.
+4. Request a fresh-context independent L2 over that frozen REVIEW-0063 head and all retained material findings without mutating the tree while review runs.
+5. Any material finding closes REVIEW-0063 as negative evidence and requires a successor review; do not resolve historical threads.
+6. Only a clean independent review can permit independently verified PR #5 thread resolution and guarded merge eligibility.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 

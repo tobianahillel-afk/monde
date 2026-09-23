@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0062 are terminal negative evidence for successive recovery, multi-check, pagination, pending-lifetime, acknowledgement, snapshot and chronology defects. REVIEW-0063 now carries the full run/job lifetime-containment successor: REVIEW-0062 terminal-snapshot stability is preserved while every protected job must satisfy run_started_at <= job.started_at <= run.updated_at and completed jobs must also satisfy job.completed_at <= run.updated_at before authority ordering. Technical candidate d1a2a6d921ca85c8424f7aa707f893306d939189 passed Bootstrap #242 / run 35841368355 at 291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests. REVIEW-0063 is OPEN pending its state-only checkpoint proof. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0062 are terminal negative evidence for successive recovery, multi-check, pagination, pending-lifetime, acknowledgement, snapshot and chronology defects. REVIEW-0063 now carries the full run/job lifetime-containment successor: REVIEW-0062 terminal-snapshot stability is preserved while every protected job must satisfy run_started_at <= job.started_at <= run.updated_at and completed jobs must also satisfy job.completed_at <= run.updated_at before authority ordering. Technical candidate d1a2a6d921ca85c8424f7aa707f893306d939189 passed Bootstrap #242 / run 35841368355 at 291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests. REVIEW-0063 is IN_PROGRESS after its OPEN checkpoint 2b92575013d39257fb61c516c4dfa9ab10f74ebf passed Bootstrap #243 / run 35848570089 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; one frozen exact-head proof is now required before any fresh independent L2. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -235,7 +235,7 @@ validation:
     - "REVIEW-0060 is CLOSED/CHANGES_REQUIRED on exact head 729a3d1b917d4cb14f8e66083b11994947d37e42 after PRR_kwDOUUI5ts8AAAABOzV1xw proved that protected job started_at is not validated against current run_started_at and can under-rank a genuinely newer attempt; no independent REVIEW-0060 L2 ran."
     - "REVIEW-0061 is CLOSED/CHANGES_REQUIRED on exact head f5bbad18911208b2f408d1aeb245aed32506b742 after PRR_kwDOUUI5ts8AAAABOzuvcA proved candidate protected-job terminal-state drift can preserve an older success snapshot; no independent REVIEW-0061 L2 ran."
     - "REVIEW-0062 is CLOSED/CHANGES_REQUIRED on exact head 589970c57808d0161c78eb6c5f7a07a19c2773ef after PRR_kwDOUUI5ts8AAAABOz4vxA proved protected-job activity is not bounded above by current run.updated_at and can over-rank legitimate authority; no independent REVIEW-0062 L2 ran."
-    - "REVIEW-0063 is OPEN after technical proof on d1a2a6d921ca85c8424f7aa707f893306d939189; its OPEN state-only checkpoint must pass before transition to IN_PROGRESS, then one frozen exact-head proof is required before any fresh independent L2."
+    - "REVIEW-0063 technical candidate d1a2a6d921ca85c8424f7aa707f893306d939189 passed Bootstrap #242 / run 35841368355 and OPEN checkpoint 2b92575013d39257fb61c516c4dfa9ab10f74ebf passed Bootstrap #243 / run 35848570089, both at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; REVIEW-0063 is now IN_PROGRESS pending one frozen exact-head proof and fresh independent L2."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -288,6 +288,7 @@ run_log:
   - "REVIEW-0062 OPEN checkpoint d7f8a896c2020453d089efd03cd13930d0f347c2 passed Bootstrap #238 / run 35839740175 at 283/283 tests, 2403 statements / 1046 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
   - "REVIEW-0062 frozen head 589970c57808d0161c78eb6c5f7a07a19c2773ef passed Bootstrap #239 / run 35839947248 at 283/283 tests, 2403 statements / 1046 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5791956923, then author-side PRR_kwDOUUI5ts8AAAABOz4vxA exposed missing protected-job upper chronology containment."
   - "REVIEW-0063 full-lifetime-containment technical candidate d1a2a6d921ca85c8424f7aa707f893306d939189 passed Bootstrap #242 / run 35841368355 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0063 opened only after this proof."
+  - "REVIEW-0063 OPEN checkpoint 2b92575013d39257fb61c516c4dfa9ab10f74ebf passed Bootstrap #243 / run 35848570089 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
 
 discoveries:
   - "A break-glass clear based on non-atomic GET revalidation cannot exclude an external rerun starting before the clear commits."
@@ -300,7 +301,7 @@ blockers:
   - "REVIEW-0060 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0060 approval."
   - "REVIEW-0061 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0061 approval."
   - "REVIEW-0062 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0062 approval."
-  - "REVIEW-0063 is OPEN; its state-only OPEN checkpoint must pass before transition to IN_PROGRESS, and a frozen exact-head proof must pass before any fresh independent L2."
+  - "REVIEW-0063 OPEN checkpoint is proved; prove/freeze this IN_PROGRESS head exact-head, then request exactly one fresh independent L2 without mutating the tree while it runs."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."
