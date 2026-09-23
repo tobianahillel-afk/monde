@@ -18,6 +18,7 @@ on:
       - .github/scripts/stale_green_bootstrap_authority_review0065.py
       - .github/scripts/stale_green_bootstrap_authority_review0066.py
       - .github/scripts/stale_green_bootstrap_authority_review0067.py
+      - .github/scripts/stale_green_bootstrap_authority_review0068.py
       - '.github/scripts/test_stale_green_bootstrap*.py'
       - requirements/bootstrap-governance-ci.txt
       - registry/requirements/REQ-0026.yaml
@@ -90,7 +91,7 @@ jobs:
             -s .github/scripts \
             -p 'test_stale_green_bootstrap*.py'
           python3 -m coverage report \
-            --include='.github/scripts/stale_green_bootstrap.py,.github/scripts/stale_green_bootstrap_pr_snapshot.py,.github/scripts/stale_green_bootstrap_authority.py,.github/scripts/stale_green_bootstrap_authority_review0048.py,.github/scripts/stale_green_bootstrap_authority_review0049.py,.github/scripts/stale_green_bootstrap_authority_review0050.py,.github/scripts/stale_green_bootstrap_authority_review0050_recovery.py,.github/scripts/stale_green_bootstrap_authority_review0051_recovery.py,.github/scripts/stale_green_bootstrap_authority_review0054.py,.github/scripts/stale_green_bootstrap_authority_review0055.py,.github/scripts/stale_green_bootstrap_authority_review0056.py,.github/scripts/stale_green_bootstrap_authority_review0059.py,.github/scripts/stale_green_bootstrap_authority_review0060.py,.github/scripts/stale_green_bootstrap_authority_review0061.py,.github/scripts/stale_green_bootstrap_authority_review0062.py,.github/scripts/stale_green_bootstrap_authority_review0063.py,.github/scripts/stale_green_bootstrap_authority_review0064.py,.github/scripts/stale_green_bootstrap_authority_review0065.py,.github/scripts/stale_green_bootstrap_authority_review0066.py,.github/scripts/stale_green_bootstrap_authority_review0067.py' \
+            --include='.github/scripts/stale_green_bootstrap.py,.github/scripts/stale_green_bootstrap_pr_snapshot.py,.github/scripts/stale_green_bootstrap_authority.py,.github/scripts/stale_green_bootstrap_authority_review0048.py,.github/scripts/stale_green_bootstrap_authority_review0049.py,.github/scripts/stale_green_bootstrap_authority_review0050.py,.github/scripts/stale_green_bootstrap_authority_review0050_recovery.py,.github/scripts/stale_green_bootstrap_authority_review0051_recovery.py,.github/scripts/stale_green_bootstrap_authority_review0054.py,.github/scripts/stale_green_bootstrap_authority_review0055.py,.github/scripts/stale_green_bootstrap_authority_review0056.py,.github/scripts/stale_green_bootstrap_authority_review0059.py,.github/scripts/stale_green_bootstrap_authority_review0060.py,.github/scripts/stale_green_bootstrap_authority_review0061.py,.github/scripts/stale_green_bootstrap_authority_review0062.py,.github/scripts/stale_green_bootstrap_authority_review0063.py,.github/scripts/stale_green_bootstrap_authority_review0064.py,.github/scripts/stale_green_bootstrap_authority_review0065.py,.github/scripts/stale_green_bootstrap_authority_review0066.py,.github/scripts/stale_green_bootstrap_authority_review0067.py,.github/scripts/stale_green_bootstrap_authority_review0068.py' \
             --fail-under=100 \
             --show-missing
 
@@ -114,7 +115,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           BOOTSTRAP_VALIDATE_PR: '2'
-        run: python3 .github/scripts/stale_green_bootstrap_authority_review0067.py
+        run: python3 .github/scripts/stale_green_bootstrap_authority_review0068.py
 
   stale-green-poll:
     name: Bootstrap stale-green poll
@@ -139,7 +140,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           BOOTSTRAP_STATE_ISSUE: '7'
-        run: python3 .github/scripts/stale_green_bootstrap_authority_review0067.py
+        run: python3 .github/scripts/stale_green_bootstrap_authority_review0068.py
 
   pending-recovery:
     name: Bootstrap pending recovery

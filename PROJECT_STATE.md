@@ -314,15 +314,25 @@ When this path raises `DeferredForBudget`, REVIEW-0049 poll breaks without persi
 
 REVIEW-0068 must preserve the hard 100-request cap while eliminating permanent O(N)-per-proof starvation. It may introduce a safely reusable bounded authority witness or durable frontier continuation plus bounded final revalidation, but it must preserve REVIEW-0067 cross-object snapshot safety and every prior pending/recovery invariant. A regression with at least 16 distinct canonical same-head runs must use the real shared request counter and prove durable forward progress; mocking `latest_required_check` is insufficient.
 
+## REVIEW-0068 implementation candidate
+
+Development now proceeds through `stale_green_bootstrap_authority_review0068.py`. The successor removes the four repeated full pre-mutation Gate proofs rather than raising the hard request cap.
+
+G1 performs one complete authority proof. During its Actions frontier pass, a canonical run whose validated current lifetime ended before the candidate check started cannot contain a valid authority-bearing protected job that outranks the candidate under the already-enforced REVIEW-0061 lower chronology and REVIEW-0063 upper containment contracts, so no per-run job request is spent on that historical run. A current attempt starting after the candidate fails closed immediately. Only temporally overlapping runs require protected-job reads.
+
+G1 emits an exact witness containing the candidate check snapshot, the complete frontier-run metadata snapshot and all overlapping protected-job snapshots. After the existing P1 -> unresolved threads -> P2 PR snapshot, G2 is bounded: it re-reads the complete run metadata frontier, each G1-overlapping job and the direct candidate check. Any new/rerun/changed run, overlapping-job drift or candidate-check drift fails closed before pending write. Only an unchanged witness can cross the mutation boundary.
+
+The regression suite includes at least sixteen distinct same-head historical canonical runs and uses the real shared request counter; `latest_required_check` is not mocked in that liveness proof. The pending write must still be reached with the full 23-request mutation reserve remaining.
+
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
 2. REVIEW-0067 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0067 approval.
-3. Prove this CLOSED state-only checkpoint with Bootstrap.
-4. Design REVIEW-0068 around the 100-request hard cap before changing the authority implementation.
-5. Add a real-budget starvation regression with at least 16 distinct same-head canonical runs.
-6. Restore exact-head 100% line/branch and live contract proof before opening REVIEW-0068.
-7. WORK-0003 and WORK-0004 remain blocked.
+3. REVIEW-0067 CLOSED checkpoint proof is complete via Bootstrap #262 / run 35859105244.
+4. Prove the REVIEW-0068 request-budget/witness implementation at 100% line+branch and live PR #2 contract.
+5. Only after exact technical proof may REVIEW-0068 be materialized as `OPEN`.
+6. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
