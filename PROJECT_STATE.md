@@ -248,13 +248,13 @@ REVIEW-0062 must preserve REVIEW-0061 run/job chronology while binding candidate
 
 ## REVIEW-0062 — candidate terminal-snapshot successor
 
-REVIEW-0062 is now **OPEN** after exact technical proof on `c38c2200583ebe83e8ac3fe97831c7e43e7de41f`.
+REVIEW-0062 is now **IN_PROGRESS** after exact technical proof on `c38c2200583ebe83e8ac3fe97831c7e43e7de41f` and OPEN checkpoint proof on `d7f8a896c2020453d089efd03cd13930d0f347c2`.
 
 Bootstrap #237 / run `35839421844` passed **283/283 tests**, **2,403 statements / 1,046 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
 The successor reuses the full REVIEW-0061 authority proof and adds no GitHub requests. It captures the direct candidate protected-job payload and the candidate job reread through the frontier, then requires an exact terminal snapshot match on `status`, `conclusion` and `completed_at`. Same-id/same-start drift from success to failure, completed to in-progress, or a changed completion timestamp is therefore rejected before an older check snapshot can authorize mutation.
 
-This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0062 may transition to `IN_PROGRESS`.
+Bootstrap #238 / run `35839740175` proved the OPEN checkpoint at **283/283 tests**, **2,403 statements / 1,046 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
 ## Current next action
 
@@ -264,7 +264,7 @@ This OPEN checkpoint must now receive its own exact-head Bootstrap proof before 
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0062 technical candidate is proved via Bootstrap #237 and REVIEW-0062 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
+7. REVIEW-0062 OPEN proof is complete via Bootstrap #238 and REVIEW-0062 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
