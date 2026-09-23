@@ -230,13 +230,13 @@ REVIEW-0061 must preserve attempt-aware frontier semantics while enforcing this 
 
 ## REVIEW-0061 — current-attempt/protected-job chronology successor
 
-REVIEW-0061 is now **OPEN** after exact technical proof on `a04569ed115eb5b046b037bf10169b5f39e0d92f`.
+REVIEW-0061 is now **IN_PROGRESS** after exact technical proof on `a04569ed115eb5b046b037bf10169b5f39e0d92f` and OPEN checkpoint proof on `a7a4b9ff75c266718d4da808bdc2f4f5c1234d73`.
 
 Bootstrap #232 / run `35835205839` passed **273/273 tests**, **2,347 statements / 1,028 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
 The successor layers one fail-closed invariant on REVIEW-0060 attempt-aware authority: every protected `MONDE / Merge Gate` job used for authority must satisfy `job.started_at >= current run_started_at`. This is enforced for the direct candidate and every frontier run before authority ordering. Candidate check/job `started_at` identity remains exact. The adapter reuses already-fetched payloads and adds no GitHub requests.
 
-This OPEN checkpoint must now receive its own exact-head Bootstrap proof before REVIEW-0061 may transition to `IN_PROGRESS`.
+Bootstrap #233 / run `35835781074` proved the OPEN checkpoint at **273/273 tests**, **2,347 statements / 1,028 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
 ## Current next action
 
@@ -246,7 +246,7 @@ This OPEN checkpoint must now receive its own exact-head Bootstrap proof before 
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0061 technical candidate is proved via Bootstrap #232 and REVIEW-0061 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS.
+7. REVIEW-0061 OPEN proof is complete via Bootstrap #233 and REVIEW-0061 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
