@@ -342,7 +342,7 @@ REVIEW-0069 CLOSED checkpoint `6abe3c352572bb10dae7aeea0deeea2a9b6edd82` passed 
 
 ## REVIEW-0070 — PR-scoped draft guard successor
 
-REVIEW-0070 is now **OPEN** after exact technical proof on `1611356cbd3ab21be9cd47828acdfecbc1479b16` and a controlled real GitHub control-plane rehearsal.
+REVIEW-0070 is now **IN_PROGRESS** after exact technical proof on `1611356cbd3ab21be9cd47828acdfecbc1479b16`, controlled real GitHub draft/ready rehearsal, and OPEN checkpoint proof on `b122b86f95d557d58d4a9ebd39ead3224c4c60e4`.
 
 Bootstrap #278 / run `35909146544` passed **385/385 tests**, **3,375 statements / 1,438 branches**, **100% line + branch**; REVIEW-0070 itself is **197 statements / 82 branches at 100%**, and the live PR #2 contract probe succeeded at **3/100** requests.
 
@@ -359,18 +359,17 @@ REVIEW-0070 changes the merge-safety boundary from exhaustive commit-scoped chec
 
 Bootstrap #276 remains negative fixture/legacy-workflow expectation evidence. Bootstrap #277 remains negative coverage-gate evidence: all **385 functional tests** passed there, but strict repository coverage remained **99%** because one final revalidation branch was unexercised; lifecycle opening was correctly withheld.
 
-All **65/65 PR #5 material inline threads remain unresolved**. This OPEN state-only checkpoint must pass before REVIEW-0070 may transition to `IN_PROGRESS`; green technical evidence and the real rehearsal are not semantic L2 approval.
+Bootstrap #279 / run `35912747306` proved the OPEN checkpoint at **385/385 tests**, **3,375 statements / 1,438 branches**, **100% line + branch**, REVIEW-0070 **197 / 82 at 100%**, with live PR #2 probe SUCCESS at **3/100** requests. All **65/65 PR #5 material inline threads remain unresolved**. This IN_PROGRESS state must now receive one frozen exact-head proof before fresh independent L2; green technical evidence and the real rehearsal are not semantic approval.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. Prove this REVIEW-0070 `OPEN` state-only checkpoint with Bootstrap.
-3. Only after that proof, transition REVIEW-0070 `OPEN -> IN_PROGRESS` in a state-only commit.
-4. Prove the resulting frozen exact HEAD.
-5. Request a fresh-context independent **L2 over all 65 unresolved material findings plus REVIEW-0070 and the retained negative evidence**.
-6. If L2 reports any material finding, close REVIEW-0070 as negative evidence and create a successor; do not resolve historical threads.
-7. Only a clean L2 may permit controlled resolution of the 65 threads and guarded PR #5 merge eligibility.
-8. WORK-0003 and WORK-0004 remain blocked.
+2. REVIEW-0070 OPEN checkpoint proof is complete via Bootstrap #279 and REVIEW-0070 is now `IN_PROGRESS`.
+3. Prove/freeze this exact IN_PROGRESS head with Bootstrap.
+4. Request a fresh-context independent **L2 over all 65 unresolved material findings plus REVIEW-0070 and the retained negative evidence** without mutating the tree while it runs.
+5. If L2 reports any material finding, close REVIEW-0070 as negative evidence and create a successor; do not resolve historical threads.
+6. Only a clean L2 may permit controlled resolution of the 65 threads and guarded PR #5 merge eligibility.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
