@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0066 are terminal negative evidence for successive recovery, pagination, pending, temporal and cross-object mutation-authority defects. REVIEW-0066 proved Gate-stable bracketing of PR/thread observations but is now CLOSED/CHANGES_REQUIRED on frozen head 6f8784bd7f2edf570dcaad34fd729ef8d052bc5f after author-side PRR_kwDOUUI5ts8AAAABO1Ts9g proved the PR is read only once and can drift after P1 while G1/G2 remain stable. REVIEW-0067 must form G1 -> P1 -> threads -> P2 -> G2 with overlapping Gate-stable and PR-stable intervals. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0066 are terminal negative evidence for successive control-plane authority defects. REVIEW-0067 implementation extends the mutation snapshot to G1 -> P1 -> unresolved threads -> P2 -> G2 so Gate authority is stable around the interval and exact pending PR authority is independently validated on both sides of the thread observation. Only after overlapping Gate-stable and PR-stable intervals plus full post-G2 mutation reserve may pending state be written. Technical proof is pending before REVIEW-0067 may open. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -248,7 +248,7 @@ validation:
     - "REVIEW-0064 is CLOSED/CHANGES_REQUIRED on exact frozen head 9292e5f01d389d9a1280878eea4cda4a29dd0aef after Bootstrap #249 / run 35850591855 proved 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5793447096 was quota-refused by 5793449737, then author-side PRR_kwDOUUI5ts8AAAABO1CeRg proved a final mutation-bound global Gate-authority race; no independent REVIEW-0064 L2 ran."
     - "REVIEW-0065 is CLOSED/CHANGES_REQUIRED on exact frozen head 72814dd559e7ad4f42dbbe5205488b1ed5fa3696 after Bootstrap #253 / run 35853367540 proved 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5793836688 was quota-refused by 5793838794, then author-side PRR_kwDOUUI5ts8AAAABO1L5Mw proved PR/thread authority can change during the final Gate proof; no independent REVIEW-0065 L2 ran."
     - "REVIEW-0066 is CLOSED/CHANGES_REQUIRED on exact frozen head 6f8784bd7f2edf570dcaad34fd729ef8d052bc5f after Bootstrap #257 / run 35854881781 proved 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5794038865 was quota-refused by 5794040822, then author-side PRR_kwDOUUI5ts8AAAABO1Ts9g proved the single PR read cannot establish PR stability across the G1/P/T/G2 sandwich; no independent REVIEW-0066 L2 ran."
-    - "REVIEW-0067 successor is not yet opened; it must add P2 and prove G1 -> P1 -> unresolved threads -> P2 -> G2 before pending write."
+    - "REVIEW-0067 implementation candidate is being proved; it adds P2 so exact pending PR authority is validated both before and after unresolved-thread observation inside stable Gate proofs G1/G2. REVIEW-0067 must not open until exact technical proof succeeds."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -328,7 +328,7 @@ blockers:
   - "REVIEW-0064 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0064 approval."
   - "REVIEW-0065 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0065 approval."
   - "REVIEW-0066 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0066 approval."
-  - "Implement and exact-head prove REVIEW-0067 G1 -> P1 -> threads -> P2 -> G2 snapshot before opening the successor review."
+  - "Exact-head prove REVIEW-0067 G1 -> P1 -> threads -> P2 -> G2 at 100 percent line+branch plus live PR #2 probe before opening REVIEW-0067."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."
