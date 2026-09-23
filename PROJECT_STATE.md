@@ -294,15 +294,23 @@ REVIEW-0065 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0066 must form one coherent mutation-bound control-plane snapshot: **G1 -> P/T -> G2**. G1 and G2 are full active Gate proofs and must both remain merge-acceptable with the exact `pending_check_id`. Between them, `pending._current_pending_pr(repo, token, pending_state)` must return the exact open authority encoded in `pending_authority`, and unresolved review threads for `pending_pr` must still be true. Only after G1 == G2 around that exact PR/thread observation and after the full mutation reserve remains may the pending PATCH be attempted.
 
+## REVIEW-0066 implementation candidate
+
+Development now proceeds through `stale_green_bootstrap_authority_review0066.py`. It preserves REVIEW-0065's final Gate identity requirement but replaces the single final Gate read with a coherent cross-object sandwich.
+
+For every non-idle pending write candidate: **G1** runs the complete active `latest_required_check` proof and requires the exact merge-acceptable `pending_check_id`; then `pending._current_pending_pr` re-reads the current PR and requires the exact open `pending_authority`; review threads for `pending_pr` must still be unresolved; then **G2** repeats the complete Gate proof and requires the same exact `pending_check_id`. Only after that sandwich and a post-G2 `MUTATION_REQUEST_RESERVE` check can the scheduler PATCH be attempted.
+
+This explicitly chooses a control-plane snapshot in which PR/thread state is observed inside an interval bounded by equal fully-proved Gate authority. PR closure/retarget/merge-ref drift, thread resolution or Gate advancement anywhere in the sandwich fails before durable mutation intent or rerun POST. Ambiguity of the actual PATCH remains `PendingMutationUncertain`.
+
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
 2. REVIEW-0065 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0065 approval.
-3. Prove this CLOSED state-only checkpoint with Bootstrap.
-4. Implement REVIEW-0066 coherent G1 -> exact PR authority + unresolved threads -> G2 snapshot without rewriting REVIEW-0065 history.
-5. Add regressions for PR close/retarget/merge-ref drift, thread resolution and Gate advancement inside the final sandwich; every such case must produce zero pending write and zero rerun POST.
-6. Restore exact-head 100% line/branch proof and live PR #2 contract proof before opening REVIEW-0066.
-7. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
+3. REVIEW-0065 CLOSED checkpoint proof is complete via Bootstrap #254 / run 35854055051.
+4. Prove the REVIEW-0066 coherent mutation-snapshot implementation at 100% line+branch and live PR #2 contract.
+5. Only after exact technical proof may REVIEW-0066 be materialized as `OPEN`.
+6. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
