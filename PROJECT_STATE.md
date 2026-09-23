@@ -284,15 +284,25 @@ REVIEW-0064 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0065 must add one final global Gate-authority proof after target baseline plus final PR/thread revalidation and immediately before durable pending write / rerun POST. The final proof must remain merge-acceptable and bind to the same expected authority identity used for the mutation. If the authority advanced, changed, became in-progress/non-acceptable, or cannot be proved exactly, the invocation must emit neither pending write nor rerun POST. REVIEW-0064 temporal binding and every prior pending/recovery/frontier invariant remain mandatory.
 
+## REVIEW-0065 implementation candidate
+
+Development now proceeds through `stale_green_bootstrap_authority_review0065.py`. The successor reuses REVIEW-0064 for the full Check Run/Actions frontier proof and REVIEW-0055 for pending-lifetime protection, while superseding REVIEW-0056's write-ack wrapper with a strict superset.
+
+When the processor is about to write a non-idle pending state, REVIEW-0065 re-runs `core.latest_required_check(repo, head, token)` before any state PATCH. The result must still be merge-acceptable and its exact Check Run id must equal the already-recorded `pending_check_id`. After that proof, the full existing `MUTATION_REQUEST_RESERVE` must still remain. Only then may the actual scheduler-state write be attempted; ambiguity of that actual PATCH is still promoted to `PendingMutationUncertain` exactly as REVIEW-0056 required.
+
+This makes the durable pending write the chosen mutation-bound linearization boundary: a different canonical Gate becoming newer after the earlier proof but before this boundary produces neither a pending write nor a rerun POST. Non-pending writes remain transparent.
+
+Regressions cover advanced authority, missing/non-acceptable authority, malformed pending check identity, reserve exhaustion after the final proof, actual write-ack ambiguity, existing pending exceptions, non-pending transparency and the full positive process path.
+
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
 2. REVIEW-0064 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0064 approval.
-3. Prove this CLOSED state-only checkpoint with Bootstrap.
-4. Implement REVIEW-0065 final mutation-bound global Gate-authority revalidation without rewriting REVIEW-0064 history.
-5. Add a regression where another canonical Gate becomes newer after the earlier proof while target baseline, PR/head/merge-ref and unresolved threads stay unchanged; require zero pending write and zero rerun POST.
-6. Restore exact-head 100% line/branch proof and live PR #2 contract proof before opening REVIEW-0065.
-7. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
+3. REVIEW-0064 CLOSED checkpoint proof is complete via Bootstrap #250 / run 35852454144.
+4. Prove the REVIEW-0065 implementation candidate at 100% line+branch and live PR #2 contract.
+5. Only after exact technical proof may REVIEW-0065 be materialized as `OPEN`.
+6. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
