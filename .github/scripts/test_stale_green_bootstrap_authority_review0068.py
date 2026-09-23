@@ -440,9 +440,12 @@ class Review0068WitnessTests(unittest.TestCase):
             ),
             mock.patch.object(subject, "_revalidate_witness"),
             mock.patch.object(
-                base,
+                subject.base,
                 "_remaining_request_budget",
-                return_value=pending.MUTATION_REQUEST_RESERVE,
+                side_effect=[
+                    subject.base.MAX_GITHUB_REQUESTS_PER_INVOCATION,
+                    pending.MUTATION_REQUEST_RESERVE,
+                ],
             ),
             mock.patch.object(pending, "_write_state") as writer,
             mock.patch.object(core, "rerun_workflow") as rerun,
@@ -616,13 +619,16 @@ class Review0068WitnessTests(unittest.TestCase):
             ),
             mock.patch.object(subject, "_revalidate_witness"),
             mock.patch.object(
-                base,
+                subject.base,
                 "_remaining_request_budget",
-                return_value=pending.MUTATION_REQUEST_RESERVE - 1,
+                side_effect=[
+                    subject.base.MAX_GITHUB_REQUESTS_PER_INVOCATION,
+                    pending.MUTATION_REQUEST_RESERVE - 1,
+                ],
             ),
         ):
             with self.assertRaisesRegex(
-                base.DeferredForBudget, "after reusable Gate witness"
+                subject.base.DeferredForBudget, "after reusable Gate witness"
             ):
                 subject._two_stage_process(
                     "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
