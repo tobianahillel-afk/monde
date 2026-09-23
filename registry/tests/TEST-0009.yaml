@@ -187,9 +187,14 @@ execution:
     - "Bootstrap #255 proves coherent mutation snapshot G1 -> exact open pending PR authority + unresolved review threads -> G2, with exact pending_check_id on both sides, post-G2 reserve preservation, and zero write/POST on PR/thread/Gate drift"
     - "Bootstrap #259 / run 35857211412: 335/335 tests PASS; 2707 statements / 1158 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #259 proves overlapping mutation snapshot G1 -> P1 -> unresolved threads -> P2 -> G2, with exact pending_authority at both P1/P2 and zero write/POST on PR drift after P1"
+    - "Bootstrap #263 / run 35860738889 is retained as negative REVIEW-0068 test-harness evidence: live PR #2 probe succeeded but four unit failures exposed fixture/global-hook isolation errors; lifecycle opening was withheld"
+    - "Bootstrap #264 / run 35873922498 is retained as negative REVIEW-0068 fixture evidence: unrelated-suite contamination was fixed but two budget-phase assertions still modeled the initial 41-request headroom as the final 23-request reserve; lifecycle opening was withheld"
+    - "Bootstrap #265 / run 35874192085: 347/347 tests PASS and live PR #2 probe SUCCESS, but coverage correctly failed because REVIEW-0068 was 86 percent and repository total 99 percent; lifecycle opening was withheld"
+    - "Bootstrap #266 / run 35874735620: 352/352 tests PASS; 2982 statements / 1278 branches at 100 percent line and branch coverage; REVIEW-0068 itself is 275 statements / 120 branches at 100 percent; live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #266 proves the real shared-counter >=16-run liveness case reaches the pending-write decision with the 23-request reserve intact, old non-overlapping runs avoid per-run job reads, and G2 witness drift fails closed across run/job/check/PR/thread boundaries"
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-23"
-  commit_sha: "65a155d43e027f7c618a4dfa3a10a67e366f08fb"
+  commit_sha: "00a6518a57f8c0f7498455dc062210bb3d250aa7"
   result: PASS
   evidence:
     - "Bootstrap #168 / run 35715152696: 202/202 tests PASS"
@@ -214,6 +219,9 @@ execution:
     - "Bootstrap #251 / run 35852981670 proves REVIEW-0065 exact technical candidate 188945f3e2b9db977c0906b57e9bfdf0f29bc27a with 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #255 / run 35854415761 proves REVIEW-0066 exact technical candidate a816853357a57f5b09c4504129a4630b82754218 with 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #259 / run 35857211412 proves REVIEW-0067 exact technical candidate 65a155d43e027f7c618a4dfa3a10a67e366f08fb with 335/335 tests, 2707 statements / 1158 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #263 / run 35860738889 and #264 / run 35873922498 are retained negative REVIEW-0068 harness evidence; both withheld lifecycle opening"
+    - "Bootstrap #265 / run 35874192085 is retained negative coverage-gate evidence: 347/347 tests and live contract passed, but REVIEW-0068 coverage was 86 percent and repository total was 99 percent"
+    - "Bootstrap #266 / run 35874735620 proves REVIEW-0068 exact technical candidate 00a6518a57f8c0f7498455dc062210bb3d250aa7 with 352/352 tests, 2982 statements / 1278 branches, 100 percent line+branch, REVIEW-0068 275 statements / 120 branches at 100 percent, and live PR #2 probe SUCCESS at 7/100 requests"
 coverage:
   line_contribution: 100
   branch_contribution: 100

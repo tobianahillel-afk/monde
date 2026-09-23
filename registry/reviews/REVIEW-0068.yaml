@@ -1,0 +1,101 @@
+id: REVIEW-0068
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "hard 100-request GitHub invocation cap remains unchanged"
+    - "one complete G1 authority proof emits an exact reusable witness"
+    - "validated historical runs ending before candidate check start require no protected-job lookup"
+    - "a current canonical attempt starting after the candidate fails closed without per-run job lookup"
+    - "only runs whose validated lifetime overlaps candidate start require protected-job reads"
+    - "G1 witness binds exact candidate Check Run, complete frontier-run metadata and every overlapping protected-job snapshot"
+    - "mutation ordering preserves P1 -> unresolved threads -> P2 before G2 witness revalidation"
+    - "G2 re-reads the complete frontier-run snapshot, every G1-overlapping protected job and the direct candidate check"
+    - "any new, rerun, changed or disappearing authority object fails closed before pending write"
+    - "full MUTATION_REQUEST_RESERVE remains after G2 before pending PATCH"
+    - "pending write acknowledgement, rerun POST ambiguity and pending-lifetime retention keep prior fail-closed semantics"
+    - "REVIEW-0067 cross-object snapshot safety and REVIEW-0061/0063 chronology containment remain intact"
+  risks:
+    - "an invalid temporal pruning rule could hide a newer authority-bearing protected job"
+    - "a reusable witness could become stale if frontier-run metadata or overlapping jobs are not rebound exactly at G2"
+    - "request savings that mock or bypass the shared counter would not prove real liveness"
+    - "post-G2 mutation reserve could still be consumed by witness revalidation on large overlapping frontiers"
+    - "global hook composition could weaken earlier terminal/temporal/pending guarantees"
+findings: []
+checks:
+  assumptions_challenged:
+    - "every historical same-head canonical run requires a protected-job read on every authority proof"
+    - "four complete full-history Gate proofs are necessary before one rerun mutation"
+    - "run lifetime metadata cannot safely eliminate non-overlapping historical jobs"
+    - "a reusable exact authority witness cannot replace a second full O(N) proof"
+    - "a green live probe with one current run is sufficient evidence for high-history request-budget liveness"
+  omitted_categories_considered:
+    - "candidate direct run/job malformed or temporally inconsistent"
+    - "candidate Check Run starts or completes outside captured authority frontier"
+    - "frontier current attempt starts after candidate"
+    - "overlapping competitor protected job outranks candidate"
+    - "candidate run is absent, ambiguous or yields no overlapping candidate job"
+    - "frontier-run metadata changes between G1 and G2"
+    - "G1-overlapping job changes or disappears before G2"
+    - "direct candidate Check Run changes before G2"
+    - "P1/P2 or unresolved-thread authority changes before mutation"
+    - "initial or post-G2 request reserve is insufficient"
+    - "rerun POST or pending-state acknowledgement is ambiguous"
+    - "at least sixteen historical same-head canonical runs exist under the real shared request counter"
+  duplicate_or_reuse_search:
+    - "REVIEW-0067 P1/thread/P2 snapshot ordering is preserved."
+    - "REVIEW-0064 temporal Check Run validation is reused."
+    - "REVIEW-0062 terminal protected-job stability remains in the G1 chain."
+    - "REVIEW-0061 lower chronology and REVIEW-0063 full run/job containment justify temporal pruning."
+    - "REVIEW-0055/0056 pending lifetime and acknowledgement semantics are preserved."
+    - "REVIEW-0067 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
+    - "PRR_kwDOUUI5ts8AAAABO1qQqg is the author-side starvation finding that invalidated REVIEW-0067."
+    - "All 65 historical inline PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "historical run ends before candidate start but malformed job timing would violate predecessor containment"
+    - "newer current attempt appears after candidate and before captured frontier"
+    - "run snapshot changes between G1 and G2 while candidate check id stays constant"
+    - "overlap job terminal or timing snapshot changes"
+    - "candidate direct Check Run changes status, conclusion or timing"
+    - "witness references an overlapping run absent from G2 frontier"
+    - "pending PR closes, retargets or changes authority between P1 and P2"
+    - "review threads resolve during PR-stable interval"
+    - "request budget falls below initial headroom or final mutation reserve"
+    - "pending PATCH, rerun POST or postcondition observation becomes ambiguous"
+  evidence_requested:
+    - "Technical candidate 00a6518a57f8c0f7498455dc062210bb3d250aa7 / Bootstrap #266 remains exact proof at 352/352 tests, 2982 statements / 1278 branches and 100 percent line+branch."
+    - "Bootstrap #266 live PR #2 contract probe remains successful at 7/100 requests."
+    - "Real shared-counter regression with at least sixteen same-head historical canonical runs reaches pending-write decision while preserving the 23-request mutation reserve."
+    - "Regression proves old non-overlapping runs do not require per-run job lookups."
+    - "Regression proves newer attempts and newer overlapping jobs fail closed."
+    - "Regression proves G2 frontier/job/check drift fails closed before mutation."
+    - "Regression preserves P1/thread/P2 and pending-lifetime failure semantics."
+    - "Bootstrap #263/#264 failures and #265 coverage rejection remain retained negative test evidence rather than being rewritten as success."
+    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh-context independent L2."
+    - "Resolve no historical inline thread until a clean REVIEW-0068 L2 permits it."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"
