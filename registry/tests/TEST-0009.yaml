@@ -155,9 +155,11 @@ execution:
     - "Bootstrap #227 proves attempt-aware frontier authority: an older run id rerun later can be authoritative when its exact current protected job is newest by started_at/id, while any newer protected job before the frontier rejects it; exact check/job start identity and malformed/after-frontier current attempts fail closed"
     - "Bootstrap #232 / run 35835205839: 273/273 tests PASS; 2347 statements / 1028 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #232 proves protected job started_at cannot precede current run_started_at for either direct candidate or frontier competitors; malformed predecessor run/job responses stay fail-closed, unrelated requests remain transparent, and chronology validation adds no GitHub requests"
+    - "Bootstrap #237 / run 35839421844: 283/283 tests PASS; 2403 statements / 1046 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #237 proves candidate protected-job terminal snapshot stability across direct/frontier reads: success-to-failure, completed-to-in_progress and completed_at drift all fail closed while unchanged snapshots preserve REVIEW-0061 authority"
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-23"
-  commit_sha: "a04569ed115eb5b046b037bf10169b5f39e0d92f"
+  commit_sha: "c38c2200583ebe83e8ac3fe97831c7e43e7de41f"
   result: PASS
   evidence:
     - "Bootstrap #168 / run 35715152696: 202/202 tests PASS"
