@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0065 are terminal negative evidence for successive recovery, multi-check, pagination, pending-lifetime, acknowledgement, snapshot, chronology and mutation-bound cross-object authority defects. REVIEW-0066 implementation now forms a coherent pre-mutation control-plane snapshot: full Gate proof G1, exact current open pending PR authority plus unresolved review threads, then full Gate proof G2 with the same pending_check_id; the full mutation reserve must remain after G2 before any write. PR/thread drift or Gate drift emits no pending write and no POST while actual PATCH acknowledgement ambiguity still preserves prior PendingMutationUncertain semantics. Technical proof is pending before REVIEW-0066 may open. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0065 are terminal negative evidence for successive recovery, multi-check, pagination, pending-lifetime, acknowledgement, snapshot, chronology and mutation-bound cross-object authority defects. REVIEW-0066 now carries a coherent G1 -> exact current PR authority + unresolved threads -> G2 pre-mutation snapshot. Both full Gate proofs must remain merge-acceptable with the exact pending_check_id, the PR must remain exactly open with the pending_authority digest, threads must remain unresolved, and full mutation reserve must remain after G2. Technical candidate a816853357a57f5b09c4504129a4630b82754218 passed Bootstrap #255 / run 35854415761 at 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests. REVIEW-0066 is OPEN pending its state-only checkpoint proof. All 65 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -61,7 +61,7 @@ reuses: ["status vocabulary", "registry contracts", "Review Council and assuranc
 affected_capabilities: []
 affected_engines: []
 affected_schemas: []
-affected_docs: [PROJECT_STATE.md, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml, registry/reviews/REVIEW-0060.yaml, registry/reviews/REVIEW-0061.yaml, registry/reviews/REVIEW-0062.yaml, registry/reviews/REVIEW-0063.yaml, registry/reviews/REVIEW-0064.yaml, registry/reviews/REVIEW-0065.yaml]
+affected_docs: [PROJECT_STATE.md, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml, registry/reviews/REVIEW-0060.yaml, registry/reviews/REVIEW-0061.yaml, registry/reviews/REVIEW-0062.yaml, registry/reviews/REVIEW-0063.yaml, registry/reviews/REVIEW-0064.yaml, registry/reviews/REVIEW-0065.yaml, registry/reviews/REVIEW-0066.yaml]
 contracts: ["repository governance validation", "GitHub control-plane merge gate", "AI context routing"]
 adrs: []
 
@@ -217,6 +217,8 @@ validation:
     - "Bootstrap #247 / run 35850145099 proved REVIEW-0064 technical candidate 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a at 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #250 / run 35852454144 proved the REVIEW-0064 CLOSED state-only checkpoint after PRR_kwDOUUI5ts8AAAABO1CeRg"
     - "Bootstrap #251 / run 35852981670 proved REVIEW-0065 technical candidate 188945f3e2b9db977c0906b57e9bfdf0f29bc27a at 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #254 / run 35854055051 proved the REVIEW-0065 CLOSED state-only checkpoint after PRR_kwDOUUI5ts8AAAABO1L5Mw"
+    - "Bootstrap #255 / run 35854415761 proved REVIEW-0066 technical candidate a816853357a57f5b09c4504129a4630b82754218 at 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
   evidence:
     - "Bootstrap #154/#155/#156: 194/194 tests PASS; 1856 statements / 842 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS"
     - "Bootstrap #157 re-proved the CLOSED state-only checkpoint at 194/194 tests, 1856 statements / 842 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
@@ -226,6 +228,7 @@ validation:
     - "Bootstrap #242 proves REVIEW-0063 full run/job lifetime containment on d1a2a6d921ca85c8424f7aa707f893306d939189 with 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; green execution is technical evidence only, not semantic approval"
     - "Bootstrap #247 proves REVIEW-0064 required-check temporal validation/binding on 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a with 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; no new GitHub request is added"
     - "Bootstrap #251 proves REVIEW-0065 final mutation-bound Gate-authority revalidation on 188945f3e2b9db977c0906b57e9bfdf0f29bc27a with 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #255 proves REVIEW-0066 coherent G1 -> PR+threads -> G2 mutation snapshot on a816853357a57f5b09c4504129a4630b82754218 with 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
   coverage: {line: 100, branch: 100}
   known_gaps:
     - "REVIEW-0050 is CLOSED/CHANGES_REQUIRED and not approved."
@@ -244,7 +247,7 @@ validation:
     - "REVIEW-0063 is CLOSED/CHANGES_REQUIRED on exact head 22dd22d5f9e50eea6d3bd351af8e12ab9a935440 after Bootstrap #244 / run 35848734246 proved 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests, Codex L2 was quota-refused by 5793166351, and author-side PRR_kwDOUUI5ts8AAAABO0xdhQ proved malformed terminal Check Run completed_at can cross positive authority; no independent REVIEW-0063 L2 ran."
     - "REVIEW-0064 is CLOSED/CHANGES_REQUIRED on exact frozen head 9292e5f01d389d9a1280878eea4cda4a29dd0aef after Bootstrap #249 / run 35850591855 proved 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5793447096 was quota-refused by 5793449737, then author-side PRR_kwDOUUI5ts8AAAABO1CeRg proved a final mutation-bound global Gate-authority race; no independent REVIEW-0064 L2 ran."
     - "REVIEW-0065 is CLOSED/CHANGES_REQUIRED on exact frozen head 72814dd559e7ad4f42dbbe5205488b1ed5fa3696 after Bootstrap #253 / run 35853367540 proved 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5793836688 was quota-refused by 5793838794, then author-side PRR_kwDOUUI5ts8AAAABO1L5Mw proved PR/thread authority can change during the final Gate proof; no independent REVIEW-0065 L2 ran."
-    - "REVIEW-0066 implementation candidate is being proved; it brackets exact current open pending PR authority plus unresolved review-thread state between full Gate proofs G1 and G2, requires the same pending_check_id on both sides, preserves the full post-snapshot mutation reserve, and emits no write/POST on any cross-object drift. REVIEW-0066 must not open until exact technical proof succeeds."
+    - "REVIEW-0066 is OPEN after technical proof on a816853357a57f5b09c4504129a4630b82754218 / Bootstrap #255; its OPEN state-only checkpoint must pass before transition to IN_PROGRESS, then one frozen exact-head proof is required before any fresh independent L2."
     - "All 65 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
@@ -304,6 +307,7 @@ run_log:
   - "REVIEW-0064 CLOSED checkpoint dfcd219f27c7f662b849eeac2ad6d797a2d635e4 passed Bootstrap #250 / run 35852454144; REVIEW-0065 technical candidate 188945f3e2b9db977c0906b57e9bfdf0f29bc27a then passed Bootstrap #251 / run 35852981670 at 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0065 opened only after this proof."
   - "REVIEW-0065 OPEN checkpoint 6d40c6c4d8edc8965003c4e34c199bb14d65935b passed Bootstrap #252 / run 35853220600 at 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
   - "REVIEW-0065 frozen head 72814dd559e7ad4f42dbbe5205488b1ed5fa3696 passed Bootstrap #253 / run 35853367540 at 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; fresh Codex L2 request 5793836688 was quota-refused by 5793838794, then author-side PRR_kwDOUUI5ts8AAAABO1L5Mw exposed PR/thread drift during the final Gate proof."
+  - "REVIEW-0065 CLOSED checkpoint 395eb382eabd99058f3504fb7cc7235cbf9c2fa4 passed Bootstrap #254 / run 35854055051; REVIEW-0066 technical candidate a816853357a57f5b09c4504129a4630b82754218 then passed Bootstrap #255 / run 35854415761 at 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0066 opened only after this proof."
   - "REVIEW-0063 frozen head 22dd22d5f9e50eea6d3bd351af8e12ab9a935440 passed Bootstrap #244 / run 35848734246 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; fresh Codex L2 request 5793162559 was quota-refused by 5793166351, then author-side PRR_kwDOUUI5ts8AAAABO0xdhQ exposed malformed Check Run terminal temporal metadata being accepted as authority."
 
 discoveries:
@@ -320,7 +324,7 @@ blockers:
   - "REVIEW-0063 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0063 approval."
   - "REVIEW-0064 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0064 approval."
   - "REVIEW-0065 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0065 approval."
-  - "Exact-head prove the REVIEW-0066 coherent G1 -> PR+threads -> G2 implementation at 100 percent line+branch plus live PR #2 probe before opening REVIEW-0066."
+  - "REVIEW-0066 is OPEN; prove its state-only OPEN checkpoint before transition to IN_PROGRESS, then freeze/prove one exact head before any fresh independent L2."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."

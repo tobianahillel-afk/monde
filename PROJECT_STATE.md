@@ -294,23 +294,25 @@ REVIEW-0065 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0066 must form one coherent mutation-bound control-plane snapshot: **G1 -> P/T -> G2**. G1 and G2 are full active Gate proofs and must both remain merge-acceptable with the exact `pending_check_id`. Between them, `pending._current_pending_pr(repo, token, pending_state)` must return the exact open authority encoded in `pending_authority`, and unresolved review threads for `pending_pr` must still be true. Only after G1 == G2 around that exact PR/thread observation and after the full mutation reserve remains may the pending PATCH be attempted.
 
-## REVIEW-0066 implementation candidate
+## REVIEW-0066 — coherent mutation-bound control-plane snapshot successor
 
-Development now proceeds through `stale_green_bootstrap_authority_review0066.py`. It preserves REVIEW-0065's final Gate identity requirement but replaces the single final Gate read with a coherent cross-object sandwich.
+REVIEW-0066 is now **OPEN** after exact technical proof on `a816853357a57f5b09c4504129a4630b82754218`. Bootstrap #255 / run `35854415761` passed **323/323 tests**, **2,646 statements / 1,136 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
-For every non-idle pending write candidate: **G1** runs the complete active `latest_required_check` proof and requires the exact merge-acceptable `pending_check_id`; then `pending._current_pending_pr` re-reads the current PR and requires the exact open `pending_authority`; review threads for `pending_pr` must still be unresolved; then **G2** repeats the complete Gate proof and requires the same exact `pending_check_id`. Only after that sandwich and a post-G2 `MUTATION_REQUEST_RESERVE` check can the scheduler PATCH be attempted.
+The successor creates an explicit cross-object mutation snapshot. **G1** performs the full current Gate proof and requires the exact merge-acceptable `pending_check_id`; then the current pending PR is re-read and must remain exactly open with the stored `pending_authority`; review threads must still be unresolved; then **G2** repeats the full Gate proof and requires the same exact `pending_check_id`. Only after the G1/P/T/G2 sandwich and a post-G2 full mutation-reserve check may the scheduler PATCH be attempted.
 
-This explicitly chooses a control-plane snapshot in which PR/thread state is observed inside an interval bounded by equal fully-proved Gate authority. PR closure/retarget/merge-ref drift, thread resolution or Gate advancement anywhere in the sandwich fails before durable mutation intent or rerun POST. Ambiguity of the actual PATCH remains `PendingMutationUncertain`.
+PR close/retarget/merge-ref/base-authority drift, thread resolution, Gate advancement or non-acceptable authority therefore fail before durable pending intent and before rerun POST. Ambiguity of the actual pending PATCH remains `PendingMutationUncertain`. REVIEW-0065/0064 and all earlier pending, recovery, pagination and frontier guarantees remain active.
 
+All **65** PR #5 inline material threads remain unresolved. This OPEN state-only checkpoint must pass Bootstrap before REVIEW-0066 may transition to `IN_PROGRESS`; green CI remains technical evidence, not semantic approval.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0065 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0065 approval.
-3. REVIEW-0065 CLOSED checkpoint proof is complete via Bootstrap #254 / run 35854055051.
-4. Prove the REVIEW-0066 coherent mutation-snapshot implementation at 100% line+branch and live PR #2 contract.
-5. Only after exact technical proof may REVIEW-0066 be materialized as `OPEN`.
-6. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
+2. REVIEW-0065 remains terminal `CLOSED / CHANGES_REQUIRED`.
+3. Prove this REVIEW-0066 `OPEN` state-only checkpoint with Bootstrap.
+4. Only after that proof, transition REVIEW-0066 `OPEN -> IN_PROGRESS` in a state-only commit.
+5. Prove the resulting frozen exact HEAD before requesting any independent review.
+6. Request a fresh-context independent L2 over the frozen REVIEW-0066 head without mutating the tree while review runs.
+7. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
