@@ -361,6 +361,128 @@ class Review0071SuccessorTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "expected open PR"):
                 subject._validate_guard_contract("o/r", 2, "t")
 
+    def test_page_membership_rejects_non_dict_entry(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "malformed bounded PR discovery page"):
+            subject._page_membership([page_pr(1), "bad"])
+
+    def test_page_item_requires_exact_identity(self) -> None:
+        page = [page_pr(1), page_pr(2)]
+        self.assertEqual(subject._page_item_for_number(page, 2)["number"], 2)
+        with self.assertRaisesRegex(RuntimeError, "lost exact PR identity"):
+            subject._page_item_for_number(page, 3)
+        duplicate = [page_pr(2), page_pr(2)]
+        with self.assertRaisesRegex(RuntimeError, "lost exact PR identity"):
+            subject._page_item_for_number(duplicate, 2)
+
+    def test_convert_to_draft_defensive_paths(self) -> None:
+        ready = guard_pr(5)
+        drafted = guard_pr(5, draft=True)
+
+        with mock.patch.object(core, "request_data") as req:
+            subject._convert_to_draft("o/r", "t", drafted)
+        req.assert_not_called()
+
+        malformed_results = [
+            [],
+            {"errors": [{"message": "bad"}]},
+            {"data": {}},
+        ]
+        for result in malformed_results:
+            with self.subTest(result=result), mock.patch.object(
+                core, "request_data", return_value=result
+            ):
+                with self.assertRaisesRegex(RuntimeError, "draft conversion returned malformed"):
+                    subject._convert_to_draft("o/r", "t", ready)
+
+        with mock.patch.object(
+            core,
+            "request_data",
+            side_effect=[draft_ack(ready), []],
+        ):
+            with self.assertRaisesRegex(RuntimeError, "postcondition is malformed"):
+                subject._convert_to_draft("o/r", "t", ready)
+
+        closed = {**drafted, "state": "closed"}
+        with mock.patch.object(
+            core,
+            "request_data",
+            side_effect=[draft_ack(ready), closed],
+        ):
+            subject._convert_to_draft("o/r", "t", ready)
+
+        wrong = {**ready, "draft": False}
+        with mock.patch.object(
+            core,
+            "request_data",
+            side_effect=[draft_ack(ready), wrong],
+        ):
+            with self.assertRaisesRegex(RuntimeError, "did not durably expose"):
+                subject._convert_to_draft("o/r", "t", ready)
+
+    def test_guard_skips_existing_draft(self) -> None:
+        drafted = guard_pr(5, draft=True)
+        with mock.patch.object(previous, "_thread_state") as threads:
+            self.assertFalse(subject._guard_one("o/r", "t", drafted))
+        threads.assert_not_called()
+
+    def test_empty_idle_page_needs_no_state_write(self) -> None:
+        state = pending.SchedulerStateV4(0)
+        with (
+            mock.patch.object(pending, "_read_state", return_value=state),
+            mock.patch.object(subject, "_read_discovery_page", return_value=[]),
+            mock.patch.object(pending, "_write_state") as write,
+        ):
+            self.assertEqual(subject._draft_guard_poll("o/r", "t"), [])
+        write.assert_not_called()
+
+    def test_poll_budget_break_preserves_checkpoint(self) -> None:
+        state = pending.SchedulerStateV4(0)
+        page = [page_pr(1, draft=False)]
+        with (
+            mock.patch.object(pending, "_read_state", return_value=state),
+            mock.patch.object(subject, "_read_discovery_page", return_value=page),
+            mock.patch.object(
+                base,
+                "_remaining_request_budget",
+                return_value=previous.DRAFT_GUARD_REQUEST_RESERVE + 1,
+            ),
+            mock.patch.object(subject, "_guard_one") as guard,
+            mock.patch.object(pending, "_write_state") as write,
+        ):
+            self.assertEqual(subject._draft_guard_poll("o/r", "t"), [])
+        guard.assert_not_called()
+        write.assert_not_called()
+
+    def test_poll_records_successful_draft_and_state_progress(self) -> None:
+        state = pending.SchedulerStateV4(0)
+        page = [page_pr(1, draft=False)]
+        writes: list[pending.SchedulerStateV4] = []
+        with (
+            mock.patch.object(pending, "_read_state", return_value=state),
+            mock.patch.object(subject, "_read_discovery_page", return_value=page),
+            mock.patch.object(base, "_remaining_request_budget", return_value=100),
+            mock.patch.object(subject, "_guard_one", return_value=True) as guard,
+            mock.patch.object(
+                pending, "_write_state", side_effect=lambda _r, _t, st: writes.append(st)
+            ),
+        ):
+            self.assertEqual(subject._draft_guard_poll("o/r", "t"), [1])
+        guard.assert_called_once()
+        self.assertEqual(writes[-1], pending.SchedulerStateV4(1))
+
+    def test_poll_skips_redundant_state_write_if_next_state_is_identical(self) -> None:
+        state = pending.SchedulerStateV4(7)
+        page = [page_pr(8, draft=True)]
+        with (
+            mock.patch.object(pending, "_read_state", return_value=state),
+            mock.patch.object(subject, "_read_discovery_page", return_value=page),
+            mock.patch.object(base, "_remaining_request_budget", return_value=100),
+            mock.patch.object(subject, "_next_discovery_state", return_value=state),
+            mock.patch.object(pending, "_write_state") as write,
+        ):
+            self.assertEqual(subject._draft_guard_poll("o/r", "t"), [])
+        write.assert_not_called()
+
     def test_install_main_and_entrypoint(self) -> None:
         with mock.patch.object(previous, "install") as install:
             subject.install()
