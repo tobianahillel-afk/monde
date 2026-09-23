@@ -1,5 +1,5 @@
 id: REVIEW-0073
-status: OPEN
+status: IN_PROGRESS
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
@@ -78,7 +78,7 @@ checks:
     - "REVIEW-0072 CLOSED checkpoint 1809ba60d8acb88571fc217a4725efad1283b9df passed Bootstrap #291 / run 35920235156 before successor implementation."
     - "Bootstrap #292 / run 35920768442 proves exact REVIEW-0073 technical candidate 11289692153cf073d6e9c71f525809d7e66b298d with 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
     - "Bootstrap #293 / run 35921085079 passed the first OPEN state-only commit technically, but live finding traceability was stale at 70/71 and omitted PRRT_kwDOUUI5ts6lXTqJ; that checkpoint is non-qualifying for lifecycle advancement."
-    - "A reconciled OPEN state-only checkpoint with all 71 unresolved thread identities represented must pass before transition to IN_PROGRESS."
+    - "Reconciled OPEN checkpoint 00cb73716b34e72884f8f529f00a0db6e2553c12 passed Bootstrap #294 / run 35930000762 at 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests; lifecycle may now advance to IN_PROGRESS."
     - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh independent L2."
     - "Fresh independent L2 must inspect all 71 unresolved PR #5 material threads and retained REVIEW-0070/0071/0072 negative evidence before any controlled resolution."
 outcome: CHANGES_REQUIRED
