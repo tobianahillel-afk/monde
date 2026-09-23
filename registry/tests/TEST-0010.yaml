@@ -18,6 +18,8 @@ protects:
     - "stable open-PR discovery includes draft state, node id, head identity, base identity and merge_commit_sha"
     - "review-thread state is observed once before direct PR revalidation and once again immediately before draft mutation"
     - "the second thread observation occurs even when the first observation was RESOLVED, so a new unresolved thread arriving between observations is caught before cursor advance"
+    - "both direct current-PR rereads around the thread observations use the same strict positive non-Boolean number plus exact node_id identity contract as the discovery reread"
+    - "the read-only live contract probe uses a strict exact-target seed plus strict node-bound current reread rather than the pre-REVIEW-0073 weak _direct_pr path"
     - "if the PR closes or becomes draft during revalidation, no further mutation is issued"
     - "head/base authority drift cannot redirect the mutation because convertPullRequestToDraft targets the exact current PR node; drift remains safe because the resulting state is draft"
     - "GraphQL convertPullRequestToDraft acknowledgement must return the exact node id, PR number and isDraft=true"
@@ -33,7 +35,7 @@ protects:
     - "manual Ready for review remains the only transition from draft back to ready; the canonical MONDE Gate workflow already triggers on ready_for_review"
 
 location:
-  test_path: ".github/scripts/test_stale_green_bootstrap_authority_review0073.py"
+  test_path: ".github/scripts/test_stale_green_bootstrap_authority_review0074.py"
   suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
 
 environment:
@@ -143,7 +145,9 @@ execution:
     - "Bootstrap #291 / run 35920235156 proves the terminal REVIEW-0072 CLOSED checkpoint before successor implementation."
     - "Bootstrap #292 / run 35920768442 proves exact REVIEW-0073 technical candidate 11289692153cf073d6e9c71f525809d7e66b298d with 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
     - "REVIEW-0073 regressions reject true/1 and 5.0/5 closed-path identity coercion, wrong/empty node id, non-Boolean draft and invalid state before cursor advancement while preserving REVIEW-0072 current-state race coverage."
-    - "TEST-0010 remains PLANNED until its lifecycle is advanced truthfully and execution PASS evidence does not retroactively replay READY/RUNNING states"
+    - "Bootstrap #295 / run 35930261078 proves frozen REVIEW-0073 at 428/428 tests, 3697 statements / 1578 branches and 100 percent line+branch, but author-side PRR_kwDOUUI5ts8AAAABO8S_3w invalidates its closure: P1 PRRT_kwDOUUI5ts6lXj4D shows inherited internal guard rereads still use weak _direct_pr; P2 PRRT_kwDOUUI5ts6lXj4K shows the live contract probe still exercises the weak REVIEW-0071 validator"
+    - "Bootstrap #296 / run 35931004610 proves the terminal REVIEW-0073 CLOSED checkpoint before REVIEW-0074 implementation"
+    - "REVIEW-0074 successor technical proof is pending; its tests require malformed identity to fail on both internal rereads and require the live validator to seed and re-read the exact target through REVIEW-0073 strict identity"
     - "TEST-0010 remains PLANNED until its lifecycle is advanced truthfully and execution PASS evidence does not retroactively replay READY/RUNNING states"
 
 coverage:

@@ -386,21 +386,40 @@ Bootstrap #295 / run `35930261078` passed **428/428 tests**, **3,697 statements 
 Fresh Codex L2 request `5804250089` was quota-refused by `5804251803`; no independent REVIEW-0073 L2 was produced.
 
 Author-side adversarial review **PRR_kwDOUUI5ts8AAAABO8S_3w** found two material gaps:
-- **P1 `PRRT_kwDOUUI5ts6lXj4D`** — REVIEW-0073 strictifies the first discovered/current reread, but inherited REVIEW-0071 `_guard_one` still performs both internal rereads through weak REVIEW-0070 `_direct_pr`, so coercive malformed closed identities can still be accepted after the first strict read and durable cursor progress can advance.
-- **P2 `PRRT_kwDOUUI5ts6lXj4K`** — the live contract probe is still wired to REVIEW-0071 `_validate_guard_contract`, which uses the same weak direct-read path and therefore does not exercise REVIEW-0073's strict identity contract.
+- **P1 `PRRT_kwDOUUI5ts6lXj4D`** — REVIEW-0073 strictifies the first discovered/current reread, but inherited REVIEW-0071 `_guard_one` still performs both internal rereads through weak REVIEW-0070 `_direct_pr`.
+- **P2 `PRRT_kwDOUUI5ts6lXj4K`** — the live contract probe is still wired to REVIEW-0071 `_validate_guard_contract`, so it does not exercise the strict successor path.
 
-PR #5 now has **73/73 unresolved material threads**. None has been resolved.
+PR #5 has **73/73 unresolved material threads**. None has been resolved.
+
+The REVIEW-0073 CLOSED checkpoint `a455d4f3431f3bb388567e9f8eb371e3df4d9067` passed Bootstrap #296 / run `35931004610`.
+
+## REVIEW-0074 implementation candidate — end-to-end strict guard identity
+
+REVIEW-0074 fixes both REVIEW-0073 findings without changing the durable discovery or request-budget architecture.
+
+The active guard now owns the complete two-observation sequence:
+1. strict open authority seed captures exact PR `number + node_id`;
+2. first bounded review-thread observation always occurs;
+3. first internal current-PR reread uses REVIEW-0073 `_strict_discovered_pr` against that exact number+node identity;
+4. second bounded thread observation occurs;
+5. second internal current-PR reread again uses the same strict number+node identity;
+6. only then may the exact current PR be converted to draft.
+
+A malformed coercive closed response on either internal reread therefore fails closed instead of being treated as safe closure.
+
+The read-only live validator is also replaced. It performs a strict target seed from the exact requested PR, binds the seed to its exact node id, rereads through REVIEW-0073 strict identity, requires the target still open, then evaluates bounded thread state. The workflow's live PR #2 contract probe is wired to REVIEW-0074, so real-system evidence now exercises the same strict identifier/type contract as the scheduled runtime.
+
+REVIEW-0074 remains a **technical candidate only**. It is not opened until the full Bootstrap suite reaches exact 100% line+branch and the live PR #2 probe succeeds.
 
 ## Current next action
 
 1. Keep all **73** PR #5 material threads unresolved.
-2. Prove this REVIEW-0073 `CLOSED` state-only checkpoint.
-3. Implement REVIEW-0074 only after that checkpoint is green.
-4. REVIEW-0074 must own the complete double-observation guard and use REVIEW-0073 strict number+node current rereads for both internal direct checks.
-5. REVIEW-0074 must expose a strict exact-target read-only validator and wire the workflow live probe to it.
-6. Restore exact-head 100% line/branch and live PR #2 proof before opening REVIEW-0074.
-7. Run a fresh independent successor L2 over all **73 unresolved material threads** before resolving any thread.
-8. WORK-0003 and WORK-0004 remain blocked.
+2. Commit the REVIEW-0074 implementation candidate atomically from proven checkpoint `a455d4f3…`.
+3. Run the complete Bootstrap suite and require exact **100% line + branch**.
+4. Require the live PR #2 contract probe to execute REVIEW-0074 and succeed.
+5. Only after exact technical proof may REVIEW-0074 be materialized as `OPEN`.
+6. After OPEN and IN_PROGRESS checkpoints, request a fresh independent L2 over all **73 unresolved material threads**.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
