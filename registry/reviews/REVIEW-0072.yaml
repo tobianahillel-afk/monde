@@ -1,0 +1,90 @@
+id: REVIEW-0072
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "PR-scoped draft fail-closed merge guard from REVIEW-0070"
+    - "bounded durable state=all PR discovery from REVIEW-0071"
+    - "every discovered PR number is directly reread from current GitHub authority before any mutable closed/draft skip or durable cursor advancement"
+    - "page-level state and draft fields are discovery metadata only and never authorize current-state skipping"
+    - "current closed PR may advance safely after direct reread"
+    - "current draft PR may advance safely after direct reread and is never auto-readied"
+    - "current open ready PR is passed to the REVIEW-0071 double-thread-observation guard"
+    - "request headroom reserves one direct current-PR read plus durable state write outside the predecessor guard reserve"
+    - "durable page/prefix progression, page-21 liveness and processed-prefix drift detection remain unchanged"
+    - "exact positive non-Boolean draft mutation acknowledgement remains enforced"
+    - "legacy pending rerun state remains higher priority than new draft discovery"
+    - "hard 100-request cap remains unchanged"
+  risks:
+    - "current PR can transition draft or closed to ready/open after discovery page read"
+    - "extra direct current-PR read can reduce guard headroom and create budget starvation"
+    - "direct current-PR failure or malformed state could otherwise permit cursor advancement"
+    - "current ready PR can close or become draft before the inherited guard revalidation"
+    - "wrapper composition could accidentally weaken REVIEW-0071 durable discovery semantics"
+findings: []
+checks:
+  assumptions_challenged:
+    - "mutable draft/closed state from the discovery page is safe enough to authorize skipping current validation"
+    - "ready_for_review or reopen events provide an immediate compensating bootstrap execution"
+    - "one extra current-PR read can be added without explicit budget reservation"
+    - "closed/draft records do not need exact current authority before durable cursor advancement"
+  omitted_categories_considered:
+    - "page snapshot draft -> current ready with unresolved threads"
+    - "page snapshot closed -> current open ready with unresolved threads"
+    - "page snapshot ready -> current closed"
+    - "page snapshot ready -> current draft"
+    - "current ready but thread guard returns resolved"
+    - "budget exactly at direct-read reserve floor"
+    - "budget one request above floor"
+    - "thirty-two safe records require direct current revalidation in one bounded pass"
+    - "legacy pending state exists before discovery"
+    - "empty terminal page and full-page continuation remain unchanged"
+    - "direct current-PR response malformed or unavailable"
+  duplicate_or_reuse_search:
+    - "REVIEW-0071 terminal author-side finding PRR_kwDOUUI5ts8AAAABO7OKJw is retained negative evidence."
+    - "REVIEW-0071 durable page discovery, prefix anchor and next-state helpers are reused without semantic rewrite."
+    - "REVIEW-0070 exact PR validator and REVIEW-0071 double-observation guard are reused."
+    - "SchedulerStateV4 and issue #7 remain unchanged."
+    - "All 70 PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "stale page snapshot suppresses validation after current transition to ready/open"
+    - "direct read occurs but cursor advances despite read failure"
+    - "direct read consumes headroom needed for fail-closed thread observation or mutation"
+    - "current closed/draft state is misclassified and guard is invoked unnecessarily"
+    - "current ready state is skipped because page metadata is stale"
+    - "large safe page stalls because each record now costs one current-PR read"
+    - "legacy pending accounting is bypassed"
+  evidence_requested:
+    - "REVIEW-0071 frozen exact head 69c68959f1144bbccf76fef79d0624961d593d13 / Bootstrap #286 remains technical green evidence only."
+    - "Fresh Codex REVIEW-0071 L2 request 5802595691 was quota-refused by 5802597968 and produced no independent review."
+    - "Author-side PRR_kwDOUUI5ts8AAAABO7OKJw proves the mutable page-state skip race."
+    - "REVIEW-0071 CLOSED checkpoint a3cde9dc00a64fb36c3fa917be44e87219a2655e passed Bootstrap #287 / run 35918357919 before successor implementation."
+    - "Bootstrap #288 / run 35918943484 proves exact REVIEW-0072 technical candidate a003455476468a9ac40343b368c195f4178a5d61 with 423/423 tests, 3610 statements / 1542 branches, 100 percent line+branch, REVIEW-0072 67 statements / 28 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
+    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh independent L2."
+    - "Fresh independent L2 must inspect all 70 unresolved PR #5 material threads and retained REVIEW-0070/0071 negative evidence before any controlled resolution."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"

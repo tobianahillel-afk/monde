@@ -367,43 +367,35 @@ Fresh Codex L2 request `5802595691` was quota-refused by `5802597968`; no indepe
 
 REVIEW-0071 CLOSED checkpoint `a3cde9dc00a64fb36c3fa917be44e87219a2655e` passed Bootstrap #287 / run `35918357919`.
 
-## REVIEW-0072 implementation candidate — current PR revalidation before cursor advance
+## REVIEW-0072 — current PR revalidation successor
 
-REVIEW-0072 is **not opened yet**. It is a narrow successor over REVIEW-0071.
+REVIEW-0072 is now **OPEN** after exact technical proof on `a003455476468a9ac40343b368c195f4178a5d61`.
 
-For every discovered PR number, before any skip decision or durable cursor advancement:
-1. preserve the REVIEW-0071 page membership / prefix proof;
-2. reserve `DRAFT_GUARD_REQUEST_RESERVE + 2` request headroom;
-3. reread the exact current PR through the direct REST PR endpoint;
-4. if currently closed, safely advance;
-5. if currently draft, safely advance without auto-readying;
-6. if currently open + ready, pass that exact current snapshot into the existing REVIEW-0071 double-thread-observation guard;
-7. only after this current-state path finishes may `last_processed` advance.
+Bootstrap #288 / run `35918943484` passed **423/423 tests**, **3,610 statements / 1,542 branches**, **100% line + branch**; REVIEW-0072 itself is **67 statements / 28 branches at 100%**, and the live PR #2 contract probe succeeded at **2/100** requests.
 
-The page's mutable `state` / `draft` fields are therefore discovery metadata only and cannot authorize a skip.
+REVIEW-0072 preserves REVIEW-0071's durable `state=all` creation-ordered page traversal and fixes the mutable page-snapshot race by directly rereading **every discovered PR number** before any mutable skip or durable cursor advancement.
 
-Required candidate regressions are implemented for:
-- page draft -> current ready -> unresolved guard drafts before cursor advance;
-- page closed -> current open+ready -> unresolved guard drafts;
-- page ready -> current closed -> no redundant guard;
-- page ready -> current draft -> no mutation;
-- current ready but guard returns safe -> cursor still advances;
-- budget exactly at reserve+2 -> no direct read and no cursor advance;
-- reserve+3 -> direct read is permitted;
-- 32 safe records perform 32 direct revalidations and make durable bounded partial-page progress;
-- legacy pending state still preempts discovery;
-- terminal empty page and full-page continuation remain REVIEW-0071-compatible.
+The active sequence per discovered record is:
+1. page/prefix membership remains validated through REVIEW-0071;
+2. request headroom must exceed `DRAFT_GUARD_REQUEST_RESERVE + 2`;
+3. direct current-PR authority is reread;
+4. current closed -> safe skip;
+5. current draft -> safe skip, never auto-ready;
+6. current open+ready -> existing double-thread-observation guard;
+7. only then may the durable cursor advance.
 
-All **70/70 PR #5 material threads remain unresolved**.
+The #288 regressions cover draft->ready, closed->ready, ready->closed, ready->draft, safe current ready, exact budget floor, 32 current revalidations in one bounded partial-page pass, legacy pending precedence, terminal page wrap and full-page continuation.
+
+All **70/70 PR #5 material threads remain unresolved**. This OPEN checkpoint must pass before transition to `IN_PROGRESS`.
 
 ## Current next action
 
-1. Commit the REVIEW-0072 implementation candidate atomically from proven REVIEW-0071 CLOSED checkpoint `a3cde9dc…`.
-2. Run the full Bootstrap suite and require exact **100% line + branch** including REVIEW-0072.
-3. Require live PR #2 contract probe success.
-4. If technical proof is clean, update TEST-0010 / WORK-0002 with exact evidence and only then create REVIEW-0072 as `OPEN`.
-5. Follow OPEN -> IN_PROGRESS -> frozen exact-head proof.
-6. Request fresh independent L2 over all **70 unresolved material threads** only on frozen REVIEW-0072.
+1. Keep all **70** PR #5 material threads unresolved.
+2. Prove this REVIEW-0072 `OPEN` state-only checkpoint.
+3. Transition `OPEN -> IN_PROGRESS` only after that proof.
+4. Prove the resulting frozen exact HEAD.
+5. Request a fresh independent L2 over all **70 unresolved material threads**, REVIEW-0072 and retained negative evidence.
+6. Any material finding closes REVIEW-0072 and requires a successor; resolve nothing beforehand.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
