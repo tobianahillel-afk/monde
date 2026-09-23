@@ -63,7 +63,7 @@ checks:
     - "REVIEW-0072 current-state revalidation and REVIEW-0071 durable page discovery are reused."
     - "REVIEW-0070 _guard_pr remains the strict open-authority validator."
     - "SchedulerStateV4 and issue #7 remain unchanged."
-    - "All 70 PR #5 material threads remain unresolved."
+    - "All 71 PR #5 material threads remain unresolved; PRRT_kwDOUUI5ts6lXTqJ is the retained REVIEW-0071 author-side discovery-state race finding that was missing from the first REVIEW-0073 handover."
   failure_modes_considered:
     - "malformed closed current response is accepted and durable cursor advances"
     - "exact number matches but node id belongs to another object"
@@ -77,9 +77,10 @@ checks:
     - "Author-side PRR_kwDOUUI5ts8AAAABO7ZUCw proves the coercive closed-path direct-PR identity defect."
     - "REVIEW-0072 CLOSED checkpoint 1809ba60d8acb88571fc217a4725efad1283b9df passed Bootstrap #291 / run 35920235156 before successor implementation."
     - "Bootstrap #292 / run 35920768442 proves exact REVIEW-0073 technical candidate 11289692153cf073d6e9c71f525809d7e66b298d with 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
-    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "Bootstrap #293 / run 35921085079 passed the first OPEN state-only commit technically, but live finding traceability was stale at 70/71 and omitted PRRT_kwDOUUI5ts6lXTqJ; that checkpoint is non-qualifying for lifecycle advancement."
+    - "A reconciled OPEN state-only checkpoint with all 71 unresolved thread identities represented must pass before transition to IN_PROGRESS."
     - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh independent L2."
-    - "Fresh independent L2 must inspect all 70 unresolved PR #5 material threads and retained REVIEW-0070/0071/0072 negative evidence before any controlled resolution."
+    - "Fresh independent L2 must inspect all 71 unresolved PR #5 material threads and retained REVIEW-0070/0071/0072 negative evidence before any controlled resolution."
 outcome: CHANGES_REQUIRED
 completed_at: null
 history:

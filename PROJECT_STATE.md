@@ -379,7 +379,7 @@ REVIEW-0072 CLOSED checkpoint `1809ba60d8acb88571fc217a4725efad1283b9df` passed 
 
 ## REVIEW-0073 — strict discovered/current PR identity successor
 
-REVIEW-0073 is now **OPEN** after exact technical proof on `11289692153cf073d6e9c71f525809d7e66b298d`.
+REVIEW-0073 remains **OPEN** after exact technical proof on `11289692153cf073d6e9c71f525809d7e66b298d`.
 
 Bootstrap #292 / run `35920768442` passed **428/428 tests**, **3,697 statements / 1,578 branches**, **100% line + branch**; REVIEW-0073 itself is **87 statements / 36 branches at 100%**, and the live PR #2 contract probe succeeded at **2/100** requests.
 
@@ -394,15 +394,17 @@ REVIEW-0073 preserves REVIEW-0072 direct current-state revalidation while making
 
 The #292 regressions explicitly reject `true == 1`, `5.0 == 5`, wrong/empty node ids, non-Boolean draft and invalid state on the closed path, while retaining REVIEW-0072 mutable-state race protection, budget floor and durable-page progression.
 
-All **70/70 PR #5 material threads remain unresolved**. This OPEN checkpoint must pass before transition to `IN_PROGRESS`.
+Bootstrap #293 / run `35921085079` passed the first REVIEW-0073 OPEN commit technically, but that checkpoint is **non-qualifying for lifecycle advancement**: live GitHub had **71 unresolved PR #5 threads**, while WORK-0002 / PROJECT_STATE / REVIEW-0073 still recorded 70 and omitted retained author-side finding `PRRT_kwDOUUI5ts6lXTqJ`.
+
+The current reconciliation adds that immutable finding identity to WORK-0002 and updates the active handover/review scope to the true **71/71 unresolved material threads**. No runtime code changes.
 
 ## Current next action
 
-1. Keep all **70** PR #5 material threads unresolved.
-2. Prove this REVIEW-0073 `OPEN` state-only checkpoint.
-3. Transition `OPEN -> IN_PROGRESS` only after that proof.
+1. Keep all **71** PR #5 material threads unresolved.
+2. Prove the reconciled REVIEW-0073 `OPEN` state-only checkpoint with Bootstrap.
+3. Transition `OPEN -> IN_PROGRESS` only after that exact proof.
 4. Prove the resulting frozen exact HEAD.
-5. Request a fresh independent L2 over all **70 unresolved material threads**, REVIEW-0073 and retained negative evidence.
+5. Request a fresh independent L2 over all **71 unresolved material threads**, REVIEW-0073 and retained negative evidence.
 6. Any material finding closes REVIEW-0073 and requires a successor; resolve nothing beforehand.
 7. WORK-0003 and WORK-0004 remain blocked.
 
@@ -418,7 +420,7 @@ All **70/70 PR #5 material threads remain unresolved**. This OPEN checkpoint mus
 8. registry/reviews/REVIEW-0049.yaml
 9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/70 threads
+11. live PR #5 exact HEAD/checks/reviews/71 threads
 12. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.
