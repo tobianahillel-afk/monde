@@ -342,33 +342,55 @@ REVIEW-0069 CLOSED checkpoint `6abe3c352572bb10dae7aeea0deeea2a9b6edd82` passed 
 
 ## REVIEW-0070 — terminal independent negative evidence
 
-REVIEW-0070 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `487ea3c6addd870eb86c5f17756b8268fd98cb88`.
+REVIEW-0070 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `487ea3c6addd870eb86c5f17756b8268fd98cb88`.
 
-Bootstrap #280 / run `35913019741` passed **385/385 tests**, **3,375 statements / 1,438 branches**, **100% line + branch**; REVIEW-0070 itself was **197 statements / 82 branches at 100%**, and the live PR #2 contract probe succeeded at **3/100** requests. The controlled PR #2 rehearsal preserved HEAD `90d762af389990b5e57fce83397a558276500dd5` across ready -> draft -> ready and created fresh MONDE Gate #253 through `ready_for_review`.
+Bootstrap #280 / run `35913019741` passed **385/385 tests**, **3,375 statements / 1,438 branches**, **100% line + branch**; REVIEW-0070 itself was **197 statements / 82 branches at 100%**, and the live PR #2 contract probe succeeded at **3/100** requests.
 
-Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABO64xew** completed on the exact frozen head and produced **five new material findings**, increasing PR #5 from **65 to 70 unresolved threads**:
+Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABO64xew** produced five material findings:
+- P1 `PRRT_kwDOUUI5ts6lUcz8` — initial RESOLVED thread state returned too early and skipped the required second observation.
+- P1 `PRRT_kwDOUUI5ts6lUcz_` — scheduled legacy pending reconciliation lost required `actions: read` / `checks: read`.
+- P1 `PRRT_kwDOUUI5ts6lUc0F` — exhaustive open-PR discovery still deadlocked at inherited `MAX_PAGES=20`.
+- P1 `PRRT_kwDOUUI5ts6lUc0K` — mutation ACK number accepted Python-coercible non-integer identities.
+- P2 `PRRT_kwDOUUI5ts6lUc0Q` — WORK-0002 retained contradictory stale successor text.
 
-- **P1 — PRRT_kwDOUUI5ts6lUcz8:** first `RESOLVED` thread scan returns too early, so a new unresolved thread can appear before cursor advance without the required second observation.
-- **P1 — PRRT_kwDOUUI5ts6lUcz_:** scheduled permissions removed `actions: read` and `checks: read`, but legacy issue #7 pending reconciliation still requires them.
-- **P1 — PRRT_kwDOUUI5ts6lUc0F:** exhaustive open-PR discovery still inherits `core.MAX_PAGES=20`; 2,000+ open PRs can deadlock before fairness progress is persisted.
-- **P1 — PRRT_kwDOUUI5ts6lUc0K:** draft mutation ACK can accept malformed `number: true` or `5.0` through Python coercive equality.
-- **P2 — PRRT_kwDOUUI5ts6lUc0Q:** WORK-0002 retained contradictory stale successor text from REVIEW-0069.
+PR #5 now has **70/70 unresolved material threads**. None has been resolved.
 
-No thread has been resolved. REVIEW-0071 must retain the PR-scoped draft fail-closed boundary while fixing all five findings.
+The REVIEW-0070 CLOSED state-only checkpoint `a7285c0bd74a2228dce3cd7882cb1423ebe25eba` passed Bootstrap #281 / run `35915252517`.
+
+## REVIEW-0071 implementation candidate — durable PR discovery hardening
+
+REVIEW-0071 retains REVIEW-0070's PR-scoped draft fail-closed security boundary and fixes only the five exact-head L2 findings.
+
+The successor design reuses existing `SchedulerStateV4`; no new scheduler-state version is introduced:
+- `scan_page` is the current durable PR-discovery page;
+- `scan_pr` is the last processed PR number within or immediately before that page;
+- `scan_anchor` is the SHA-256 fingerprint of the already-processed prefix for partial-page resumption;
+- discovery reads exactly one explicit REST page at a time from `pulls?state=all&sort=created&direction=asc&per_page=100&page=N`;
+- it never calls `core.paged`, so page 21, page 200 or later remain reachable;
+- `state=all` keeps closed/reopened PRs in append-only creation order so close/open changes do not shift earlier page membership;
+- partial pages tolerate newly appended records after the processed prefix while any drift inside the processed prefix fails closed;
+- full 100-record pages advance durably to the next page; a short/empty terminal page wraps to page 1 for the next sweep.
+
+The PR guard now always performs both thread observations, even when the first state is `RESOLVED`. The second observation is therefore able to catch an unresolved thread introduced between observations.
+
+The draft mutation acknowledgement now requires `number` to be a positive exact non-Boolean integer before equality is accepted.
+
+The trusted scheduled job restores `actions: read` and `checks: read` solely because legacy issue #7 pending reconciliation still inspects exact Actions run/job/check state. No Actions write permission is restored.
+
+The read-only live contract probe no longer enumerates all repository PRs; it validates the exact target PR directly plus its bounded thread state.
+
+The REVIEW-0071 test candidate includes a **2,001-PR / 21-page durable traversal** proving progress beyond the old page-20 ceiling and tests append-only growth, processed-prefix drift, resolved->unresolved races, exact ACK typing, legacy pending precedence and workflow least privilege.
+
+REVIEW-0071 is **not opened yet**. It must first receive exact-head technical proof at 100% line + branch and live PR #2 probe success.
 
 ## Current next action
 
 1. Keep all **70** PR #5 material threads unresolved.
-2. Prove this REVIEW-0070 `CLOSED` state-only checkpoint.
-3. Implement REVIEW-0071 only after that checkpoint is green.
-4. Required REVIEW-0071 corrections:
-   - perform the second current-PR/thread observation even when the first scan is `RESOLVED`;
-   - restore least-privilege `actions: read` + `checks: read` to the scheduled job for legacy pending reconciliation;
-   - replace exhaustive open-PR discovery with bounded durable progress that cannot deadlock at `MAX_PAGES`;
-   - require an exact positive non-Boolean integer mutation ACK number;
-   - remove the contradictory stale handover.
-5. Restore exact-head 100% line/branch proof, live read-only probe and relevant real GitHub proof before opening REVIEW-0071.
-6. Run a fresh independent successor L2 over all **70 unresolved material threads** before resolving any thread.
+2. Commit the REVIEW-0071 implementation candidate atomically from proven checkpoint `a7285c0b…`.
+3. Run the full Bootstrap suite and require exact **100% line + branch**.
+4. Require the live read-only PR #2 contract probe to remain successful.
+5. If the candidate is green, update TEST-0010 / WORK-0002 with exact evidence and only then materialize REVIEW-0071 as `OPEN`.
+6. After OPEN and IN_PROGRESS checkpoints, request a fresh independent L2 over all **70 unresolved threads**.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence

@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0070 are terminal negative evidence for successive control-plane authority, temporal, liveness and merge-guard defects. REVIEW-0070 is CLOSED/CHANGES_REQUIRED on exact frozen head 487ea3c6addd870eb86c5f17756b8268fd98cb88 after Bootstrap #280 / run 35913019741 proved 385/385 tests, 3375 statements / 1438 branches, 100 percent line+branch, REVIEW-0070 197 statements / 82 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests, then fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABO64xew produced four P1 findings and one P2 finding. REVIEW-0071 must preserve the PR-scoped draft security boundary while fixing resolved-path double observation, legacy pending Actions/Checks read permissions, bounded durably resumable PR discovery beyond core.MAX_PAGES, exact positive non-Boolean integer mutation ACK identity and contradictory handover text. All 70 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0070 are terminal negative evidence. REVIEW-0070 is CLOSED/CHANGES_REQUIRED after fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABO64xew produced four P1 findings and one P2 finding on exact frozen head 487ea3c6addd870eb86c5f17756b8268fd98cb88. REVIEW-0071 implementation candidate preserves the PR-scoped draft fail-closed boundary while: always performing the second thread observation even after an initial RESOLVED result; restoring actions:read/checks:read solely for legacy pending reconciliation; replacing exhaustive open-PR discovery with bounded durable state=all creation-ordered page progression through existing issue #7 scan_page/scan_pr/scan_anchor state; requiring exact positive non-Boolean integer mutation ACK identity; and removing contradictory stale handover text. The successor code and regressions are prepared for exact-head proof but REVIEW-0071 is not opened yet. All 70 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -172,21 +172,22 @@ required_tests:
     - "exact latest GitHub Actions-owned MONDE / Merge Gate check is merge-state authority"
     - "current PR rerun authority binds exact head/base/merge-ref identity"
     - "selected-PR target discovery is bounded, resumable and drift-detecting"
+    - "REVIEW-0071 repository PR discovery advances durably beyond page 20 using issue #7 scan_page scan_pr scan_anchor without core.paged"
     - "pending mutation identity survives delayed visibility, scheduler restart and origin-PR closure"
     - "recovery cannot erase pending authority from stale pre-mutation observations"
     - "one poll invocation considers at most seven head groups and performs at most three actual rerun POSTs"
-  integration: [TEST-0009]
+  integration: [TEST-0009, TEST-0010]
   contract: ["registry/schema/progress/review/change-control integrity", "bootstrap GitHub Checks/REST/GraphQL/Actions/Issues control-plane contract"]
   e2e: []
   regression:
-    - "all 65 inline findings remain represented and unresolved"
+    - "all 70 inline findings remain represented and unresolved"
     - "operator recovery never clears pending state"
     - "operator recovery never emits a rerun automatically"
     - "manual exact-run rerun remains observable under durable pending identity"
     - "origin PR closes after POST while same-head sibling remains unresolved; pending mutation is not forgotten"
   security: ["immutable pins", "hash-locked Python artifacts", "least privilege", "live probe read-only"]
   performance: ["100 script-issued GitHub call hard cap", "seven-head bound", "three actual rerun POST cap"]
-  real_system: [TEST-0009]
+  real_system: [TEST-0009, TEST-0010]
   epistemic: ["technical green proof is not semantic approval", "dynamic workflow_run.pull_requests associations are not event-time provenance"]
 
 scientific_validation:
@@ -260,6 +261,7 @@ validation:
     - "REVIEW-0068 is CLOSED/CHANGES_REQUIRED on exact frozen head 466c37d56f7daab97fed1a0cbbe545ea593609f1 after Bootstrap #268 / run 35875607764 proved 352/352 tests, 2982 statements / 1278 branches, 100 percent line+branch, REVIEW-0068 275 statements / 120 branches at 100 percent and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5796883761 was quota-refused by 5796886353, then author-side PRR_kwDOUUI5ts8AAAABO3Wwiw proved permanent request-budget starvation with at least 35 valid temporally overlapping same-head canonical current runs; no independent REVIEW-0068 L2 ran."
     - "REVIEW-0069 is CLOSED/CHANGES_REQUIRED on exact frozen head f047a085e94b4f5bd7c575ba31b4eff3b79daa8f after Bootstrap #274 / run 35881521467 proved 365/365 tests, 3178 statements / 1356 branches, 100 percent line+branch, REVIEW-0069 196 statements / 78 branches at 100 percent and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5797672132 was quota-refused by 5797674597, then author-side PRR_kwDOUUI5ts8AAAABO346_Q proved permanent page-linear starvation with 901 current same-head suites/runs and an absolute >2000 Check Run MAX_PAGES deadlock; no independent REVIEW-0069 L2 ran."
     - "REVIEW-0070 is CLOSED/CHANGES_REQUIRED on exact frozen head 487ea3c6addd870eb86c5f17756b8268fd98cb88 after Bootstrap #280 / run 35913019741 passed 385/385 tests, 3375 statements / 1438 branches, 100 percent line+branch, REVIEW-0070 197 statements / 82 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABO64xew then added P1 threads PRRT_kwDOUUI5ts6lUcz8, PRRT_kwDOUUI5ts6lUcz_, PRRT_kwDOUUI5ts6lUc0F, PRRT_kwDOUUI5ts6lUc0K and P2 thread PRRT_kwDOUUI5ts6lUc0Q. REVIEW-0071 successor is required before any thread resolution."
+    - "REVIEW-0071 implementation candidate reuses SchedulerStateV4 for bounded durable all-PR page discovery, restores legacy pending read permissions, performs resolved-path double observation and exact integer ACK validation; lifecycle remains unopened pending exact technical proof."
     - "Historical REVIEW-0069 successor requirement is superseded by REVIEW-0070 terminal evidence; REVIEW-0071 retains the PR-scoped draft guard and addresses the five exact-head L2 findings rather than returning to bulk Gate authority."
     - "All 70 inline material threads remain unresolved."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
@@ -340,6 +342,7 @@ run_log:
   - "Real GitHub rehearsal converted PR #2 ready -> draft -> ready without changing head 90d762af389990b5e57fce83397a558276500dd5; ready_for_review immediately created fresh canonical MONDE Gate run #253 / 35912455093 on the same head; no review thread was resolved."
   - "REVIEW-0070 OPEN checkpoint b122b86f95d557d58d4a9ebd39ead3224c4c60e4 passed Bootstrap #279 / run 35912747306 at 385/385 tests, 3375 statements / 1438 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
   - "REVIEW-0070 frozen head 487ea3c6addd870eb86c5f17756b8268fd98cb88 passed Bootstrap #280 / run 35913019741 at 385/385 tests, 3375 statements / 1438 branches, 100 percent line+branch, REVIEW-0070 197 statements / 82 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; independent Codex L2 PRR_kwDOUUI5ts8AAAABO64xew then produced five material findings and increased unresolved PR #5 threads from 65 to 70."
+  - "REVIEW-0070 CLOSED checkpoint a7285c0bd74a2228dce3cd7882cb1423ebe25eba passed Bootstrap #281 / run 35915252517; REVIEW-0071 implementation begins only from this proven terminal checkpoint."
   - "REVIEW-0063 frozen head 22dd22d5f9e50eea6d3bd351af8e12ab9a935440 passed Bootstrap #244 / run 35848734246 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; fresh Codex L2 request 5793162559 was quota-refused by 5793166351, then author-side PRR_kwDOUUI5ts8AAAABO0xdhQ exposed malformed Check Run terminal temporal metadata being accepted as authority."
 
 discoveries:
