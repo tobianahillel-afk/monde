@@ -264,17 +264,24 @@ REVIEW-0062 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0063 must enforce full containment: `run_started_at <= job.started_at <= run.updated_at`, and completed jobs must also satisfy `job.completed_at <= run.updated_at`, for both the direct candidate and every frontier job before authority ordering.
 
+## REVIEW-0063 — full run/job lifetime-containment successor
+
+REVIEW-0063 is now **OPEN** after exact technical proof on `d1a2a6d921ca85c8424f7aa707f893306d939189`. Bootstrap #242 / run `35841368355` passed **291/291 tests**, **2,440 statements / 1,060 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+
+The successor reuses REVIEW-0062 terminal-snapshot stability and adds one fail-closed cross-object invariant before authority ordering: every protected `MONDE / Merge Gate` job used for direct-candidate or frontier authority must satisfy `run_started_at <= job.started_at <= run.updated_at`; completed jobs must additionally satisfy `job.completed_at <= run.updated_at`. The adapter reuses already-fetched run/job payloads and adds no GitHub requests.
+
+This OPEN state-only checkpoint must pass Bootstrap before REVIEW-0063 may transition to `IN_PROGRESS`. All **65** PR #5 inline material threads remain unresolved, and green CI remains technical evidence rather than semantic approval.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0050 `CLOSED / CHANGES_REQUIRED` checkpoint proof is complete on `71c40aeb...` via Bootstrap #157.
-3. Implement the REVIEW-0051 inspection-only recovery adapter without rewriting REVIEW-0050 history.
-4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
-5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
-6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0062 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOz4vxA exposed missing run/job upper chronology containment; implement and prove REVIEW-0063 before another independent L2.
-8. Resolve no historical thread before a clean successor review.
-9. WORK-0003 and WORK-0004 remain blocked.
+2. Prove this REVIEW-0063 `OPEN` state-only checkpoint with Bootstrap.
+3. Only after that proof, transition REVIEW-0063 `OPEN -> IN_PROGRESS` in a state-only commit.
+4. Prove the resulting frozen exact HEAD with Bootstrap before requesting any independent review.
+5. Request a fresh-context independent L2 over the frozen REVIEW-0063 head and all retained material findings.
+6. Any material finding closes REVIEW-0063 as negative evidence and requires a successor review; do not resolve historical threads.
+7. Only a clean successor review can permit independently verified PR #5 thread resolution and guarded merge eligibility.
+8. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 

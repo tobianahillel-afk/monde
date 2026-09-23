@@ -160,9 +160,11 @@ execution:
     - "Bootstrap #232 proves protected job started_at cannot precede current run_started_at for either direct candidate or frontier competitors; malformed predecessor run/job responses stay fail-closed, unrelated requests remain transparent, and chronology validation adds no GitHub requests"
     - "Bootstrap #237 / run 35839421844: 283/283 tests PASS; 2403 statements / 1046 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #237 proves candidate protected-job terminal snapshot stability across direct/frontier reads: success-to-failure, completed-to-in_progress and completed_at drift all fail closed while unchanged snapshots preserve REVIEW-0061 authority"
+    - "Bootstrap #242 / run 35841368355: 291/291 tests PASS; 2440 statements / 1060 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS at 7/100 requests"
+    - "Bootstrap #242 proves full run/job lifetime containment: every authority-bearing protected job satisfies run_started_at <= job.started_at <= run.updated_at and completed jobs satisfy job.completed_at <= run.updated_at before authority ordering, while REVIEW-0062 terminal-snapshot stability remains intact"
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-23"
-  commit_sha: "c38c2200583ebe83e8ac3fe97831c7e43e7de41f"
+  commit_sha: "d1a2a6d921ca85c8424f7aa707f893306d939189"
   result: PASS
   evidence:
     - "Bootstrap #168 / run 35715152696: 202/202 tests PASS"
@@ -181,9 +183,10 @@ execution:
     - "Bootstrap #202 proves ambiguous initial pending-write acknowledgement becomes PendingMutationUncertain before any rerun POST, successful pending writes still delegate into REVIEW-0055 lifetime protection, and non-pending writes retain ordinary behavior"
     - "REVIEW-0050 author-side PRR_kwDOUUI5ts8AAAABN7LvGQ invalidated recovery clear semantics; REVIEW-0051 candidate removes recovery state mutation entirely while preserving prior V5 poll behavior"
     - "Bootstrap #163 rehearsal reproduced a live multi-check failure on PR #2; rehearsal Bootstrap #166 proved the selector correction at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch, and live PR #2 probe SUCCESS"
+    - "Bootstrap #242 / run 35841368355 proves REVIEW-0063 on exact technical candidate d1a2a6d921ca85c8424f7aa707f893306d939189 with 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
 coverage:
   line_contribution: 100
   branch_contribution: 100
 history:
   created_at: "2026-09-15"
-  updated_at: "2026-09-22"
+  updated_at: "2026-09-23"
