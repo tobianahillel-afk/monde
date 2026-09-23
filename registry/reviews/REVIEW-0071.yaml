@@ -1,9 +1,9 @@
 id: REVIEW-0071
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "69c68959f1144bbccf76fef79d0624961d593d13"
 reviewer:
   actor: null
   context_id: null
@@ -44,7 +44,8 @@ scope:
     - "legacy pending reconciliation could wedge without Actions/Checks read permissions"
     - "coercive equality could accept malformed mutation acknowledgement identity"
     - "handover text could describe mutually exclusive active successor states"
-findings: []
+findings:
+  - "PRR_kwDOUUI5ts8AAAABO7OKJw"
 checks:
   assumptions_challenged:
     - "an initially RESOLVED thread scan is sufficient to advance the fairness cursor"
@@ -87,9 +88,14 @@ checks:
     - "The #284 suite includes a 2001-PR / 21-page durable discovery regression that crosses the former page-20 limit and wraps successfully."
     - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
     - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh independent L2."
-    - "Fresh independent L2 must inspect all 70 unresolved PR #5 material threads and the five REVIEW-0070 findings before any controlled resolution."
+    - "Frozen exact head 69c68959f1144bbccf76fef79d0624961d593d13 passed Bootstrap #286 / run 35917430655 at 410/410 tests, 3543 statements / 1514 branches, 100 percent line+branch, REVIEW-0071 168 statements / 76 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
+    - "Fresh Codex L2 request 5802595691 was quota-refused by 5802597968; no independent REVIEW-0071 L2 was produced."
+    - "Author-side PRR_kwDOUUI5ts8AAAABO7OKJw proves a mutable page-snapshot race: a PR observed draft or closed can become ready/open before consumption, be skipped without direct current-PR validation, and still have the durable cursor advance past it."
+    - "Successor REVIEW-0072 must directly revalidate every discovered PR record before cursor advancement; page state may identify immutable discovery membership but cannot authorize skipping mutable current state."
+    - "Required regressions: draft->ready and closed->open transitions before consumption must be caught and drafted when unresolved; open-ready->closed/draft must avoid redundant mutation; budget exhaustion before direct validation must not advance; large safe-record scans must retain bounded durable progress."
+    - "Resolve no inline thread until a clean successor independent L2 permits it."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-23T20:46:06Z"
 history:
   created_at: "2026-09-23"
   updated_at: "2026-09-23"

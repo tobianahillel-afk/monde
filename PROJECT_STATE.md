@@ -357,33 +357,35 @@ PR #5 now has **70/70 unresolved material threads**. None has been resolved.
 
 The REVIEW-0070 CLOSED state-only checkpoint `a7285c0bd74a2228dce3cd7882cb1423ebe25eba` passed Bootstrap #281 / run `35915252517`.
 
-## REVIEW-0071 — durable PR discovery hardening successor
+## REVIEW-0071 — terminal negative evidence
 
-REVIEW-0071 is now **IN_PROGRESS** after exact technical proof on `9627c5ac5499210107e817dc49ff9b62407d5520` and OPEN checkpoint proof on `0755bdd0fa17514104d30b462b46baee8d7c13c6`.
+REVIEW-0071 is **CLOSED / CHANGES_REQUIRED** on frozen exact HEAD `69c68959f1144bbccf76fef79d0624961d593d13`.
 
-Bootstrap #284 / run `35916713082` passed **410/410 tests**, **3,543 statements / 1,514 branches**, **100% line + branch**; REVIEW-0071 itself is **168 statements / 76 branches at 100%**, and the live PR #2 contract probe succeeded at **2/100** requests.
+Bootstrap #286 / run `35917430655` passed **410/410 tests**, **3,543 statements / 1,514 branches**, **100% line + branch**; REVIEW-0071 itself was **168 statements / 76 branches at 100%**, and the live PR #2 contract probe succeeded at **2/100** requests.
 
-Bootstrap #282 remains negative coverage evidence: all **401 functional tests** passed but REVIEW-0071 was only 88% covered. Bootstrap #283 remains negative final-branch coverage evidence: **409/409 functional tests** passed, with one branch still uncovered. Lifecycle opening was withheld until #284 reached exact 100%.
+Fresh Codex L2 request `5802595691` was quota-refused by `5802597968`; no independent REVIEW-0071 L2 was produced.
 
-REVIEW-0071 fixes all five independent REVIEW-0070 L2 findings:
-- second thread observation always occurs even after an initial `RESOLVED`;
-- scheduled legacy pending reconciliation regains `actions: read` and `checks: read`, with no Actions write authority;
-- repository PR discovery is bounded and durable through existing V4 `scan_page / scan_pr / scan_anchor`, uses explicit `state=all` creation-ordered pages, and can cross page 20 without `core.paged`;
-- mutation ACK number must be a positive exact non-Boolean integer;
-- stale contradictory REVIEW-0070 successor text is removed.
+Author-side adversarial review **PRR_kwDOUUI5ts8AAAABO7OKJw** found a new **P1**: REVIEW-0071 uses mutable `state` / `draft` values from the discovery page to skip direct validation. A PR can therefore be observed as draft/closed, become ready/open before consumption, still be skipped, and have the durable cursor advance past it. It can remain ready with unresolved review threads until a later complete sweep.
 
-The #284 regression traverses **2,001 PR records over 21 pages**, persisting partial-page prefix anchors and proving page 21 is reached and the sweep wraps without `MAX_PAGES` deadlock.
+REVIEW-0072 must preserve REVIEW-0071's durable `state=all` page discovery, prefix anchoring, page-21 liveness, double thread observation, exact mutation ACK validation and legacy pending handling, while **directly revalidating every discovered PR record before cursor advancement**.
 
-Bootstrap #285 / run `35917159123` proved the OPEN checkpoint at **410/410 tests**, **3,543 statements / 1,514 branches**, **100% line + branch**, REVIEW-0071 **168 / 76 at 100%**, with live PR #2 probe SUCCESS at **2/100** requests. All **70/70 PR #5 material threads remain unresolved**. This IN_PROGRESS state must now receive one frozen exact-head proof before fresh independent L2; green technical evidence is not semantic approval.
+Required REVIEW-0072 regressions:
+- page says draft, current direct PR says ready + unresolved -> exact PR is drafted before cursor advance;
+- page says closed, current direct PR says open + ready + unresolved -> exact PR is drafted;
+- page says open + ready, direct PR is now closed or draft -> no redundant mutation;
+- budget exhaustion before direct current-PR validation does not advance the durable cursor;
+- many closed/draft records still make bounded durable progress under the real 100-request cap.
+
+All **70/70 PR #5 material threads remain unresolved**.
 
 ## Current next action
 
 1. Keep all **70** PR #5 material threads unresolved.
-2. REVIEW-0071 OPEN checkpoint proof is complete via Bootstrap #285 and REVIEW-0071 is now `IN_PROGRESS`.
-3. Prove/freeze this exact IN_PROGRESS head with Bootstrap.
-4. Request a fresh independent L2 over all **70 unresolved material threads**, REVIEW-0071 and retained negative evidence without mutating the tree while it runs.
-5. Any material finding closes REVIEW-0071 and requires a successor; resolve nothing beforehand.
-6. Only a clean L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
+2. Commit this REVIEW-0071 `CLOSED` state-only checkpoint and prove it.
+3. Implement REVIEW-0072 only after the closed checkpoint is green.
+4. Restore exact-head 100% line/branch proof and live PR #2 probe.
+5. Open REVIEW-0072 only after technical proof, then follow OPEN -> IN_PROGRESS -> frozen proof.
+6. Request fresh independent L2 over all **70 unresolved material threads** only on the frozen REVIEW-0072 head.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
