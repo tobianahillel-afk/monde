@@ -357,40 +357,33 @@ PR #5 now has **70/70 unresolved material threads**. None has been resolved.
 
 The REVIEW-0070 CLOSED state-only checkpoint `a7285c0bd74a2228dce3cd7882cb1423ebe25eba` passed Bootstrap #281 / run `35915252517`.
 
-## REVIEW-0071 implementation candidate — durable PR discovery hardening
+## REVIEW-0071 — durable PR discovery hardening successor
 
-REVIEW-0071 retains REVIEW-0070's PR-scoped draft fail-closed security boundary and fixes only the five exact-head L2 findings.
+REVIEW-0071 is now **OPEN** after exact technical proof on `9627c5ac5499210107e817dc49ff9b62407d5520`.
 
-The successor design reuses existing `SchedulerStateV4`; no new scheduler-state version is introduced:
-- `scan_page` is the current durable PR-discovery page;
-- `scan_pr` is the last processed PR number within or immediately before that page;
-- `scan_anchor` is the SHA-256 fingerprint of the already-processed prefix for partial-page resumption;
-- discovery reads exactly one explicit REST page at a time from `pulls?state=all&sort=created&direction=asc&per_page=100&page=N`;
-- it never calls `core.paged`, so page 21, page 200 or later remain reachable;
-- `state=all` keeps closed/reopened PRs in append-only creation order so close/open changes do not shift earlier page membership;
-- partial pages tolerate newly appended records after the processed prefix while any drift inside the processed prefix fails closed;
-- full 100-record pages advance durably to the next page; a short/empty terminal page wraps to page 1 for the next sweep.
+Bootstrap #284 / run `35916713082` passed **410/410 tests**, **3,543 statements / 1,514 branches**, **100% line + branch**; REVIEW-0071 itself is **168 statements / 76 branches at 100%**, and the live PR #2 contract probe succeeded at **2/100** requests.
 
-The PR guard now always performs both thread observations, even when the first state is `RESOLVED`. The second observation is therefore able to catch an unresolved thread introduced between observations.
+Bootstrap #282 remains negative coverage evidence: all **401 functional tests** passed but REVIEW-0071 was only 88% covered. Bootstrap #283 remains negative final-branch coverage evidence: **409/409 functional tests** passed, with one branch still uncovered. Lifecycle opening was withheld until #284 reached exact 100%.
 
-The draft mutation acknowledgement now requires `number` to be a positive exact non-Boolean integer before equality is accepted.
+REVIEW-0071 fixes all five independent REVIEW-0070 L2 findings:
+- second thread observation always occurs even after an initial `RESOLVED`;
+- scheduled legacy pending reconciliation regains `actions: read` and `checks: read`, with no Actions write authority;
+- repository PR discovery is bounded and durable through existing V4 `scan_page / scan_pr / scan_anchor`, uses explicit `state=all` creation-ordered pages, and can cross page 20 without `core.paged`;
+- mutation ACK number must be a positive exact non-Boolean integer;
+- stale contradictory REVIEW-0070 successor text is removed.
 
-The trusted scheduled job restores `actions: read` and `checks: read` solely because legacy issue #7 pending reconciliation still inspects exact Actions run/job/check state. No Actions write permission is restored.
+The #284 regression traverses **2,001 PR records over 21 pages**, persisting partial-page prefix anchors and proving page 21 is reached and the sweep wraps without `MAX_PAGES` deadlock.
 
-The read-only live contract probe no longer enumerates all repository PRs; it validates the exact target PR directly plus its bounded thread state.
-
-The REVIEW-0071 test candidate includes a **2,001-PR / 21-page durable traversal** proving progress beyond the old page-20 ceiling and tests append-only growth, processed-prefix drift, resolved->unresolved races, exact ACK typing, legacy pending precedence and workflow least privilege.
-
-REVIEW-0071 is **not opened yet**. It must first receive exact-head technical proof at 100% line + branch and live PR #2 probe success.
+All **70/70 PR #5 material threads remain unresolved**. Green technical evidence is not semantic approval. This OPEN checkpoint must pass before REVIEW-0071 can become `IN_PROGRESS`.
 
 ## Current next action
 
 1. Keep all **70** PR #5 material threads unresolved.
-2. Commit the REVIEW-0071 implementation candidate atomically from proven checkpoint `a7285c0b…`.
-3. Run the full Bootstrap suite and require exact **100% line + branch**.
-4. Require the live read-only PR #2 contract probe to remain successful.
-5. If the candidate is green, update TEST-0010 / WORK-0002 with exact evidence and only then materialize REVIEW-0071 as `OPEN`.
-6. After OPEN and IN_PROGRESS checkpoints, request a fresh independent L2 over all **70 unresolved threads**.
+2. Prove this REVIEW-0071 `OPEN` state-only checkpoint with Bootstrap.
+3. Transition `OPEN -> IN_PROGRESS` only after that proof.
+4. Prove the resulting frozen exact HEAD.
+5. Request a fresh independent L2 over all **70 unresolved material threads**, REVIEW-0071 and retained negative evidence.
+6. Any material finding closes REVIEW-0071 and requires a successor; resolve nothing beforehand.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
@@ -405,7 +398,7 @@ REVIEW-0071 is **not opened yet**. It must first receive exact-head technical pr
 8. registry/reviews/REVIEW-0049.yaml
 9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/65 threads
+11. live PR #5 exact HEAD/checks/reviews/70 threads
 12. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.

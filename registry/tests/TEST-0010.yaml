@@ -31,7 +31,7 @@ protects:
     - "manual Ready for review remains the only transition from draft back to ready; the canonical MONDE Gate workflow already triggers on ready_for_review"
 
 location:
-  test_path: ".github/scripts/test_stale_green_bootstrap_authority_review0070.py"
+  test_path: ".github/scripts/test_stale_green_bootstrap_authority_review0071.py"
   suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
 
 environment:
@@ -106,7 +106,7 @@ external_import:
 execution:
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-23"
-  commit_sha: "1611356cbd3ab21be9cd47828acdfecbc1479b16"
+  commit_sha: "9627c5ac5499210107e817dc49ff9b62407d5520"
   result: PASS
   evidence:
     - "REVIEW-0069 terminal negative evidence PRR_kwDOUUI5ts8AAAABO346_Q motivates moving merge safety from unbounded commit-scoped history to PR draft state"
@@ -119,7 +119,11 @@ execution:
     - "Bootstrap #278 / run 35909146544 proves REVIEW-0070 exact technical candidate 1611356cbd3ab21be9cd47828acdfecbc1479b16 with 385/385 tests, 3375 statements / 1438 branches, 100 percent line+branch, REVIEW-0070 197 statements / 82 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0070 was later invalidated by independent L2 PRR_kwDOUUI5ts8AAAABO64xew"
     - "Real control-plane rehearsal on PR #2 preserved head 90d762af389990b5e57fce83397a558276500dd5 across ready -> draft -> ready; ready_for_review immediately created MONDE Gate run #253 / 35912455093 on that exact head"
     - "The rehearsal resolved no review thread and changed no branch content"
-    - "REVIEW-0071 successor technical proof is pending; TEST-0010 remains PLANNED until successor evidence is recorded through the truthful lifecycle"
+    - "Bootstrap #282 / run 35916059940 is retained negative REVIEW-0071 coverage evidence: 401/401 functional tests passed and live PR #2 probe succeeded, but REVIEW-0071 coverage was 88 percent and total coverage 99 percent"
+    - "Bootstrap #283 / run 35916421256 is retained negative coverage-gate evidence: 409/409 functional tests passed and live probe succeeded, but one REVIEW-0071 branch remained uncovered and total coverage stayed 99 percent"
+    - "Bootstrap #284 / run 35916713082 proves exact REVIEW-0071 technical candidate 9627c5ac5499210107e817dc49ff9b62407d5520 with 410/410 tests, 3543 statements / 1514 branches, 100 percent line+branch, REVIEW-0071 168 statements / 76 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests"
+    - "Bootstrap #284 includes the 2001-PR / 21-page durable discovery regression and crosses the old page-20 ceiling without core.paged or MAX_PAGES deadlock"
+    - "TEST-0010 remains PLANNED until its lifecycle is advanced truthfully; execution PASS evidence does not retroactively replay READY/RUNNING states"
 
 coverage:
   line_contribution: 100
