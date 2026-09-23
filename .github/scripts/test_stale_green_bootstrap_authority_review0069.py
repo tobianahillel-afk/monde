@@ -388,9 +388,11 @@ class Review0069BulkAuthorityTests(unittest.TestCase):
             mock.patch.object(subject, "_bulk_required_checks", return_value=(checks, snaps)),
             mock.patch.object(subject, "_bulk_frontier_runs", return_value=(rows, run_snaps)),
             mock.patch.object(attempt.previous, "_authority_frontier", return_value=frontier),
+            mock.patch.object(subject, "_direct_candidate_job_snapshot", return_value=("newer",)),
         ):
-            with self.assertRaisesRegex(RuntimeError, "newer protected.*check"):
-                subject._prove_bulk_witness("o/r", HEAD, "t")
+            selected, witness = subject._prove_bulk_witness("o/r", HEAD, "t")
+        self.assertIs(selected, newer_check)
+        self.assertIsNotNone(witness)
 
     def test_revalidate_bulk_witness_detects_every_snapshot_drift(self) -> None:
         run = candidate_run()
