@@ -316,7 +316,7 @@ REVIEW-0068 must preserve the hard 100-request cap while eliminating permanent O
 
 ## REVIEW-0068 — bounded reusable Gate witness successor
 
-REVIEW-0068 is now **OPEN** after exact technical proof on `00a6518a57f8c0f7498455dc062210bb3d250aa7`. Bootstrap #266 / run `35874735620` passed **352/352 tests**, **2,982 statements / 1,278 branches**, **100% line + branch**; REVIEW-0068 itself is **275 statements / 120 branches at 100%**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0068 is now **IN_PROGRESS** after exact technical proof on `00a6518a57f8c0f7498455dc062210bb3d250aa7` and OPEN checkpoint proof on `41f654884f7461a901c23f74fd7a5ddacae5a295`. Bootstrap #266 / run `35874735620` passed **352/352 tests**, **2,982 statements / 1,278 branches**, **100% line + branch**; REVIEW-0068 itself is **275 statements / 120 branches at 100%**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
 The successor keeps the hard **100-request** cap. G1 performs one complete active authority proof. Under the retained REVIEW-0061 lower chronology and REVIEW-0063 full run/job lifetime containment, a historical canonical run whose validated current lifetime ended before the candidate Check Run started cannot contain a valid authority-bearing protected job that outranks the candidate, so that historical run needs no protected-job request. A current attempt starting after the candidate fails closed immediately; only temporally overlapping runs require job reads.
 
@@ -324,17 +324,17 @@ G1 emits an exact reusable witness containing the candidate Check Run snapshot, 
 
 The real shared-counter regression includes **16 distinct same-head historical canonical runs** and does not mock `latest_required_check`; it reaches the pending-write decision while preserving the full **23-request** mutation reserve. Bootstrap #263 and #264 remain negative harness/fixture evidence, while #265 remains negative coverage-gate evidence: 347/347 functional tests passed there, but REVIEW-0068 was only 86% covered and lifecycle opening was correctly withheld.
 
-All **65** PR #5 material inline threads remain unresolved. This OPEN state-only checkpoint must pass Bootstrap before REVIEW-0068 may transition to `IN_PROGRESS`; green CI is technical evidence only, not semantic approval.
+Bootstrap #267 / run `35875277280` proved the OPEN checkpoint at **352/352 tests**, **2,982 statements / 1,278 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested. All **65** PR #5 material inline threads remain unresolved; green CI remains technical evidence, not semantic approval.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0067 remains terminal `CLOSED / CHANGES_REQUIRED`.
-3. Prove this REVIEW-0068 `OPEN` state-only checkpoint with Bootstrap.
-4. Only after that proof, transition REVIEW-0068 `OPEN -> IN_PROGRESS` in a state-only commit.
-5. Prove the resulting frozen exact HEAD before requesting any independent review.
-6. Request a fresh-context independent L2 over the frozen REVIEW-0068 head without mutating the tree while review runs.
-7. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
+2. REVIEW-0068 OPEN checkpoint proof is complete via Bootstrap #267 and REVIEW-0068 is now `IN_PROGRESS`.
+3. Prove/freeze this exact IN_PROGRESS head with Bootstrap before requesting any independent review.
+4. Request a fresh-context independent L2 over that frozen REVIEW-0068 head without mutating the tree while review runs.
+5. Any material finding closes REVIEW-0068 as negative evidence and requires a successor review; do not resolve historical threads.
+6. Only a clean independent review can permit controlled PR #5 thread resolution and guarded merge eligibility.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
