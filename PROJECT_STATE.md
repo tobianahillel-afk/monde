@@ -286,23 +286,23 @@ REVIEW-0065 must add one final global Gate-authority proof after target baseline
 
 ## REVIEW-0065 — final mutation-bound Gate-authority successor
 
-REVIEW-0065 is now **OPEN** after exact technical proof on `188945f3e2b9db977c0906b57e9bfdf0f29bc27a`. Bootstrap #251 / run `35852981670` passed **312/312 tests**, **2,579 statements / 1,112 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0065 is now **IN_PROGRESS** after exact technical proof on `188945f3e2b9db977c0906b57e9bfdf0f29bc27a` and OPEN checkpoint proof on `6d40c6c4d8edc8965003c4e34c199bb14d65935b`. Bootstrap #251 / run `35852981670` passed **312/312 tests**, **2,579 statements / 1,112 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
 The successor reuses REVIEW-0064 as the full current Check Run/Actions-frontier authority oracle and REVIEW-0055 as pending-lifetime protection, while superseding REVIEW-0056's pending-write acknowledgement wrapper with a strict superset. Immediately before a non-idle pending state can be written, REVIEW-0065 re-runs `core.latest_required_check(repo, head, token)`; the result must still be merge-acceptable and carry the exact already-recorded `pending_check_id`.
 
 After that final proof, the full existing `MUTATION_REQUEST_RESERVE` must still remain. Only then may the scheduler PATCH be attempted. Ambiguous acknowledgement of that actual PATCH still becomes `PendingMutationUncertain`, while authority failure before the PATCH remains an ordinary fail-closed pre-mutation error. A different canonical Gate becoming newer in the last window therefore produces **zero pending write and zero rerun POST**.
 
-All **65** PR #5 inline material threads remain unresolved. This OPEN state-only checkpoint must pass Bootstrap before REVIEW-0065 may transition to `IN_PROGRESS`; green CI remains technical evidence, not semantic approval.
+Bootstrap #252 / run `35853220600` proved the OPEN checkpoint at **312/312 tests**, **2,579 statements / 1,112 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested. All **65** PR #5 inline material threads remain unresolved; green CI remains technical evidence, not semantic approval.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0064 remains terminal `CLOSED / CHANGES_REQUIRED`.
-3. Prove this REVIEW-0065 `OPEN` state-only checkpoint with Bootstrap.
-4. Only after that proof, transition REVIEW-0065 `OPEN -> IN_PROGRESS` in a state-only commit.
-5. Prove the resulting frozen exact HEAD before requesting any independent review.
-6. Request a fresh-context independent L2 over the frozen REVIEW-0065 head without mutating the tree while review runs.
-7. Resolve no historical thread before a clean successor review; WORK-0003 and WORK-0004 remain blocked.
+2. REVIEW-0065 OPEN checkpoint proof is complete via Bootstrap #252 and REVIEW-0065 is now `IN_PROGRESS`.
+3. Prove/freeze this exact IN_PROGRESS head with Bootstrap before requesting any independent review.
+4. Request a fresh-context independent L2 over that frozen REVIEW-0065 head without mutating the tree while review runs.
+5. Any material finding closes REVIEW-0065 as negative evidence and requires a successor review; do not resolve historical threads.
+6. Only a clean independent review can permit controlled PR #5 thread resolution and guarded merge eligibility.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
