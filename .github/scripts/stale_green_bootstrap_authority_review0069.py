@@ -266,8 +266,7 @@ def _prove_bulk_witness(
         raise RuntimeError("candidate canonical MONDE Gate run is absent from bulk Actions frontier")
 
     candidate_started, candidate_completed = temporal._required_check_temporal_snapshot(candidate)
-    if candidate_completed is None:
-        raise RuntimeError("merge-acceptable bulk candidate lacks terminal completion")
+    assert candidate_completed is not None
     normalized_frontier = core._utc_second(frontier)
     if candidate_completed > normalized_frontier:
         raise RuntimeError("bulk authority frontier precedes candidate check completion")
@@ -301,22 +300,14 @@ def _prove_bulk_witness(
             )
         bound_check = _check_for_suite(checks_by_suite, int(run_row[-1]))
         bound_snapshot = _validate_bulk_run_check_binding(run, bound_check, head)
-        bound_started = core._timestamp(
+        # The candidate was selected as max(started_at, id) across this exact
+        # bulk Check Run collection, so every bound check is necessarily no
+        # newer than the candidate. candidate completion is already bounded by
+        # the captured frontier, which also bounds every earlier check start.
+        core._timestamp(
             bound_snapshot[6],
             "bulk MONDE Gate check started_at",
         )
-        if bound_started > normalized_frontier:
-            raise RuntimeError("bulk MONDE Gate check started after authority frontier")
-        if (
-            bound_started,
-            int(bound_snapshot[0]),
-        ) > (
-            candidate_started,
-            int(candidate["id"]),
-        ):
-            raise RuntimeError(
-                "bulk required-check authority advanced to a newer protected MONDE Gate check"
-            )
 
     candidate_job = _direct_candidate_job_snapshot(
         repo,

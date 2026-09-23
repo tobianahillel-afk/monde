@@ -212,6 +212,20 @@ class Review0069BulkAuthorityTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "completion exceeds"):
             subject._validate_bulk_run_check_binding(run, late, HEAD)
 
+    def test_binding_accepts_incomplete_check_inside_run_lifetime(self) -> None:
+        run = candidate_run()
+        active = bulk_check(
+            635,
+            135,
+            suite_id=900135,
+            started="2026-09-23T10:02:00Z",
+            completed=None,
+            status="in_progress",
+            conclusion=None,
+        )
+        snap = subject._validate_bulk_run_check_binding(run, active, HEAD)
+        self.assertIsNone(snap[7])
+
     def test_direct_candidate_job_binding(self) -> None:
         run = candidate_run()
         chk = candidate_check()
@@ -219,6 +233,10 @@ class Review0069BulkAuthorityTests(unittest.TestCase):
         with mock.patch.object(core, "request_data", side_effect=[run, jb]):
             snap = subject._direct_candidate_job_snapshot("o/r", HEAD, "t", chk, run)
         self.assertEqual(snap[:2], (635, 135))
+
+        with mock.patch.object(core, "request_data", return_value=[]):
+            with self.assertRaisesRegex(RuntimeError, "malformed direct candidate canonical"):
+                subject._direct_candidate_job_snapshot("o/r", HEAD, "t", chk, run)
 
         changed = dict(run)
         changed["updated_at"] = "2026-09-23T10:09:00Z"
@@ -287,6 +305,31 @@ class Review0069BulkAuthorityTests(unittest.TestCase):
         chk = candidate_check()
         snapshot = (subject._bulk_check_snapshot(chk, HEAD),)
         frontier = core._timestamp("2026-09-23T10:20:00Z", "frontier")
+
+        frontier_late_run = bulk_run(
+            101,
+            suite_id=900101,
+            created="2026-09-23T10:03:00Z",
+            started="2026-09-23T10:21:00Z",
+            updated="2026-09-23T10:22:00Z",
+        )
+        with (
+            mock.patch.object(subject, "_bulk_required_checks", return_value=([chk], snapshot)),
+            mock.patch.object(
+                subject,
+                "_bulk_frontier_runs",
+                return_value=(
+                    [frontier_late_run, run],
+                    tuple(sorted([
+                        subject._bulk_run_snapshot(frontier_late_run, HEAD),
+                        subject._bulk_run_snapshot(run, HEAD),
+                    ], key=lambda x: x[0])),
+                ),
+            ),
+            mock.patch.object(attempt.previous, "_authority_frontier", return_value=frontier),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "attempt started after bulk authority frontier"):
+                subject._prove_bulk_witness("o/r", HEAD, "t")
 
         with (
             mock.patch.object(subject, "_bulk_required_checks", return_value=([chk], snapshot)),
