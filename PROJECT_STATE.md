@@ -264,22 +264,24 @@ REVIEW-0062 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side 
 
 REVIEW-0063 must enforce full containment: `run_started_at <= job.started_at <= run.updated_at`, and completed jobs must also satisfy `job.completed_at <= run.updated_at`, for both the direct candidate and every frontier job before authority ordering.
 
-## REVIEW-0063 — full run/job lifetime-containment successor
+## REVIEW-0063 — terminal negative evidence
 
-REVIEW-0063 is now **IN_PROGRESS** after exact technical proof on `d1a2a6d921ca85c8424f7aa707f893306d939189` and OPEN checkpoint proof on `2b92575013d39257fb61c516c4dfa9ab10f74ebf`. Bootstrap #242 / run `35841368355` passed **291/291 tests**, **2,440 statements / 1,060 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0063 proved its full run/job lifetime-containment correction through technical candidate `d1a2a6d921ca85c8424f7aa707f893306d939189`, OPEN checkpoint `2b92575013d39257fb61c516c4dfa9ab10f74ebf`, and frozen exact head `22dd22d5f9e50eea6d3bd351af8e12ab9a935440`. Bootstrap #244 / run `35848734246` passed **291/291 tests**, **2,440 statements / 1,060 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests.
 
-The successor reuses REVIEW-0062 terminal-snapshot stability and adds one fail-closed cross-object invariant before authority ordering: every protected `MONDE / Merge Gate` job used for direct-candidate or frontier authority must satisfy `run_started_at <= job.started_at <= run.updated_at`; completed jobs must additionally satisfy `job.completed_at <= run.updated_at`. The adapter reuses already-fetched run/job payloads and adds no GitHub requests.
+The fresh Codex L2 request `5793162559` was refused by quota via `5793166351`; no independent REVIEW-0063 L2 was produced.
 
-Bootstrap #243 / run `35848570089` proved the OPEN checkpoint at **291/291 tests**, **2,440 statements / 1,060 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested. All **65** PR #5 inline material threads remain unresolved, and green CI remains technical evidence rather than semantic approval.
+REVIEW-0063 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO0xdhQ` proved a remaining positive-authority gap: the selected terminal Check Run's own `completed_at` is not validated. Current REVIEW-0060 fixtures even accept a candidate whose inherited `completed_at=2026-09-15T14:30:00Z` is one week before its `started_at=2026-09-22T21:01:00Z`. The current chain validates the protected job timing but never requires the Check Run to have parseable/ordered terminal timing or to bind its completion to the protected job/frontier. Live PR #2 evidence shows Check Run/job `106746593212` both report `12:35:25Z -> 12:35:37Z`.
+
+REVIEW-0064 must validate temporal metadata for every current required-check candidate, reject missing/malformed or completion-before-start terminal checks, reject non-completed checks carrying `completed_at`, require the selected terminal candidate to complete no later than the captured authority frontier, and bind its terminal timing to the exact protected Actions job under the proven live contract. REVIEW-0063 run/job lifetime containment and every earlier guarantee remain mandatory.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0063 OPEN checkpoint proof is complete via Bootstrap #243 and REVIEW-0063 is now `IN_PROGRESS`.
-3. Prove/freeze this exact IN_PROGRESS head with Bootstrap before requesting any independent review.
-4. Request a fresh-context independent L2 over that frozen REVIEW-0063 head and all retained material findings without mutating the tree while review runs.
-5. Any material finding closes REVIEW-0063 as negative evidence and requires a successor review; do not resolve historical threads.
-6. Only a clean independent review can permit independently verified PR #5 thread resolution and guarded merge eligibility.
+2. REVIEW-0063 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0063 approval.
+3. Implement REVIEW-0064 required-check temporal-snapshot validation without rewriting REVIEW-0063 history.
+4. Add regressions for missing/malformed completion, completion-before-start, completion-after-frontier, hidden malformed candidates and Check Run/job temporal disagreement.
+5. Restore exact-head 100% line/branch proof and live PR #2 contract proof before opening REVIEW-0064.
+6. Resolve no historical thread before a clean successor review.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
