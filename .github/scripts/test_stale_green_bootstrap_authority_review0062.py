@@ -105,6 +105,56 @@ class Review0062TerminalSnapshotTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "terminal state changed"):
             self._prove_with_frontier_job(drifted)
 
+    def test_non_dict_direct_payload_and_non_candidate_frontier_do_not_capture(self) -> None:
+        candidate = candidate_check()
+        unrelated_run = run_row(
+            999,
+            99,
+            attempt=1,
+            created_at="2026-09-22T20:00:00Z",
+            run_started_at="2026-09-22T20:01:00Z",
+            updated_at="2026-09-22T20:10:00Z",
+        )
+        unrelated_job = gate_job(
+            999,
+            999,
+            attempt=1,
+            started_at="2026-09-22T20:02:00Z",
+        )
+
+        def predecessor(*_args, **_kwargs):
+            self.assertEqual(
+                core.request_data(
+                    "https://api.github.com/repos/o/r/actions/jobs/501",
+                    "t",
+                ),
+                [],
+            )
+            self.assertIs(
+                previous._chronology_protected_gate_job(
+                    "o/r", "t", unrelated_run, HEAD
+                ),
+                unrelated_job,
+            )
+
+        with (
+            mock.patch.object(core, "request_data", return_value=[]),
+            mock.patch.object(
+                previous,
+                "_chronology_protected_gate_job",
+                return_value=unrelated_job,
+            ),
+            mock.patch.object(
+                subject,
+                "_ORIGINAL_CHRONOLOGY_PROVE",
+                side_effect=predecessor,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "snapshot was not observed twice"):
+                subject._terminal_stability_prove(
+                    "o/r", HEAD, "t", candidate, FRONTIER
+                )
+
     def test_missing_snapshot_fails_closed_and_restores_hooks(self) -> None:
         candidate = candidate_check()
         original_request = core.request_data
