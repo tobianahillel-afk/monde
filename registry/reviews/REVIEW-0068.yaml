@@ -1,9 +1,9 @@
 id: REVIEW-0068
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "466c37d56f7daab97fed1a0cbbe545ea593609f1"
 reviewer:
   actor: null
   context_id: null
@@ -41,7 +41,8 @@ scope:
     - "request savings that mock or bypass the shared counter would not prove real liveness"
     - "post-G2 mutation reserve could still be consumed by witness revalidation on large overlapping frontiers"
     - "global hook composition could weaken earlier terminal/temporal/pending guarantees"
-findings: []
+findings:
+  - "PRR_kwDOUUI5ts8AAAABO3Wwiw"
 checks:
   assumptions_challenged:
     - "every historical same-head canonical run requires a protected-job read on every authority proof"
@@ -71,6 +72,8 @@ checks:
     - "REVIEW-0067 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
     - "PRR_kwDOUUI5ts8AAAABO1qQqg is the author-side starvation finding that invalidated REVIEW-0067."
     - "All 65 historical inline PR #5 material threads remain unresolved."
+    - "Frozen exact head 466c37d56f7daab97fed1a0cbbe545ea593609f1 passed Bootstrap #268 / run 35875607764 at 352/352 tests, 2982 statements / 1278 branches, 100 percent line+branch, REVIEW-0068 275 statements / 120 branches at 100 percent and live PR #2 probe SUCCESS at 7/100 requests."
+    - "Fresh Codex L2 request 5796883761 was quota-refused by 5796886353; no independent REVIEW-0068 L2 was produced."
   failure_modes_considered:
     - "historical run ends before candidate start but malformed job timing would violate predecessor containment"
     - "newer current attempt appears after candidate and before captured frontier"
@@ -82,6 +85,7 @@ checks:
     - "review threads resolve during PR-stable interval"
     - "request budget falls below initial headroom or final mutation reserve"
     - "pending PATCH, rerun POST or postcondition observation becomes ambiguous"
+    - "at least 35 valid temporally overlapping canonical same-head current runs force two protected-job reads per overlap across G1/G2; the strict lower bound 2M+32 exceeds the 100-request cap at M=35 and DeferredForBudget persists no witness/frontier continuation"
   evidence_requested:
     - "Technical candidate 00a6518a57f8c0f7498455dc062210bb3d250aa7 / Bootstrap #266 remains exact proof at 352/352 tests, 2982 statements / 1278 branches and 100 percent line+branch."
     - "Bootstrap #266 live PR #2 contract probe remains successful at 7/100 requests."
@@ -93,9 +97,12 @@ checks:
     - "Bootstrap #263/#264 failures and #265 coverage rejection remain retained negative test evidence rather than being rewritten as success."
     - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
     - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh-context independent L2."
-    - "Resolve no historical inline thread until a clean REVIEW-0068 L2 permits it."
+    - "Resolve no historical inline thread until a clean successor L2 permits it."
+    - "Successor REVIEW-0069 must eliminate request cost linear in the count of temporally overlapping same-head runs from one invocation or make that proof durably resumable across invocations without raising the hard 100-request cap."
+    - "Required regression must construct at least 35 valid overlapping same-head canonical current runs under the real shared request counter and prove durable forward progress or a bounded correct fail-closed decision."
+    - "Any continuation or compressed authority witness must detect new runs/reruns and snapshot drift before mutation while preserving REVIEW-0068 P1/thread/P2, temporal, pending, recovery and postcondition guarantees."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-23T14:44:40Z"
 history:
   created_at: "2026-09-23"
   updated_at: "2026-09-23"

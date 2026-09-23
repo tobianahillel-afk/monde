@@ -314,26 +314,30 @@ When this path raises `DeferredForBudget`, REVIEW-0049 poll breaks without persi
 
 REVIEW-0068 must preserve the hard 100-request cap while eliminating permanent O(N)-per-proof starvation. It may introduce a safely reusable bounded authority witness or durable frontier continuation plus bounded final revalidation, but it must preserve REVIEW-0067 cross-object snapshot safety and every prior pending/recovery invariant. A regression with at least 16 distinct canonical same-head runs must use the real shared request counter and prove durable forward progress; mocking `latest_required_check` is insufficient.
 
-## REVIEW-0068 — bounded reusable Gate witness successor
+## REVIEW-0068 — terminal negative evidence
 
-REVIEW-0068 is now **IN_PROGRESS** after exact technical proof on `00a6518a57f8c0f7498455dc062210bb3d250aa7` and OPEN checkpoint proof on `41f654884f7461a901c23f74fd7a5ddacae5a295`. Bootstrap #266 / run `35874735620` passed **352/352 tests**, **2,982 statements / 1,278 branches**, **100% line + branch**; REVIEW-0068 itself is **275 statements / 120 branches at 100%**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0068 proved its bounded reusable Gate witness through technical candidate `00a6518a57f8c0f7498455dc062210bb3d250aa7`, OPEN checkpoint `41f654884f7461a901c23f74fd7a5ddacae5a295`, and frozen exact head `466c37d56f7daab97fed1a0cbbe545ea593609f1`. Bootstrap #268 / run `35875607764` passed **352/352 tests**, **2,982 statements / 1,278 branches**, **100% line + branch**; REVIEW-0068 itself remained **275 statements / 120 branches at 100%**, and live PR #2 probe succeeded at **7/100** requests.
 
-The successor keeps the hard **100-request** cap. G1 performs one complete active authority proof. Under the retained REVIEW-0061 lower chronology and REVIEW-0063 full run/job lifetime containment, a historical canonical run whose validated current lifetime ended before the candidate Check Run started cannot contain a valid authority-bearing protected job that outranks the candidate, so that historical run needs no protected-job request. A current attempt starting after the candidate fails closed immediately; only temporally overlapping runs require job reads.
+Fresh Codex L2 request `5796883761` was quota-refused via `5796886353`; no independent REVIEW-0068 L2 was produced.
 
-G1 emits an exact reusable witness containing the candidate Check Run snapshot, the complete Actions frontier-run metadata snapshot and every overlapping protected-job snapshot. The mutation sequence then preserves **P1 -> unresolved threads -> P2**. G2 is bounded: it re-reads the complete frontier-run snapshot, every job that overlapped during G1, and the direct candidate Check Run. Any new/rerun/changed/disappearing authority object fails closed before pending write.
+REVIEW-0068 is now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO3Wwiw` proved dense-overlap request-budget starvation. REVIEW-0068 prunes non-overlapping historical runs, but every temporally overlapping canonical same-head current run still causes one protected-job collection in G1 and one in G2.
 
-The real shared-counter regression includes **16 distinct same-head historical canonical runs** and does not mock `latest_required_check`; it reaches the pending-write decision while preserving the full **23-request** mutation reserve. Bootstrap #263 and #264 remain negative harness/fixture evidence, while #265 remains negative coverage-gate evidence: 347/347 functional tests passed there, but REVIEW-0068 was only 86% covered and lifecycle opening was correctly withheld.
+For `M` overlapping runs, the strict lower bound from G1 through the mandatory post-G2 reserve is `2M + 32`: G1 costs at least `M+4`, P1/thread/P2 cost at least 3, G2 costs at least `M+2`, and 23 requests must remain. At only **M=35**, this is **102 > 100**, before scheduler-state, open-PR snapshot, target discovery, baseline or other earlier requests.
 
-Bootstrap #267 / run `35875277280` proved the OPEN checkpoint at **352/352 tests**, **2,982 statements / 1,278 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested. All **65** PR #5 material inline threads remain unresolved; green CI remains technical evidence, not semantic approval.
+This is a supported control-plane state. MONDE explicitly supports multiple open PRs sharing one SHA, the scheduler imposes no sibling-count bound inside one head group, and `MAX_HEADS_PER_INVOCATION=7` limits groups rather than PRs/runs within a group. The canonical Gate concurrency key is per PR number, so distinct shared-head PRs are not serialized by SHA and can legitimately expose many overlapping current runs.
+
+When this path exhausts budget, no G1 witness/frontier continuation is persisted. The next scheduled invocation restarts the same proof, so a current shared head can remain stale-green indefinitely.
+
+REVIEW-0069 must remove request cost linear in the count of overlapping runs from one invocation or make exact overlapping-frontier proof durably resumable across invocations, without raising the hard 100-request cap or weakening REVIEW-0068 authority safety. A real shared-counter regression with at least **35 valid temporally overlapping same-head current runs** is mandatory.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. REVIEW-0068 OPEN checkpoint proof is complete via Bootstrap #267 and REVIEW-0068 is now `IN_PROGRESS`.
-3. Prove/freeze this exact IN_PROGRESS head with Bootstrap before requesting any independent review.
-4. Request a fresh-context independent L2 over that frozen REVIEW-0068 head without mutating the tree while review runs.
-5. Any material finding closes REVIEW-0068 as negative evidence and requires a successor review; do not resolve historical threads.
-6. Only a clean independent review can permit controlled PR #5 thread resolution and guarded merge eligibility.
+2. REVIEW-0068 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0068 approval.
+3. Prove this CLOSED state-only checkpoint with Bootstrap.
+4. Design REVIEW-0069 around dense-overlap liveness under the hard 100-request cap.
+5. Add a real-budget regression with at least 35 valid temporally overlapping same-head canonical current runs.
+6. Restore exact-head 100% line/branch and live contract proof before opening REVIEW-0069.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
