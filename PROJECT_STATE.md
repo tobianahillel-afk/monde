@@ -276,22 +276,22 @@ REVIEW-0064 must validate temporal metadata for every current required-check can
 
 ## REVIEW-0064 — required-check temporal-snapshot successor
 
-REVIEW-0064 is now **OPEN** after exact technical proof on `7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a`. Bootstrap #247 / run `35850145099` passed **303/303 tests**, **2,521 statements / 1,092 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0064 is now **IN_PROGRESS** after exact technical proof on `7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a` and OPEN checkpoint proof on `9ab74b7d2d775bb764d95921021a70d97cf8a6ca`. Bootstrap #247 / run `35850145099` passed **303/303 tests**, **2,521 statements / 1,092 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
 
 The initial implementation commit `57fe16eae6c15ae2ec587ac902aa6867f93e2a68` had already passed all **301 tests** and the live contract probe in Bootstrap #246 / run `35850050110`, but MONDE's 100% project-owned coverage gate correctly rejected it because REVIEW-0064 still had one uncovered statement and three partial branches. The test-only descendant `7ad3ff6d...` closed those proof gaps without changing production logic.
 
 The successor validates every already-fetched current required-check candidate before it can influence selection: parseable `started_at`; completed candidates require parseable `completed_at >= started_at`; incomplete candidates must not carry `completed_at`. For the selected merge-acceptable candidate, `completed_at` must be no later than the captured authority frontier and both `started_at` and `completed_at` must exactly match the already-read direct protected Actions job. No GitHub request is added. REVIEW-0062 terminal stability, REVIEW-0063 full run/job lifetime containment and every prior recovery/pagination/frontier guarantee remain active.
 
-All **65** PR #5 inline material threads remain unresolved. This OPEN state-only checkpoint must pass Bootstrap before REVIEW-0064 may transition to `IN_PROGRESS`; green CI remains technical evidence, not semantic approval.
+Bootstrap #248 / run `35850458914` proved the OPEN checkpoint at **303/303 tests**, **2,521 statements / 1,092 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested. All **65** PR #5 inline material threads remain unresolved; green CI remains technical evidence, not semantic approval.
 
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
-2. Prove this REVIEW-0064 `OPEN` state-only checkpoint with Bootstrap.
-3. Only after that proof, transition REVIEW-0064 `OPEN -> IN_PROGRESS` in a state-only commit.
-4. Prove the resulting frozen exact HEAD before requesting any independent review.
-5. Request a fresh-context independent L2 over the frozen REVIEW-0064 head and all retained material findings without mutating the tree while review runs.
-6. Any material finding closes REVIEW-0064 as negative evidence and requires a successor review; do not resolve historical threads.
+2. REVIEW-0064 OPEN checkpoint proof is complete via Bootstrap #248 and REVIEW-0064 is now `IN_PROGRESS`.
+3. Prove/freeze this exact IN_PROGRESS head with Bootstrap before requesting any independent review.
+4. Request a fresh-context independent L2 over that frozen REVIEW-0064 head and all retained material findings without mutating the tree while review runs.
+5. Any material finding closes REVIEW-0064 as negative evidence and requires a successor review; do not resolve historical threads.
+6. Only a clean independent review can permit independently verified PR #5 thread resolution and guarded merge eligibility.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
