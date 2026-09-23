@@ -363,29 +363,47 @@ REVIEW-0071 is **CLOSED / CHANGES_REQUIRED** on frozen exact HEAD `69c68959f1144
 
 Bootstrap #286 / run `35917430655` passed **410/410 tests**, **3,543 statements / 1,514 branches**, **100% line + branch**; REVIEW-0071 itself was **168 statements / 76 branches at 100%**, and the live PR #2 contract probe succeeded at **2/100** requests.
 
-Fresh Codex L2 request `5802595691` was quota-refused by `5802597968`; no independent REVIEW-0071 L2 was produced.
+Fresh Codex L2 request `5802595691` was quota-refused by `5802597968`; no independent REVIEW-0071 L2 was produced. Author-side adversarial review **PRR_kwDOUUI5ts8AAAABO7OKJw** found the mutable discovery-state P1: a PR observed draft/closed can become ready/open before consumption, still be skipped, and have the durable cursor advance past it.
 
-Author-side adversarial review **PRR_kwDOUUI5ts8AAAABO7OKJw** found a new **P1**: REVIEW-0071 uses mutable `state` / `draft` values from the discovery page to skip direct validation. A PR can therefore be observed as draft/closed, become ready/open before consumption, still be skipped, and have the durable cursor advance past it. It can remain ready with unresolved review threads until a later complete sweep.
+REVIEW-0071 CLOSED checkpoint `a3cde9dc00a64fb36c3fa917be44e87219a2655e` passed Bootstrap #287 / run `35918357919`.
 
-REVIEW-0072 must preserve REVIEW-0071's durable `state=all` page discovery, prefix anchoring, page-21 liveness, double thread observation, exact mutation ACK validation and legacy pending handling, while **directly revalidating every discovered PR record before cursor advancement**.
+## REVIEW-0072 implementation candidate — current PR revalidation before cursor advance
 
-Required REVIEW-0072 regressions:
-- page says draft, current direct PR says ready + unresolved -> exact PR is drafted before cursor advance;
-- page says closed, current direct PR says open + ready + unresolved -> exact PR is drafted;
-- page says open + ready, direct PR is now closed or draft -> no redundant mutation;
-- budget exhaustion before direct current-PR validation does not advance the durable cursor;
-- many closed/draft records still make bounded durable progress under the real 100-request cap.
+REVIEW-0072 is **not opened yet**. It is a narrow successor over REVIEW-0071.
+
+For every discovered PR number, before any skip decision or durable cursor advancement:
+1. preserve the REVIEW-0071 page membership / prefix proof;
+2. reserve `DRAFT_GUARD_REQUEST_RESERVE + 2` request headroom;
+3. reread the exact current PR through the direct REST PR endpoint;
+4. if currently closed, safely advance;
+5. if currently draft, safely advance without auto-readying;
+6. if currently open + ready, pass that exact current snapshot into the existing REVIEW-0071 double-thread-observation guard;
+7. only after this current-state path finishes may `last_processed` advance.
+
+The page's mutable `state` / `draft` fields are therefore discovery metadata only and cannot authorize a skip.
+
+Required candidate regressions are implemented for:
+- page draft -> current ready -> unresolved guard drafts before cursor advance;
+- page closed -> current open+ready -> unresolved guard drafts;
+- page ready -> current closed -> no redundant guard;
+- page ready -> current draft -> no mutation;
+- current ready but guard returns safe -> cursor still advances;
+- budget exactly at reserve+2 -> no direct read and no cursor advance;
+- reserve+3 -> direct read is permitted;
+- 32 safe records perform 32 direct revalidations and make durable bounded partial-page progress;
+- legacy pending state still preempts discovery;
+- terminal empty page and full-page continuation remain REVIEW-0071-compatible.
 
 All **70/70 PR #5 material threads remain unresolved**.
 
 ## Current next action
 
-1. Keep all **70** PR #5 material threads unresolved.
-2. Commit this REVIEW-0071 `CLOSED` state-only checkpoint and prove it.
-3. Implement REVIEW-0072 only after the closed checkpoint is green.
-4. Restore exact-head 100% line/branch proof and live PR #2 probe.
-5. Open REVIEW-0072 only after technical proof, then follow OPEN -> IN_PROGRESS -> frozen proof.
-6. Request fresh independent L2 over all **70 unresolved material threads** only on the frozen REVIEW-0072 head.
+1. Commit the REVIEW-0072 implementation candidate atomically from proven REVIEW-0071 CLOSED checkpoint `a3cde9dc…`.
+2. Run the full Bootstrap suite and require exact **100% line + branch** including REVIEW-0072.
+3. Require live PR #2 contract probe success.
+4. If technical proof is clean, update TEST-0010 / WORK-0002 with exact evidence and only then create REVIEW-0072 as `OPEN`.
+5. Follow OPEN -> IN_PROGRESS -> frozen exact-head proof.
+6. Request fresh independent L2 over all **70 unresolved material threads** only on frozen REVIEW-0072.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
