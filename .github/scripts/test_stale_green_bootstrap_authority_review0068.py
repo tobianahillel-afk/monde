@@ -781,6 +781,539 @@ class Review0068WitnessTests(unittest.TestCase):
             chronology._validate_attempt_job_chronology = original_validator
             base._reset_request_budget()
 
+    def test_defensive_snapshot_and_authority_fail_closed_edges(self) -> None:
+        cand_run = candidate_run()
+        cand_check = candidate_check()
+        cand_job = candidate_job()
+        frontier = core._timestamp("2026-09-23T10:20:00Z", "frontier")
+
+        inconsistent = dict(cand_run)
+        inconsistent["updated_at"] = "2026-09-23T10:00:30Z"
+        with mock.patch.object(
+            subject.attempt,
+            "_run_attempt_started_at",
+            return_value=core._timestamp("2026-09-23T10:01:00Z", "started"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "updated before current attempt"):
+                subject._run_snapshot(inconsistent, HEAD)
+
+        bad_run = dict(cand_run)
+        bad_run["id"] = True
+        with self.assertRaisesRegex(RuntimeError, "malformed canonical.*run id"):
+            subject._job_snapshot(cand_job, bad_run, HEAD)
+
+        with self.assertRaisesRegex(RuntimeError, "frontier precedes candidate check"):
+            subject._bounded_overlap_prove(
+                "o/r",
+                HEAD,
+                "t",
+                cand_check,
+                core._timestamp("2026-09-23T10:01:00Z", "frontier"),
+            )
+
+        run_after = run_row(
+            116,
+            created="2026-09-23T10:00:00Z",
+            started="2026-09-23T10:21:00Z",
+            updated="2026-09-23T10:22:00Z",
+        )
+        with mock.patch.object(core, "request_data", return_value=run_after):
+            with self.assertRaisesRegex(RuntimeError, "attempt started after authority frontier"):
+                subject._bounded_overlap_prove("o/r", HEAD, "t", cand_check, frontier)
+
+        with mock.patch.object(
+            core, "request_data", side_effect=[cand_run, []]
+        ):
+            with self.assertRaisesRegex(RuntimeError, "malformed candidate protected"):
+                subject._bounded_overlap_prove("o/r", HEAD, "t", cand_check, frontier)
+
+        start_mismatch = dict(cand_job)
+        start_mismatch["started_at"] = "2026-09-23T10:03:00Z"
+        conclusion_mismatch = dict(cand_job)
+        conclusion_mismatch["conclusion"] = "failure"
+        for direct_job, message in (
+            (start_mismatch, "start identity"),
+            (conclusion_mismatch, "protected job conclusion"),
+        ):
+            with (
+                self.subTest(message=message),
+                mock.patch.object(
+                    core, "request_data", side_effect=[cand_run, direct_job]
+                ),
+            ):
+                with self.assertRaisesRegex(RuntimeError, message):
+                    subject._bounded_overlap_prove(
+                        "o/r", HEAD, "t", cand_check, frontier
+                    )
+
+        frontier_after = run_row(
+            117,
+            created="2026-09-23T10:10:00Z",
+            started="2026-09-23T10:21:00Z",
+            updated="2026-09-23T10:22:00Z",
+        )
+        with (
+            mock.patch.object(
+                core, "request_data", side_effect=[cand_run, cand_job]
+            ),
+            mock.patch.object(
+                attempt,
+                "_attempt_frontier_runs",
+                return_value=[cand_run, frontier_after],
+            ),
+            mock.patch.object(
+                chronology,
+                "_chronology_protected_gate_job",
+                return_value=cand_job,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "attempt started after authority frontier"):
+                subject._bounded_overlap_prove("o/r", HEAD, "t", cand_check, frontier)
+
+        late_job = dict(cand_job)
+        late_job["started_at"] = "2026-09-23T10:21:00Z"
+        late_job["completed_at"] = "2026-09-23T10:21:30Z"
+        with (
+            mock.patch.object(
+                core, "request_data", side_effect=[cand_run, cand_job]
+            ),
+            mock.patch.object(
+                attempt, "_attempt_frontier_runs", return_value=[cand_run]
+            ),
+            mock.patch.object(
+                chronology,
+                "_chronology_protected_gate_job",
+                return_value=late_job,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "job started after authority frontier"):
+                subject._bounded_overlap_prove("o/r", HEAD, "t", cand_check, frontier)
+
+        old = run_row(101)
+        with (
+            mock.patch.object(
+                core, "request_data", side_effect=[cand_run, cand_job]
+            ),
+            mock.patch.object(attempt, "_attempt_frontier_runs", return_value=[old]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "absent or ambiguous"):
+                subject._bounded_overlap_prove("o/r", HEAD, "t", cand_check, frontier)
+
+        frontier_candidate = dict(cand_run)
+        frontier_candidate["updated_at"] = "2026-09-23T10:01:30Z"
+        with (
+            mock.patch.object(
+                core, "request_data", side_effect=[cand_run, cand_job]
+            ),
+            mock.patch.object(
+                attempt,
+                "_attempt_frontier_runs",
+                return_value=[frontier_candidate],
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "protected job is absent"):
+                subject._bounded_overlap_prove("o/r", HEAD, "t", cand_check, frontier)
+
+    def test_witness_capture_and_revalidation_defensive_edges(self) -> None:
+        nonmerge = {**candidate_check(), "conclusion": "failure"}
+        original_job = mock.Mock(return_value={})
+
+        def latest_with_invalid_capture(_repo, _head, _token):
+            chronology._chronology_protected_gate_job(
+                "o/r", "t", {"id": 0}, HEAD
+            )
+            return nonmerge
+
+        with (
+            mock.patch.object(
+                chronology,
+                "_chronology_protected_gate_job",
+                original_job,
+            ),
+            mock.patch.object(
+                core,
+                "latest_required_check",
+                side_effect=latest_with_invalid_capture,
+            ),
+        ):
+            candidate, witness = subject._prove_with_witness("o/r", HEAD, "t")
+        self.assertEqual(candidate["conclusion"], "failure")
+        self.assertIsNone(witness)
+        original_job.assert_called_once()
+
+        cand = candidate_check()
+        run = candidate_run()
+        jb = candidate_job()
+        base_witness = subject.AuthorityWitness(
+            candidate_check=subject._check_snapshot(cand, HEAD),
+            frontier_runs=subject._frontier_snapshot([run], HEAD),
+            overlap_jobs=((999, subject._job_snapshot(jb, run, HEAD)),),
+        )
+        with (
+            mock.patch.object(
+                attempt.previous,
+                "_authority_frontier",
+                return_value=core._timestamp("2026-09-23T10:21:00Z", "frontier"),
+            ),
+            mock.patch.object(attempt, "_attempt_frontier_runs", return_value=[run]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "run disappeared"):
+                subject._revalidate_witness("o/r", HEAD, "t", base_witness)
+
+        no_overlap = subject.AuthorityWitness(
+            candidate_check=subject._check_snapshot(cand, HEAD),
+            frontier_runs=subject._frontier_snapshot([run], HEAD),
+            overlap_jobs=(),
+        )
+        with (
+            mock.patch.object(
+                attempt.previous,
+                "_authority_frontier",
+                return_value=core._timestamp("2026-09-23T10:21:00Z", "frontier"),
+            ),
+            mock.patch.object(attempt, "_attempt_frontier_runs", return_value=[run]),
+            mock.patch.object(core, "request_data", return_value=[]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "malformed direct required"):
+                subject._revalidate_witness("o/r", HEAD, "t", no_overlap)
+
+    def test_two_stage_processor_control_flow_edges(self) -> None:
+        current = pr(1, branch="shared", head=HEAD)
+        target = (candidate_run(), candidate_check())
+        cand = candidate_check()
+        witness = subject.AuthorityWitness(
+            subject._check_snapshot(cand, HEAD),
+            subject._frontier_snapshot([candidate_run()], HEAD),
+            (),
+        )
+
+        self.assertEqual(
+            subject._two_stage_process(
+                "o/r", "t", [], 3, pending.SchedulerStateV4(0)
+            ),
+            ([], [], None),
+        )
+        self.assertEqual(
+            subject._two_stage_process(
+                "o/r", "t", [current], 0, pending.SchedulerStateV4(0)
+            ),
+            ([], [], None),
+        )
+        with mock.patch.object(
+            subject.base, "_remaining_request_budget", return_value=0
+        ):
+            with self.assertRaisesRegex(
+                subject.base.DeferredForBudget, "before sibling evaluation"
+            ):
+                subject._two_stage_process(
+                    "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
+                )
+
+        continuation = base.ScanPage(3, "e" * 64)
+        with (
+            mock.patch.object(
+                subject.base,
+                "_remaining_request_budget",
+                return_value=subject.base.MAX_GITHUB_REQUESTS_PER_INVOCATION,
+            ),
+            mock.patch.object(core, "unresolved_review_threads", return_value=True),
+            mock.patch.object(
+                pending.previous,
+                "_direct_target_for_pr",
+                return_value=(target, continuation),
+            ) as direct,
+        ):
+            result = subject._two_stage_process(
+                "o/r",
+                "t",
+                [current],
+                3,
+                pending.SchedulerStateV4(0),
+                1,
+                2,
+                "f" * 64,
+            )
+        self.assertEqual(int(result[2][1]), 3)
+        self.assertEqual(direct.call_args.args[3:], (2, "f" * 64))
+
+        with (
+            mock.patch.object(
+                subject.base,
+                "_remaining_request_budget",
+                return_value=subject.base.MAX_GITHUB_REQUESTS_PER_INVOCATION,
+            ),
+            mock.patch.object(
+                core,
+                "unresolved_review_threads",
+                side_effect=[True, False],
+            ),
+            mock.patch.object(
+                pending.previous,
+                "_direct_target_for_pr",
+                return_value=(target, None),
+            ),
+            mock.patch.object(base, "_current_pr", return_value=current),
+        ):
+            self.assertEqual(
+                subject._two_stage_process(
+                    "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
+                ),
+                ([], [], None),
+            )
+
+        with (
+            mock.patch.object(
+                subject.base,
+                "_remaining_request_budget",
+                return_value=subject.base.MAX_GITHUB_REQUESTS_PER_INVOCATION,
+            ),
+            mock.patch.object(core, "unresolved_review_threads", return_value=True),
+            mock.patch.object(
+                pending.previous,
+                "_direct_target_for_pr",
+                return_value=(target, None),
+            ),
+            mock.patch.object(base, "_current_pr", side_effect=[current, None]),
+            mock.patch.object(
+                pending.previous, "_mutation_baseline", return_value=1
+            ),
+        ):
+            result = subject._two_stage_process(
+                "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
+            )
+        self.assertEqual(result[2][0], 1)
+
+        with (
+            mock.patch.object(
+                subject.base,
+                "_remaining_request_budget",
+                return_value=subject.base.MAX_GITHUB_REQUESTS_PER_INVOCATION,
+            ),
+            mock.patch.object(
+                core,
+                "unresolved_review_threads",
+                side_effect=[True, True, False],
+            ),
+            mock.patch.object(
+                pending.previous,
+                "_direct_target_for_pr",
+                return_value=(target, None),
+            ),
+            mock.patch.object(base, "_current_pr", return_value=current),
+            mock.patch.object(
+                pending.previous, "_mutation_baseline", return_value=1
+            ),
+        ):
+            self.assertEqual(
+                subject._two_stage_process(
+                    "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
+                ),
+                ([], [], None),
+            )
+
+        with (
+            mock.patch.object(
+                subject.base,
+                "_remaining_request_budget",
+                return_value=subject.base.MAX_GITHUB_REQUESTS_PER_INVOCATION,
+            ),
+            mock.patch.object(core, "unresolved_review_threads", return_value=True),
+            mock.patch.object(
+                pending.previous,
+                "_direct_target_for_pr",
+                return_value=(target, None),
+            ),
+            mock.patch.object(base, "_current_pr", return_value=current),
+            mock.patch.object(
+                pending.previous, "_mutation_baseline", return_value=1
+            ),
+            mock.patch.object(
+                subject, "_prove_with_witness", return_value=(cand, witness)
+            ),
+            mock.patch.object(pending, "_current_pending_pr", return_value=None),
+        ):
+            result = subject._two_stage_process(
+                "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
+            )
+        self.assertEqual(result[2][0], 1)
+
+        with (
+            mock.patch.object(
+                subject.base,
+                "_remaining_request_budget",
+                return_value=subject.base.MAX_GITHUB_REQUESTS_PER_INVOCATION,
+            ),
+            mock.patch.object(
+                core,
+                "unresolved_review_threads",
+                side_effect=[True, True, True, False],
+            ),
+            mock.patch.object(
+                pending.previous,
+                "_direct_target_for_pr",
+                return_value=(target, None),
+            ),
+            mock.patch.object(base, "_current_pr", return_value=current),
+            mock.patch.object(
+                pending.previous, "_mutation_baseline", return_value=1
+            ),
+            mock.patch.object(
+                subject, "_prove_with_witness", return_value=(cand, witness)
+            ),
+            mock.patch.object(
+                pending, "_current_pending_pr", return_value=current
+            ),
+        ):
+            self.assertEqual(
+                subject._two_stage_process(
+                    "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
+                ),
+                ([], [], None),
+            )
+
+    def test_two_stage_mutation_and_postcondition_edges(self) -> None:
+        current = pr(1, branch="shared", head=HEAD)
+        target = (candidate_run(), candidate_check())
+        cand = candidate_check()
+        witness = subject.AuthorityWitness(
+            subject._check_snapshot(cand, HEAD),
+            subject._frontier_snapshot([candidate_run()], HEAD),
+            (),
+        )
+
+        def common_context(*, threads=True):
+            return (
+                mock.patch.object(
+                    subject.base,
+                    "_remaining_request_budget",
+                    side_effect=[
+                        subject.base.MAX_GITHUB_REQUESTS_PER_INVOCATION,
+                        pending.MUTATION_REQUEST_RESERVE,
+                    ],
+                ),
+                mock.patch.object(
+                    core, "unresolved_review_threads", return_value=threads
+                ),
+                mock.patch.object(
+                    pending.previous,
+                    "_direct_target_for_pr",
+                    return_value=(target, None),
+                ),
+                mock.patch.object(base, "_current_pr", return_value=current),
+                mock.patch.object(
+                    pending.previous, "_mutation_baseline", return_value=1
+                ),
+                mock.patch.object(
+                    subject, "_prove_with_witness", return_value=(cand, witness)
+                ),
+                mock.patch.object(
+                    pending, "_current_pending_pr", return_value=current
+                ),
+                mock.patch.object(subject, "_revalidate_witness"),
+                mock.patch.object(pending, "_write_state"),
+            )
+
+        contexts = common_context()
+        with (
+            contexts[0], contexts[1], contexts[2], contexts[3], contexts[4],
+            contexts[5], contexts[6], contexts[7], contexts[8],
+            mock.patch.object(
+                core, "rerun_workflow", side_effect=RuntimeError("post lost")
+            ),
+        ):
+            with self.assertRaisesRegex(
+                pending.PendingMutationUncertain, "POST outcome is ambiguous"
+            ):
+                subject._two_stage_process(
+                    "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
+                )
+
+        contexts = common_context()
+        with (
+            contexts[0], contexts[1], contexts[2], contexts[3], contexts[4],
+            contexts[5], contexts[6], contexts[7], contexts[8],
+            mock.patch.object(core, "rerun_workflow"),
+            mock.patch.object(
+                pending.previous,
+                "_wait_for_terminal_invalidation",
+                side_effect=subject.base.DeferredObservation("later"),
+            ),
+        ):
+            with self.assertRaises(pending.PendingMutationObservation):
+                subject._two_stage_process(
+                    "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
+                )
+
+        contexts = common_context()
+        with (
+            contexts[0], contexts[1], contexts[2], contexts[3], contexts[4],
+            contexts[5], contexts[6], contexts[7], contexts[8],
+            mock.patch.object(core, "rerun_workflow"),
+            mock.patch.object(
+                pending.previous,
+                "_wait_for_terminal_invalidation",
+                return_value=False,
+            ),
+        ):
+            result = subject._two_stage_process(
+                "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
+            )
+        self.assertEqual(result[0], [116])
+        self.assertEqual(result[2][0], 1)
+
+        contexts = common_context()
+        with (
+            contexts[0],
+            mock.patch.object(
+                core,
+                "unresolved_review_threads",
+                side_effect=[True, True, True, True, False],
+            ),
+            contexts[2], contexts[3], contexts[4], contexts[5], contexts[6],
+            contexts[7], contexts[8],
+            mock.patch.object(core, "rerun_workflow"),
+            mock.patch.object(
+                pending.previous,
+                "_wait_for_terminal_invalidation",
+                return_value=False,
+            ),
+        ):
+            result = subject._two_stage_process(
+                "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
+            )
+        self.assertEqual(result, ([116], [], None))
+
+    def test_safe_wrapper_existing_pending_and_prewrite_error_edges(self) -> None:
+        current = pr(1, branch="shared", head=HEAD)
+        state = pending._pending_state(
+            pending.SchedulerStateV4(0), current, 116, 1, 616
+        )
+        existing = pending.PendingMutationUncertain("already uncertain")
+
+        with (
+            mock.patch.object(
+                subject,
+                "_two_stage_process",
+                side_effect=lambda *_a, **_k: pending._write_state(
+                    "o/r", "t", state
+                ),
+            ),
+            mock.patch.object(pending, "_write_state", side_effect=existing),
+        ):
+            with self.assertRaises(pending.PendingMutationUncertain) as raised:
+                subject._safe_two_stage_process(
+                    "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
+                )
+        self.assertIs(raised.exception, existing)
+
+        ordinary = RuntimeError("before pending")
+        with mock.patch.object(subject, "_two_stage_process", side_effect=ordinary):
+            with self.assertRaises(RuntimeError) as raised:
+                subject._safe_two_stage_process(
+                    "o/r", "t", [current], 3, pending.SchedulerStateV4(0)
+                )
+        self.assertIs(raised.exception, ordinary)
+
     def test_install_main_and_entrypoint(self) -> None:
         with (
             mock.patch.object(previous, "install") as install,
