@@ -220,6 +220,14 @@ The successor preserves REVIEW-0059's explicit Actions authority frontier but re
 
 Bootstrap #228 / run `35833351150` proved the OPEN checkpoint at **261/261 tests**, **2,283 statements / 1,008 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
+## REVIEW-0060 — terminal negative evidence
+
+REVIEW-0060 passed frozen exact-head proof on `729a3d1b917d4cb14f8e66083b11994947d37e42`: Bootstrap #229 / run `35833554806` passed **261/261 tests**, **2,283 statements / 1,008 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
+
+REVIEW-0060 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOzV1xw` exposed a cross-object chronology gap. Runs and jobs are validated separately, but the code does not enforce `protected_job.started_at >= current run_started_at`. A malformed competitor job timestamp can therefore make a genuinely newer current attempt appear older in the authority ordering and allow a stale candidate.
+
+REVIEW-0061 must preserve attempt-aware frontier semantics while enforcing this run/job chronology for both the direct candidate and every frontier run before authority ordering.
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
@@ -228,7 +236,7 @@ Bootstrap #228 / run `35833351150` proved the OPEN checkpoint at **261/261 tests
 4. REVIEW-0051 technical candidate proof is complete on `63001400...` via Bootstrap #159.
 5. REVIEW-0051 is CLOSED/CHANGES_REQUIRED after real multi-check reproduction PRR_kwDOUUI5ts8AAAABOoOnSQ; do not request REVIEW-0051 approval.
 6. REVIEW-0052 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOpz-Bg exposed the >100 filtered-check pagination P1; do not request REVIEW-0052 approval.
-7. REVIEW-0060 OPEN proof is complete via Bootstrap #228 and REVIEW-0060 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
+7. REVIEW-0060 is CLOSED/CHANGES_REQUIRED after PRR_kwDOUUI5ts8AAAABOzV1xw exposed missing run/job cross-object chronology; implement and prove REVIEW-0061 before another independent L2.
 8. Resolve no historical thread before a clean successor review.
 9. WORK-0003 and WORK-0004 remain blocked.
 
