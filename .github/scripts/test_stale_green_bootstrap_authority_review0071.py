@@ -453,6 +453,23 @@ class Review0071SuccessorTests(unittest.TestCase):
         guard.assert_not_called()
         write.assert_not_called()
 
+    def test_poll_processes_ready_pr_without_draft_when_guard_returns_false(self) -> None:
+        state = pending.SchedulerStateV4(0)
+        page = [page_pr(1, draft=False)]
+        writes: list[pending.SchedulerStateV4] = []
+        with (
+            mock.patch.object(pending, "_read_state", return_value=state),
+            mock.patch.object(subject, "_read_discovery_page", return_value=page),
+            mock.patch.object(base, "_remaining_request_budget", return_value=100),
+            mock.patch.object(subject, "_guard_one", return_value=False) as guard,
+            mock.patch.object(
+                pending, "_write_state", side_effect=lambda _r, _t, st: writes.append(st)
+            ),
+        ):
+            self.assertEqual(subject._draft_guard_poll("o/r", "t"), [])
+        guard.assert_called_once()
+        self.assertEqual(writes[-1], pending.SchedulerStateV4(1))
+
     def test_poll_records_successful_draft_and_state_progress(self) -> None:
         state = pending.SchedulerStateV4(0)
         page = [page_pr(1, draft=False)]
