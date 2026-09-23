@@ -330,15 +330,27 @@ When this path exhausts budget, no G1 witness/frontier continuation is persisted
 
 REVIEW-0069 must remove request cost linear in the count of overlapping runs from one invocation or make exact overlapping-frontier proof durably resumable across invocations, without raising the hard 100-request cap or weakening REVIEW-0068 authority safety. A real shared-counter regression with at least **35 valid temporally overlapping same-head current runs** is mandatory.
 
+## REVIEW-0069 implementation candidate
+
+Development now proceeds through `stale_green_bootstrap_authority_review0069.py`. Instead of one protected-job API call per overlapping run, G1 bulk-collects the latest GitHub Actions `MONDE / Merge Gate` Check Runs for the exact head and the canonical Actions run frontier.
+
+Every canonical run exposes an exact `check_suite_id`; every bulk Gate Check Run exposes `check_suite.id`. REVIEW-0069 requires a one-to-one suite mapping, canonical GitHub Actions `details_url` whose run/job ids match the Check Run id, exact current-run temporal containment, and current-attempt chronology. An old-attempt Check Run on a rerun therefore fails when its start precedes current `run_started_at`. A missing/duplicate suite check also fails closed.
+
+Only the selected candidate retains direct run/job verification, including exact run snapshot equality, current attempt, full REVIEW-0063 run/job containment, Check Run/job timing equality and conclusion equality. G1 emits a witness containing the complete bulk Check Run snapshot, complete canonical Actions frontier snapshot, candidate Check Run and candidate protected-job snapshot.
+
+After the existing P1 -> unresolved threads -> P2 interval, G2 re-collects the complete bulk Check Run and Actions frontier snapshots and requires exact equality; it then revalidates the selected candidate direct run/job. New/rerun/changed/disappearing authority objects therefore fail closed without one `/jobs` request per competitor.
+
+The regression suite includes at least **35 valid temporally overlapping same-head current runs across distinct check suites** and uses the real shared request counter. It must reach the pending-write decision with the full 23-request mutation reserve intact and prove no competitor causes a direct `/jobs` lookup.
+
+
 ## Current next action
 
 1. Keep all **65** PR #5 inline material threads unresolved.
 2. REVIEW-0068 is terminal `CLOSED / CHANGES_REQUIRED`; do not request further REVIEW-0068 approval.
-3. Prove this CLOSED state-only checkpoint with Bootstrap.
-4. Design REVIEW-0069 around dense-overlap liveness under the hard 100-request cap.
-5. Add a real-budget regression with at least 35 valid temporally overlapping same-head canonical current runs.
-6. Restore exact-head 100% line/branch and live contract proof before opening REVIEW-0069.
-7. WORK-0003 and WORK-0004 remain blocked.
+3. REVIEW-0068 CLOSED checkpoint proof is complete via Bootstrap #269 / run 35876732282.
+4. Prove the REVIEW-0069 bulk Check Run / Actions frontier implementation at 100% line+branch and live PR #2 contract.
+5. Only after exact technical proof may REVIEW-0069 be materialized as `OPEN`.
+6. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
