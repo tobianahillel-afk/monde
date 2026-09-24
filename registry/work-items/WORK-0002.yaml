@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0075 are terminal negative evidence. REVIEW-0076 documentation/traceability candidate e82ac8ac599e4f3611d5ab90358939e789288def passed Bootstrap #306 / run 35987119706 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests. Compare b8de445952c0cfb916e5ead7ce7009dff4809a41..e82ac8ac599e4f3611d5ab90358939e789288def changes exactly PROJECT_STATE.md and registry/work-items/WORK-0002.yaml, so REVIEW-0075 runtime/workflow semantics remain unchanged. The active regression invariant is reconciled to all 76 inline findings and the active resume handover reports 76 live PR #5 material threads while historical 73/75 counts remain historical truth. REVIEW-0076 is OPEN pending its state-only checkpoint proof; all 76 inline material threads remain unresolved and T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0075 are terminal negative evidence. REVIEW-0076 exact documentation candidate e82ac8ac599e4f3611d5ab90358939e789288def passed Bootstrap #306 / run 35987119706 and OPEN checkpoint f20894d87799c33faf97e3360ae9c0fc96d95cef passed Bootstrap #307 / run 35987412834, both at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests. Compare b8de445952c0cfb916e5ead7ce7009dff4809a41..e82ac8ac599e4f3611d5ab90358939e789288def changes exactly PROJECT_STATE.md and registry/work-items/WORK-0002.yaml; REVIEW-0075 runtime/workflow semantics remain unchanged. Active finding-count traceability is reconciled to 76 and historical 73/75 counts remain preserved as historical truth. REVIEW-0076 is IN_PROGRESS pending one frozen exact-head proof and fresh independent L2 over all 76 unresolved material threads; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -376,6 +376,7 @@ run_log:
   - "REVIEW-0075 frozen head cfb1fabb308167d1133872a099a7a1b8709f4440 passed Bootstrap #304 / run 35981180705 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; Codex L2 request 5811504923 was quota-refused by 5811506815, then author-side PRR_kwDOUUI5ts8AAAABPBZHCg added P2 PRRT_kwDOUUI5ts6liZGL and increased unresolved PR #5 threads from 75 to 76."
   - "REVIEW-0075 CLOSED checkpoint b8de445952c0cfb916e5ead7ce7009dff4809a41 passed Bootstrap #305 / run 35986900739 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0076 documentation-only candidate starts only from this proven terminal checkpoint."
   - "REVIEW-0076 exact documentation candidate e82ac8ac599e4f3611d5ab90358939e789288def passed Bootstrap #306 / run 35987119706 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; compare from REVIEW-0075 CLOSED checkpoint changes exactly PROJECT_STATE.md and registry/work-items/WORK-0002.yaml."
+  - "REVIEW-0076 OPEN checkpoint f20894d87799c33faf97e3360ae9c0fc96d95cef passed Bootstrap #307 / run 35987412834 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
   - "REVIEW-0063 frozen head 22dd22d5f9e50eea6d3bd351af8e12ab9a935440 passed Bootstrap #244 / run 35848734246 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; fresh Codex L2 request 5793162559 was quota-refused by 5793166351, then author-side PRR_kwDOUUI5ts8AAAABO0xdhQ exposed malformed Check Run terminal temporal metadata being accepted as authority."
 
 discoveries:
@@ -402,7 +403,7 @@ blockers:
   - "REVIEW-0073 is terminal CLOSED/CHANGES_REQUIRED after author-side P1/P2 findings; do not resolve any of the 73 threads."
   - "REVIEW-0074 is terminal CLOSED/CHANGES_REQUIRED after independent exact-head L2; do not resolve any of the 75 threads."
   - "REVIEW-0075 is terminal CLOSED/CHANGES_REQUIRED after author-side P2 PRRT_kwDOUUI5ts6liZGL; do not request further REVIEW-0075 approval."
-  - "REVIEW-0076 is OPEN after exact documentation-candidate proof #306; prove its state-only OPEN checkpoint before transition to IN_PROGRESS, then freeze/prove one exact head before fresh independent L2 over all 76 unresolved threads."
+  - "REVIEW-0076 OPEN checkpoint is proved by #307; REVIEW-0076 is IN_PROGRESS pending one frozen exact-head proof and fresh independent L2 over all 76 unresolved threads."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."

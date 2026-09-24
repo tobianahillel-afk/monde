@@ -429,33 +429,32 @@ The REVIEW-0075 CLOSED state-only checkpoint `b8de445952c0cfb916e5ead7ce7009dff4
 
 ## REVIEW-0076 — finding-count traceability reconciliation
 
-REVIEW-0076 is now **OPEN** after exact documentation-candidate proof on `e82ac8ac599e4f3611d5ab90358939e789288def`.
+REVIEW-0076 is now **IN_PROGRESS** after exact documentation-candidate proof on `e82ac8ac599e4f3611d5ab90358939e789288def` and OPEN checkpoint proof on `f20894d87799c33faf97e3360ae9c0fc96d95cef`.
 
-Bootstrap #306 / run `35987119706` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+Bootstrap #306 / run `35987119706` and Bootstrap #307 / run `35987412834` both passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-The candidate is documentation/traceability-only. Compare `b8de445952c0cfb916e5ead7ce7009dff4809a41..e82ac8ac599e4f3611d5ab90358939e789288def` changes exactly:
+The candidate remains documentation/traceability-only. Compare `b8de445952c0cfb916e5ead7ce7009dff4809a41..e82ac8ac599e4f3611d5ab90358939e789288def` changes exactly:
 - `PROJECT_STATE.md`
 - `registry/work-items/WORK-0002.yaml`
 
 No bootstrap Python or workflow semantic file changed.
 
-The active contradiction is repaired:
-- WORK-0002 `required_tests.regression` now requires **all 76 inline findings**;
-- active resume handover now reports **76 live PR #5 threads**;
-- historical REVIEW-0073 and REVIEW-0074 73/75 counts remain historical evidence rather than being rewritten;
+The active contradiction remains repaired:
+- WORK-0002 `required_tests.regression` requires **all 76 inline findings**;
+- active resume handover reports **76 live PR #5 threads**;
+- historical REVIEW-0073 and REVIEW-0074 73/75 counts remain historical evidence;
 - REVIEW-0075 runtime execution identity remains unchanged.
 
-All **76/76 PR #5 material threads remain unresolved**. Green documentation proof is not semantic approval. This OPEN checkpoint must pass before REVIEW-0076 may transition to `IN_PROGRESS`.
+All **76/76 PR #5 material threads remain unresolved**. This IN_PROGRESS state must now receive one frozen exact-head proof before fresh independent L2.
 
 ## Current next action
 
 1. Keep all **76** PR #5 material threads unresolved.
-2. Prove this REVIEW-0076 `OPEN` state-only checkpoint with Bootstrap.
-3. Transition `OPEN -> IN_PROGRESS` only after that proof.
-4. Prove the resulting frozen exact HEAD.
-5. Request fresh independent L2 over all **76 unresolved material threads** and the complete retained negative evidence.
-6. Any material finding closes REVIEW-0076 and requires a successor; resolve nothing beforehand.
-7. WORK-0003 and WORK-0004 remain blocked.
+2. Prove/freeze this exact REVIEW-0076 IN_PROGRESS head with Bootstrap.
+3. Request fresh independent L2 over all **76 unresolved material threads** and retained negative evidence without mutating the tree while it runs.
+4. Any material finding closes REVIEW-0076 and requires a successor.
+5. Only a clean L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
+6. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
