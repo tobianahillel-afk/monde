@@ -1,12 +1,12 @@
 id: REVIEW-0083
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-2"
-  commit_sha: null
+  commit_sha: "cc37d74e2ee49aea62cfdfa30634c01a1032751f"
 reviewer:
-  actor: null
-  context_id: null
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABPJeT9Q"
   independence_level: L2
 roles:
   - ARCHITECTURE_REUSE
@@ -42,7 +42,10 @@ scope:
     - "a conditional validator step could be accepted without matching the one explicitly expected condition"
     - "the two fixes could pass unit tests but survive critical mutation"
     - "durable and live closure sets could drift while preserving the same count"
-findings: []
+findings:
+  - "PRRT_kwDOUUI5ts6lzzao"
+  - "PRRT_kwDOUUI5ts6lzzas"
+  - "PRRT_kwDOUUI5ts6lzzax"
 checks:
   assumptions_challenged:
     - "all non-first-parent reviews are predecessor-only evidence and may be ignored by freshness"
@@ -67,7 +70,7 @@ checks:
     - "REVIEW-0082 remains clean independent predecessor evidence for PR #5 only."
     - "T13 parsed-command proof is reused and hardened rather than replaced."
     - "T14 two-parent integration hardening remains unchanged."
-    - "All 77 live PR #2 material threads remain unresolved."
+    - "All 81 live PR #2 material threads remain unresolved after this L2 plus the author-side duplicate thread PRRT_kwDOUUI5ts6lz1l8."
   failure_modes_considered:
     - "candidate-specific exception accepts a different second-parent review"
     - "later substantive changes remain fresh under an unrelated inherited review"
@@ -82,10 +85,11 @@ checks:
     - "Gate #270 live merge gate failed closed only on UNRESOLVED_THREADS:77 and INDEPENDENT_EXACT_HEAD_APPROVAL."
     - "The earlier invalid attempt to materialize REVIEW-0083 directly as CLOSED was rejected by Gate #266 and removed from branch history; this OPEN record is the first valid canonical materialization."
     - "OPEN checkpoint 5033c5ae4010ab63ed28b19200a94eb84d2bdfe5 passed Bootstrap #345 / run 36066385035 and Gate #271 / run 36066385383: 821 tests, 7816 statements / 3568 branches at 100 percent line+branch, all mutation suites and deterministic/T7-T11 validators green; live gate failed only on 77 unresolved threads and missing exact-head approval."
-    - "One frozen exact-head full Gate proof is required after IN_PROGRESS before fresh independent L2."
-    - "Fresh independent L2 must inspect all 77 unresolved material threads and the two PRR_kwDOUUI5ts8AAAABPIVhXA findings before any controlled resolution."
+    - "Frozen exact-head proof on cc37d74e2ee49aea62cfdfa30634c01a1032751f: Bootstrap #346 / run 36066922675 SUCCESS and Gate #272 / run 36066923152 with 821 tests, 7816 statements / 3568 branches at 100 percent line+branch, 38/38 + 40/40 + 5/5 + 11/11 + 6/6 mutations and every deterministic validator green."
+    - "Fresh independent L2 PRR_kwDOUUI5ts8AAAABPJeT9Q reviewed exact head cc37d74e2ee49aea62cfdfa30634c01a1032751f and produced P1 PRRT_kwDOUUI5ts6lzzao (inherited workflow/job controls), P1 PRRT_kwDOUUI5ts6lzzas (backgrounded validator commands) and P1 PRRT_kwDOUUI5ts6lzzax (dependency-review skip bypass)."
+    - "Author-side duplicate P1 PRRT_kwDOUUI5ts6lz1l8 independently rediscovered the inherited-control issue; it remains live/unresolved and must be tracked durably, but is not attributed to the independent reviewer."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-24T23:40:32Z"
 history:
   created_at: "2026-09-24"
   updated_at: "2026-09-24"

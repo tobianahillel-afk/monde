@@ -114,7 +114,7 @@ T11 now enforces that:
 - Gate #259 / run `36055246141` on integrated head `6e8014c7d46e2aceefa03902c37c6bdf2fac0c19` exposed one deterministic integration defect before L2: `.github/scripts/governance_t13_mutation_smoke.py` still targeted the pre-refactor `return any(...)` form of `_steps_execute_prefix`, while the current hardened implementation uses per-step parsed commands plus `if any(...): return True`. The runtime guard was correct; the mutation harness failed closed with `t13-executable-command-proof: target occurrence count != 1`. The current correction retargets that mutant to the exact current executable-prefix branch without weakening the mutation. A fresh exact-head Gate is required before any L2 request.
 - Gate #260 / run `36058286810` proved the T13 mutation retarget itself, then exposed a second integration-specific defect in `change_guard`: inherited REVIEW-0082 from the PR #5/main second-parent lineage was incorrectly treated as freshness authority for substantive first-parent PR #2 changes. REVIEW-0082 is valid T12 predecessor evidence, not a review of the current PR #2 delta. The correction makes review freshness authority first-parent scoped: a reviewed commit must remain an ancestor of the head, but only a reviewed commit on the current head's first-parent lineage can stale subsequent first-parent work. A real two-parent regression reproduces PR #5/main as second parent and preserves ordinary first-parent stale-review detection.
 **
-- Live PR #2 has **77 unresolved material threads**. Fresh independent integrated-head Codex review `PRR_kwDOUUI5ts8AAAABPIVhXA` on exact head `c80ff3a3cd9640256fca65285ba28094ac848365` added P1 `PRRT_kwDOUUI5ts6lxalB` and P1 `PRRT_kwDOUUI5ts6lxalH`. Exact correction candidate `854c4e8aa076bd6ac1c57baae96b9f278e995c0e` passed Bootstrap #344 / run `36065670134` and Gate #270 / run `36065670495`: **821 tests**, **7,816 statements / 3,568 branches**, **100% line + branch**, mutations **38/38 + 40/40 + 5/5 + 11/11 + 6/6**, every deterministic validator green, CodeQL and Dependency Review green. The live gate failed only on **77 unresolved threads** and missing trusted exact-head approval. REVIEW-0083 is now **IN_PROGRESS** after exact OPEN checkpoint proof on `5033c5ae4010ab63ed28b19200a94eb84d2bdfe5` via Bootstrap #345 / Gate #271.
+- Live PR #2 now has **81 unresolved material threads**. REVIEW-0083 frozen head `cc37d74e2ee49aea62cfdfa30634c01a1032751f` passed Bootstrap #346 / Gate #272 with **821 tests**, **7,816 statements / 3,568 branches**, **100% line + branch**, mutations **38/38 + 40/40 + 5/5 + 11/11 + 6/6**, every deterministic validator green, CodeQL and Dependency Review green; live gate failed only on **77 unresolved threads** and missing exact-head approval before review. Fresh independent L2 `PRR_kwDOUUI5ts8AAAABPJeT9Q` then added P1 `PRRT_kwDOUUI5ts6lzzao` (inherited workflow/job controls), P1 `PRRT_kwDOUUI5ts6lzzas` (backgrounded validator commands) and P1 `PRRT_kwDOUUI5ts6lzzax` (dependency-review skip bypass). Author-side duplicate `PRRT_kwDOUUI5ts6lz1l8` is also live. REVIEW-0083 is **CLOSED / CHANGES_REQUIRED**.
 - WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
 - Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` author-side; `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending exact integrated-head closure.
 
@@ -122,18 +122,31 @@ T11 now enforces that:
 
 Required sequence from this integrated state:
 
-1. Keep all **77** PR #2 material review threads unresolved.
-2. REVIEW-0083 OPEN checkpoint `5033c5ae4010ab63ed28b19200a94eb84d2bdfe5` is proved by Bootstrap #345 / Gate #271; REVIEW-0083 is now **IN_PROGRESS**.
-3. Prove this OPEN state-only checkpoint with the full Gate.
-4. Only after the frozen IN_PROGRESS proof, request exactly one fresh-context independent L2 over all 77 findings plus integration effects; do not mutate the tree while it runs.
-5. Prove the resulting frozen exact HEAD with full deterministic/security/mutation/CodeQL/Dependency Review evidence and live **77/77** durable finding equality.
-6. Request a fresh-context independent L2 over all 77 accumulated findings plus integration effects, explicitly rechecking the exact REVIEW-0082 predecessor exception and workflow execution-control hardening.
-7. If new material findings appear, close REVIEW-0083 as negative evidence, durably add their exact identities and create a successor before any resolution.
+1. Keep all **81** PR #2 material review threads unresolved.
+2. REVIEW-0083 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPJeT9Q` on `cc37d74e2ee49aea62cfdfa30634c01a1032751f`.
+3. Correct the three distinct REVIEW-0083 defects: inherited workflow/job execution controls, single-ampersand background masking, and PR-family dependency-review skip enforcement.
+4. Keep the author duplicate `PRRT_kwDOUUI5ts6lz1l8` durably tracked until a clean successor review authorizes controlled resolution.
+5. Obtain exact technical proof on the corrected candidate before materializing REVIEW-0084.
+6. Then run the truthful REVIEW-0084 lifecycle OPEN -> proved -> IN_PROGRESS -> frozen exact-head proof -> fresh independent L2 over all 81 findings plus integration effects.
+7. If new material findings appear, close REVIEW-0084 as negative evidence, add their exact identities durably and create another successor before any resolution.
 8. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD satisfying the hardened trusted/context-separated L2/L3 contract.
 9. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
 10. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
-## REVIEW-0083 — integrated-head successor review
+## REVIEW-0083 — terminal negative integrated-head review
+
+REVIEW-0083 completed on exact frozen head `cc37d74e2ee49aea62cfdfa30634c01a1032751f` with independent reviewer `chatgpt-codex-connector` / `PRR_kwDOUUI5ts8AAAABPJeT9Q` and outcome **CHANGES_REQUIRED**.
+
+Independent P1 findings:
+- `PRRT_kwDOUUI5ts6lzzao` — inherited workflow/job env and defaults.run bypass required-command proof;
+- `PRRT_kwDOUUI5ts6lzzas` — single `&` backgrounds a required validator while preserving the accepted argv prefix;
+- `PRRT_kwDOUUI5ts6lzzax` — PR-family dependency-review may be skipped while final gate accepts `skipped`.
+
+Author-side duplicate `PRRT_kwDOUUI5ts6lz1l8` independently rediscovered the first defect and remains part of the live/durable 81-thread closure set.
+
+A REVIEW-0084 successor may be created only after these defects receive exact technical proof.
+
+## REVIEW-0083 — historical context
 
 Fresh independent Codex review `PRR_kwDOUUI5ts8AAAABPIVhXA` reviewed exact integrated head `c80ff3a3cd9640256fca65285ba28094ac848365` and added P1 `PRRT_kwDOUUI5ts6lxalB` plus P1 `PRRT_kwDOUUI5ts6lxalH`. That negative review is retained as GitHub source evidence.
 
