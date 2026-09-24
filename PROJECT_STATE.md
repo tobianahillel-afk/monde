@@ -475,28 +475,40 @@ The two REVIEW-0079 findings raise PR #5 to **81/81 unresolved material threads*
 
 REVIEW-0079 CLOSED checkpoint `56d35f134dcde7ddb331e441ad9424712be886b9` passed Bootstrap #321 / run `36010993526` at **450/450 tests**, **3,853 / 1,640**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-## REVIEW-0080 implementation candidate — traceability and TEST-0009 registry repair
+## REVIEW-0080 — traceability and TEST-0009 registry repair
 
-REVIEW-0080 remains **unopened** until exact technical proof.
+REVIEW-0080 is now **OPEN** after exact candidate proof on `a4008a93d858a34de56e07924421748c78accc51`.
 
-The candidate is deliberately non-runtime:
-- repair `TEST-0009.execution` into a single valid mapping;
-- preserve every historical Bootstrap evidence string by moving the former top-level execution sequence entries under `execution.evidence`;
-- preserve `command_or_workflow`, `last_run_at`, `commit_sha` and `result` as mapping fields;
-- add `PRRT_kwDOUUI5ts6lnqJY` to the machine-readable WORK-0002 finding set;
-- reconcile active counts and Resume sequence to **81**;
-- record both REVIEW-0079 independent findings;
-- preserve historical 73/75/76/77/78/79/80 counts as historical evidence;
-- change no runtime Python, workflow or REQ-0026 behavior.
+Bootstrap #323 / run `36013738537` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+
+The candidate changes exactly four non-runtime artifacts from the REVIEW-0079 CLOSED checkpoint:
+- `PROJECT_STATE.md`;
+- `registry/reviews/REVIEW-0079.yaml`;
+- `registry/tests/TEST-0009.yaml`;
+- `registry/work-items/WORK-0002.yaml`.
+
+The repair:
+- makes `TEST-0009.execution` one mapping;
+- keeps `command_or_workflow`, `last_run_at`, `commit_sha` and `result` as structured fields;
+- moves the former historical execution sequence entries under `execution.evidence`;
+- records both REVIEW-0079 independent findings;
+- makes live PR #5 PRRT IDs and WORK-0002 open_findings IDs exactly equal at **81 == 81**, no missing/extra;
+- updates the active Resume sequence to **reviews/81 threads**;
+- preserves historical counts and the non-self-referential exact-head evidence model;
+- changes no runtime Python, workflow or REQ-0026 behavior.
+
+The first candidate `2afe54a6d06aecab8f16c9764e687e6950411181` / Bootstrap #322 is retained as lifecycle-withheld formatting evidence because inconsistent evidence indentation was caught before REVIEW-0080 opened.
+
+All **81/81 PR #5 material threads remain unresolved**. Green technical evidence is not semantic approval.
 
 ## Current next action
 
 1. Keep all **81** PR #5 material threads unresolved.
-2. Commit the REVIEW-0080 traceability/registry repair candidate from proven checkpoint `56d35f13…`.
-3. Run Bootstrap and require exact **100% line + branch** plus live PR #2 probe success.
-4. Verify live PRRT identities exactly equal WORK-0002 open_findings identities: **81 == 81**, no missing/extra.
-5. Verify TEST-0009 is structurally one execution mapping with historical entries under `execution.evidence`.
-6. Only after those proofs materialize REVIEW-0080 as `OPEN`, then follow OPEN -> IN_PROGRESS -> live exact-head proof -> fresh independent L2 over all **81** threads.
+2. Prove this REVIEW-0080 `OPEN` state-only checkpoint with Bootstrap.
+3. Transition `OPEN -> IN_PROGRESS` only after that proof.
+4. On the resulting exact IN_PROGRESS HEAD, verify a live trusted Bootstrap SUCCESS without committing solely to copy that completion.
+5. Request a fresh independent L2 over all **81 unresolved material threads** on that exact HEAD.
+6. Any material finding closes REVIEW-0080 and requires a successor; resolve nothing beforehand.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
