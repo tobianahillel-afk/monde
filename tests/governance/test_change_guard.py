@@ -309,3 +309,9 @@ def test_first_parent_review_remains_freshness_authority(tmp_path):
 
     assert c.is_first_parent_ancestor(tmp_path, reviewed, head)
     assert 'REVIEW_FRESHNESS' in {f.rule for f in c.validate(tmp_path, base, head)}
+
+
+def test_first_parent_ancestor_rejects_non_full_sha(tmp_path):
+    base = repo(tmp_path)
+    assert c.is_first_parent_ancestor(tmp_path, "deadbeef", base) is False
+    assert c.is_first_parent_ancestor(tmp_path, base, "deadbeef") is False
