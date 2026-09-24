@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0080 are terminal negative evidence. REVIEW-0080 CLOSED checkpoint eacd7d3b861b82902fa2aec9486556557383ec21 passed Bootstrap #326 / run 36015443542 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests. Live/machine PRRT identity sets are exactly equal at 82. REVIEW-0081 declares all six WORK-0002 required hats exactly and is now IN_PROGRESS after OPEN checkpoint 9ee48bf0265855e2296e25fc7ce0489d62a62473 passed Bootstrap #327 / run 36015957795 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests. The REVIEW-0080 TEST-0009/inventory repair remains unchanged. Exact-head L2 eligibility now depends only on live trusted Bootstrap SUCCESS on the current IN_PROGRESS HEAD; no post-proof repository commit will be created merely to copy CI completion. T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0081 are terminal negative evidence. REVIEW-0081 exact frozen head 7bc0be1acaee237df7fba3dba6f33f5e17b3061c passed Bootstrap #328 / run 36030185175 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests. Fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABPHAnaQ then produced P2 PRRT_kwDOUUI5ts6lumiR because REVIEW-0081 findings was nested under scope instead of the canonical top-level review field. Live/machine PRRT identity sets are now exactly equal at 83 after recording that finding. REVIEW-0082 is required as a governance/traceability-only successor preserving all six required hats, TEST-0009 semantics and runtime behavior while repairing the canonical review shape. T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -177,6 +177,7 @@ review_plan:
     - PRRT_kwDOUUI5ts6lnfaG
     - PRRT_kwDOUUI5ts6lnqJY
     - PRRT_kwDOUUI5ts6loe5m
+    - PRRT_kwDOUUI5ts6lumiR
 
 required_tests:
   unit: [TEST-0009]
@@ -399,6 +400,7 @@ run_log:
   - "REVIEW-0080 exact traceability candidate a4008a93d858a34de56e07924421748c78accc51 passed Bootstrap #323 / run 36013738537 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; compare from REVIEW-0079 CLOSED checkpoint changes exactly PROJECT_STATE.md, REVIEW-0079.yaml, TEST-0009.yaml and WORK-0002.yaml, and live/machine PRRT sets are exactly equal at 81."
   - "REVIEW-0080 OPEN checkpoint 6801fdd9a25517ec7af0250b64f5fcd835741737 passed Bootstrap #324 / run 36014119704 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitions to IN_PROGRESS only after this proof."
   - "REVIEW-0080 exact IN_PROGRESS head 7a6516ea8c57a8f2538e4df3f237cf6ea4b70dce passed live Bootstrap #325 / run 36014347342 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; Codex request was quota-refused, then author-side PRR_kwDOUUI5ts8AAAABPENlRg produced P1 PRRT_kwDOUUI5ts6loe5m and raised unresolved threads from 81 to 82."
+  - "REVIEW-0081 OPEN checkpoint 9ee48bf0265855e2296e25fc7ce0489d62a62473 passed Bootstrap #327 / run 36015957795; frozen exact head 7bc0be1acaee237df7fba3dba6f33f5e17b3061c passed Bootstrap #328 / run 36030185175 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; independent Codex L2 PRR_kwDOUUI5ts8AAAABPHAnaQ then produced P2 PRRT_kwDOUUI5ts6lumiR and raised unresolved threads from 82 to 83."
   - "REVIEW-0081 OPEN checkpoint 9ee48bf0265855e2296e25fc7ce0489d62a62473 passed Bootstrap #327 / run 36015957795 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitions to IN_PROGRESS only after this proof."
   - "REVIEW-0075 CLOSED checkpoint b8de445952c0cfb916e5ead7ce7009dff4809a41 passed Bootstrap #305 / run 35986900739 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0076 documentation-only candidate starts only from this proven terminal checkpoint."
   - "REVIEW-0076 exact documentation candidate e82ac8ac599e4f3611d5ab90358939e789288def passed Bootstrap #306 / run 35987119706 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; compare from REVIEW-0075 CLOSED checkpoint changes exactly PROJECT_STATE.md and registry/work-items/WORK-0002.yaml."
@@ -434,14 +436,15 @@ blockers:
   - "REVIEW-0078 is terminal CLOSED/CHANGES_REQUIRED after independent exact-head L2 P2 PRRT_kwDOUUI5ts6lm-ef; do not resolve any of the 79 threads."
   - "REVIEW-0079 is terminal CLOSED/CHANGES_REQUIRED after independent exact-head P2 PRRT_kwDOUUI5ts6lnfaG and follow-up exact-head P1 PRRT_kwDOUUI5ts6lnqJY; do not resolve any of the 81 threads."
   - "REVIEW-0080 is terminal CLOSED/CHANGES_REQUIRED after P1 PRRT_kwDOUUI5ts6loe5m; do not request further REVIEW-0080 approval."
-  - "REVIEW-0081 OPEN checkpoint is proved and lifecycle is IN_PROGRESS; require live trusted Bootstrap SUCCESS on this exact current HEAD, then request fresh independent L2 over all 82 unresolved material threads without a post-proof tree mutation."
+  - "REVIEW-0081 is terminal CLOSED/CHANGES_REQUIRED after fresh exact-head independent L2 P2 PRRT_kwDOUUI5ts6lumiR; do not request further REVIEW-0081 approval."
+  - "REVIEW-0082 successor must repair the canonical top-level findings field while preserving all six required hats and exact 83-thread inventory before any new L2."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."
   - "REVIEW-0054 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0054 approval."
   - "REVIEW-0055 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0055 approval."
   - "REVIEW-0056 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0056 approval."
-  - "82 inline material threads remain unresolved."
+  - "83 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
 follow_up_work_items: []

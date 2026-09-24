@@ -485,30 +485,38 @@ Author-side governance review **PRR_kwDOUUI5ts8AAAABPENlRg** produced **P1 `PRRT
 
 The REVIEW-0080 CLOSED checkpoint `eacd7d3b861b82902fa2aec9486556557383ec21` passed Bootstrap #326 / run `36015443542` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100**.
 
-PR #5 has **82/82 unresolved material threads** and WORK-0002 open_findings exposes the exact same 82 PRRT IDs.
+PR #5 now has **83/83 unresolved material threads** and WORK-0002 open_findings exposes the exact same 83 PRRT IDs.
 
-## REVIEW-0081 — required-hat reconciliation successor
+## REVIEW-0081 — terminal independent negative evidence
 
-REVIEW-0081 is now **IN_PROGRESS** after OPEN checkpoint `9ee48bf0265855e2296e25fc7ce0489d62a62473` passed Bootstrap #327 / run `36015957795` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+REVIEW-0081 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `7bc0be1acaee237df7fba3dba6f33f5e17b3061c`.
 
-It preserves the REVIEW-0080 TEST-0009/inventory repair unchanged and corrects the review contract itself. Its declared roles are exactly the six WORK-0002 required hats:
-- `ARCHITECTURE_REUSE`
-- `VERIFICATION_VALIDATION`
-- `SECURITY`
-- `PERFORMANCE_SRE`
-- `DOCUMENTATION_TRACEABILITY`
-- `RED_TEAM_SKEPTIC`
+Its OPEN checkpoint `9ee48bf0265855e2296e25fc7ce0489d62a62473` passed Bootstrap #327 / run `36015957795`. The exact IN_PROGRESS frozen HEAD then passed trusted Bootstrap #328 / run `36030185175` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-No runtime Python, workflow, REQ-0026 or TEST-0009 semantic behavior changes.
+Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABPHAnaQ** reviewed that exact HEAD and produced **P2 `PRRT_kwDOUUI5ts6lumiR`**: `findings` was indented under `scope`, so the active review YAML had no canonical top-level `findings` field.
+
+The terminal REVIEW-0081 record now carries that finding at the canonical top level and binds the exact reviewed commit. Repairing the terminal record does not convert the independent negative result into approval.
+
+PR #5 now has **83/83 unresolved material threads** and WORK-0002's machine PRRT set exactly matches the live 83-thread identity set.
+
+## REVIEW-0082 successor requirement
+
+REVIEW-0082 is a governance/traceability-only successor. It must:
+- retain exactly all six WORK-0002 required hats;
+- expose `findings` as a canonical top-level review field;
+- preserve REVIEW-0080 TEST-0009 structural repair and all runtime/workflow/REQ-0026 semantics unchanged;
+- preserve exact live/machine **83-ID** PRRT parity;
+- retain REVIEW-0081 P2 `PRRT_kwDOUUI5ts6lumiR` as terminal negative evidence;
+- avoid any post-proof repository commit solely to copy CI completion into the tree.
 
 ## Current next action
 
-1. Keep all **82** PR #5 material threads unresolved.
-2. REVIEW-0081 OPEN checkpoint #327 is complete and lifecycle is now `IN_PROGRESS`.
-3. On this exact current IN_PROGRESS HEAD, require live trusted Bootstrap SUCCESS and keep the tree frozen.
-4. Request fresh independent L2 over all **82 unresolved material threads** under all six required hats.
-5. Do not create a post-proof commit solely to copy live CI completion.
-6. Any material finding closes REVIEW-0081 and requires a successor; resolve nothing beforehand.
+1. Keep all **83** PR #5 material threads unresolved.
+2. Prove this REVIEW-0081 `CLOSED` state-only checkpoint with Bootstrap.
+3. Only after that proof, materialize REVIEW-0082 as `OPEN` with all six required hats and a top-level `findings: []`.
+4. Prove REVIEW-0082 OPEN, transition to `IN_PROGRESS`, then require live exact-head Bootstrap SUCCESS while keeping the tree frozen.
+5. Request fresh independent L2 over all **83 unresolved material threads**.
+6. Any material finding closes REVIEW-0082 and requires a successor; resolve nothing beforehand.
 7. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
 8. WORK-0003 and WORK-0004 remain blocked.
 
@@ -524,7 +532,7 @@ No runtime Python, workflow, REQ-0026 or TEST-0009 semantic behavior changes.
 8. registry/reviews/REVIEW-0049.yaml
 9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/82 threads
+11. live PR #5 exact HEAD/checks/reviews/83 threads
 12. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.
