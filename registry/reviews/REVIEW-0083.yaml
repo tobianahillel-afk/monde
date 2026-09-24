@@ -1,5 +1,5 @@
 id: REVIEW-0083
-status: OPEN
+status: IN_PROGRESS
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-2"
@@ -81,7 +81,7 @@ checks:
     - "Gate #270 passed repository strict path change L2 review T7 T8 T9 T10 T11 and context-manifest validators with CodeQL and Dependency Review success."
     - "Gate #270 live merge gate failed closed only on UNRESOLVED_THREADS:77 and INDEPENDENT_EXACT_HEAD_APPROVAL."
     - "The earlier invalid attempt to materialize REVIEW-0083 directly as CLOSED was rejected by Gate #266 and removed from branch history; this OPEN record is the first valid canonical materialization."
-    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "OPEN checkpoint 5033c5ae4010ab63ed28b19200a94eb84d2bdfe5 passed Bootstrap #345 / run 36066385035 and Gate #271 / run 36066385383: 821 tests, 7816 statements / 3568 branches at 100 percent line+branch, all mutation suites and deterministic/T7-T11 validators green; live gate failed only on 77 unresolved threads and missing exact-head approval."
     - "One frozen exact-head full Gate proof is required after IN_PROGRESS before fresh independent L2."
     - "Fresh independent L2 must inspect all 77 unresolved material threads and the two PRR_kwDOUUI5ts8AAAABPIVhXA findings before any controlled resolution."
 outcome: CHANGES_REQUIRED
