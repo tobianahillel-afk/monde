@@ -453,29 +453,35 @@ PR #5 now has **78/78 unresolved material threads**. None has been resolved.
 
 ## REVIEW-0078 implementation candidate — non-self-referential exact-head evidence
 
-REVIEW-0078 must change the governance contract, not merely copy another run ID.
+REVIEW-0077 is terminal `CLOSED / CHANGES_REQUIRED`. Its CLOSED checkpoint `024870e9109ec5aaffbeaed3ce97174e00aafed5` passed Bootstrap #313 / run `35991600188` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-Stable rule:
-- the repository describes the **eligibility condition** for independent L2: the current exact IN_PROGRESS HEAD must have a successful trusted Bootstrap run;
-- whether that run has completed is a **live GitHub control-plane fact** and does not need to be written back into the same frozen tree;
-- after exact-head Bootstrap succeeds, the tree remains frozen and L2 may be requested immediately;
-- PR body/comments may record the run ID as live handover evidence without mutating the tree;
+REVIEW-0078 fixes the handover model itself. It changes governance documentation only; REVIEW-0075 runtime/workflow semantics and TEST-0010 runtime execution identity remain unchanged.
+
+The new canonical invariant is intentionally non-self-referential:
+
+- repository state declares a stable eligibility rule: **independent L2 may run only when live trusted GitHub evidence shows a successful Bootstrap run on the current exact IN_PROGRESS HEAD**;
+- whether that run already exists is a live GitHub control-plane fact, not a fact that must be copied back into the same frozen tree;
+- once the exact-head run succeeds, keep that tree frozen and proceed directly to L2;
+- PR body/comments may record the run ID/outcome as live handover evidence without changing the commit;
 - a later material tree mutation creates a new HEAD and therefore requires a new exact-head proof;
-- quota refusal is external negative availability evidence, never approval and never a reason to mutate the frozen tree;
-- PROJECT_STATE/WORK/REVIEW must use stable wording that remains true both before and after the external run completes.
+- quota refusal is non-approval and may be recorded externally without mutating the frozen tree unless it exposes a repository defect;
+- canonical text must remain truthful both before and after the external run completes.
 
-Canonical governance docs to update:
-- `docs/00_START_HERE.md` handover invariant;
-- `docs/13_QUALITY/review-council.md` review evidence rules;
-- `docs/10_ROADMAP/development-process.md` Gate K handover rule.
+Canonical surfaces changed by the candidate:
+- `docs/00_START_HERE.md` — frozen exact-head external-evidence handover invariant;
+- `docs/13_QUALITY/review-council.md` — exact-head execution evidence rule;
+- `docs/10_ROADMAP/development-process.md` — Gate K non-self-referential handover rule;
+- `PROJECT_STATE.md` and `registry/work-items/WORK-0002.yaml` — active application of that rule.
+
+PR #5 has **78/78 unresolved material threads**. None has been resolved.
 
 ## Current next action
 
 1. Keep all **78** PR #5 material threads unresolved.
-2. Prove this REVIEW-0077 `CLOSED` state-only checkpoint.
-3. Implement and prove REVIEW-0078 governance-documentation candidate with the stable external exact-head evidence rule.
-4. Open REVIEW-0078 only after exact technical proof.
-5. Once REVIEW-0078 reaches IN_PROGRESS, verify live Bootstrap success on that exact HEAD and then request independent L2 **without mutating the tree to record the run**.
+2. Prove this REVIEW-0078 governance-documentation candidate with Bootstrap.
+3. Verify the candidate diff contains only governance/handover documentation and no runtime Python/workflow semantic change.
+4. Only after exact technical proof, materialize REVIEW-0078 as `OPEN`.
+5. After REVIEW-0078 reaches `IN_PROGRESS`, keep the tree frozen; consult live GitHub for successful exact-head Bootstrap evidence and then request independent L2 **without committing merely to record that run**.
 6. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
