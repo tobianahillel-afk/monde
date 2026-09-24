@@ -416,31 +416,39 @@ The REVIEW-0074 CLOSED checkpoint `327da248e7b7f167d88dfe4c06c739e3140e0bac` pas
 
 ## REVIEW-0075 — terminal author-side traceability negative evidence
 
-REVIEW-0075 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `cfb1fabb308167d1133872a099a7a1b8709f4440`.
+REVIEW-0075 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `cfb1fabb308167d1133872a099a7a1b8709f4440`.
 
-The runtime correction itself remained technically green:
-- Bootstrap #302 / run `35974879638`: **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, REVIEW-0075 **50 / 18 at 100%**, live PR #2 probe **3/100**.
-- Bootstrap #303 / run `35975215661`: OPEN checkpoint, same proof.
-- Bootstrap #304 / run `35981180705`: frozen exact-head proof, same **450/450 / 100% / 3/100** result.
+Its runtime remained technically green:
+- #302 / `35974879638`: **450/450**, **3,853 statements / 1,640 branches**, **100% line + branch**, REVIEW-0075 **50 / 18 at 100%**, live PR #2 **3/100**;
+- #303 / `35975215661`: OPEN checkpoint, same proof;
+- #304 / `35981180705`: frozen proof, same proof.
 
-Fresh Codex L2 request `5811504923` was quota-refused by `5811506815`; no independent REVIEW-0075 L2 was produced.
+Codex L2 request `5811504923` was quota-refused by `5811506815`. Author-side review `PRR_kwDOUUI5ts8AAAABPBZHCg` then added P2 `PRRT_kwDOUUI5ts6liZGL`: the active WORK-0002 regression invariant still said 73 findings although PR #5 had reached 76 unresolved threads.
 
-Author-side review **PRR_kwDOUUI5ts8AAAABPBZHCg** then added **P2 `PRRT_kwDOUUI5ts6liZGL`**: WORK-0002 `required_tests.regression` still says “all **73** inline findings remain represented and unresolved” while REVIEW-0074 independent L2 had already raised the live/canonical set to 75, and this new P2 raises PR #5 to **76/76 unresolved material threads**.
+The REVIEW-0075 CLOSED state-only checkpoint `b8de445952c0cfb916e5ead7ce7009dff4809a41` passed Bootstrap #305 / run `35986900739` at **450/450 tests**, **3,853 / 1,640**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-The runtime is not invalidated by a behavioral defect; the review is invalidated because canonical traceability is contradictory. REVIEW-0076 must therefore be **documentation/traceability-only**:
-- reconcile the regression invariant to the actual **76** unresolved-thread set;
-- record REVIEW-0075 #304 + quota refusal + P2 consistently;
-- update REVIEW/WORK/PROJECT_STATE handover to REVIEW-0076;
-- leave REVIEW-0075 runtime code and workflow behavior unchanged.
+## REVIEW-0076 implementation candidate — finding-count traceability reconciliation
+
+REVIEW-0076 is deliberately **documentation/traceability-only**. No bootstrap Python, workflow, request-budget, mutation, recovery, discovery or guard behavior changes.
+
+The candidate:
+- changes active WORK-0002 `required_tests.regression` from “all 73 inline findings” to **“all 76 inline findings”**;
+- records REVIEW-0075 frozen proof #304, quota refusal and P2 finding;
+- records REVIEW-0075 CLOSED proof #305;
+- updates the active resume handover from 75 to **76** live PR #5 threads;
+- preserves all historical 73/75 counts inside REVIEW-0073/0074 narrative as historical truth;
+- keeps all **76/76** live PR #5 material threads unresolved.
+
+REVIEW-0076 is **not opened yet**. The exact documentation candidate must first pass the same full 450-test / 100% line+branch / live PR #2 probe, proving the traceability correction did not alter runtime semantics.
 
 ## Current next action
 
 1. Keep all **76** PR #5 material threads unresolved.
-2. Prove this REVIEW-0075 `CLOSED` state-only checkpoint.
-3. Only after that proof, create REVIEW-0076 as a documentation/traceability-only successor.
-4. REVIEW-0076 must change no runtime/bootstrap Python or workflow semantics.
-5. Re-run exact 100% CI/live probe on the documentation successor before opening its lifecycle.
-6. After OPEN/IN_PROGRESS frozen proof, request fresh independent L2 over all **76 unresolved threads**.
+2. Prove the exact REVIEW-0076 documentation candidate with Bootstrap.
+3. Verify the changed-file set contains no runtime Python/workflow semantic change.
+4. Only after exact proof, materialize REVIEW-0076 as `OPEN`.
+5. Prove OPEN, transition to `IN_PROGRESS`, then prove one frozen exact head.
+6. Request a fresh independent L2 over all **76 unresolved threads**.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
@@ -455,7 +463,7 @@ The runtime is not invalidated by a behavioral defect; the review is invalidated
 8. registry/reviews/REVIEW-0049.yaml
 9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/75 threads
+11. live PR #5 exact HEAD/checks/reviews/76 threads
 12. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.
