@@ -6,14 +6,14 @@ lot: LOT-0
 sublot: SUBLOT-0.2
 owner: "repository governance"
 created_at: "2026-09-10"
-updated_at: "2026-09-23"
+updated_at: "2026-09-24"
 
 purpose: |
   Turn MONDE governance/specification/traceability contracts into executable CI and GitHub control-plane checks so repository state, review evidence, scope and proof cannot silently drift.
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0074 are terminal negative evidence. REVIEW-0074 is CLOSED/CHANGES_REQUIRED on exact frozen head 2e228ba5f016f25eacffab0ca0cd9a7e095cd757 after Bootstrap #299 / run 35973035600 proved 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests, then fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABPAAMUQ produced P1 PRRT_kwDOUUI5ts6lfj-O and P2 PRRT_kwDOUUI5ts6lfj-U. REVIEW-0075 must preserve REVIEW-0074 strict guard/live-validator semantics while making draft postcondition closed-state acceptance require exact positive non-Boolean number plus exact node identity, and correcting TEST-0010 machine-readable execution identity to the actual REVIEW-0074 proof. All 75 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0074 are terminal negative evidence. REVIEW-0074 independent exact-head Codex L2 PRR_kwDOUUI5ts8AAAABPAAMUQ produced P1 PRRT_kwDOUUI5ts6lfj-O plus P2 PRRT_kwDOUUI5ts6lfj-U. REVIEW-0075 implementation candidate preserves REVIEW-0074's strict double-thread-observation guard and exact-target live validator while replacing only the draft conversion primitive: after the already-strict GraphQL ACK, the direct REST postcondition is reread through REVIEW-0073 _strict_discovered_pr so exact positive non-Boolean number, exact node_id, Boolean draft and state in open/closed are validated before any closed/open branch. TEST-0010 structured execution identity is corrected to REVIEW-0074 technical proof #297 / 1a90e73bb107e9f77763103bed059bc12ab11575 dated 2026-09-24. REVIEW-0074 CLOSED checkpoint 327da248e7b7f167d88dfe4c06c739e3140e0bac passed Bootstrap #300 / run 35974182236. REVIEW-0075 lifecycle is not opened until exact technical proof succeeds. All 75 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -61,7 +61,7 @@ reuses: ["status vocabulary", "registry contracts", "Review Council and assuranc
 affected_capabilities: []
 affected_engines: []
 affected_schemas: []
-affected_docs: [PROJECT_STATE.md, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/tests/TEST-0010.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml, registry/reviews/REVIEW-0060.yaml, registry/reviews/REVIEW-0061.yaml, registry/reviews/REVIEW-0062.yaml, registry/reviews/REVIEW-0063.yaml, registry/reviews/REVIEW-0064.yaml, registry/reviews/REVIEW-0065.yaml, registry/reviews/REVIEW-0066.yaml, registry/reviews/REVIEW-0067.yaml, registry/reviews/REVIEW-0068.yaml, registry/reviews/REVIEW-0069.yaml, registry/reviews/REVIEW-0070.yaml, registry/reviews/REVIEW-0071.yaml, registry/reviews/REVIEW-0072.yaml, registry/reviews/REVIEW-0073.yaml, registry/reviews/REVIEW-0074.yaml]
+affected_docs: [PROJECT_STATE.md, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/tests/TEST-0010.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml, registry/reviews/REVIEW-0060.yaml, registry/reviews/REVIEW-0061.yaml, registry/reviews/REVIEW-0062.yaml, registry/reviews/REVIEW-0063.yaml, registry/reviews/REVIEW-0064.yaml, registry/reviews/REVIEW-0065.yaml, registry/reviews/REVIEW-0066.yaml, registry/reviews/REVIEW-0067.yaml, registry/reviews/REVIEW-0068.yaml, registry/reviews/REVIEW-0069.yaml, registry/reviews/REVIEW-0070.yaml, registry/reviews/REVIEW-0071.yaml, registry/reviews/REVIEW-0072.yaml, registry/reviews/REVIEW-0073.yaml, registry/reviews/REVIEW-0074.yaml, registry/reviews/REVIEW-0075.yaml]
 contracts: ["repository governance validation", "GitHub control-plane merge gate", "AI context routing"]
 adrs: []
 
@@ -168,6 +168,8 @@ review_plan:
     - PRRT_kwDOUUI5ts6lXTqJ
     - PRRT_kwDOUUI5ts6lXj4D
     - PRRT_kwDOUUI5ts6lXj4K
+    - PRRT_kwDOUUI5ts6lfj-O
+    - PRRT_kwDOUUI5ts6lfj-U
 
 required_tests:
   unit: [TEST-0009]
@@ -366,6 +368,7 @@ run_log:
   - "REVIEW-0074 exact technical candidate 1a90e73bb107e9f77763103bed059bc12ab11575 passed Bootstrap #297 / run 35931690262 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; lifecycle opens only after this proof."
   - "REVIEW-0074 OPEN checkpoint d39fe379c8acc11f41988caa81600e68a0e05946 passed Bootstrap #298 / run 35972837681 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
   - "REVIEW-0074 frozen head 2e228ba5f016f25eacffab0ca0cd9a7e095cd757 passed Bootstrap #299 / run 35973035600 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; independent Codex L2 PRR_kwDOUUI5ts8AAAABPAAMUQ then added P1 PRRT_kwDOUUI5ts6lfj-O and P2 PRRT_kwDOUUI5ts6lfj-U, increasing unresolved PR #5 threads from 73 to 75."
+  - "REVIEW-0074 CLOSED checkpoint 327da248e7b7f167d88dfe4c06c739e3140e0bac passed Bootstrap #300 / run 35974182236 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0075 implementation begins only from this proven terminal checkpoint."
   - "REVIEW-0063 frozen head 22dd22d5f9e50eea6d3bd351af8e12ab9a935440 passed Bootstrap #244 / run 35848734246 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; fresh Codex L2 request 5793162559 was quota-refused by 5793166351, then author-side PRR_kwDOUUI5ts8AAAABO0xdhQ exposed malformed Check Run terminal temporal metadata being accepted as authority."
 
 discoveries:
@@ -391,7 +394,7 @@ blockers:
   - "REVIEW-0072 is terminal CLOSED/CHANGES_REQUIRED after author-side P1 PRR_kwDOUUI5ts8AAAABO7ZUCw; do not request further REVIEW-0072 approval."
   - "REVIEW-0073 is terminal CLOSED/CHANGES_REQUIRED after author-side P1/P2 findings; do not resolve any of the 73 threads."
   - "REVIEW-0074 is terminal CLOSED/CHANGES_REQUIRED after independent exact-head L2; do not resolve any of the 75 threads."
-  - "Implement and exact-head prove REVIEW-0075 fixes for both Codex findings before opening the successor review."
+  - "Exact-head prove REVIEW-0075 strict draft-postcondition identity plus corrected TEST-0010 execution identity at 100 percent line+branch and live PR #2 probe before opening the successor review."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."

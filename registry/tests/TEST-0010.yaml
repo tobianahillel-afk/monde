@@ -35,7 +35,7 @@ protects:
     - "manual Ready for review remains the only transition from draft back to ready; the canonical MONDE Gate workflow already triggers on ready_for_review"
 
 location:
-  test_path: ".github/scripts/test_stale_green_bootstrap_authority_review0074.py"
+  test_path: ".github/scripts/test_stale_green_bootstrap_authority_review0075.py"
   suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
 
 environment:
@@ -117,8 +117,8 @@ external_import:
 
 execution:
   command_or_workflow: "MONDE Stale-Green Bootstrap"
-  last_run_at: "2026-09-23"
-  commit_sha: "11289692153cf073d6e9c71f525809d7e66b298d"
+  last_run_at: "2026-09-24"
+  commit_sha: "1a90e73bb107e9f77763103bed059bc12ab11575"
   result: PASS
   evidence:
     - "REVIEW-0069 terminal negative evidence PRR_kwDOUUI5ts8AAAABO346_Q motivates moving merge safety from unbounded commit-scoped history to PR draft state"
@@ -148,6 +148,11 @@ execution:
     - "Bootstrap #295 / run 35930261078 proves frozen REVIEW-0073 at 428/428 tests, 3697 statements / 1578 branches and 100 percent line+branch, but author-side PRR_kwDOUUI5ts8AAAABO8S_3w invalidates its closure: P1 PRRT_kwDOUUI5ts6lXj4D shows inherited internal guard rereads still use weak _direct_pr; P2 PRRT_kwDOUUI5ts6lXj4K shows the live contract probe still exercises the weak REVIEW-0071 validator"
     - "Bootstrap #296 / run 35931004610 proves the terminal REVIEW-0073 CLOSED checkpoint before REVIEW-0074 implementation"
     - "Bootstrap #297 / run 35931690262 proves exact REVIEW-0074 technical candidate 1a90e73bb107e9f77763103bed059bc12ab11575 with 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; malformed identity fails on both internal rereads and the live validator seeds then rereads the exact target through REVIEW-0073 strict identity"
+    - "Bootstrap #298 / run 35972837681 proves the REVIEW-0074 OPEN checkpoint with the same 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Bootstrap #299 / run 35973035600 proves frozen REVIEW-0074 head 2e228ba5f016f25eacffab0ca0cd9a7e095cd757 with the same exact technical metrics before independent L2."
+    - "Independent Codex L2 PRR_kwDOUUI5ts8AAAABPAAMUQ invalidates REVIEW-0074 with P1 PRRT_kwDOUUI5ts6lfj-O for coercive/wrong-identity closed REST postcondition acceptance and P2 PRRT_kwDOUUI5ts6lfj-U for stale TEST-0010 machine-readable execution identity."
+    - "Bootstrap #300 / run 35974182236 proves the terminal REVIEW-0074 CLOSED checkpoint before REVIEW-0075 implementation."
+    - "REVIEW-0075 successor technical proof is pending; its regressions require exact closed postcondition number+node identity and preserve the strict REVIEW-0074 guard/live-validator path."
     - "TEST-0010 remains PLANNED until its lifecycle is advanced truthfully and execution PASS evidence does not retroactively replay READY/RUNNING states"
 
 coverage:

@@ -412,15 +412,38 @@ REVIEW-0075 must preserve all REVIEW-0074 strict runtime/live-validator guarante
 3. updating TEST-0010 structured execution identity to REVIEW-0074 technical proof #297 / `1a90e73bb107e9f77763103bed059bc12ab11575` dated 2026-09-24;
 4. adding explicit regressions for `number:true`, `5.0`, wrong/missing node id and malformed draft/state on the postcondition closed path.
 
+The REVIEW-0074 CLOSED checkpoint `327da248e7b7f167d88dfe4c06c739e3140e0bac` passed Bootstrap #300 / run `35974182236` at **440/440 tests**, **3,803 statements / 1,622 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+
+## REVIEW-0075 implementation candidate — strict draft postcondition identity
+
+REVIEW-0075 is intentionally narrow. It does not replace REVIEW-0074's poll, strict double-thread-observation guard or exact-target validator.
+
+The successor replaces only the shared draft-conversion primitive resolved by REVIEW-0074 at runtime:
+
+1. validate the exact current ready PR through the existing strict open guard;
+2. keep the REVIEW-0071 GraphQL `convertPullRequestToDraft` ACK contract: exact node id, positive exact non-Boolean PR number and `isDraft=true`;
+3. reread the direct REST postcondition through REVIEW-0073 `_strict_discovered_pr` using the exact expected `number + node_id`;
+4. therefore validate exact number type/value, exact node id, Boolean draft and state in the closed world `open/closed` **before** any closed-state success;
+5. if that strict reread returns closed, accept the exact closed postcondition;
+6. if still open, require the exact same PR to be `draft=true`;
+7. any coercive number, wrong/missing node id, non-Boolean draft, invalid state or open non-draft response fails closed.
+
+Because REVIEW-0074's guard resolves `discovery._convert_to_draft` at call time, REVIEW-0075 can replace only this primitive while preserving the already-proven full strict reread/observation architecture.
+
+TEST-0010 is also corrected so its structured execution fields identify the actual REVIEW-0074 technical proof: `execution.commit_sha = 1a90e73bb107e9f77763103bed059bc12ab11575` and `last_run_at = 2026-09-24`. Its lifecycle status remains `PLANNED`; execution evidence does not fabricate READY/RUNNING/PASS lifecycle transitions.
+
+REVIEW-0075 remains a **technical candidate only** until the full Bootstrap suite reaches exact 100% line+branch and the live PR #2 probe succeeds.
+
 ## Current next action
 
 1. Keep all **75** PR #5 material threads unresolved.
-2. Prove this REVIEW-0074 `CLOSED` state-only checkpoint.
-3. Implement REVIEW-0075 only after that checkpoint is green.
-4. Restore exact-head 100% line/branch proof and live PR #2 probe before opening REVIEW-0075.
-5. After OPEN and IN_PROGRESS checkpoints, run a fresh independent L2 over all **75 unresolved material threads**.
-6. Resolve nothing until a clean successor independent review permits it.
-7. WORK-0003 and WORK-0004 remain blocked.
+2. Commit the REVIEW-0075 implementation candidate atomically from proven checkpoint `327da248…`.
+3. Run the complete Bootstrap suite and require exact **100% line + branch**.
+4. Require the live PR #2 contract probe to execute REVIEW-0075 and succeed.
+5. Only after exact technical proof may REVIEW-0075 be materialized as `OPEN`.
+6. After OPEN and IN_PROGRESS checkpoints, run a fresh independent L2 over all **75 unresolved material threads**.
+7. Resolve nothing until a clean successor independent review permits it.
+8. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
