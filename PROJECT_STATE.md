@@ -465,31 +465,39 @@ The new L2 finding raised PR #5 to **79/79 unresolved material threads**. REVIEW
 
 REVIEW-0079 is **CLOSED / CHANGES_REQUIRED** on exact HEAD `1501fe77d8d5986fb29e381515de47e706ac2c02`.
 
-Bootstrap #320 / run `36009526029` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests. The finding inventory itself was exact at that point: **79 live PRRT IDs == 79 WORK-0002 PRRT IDs**, with no missing/extra entries.
+Bootstrap #320 / run `36009526029` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests. The finding inventory itself was exact at that point: **79 live PRRT IDs == 79 WORK-0002 PRRT IDs**.
 
-Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABPDwpnQ** then produced **P2 `PRRT_kwDOUUI5ts6lnfaG`**. The active REVIEW-0079 section and WORK-0002 required all 79 findings, but the canonical Resume sequence still instructed a fresh agent to inspect:
+Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABPDwpnQ** produced **P2 `PRRT_kwDOUUI5ts6lnfaG`** because the canonical Resume sequence still said `reviews/78 threads` while active state required all 79.
 
-> `live PR #5 exact HEAD/checks/reviews/78 threads`
+A follow-up exact-head independent Codex review **PRR_kwDOUUI5ts8AAAABPD1fJA** explicitly confirmed that it reviewed all **79 pre-existing unresolved material threads** and returned **CHANGES_REQUIRED** with **P1 `PRRT_kwDOUUI5ts6lnqJY`**: `registry/tests/TEST-0009.yaml` is syntactically invalid because `execution:` begins with sequence items and later adds mapping keys at the same node.
 
-That stale handover could omit one material finding during a fresh-context closure review.
+The two REVIEW-0079 findings raise PR #5 to **81/81 unresolved material threads**. No thread has been resolved.
 
-The new L2 finding raises PR #5 to **80/80 unresolved material threads**. No thread has been resolved.
+REVIEW-0079 CLOSED checkpoint `56d35f134dcde7ddb331e441ad9424712be886b9` passed Bootstrap #321 / run `36010993526` at **450/450 tests**, **3,853 / 1,640**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+
+## REVIEW-0080 implementation candidate — traceability and TEST-0009 registry repair
+
+REVIEW-0080 remains **unopened** until exact technical proof.
+
+The candidate is deliberately non-runtime:
+- repair `TEST-0009.execution` into a single valid mapping;
+- preserve every historical Bootstrap evidence string by moving the former top-level execution sequence entries under `execution.evidence`;
+- preserve `command_or_workflow`, `last_run_at`, `commit_sha` and `result` as mapping fields;
+- add `PRRT_kwDOUUI5ts6lnqJY` to the machine-readable WORK-0002 finding set;
+- reconcile active counts and Resume sequence to **81**;
+- record both REVIEW-0079 independent findings;
+- preserve historical 73/75/76/77/78/79/80 counts as historical evidence;
+- change no runtime Python, workflow or REQ-0026 behavior.
 
 ## Current next action
 
-1. Keep all **80** PR #5 material threads unresolved.
-2. Prove this REVIEW-0079 `CLOSED` state-only checkpoint.
-3. REVIEW-0080 must be documentation/traceability-only:
-   - add `PRRT_kwDOUUI5ts6lnfaG` to `WORK-0002.review_plan.open_findings`;
-   - change the active regression invariant to all **80** inline findings represented and unresolved;
-   - update active PROJECT_STATE/WORK-0002 counts to **80**;
-   - change Resume sequence entry 11 to `live PR #5 exact HEAD/checks/reviews/80 threads`;
-   - preserve historical 73/75/76/77/78/79 counts;
-   - preserve the non-self-referential exact-head evidence rule;
-   - change no runtime Python, workflow, REQ-0026 semantic, or TEST-0010 execution semantics.
-4. After REVIEW-0080 candidate proof, verify live PRRT identities exactly equal WORK-0002 open_findings identities.
-5. Only then open REVIEW-0080 and proceed through OPEN -> IN_PROGRESS -> live exact-head proof -> fresh independent L2 over all **80** threads.
-6. WORK-0003 and WORK-0004 remain blocked.
+1. Keep all **81** PR #5 material threads unresolved.
+2. Commit the REVIEW-0080 traceability/registry repair candidate from proven checkpoint `56d35f13…`.
+3. Run Bootstrap and require exact **100% line + branch** plus live PR #2 probe success.
+4. Verify live PRRT identities exactly equal WORK-0002 open_findings identities: **81 == 81**, no missing/extra.
+5. Verify TEST-0009 is structurally one execution mapping with historical entries under `execution.evidence`.
+6. Only after those proofs materialize REVIEW-0080 as `OPEN`, then follow OPEN -> IN_PROGRESS -> live exact-head proof -> fresh independent L2 over all **81** threads.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
@@ -503,7 +511,7 @@ The new L2 finding raises PR #5 to **80/80 unresolved material threads**. No thr
 8. registry/reviews/REVIEW-0049.yaml
 9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/78 threads
+11. live PR #5 exact HEAD/checks/reviews/81 threads
 12. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.
