@@ -127,6 +127,11 @@ jobs:
             *) exit 1 ;;
           esac
 
+      - name: Require dependency review on PR-family events
+        if: startsWith(github.event_name, 'pull_request')
+        run: |
+          test '${{ needs.dependency-review.result }}' = 'success'
+
       - name: Checkout exact current PR head
         if: startsWith(github.event_name, 'pull_request')
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -124,6 +124,67 @@ def test_workflow_command_matching_rejects_failure_masking_step_controls() -> No
     )
 
 
+def test_workflow_command_matching_rejects_inherited_controls_and_backgrounding() -> None:
+    expected = ("python", "-m", "tools.governance.thread_state_poll")
+    job = {"steps": [{"run": "python -m tools.governance.thread_state_poll"}]}
+
+    assert not t11._steps_execute_prefix(
+        {"env": {"PATH": "/tmp/fake"}, **job},
+        expected,
+    )
+    assert not t11._steps_execute_prefix(
+        {"env": {"PYTHONPATH": "attacker"}, **job},
+        expected,
+    )
+    assert not t11._steps_execute_prefix(
+        {"defaults": {"run": {"shell": "bash"}}, **job},
+        expected,
+    )
+    assert not t11._steps_execute_prefix(
+        {"defaults": {"run": {"working-directory": "subdir"}}, **job},
+        expected,
+    )
+    assert not t11._steps_execute_prefix(
+        job,
+        expected,
+        workflow={"env": {"PYTHONHOME": "/tmp/python"}},
+    )
+    assert not t11._steps_execute_prefix(
+        job,
+        expected,
+        workflow={"defaults": {"run": {"shell": "bash"}}},
+    )
+    assert not t11._steps_execute_prefix(
+        job,
+        expected,
+        workflow={"defaults": {"run": {"working-directory": "subdir"}}},
+    )
+    assert not t11._steps_execute_prefix(
+        job,
+        expected,
+        workflow={"env": "not-a-map"},
+    )
+    assert not t11._steps_execute_prefix(
+        job,
+        expected,
+        workflow={"defaults": "not-a-map"},
+    )
+    assert not t11._steps_execute_prefix(
+        job,
+        expected,
+        workflow={"defaults": {"run": "not-a-map"}},
+    )
+    assert t11._steps_execute_prefix(
+        {"env": {"SAFE_FLAG": "1"}, **job},
+        expected,
+        workflow={"env": {"ANOTHER_SAFE_FLAG": "1"}},
+    )
+    assert not t11._steps_execute_prefix(
+        {"steps": [{"run": "python -m tools.governance.thread_state_poll &"}]},
+        expected,
+    )
+
+
 def test_logical_run_parser_covers_nonsteps_and_trailing_continuations() -> None:
     assert t11._logical_run_commands({}) == []
     assert t11._logical_run_commands({"steps": ["bad", {"run": 123}]}) == []

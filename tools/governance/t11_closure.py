@@ -348,7 +348,7 @@ def _logical_run_commands(job: dict[str, Any]) -> list[list[str]]:
     return commands
 
 
-_FAILURE_MASKING_SHELL_FRAGMENTS = ("||", "&&", ";", "|", ">", "<", "`", "$(")
+_FAILURE_MASKING_SHELL_FRAGMENTS = ("||", "&&", "&", ";", "|", ">", "<", "`", "$(")
 _DANGEROUS_STEP_ENV_KEYS = {
     "PATH",
     "PYTHONPATH",
@@ -370,6 +370,34 @@ def _run_step_has_failure_masking_shell(run: str) -> bool:
         ):
             return True
     return False
+
+
+def _container_execution_defaults_safe(container: dict[str, Any]) -> bool:
+    env = container.get("env")
+    if env is not None:
+        if not isinstance(env, dict):
+            return False
+        if any(str(key).upper() in _DANGEROUS_STEP_ENV_KEYS for key in env):
+            return False
+
+    defaults = container.get("defaults")
+    if defaults is not None:
+        if not isinstance(defaults, dict):
+            return False
+        run_defaults = defaults.get("run")
+        if run_defaults is not None:
+            if not isinstance(run_defaults, dict):
+                return False
+            if "shell" in run_defaults or "working-directory" in run_defaults:
+                return False
+    return True
+
+
+def _inherited_execution_controls_safe(
+    workflow: dict[str, Any] | None,
+    job: dict[str, Any],
+) -> bool:
+    return _container_execution_defaults_safe(workflow or {}) and _container_execution_defaults_safe(job)
 
 
 def _execution_controls_safe(
@@ -408,9 +436,12 @@ def _steps_execute_prefix(
     job: dict[str, Any],
     expected: tuple[str, ...],
     *,
+    workflow: dict[str, Any] | None = None,
     allowed_job_ifs: frozenset[str] = frozenset(),
     allowed_step_ifs: frozenset[str] = frozenset(),
 ) -> bool:
+    if not _inherited_execution_controls_safe(workflow, job):
+        return False
     steps = job.get("steps")
     if not isinstance(steps, list):
         return False
@@ -477,6 +508,7 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
         if not _steps_execute_prefix(
             poll,
             ("python", "-m", "tools.governance.thread_state_poll"),
+            workflow=workflow,
             allowed_job_ifs=frozenset({"github.event_name == 'schedule'"}),
         ):
             out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_WIRING", "poll job must execute the trusted review-thread state poller"))
@@ -488,11 +520,56 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
     if not _steps_execute_prefix(
         validate,
         ("python", "-m", "tools.governance.t11_closure", "."),
+        workflow=core,
         allowed_step_ifs=frozenset({"startsWith(inputs.event_name, 'pull_request')"}),
     ):
         out.append(Finding(CORE_WORKFLOW_PATH, "T11_GATE_WIRING", "governance core must execute the T11 closure validator"))
-    if not _steps_execute_prefix(validate, ("python", ".github/scripts/governance_t11_mutation_smoke.py")):
+    if not _steps_execute_prefix(
+        validate,
+        ("python", ".github/scripts/governance_t11_mutation_smoke.py"),
+        workflow=core,
+    ):
         out.append(Finding(CORE_WORKFLOW_PATH, "T11_MUTATION_WIRING", "governance core must execute the T11 mutation smoke"))
+
+    dependency_review = jobs.get("dependency-review")
+    if not isinstance(dependency_review, dict):
+        out.append(Finding(WORKFLOW_PATH, "DEPENDENCY_REVIEW_JOB", "dependency-review job is missing"))
+    elif str(dependency_review.get("if") or "") != "startsWith(github.event_name, 'pull_request')":
+        out.append(
+            Finding(
+                WORKFLOW_PATH,
+                "DEPENDENCY_REVIEW_SCOPE",
+                "dependency-review job must run for every pull-request-family event",
+            )
+        )
+
+    final_gate = jobs.get("final-gate")
+    if not isinstance(final_gate, dict):
+        out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_JOB", "final-gate job is missing"))
+    else:
+        needs = final_gate.get("needs")
+        if not isinstance(needs, list) or "dependency-review" not in {str(item) for item in needs}:
+            out.append(
+                Finding(
+                    WORKFLOW_PATH,
+                    "DEPENDENCY_REVIEW_NEEDS",
+                    "final-gate must depend on dependency-review",
+                )
+            )
+        if not _steps_execute_prefix(
+            final_gate,
+            ("test", "${{ needs.dependency-review.result }}", "=", "success"),
+            workflow=workflow,
+            allowed_job_ifs=frozenset({"always() && github.event_name != 'schedule'"}),
+            allowed_step_ifs=frozenset({"startsWith(github.event_name, 'pull_request')"}),
+        ):
+            out.append(
+                Finding(
+                    WORKFLOW_PATH,
+                    "DEPENDENCY_REVIEW_REQUIRED",
+                    "pull-request-family final gate must explicitly require dependency-review success",
+                )
+            )
     return out
 
 

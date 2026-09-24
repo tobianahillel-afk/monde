@@ -39,6 +39,21 @@ MUTATIONS = {
         "        if not _execution_controls_safe(job, step, allowed_job_ifs, allowed_step_ifs):\n            continue\n",
         "        if False:\n            continue\n",
     ),
+    "t13-inherited-execution-controls": (
+        "tools/governance/t11_closure.py",
+        "    if not _inherited_execution_controls_safe(workflow, job):\n        return False\n",
+        "    if False:\n        return False\n",
+    ),
+    "t13-background-command-mask": (
+        "tools/governance/t11_closure.py",
+        '_FAILURE_MASKING_SHELL_FRAGMENTS = ("||", "&&", "&", ";", "|", ">", "<", "`", "$(")',
+        '_FAILURE_MASKING_SHELL_FRAGMENTS = ("||", "&&", ";", "|", ">", "<", "`", "$(")',
+    ),
+    "t13-dependency-review-required": (
+        ".github/workflows/governance.yml",
+        "          test '${{ needs.dependency-review.result }}' = 'success'\n",
+        "          true\n",
+    ),
     "t13-active-work-binding": (
         "tools/governance/github_live_gate.py",
         "    return candidates[0] if len(candidates) == 1 else None\n",
