@@ -118,7 +118,7 @@ external_import:
 execution:
   command_or_workflow: "MONDE Stale-Green Bootstrap"
   last_run_at: "2026-09-24"
-  commit_sha: "1a90e73bb107e9f77763103bed059bc12ab11575"
+  commit_sha: "ca800f3e261d6fae699e37438aaee928e2112cb8"
   result: PASS
   evidence:
     - "REVIEW-0069 terminal negative evidence PRR_kwDOUUI5ts8AAAABO346_Q motivates moving merge safety from unbounded commit-scoped history to PR draft state"
@@ -152,7 +152,9 @@ execution:
     - "Bootstrap #299 / run 35973035600 proves frozen REVIEW-0074 head 2e228ba5f016f25eacffab0ca0cd9a7e095cd757 with the same exact technical metrics before independent L2."
     - "Independent Codex L2 PRR_kwDOUUI5ts8AAAABPAAMUQ invalidates REVIEW-0074 with P1 PRRT_kwDOUUI5ts6lfj-O for coercive/wrong-identity closed REST postcondition acceptance and P2 PRRT_kwDOUUI5ts6lfj-U for stale TEST-0010 machine-readable execution identity."
     - "Bootstrap #300 / run 35974182236 proves the terminal REVIEW-0074 CLOSED checkpoint before REVIEW-0075 implementation."
-    - "REVIEW-0075 successor technical proof is pending; its regressions require exact closed postcondition number+node identity and preserve the strict REVIEW-0074 guard/live-validator path."
+    - "Bootstrap #301 / run 35974676675 is retained negative REVIEW-0075 fixture-isolation evidence: live PR #2 probe succeeded, but one new test invoked the historical install chain and leaked monkey-patches into a shared predecessor test; lifecycle opening remained withheld and runtime code was unchanged."
+    - "Bootstrap #302 / run 35974879638 proves exact REVIEW-0075 technical candidate ca800f3e261d6fae699e37438aaee928e2112cb8 with 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests."
+    - "REVIEW-0075 regressions reject closed postconditions with coercive true/1, 5.0/5, string/zero/negative numbers, wrong/missing/empty node_id, non-Boolean draft and invalid state while preserving exact open-draft and exact closed success."
     - "TEST-0010 remains PLANNED until its lifecycle is advanced truthfully and execution PASS evidence does not retroactively replay READY/RUNNING states"
 
 coverage:
