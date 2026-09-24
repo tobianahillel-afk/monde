@@ -409,20 +409,20 @@ A malformed coercive closed response on either internal reread therefore fails c
 
 The read-only live validator is also replaced. It performs a strict target seed from the exact requested PR, binds the seed to its exact node id, rereads through REVIEW-0073 strict identity, requires the target still open, then evaluates bounded thread state. The workflow's live PR #2 contract probe is wired to REVIEW-0074, so real-system evidence now exercises the same strict identifier/type contract as the scheduled runtime.
 
-REVIEW-0074 is now **OPEN** after exact technical proof on `1a90e73bb107e9f77763103bed059bc12ab11575`.
+REVIEW-0074 is now **IN_PROGRESS** after exact technical proof on `1a90e73bb107e9f77763103bed059bc12ab11575` and OPEN checkpoint proof on `d39fe379c8acc11f41988caa81600e68a0e05946`.
 
 Bootstrap #297 / run `35931690262` passed **440/440 tests**, **3,803 statements / 1,622 branches**, **100% line + branch**; REVIEW-0074 itself is **106 statements / 44 branches at 100%**, and the live PR #2 contract probe succeeded at **3/100** requests.
 
-All **73/73 PR #5 material threads remain unresolved**. Green technical evidence is not semantic approval. This OPEN state-only checkpoint must pass before REVIEW-0074 can transition to `IN_PROGRESS`.
+Bootstrap #298 / run `35972837681` proved the OPEN checkpoint at **440/440 tests**, **3,803 statements / 1,622 branches**, **100% line + branch**, REVIEW-0074 **106 / 44 at 100%**, with live PR #2 probe SUCCESS at **3/100** requests. All **73/73 PR #5 material threads remain unresolved**. This IN_PROGRESS state must now receive one frozen exact-head proof before fresh independent L2; green technical evidence is not semantic approval.
 
 ## Current next action
 
 1. Keep all **73** PR #5 material threads unresolved.
-2. Prove this REVIEW-0074 `OPEN` state-only checkpoint with Bootstrap.
-3. Transition `OPEN -> IN_PROGRESS` only after that proof.
-4. Prove the resulting frozen exact HEAD.
-5. Request a fresh independent L2 over all **73 unresolved material threads**, REVIEW-0074 and retained negative evidence.
-6. Any material finding closes REVIEW-0074 and requires a successor; resolve nothing beforehand.
+2. REVIEW-0074 OPEN checkpoint proof is complete via Bootstrap #298 and REVIEW-0074 is now `IN_PROGRESS`.
+3. Prove/freeze this exact IN_PROGRESS head with Bootstrap.
+4. Request a fresh independent L2 over all **73 unresolved material threads**, REVIEW-0074 and retained negative evidence without mutating the tree while it runs.
+5. Any material finding closes REVIEW-0074 and requires a successor; resolve nothing beforehand.
+6. Only a clean L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence

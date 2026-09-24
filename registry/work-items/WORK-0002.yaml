@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0073 are terminal negative evidence. REVIEW-0074 exact technical candidate 1a90e73bb107e9f77763103bed059bc12ab11575 passed Bootstrap #297 / run 35931690262 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests. The successor owns the complete strict double-thread-observation guard so both internal rereads use REVIEW-0073 exact number+node identity, and the live exact-target validator uses the same strict identity contract instead of the weak REVIEW-0071 path. REVIEW-0074 is OPEN pending its state-only checkpoint proof. All 73 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0073 are terminal negative evidence. REVIEW-0074 exact technical candidate 1a90e73bb107e9f77763103bed059bc12ab11575 passed Bootstrap #297 / run 35931690262 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests. The successor owns the complete strict double-thread-observation guard so both internal rereads use REVIEW-0073 exact number+node identity, and the live exact-target validator uses the same strict identity contract instead of the weak REVIEW-0071 path. REVIEW-0074 is IN_PROGRESS after OPEN checkpoint d39fe379c8acc11f41988caa81600e68a0e05946 passed Bootstrap #298 / run 35972837681 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; one frozen exact-head proof is now required before fresh independent L2 over all 73 unresolved material threads. All 73 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -364,6 +364,7 @@ run_log:
   - "REVIEW-0073 frozen head 46591d6d66246c5942eba09c712b196f3c1a16fc passed Bootstrap #295 / run 35930261078 at 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests; Codex L2 was quota-refused by 5804251803, then author-side PRR_kwDOUUI5ts8AAAABO8S_3w produced P1 PRRT_kwDOUUI5ts6lXj4D and P2 PRRT_kwDOUUI5ts6lXj4K."
   - "REVIEW-0073 CLOSED checkpoint a455d4f3431f3bb388567e9f8eb371e3df4d9067 passed Bootstrap #296 / run 35931004610; REVIEW-0074 implementation begins only from this proven terminal checkpoint."
   - "REVIEW-0074 exact technical candidate 1a90e73bb107e9f77763103bed059bc12ab11575 passed Bootstrap #297 / run 35931690262 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; lifecycle opens only after this proof."
+  - "REVIEW-0074 OPEN checkpoint d39fe379c8acc11f41988caa81600e68a0e05946 passed Bootstrap #298 / run 35972837681 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
   - "REVIEW-0063 frozen head 22dd22d5f9e50eea6d3bd351af8e12ab9a935440 passed Bootstrap #244 / run 35848734246 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; fresh Codex L2 request 5793162559 was quota-refused by 5793166351, then author-side PRR_kwDOUUI5ts8AAAABO0xdhQ exposed malformed Check Run terminal temporal metadata being accepted as authority."
 
 discoveries:
@@ -388,7 +389,7 @@ blockers:
   - "REVIEW-0071 is terminal CLOSED/CHANGES_REQUIRED after author-side P1 PRR_kwDOUUI5ts8AAAABO7OKJw; do not request further REVIEW-0071 approval."
   - "REVIEW-0072 is terminal CLOSED/CHANGES_REQUIRED after author-side P1 PRR_kwDOUUI5ts8AAAABO7ZUCw; do not request further REVIEW-0072 approval."
   - "REVIEW-0073 is terminal CLOSED/CHANGES_REQUIRED after author-side P1/P2 findings; do not resolve any of the 73 threads."
-  - "REVIEW-0074 is OPEN after exact technical proof; prove its state-only checkpoint before transition to IN_PROGRESS, then freeze/prove one exact head before fresh independent L2 over all 73 unresolved material threads."
+  - "REVIEW-0074 OPEN checkpoint is proved; prove/freeze this IN_PROGRESS exact head, then request exactly one fresh independent L2 over all 73 unresolved material threads without mutating the tree while it runs."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."

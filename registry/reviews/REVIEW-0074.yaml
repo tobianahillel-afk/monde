@@ -1,5 +1,5 @@
 id: REVIEW-0074
-status: OPEN
+status: IN_PROGRESS
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
@@ -81,7 +81,7 @@ checks:
     - "Author-side PRR_kwDOUUI5ts8AAAABO8S_3w produced P1 PRRT_kwDOUUI5ts6lXj4D and P2 PRRT_kwDOUUI5ts6lXj4K."
     - "REVIEW-0073 CLOSED checkpoint a455d4f3431f3bb388567e9f8eb371e3df4d9067 passed Bootstrap #296 / run 35931004610 before successor implementation."
     - "Bootstrap #297 / run 35931690262 proves exact REVIEW-0074 technical candidate 1a90e73bb107e9f77763103bed059bc12ab11575 with 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests."
-    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "OPEN checkpoint d39fe379c8acc11f41988caa81600e68a0e05946 passed Bootstrap #298 / run 35972837681 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests."
     - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh independent L2."
     - "Fresh independent L2 must inspect all 73 unresolved PR #5 material threads and retained REVIEW-0050 through REVIEW-0073 negative evidence before any controlled thread resolution."
 outcome: CHANGES_REQUIRED
