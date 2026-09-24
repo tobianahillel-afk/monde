@@ -114,7 +114,7 @@ T11 now enforces that:
 - Gate #259 / run `36055246141` on integrated head `6e8014c7d46e2aceefa03902c37c6bdf2fac0c19` exposed one deterministic integration defect before L2: `.github/scripts/governance_t13_mutation_smoke.py` still targeted the pre-refactor `return any(...)` form of `_steps_execute_prefix`, while the current hardened implementation uses per-step parsed commands plus `if any(...): return True`. The runtime guard was correct; the mutation harness failed closed with `t13-executable-command-proof: target occurrence count != 1`. The current correction retargets that mutant to the exact current executable-prefix branch without weakening the mutation. A fresh exact-head Gate is required before any L2 request.
 - Gate #260 / run `36058286810` proved the T13 mutation retarget itself, then exposed a second integration-specific defect in `change_guard`: inherited REVIEW-0082 from the PR #5/main second-parent lineage was incorrectly treated as freshness authority for substantive first-parent PR #2 changes. REVIEW-0082 is valid T12 predecessor evidence, not a review of the current PR #2 delta. The correction makes review freshness authority first-parent scoped: a reviewed commit must remain an ancestor of the head, but only a reviewed commit on the current head's first-parent lineage can stale subsequent first-parent work. A real two-parent regression reproduces PR #5/main as second parent and preserves ordinary first-parent stale-review detection.
 **
-- Live PR #2 now has **75 unresolved material threads**. Two are fresh since the 73-thread handover: P1 `PRRT_kwDOUUI5ts6lURur` (reject shell suffixes that mask validator failures) and P2 `PRRT_kwDOUUI5ts6lURuu` (reject empty `external_import: {}` terminal imports).
+- Live PR #2 now has **77 unresolved material threads**. The prior 75 remain unresolved. Fresh independent integrated-head Codex review `PRR_kwDOUUI5ts8AAAABPIVhXA` on exact head `c80ff3a3cd9640256fca65285ba28094ac848365` added two P1 findings: `PRRT_kwDOUUI5ts6lxalB` (the generic non-first-parent review-freshness exemption is too broad) and `PRRT_kwDOUUI5ts6lxalH` (required workflow commands can still be made non-blocking with step-level controls such as `continue-on-error: true`). The external negative L2 remains live source evidence; canonical successor REVIEW-0083 has **not** been opened yet.
 - WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
 - Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` author-side; `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending exact integrated-head closure.
 
@@ -122,15 +122,24 @@ T11 now enforces that:
 
 Required sequence from this integrated state:
 
-1. Keep all **75** PR #2 material review threads unresolved while integration and fresh fixes are being proved.
+1. Keep all **77** PR #2 material review threads unresolved while the two REVIEW-0083 findings are corrected and proved.
 2. Treat T12 as integrated/default-branch reality; do not reopen PR #5 or substitute PR #2's own cron for the merged bootstrap.
-3. Correct fresh P1 `PRRT_kwDOUUI5ts6lURur` by rejecting failure-masking/trailing shell operators after required validator/poller commands, and fresh P2 `PRRT_kwDOUUI5ts6lURuu` by treating every present `external_import` mapping — including `{}` — as unfinalized unless the full binding contract is satisfied.
-4. Run the full MONDE governance gate on the resulting two-parent PR #2 head and require deterministic/security/mutation/CodeQL/Dependency Review success plus exact durable/live **75/75** finding identity equality.
-5. Request another **fresh-context independent L2** on that exact proven integrated HEAD. It must review all 75 accumulated findings plus integration effects and explicitly recheck T11/T12/T13/T14 and the T7/T8/T9/T10 trust-anchor, lifecycle, import/finalization, authority, identity-policy history, exact-head approval, reopening, raw-blob scanning, workflow-structure and durable-thread invariants.
-6. If new material findings appear, durably add their exact identities and correct them before any resolution.
-7. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD satisfying the hardened trusted/context-separated L2/L3 contract.
-8. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
-9. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
+3. Preserve the already-proved corrections for `PRRT_kwDOUUI5ts6lURur` and `PRRT_kwDOUUI5ts6lURuu`.
+4. Correct P1 `PRRT_kwDOUUI5ts6lxalB` by replacing the topology-wide second-parent freshness skip with one exact, non-reusable WORK-0002 / REVIEW-0082 / PR #5 / T12-merge predecessor exception; every other second-parent review remains freshness-enforced.
+5. Correct P1 `PRRT_kwDOUUI5ts6lxalH` by rejecting job/step execution controls that can make a required governance command non-blocking, including `continue-on-error`, unexpected `if`, custom shell/working-directory and dangerous Python/PATH environment overrides.
+6. Protect both corrections with regressions and mutation smoke, then run the full MONDE governance gate and require deterministic/security/mutation/CodeQL/Dependency Review success plus exact durable/live **77/77** finding identity equality.
+7. Only after exact technical proof may canonical REVIEW-0083 be materialized at `OPEN`; do not retroactively replay the earlier external negative L2 as a terminal registry transition.
+8. Advance REVIEW-0083 through OPEN -> IN_PROGRESS with exact-head proofs, then request a fresh-context successor L2 over all 77 findings plus integration effects.
+9. If new material findings appear, durably add their exact identities and correct them before any resolution.
+10. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD satisfying the hardened trusted/context-separated L2/L3 contract.
+11. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
+12. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
+
+## REVIEW-0083 predecessor finding handoff
+
+Fresh independent Codex review `PRR_kwDOUUI5ts8AAAABPIVhXA` reviewed exact integrated head `c80ff3a3cd9640256fca65285ba28094ac848365` and added P1 `PRRT_kwDOUUI5ts6lxalB` plus P1 `PRRT_kwDOUUI5ts6lxalH`. That negative review is retained as GitHub source evidence.
+
+A first attempt to record it directly as a new canonical `CLOSED` review was rejected by Gate #266 because the review registry lifecycle starts at `OPEN` and cannot be replayed retroactively after external review. The invalid state-only commit was removed from the PR branch. The successor canonical REVIEW-0083 therefore remains **unopened** until the two fixes have exact technical proof; it will then begin truthfully at `OPEN`.
 
 ## Integration-provenance boundary
 
@@ -158,7 +167,7 @@ Product specification and product identity remain owner-gated decisions. Agents 
 8. `registry/acceptance-authority.yaml`
 9. `registry/content-identity.yaml`
 10. `registry/integration-provenance.yaml`
-11. live PR #2 exact HEAD, checks, reviews and all **75 unresolved review threads**
+11. live PR #2 exact HEAD, checks, reviews and all **77 unresolved review threads**
 12. `.github/workflows/governance.yml`, `.github/workflows/_governance-core.yml`
 13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `t11_closure.py`, `github_live_gate.py`, `thread_state_poll.py`
 14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_t11_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`

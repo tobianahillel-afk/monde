@@ -254,23 +254,25 @@ def test_endpoint_changes_use_merge_base_not_moved_base_tip(tmp_path):
     assert 'registry/reviews/BASE-ONLY.yaml' not in c.endpoint_changed_files(tmp_path, base, head)
 
 
-def test_inherited_second_parent_review_is_not_freshness_authority_for_current_delta(tmp_path):
+def test_generic_second_parent_review_remains_freshness_authority(tmp_path):
     common = repo(tmp_path)
 
-    # Existing PR branch work stays on the first-parent lineage.
     run(tmp_path, 'branch', 'feature', common)
     run(tmp_path, 'checkout', 'feature')
     write(tmp_path, 'x.txt', 'feature behavior')
     feature_tip = commit(tmp_path, 'feature behavior before integration')
 
-    # New main contains an independently reviewed predecessor (PR #5 analogue).
     run(tmp_path, 'checkout', '-b', 'mainline', common)
     write(tmp_path, 'pred.txt', 'reviewed predecessor')
     reviewed = commit(tmp_path, 'predecessor reviewed head')
     write(
         tmp_path,
         'registry/reviews/REVIEW-1.yaml',
-        {'id': 'REVIEW-1', 'status': 'COMPLETE', 'artifact': {'commit_sha': reviewed}},
+        {
+            'id': 'REVIEW-1',
+            'status': 'COMPLETE',
+            'artifact': {'type': 'PULL_REQUEST', 'id_or_path': 'PR-X', 'commit_sha': reviewed},
+        },
     )
     work = yaml.safe_load((tmp_path / 'registry/work-items/WORK-1.yaml').read_text())
     work['status'] = 'IN_REVIEW'
@@ -278,7 +280,6 @@ def test_inherited_second_parent_review_is_not_freshness_authority_for_current_d
     write(tmp_path, 'registry/work-items/WORK-1.yaml', work)
     base = commit(tmp_path, 'record predecessor review on main')
 
-    # Integrate new main as the second parent, preserving feature as first parent.
     run(tmp_path, 'checkout', 'feature')
     run(tmp_path, 'merge', '--no-ff', '--no-edit', 'mainline')
     head = run(tmp_path, 'rev-parse', 'HEAD')
@@ -286,8 +287,77 @@ def test_inherited_second_parent_review_is_not_freshness_authority_for_current_d
     assert c.is_ancestor(tmp_path, reviewed, head)
     assert not c.is_first_parent_ancestor(tmp_path, reviewed, head)
 
-    freshness = [f for f in c.validate(tmp_path, base, head) if f.rule == 'REVIEW_FRESHNESS']
-    assert freshness == []
+    assert 'REVIEW_FRESHNESS' in {f.rule for f in c.validate(tmp_path, base, head)}
+
+
+def test_exact_integrated_predecessor_review_exception_is_non_reusable(tmp_path, monkeypatch):
+    common = repo(tmp_path)
+
+    # Current feature work diverges before the trusted predecessor is merged.
+    run(tmp_path, 'branch', 'feature', common)
+    run(tmp_path, 'checkout', 'feature')
+    write(tmp_path, 'x.txt', 'feature behavior')
+    commit(tmp_path, 'feature work')
+
+    # Build one exact reviewed predecessor and merge it to mainline.
+    run(tmp_path, 'checkout', '-b', 'predecessor', common)
+    write(tmp_path, 'pred.txt', 'reviewed predecessor')
+    reviewed = commit(tmp_path, 'predecessor reviewed head')
+    review = {
+        'id': 'REVIEW-1',
+        'status': 'COMPLETE',
+        'outcome': 'APPROVE',
+        'artifact': {
+            'type': 'PULL_REQUEST',
+            'id_or_path': 'PR-5',
+            'commit_sha': reviewed,
+        },
+    }
+    write(tmp_path, 'registry/reviews/REVIEW-1.yaml', review)
+    work = yaml.safe_load((tmp_path / 'registry/work-items/WORK-1.yaml').read_text())
+    work['status'] = 'IN_REVIEW'
+    work['review_plan']['completed_reviews'] = ['REVIEW-1']
+    write(tmp_path, 'registry/work-items/WORK-1.yaml', work)
+    predecessor_tip = commit(tmp_path, 'record predecessor review')
+
+    run(tmp_path, 'checkout', '-b', 'mainline', common)
+    run(tmp_path, 'merge', '--no-ff', '--no-edit', 'predecessor')
+    integration = run(tmp_path, 'rev-parse', 'HEAD')
+    integration_parents = tuple(run(tmp_path, 'show', '-s', '--format=%P', integration).split())
+    assert integration_parents == (common, predecessor_tip)
+
+    monkeypatch.setattr(
+        c,
+        'INHERITED_PREDECESSOR_REVIEW_FRESHNESS_EXCEPTIONS',
+        {
+            ('WORK-1', 'REVIEW-1'): {
+                'artifact_type': 'PULL_REQUEST',
+                'artifact_id_or_path': 'PR-5',
+                'reviewed_commit': reviewed,
+                'integration_commit': integration,
+                'integration_parents': integration_parents,
+            }
+        },
+    )
+
+    run(tmp_path, 'checkout', 'feature')
+    run(tmp_path, 'merge', '--no-ff', '--no-edit', 'mainline')
+    head = run(tmp_path, 'rev-parse', 'HEAD')
+    work_at_head = c.show_yaml(tmp_path, head, 'registry/work-items/WORK-1.yaml')
+    review_at_head = c.show_yaml(tmp_path, head, 'registry/reviews/REVIEW-1.yaml')
+    assert work_at_head is not None and review_at_head is not None
+    assert c.inherited_predecessor_review_freshness_exception(
+        tmp_path, work_at_head, 'REVIEW-1', review_at_head, head
+    )
+
+    bad_review = dict(review_at_head)
+    bad_review['artifact'] = dict(review_at_head['artifact'], id_or_path='PR-6')
+    assert not c.inherited_predecessor_review_freshness_exception(
+        tmp_path, work_at_head, 'REVIEW-1', bad_review, head
+    )
+    assert not c.inherited_predecessor_review_freshness_exception(
+        tmp_path, {'id': 'WORK-OTHER'}, 'REVIEW-1', review_at_head, head
+    )
 
 
 def test_first_parent_review_remains_freshness_authority(tmp_path):

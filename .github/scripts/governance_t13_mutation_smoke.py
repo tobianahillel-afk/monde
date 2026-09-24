@@ -34,6 +34,11 @@ MUTATIONS = {
         "        if any(tuple(command[: len(expected)]) == expected for command in commands):\n",
         "        if any(' '.join(expected) in ' '.join(command) for command in commands):\n",
     ),
+    "t13-step-control-enforcement": (
+        "tools/governance/t11_closure.py",
+        "        if not _execution_controls_safe(job, step, allowed_job_ifs, allowed_step_ifs):\n            continue\n",
+        "        if False:\n            continue\n",
+    ),
     "t13-active-work-binding": (
         "tools/governance/github_live_gate.py",
         "    return candidates[0] if len(candidates) == 1 else None\n",

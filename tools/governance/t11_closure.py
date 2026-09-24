@@ -349,6 +349,14 @@ def _logical_run_commands(job: dict[str, Any]) -> list[list[str]]:
 
 
 _FAILURE_MASKING_SHELL_FRAGMENTS = ("||", "&&", ";", "|", ">", "<", "`", "$(")
+_DANGEROUS_STEP_ENV_KEYS = {
+    "PATH",
+    "PYTHONPATH",
+    "PYTHONHOME",
+    "BASH_ENV",
+    "ENV",
+    "SHELLOPTS",
+}
 
 
 def _run_step_has_failure_masking_shell(run: str) -> bool:
@@ -364,12 +372,52 @@ def _run_step_has_failure_masking_shell(run: str) -> bool:
     return False
 
 
-def _steps_execute_prefix(job: dict[str, Any], expected: tuple[str, ...]) -> bool:
+def _execution_controls_safe(
+    job: dict[str, Any],
+    step: dict[str, Any],
+    allowed_job_ifs: frozenset[str],
+    allowed_step_ifs: frozenset[str],
+) -> bool:
+    if job.get("continue-on-error") not in (None, False):
+        return False
+    job_if = job.get("if")
+    if job_if is not None and (
+        not isinstance(job_if, str) or job_if not in allowed_job_ifs
+    ):
+        return False
+
+    if step.get("continue-on-error") not in (None, False):
+        return False
+    step_if = step.get("if")
+    if step_if is not None and (
+        not isinstance(step_if, str) or step_if not in allowed_step_ifs
+    ):
+        return False
+    if "shell" in step or "working-directory" in step:
+        return False
+    env = step.get("env")
+    if env is not None:
+        if not isinstance(env, dict):
+            return False
+        if any(str(key).upper() in _DANGEROUS_STEP_ENV_KEYS for key in env):
+            return False
+    return True
+
+
+def _steps_execute_prefix(
+    job: dict[str, Any],
+    expected: tuple[str, ...],
+    *,
+    allowed_job_ifs: frozenset[str] = frozenset(),
+    allowed_step_ifs: frozenset[str] = frozenset(),
+) -> bool:
     steps = job.get("steps")
     if not isinstance(steps, list):
         return False
     for step in steps:
         if not isinstance(step, dict):
+            continue
+        if not _execution_controls_safe(job, step, allowed_job_ifs, allowed_step_ifs):
             continue
         run = step.get("run")
         if not isinstance(run, str) or _run_step_has_failure_masking_shell(run):
@@ -426,14 +474,22 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
             out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_PERMISSIONS", "poll job requires actions:write plus pull-requests:read and contents:read"))
         if str(poll.get("if") or "") != "github.event_name == 'schedule'":
             out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_SCOPE", "poll job must run only for schedule events"))
-        if not _steps_execute_prefix(poll, ("python", "-m", "tools.governance.thread_state_poll")):
+        if not _steps_execute_prefix(
+            poll,
+            ("python", "-m", "tools.governance.thread_state_poll"),
+            allowed_job_ifs=frozenset({"github.event_name == 'schedule'"}),
+        ):
             out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_WIRING", "poll job must execute the trusted review-thread state poller"))
 
     core_jobs = core.get("jobs")
     core_jobs = core_jobs if isinstance(core_jobs, dict) else {}
     validate = core_jobs.get("validate")
     validate = validate if isinstance(validate, dict) else {}
-    if not _steps_execute_prefix(validate, ("python", "-m", "tools.governance.t11_closure", ".")):
+    if not _steps_execute_prefix(
+        validate,
+        ("python", "-m", "tools.governance.t11_closure", "."),
+        allowed_step_ifs=frozenset({"startsWith(inputs.event_name, 'pull_request')"}),
+    ):
         out.append(Finding(CORE_WORKFLOW_PATH, "T11_GATE_WIRING", "governance core must execute the T11 closure validator"))
     if not _steps_execute_prefix(validate, ("python", ".github/scripts/governance_t11_mutation_smoke.py")):
         out.append(Finding(CORE_WORKFLOW_PATH, "T11_MUTATION_WIRING", "governance core must execute the T11 mutation smoke"))

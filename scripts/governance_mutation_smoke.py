@@ -89,6 +89,11 @@ MUTATIONS = {
         'if file_path in endpoint_set\n                and change_relevant_to_work(root, path, work, reviewed, head, file_path)',
         'if change_relevant_to_work(root, path, work, reviewed, head, file_path)',
     ),
+    "review-freshness-predecessor-exception-scope": (
+        "tools/governance/change_guard.py",
+        "                and inherited_predecessor_review_freshness_exception(\n                    root, work, rid, review, head\n                )\n",
+        "                and True\n",
+    ),
     "assurance-min-review": (
         "tools/governance/strict_contracts.py",
         'if assurance_level in ASSURANCE_MIN_REVIEW_RANK and declared_rank < ASSURANCE_MIN_REVIEW_RANK[assurance_level]:',

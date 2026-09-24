@@ -63,6 +63,67 @@ def test_workflow_command_matching_requires_executable_argv() -> None:
     assert t11._steps_execute_prefix({"steps": [{"run": "python -m \\\n tools.governance.thread_state_poll --extra value"}]}, expected)
 
 
+def test_workflow_command_matching_rejects_failure_masking_step_controls() -> None:
+    poll_expected = ("python", "-m", "tools.governance.thread_state_poll")
+    safe_poll = {
+        "if": "github.event_name == 'schedule'",
+        "steps": [
+            {
+                "run": "python -m tools.governance.thread_state_poll",
+                "continue-on-error": False,
+                "env": {"GITHUB_TOKEN": "token"},
+            }
+        ],
+    }
+    assert t11._steps_execute_prefix(
+        safe_poll,
+        poll_expected,
+        allowed_job_ifs=frozenset({"github.event_name == 'schedule'"}),
+    )
+
+    assert not t11._steps_execute_prefix(
+        {**safe_poll, "continue-on-error": True},
+        poll_expected,
+        allowed_job_ifs=frozenset({"github.event_name == 'schedule'"}),
+    )
+    assert not t11._steps_execute_prefix(
+        {**safe_poll, "if": "false"},
+        poll_expected,
+        allowed_job_ifs=frozenset({"github.event_name == 'schedule'"}),
+    )
+
+    base_step = {"run": "python -m tools.governance.thread_state_poll"}
+    for controls in (
+        {"continue-on-error": True},
+        {"if": "false"},
+        {"shell": "bash"},
+        {"working-directory": "subdir"},
+        {"env": {"PATH": "/tmp/fake"}},
+        {"env": {"PYTHONPATH": "attacker"}},
+        {"env": "not-a-map"},
+    ):
+        assert not t11._steps_execute_prefix(
+            {"steps": [{**base_step, **controls}]},
+            poll_expected,
+        )
+
+    t11_expected = ("python", "-m", "tools.governance.t11_closure", ".")
+    guarded = {
+        "steps": [
+            {
+                "if": "startsWith(inputs.event_name, 'pull_request')",
+                "run": "python -m tools.governance.t11_closure . --base x --head y",
+            }
+        ]
+    }
+    assert not t11._steps_execute_prefix(guarded, t11_expected)
+    assert t11._steps_execute_prefix(
+        guarded,
+        t11_expected,
+        allowed_step_ifs=frozenset({"startsWith(inputs.event_name, 'pull_request')"}),
+    )
+
+
 def test_logical_run_parser_covers_nonsteps_and_trailing_continuations() -> None:
     assert t11._logical_run_commands({}) == []
     assert t11._logical_run_commands({"steps": ["bad", {"run": 123}]}) == []

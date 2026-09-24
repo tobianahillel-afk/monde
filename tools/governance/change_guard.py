@@ -42,6 +42,22 @@ SECRET_PATTERNS = (
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
 )
 
+# Exact historical predecessor-review freshness exceptions. These are not
+# topology-wide second-parent exemptions: every field must match immutable Git
+# provenance before the review is excluded from current-branch freshness.
+INHERITED_PREDECESSOR_REVIEW_FRESHNESS_EXCEPTIONS: dict[tuple[str, str], dict[str, Any]] = {
+    ("WORK-0002", "REVIEW-0082"): {
+        "artifact_type": "PULL_REQUEST",
+        "artifact_id_or_path": "PR-5",
+        "reviewed_commit": "71ed1cb233d16f032ff27cf5a88dfe039e2ba618",
+        "integration_commit": "b4b52c77fbf05eda65e8f0e951959da70e7edbe7",
+        "integration_parents": (
+            "29086643387ff46ab6636dd2fa3014efccc10165",
+            "e9d67333f35fc0460ea65806f829257ed0a0266a",
+        ),
+    },
+}
+
 
 @dataclass(frozen=True)
 class ChangeFinding:
@@ -495,6 +511,47 @@ def is_first_parent_ancestor(root: Path, ancestor: str, descendant: str) -> bool
     }
 
 
+def inherited_predecessor_review_freshness_exception(
+    root: Path,
+    work: dict[str, Any],
+    review_id: str,
+    review: dict[str, Any],
+    head: str,
+) -> bool:
+    work_id = work.get("id")
+    if not isinstance(work_id, str):
+        return False
+    spec = INHERITED_PREDECESSOR_REVIEW_FRESHNESS_EXCEPTIONS.get((work_id, review_id))
+    if not isinstance(spec, dict):
+        return False
+    artifact = review.get("artifact")
+    if not isinstance(artifact, dict):
+        return False
+    reviewed = artifact.get("commit_sha")
+    integration = spec.get("integration_commit")
+    expected_parents = spec.get("integration_parents")
+    if (
+        artifact.get("type") != spec.get("artifact_type")
+        or artifact.get("id_or_path") != spec.get("artifact_id_or_path")
+        or reviewed != spec.get("reviewed_commit")
+        or not isinstance(integration, str)
+        or not FULL_COMMIT_SHA.fullmatch(integration)
+        or not isinstance(expected_parents, tuple)
+        or len(expected_parents) != 2
+        or any(not isinstance(parent, str) or not FULL_COMMIT_SHA.fullmatch(parent) for parent in expected_parents)
+    ):
+        return False
+    if not commit_exists(root, integration) or not is_ancestor(root, integration, head):
+        return False
+    parents = tuple(commit_parents(root, integration))
+    if parents != expected_parents:
+        return False
+    return (
+        is_ancestor(root, str(reviewed), parents[1])
+        and not is_ancestor(root, str(reviewed), parents[0])
+    )
+
+
 def comparison_parent(root: Path, base: str, sha: str) -> str:
     parents = commit_parents(root, sha)
     if base in parents:
@@ -778,12 +835,17 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
             if not is_ancestor(root, reviewed, head):
                 out.append(ChangeFinding(review_path, "REVIEW_FRESHNESS", "review commit is not an ancestor of the current head"))
                 continue
-            # A completed review inherited through a non-first-parent merge
-            # remains valid evidence for that integrated predecessor, but it is
-            # not a review of the current branch delta. Only reviews on the
-            # current head's first-parent lineage are freshness authorities for
-            # subsequent first-parent work.
-            if not is_first_parent_ancestor(root, reviewed, head):
+            # A review inherited through non-first-parent history is still a
+            # freshness authority unless it matches one exact, non-reusable
+            # predecessor exception. This prevents arbitrary second-parent
+            # reviews from becoming permanently exempt from later substantive
+            # first-parent changes.
+            if (
+                not is_first_parent_ancestor(root, reviewed, head)
+                and inherited_predecessor_review_freshness_exception(
+                    root, work, rid, review, head
+                )
+            ):
                 continue
             later = changed_files(root, reviewed, head)
             substantive = [
