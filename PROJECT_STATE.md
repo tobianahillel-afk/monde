@@ -499,22 +499,27 @@ The terminal REVIEW-0081 record now carries that finding at the canonical top le
 
 PR #5 now has **83/83 unresolved material threads** and WORK-0002's machine PRRT set exactly matches the live 83-thread identity set.
 
-## REVIEW-0082 successor requirement
+## REVIEW-0082 — canonical review-shape successor
 
-REVIEW-0082 is a governance/traceability-only successor. It must:
-- retain exactly all six WORK-0002 required hats;
-- expose `findings` as a canonical top-level review field;
-- preserve REVIEW-0080 TEST-0009 structural repair and all runtime/workflow/REQ-0026 semantics unchanged;
-- preserve exact live/machine **83-ID** PRRT parity;
-- retain REVIEW-0081 P2 `PRRT_kwDOUUI5ts6lumiR` as terminal negative evidence;
-- avoid any post-proof repository commit solely to copy CI completion into the tree.
+REVIEW-0082 is now **OPEN** from the proven REVIEW-0081 CLOSED checkpoint `a1821ff4ffd302716b640e4ec27eb3c911d20ac1` / Bootstrap #329.
+
+This successor is governance/traceability-only. It changes no runtime Python, workflow, REQ-0026 or TEST-0009 semantic behavior.
+
+Its review contract is deliberately minimal and explicit:
+- all six WORK-0002 required hats are declared exactly;
+- `findings: []` is a canonical **top-level** field, a peer of `scope` and `checks`;
+- REVIEW-0081 P2 `PRRT_kwDOUUI5ts6lumiR` remains terminal negative evidence;
+- the REVIEW-0080 TEST-0009 repair remains unchanged;
+- live PR #5 and WORK-0002 machine inventories are exactly equal at **83 unique unresolved PRRT IDs**;
+- historical older thread counts remain historical truth;
+- no post-proof commit will be created merely to copy live CI completion.
 
 ## Current next action
 
 1. Keep all **83** PR #5 material threads unresolved.
-2. Prove this REVIEW-0081 `CLOSED` state-only checkpoint with Bootstrap.
-3. Only after that proof, materialize REVIEW-0082 as `OPEN` with all six required hats and a top-level `findings: []`.
-4. Prove REVIEW-0082 OPEN, transition to `IN_PROGRESS`, then require live exact-head Bootstrap SUCCESS while keeping the tree frozen.
+2. Prove this REVIEW-0082 `OPEN` state-only checkpoint with Bootstrap.
+3. Transition `OPEN -> IN_PROGRESS` only after that checkpoint succeeds.
+4. On the exact IN_PROGRESS HEAD, require live trusted Bootstrap SUCCESS and keep the tree frozen.
 5. Request fresh independent L2 over all **83 unresolved material threads**.
 6. Any material finding closes REVIEW-0082 and requires a successor; resolve nothing beforehand.
 7. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.

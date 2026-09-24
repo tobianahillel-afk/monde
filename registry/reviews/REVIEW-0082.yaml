@@ -1,0 +1,81 @@
+id: REVIEW-0082
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "REVIEW-0081 terminal P2 PRRT_kwDOUUI5ts6lumiR remains negative evidence"
+    - "review findings is a canonical top-level field"
+    - "all six WORK-0002 required hats are declared exactly"
+    - "WORK-0002 open_findings exactly equals the live unresolved PR #5 PRRT identity set"
+    - "active unresolved material-thread count is 83"
+    - "PROJECT_STATE Resume sequence requires live PR #5 reviews/83 threads"
+    - "REVIEW-0080 TEST-0009 execution mapping repair remains unchanged"
+    - "no runtime Python workflow REQ-0026 or TEST-0009 semantic change"
+    - "non-self-referential exact-head execution eligibility remains unchanged"
+  risks:
+    - "review artifact could regress findings under scope or another nested mapping"
+    - "review roles could omit a mandatory work-item hat"
+    - "live and machine finding sets could drift despite equal counts"
+    - "documentation-only successor could mutate runtime artifacts"
+    - "historical thread counts could be globally rewritten instead of preserved as historical truth"
+findings: []
+checks:
+  assumptions_challenged:
+    - "a visually present findings key is sufficient without checking YAML top-level shape"
+    - "documentation-only review successors may weaken required-hat coverage"
+    - "count equality is sufficient without identity equality"
+    - "repairing a terminal review record retroactively converts its independent negative result into approval"
+  omitted_categories_considered:
+    - "findings nested under scope"
+    - "missing top-level findings key"
+    - "required_hats mismatch"
+    - "live thread missing from open_findings"
+    - "extra or duplicate machine PRRT identity"
+    - "Resume sequence stale count"
+    - "TEST-0009 blob or evidence semantics changed"
+    - "runtime/workflow files touched"
+  duplicate_or_reuse_search:
+    - "REVIEW-0081 P2 PRRT_kwDOUUI5ts6lumiR remains terminal negative evidence."
+    - "REVIEW-0081 terminal record now binds the exact reviewed commit and canonical top-level finding."
+    - "REVIEW-0080 TEST-0009 repair is reused unchanged."
+    - "All 83 live PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "findings parses under scope instead of top level"
+    - "one or more WORK-0002 required hats omitted"
+    - "83 count matches while identity set differs"
+    - "post-proof commit is created solely to copy live exact-head success"
+    - "successor accidentally changes runtime Python workflow REQ-0026 or TEST-0009 semantics"
+  evidence_requested:
+    - "REVIEW-0081 exact IN_PROGRESS HEAD 7bc0be1acaee237df7fba3dba6f33f5e17b3061c passed Bootstrap #328 / run 36030185175 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABPHAnaQ produced P2 PRRT_kwDOUUI5ts6lumiR because REVIEW-0081 findings was nested under scope."
+    - "REVIEW-0081 CLOSED checkpoint a1821ff4ffd302716b640e4ec27eb3c911d20ac1 passed Bootstrap #329 / run 36046708888 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Live GitHub exposes 83 unique unresolved PRRT thread IDs and WORK-0002 open_findings exposes exactly the same 83 IDs with no missing or extra entries."
+    - "REVIEW-0082 YAML must expose findings as a top-level peer of scope and checks."
+    - "REVIEW-0082 roles must exactly include ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY and RED_TEAM_SKEPTIC."
+    - "This OPEN checkpoint must pass before transition to IN_PROGRESS."
+    - "After IN_PROGRESS, independent L2 is eligible only when live trusted GitHub shows Bootstrap SUCCESS on the current exact HEAD; do not mutate the tree solely to copy completion."
+    - "Fresh independent L2 must review all 83 unresolved material threads."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-24"
+  updated_at: "2026-09-24"
