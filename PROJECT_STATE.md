@@ -463,41 +463,36 @@ The new L2 finding raised PR #5 to **79/79 unresolved material threads**. REVIEW
 
 ## REVIEW-0079 — exact finding-set reconciliation
 
-REVIEW-0079 is now **OPEN** after exact documentation/traceability proof on `dd3930574f1879fd1102291d55ec3bcca7508d00`.
+REVIEW-0079 is now **IN_PROGRESS** after exact documentation/traceability proof on `dd3930574f1879fd1102291d55ec3bcca7508d00` and OPEN checkpoint proof on `3027b7369f3819f09a03d48057623cc10b296ef4`.
 
-Bootstrap #318 / run `36008738638` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+Bootstrap #318 / run `36008738638` and OPEN checkpoint #319 / run `36009156116` both passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-Compare `67d6e358dbdb24a0f51cc917604a85b2ade143bd..dd3930574f1879fd1102291d55ec3bcca7508d00` changes exactly:
-- `PROJECT_STATE.md`
-- `registry/work-items/WORK-0002.yaml`
-
-The machine-readable finding inventory now exactly matches live GitHub:
+The machine-readable finding inventory exactly matches live GitHub:
 - live PR #5 PRRT IDs: **79 unique**
 - WORK-0002 `review_plan.open_findings` PRRT IDs: **79 unique**
 - missing: **0**
 - extra: **0**
 
-The three added IDs are:
-- `PRRT_kwDOUUI5ts6ljD7h`
-- `PRRT_kwDOUUI5ts6ljXzi`
-- `PRRT_kwDOUUI5ts6lm-ef`
-
-The active regression invariant is now **“all 79 inline findings remain represented and unresolved.”** Historical 73/75/76/77/78 counts remain historical truth.
+The active regression invariant is **“all 79 inline findings remain represented and unresolved.”** Historical 73/75/76/77/78 counts remain historical truth.
 
 No runtime Python, workflow, REQ-0026 semantic, or TEST-0010 execution semantics changed.
 
-All **79/79 PR #5 material threads remain unresolved**. This OPEN checkpoint must pass before REVIEW-0079 transitions to `IN_PROGRESS`.
+The canonical exact-head rule remains stable:
+- independent L2 is eligible only when live trusted GitHub evidence shows successful Bootstrap on the current exact `IN_PROGRESS` HEAD;
+- run completion is external live evidence and is not copied into the frozen tree;
+- any later material tree mutation creates a new HEAD and requires a new exact-head proof.
+
+All **79/79 PR #5 material threads remain unresolved**.
 
 ## Current next action
 
 1. Keep all **79** PR #5 material threads unresolved.
-2. Prove this REVIEW-0079 `OPEN` state-only checkpoint with Bootstrap.
-3. Transition `OPEN -> IN_PROGRESS` only after that proof.
-4. Once IN_PROGRESS, independent L2 is eligible only when live trusted GitHub shows Bootstrap SUCCESS on that exact current HEAD; do not commit solely to record the run outcome.
-5. Request fresh independent L2 over all **79 unresolved material threads** while keeping that HEAD frozen.
-6. Any material finding closes REVIEW-0079 and requires a successor.
-7. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
-8. WORK-0003 and WORK-0004 remain blocked.
+2. REVIEW-0079 is `IN_PROGRESS`; keep this tree frozen.
+3. Independent L2 is eligible **iff live trusted GitHub shows Bootstrap SUCCESS on this exact current HEAD**. Verify that live condition directly; do not mutate the tree solely to record its result.
+4. If the live condition is satisfied, request fresh independent L2 over all **79 unresolved material threads** while keeping the same HEAD frozen.
+5. Any material finding closes REVIEW-0079 and requires a successor; any material tree mutation requires a new exact-head Bootstrap before L2.
+6. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
