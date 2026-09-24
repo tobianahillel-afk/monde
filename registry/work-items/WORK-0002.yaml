@@ -691,10 +691,14 @@ blockers:
 - T12 is DONE/integrated: independently accepted PR #5 is merged on default branch main at b4b52c77fbf05eda65e8f0e951959da70e7edbe7.
 - T13 and T14 remain DONE author-side but require final exact-head independent re-verification as part of T4.
 - T4 requires a full governance gate on the two-parent integrated head, correction of any integration/fresh findings, fresh independent L2 over the complete 75-thread set plus integration effects, and a trusted context-separated exact-head APPROVED review before any thread resolution or merge.
+- Gate #259 / run 36055246141 failed closed before L2 because T13 mutation smoke still matched the superseded pre-refactor executable-command helper shape. The current correction retargets t13-executable-command-proof to the exact current per-step parsed-command branch; runtime governance semantics are unchanged. A fresh exact-head Gate must prove this integrated correction before review.
 follow_up_work_items:
 - run: RUN-3
   date: '2026-09-24'
   note: 'T12 integration boundary: REVIEW-0082 clean independent L2 approved PR #5 predecessor semantics; PR #5 resolved all 83 reviewed threads, reconciliation head e9d67333f35fc0460ea65806f829257ed0a0266a passed Bootstrap #333, and main now contains merge b4b52c77fbf05eda65e8f0e951959da70e7edbe7. This PR #2 merge commit must have parents 90d762af389990b5e57fce83397a558276500dd5 and b4b52c77fbf05eda65e8f0e951959da70e7edbe7. Live PR #2 has 75 unresolved findings including fresh PRRT_kwDOUUI5ts6lURur and PRRT_kwDOUUI5ts6lURuu; T4 remains IN_PROGRESS.'
+- run: RUN-3
+  date: '2026-09-24'
+  note: 'Integrated Gate #259 / run 36055246141 reached 100 percent test coverage and killed baseline/L2/T10/T11 mutations, then failed closed at T13 executable-command-proof because the mutation harness still targeted the old return-any helper shape after the hardened per-step refactor. This commit retargets only that mutant and synchronizes handover; next action is one fresh exact-head Gate before independent L2.'
 - WORK-0003
 - WORK-0004
 - run: RUN-3

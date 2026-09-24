@@ -31,8 +31,8 @@ MUTATIONS = {
     ),
     "t13-executable-command-proof": (
         "tools/governance/t11_closure.py",
-        "    return any(tuple(command[: len(expected)]) == expected for command in _logical_run_commands(job))\n",
-        "    return any(' '.join(expected) in ' '.join(command) for command in _logical_run_commands(job))\n",
+        "        if any(tuple(command[: len(expected)]) == expected for command in commands):\n",
+        "        if any(' '.join(expected) in ' '.join(command) for command in commands):\n",
     ),
     "t13-active-work-binding": (
         "tools/governance/github_live_gate.py",
