@@ -147,7 +147,7 @@ execution:
     - "REVIEW-0073 regressions reject true/1 and 5.0/5 closed-path identity coercion, wrong/empty node id, non-Boolean draft and invalid state before cursor advancement while preserving REVIEW-0072 current-state race coverage."
     - "Bootstrap #295 / run 35930261078 proves frozen REVIEW-0073 at 428/428 tests, 3697 statements / 1578 branches and 100 percent line+branch, but author-side PRR_kwDOUUI5ts8AAAABO8S_3w invalidates its closure: P1 PRRT_kwDOUUI5ts6lXj4D shows inherited internal guard rereads still use weak _direct_pr; P2 PRRT_kwDOUUI5ts6lXj4K shows the live contract probe still exercises the weak REVIEW-0071 validator"
     - "Bootstrap #296 / run 35931004610 proves the terminal REVIEW-0073 CLOSED checkpoint before REVIEW-0074 implementation"
-    - "REVIEW-0074 successor technical proof is pending; its tests require malformed identity to fail on both internal rereads and require the live validator to seed and re-read the exact target through REVIEW-0073 strict identity"
+    - "Bootstrap #297 / run 35931690262 proves exact REVIEW-0074 technical candidate 1a90e73bb107e9f77763103bed059bc12ab11575 with 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; malformed identity fails on both internal rereads and the live validator seeds then rereads the exact target through REVIEW-0073 strict identity"
     - "TEST-0010 remains PLANNED until its lifecycle is advanced truthfully and execution PASS evidence does not retroactively replay READY/RUNNING states"
 
 coverage:
