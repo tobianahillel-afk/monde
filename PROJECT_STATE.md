@@ -427,33 +427,35 @@ Codex L2 request `5811504923` was quota-refused by `5811506815`. Author-side rev
 
 The REVIEW-0075 CLOSED state-only checkpoint `b8de445952c0cfb916e5ead7ce7009dff4809a41` passed Bootstrap #305 / run `35986900739` at **450/450 tests**, **3,853 / 1,640**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-## REVIEW-0076 — finding-count traceability reconciliation
+## REVIEW-0076 — terminal traceability negative evidence
 
-REVIEW-0076 is now **IN_PROGRESS** after exact documentation-candidate proof on `e82ac8ac599e4f3611d5ab90358939e789288def` and OPEN checkpoint proof on `f20894d87799c33faf97e3360ae9c0fc96d95cef`.
+REVIEW-0076 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `6a68226c79e0d3ae7856b2b56eda58bf1ef2511c`.
 
-Bootstrap #306 / run `35987119706` and Bootstrap #307 / run `35987412834` both passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+Bootstrap #306 / run `35987119706`, OPEN checkpoint #307 / run `35987412834`, and frozen proof **#308 / run `35987642101`** all passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests. REVIEW-0075 runtime/workflow semantics remained unchanged.
 
-The candidate remains documentation/traceability-only. Compare `b8de445952c0cfb916e5ead7ce7009dff4809a41..e82ac8ac599e4f3611d5ab90358939e789288def` changes exactly:
-- `PROJECT_STATE.md`
-- `registry/work-items/WORK-0002.yaml`
+Fresh independent REVIEW-0076 L2 requests `5812432588` and `5812484732` were quota-refused by `5812434586` and `5812486456`; no independent REVIEW-0076 L2 exists.
 
-No bootstrap Python or workflow semantic file changed.
+Author-side P2 **`PRRT_kwDOUUI5ts6ljD7h`** then proved that the active canonical handover still said the frozen proof was pending after #308 had already completed. The live PR body was correct, but PROJECT_STATE and WORK-0002 would have instructed a fresh agent to repeat a completed lifecycle step.
 
-The active contradiction remains repaired:
-- WORK-0002 `required_tests.regression` requires **all 76 inline findings**;
-- active resume handover reports **76 live PR #5 threads**;
-- historical REVIEW-0073 and REVIEW-0074 73/75 counts remain historical evidence;
-- REVIEW-0075 runtime execution identity remains unchanged.
+PR #5 therefore has **77/77 unresolved material threads**. None has been resolved.
 
-All **76/76 PR #5 material threads remain unresolved**. This IN_PROGRESS state must now receive one frozen exact-head proof before fresh independent L2.
+## REVIEW-0077 implementation candidate — frozen-proof handover reconciliation
+
+REVIEW-0077 must remain documentation/traceability-only:
+- record #308 as the completed frozen exact-head proof;
+- make **fresh independent L2** the sole remaining REVIEW-0077 lifecycle step after its own OPEN/IN_PROGRESS proofs;
+- reconcile active finding count to **77**;
+- preserve historical REVIEW-0073/0074/0075/0076 counts as historical truth;
+- preserve REVIEW-0075 runtime/workflow semantics byte-for-byte;
+- do not relabel TEST-0010 runtime execution identity as REVIEW-0077 proof.
 
 ## Current next action
 
-1. Keep all **76** PR #5 material threads unresolved.
-2. Prove/freeze this exact REVIEW-0076 IN_PROGRESS head with Bootstrap.
-3. Request fresh independent L2 over all **76 unresolved material threads** and retained negative evidence without mutating the tree while it runs.
-4. Any material finding closes REVIEW-0076 and requires a successor.
-5. Only a clean L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
+1. Keep all **77** PR #5 material threads unresolved.
+2. Prove this REVIEW-0076 `CLOSED` state-only checkpoint.
+3. Create and prove a documentation-only REVIEW-0077 candidate correcting PROJECT_STATE and WORK-0002 only.
+4. Open REVIEW-0077 only after exact technical proof.
+5. After its OPEN and IN_PROGRESS checkpoints, request fresh independent L2 over all **77 unresolved material threads**.
 6. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
@@ -468,7 +470,7 @@ All **76/76 PR #5 material threads remain unresolved**. This IN_PROGRESS state m
 8. registry/reviews/REVIEW-0049.yaml
 9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/76 threads
+11. live PR #5 exact HEAD/checks/reviews/77 threads
 12. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.
