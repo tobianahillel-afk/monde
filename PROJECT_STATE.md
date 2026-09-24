@@ -427,28 +427,34 @@ Codex L2 request `5811504923` was quota-refused by `5811506815`. Author-side rev
 
 The REVIEW-0075 CLOSED state-only checkpoint `b8de445952c0cfb916e5ead7ce7009dff4809a41` passed Bootstrap #305 / run `35986900739` at **450/450 tests**, **3,853 / 1,640**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-## REVIEW-0076 implementation candidate — finding-count traceability reconciliation
+## REVIEW-0076 — finding-count traceability reconciliation
 
-REVIEW-0076 is deliberately **documentation/traceability-only**. No bootstrap Python, workflow, request-budget, mutation, recovery, discovery or guard behavior changes.
+REVIEW-0076 is now **OPEN** after exact documentation-candidate proof on `e82ac8ac599e4f3611d5ab90358939e789288def`.
 
-The candidate:
-- changes active WORK-0002 `required_tests.regression` from “all 73 inline findings” to **“all 76 inline findings”**;
-- records REVIEW-0075 frozen proof #304, quota refusal and P2 finding;
-- records REVIEW-0075 CLOSED proof #305;
-- updates the active resume handover from 75 to **76** live PR #5 threads;
-- preserves all historical 73/75 counts inside REVIEW-0073/0074 narrative as historical truth;
-- keeps all **76/76** live PR #5 material threads unresolved.
+Bootstrap #306 / run `35987119706` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-REVIEW-0076 is **not opened yet**. The exact documentation candidate must first pass the same full 450-test / 100% line+branch / live PR #2 probe, proving the traceability correction did not alter runtime semantics.
+The candidate is documentation/traceability-only. Compare `b8de445952c0cfb916e5ead7ce7009dff4809a41..e82ac8ac599e4f3611d5ab90358939e789288def` changes exactly:
+- `PROJECT_STATE.md`
+- `registry/work-items/WORK-0002.yaml`
+
+No bootstrap Python or workflow semantic file changed.
+
+The active contradiction is repaired:
+- WORK-0002 `required_tests.regression` now requires **all 76 inline findings**;
+- active resume handover now reports **76 live PR #5 threads**;
+- historical REVIEW-0073 and REVIEW-0074 73/75 counts remain historical evidence rather than being rewritten;
+- REVIEW-0075 runtime execution identity remains unchanged.
+
+All **76/76 PR #5 material threads remain unresolved**. Green documentation proof is not semantic approval. This OPEN checkpoint must pass before REVIEW-0076 may transition to `IN_PROGRESS`.
 
 ## Current next action
 
 1. Keep all **76** PR #5 material threads unresolved.
-2. Prove the exact REVIEW-0076 documentation candidate with Bootstrap.
-3. Verify the changed-file set contains no runtime Python/workflow semantic change.
-4. Only after exact proof, materialize REVIEW-0076 as `OPEN`.
-5. Prove OPEN, transition to `IN_PROGRESS`, then prove one frozen exact head.
-6. Request a fresh independent L2 over all **76 unresolved threads**.
+2. Prove this REVIEW-0076 `OPEN` state-only checkpoint with Bootstrap.
+3. Transition `OPEN -> IN_PROGRESS` only after that proof.
+4. Prove the resulting frozen exact HEAD.
+5. Request fresh independent L2 over all **76 unresolved material threads** and the complete retained negative evidence.
+6. Any material finding closes REVIEW-0076 and requires a successor; resolve nothing beforehand.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
