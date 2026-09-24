@@ -1,0 +1,166 @@
+id: TEST-0010
+name: "PR draft fail-closed review-thread guard"
+status: PLANNED
+type: INTEGRATION
+
+protects:
+  requirements: [REQ-0026]
+  capabilities: []
+  contracts: ["GitHub control-plane merge guard"]
+  risks: []
+  invariants:
+    - "a current ready pull request with an unresolved review thread cannot remain merge-authoritative after the trusted scheduled guard processes it"
+    - "if complete resolved-thread state cannot be established within the bounded scan or GitHub returns malformed/ambiguous thread data, the exact current ready pull request is treated as unsafe and converted to draft"
+    - "every discovered PR number is directly reread from current GitHub authority before any mutable closed/draft skip or durable cursor advancement"
+    - "the direct reread is bound to the validated discovery record by positive exact non-Boolean number, exact matching node_id, Boolean draft and state in open/closed before any state branch"
+    - "a pull request currently in draft state after direct reread is never automatically readied and is not mutated by the guard"
+    - "draft mutation is bound to an exact positive PR number plus exact GitHub node id"
+    - "stable open-PR discovery includes draft state, node id, head identity, base identity and merge_commit_sha"
+    - "review-thread state is observed once before direct PR revalidation and once again immediately before draft mutation"
+    - "the second thread observation occurs even when the first observation was RESOLVED, so a new unresolved thread arriving between observations is caught before cursor advance"
+    - "both direct current-PR rereads around the thread observations use the same strict positive non-Boolean number plus exact node_id identity contract as the discovery reread"
+    - "the read-only live contract probe uses a strict exact-target seed plus strict node-bound current reread rather than the pre-REVIEW-0073 weak _direct_pr path"
+    - "if the PR closes or becomes draft during revalidation, no further mutation is issued"
+    - "head/base authority drift cannot redirect the mutation because convertPullRequestToDraft targets the exact current PR node; drift remains safe because the resulting state is draft"
+    - "GraphQL convertPullRequestToDraft acknowledgement must return the exact node id, PR number and isDraft=true"
+    - "draft mutation acknowledgement PR number is a positive exact non-Boolean integer before equality is accepted"
+    - "a direct REST postcondition must expose the same PR node as draft or show the PR already closed"
+    - "the normal draft-guard path performs no Actions, Checks or historical Gate traversal"
+    - "the scheduled guard retains the hard 100-request cap and reserves enough budget for a second thread observation, direct revalidation, draft mutation, postcondition and fairness-state write"
+    - "legacy durable pending rerun state is never overwritten; it is terminally accounted through the predecessor recovery path before draft-guard scanning resumes"
+    - "the trusted scheduled job retains actions:read and checks:read solely because legacy pending reconciliation reads exact run job and check state before draft discovery"
+    - "fairness cursor progression remains durable in issue #7 and bounds each invocation to a finite PR prefix"
+    - "repository PR discovery is bounded per invocation and durably resumable through issue #7 scan_page scan_pr and scan_anchor without core.MAX_PAGES"
+    - "discovery uses state=all sorted by creation ascending so close/reopen state changes do not remove earlier page membership; processed-page prefix identity is hashed and revalidated while append-only growth after the processed prefix is allowed"
+    - "manual Ready for review remains the only transition from draft back to ready; the canonical MONDE Gate workflow already triggers on ready_for_review"
+
+location:
+  test_path: ".github/scripts/test_stale_green_bootstrap_authority_review0075.py"
+  suite: "MONDE Stale-Green Bootstrap / Bootstrap self-test + Bootstrap GitHub contract probe"
+
+environment:
+  kind: GITHUB_ACTIONS
+  real_dependencies:
+    - "GitHub REST Pull Requests API"
+    - "GitHub GraphQL reviewThreads API"
+    - "GitHub GraphQL convertPullRequestToDraft mutation"
+    - "GitHub pull_request ready_for_review event semantics"
+  mocked_dependencies:
+    - "adversarial review-thread pagination, malformed GraphQL, concurrent PR closure/draft/head drift, exact draft acknowledgement, cursor fairness and legacy pending state"
+
+cases:
+  happy_path:
+    - "ready PR + unresolved thread -> second unresolved observation -> exact PR node converted to draft -> direct REST postcondition confirms draft"
+    - "page snapshot draft + direct current PR still draft -> skip thread scan and mutation only after current revalidation"
+    - "fully resolved currently-ready PR remains ready and is not mutated after direct current revalidation"
+    - "human Ready for review after resolving threads triggers the existing canonical MONDE Gate workflow"
+  edge_cases:
+    - "page snapshot draft becomes current ready before consumption; current reread routes it through the unresolved-thread guard before cursor advancement"
+    - "page snapshot closed becomes current open+ready before consumption; current reread routes it through the unresolved-thread guard"
+    - "page snapshot ready becomes current closed or draft; no redundant mutation is issued"
+    - "thread becomes resolved between first and second observation; no draft mutation is issued"
+    - "PR closes between observations; no draft mutation is issued"
+    - "PR becomes draft concurrently; duplicate mutation is suppressed"
+    - "PR head/base/merge authority changes between observations while the same node remains ready; guard still safely drafts the exact current PR node"
+    - "reviewThreads needs more than the bounded page limit; state becomes AMBIGUOUS and the PR is drafted rather than left mergeable"
+    - "request headroom approaches the draft-mutation reserve; thread proof becomes AMBIGUOUS before reserve can be consumed"
+    - "more open PRs exist than the per-invocation guard bound; issue #7 cursor advances deterministically across later invocations"
+    - "at least 2001 PR records span 21 discovery pages; repeated bounded invocations cross page 20, process page 21 and wrap without core.paged or MAX_PAGES deadlock"
+  failure_modes:
+    - "stable open-PR snapshots disagree on draft/node/head/base/merge authority"
+    - "PR node id, draft flag, number or state is malformed"
+    - "reviewThreads response, cursor, node resolution flag or pageInfo is malformed"
+    - "durable discovery page membership is malformed duplicated out of order overlaps its predecessor or changes inside an already-processed prefix"
+    - "GraphQL thread read fails or returns errors; state is treated as AMBIGUOUS rather than safe"
+    - "convertPullRequestToDraft response is malformed or acknowledges a different PR"
+    - "post-mutation REST state does not expose the exact PR as draft or closed"
+    - "current-PR reread fails or is malformed; durable cursor does not advance past the affected discovery record"
+    - "closed current response with coercively equal number such as true==1 or 5.0==5 fails closed before cursor advancement"
+    - "closed current response with wrong/empty node_id or non-Boolean draft fails closed"
+    - "scheduler-state write or legacy pending accounting fails; mutation safety is not converted into an automatic ready transition"
+  adversarial_cases:
+    - "arbitrarily deep Actions/Check history exists, including >1000 or >2000 same-head suites; draft guard safety remains independent of Actions/Checks APIs"
+    - "arbitrarily deep resolved thread history exceeds the bounded automatic proof; guard fails closed to draft instead of silently accepting resolved state"
+    - "arbitrarily many PR discovery pages remain reachable through durable page progression; no repository-wide exhaustive open-PR collection is required"
+    - "an unresolved thread is added after the first observation but before the second; second observation forces draft"
+    - "thread API is unavailable exactly when stale green would otherwise remain usable; guard treats the state as unsafe"
+    - "a stale discovery snapshot saying draft/closed cannot suppress validation of a PR that is now open+ready"
+    - "malformed closed current authority cannot bypass exact identity validation by returning before the open-PR guard"
+    - "a user-authored draft is never automatically readied by the bootstrap"
+    - "legacy rerun pending state exists during migration; issue #7 authority is retained until predecessor terminal accounting"
+
+acceptance_cold_read:
+  qualifies: false
+  source:
+    kind: null
+    source_id: null
+    submitted_at: null
+  executor:
+    actor: null
+    context_id: null
+    independence_level: null
+    fresh_context: false
+    authoring_context_separated: false
+  requirements: {}
+  required_outcomes:
+    understood_without_author_reasoning: null
+    atomic_and_testable: null
+    dependencies_and_conflicts_checked: null
+    omissions_and_failure_modes_checked: null
+    evidence_plan_sufficient: null
+  all_required_outcomes_pass: false
+  completed_at: null
+
+external_import:
+  authorization_source: null
+  import_commit: null
+
+execution:
+  command_or_workflow: "MONDE Stale-Green Bootstrap"
+  last_run_at: "2026-09-24"
+  commit_sha: "ca800f3e261d6fae699e37438aaee928e2112cb8"
+  result: PASS
+  evidence:
+    - "REVIEW-0069 terminal negative evidence PRR_kwDOUUI5ts8AAAABO346_Q motivates moving merge safety from unbounded commit-scoped history to PR draft state"
+    - "REVIEW-0070 independent L2 PRR_kwDOUUI5ts8AAAABO64xew is retained negative evidence: five findings exposed resolved-path early return, missing legacy pending read permissions, MAX_PAGES open-PR discovery deadlock, coercive mutation ACK identity and contradictory handover text"
+    - "GitHub GraphQL PullRequest.reviewThreads exposes only cursor pagination arguments and no isResolved filter; bounded automatic proof therefore treats incomplete scans as unsafe"
+    - "GitHub draft pull requests are non-mergeable until explicitly marked ready for review"
+    - "MONDE Gate already subscribes to pull_request ready_for_review"
+    - "Bootstrap #276 / run 35908685567 is retained negative REVIEW-0070 fixture/legacy-workflow expectation evidence; live PR #2 contract probe succeeded and lifecycle opening remained withheld"
+    - "Bootstrap #277 / run 35908922188: 385/385 functional tests PASS and live PR #2 probe SUCCESS, but coverage correctly failed because REVIEW-0070 had one uncovered revalidation branch and repository total was 99 percent; lifecycle opening remained withheld"
+    - "Bootstrap #278 / run 35909146544 proves REVIEW-0070 exact technical candidate 1611356cbd3ab21be9cd47828acdfecbc1479b16 with 385/385 tests, 3375 statements / 1438 branches, 100 percent line+branch, REVIEW-0070 197 statements / 82 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0070 was later invalidated by independent L2 PRR_kwDOUUI5ts8AAAABO64xew"
+    - "Real control-plane rehearsal on PR #2 preserved head 90d762af389990b5e57fce83397a558276500dd5 across ready -> draft -> ready; ready_for_review immediately created MONDE Gate run #253 / 35912455093 on that exact head"
+    - "The rehearsal resolved no review thread and changed no branch content"
+    - "Bootstrap #282 / run 35916059940 is retained negative REVIEW-0071 coverage evidence: 401/401 functional tests passed and live PR #2 probe succeeded, but REVIEW-0071 coverage was 88 percent and total coverage 99 percent"
+    - "Bootstrap #283 / run 35916421256 is retained negative coverage-gate evidence: 409/409 functional tests passed and live probe succeeded, but one REVIEW-0071 branch remained uncovered and total coverage stayed 99 percent"
+    - "Bootstrap #284 / run 35916713082 proves exact REVIEW-0071 technical candidate 9627c5ac5499210107e817dc49ff9b62407d5520 with 410/410 tests, 3543 statements / 1514 branches, 100 percent line+branch, REVIEW-0071 168 statements / 76 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests"
+    - "Bootstrap #284 includes the 2001-PR / 21-page durable discovery regression and crosses the old page-20 ceiling without core.paged or MAX_PAGES deadlock"
+    - "Bootstrap #286 / run 35917430655 proves frozen REVIEW-0071 at 410/410 tests, 3543 statements / 1514 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 2/100 requests; Codex L2 was quota-refused"
+    - "Author-side PRR_kwDOUUI5ts8AAAABO7OKJw invalidates REVIEW-0071: mutable page state can skip a PR that changed from draft/closed to ready/open before consumption while the durable cursor advances"
+    - "Bootstrap #287 / run 35918357919 proves the terminal REVIEW-0071 CLOSED checkpoint before successor implementation."
+    - "Bootstrap #288 / run 35918943484 proves exact REVIEW-0072 technical candidate a003455476468a9ac40343b368c195f4178a5d61 with 423/423 tests, 3610 statements / 1542 branches, 100 percent line+branch, REVIEW-0072 67 statements / 28 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
+    - "REVIEW-0072 regressions prove page-snapshot draft->current ready and closed->current ready both route through current authority and the unresolved guard before cursor advancement; current closed/draft transitions suppress redundant mutation."
+    - "Bootstrap #290 / run 35919570373 proves frozen REVIEW-0072 at 423/423 tests, 3610 statements / 1542 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 2/100 requests; Codex L2 was quota-refused."
+    - "Author-side PRR_kwDOUUI5ts8AAAABO7ZUCw invalidates REVIEW-0072: inherited _direct_pr accepts coercively equal malformed PR numbers on the closed path before strict _guard_pr validation."
+    - "Bootstrap #291 / run 35920235156 proves the terminal REVIEW-0072 CLOSED checkpoint before successor implementation."
+    - "Bootstrap #292 / run 35920768442 proves exact REVIEW-0073 technical candidate 11289692153cf073d6e9c71f525809d7e66b298d with 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
+    - "REVIEW-0073 regressions reject true/1 and 5.0/5 closed-path identity coercion, wrong/empty node id, non-Boolean draft and invalid state before cursor advancement while preserving REVIEW-0072 current-state race coverage."
+    - "Bootstrap #295 / run 35930261078 proves frozen REVIEW-0073 at 428/428 tests, 3697 statements / 1578 branches and 100 percent line+branch, but author-side PRR_kwDOUUI5ts8AAAABO8S_3w invalidates its closure: P1 PRRT_kwDOUUI5ts6lXj4D shows inherited internal guard rereads still use weak _direct_pr; P2 PRRT_kwDOUUI5ts6lXj4K shows the live contract probe still exercises the weak REVIEW-0071 validator"
+    - "Bootstrap #296 / run 35931004610 proves the terminal REVIEW-0073 CLOSED checkpoint before REVIEW-0074 implementation"
+    - "Bootstrap #297 / run 35931690262 proves exact REVIEW-0074 technical candidate 1a90e73bb107e9f77763103bed059bc12ab11575 with 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; malformed identity fails on both internal rereads and the live validator seeds then rereads the exact target through REVIEW-0073 strict identity"
+    - "Bootstrap #298 / run 35972837681 proves the REVIEW-0074 OPEN checkpoint with the same 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Bootstrap #299 / run 35973035600 proves frozen REVIEW-0074 head 2e228ba5f016f25eacffab0ca0cd9a7e095cd757 with the same exact technical metrics before independent L2."
+    - "Independent Codex L2 PRR_kwDOUUI5ts8AAAABPAAMUQ invalidates REVIEW-0074 with P1 PRRT_kwDOUUI5ts6lfj-O for coercive/wrong-identity closed REST postcondition acceptance and P2 PRRT_kwDOUUI5ts6lfj-U for stale TEST-0010 machine-readable execution identity."
+    - "Bootstrap #300 / run 35974182236 proves the terminal REVIEW-0074 CLOSED checkpoint before REVIEW-0075 implementation."
+    - "Bootstrap #301 / run 35974676675 is retained negative REVIEW-0075 fixture-isolation evidence: live PR #2 probe succeeded, but one new test invoked the historical install chain and leaked monkey-patches into a shared predecessor test; lifecycle opening remained withheld and runtime code was unchanged."
+    - "Bootstrap #302 / run 35974879638 proves exact REVIEW-0075 technical candidate ca800f3e261d6fae699e37438aaee928e2112cb8 with 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests."
+    - "REVIEW-0075 regressions reject closed postconditions with coercive true/1, 5.0/5, string/zero/negative numbers, wrong/missing/empty node_id, non-Boolean draft and invalid state while preserving exact open-draft and exact closed success."
+    - "TEST-0010 remains PLANNED until its lifecycle is advanced truthfully and execution PASS evidence does not retroactively replay READY/RUNNING states"
+
+coverage:
+  line_contribution: 100
+  branch_contribution: 100
+
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"

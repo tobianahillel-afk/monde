@@ -1,0 +1,83 @@
+id: REVIEW-0061
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "f5bbad18911208b2f408d1aeb245aed32506b742"
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "REVIEW-0060 attempt-aware canonical Actions frontier remains intact"
+    - "every protected MONDE Gate job used for authority starts at or after its current workflow attempt run_started_at"
+    - "direct candidate current run/job chronology is validated before candidate authority proof"
+    - "every frontier run/current protected-job chronology is validated before authority ordering"
+    - "candidate required-check started_at remains exactly equal to its protected job started_at"
+    - "malformed cross-object chronology fails closed instead of under-ranking a newer current attempt"
+    - "chronology validation reuses already-fetched run/job payloads and adds no GitHub requests"
+    - "temporary request/job wrappers are restored on success and failure"
+    - "REVIEW-0051 recovery, REVIEW-0052 multi-check selection, REVIEW-0053 pagination, REVIEW-0054 through REVIEW-0056 pending protections and REVIEW-0059 frontier binding remain intact"
+  risks:
+    - "GitHub may return individually valid run/job payloads whose cross-object chronology is impossible"
+    - "a malformed older job timestamp can otherwise make a newer current attempt appear older"
+    - "wrapper interception must not hide malformed direct run/job responses or unrelated requests"
+    - "install ordering must preserve all predecessor authority and recovery guarantees"
+findings:
+  - "PRR_kwDOUUI5ts8AAAABOzuvcA"
+checks:
+  assumptions_challenged:
+    - "independent run and job lifetime validation implies valid cross-object chronology"
+    - "matching run_attempt is sufficient even when protected job started_at predates run_started_at"
+    - "chronology enforcement can be layered without extra control-plane reads"
+  omitted_categories_considered:
+    - "direct candidate job starts before current attempt"
+    - "frontier competitor current attempt is newer but job timestamp is artificially older"
+    - "job starts exactly at run_started_at"
+    - "malformed direct run payload remains predecessor fail-closed"
+    - "malformed direct job payload remains predecessor fail-closed"
+    - "unrelated request passes through chronology wrapper unchanged"
+    - "wrapper hooks restore after predecessor proof failure"
+    - "non-merge-acceptable candidate skips frontier authority"
+  duplicate_or_reuse_search:
+    - "Existing REVIEW-0060 current-attempt authority and protected-job validators are reused rather than copied."
+    - "REVIEW-0060 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
+    - "PRR_kwDOUUI5ts8AAAABOzV1xw is the author-side finding that invalidated REVIEW-0060."
+    - "All 65 historical inline PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "newer current attempt is under-ranked due to impossible earlier protected-job timestamp"
+    - "direct candidate check/job start identity is weakened"
+    - "malformed direct run/job errors are hidden by wrapper interception"
+    - "unrelated API calls are modified"
+    - "wrapper hooks leak after an exception"
+    - "request budget is increased by chronology validation"
+    - "candidate frontier reread preserves id/start but drifts status/conclusion/completed_at, allowing an older success check to remain authoritative"
+  evidence_requested:
+    - "Exact-head Bootstrap suite with 100 percent line and branch coverage after cross-object chronology adapter."
+    - "Regression proving direct candidate job-before-attempt chronology fails closed."
+    - "Regression proving a newer competitor attempt cannot be under-ranked by an artificially older job timestamp."
+    - "Regression proving valid/equal chronology preserves REVIEW-0060 authority."
+    - "Regression proving malformed predecessor run/job paths and unrelated requests remain transparent/fail-closed."
+    - "Live PR #2 contract probe remains successful."
+    - "Fresh-context independent L2 on one frozen exact REVIEW-0061 head."
+    - "Resolve no historical inline thread until REVIEW-0061 L2 is clean."
+    - "Successor must bind candidate authority to an exact protected-job terminal snapshot and reject any status/conclusion/completed_at drift between direct and frontier reads."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-23T08:43:07Z"
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"

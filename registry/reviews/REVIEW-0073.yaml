@@ -1,0 +1,94 @@
+id: REVIEW-0073
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "46591d6d66246c5942eba09c712b196f3c1a16fc"
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "PR-scoped draft fail-closed merge guard from REVIEW-0070"
+    - "bounded durable state=all PR discovery from REVIEW-0071"
+    - "mandatory direct current-PR reread before cursor advancement from REVIEW-0072"
+    - "direct current-PR number is a positive exact non-Boolean integer equal to the validated discovered number"
+    - "direct current-PR node_id is nonempty and exactly equals the validated discovered node_id"
+    - "direct current-PR draft is an exact Boolean"
+    - "direct current-PR state is exactly open or closed before any state branch"
+    - "closed may return safe only after exact identity/type validation"
+    - "open continues through inherited strict guard authority validation"
+    - "all REVIEW-0072 budget, thread-observation, page/prefix and legacy pending guarantees remain intact"
+    - "hard 100-request cap remains unchanged"
+  risks:
+    - "coercive Python equality can accept Boolean or float PR identities"
+    - "closed state can otherwise return before strict open-PR guard validation"
+    - "wrong node id could detach current reread from the discovered PR identity"
+    - "strict closed-path typing could reject valid GitHub payloads if assumptions are wrong"
+    - "wrapper composition could weaken REVIEW-0072 current-state race protection"
+findings:
+  - "PRRT_kwDOUUI5ts6lXj4D"
+  - "PRRT_kwDOUUI5ts6lXj4K"
+checks:
+  assumptions_challenged:
+    - "payload.get(number) != expected is sufficient exact identity validation"
+    - "closed responses do not need strict identifier/type checks because they are safe"
+    - "node_id equality is unnecessary once PR number matches"
+    - "GitHub will never emit malformed control-plane types so fail-closed typing is unnecessary"
+  omitted_categories_considered:
+    - "discovered number is Boolean or float"
+    - "direct closed number is Boolean, float, string, zero, negative or wrong integer"
+    - "direct node id is missing empty or different"
+    - "direct draft is non-Boolean"
+    - "direct state is outside open/closed"
+    - "direct response is not an object"
+    - "open direct response has malformed inherited head/base/merge authority"
+    - "REVIEW-0072 draft->ready closed->ready ready->closed ready->draft regressions"
+    - "budget floor and thirty-two-record partial progress"
+    - "legacy pending precedence and full-page continuation"
+  duplicate_or_reuse_search:
+    - "REVIEW-0072 terminal author-side finding PRR_kwDOUUI5ts8AAAABO7ZUCw is retained negative evidence."
+    - "REVIEW-0072 current-state revalidation and REVIEW-0071 durable page discovery are reused."
+    - "REVIEW-0070 _guard_pr remains the strict open-authority validator."
+    - "SchedulerStateV4 and issue #7 remain unchanged."
+    - "All 71 PR #5 material threads remain unresolved; PRRT_kwDOUUI5ts6lXTqJ is the retained REVIEW-0071 author-side discovery-state race finding that was missing from the first REVIEW-0073 handover."
+  failure_modes_considered:
+    - "malformed closed current response is accepted and durable cursor advances"
+    - "exact number matches but node id belongs to another object"
+    - "closed response has malformed draft type"
+    - "open response passes new identity checks but fails inherited authority validation"
+    - "strict helper failure accidentally advances last_processed"
+    - "extra validation changes request budget semantics"
+  evidence_requested:
+    - "REVIEW-0072 frozen exact head bc5fb064a7955854e5b4a849b2ed5e2843f55576 / Bootstrap #290 remains technical green evidence only."
+    - "Fresh Codex REVIEW-0072 L2 request 5802871704 was quota-refused by 5802873335 and produced no independent review."
+    - "Author-side PRR_kwDOUUI5ts8AAAABO7ZUCw proves the coercive closed-path direct-PR identity defect."
+    - "REVIEW-0072 CLOSED checkpoint 1809ba60d8acb88571fc217a4725efad1283b9df passed Bootstrap #291 / run 35920235156 before successor implementation."
+    - "Bootstrap #292 / run 35920768442 proves exact REVIEW-0073 technical candidate 11289692153cf073d6e9c71f525809d7e66b298d with 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
+    - "Bootstrap #293 / run 35921085079 passed the first OPEN state-only commit technically, but live finding traceability was stale at 70/71 and omitted PRRT_kwDOUUI5ts6lXTqJ; that checkpoint is non-qualifying for lifecycle advancement."
+    - "Reconciled OPEN checkpoint 00cb73716b34e72884f8f529f00a0db6e2553c12 passed Bootstrap #294 / run 35930000762 at 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests; lifecycle may now advance to IN_PROGRESS."
+    - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh independent L2."
+    - "Frozen exact head 46591d6d66246c5942eba09c712b196f3c1a16fc passed Bootstrap #295 / run 35930261078 at 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
+    - "Fresh Codex L2 request 5804250089 was quota-refused by 5804251803; no independent REVIEW-0073 L2 was produced."
+    - "Author-side PRR_kwDOUUI5ts8AAAABO8S_3w produced P1 PRRT_kwDOUUI5ts6lXj4D and P2 PRRT_kwDOUUI5ts6lXj4K: inherited REVIEW-0071 _guard_one still uses weak REVIEW-0070 _direct_pr for both internal rereads, and the live contract probe still uses REVIEW-0071 validator with the same weak direct path."
+    - "Successor REVIEW-0074 must own the complete two-observation guard with REVIEW-0073 strict number+node current rereads on both internal authority checks, and expose a strict exact-target read-only live validator wired into install()."
+    - "Resolve no inline thread until a clean successor independent L2 permits it."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-23T22:52:52Z"
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"

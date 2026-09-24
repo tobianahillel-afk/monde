@@ -1,0 +1,96 @@
+id: REVIEW-0074
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "2e228ba5f016f25eacffab0ca0cd9a7e095cd757"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABPAAMUQ"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "PR-scoped draft fail-closed merge guard from REVIEW-0070"
+    - "bounded durable state=all PR discovery from REVIEW-0071"
+    - "mandatory exact current-PR reread before cursor advancement from REVIEW-0072/0073"
+    - "strict number+node identity is preserved through both internal guard rereads"
+    - "first bounded thread observation always occurs before first strict current-PR reread"
+    - "second bounded thread observation occurs before second strict current-PR reread"
+    - "malformed or coercively equal closed-path identity on either internal reread fails closed"
+    - "current exact PR may be converted to draft only after both strict internal rereads"
+    - "live exact-target validator seeds exact requested PR identity then rereads through REVIEW-0073 strict identity"
+    - "live PR #2 contract probe exercises REVIEW-0074 strict target path"
+    - "durable page/prefix continuation, request-budget reserve and legacy pending precedence remain unchanged"
+    - "hard 100-request cap remains unchanged"
+  risks:
+    - "wrapper composition could route one internal reread back through weak REVIEW-0070 _direct_pr"
+    - "live validator could exercise a different weaker identity path than scheduled runtime"
+    - "strict identity seed could accept malformed initial target metadata before strict reread"
+    - "thread-state changes between the two observations could be missed if either reread returns early"
+    - "budget accounting could change because of additional strict reread composition"
+findings:
+  - "PRRT_kwDOUUI5ts6lfj-O"
+  - "PRRT_kwDOUUI5ts6lfj-U"
+checks:
+  assumptions_challenged:
+    - "strictifying only the first discovered/current reread is sufficient end-to-end"
+    - "inherited REVIEW-0071 _guard_one can be reused safely after REVIEW-0073"
+    - "a technically green live probe is representative if it calls the weak validator"
+    - "exact target validation does not need the same number+node identity contract as scheduled runtime"
+  omitted_categories_considered:
+    - "first internal reread malformed number true float string zero negative or wrong integer"
+    - "first internal reread wrong empty or missing node id"
+    - "second internal reread malformed number or node id"
+    - "first reread closed or draft"
+    - "second reread closed or draft after unresolved second observation"
+    - "first thread state resolved then second unresolved"
+    - "first unresolved then second resolved"
+    - "live target seed malformed number"
+    - "live target strict reread closes before validation completes"
+    - "live target node id changes between seed and strict reread"
+    - "legacy pending path remains higher priority than discovery"
+    - "page-21 durable discovery and request-budget floor remain inherited"
+  duplicate_or_reuse_search:
+    - "REVIEW-0073 terminal P1/P2 findings PRRT_kwDOUUI5ts6lXj4D and PRRT_kwDOUUI5ts6lXj4K are retained negative evidence."
+    - "REVIEW-0073 _strict_discovered_pr is reused as the sole strict current-PR identity primitive."
+    - "REVIEW-0071 durable discovery and exact draft acknowledgement remain reused."
+    - "REVIEW-0070 thread scanner and draft mutation semantics remain reused."
+    - "SchedulerStateV4 and issue #7 remain unchanged."
+    - "Fresh exact-head Codex L2 PRR_kwDOUUI5ts8AAAABPAAMUQ reviewed 2e228ba5f016f25eacffab0ca0cd9a7e095cd757 and added two new unresolved findings, bringing PR #5 to 75 unresolved material threads."
+    - "All 75 historical and new PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "weak inherited direct reread accepts coercively equal malformed closed response and cursor advances"
+    - "live contract probe stays green while never exercising strict successor identity"
+    - "strict target seed validates one node while strict reread observes another"
+    - "second thread observation becomes unresolved but second strict reread is skipped"
+    - "strict internal reread failure accidentally permits durable cursor advancement"
+    - "budget floor no longer leaves headroom for complete inherited guard plus state write"
+  evidence_requested:
+    - "REVIEW-0073 frozen head 46591d6d66246c5942eba09c712b196f3c1a16fc / Bootstrap #295 remains technical green evidence only."
+    - "Fresh Codex REVIEW-0073 L2 request 5804250089 was quota-refused by 5804251803 and produced no independent review."
+    - "Author-side PRR_kwDOUUI5ts8AAAABO8S_3w produced P1 PRRT_kwDOUUI5ts6lXj4D and P2 PRRT_kwDOUUI5ts6lXj4K."
+    - "REVIEW-0073 CLOSED checkpoint a455d4f3431f3bb388567e9f8eb371e3df4d9067 passed Bootstrap #296 / run 35931004610 before successor implementation."
+    - "Bootstrap #297 / run 35931690262 proves exact REVIEW-0074 technical candidate 1a90e73bb107e9f77763103bed059bc12ab11575 with 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests."
+    - "OPEN checkpoint d39fe379c8acc11f41988caa81600e68a0e05946 passed Bootstrap #298 / run 35972837681 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Frozen exact head 2e228ba5f016f25eacffab0ca0cd9a7e095cd757 passed Bootstrap #299 / run 35973035600 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABPAAMUQ completed on exact frozen head and produced P1 PRRT_kwDOUUI5ts6lfj-O plus P2 PRRT_kwDOUUI5ts6lfj-U; REVIEW-0074 cannot receive approval."
+    - "Successor REVIEW-0075 must strict-validate the direct REST draft postcondition number+node identity before accepting closed state and must update TEST-0010 machine-readable execution.commit_sha/last_run_at to the actual REVIEW-0074 #297 execution identity/date."
+    - "Resolve no inline thread until a clean REVIEW-0075 independent L2 permits it."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-24T08:10:55Z"
+history:
+  created_at: "2026-09-24"
+  updated_at: "2026-09-24"

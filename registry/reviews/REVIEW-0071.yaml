@@ -1,0 +1,101 @@
+id: REVIEW-0071
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "69c68959f1144bbccf76fef79d0624961d593d13"
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "PR-scoped draft fail-closed merge guard from REVIEW-0070"
+    - "second thread observation occurs even when first state is RESOLVED"
+    - "scheduled legacy pending reconciliation retains actions:read and checks:read without Actions write permission"
+    - "repository PR discovery is bounded and durably resumable with SchedulerStateV4 scan_page scan_pr scan_anchor"
+    - "discovery uses explicit state=all creation-ordered REST pages and never core.paged"
+    - "partial-page processed-prefix identity is SHA-256 anchored while append-only growth after the prefix is allowed"
+    - "full discovery pages advance beyond page 20 and a short or empty terminal page wraps the sweep"
+    - "draft mutation acknowledgement number is a positive exact non-Boolean integer"
+    - "user-authored drafts are never automatically readied"
+    - "normal draft safety path remains independent of Actions/Checks history"
+    - "legacy pending rerun authority remains higher priority than new draft discovery"
+    - "human ready_for_review remains the only return to ready state and triggers fresh canonical Gate evidence"
+    - "hard 100-request cap remains unchanged"
+  risks:
+    - "creation-ordered all-PR pagination could drift inside an already-processed prefix"
+    - "partial-page resume could skip appended records or replay old records"
+    - "large repositories could fail to make durable progress beyond page 20"
+    - "thread state could become unresolved after an initially resolved observation"
+    - "legacy pending reconciliation could wedge without Actions/Checks read permissions"
+    - "coercive equality could accept malformed mutation acknowledgement identity"
+    - "handover text could describe mutually exclusive active successor states"
+findings:
+  - "PRR_kwDOUUI5ts8AAAABO7OKJw"
+checks:
+  assumptions_challenged:
+    - "an initially RESOLVED thread scan is sufficient to advance the fairness cursor"
+    - "the scheduled draft guard no longer needs any Actions or Checks read permission"
+    - "repository-wide open PR discovery can safely remain exhaustive under core.MAX_PAGES"
+    - "Python equality is sufficient to validate an exact PR number in mutation acknowledgement"
+    - "historical successor prose can remain contradictory without affecting fresh-context resumption"
+  omitted_categories_considered:
+    - "resolved -> unresolved between thread observations"
+    - "unresolved -> resolved between observations"
+    - "PR closes or becomes draft during either revalidation"
+    - "2001 PR records over 21 pages"
+    - "partial page resumed after new PRs append"
+    - "processed-prefix membership or node identity drifts"
+    - "page boundary overlaps durable predecessor"
+    - "empty terminal page after a full page"
+    - "request budget cannot process the next PR"
+    - "legacy pending mutation exists before draft discovery"
+    - "mutation ACK number is bool float string zero or negative"
+    - "read-only target validation must not enumerate repository PRs"
+  duplicate_or_reuse_search:
+    - "REVIEW-0070 independent L2 PRR_kwDOUUI5ts8AAAABO64xew remains terminal negative evidence."
+    - "SchedulerStateV4 is reused; no new state schema or migration version is introduced."
+    - "Existing issue #7 remains the only durable scheduler state surface."
+    - "Existing REVIEW-0070 thread scanner, PR identity validator and draft semantics are reused."
+    - "All 70 PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "page 21 or later is unreachable because of inherited MAX_PAGES"
+    - "close/reopen state changes shift discovery membership"
+    - "new append invalidates a legitimately processed prefix"
+    - "prefix drift is accepted instead of failing closed"
+    - "legacy pending state is bypassed by new discovery"
+    - "resolved-path early return skips second observation"
+    - "malformed mutation ACK identity is accepted"
+    - "workflow least privilege removes reads still required by legacy accounting"
+  evidence_requested:
+    - "Bootstrap #282 / run 35916059940 retained as negative coverage evidence: 401/401 functional tests passed but REVIEW-0071 coverage was 88 percent."
+    - "Bootstrap #283 / run 35916421256 retained as negative final-branch coverage evidence: 409/409 functional tests passed with one branch uncovered."
+    - "Bootstrap #284 / run 35916713082 proves exact technical candidate 9627c5ac5499210107e817dc49ff9b62407d5520 with 410/410 tests, 3543 statements / 1514 branches, 100 percent line+branch, REVIEW-0071 168 statements / 76 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
+    - "The #284 suite includes a 2001-PR / 21-page durable discovery regression that crosses the former page-20 limit and wraps successfully."
+    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh independent L2."
+    - "Frozen exact head 69c68959f1144bbccf76fef79d0624961d593d13 passed Bootstrap #286 / run 35917430655 at 410/410 tests, 3543 statements / 1514 branches, 100 percent line+branch, REVIEW-0071 168 statements / 76 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
+    - "Fresh Codex L2 request 5802595691 was quota-refused by 5802597968; no independent REVIEW-0071 L2 was produced."
+    - "Author-side PRR_kwDOUUI5ts8AAAABO7OKJw proves a mutable page-snapshot race: a PR observed draft or closed can become ready/open before consumption, be skipped without direct current-PR validation, and still have the durable cursor advance past it."
+    - "Successor REVIEW-0072 must directly revalidate every discovered PR record before cursor advancement; page state may identify immutable discovery membership but cannot authorize skipping mutable current state."
+    - "Required regressions: draft->ready and closed->open transitions before consumption must be caught and drafted when unresolved; open-ready->closed/draft must avoid redundant mutation; budget exhaustion before direct validation must not advance; large safe-record scans must retain bounded durable progress."
+    - "Resolve no inline thread until a clean successor independent L2 permits it."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-23T20:46:06Z"
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"

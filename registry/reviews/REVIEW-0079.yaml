@@ -1,0 +1,76 @@
+id: REVIEW-0079
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "1501fe77d8d5986fb29e381515de47e706ac2c02"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABPD1fJA"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "WORK-0002.review_plan.open_findings PRRT identity set exactly equals the live unresolved PR #5 review-thread identity set"
+    - "active unresolved material-thread count is 79"
+    - "historical 73 75 76 77 78 counts remain historical truth"
+    - "REVIEW-0078 non-self-referential exact-head evidence rule remains unchanged"
+    - "no runtime Python workflow REQ-0026 semantic or TEST-0010 execution change"
+  risks:
+    - "machine-readable finding inventory could omit live material threads"
+    - "machine-readable finding inventory could contain stale extra thread IDs"
+    - "active count reconciliation could rewrite historical counts"
+    - "documentation-only repair could accidentally modify runtime or test execution semantics"
+findings:
+  - "PRRT_kwDOUUI5ts6lnfaG"
+  - "PRRT_kwDOUUI5ts6lnqJY"
+checks:
+  assumptions_challenged:
+    - "the active regression prose count is sufficient even if review_plan.open_findings omits IDs"
+    - "later controlled thread resolution can safely rely on a non-exact finding inventory"
+    - "historical counts should be globally rewritten to the current count"
+  omitted_categories_considered:
+    - "live thread exists but is missing from WORK-0002"
+    - "WORK-0002 contains a PRRT not present live"
+    - "duplicate PRRT IDs"
+    - "candidate modifies files outside PROJECT_STATE.md and WORK-0002.yaml"
+    - "runtime workflow or TEST-0010 semantics change"
+  duplicate_or_reuse_search:
+    - "REVIEW-0078 P2 PRRT_kwDOUUI5ts6lm-ef remains terminal negative evidence."
+    - "Historical REVIEW-0075 REVIEW-0076 REVIEW-0077 REVIEW-0078 counts remain unchanged."
+    - "Existing non-self-referential exact-head eligibility rule is reused."
+    - "All 79 live PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "open_findings count matches 79 but contains wrong identities"
+    - "live and machine sets differ despite equal counts"
+    - "new finding ID is omitted from the successor itself"
+    - "documentation-only diff touches runtime artifacts"
+  evidence_requested:
+    - "REVIEW-0078 exact IN_PROGRESS head 9f596039277906c67e916bbf3b1f509989b71def passed Bootstrap #316 / run 35992467389 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100."
+    - "Fresh independent L2 PRR_kwDOUUI5ts8AAAABPDhWdw produced P2 PRRT_kwDOUUI5ts6lm-ef and increased live unresolved material threads to 79."
+    - "REVIEW-0078 CLOSED checkpoint 67d6e358dbdb24a0f51cc917604a85b2ade143bd passed Bootstrap #317 / run 36008323720 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100."
+    - "REVIEW-0079 exact candidate dd3930574f1879fd1102291d55ec3bcca7508d00 passed Bootstrap #318 / run 36008738638 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100."
+    - "Compare 67d6e358dbdb24a0f51cc917604a85b2ade143bd..dd3930574f1879fd1102291d55ec3bcca7508d00 changes exactly PROJECT_STATE.md and registry/work-items/WORK-0002.yaml."
+    - "Live GitHub exposes 79 unique PRRT thread IDs and candidate WORK-0002 exposes exactly the same 79 IDs with no missing or extra entries."
+    - "This OPEN checkpoint must pass before transition to IN_PROGRESS."
+    - "After IN_PROGRESS, independent L2 is eligible only if live trusted GitHub shows successful Bootstrap on the current exact HEAD; do not mutate the tree solely to copy that result."
+    - "Fresh independent L2 PRR_kwDOUUI5ts8AAAABPDwpnQ completed on exact HEAD 1501fe77d8d5986fb29e381515de47e706ac2c02 and produced P2 PRRT_kwDOUUI5ts6lnfaG: PROJECT_STATE Resume sequence still instructed a fresh agent to inspect reviews/78 threads while active state required all 79."
+    - "The new finding increases live PR #5 material threads to 80 unresolved; REVIEW-0079 cannot provide approval evidence."
+    - "Follow-up fresh Codex review PRR_kwDOUUI5ts8AAAABPD1fJA on the same exact HEAD explicitly confirmed all 79 pre-existing unresolved material threads were reviewed and produced P1 PRRT_kwDOUUI5ts6lnqJY: registry/tests/TEST-0009.yaml mixes sequence items and mapping keys directly under execution, making the canonical YAML record unreadable."
+    - "The second independent finding increases live PR #5 material threads to 81 unresolved and independently returns CHANGES_REQUIRED."
+    - "Successor REVIEW-0080 must repair TEST-0009 execution into one valid mapping with historical run strings under execution.evidence, add both REVIEW-0079 findings to exact machine inventory, reconcile active counts/resume handover to 81, preserve semantic evidence content, and change no runtime Python/workflow/REQ-0026 behavior."
+    - "Successor REVIEW-0080 must be documentation/traceability-only: add PRRT_kwDOUUI5ts6lnfaG to WORK-0002 open_findings, reconcile active counts to 80, change Resume sequence reviews/78 threads to reviews/80 threads, preserve historical counts, and change no runtime/workflow/REQ-0026/TEST-0010 semantics."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-24T14:13:18Z"
+history:
+  created_at: "2026-09-24"
+  updated_at: "2026-09-24"

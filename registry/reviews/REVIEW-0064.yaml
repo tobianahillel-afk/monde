@@ -1,0 +1,102 @@
+id: REVIEW-0064
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "9292e5f01d389d9a1280878eea4cda4a29dd0aef"
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "every current required-check candidate has a valid temporal snapshot before it can influence selection"
+    - "completed required checks require parseable completed_at greater than or equal to started_at"
+    - "incomplete required checks must not carry completed_at"
+    - "selected merge-acceptable required-check completion is no later than the captured authority frontier"
+    - "selected required-check started_at/completed_at bind exactly to the direct protected Actions job"
+    - "REVIEW-0062 direct/frontier protected-job terminal-snapshot stability remains intact"
+    - "REVIEW-0063 full run/job lifetime containment remains intact"
+    - "temporal candidate validation and binding add no GitHub requests"
+    - "all REVIEW-0051 through REVIEW-0063 recovery, pagination, pending, frontier, chronology and snapshot guarantees remain intact"
+  risks:
+    - "malformed Check Run completion metadata can otherwise cross a positive mutation-authority path"
+    - "a malformed candidate hidden beside a valid candidate can otherwise be silently ignored until selection"
+    - "candidate Check Run and protected Actions job can otherwise disagree on terminal timing while sharing id/start/conclusion identity"
+    - "a candidate that completes after the chosen frontier can otherwise be back-projected into pre-frontier authority"
+    - "temporary paged/request hooks must restore on every path without weakening prior guarantees"
+findings:
+  - "PRR_kwDOUUI5ts8AAAABO1CeRg"
+checks:
+  assumptions_challenged:
+    - "valid started_at plus terminal status/conclusion are sufficient Check Run temporal authority"
+    - "protected-job temporal validation alone makes the corresponding Check Run temporal metadata trustworthy"
+    - "only the selected candidate needs temporal validation"
+    - "a terminal candidate discovered before the frontier necessarily completed before the frontier"
+    - "Check Run and protected-job completion times need not be explicitly bound"
+  omitted_categories_considered:
+    - "completed candidate lacks completed_at"
+    - "completed candidate has malformed completed_at"
+    - "completed candidate completes before started_at"
+    - "incomplete candidate carries completed_at"
+    - "malformed non-selected candidate appears beside a valid candidate"
+    - "selected candidate completes after captured frontier"
+    - "selected candidate Check Run and direct protected job disagree on started_at"
+    - "selected candidate Check Run and direct protected job disagree on completed_at"
+    - "direct protected job temporal payload is not observed as a dict"
+    - "hook restoration on predecessor failure"
+    - "zero-extra-request preservation"
+  duplicate_or_reuse_search:
+    - "Existing REVIEW-0061 attempt-aware frontier and REVIEW-0062/0063 job-snapshot/lifetime proofs are reused rather than duplicated."
+    - "REVIEW-0063 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
+    - "PRR_kwDOUUI5ts8AAAABO0xdhQ is the author-side finding that invalidated REVIEW-0063."
+    - "Bootstrap #246 is retained as negative technical evidence that the 100 percent coverage gate rejected an under-covered candidate before lifecycle opening."
+    - "All 65 historical inline PR #5 material threads remain unresolved."
+    - "Bootstrap #249 / run 35850591855 proved frozen exact head 9292e5f01d389d9a1280878eea4cda4a29dd0aef at 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests."
+    - "Fresh Codex L2 request 5793447096 was quota-refused by 5793449737; no independent REVIEW-0064 L2 was produced."
+  failure_modes_considered:
+    - "terminal Check Run completion precedes start but candidate is selected as merge-acceptable"
+    - "missing/malformed terminal completion reaches positive authority"
+    - "incomplete Check Run fabricates terminal completion metadata"
+    - "a malformed hidden candidate is skipped while a valid sibling authorizes mutation"
+    - "selected candidate completion occurs after authority frontier"
+    - "Check Run and exact protected job terminal timing disagree"
+    - "temporal wrapper leaks or changes unrelated pagination/request behavior"
+    - "new validation adds requests and breaks the 100-call budget"
+    - "new validation weakens REVIEW-0063 run/job lifetime containment or REVIEW-0062 terminal stability"
+    - "global Gate authority advances after the last successful latest_required_check proof but before durable pending write / rerun POST while the selected historical target run baseline remains unchanged"
+  evidence_requested:
+    - "Technical candidate 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a / Bootstrap #247 remains exact proof at 303/303 tests, 2521 statements / 1092 branches and 100 percent line+branch."
+    - "Bootstrap #247 live PR #2 contract probe remains successful at 7/100 requests."
+    - "Bootstrap #246 remains negative evidence that the candidate was not accepted while REVIEW-0064 code lacked full branch coverage."
+    - "Regression proving completed Check Run missing or malformed completed_at fails closed."
+    - "Regression proving completed_at before started_at fails closed, including the inherited REVIEW-0060 malformed fixture."
+    - "Regression proving incomplete candidate with completed_at fails closed."
+    - "Regression proving a hidden malformed candidate beside a valid candidate fails the whole filtered collection closed."
+    - "Regression proving selected completion after authority frontier fails before predecessor authority."
+    - "Regression proving exact selected Check Run start/completion must match the direct protected Actions job."
+    - "Regression proving unrelated/non-dict request paths cannot fabricate observed direct-job timing."
+    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh-context independent L2."
+    - "Resolve no historical inline thread until a clean successor L2 permits it."
+    - "Successor REVIEW-0065 must perform one final mutation-bound global latest_required_check proof after target baseline plus final PR/thread revalidation and before pending write / rerun POST."
+    - "That final proof must remain merge-acceptable and bind to the same expected authority identity; any advancement/change/in-progress/non-acceptable state must emit no pending write and no rerun POST."
+    - "Regression must prove a different canonical Gate becoming newer in the last mutation window is fail-closed even when target-run baseline, PR identity and unresolved threads remain unchanged."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-23T11:03:02Z"
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"
