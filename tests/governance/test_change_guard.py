@@ -349,6 +349,13 @@ def test_exact_integrated_predecessor_review_exception_is_non_reusable(tmp_path,
     assert c.inherited_predecessor_review_freshness_exception(
         tmp_path, work_at_head, 'REVIEW-1', review_at_head, head
     )
+    # The exact predecessor exception is exercised through the production
+    # freshness loop as well, not only through the helper directly.
+    assert not [
+        finding
+        for finding in c.validate(tmp_path, integration, head)
+        if finding.rule == 'REVIEW_FRESHNESS'
+    ]
 
     bad_review = dict(review_at_head)
     bad_review['artifact'] = dict(review_at_head['artifact'], id_or_path='PR-6')
@@ -357,6 +364,44 @@ def test_exact_integrated_predecessor_review_exception_is_non_reusable(tmp_path,
     )
     assert not c.inherited_predecessor_review_freshness_exception(
         tmp_path, {'id': 'WORK-OTHER'}, 'REVIEW-1', review_at_head, head
+    )
+
+    assert not c.inherited_predecessor_review_freshness_exception(
+        tmp_path, {'id': 7}, 'REVIEW-1', review_at_head, head
+    )
+    assert not c.inherited_predecessor_review_freshness_exception(
+        tmp_path, work_at_head, 'REVIEW-1', {'artifact': None}, head
+    )
+
+    valid_spec = c.INHERITED_PREDECESSOR_REVIEW_FRESHNESS_EXCEPTIONS[
+        ('WORK-1', 'REVIEW-1')
+    ]
+    monkeypatch.setattr(
+        c,
+        'INHERITED_PREDECESSOR_REVIEW_FRESHNESS_EXCEPTIONS',
+        {
+            ('WORK-1', 'REVIEW-1'): {
+                **valid_spec,
+                'integration_commit': 'f' * 40,
+            }
+        },
+    )
+    assert not c.inherited_predecessor_review_freshness_exception(
+        tmp_path, work_at_head, 'REVIEW-1', review_at_head, head
+    )
+
+    monkeypatch.setattr(
+        c,
+        'INHERITED_PREDECESSOR_REVIEW_FRESHNESS_EXCEPTIONS',
+        {
+            ('WORK-1', 'REVIEW-1'): {
+                **valid_spec,
+                'integration_parents': tuple(reversed(integration_parents)),
+            }
+        },
+    )
+    assert not c.inherited_predecessor_review_freshness_exception(
+        tmp_path, work_at_head, 'REVIEW-1', review_at_head, head
     )
 
 
