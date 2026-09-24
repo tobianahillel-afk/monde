@@ -319,6 +319,15 @@ jobs:
       contents: read
     steps:
       - run: python -m tools.governance.thread_state_poll
+  dependency-review:
+    if: startsWith(github.event_name, 'pull_request')
+    steps: []
+  final-gate:
+    if: always() && github.event_name != 'schedule'
+    needs: [dependency-review]
+    steps:
+      - if: startsWith(github.event_name, 'pull_request')
+        run: test '${{ needs.dependency-review.result }}' = 'success'
 """,
         encoding="utf-8",
     )
@@ -422,6 +431,72 @@ def test_step_prefix_allows_safe_flags_and_rejects_failure_masking_shell() -> No
         "set +o errexit\npython -m tools.governance.t11_closure .",
     ):
         assert t11._steps_execute_prefix({"steps": [{"run": run}]}, expected) is False
+
+
+def test_execution_container_defaults_cover_safe_and_malformed_shapes() -> None:
+    assert t11._container_execution_defaults_safe({}) is True
+    assert t11._container_execution_defaults_safe({"defaults": {}}) is True
+    assert t11._container_execution_defaults_safe({"defaults": {"run": {}}}) is True
+    assert t11._container_execution_defaults_safe({"env": "bad"}) is False
+    assert t11._container_execution_defaults_safe({"defaults": "bad"}) is False
+    assert t11._container_execution_defaults_safe({"defaults": {"run": "bad"}}) is False
+    assert t11._container_execution_defaults_safe(
+        {"defaults": {"run": {"shell": "bash"}}}
+    ) is False
+    assert t11._container_execution_defaults_safe(
+        {"defaults": {"run": {"working-directory": "subdir"}}}
+    ) is False
+
+
+def test_workflow_structure_rejects_dependency_review_bypasses(tmp_path: Path) -> None:
+    _write_valid_workflows(tmp_path)
+    workflow = tmp_path / t11.WORKFLOW_PATH
+
+    text = workflow.read_text(encoding="utf-8")
+    workflow.write_text(
+        text.replace(
+            "  dependency-review:\n    if: startsWith(github.event_name, 'pull_request')\n",
+            "  dependency-review:\n    if: false\n",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    assert "DEPENDENCY_REVIEW_SCOPE" in {
+        item.rule for item in t11.validate_workflow_structure(tmp_path)
+    }
+
+    _write_valid_workflows(tmp_path)
+    text = workflow.read_text(encoding="utf-8")
+    workflow.write_text(
+        text.replace("    needs: [dependency-review]\n", "    needs: [governance-core]\n", 1),
+        encoding="utf-8",
+    )
+    assert "DEPENDENCY_REVIEW_NEEDS" in {
+        item.rule for item in t11.validate_workflow_structure(tmp_path)
+    }
+
+    _write_valid_workflows(tmp_path)
+    text = workflow.read_text(encoding="utf-8")
+    workflow.write_text(
+        text.replace(
+            "        run: test '${{ needs.dependency-review.result }}' = 'success'\n",
+            "        run: true\n",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    assert "DEPENDENCY_REVIEW_REQUIRED" in {
+        item.rule for item in t11.validate_workflow_structure(tmp_path)
+    }
+
+    _write_valid_workflows(tmp_path)
+    text = workflow.read_text(encoding="utf-8")
+    start = text.index("  dependency-review:\n")
+    end = text.index("  final-gate:\n", start)
+    workflow.write_text(text[:start] + text[end:], encoding="utf-8")
+    assert "DEPENDENCY_REVIEW_JOB" in {
+        item.rule for item in t11.validate_workflow_structure(tmp_path)
+    }
 
 
 def test_workflow_structure_rejects_bad_poll_and_core_wiring(tmp_path: Path) -> None:
