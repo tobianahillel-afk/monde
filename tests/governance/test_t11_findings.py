@@ -177,7 +177,10 @@ def test_import_materialization_history_detects_mismatch(monkeypatch, tmp_path: 
     )
     monkeypatch.setattr(t11, "squash_bridge_allows_first_status", lambda *_: False)
     findings = t11.validate_import_materialization_history(tmp_path, "head")
-    assert [item.rule for item in findings] == ["IMPORT_FIRST_STATUS_FULL_HISTORY"]
+    assert [item.rule for item in findings] == [
+        "IMPORT_FIRST_STATUS_FULL_HISTORY",
+        "IMPORT_TERMINAL_UNFINALIZED",
+    ]
 
 
 def test_import_materialization_history_accepts_exact_or_squash(monkeypatch, tmp_path: Path) -> None:
@@ -354,6 +357,71 @@ jobs: {}
     assert "REVIEW_THREAD_POLL_SCHEDULE" in rules
     assert "REVIEW_THREAD_POLL_JOB" in rules
     assert "T11_GATE_WIRING" not in rules
+
+
+def test_workflow_structure_rejects_failure_masking_shell_suffixes(tmp_path: Path) -> None:
+    _write_valid_workflows(tmp_path)
+
+    workflow = tmp_path / t11.WORKFLOW_PATH
+    text = workflow.read_text(encoding="utf-8")
+    text = text.replace(
+        "python -m tools.governance.thread_state_poll",
+        "python -m tools.governance.thread_state_poll || true",
+    )
+    workflow.write_text(text, encoding="utf-8")
+    rules = {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+    assert "REVIEW_THREAD_POLL_WIRING" in rules
+
+    _write_valid_workflows(tmp_path)
+    core = tmp_path / t11.CORE_WORKFLOW_PATH
+    text = core.read_text(encoding="utf-8")
+    text = text.replace(
+        "python -m tools.governance.t11_closure . --base x --head y",
+        "python -m tools.governance.t11_closure . --base x --head y ; exit 0",
+    )
+    core.write_text(text, encoding="utf-8")
+    rules = {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+    assert "T11_GATE_WIRING" in rules
+
+    _write_valid_workflows(tmp_path)
+    core = tmp_path / t11.CORE_WORKFLOW_PATH
+    text = core.read_text(encoding="utf-8")
+    text = text.replace(
+        "python .github/scripts/governance_t11_mutation_smoke.py",
+        "python .github/scripts/governance_t11_mutation_smoke.py && true",
+    )
+    core.write_text(text, encoding="utf-8")
+    rules = {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+    assert "T11_MUTATION_WIRING" in rules
+
+
+def test_step_prefix_allows_safe_flags_and_rejects_failure_masking_shell() -> None:
+    expected = ("python", "-m", "tools.governance.t11_closure", ".")
+    safe = {
+        "steps": [
+            {
+                "run": "python -m tools.governance.t11_closure . "
+                "--base base --head head --json-out out.json"
+            }
+        ]
+    }
+    assert t11._steps_execute_prefix(safe, expected) is True
+    assert t11._steps_execute_prefix({}, expected) is False
+    assert t11._steps_execute_prefix({"steps": ["bad"]}, expected) is False
+
+    for run in (
+        "python -m tools.governance.t11_closure . || true",
+        "python -m tools.governance.t11_closure . && true",
+        "python -m tools.governance.t11_closure . ; exit 0",
+        "python -m tools.governance.t11_closure . | cat",
+        "python -m tools.governance.t11_closure . > /dev/null",
+        "python -m tools.governance.t11_closure . < input",
+        "python -m tools.governance.t11_closure . `echo x`",
+        "python -m tools.governance.t11_closure . $(echo x)",
+        "set +e\npython -m tools.governance.t11_closure .",
+        "set +o errexit\npython -m tools.governance.t11_closure .",
+    ):
+        assert t11._steps_execute_prefix({"steps": [{"run": run}]}, expected) is False
 
 
 def test_workflow_structure_rejects_bad_poll_and_core_wiring(tmp_path: Path) -> None:

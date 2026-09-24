@@ -214,12 +214,9 @@ def validate_import_materialization_history(root: Path, head: str) -> list[Findi
                 continue
             raw_import = ext.get("import_commit")
             if not raw_import:
-                # A completely empty external_import object is malformed registry
-                # structure handled by schema/strict validation. T11 owns the semantic
-                # finalization case where import metadata exists but its binding is null
-                # or absent.
-                if not ext:
-                    continue
+                # Presence of external_import is itself an external-import claim.
+                # Empty metadata is therefore unfinalized rather than equivalent to
+                # absence; otherwise orphan COMPLETE/PASS records can bypass binding.
                 out.append(
                     Finding(
                         path,
@@ -351,8 +348,36 @@ def _logical_run_commands(job: dict[str, Any]) -> list[list[str]]:
     return commands
 
 
+_FAILURE_MASKING_SHELL_FRAGMENTS = ("||", "&&", ";", "|", ">", "<", "`", "$(")
+
+
+def _run_step_has_failure_masking_shell(run: str) -> bool:
+    if any(fragment in run for fragment in _FAILURE_MASKING_SHELL_FRAGMENTS):
+        return True
+    for raw_line in run.splitlines():
+        line = raw_line.strip()
+        if line.startswith("set ") and (
+            "+e" in line.split()
+            or ("+o" in line.split() and "errexit" in line.split())
+        ):
+            return True
+    return False
+
+
 def _steps_execute_prefix(job: dict[str, Any], expected: tuple[str, ...]) -> bool:
-    return any(tuple(command[: len(expected)]) == expected for command in _logical_run_commands(job))
+    steps = job.get("steps")
+    if not isinstance(steps, list):
+        return False
+    for step in steps:
+        if not isinstance(step, dict):
+            continue
+        run = step.get("run")
+        if not isinstance(run, str) or _run_step_has_failure_masking_shell(run):
+            continue
+        commands = _logical_run_commands({"steps": [step]})
+        if any(tuple(command[: len(expected)]) == expected for command in commands):
+            return True
+    return False
 
 
 def _steps_contain_run(job: dict[str, Any], needle: str) -> bool:

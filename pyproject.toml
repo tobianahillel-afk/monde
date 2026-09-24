@@ -13,7 +13,7 @@ dependencies = ["PyYAML==6.0.3", "jsonschema==4.26.0", "rfc8785==0.1.4"]
 test = ["pytest==9.0.3", "pytest-cov==7.0.0", "coverage==7.13.3"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", ".github/scripts"]
 addopts = "-ra --strict-markers"
 
 [tool.coverage.run]
