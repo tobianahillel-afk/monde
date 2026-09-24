@@ -1,0 +1,95 @@
+id: REVIEW-0063
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "22dd22d5f9e50eea6d3bd351af8e12ab9a935440"
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "REVIEW-0062 candidate protected-job terminal-snapshot stability remains intact"
+    - "every protected gate job used for authority is fully contained by its current workflow-run lifetime"
+    - "run_started_at <= job.started_at <= run.updated_at for direct candidate and every frontier job"
+    - "completed protected jobs additionally satisfy job.completed_at <= run.updated_at"
+    - "cross-object upper-bound violations fail closed before started_at/id authority ordering"
+    - "candidate required-check/job/current-attempt identity and terminal snapshot remain exact"
+    - "frontier competitor authority and attempt-aware ordering remain unchanged"
+    - "full-lifetime containment reuses already-fetched run/job payloads and adds no GitHub requests"
+    - "all REVIEW-0051 through REVIEW-0062 recovery, pagination, pending, frontier, chronology and snapshot guarantees remain intact"
+  risks:
+    - "malformed GitHub cross-object timestamps can otherwise make an impossible protected job outrank legitimate authority"
+    - "a completed protected job can otherwise report completion after the current run's observed updated_at"
+    - "the chronology wrapper must affect both direct-candidate and frontier protected-job validation paths"
+    - "temporary install hooks must restore on every path without weakening REVIEW-0062 snapshot checks"
+findings:
+  - "PRR_kwDOUUI5ts8AAAABO0xdhQ"
+checks:
+  assumptions_challenged:
+    - "job.started_at >= run_started_at is sufficient cross-object chronology validation"
+    - "a protected job can be trusted for authority even when its activity occurs after run.updated_at"
+    - "completed_at need only be internally later than job.started_at"
+    - "the new containment check can be layered without additional GitHub requests"
+  omitted_categories_considered:
+    - "candidate job starts after run.updated_at"
+    - "frontier competitor job starts after run.updated_at"
+    - "completed candidate or competitor job completes after run.updated_at"
+    - "job start equals run.updated_at"
+    - "completed_at equals run.updated_at"
+    - "in-progress jobs have no completed_at but still require start containment"
+    - "REVIEW-0061 predecessor lower bound remains fail-closed"
+    - "an impossible candidate timestamp would otherwise over-rank a valid competitor"
+    - "temporary chronology hook restores after success and failure"
+  duplicate_or_reuse_search:
+    - "Existing REVIEW-0062 terminal-snapshot proof is reused; no duplicate authority traversal is introduced."
+    - "REVIEW-0062 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
+    - "PRR_kwDOUUI5ts8AAAABOz4vxA is the author-side finding that invalidated REVIEW-0062."
+    - "All 65 historical inline PR #5 material threads remain unresolved."
+    - "Bootstrap #244 / run 35848734246 proved frozen exact head 22dd22d5f9e50eea6d3bd351af8e12ab9a935440 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests."
+    - "Fresh Codex L2 request 5793162559 was quota-refused by 5793166351; no independent REVIEW-0063 L2 was produced."
+    - "Live PR #2 Check Run / protected job 106746593212 both report started_at 2026-09-22T12:35:25Z and completed_at 2026-09-22T12:35:37Z, establishing the current GitHub temporal binding used by the successor requirement."
+  failure_modes_considered:
+    - "candidate start after run.updated_at is ranked newest and stale authority is accepted"
+    - "competitor start after run.updated_at distorts authority ordering"
+    - "completed_at after run.updated_at is accepted despite impossible run/job lifetime"
+    - "upper containment is applied only to one authority path"
+    - "new wrapper weakens REVIEW-0062 terminal-snapshot stability or predecessor lower-bound checks"
+    - "new validation adds requests and breaks the 100-call budget"
+    - "a completed required check has missing, malformed or pre-start completed_at but is still treated as merge-acceptable authority"
+    - "a selected terminal check completion lies after the captured authority frontier or disagrees with the exact protected job terminal timing"
+  evidence_requested:
+    - "Technical candidate d1a2a6d921ca85c8424f7aa707f893306d939189 / Bootstrap #242 remains exact proof at 291/291 tests, 2440 statements / 1060 branches and 100 percent line+branch."
+    - "Regression proving candidate job start after run.updated_at fails closed."
+    - "Regression proving completed_at after run.updated_at fails closed."
+    - "Regression proving equality at the upper bound remains valid."
+    - "Regression proving in-progress job start containment without completed_at."
+    - "Regression proving predecessor run_started_at lower bound remains fail-closed."
+    - "Regression proving an impossible candidate cannot over-rank a valid competitor."
+    - "Live PR #2 contract probe remains successful at bounded request count."
+    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh-context independent L2."
+    - "Resolve no historical inline thread until a clean successor L2 permits it."
+    - "Successor REVIEW-0064 must validate temporal metadata for every current required-check candidate before it can influence selection or authority."
+    - "Completed checks must have parseable started_at/completed_at with completed_at >= started_at; non-completed checks must not carry completed_at."
+    - "The selected merge-acceptable candidate must complete no later than the captured authority frontier and its terminal timing must bind to the exact direct protected Actions job under the proven live contract."
+    - "Regressions must cover missing/malformed completion, completion-before-start, completion-after-frontier, hidden malformed candidates beside a valid candidate and candidate/job temporal disagreement without weakening REVIEW-0063 containment."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-23T10:34:00Z"
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"

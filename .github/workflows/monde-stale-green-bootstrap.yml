@@ -1,0 +1,183 @@
+name: MONDE Stale-Green Bootstrap
+# REVIEW-0075 strict draft-postcondition successor; exact number+node identity is validated before any closed/open postcondition branch.
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/monde-stale-green-bootstrap.yml
+      - .github/scripts/stale_green_bootstrap.py
+      - .github/scripts/stale_green_bootstrap_pr_snapshot.py
+      - .github/scripts/stale_green_bootstrap_authority.py
+      - .github/scripts/stale_green_bootstrap_authority_review0048.py
+      - .github/scripts/stale_green_bootstrap_authority_review0049.py
+      - .github/scripts/stale_green_bootstrap_authority_review0050.py
+      - .github/scripts/stale_green_bootstrap_authority_review0050_recovery.py
+      - .github/scripts/stale_green_bootstrap_authority_review0056.py
+      - .github/scripts/stale_green_bootstrap_authority_review0063.py
+      - .github/scripts/stale_green_bootstrap_authority_review0064.py
+      - .github/scripts/stale_green_bootstrap_authority_review0065.py
+      - .github/scripts/stale_green_bootstrap_authority_review0066.py
+      - .github/scripts/stale_green_bootstrap_authority_review0067.py
+      - .github/scripts/stale_green_bootstrap_authority_review0068.py
+      - .github/scripts/stale_green_bootstrap_authority_review0069.py
+      - .github/scripts/stale_green_bootstrap_authority_review0070.py
+      - .github/scripts/stale_green_bootstrap_authority_review0071.py
+      - .github/scripts/stale_green_bootstrap_authority_review0072.py
+      - .github/scripts/stale_green_bootstrap_authority_review0073.py
+      - .github/scripts/stale_green_bootstrap_authority_review0074.py
+      - .github/scripts/stale_green_bootstrap_authority_review0075.py
+      - '.github/scripts/test_stale_green_bootstrap*.py'
+      - requirements/bootstrap-governance-ci.txt
+      - registry/requirements/REQ-0026.yaml
+      - registry/tests/TEST-0009.yaml
+      - registry/tests/TEST-0010.yaml
+      - registry/reviews/REVIEW-*.yaml
+      - registry/work-items/WORK-0002.yaml
+      - PROJECT_STATE.md
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      recovery_action:
+        description: 'Inspection-only recovery action; never clears scheduler state or reruns workflows'
+        required: true
+        default: 'none'
+        type: choice
+        options:
+          - none
+          - inspect-unposted-pending
+      recovery_pending_pr:
+        description: 'Exact pending PR number from issue #7'
+        required: false
+        type: string
+      recovery_pending_head:
+        description: 'Exact pending head SHA from issue #7'
+        required: false
+        type: string
+      recovery_run_id:
+        description: 'Exact pending run_id from issue #7'
+        required: false
+        type: string
+      recovery_baseline_attempt:
+        description: 'Exact pending baseline attempt from issue #7'
+        required: false
+        type: string
+      recovery_check_id:
+        description: 'Exact prior effective check id from issue #7'
+        required: false
+        type: string
+      recovery_confirmation:
+        description: 'Must equal I_CONFIRMED_NO_RERUN_POST_WAS_ISSUED'
+        required: false
+        type: string
+      recovery_reason:
+        description: 'Auditable operator reason / evidence reference'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  self-test:
+    name: Bootstrap self-test
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact PR head or default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install hash-locked coverage tool
+        run: python3 -m pip install --require-hashes -r requirements/bootstrap-governance-ci.txt
+      - name: Run bootstrap tests with 100 percent line and branch coverage
+        run: |
+          python3 -m coverage erase
+          python3 -m coverage run --branch -m unittest discover \
+            -s .github/scripts \
+            -p 'test_stale_green_bootstrap*.py'
+          python3 -m coverage report \
+            --include='.github/scripts/stale_green_bootstrap.py,.github/scripts/stale_green_bootstrap_pr_snapshot.py,.github/scripts/stale_green_bootstrap_authority.py,.github/scripts/stale_green_bootstrap_authority_review0048.py,.github/scripts/stale_green_bootstrap_authority_review0049.py,.github/scripts/stale_green_bootstrap_authority_review0050.py,.github/scripts/stale_green_bootstrap_authority_review0050_recovery.py,.github/scripts/stale_green_bootstrap_authority_review0051_recovery.py,.github/scripts/stale_green_bootstrap_authority_review0054.py,.github/scripts/stale_green_bootstrap_authority_review0055.py,.github/scripts/stale_green_bootstrap_authority_review0056.py,.github/scripts/stale_green_bootstrap_authority_review0059.py,.github/scripts/stale_green_bootstrap_authority_review0060.py,.github/scripts/stale_green_bootstrap_authority_review0061.py,.github/scripts/stale_green_bootstrap_authority_review0062.py,.github/scripts/stale_green_bootstrap_authority_review0063.py,.github/scripts/stale_green_bootstrap_authority_review0064.py,.github/scripts/stale_green_bootstrap_authority_review0065.py,.github/scripts/stale_green_bootstrap_authority_review0066.py,.github/scripts/stale_green_bootstrap_authority_review0067.py,.github/scripts/stale_green_bootstrap_authority_review0068.py,.github/scripts/stale_green_bootstrap_authority_review0069.py,.github/scripts/stale_green_bootstrap_authority_review0070.py,.github/scripts/stale_green_bootstrap_authority_review0071.py,.github/scripts/stale_green_bootstrap_authority_review0072.py,.github/scripts/stale_green_bootstrap_authority_review0073.py,.github/scripts/stale_green_bootstrap_authority_review0074.py,.github/scripts/stale_green_bootstrap_authority_review0075.py' \
+            --fail-under=100 \
+            --show-missing
+
+  github-contract:
+    name: Bootstrap GitHub contract probe
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Validate live GitHub REST GraphQL Checks and Actions contracts against WORK-0002 PR
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BOOTSTRAP_VALIDATE_PR: '2'
+        run: python3 .github/scripts/stale_green_bootstrap_authority_review0075.py
+
+  stale-green-poll:
+    name: Bootstrap stale-green poll
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    concurrency:
+      group: monde-stale-green-bootstrap-poll
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Invalidate stale successful MONDE gates
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BOOTSTRAP_STATE_ISSUE: '7'
+        run: python3 .github/scripts/stale_green_bootstrap_authority_review0075.py
+
+  pending-recovery:
+    name: Bootstrap pending recovery
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.recovery_action == 'inspect-unposted-pending'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    concurrency:
+      group: monde-stale-green-bootstrap-poll
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Inspect operator-confirmed unposted pending mutation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BOOTSTRAP_STATE_ISSUE: '7'
+          BOOTSTRAP_RECOVERY_ACTION: ${{ inputs.recovery_action }}
+          BOOTSTRAP_RECOVERY_PENDING_PR: ${{ inputs.recovery_pending_pr }}
+          BOOTSTRAP_RECOVERY_PENDING_HEAD: ${{ inputs.recovery_pending_head }}
+          BOOTSTRAP_RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+          BOOTSTRAP_RECOVERY_BASELINE_ATTEMPT: ${{ inputs.recovery_baseline_attempt }}
+          BOOTSTRAP_RECOVERY_CHECK_ID: ${{ inputs.recovery_check_id }}
+          BOOTSTRAP_RECOVERY_CONFIRMATION: ${{ inputs.recovery_confirmation }}
+          BOOTSTRAP_RECOVERY_REASON: ${{ inputs.recovery_reason }}
+        run: python3 .github/scripts/stale_green_bootstrap_authority_review0051_recovery.py

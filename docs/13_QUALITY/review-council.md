@@ -183,6 +183,20 @@ The acceptance cold read is a separate evidence contract even when the same fres
 
 If the normative digest later changes, the earlier review and cold read are stale for acceptance even when the requirement never left `PROPOSED`.
 
+## Exact-head execution evidence
+
+A review may require trusted CI or another execution proof on the exact commit that will be reviewed. That proof is an **external execution fact bound to an immutable commit SHA**.
+
+- Materialize the review lifecycle state before requesting the exact-head execution when the lifecycle requires that state to have existed.
+- The repository artifact states the stable prerequisite: the external proof must exist and succeed for the current exact HEAD before the protected next step.
+- GitHub Actions/check metadata is authoritative for whether that prerequisite has been satisfied. Record the run ID/outcome in live review/PR evidence when useful.
+- Do **not** create a repository commit solely to write “the frozen proof succeeded” after it succeeds. Such a commit creates a different HEAD and makes the prior exact-head proof stale for that new tree.
+- After a successful exact-head proof, keep the tree frozen while the independent review runs. If the tree changes materially, re-run the proof on the new exact HEAD before relying on it.
+- A quota refusal, unavailable reviewer, or failed attempt is not approval. It may be recorded externally without changing the frozen tree unless the failure exposes a material repository defect that itself needs a patch.
+- Review artifacts and handover prose must be written so that they remain truthful both before and after the external run completes; they express eligibility conditions rather than transient “pending/completed” copies of live execution state.
+
+This rule prevents self-referential proof loops while preserving exact artifact binding and truthful lifecycle history.
+
 ## Severity
 
 - `R1 CRITICAL` — could invalidate truth/security/core architecture or cause severe production failure.

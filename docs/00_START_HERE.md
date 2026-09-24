@@ -119,6 +119,19 @@ At any time, `PROJECT_STATE.md` + active work item + its linked/read-before reco
 
 If not, project state is considered broken and must be repaired before further implementation.
 
+### Frozen exact-head external-evidence invariant
+
+When a gate requires a successful CI/proof run on the exact current review HEAD, the immutable repository state records the **eligibility condition**, not a transient copy of whether that future run has already completed.
+
+- the trusted GitHub control plane is the live source of truth for whether the current exact HEAD has a successful qualifying run;
+- once that run succeeds, keep the reviewed tree frozen and proceed to the next external step (for example independent L2) without committing only to copy the run result into the tree;
+- PR bodies/comments or other live control-plane handover surfaces may record the run ID and outcome without changing the reviewed commit;
+- a material tree mutation after the run creates a new HEAD and therefore requires a new exact-head proof before the next protected step;
+- canonical repository text must use stable wording such as “independent L2 is eligible only if live GitHub shows a successful trusted run on the current exact HEAD”, not self-expiring wording such as “the frozen proof is still pending”;
+- quota refusal or unavailable external review is live availability evidence, never approval and never by itself a reason to mutate the frozen tree.
+
+A fresh agent must therefore combine the stable repository eligibility condition with the live GitHub state for the current exact HEAD. This is not stale-prose substitution: the repository defines the rule, and the control plane supplies the time-varying execution fact.
+
 ## Cold-read invariant
 
 For a newly Accepted canonical specification, a fresh agent must be able to determine:

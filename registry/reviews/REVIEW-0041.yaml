@@ -1,0 +1,69 @@
+id: REVIEW-0041
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "91ba0314392038862a278e93922fcecef80423b5"
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "effective merge state is read directly from the exact latest GitHub Actions-owned MONDE / Merge Gate check for the exact head SHA"
+    - "review-thread state is evaluated before any current-incarnation rerun-target history is sampled"
+    - "canonical Actions workflow history is queried only for PRs positively classified stale-green and is never merge-state authority"
+    - "canonical current-incarnation rerun target and protected current-attempt MONDE / Merge Gate job are positively bound before rerun"
+    - "filtered workflow-run searches partition into closed non-overlapping second windows below GitHub's 1,000-result ceiling and require exact stable unique snapshots"
+    - "closed-PR history is bounded to lifetimes capable of overlapping the earliest stale-green active incarnation"
+    - "workflow_id, PR/run/job/check IDs and attempts use exact positive non-Boolean integer semantics"
+    - "success, neutral and skipped exact protected-check conclusions require stale-green review-thread revalidation"
+    - "check and target-job lookups are cached within one poll; scheduled poll cadence is ten minutes"
+    - "malformed or ambiguous GitHub Checks/Actions/Pull Requests/GraphQL metadata fails closed"
+    - "bootstrap regression discovery and TEST-0009 / WORK-0002 / PROJECT_STATE / REVIEW lifecycle traceability stay synchronized"
+  risks:
+    - "Offset-paginated open and closed Pull Requests collections could drift while pages are read, silently omitting authority records."
+findings:
+  - "PRR_kwDOUUI5ts8AAAABNvBAIQ"
+checks:
+  assumptions_challenged:
+    - "The Pull Requests list endpoints provide a coherent-enough single offset-paginated traversal for open-set and closed-history authority."
+    - "Ordering and malformed-record validation alone detect all membership drift in bounded closed-PR history."
+    - "Actions stable-snapshot hardening was sufficient even though PR collections feed stale classification and incarnation ambiguity."
+  omitted_categories_considered:
+    - "duplicate PR numbers across offset pages"
+    - "same-cardinality membership drift between page traversals"
+    - "open stale-green PR omission"
+    - "closed overlap-lifetime omission causing false current-incarnation target eligibility"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 remain terminal negative evidence and were not rewritten."
+    - "REVIEW-0040 remains CLOSED administrative negative evidence."
+    - "No independent Codex REVIEW-0041 result was submitted before the author-side P1 invalidated the frozen head."
+    - "The 42 historical inline material PR #5 threads remain unresolved."
+  failure_modes_considered:
+    - "an offset-page duplicate displaces another open PR and the poll silently skips stale-green invalidation for the omitted PR"
+    - "an offset-page duplicate or same-cardinality replacement omits a closed PR whose lifetime overlapped the active incarnation"
+    - "the missing overlap window allows an old same-repository/same-branch run to be selected as the rerun target"
+  evidence_requested:
+    - "Exact positive unique PR-number validation for every Pull Requests authority snapshot."
+    - "Two identical canonical authority-field snapshots for the open PR set and each bounded closed-history query."
+    - "Regressions for duplicate identities and same-cardinality membership drift on both surfaces."
+    - "100 percent line/branch proof plus live contract probe and a successor independent L2 review."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-15T23:02:56Z"
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-15"

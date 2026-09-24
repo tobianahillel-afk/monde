@@ -1,0 +1,77 @@
+id: REVIEW-0047
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "d266d73c15b524413209be16d4970ec42928ea04"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABN1lrxA"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "delayed rerun observation remains durably selected across scheduled invocations until a causal terminal post-condition is established"
+    - "effective exact-head required check is causally bound to the exact rerun run_id, new run_attempt and protected job identity/conclusion"
+    - "current PR head/base/merge-ref authority is revalidated at the mutation boundary and before post-condition acceptance"
+    - "selected-PR target-history continuation carries a page-membership anchor and restarts safely when retained history drifts"
+    - "scheduler issue identity and all direct trust-binding identifiers require exact positive non-Boolean integers"
+    - "scheduler progress remains durable in machine-managed issue #7 and trusted scheduled writers remain serialized"
+    - "one invocation considers at most seven head groups and performs at most three actual rerun POSTs"
+    - "the authority adapter remains hard-capped at 100 script-issued GitHub calls with mutation/post-condition/state-write reserves"
+    - "malformed REST/GraphQL/Checks/Actions/Issue/PR authority fails closed"
+    - "the live PR #2 contract probe remains read-only; actions:write and issues:write exist only on trusted serialized scheduled execution"
+  risks:
+    - "A rerun that completes merge-acceptable can become stale again before the final thread read and still let scheduler progress advance."
+    - "A concurrent actor can create an intervening rerun attempt, making attempt-number jumps ambiguous at the post-condition boundary."
+    - "Offset check-history pagination can drift between two pages read in the same invocation and omit the only PR-bound target."
+    - "A pending rerun may be reposted on a later invocation unless its exact run/attempt observation is durably resumed rather than rediscovered."
+findings:
+  - "PRRT_kwDOUUI5ts6i9Tl3"
+  - "PRRT_kwDOUUI5ts6i9Tl_"
+  - "PRRT_kwDOUUI5ts6i9TmE"
+checks:
+  assumptions_challenged:
+    - "Detecting a merge-acceptable rerun followed by unresolved threads can safely raise and let the outer scheduler advance the head."
+    - "Any terminal run_attempt greater than the pre-POST attempt can be attributed to this invocation's rerun POST."
+    - "Persisted cross-invocation page anchors also make consecutive offset pages inside one invocation snapshot-safe."
+    - "Persisting only selected PR/page state is sufficient to resume a rerun that is still pending without issuing a duplicate POST."
+  omitted_categories_considered:
+    - "thread resolution and reopening between rerun evaluation and final GraphQL observation"
+    - "concurrent manual or automated rerun of the same workflow between target discovery and this poll's POST"
+    - "check deletion/insertion/reordering between page 1 and page 2 inside one invocation"
+    - "scheduler restart while an exact rerun attempt is queued or running"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 and REVIEW-0042 through REVIEW-0046 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
+    - "REVIEW-0040 and REVIEW-0041 remain CLOSED administrative negative evidence."
+    - "All 60 historical PR #5 inline material threads remained unresolved entering REVIEW-0047."
+    - "REVIEW-0047 adds three exact-head independent P1 findings, leaving 63 inline material threads unresolved."
+  failure_modes_considered:
+    - "rerun completes green while the selected PR becomes unresolved again before the final thread read"
+    - "another actor's attempt completes while this invocation's newly requested attempt remains queued"
+    - "offset pagination shifts membership after the first page and before the second page"
+    - "a bounded post-condition timeout returns to the scheduler without durable exact pending-attempt identity"
+  evidence_requested:
+    - "Retain or immediately retry the selected PR/head when the completed rerun is already stale-green at the final thread observation."
+    - "Refresh the exact mutation baseline and require the post-condition to identify the single workflow attempt created by this POST rather than accepting arbitrary attempt jumps."
+    - "Carry and verify an intra-invocation page-boundary/snapshot anchor before accepting target-history completeness."
+    - "Persist enough pending-rerun identity to resume observation without issuing a duplicate rerun POST after a bounded local timeout or scheduler restart."
+    - "Add adversarial regressions for all three independent findings plus the pending-rerun duplicate-POST interleaving, then re-prove exact-head line/branch coverage and the live read-only GitHub contract."
+    - "Run a fresh independent successor L2 before resolving any historical thread."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-16T13:49:34Z"
+history:
+  created_at: "2026-09-16"
+  updated_at: "2026-09-16"

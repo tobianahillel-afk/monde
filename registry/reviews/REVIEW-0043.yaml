@@ -1,0 +1,82 @@
+id: REVIEW-0043
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "3bce7808d7d30b361559d54663bc0808ab4cdcf6"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "fresh-context-pr5-3bce7808-review0043"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "exact latest GitHub Actions-owned MONDE / Merge Gate check is merge-state authority"
+    - "stable unique open Pull Requests authority is revalidated after stale-thread classification"
+    - "canonical PR-family run triggering identity comes from one refs/pull/<N>/merge reusable-workflow reference"
+    - "same-repository/ref/SHA PRs remain distinguishable by PR number"
+    - "Actions history is rerun-capability evidence only and uses stable partitioned snapshots"
+    - "selected target protected job is current-attempt bound before rerun"
+    - "one invocation-wide request counter blocks the 61st GitHub request"
+    - "ten-minute schedule plus 60-call cap bounds nominal script demand"
+    - "least-privilege trusted scheduled write boundary and read-only live probe"
+    - "TEST-0009 and WORK/PROJECT/REVIEW traceability"
+  risks:
+    - "Budget exhaustion may fail before any stale-green invalidation progress."
+    - "Saved review-thread classification may become stale before shared-head reruns complete."
+    - "Cross-API TOCTOU remains between open authority, Actions discovery, target validation and rerun."
+    - "Reusable-workflow triggering-PR authority on rerun attempts lacks direct repository evidence."
+findings:
+  - "PRRT_kwDOUUI5ts6i1TEN"
+  - "PRRT_kwDOUUI5ts6i1TES"
+checks:
+  assumptions_challenged:
+    - "The 60-call cap prevents token exhaustion without creating a no-progress stale-green outage."
+    - "A repository with fourteen distinct stale-green heads still makes invalidation progress."
+    - "Stable PR identity revalidation is sufficient when review-thread state itself changes before rerun."
+    - "Two same-head PRs initially classified unresolved cannot later revive a green shared check through a now-clean rerun."
+    - "Per-PR refs/pull/N/merge authority closes all shared-head races without final thread reclassification."
+    - "All relevant request paths are counted and budget failure semantics satisfy REQ-0026."
+  omitted_categories_considered:
+    - "budget exhaustion before first target job lookup"
+    - "zero-progress repetition across ten-minute schedules"
+    - "clean transition after initial unresolved classification"
+    - "shared-head rerun ordering and commit-scoped check revival"
+    - "post-rerun validation"
+    - "fair batching or cursor persistence"
+    - "rerun-attempt reusable-workflow metadata"
+  duplicate_or_reuse_search:
+    - "REVIEW-0031 through REVIEW-0039 and REVIEW-0042 remain terminal COMPLETE/CHANGES_REQUIRED negative evidence."
+    - "REVIEW-0040 and REVIEW-0041 remain CLOSED administrative negative evidence."
+    - "Historical rate-limit P1 PRRT_kwDOUUI5ts6is6BX remained unresolved entering this review."
+    - "REVIEW-0043 independently reproduced the rate-limit class as a deterministic 14-PR zero-progress budget failure."
+    - "PR #5 now has 46 unresolved inline material threads."
+  failure_modes_considered:
+    - "fourteen one-page stale-green PRs consume all 60 calls before the first rerun"
+    - "the 61st target-job request fails, no check changes, and every subsequent cycle repeats identically"
+    - "two shared-head PRs are initially unresolved, one becomes resolved, but both saved candidates are rerun"
+    - "the now-clean rerun finishes last and revives the SHA-scoped required check while the other PR remains unresolved"
+    - "hard request cap protects the token but violates the invalidation obligation through no progress"
+  evidence_requested:
+    - "Replace cap-then-abort with bounded progress/fair batching or another strategy that invalidates at least one stale candidate before exhaustion and avoids starvation."
+    - "Reclassify current review-thread state immediately before shared-head reruns and/or verify the shared required check after rerun so a clean sibling cannot revive green state."
+    - "Add regressions for fourteen distinct stale-green heads and for one shared-head sibling becoming resolved after initial classification."
+    - "Re-prove exact-head line/branch coverage and live PR #2 contract behavior."
+    - "Run a fresh independent successor L2 before resolving any historical thread."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-16T07:46:09Z"
+history:
+  created_at: "2026-09-16"
+  updated_at: "2026-09-16"

@@ -1,0 +1,85 @@
+id: REVIEW-0080
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "7a6516ea8c57a8f2538e4df3f237cf6ea4b70dce"
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - VERIFICATION_VALIDATION
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "registry/tests/TEST-0009.yaml execution is one valid mapping, not a mixed sequence/mapping node"
+    - "historical Bootstrap evidence strings formerly under execution remain preserved under execution.evidence"
+    - "TEST-0009 structured execution fields command_or_workflow last_run_at commit_sha result remain preserved"
+    - "WORK-0002 review_plan.open_findings PRRT identity set exactly equals live unresolved PR #5 review-thread identity set"
+    - "active unresolved material-thread count is 81"
+    - "PROJECT_STATE Resume sequence requires live PR #5 reviews/81 threads"
+    - "historical 73 75 76 77 78 79 80 counts remain historical truth"
+    - "REVIEW-0078 non-self-referential exact-head evidence rule remains unchanged"
+    - "no runtime Python workflow or REQ-0026 behavior change"
+  risks:
+    - "TEST-0009 could remain syntactically malformed despite visual restructuring"
+    - "historical execution evidence could be dropped duplicated or reordered semantically"
+    - "machine-readable finding inventory could omit or add a PRRT identity"
+    - "active 81 count could rewrite historical counts"
+    - "traceability-only repair could accidentally touch runtime or workflow artifacts"
+findings:
+  - "PRRT_kwDOUUI5ts6loe5m"
+checks:
+  assumptions_challenged:
+    - "Bootstrap green alone proves registry YAML syntax"
+    - "equal finding counts imply equal finding identity sets"
+    - "the first REVIEW-0079 L2 finding was the only exact-head material finding"
+  omitted_categories_considered:
+    - "mixed sequence and mapping directly under execution"
+    - "duplicate execution evidence list"
+    - "lost structured execution fields"
+    - "live thread missing from WORK-0002"
+    - "WORK-0002 PRRT absent from live GitHub"
+    - "duplicate PRRT IDs"
+    - "runtime or workflow file touched by candidate"
+    - "Resume sequence count stale relative to active count"
+  duplicate_or_reuse_search:
+    - "REVIEW-0079 remains terminal negative evidence."
+    - "PRR_kwDOUUI5ts8AAAABPDwpnQ and PRR_kwDOUUI5ts8AAAABPD1fJA are retained exact-head independent evidence."
+    - "All 81 live PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "TEST-0009 parse structure remains invalid"
+    - "evidence moved under the wrong indentation or node"
+    - "machine/live sets match count but differ in identity"
+    - "historical counts are globally rewritten"
+    - "candidate modifies runtime Python workflow or REQ-0026 semantics"
+  evidence_requested:
+    - "REVIEW-0079 exact IN_PROGRESS head 1501fe77d8d5986fb29e381515de47e706ac2c02 passed Bootstrap #320 / run 36009526029 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Independent Codex L2 PRR_kwDOUUI5ts8AAAABPDwpnQ produced P2 PRRT_kwDOUUI5ts6lnfaG."
+    - "Follow-up exact-head Codex review PRR_kwDOUUI5ts8AAAABPD1fJA explicitly reviewed all 79 pre-existing material threads and produced P1 PRRT_kwDOUUI5ts6lnqJY with CHANGES_REQUIRED."
+    - "REVIEW-0079 CLOSED checkpoint 56d35f134dcde7ddb331e441ad9424712be886b9 passed Bootstrap #321 / run 36010993526 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Initial REVIEW-0080 candidate 2afe54a6d06aecab8f16c9764e687e6950411181 / Bootstrap #322 remained lifecycle-withheld after inconsistent evidence indentation was detected before opening."
+    - "Exact REVIEW-0080 candidate a4008a93d858a34de56e07924421748c78accc51 passed Bootstrap #323 / run 36013738537 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Compare 56d35f134dcde7ddb331e441ad9424712be886b9..a4008a93d858a34de56e07924421748c78accc51 changes exactly PROJECT_STATE.md, REVIEW-0079.yaml, TEST-0009.yaml and WORK-0002.yaml."
+    - "Live GitHub exposes 81 unique PRRT thread IDs and candidate WORK-0002 open_findings exposes exactly the same 81 IDs with no missing or extra entries."
+    - "TEST-0009 contains exactly one execution mapping, one command_or_workflow field, one execution.evidence field and no direct sequence item under execution."
+    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "After IN_PROGRESS, independent L2 is eligible only if live trusted GitHub shows successful Bootstrap on the current exact HEAD; do not mutate the tree solely to copy that result."
+    - "Fresh independent L2 must inspect all 81 unresolved material threads before any controlled resolution."
+    - "Exact IN_PROGRESS HEAD 7a6516ea8c57a8f2538e4df3f237cf6ea4b70dce passed live Bootstrap #325 / run 36014347342 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Fresh Codex REVIEW-0080 request comment 5816298535 was quota-refused by 5816301096; no independent REVIEW-0080 L2 was produced."
+    - "Author-side governance review PRR_kwDOUUI5ts8AAAABPENlRg produced P1 PRRT_kwDOUUI5ts6loe5m: REVIEW-0080 declared only VERIFICATION_VALIDATION, DOCUMENTATION_TRACEABILITY and RED_TEAM_SKEPTIC while WORK-0002 required six hats including ARCHITECTURE_REUSE, SECURITY and PERFORMANCE_SRE."
+    - "The new finding raises live PR #5 material threads to 82 unresolved; REVIEW-0080 cannot satisfy work-item review completion."
+    - "Successor REVIEW-0081 must preserve the REVIEW-0080 TEST-0009/inventory repair unchanged, declare all six WORK-0002 required hats, keep all 82 threads unresolved and request fresh independent L2 under those hats."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-24T14:45:20Z"
+history:
+  created_at: "2026-09-24"
+  updated_at: "2026-09-24"

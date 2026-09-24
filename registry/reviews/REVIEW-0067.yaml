@@ -1,0 +1,98 @@
+id: REVIEW-0067
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "0c1ccbb1bf80c4328ff24c0e9079c7734d367f52"
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "mutation-bound snapshot ordering is G1 -> P1 -> unresolved threads -> P2 -> G2"
+    - "G1 and G2 are independently merge-acceptable and retain the exact pending_check_id"
+    - "P1 and P2 independently validate the exact open pending_authority"
+    - "review threads remain unresolved between P1 and P2"
+    - "PR authority drift after P1 fails before G2, pending write and rerun POST"
+    - "full MUTATION_REQUEST_RESERVE remains after G2 before actual pending write"
+    - "actual pending PATCH acknowledgement ambiguity remains PendingMutationUncertain"
+    - "REVIEW-0066 Gate-stable bracketing and all earlier pending/frontier guarantees remain intact"
+  risks:
+    - "one-sided PR authority observation can otherwise become stale while Gate identity remains stable"
+    - "thread state can change inside the PR-stable interval"
+    - "cross-object snapshots require overlapping stability intervals rather than one read per object"
+    - "extra P2 read plus G2 proof can exhaust mutation reserve"
+    - "actual PATCH acknowledgement ambiguity must remain distinct from pre-write authority failure"
+findings:
+  - "PRR_kwDOUUI5ts8AAAABO1qQqg"
+checks:
+  assumptions_challenged:
+    - "Gate stability around one PR read is enough to prove current PR incarnation"
+    - "a PR cannot drift after P1 while G1/G2 remain identical"
+    - "one read of pending_authority establishes PR stability"
+    - "the additional P2 read cannot reduce mutation headroom below the reserved floor"
+  omitted_categories_considered:
+    - "P1 sees exact authority and P2 sees closed PR"
+    - "P1 sees exact authority and P2 raises authority-digest drift"
+    - "threads resolve between P1 and P2"
+    - "G1 fails before PR reads"
+    - "G2 fails after two PR reads"
+    - "malformed pending check identity"
+    - "post-G2 request reserve is insufficient"
+    - "actual scheduler PATCH acknowledgement is ambiguous"
+    - "non-pending writes remain transparent"
+    - "empty head groups remain safely delegated"
+  duplicate_or_reuse_search:
+    - "REVIEW-0066 full Gate proof helper is reused for G1 and G2."
+    - "REVIEW-0049 _current_pending_pr is reused for both P1 and P2 exact pending_authority validation."
+    - "REVIEW-0055 pending-lifetime protection is reused directly."
+    - "REVIEW-0066 remains CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten."
+    - "PRR_kwDOUUI5ts8AAAABO1Ts9g is the author-side finding that invalidated REVIEW-0066."
+    - "All 65 historical inline PR #5 material threads remain unresolved."
+    - "Bootstrap #261 / run 35857716751 proved frozen exact head 0c1ccbb1bf80c4328ff24c0e9079c7734d367f52 at 335/335 tests, 2707 statements / 1158 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests."
+    - "Fresh Codex L2 request 5794413357 was quota-refused by 5794416378; no independent REVIEW-0067 L2 was produced."
+  failure_modes_considered:
+    - "PR authority changes after P1 but before P2 while Gate stays stable"
+    - "PR closes between P1 and P2"
+    - "threads resolve between P1 and P2"
+    - "Gate identity changes at G2"
+    - "Gate is non-acceptable at either boundary"
+    - "post-G2 mutation reserve is insufficient"
+    - "actual pending-state write acknowledgement is malformed or unavailable"
+    - "new wrapper weakens REVIEW-0055 lifetime retention or predecessor temporal proofs"
+    - "same-head canonical workflow-run count makes the four full Gate proofs consume the 100-request budget before the mandatory 23-request mutation reserve; DeferredForBudget persists no frontier continuation so the same head restarts forever"
+  evidence_requested:
+    - "Technical candidate 65a155d43e027f7c618a4dfa3a10a67e366f08fb / Bootstrap #259 remains exact proof at 335/335 tests, 2707 statements / 1158 branches and 100 percent line+branch."
+    - "Bootstrap #259 live PR #2 contract probe remains successful at 7/100 requests."
+    - "Regression proving G1 -> P1 -> threads -> P2 -> G2 success before pending write."
+    - "Regression proving PR closure at P1 or P2 writes nothing."
+    - "Regression proving PR-authority drift after P1 but before P2 fails before G2 and writes nothing."
+    - "Regression proving thread resolution between P1 and P2 writes nothing."
+    - "Regression proving G1/G2 failures write nothing."
+    - "Regression proving post-G2 reserve exhaustion writes nothing."
+    - "Regression proving actual pending-write acknowledgement ambiguity remains PendingMutationUncertain."
+    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh-context independent L2."
+    - "Resolve no historical inline thread until a clean successor L2 permits it."
+    - "Successor REVIEW-0068 must eliminate permanent O(N)-per-proof starvation while preserving the hard 100-request cap."
+    - "At minimum, >=16 distinct canonical same-head runs must no longer make invalidation mathematically impossible; regression must use the real shared request counter and show durable forward progress rather than mocked proof calls."
+    - "A fix may use a bounded reusable authority witness or a durably resumable frontier scan plus bounded final revalidation, but must preserve REVIEW-0067 snapshot safety and every earlier pending/recovery invariant."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-23T12:11:02Z"
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"

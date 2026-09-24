@@ -1,0 +1,111 @@
+id: REVIEW-0070
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "487ea3c6addd870eb86c5f17756b8268fd98cb88"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABO64xew"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "exact PR-scoped draft fail-closed merge guard"
+    - "current ready PR with unresolved review threads becomes draft"
+    - "current ready PR with boundedly-unprovable complete resolved-thread state becomes draft"
+    - "existing or user-authored draft is never automatically readied"
+    - "normal safety path performs no Actions or Checks history traversal"
+    - "stable open-PR discovery binds exact number node_id draft head base and merge_commit_sha"
+    - "review-thread state is observed before and after direct current-PR revalidation"
+    - "closed or concurrently drafted PR suppresses redundant mutation"
+    - "convertPullRequestToDraft targets exact current PR node id"
+    - "GraphQL mutation acknowledgement must return exact node id number and isDraft=true"
+    - "direct REST postcondition must expose same PR as draft or already closed"
+    - "hard 100-request cap remains unchanged with explicit mutation reserve"
+    - "legacy durable pending rerun state is accounted before draft-guard scan and never overwritten"
+    - "issue #7 remains durable fairness cursor"
+    - "human ready_for_review is the only return to ready state"
+    - "ready_for_review triggers a fresh canonical MONDE Gate"
+  risks:
+    - "thread pagination ambiguity could be incorrectly treated as safe"
+    - "PR identity could drift between thread observations and mutation"
+    - "draft conversion acknowledgement could target the wrong PR or be only locally observed"
+    - "bootstrap could accidentally auto-ready a user draft"
+    - "request exhaustion could occur after proving unsafe state but before durable draft mutation"
+    - "legacy pending rerun state could be overwritten during migration"
+    - "changing the security boundary could leave stale documentation or tests claiming rerun is still the primary invariant"
+findings:
+  - "PRRT_kwDOUUI5ts6lUcz8"
+  - "PRRT_kwDOUUI5ts6lUcz_"
+  - "PRRT_kwDOUUI5ts6lUc0F"
+  - "PRRT_kwDOUUI5ts6lUc0K"
+  - "PRRT_kwDOUUI5ts6lUc0Q"
+checks:
+  assumptions_challenged:
+    - "commit-scoped Gate history must be exhaustively invalidated to prevent stale-green merge authority"
+    - "unbounded Actions/Checks history can be made safe only through more pagination or continuation"
+    - "ambiguous review-thread state should leave a PR ready"
+    - "the bootstrap may safely auto-ready a draft after threads resolve"
+    - "ready_for_review might not create fresh Gate evidence"
+  omitted_categories_considered:
+    - "already-draft user PR"
+    - "fully resolved ready PR"
+    - "thread resolves between observations"
+    - "thread becomes unresolved between observations"
+    - "PR closes during revalidation"
+    - "PR becomes draft concurrently"
+    - "PR head/base/merge identity changes while node remains ready"
+    - "thread GraphQL errors malformed nodes malformed cursor repeated cursor deep pagination or request-headroom ambiguity"
+    - "draft GraphQL acknowledgement malformed wrong node wrong number or isDraft=false"
+    - "direct REST postcondition malformed closed wrong node or not draft"
+    - "legacy pending scheduler authority exists before draft-guard migration"
+    - "large Actions/Checks histories including >1000 and >2000 same-head suites"
+    - "large thread history beyond bounded automatic proof"
+  duplicate_or_reuse_search:
+    - "REVIEW-0069 terminal negative evidence is retained and not rewritten."
+    - "REVIEW-0049+ durable issue #7 state is reused for fairness and legacy pending accounting."
+    - "base PR authority fingerprint and existing core GraphQL/REST request wrappers are reused."
+    - "existing MONDE Gate ready_for_review trigger on PR #2 is reused rather than adding another workflow."
+    - "TEST-0009 is retained as historical/non-regression evidence; TEST-0010 owns the active draft-guard contract."
+    - "Fresh exact-head Codex L2 PRR_kwDOUUI5ts8AAAABO64xew reviewed 487ea3c6addd870eb86c5f17756b8268fd98cb88 and added five new unresolved findings, bringing PR #5 to 70 unresolved material threads."
+    - "All 70 historical and new inline PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "thread scan cannot prove every page resolved inside bounded budget"
+    - "thread state or GitHub API becomes unavailable exactly when stale green would otherwise remain mergeable"
+    - "request headroom approaches mutation reserve"
+    - "mutation acknowledgement is ambiguous or wrong"
+    - "postcondition fails to expose draft"
+    - "scheduler fairness cursor cannot be durably written"
+    - "legacy pending state remains active"
+    - "PR #2 draft/ready changes head or does not create fresh Gate"
+  evidence_requested:
+    - "Bootstrap #276 / run 35908685567 retained as negative fixture and legacy-workflow expectation evidence."
+    - "Bootstrap #277 / run 35908922188 retained as negative coverage-gate evidence: 385/385 functional tests passed but strict total coverage was 99 percent."
+    - "Bootstrap #278 / run 35909146544 proves exact technical candidate 1611356cbd3ab21be9cd47828acdfecbc1479b16 with 385/385 tests, 3375 statements / 1438 branches, 100 percent line+branch, REVIEW-0070 197 statements / 82 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Real PR #2 rehearsal preserved exact head 90d762af389990b5e57fce83397a558276500dd5 across ready -> draft -> ready."
+    - "PR #2 ready_for_review immediately created MONDE Gate run #253 / 35912455093 on the same head."
+    - "No PR #5 historical thread was resolved during technical proof or rehearsal."
+    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh-context independent L2."
+    - "Fresh-context L2 PRR_kwDOUUI5ts8AAAABO64xew completed on exact frozen head and produced four P1 findings plus one P2 finding; REVIEW-0070 cannot receive approval."
+    - "Successor REVIEW-0071 must fix: resolved-path double observation; legacy pending Actions/Checks read permissions; bounded durably resumable PR discovery beyond core.MAX_PAGES; exact positive non-Boolean integer draft ACK number; and stale contradictory WORK-0002 handover text."
+    - "Restore exact-head 100 percent line/branch proof, read-only live probe and real GitHub draft/ready proof as applicable before opening REVIEW-0071."
+    - "Run a fresh independent successor L2 over all 70 unresolved material threads before resolving any thread."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-23T20:11:06Z"
+history:
+  created_at: "2026-09-23"
+  updated_at: "2026-09-23"

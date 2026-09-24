@@ -6,7 +6,7 @@ lot: LOT-0
 sublot: SUBLOT-0.2
 owner: repository governance
 created_at: '2026-09-10'
-updated_at: '2026-09-22'
+updated_at: '2026-09-24'
 purpose: 'Turn MONDE governance/specification/traceability contracts into executable CI and GitHub control-plane checks so repository state, review
   evidence, scope and proof cannot silently drift.
 
@@ -14,6 +14,7 @@ purpose: 'Turn MONDE governance/specification/traceability contracts into execut
 scope_change:
   approved: true
   rationale: |
+    T12 default-branch integration is now real rather than planned: PR #5 received clean independent REVIEW-0082 on exact reviewed head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618, all 83 reviewed PR #5 threads were subsequently resolved under controlled closure, reconciliation head e9d67333f35fc0460ea65806f829257ed0a0266a passed Bootstrap #333 / run 36053041482, and PR #5 was merged to main as b4b52c77fbf05eda65e8f0e951959da70e7edbe7. This two-parent integration closes T12 as an implementation dependency but does not close T4/AC-6: live PR #2 now has 75 unresolved material threads, including fresh P1 PRRT_kwDOUUI5ts6lURur and P2 PRRT_kwDOUUI5ts6lURuu, and still requires an exact integrated-head proof, fresh independent L2 and trusted context-separated exact-head approval before thread resolution or merge.
     Fresh exact-SHA L2 REVIEW-0030 found six additional risk-acceptance, normative-digest, authority-evidence, external-import-finalization, PASS-test-revision and review-lifecycle defects after the REVIEW-0029 corrective candidate. GitHub Codex review PRR_kwDOUUI5ts8AAAABNfhWLQ on 5e4dd33995d17587be1452265b830f2b32e0f89b added nine further findings; PRR_kwDOUUI5ts8AAAABNgjLtg and PRR_kwDOUUI5ts8AAAABNgxnRw on 6e6f7a68ed63262e7ff9af56521695d79f6d015b added five and six more. Fresh-context review PRR_kwDOUUI5ts8AAAABNiFSzA on exact candidate 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 added eight further findings covering canonical-policy trust anchors, immutable adoption boundaries, same-evidence acceptance binding, identity-policy revision binding, repository-owner proof anchored outside mutable policy, exact-head independent approval in the live merge gate, and durable tracking of the complete closure set. Fresh-context review PRR_kwDOUUI5ts8AAAABNih5Qw on exact candidate 296ef2005de2ab5964d004d6383393b693594de9 then added six further findings: same-status ACCEPTED requirement and risk invariant revalidation, immutability of all completion-bearing COMPLETE-review fields, detection of intervening content-identity-policy revisions even when reverted, L2 eligibility/trust binding for exact-head approvers, and target-scoped WORK-status reopening triggers. Fresh-context review PRR_kwDOUUI5ts8AAAABNmehrQ on exact candidate 061c17e7144396cbfd01963fb4036f3fc3c58ed3 added six T9 findings covering full merge-history policy traversal, continuing imported-evidence finalization, one-shot import_commit immutability, base-preexisting protected-policy authority, genuinely new reopening triggers, and exact durable/live thread-identity equality. Fresh-context review PRR_kwDOUUI5ts8AAAABNnPvYg on exact candidate 9e4144d255590360f99652e59c38a02dbf95ccfa added four T10 P1 findings covering review-state-triggered live-gate reruns, integration-provenance trust-anchor protection, dependency-driven continuing ACCEPTED requirement revalidation and dependency-driven continuing ACCEPTED risk revalidation. Fresh-context review PRR_kwDOUUI5ts8AAAABNoalkw on exact candidate cc6e98d542fbedf097a8ffbb7eb5dcf128237c84 added five T11 findings covering pre-T10 provenance bootstrap auditing, full-history import materialization, stale-green invalidation after review-thread unresolve, raw committed-blob secret scanning, and structural workflow-trigger parsing. These GitHub reviews remain adverse live source evidence and are not retroactively converted into approving canonical review evidence. The corrective scope also includes duplicate-key YAML rejection and exact immutable integration-history bridges already discovered during earlier correction rounds. These changes harden the existing governance contract without changing MONDE product scope; every historical exception remains exact and non-reusable.
   evidence:
   - PRR_kwDOUUI5ts8AAAABNiFSzA
@@ -143,7 +144,8 @@ acceptance_criteria:
 - id: AC-6
   description: All Codex findings are proven fixed on the substantive final HEAD and a fresh-context L2 review approves completion.
   status: IN_REVIEW
-requirements: []
+requirements:
+- REQ-0026
 assumptions: []
 risks: []
 progress_justifications:
@@ -172,6 +174,10 @@ read_before:
 - registry/README.md
 - registry/progress/matrix.yaml
 - registry/integration-provenance.yaml
+- registry/requirements/REQ-0026.yaml
+- registry/tests/TEST-0009.yaml
+- registry/tests/TEST-0010.yaml
+- registry/reviews/REVIEW-0082.yaml
 depends_on:
 - WORK-0001
 blocks:
@@ -198,6 +204,10 @@ affected_docs:
 - registry/status-machines.yaml
 - registry/integration-provenance.yaml
 - registry/progress/matrix.yaml
+- registry/requirements/REQ-0026.yaml
+- registry/tests/TEST-0009.yaml
+- registry/tests/TEST-0010.yaml
+- registry/reviews/REVIEW-0082.yaml
 affected_paths:
 - .github/
 - tools/governance/
@@ -209,6 +219,11 @@ affected_paths:
 - registry/acceptance-authority.yaml
 - registry/content-identity.yaml
 - registry/integration-provenance.yaml
+- registry/requirements/REQ-0026.yaml
+- registry/tests/TEST-0009.yaml
+- registry/tests/TEST-0010.yaml
+- registry/reviews/
+- requirements/bootstrap-governance-ci.txt
 contracts:
 - repository governance validation
 - GitHub control-plane merge gate
@@ -285,7 +300,7 @@ implementation_plan:
     description: Pre-deploy and independently prove the trusted default-branch stale-green bridge required to close PRRT_kwDOUUI5ts6ijUTn before final PR #2 closure.
     depends_on:
     - T3
-    status: IN_REVIEW
+    status: DONE
   - id: T13
     description: Correct the five branch-local findings from PRR_kwDOUUI5ts8AAAABNppdkQ covering PR-family poll events, ambiguous first-status materialization, terminal import binding, executable command proof and active-work binding.
     depends_on:
@@ -335,6 +350,7 @@ review_plan:
   - RED_TEAM_SKEPTIC
   completed_reviews:
   - REVIEW-0002
+  - REVIEW-0082
   open_findings:
   - PRRT_kwDOUUI5ts6hMwQ4
   - PRRT_kwDOUUI5ts6hMwQ9
@@ -409,6 +425,8 @@ review_plan:
   - PRRT_kwDOUUI5ts6ijUUK
   - PRRT_kwDOUUI5ts6ijUUV
   - PRRT_kwDOUUI5ts6ijUUf
+  - PRRT_kwDOUUI5ts6lURur
+  - PRRT_kwDOUUI5ts6lURuu
 required_tests:
   unit:
   - TEST-0002
@@ -669,11 +687,14 @@ discoveries:
 - Durable closure integrity is an identity-set property: equal counts cannot substitute for exact one-to-one PRRT coverage.
 - Effective workflow semantics must be validated from parsed YAML structure rather than textual snippets that comments or formatting can mimic.
 blockers:
-- All 73 live review findings remain intentionally unresolved. Exact 73/73 durable/live identity equality was established by Gate #230 and preserved by Gate #231; this final state-only handover commit must receive its own exact-SHA Gate before further action.
-- T12 / PRRT_kwDOUUI5ts6ijUTn cannot be considered closed until the trusted default-branch stale-green predecessor from PR #5 is independently accepted and merged/integrated.
-- T13 is DONE author-side for the five branch-local findings but remains subject to final exact-head independent re-verification.
-- After T12 is integrated, T4 requires a fresh independent exact-head L2 over the complete 73-thread set plus any integration findings, and a trusted context-separated L2/L3 exact-head APPROVED review before any closure or merge.
+- Live PR #2 closure set is now 75 unresolved material threads; the durable review_plan set includes both fresh findings PRRT_kwDOUUI5ts6lURur and PRRT_kwDOUUI5ts6lURuu.
+- T12 is DONE/integrated: independently accepted PR #5 is merged on default branch main at b4b52c77fbf05eda65e8f0e951959da70e7edbe7.
+- T13 and T14 remain DONE author-side but require final exact-head independent re-verification as part of T4.
+- T4 requires a full governance gate on the two-parent integrated head, correction of any integration/fresh findings, fresh independent L2 over the complete 75-thread set plus integration effects, and a trusted context-separated exact-head APPROVED review before any thread resolution or merge.
 follow_up_work_items:
+- run: RUN-3
+  date: '2026-09-24'
+  note: 'T12 integration boundary: REVIEW-0082 clean independent L2 approved PR #5 predecessor semantics; PR #5 resolved all 83 reviewed threads, reconciliation head e9d67333f35fc0460ea65806f829257ed0a0266a passed Bootstrap #333, and main now contains merge b4b52c77fbf05eda65e8f0e951959da70e7edbe7. This PR #2 merge commit must have parents 90d762af389990b5e57fce83397a558276500dd5 and b4b52c77fbf05eda65e8f0e951959da70e7edbe7. Live PR #2 has 75 unresolved findings including fresh PRRT_kwDOUUI5ts6lURur and PRRT_kwDOUUI5ts6lURuu; T4 remains IN_PROGRESS.'
 - WORK-0003
 - WORK-0004
 - run: RUN-3

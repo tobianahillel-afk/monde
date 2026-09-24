@@ -1,0 +1,46 @@
+id: REQ-0026
+title: "Trusted stale-green review-state invalidation"
+status: PROPOSED
+type: GOVERNANCE
+normative_statement: "MONDE SHALL maintain trusted default-branch automation that prevents a stale successful canonical merge-gate state from remaining merge-authoritative when the current open pull-request incarnation has unresolved review threads or when complete resolved-thread state cannot be established within the bounded control-plane proof. The automation SHALL fail closed by converting the exact current ready pull request to GitHub draft state, SHALL never automatically ready a pull request, and SHALL preserve a fresh canonical gate trigger when a human later marks that pull request ready for review."
+rationale: "Review-thread state can change without a native GitHub Actions thread-resolution trigger. Rewriting or exhaustively proving commit-scoped check history is not a bounded merge-safety primitive for arbitrarily deep shared-head history. GitHub draft state is PR-scoped and non-mergeable, so unresolved or unprovable review-thread state is forced to draft on exact PR identity. Human ready-for-review is the only path back to ready state and already triggers a fresh canonical MONDE Gate."
+content_identity:
+  scheme: REQUIREMENT_NORMATIVE_V1
+  digest: null
+origin:
+  source: "WORK-0002/T12; PRRT_kwDOUUI5ts6ijUTn; PRRT_kwDOUUI5ts6imgoz"
+  decision_date: "2026-09-15"
+  introduced_by_work: WORK-0002
+  introduced_by_adr: null
+scope:
+  capabilities: []
+  engines: []
+  experiences: []
+  schemas: []
+  data_sources: []
+  models: []
+depends_on: [REQ-0010, REQ-0025]
+conflicts_with: []
+related_requirements: [REQ-0024]
+semantics:
+  temporal: true
+  spatial: false
+  provenance: true
+  confidence_uncertainty: false
+  permissions: true
+verification:
+  method: TEST_AND_REVIEW
+  acceptance_evidence: [REVIEW-0031]
+  test_ids: [TEST-0009, TEST-0010]
+  acceptance_cold_read_test_ids: []
+  real_system_validation:
+    - "MONDE Stale-Green Bootstrap read-only GitHub contract probe against WORK-0002 PR #2"
+    - "GitHub pull-request draft/ready control-plane proof for REVIEW-0070"
+risk:
+  criticality: HIGH
+  failure_impact: "A ready pull request can remain merge-authoritative while review-thread state is unresolved or unprovable, allowing a stale successful commit-scoped gate to remain usable."
+history:
+  created_at: "2026-09-15"
+  updated_at: "2026-09-23"
+  supersedes: []
+  superseded_by: null

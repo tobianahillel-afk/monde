@@ -1,0 +1,83 @@
+id: REVIEW-0078
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "9f596039277906c67e916bbf3b1f509989b71def"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABPDhWdw"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "frozen exact-head execution evidence is an external live fact bound to immutable commit SHA"
+    - "repository handover records the stable eligibility condition rather than a transient copy of run completion"
+    - "independent L2 is eligible only when live trusted GitHub shows successful Bootstrap on the current exact IN_PROGRESS HEAD"
+    - "successful exact-head run does not require a post-proof repository commit merely to copy its result"
+    - "material tree mutation after exact-head proof creates a new HEAD and requires a new exact-head proof"
+    - "PR body/comments may carry live run identity/outcome without changing the reviewed tree"
+    - "quota refusal is non-approval and does not by itself require a frozen-tree mutation"
+    - "START_HERE review-council development-process PROJECT_STATE and WORK-0002 describe the same non-self-referential rule"
+    - "REVIEW-0075 runtime/workflow and TEST-0010 execution semantics remain unchanged"
+    - "all 78 PR #5 material threads remain unresolved"
+  risks:
+    - "canonical handover could still use self-expiring pending/completed wording"
+    - "external run success could be copied into the tree and invalidate itself"
+    - "live GitHub evidence could be treated as substitute for the repository eligibility rule rather than satisfaction of that rule"
+    - "a material post-proof mutation could incorrectly retain eligibility from the old SHA"
+    - "quota refusal could be misrepresented as approval"
+findings:
+  - "PRRT_kwDOUUI5ts6lm-ef"
+checks:
+  assumptions_challenged:
+    - "successful frozen execution must be written back into the same tree to become handover truth"
+    - "repository-only state can encode both an immutable commit and a later execution fact without self-reference"
+    - "a post-proof documentation commit is harmless to exact-head binding"
+  omitted_categories_considered:
+    - "candidate changes runtime Python or workflow semantics"
+    - "candidate changes TEST-0010 runtime execution identity"
+    - "START_HERE review-council and development-process disagree"
+    - "PROJECT_STATE and WORK-0002 retain old pending-proof language"
+    - "live exact-head proof succeeds after IN_PROGRESS transition"
+    - "external L2 quota refuses after exact-head proof"
+    - "tree mutates after successful proof but before L2"
+  duplicate_or_reuse_search:
+    - "REVIEW-0077 P2 PRRT_kwDOUUI5ts6ljXzi remains terminal negative evidence."
+    - "Existing status-machine lifecycle semantics are reused; no new state vocabulary is introduced."
+    - "Existing GitHub Actions run identity remains the execution-evidence source."
+    - "All 78 PR #5 material threads remain unresolved."
+  failure_modes_considered:
+    - "active next action becomes stale immediately when live CI completes"
+    - "fresh agent repeats an already-completed proof because repository prose is transient"
+    - "fresh agent skips proof because prose says complete for a different HEAD"
+    - "post-proof commit silently changes artifact under review"
+    - "live run is successful but belongs to a different commit"
+  evidence_requested:
+    - "REVIEW-0077 frozen exact head ff08b299d64d30f71b8f55ce48e9c8db811e7ab9 / Bootstrap #312 remains successful."
+    - "Fresh REVIEW-0077 L2 request 5812861596 was quota-refused by 5812863419; no independent review exists."
+    - "Author-side P2 PRRT_kwDOUUI5ts6ljXzi invalidated REVIEW-0077 by exposing the self-referential frozen-proof handover loop."
+    - "REVIEW-0077 CLOSED checkpoint 024870e9109ec5aaffbeaed3ce97174e00aafed5 / Bootstrap #313 / run 35991600188 passed 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "REVIEW-0078 exact governance-documentation candidate f07796388bc13388de05146fec4bf2294dab72ef / Bootstrap #314 / run 35991898265 passed 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Compare 024870e9109ec5aaffbeaed3ce97174e00aafed5..f07796388bc13388de05146fec4bf2294dab72ef changes only PROJECT_STATE.md, WORK-0002 and the three canonical governance docs."
+    - "This OPEN checkpoint must pass before transition to IN_PROGRESS."
+    - "After transition to IN_PROGRESS, independent L2 is eligible only if live GitHub shows a successful trusted Bootstrap run on that exact current HEAD; do not mutate the tree solely to record the run result."
+    - "Fresh independent L2 PRR_kwDOUUI5ts8AAAABPDhWdw completed on exact frozen head 9f596039277906c67e916bbf3b1f509989b71def and produced P2 PRRT_kwDOUUI5ts6lm-ef: WORK-0002 review_plan.open_findings enumerates only 76 unique PRRT IDs and omits the historical 77th/78th findings despite claiming all 78 represented."
+    - "The new L2 finding increases live PR #5 unresolved material threads to 79; REVIEW-0078 cannot provide approval evidence."
+    - "Successor REVIEW-0079 must be documentation/traceability-only: add PRRT_kwDOUUI5ts6ljD7h, PRRT_kwDOUUI5ts6ljXzi and PRRT_kwDOUUI5ts6lm-ef to open_findings; reconcile active counts to 79 while preserving historical counts; change no runtime/workflow/TEST-0010 execution semantics; then obtain fresh exact-head proof and independent L2 before resolving any thread."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-24T13:46:01Z"
+history:
+  created_at: "2026-09-24"
+  updated_at: "2026-09-24"

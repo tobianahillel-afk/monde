@@ -106,29 +106,28 @@ T11 now enforces that:
 
 ## WORK-0002 execution state
 
-- T1, T2, T3, T5, T6, T7, T8, T9, T10, **T11**, **T13** and **T14** are DONE for their author-side scopes.
-- **T12 — trusted default-branch stale-green predecessor on PR #5 — remains `IN_REVIEW`** pending independent acceptance/integration.
-- T13 is the canonical name for the five branch-local corrections previously carried by files named `t12`; those artifacts are renamed to `t13` so T12 has one durable meaning.
-- **T14 — post-PR5 merge-history integration hardening — is `DONE` author-side.** Clean rehearsal PR #11 proved the design and Gate #251 / run `35727146538` re-proved the exact PR #2 port on `e462639ec9b29ecbe3bef3845ab2a3def5bb9a6c`.
+- T1, T2, T3, T5, T6, T7, T8, T9, T10, **T11**, **T12**, **T13** and **T14** are DONE for their author-side/integration scopes.
+- **T12 — trusted default-branch stale-green predecessor — is now `DONE / integrated`.** PR #5 received clean independent REVIEW-0082 on exact reviewed head `71ed1cb233d16f032ff27cf5a88dfe039e2ba618`, all 83 reviewed PR #5 threads were resolved under controlled closure, reconciliation head `e9d67333f35fc0460ea65806f829257ed0a0266a` passed Bootstrap #333 / run `36053041482`, and PR #5 merged to `main` as `b4b52c77fbf05eda65e8f0e951959da70e7edbe7`.
+- T13 is the canonical name for the five branch-local corrections previously carried by files named `t12`; those artifacts remain DONE author-side.
+- **T14 — post-PR5 two-parent merge-history integration hardening — remains `DONE` author-side.** This integration commit must preserve its contract by taking PR #2 head `90d762af389990b5e57fce83397a558276500dd5` and new `main` `b4b52c77fbf05eda65e8f0e951959da70e7edbe7` as its two parents.
 - **T4 — exact final-integrated-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`.**
+- Live PR #2 now has **75 unresolved material threads**. Two are fresh since the 73-thread handover: P1 `PRRT_kwDOUUI5ts6lURur` (reject shell suffixes that mask validator failures) and P2 `PRRT_kwDOUUI5ts6lURuu` (reject empty `external_import: {}` terminal imports).
 - WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
-- Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` after exact author-side T11 proof and this refreshed handover.
-- `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending independent closure.
+- Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` author-side; `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending exact integrated-head closure.
 
 ## Current WORK-0002 gate
 
-Required sequence from this state:
+Required sequence from this integrated state:
 
-1. Keep all **73** material review threads unresolved.
-2. Gate #230 established and Gate #231 preserved exact durable/live **73/73 PRRT identity equality**. Prove this final state-only handover descendant with its own exact-SHA MONDE Gate before further integration/review action.
-3. Keep T12 / PRRT_kwDOUUI5ts6ijUTn open until PR #5's trusted default-branch stale-green predecessor is independently accepted and integrated; do not substitute PR #2's own cron because scheduled workflows execute only from the default branch. T13 already denotes the five corrected branch-local findings.
-4. Gate #251 / run `35727146538` proved T14 on exact PR #2 head `e462639ec9b29ecbe3bef3845ab2a3def5bb9a6c`. Prove this T14 state-only synchronization descendant with its own exact-SHA Gate before any further integration/review action.
-5. After PR #5 integration, rerun the full governance gate on the resulting two-parent PR #2 head.
-6. Request another **fresh-context independent L2** on that exact proven integrated HEAD. It must reverify all 73 accumulated findings plus integration effects, explicitly recheck T11/T12/T13/T14 and the T7/T8/T9/T10 trust-anchor, lifecycle, import/finalization, authority, identity-policy history, exact-head approval, reopening, raw-blob scanning, workflow-structure and durable-thread invariants, and actively search for new bypasses.
-7. If new material findings appear, reopen affected work/evidence again and add their exact identities durably; do not resolve existing threads.
-8. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD satisfying the hardened trusted/context-separated L2/L3 contract.
-9. Only after independent semantic verification and trusted exact-head approval may independently verified threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
-10. Merge with exact-head guard, then continue to WORK-0003 and WORK-0004.
+1. Keep all **75** PR #2 material review threads unresolved while integration and fresh fixes are being proved.
+2. Treat T12 as integrated/default-branch reality; do not reopen PR #5 or substitute PR #2's own cron for the merged bootstrap.
+3. Correct fresh P1 `PRRT_kwDOUUI5ts6lURur` by rejecting failure-masking/trailing shell operators after required validator/poller commands, and fresh P2 `PRRT_kwDOUUI5ts6lURuu` by treating every present `external_import` mapping — including `{}` — as unfinalized unless the full binding contract is satisfied.
+4. Run the full MONDE governance gate on the resulting two-parent PR #2 head and require deterministic/security/mutation/CodeQL/Dependency Review success plus exact durable/live **75/75** finding identity equality.
+5. Request another **fresh-context independent L2** on that exact proven integrated HEAD. It must review all 75 accumulated findings plus integration effects and explicitly recheck T11/T12/T13/T14 and the T7/T8/T9/T10 trust-anchor, lifecycle, import/finalization, authority, identity-policy history, exact-head approval, reopening, raw-blob scanning, workflow-structure and durable-thread invariants.
+6. If new material findings appear, durably add their exact identities and correct them before any resolution.
+7. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD satisfying the hardened trusted/context-separated L2/L3 contract.
+8. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
+9. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
 ## Integration-provenance boundary
 
@@ -156,10 +155,11 @@ Product specification and product identity remain owner-gated decisions. Agents 
 8. `registry/acceptance-authority.yaml`
 9. `registry/content-identity.yaml`
 10. `registry/integration-provenance.yaml`
-11. live PR #2 exact HEAD, checks, reviews and all **73 unresolved review threads**
+11. live PR #2 exact HEAD, checks, reviews and all **75 unresolved review threads**
 12. `.github/workflows/governance.yml`, `.github/workflows/_governance-core.yml`
 13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `t11_closure.py`, `github_live_gate.py`, `thread_state_poll.py`
 14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_t11_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`
 15. `tests/governance/test_t11_findings.py`, `test_t11_additional_coverage.py`, `test_t13_findings.py`, `test_thread_state_poll.py` and prior T7/T8/T9/T10 regression suites
+16. `registry/requirements/REQ-0026.yaml`, `registry/tests/TEST-0009.yaml`, `registry/tests/TEST-0010.yaml`, `registry/reviews/REVIEW-0082.yaml`, and `.github/workflows/monde-stale-green-bootstrap.yml`
 
 No prior chat history is required.

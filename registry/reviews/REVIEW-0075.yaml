@@ -1,0 +1,90 @@
+id: REVIEW-0075
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-5"
+  commit_sha: "cfb1fabb308167d1133872a099a7a1b8709f4440"
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "trusted default-branch stale-green review-state invalidation"
+    - "REVIEW-0074 complete strict double-thread-observation guard and exact-target live validator"
+    - "GraphQL convertPullRequestToDraft acknowledgement remains exact node id positive non-Boolean number and isDraft=true"
+    - "post-mutation REST observation is validated through REVIEW-0073 strict number+node identity before any closed/open branch"
+    - "closed postcondition is accepted only after exact number node_id Boolean draft and state validation"
+    - "open postcondition must expose the exact same PR as draft"
+    - "malformed coercively equal or wrong-identity REST postcondition fails closed"
+    - "TEST-0010 machine-readable execution identity matches current exact PASS evidence"
+    - "durable discovery request-budget legacy-pending and hard 100-request guarantees remain unchanged"
+  risks:
+    - "shared conversion hook could fail to affect REVIEW-0074 guard at runtime"
+    - "closed postcondition could still short-circuit strict identity validation"
+    - "strict helper could accept wrong node or coercively equal number"
+    - "open postcondition could be exact identity but remain non-draft"
+    - "TEST-0010 structured execution fields could diverge again from prose evidence"
+findings:
+  - "PRRT_kwDOUUI5ts6liZGL"
+checks:
+  assumptions_challenged:
+    - "strict GraphQL ACK alone is sufficient durable postcondition evidence"
+    - "closed REST postcondition can be accepted without exact node identity"
+    - "Python equality is sufficient for REST postcondition PR numbers"
+    - "prose execution evidence is sufficient when structured fields point to an older implementation"
+  omitted_categories_considered:
+    - "closed postcondition number true float string zero negative or wrong integer"
+    - "closed postcondition wrong missing or empty node_id"
+    - "closed postcondition non-Boolean draft"
+    - "closed postcondition invalid state"
+    - "exact valid closed postcondition"
+    - "exact open draft postcondition"
+    - "exact open non-draft postcondition"
+    - "malformed GraphQL response acknowledgement wrong node malformed number or isDraft=false"
+    - "runtime hook composition between REVIEW-0074 guard and REVIEW-0075 conversion primitive"
+    - "normal and recovery main entrypoints"
+  duplicate_or_reuse_search:
+    - "REVIEW-0074 independent L2 PRR_kwDOUUI5ts8AAAABPAAMUQ remains terminal negative evidence."
+    - "REVIEW-0073 _strict_discovered_pr is reused as the sole REST postcondition identity primitive."
+    - "REVIEW-0074 poll strict guard and live validator are reused unchanged."
+    - "REVIEW-0071 GraphQL ACK semantics are preserved but reimplemented with the strict REST postcondition."
+    - "All 76 PR #5 material threads remain unresolved after author-side P2 PRRT_kwDOUUI5ts6liZGL."
+  failure_modes_considered:
+    - "exact GraphQL mutation ACK is followed by malformed closed REST response and incorrectly treated as success"
+    - "wrong node REST response is treated as the same PR"
+    - "open REST response remains ready but is treated as successful draft"
+    - "runtime shared-hook replacement is not visible to REVIEW-0074 strict guard"
+    - "structured TEST execution identity stays on REVIEW-0073 or REVIEW-0074 after successor proof"
+  evidence_requested:
+    - "REVIEW-0074 frozen head 2e228ba5f016f25eacffab0ca0cd9a7e095cd757 / Bootstrap #299 remains technical green evidence only."
+    - "Independent Codex L2 PRR_kwDOUUI5ts8AAAABPAAMUQ produced P1 PRRT_kwDOUUI5ts6lfj-O and P2 PRRT_kwDOUUI5ts6lfj-U."
+    - "REVIEW-0074 CLOSED checkpoint 327da248e7b7f167d88dfe4c06c739e3140e0bac passed Bootstrap #300 / run 35974182236 before successor implementation."
+    - "Bootstrap #301 / run 35974676675 is retained negative fixture-isolation evidence; live PR #2 probe succeeded but lifecycle opening remained withheld."
+    - "Bootstrap #302 / run 35974879638 proves exact REVIEW-0075 technical candidate ca800f3e261d6fae699e37438aaee928e2112cb8 with 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Bootstrap #303 / run 35975215661 proves the REVIEW-0075 OPEN checkpoint with the same 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Frozen exact head cfb1fabb308167d1133872a099a7a1b8709f4440 passed Bootstrap #304 / run 35981180705 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Fresh Codex L2 request 5811504923 was quota-refused by 5811506815; no independent REVIEW-0075 L2 was produced."
+    - "Author-side PRR_kwDOUUI5ts8AAAABPBZHCg produced P2 PRRT_kwDOUUI5ts6liZGL: WORK-0002 required_tests.regression still says all 73 inline findings remain represented while live/canonical PR #5 state is now 76 unresolved threads."
+    - "Successor REVIEW-0076 must be documentation/traceability-only: reconcile the regression count to 76, record REVIEW-0075 terminal evidence consistently, and leave REVIEW-0075 runtime code byte-for-byte unchanged."
+    - "Resolve no inline thread until a clean successor independent L2 permits it."
+    - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
+    - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh independent L2."
+    - "Fresh independent L2 must inspect all 75 unresolved PR #5 material threads and retained REVIEW-0050 through REVIEW-0074 negative evidence before any controlled thread resolution."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-24T10:21:03Z"
+history:
+  created_at: "2026-09-24"
+  updated_at: "2026-09-24"

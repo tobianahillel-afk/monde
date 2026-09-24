@@ -264,7 +264,9 @@ When applicable:
 - traceability chain updated;
 - ADR created/updated when a decision changed;
 - `PROJECT_STATE.md` updated if this is active work;
-- next agent can resume without chat history.
+- exact-head external execution conditions are phrased as durable eligibility rules, with live GitHub state supplying whether the condition is currently satisfied;
+- no post-proof commit is created solely to copy a successful frozen-run result into the repository, because doing so would create a new HEAD and invalidate the copied proof for that tree;
+- next agent can resume without chat history by combining stable repository handover rules with the live control-plane state of the current exact HEAD.
 
 ## 11. Review Council and independence
 
