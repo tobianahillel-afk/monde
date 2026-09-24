@@ -453,31 +453,49 @@ PR #5 now has **78/78 unresolved material threads**. None has been resolved.
 
 ## REVIEW-0078 — terminal independent negative evidence
 
-REVIEW-0078 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `9f596039277906c67e916bbf3b1f509989b71def`.
+REVIEW-0078 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `9f596039277906c67e916bbf3b1f509989b71def`.
 
-The stable exact-head evidence model itself remains valid: Bootstrap #316 / run `35992467389` succeeded on that exact IN_PROGRESS HEAD, with **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **3/100** requests; the tree remained frozen while L2 ran.
+Bootstrap #316 / run `35992467389` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests. The tree remained frozen while fresh independent Codex L2 ran.
 
-Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABPDhWdw** then produced **P2 `PRRT_kwDOUUI5ts6lm-ef`**. The active WORK-0002 `review_plan.open_findings` list contains only **76 unique PRRT IDs** and omits:
-- `PRRT_kwDOUUI5ts6ljD7h` — historical finding 77;
-- `PRRT_kwDOUUI5ts6ljXzi` — historical finding 78.
+Fresh independent L2 **PRR_kwDOUUI5ts8AAAABPDhWdw** produced **P2 `PRRT_kwDOUUI5ts6lm-ef`**: the canonical `WORK-0002.review_plan.open_findings` list contained only 76 unique PRRT IDs and omitted the historical 77th and 78th findings even though active regression prose claimed all 78 were represented.
 
-The new L2 finding itself is thread 79, so PR #5 now has **79/79 unresolved material threads**. No thread has been resolved.
+The new L2 finding raised PR #5 to **79/79 unresolved material threads**. REVIEW-0078 CLOSED checkpoint `67d6e358dbdb24a0f51cc917604a85b2ade143bd` then passed Bootstrap #317 / run `36008323720` at **450/450 tests**, **3,853 / 1,640**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100**.
 
-This is a documentation/traceability defect, not a runtime regression. REVIEW-0079 must change only canonical handover/registry state needed to enumerate the exact live finding set.
+## REVIEW-0079 implementation candidate — exact finding-set reconciliation
+
+REVIEW-0079 is documentation/traceability-only.
+
+The candidate compares live GitHub PR #5 review-thread IDs against the machine-readable `WORK-0002.review_plan.open_findings` PRRT IDs. Before correction:
+- live GitHub: **79** unique PRRT thread IDs;
+- WORK-0002: **76** unique PRRT IDs;
+- missing exactly:
+  - `PRRT_kwDOUUI5ts6ljD7h`;
+  - `PRRT_kwDOUUI5ts6ljXzi`;
+  - `PRRT_kwDOUUI5ts6lm-ef`;
+- extra IDs: **0**.
+
+The candidate adds exactly those three IDs. After correction:
+- live GitHub: **79** unique PRRT IDs;
+- WORK-0002: **79** unique PRRT IDs;
+- missing: **0**;
+- extra: **0**.
+
+The active regression invariant becomes **“all 79 inline findings remain represented and unresolved.”** Historical 73/75/76/77/78 counts remain untouched as historical evidence.
+
+No runtime Python, workflow, REQ-0026 semantics, or TEST-0010 execution semantics change.
+
+REVIEW-0079 is **not opened yet**. It must first receive exact candidate Bootstrap proof at 100% line + branch and live PR #2 probe success.
 
 ## Current next action
 
 1. Keep all **79** PR #5 material threads unresolved.
-2. Prove this REVIEW-0078 `CLOSED` state-only checkpoint.
-3. REVIEW-0079 must be documentation/traceability-only:
-   - add `PRRT_kwDOUUI5ts6ljD7h`, `PRRT_kwDOUUI5ts6ljXzi`, and `PRRT_kwDOUUI5ts6lm-ef` to `WORK-0002.review_plan.open_findings`;
-   - make the active regression invariant say all **79** inline findings are represented and unresolved;
-   - reconcile active PROJECT_STATE/WORK-0002 counts to **79** while preserving historical 73/75/76/77/78 counts;
-   - preserve REVIEW-0078's non-self-referential exact-head evidence rule;
-   - change no runtime Python, workflow, or TEST-0010 execution semantics.
-4. After REVIEW-0079 technical/state proof, request fresh independent L2 over all **79 unresolved material threads**.
-5. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
-6. WORK-0003 and WORK-0004 remain blocked.
+2. Commit the REVIEW-0079 documentation/traceability candidate from proven REVIEW-0078 CLOSED checkpoint `67d6e358…`.
+3. Require exact candidate Bootstrap success at **100% line + branch** and live PR #2 probe SUCCESS.
+4. Verify the committed diff changes exactly `PROJECT_STATE.md` and `registry/work-items/WORK-0002.yaml`.
+5. Re-query live PR #5 and prove the 79 live PRRT IDs exactly equal the 79 WORK-0002 `open_findings` PRRT IDs.
+6. Only then materialize REVIEW-0079 as `OPEN`.
+7. Preserve REVIEW-0078's non-self-referential exact-head eligibility rule for the later IN_PROGRESS/L2 stage.
+8. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
