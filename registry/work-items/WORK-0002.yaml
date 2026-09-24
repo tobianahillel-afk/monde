@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0074 are terminal negative evidence. REVIEW-0075 exact technical candidate ca800f3e261d6fae699e37438aaee928e2112cb8 passed Bootstrap #302 / run 35974879638 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests. REVIEW-0075 OPEN checkpoint 4a096babd415bde93dc1419ce2e4a2cfb97ae98e passed Bootstrap #303 / run 35975215661 with the same proof. The successor preserves REVIEW-0074 strict guard/live-validator semantics while replacing only the draft conversion primitive: GraphQL ACK stays exact and the direct REST postcondition is reread through REVIEW-0073 strict number+node identity before any closed/open branch. TEST-0010 structured execution identity is aligned to the exact REVIEW-0075 #302 PASS. REVIEW-0075 is IN_PROGRESS pending one frozen exact-head proof and fresh independent L2 over all 75 unresolved material threads; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0075 are terminal negative evidence. REVIEW-0075 frozen exact head cfb1fabb308167d1133872a099a7a1b8709f4440 passed Bootstrap #304 / run 35981180705 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests. Fresh Codex L2 request 5811504923 was quota-refused by 5811506815; author-side PRR_kwDOUUI5ts8AAAABPBZHCg then produced P2 PRRT_kwDOUUI5ts6liZGL because required_tests.regression still says 73 findings while PR #5 now has 76 unresolved material threads. REVIEW-0076 must be documentation/traceability-only and leave REVIEW-0075 runtime code unchanged. All 76 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -170,6 +170,7 @@ review_plan:
     - PRRT_kwDOUUI5ts6lXj4K
     - PRRT_kwDOUUI5ts6lfj-O
     - PRRT_kwDOUUI5ts6lfj-U
+    - PRRT_kwDOUUI5ts6liZGL
 
 required_tests:
   unit: [TEST-0009]
@@ -372,6 +373,7 @@ run_log:
   - "REVIEW-0075 candidate 187982171e76d7e80e1e3ae3c03721c0d56e0c59 / Bootstrap #301 retained negative fixture-isolation evidence; runtime live probe was green but lifecycle opening stayed withheld."
   - "REVIEW-0075 exact technical candidate ca800f3e261d6fae699e37438aaee928e2112cb8 passed Bootstrap #302 / run 35974879638 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; lifecycle opens only after this proof."
   - "REVIEW-0075 OPEN checkpoint 4a096babd415bde93dc1419ce2e4a2cfb97ae98e passed Bootstrap #303 / run 35975215661 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
+  - "REVIEW-0075 frozen head cfb1fabb308167d1133872a099a7a1b8709f4440 passed Bootstrap #304 / run 35981180705 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; Codex L2 request 5811504923 was quota-refused by 5811506815, then author-side PRR_kwDOUUI5ts8AAAABPBZHCg added P2 PRRT_kwDOUUI5ts6liZGL and increased unresolved PR #5 threads from 75 to 76."
   - "REVIEW-0063 frozen head 22dd22d5f9e50eea6d3bd351af8e12ab9a935440 passed Bootstrap #244 / run 35848734246 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; fresh Codex L2 request 5793162559 was quota-refused by 5793166351, then author-side PRR_kwDOUUI5ts8AAAABO0xdhQ exposed malformed Check Run terminal temporal metadata being accepted as authority."
 
 discoveries:
@@ -397,14 +399,15 @@ blockers:
   - "REVIEW-0072 is terminal CLOSED/CHANGES_REQUIRED after author-side P1 PRR_kwDOUUI5ts8AAAABO7ZUCw; do not request further REVIEW-0072 approval."
   - "REVIEW-0073 is terminal CLOSED/CHANGES_REQUIRED after author-side P1/P2 findings; do not resolve any of the 73 threads."
   - "REVIEW-0074 is terminal CLOSED/CHANGES_REQUIRED after independent exact-head L2; do not resolve any of the 75 threads."
-  - "REVIEW-0075 OPEN checkpoint is proved; prove/freeze this IN_PROGRESS exact head, then request exactly one fresh independent L2 over all 75 unresolved material threads without mutating the tree while it runs."
+  - "REVIEW-0075 is terminal CLOSED/CHANGES_REQUIRED after author-side P2 PRRT_kwDOUUI5ts6liZGL; do not request further REVIEW-0075 approval."
+  - "REVIEW-0076 must reconcile canonical finding-count traceability to 76 without changing the proven REVIEW-0075 runtime."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."
   - "REVIEW-0054 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0054 approval."
   - "REVIEW-0055 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0055 approval."
   - "REVIEW-0056 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0056 approval."
-  - "75 inline material threads remain unresolved."
+  - "76 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
 follow_up_work_items: []

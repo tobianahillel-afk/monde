@@ -414,40 +414,33 @@ REVIEW-0075 must preserve all REVIEW-0074 strict runtime/live-validator guarante
 
 The REVIEW-0074 CLOSED checkpoint `327da248e7b7f167d88dfe4c06c739e3140e0bac` passed Bootstrap #300 / run `35974182236` at **440/440 tests**, **3,803 statements / 1,622 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-## REVIEW-0075 implementation candidate — strict draft postcondition identity
+## REVIEW-0075 — terminal author-side traceability negative evidence
 
-REVIEW-0075 is intentionally narrow. It does not replace REVIEW-0074's poll, strict double-thread-observation guard or exact-target validator.
+REVIEW-0075 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `cfb1fabb308167d1133872a099a7a1b8709f4440`.
 
-The successor replaces only the shared draft-conversion primitive resolved by REVIEW-0074 at runtime:
+The runtime correction itself remained technically green:
+- Bootstrap #302 / run `35974879638`: **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, REVIEW-0075 **50 / 18 at 100%**, live PR #2 probe **3/100**.
+- Bootstrap #303 / run `35975215661`: OPEN checkpoint, same proof.
+- Bootstrap #304 / run `35981180705`: frozen exact-head proof, same **450/450 / 100% / 3/100** result.
 
-1. validate the exact current ready PR through the existing strict open guard;
-2. keep the REVIEW-0071 GraphQL `convertPullRequestToDraft` ACK contract: exact node id, positive exact non-Boolean PR number and `isDraft=true`;
-3. reread the direct REST postcondition through REVIEW-0073 `_strict_discovered_pr` using the exact expected `number + node_id`;
-4. therefore validate exact number type/value, exact node id, Boolean draft and state in the closed world `open/closed` **before** any closed-state success;
-5. if that strict reread returns closed, accept the exact closed postcondition;
-6. if still open, require the exact same PR to be `draft=true`;
-7. any coercive number, wrong/missing node id, non-Boolean draft, invalid state or open non-draft response fails closed.
+Fresh Codex L2 request `5811504923` was quota-refused by `5811506815`; no independent REVIEW-0075 L2 was produced.
 
-Because REVIEW-0074's guard resolves `discovery._convert_to_draft` at call time, REVIEW-0075 can replace only this primitive while preserving the already-proven full strict reread/observation architecture.
+Author-side review **PRR_kwDOUUI5ts8AAAABPBZHCg** then added **P2 `PRRT_kwDOUUI5ts6liZGL`**: WORK-0002 `required_tests.regression` still says “all **73** inline findings remain represented and unresolved” while REVIEW-0074 independent L2 had already raised the live/canonical set to 75, and this new P2 raises PR #5 to **76/76 unresolved material threads**.
 
-TEST-0010 is also corrected so its structured execution fields identify the actual REVIEW-0074 technical proof: `execution.commit_sha = 1a90e73bb107e9f77763103bed059bc12ab11575` and `last_run_at = 2026-09-24`. Its lifecycle status remains `PLANNED`; execution evidence does not fabricate READY/RUNNING/PASS lifecycle transitions.
-
-REVIEW-0075 is now **IN_PROGRESS** after exact technical proof on `ca800f3e261d6fae699e37438aaee928e2112cb8` and OPEN checkpoint proof on `4a096babd415bde93dc1419ce2e4a2cfb97ae98e`.
-
-Bootstrap #301 / run `35974676675` remains negative fixture-isolation evidence: the live probe was green, but one new test leaked historical install monkey-patches into a shared predecessor test, so lifecycle opening was correctly withheld. The runtime implementation itself was unchanged by that correction.
-
-Bootstrap #302 / run `35974879638` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**; REVIEW-0075 itself is **50 statements / 18 branches at 100%**, and the live PR #2 contract probe succeeded at **3/100** requests.
-
-Bootstrap #303 / run `35975215661` proved the OPEN checkpoint at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, REVIEW-0075 **50 / 18 at 100%**, with live PR #2 probe SUCCESS at **3/100** requests. All **75/75 PR #5 material threads remain unresolved**. This IN_PROGRESS state must now receive one frozen exact-head proof before fresh independent L2; green technical evidence is not semantic approval.
+The runtime is not invalidated by a behavioral defect; the review is invalidated because canonical traceability is contradictory. REVIEW-0076 must therefore be **documentation/traceability-only**:
+- reconcile the regression invariant to the actual **76** unresolved-thread set;
+- record REVIEW-0075 #304 + quota refusal + P2 consistently;
+- update REVIEW/WORK/PROJECT_STATE handover to REVIEW-0076;
+- leave REVIEW-0075 runtime code and workflow behavior unchanged.
 
 ## Current next action
 
-1. Keep all **75** PR #5 material threads unresolved.
-2. REVIEW-0075 OPEN checkpoint proof is complete via Bootstrap #303 and REVIEW-0075 is now `IN_PROGRESS`.
-3. Prove/freeze this exact IN_PROGRESS head with Bootstrap.
-4. Request a fresh independent L2 over all **75 unresolved material threads**, REVIEW-0075 and retained negative evidence without mutating the tree while it runs.
-5. Any material finding closes REVIEW-0075 and requires a successor; resolve nothing beforehand.
-6. Only a clean L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
+1. Keep all **76** PR #5 material threads unresolved.
+2. Prove this REVIEW-0075 `CLOSED` state-only checkpoint.
+3. Only after that proof, create REVIEW-0076 as a documentation/traceability-only successor.
+4. REVIEW-0076 must change no runtime/bootstrap Python or workflow semantics.
+5. Re-run exact 100% CI/live probe on the documentation successor before opening its lifecycle.
+6. After OPEN/IN_PROGRESS frozen proof, request fresh independent L2 over all **76 unresolved threads**.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
