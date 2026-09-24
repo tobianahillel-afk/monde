@@ -20,6 +20,7 @@ addopts = "-ra --strict-markers"
 branch = true
 source = ["tools.governance", ".github/scripts"]
 omit = [
+  ".github/scripts/test_*.py",
   ".github/scripts/governance_l2_mutation_smoke.py",
   ".github/scripts/governance_t10_mutation_smoke.py",
   ".github/scripts/governance_t11_mutation_smoke.py",
