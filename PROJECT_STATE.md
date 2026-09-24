@@ -451,38 +451,38 @@ Author-side P2 **`PRRT_kwDOUUI5ts6ljXzi`** proves the handover model itself was 
 
 PR #5 now has **78/78 unresolved material threads**. None has been resolved.
 
-## REVIEW-0078 implementation candidate — non-self-referential exact-head evidence
+## REVIEW-0078 — non-self-referential exact-head evidence
 
-REVIEW-0077 is terminal `CLOSED / CHANGES_REQUIRED`. Its CLOSED checkpoint `024870e9109ec5aaffbeaed3ce97174e00aafed5` passed Bootstrap #313 / run `35991600188` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+REVIEW-0078 is now **OPEN** after exact governance-documentation proof on `f07796388bc13388de05146fec4bf2294dab72ef`.
 
-REVIEW-0078 fixes the handover model itself. It changes governance documentation only; REVIEW-0075 runtime/workflow semantics and TEST-0010 runtime execution identity remain unchanged.
+Bootstrap #314 / run `35991898265` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-The new canonical invariant is intentionally non-self-referential:
+Compare `024870e9109ec5aaffbeaed3ce97174e00aafed5..f07796388bc13388de05146fec4bf2294dab72ef` changes only:
+- `PROJECT_STATE.md`
+- `registry/work-items/WORK-0002.yaml`
+- `docs/00_START_HERE.md`
+- `docs/13_QUALITY/review-council.md`
+- `docs/10_ROADMAP/development-process.md`
 
-- repository state declares a stable eligibility rule: **independent L2 may run only when live trusted GitHub evidence shows a successful Bootstrap run on the current exact IN_PROGRESS HEAD**;
-- whether that run already exists is a live GitHub control-plane fact, not a fact that must be copied back into the same frozen tree;
-- once the exact-head run succeeds, keep that tree frozen and proceed directly to L2;
-- PR body/comments may record the run ID/outcome as live handover evidence without changing the commit;
-- a later material tree mutation creates a new HEAD and therefore requires a new exact-head proof;
-- quota refusal is non-approval and may be recorded externally without mutating the frozen tree unless it exposes a repository defect;
-- canonical text must remain truthful both before and after the external run completes.
+No runtime Python/workflow or TEST-0010 execution semantics changed.
 
-Canonical surfaces changed by the candidate:
-- `docs/00_START_HERE.md` — frozen exact-head external-evidence handover invariant;
-- `docs/13_QUALITY/review-council.md` — exact-head execution evidence rule;
-- `docs/10_ROADMAP/development-process.md` — Gate K non-self-referential handover rule;
-- `PROJECT_STATE.md` and `registry/work-items/WORK-0002.yaml` — active application of that rule.
+The canonical rule is now stable:
+- independent L2 is eligible only when live trusted GitHub evidence shows successful Bootstrap on the current exact `IN_PROGRESS` HEAD;
+- that run completion is external live evidence and is **not** copied back into the frozen tree;
+- after success, keep the same tree frozen and proceed directly to L2;
+- any later material tree mutation creates a new HEAD and requires a new exact-head proof.
 
-PR #5 has **78/78 unresolved material threads**. None has been resolved.
+PR #5 has **78/78 unresolved material threads**.
 
 ## Current next action
 
 1. Keep all **78** PR #5 material threads unresolved.
-2. Prove this REVIEW-0078 governance-documentation candidate with Bootstrap.
-3. Verify the candidate diff contains only governance/handover documentation and no runtime Python/workflow semantic change.
-4. Only after exact technical proof, materialize REVIEW-0078 as `OPEN`.
-5. After REVIEW-0078 reaches `IN_PROGRESS`, keep the tree frozen; consult live GitHub for successful exact-head Bootstrap evidence and then request independent L2 **without committing merely to record that run**.
-6. WORK-0003 and WORK-0004 remain blocked.
+2. Prove this REVIEW-0078 `OPEN` checkpoint.
+3. Transition `OPEN -> IN_PROGRESS` only after that proof.
+4. Once IN_PROGRESS, keep the tree frozen. Independent L2 is eligible only if live GitHub shows a successful trusted Bootstrap run on that exact current HEAD.
+5. When that live condition is satisfied, request independent L2 **without committing merely to record the run result**.
+6. Any material finding closes REVIEW-0078 and requires a successor.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
