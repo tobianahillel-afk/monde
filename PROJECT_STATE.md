@@ -441,7 +441,7 @@ PR #5 therefore has **77/77 unresolved material threads**. None has been resolve
 
 ## REVIEW-0077 — frozen-proof handover reconciliation
 
-REVIEW-0077 is now **OPEN** after exact documentation-candidate proof on `a50971e5718cd0878e22479806b3177c1964f053`.
+REVIEW-0077 is now **IN_PROGRESS** after exact documentation-candidate proof on `a50971e5718cd0878e22479806b3177c1964f053` and OPEN checkpoint proof on `d9efa5fa7d9f49c3aa4819d9f19aef8417ddaec8`.
 
 Bootstrap #310 / run `35990255357` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
@@ -450,6 +450,8 @@ Compare `a625b477474e5ba100d0d6e7232ee49406f54898..a50971e5718cd0878e22479806b31
 - `registry/work-items/WORK-0002.yaml`
 
 No runtime Python, workflow, or TEST-0010 execution semantics changed.
+
+Bootstrap #311 / run `35990495999` proved the OPEN checkpoint at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
 The active handover is now synchronized:
 - REVIEW-0076 frozen proof #308 is complete;
@@ -461,11 +463,11 @@ The active handover is now synchronized:
 ## Current next action
 
 1. Keep all **77** PR #5 material threads unresolved.
-2. Prove this REVIEW-0077 `OPEN` state-only checkpoint.
-3. Transition `OPEN -> IN_PROGRESS` only after that proof.
-4. Prove the resulting frozen exact HEAD.
-5. Request fresh independent L2 over all **77 unresolved material threads**.
-6. Any material finding closes REVIEW-0077 and requires a successor.
+2. REVIEW-0077 OPEN checkpoint proof is complete via Bootstrap #311 and REVIEW-0077 is now `IN_PROGRESS`.
+3. Prove/freeze this exact IN_PROGRESS head with Bootstrap.
+4. Request fresh independent L2 over all **77 unresolved material threads** without mutating the tree while it runs.
+5. Any material finding closes REVIEW-0077 and requires a successor.
+6. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
