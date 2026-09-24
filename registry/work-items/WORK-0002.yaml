@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0076 are terminal negative evidence. REVIEW-0077 exact documentation candidate a50971e5718cd0878e22479806b3177c1964f053 passed Bootstrap #310 / run 35990255357 and OPEN checkpoint d9efa5fa7d9f49c3aa4819d9f19aef8417ddaec8 passed Bootstrap #311 / run 35990495999, both at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests. Candidate compare changes exactly PROJECT_STATE.md and registry/work-items/WORK-0002.yaml; REVIEW-0075 runtime/workflow and TEST-0010 execution semantics remain unchanged. REVIEW-0077 is IN_PROGRESS pending one frozen exact-head proof and fresh independent L2 over all 77 unresolved material threads; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0077 are terminal negative evidence. REVIEW-0077 frozen exact head ff08b299d64d30f71b8f55ce48e9c8db811e7ab9 passed Bootstrap #312 / run 35990766361 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests. Fresh REVIEW-0077 L2 request 5812861596 was quota-refused by 5812863419. Author-side P2 PRRT_kwDOUUI5ts6ljXzi then proved the exact-head handover itself was self-referential: copying a completed frozen run into the tree creates a new HEAD that needs another frozen proof. REVIEW-0078 must formalize a stable external-evidence contract in canonical governance docs and active handover: repository text expresses the eligibility condition, GitHub Actions is live authority for whether the current exact-head Bootstrap succeeded, no tree mutation is required solely to copy that success, and any later material tree mutation invalidates the prior exact-head closure proof. All 78 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -61,7 +61,7 @@ reuses: ["status vocabulary", "registry contracts", "Review Council and assuranc
 affected_capabilities: []
 affected_engines: []
 affected_schemas: []
-affected_docs: [PROJECT_STATE.md, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/tests/TEST-0010.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml, registry/reviews/REVIEW-0060.yaml, registry/reviews/REVIEW-0061.yaml, registry/reviews/REVIEW-0062.yaml, registry/reviews/REVIEW-0063.yaml, registry/reviews/REVIEW-0064.yaml, registry/reviews/REVIEW-0065.yaml, registry/reviews/REVIEW-0066.yaml, registry/reviews/REVIEW-0067.yaml, registry/reviews/REVIEW-0068.yaml, registry/reviews/REVIEW-0069.yaml, registry/reviews/REVIEW-0070.yaml, registry/reviews/REVIEW-0071.yaml, registry/reviews/REVIEW-0072.yaml, registry/reviews/REVIEW-0073.yaml, registry/reviews/REVIEW-0074.yaml, registry/reviews/REVIEW-0075.yaml, registry/reviews/REVIEW-0076.yaml, registry/reviews/REVIEW-0077.yaml]
+affected_docs: [PROJECT_STATE.md, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/tests/TEST-0010.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml, registry/reviews/REVIEW-0060.yaml, registry/reviews/REVIEW-0061.yaml, registry/reviews/REVIEW-0062.yaml, registry/reviews/REVIEW-0063.yaml, registry/reviews/REVIEW-0064.yaml, registry/reviews/REVIEW-0065.yaml, registry/reviews/REVIEW-0066.yaml, registry/reviews/REVIEW-0067.yaml, registry/reviews/REVIEW-0068.yaml, registry/reviews/REVIEW-0069.yaml, registry/reviews/REVIEW-0070.yaml, registry/reviews/REVIEW-0071.yaml, registry/reviews/REVIEW-0072.yaml, registry/reviews/REVIEW-0073.yaml, registry/reviews/REVIEW-0074.yaml, registry/reviews/REVIEW-0075.yaml, registry/reviews/REVIEW-0076.yaml, registry/reviews/REVIEW-0077.yaml, registry/reviews/REVIEW-0078.yaml, docs/00_START_HERE.md, docs/13_QUALITY/review-council.md, docs/10_ROADMAP/development-process.md]
 contracts: ["repository governance validation", "GitHub control-plane merge gate", "AI context routing"]
 adrs: []
 
@@ -186,7 +186,7 @@ required_tests:
   contract: ["registry/schema/progress/review/change-control integrity", "bootstrap GitHub Checks/REST/GraphQL/Actions/Issues control-plane contract"]
   e2e: []
   regression:
-    - "all 77 inline findings remain represented and unresolved"
+    - "all 78 inline findings remain represented and unresolved"
     - "operator recovery never clears pending state"
     - "operator recovery never emits a rerun automatically"
     - "manual exact-run rerun remains observable under durable pending identity"
@@ -378,6 +378,7 @@ run_log:
   - "REVIEW-0076 CLOSED checkpoint a625b477474e5ba100d0d6e7232ee49406f54898 passed Bootstrap #309 / run 35989979265 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0077 documentation-only candidate begins only from this proven terminal checkpoint."
   - "REVIEW-0077 exact documentation candidate a50971e5718cd0878e22479806b3177c1964f053 passed Bootstrap #310 / run 35990255357 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; compare from REVIEW-0076 CLOSED checkpoint changes exactly PROJECT_STATE.md and registry/work-items/WORK-0002.yaml."
   - "REVIEW-0077 OPEN checkpoint d9efa5fa7d9f49c3aa4819d9f19aef8417ddaec8 passed Bootstrap #311 / run 35990495999 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
+  - "REVIEW-0077 frozen head ff08b299d64d30f71b8f55ce48e9c8db811e7ab9 passed Bootstrap #312 / run 35990766361 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; Codex L2 request 5812861596 was quota-refused by 5812863419, then author-side P2 PRRT_kwDOUUI5ts6ljXzi exposed the self-referential frozen-proof handover model and increased unresolved threads from 77 to 78."
   - "REVIEW-0075 CLOSED checkpoint b8de445952c0cfb916e5ead7ce7009dff4809a41 passed Bootstrap #305 / run 35986900739 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0076 documentation-only candidate starts only from this proven terminal checkpoint."
   - "REVIEW-0076 exact documentation candidate e82ac8ac599e4f3611d5ab90358939e789288def passed Bootstrap #306 / run 35987119706 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; compare from REVIEW-0075 CLOSED checkpoint changes exactly PROJECT_STATE.md and registry/work-items/WORK-0002.yaml."
   - "REVIEW-0076 OPEN checkpoint f20894d87799c33faf97e3360ae9c0fc96d95cef passed Bootstrap #307 / run 35987412834 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
@@ -408,14 +409,15 @@ blockers:
   - "REVIEW-0074 is terminal CLOSED/CHANGES_REQUIRED after independent exact-head L2; do not resolve any of the 75 threads."
   - "REVIEW-0075 is terminal CLOSED/CHANGES_REQUIRED after author-side P2 PRRT_kwDOUUI5ts6liZGL; do not request further REVIEW-0075 approval."
   - "REVIEW-0076 is terminal CLOSED/CHANGES_REQUIRED after author-side P2 PRRT_kwDOUUI5ts6ljD7h; frozen proof #308 was already complete and no independent L2 exists."
-  - "REVIEW-0077 exact documentation candidate a50971e5718cd0878e22479806b3177c1964f053 passed Bootstrap #310 / run 35990255357 and OPEN checkpoint d9efa5fa7d9f49c3aa4819d9f19aef8417ddaec8 passed Bootstrap #311 / run 35990495999; REVIEW-0077 is IN_PROGRESS pending one frozen exact-head proof and fresh independent L2 over all 77 unresolved material threads."
+  - "REVIEW-0077 is terminal CLOSED/CHANGES_REQUIRED after author-side P2 PRRT_kwDOUUI5ts6ljXzi; frozen proof #312 succeeded, but the in-tree handover model was self-referential and no independent L2 exists."
+  - "REVIEW-0078 must formalize the non-self-referential external exact-head evidence contract before any further closure attempt."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."
   - "REVIEW-0054 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0054 approval."
   - "REVIEW-0055 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0055 approval."
   - "REVIEW-0056 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0056 approval."
-  - "77 inline material threads remain unresolved."
+  - "78 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
 follow_up_work_items: []

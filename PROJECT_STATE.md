@@ -439,36 +439,44 @@ Author-side P2 **`PRRT_kwDOUUI5ts6ljD7h`** then proved that the active canonical
 
 PR #5 therefore has **77/77 unresolved material threads**. None has been resolved.
 
-## REVIEW-0077 — frozen-proof handover reconciliation
+## REVIEW-0077 — terminal self-referential handover negative evidence
 
-REVIEW-0077 is now **IN_PROGRESS** after exact documentation-candidate proof on `a50971e5718cd0878e22479806b3177c1964f053` and OPEN checkpoint proof on `d9efa5fa7d9f49c3aa4819d9f19aef8417ddaec8`.
+REVIEW-0077 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `ff08b299d64d30f71b8f55ce48e9c8db811e7ab9`.
 
-Bootstrap #310 / run `35990255357` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+Bootstrap #310 / run `35990255357`, OPEN checkpoint #311 / run `35990495999`, and frozen proof **#312 / run `35990766361`** all passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-Compare `a625b477474e5ba100d0d6e7232ee49406f54898..a50971e5718cd0878e22479806b3177c1964f053` changes exactly:
-- `PROJECT_STATE.md`
-- `registry/work-items/WORK-0002.yaml`
+Fresh independent REVIEW-0077 request `5812861596` was quota-refused by `5812863419`; no independent L2 exists.
 
-No runtime Python, workflow, or TEST-0010 execution semantics changed.
+Author-side P2 **`PRRT_kwDOUUI5ts6ljXzi`** proves the handover model itself was wrong: after #312 succeeds, committing “#312 is complete” changes the HEAD, which invalidates #312 as an exact-head closure proof and requires another run. Repeating that pattern creates an infinite proof/documentation loop.
 
-Bootstrap #311 / run `35990495999` proved the OPEN checkpoint at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+PR #5 now has **78/78 unresolved material threads**. None has been resolved.
 
-The active handover is now synchronized:
-- REVIEW-0076 frozen proof #308 is complete;
-- REVIEW-0076 CLOSED checkpoint #309 is complete;
-- REVIEW-0076 review attempts were quota-refused and produced no independent approval;
-- PR #5 has **77/77 unresolved material threads**;
-- fresh independent L2 is the only semantic approval step remaining after REVIEW-0077's own OPEN/IN_PROGRESS exact-head proof.
+## REVIEW-0078 implementation candidate — non-self-referential exact-head evidence
+
+REVIEW-0078 must change the governance contract, not merely copy another run ID.
+
+Stable rule:
+- the repository describes the **eligibility condition** for independent L2: the current exact IN_PROGRESS HEAD must have a successful trusted Bootstrap run;
+- whether that run has completed is a **live GitHub control-plane fact** and does not need to be written back into the same frozen tree;
+- after exact-head Bootstrap succeeds, the tree remains frozen and L2 may be requested immediately;
+- PR body/comments may record the run ID as live handover evidence without mutating the tree;
+- a later material tree mutation creates a new HEAD and therefore requires a new exact-head proof;
+- quota refusal is external negative availability evidence, never approval and never a reason to mutate the frozen tree;
+- PROJECT_STATE/WORK/REVIEW must use stable wording that remains true both before and after the external run completes.
+
+Canonical governance docs to update:
+- `docs/00_START_HERE.md` handover invariant;
+- `docs/13_QUALITY/review-council.md` review evidence rules;
+- `docs/10_ROADMAP/development-process.md` Gate K handover rule.
 
 ## Current next action
 
-1. Keep all **77** PR #5 material threads unresolved.
-2. REVIEW-0077 OPEN checkpoint proof is complete via Bootstrap #311 and REVIEW-0077 is now `IN_PROGRESS`.
-3. Prove/freeze this exact IN_PROGRESS head with Bootstrap.
-4. Request fresh independent L2 over all **77 unresolved material threads** without mutating the tree while it runs.
-5. Any material finding closes REVIEW-0077 and requires a successor.
-6. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
-7. WORK-0003 and WORK-0004 remain blocked.
+1. Keep all **78** PR #5 material threads unresolved.
+2. Prove this REVIEW-0077 `CLOSED` state-only checkpoint.
+3. Implement and prove REVIEW-0078 governance-documentation candidate with the stable external exact-head evidence rule.
+4. Open REVIEW-0078 only after exact technical proof.
+5. Once REVIEW-0078 reaches IN_PROGRESS, verify live Bootstrap success on that exact HEAD and then request independent L2 **without mutating the tree to record the run**.
+6. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
@@ -482,7 +490,7 @@ The active handover is now synchronized:
 8. registry/reviews/REVIEW-0049.yaml
 9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/77 threads
+11. live PR #5 exact HEAD/checks/reviews/78 threads
 12. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.

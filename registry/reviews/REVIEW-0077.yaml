@@ -1,9 +1,9 @@
 id: REVIEW-0077
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-5"
-  commit_sha: null
+  commit_sha: "ff08b299d64d30f71b8f55ce48e9c8db811e7ab9"
 reviewer:
   actor: null
   context_id: null
@@ -37,7 +37,8 @@ scope:
     - "quota refusal could be misrepresented as independent approval"
     - "active finding count could drift from live GitHub threads"
     - "historical counts could be globally rewritten instead of preserved as provenance"
-findings: []
+findings:
+  - "PRRT_kwDOUUI5ts6ljXzi"
 checks:
   assumptions_challenged:
     - "once a frozen proof completes, canonical handover automatically stays synchronized"
@@ -53,7 +54,7 @@ checks:
   duplicate_or_reuse_search:
     - "REVIEW-0075 runtime proof and TEST-0010 identity are reused unchanged."
     - "REVIEW-0076 terminal P2 PRRT_kwDOUUI5ts6ljD7h remains negative evidence."
-    - "All 77 PR #5 material threads remain unresolved."
+    - "All 78 PR #5 material threads remain unresolved."
   failure_modes_considered:
     - "candidate diff includes runtime or workflow files"
     - "PROJECT_STATE and WORK-0002 disagree on #308/#309 lifecycle truth"
@@ -67,10 +68,14 @@ checks:
     - "REVIEW-0077 exact documentation candidate a50971e5718cd0878e22479806b3177c1964f053 / Bootstrap #310 / run 35990255357 passed 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
     - "Compare a625b477474e5ba100d0d6e7232ee49406f54898..a50971e5718cd0878e22479806b3177c1964f053 changes exactly PROJECT_STATE.md and registry/work-items/WORK-0002.yaml."
     - "This OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
-    - "One frozen exact-head Bootstrap proof is required after IN_PROGRESS before fresh independent L2."
+    - "Frozen exact-head proof #312 / run 35990766361 completed SUCCESS on ff08b299d64d30f71b8f55ce48e9c8db811e7ab9 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Fresh REVIEW-0077 L2 request 5812861596 was quota-refused by 5812863419; no independent REVIEW-0077 L2 exists."
+    - "Author-side P2 PRRT_kwDOUUI5ts6ljXzi proves the lifecycle handover is self-referential: writing frozen-run completion back into the frozen tree creates a new HEAD that itself needs another exact-head proof."
+    - "Successor REVIEW-0078 must formalize a non-self-referential exact-head evidence contract in canonical governance docs: the repository expresses the stable eligibility condition, GitHub Actions is live authority for whether the exact-head run has completed, and no post-proof tree mutation is required solely to copy that completion."
+    - "After a successful exact-head run, the same tree remains frozen and may proceed directly to independent L2; any later material tree mutation creates a new HEAD and invalidates the old exact-head proof for closure."
     - "Fresh independent L2 must inspect all 77 unresolved PR #5 material threads before any controlled resolution."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-24T11:03:00Z"
 history:
   created_at: "2026-09-24"
   updated_at: "2026-09-24"
