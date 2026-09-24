@@ -451,40 +451,33 @@ Author-side P2 **`PRRT_kwDOUUI5ts6ljXzi`** proves the handover model itself was 
 
 PR #5 now has **78/78 unresolved material threads**. None has been resolved.
 
-## REVIEW-0078 — non-self-referential exact-head evidence
+## REVIEW-0078 — terminal independent negative evidence
 
-REVIEW-0078 is now **IN_PROGRESS** after exact governance-documentation proof on `f07796388bc13388de05146fec4bf2294dab72ef` and OPEN checkpoint proof on `1c017bbf3e44816bed12dc0e5752cf70fd5b7b67`.
+REVIEW-0078 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `9f596039277906c67e916bbf3b1f509989b71def`.
 
-Bootstrap #314 / run `35991898265` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+The stable exact-head evidence model itself remains valid: Bootstrap #316 / run `35992467389` succeeded on that exact IN_PROGRESS HEAD, with **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **3/100** requests; the tree remained frozen while L2 ran.
 
-Compare `024870e9109ec5aaffbeaed3ce97174e00aafed5..f07796388bc13388de05146fec4bf2294dab72ef` changes only:
-- `PROJECT_STATE.md`
-- `registry/work-items/WORK-0002.yaml`
-- `docs/00_START_HERE.md`
-- `docs/13_QUALITY/review-council.md`
-- `docs/10_ROADMAP/development-process.md`
+Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABPDhWdw** then produced **P2 `PRRT_kwDOUUI5ts6lm-ef`**. The active WORK-0002 `review_plan.open_findings` list contains only **76 unique PRRT IDs** and omits:
+- `PRRT_kwDOUUI5ts6ljD7h` — historical finding 77;
+- `PRRT_kwDOUUI5ts6ljXzi` — historical finding 78.
 
-No runtime Python/workflow or TEST-0010 execution semantics changed.
+The new L2 finding itself is thread 79, so PR #5 now has **79/79 unresolved material threads**. No thread has been resolved.
 
-Bootstrap #315 / run `35992228587` proved the OPEN checkpoint at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
-
-The canonical rule is now stable:
-- independent L2 is eligible only when live trusted GitHub evidence shows successful Bootstrap on the current exact `IN_PROGRESS` HEAD;
-- that run completion is external live evidence and is **not** copied back into the frozen tree;
-- after success, keep the same tree frozen and proceed directly to L2;
-- any later material tree mutation creates a new HEAD and requires a new exact-head proof.
-
-PR #5 has **78/78 unresolved material threads**.
+This is a documentation/traceability defect, not a runtime regression. REVIEW-0079 must change only canonical handover/registry state needed to enumerate the exact live finding set.
 
 ## Current next action
 
-1. Keep all **78** PR #5 material threads unresolved.
-2. REVIEW-0078 is `IN_PROGRESS`; keep this tree frozen.
-3. Independent L2 is eligible **iff live trusted GitHub shows Bootstrap SUCCESS on this exact current HEAD**. Verify that live condition directly; do not mutate the tree solely to record its result.
-4. If the live condition is satisfied, request fresh independent L2 over all **78 unresolved material threads** while keeping the same HEAD frozen.
-5. Any material finding closes REVIEW-0078 and requires a successor; any material tree mutation requires a new exact-head Bootstrap before L2.
-6. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
-7. WORK-0003 and WORK-0004 remain blocked.
+1. Keep all **79** PR #5 material threads unresolved.
+2. Prove this REVIEW-0078 `CLOSED` state-only checkpoint.
+3. REVIEW-0079 must be documentation/traceability-only:
+   - add `PRRT_kwDOUUI5ts6ljD7h`, `PRRT_kwDOUUI5ts6ljXzi`, and `PRRT_kwDOUUI5ts6lm-ef` to `WORK-0002.review_plan.open_findings`;
+   - make the active regression invariant say all **79** inline findings are represented and unresolved;
+   - reconcile active PROJECT_STATE/WORK-0002 counts to **79** while preserving historical 73/75/76/77/78 counts;
+   - preserve REVIEW-0078's non-self-referential exact-head evidence rule;
+   - change no runtime Python, workflow, or TEST-0010 execution semantics.
+4. After REVIEW-0079 technical/state proof, request fresh independent L2 over all **79 unresolved material threads**.
+5. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
+6. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 

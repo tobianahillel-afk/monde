@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0077 are terminal negative evidence. REVIEW-0078 exact governance-documentation candidate f07796388bc13388de05146fec4bf2294dab72ef passed Bootstrap #314 / run 35991898265 and OPEN checkpoint 1c017bbf3e44816bed12dc0e5752cf70fd5b7b67 passed Bootstrap #315 / run 35992228587, both at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests. REVIEW-0078 is IN_PROGRESS. Independent L2 eligibility is a live control-plane condition: immediately before requesting L2, verify trusted Bootstrap SUCCESS on the current exact REVIEW-0078 HEAD; keep the tree frozen and do not commit solely to copy that run outcome. Any later material tree mutation creates a new HEAD and requires a new exact-head proof. All 78 inline material threads remain unresolved; T4/T12/AC-6 remain IN_REVIEW."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0078 are terminal negative evidence. REVIEW-0078 is CLOSED/CHANGES_REQUIRED on exact frozen head 9f596039277906c67e916bbf3b1f509989b71def after trusted Bootstrap #316 / run 35992467389 succeeded and fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABPDhWdw produced P2 PRRT_kwDOUUI5ts6lm-ef: review_plan.open_findings contains only 76 unique PRRT IDs and omits the historical 77th and 78th findings. The new finding raises live PR #5 material threads to 79 unresolved. REVIEW-0079 must be documentation/traceability-only, add the omitted 77th/78th IDs plus the new 79th ID to open_findings, reconcile active counts to 79 while preserving historical counts, and change no runtime/workflow/TEST-0010 execution semantics. T4/T12/AC-6 remain IN_REVIEW."
 
 scope:
   in:
@@ -187,7 +187,7 @@ required_tests:
   contract: ["registry/schema/progress/review/change-control integrity", "bootstrap GitHub Checks/REST/GraphQL/Actions/Issues control-plane contract"]
   e2e: []
   regression:
-    - "all 78 inline findings remain represented and unresolved"
+    - "KNOWN TEMPORARY TRACEABILITY DEFECT after REVIEW-0078 L2: live PR #5 has 79 unresolved material threads while open_findings still enumerates 76 unique PRRT IDs; REVIEW-0079 must reconcile the list before any thread resolution"
     - "operator recovery never clears pending state"
     - "operator recovery never emits a rerun automatically"
     - "manual exact-run rerun remains observable under durable pending identity"
@@ -383,6 +383,7 @@ run_log:
   - "REVIEW-0077 CLOSED checkpoint 024870e9109ec5aaffbeaed3ce97174e00aafed5 passed Bootstrap #313 / run 35991600188 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0078 governance-documentation candidate starts only from this proven terminal checkpoint."
   - "REVIEW-0078 exact governance-documentation candidate f07796388bc13388de05146fec4bf2294dab72ef passed Bootstrap #314 / run 35991898265 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; compare changes only PROJECT_STATE.md, WORK-0002 and the three canonical governance docs."
   - "REVIEW-0078 OPEN checkpoint 1c017bbf3e44816bed12dc0e5752cf70fd5b7b67 passed Bootstrap #315 / run 35992228587 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
+  - "REVIEW-0078 exact IN_PROGRESS head 9f596039277906c67e916bbf3b1f509989b71def passed Bootstrap #316 / run 35992467389 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABPDhWdw then produced P2 PRRT_kwDOUUI5ts6lm-ef and raised live unresolved threads from 78 to 79."
   - "REVIEW-0075 CLOSED checkpoint b8de445952c0cfb916e5ead7ce7009dff4809a41 passed Bootstrap #305 / run 35986900739 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0076 documentation-only candidate starts only from this proven terminal checkpoint."
   - "REVIEW-0076 exact documentation candidate e82ac8ac599e4f3611d5ab90358939e789288def passed Bootstrap #306 / run 35987119706 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; compare from REVIEW-0075 CLOSED checkpoint changes exactly PROJECT_STATE.md and registry/work-items/WORK-0002.yaml."
   - "REVIEW-0076 OPEN checkpoint f20894d87799c33faf97e3360ae9c0fc96d95cef passed Bootstrap #307 / run 35987412834 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
@@ -414,7 +415,8 @@ blockers:
   - "REVIEW-0075 is terminal CLOSED/CHANGES_REQUIRED after author-side P2 PRRT_kwDOUUI5ts6liZGL; do not request further REVIEW-0075 approval."
   - "REVIEW-0076 is terminal CLOSED/CHANGES_REQUIRED after author-side P2 PRRT_kwDOUUI5ts6ljD7h; frozen proof #308 was already complete and no independent L2 exists."
   - "REVIEW-0077 is terminal CLOSED/CHANGES_REQUIRED after author-side P2 PRRT_kwDOUUI5ts6ljXzi; frozen proof #312 succeeded, but the in-tree handover model was self-referential and no independent L2 exists."
-  - "REVIEW-0078 is IN_PROGRESS. Before independent L2, live trusted GitHub MUST show Bootstrap SUCCESS on the current exact HEAD. Keep the tree frozen while checking/requesting L2; do not create a commit solely to record the run result."
+  - "REVIEW-0078 is terminal CLOSED/CHANGES_REQUIRED after independent exact-head L2 P2 PRRT_kwDOUUI5ts6lm-ef; do not resolve any of the 79 threads."
+  - "REVIEW-0079 must reconcile the machine-readable open_findings list to all 79 live unresolved PRRT IDs before any successor L2."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."
