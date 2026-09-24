@@ -479,27 +479,37 @@ REVIEW-0079 CLOSED checkpoint `56d35f134dcde7ddb331e441ad9424712be886b9` passed 
 
 REVIEW-0080 is **CLOSED / CHANGES_REQUIRED** on exact HEAD `7a6516ea8c57a8f2538e4df3f237cf6ea4b70dce`.
 
-The underlying traceability/registry repair remained technically green:
-- candidate `a4008a93d858a34de56e07924421748c78accc51` / #323;
-- OPEN checkpoint `6801fdd9a25517ec7af0250b64f5fcd835741737` / #324;
-- exact IN_PROGRESS HEAD `7a6516ea8c57a8f2538e4df3f237cf6ea4b70dce` / live Bootstrap #325 / `36014347342`;
-- each valid proof: **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, live PR #2 probe **3/100**.
+Its traceability/TEST-0009 repair remained technically green through candidate #323, OPEN #324 and exact IN_PROGRESS proof #325. Fresh Codex request `5816298535` was quota-refused by `5816301096`.
 
-Fresh Codex REVIEW-0080 request `5816298535` was quota-refused by `5816301096`; no independent L2 was produced.
+Author-side governance review **PRR_kwDOUUI5ts8AAAABPENlRg** produced **P1 `PRRT_kwDOUUI5ts6loe5m`** because REVIEW-0080 declared only three of the six mandatory WORK-0002 hats.
 
-Author-side governance review **PRR_kwDOUUI5ts8AAAABPENlRg** then produced **P1 `PRRT_kwDOUUI5ts6loe5m`**: WORK-0002 requires six hats — `ARCHITECTURE_REUSE`, `VERIFICATION_VALIDATION`, `SECURITY`, `PERFORMANCE_SRE`, `DOCUMENTATION_TRACEABILITY`, `RED_TEAM_SKEPTIC` — but REVIEW-0080 declared only V&V, Documentation/Traceability and Red Team. A clean review on that artifact could therefore not satisfy the canonical work-item completion rule.
+The REVIEW-0080 CLOSED checkpoint `eacd7d3b861b82902fa2aec9486556557383ec21` passed Bootstrap #326 / run `36015443542` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100**.
 
-The new finding raises PR #5 to **82/82 unresolved material threads**. None has been resolved.
+PR #5 has **82/82 unresolved material threads** and WORK-0002 open_findings exposes the exact same 82 PRRT IDs.
+
+## REVIEW-0081 — required-hat reconciliation successor
+
+REVIEW-0081 is now **OPEN**.
+
+It preserves the REVIEW-0080 TEST-0009/inventory repair unchanged and corrects the review contract itself. Its declared roles are exactly the six WORK-0002 required hats:
+- `ARCHITECTURE_REUSE`
+- `VERIFICATION_VALIDATION`
+- `SECURITY`
+- `PERFORMANCE_SRE`
+- `DOCUMENTATION_TRACEABILITY`
+- `RED_TEAM_SKEPTIC`
+
+No runtime Python, workflow, REQ-0026 or TEST-0009 semantic behavior changes.
 
 ## Current next action
 
 1. Keep all **82** PR #5 material threads unresolved.
-2. Prove this REVIEW-0080 `CLOSED` state-only checkpoint.
-3. Materialize REVIEW-0081 only after that checkpoint is green.
-4. REVIEW-0081 must preserve the REVIEW-0080 TEST-0009/inventory repair unchanged and declare all six WORK-0002 required hats.
-5. Active WORK-0002 open_findings and PROJECT_STATE Resume sequence must reconcile to **82**.
-6. Follow the non-self-referential lifecycle: OPEN checkpoint -> IN_PROGRESS -> live exact-head Bootstrap SUCCESS -> fresh independent L2 under all six hats, without a post-proof tree mutation.
-7. Resolve no thread before a clean REVIEW-0081 L2.
+2. Prove this REVIEW-0081 `OPEN` state-only checkpoint.
+3. Transition `OPEN -> IN_PROGRESS` only after that proof.
+4. On the exact IN_PROGRESS HEAD, require live trusted Bootstrap SUCCESS and keep the tree frozen.
+5. Request fresh independent L2 over all **82 unresolved material threads** under all six required hats.
+6. Do not create a post-proof commit solely to copy live CI completion.
+7. Any material finding closes REVIEW-0081 and requires a successor; resolve nothing beforehand.
 8. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
