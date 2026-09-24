@@ -441,21 +441,26 @@ PR #5 therefore has **77/77 unresolved material threads**. None has been resolve
 
 ## REVIEW-0077 implementation candidate — frozen-proof handover reconciliation
 
-REVIEW-0077 must remain documentation/traceability-only:
-- record #308 as the completed frozen exact-head proof;
-- make **fresh independent L2** the sole remaining REVIEW-0077 lifecycle step after its own OPEN/IN_PROGRESS proofs;
-- reconcile active finding count to **77**;
-- preserve historical REVIEW-0073/0074/0075/0076 counts as historical truth;
-- preserve REVIEW-0075 runtime/workflow semantics byte-for-byte;
-- do not relabel TEST-0010 runtime execution identity as REVIEW-0077 proof.
+REVIEW-0076 is terminal `CLOSED / CHANGES_REQUIRED`. Its CLOSED checkpoint `a625b477474e5ba100d0d6e7232ee49406f54898` passed Bootstrap #309 / run `35989979265` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+
+REVIEW-0077 is a **documentation/traceability-only candidate**. REVIEW-0075 runtime/workflow semantics and TEST-0010 execution identity remain unchanged.
+
+The active handover is now explicit:
+- REVIEW-0076 frozen exact-head proof **#308 is complete**;
+- REVIEW-0076 received **no independent L2** because requests `5812432588` and `5812484732` were quota-refused by `5812434586` and `5812486456`;
+- author-side P2 `PRRT_kwDOUUI5ts6ljD7h` invalidated REVIEW-0076 only because the canonical handover still called #308 pending;
+- PR #5 has **77/77 unresolved material threads**;
+- after REVIEW-0077 receives its own technical/OPEN/IN_PROGRESS proofs, **fresh independent L2 is the only semantic approval step remaining for REVIEW-0077**;
+- historical REVIEW-0073/0074/0075/0076 counts remain historical truth and are not rewritten;
+- no runtime Python, workflow, or TEST-0010 execution semantics are changed by this candidate.
 
 ## Current next action
 
 1. Keep all **77** PR #5 material threads unresolved.
-2. Prove this REVIEW-0076 `CLOSED` state-only checkpoint.
-3. Create and prove a documentation-only REVIEW-0077 candidate correcting PROJECT_STATE and WORK-0002 only.
-4. Open REVIEW-0077 only after exact technical proof.
-5. After its OPEN and IN_PROGRESS checkpoints, request fresh independent L2 over all **77 unresolved material threads**.
+2. Prove this documentation-only REVIEW-0077 candidate with Bootstrap.
+3. Verify the compare from `a625b477474e5ba100d0d6e7232ee49406f54898` changes exactly `PROJECT_STATE.md` and `registry/work-items/WORK-0002.yaml`.
+4. Only after exact technical proof, materialize REVIEW-0077 as `OPEN`.
+5. After OPEN and IN_PROGRESS checkpoints, request fresh independent L2 over all **77 unresolved material threads**.
 6. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
