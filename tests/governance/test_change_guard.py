@@ -252,3 +252,60 @@ def test_endpoint_changes_use_merge_base_not_moved_base_tip(tmp_path):
     run(tmp_path, 'checkout', 'mainline'); write(tmp_path, 'registry/reviews/BASE-ONLY.yaml', {'id': 'REVIEW-99', 'status': 'OPEN'}); base = commit(tmp_path, 'base only')
     run(tmp_path, 'checkout', 'feature')
     assert 'registry/reviews/BASE-ONLY.yaml' not in c.endpoint_changed_files(tmp_path, base, head)
+
+
+def test_inherited_second_parent_review_is_not_freshness_authority_for_current_delta(tmp_path):
+    common = repo(tmp_path)
+
+    # Existing PR branch work stays on the first-parent lineage.
+    run(tmp_path, 'branch', 'feature', common)
+    run(tmp_path, 'checkout', 'feature')
+    write(tmp_path, 'x.txt', 'feature behavior')
+    feature_tip = commit(tmp_path, 'feature behavior before integration')
+
+    # New main contains an independently reviewed predecessor (PR #5 analogue).
+    run(tmp_path, 'checkout', '-b', 'mainline', common)
+    write(tmp_path, 'pred.txt', 'reviewed predecessor')
+    reviewed = commit(tmp_path, 'predecessor reviewed head')
+    write(
+        tmp_path,
+        'registry/reviews/REVIEW-1.yaml',
+        {'id': 'REVIEW-1', 'status': 'COMPLETE', 'artifact': {'commit_sha': reviewed}},
+    )
+    work = yaml.safe_load((tmp_path / 'registry/work-items/WORK-1.yaml').read_text())
+    work['status'] = 'IN_REVIEW'
+    work['review_plan']['completed_reviews'] = ['REVIEW-1']
+    write(tmp_path, 'registry/work-items/WORK-1.yaml', work)
+    base = commit(tmp_path, 'record predecessor review on main')
+
+    # Integrate new main as the second parent, preserving feature as first parent.
+    run(tmp_path, 'checkout', 'feature')
+    run(tmp_path, 'merge', '--no-ff', '--no-edit', 'mainline')
+    head = run(tmp_path, 'rev-parse', 'HEAD')
+    assert run(tmp_path, 'show', '-s', '--format=%P', head).split() == [feature_tip, base]
+    assert c.is_ancestor(tmp_path, reviewed, head)
+    assert not c.is_first_parent_ancestor(tmp_path, reviewed, head)
+
+    freshness = [f for f in c.validate(tmp_path, base, head) if f.rule == 'REVIEW_FRESHNESS']
+    assert freshness == []
+
+
+def test_first_parent_review_remains_freshness_authority(tmp_path):
+    base = repo(tmp_path)
+    work = yaml.safe_load((tmp_path / 'registry/work-items/WORK-1.yaml').read_text())
+    work['status'] = 'IN_REVIEW'
+    write(tmp_path, 'registry/work-items/WORK-1.yaml', work)
+    reviewed = commit(tmp_path, 'reviewed first-parent head')
+    write(
+        tmp_path,
+        'registry/reviews/REVIEW-1.yaml',
+        {'id': 'REVIEW-1', 'status': 'COMPLETE', 'artifact': {'commit_sha': reviewed}},
+    )
+    work['review_plan']['completed_reviews'] = ['REVIEW-1']
+    write(tmp_path, 'registry/work-items/WORK-1.yaml', work)
+    base = commit(tmp_path, 'record first-parent review')
+    write(tmp_path, 'x.txt', 'later substantive behavior')
+    head = commit(tmp_path, 'later first-parent behavior')
+
+    assert c.is_first_parent_ancestor(tmp_path, reviewed, head)
+    assert 'REVIEW_FRESHNESS' in {f.rule for f in c.validate(tmp_path, base, head)}

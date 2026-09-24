@@ -485,6 +485,16 @@ def is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
     return proc.returncode == 0
 
 
+def is_first_parent_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
+    if not FULL_COMMIT_SHA.fullmatch(str(ancestor or "")) or not FULL_COMMIT_SHA.fullmatch(str(descendant or "")):
+        return False
+    return ancestor in {
+        sha
+        for sha in git(root, "rev-list", "--first-parent", descendant).splitlines()
+        if sha
+    }
+
+
 def comparison_parent(root: Path, base: str, sha: str) -> str:
     parents = commit_parents(root, sha)
     if base in parents:
@@ -767,6 +777,13 @@ def validate(root: Path, base: str, head: str) -> list[ChangeFinding]:
                 continue
             if not is_ancestor(root, reviewed, head):
                 out.append(ChangeFinding(review_path, "REVIEW_FRESHNESS", "review commit is not an ancestor of the current head"))
+                continue
+            # A completed review inherited through a non-first-parent merge
+            # remains valid evidence for that integrated predecessor, but it is
+            # not a review of the current branch delta. Only reviews on the
+            # current head's first-parent lineage are freshness authorities for
+            # subsequent first-parent work.
+            if not is_first_parent_ancestor(root, reviewed, head):
                 continue
             later = changed_files(root, reviewed, head)
             substantive = [

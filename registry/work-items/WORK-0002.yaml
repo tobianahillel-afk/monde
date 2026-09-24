@@ -692,6 +692,7 @@ blockers:
 - T13 and T14 remain DONE author-side but require final exact-head independent re-verification as part of T4.
 - T4 requires a full governance gate on the two-parent integrated head, correction of any integration/fresh findings, fresh independent L2 over the complete 75-thread set plus integration effects, and a trusted context-separated exact-head APPROVED review before any thread resolution or merge.
 - Gate #259 / run 36055246141 failed closed before L2 because T13 mutation smoke still matched the superseded pre-refactor executable-command helper shape. The current correction retargets t13-executable-command-proof to the exact current per-step parsed-command branch; runtime governance semantics are unchanged. A fresh exact-head Gate must prove this integrated correction before review.
+- Gate #260 / run 36058286810 killed the corrected T13 mutation and passed static validation, then failed change_guard REVIEW_FRESHNESS because inherited REVIEW-0082 (PR #5 / second-parent main lineage) was being misapplied as freshness authority for first-parent PR #2 changes. The current correction scopes freshness authority to reviewed commits on the current head's first-parent lineage while retaining ancestor validation and ordinary first-parent stale-review enforcement. A real two-parent regression reproduces the post-PR5 integration shape.
 follow_up_work_items:
 - run: RUN-3
   date: '2026-09-24'
@@ -699,6 +700,9 @@ follow_up_work_items:
 - run: RUN-3
   date: '2026-09-24'
   note: 'Integrated Gate #259 / run 36055246141 reached 100 percent test coverage and killed baseline/L2/T10/T11 mutations, then failed closed at T13 executable-command-proof because the mutation harness still targeted the old return-any helper shape after the hardened per-step refactor. This commit retargets only that mutant and synchronizes handover; next action is one fresh exact-head Gate before independent L2.'
+- run: RUN-3
+  date: '2026-09-24'
+  note: 'Gate #260 / run 36058286810 proved the T13 retarget, then failed change_guard REVIEW_FRESHNESS because completed REVIEW-0082 came from the integrated PR #5/main second-parent lineage and was incorrectly required to cover PR #2 first-parent changes. The current correction makes review freshness first-parent scoped and adds both inherited-second-parent and ordinary-first-parent regressions; next action remains one fresh exact-head Gate before L2.'
 - WORK-0003
 - WORK-0004
 - run: RUN-3
