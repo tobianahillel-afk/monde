@@ -475,33 +475,32 @@ The two REVIEW-0079 findings raise PR #5 to **81/81 unresolved material threads*
 
 REVIEW-0079 CLOSED checkpoint `56d35f134dcde7ddb331e441ad9424712be886b9` passed Bootstrap #321 / run `36010993526` at **450/450 tests**, **3,853 / 1,640**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-## REVIEW-0080 — traceability and TEST-0009 registry repair
+## REVIEW-0080 — terminal author-side governance negative evidence
 
-REVIEW-0080 is **IN_PROGRESS** after exact candidate proof on `a4008a93d858a34de56e07924421748c78accc51` and OPEN checkpoint proof on `6801fdd9a25517ec7af0250b64f5fcd835741737`.
+REVIEW-0080 is **CLOSED / CHANGES_REQUIRED** on exact HEAD `7a6516ea8c57a8f2538e4df3f237cf6ea4b70dce`.
 
-Bootstrap #323 / run `36013738537` and OPEN checkpoint #324 / run `36014119704` both passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+The underlying traceability/registry repair remained technically green:
+- candidate `a4008a93d858a34de56e07924421748c78accc51` / #323;
+- OPEN checkpoint `6801fdd9a25517ec7af0250b64f5fcd835741737` / #324;
+- exact IN_PROGRESS HEAD `7a6516ea8c57a8f2538e4df3f237cf6ea4b70dce` / live Bootstrap #325 / `36014347342`;
+- each valid proof: **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, live PR #2 probe **3/100**.
 
-The repair remains non-runtime:
-- `TEST-0009.execution` is one mapping;
-- historical Bootstrap evidence is under `execution.evidence`;
-- structured execution fields remain intact;
-- live PR #5 and WORK-0002 expose exactly the same **81** unique PRRT IDs;
-- Resume sequence requires **reviews/81 threads**;
-- runtime Python, workflow and REQ-0026 behavior are unchanged.
+Fresh Codex REVIEW-0080 request `5816298535` was quota-refused by `5816301096`; no independent L2 was produced.
 
-All **81/81 PR #5 material threads remain unresolved**.
+Author-side governance review **PRR_kwDOUUI5ts8AAAABPENlRg** then produced **P1 `PRRT_kwDOUUI5ts6loe5m`**: WORK-0002 requires six hats — `ARCHITECTURE_REUSE`, `VERIFICATION_VALIDATION`, `SECURITY`, `PERFORMANCE_SRE`, `DOCUMENTATION_TRACEABILITY`, `RED_TEAM_SKEPTIC` — but REVIEW-0080 declared only V&V, Documentation/Traceability and Red Team. A clean review on that artifact could therefore not satisfy the canonical work-item completion rule.
 
-The active eligibility rule is stable both before and after external CI completes: independent L2 may run only when live trusted GitHub shows a successful Bootstrap run on the **current exact IN_PROGRESS HEAD**. The tree must not be mutated solely to copy that completion into repository prose. Any later material tree mutation creates a new HEAD and requires fresh exact-head proof.
+The new finding raises PR #5 to **82/82 unresolved material threads**. None has been resolved.
 
 ## Current next action
 
-1. Keep all **81** PR #5 material threads unresolved.
-2. Verify live trusted GitHub Bootstrap SUCCESS on the current exact REVIEW-0080 IN_PROGRESS HEAD.
-3. If the exact-head run is successful, keep the tree frozen and immediately request fresh independent L2 over all **81 unresolved material threads**.
-4. Do not commit merely to record that successful run; PR body/comments may record live evidence.
-5. Any material L2 finding closes REVIEW-0080 and requires a successor; resolve nothing beforehand.
-6. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
-7. WORK-0003 and WORK-0004 remain blocked.
+1. Keep all **82** PR #5 material threads unresolved.
+2. Prove this REVIEW-0080 `CLOSED` state-only checkpoint.
+3. Materialize REVIEW-0081 only after that checkpoint is green.
+4. REVIEW-0081 must preserve the REVIEW-0080 TEST-0009/inventory repair unchanged and declare all six WORK-0002 required hats.
+5. Active WORK-0002 open_findings and PROJECT_STATE Resume sequence must reconcile to **82**.
+6. Follow the non-self-referential lifecycle: OPEN checkpoint -> IN_PROGRESS -> live exact-head Bootstrap SUCCESS -> fresh independent L2 under all six hats, without a post-proof tree mutation.
+7. Resolve no thread before a clean REVIEW-0081 L2.
+8. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
@@ -515,7 +514,7 @@ The active eligibility rule is stable both before and after external CI complete
 8. registry/reviews/REVIEW-0049.yaml
 9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/81 threads
+11. live PR #5 exact HEAD/checks/reviews/82 threads
 12. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.
