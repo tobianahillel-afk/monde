@@ -501,7 +501,7 @@ PR #5 now has **83/83 unresolved material threads** and WORK-0002's machine PRRT
 
 ## REVIEW-0082 — canonical review-shape successor
 
-REVIEW-0082 is now **IN_PROGRESS** after its OPEN checkpoint `c137f4ea30092298d691c7c3abd0b989f650a9cc` passed Bootstrap #330 / run `36047087635` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100**.
+REVIEW-0082 is now **COMPLETE / APPROVE**. Its exact IN_PROGRESS head `71ed1cb233d16f032ff27cf5a88dfe039e2ba618` passed Bootstrap #331 / run `36047476826` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100**. Fresh independent Codex L2 issue comment `5820761929` / `IC_kwDOUUI5ts8AAAABWvHHSQ` reviewed that exact head and reported **no major issues**.
 
 This successor is governance/traceability-only. It changes no runtime Python, workflow, REQ-0026 or TEST-0009 semantic behavior.
 
@@ -516,14 +516,12 @@ Its review contract is deliberately minimal and explicit:
 
 ## Current next action
 
-1. Keep all **83** PR #5 material threads unresolved.
-2. REVIEW-0082 OPEN checkpoint #330 is complete and lifecycle is now `IN_PROGRESS`.
-3. On this exact current IN_PROGRESS HEAD, require live trusted Bootstrap SUCCESS and keep the tree frozen.
-4. Request fresh independent L2 over all **83 unresolved material threads**.
-5. Do not create a post-proof commit solely to copy live CI completion.
-6. Any material finding closes REVIEW-0082 and requires a successor; resolve nothing beforehand.
-7. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
-8. WORK-0003 and WORK-0004 remain blocked.
+1. REVIEW-0082 independent L2 is clean and the review is now `COMPLETE / APPROVE`.
+2. Prove this lifecycle-recording commit with Bootstrap; this is metadata/state materialization, not a substitute for the reviewed exact-head evidence.
+3. Resolve all **83 reviewed PR #5 material threads** in a controlled batch while keeping the branch content fixed.
+4. Verify live unresolved PR #5 thread count reaches zero and no new material finding appears.
+5. Reconcile WORK-0002 open_findings/current handover with the resolved live state, re-run exact-head Bootstrap, and only then assess guarded PR #5 merge eligibility.
+6. PR #2 integration/approval remains downstream; WORK-0003 and WORK-0004 remain blocked until WORK-0002 closure sequencing permits them.
 
 ## Resume sequence
 
