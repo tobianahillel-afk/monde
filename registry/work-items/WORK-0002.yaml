@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0081 are terminal negative evidence. REVIEW-0082 exact frozen head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618 passed Bootstrap #331 / run 36047476826 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests. Fresh independent Codex L2 issue comment 5820761929 / IC_kwDOUUI5ts8AAAABWvHHSQ reviewed that exact head and reported no major issues, so REVIEW-0082 is COMPLETE/APPROVE. All 83 material threads remain unresolved only pending controlled resolution; no new finding was added. T4/T12/AC-6 remain IN_REVIEW until those threads are resolved and the canonical inventory is reconciled."
+  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0081 remain terminal negative evidence. REVIEW-0082 COMPLETE/APPROVE on exact reviewed head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618 permitted controlled resolution of all 83 reviewed PR #5 material threads. Lifecycle-recording commit cabb259aa686028def1c7b9a4e80b85d15b82d99 passed Bootstrap #332 / run 36048764381, then all 83 threads were resolved with branch content fixed and no new material finding appeared. This reconciliation commit removes the now-resolved PRRT inventory from current open_findings while preserving historical negative evidence in reviews/run logs/known gaps. T4/T12/AC-6 remain IN_REVIEW until this exact reconciliation head passes Bootstrap and guarded PR #5 merge eligibility is assessed; PR #2 integration/review remains downstream."
 
 scope:
   in:
@@ -88,96 +88,9 @@ review_plan:
   artifact_class: GOVERNANCE_AUTOMATION
   independence_level: L2_TARGET
   required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY, RED_TEAM_SKEPTIC]
-  completed_reviews: [REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039, REVIEW-0042, REVIEW-0043, REVIEW-0044, REVIEW-0045, REVIEW-0046, REVIEW-0047, REVIEW-0049]
+  completed_reviews: [REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039, REVIEW-0042, REVIEW-0043, REVIEW-0044, REVIEW-0045, REVIEW-0046, REVIEW-0047, REVIEW-0049, REVIEW-0082]
   open_findings:
-    - "PR #2 branch-local unresolved material findings remain pending final integration/review."
-    - "REVIEW-0048 is CLOSED administrative negative evidence; no independent L2 ran."
-    - "PRR_kwDOUUI5ts8AAAABN4OKew — REVIEW-0048 author-side duplicate-rerun P1."
-    - "REVIEW-0050 is CLOSED/CHANGES_REQUIRED administrative negative evidence on f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c; no independent exact-head L2 was submitted before invalidation."
-    - "PRR_kwDOUUI5ts8AAAABN7LvGQ — REVIEW-0050 recovery check-then-clear TOCTOU P1."
-    - PRRT_kwDOUUI5ts6ijmtc
-    - PRRT_kwDOUUI5ts6ijmtj
-    - PRRT_kwDOUUI5ts6ijmtr
-    - PRRT_kwDOUUI5ts6ilBFN
-    - PRRT_kwDOUUI5ts6ilBFV
-    - PRRT_kwDOUUI5ts6ilBFb
-    - PRRT_kwDOUUI5ts6ilBFl
-    - PRRT_kwDOUUI5ts6ilcBE
-    - PRRT_kwDOUUI5ts6ilcBL
-    - PRRT_kwDOUUI5ts6ilysF
-    - PRRT_kwDOUUI5ts6ilysW
-    - PRRT_kwDOUUI5ts6ilysm
-    - PRRT_kwDOUUI5ts6imDdU
-    - PRRT_kwDOUUI5ts6imDdZ
-    - PRRT_kwDOUUI5ts6imgom
-    - PRRT_kwDOUUI5ts6imgor
-    - PRRT_kwDOUUI5ts6imgoz
-    - PRRT_kwDOUUI5ts6im_Sc
-    - PRRT_kwDOUUI5ts6im_Sh
-    - PRRT_kwDOUUI5ts6inm7v
-    - PRRT_kwDOUUI5ts6in_r4
-    - PRRT_kwDOUUI5ts6iofZr
-    - PRRT_kwDOUUI5ts6iofZu
-    - PRRT_kwDOUUI5ts6iofZ1
-    - PRRT_kwDOUUI5ts6iofZ_
-    - PRRT_kwDOUUI5ts6iofaG
-    - PRRT_kwDOUUI5ts6iofaK
-    - PRRT_kwDOUUI5ts6iofaP
-    - PRRT_kwDOUUI5ts6ipPZM
-    - PRRT_kwDOUUI5ts6ipocF
-    - PRRT_kwDOUUI5ts6iquVw
-    - PRRT_kwDOUUI5ts6iquV8
-    - PRRT_kwDOUUI5ts6irVvT
-    - PRRT_kwDOUUI5ts6irVvZ
-    - PRRT_kwDOUUI5ts6irVvh
-    - PRRT_kwDOUUI5ts6irVvl
-    - PRRT_kwDOUUI5ts6is6A-
-    - PRRT_kwDOUUI5ts6is6BA
-    - PRRT_kwDOUUI5ts6is6BF
-    - PRRT_kwDOUUI5ts6is6BL
-    - PRRT_kwDOUUI5ts6is6BR
-    - PRRT_kwDOUUI5ts6is6BX
-    - PRRT_kwDOUUI5ts6i0j_C
-    - PRRT_kwDOUUI5ts6i0j_F
-    - PRRT_kwDOUUI5ts6i1TEN
-    - PRRT_kwDOUUI5ts6i1TES
-    - PRRT_kwDOUUI5ts6i2qvx
-    - PRRT_kwDOUUI5ts6i2qv4
-    - PRRT_kwDOUUI5ts6i2qwA
-    - PRRT_kwDOUUI5ts6i4YR8
-    - PRRT_kwDOUUI5ts6i4YSC
-    - PRRT_kwDOUUI5ts6i4YSI
-    - PRRT_kwDOUUI5ts6i4YSM
-    - PRRT_kwDOUUI5ts6i4YST
-    - PRRT_kwDOUUI5ts6i4YSZ
-    - PRRT_kwDOUUI5ts6i5oXQ
-    - PRRT_kwDOUUI5ts6i5oXU
-    - PRRT_kwDOUUI5ts6i5oXa
-    - PRRT_kwDOUUI5ts6i5oXi
-    - PRRT_kwDOUUI5ts6i5oXl
-    - PRRT_kwDOUUI5ts6i9Tl3
-    - PRRT_kwDOUUI5ts6i9Tl_
-    - PRRT_kwDOUUI5ts6i9TmE
-    - PRRT_kwDOUUI5ts6jEPa-
-    - PRRT_kwDOUUI5ts6jEPa_
-    - PRRT_kwDOUUI5ts6lUcz8
-    - PRRT_kwDOUUI5ts6lUcz_
-    - PRRT_kwDOUUI5ts6lUc0F
-    - PRRT_kwDOUUI5ts6lUc0K
-    - PRRT_kwDOUUI5ts6lUc0Q
-    - PRRT_kwDOUUI5ts6lXTqJ
-    - PRRT_kwDOUUI5ts6lXj4D
-    - PRRT_kwDOUUI5ts6lXj4K
-    - PRRT_kwDOUUI5ts6lfj-O
-    - PRRT_kwDOUUI5ts6lfj-U
-    - PRRT_kwDOUUI5ts6liZGL
-    - PRRT_kwDOUUI5ts6ljD7h
-    - PRRT_kwDOUUI5ts6ljXzi
-    - PRRT_kwDOUUI5ts6lm-ef
-    - PRRT_kwDOUUI5ts6lnfaG
-    - PRRT_kwDOUUI5ts6lnqJY
-    - PRRT_kwDOUUI5ts6loe5m
-    - PRRT_kwDOUUI5ts6lumiR
+    - "PR #2 branch-local unresolved material findings remain pending final integration/review after PR #5 merge."
 
 required_tests:
   unit: [TEST-0009]
@@ -280,7 +193,7 @@ validation:
     - "REVIEW-0073 is CLOSED/CHANGES_REQUIRED on frozen exact head 46591d6d66246c5942eba09c712b196f3c1a16fc after Bootstrap #295 / run 35930261078 passed 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests; Codex L2 request 5804250089 was quota-refused by 5804251803, then author-side PRR_kwDOUUI5ts8AAAABO8S_3w produced P1 PRRT_kwDOUUI5ts6lXj4D and P2 PRRT_kwDOUUI5ts6lXj4K. REVIEW-0074 successor is required before any thread resolution."
     - "REVIEW-0074 implementation candidate replaces inherited weak internal rereads with local strict guard rereads on the same number+node identity and replaces the live validator with a strict exact-target seed+reread; lifecycle remains unopened pending exact technical proof."
     - "Historical REVIEW-0069 successor requirement is superseded by REVIEW-0070 terminal evidence; REVIEW-0071 retains the PR-scoped draft guard and addresses the five exact-head L2 findings rather than returning to bulk Gate authority."
-    - "All 71 inline material threads remain unresolved."
+    - "PR #5 controlled resolution completed after REVIEW-0082 approval: 83 total material threads, 0 unresolved, no new finding, branch content held fixed during resolution."
     - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
 
 risk: {security: HIGH, data: NONE, epistemic: LOW, performance: HIGH, operational: HIGH}
@@ -288,6 +201,7 @@ rollback:
   strategy: "Do not merge PR #5 until a clean exact-head successor review permits controlled thread resolution; main remains on WORK-0001 governance if PR #5 is rejected."
 
 run_log:
+  - "REVIEW-0082 COMPLETE/APPROVE reviewed exact head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618; lifecycle-recording commit cabb259aa686028def1c7b9a4e80b85d15b82d99 passed Bootstrap #332 / run 36048764381, then all 83 reviewed PR #5 material threads were resolved with branch content fixed and no new finding."
   - "REVIEW-0049 terminal independent negative: c8f1fec24358c25224771a15b647d56c8a2f0287 / PRR_kwDOUUI5ts8AAAABN4sxvg."
   - "REVIEW-0050 candidate cbe21fa4cebc1c8f8b3030af17284de5700f9818 passed #154 at 194 tests / 1856 statements / 842 branches / 100 percent plus live PR #2 probe."
   - "REVIEW-0050 OPEN 871850ac5b66a43cfd8491ef445d1738ad09d822 passed #155; frozen IN_PROGRESS f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c passed #156."
@@ -441,13 +355,13 @@ blockers:
   - "REVIEW-0080 is terminal CLOSED/CHANGES_REQUIRED after P1 PRRT_kwDOUUI5ts6loe5m; do not request further REVIEW-0080 approval."
   - "REVIEW-0081 is terminal CLOSED/CHANGES_REQUIRED after fresh exact-head independent L2 P2 PRRT_kwDOUUI5ts6lumiR; do not request further REVIEW-0081 approval."
   - "REVIEW-0082 is COMPLETE/APPROVE on exact reviewed head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618 via fresh independent Codex L2 issue comment 5820761929; controlled resolution of the 83 reviewed material threads is now permitted."
+  - "PR #5 controlled thread resolution is complete: 83/83 resolved, 0 unresolved; exact reconciliation-head Bootstrap proof is the remaining PR #5 merge-eligibility gate."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."
   - "REVIEW-0054 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0054 approval."
   - "REVIEW-0055 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0055 approval."
   - "REVIEW-0056 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0056 approval."
-  - "83 inline material threads remain unresolved."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
 follow_up_work_items: []

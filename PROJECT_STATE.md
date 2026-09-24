@@ -514,14 +514,21 @@ Its review contract is deliberately minimal and explicit:
 - historical older thread counts remain historical truth;
 - no post-proof commit will be created merely to copy live CI completion.
 
+### Controlled resolution after approval
+
+The lifecycle-recording commit `cabb259aa686028def1c7b9a4e80b85d15b82d99` passed Bootstrap #332 / run `36048764381`. With branch content held fixed after that proof, all **83 reviewed PR #5 material threads were resolved** in the permitted controlled batch. Live PR #5 now exposes **83 total / 83 resolved / 0 unresolved** material threads and no new material finding appeared.
+
+The repository now needs one reconciliation commit so machine `open_findings` and the active handover stop describing already-resolved PR #5 threads. The exact reconciliation HEAD must pass Bootstrap. That exact-head success is an external live eligibility fact; do **not** create another commit merely to copy its run number into the tree.
+
 ## Current next action
 
-1. REVIEW-0082 independent L2 is clean and the review is now `COMPLETE / APPROVE`.
-2. Prove this lifecycle-recording commit with Bootstrap; this is metadata/state materialization, not a substitute for the reviewed exact-head evidence.
-3. Resolve all **83 reviewed PR #5 material threads** in a controlled batch while keeping the branch content fixed.
-4. Verify live unresolved PR #5 thread count reaches zero and no new material finding appears.
-5. Reconcile WORK-0002 open_findings/current handover with the resolved live state, re-run exact-head Bootstrap, and only then assess guarded PR #5 merge eligibility.
-6. PR #2 integration/approval remains downstream; WORK-0003 and WORK-0004 remain blocked until WORK-0002 closure sequencing permits them.
+1. REVIEW-0082 independent L2 is clean and remains `COMPLETE / APPROVE` on exact reviewed head `71ed1cb233d16f032ff27cf5a88dfe039e2ba618`.
+2. Lifecycle-recording commit `cabb259aa686028def1c7b9a4e80b85d15b82d99` passed Bootstrap #332 / run `36048764381`.
+3. Controlled PR #5 resolution is complete: **83/83 resolved, 0 unresolved, no new finding**, with branch content fixed during resolution.
+4. Prove the current reconciliation HEAD with Bootstrap at 100% line + branch and live contract success; do not create a post-proof commit just to record completion.
+5. If that exact-head proof is green and live PR #5 still has 0 unresolved/new findings, assess guarded PR #5 merge eligibility and merge only with expected-head protection.
+6. After PR #5 merges, PR #2 must explicitly integrate new `main` with a two-parent merge, reconcile canonical state, rerun full proof, receive fresh L2 and eligible trusted non-author exact-head APPROVED evidence before WORK-0002 closes.
+7. WORK-0003 and WORK-0004 remain blocked until WORK-0002 closure sequencing permits them.
 
 ## Resume sequence
 
@@ -535,7 +542,7 @@ Its review contract is deliberately minimal and explicit:
 8. registry/reviews/REVIEW-0049.yaml
 9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/83 threads
+11. live PR #5 exact HEAD/checks/reviews/0 unresolved threads
 12. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.
