@@ -501,7 +501,7 @@ PR #5 now has **83/83 unresolved material threads** and WORK-0002's machine PRRT
 
 ## REVIEW-0082 — canonical review-shape successor
 
-REVIEW-0082 is now **OPEN** from the proven REVIEW-0081 CLOSED checkpoint `a1821ff4ffd302716b640e4ec27eb3c911d20ac1` / Bootstrap #329.
+REVIEW-0082 is now **IN_PROGRESS** after its OPEN checkpoint `c137f4ea30092298d691c7c3abd0b989f650a9cc` passed Bootstrap #330 / run `36047087635` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100**.
 
 This successor is governance/traceability-only. It changes no runtime Python, workflow, REQ-0026 or TEST-0009 semantic behavior.
 
@@ -517,10 +517,10 @@ Its review contract is deliberately minimal and explicit:
 ## Current next action
 
 1. Keep all **83** PR #5 material threads unresolved.
-2. Prove this REVIEW-0082 `OPEN` state-only checkpoint with Bootstrap.
-3. Transition `OPEN -> IN_PROGRESS` only after that checkpoint succeeds.
-4. On the exact IN_PROGRESS HEAD, require live trusted Bootstrap SUCCESS and keep the tree frozen.
-5. Request fresh independent L2 over all **83 unresolved material threads**.
+2. REVIEW-0082 OPEN checkpoint #330 is complete and lifecycle is now `IN_PROGRESS`.
+3. On this exact current IN_PROGRESS HEAD, require live trusted Bootstrap SUCCESS and keep the tree frozen.
+4. Request fresh independent L2 over all **83 unresolved material threads**.
+5. Do not create a post-proof commit solely to copy live CI completion.
 6. Any material finding closes REVIEW-0082 and requires a successor; resolve nothing beforehand.
 7. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
 8. WORK-0003 and WORK-0004 remain blocked.
