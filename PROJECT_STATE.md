@@ -489,7 +489,7 @@ PR #5 has **82/82 unresolved material threads** and WORK-0002 open_findings expo
 
 ## REVIEW-0081 — required-hat reconciliation successor
 
-REVIEW-0081 is now **OPEN**.
+REVIEW-0081 is now **IN_PROGRESS** after OPEN checkpoint `9ee48bf0265855e2296e25fc7ce0489d62a62473` passed Bootstrap #327 / run `36015957795` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
 It preserves the REVIEW-0080 TEST-0009/inventory repair unchanged and corrects the review contract itself. Its declared roles are exactly the six WORK-0002 required hats:
 - `ARCHITECTURE_REUSE`
@@ -504,12 +504,12 @@ No runtime Python, workflow, REQ-0026 or TEST-0009 semantic behavior changes.
 ## Current next action
 
 1. Keep all **82** PR #5 material threads unresolved.
-2. Prove this REVIEW-0081 `OPEN` state-only checkpoint.
-3. Transition `OPEN -> IN_PROGRESS` only after that proof.
-4. On the exact IN_PROGRESS HEAD, require live trusted Bootstrap SUCCESS and keep the tree frozen.
-5. Request fresh independent L2 over all **82 unresolved material threads** under all six required hats.
-6. Do not create a post-proof commit solely to copy live CI completion.
-7. Any material finding closes REVIEW-0081 and requires a successor; resolve nothing beforehand.
+2. REVIEW-0081 OPEN checkpoint #327 is complete and lifecycle is now `IN_PROGRESS`.
+3. On this exact current IN_PROGRESS HEAD, require live trusted Bootstrap SUCCESS and keep the tree frozen.
+4. Request fresh independent L2 over all **82 unresolved material threads** under all six required hats.
+5. Do not create a post-proof commit solely to copy live CI completion.
+6. Any material finding closes REVIEW-0081 and requires a successor; resolve nothing beforehand.
+7. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
 8. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
