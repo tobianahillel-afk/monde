@@ -393,36 +393,33 @@ PR #5 has **73/73 unresolved material threads**. None has been resolved.
 
 The REVIEW-0073 CLOSED checkpoint `a455d4f3431f3bb388567e9f8eb371e3df4d9067` passed Bootstrap #296 / run `35931004610`.
 
-## REVIEW-0074 implementation candidate — end-to-end strict guard identity
+## REVIEW-0074 — terminal independent negative evidence
 
-REVIEW-0074 fixes both REVIEW-0073 findings without changing the durable discovery or request-budget architecture.
+REVIEW-0074 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `2e228ba5f016f25eacffab0ca0cd9a7e095cd757`.
 
-The active guard now owns the complete two-observation sequence:
-1. strict open authority seed captures exact PR `number + node_id`;
-2. first bounded review-thread observation always occurs;
-3. first internal current-PR reread uses REVIEW-0073 `_strict_discovered_pr` against that exact number+node identity;
-4. second bounded thread observation occurs;
-5. second internal current-PR reread again uses the same strict number+node identity;
-6. only then may the exact current PR be converted to draft.
+Bootstrap #299 / run `35973035600` passed **440/440 tests**, **3,803 statements / 1,622 branches**, **100% line + branch**; REVIEW-0074 itself was **106 statements / 44 branches at 100%**, and the live PR #2 contract probe succeeded at **3/100** requests.
 
-A malformed coercive closed response on either internal reread therefore fails closed instead of being treated as safe closure.
+Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABPAAMUQ** completed on the exact frozen head and produced two new material findings:
 
-The read-only live validator is also replaced. It performs a strict target seed from the exact requested PR, binds the seed to its exact node id, rereads through REVIEW-0073 strict identity, requires the target still open, then evaluates bounded thread state. The workflow's live PR #2 contract probe is wired to REVIEW-0074, so real-system evidence now exercises the same strict identifier/type contract as the scheduled runtime.
+- **P1 — `PRRT_kwDOUUI5ts6lfj-O`:** REVIEW-0071 `_convert_to_draft` validates the GraphQL ACK strictly, but its direct REST postcondition still checks `observed.get("number") != guard.number` with Python coercive equality and returns immediately on `state == "closed"`. A malformed closed response such as `number: 5.0` for PR 5 or a wrong/missing `node_id` can therefore be accepted as the durable same-PR postcondition.
+- **P2 — `PRRT_kwDOUUI5ts6lfj-U`:** TEST-0010 prose records REVIEW-0074 #297 correctly, but machine-readable `execution.commit_sha` and `last_run_at` still identify REVIEW-0073 / 2026-09-23.
 
-REVIEW-0074 is now **IN_PROGRESS** after exact technical proof on `1a90e73bb107e9f77763103bed059bc12ab11575` and OPEN checkpoint proof on `d39fe379c8acc11f41988caa81600e68a0e05946`.
+PR #5 now has **75/75 unresolved material threads**. None has been resolved.
 
-Bootstrap #297 / run `35931690262` passed **440/440 tests**, **3,803 statements / 1,622 branches**, **100% line + branch**; REVIEW-0074 itself is **106 statements / 44 branches at 100%**, and the live PR #2 contract probe succeeded at **3/100** requests.
-
-Bootstrap #298 / run `35972837681` proved the OPEN checkpoint at **440/440 tests**, **3,803 statements / 1,622 branches**, **100% line + branch**, REVIEW-0074 **106 / 44 at 100%**, with live PR #2 probe SUCCESS at **3/100** requests. All **73/73 PR #5 material threads remain unresolved**. This IN_PROGRESS state must now receive one frozen exact-head proof before fresh independent L2; green technical evidence is not semantic approval.
+REVIEW-0075 must preserve all REVIEW-0074 strict runtime/live-validator guarantees while:
+1. making the post-mutation REST postcondition use exact positive non-Boolean PR number + exact expected node identity before **any** closed/open branch;
+2. requiring exact Boolean draft + state in `open/closed`; valid closed may return only after exact identity/type validation, while valid open must still prove exact same node is draft;
+3. updating TEST-0010 structured execution identity to REVIEW-0074 technical proof #297 / `1a90e73bb107e9f77763103bed059bc12ab11575` dated 2026-09-24;
+4. adding explicit regressions for `number:true`, `5.0`, wrong/missing node id and malformed draft/state on the postcondition closed path.
 
 ## Current next action
 
-1. Keep all **73** PR #5 material threads unresolved.
-2. REVIEW-0074 OPEN checkpoint proof is complete via Bootstrap #298 and REVIEW-0074 is now `IN_PROGRESS`.
-3. Prove/freeze this exact IN_PROGRESS head with Bootstrap.
-4. Request a fresh independent L2 over all **73 unresolved material threads**, REVIEW-0074 and retained negative evidence without mutating the tree while it runs.
-5. Any material finding closes REVIEW-0074 and requires a successor; resolve nothing beforehand.
-6. Only a clean L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
+1. Keep all **75** PR #5 material threads unresolved.
+2. Prove this REVIEW-0074 `CLOSED` state-only checkpoint.
+3. Implement REVIEW-0075 only after that checkpoint is green.
+4. Restore exact-head 100% line/branch proof and live PR #2 probe before opening REVIEW-0075.
+5. After OPEN and IN_PROGRESS checkpoints, run a fresh independent L2 over all **75 unresolved material threads**.
+6. Resolve nothing until a clean successor independent review permits it.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
@@ -437,7 +434,7 @@ Bootstrap #298 / run `35972837681` proved the OPEN checkpoint at **440/440 tests
 8. registry/reviews/REVIEW-0049.yaml
 9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/73 threads
+11. live PR #5 exact HEAD/checks/reviews/75 threads
 12. live PR #2 exact HEAD/checks/reviews/threads
 
 MONDE remains public. Never commit credentials, tokens or secrets.
