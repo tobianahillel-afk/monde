@@ -439,29 +439,34 @@ Author-side P2 **`PRRT_kwDOUUI5ts6ljD7h`** then proved that the active canonical
 
 PR #5 therefore has **77/77 unresolved material threads**. None has been resolved.
 
-## REVIEW-0077 implementation candidate — frozen-proof handover reconciliation
+## REVIEW-0077 — frozen-proof handover reconciliation
 
-REVIEW-0076 is terminal `CLOSED / CHANGES_REQUIRED`. Its CLOSED checkpoint `a625b477474e5ba100d0d6e7232ee49406f54898` passed Bootstrap #309 / run `35989979265` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+REVIEW-0077 is now **OPEN** after exact documentation-candidate proof on `a50971e5718cd0878e22479806b3177c1964f053`.
 
-REVIEW-0077 is a **documentation/traceability-only candidate**. REVIEW-0075 runtime/workflow semantics and TEST-0010 execution identity remain unchanged.
+Bootstrap #310 / run `35990255357` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-The active handover is now explicit:
-- REVIEW-0076 frozen exact-head proof **#308 is complete**;
-- REVIEW-0076 received **no independent L2** because requests `5812432588` and `5812484732` were quota-refused by `5812434586` and `5812486456`;
-- author-side P2 `PRRT_kwDOUUI5ts6ljD7h` invalidated REVIEW-0076 only because the canonical handover still called #308 pending;
+Compare `a625b477474e5ba100d0d6e7232ee49406f54898..a50971e5718cd0878e22479806b3177c1964f053` changes exactly:
+- `PROJECT_STATE.md`
+- `registry/work-items/WORK-0002.yaml`
+
+No runtime Python, workflow, or TEST-0010 execution semantics changed.
+
+The active handover is now synchronized:
+- REVIEW-0076 frozen proof #308 is complete;
+- REVIEW-0076 CLOSED checkpoint #309 is complete;
+- REVIEW-0076 review attempts were quota-refused and produced no independent approval;
 - PR #5 has **77/77 unresolved material threads**;
-- after REVIEW-0077 receives its own technical/OPEN/IN_PROGRESS proofs, **fresh independent L2 is the only semantic approval step remaining for REVIEW-0077**;
-- historical REVIEW-0073/0074/0075/0076 counts remain historical truth and are not rewritten;
-- no runtime Python, workflow, or TEST-0010 execution semantics are changed by this candidate.
+- fresh independent L2 is the only semantic approval step remaining after REVIEW-0077's own OPEN/IN_PROGRESS exact-head proof.
 
 ## Current next action
 
 1. Keep all **77** PR #5 material threads unresolved.
-2. Prove this documentation-only REVIEW-0077 candidate with Bootstrap.
-3. Verify the compare from `a625b477474e5ba100d0d6e7232ee49406f54898` changes exactly `PROJECT_STATE.md` and `registry/work-items/WORK-0002.yaml`.
-4. Only after exact technical proof, materialize REVIEW-0077 as `OPEN`.
-5. After OPEN and IN_PROGRESS checkpoints, request fresh independent L2 over all **77 unresolved material threads**.
-6. WORK-0003 and WORK-0004 remain blocked.
+2. Prove this REVIEW-0077 `OPEN` state-only checkpoint.
+3. Transition `OPEN -> IN_PROGRESS` only after that proof.
+4. Prove the resulting frozen exact HEAD.
+5. Request fresh independent L2 over all **77 unresolved material threads**.
+6. Any material finding closes REVIEW-0077 and requires a successor.
+7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
