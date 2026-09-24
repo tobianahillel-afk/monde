@@ -453,7 +453,7 @@ PR #5 now has **78/78 unresolved material threads**. None has been resolved.
 
 ## REVIEW-0078 — non-self-referential exact-head evidence
 
-REVIEW-0078 is now **OPEN** after exact governance-documentation proof on `f07796388bc13388de05146fec4bf2294dab72ef`.
+REVIEW-0078 is now **IN_PROGRESS** after exact governance-documentation proof on `f07796388bc13388de05146fec4bf2294dab72ef` and OPEN checkpoint proof on `1c017bbf3e44816bed12dc0e5752cf70fd5b7b67`.
 
 Bootstrap #314 / run `35991898265` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
@@ -466,6 +466,8 @@ Compare `024870e9109ec5aaffbeaed3ce97174e00aafed5..f07796388bc13388de05146fec4bf
 
 No runtime Python/workflow or TEST-0010 execution semantics changed.
 
+Bootstrap #315 / run `35992228587` proved the OPEN checkpoint at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+
 The canonical rule is now stable:
 - independent L2 is eligible only when live trusted GitHub evidence shows successful Bootstrap on the current exact `IN_PROGRESS` HEAD;
 - that run completion is external live evidence and is **not** copied back into the frozen tree;
@@ -477,11 +479,11 @@ PR #5 has **78/78 unresolved material threads**.
 ## Current next action
 
 1. Keep all **78** PR #5 material threads unresolved.
-2. Prove this REVIEW-0078 `OPEN` checkpoint.
-3. Transition `OPEN -> IN_PROGRESS` only after that proof.
-4. Once IN_PROGRESS, keep the tree frozen. Independent L2 is eligible only if live GitHub shows a successful trusted Bootstrap run on that exact current HEAD.
-5. When that live condition is satisfied, request independent L2 **without committing merely to record the run result**.
-6. Any material finding closes REVIEW-0078 and requires a successor.
+2. REVIEW-0078 is `IN_PROGRESS`; keep this tree frozen.
+3. Independent L2 is eligible **iff live trusted GitHub shows Bootstrap SUCCESS on this exact current HEAD**. Verify that live condition directly; do not mutate the tree solely to record its result.
+4. If the live condition is satisfied, request fresh independent L2 over all **78 unresolved material threads** while keeping the same HEAD frozen.
+5. Any material finding closes REVIEW-0078 and requires a successor; any material tree mutation requires a new exact-head Bootstrap before L2.
+6. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
 7. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
