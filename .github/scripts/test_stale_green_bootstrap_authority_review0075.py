@@ -163,7 +163,6 @@ class Review0075StrictPostconditionTests(unittest.TestCase):
 
     def test_review0074_guard_resolves_patched_conversion_at_call_time(self) -> None:
         ready = guard_pr(5, draft=False)
-        subject.install()
         with (
             mock.patch.object(
                 previous.guardbase,
@@ -175,11 +174,8 @@ class Review0075StrictPostconditionTests(unittest.TestCase):
                 "_strict_discovered_pr",
                 side_effect=[ready, ready],
             ),
-            mock.patch.object(subject, "_strict_convert_to_draft") as convert,
+            mock.patch.object(discovery, "_convert_to_draft") as convert,
         ):
-            # Refresh the shared attribute after replacing the subject function
-            # with its mock so REVIEW-0074 resolves exactly that runtime hook.
-            discovery._convert_to_draft = convert
             self.assertTrue(previous._strict_guard_one("o/r", "t", ready))
         convert.assert_called_once_with("o/r", "t", ready)
 
