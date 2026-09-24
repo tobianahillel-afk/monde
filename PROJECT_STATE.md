@@ -461,38 +461,35 @@ Fresh independent L2 **PRR_kwDOUUI5ts8AAAABPDhWdw** produced **P2 `PRRT_kwDOUUI5
 
 The new L2 finding raised PR #5 to **79/79 unresolved material threads**. REVIEW-0078 CLOSED checkpoint `67d6e358dbdb24a0f51cc917604a85b2ade143bd` then passed Bootstrap #317 / run `36008323720` at **450/450 tests**, **3,853 / 1,640**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100**.
 
-## REVIEW-0079 — exact finding-set reconciliation
+## REVIEW-0079 — terminal independent negative evidence
 
-REVIEW-0079 is now **IN_PROGRESS** after exact documentation/traceability proof on `dd3930574f1879fd1102291d55ec3bcca7508d00` and OPEN checkpoint proof on `3027b7369f3819f09a03d48057623cc10b296ef4`.
+REVIEW-0079 is **CLOSED / CHANGES_REQUIRED** on exact HEAD `1501fe77d8d5986fb29e381515de47e706ac2c02`.
 
-Bootstrap #318 / run `36008738638` and OPEN checkpoint #319 / run `36009156116` both passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+Bootstrap #320 / run `36009526029` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests. The finding inventory itself was exact at that point: **79 live PRRT IDs == 79 WORK-0002 PRRT IDs**, with no missing/extra entries.
 
-The machine-readable finding inventory exactly matches live GitHub:
-- live PR #5 PRRT IDs: **79 unique**
-- WORK-0002 `review_plan.open_findings` PRRT IDs: **79 unique**
-- missing: **0**
-- extra: **0**
+Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABPDwpnQ** then produced **P2 `PRRT_kwDOUUI5ts6lnfaG`**. The active REVIEW-0079 section and WORK-0002 required all 79 findings, but the canonical Resume sequence still instructed a fresh agent to inspect:
 
-The active regression invariant is **“all 79 inline findings remain represented and unresolved.”** Historical 73/75/76/77/78 counts remain historical truth.
+> `live PR #5 exact HEAD/checks/reviews/78 threads`
 
-No runtime Python, workflow, REQ-0026 semantic, or TEST-0010 execution semantics changed.
+That stale handover could omit one material finding during a fresh-context closure review.
 
-The canonical exact-head rule remains stable:
-- independent L2 is eligible only when live trusted GitHub evidence shows successful Bootstrap on the current exact `IN_PROGRESS` HEAD;
-- run completion is external live evidence and is not copied into the frozen tree;
-- any later material tree mutation creates a new HEAD and requires a new exact-head proof.
-
-All **79/79 PR #5 material threads remain unresolved**.
+The new L2 finding raises PR #5 to **80/80 unresolved material threads**. No thread has been resolved.
 
 ## Current next action
 
-1. Keep all **79** PR #5 material threads unresolved.
-2. REVIEW-0079 is `IN_PROGRESS`; keep this tree frozen.
-3. Independent L2 is eligible **iff live trusted GitHub shows Bootstrap SUCCESS on this exact current HEAD**. Verify that live condition directly; do not mutate the tree solely to record its result.
-4. If the live condition is satisfied, request fresh independent L2 over all **79 unresolved material threads** while keeping the same HEAD frozen.
-5. Any material finding closes REVIEW-0079 and requires a successor; any material tree mutation requires a new exact-head Bootstrap before L2.
-6. Only a clean independent L2 may permit controlled thread resolution and guarded PR #5 merge eligibility.
-7. WORK-0003 and WORK-0004 remain blocked.
+1. Keep all **80** PR #5 material threads unresolved.
+2. Prove this REVIEW-0079 `CLOSED` state-only checkpoint.
+3. REVIEW-0080 must be documentation/traceability-only:
+   - add `PRRT_kwDOUUI5ts6lnfaG` to `WORK-0002.review_plan.open_findings`;
+   - change the active regression invariant to all **80** inline findings represented and unresolved;
+   - update active PROJECT_STATE/WORK-0002 counts to **80**;
+   - change Resume sequence entry 11 to `live PR #5 exact HEAD/checks/reviews/80 threads`;
+   - preserve historical 73/75/76/77/78/79 counts;
+   - preserve the non-self-referential exact-head evidence rule;
+   - change no runtime Python, workflow, REQ-0026 semantic, or TEST-0010 execution semantics.
+4. After REVIEW-0080 candidate proof, verify live PRRT identities exactly equal WORK-0002 open_findings identities.
+5. Only then open REVIEW-0080 and proceed through OPEN -> IN_PROGRESS -> live exact-head proof -> fresh independent L2 over all **80** threads.
+6. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
