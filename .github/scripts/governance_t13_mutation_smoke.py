@@ -37,8 +37,8 @@ MUTATIONS = {
     ),
     "t13-step-control-enforcement": (
         "tools/governance/t11_closure.py",
-        "        if not _execution_controls_safe(job, step, allowed_job_ifs, allowed_step_ifs):\n            continue\n",
-        "        if False:\n            continue\n",
+        "        if not _execution_controls_safe(job, step, allowed_job_ifs, allowed_step_ifs):\n            continue\n        run = step.get(\"run\")\n",
+        "        if False:\n            continue\n        run = step.get(\"run\")\n",
     ),
     "t13-inherited-execution-controls": (
         "tools/governance/t11_closure.py",
