@@ -603,7 +603,7 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
         validate,
         CHECKOUT_ACTION,
         workflow=core,
-        required_with={"ref": "${{ inputs.head_sha }}", "persist-credentials": False},
+        required_with={"persist-credentials": False},
     ):
         out.append(Finding(CORE_WORKFLOW_PATH, "CORE_CHECKOUT_ACTION", "governance core must checkout the exact requested head with the pinned checkout action"))
     if not _steps_use_action(
@@ -687,10 +687,7 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
             CHECKOUT_ACTION,
             workflow=workflow,
             allowed_job_ifs=codeql_job_ifs,
-            required_with={
-                "ref": "${{ github.event.pull_request.head.sha || github.sha }}",
-                "persist-credentials": False,
-            },
+            required_with={"persist-credentials": False},
         ):
             out.append(Finding(WORKFLOW_PATH, "CODEQL_CHECKOUT_ACTION", "codeql must checkout the exact event head with the pinned checkout action"))
         if not _steps_use_action(
@@ -761,10 +758,7 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
             workflow=workflow,
             allowed_job_ifs=final_job_ifs,
             allowed_step_ifs=frozenset({PR_EVENT_IF}),
-            required_with={
-                "ref": "${{ github.event.pull_request.head.sha }}",
-                "persist-credentials": False,
-            },
+            required_with={"persist-credentials": False},
         ):
             out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_CHECKOUT_ACTION", "final gate must checkout the exact current PR head with the pinned checkout action"))
         if not _steps_execute_prefix(

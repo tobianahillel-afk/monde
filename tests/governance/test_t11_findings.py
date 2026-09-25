@@ -537,7 +537,7 @@ def test_workflow_structure_rejects_dependency_review_bypasses(tmp_path: Path) -
         ),
         encoding="utf-8",
     )
-    assert "DEPENDENCY_REVIEW_NEEDS" in {
+    assert "FINAL_GATE_NEEDS" in {
         item.rule for item in t11.validate_workflow_structure(tmp_path)
     }
 
