@@ -127,7 +127,7 @@ Required sequence from this integrated state:
 3. Correct the three distinct REVIEW-0083 defects: inherited workflow/job execution controls, single-ampersand background masking, and PR-family dependency-review skip enforcement.
 4. Keep the author duplicate `PRRT_kwDOUUI5ts6lz1l8` durably tracked until a clean successor review authorizes controlled resolution.
 5. Exact technical proof is complete on `dce9fbbfbe720adcde8ce91fc2e13b98c6544152` via Bootstrap #354 and Gate #284.
-6. REVIEW-0084 is now `OPEN`; prove this OPEN checkpoint, then advance to `IN_PROGRESS`, freeze/prove the exact head and request fresh independent L2 over all 81 findings plus integration effects.
+6. REVIEW-0084 OPEN checkpoint `a42026dfbe5467c30667681179feec954f2ab59b` is proved via Bootstrap #355 and Gate #285; REVIEW-0084 is now `IN_PROGRESS`. Prove/freeze this exact head, then request fresh independent L2 over all 81 findings plus integration effects.
 7. If new material findings appear, close REVIEW-0084 as negative evidence, add their exact identities durably and create another successor before any resolution.
 8. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD satisfying the hardened trusted/context-separated L2/L3 contract.
 9. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
@@ -135,13 +135,13 @@ Required sequence from this integrated state:
 
 ## REVIEW-0084 — final integrated successor
 
-REVIEW-0084 is now **OPEN** after exact technical proof on `dce9fbbfbe720adcde8ce91fc2e13b98c6544152`.
+REVIEW-0084 is now **IN_PROGRESS** after technical proof on `dce9fbbfbe720adcde8ce91fc2e13b98c6544152` and OPEN checkpoint proof on `a42026dfbe5467c30667681179feec954f2ab59b`.
 
 Bootstrap #354 / run `36123442666` succeeded. Gate #284 / run `36123443244` passed **824 tests**, **7,851 statements / 3,596 branches**, **100% line + branch**, mutations **38/38 + 40/40 + 5/5 + 11/11 + 9/9**, every deterministic/T7-T11 validator, CodeQL and Dependency Review. The live gate failed closed only on **81 unresolved threads** and missing trusted context-separated exact-head approval.
 
 The candidate fixes all three distinct REVIEW-0083 defects: inherited workflow/job execution controls are rejected, single-`&` background masking is rejected, and PR-family Dependency Review cannot be skipped while satisfying the final gate. REVIEW-0083 remains terminal negative evidence; no thread is resolved yet.
 
-This OPEN checkpoint must now receive its own exact-head proof before REVIEW-0084 may advance to `IN_PROGRESS`.
+Bootstrap #355 / run `36124201977` and Gate #285 / run `36124202258` proved the OPEN checkpoint with **824 tests**, **7,851 statements / 3,596 branches**, **100% line + branch**, mutations **38/38 + 40/40 + 5/5 + 11/11 + 9/9**, every deterministic/T7-T11 validator, CodeQL and Dependency Review. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
 
 ## REVIEW-0083 — terminal negative integrated-head review
 
