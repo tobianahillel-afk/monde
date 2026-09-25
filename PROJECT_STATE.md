@@ -128,14 +128,14 @@ Required sequence from this integrated state:
 4. Keep the author duplicate `PRRT_kwDOUUI5ts6lz1l8` durably tracked until a clean successor review authorizes controlled resolution.
 5. Exact technical proof is complete on `dce9fbbfbe720adcde8ce91fc2e13b98c6544152` via Bootstrap #354 and Gate #284.
 6. REVIEW-0084 is terminal **CLOSED / CHANGES_REQUIRED** after fresh independent L2 `PRR_kwDOUUI5ts8AAAABPOcDnA` on exact frozen head `d1850542494492a388b545dec954e078b825d9b5` added five new P1 findings.
-7. All five REVIEW-0084 defects have exact technical proof on `9289a93c6ace18593c06a94c1de83f95785259f7` via Bootstrap #365 / Gate #300; REVIEW-0085 is OPEN and must now receive exact-head OPEN checkpoint proof before advancing to IN_PROGRESS.
-8. After one frozen IN_PROGRESS proof, request a fresh independent L2 over all 86 unresolved threads. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD satisfying the hardened trusted/context-separated L2/L3 contract.
+7. All five REVIEW-0084 defects have exact technical proof and REVIEW-0085 OPEN checkpoint proof is complete via Bootstrap #366 / Gate #301; REVIEW-0085 is IN_PROGRESS.
+8. Prove/freeze this exact IN_PROGRESS head, then request a fresh independent L2 over all 86 unresolved threads. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD satisfying the hardened trusted/context-separated L2/L3 contract.
 9. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
 10. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
 ## REVIEW-0085 — five-finding successor
 
-REVIEW-0085 is **OPEN** after exact technical proof on `9289a93c6ace18593c06a94c1de83f95785259f7`.
+REVIEW-0085 is **IN_PROGRESS** after exact technical proof on `9289a93c6ace18593c06a94c1de83f95785259f7` and OPEN checkpoint proof on `5b3c57fb347ce189c70eec30f819e422cd0a254f`.
 
 Bootstrap #365 / run `36134916018` and Gate #300 / run `36134916263` proved the corrected candidate:
 - **827 tests PASS**;
@@ -148,7 +148,7 @@ Bootstrap #365 / run `36134916018` and Gate #300 / run `36134916263` proved the 
 
 The successor must independently falsify the five REVIEW-0084 fixes: shell-executable shadowing, Dependency Review action execution binding, required final live-gate command, complete governance-core command inventory, and pinned CodeQL init/analyze action binding.
 
-This OPEN checkpoint must itself pass Bootstrap + Gate before REVIEW-0085 may advance to `IN_PROGRESS`.
+Bootstrap #366 / run `36135753228` and Gate #301 / run `36135753428` proved the OPEN checkpoint with the same **827 tests**, **7,932 statements / 3,652 branches**, **100% line + branch**, **14/14 T13 mutations**, all deterministic validators green, and live gate blocked only on **86 unresolved threads** plus missing trusted exact-head approval. This IN_PROGRESS state now requires one frozen exact-head proof before a fresh independent L2.
 
 ## REVIEW-0084 — terminal negative integrated-head review
 
