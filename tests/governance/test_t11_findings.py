@@ -505,16 +505,16 @@ def test_step_prefix_requires_complete_argv_and_rejects_failure_masking_shell() 
     assert t11._steps_execute_prefix({"steps": ["bad"]}, expected) is False
 
     for run in (
-        "python -m tools.governance.t11_closure . || true",
-        "python -m tools.governance.t11_closure . && true",
-        "python -m tools.governance.t11_closure . ; exit 0",
-        "python -m tools.governance.t11_closure . | cat",
-        "python -m tools.governance.t11_closure . > /dev/null",
-        "python -m tools.governance.t11_closure . < input",
-        "python -m tools.governance.t11_closure . `echo x`",
-        "python -m tools.governance.t11_closure . $(echo x)",
-        "set +e\npython -m tools.governance.t11_closure .",
-        "set +o errexit\npython -m tools.governance.t11_closure .",
+        "python -m tools.governance.t11_closure . --base base --head head --json-out out.json || true",
+        "python -m tools.governance.t11_closure . --base base --head head --json-out out.json && true",
+        "python -m tools.governance.t11_closure . --base base --head head --json-out out.json ; exit 0",
+        "python -m tools.governance.t11_closure . --base base --head head --json-out out.json | cat",
+        "python -m tools.governance.t11_closure . --base base --head head --json-out out.json > /dev/null",
+        "python -m tools.governance.t11_closure . --base base --head head --json-out out.json < input",
+        "python -m tools.governance.t11_closure . --base base --head head --json-out out.json `echo x`",
+        "python -m tools.governance.t11_closure . --base base --head head --json-out out.json $(echo x)",
+        "set +e\npython -m tools.governance.t11_closure . --base base --head head --json-out out.json",
+        "set +o errexit\npython -m tools.governance.t11_closure . --base base --head head --json-out out.json",
     ):
         assert t11._steps_execute_prefix({"steps": [{"run": run}]}, expected) is False
 
