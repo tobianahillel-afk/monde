@@ -114,7 +114,7 @@ T11 now enforces that:
 - Gate #259 / run `36055246141` on integrated head `6e8014c7d46e2aceefa03902c37c6bdf2fac0c19` exposed one deterministic integration defect before L2: `.github/scripts/governance_t13_mutation_smoke.py` still targeted the pre-refactor `return any(...)` form of `_steps_execute_prefix`, while the current hardened implementation uses per-step parsed commands plus `if any(...): return True`. The runtime guard was correct; the mutation harness failed closed with `t13-executable-command-proof: target occurrence count != 1`. The current correction retargets that mutant to the exact current executable-prefix branch without weakening the mutation. A fresh exact-head Gate is required before any L2 request.
 - Gate #260 / run `36058286810` proved the T13 mutation retarget itself, then exposed a second integration-specific defect in `change_guard`: inherited REVIEW-0082 from the PR #5/main second-parent lineage was incorrectly treated as freshness authority for substantive first-parent PR #2 changes. REVIEW-0082 is valid T12 predecessor evidence, not a review of the current PR #2 delta. The correction makes review freshness authority first-parent scoped: a reviewed commit must remain an ancestor of the head, but only a reviewed commit on the current head's first-parent lineage can stale subsequent first-parent work. A real two-parent regression reproduces PR #5/main as second parent and preserves ordinary first-parent stale-review detection.
 **
-- Live PR #2 now has **86 unresolved material threads**. REVIEW-0084 frozen head `d1850542494492a388b545dec954e078b825d9b5` passed Bootstrap #356 / Gate #286 with **824 tests**, **7,851 statements / 3,596 branches**, **100% line + branch**, mutations **38/38 + 40/40 + 5/5 + 11/11 + 9/9**, every deterministic validator green, CodeQL and Dependency Review green; live gate failed only on **81 unresolved threads** and missing exact-head approval before review. Fresh independent L2 `PRR_kwDOUUI5ts8AAAABPOcDnA` then added five P1s: `PRRT_kwDOUUI5ts6l9_hk` (shell executable shadowing), `PRRT_kwDOUUI5ts6l9_ht` (Dependency Review action not structurally proven), `PRRT_kwDOUUI5ts6l9_hz` (final live-state command not required), `PRRT_kwDOUUI5ts6l9_h4` (governance-core command inventory incomplete), and `PRRT_kwDOUUI5ts6l9_h8` (CodeQL actions not structurally bound). REVIEW-0084 is **CLOSED / CHANGES_REQUIRED**.
+- Live PR #2 now has **91 unresolved material threads**. REVIEW-0085 frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` passed Bootstrap #367 / Gate #302 with **827 tests**, **7,932 statements / 3,652 branches**, **100% line + branch**, mutations **38/38 + 40/40 + 5/5 + 11/11 + 14/14**, every deterministic validator green, CodeQL and Dependency Review green; live gate failed only on **86 unresolved threads** and missing exact-head approval before review. Fresh independent L2 `PRR_kwDOUUI5ts8AAAABPPl4wg` then added four P1s: exact checkout-ref binding (`PRRT_kwDOUUI5ts6mAc8I`), split-line function shadowing (`PRRT_kwDOUUI5ts6mAc8M`), complete-argv validation (`PRRT_kwDOUUI5ts6mAc8O`), and Dependency Review probe binding (`PRRT_kwDOUUI5ts6mAc8S`). Author-side `PRRT_kwDOUUI5ts6mAdoV` additionally exposed the Bash subshell-function shadowing form. REVIEW-0085 is **CLOSED / CHANGES_REQUIRED**.
 - WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
 - Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` author-side; `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending exact integrated-head closure.
 
@@ -122,20 +122,32 @@ T11 now enforces that:
 
 Required sequence from this integrated state:
 
-1. Keep all **86** PR #2 material review threads unresolved.
+1. Keep all **91** PR #2 material review threads unresolved.
 2. REVIEW-0083 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPJeT9Q` on `cc37d74e2ee49aea62cfdfa30634c01a1032751f`.
 3. Correct the three distinct REVIEW-0083 defects: inherited workflow/job execution controls, single-ampersand background masking, and PR-family dependency-review skip enforcement.
 4. Keep the author duplicate `PRRT_kwDOUUI5ts6lz1l8` durably tracked until a clean successor review authorizes controlled resolution.
 5. Exact technical proof is complete on `dce9fbbfbe720adcde8ce91fc2e13b98c6544152` via Bootstrap #354 and Gate #284.
 6. REVIEW-0084 is terminal **CLOSED / CHANGES_REQUIRED** after fresh independent L2 `PRR_kwDOUUI5ts8AAAABPOcDnA` on exact frozen head `d1850542494492a388b545dec954e078b825d9b5` added five new P1 findings.
-7. All five REVIEW-0084 defects have exact technical proof and REVIEW-0085 OPEN checkpoint proof is complete via Bootstrap #366 / Gate #301; REVIEW-0085 is IN_PROGRESS.
-8. Prove/freeze this exact IN_PROGRESS head, then request a fresh independent L2 over all 86 unresolved threads. If semantic review is clean, obtain an eligible GitHub `APPROVED` review on the exact HEAD satisfying the hardened trusted/context-separated L2/L3 contract.
+7. REVIEW-0085 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPPl4wg` on frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` added four P1s; author-side `PRRT_kwDOUUI5ts6mAdoV` adds a fifth live thread.
+8. Correct the four distinct defect classes: exact checkout ref binding; all Bash function-shadowing forms including split-line and subshell bodies; constrained complete argv for required commands; and structurally validated Dependency Review capability probe. Then obtain exact technical proof and materialize a successor review.
 9. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
 10. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
-## REVIEW-0085 — five-finding successor
+## REVIEW-0085 — terminal negative integrated-head review
 
-REVIEW-0085 is **IN_PROGRESS** after exact technical proof on `9289a93c6ace18593c06a94c1de83f95785259f7` and OPEN checkpoint proof on `5b3c57fb347ce189c70eec30f819e422cd0a254f`.
+REVIEW-0085 completed on exact frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` with independent reviewer `chatgpt-codex-connector` / `PRR_kwDOUUI5ts8AAAABPPl4wg` and outcome **CHANGES_REQUIRED**.
+
+Independent P1 findings:
+- `PRRT_kwDOUUI5ts6mAc8I` — checkout action pinning does not bind the exact expected ref;
+- `PRRT_kwDOUUI5ts6mAc8M` — split-line Bash function declaration can shadow the required executable;
+- `PRRT_kwDOUUI5ts6mAc8O` — prefix-only command proof accepts suffixes such as `--help` that bypass real validation;
+- `PRRT_kwDOUUI5ts6mAc8S` — Dependency Review action condition relies on an unvalidated capability-probe producer.
+
+Author-side `PRRT_kwDOUUI5ts6mAdoV` independently exposed the related Bash subshell-function form `python() ( ... )`.
+
+The live/durable unresolved closure set is now **91**. No thread is resolved. A successor review may be materialized only after all four distinct defect classes receive exact technical proof.
+
+Historical pre-review proof on this review remains Bootstrap #365/#366 and Gate #300/#301; frozen proof is Bootstrap #367 / Gate #302.
 
 Bootstrap #365 / run `36134916018` and Gate #300 / run `36134916263` proved the corrected candidate:
 - **827 tests PASS**;
@@ -210,7 +222,7 @@ Product specification and product identity remain owner-gated decisions. Agents 
 8. `registry/acceptance-authority.yaml`
 9. `registry/content-identity.yaml`
 10. `registry/integration-provenance.yaml`
-11. live PR #2 exact HEAD, checks, reviews and all **86 unresolved review threads**
+11. live PR #2 exact HEAD, checks, reviews and all **91 unresolved review threads**
 12. `.github/workflows/governance.yml`, `.github/workflows/_governance-core.yml`
 13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `t11_closure.py`, `github_live_gate.py`, `thread_state_poll.py`
 14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_t11_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`

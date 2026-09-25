@@ -1,12 +1,12 @@
 id: REVIEW-0085
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-2"
-  commit_sha: null
+  commit_sha: "4cbe42fd2c5b2fc14cd50e843c103340cf4dac99"
 reviewer:
-  actor: null
-  context_id: null
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABPPl4wg"
   independence_level: L2
 roles:
   - ARCHITECTURE_REUSE
@@ -42,7 +42,11 @@ scope:
     - "mutation harnesses drift from the hardened implementation and create false proof"
     - "technical proof is mistaken for independent semantic approval"
     - "durable and live finding sets drift while preserving equal counts"
-findings: []
+findings:
+  - "PRRT_kwDOUUI5ts6mAc8I"
+  - "PRRT_kwDOUUI5ts6mAc8M"
+  - "PRRT_kwDOUUI5ts6mAc8O"
+  - "PRRT_kwDOUUI5ts6mAc8S"
 checks:
   assumptions_challenged:
     - "argv-prefix parsing alone proves the executable cannot be shadowed by shell declarations"
@@ -66,6 +70,7 @@ checks:
     - "Existing T11 workflow-structure parser and T13 mutation harness are hardened rather than replaced."
     - "Existing T12 T13 T14 integration contracts are reused unchanged."
     - "No historical negative review is rewritten as approval."
+    - "Author-side PRRT_kwDOUUI5ts6mAdoV independently exposed an additional Bash subshell-function shadowing form after the L2 submission and remains separate non-independent source evidence."
   failure_modes_considered:
     - "required command text remains visible while a shell function shadows the executable"
     - "dependency-review or CodeQL job becomes a successful no-op"
@@ -74,6 +79,10 @@ checks:
     - "mutation target occurrence drift creates a false-negative harness failure"
     - "REVIEW-0085 is materialized before exact technical proof"
     - "live and durable finding sets differ despite equal count"
+    - "checkout action remains pinned but ref can target an older PR commit"
+    - "split-line or subshell-form Bash function declaration shadows required executable"
+    - "prefix-only argv proof accepts help/early-exit suffixes"
+    - "dependency-review action condition references an unvalidated capability-probe producer"
   evidence_requested:
     - "Exact technical candidate 9289a93c6ace18593c06a94c1de83f95785259f7 passed Bootstrap #365 / run 36134916018."
     - "MONDE Gate #300 / run 36134916263 on exact 9289a93c6ace18593c06a94c1de83f95785259f7 passed 827 tests with 7932 statements and 3652 branches at 100 percent line+branch coverage."
@@ -84,7 +93,7 @@ checks:
     - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
     - "Fresh independent L2 must review all 86 unresolved material threads plus integration effects under all six required hats."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-25T13:03:44Z"
 history:
   created_at: "2026-09-25"
   updated_at: "2026-09-25"
