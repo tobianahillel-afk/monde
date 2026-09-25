@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 TESTS = [
     "tests/governance/test_t13_findings.py",
+    "tests/governance/test_t11_repository_wiring.py",
     "tests/governance/test_thread_state_poll.py",
     "tests/governance/test_github_live_gate.py",
 ]
