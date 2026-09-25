@@ -129,9 +129,26 @@ Required sequence from this integrated state:
 5. Exact technical proof is complete on `dce9fbbfbe720adcde8ce91fc2e13b98c6544152` via Bootstrap #354 and Gate #284.
 6. REVIEW-0084 is terminal **CLOSED / CHANGES_REQUIRED** after fresh independent L2 `PRR_kwDOUUI5ts8AAAABPOcDnA` on exact frozen head `d1850542494492a388b545dec954e078b825d9b5` added five new P1 findings.
 7. REVIEW-0085 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPPl4wg` on frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` added four P1s; author-side `PRRT_kwDOUUI5ts6mAdoV` adds a fifth live thread.
-8. Correct the four distinct defect classes: exact checkout ref binding; all Bash function-shadowing forms including split-line and subshell bodies; constrained complete argv for required commands; and structurally validated Dependency Review capability probe. Then obtain exact technical proof and materialize a successor review.
+8. The four REVIEW-0085 defect classes are corrected and exactly proved on `cc0a62661aac2150983ebcaf4c3dd0529012a209` via Bootstrap #373 / Gate #315. REVIEW-0086 is OPEN; prove this OPEN checkpoint exact-head, then transition to IN_PROGRESS before one frozen-head fresh independent L2 over all 91 unresolved threads.
 9. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
 10. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
+
+## REVIEW-0086 — exact-ref / complete-argv / probe-binding successor
+
+REVIEW-0086 is **OPEN** after exact technical proof on `cc0a62661aac2150983ebcaf4c3dd0529012a209`.
+
+Bootstrap #373 / run `36141676466` and Gate #315 / run `36141676897` proved:
+- **829 tests PASS**;
+- **7,977 statements / 3,680 branches**, **100% line + branch**;
+- mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 18/18 T13**;
+- repository/strict/path/change/L2/review/T7/T8/T9/T10/T11 validators all green;
+- context manifest **25 MUST_READ files**;
+- CodeQL and Dependency Review jobs **success**;
+- live gate failed closed only on **91 unresolved threads** and missing trusted exact-head approval, with no durable-finding mismatch.
+
+The successor rechecks exact checkout/ref and reusable-core head binding, split-line and subshell Bash executable shadowing, complete constrained argv instead of prefix matching, and exact Dependency Review capability-probe producer binding while preserving the WORK-0003 capability boundary.
+
+This OPEN checkpoint must now receive its own exact-head Gate proof before REVIEW-0086 may transition to `IN_PROGRESS`.
 
 ## REVIEW-0085 — terminal negative integrated-head review
 
@@ -227,6 +244,6 @@ Product specification and product identity remain owner-gated decisions. Agents 
 13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `t11_closure.py`, `github_live_gate.py`, `thread_state_poll.py`
 14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_t11_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`
 15. `tests/governance/test_t11_findings.py`, `test_t11_additional_coverage.py`, `test_t13_findings.py`, `test_thread_state_poll.py` and prior T7/T8/T9/T10 regression suites
-16. `registry/requirements/REQ-0026.yaml`, `registry/tests/TEST-0009.yaml`, `registry/tests/TEST-0010.yaml`, `registry/reviews/REVIEW-0082.yaml`, `registry/reviews/REVIEW-0083.yaml`, `registry/reviews/REVIEW-0084.yaml`, `registry/reviews/REVIEW-0085.yaml`, and `.github/workflows/monde-stale-green-bootstrap.yml`
+16. `registry/requirements/REQ-0026.yaml`, `registry/tests/TEST-0009.yaml`, `registry/tests/TEST-0010.yaml`, `registry/reviews/REVIEW-0082.yaml`, `registry/reviews/REVIEW-0083.yaml`, `registry/reviews/REVIEW-0084.yaml`, `registry/reviews/REVIEW-0085.yaml`, `registry/reviews/REVIEW-0086.yaml`, and `.github/workflows/monde-stale-green-bootstrap.yml`
 
 No prior chat history is required.
