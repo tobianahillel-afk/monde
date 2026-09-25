@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -35,6 +36,36 @@ REQUIRED_EVENT_TYPES = {
     "pull_request_review": {"submitted", "edited", "dismissed"},
     "pull_request_review_comment": {"created", "edited", "deleted"},
 }
+
+CHECKOUT_ACTION = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+SETUP_PYTHON_ACTION = "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97"
+DEPENDENCY_REVIEW_ACTION = "actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294"
+CODEQL_INIT_ACTION = "github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63"
+CODEQL_ANALYZE_ACTION = "github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63"
+PR_EVENT_IF = "startsWith(github.event_name, 'pull_request')"
+CORE_PR_IF = "startsWith(inputs.event_name, 'pull_request')"
+FINAL_GATE_IF = "always() && github.event_name != 'schedule'"
+CODEQL_JOB_IF = "github.event_name != 'schedule'"
+
+REQUIRED_CORE_COMMANDS = (
+    ("CORE_TOOLCHAIN_WIRING", ("python", "-m", "pip", "install", "--require-hashes", "-r", "requirements/governance-ci.txt"), frozenset()),
+    ("CORE_PYTEST_WIRING", ("python", "-m", "pytest"), frozenset()),
+    ("CORE_BASE_MUTATION_WIRING", ("python", "scripts/governance_mutation_smoke.py"), frozenset()),
+    ("CORE_L2_MUTATION_WIRING", ("python", ".github/scripts/governance_l2_mutation_smoke.py"), frozenset()),
+    ("CORE_T10_MUTATION_WIRING", ("python", ".github/scripts/governance_t10_mutation_smoke.py"), frozenset()),
+    ("CORE_T13_MUTATION_WIRING", ("python", ".github/scripts/governance_t13_mutation_smoke.py"), frozenset()),
+    ("CORE_VALIDATE_REPO_WIRING", ("python", "-m", "tools.governance.validate_repo", "."), frozenset()),
+    ("CORE_STRICT_CONTRACTS_WIRING", ("python", "-m", "tools.governance.strict_contracts", "."), frozenset()),
+    ("CORE_PATH_SAFETY_WIRING", ("python", "-m", "tools.governance.path_safety", "."), frozenset()),
+    ("CORE_CHANGE_GUARD_WIRING", ("python", "-m", "tools.governance.change_guard", "."), frozenset({CORE_PR_IF})),
+    ("CORE_L2_GATE_WIRING", ("PYTHONPATH=$PWD:$PWD/.github/scripts", "python", ".github/scripts/governance_l2_gate.py", "."), frozenset({CORE_PR_IF})),
+    ("CORE_REVIEW_CLOSURE_WIRING", ("python", "-m", "tools.governance.review_closure_gate", "."), frozenset({CORE_PR_IF})),
+    ("CORE_T7_WIRING", ("python", "-m", "tools.governance.t7_closure", "."), frozenset({CORE_PR_IF})),
+    ("CORE_T8_WIRING", ("python", "-m", "tools.governance.t8_closure", "."), frozenset({CORE_PR_IF})),
+    ("CORE_T9_WIRING", ("python", "-m", "tools.governance.t9_closure", "."), frozenset({CORE_PR_IF})),
+    ("CORE_T10_WIRING", ("python", "-m", "tools.governance.t10_closure", "."), frozenset({CORE_PR_IF})),
+    ("CORE_CONTEXT_MANIFEST_WIRING", ("python", "-m", "tools.governance.context_manifest", "."), frozenset({CORE_PR_IF})),
+)
 
 
 @dataclass(frozen=True)
@@ -372,6 +403,23 @@ def _run_step_has_failure_masking_shell(run: str) -> bool:
     return False
 
 
+def _run_step_can_shadow_executable(run: str, executable: str) -> bool:
+    name = re.escape(executable)
+    function_decl = re.compile(
+        rf"^(?:function\s+)?{name}\s*(?:\(\s*\))?\s*\{{"
+    )
+    alias_decl = re.compile(rf"^alias\s+{name}\s*=")
+    for raw_line in run.splitlines():
+        line = raw_line.strip()
+        if function_decl.match(line) or alias_decl.match(line):
+            return True
+        if line.startswith(("source ", ". ", "eval ")) and executable in run:
+            return True
+        if line.startswith("hash ") and executable in line:
+            return True
+    return False
+
+
 def _container_execution_defaults_safe(container: dict[str, Any]) -> bool:
     env = container.get("env")
     if env is not None:
@@ -432,6 +480,36 @@ def _execution_controls_safe(
     return True
 
 
+def _steps_use_action(
+    job: dict[str, Any],
+    expected_use: str,
+    *,
+    workflow: dict[str, Any] | None = None,
+    allowed_job_ifs: frozenset[str] = frozenset(),
+    allowed_step_ifs: frozenset[str] = frozenset(),
+    required_with: dict[str, Any] | None = None,
+) -> bool:
+    if not _inherited_execution_controls_safe(workflow, job):
+        return False
+    steps = job.get("steps")
+    if not isinstance(steps, list):
+        return False
+    expected_with = required_with or {}
+    for step in steps:
+        if not isinstance(step, dict) or step.get("uses") != expected_use:
+            continue
+        if not _execution_controls_safe(job, step, allowed_job_ifs, allowed_step_ifs):
+            continue
+        actual_with = step.get("with")
+        if expected_with:
+            if not isinstance(actual_with, dict):
+                continue
+            if any(actual_with.get(key) != value for key, value in expected_with.items()):
+                continue
+        return True
+    return False
+
+
 def _steps_execute_prefix(
     job: dict[str, Any],
     expected: tuple[str, ...],
@@ -452,6 +530,9 @@ def _steps_execute_prefix(
             continue
         run = step.get("run")
         if not isinstance(run, str) or _run_step_has_failure_masking_shell(run):
+            continue
+        executable = next((token for token in expected if "=" not in token), expected[0])
+        if _run_step_can_shadow_executable(run, executable):
             continue
         commands = _logical_run_commands({"steps": [step]})
         if any(tuple(command[: len(expected)]) == expected for command in commands):
@@ -517,11 +598,46 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
     core_jobs = core_jobs if isinstance(core_jobs, dict) else {}
     validate = core_jobs.get("validate")
     validate = validate if isinstance(validate, dict) else {}
+
+    if not _steps_use_action(
+        validate,
+        CHECKOUT_ACTION,
+        workflow=core,
+        required_with={"ref": "${{ inputs.head_sha }}", "persist-credentials": False},
+    ):
+        out.append(Finding(CORE_WORKFLOW_PATH, "CORE_CHECKOUT_ACTION", "governance core must checkout the exact requested head with the pinned checkout action"))
+    if not _steps_use_action(
+        validate,
+        SETUP_PYTHON_ACTION,
+        workflow=core,
+        required_with={
+            "python-version": "3.13.15",
+            "cache": "pip",
+            "cache-dependency-path": "requirements/governance-ci.txt",
+        },
+    ):
+        out.append(Finding(CORE_WORKFLOW_PATH, "CORE_SETUP_PYTHON_ACTION", "governance core must use the pinned Python setup action and expected toolchain inputs"))
+
+    for rule, expected, allowed_step_ifs in REQUIRED_CORE_COMMANDS:
+        if not _steps_execute_prefix(
+            validate,
+            expected,
+            workflow=core,
+            allowed_step_ifs=allowed_step_ifs,
+        ):
+            out.append(
+                Finding(
+                    CORE_WORKFLOW_PATH,
+                    rule,
+                    f"governance core must execute required blocking command prefix {list(expected)!r}",
+                )
+            )
+
     if not _steps_execute_prefix(
         validate,
         ("python", "-m", "tools.governance.t11_closure", "."),
         workflow=core,
-        allowed_step_ifs=frozenset({"startsWith(inputs.event_name, 'pull_request')"}),
+        allowed_step_ifs=frozenset({CORE_PR_IF}),
     ):
         out.append(Finding(CORE_WORKFLOW_PATH, "T11_GATE_WIRING", "governance core must execute the T11 closure validator"))
     if not _steps_execute_prefix(
@@ -534,34 +650,103 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
     dependency_review = jobs.get("dependency-review")
     if not isinstance(dependency_review, dict):
         out.append(Finding(WORKFLOW_PATH, "DEPENDENCY_REVIEW_JOB", "dependency-review job is missing"))
-    elif str(dependency_review.get("if") or "") != "startsWith(github.event_name, 'pull_request')":
-        out.append(
-            Finding(
-                WORKFLOW_PATH,
-                "DEPENDENCY_REVIEW_SCOPE",
-                "dependency-review job must run for every pull-request-family event",
+    else:
+        if str(dependency_review.get("if") or "") != PR_EVENT_IF:
+            out.append(
+                Finding(
+                    WORKFLOW_PATH,
+                    "DEPENDENCY_REVIEW_SCOPE",
+                    "dependency-review job must run for every pull-request-family event",
+                )
             )
-        )
+        if not _steps_use_action(
+            dependency_review,
+            DEPENDENCY_REVIEW_ACTION,
+            workflow=workflow,
+            allowed_job_ifs=frozenset({PR_EVENT_IF}),
+            allowed_step_ifs=frozenset({"steps.depgraph.outputs.supported == 'true'"}),
+            required_with={"fail-on-severity": "moderate"},
+        ):
+            out.append(
+                Finding(
+                    WORKFLOW_PATH,
+                    "DEPENDENCY_REVIEW_ACTION",
+                    "dependency-review job must execute the pinned Dependency Review action under the expected supported-capability condition",
+                )
+            )
+
+    codeql = jobs.get("codeql")
+    if not isinstance(codeql, dict):
+        out.append(Finding(WORKFLOW_PATH, "CODEQL_JOB", "codeql job is missing"))
+    else:
+        if str(codeql.get("if") or "") != CODEQL_JOB_IF:
+            out.append(Finding(WORKFLOW_PATH, "CODEQL_SCOPE", "codeql job must run for every non-schedule event"))
+        codeql_job_ifs = frozenset({CODEQL_JOB_IF})
+        if not _steps_use_action(
+            codeql,
+            CHECKOUT_ACTION,
+            workflow=workflow,
+            allowed_job_ifs=codeql_job_ifs,
+            required_with={
+                "ref": "${{ github.event.pull_request.head.sha || github.sha }}",
+                "persist-credentials": False,
+            },
+        ):
+            out.append(Finding(WORKFLOW_PATH, "CODEQL_CHECKOUT_ACTION", "codeql must checkout the exact event head with the pinned checkout action"))
+        if not _steps_use_action(
+            codeql,
+            CODEQL_INIT_ACTION,
+            workflow=workflow,
+            allowed_job_ifs=codeql_job_ifs,
+            required_with={"languages": "python"},
+        ):
+            out.append(Finding(WORKFLOW_PATH, "CODEQL_INIT_ACTION", "codeql job must execute the pinned CodeQL init action for Python"))
+        if not _steps_use_action(
+            codeql,
+            CODEQL_ANALYZE_ACTION,
+            workflow=workflow,
+            allowed_job_ifs=codeql_job_ifs,
+        ):
+            out.append(Finding(WORKFLOW_PATH, "CODEQL_ANALYZE_ACTION", "codeql job must execute the pinned CodeQL analyze action"))
 
     final_gate = jobs.get("final-gate")
     if not isinstance(final_gate, dict):
         out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_JOB", "final-gate job is missing"))
     else:
+        if str(final_gate.get("if") or "") != FINAL_GATE_IF:
+            out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_SCOPE", "final-gate must run for every non-schedule event"))
         needs = final_gate.get("needs")
-        if not isinstance(needs, list) or "dependency-review" not in {str(item) for item in needs}:
+        observed_needs = {str(item) for item in needs} if isinstance(needs, list) else set()
+        required_needs = {"governance-core", "dependency-review", "codeql"}
+        if not required_needs.issubset(observed_needs):
             out.append(
                 Finding(
                     WORKFLOW_PATH,
-                    "DEPENDENCY_REVIEW_NEEDS",
-                    "final-gate must depend on dependency-review",
+                    "FINAL_GATE_NEEDS",
+                    f"final-gate must depend on {sorted(required_needs)}; observed={sorted(observed_needs)}",
                 )
             )
+        final_job_ifs = frozenset({FINAL_GATE_IF})
+        if not _steps_execute_prefix(
+            final_gate,
+            ("test", "${{ needs.governance-core.result }}", "=", "success"),
+            workflow=workflow,
+            allowed_job_ifs=final_job_ifs,
+        ):
+            out.append(Finding(WORKFLOW_PATH, "GOVERNANCE_CORE_REQUIRED", "final gate must explicitly require governance-core success"))
+        if not _steps_execute_prefix(
+            final_gate,
+            ("test", "${{ needs.codeql.result }}", "=", "success"),
+            workflow=workflow,
+            allowed_job_ifs=final_job_ifs,
+        ):
+            out.append(Finding(WORKFLOW_PATH, "CODEQL_REQUIRED", "final gate must explicitly require codeql success"))
         if not _steps_execute_prefix(
             final_gate,
             ("test", "${{ needs.dependency-review.result }}", "=", "success"),
             workflow=workflow,
-            allowed_job_ifs=frozenset({"always() && github.event_name != 'schedule'"}),
-            allowed_step_ifs=frozenset({"startsWith(github.event_name, 'pull_request')"}),
+            allowed_job_ifs=final_job_ifs,
+            allowed_step_ifs=frozenset({PR_EVENT_IF}),
         ):
             out.append(
                 Finding(
@@ -570,6 +755,26 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
                     "pull-request-family final gate must explicitly require dependency-review success",
                 )
             )
+        if not _steps_use_action(
+            final_gate,
+            CHECKOUT_ACTION,
+            workflow=workflow,
+            allowed_job_ifs=final_job_ifs,
+            allowed_step_ifs=frozenset({PR_EVENT_IF}),
+            required_with={
+                "ref": "${{ github.event.pull_request.head.sha }}",
+                "persist-credentials": False,
+            },
+        ):
+            out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_CHECKOUT_ACTION", "final gate must checkout the exact current PR head with the pinned checkout action"))
+        if not _steps_execute_prefix(
+            final_gate,
+            ("python", "-m", "tools.governance.github_live_gate"),
+            workflow=workflow,
+            allowed_job_ifs=final_job_ifs,
+            allowed_step_ifs=frozenset({PR_EVENT_IF}),
+        ):
+            out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_LIVE_WIRING", "final gate must execute the blocking live GitHub state validator"))
     return out
 
 

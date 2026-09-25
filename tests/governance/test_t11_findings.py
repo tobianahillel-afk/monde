@@ -311,6 +311,7 @@ on:
   schedule:
     - cron: '*/5 * * * *'
 jobs:
+  governance-core: {}
   review-thread-state-poll:
     if: github.event_name == 'schedule'
     permissions:
@@ -321,13 +322,39 @@ jobs:
       - run: python -m tools.governance.thread_state_poll
   dependency-review:
     if: startsWith(github.event_name, 'pull_request')
-    steps: []
+    steps:
+      - id: depgraph
+        run: echo probe
+      - if: steps.depgraph.outputs.supported == 'true'
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
+        with:
+          fail-on-severity: moderate
+  codeql:
+    if: github.event_name != 'schedule'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63
+        with:
+          languages: python
+      - uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63
   final-gate:
     if: always() && github.event_name != 'schedule'
-    needs: [dependency-review]
+    needs: [governance-core, dependency-review, codeql]
     steps:
+      - run: test '${{ needs.governance-core.result }}' = 'success'
+      - run: test '${{ needs.codeql.result }}' = 'success'
       - if: startsWith(github.event_name, 'pull_request')
         run: test '${{ needs.dependency-review.result }}' = 'success'
+      - if: startsWith(github.event_name, 'pull_request')
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - if: startsWith(github.event_name, 'pull_request')
+        run: python -m tools.governance.github_live_gate --repo x --pr 1 --head h --root .
 """,
         encoding="utf-8",
     )
@@ -338,13 +365,48 @@ jobs:
 jobs:
   validate:
     steps:
-      - run: python .github/scripts/governance_t11_mutation_smoke.py
-      - run: python -m tools.governance.t11_closure . --base x --head y
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.head_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13.15'
+          cache: pip
+          cache-dependency-path: requirements/governance-ci.txt
+      - run: python -m pip install --require-hashes -r requirements/governance-ci.txt
+      - run: python -m pytest --cov --cov-branch
+      - run: |
+          python scripts/governance_mutation_smoke.py
+          python .github/scripts/governance_l2_mutation_smoke.py
+          python .github/scripts/governance_t10_mutation_smoke.py
+          python .github/scripts/governance_t11_mutation_smoke.py
+          python .github/scripts/governance_t13_mutation_smoke.py
+      - run: |
+          python -m tools.governance.validate_repo . --json-out a.json
+          python -m tools.governance.strict_contracts . --json-out b.json
+          python -m tools.governance.path_safety . --json-out c.json
+      - if: startsWith(inputs.event_name, 'pull_request')
+        run: python -m tools.governance.change_guard . --base x --head y
+      - if: startsWith(inputs.event_name, 'pull_request')
+        run: PYTHONPATH="$PWD:$PWD/.github/scripts" python .github/scripts/governance_l2_gate.py . --base x --head y
+      - if: startsWith(inputs.event_name, 'pull_request')
+        run: python -m tools.governance.review_closure_gate . --base x --head y
+      - if: startsWith(inputs.event_name, 'pull_request')
+        run: python -m tools.governance.t7_closure . --base x --head y
+      - if: startsWith(inputs.event_name, 'pull_request')
+        run: python -m tools.governance.t8_closure . --base x --head y
+      - if: startsWith(inputs.event_name, 'pull_request')
+        run: python -m tools.governance.t9_closure . --base x --head y
+      - if: startsWith(inputs.event_name, 'pull_request')
+        run: python -m tools.governance.t10_closure . --base x --head y
+      - if: startsWith(inputs.event_name, 'pull_request')
+        run: python -m tools.governance.t11_closure . --base x --head y
+      - if: startsWith(inputs.event_name, 'pull_request')
+        run: python -m tools.governance.context_manifest . --base x --head y
 """,
         encoding="utf-8",
     )
-
-
 def test_workflow_structure_parses_effective_yaml_not_comments(tmp_path: Path) -> None:
     _write_valid_workflows(tmp_path)
     assert t11.validate_workflow_structure(tmp_path) == []
@@ -468,7 +530,11 @@ def test_workflow_structure_rejects_dependency_review_bypasses(tmp_path: Path) -
     _write_valid_workflows(tmp_path)
     text = workflow.read_text(encoding="utf-8")
     workflow.write_text(
-        text.replace("    needs: [dependency-review]\n", "    needs: [governance-core]\n", 1),
+        text.replace(
+            "    needs: [governance-core, dependency-review, codeql]\n",
+            "    needs: [governance-core, codeql]\n",
+            1,
+        ),
         encoding="utf-8",
     )
     assert "DEPENDENCY_REVIEW_NEEDS" in {
@@ -492,11 +558,103 @@ def test_workflow_structure_rejects_dependency_review_bypasses(tmp_path: Path) -
     _write_valid_workflows(tmp_path)
     text = workflow.read_text(encoding="utf-8")
     start = text.index("  dependency-review:\n")
-    end = text.index("  final-gate:\n", start)
+    end = text.index("  codeql:\n", start)
     workflow.write_text(text[:start] + text[end:], encoding="utf-8")
     assert "DEPENDENCY_REVIEW_JOB" in {
         item.rule for item in t11.validate_workflow_structure(tmp_path)
     }
+
+
+def test_review0084_structural_p1_regressions(tmp_path: Path) -> None:
+    cases = [
+        (
+            t11.WORKFLOW_PATH,
+            "      - run: python -m tools.governance.thread_state_poll\n",
+            "      - run: |\n          python() {\n            true\n          }\n          python -m tools.governance.thread_state_poll\n",
+            "REVIEW_THREAD_POLL_WIRING",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294\n",
+            "        run: true\n",
+            "DEPENDENCY_REVIEW_ACTION",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "        run: python -m tools.governance.github_live_gate --repo x --pr 1 --head h --root .\n",
+            "        run: true\n",
+            "FINAL_GATE_LIVE_WIRING",
+        ),
+        (
+            t11.CORE_WORKFLOW_PATH,
+            "        run: python -m tools.governance.context_manifest . --base x --head y\n",
+            "        run: true\n",
+            "CORE_CONTEXT_MANIFEST_WIRING",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "      - uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63\n",
+            "      - run: true\n",
+            "CODEQL_INIT_ACTION",
+        ),
+    ]
+    for path, old, new, rule in cases:
+        _write_valid_workflows(tmp_path)
+        target = tmp_path / path
+        text = target.read_text(encoding="utf-8")
+        assert old in text
+        target.write_text(text.replace(old, new, 1), encoding="utf-8")
+        assert rule in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
+
+def test_action_and_shadow_helpers_fail_closed() -> None:
+    expected = ("python", "-m", "tools.governance.thread_state_poll")
+    for run in (
+        "python() {\n  true\n}\npython -m tools.governance.thread_state_poll",
+        "function python {\n  true\n}\npython -m tools.governance.thread_state_poll",
+        "alias python=true\npython -m tools.governance.thread_state_poll",
+        "source ./helpers.sh\npython -m tools.governance.thread_state_poll",
+        ". ./helpers.sh\npython -m tools.governance.thread_state_poll",
+        "eval setup_python\npython -m tools.governance.thread_state_poll",
+        "hash -p /tmp/fake python\npython -m tools.governance.thread_state_poll",
+    ):
+        assert not t11._steps_execute_prefix({"steps": [{"run": run}]}, expected)
+
+    safe_job = {
+        "steps": [
+            {
+                "uses": t11.DEPENDENCY_REVIEW_ACTION,
+                "if": "steps.depgraph.outputs.supported == 'true'",
+                "with": {"fail-on-severity": "moderate"},
+            }
+        ]
+    }
+    assert t11._steps_use_action(
+        safe_job,
+        t11.DEPENDENCY_REVIEW_ACTION,
+        allowed_step_ifs=frozenset({"steps.depgraph.outputs.supported == 'true'"}),
+        required_with={"fail-on-severity": "moderate"},
+    )
+    assert not t11._steps_use_action({}, t11.DEPENDENCY_REVIEW_ACTION)
+    assert not t11._steps_use_action(
+        {"env": {"PATH": "/tmp"}, **safe_job},
+        t11.DEPENDENCY_REVIEW_ACTION,
+        allowed_step_ifs=frozenset({"steps.depgraph.outputs.supported == 'true'"}),
+    )
+    assert not t11._steps_use_action(
+        {"steps": ["bad", {"uses": "wrong/action@" + "0" * 40}]},
+        t11.DEPENDENCY_REVIEW_ACTION,
+    )
+    assert not t11._steps_use_action(
+        {"steps": [{"uses": t11.DEPENDENCY_REVIEW_ACTION, "with": "bad"}]},
+        t11.DEPENDENCY_REVIEW_ACTION,
+        required_with={"fail-on-severity": "moderate"},
+    )
+    assert not t11._steps_use_action(
+        {"steps": [{"uses": t11.DEPENDENCY_REVIEW_ACTION, "with": {"fail-on-severity": "low"}}]},
+        t11.DEPENDENCY_REVIEW_ACTION,
+        required_with={"fail-on-severity": "moderate"},
+    )
 
 
 def test_workflow_structure_rejects_bad_poll_and_core_wiring(tmp_path: Path) -> None:
@@ -511,14 +669,17 @@ def test_workflow_structure_rejects_bad_poll_and_core_wiring(tmp_path: Path) -> 
     core = tmp_path / t11.CORE_WORKFLOW_PATH
     core.write_text("on: {workflow_call: {}}\njobs: {validate: {steps: []}}\n", encoding="utf-8")
     rules = {item.rule for item in t11.validate_workflow_structure(tmp_path)}
-    assert rules == {
+    assert {
         "REVIEW_THREAD_POLL_SCHEDULE",
         "REVIEW_THREAD_POLL_PERMISSIONS",
         "REVIEW_THREAD_POLL_SCOPE",
         "REVIEW_THREAD_POLL_WIRING",
+        "CORE_CHECKOUT_ACTION",
+        "CORE_SETUP_PYTHON_ACTION",
+        "CORE_PYTEST_WIRING",
         "T11_GATE_WIRING",
         "T11_MUTATION_WIRING",
-    }
+    }.issubset(rules)
 
 
 def test_workflow_structure_rejects_missing_on_and_parse_errors(tmp_path: Path) -> None:

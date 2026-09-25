@@ -183,6 +183,16 @@ def test_workflow_command_matching_rejects_inherited_controls_and_backgrounding(
         {"steps": [{"run": "python -m tools.governance.thread_state_poll &"}]},
         expected,
     )
+    assert not t11._steps_execute_prefix(
+        {
+            "steps": [
+                {
+                    "run": "python() {\n  true\n}\npython -m tools.governance.thread_state_poll"
+                }
+            ]
+        },
+        expected,
+    )
 
 
 def test_logical_run_parser_covers_nonsteps_and_trailing_continuations() -> None:

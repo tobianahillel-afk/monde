@@ -127,6 +127,14 @@ jobs:
             *) exit 1 ;;
           esac
 
+      - name: Require governance core
+        run: |
+          test '${{ needs.governance-core.result }}' = 'success'
+
+      - name: Require CodeQL
+        run: |
+          test '${{ needs.codeql.result }}' = 'success'
+
       - name: Require dependency review on PR-family events
         if: startsWith(github.event_name, 'pull_request')
         run: |

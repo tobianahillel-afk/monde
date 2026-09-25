@@ -55,6 +55,31 @@ MUTATIONS = {
         "          test '${{ needs.dependency-review.result }}' = 'success'\n",
         "          true\n",
     ),
+    "t13-shell-function-shadow": (
+        ".github/workflows/governance.yml",
+        "        run: python -m tools.governance.thread_state_poll\n",
+        "        run: |\n          python() {\n            true\n          }\n          python -m tools.governance.thread_state_poll\n",
+    ),
+    "t13-dependency-action-binding": (
+        ".github/workflows/governance.yml",
+        "        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294\n",
+        "        run: true\n",
+    ),
+    "t13-final-live-gate-wiring": (
+        ".github/workflows/governance.yml",
+        "          python -m tools.governance.github_live_gate \\\n",
+        "          python -m tools.governance.github_live_gate_disabled \\\n",
+    ),
+    "t13-core-command-inventory": (
+        ".github/workflows/_governance-core.yml",
+        "          python -m tools.governance.context_manifest . \\\n",
+        "          python -m tools.governance.context_manifest_disabled . \\\n",
+    ),
+    "t13-codeql-action-binding": (
+        ".github/workflows/governance.yml",
+        "        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4\n",
+        "        run: true\n",
+    ),
     "t13-active-work-binding": (
         "tools/governance/github_live_gate.py",
         "    return candidates[0] if len(candidates) == 1 else None\n",
