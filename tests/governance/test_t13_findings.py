@@ -181,7 +181,7 @@ def test_workflow_command_matching_rejects_inherited_controls_and_backgrounding(
         workflow={"env": {"ANOTHER_SAFE_FLAG": "1"}},
     )
     assert not t11._steps_execute_prefix(
-        {"steps": [{"run": "python -m tools.governance.thread_state_poll &"}]},
+        {"steps": [{"run": "true &\npython -m tools.governance.thread_state_poll"}]},
         expected,
     )
     assert not t11._steps_execute_prefix(
