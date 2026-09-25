@@ -656,6 +656,58 @@ def test_review0085_successor_regressions(tmp_path: Path) -> None:
         }
 
 
+def test_review0085_probe_fail_closed_branches_and_core_call(tmp_path: Path) -> None:
+    valid_probe_job = {
+        "steps": [
+            {
+                "id": "depgraph",
+                "shell": "bash",
+                "env": {"GH_TOKEN": "${{ github.token }}"},
+                "run": t11.DEPENDENCY_PROBE_RUN,
+            }
+        ]
+    }
+    assert t11._dependency_probe_safe({}, valid_probe_job) is True
+    assert t11._dependency_probe_safe({"env": {"PATH": "/tmp/fake"}}, valid_probe_job) is False
+    assert t11._dependency_probe_safe({}, {**valid_probe_job, "continue-on-error": True}) is False
+    assert t11._dependency_probe_safe({}, {"steps": "bad"}) is False
+    assert t11._dependency_probe_safe(
+        {},
+        {"steps": [{**valid_probe_job["steps"][0], "continue-on-error": True}]},
+    ) is False
+    assert t11._dependency_probe_safe(
+        {},
+        {"steps": [{**valid_probe_job["steps"][0], "if": "always()"}]},
+    ) is False
+    assert t11._dependency_probe_safe(
+        {},
+        {"steps": [{**valid_probe_job["steps"][0], "shell": "sh"}]},
+    ) is False
+    assert t11._dependency_probe_safe(
+        {},
+        {"steps": [{**valid_probe_job["steps"][0], "working-directory": "subdir"}]},
+    ) is False
+    assert t11._dependency_probe_safe(
+        {},
+        {"steps": [{**valid_probe_job["steps"][0], "env": {"GH_TOKEN": "wrong"}}]},
+    ) is False
+
+    for old, new, rule in (
+        ("    if: github.event_name != 'schedule'\n    uses: ./.github/workflows/_governance-core.yml\n",
+         "    if: false\n    uses: ./.github/workflows/_governance-core.yml\n",
+         "CORE_CALL_SCOPE"),
+        ("    uses: ./.github/workflows/_governance-core.yml\n",
+         "    uses: ./wrong-workflow.yml\n",
+         "CORE_CALL_USES"),
+    ):
+        _write_valid_workflows(tmp_path)
+        target = tmp_path / t11.WORKFLOW_PATH
+        text = target.read_text(encoding="utf-8")
+        assert old in text
+        target.write_text(text.replace(old, new, 1), encoding="utf-8")
+        assert rule in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
+
 def test_review0084_structural_p1_regressions(tmp_path: Path) -> None:
     cases = [
         (
