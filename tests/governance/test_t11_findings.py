@@ -607,15 +607,15 @@ def test_review0085_successor_regressions(tmp_path: Path) -> None:
 
     # Bash permits both split-line and subshell compound-command function bodies.
     for shadow in (
-        "function python\n{\n  true\n}\npython -m tools.governance.thread_state_poll",
-        "python() (\n  true\n)\npython -m tools.governance.thread_state_poll",
+        "      - run: |\n          function python\n          {\n            true\n          }\n          python -m tools.governance.thread_state_poll\n",
+        "      - run: |\n          python() (\n            true\n          )\n          python -m tools.governance.thread_state_poll\n",
     ):
         _write_valid_workflows(tmp_path)
         target = tmp_path / t11.WORKFLOW_PATH
         text = target.read_text(encoding="utf-8")
         target.write_text(
             text.replace(
-                "python -m tools.governance.thread_state_poll",
+                "      - run: python -m tools.governance.thread_state_poll\n",
                 shadow,
                 1,
             ),
