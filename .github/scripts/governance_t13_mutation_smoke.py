@@ -42,8 +42,8 @@ MUTATIONS = {
     ),
     "t13-inherited-execution-controls": (
         "tools/governance/t11_closure.py",
-        "    if not _inherited_execution_controls_safe(workflow, job):\n        return False\n",
-        "    if False:\n        return False\n",
+        "def _steps_execute_prefix(\n    job: dict[str, Any],\n    expected: tuple[str, ...],\n    *,\n    workflow: dict[str, Any] | None = None,\n    allowed_job_ifs: frozenset[str] = frozenset(),\n    allowed_step_ifs: frozenset[str] = frozenset(),\n) -> bool:\n    if not _inherited_execution_controls_safe(workflow, job):\n        return False\n",
+        "def _steps_execute_prefix(\n    job: dict[str, Any],\n    expected: tuple[str, ...],\n    *,\n    workflow: dict[str, Any] | None = None,\n    allowed_job_ifs: frozenset[str] = frozenset(),\n    allowed_step_ifs: frozenset[str] = frozenset(),\n) -> bool:\n    if False:\n        return False\n",
     ),
     "t13-background-command-mask": (
         "tools/governance/t11_closure.py",
