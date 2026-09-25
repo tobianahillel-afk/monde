@@ -60,7 +60,8 @@ def test_workflow_command_matching_requires_executable_argv() -> None:
     assert not t11._steps_execute_prefix({"steps": [{"run": 'echo "python -m tools.governance.thread_state_poll"'}]}, expected)
     assert not t11._steps_execute_prefix({"steps": [{"run": "# python -m tools.governance.thread_state_poll\necho safe"}]}, expected)
     assert not t11._steps_execute_prefix({"steps": [{"run": "echo 'unterminated"}]}, expected)
-    assert t11._steps_execute_prefix({"steps": [{"run": "python -m \\\n tools.governance.thread_state_poll --extra value"}]}, expected)
+    assert not t11._steps_execute_prefix({"steps": [{"run": "python -m \\\n tools.governance.thread_state_poll --extra value"}]}, expected)
+    assert t11._steps_execute_prefix({"steps": [{"run": "python -m \\\n tools.governance.thread_state_poll"}]}, expected)
 
 
 def test_workflow_command_matching_rejects_failure_masking_step_controls() -> None:
@@ -107,7 +108,7 @@ def test_workflow_command_matching_rejects_failure_masking_step_controls() -> No
             poll_expected,
         )
 
-    t11_expected = ("python", "-m", "tools.governance.t11_closure", ".")
+    t11_expected = ("python", "-m", "tools.governance.t11_closure", ".", "--base", "x", "--head", "y")
     guarded = {
         "steps": [
             {

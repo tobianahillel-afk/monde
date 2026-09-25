@@ -311,7 +311,13 @@ on:
   schedule:
     - cron: '*/5 * * * *'
 jobs:
-  governance-core: {}
+  governance-core:
+    if: github.event_name != 'schedule'
+    uses: ./.github/workflows/_governance-core.yml
+    with:
+      event_name: ${{ github.event_name }}
+      base_sha: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+      head_sha: ${{ github.event.pull_request.head.sha || github.sha }}
   review-thread-state-poll:
     if: github.event_name == 'schedule'
     permissions:
@@ -324,7 +330,30 @@ jobs:
     if: startsWith(github.event_name, 'pull_request')
     steps:
       - id: depgraph
-        run: echo probe
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          code="$(curl --silent --show-error --output /tmp/monde-sbom.json --write-out '%{http_code}' \\
+            --header 'Accept: application/vnd.github+json' \\
+            --header "Authorization: Bearer ${GH_TOKEN}" \\
+            --header 'X-GitHub-Api-Version: 2022-11-28' \\
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/dependency-graph/sbom")"
+          case "$code" in
+            200)
+              echo 'supported=true' >> "$GITHUB_OUTPUT"
+              ;;
+            404)
+              echo 'supported=false' >> "$GITHUB_OUTPUT"
+              echo '::notice title=Dependency Graph unavailable::Dependency Review is defined but cannot become an effective hard gate until WORK-0003 enables GitHub Dependency Graph.'
+              ;;
+            *)
+              echo "Unexpected Dependency Graph probe HTTP status: $code" >&2
+              cat /tmp/monde-sbom.json >&2 || true
+              exit 1
+              ;;
+          esac
       - if: steps.depgraph.outputs.supported == 'true'
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
         with:
@@ -354,7 +383,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - if: startsWith(github.event_name, 'pull_request')
-        run: python -m tools.governance.github_live_gate --repo x --pr 1 --head h --root .
+        run: python -m tools.governance.github_live_gate --repo '${{ github.repository }}' --pr '${{ github.event.pull_request.number }}' --head '${{ github.event.pull_request.head.sha }}' --root . --json-out github-live-gate.json
 """,
         encoding="utf-8",
     )
@@ -375,7 +404,7 @@ jobs:
           cache: pip
           cache-dependency-path: requirements/governance-ci.txt
       - run: python -m pip install --require-hashes -r requirements/governance-ci.txt
-      - run: python -m pytest --cov --cov-branch
+      - run: python -m pytest --cov --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=100
       - run: |
           python scripts/governance_mutation_smoke.py
           python .github/scripts/governance_l2_mutation_smoke.py
@@ -383,30 +412,31 @@ jobs:
           python .github/scripts/governance_t11_mutation_smoke.py
           python .github/scripts/governance_t13_mutation_smoke.py
       - run: |
-          python -m tools.governance.validate_repo . --json-out a.json
-          python -m tools.governance.strict_contracts . --json-out b.json
-          python -m tools.governance.path_safety . --json-out c.json
+          python -m tools.governance.validate_repo . --json-out governance-findings.json
+          python -m tools.governance.strict_contracts . --json-out strict-findings.json
+          python -m tools.governance.path_safety . --json-out path-findings.json
       - if: startsWith(inputs.event_name, 'pull_request')
-        run: python -m tools.governance.change_guard . --base x --head y
+        run: python -m tools.governance.change_guard . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --json-out change-findings.json
       - if: startsWith(inputs.event_name, 'pull_request')
-        run: PYTHONPATH="$PWD:$PWD/.github/scripts" python .github/scripts/governance_l2_gate.py . --base x --head y
+        run: PYTHONPATH="$PWD:$PWD/.github/scripts" python .github/scripts/governance_l2_gate.py . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --json-out l2-hardening-findings.json
       - if: startsWith(inputs.event_name, 'pull_request')
-        run: python -m tools.governance.review_closure_gate . --base x --head y
+        run: python -m tools.governance.review_closure_gate . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --json-out review-closure-findings.json
       - if: startsWith(inputs.event_name, 'pull_request')
-        run: python -m tools.governance.t7_closure . --base x --head y
+        run: python -m tools.governance.t7_closure . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --json-out t7-closure-findings.json
       - if: startsWith(inputs.event_name, 'pull_request')
-        run: python -m tools.governance.t8_closure . --base x --head y
+        run: python -m tools.governance.t8_closure . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --json-out t8-closure-findings.json
       - if: startsWith(inputs.event_name, 'pull_request')
-        run: python -m tools.governance.t9_closure . --base x --head y
+        run: python -m tools.governance.t9_closure . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --json-out t9-closure-findings.json
       - if: startsWith(inputs.event_name, 'pull_request')
-        run: python -m tools.governance.t10_closure . --base x --head y
+        run: python -m tools.governance.t10_closure . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --json-out t10-closure-findings.json
       - if: startsWith(inputs.event_name, 'pull_request')
-        run: python -m tools.governance.t11_closure . --base x --head y
+        run: python -m tools.governance.t11_closure . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --json-out t11-closure-findings.json
       - if: startsWith(inputs.event_name, 'pull_request')
-        run: python -m tools.governance.context_manifest . --base x --head y
+        run: python -m tools.governance.context_manifest . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --out context-manifest.json
 """,
         encoding="utf-8",
     )
+
 def test_workflow_structure_parses_effective_yaml_not_comments(tmp_path: Path) -> None:
     _write_valid_workflows(tmp_path)
     assert t11.validate_workflow_structure(tmp_path) == []
@@ -447,8 +477,8 @@ def test_workflow_structure_rejects_failure_masking_shell_suffixes(tmp_path: Pat
     core = tmp_path / t11.CORE_WORKFLOW_PATH
     text = core.read_text(encoding="utf-8")
     text = text.replace(
-        "python -m tools.governance.t11_closure . --base x --head y",
-        "python -m tools.governance.t11_closure . --base x --head y ; exit 0",
+        "python -m tools.governance.t11_closure . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --json-out t11-closure-findings.json",
+        "python -m tools.governance.t11_closure . ; exit 0 --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --json-out t11-closure-findings.json",
     )
     core.write_text(text, encoding="utf-8")
     rules = {item.rule for item in t11.validate_workflow_structure(tmp_path)}
@@ -466,17 +496,11 @@ def test_workflow_structure_rejects_failure_masking_shell_suffixes(tmp_path: Pat
     assert "T11_MUTATION_WIRING" in rules
 
 
-def test_step_prefix_allows_safe_flags_and_rejects_failure_masking_shell() -> None:
-    expected = ("python", "-m", "tools.governance.t11_closure", ".")
-    safe = {
-        "steps": [
-            {
-                "run": "python -m tools.governance.t11_closure . "
-                "--base base --head head --json-out out.json"
-            }
-        ]
-    }
+def test_step_prefix_requires_complete_argv_and_rejects_failure_masking_shell() -> None:
+    expected = ("python", "-m", "tools.governance.t11_closure", ".", "--base", "base", "--head", "head", "--json-out", "out.json")
+    safe = {"steps": [{"run": "python -m tools.governance.t11_closure . --base base --head head --json-out out.json"}]}
     assert t11._steps_execute_prefix(safe, expected) is True
+    assert t11._steps_execute_prefix({"steps": [{"run": "python -m tools.governance.t11_closure . --base base --head head --json-out out.json --help"}]}, expected) is False
     assert t11._steps_execute_prefix({}, expected) is False
     assert t11._steps_execute_prefix({"steps": ["bad"]}, expected) is False
 
@@ -565,6 +589,73 @@ def test_workflow_structure_rejects_dependency_review_bypasses(tmp_path: Path) -
     }
 
 
+def test_review0085_successor_regressions(tmp_path: Path) -> None:
+    # Exact checkout bindings at the reusable core, CodeQL and live final gate.
+    checkout_cases = [
+        (t11.CORE_WORKFLOW_PATH, "ref: ${{ inputs.head_sha }}", "ref: deadbeef", "CORE_CHECKOUT_ACTION"),
+        (t11.WORKFLOW_PATH, "ref: ${{ github.event.pull_request.head.sha || github.sha }}", "ref: deadbeef", "CODEQL_CHECKOUT_ACTION"),
+        (t11.WORKFLOW_PATH, "ref: ${{ github.event.pull_request.head.sha }}", "ref: deadbeef", "FINAL_GATE_CHECKOUT_ACTION"),
+        (t11.WORKFLOW_PATH, "head_sha: ${{ github.event.pull_request.head.sha || github.sha }}", "head_sha: deadbeef", "CORE_CALL_INPUTS"),
+    ]
+    for path, old, new, rule in checkout_cases:
+        _write_valid_workflows(tmp_path)
+        target = tmp_path / path
+        text = target.read_text(encoding="utf-8")
+        assert old in text
+        target.write_text(text.replace(old, new, 1), encoding="utf-8")
+        assert rule in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
+    # Bash permits both split-line and subshell compound-command function bodies.
+    for shadow in (
+        "function python\n{\n  true\n}\npython -m tools.governance.thread_state_poll",
+        "python() (\n  true\n)\npython -m tools.governance.thread_state_poll",
+    ):
+        _write_valid_workflows(tmp_path)
+        target = tmp_path / t11.WORKFLOW_PATH
+        text = target.read_text(encoding="utf-8")
+        target.write_text(
+            text.replace(
+                "python -m tools.governance.thread_state_poll",
+                shadow,
+                1,
+            ),
+            encoding="utf-8",
+        )
+        assert "REVIEW_THREAD_POLL_WIRING" in {
+            item.rule for item in t11.validate_workflow_structure(tmp_path)
+        }
+
+    # Prefix-only command proof is insufficient: extra argv can cause early success.
+    _write_valid_workflows(tmp_path)
+    target = tmp_path / t11.WORKFLOW_PATH
+    text = target.read_text(encoding="utf-8")
+    target.write_text(
+        text.replace(
+            "python -m tools.governance.github_live_gate --repo '${{ github.repository }}'",
+            "python -m tools.governance.github_live_gate --help --repo '${{ github.repository }}'",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    assert "FINAL_GATE_LIVE_WIRING" in {
+        item.rule for item in t11.validate_workflow_structure(tmp_path)
+    }
+
+    # The conditional Dependency Review action is trusted only when its producer is exact.
+    for old, new in (
+        ("      - id: depgraph\n", "      - id: depgraph_disabled\n"),
+        ("          set -euo pipefail\n", "          echo 'supported=false' >> \"$GITHUB_OUTPUT\"\n          set -euo pipefail\n"),
+    ):
+        _write_valid_workflows(tmp_path)
+        target = tmp_path / t11.WORKFLOW_PATH
+        text = target.read_text(encoding="utf-8")
+        assert old in text
+        target.write_text(text.replace(old, new, 1), encoding="utf-8")
+        assert "DEPENDENCY_REVIEW_PROBE" in {
+            item.rule for item in t11.validate_workflow_structure(tmp_path)
+        }
+
+
 def test_review0084_structural_p1_regressions(tmp_path: Path) -> None:
     cases = [
         (
@@ -581,13 +672,13 @@ def test_review0084_structural_p1_regressions(tmp_path: Path) -> None:
         ),
         (
             t11.WORKFLOW_PATH,
-            "        run: python -m tools.governance.github_live_gate --repo x --pr 1 --head h --root .\n",
+            "        run: python -m tools.governance.github_live_gate --repo '${{ github.repository }}' --pr '${{ github.event.pull_request.number }}' --head '${{ github.event.pull_request.head.sha }}' --root . --json-out github-live-gate.json\n",
             "        run: true\n",
             "FINAL_GATE_LIVE_WIRING",
         ),
         (
             t11.CORE_WORKFLOW_PATH,
-            "        run: python -m tools.governance.context_manifest . --base x --head y\n",
+            "        run: python -m tools.governance.context_manifest . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --out context-manifest.json\n",
             "        run: true\n",
             "CORE_CONTEXT_MANIFEST_WIRING",
         ),
@@ -666,6 +757,8 @@ def test_action_and_shadow_helpers_fail_closed() -> None:
     for run in (
         "python() {\n  true\n}\npython -m tools.governance.thread_state_poll",
         "function python {\n  true\n}\npython -m tools.governance.thread_state_poll",
+        "function python\n{\n  true\n}\npython -m tools.governance.thread_state_poll",
+        "python() (\n  true\n)\npython -m tools.governance.thread_state_poll",
         "alias python=true\npython -m tools.governance.thread_state_poll",
         "source ./helpers.sh\npython -m tools.governance.thread_state_poll",
         ". ./helpers.sh\npython -m tools.governance.thread_state_poll",

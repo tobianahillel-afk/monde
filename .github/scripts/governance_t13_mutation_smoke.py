@@ -32,8 +32,8 @@ MUTATIONS = {
     ),
     "t13-executable-command-proof": (
         "tools/governance/t11_closure.py",
+        "        if any(tuple(command) == expected for command in commands):\n",
         "        if any(tuple(command[: len(expected)]) == expected for command in commands):\n",
-        "        if any(' '.join(expected) in ' '.join(command) for command in commands):\n",
     ),
     "t13-step-control-enforcement": (
         "tools/governance/t11_closure.py",
@@ -79,6 +79,26 @@ MUTATIONS = {
         ".github/workflows/governance.yml",
         "        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4\n",
         "        run: true\n",
+    ),
+    "t13-checkout-ref-binding": (
+        ".github/workflows/governance.yml",
+        "          ref: ${{ github.event.pull_request.head.sha }}\n",
+        "          ref: deadbeef\n",
+    ),
+    "t13-shell-split-function-shadow": (
+        ".github/workflows/governance.yml",
+        "        run: python -m tools.governance.thread_state_poll\n",
+        "        run: |\n          function python\n          {\n            true\n          }\n          python -m tools.governance.thread_state_poll\n",
+    ),
+    "t13-shell-subshell-function-shadow": (
+        ".github/workflows/governance.yml",
+        "        run: python -m tools.governance.thread_state_poll\n",
+        "        run: |\n          python() (\n            true\n          )\n          python -m tools.governance.thread_state_poll\n",
+    ),
+    "t13-dependency-probe-binding": (
+        ".github/workflows/governance.yml",
+        "        id: depgraph\n",
+        "        id: depgraph_disabled\n",
     ),
     "t13-active-work-binding": (
         "tools/governance/github_live_gate.py",

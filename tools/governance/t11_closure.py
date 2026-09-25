@@ -47,24 +47,55 @@ CORE_PR_IF = "startsWith(inputs.event_name, 'pull_request')"
 FINAL_GATE_IF = "always() && github.event_name != 'schedule'"
 CODEQL_JOB_IF = "github.event_name != 'schedule'"
 
+CORE_WORKFLOW_USES = "./.github/workflows/_governance-core.yml"
+CORE_EVENT_EXPR = "${{ github.event_name }}"
+CORE_BASE_EXPR = "${{ github.event.pull_request.base.sha || github.event.before || github.sha }}"
+CORE_HEAD_EXPR = "${{ github.event.pull_request.head.sha || github.sha }}"
+CORE_INPUT_BASE_EXPR = "${{ inputs.base_sha }}"
+CORE_INPUT_HEAD_EXPR = "${{ inputs.head_sha }}"
+CODEQL_HEAD_EXPR = "${{ github.event.pull_request.head.sha || github.sha }}"
+FINAL_HEAD_EXPR = "${{ github.event.pull_request.head.sha }}"
+
+DEPENDENCY_PROBE_RUN = """set -euo pipefail
+code="$(curl --silent --show-error --output /tmp/monde-sbom.json --write-out '%{http_code}' \\
+  --header 'Accept: application/vnd.github+json' \\
+  --header "Authorization: Bearer ${GH_TOKEN}" \\
+  --header 'X-GitHub-Api-Version: 2022-11-28' \\
+  "https://api.github.com/repos/${GITHUB_REPOSITORY}/dependency-graph/sbom")"
+case "$code" in
+  200)
+    echo 'supported=true' >> "$GITHUB_OUTPUT"
+    ;;
+  404)
+    echo 'supported=false' >> "$GITHUB_OUTPUT"
+    echo '::notice title=Dependency Graph unavailable::Dependency Review is defined but cannot become an effective hard gate until WORK-0003 enables GitHub Dependency Graph.'
+    ;;
+  *)
+    echo "Unexpected Dependency Graph probe HTTP status: $code" >&2
+    cat /tmp/monde-sbom.json >&2 || true
+    exit 1
+    ;;
+esac
+"""
+
 REQUIRED_CORE_COMMANDS = (
     ("CORE_TOOLCHAIN_WIRING", ("python", "-m", "pip", "install", "--require-hashes", "-r", "requirements/governance-ci.txt"), frozenset()),
-    ("CORE_PYTEST_WIRING", ("python", "-m", "pytest"), frozenset()),
+    ("CORE_PYTEST_WIRING", ("python", "-m", "pytest", "--cov", "--cov-branch", "--cov-report=term-missing", "--cov-report=xml:coverage.xml", "--cov-fail-under=100"), frozenset()),
     ("CORE_BASE_MUTATION_WIRING", ("python", "scripts/governance_mutation_smoke.py"), frozenset()),
     ("CORE_L2_MUTATION_WIRING", ("python", ".github/scripts/governance_l2_mutation_smoke.py"), frozenset()),
     ("CORE_T10_MUTATION_WIRING", ("python", ".github/scripts/governance_t10_mutation_smoke.py"), frozenset()),
     ("CORE_T13_MUTATION_WIRING", ("python", ".github/scripts/governance_t13_mutation_smoke.py"), frozenset()),
-    ("CORE_VALIDATE_REPO_WIRING", ("python", "-m", "tools.governance.validate_repo", "."), frozenset()),
-    ("CORE_STRICT_CONTRACTS_WIRING", ("python", "-m", "tools.governance.strict_contracts", "."), frozenset()),
-    ("CORE_PATH_SAFETY_WIRING", ("python", "-m", "tools.governance.path_safety", "."), frozenset()),
-    ("CORE_CHANGE_GUARD_WIRING", ("python", "-m", "tools.governance.change_guard", "."), frozenset({CORE_PR_IF})),
-    ("CORE_L2_GATE_WIRING", ("PYTHONPATH=$PWD:$PWD/.github/scripts", "python", ".github/scripts/governance_l2_gate.py", "."), frozenset({CORE_PR_IF})),
-    ("CORE_REVIEW_CLOSURE_WIRING", ("python", "-m", "tools.governance.review_closure_gate", "."), frozenset({CORE_PR_IF})),
-    ("CORE_T7_WIRING", ("python", "-m", "tools.governance.t7_closure", "."), frozenset({CORE_PR_IF})),
-    ("CORE_T8_WIRING", ("python", "-m", "tools.governance.t8_closure", "."), frozenset({CORE_PR_IF})),
-    ("CORE_T9_WIRING", ("python", "-m", "tools.governance.t9_closure", "."), frozenset({CORE_PR_IF})),
-    ("CORE_T10_WIRING", ("python", "-m", "tools.governance.t10_closure", "."), frozenset({CORE_PR_IF})),
-    ("CORE_CONTEXT_MANIFEST_WIRING", ("python", "-m", "tools.governance.context_manifest", "."), frozenset({CORE_PR_IF})),
+    ("CORE_VALIDATE_REPO_WIRING", ("python", "-m", "tools.governance.validate_repo", ".", "--json-out", "governance-findings.json"), frozenset()),
+    ("CORE_STRICT_CONTRACTS_WIRING", ("python", "-m", "tools.governance.strict_contracts", ".", "--json-out", "strict-findings.json"), frozenset()),
+    ("CORE_PATH_SAFETY_WIRING", ("python", "-m", "tools.governance.path_safety", ".", "--json-out", "path-findings.json"), frozenset()),
+    ("CORE_CHANGE_GUARD_WIRING", ("python", "-m", "tools.governance.change_guard", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "change-findings.json"), frozenset({CORE_PR_IF})),
+    ("CORE_L2_GATE_WIRING", ("PYTHONPATH=$PWD:$PWD/.github/scripts", "python", ".github/scripts/governance_l2_gate.py", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "l2-hardening-findings.json"), frozenset({CORE_PR_IF})),
+    ("CORE_REVIEW_CLOSURE_WIRING", ("python", "-m", "tools.governance.review_closure_gate", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "review-closure-findings.json"), frozenset({CORE_PR_IF})),
+    ("CORE_T7_WIRING", ("python", "-m", "tools.governance.t7_closure", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "t7-closure-findings.json"), frozenset({CORE_PR_IF})),
+    ("CORE_T8_WIRING", ("python", "-m", "tools.governance.t8_closure", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "t8-closure-findings.json"), frozenset({CORE_PR_IF})),
+    ("CORE_T9_WIRING", ("python", "-m", "tools.governance.t9_closure", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "t9-closure-findings.json"), frozenset({CORE_PR_IF})),
+    ("CORE_T10_WIRING", ("python", "-m", "tools.governance.t10_closure", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "t10-closure-findings.json"), frozenset({CORE_PR_IF})),
+    ("CORE_CONTEXT_MANIFEST_WIRING", ("python", "-m", "tools.governance.context_manifest", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--out", "context-manifest.json"), frozenset({CORE_PR_IF})),
 )
 
 
@@ -405,13 +436,14 @@ def _run_step_has_failure_masking_shell(run: str) -> bool:
 
 def _run_step_can_shadow_executable(run: str, executable: str) -> bool:
     name = re.escape(executable)
-    function_decl = re.compile(
-        rf"^(?:function\s+)?{name}\s*(?:\(\s*\))?\s*\{{"
+    function_keyword = re.compile(
+        rf"^function\s+{name}(?:\s*\(\s*\))?(?=\s|$|\{{|\()"
     )
+    paren_decl = re.compile(rf"^{name}\s*\(\s*\)(?=\s|$|\{{|\()")
     alias_decl = re.compile(rf"^alias\s+{name}\s*=")
     for raw_line in run.splitlines():
         line = raw_line.strip()
-        if function_decl.match(line) or alias_decl.match(line):
+        if function_keyword.match(line) or paren_decl.match(line) or alias_decl.match(line):
             return True
         if line.startswith(("source ", ". ", "eval ")) and executable in run:
             return True
@@ -510,6 +542,30 @@ def _steps_use_action(
     return False
 
 
+def _dependency_probe_safe(workflow: dict[str, Any], job: dict[str, Any]) -> bool:
+    if not _inherited_execution_controls_safe(workflow, job):
+        return False
+    if job.get("continue-on-error") not in (None, False):
+        return False
+    steps = job.get("steps")
+    if not isinstance(steps, list):
+        return False
+    for step in steps:
+        if not isinstance(step, dict) or step.get("id") != "depgraph":
+            continue
+        if step.get("continue-on-error") not in (None, False) or step.get("if") is not None:
+            continue
+        if step.get("shell") != "bash" or "working-directory" in step:
+            continue
+        if step.get("env") != {"GH_TOKEN": "${{ github.token }}"}:
+            continue
+        run = step.get("run")
+        if not isinstance(run, str) or run != DEPENDENCY_PROBE_RUN:
+            continue
+        return True
+    return False
+
+
 def _steps_execute_prefix(
     job: dict[str, Any],
     expected: tuple[str, ...],
@@ -535,7 +591,7 @@ def _steps_execute_prefix(
         if _run_step_can_shadow_executable(run, executable):
             continue
         commands = _logical_run_commands({"steps": [step]})
-        if any(tuple(command[: len(expected)]) == expected for command in commands):
+        if any(tuple(command) == expected for command in commands):
             return True
     return False
 
@@ -576,6 +632,24 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
 
     jobs = workflow.get("jobs")
     jobs = jobs if isinstance(jobs, dict) else {}
+
+    governance_core = jobs.get("governance-core")
+    if not isinstance(governance_core, dict):
+        out.append(Finding(WORKFLOW_PATH, "CORE_CALL_JOB", "governance-core reusable-workflow job is missing"))
+    else:
+        expected_inputs = {
+            "event_name": CORE_EVENT_EXPR,
+            "base_sha": CORE_BASE_EXPR,
+            "head_sha": CORE_HEAD_EXPR,
+        }
+        if str(governance_core.get("if") or "") != CODEQL_JOB_IF:
+            out.append(Finding(WORKFLOW_PATH, "CORE_CALL_SCOPE", "governance-core reusable workflow must run for every non-schedule event"))
+        if governance_core.get("uses") != CORE_WORKFLOW_USES:
+            out.append(Finding(WORKFLOW_PATH, "CORE_CALL_USES", "governance-core must call the trusted local reusable workflow"))
+        actual_inputs = governance_core.get("with")
+        if not isinstance(actual_inputs, dict) or actual_inputs != expected_inputs:
+            out.append(Finding(WORKFLOW_PATH, "CORE_CALL_INPUTS", "governance-core must bind event/base/head inputs to the exact current GitHub event expressions"))
+
     poll = jobs.get("review-thread-state-poll")
     if not isinstance(poll, dict):
         out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_JOB", "review-thread-state-poll job is missing"))
@@ -603,7 +677,7 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
         validate,
         CHECKOUT_ACTION,
         workflow=core,
-        required_with={"persist-credentials": "false"},
+        required_with={"ref": CORE_INPUT_HEAD_EXPR, "persist-credentials": "false"},
     ):
         out.append(Finding(CORE_WORKFLOW_PATH, "CORE_CHECKOUT_ACTION", "governance core must checkout the exact requested head with the pinned checkout action"))
     if not _steps_use_action(
@@ -629,13 +703,13 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
                 Finding(
                     CORE_WORKFLOW_PATH,
                     rule,
-                    f"governance core must execute required blocking command prefix {list(expected)!r}",
+                    f"governance core must execute required exact blocking command {list(expected)!r}",
                 )
             )
 
     if not _steps_execute_prefix(
         validate,
-        ("python", "-m", "tools.governance.t11_closure", "."),
+        ("python", "-m", "tools.governance.t11_closure", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "t11-closure-findings.json"),
         workflow=core,
         allowed_step_ifs=frozenset({CORE_PR_IF}),
     ):
@@ -657,6 +731,14 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
                     WORKFLOW_PATH,
                     "DEPENDENCY_REVIEW_SCOPE",
                     "dependency-review job must run for every pull-request-family event",
+                )
+            )
+        if not _dependency_probe_safe(workflow, dependency_review):
+            out.append(
+                Finding(
+                    WORKFLOW_PATH,
+                    "DEPENDENCY_REVIEW_PROBE",
+                    "dependency-review capability condition must be produced by the exact fail-closed Dependency Graph probe",
                 )
             )
         if not _steps_use_action(
@@ -687,7 +769,7 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
             CHECKOUT_ACTION,
             workflow=workflow,
             allowed_job_ifs=codeql_job_ifs,
-            required_with={"persist-credentials": "false"},
+            required_with={"ref": CODEQL_HEAD_EXPR, "persist-credentials": "false"},
         ):
             out.append(Finding(WORKFLOW_PATH, "CODEQL_CHECKOUT_ACTION", "codeql must checkout the exact event head with the pinned checkout action"))
         if not _steps_use_action(
@@ -758,12 +840,12 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
             workflow=workflow,
             allowed_job_ifs=final_job_ifs,
             allowed_step_ifs=frozenset({PR_EVENT_IF}),
-            required_with={"persist-credentials": "false"},
+            required_with={"ref": FINAL_HEAD_EXPR, "persist-credentials": "false"},
         ):
             out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_CHECKOUT_ACTION", "final gate must checkout the exact current PR head with the pinned checkout action"))
         if not _steps_execute_prefix(
             final_gate,
-            ("python", "-m", "tools.governance.github_live_gate"),
+            ("python", "-m", "tools.governance.github_live_gate", "--repo", "${{ github.repository }}", "--pr", "${{ github.event.pull_request.number }}", "--head", FINAL_HEAD_EXPR, "--root", ".", "--json-out", "github-live-gate.json"),
             workflow=workflow,
             allowed_job_ifs=final_job_ifs,
             allowed_step_ifs=frozenset({PR_EVENT_IF}),
