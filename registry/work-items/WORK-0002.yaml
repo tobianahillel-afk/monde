@@ -1,122 +1,563 @@
 id: WORK-0002
-title: "Automate repository governance validation"
+title: Automate repository governance validation
 status: IN_REVIEW
 phase: PHASE-0
 lot: LOT-0
 sublot: SUBLOT-0.2
-owner: "repository governance"
-created_at: "2026-09-10"
-updated_at: "2026-09-24"
+owner: repository governance
+created_at: '2026-09-10'
+updated_at: '2026-09-25'
+purpose: 'Turn MONDE governance/specification/traceability contracts into executable CI and GitHub control-plane checks so repository state, review
+  evidence, scope and proof cannot silently drift.
 
-purpose: |
-  Turn MONDE governance/specification/traceability contracts into executable CI and GitHub control-plane checks so repository state, review evidence, scope and proof cannot silently drift.
-
+  '
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0081 remain terminal negative evidence. REVIEW-0082 COMPLETE/APPROVE on exact reviewed head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618 permitted controlled resolution of all 83 reviewed PR #5 material threads. Lifecycle-recording commit cabb259aa686028def1c7b9a4e80b85d15b82d99 passed Bootstrap #332 / run 36048764381, then all 83 threads were resolved with branch content fixed and no new material finding appeared. This reconciliation commit removes the now-resolved PRRT inventory from current open_findings while preserving historical negative evidence in reviews/run logs/known gaps. T4/T12/AC-6 remain IN_REVIEW until this exact reconciliation head passes Bootstrap and guarded PR #5 merge eligibility is assessed; PR #2 integration/review remains downstream."
-
+  rationale: |
+    T12 default-branch integration is DONE via merged PR #5 / main b4b52c77fbf05eda65e8f0e951959da70e7edbe7, but T4/AC-6 remain open. REVIEW-0083 reached a valid frozen integrated-head proof on cc37d74e2ee49aea62cfdfa30634c01a1032751f via Bootstrap #346 and Gate #272: 821 tests, 7816 statements / 3568 branches at 100 percent line+branch, 38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 6/6 T13 mutations, all deterministic validators green, CodeQL and Dependency Review green; live gate failed only on 77 unresolved threads and missing exact-head approval. Fresh independent L2 PRR_kwDOUUI5ts8AAAABPJeT9Q then produced three new P1 findings: PRRT_kwDOUUI5ts6lzzao (inherited workflow/job execution controls), PRRT_kwDOUUI5ts6lzzas (backgrounded validator command with single ampersand), and PRRT_kwDOUUI5ts6lzzax (dependency-review skip bypass). Author-side PRRT_kwDOUUI5ts6lz1l8 duplicated the inherited-control finding. Live PR #2 is now 81 unresolved threads. REVIEW-0083 is CLOSED/CHANGES_REQUIRED; a successor review is required after all four live identities are synchronized and the three distinct defects are corrected.
+    Fresh exact-SHA L2 REVIEW-0030 found six additional risk-acceptance, normative-digest, authority-evidence, external-import-finalization, PASS-test-revision and review-lifecycle defects after the REVIEW-0029 corrective candidate. GitHub Codex review PRR_kwDOUUI5ts8AAAABNfhWLQ on 5e4dd33995d17587be1452265b830f2b32e0f89b added nine further findings; PRR_kwDOUUI5ts8AAAABNgjLtg and PRR_kwDOUUI5ts8AAAABNgxnRw on 6e6f7a68ed63262e7ff9af56521695d79f6d015b added five and six more. Fresh-context review PRR_kwDOUUI5ts8AAAABNiFSzA on exact candidate 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 added eight further findings covering canonical-policy trust anchors, immutable adoption boundaries, same-evidence acceptance binding, identity-policy revision binding, repository-owner proof anchored outside mutable policy, exact-head independent approval in the live merge gate, and durable tracking of the complete closure set. Fresh-context review PRR_kwDOUUI5ts8AAAABNih5Qw on exact candidate 296ef2005de2ab5964d004d6383393b693594de9 then added six further findings: same-status ACCEPTED requirement and risk invariant revalidation, immutability of all completion-bearing COMPLETE-review fields, detection of intervening content-identity-policy revisions even when reverted, L2 eligibility/trust binding for exact-head approvers, and target-scoped WORK-status reopening triggers. Fresh-context review PRR_kwDOUUI5ts8AAAABNmehrQ on exact candidate 061c17e7144396cbfd01963fb4036f3fc3c58ed3 added six T9 findings covering full merge-history policy traversal, continuing imported-evidence finalization, one-shot import_commit immutability, base-preexisting protected-policy authority, genuinely new reopening triggers, and exact durable/live thread-identity equality. Fresh-context review PRR_kwDOUUI5ts8AAAABNnPvYg on exact candidate 9e4144d255590360f99652e59c38a02dbf95ccfa added four T10 P1 findings covering review-state-triggered live-gate reruns, integration-provenance trust-anchor protection, dependency-driven continuing ACCEPTED requirement revalidation and dependency-driven continuing ACCEPTED risk revalidation. Fresh-context review PRR_kwDOUUI5ts8AAAABNoalkw on exact candidate cc6e98d542fbedf097a8ffbb7eb5dcf128237c84 added five T11 findings covering pre-T10 provenance bootstrap auditing, full-history import materialization, stale-green invalidation after review-thread unresolve, raw committed-blob secret scanning, and structural workflow-trigger parsing. These GitHub reviews remain adverse live source evidence and are not retroactively converted into approving canonical review evidence. The corrective scope also includes duplicate-key YAML rejection and exact immutable integration-history bridges already discovered during earlier correction rounds. These changes harden the existing governance contract without changing MONDE product scope; every historical exception remains exact and non-reusable.
+  evidence:
+  - PRR_kwDOUUI5ts8AAAABNiFSzA
+  - PRRT_kwDOUUI5ts6iSi_N
+  - PRRT_kwDOUUI5ts6iSi_R
+  - PRRT_kwDOUUI5ts6iSi_V
+  - PRRT_kwDOUUI5ts6iSi_a
+  - PRRT_kwDOUUI5ts6iSi_b
+  - PRRT_kwDOUUI5ts6iSi_h
+  - PRRT_kwDOUUI5ts6iSi_k
+  - PRRT_kwDOUUI5ts6iSi_r
+  - PRR_kwDOUUI5ts8AAAABNih5Qw
+  - PRRT_kwDOUUI5ts6iTnww
+  - PRRT_kwDOUUI5ts6iTnw7
+  - PRRT_kwDOUUI5ts6iTnw-
+  - PRRT_kwDOUUI5ts6iTnxB
+  - PRRT_kwDOUUI5ts6iTnxE
+  - PRRT_kwDOUUI5ts6iTnxI
+  - PRR_kwDOUUI5ts8AAAABNmehrQ
+  - PRRT_kwDOUUI5ts6icYEJ
+  - PRRT_kwDOUUI5ts6icYER
+  - PRRT_kwDOUUI5ts6icYEW
+  - PRRT_kwDOUUI5ts6icYEh
+  - PRRT_kwDOUUI5ts6icYEm
+  - PRRT_kwDOUUI5ts6icYEo
+  - PRR_kwDOUUI5ts8AAAABNnPvYg
+  - PRRT_kwDOUUI5ts6ieH4A
+  - PRRT_kwDOUUI5ts6ieH4C
+  - PRRT_kwDOUUI5ts6ieH4H
+  - PRRT_kwDOUUI5ts6ieH4L
+  - PRR_kwDOUUI5ts8AAAABNoalkw
+  - PRRT_kwDOUUI5ts6igleE
+  - PRRT_kwDOUUI5ts6igleI
+  - PRRT_kwDOUUI5ts6igleM
+  - PRRT_kwDOUUI5ts6igleS
+  - PRRT_kwDOUUI5ts6igleV
+  - PRRT_kwDOUUI5ts6ijUTn
+  - PRRT_kwDOUUI5ts6ijUT4
+  - PRRT_kwDOUUI5ts6ijUUC
+  - PRRT_kwDOUUI5ts6ijUUK
+  - PRRT_kwDOUUI5ts6ijUUV
+  - PRRT_kwDOUUI5ts6ijUUf
+  - PRR_kwDOUUI5ts8AAAABPIVhXA
+  - PRRT_kwDOUUI5ts6lxalB
+  - PRRT_kwDOUUI5ts6lxalH
 scope:
   in:
-    - deterministic repository-governance validation and traceability
-    - GitHub control-plane exact merge-check and review-thread gating
-    - trusted default-branch stale-green bootstrap required before PR #2 closure
-    - exact latest GitHub Actions-owned MONDE / Merge Gate check as merge-state authority
-    - current-PR rerun authority bound to exact head/base/merge-ref identity
-    - bounded drift-detecting target discovery and durable scheduler continuation
-    - exact positive non-Boolean GitHub identifiers and closed-world metadata
-    - durable write-ahead pending mutation identity before rerun POST
-    - pending authority surviving origin-PR closure until terminal head-scoped effect is accounted for
-    - no automatic replay while mutation outcome is ambiguous
-    - operator recovery that never erases pending authority from non-atomic observations
-    - seven-head bound, three actual rerun POST cap and 100-request hard cap/reserves
-    - least-privilege real GitHub contract probing and exact-head 100 percent line/branch proof
+  - deterministic registry/status/reference/path validation
+  - JSON Schema validation for registry records
+  - reverse progress-matrix membership and DONE-dimension validation
+  - review-evidence status/outcome/hat/independence/blocking-finding validation
+  - hierarchical L0/L1/L2/L3 review-independence enforcement
+  - assurance-derived minimum review independence for A3/A4
+  - canonical Review Council outcome vocabulary with bounded legacy compatibility
+  - exact reviewed-commit binding for completed review evidence
+  - substantive PASS-test record validation, including real Git commit existence/ancestry
+  - exact squash and malformed-YAML integration provenance with fail-closed commit/blob/tree binding
+  - canonical RFC 8785/JCS recomputation for requirement normative digests
+  - risk-acceptance preconditions and authority-matrix enforcement
+  - repository-owner authority evidence bound to the governed MONDE repository
+  - external review-import finalization before completion eligibility
+  - duplicate-key YAML rejection for canonical machine-readable records
+  - work dependency, task/run and cycle validation
+  - PROJECT_STATE active-work validation
+  - assumption/risk due-date validation
+  - Markdown title/path parsing and repository path containment
+  - immutable GitHub Action and Docker-action pin validation
+  - high-confidence committed-secret pattern detection at HEAD and across the PR commit range
+  - raw changed-blob secret-history scanning across every PR commit with an explicit fail-closed size bound
+  - base-to-head and per-commit transition validation over the union of paths touched in the commit sequence
+  - immutable registry IDs and published-record deletion guard
+  - post-READY semantic scope-drift guard
+  - review-freshness guard after substantive changes, including review requirements themselves
+  - meta-governance path binding to an active changed A3/A4 work item through affected_paths
+  - canonical status/authority/content-identity/integration-provenance policy registries treated as protected meta-governance trust anchors
+  - exact immutable five-commit audit of the pre-T10 integration-provenance bootstrap
+  - NOT_APPLICABLE progress-justification enforcement
+  - AI context-manifest generation seeded by changed registry records and dependency closure
+  - GitHub live HEAD/mergeability/review-thread gate
+  - exact-head independent approval verification in the live merge gate
+  - review/review-comment event-driven live-gate reruns on supported GitHub Actions events
+  - scheduled stale-green invalidation when an existing review conversation is later unresolved
+  - effective workflow trigger and poller structure validated by parsed YAML rather than source-text snippets
+  - hash-locked governance Python toolchain
+  - reusable GitHub Actions governance core, Dependency Review and CodeQL lanes
+  - CI artifacts and stable MONDE merge gate
+  - exact pull-request HEAD checkout for deterministic proof
+  - immutable/fresh completed-review approval semantics
+  - authority evidence that resolves the claimed actor and governed scope
+  - Git-history verification of external-review materialization commits
+  - full merge-history first-status materialization checks for imported REVIEW/TEST evidence
+  - exact squash-tree history recovery kept separate from review/test evidence-eligibility allowlists
+  - requirement-acceptance review-import finalization and cold-read reachability
+  - same review and same cold-read records satisfying the complete acceptance contract and owning-WORK floor
+  - acceptance evidence bound to the exact content-identity policy revision
+  - ACCEPTED requirement and risk invariants revalidated on same-status edits
+  - dependency-driven revalidation of current ACCEPTED requirements and risks when bound evidence, authority, owning work or policy dependencies change
+  - all completion-bearing COMPLETE-review fields immutable after completion
+  - content-identity policy full merge history between review/cold-read and acceptance must contain no intervening revision, including side-branch change-then-revert
+  - exact-head approvers must be trusted and bound to qualifying fresh-context L2 evidence, not merely differ from the PR author
+  - canonical progress lifecycle/reopening enforcement after immutable predecessor-bound adoption
+  - WORK-status reopening triggers scoped to the exact reopened WORK and requiring a newly added finding/evidence identity or newly approved scope event
+  - protected-policy amendment authority anchored to base-preexisting independently approved active A3/A4 scope
+  - explicit non-reusable squash provenance flags and review-ID eligibility
+  - one-shot external review import_commit binding to the exact first COMPLETE materialization commit, frozen after binding
+  - durable per-finding closure set compared by exact unique GitHub thread identities rather than cardinality
+  - DONE task/run terminal-state enforcement
   out:
-    - MONDE product implementation
-    - branch/ruleset/visibility administration owned by WORK-0003
-    - product architecture fitness functions requiring product code
-
+  - MONDE product implementation
+  - product-language CI not yet selected
+  - semantic duplicate detection requiring AI reasoning
+  - branch/ruleset/visibility administration owned by WORK-0003
+  - product architecture fitness functions requiring product code
 acceptance_criteria:
-  - {id: AC-1, description: "Invalid registry/status/reference/path/schema state fails deterministically with actionable diagnostics.", status: DONE}
-  - {id: AC-2, description: "A DONE work item cannot pass with incomplete progress dimensions or invalid/incomplete review evidence.", status: DONE}
-  - {id: AC-3, description: "Published IDs, records, state transitions and post-READY semantic scope are guarded across the actual PR commit sequence.", status: DONE}
-  - {id: AC-4, description: "GitHub CI uses immutable/hash-locked dependencies, least privilege, CodeQL, dependency review, artifacts and a stable final merge gate.", status: DONE}
-  - {id: AC-5, description: "AI context and live GitHub state are generated/checked without treating stale repository prose as current merge truth.", status: DONE}
-  - {id: AC-6, description: "All material findings are proven fixed on the substantive final HEAD and a fresh-context L2 review approves completion.", status: IN_REVIEW}
-
-requirements: [REQ-0026]
+- id: AC-1
+  description: Invalid registry/status/reference/path/schema state fails deterministically with actionable diagnostics.
+  status: DONE
+- id: AC-2
+  description: A DONE work item cannot pass with incomplete progress dimensions or invalid/incomplete review evidence.
+  status: DONE
+- id: AC-3
+  description: Published IDs, records, state transitions and post-READY semantic scope are guarded across the actual PR commit sequence.
+  status: DONE
+- id: AC-4
+  description: GitHub CI uses immutable/hash-locked dependencies, least privilege, CodeQL, dependency review, artifacts and a stable final merge gate.
+  status: DONE
+- id: AC-5
+  description: AI context and live GitHub state are generated/checked without treating stale repository prose as current merge truth.
+  status: DONE
+- id: AC-6
+  description: All Codex findings are proven fixed on the substantive final HEAD and a fresh-context L2 review approves completion.
+  status: IN_REVIEW
+requirements:
+- REQ-0026
 assumptions: []
 risks: []
 progress_justifications:
-  scientific_validation: "No scientific/model claim; engineering, security, CI and real-system verification apply."
-
+  scientific_validation: WORK-0002 is deterministic repository-governance automation and introduces no scientific/model claim; applicable validation is engineering, security, CI and real-system verification.
 assurance:
   level: A3
-  rationale: "Repository-wide trust gate for future AI-authored work."
-  escalation_triggers: ["changes to DONE/review semantics", "changes to workflow trust boundaries", "changes to trusted mutation/recovery authority"]
-
-read_before: [AGENTS.md, docs/00_START_HERE.md, PROJECT_STATE.md, docs/09_GOVERNANCE/development-rules.md, docs/09_GOVERNANCE/threat-modeling.md, docs/10_ROADMAP/development-process.md, docs/13_QUALITY/testing-strategy.md, docs/13_QUALITY/review-council.md, registry/README.md, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/reviews/REVIEW-0049.yaml, registry/reviews/REVIEW-0050.yaml]
-depends_on: [WORK-0001]
-blocks: [WORK-0003, WORK-0004]
-reuses: ["status vocabulary", "registry contracts", "Review Council and assurance-level contracts"]
+  rationale: This code becomes a repository-wide trust gate for future AI-authored work.
+  escalation_triggers:
+  - changes to DONE/review semantics
+  - changes to transition/scope-drift semantics
+  - changes to workflow trust boundaries
+read_before:
+- AGENTS.md
+- docs/00_START_HERE.md
+- docs/03_ARCHITECTURE/documentation-architecture.md
+- docs/03_ARCHITECTURE/github-control-plane.md
+- docs/09_GOVERNANCE/development-rules.md
+- docs/09_GOVERNANCE/threat-modeling.md
+- docs/10_ROADMAP/development-process.md
+- docs/13_QUALITY/definition-of-ready.md
+- docs/13_QUALITY/definition-of-done.md
+- docs/13_QUALITY/testing-strategy.md
+- docs/13_QUALITY/review-council.md
+- docs/13_QUALITY/advanced-verification.md
+- docs/13_QUALITY/ai-context-routing.md
+- registry/README.md
+- registry/progress/matrix.yaml
+- registry/integration-provenance.yaml
+- registry/requirements/REQ-0026.yaml
+- registry/tests/TEST-0009.yaml
+- registry/tests/TEST-0010.yaml
+- registry/reviews/REVIEW-0082.yaml
+- registry/reviews/REVIEW-0083.yaml
+- registry/reviews/REVIEW-0084.yaml
+depends_on:
+- WORK-0001
+blocks:
+- run: RUN-3
+  date: '2026-09-24'
+  note: 'Fresh integrated-head Codex review PRR_kwDOUUI5ts8AAAABPIVhXA reviewed exact c80ff3a3cd9640256fca65285ba28094ac848365 after Gate #262 and opened P1 PRRT_kwDOUUI5ts6lxalB plus P1 PRRT_kwDOUUI5ts6lxalH. A first attempt to materialize a terminal canonical review was rejected by Gate #266 because review lifecycle cannot be replayed retroactively; that unmerged state-only commit was discarded. The durable/live target is now 77 and the successor review must begin at OPEN only after exact technical proof.'
+- run: RUN-3
+  date: '2026-09-24'
+  note: 'Exact correction candidate 854c4e8aa076bd6ac1c57baae96b9f278e995c0e passed Bootstrap #344 / run 36065670134 and Gate #270 / run 36065670495. Deterministic proof: 821 tests, 7816 statements / 3568 branches at 100 percent line+branch, 38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 6/6 T13 mutations, every deterministic validator green, CodeQL/Dependency Review green. Live gate failed only on 77 unresolved threads and missing exact-head approval. REVIEW-0083 opens only after this proof.'
+- run: RUN-3
+  date: '2026-09-24'
+  note: 'REVIEW-0083 OPEN checkpoint 5033c5ae4010ab63ed28b19200a94eb84d2bdfe5 passed Bootstrap #345 / run 36066385035 and Gate #271 / run 36066385383 with 821 tests, 7816 statements / 3568 branches at 100 percent line+branch, 38/38 + 40/40 + 5/5 + 11/11 + 6/6 mutations, all deterministic/T7-T11 validators green, CodeQL/Dependency Review green and live gate blocked only by 77 unresolved threads plus missing exact-head approval. Lifecycle may now advance REVIEW-0083 to IN_PROGRESS; one frozen exact-head proof remains required before fresh L2.'
+- WORK-0003
+- WORK-0004
+reuses:
+- status vocabulary
+- registry contracts
+- Review Council and assurance-level contracts
 affected_capabilities: []
 affected_engines: []
-affected_schemas: []
-affected_docs: [PROJECT_STATE.md, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/tests/TEST-0010.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml, registry/reviews/REVIEW-0060.yaml, registry/reviews/REVIEW-0061.yaml, registry/reviews/REVIEW-0062.yaml, registry/reviews/REVIEW-0063.yaml, registry/reviews/REVIEW-0064.yaml, registry/reviews/REVIEW-0065.yaml, registry/reviews/REVIEW-0066.yaml, registry/reviews/REVIEW-0067.yaml, registry/reviews/REVIEW-0068.yaml, registry/reviews/REVIEW-0069.yaml, registry/reviews/REVIEW-0070.yaml, registry/reviews/REVIEW-0071.yaml, registry/reviews/REVIEW-0072.yaml, registry/reviews/REVIEW-0073.yaml, registry/reviews/REVIEW-0074.yaml, registry/reviews/REVIEW-0075.yaml, registry/reviews/REVIEW-0076.yaml, registry/reviews/REVIEW-0077.yaml, registry/reviews/REVIEW-0078.yaml, registry/reviews/REVIEW-0079.yaml, registry/reviews/REVIEW-0080.yaml, registry/reviews/REVIEW-0081.yaml, registry/reviews/REVIEW-0082.yaml, docs/00_START_HERE.md, docs/13_QUALITY/review-council.md, docs/10_ROADMAP/development-process.md]
-contracts: ["repository governance validation", "GitHub control-plane merge gate", "AI context routing"]
+affected_schemas:
+- schemas/registry/work-items.schema.json
+- schemas/registry/requirements.schema.json
+- schemas/registry/risks.schema.json
+- schemas/registry/reviews.schema.json
+- schemas/registry/tests.schema.json
+affected_docs:
+- PROJECT_STATE.md
+- docs/03_ARCHITECTURE/github-control-plane.md
+- docs/13_QUALITY/ai-context-routing.md
+- registry/acceptance-authority.yaml
+- registry/content-identity.yaml
+- registry/status-machines.yaml
+- registry/integration-provenance.yaml
+- registry/progress/matrix.yaml
+- registry/requirements/REQ-0026.yaml
+- registry/tests/TEST-0009.yaml
+- registry/tests/TEST-0010.yaml
+- registry/reviews/REVIEW-0082.yaml
+- registry/reviews/REVIEW-0083.yaml
+- registry/reviews/REVIEW-0084.yaml
+- registry/reviews/REVIEW-0085.yaml
+- registry/reviews/REVIEW-0086.yaml
+affected_paths:
+- .github/
+- tools/governance/
+- tests/governance/
+- schemas/registry/
+- scripts/governance_mutation_smoke.py
+- registry/work-items/_TEMPLATE.yaml
+- registry/status-machines.yaml
+- registry/acceptance-authority.yaml
+- registry/content-identity.yaml
+- registry/integration-provenance.yaml
+- registry/requirements/REQ-0026.yaml
+- registry/tests/TEST-0009.yaml
+- registry/tests/TEST-0010.yaml
+- registry/reviews/
+- requirements/bootstrap-governance-ci.txt
+contracts:
+- repository governance validation
+- GitHub control-plane merge gate
+- AI context routing
 adrs: []
-
 impact_analysis:
   blast_radius: CROSS_COMPONENT
-  upstream: [WORK-0001]
-  downstream: [WORK-0003, WORK-0004]
+  upstream:
+  - WORK-0001
+  downstream:
+  - WORK-0003
+  - WORK-0004
   migrations_or_reprocessing: []
-  compatibility_notes: "REVIEW-0050 technical proof remains valid evidence for its runtime, but its break-glass clear semantics are invalidated. REVIEW-0051 must reuse the proven V5 poll/closed-origin behavior while replacing only recovery authorization: no recovery path may clear issue #7 based on non-atomic GET observations."
-
+  compatibility_notes: |
+    Validators fail closed and do not rewrite canonical state. Historical execution evidence remains historical rather than being relabeled as proof of later SHAs. Review requirements are substantive; adding completed-review evidence is administrative. Exact integration-provenance entries preserve only verified immutable squash/tree and malformed->repair commit/blob relationships; they do not create generic ancestry or YAML-parsing bypasses. New adoption boundaries must be anchored to immutable predecessor history rather than trusted from the candidate policy itself. One-shot external review binding may set import_commit only from null to the exact first COMPLETE materialization SHA under matching prior preauthorization; subsequent qualification still requires consumed authorization and the field is immutable thereafter. Continuing ACCEPTED requirement/risk revalidation is dependency-driven from exact referenced proof/authority/owning-work/policy paths so later hardening is not retroactively imposed on unrelated historical records. T11 distinguishes exact historical first-status recovery through a tree-equivalent squash from evidence eligibility: the former may establish where a record was actually materialized, while T7/T9 still require explicit eligible review/test IDs before that record can count as acceptance evidence.
 implementation_plan:
   tasks:
-    - {id: T1, description: "Fix initial review/progress/Markdown/reverse-membership findings.", depends_on: [], expected_files: [], status: DONE}
-    - {id: T2, description: "Add schemas, transition/scope/review-freshness and meta-governance guards.", depends_on: [T1], expected_files: [], status: DONE}
-    - {id: T3, description: "Add GitHub control plane, context router, live gate and supply-chain hardening.", depends_on: [T2], expected_files: [], status: DONE}
-    - {id: T4, description: "Prove final HEAD and complete independent review including fresh findings.", depends_on: [T3, T12], expected_files: [], status: IN_REVIEW}
-    - {id: T12, description: "Pre-deploy and independently prove the trusted default-branch stale-green bridge.", depends_on: [T3], expected_files: [], status: IN_REVIEW}
+  - id: T1
+    description: Fix initial Codex review/progress/Markdown/reverse-membership findings.
+    depends_on: []
+    status: DONE
+  - id: T2
+    description: Add schemas, transition/scope/review-freshness and meta-governance guards.
+    depends_on:
+    - T1
+    status: DONE
+  - id: T3
+    description: Add GitHub control plane, context router, live gate and supply-chain hardening.
+    depends_on:
+    - T2
+    status: DONE
+  - id: T4
+    description: Prove the substantive final integrated HEAD in GitHub and complete independent review, including all fresh Codex findings and the trusted default-branch bridge.
+    depends_on:
+    - T12
+    - T13
+    status: IN_PROGRESS
+  - id: T5
+    description: Correct REVIEW-0030 findings, close the duplicate-key YAML parser gap and add regression/mutation protection.
+    depends_on:
+    - T3
+    status: DONE
+  - id: T6
+    description: Correct the nine fresh Codex findings from PRR_kwDOUUI5ts8AAAABNfhWLQ and bind the new L2 hardening adoption/provenance boundaries.
+    depends_on:
+    - T5
+    status: DONE
+  - id: T7
+    description: Correct the eight fresh findings from PRR_kwDOUUI5ts8AAAABNiFSzA, including protected trust anchors, immutable adoption boundaries, evidence co-satisfaction, identity-policy binding, live independent approval and complete durable finding tracking.
+    depends_on:
+    - T6
+    status: DONE
+  - id: T8
+    description: Correct the six fresh findings from PRR_kwDOUUI5ts8AAAABNih5Qw, including same-status ACCEPTED invariant revalidation, COMPLETE-review field immutability, intervening identity-policy history, L2-eligible exact-head approval and target-scoped WORK reopening triggers.
+    depends_on:
+    - T7
+    status: DONE
+  - id: T9
+    description: Correct the six fresh findings from PRR_kwDOUUI5ts8AAAABNmehrQ, including full-history identity-policy traversal, continuing imported-evidence finalization, one-shot import_commit binding/immutability, base-preexisting policy authority, newly added reopening triggers and exact durable/live thread identity equality.
+    depends_on:
+    - T8
+    status: DONE
+  - id: T10
+    description: Correct the four fresh P1 findings from PRR_kwDOUUI5ts8AAAABNnPvYg, including review-state live-gate reruns, integration-provenance trust-anchor protection, and dependency-driven continuing ACCEPTED requirement/risk revalidation.
+    depends_on:
+    - T9
+    status: DONE
+  - id: T11
+    description: Correct the five fresh findings from PRR_kwDOUUI5ts8AAAABNoalkw, including provenance-bootstrap auditing, full-history import materialization, stale-green thread-state invalidation, raw-blob secret scanning and structural workflow-trigger validation.
+    depends_on:
+    - T10
+    status: DONE
+  - id: T12
+    description: Pre-deploy and independently prove the trusted default-branch stale-green bridge required to close PRRT_kwDOUUI5ts6ijUTn before final PR #2 closure.
+    depends_on:
+    - T3
+    status: DONE
+  - id: T13
+    description: Correct the five branch-local findings from PRR_kwDOUUI5ts8AAAABNppdkQ covering PR-family poll events, ambiguous first-status materialization, terminal import binding, executable command proof and active-work binding.
+    depends_on:
+    - T11
+    status: DONE
+  - id: T14
+    description: Harden post-PR5 two-parent integration semantics so merge-history validators do not rematerialize byte-identical parent-inherited registry/provenance blobs, while ungoverned source history and real conflict resolutions remain fail-closed.
+    depends_on:
+    - T13
+    status: DONE
   planned_runs:
-    - {id: RUN-1, objective: "Initial deterministic governance implementation", tasks: [T1], exit_condition: "Initial deterministic validator and traceability proof complete.", status: DONE}
-    - {id: RUN-2, objective: "P0-P2 hardening and real GitHub proof", tasks: [T2, T3, T4], exit_condition: "Fresh exact-head independent closure and trusted collaborator approval.", status: IN_REVIEW}
-    - {id: RUN-3, objective: "Trusted stale-green predecessor, real GitHub proof and independent re-review", tasks: [T12], exit_condition: "Clean successor L2 and guarded PR #5 merge eligibility.", status: IN_REVIEW}
-
+  - id: RUN-1
+    objective: Initial deterministic governance implementation
+    tasks:
+    - T1
+    status: DONE
+  - id: RUN-2
+    objective: P0-P2 hardening and real GitHub proof
+    tasks:
+    - T2
+    - T3
+    status: DONE
+  - id: RUN-3
+    objective: REVIEW-0030 plus successive fresh-L2 corrections, renewed exact-SHA proof and independent closure
+    tasks:
+    - T5
+    - T6
+    - T7
+    - T8
+    - T9
+    - T10
+    - T11
+    - T12
+    - T13
+    - T14
+    - T4
+    status: IN_PROGRESS
 review_plan:
   artifact_class: GOVERNANCE_AUTOMATION
   independence_level: L2_TARGET
-  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY, RED_TEAM_SKEPTIC]
-  completed_reviews: [REVIEW-0031, REVIEW-0032, REVIEW-0033, REVIEW-0034, REVIEW-0035, REVIEW-0036, REVIEW-0037, REVIEW-0038, REVIEW-0039, REVIEW-0042, REVIEW-0043, REVIEW-0044, REVIEW-0045, REVIEW-0046, REVIEW-0047, REVIEW-0049, REVIEW-0082]
+  required_hats:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+  completed_reviews:
+  - REVIEW-0002
+  - REVIEW-0082
   open_findings:
-    - "PR #2 branch-local unresolved material findings remain pending final integration/review after PR #5 merge."
-
+  - PRRT_kwDOUUI5ts6hMwQ4
+  - PRRT_kwDOUUI5ts6hMwQ9
+  - PRRT_kwDOUUI5ts6hMwQk
+  - PRRT_kwDOUUI5ts6hMwQr
+  - PRRT_kwDOUUI5ts6hMwQy
+  - PRRT_kwDOUUI5ts6hMwRB
+  - PRRT_kwDOUUI5ts6iD2t-
+  - PRRT_kwDOUUI5ts6iD2t4
+  - PRRT_kwDOUUI5ts6iD2uH
+  - PRRT_kwDOUUI5ts6iD2uL
+  - PRRT_kwDOUUI5ts6iD2uQ
+  - PRRT_kwDOUUI5ts6iD2ub
+  - PRRT_kwDOUUI5ts6iF6p2
+  - PRRT_kwDOUUI5ts6iF6qN
+  - PRRT_kwDOUUI5ts6iF6qU
+  - PRRT_kwDOUUI5ts6iF6qY
+  - PRRT_kwDOUUI5ts6iF6qf
+  - PRRT_kwDOUUI5ts6iF6qm
+  - PRRT_kwDOUUI5ts6iMs-B
+  - PRRT_kwDOUUI5ts6iMs-G
+  - PRRT_kwDOUUI5ts6iMs-K
+  - PRRT_kwDOUUI5ts6iMs-O
+  - PRRT_kwDOUUI5ts6iMs93
+  - PRRT_kwDOUUI5ts6iMs96
+  - PRRT_kwDOUUI5ts6iMs9l
+  - PRRT_kwDOUUI5ts6iMs9q
+  - PRRT_kwDOUUI5ts6iMs9x
+  - PRRT_kwDOUUI5ts6iPDaB
+  - PRRT_kwDOUUI5ts6iPDaJ
+  - PRRT_kwDOUUI5ts6iPDaP
+  - PRRT_kwDOUUI5ts6iPDaW
+  - PRRT_kwDOUUI5ts6iPDaa
+  - PRRT_kwDOUUI5ts6iPj8G
+  - PRRT_kwDOUUI5ts6iPj8O
+  - PRRT_kwDOUUI5ts6iPj8Q
+  - PRRT_kwDOUUI5ts6iPj8W
+  - PRRT_kwDOUUI5ts6iPj8a
+  - PRRT_kwDOUUI5ts6iPj8e
+  - PRRT_kwDOUUI5ts6iSi_N
+  - PRRT_kwDOUUI5ts6iSi_R
+  - PRRT_kwDOUUI5ts6iSi_V
+  - PRRT_kwDOUUI5ts6iSi_a
+  - PRRT_kwDOUUI5ts6iSi_b
+  - PRRT_kwDOUUI5ts6iSi_h
+  - PRRT_kwDOUUI5ts6iSi_k
+  - PRRT_kwDOUUI5ts6iSi_r
+  - PRRT_kwDOUUI5ts6iTnw-
+  - PRRT_kwDOUUI5ts6iTnw7
+  - PRRT_kwDOUUI5ts6iTnww
+  - PRRT_kwDOUUI5ts6iTnxB
+  - PRRT_kwDOUUI5ts6iTnxE
+  - PRRT_kwDOUUI5ts6iTnxI
+  - PRRT_kwDOUUI5ts6icYEJ
+  - PRRT_kwDOUUI5ts6icYER
+  - PRRT_kwDOUUI5ts6icYEW
+  - PRRT_kwDOUUI5ts6icYEh
+  - PRRT_kwDOUUI5ts6icYEm
+  - PRRT_kwDOUUI5ts6icYEo
+  - PRRT_kwDOUUI5ts6ieH4A
+  - PRRT_kwDOUUI5ts6ieH4C
+  - PRRT_kwDOUUI5ts6ieH4H
+  - PRRT_kwDOUUI5ts6ieH4L
+  - PRRT_kwDOUUI5ts6igleE
+  - PRRT_kwDOUUI5ts6igleI
+  - PRRT_kwDOUUI5ts6igleM
+  - PRRT_kwDOUUI5ts6igleS
+  - PRRT_kwDOUUI5ts6igleV
+  - PRRT_kwDOUUI5ts6ijUTn
+  - PRRT_kwDOUUI5ts6ijUT4
+  - PRRT_kwDOUUI5ts6ijUUC
+  - PRRT_kwDOUUI5ts6ijUUK
+  - PRRT_kwDOUUI5ts6ijUUV
+  - PRRT_kwDOUUI5ts6ijUUf
+  - PRRT_kwDOUUI5ts6lURur
+  - PRRT_kwDOUUI5ts6lURuu
+  - PRRT_kwDOUUI5ts6lxalB
+  - PRRT_kwDOUUI5ts6lxalH
+  - PRRT_kwDOUUI5ts6lzzao
+  - PRRT_kwDOUUI5ts6lzzas
+  - PRRT_kwDOUUI5ts6lzzax
+  - PRRT_kwDOUUI5ts6lz1l8
+  - PRRT_kwDOUUI5ts6l9_hk
+  - PRRT_kwDOUUI5ts6l9_ht
+  - PRRT_kwDOUUI5ts6l9_hz
+  - PRRT_kwDOUUI5ts6l9_h4
+  - PRRT_kwDOUUI5ts6l9_h8
+  - PRRT_kwDOUUI5ts6mAc8I
+  - PRRT_kwDOUUI5ts6mAc8M
+  - PRRT_kwDOUUI5ts6mAc8O
+  - PRRT_kwDOUUI5ts6mAc8S
+  - PRRT_kwDOUUI5ts6mAdoV
 required_tests:
-  unit: [TEST-0009]
+  unit:
+  - TEST-0002
   property:
-    - "exact latest GitHub Actions-owned MONDE / Merge Gate check is merge-state authority"
-    - "current PR rerun authority binds exact head/base/merge-ref identity"
-    - "selected-PR target discovery is bounded, resumable and drift-detecting"
-    - "REVIEW-0071 repository PR discovery advances durably beyond page 20 using issue #7 scan_page scan_pr scan_anchor without core.paged"
-    - "exact-head execution completion is a live control-plane fact bound to immutable SHA; repository handover states the stable eligibility condition and never requires a post-proof commit solely to copy completion"
-    - "pending mutation identity survives delayed visibility, scheduler restart and origin-PR closure"
-    - "recovery cannot erase pending authority from stale pre-mutation observations"
-    - "one poll invocation considers at most seven head groups and performs at most three actual rerun POSTs"
-  integration: [TEST-0009, TEST-0010]
-  contract: ["registry/schema/progress/review/change-control integrity", "bootstrap GitHub Checks/REST/GraphQL/Actions/Issues control-plane contract"]
-  e2e: []
+  - valid/invalid status, ID, reference, path, transition, review and progress variants
+  integration:
+  - TEST-0003
+  contract:
+  - registry/schema/progress/review/change-control integrity
+  e2e:
+  - TEST-0003
   regression:
-    - "REVIEW-0080 repaired TEST-0009 and exact 81-ID inventory, but author-side P1 PRRT_kwDOUUI5ts6loe5m exposed incomplete review roles; REVIEW-0081 must represent all 82 live PRRT IDs and declare every WORK-0002 required hat before any closure L2"
-    - "operator recovery never clears pending state"
-    - "operator recovery never emits a rerun automatically"
-    - "manual exact-run rerun remains observable under durable pending identity"
-    - "origin PR closes after POST while same-head sibling remains unresolved; pending mutation is not forgotten"
-  security: ["immutable pins", "hash-locked Python artifacts", "least privilege", "live probe read-only"]
-  performance: ["100 script-issued GitHub call hard cap", "seven-head bound", "three actual rerun POST cap"]
-  real_system: [TEST-0009, TEST-0010]
-  epistemic: ["technical green proof is not semantic approval", "dynamic workflow_run.pull_requests associations are not event-time provenance"]
-
+  - initial Codex P1 review-evidence finding
+  - initial Codex P1 DONE progress-dimension finding
+  - initial Codex P2 reverse matrix membership finding
+  - initial Codex P2 Markdown link-title finding
+  - L3 independence target cannot be satisfied by L1/L2 evidence
+  - canonical APPROVE / APPROVE_WITH_FOLLOWUP outcomes are accepted
+  - review requirements are part of review-freshness semantics
+  - commit-sequence validation includes paths changed then restored
+  - meta-governance changes are bound to affected active A3/A4 work
+  - secrets introduced and removed inside the PR remain detectable
+  - A3 requires at least L2 review independence and A4 requires L3
+  - COMPLETE review evidence cannot omit artifact.commit_sha
+  - PASS test records cannot be empty self-declarations
+  - NOT_APPLICABLE progress dimensions require work-item justifications
+  - changed REQ/REVIEW/TEST/other registry records seed dependency-aware context routing
+  - PROJECT_STATE next action is current and transition-stable
+  - scope drift and review freshness
+  - inherited predecessor freshness exception is exact/non-reusable and unrelated second-parent reviews remain freshness authorities
+  - required workflow command proof rejects continue-on-error and unsafe execution-affecting step/job metadata
+  - new non-initial TEST/REVIEW/REQ terminal records fail unless covered by exact historical/import exception
+  - PROPOSED to ACCEPTED requirements fail without exact bound independent review and cold-read evidence
+  - mutable/short/nonexistent review commit references fail freshness
+  - blocking accepted findings fail without canonical authority matrix evidence
+  - required-test semantic weakening stales review while execution-only evidence changes remain administrative
+  - endpoint scope excludes base-only changes by using merge-base semantics
+  - RISK ACCEPTED transitions fail without all canonical acceptance fields, resolvable owning-work assurance and allowed authority evidence
+  - requirement acceptance rejects an invented but internally repeated digest by recomputing REQUIREMENT_NORMATIVE_V1 through RFC 8785/JCS
+  - repository-owner evidence cannot point at an unrelated GitHub repository
+  - externally imported COMPLETE reviews cannot satisfy completion before import/authorization consumption is finalized
+  - PASS TEST evidence rejects nonexistent or irrelevant execution commit SHAs
+  - CLOSED reviews never contribute completion hats, independence or approval
+  - duplicate YAML mapping keys fail parsing instead of silently overwriting earlier canonical state
+  - squash-integrated PASS evidence qualifies only through exact source-head/tree/integrated-commit provenance
+  - an exact historical malformed YAML blob may suppress only the false delete/recreate interpretation of its one bound repair commit
+  - pull-request governance proof checks out the exact requested head SHA
+  - completed review approval-bearing fields cannot be administratively rewritten after review
+  - accepted-finding evidence resolves the claimed actor/role/scope
+  - imported COMPLETE review binding equals the real first COMPLETE materialization commit
+  - requirement acceptance rejects an unfinalized externally imported review
+  - requirement cold-read evidence rejects nonexistent or irrelevant execution revisions
+  - progress transitions/reopenings are enforced from an exact non-reusable adoption boundary
+  - squash provenance requires non-reusable flags and explicit eligible review/test IDs
+  - DONE work rejects unfinished implementation tasks or planned runs
+  - canonical status/authority/content-identity/integration-provenance policy registries are protected meta-governance and candidate policy cannot self-authorize its own weakening
+  - progress adoption boundaries reject candidate-only movement and remain pinned to immutable predecessor history
+  - one requirement review must co-satisfy scope/digest/revision/provenance/import/floor checks
+  - one cold-read TEST must co-satisfy requirement revision, qualification, outcomes, provenance, reachability and floor checks
+  - requirement acceptance evidence becomes stale when the content-identity policy revision changes even if the digest string remains equal
+  - repository-owner evidence is checked against the actual GitHub repository and real permission proof
+  - live merge gate rejects resolved threads without eligible independent exact-head approval
+  - durable WORK open_findings exactly covers every live material closure thread before completion
+  - same-status ACCEPTED requirement edits revalidate canonical acceptance evidence and digest
+  - same-status ACCEPTED risk edits revalidate canonical authority/acceptance evidence
+  - COMPLETE review checks/completed_at/verification provenance cannot be added or changed after completion
+  - content-identity policy change-then-revert between evidence and acceptance still invalidates prior evidence
+  - exact-head APPROVED review does not satisfy merge eligibility without trusted L2/context-separated reviewer evidence
+  - WORK-status reopening cannot borrow an unrelated WORK finding or scope trigger
+  - content-identity stability inspects full merge history so side-branch policy revisions cannot be hidden by a merge/revert
+  - continuing ACCEPTED requirement evidence rejects unfinalized imported reviews or cold-read tests
+  - review import_commit permits only one null-to-first-COMPLETE binding under matching prior preauthorization and is frozen thereafter
+  - protected policy amendments cannot acquire authority by editing WORK affected_paths earlier in the same PR
+  - DONE-to-IN_REVIEW reopening requires a newly added finding/evidence identity or newly approved scope-change event
+  - durable finding synchronization compares the unique exact PRRT set to live unresolved threads
+  - review submissions/dismissals and review-comment activity rerun the live merge gate on supported GitHub Actions events
+  - integration-provenance amendments require base-preexisting independently authorized A3/A4 scope
+  - ACCEPTED requirement revalidation is triggered by changes to its bound review/cold-read/owning-work/policy dependencies
+  - ACCEPTED risk revalidation is triggered by changes to its authority/owning-work/policy dependencies
+  - pre-T10 integration-provenance bootstrap must equal the exact independently reviewed immutable five-commit history
+  - imported COMPLETE/PASS first-status discovery traverses full merge history and cannot hide side-branch materialization
+  - exact squash-tree history recovery does not silently broaden evidence-eligibility allowlists
+  - a previously successful live gate is invalidated when an existing review conversation later becomes unresolved
+  - binary-classified committed blobs remain subject to high-confidence secret-history scanning
+  - workflow review/poll triggers are validated from effective parsed YAML structure rather than comments or source snippets
+  security:
+  - immutable action/digest pins
+  - hash-locked Python artifacts
+  - least-privilege workflow tokens
+  - commit-range high-confidence secret scanning
+  - raw changed-blob scanning with fail-closed size limits
+  performance:
+  - governance core remains bounded by CI timeout
+  real_system:
+  - TEST-0003
+  epistemic:
+  - execution evidence is bound to GitHub SHA rather than silently promoted across heads
 scientific_validation:
   required: false
   baseline: null
@@ -124,248 +565,217 @@ scientific_validation:
   temporal_leakage_check: null
   reproducibility_manifest: null
   shadow_or_canary: null
-
 observability:
   required: true
-  logs: ["GitHub Job Summary", "bootstrap poll rerun count", "request budget", "scheduler pending state", "operator recovery inspection output"]
-  metrics: ["CI duration", "coverage", "bootstrap request count", "pending recovery interventions"]
+  logs:
+  - rule-coded diagnostics
+  - GitHub Job Summary
+  metrics:
+  - CI duration
+  - finding count
+  - coverage
+  - mutation smoke
   traces: []
-  alerts: ["bootstrap request-budget exhaustion", "pending mutation cannot be causally reconciled", "operator intervention required"]
-  slis_slos: ["governance core inside timeout", "bootstrap poll inside timeout", "in-flight mutation identity survives lifecycle/API boundaries"]
-
+  alerts:
+  - required MONDE merge gate failure after WORK-0003
+  slis_slos:
+  - governance core completes inside configured timeout
 validation:
   executed:
-    - "Bootstrap #154 / run 35152847816 on REVIEW-0050 technical candidate cbe21fa4cebc1c8f8b3030af17284de5700f9818"
-    - "Bootstrap #155 / run 35153416874 on REVIEW-0050 OPEN checkpoint 871850ac5b66a43cfd8491ef445d1738ad09d822"
-    - "Bootstrap #156 / run 35162557737 on frozen REVIEW-0050 IN_PROGRESS head f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c"
-    - "Author-side REVIEW-0050 / PRR_kwDOUUI5ts8AAAABN7LvGQ on f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c"
-    - "Bootstrap #157 / run 35211526610 on REVIEW-0050 CLOSED checkpoint 71c40aeb7ca7de4968a78953e9d003a5f65c3f9f"
-    - "Bootstrap #159 / run 35708508061 on REVIEW-0051 technical candidate 63001400659273252771d32c61665203b7d43ef3"
-    - "Bootstrap #160 / run 35708741464 on REVIEW-0051 OPEN checkpoint 2017a6ef2143574aa3b43028d776352bfa81d401"
-    - "Bootstrap #167 / run 35714886391 on REVIEW-0051 CLOSED checkpoint 722cfe8782c38350258fdd823709a055a4beeccf reproduced the expected live multi-check contract failure while self-test remained green"
-    - "Integration rehearsal Bootstrap #166 / run 35714306323 proved the selector correction at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch and live PR #2 contract probe SUCCESS"
-    - "Bootstrap #168 / run 35715152696 proved the ported PR #5 selector candidate deb6190983bd2cc97e3adffcd4769b4e44d58cb8 at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch and live PR #2 probe SUCCESS"
-    - "Bootstrap #242 / run 35841368355 proved REVIEW-0063 technical candidate d1a2a6d921ca85c8424f7aa707f893306d939189 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
-    - "Bootstrap #246 / run 35850050110 executed REVIEW-0064 initial candidate 57fe16eae6c15ae2ec587ac902aa6867f93e2a68: all 301 tests and live PR #2 probe passed, but 100 percent coverage correctly failed on REVIEW-0064 uncovered branches, so the candidate was not lifecycle-opened"
-    - "Bootstrap #247 / run 35850145099 proved REVIEW-0064 technical candidate 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a at 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
-    - "Bootstrap #250 / run 35852454144 proved the REVIEW-0064 CLOSED state-only checkpoint after PRR_kwDOUUI5ts8AAAABO1CeRg"
-    - "Bootstrap #251 / run 35852981670 proved REVIEW-0065 technical candidate 188945f3e2b9db977c0906b57e9bfdf0f29bc27a at 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
-    - "Bootstrap #254 / run 35854055051 proved the REVIEW-0065 CLOSED state-only checkpoint after PRR_kwDOUUI5ts8AAAABO1L5Mw"
-    - "Bootstrap #255 / run 35854415761 proved REVIEW-0066 technical candidate a816853357a57f5b09c4504129a4630b82754218 at 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
-    - "Bootstrap #258 / run 35855234194 proved the REVIEW-0066 CLOSED state-only checkpoint after PRR_kwDOUUI5ts8AAAABO1Ts9g"
-    - "Bootstrap #259 / run 35857211412 proved REVIEW-0067 technical candidate 65a155d43e027f7c618a4dfa3a10a67e366f08fb at 335/335 tests, 2707 statements / 1158 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
+  - Earlier real GitHub runs established the validator, path-safety gate and successive P0-P2 hardening rounds.
+  - Substantive predecessor c50c33009d90f079e645f0ca9e1befe1a4a77ba9 passed the real MONDE Gate with 76 tests, 100% line/branch coverage, 16/16 critical mutations, zero deterministic validator/change-guard errors and CodeQL success.
+  - Fresh-context Codex reviews through REVIEW-0030 identified the first 18 open findings; later GitHub Codex reviews expanded the live closure set without being retroactively converted into approving canonical review evidence.
+  - Exact author-side candidate 965d484e7063d5c11c9964faa89bd7cf8d5aa75c passed MONDE Gate run 34897096930 / #142: 219/219 tests, 2530/2530 statements, 1282/1282 branches, 100% line+branch coverage including all three project-owned L2 decision scripts, 37/37 baseline plus 18/18 fresh-L2 mutations killed, all repository/strict/path/change/L2-hardening/review-closure validators at zero, 19 MUST_READ context files, CodeQL success and Dependency Review success.
+  - Metadata-synchronized exact candidate 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 passed MONDE Gate run 34897431793 / #143 with the same deterministic proof and failed the stable live gate only on 38 unresolved threads.
+  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNiFSzA reviewed exact candidate 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 and opened eight new material findings, expanding the durable closure set to 46.
+  - Exact T7-corrected substantive candidate 52e1dd3aad0ee625f824440f9c87b920c58edec2 passed MONDE Gate run 34902136446 / #156: 244/244 tests, 2801/2801 statements, 1374/1374 branches, 100% line+branch coverage, 37/37 baseline plus 26/26 fresh-L2/T7 mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7-closure validators all at zero, context manifest success, CodeQL success and Dependency Review success.
+  - Exact metadata candidate 296ef2005de2ab5964d004d6383393b693594de9 passed deterministic lanes in MONDE Gate run 34904175139 / #160 with the same 244/244 tests, 100% line+branch, 37/37 + 26/26 mutation proof and all deterministic/T7 gates at zero; its live gate failed only on 46 unresolved threads plus missing independent exact-head approval.
+  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNih5Qw reviewed exact candidate 296ef2005de2ab5964d004d6383393b693594de9 and opened six new material findings, expanding the durable closure set to 52 and reopening implementation/tests/real-system/handover evidence under T8.
+  - Exact T8 substantive candidate a8e576ea9ea32b59a95b397de87727a7a52b2926 passed MONDE Gate run 34908856210 / #163: 258/258 tests, 2998/2998 statements, 1476/1476 branches, 100% line+branch coverage, 37/37 baseline plus 33/33 fresh-L2/T7/T8 critical mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7-closure/T8-closure validators all at zero, 19-file context manifest, CodeQL success and Dependency Review success. The live gate matched the durable 52-finding count and failed closed only on the 52 unresolved threads plus absence of a trusted context-separated L2/L3 exact-head APPROVED review.
+  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNmehrQ reviewed exact candidate 061c17e7144396cbfd01963fb4036f3fc3c58ed3 and opened six new P1/P2 findings, expanding the live closure set from 52 to 58 and opening T9.
+  - Exact T9 substantive candidate 3da4047cacaaad4962b647a6625767001d328027 passed MONDE Gate run 34952991296 / #178: 291/291 tests, 3313/3313 statements, 1624/1624 branches, 100% line+branch coverage, 37/37 baseline plus 39/39 fresh-L2/T7/T8/T9 critical mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7-closure/T8-closure/T9-closure validators all at zero, 19-file context manifest, CodeQL success and Dependency Review success. Its pre-synchronization live gate observed exactly 58 unresolved threads with stale=[] and failed closed on the expected durable-ID mismatch plus absence of a trusted context-separated L2/L3 exact-head APPROVED review.
+  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNnPvYg reviewed exact candidate 9e4144d255590360f99652e59c38a02dbf95ccfa and opened four new P1 findings, expanding the live closure set from 58 to 62 and opening T10.
+  - Exact T10 substantive candidate ef161b7e54c7f90433e1f303cdfd464827773870 passed deterministic/security lanes in MONDE Gate run 34962364980 / #190: 312/312 tests, 3482/3482 statements, 1696/1696 branches, 100% line+branch coverage, 37/37 baseline plus 40/40 fresh-L2/T7/T8/T9 mutations plus 5/5 dedicated T10 mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7/T8/T9/T10 validators all at zero, 19-file context manifest, CodeQL success and Dependency Review success. Its live gate observed exactly 62 unresolved threads and failed closed only on those threads, the expected four-entry durable-set lag, and missing independent exact-head approval.
+  - Exact synchronized T10 candidate 002926039c964e9e362b3c396a0d710323d9f1cf passed deterministic/security lanes in MONDE Gate run 34965242824 / #191 with the same 312/312 tests, 3482/3482 statements, 1696/1696 branches, 100% line+branch coverage, 37/37 + 40/40 + 5/5 mutations and every deterministic/T7/T8/T9/T10 gate at zero. Its live gate confirmed exact durable/live 62/62 identity equality and failed only on the 62 intentionally unresolved threads plus missing trusted context-separated exact-head approval.
+  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNoalkw reviewed exact candidate cc6e98d542fbedf097a8ffbb7eb5dcf128237c84 and opened five new material findings, expanding the live closure set from 62 to 67 and opening T11.
+  - Exact T11 substantive candidate 5e7af51bcc08698de930eed5dba62ab9ba3e74af passed deterministic/security lanes in MONDE Gate run 34973462479 / #201: 344/344 tests, 3761/3761 statements, 1808/1808 branches, 100% line+branch coverage, 37/37 baseline plus 40/40 fresh-L2/T7/T8/T9 plus 5/5 T10 plus 8/8 T11 critical mutations killed, repository/strict/path/change/L2-hardening/review-closure/T7/T8/T9/T10/T11 validators all at zero, 19-file context manifest, CodeQL success and Dependency Review success. Its live gate observed exactly 67 unresolved threads and reported only the expected five-entry durable-set lag (missing the five T11 PRRT identities, stale=[]), plus absence of a trusted context-separated L2/L3 exact-head APPROVED review.
+  - Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNppdkQ on exact candidate 792390305c20439c73b313b0dd3fca92b9c096fa opened six further findings, expanding the live closure set from 67 to 73.
+  - Exact HEAD 4046e03b1e00a2051d29ccd6dcf5f0af7426259a / Gate #228 / run 34997568781 passed the deterministic lane with 357/357 tests, 100% coverage and zero repository validation warnings/errors; its merge gate failed closed on 73 unresolved threads, the six then-missing durable IDs, and absence of trusted exact-head approval.
+  - Exact durable-set correction HEAD 47d7bcc1840af45059e47e979040808e4b202d4e / Gate #230 / run 35710776945 established exact 73/73 durable/live PRRT identity equality: deterministic governance remained green and the live merge gate failed only on 73 unresolved threads plus missing trusted exact-head approval, with no DURABLE_FINDING_SET error.
+  - Exact T12/T13 identity-split HEAD 242f6c9553c4e42bfbb4e6aad2ca27596573ecb2 / Gate #231 / run 35711181317 passed 357/357 tests at 100% line+branch coverage, baseline mutations 37/37, L2 mutations 40/40, T10 5/5, T11 8/8, T13 5/5, repository/strict/path/change/L2/review/T7/T8/T9/T10/T11 validators all at zero, 19-file context manifest, CodeQL and Dependency Review success. Its live gate again failed only on 73 unresolved threads plus missing trusted exact-head approval.
   evidence:
-    - "Bootstrap #154/#155/#156: 194/194 tests PASS; 1856 statements / 842 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS"
-    - "Bootstrap #157 re-proved the CLOSED state-only checkpoint at 194/194 tests, 1856 statements / 842 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
-    - "Bootstrap #159 proved REVIEW-0051 technical candidate at 200/200 tests, 1894 statements / 856 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests; pending recovery job remained skipped on PR CI"
-    - "Bootstrap #160 proved the REVIEW-0051 OPEN state-only checkpoint SUCCESS before the lifecycle transition to IN_PROGRESS"
-    - "REVIEW-0050 was invalidated semantically despite green execution proof because recovery could clear durable pending authority across an external rerun TOCTOU"
-    - "Bootstrap #242 proves REVIEW-0063 full run/job lifetime containment on d1a2a6d921ca85c8424f7aa707f893306d939189 with 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; green execution is technical evidence only, not semantic approval"
-    - "Bootstrap #247 proves REVIEW-0064 required-check temporal validation/binding on 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a with 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; no new GitHub request is added"
-    - "Bootstrap #251 proves REVIEW-0065 final mutation-bound Gate-authority revalidation on 188945f3e2b9db977c0906b57e9bfdf0f29bc27a with 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
-    - "Bootstrap #255 proves REVIEW-0066 coherent G1 -> PR+threads -> G2 mutation snapshot on a816853357a57f5b09c4504129a4630b82754218 with 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
-    - "Bootstrap #259 proves REVIEW-0067 G1 -> P1 -> threads -> P2 -> G2 overlapping PR/Gate stability on 65a155d43e027f7c618a4dfa3a10a67e366f08fb with 335/335 tests, 2707 statements / 1158 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
-  coverage: {line: 100, branch: 100}
+  - TEST-0002
+  - TEST-0003
+  - REVIEW-0002
+  - 'PR #2'
+  - PRR_kwDOUUI5ts8AAAABNiFSzA
+  - PRR_kwDOUUI5ts8AAAABNih5Qw
+  - PRR_kwDOUUI5ts8AAAABNmehrQ
+  - PRR_kwDOUUI5ts8AAAABNnPvYg
+  - PRR_kwDOUUI5ts8AAAABNoalkw
+  - PRR_kwDOUUI5ts8AAAABPJeT9Q
+  coverage:
+    line: 100
+    branch: 100
   known_gaps:
-    - "REVIEW-0050 is CLOSED/CHANGES_REQUIRED and not approved."
-    - "REVIEW-0051 is CLOSED/CHANGES_REQUIRED on exact head 151fcd13e2fc5b15420de097635b6c9fbc9795ba after PRR_kwDOUUI5ts8AAAABOoOnSQ reproduced a real multi-check liveness defect; no independent REVIEW-0051 L2 ran."
-    - "REVIEW-0052 is CLOSED/CHANGES_REQUIRED on exact head 654e24fdb7df17b5e92cad13bd5264faa128bfab after PRR_kwDOUUI5ts8AAAABOpz-Bg proved the filtered required-check selector is incomplete above 100 legitimate same-head check suites; no independent REVIEW-0052 L2 ran."
-    - "REVIEW-0053 is CLOSED/CHANGES_REQUIRED on exact head 56a24864caa67db2af2e830f75ce279c4cc056c3 after PRR_kwDOUUI5ts8AAAABOqC8Gg proved that generic post-POST observation RuntimeError can erase the durable pending mutation through the ordinary poll error path; no independent REVIEW-0053 L2 ran."
-    - "REVIEW-0054 is CLOSED/CHANGES_REQUIRED on exact head 38e57b16791466114568a8d7b99ba11480c743a9 after PRR_kwDOUUI5ts8AAAABOqcmhQ proved that RuntimeError after terminal observation but before acknowledged pending clear can still erase durable pending authority; no independent REVIEW-0054 L2 ran."
-    - "REVIEW-0055 is CLOSED/CHANGES_REQUIRED on exact head c294f6f663424d13d3534a8b7cc5131878936c31 after PRR_kwDOUUI5ts8AAAABOr4qTA proved ambiguous acknowledgement of the initial pending PATCH can leave remote pending state while local pending_active remains false; no independent REVIEW-0055 L2 ran."
-    - "REVIEW-0056 is CLOSED/CHANGES_REQUIRED on exact head e83eea9d48b7f42539575dda52e205211d261948 after PRR_kwDOUUI5ts8AAAABOsEGIw proved that filtered required-check offset pagination can silently miss a newly-created effective check under insert/delete drift with unchanged total_count and no duplicate IDs; no independent REVIEW-0056 L2 ran."
-    - "REVIEW-0057 is CLOSED/CHANGES_REQUIRED on exact head 33f24d354f513f4b925f0b1f56ad8775da8b8ab2 after PRR_kwDOUUI5ts8AAAABOtCssw proved adjacent-only drift revalidation is insufficient for 3+ page traversals; no independent REVIEW-0057 L2 ran."
-    - "REVIEW-0058 is CLOSED/CHANGES_REQUIRED on exact head 11e8b86e67bdb2f69c2db4823b09bd051e211855 after PRR_kwDOUUI5ts8AAAABOuVyaw proved sequential final all-page revalidation is still not a linearizable latest-check authority snapshot; no independent REVIEW-0058 L2 ran."
-    - "REVIEW-0059 is CLOSED/CHANGES_REQUIRED on exact head b3834693cd65074b43866b0ed9cba55b6d7309f1 after PRR_kwDOUUI5ts8AAAABOwZrZw proved original run creation chronology conflicts with effective rerun-attempt/check authority; no independent REVIEW-0059 L2 ran."
-    - "REVIEW-0060 is CLOSED/CHANGES_REQUIRED on exact head 729a3d1b917d4cb14f8e66083b11994947d37e42 after PRR_kwDOUUI5ts8AAAABOzV1xw proved that protected job started_at is not validated against current run_started_at and can under-rank a genuinely newer attempt; no independent REVIEW-0060 L2 ran."
-    - "REVIEW-0061 is CLOSED/CHANGES_REQUIRED on exact head f5bbad18911208b2f408d1aeb245aed32506b742 after PRR_kwDOUUI5ts8AAAABOzuvcA proved candidate protected-job terminal-state drift can preserve an older success snapshot; no independent REVIEW-0061 L2 ran."
-    - "REVIEW-0062 is CLOSED/CHANGES_REQUIRED on exact head 589970c57808d0161c78eb6c5f7a07a19c2773ef after PRR_kwDOUUI5ts8AAAABOz4vxA proved protected-job activity is not bounded above by current run.updated_at and can over-rank legitimate authority; no independent REVIEW-0062 L2 ran."
-    - "REVIEW-0063 is CLOSED/CHANGES_REQUIRED on exact head 22dd22d5f9e50eea6d3bd351af8e12ab9a935440 after Bootstrap #244 / run 35848734246 proved 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests, Codex L2 was quota-refused by 5793166351, and author-side PRR_kwDOUUI5ts8AAAABO0xdhQ proved malformed terminal Check Run completed_at can cross positive authority; no independent REVIEW-0063 L2 ran."
-    - "REVIEW-0064 is CLOSED/CHANGES_REQUIRED on exact frozen head 9292e5f01d389d9a1280878eea4cda4a29dd0aef after Bootstrap #249 / run 35850591855 proved 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5793447096 was quota-refused by 5793449737, then author-side PRR_kwDOUUI5ts8AAAABO1CeRg proved a final mutation-bound global Gate-authority race; no independent REVIEW-0064 L2 ran."
-    - "REVIEW-0065 is CLOSED/CHANGES_REQUIRED on exact frozen head 72814dd559e7ad4f42dbbe5205488b1ed5fa3696 after Bootstrap #253 / run 35853367540 proved 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5793836688 was quota-refused by 5793838794, then author-side PRR_kwDOUUI5ts8AAAABO1L5Mw proved PR/thread authority can change during the final Gate proof; no independent REVIEW-0065 L2 ran."
-    - "REVIEW-0066 is CLOSED/CHANGES_REQUIRED on exact frozen head 6f8784bd7f2edf570dcaad34fd729ef8d052bc5f after Bootstrap #257 / run 35854881781 proved 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5794038865 was quota-refused by 5794040822, then author-side PRR_kwDOUUI5ts8AAAABO1Ts9g proved the single PR read cannot establish PR stability across the G1/P/T/G2 sandwich; no independent REVIEW-0066 L2 ran."
-    - "REVIEW-0067 is CLOSED/CHANGES_REQUIRED on exact frozen head 0c1ccbb1bf80c4328ff24c0e9079c7734d367f52 after Bootstrap #261 / run 35857716751 proved 335/335 tests, 2707 statements / 1158 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5794413357 was quota-refused by 5794416378, then author-side PRR_kwDOUUI5ts8AAAABO1qQqg proved permanent request-budget starvation with >=16 distinct same-head canonical runs; no independent REVIEW-0067 L2 ran."
-    - "REVIEW-0068 is CLOSED/CHANGES_REQUIRED on exact frozen head 466c37d56f7daab97fed1a0cbbe545ea593609f1 after Bootstrap #268 / run 35875607764 proved 352/352 tests, 2982 statements / 1278 branches, 100 percent line+branch, REVIEW-0068 275 statements / 120 branches at 100 percent and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5796883761 was quota-refused by 5796886353, then author-side PRR_kwDOUUI5ts8AAAABO3Wwiw proved permanent request-budget starvation with at least 35 valid temporally overlapping same-head canonical current runs; no independent REVIEW-0068 L2 ran."
-    - "REVIEW-0069 is CLOSED/CHANGES_REQUIRED on exact frozen head f047a085e94b4f5bd7c575ba31b4eff3b79daa8f after Bootstrap #274 / run 35881521467 proved 365/365 tests, 3178 statements / 1356 branches, 100 percent line+branch, REVIEW-0069 196 statements / 78 branches at 100 percent and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 request 5797672132 was quota-refused by 5797674597, then author-side PRR_kwDOUUI5ts8AAAABO346_Q proved permanent page-linear starvation with 901 current same-head suites/runs and an absolute >2000 Check Run MAX_PAGES deadlock; no independent REVIEW-0069 L2 ran."
-    - "REVIEW-0070 is CLOSED/CHANGES_REQUIRED on exact frozen head 487ea3c6addd870eb86c5f17756b8268fd98cb88 after Bootstrap #280 / run 35913019741 passed 385/385 tests, 3375 statements / 1438 branches, 100 percent line+branch, REVIEW-0070 197 statements / 82 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABO64xew then added P1 threads PRRT_kwDOUUI5ts6lUcz8, PRRT_kwDOUUI5ts6lUcz_, PRRT_kwDOUUI5ts6lUc0F, PRRT_kwDOUUI5ts6lUc0K and P2 thread PRRT_kwDOUUI5ts6lUc0Q. REVIEW-0071 successor is required before any thread resolution."
-    - "REVIEW-0071 is CLOSED/CHANGES_REQUIRED on frozen exact head 69c68959f1144bbccf76fef79d0624961d593d13 after Bootstrap #286 / run 35917430655 passed 410/410 tests, 3543 statements / 1514 branches, 100 percent line+branch, REVIEW-0071 168 statements / 76 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests; Codex L2 request 5802595691 was quota-refused by 5802597968, then author-side PRR_kwDOUUI5ts8AAAABO7OKJw exposed the mutable discovery-state race. REVIEW-0072 successor is required before any thread resolution."
-    - "REVIEW-0072 is CLOSED/CHANGES_REQUIRED on frozen exact head bc5fb064a7955854e5b4a849b2ed5e2843f55576 after Bootstrap #290 / run 35919570373 passed 423/423 tests, 3610 statements / 1542 branches, 100 percent line+branch, REVIEW-0072 67 statements / 28 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests; Codex L2 request 5802871704 was quota-refused by 5802873335, then author-side PRR_kwDOUUI5ts8AAAABO7ZUCw exposed the coercive direct-PR identity weakness. REVIEW-0073 successor is required before any thread resolution."
-    - "REVIEW-0073 is CLOSED/CHANGES_REQUIRED on frozen exact head 46591d6d66246c5942eba09c712b196f3c1a16fc after Bootstrap #295 / run 35930261078 passed 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests; Codex L2 request 5804250089 was quota-refused by 5804251803, then author-side PRR_kwDOUUI5ts8AAAABO8S_3w produced P1 PRRT_kwDOUUI5ts6lXj4D and P2 PRRT_kwDOUUI5ts6lXj4K. REVIEW-0074 successor is required before any thread resolution."
-    - "REVIEW-0074 implementation candidate replaces inherited weak internal rereads with local strict guard rereads on the same number+node identity and replaces the live validator with a strict exact-target seed+reread; lifecycle remains unopened pending exact technical proof."
-    - "Historical REVIEW-0069 successor requirement is superseded by REVIEW-0070 terminal evidence; REVIEW-0071 retains the PR-scoped draft guard and addresses the five exact-head L2 findings rather than returning to bulk Gate authority."
-    - "PR #5 controlled resolution completed after REVIEW-0082 approval: 83 total material threads, 0 unresolved, no new finding, branch content held fixed during resolution."
-    - "PR #2 integration and trusted non-author exact-head APPROVED evidence remain downstream."
-
-risk: {security: HIGH, data: NONE, epistemic: LOW, performance: HIGH, operational: HIGH}
+  - Repository administration/ruleset enforcement belongs to WORK-0003.
+  - Gate #231 / run 35711181317 is the exact substantive T13/task-identity proof on 242f6c9553c4e42bfbb4e6aad2ca27596573ecb2. This final handover synchronization changes only WORK-0002/PROJECT_STATE and therefore requires one exact-head state-only Gate before any future integration/review decision.
+  - All 91 live material review threads/findings remain intentionally unresolved after REVIEW-0085 independent L2 plus author-side subshell-function finding; no author-side resolution counts as completion evidence.
+  - REVIEW-0084 frozen head d1850542494492a388b545dec954e078b825d9b5 passed Bootstrap #356 / run 36124803925 and Gate #286 / run 36124804464 with 824 tests, 7851 statements / 3596 branches at 100 percent line+branch, 38/38 + 40/40 + 5/5 + 11/11 + 9/9 mutations, all deterministic validators green, CodeQL and Dependency Review green; live gate failed only on 81 unresolved threads plus missing exact-head approval. Fresh independent L2 PRR_kwDOUUI5ts8AAAABPOcDnA then added five new P1 findings, expanding the live/durable closure set to 86. REVIEW-0084 is CLOSED/CHANGES_REQUIRED.
+  - REVIEW-0085 is CLOSED/CHANGES_REQUIRED on exact frozen head 4cbe42fd2c5b2fc14cd50e843c103340cf4dac99. Bootstrap #367 / run 36136417818 and Gate #302 / run 36136417961 proved 827 tests, 7932 statements / 3652 branches at 100 percent line+branch, 38/38 + 40/40 + 5/5 + 11/11 + 14/14 mutations, all deterministic/T7-T11 validators, CodeQL and Dependency Review green; live gate failed only on 86 unresolved threads and missing exact-head approval. Fresh independent L2 PRR_kwDOUUI5ts8AAAABPPl4wg then added four P1s PRRT_kwDOUUI5ts6mAc8I, PRRT_kwDOUUI5ts6mAc8M, PRRT_kwDOUUI5ts6mAc8O and PRRT_kwDOUUI5ts6mAc8S. Author-side PRRT_kwDOUUI5ts6mAdoV added the Bash subshell-function variant. Live/durable closure set is now 91.
+  - REVIEW-0086 technical candidate cc0a62661aac2150983ebcaf4c3dd0529012a209 passed Bootstrap #373 / run 36141676466 and Gate #315 / run 36141676897. OPEN checkpoint 846c4cfee2df680bd06023b481ac4673c5693afd passed Bootstrap #374 / run 36142902577 and Gate #316 / run 36142903564 with the same 829 tests, 7977 statements / 3680 branches at 100 percent line+branch; 38/38 + 40/40 + 5/5 + 11/11 + 18/18 mutations; all deterministic/T7-T11 validators, CodeQL and Dependency Review green; live gate failed only on 91 unresolved threads and missing exact-head approval. REVIEW-0086 is IN_PROGRESS pending one frozen exact-head proof and fresh independent L2.
+  - Canonical task identity is now explicit: T12 is reserved for the trusted default-branch stale-green predecessor on PR #5, while T13 names the five branch-local corrections already implemented on PR #2. Historical filenames using t12 for that local correction wave are renamed to t13 without changing behavior.
+  - Gate #228 / run 34997568781 on exact HEAD 4046e03b1e00a2051d29ccd6dcf5f0af7426259a proved 357/357 tests and 100% coverage, then correctly reported six durable IDs missing from the 73-thread live set.
+  - Five of those six later-review findings are already represented by current code: PR-family review events are included in thread polling; ambiguous first-status materializations are rejected; terminal external imports without binding are rejected; workflow command wiring is parsed as executable argv; and live closure work is resolved dynamically rather than hard-coded to WORK-0002.
+  - PRRT_kwDOUUI5ts6ijUTn remains structurally dependent on the trusted default-branch stale-green predecessor being delivered by PR #5 before PR #2 can close.
+  - Post-PR5 integration rehearsal PR #11 / exact head c4af0e0c896d7023f64ecebfdddd26a6882eedbe exposed and proved two branch-local merge-history hardenings: change_guard comparison-parent/inherited-source handling and T11 provenance-history filtering for merge commits that preserve a parent blob. PR #2 Gate #251 / run 35727146538 then re-proved the exact port on e462639ec9b29ecbe3bef3845ab2a3def5bb9a6c; T14 is DONE author-side. This state-only synchronization descendant still requires its own exact-SHA Gate before any later integration/review action.
+  - No trusted context-separated L2/L3 GitHub APPROVED review is yet bound to the exact current PR HEAD; the hardened live gate must remain fail-closed until that independent evidence exists.
+  - External Codex findings remain truthfully referenced by their GitHub review/thread identities rather than being retroactively rewritten as approving canonical REVIEW records.
+  - Historical malformed YAML, WORK-0001 squash bridges and progress-guard adoption boundaries must remain exact fail-closed historical provenance; future reuse is forbidden.
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: MEDIUM
+  performance: LOW
+  operational: MEDIUM
 rollback:
-  strategy: "Do not merge PR #5 until a clean exact-head successor review permits controlled thread resolution; main remains on WORK-0001 governance if PR #5 is rejected."
-
+  strategy: Revert the governance hardening commit; keep canonical process documentation authoritative while the gate is repaired.
 run_log:
-  - "REVIEW-0082 COMPLETE/APPROVE reviewed exact head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618; lifecycle-recording commit cabb259aa686028def1c7b9a4e80b85d15b82d99 passed Bootstrap #332 / run 36048764381, then all 83 reviewed PR #5 material threads were resolved with branch content fixed and no new finding."
-  - "REVIEW-0049 terminal independent negative: c8f1fec24358c25224771a15b647d56c8a2f0287 / PRR_kwDOUUI5ts8AAAABN4sxvg."
-  - "REVIEW-0050 candidate cbe21fa4cebc1c8f8b3030af17284de5700f9818 passed #154 at 194 tests / 1856 statements / 842 branches / 100 percent plus live PR #2 probe."
-  - "REVIEW-0050 OPEN 871850ac5b66a43cfd8491ef445d1738ad09d822 passed #155; frozen IN_PROGRESS f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c passed #156."
-  - "Author-side PRR_kwDOUUI5ts8AAAABN7LvGQ invalidated REVIEW-0050 before an exact-head independent L2 was submitted."
-  - "REVIEW-0050 CLOSED checkpoint 71c40aeb7ca7de4968a78953e9d003a5f65c3f9f passed Bootstrap #157 / run 35211526610; REVIEW-0051 implementation run started from that proven checkpoint."
-  - "REVIEW-0051 technical candidate 63001400659273252771d32c61665203b7d43ef3 passed Bootstrap #159 / run 35708508061 at 200 tests / 1894 statements / 856 branches / 100 percent plus live PR #2 probe; lifecycle REVIEW-0051 opened only after this proof."
-  - "REVIEW-0051 OPEN checkpoint 2017a6ef2143574aa3b43028d776352bfa81d401 passed Bootstrap #160 / run 35708741464; lifecycle transitioned to IN_PROGRESS only after that proof."
-  - "REVIEW-0051 IN_PROGRESS head dd97f30617f1772032def036cdb94b1030001adf passed Bootstrap #161 / run 35708858747 at 200 tests / 1894 statements / 856 branches / 100 percent plus live PR #2 probe; Codex trigger 5773961643 was then refused by quota (5773963162), so no independent review was produced."
-  - "Integration rehearsal PR #8 / Bootstrap #163 reproduced a live PR #2 contract failure because GitHub returned two legitimate latest MONDE / Merge Gate checks for head 0c06fa7af170de6aff888d178bb00939d8e23afe. Author-side PRR_kwDOUUI5ts8AAAABOoOnSQ closed REVIEW-0051 as CHANGES_REQUIRED before any independent L2."
-  - "REVIEW-0051 CLOSED state-only checkpoint 722cfe8782c38350258fdd823709a055a4beeccf / Bootstrap #167 preserved the negative live reproduction. Rehearsal Bootstrap #166 already proved the candidate selector fix; the same code is now ported to PR #5 for exact-head proof."
-  - "PR #5 technical selector candidate deb6190983bd2cc97e3adffcd4769b4e44d58cb8 passed Bootstrap #168 / run 35715152696; REVIEW-0052 was opened only after this proof."
-  - "REVIEW-0052 OPEN checkpoint fc7308302bb5fc76467ef55f3d1978cf2a39afc6 passed Bootstrap #169 / run 35715662864; lifecycle transitioned to IN_PROGRESS only after that proof."
-  - "REVIEW-0052 frozen head 654e24fdb7df17b5e92cad13bd5264faa128bfab passed Bootstrap #170 / run 35715826007 at 202/202 tests, 1899 statements / 858 branches, 100 percent line+branch and live PR #2 probe. Codex retries were quota-refused; author-side PRR_kwDOUUI5ts8AAAABOpz-Bg then exposed the >100 filtered-check pagination P1 and closed REVIEW-0052 before any independent L2."
-  - "REVIEW-0053 pagination candidate 1470320c1b19f94ad697d0b91e1b90921923ee91 passed Bootstrap #186 / run 35731235939 at 204/204 tests, 1891 statements / 852 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0053 opened only after this proof."
-  - "REVIEW-0053 OPEN checkpoint e6f77aa0bbd3eff80f136228fc4d00a8c09ad2a8 passed Bootstrap #187 / run 35731526951 at 204/204 tests, 1891 statements / 852 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0053 frozen head 56a24864caa67db2af2e830f75ce279c4cc056c3 passed Bootstrap #188 / run 35731769188 at 204/204 tests, 1891 statements / 852 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5777137141, then author-side PRR_kwDOUUI5ts8AAAABOqC8Gg exposed the post-POST RuntimeError pending-loss P1."
-  - "REVIEW-0054 retention candidate 8b8b23072e77b83e3c86dbdc4f0486035e04dd26 passed Bootstrap #191 / run 35735060972 at 210/210 tests, 1927 statements / 860 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0054 opened only after this proof."
-  - "REVIEW-0054 OPEN checkpoint 1002256314b2988470620172b58422fa08547605 passed Bootstrap #192 / run 35735482885 at 210/210 tests, 1927 statements / 860 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0054 frozen head 38e57b16791466114568a8d7b99ba11480c743a9 passed Bootstrap #193 / run 35735778963 at 210/210 tests, 1927 statements / 860 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5777705279, then author-side PRR_kwDOUUI5ts8AAAABOqcmhQ exposed the pre-clear reclassification RuntimeError pending-loss P1."
-  - "REVIEW-0055 full pending-lifetime candidate ec5cbddfc7f1760dac094cb227c093499c71cd9a passed Bootstrap #197 / run 35737368210 at 217/217 tests, 1969 statements / 870 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0055 opened only after this proof."
-  - "REVIEW-0055 OPEN checkpoint e1b420eb2cac2a4f950aeae0aa1d9b0a1f404c8a passed Bootstrap #198 / run 35737725013 at 217/217 tests, 1969 statements / 870 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0055 frozen head c294f6f663424d13d3534a8b7cc5131878936c31 passed Bootstrap #199 / run 35738070833 at 217/217 tests, 1969 statements / 870 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5778020778, then author-side PRR_kwDOUUI5ts8AAAABOr4qTA exposed ambiguous pending-write acknowledgement loss."
-  - "REVIEW-0056 pending-write acknowledgement candidate fcf91076f0b212c3473f53e335503290a0323fc1 passed Bootstrap #202 / run 35751712104 at 224/224 tests, 2011 statements / 880 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0056 opened only after this proof."
-  - "REVIEW-0056 OPEN checkpoint 105f20d8cc4784d4340dc62814ecac63a217d6d4 passed Bootstrap #203 / run 35752124326 at 224/224 tests, 2011 statements / 880 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0056 frozen head e83eea9d48b7f42539575dda52e205211d261948 passed Bootstrap #204 / run 35752415317 at 224/224 tests, 2011 statements / 880 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5779911755, then author-side PRR_kwDOUUI5ts8AAAABOsEGIw exposed count-stable offset-page membership drift."
-  - "REVIEW-0057 drift-detection candidate 7ca3c1b3dfa6d1b55c73d3efb41eb290fd43f07d passed Bootstrap #208 / run 35754043037 at 227/227 tests, 2039 statements / 900 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0057 opened only after this proof."
-  - "REVIEW-0057 OPEN checkpoint e9bab74e5a2f45379d8271e0f761d63af0ab15f5 passed Bootstrap #209 / run 35758466500 at 227/227 tests, 2039 statements / 900 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0057 frozen head 33f24d354f513f4b925f0b1f56ad8775da8b8ab2 passed Bootstrap #210 / run 35758795593 at 227/227 tests, 2039 statements / 900 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5780742232, then author-side PRR_kwDOUUI5ts8AAAABOtCssw exposed late drift of an already-revalidated earlier page in a 3+ page traversal."
-  - "REVIEW-0058 final-snapshot candidate 4b4d1ae6ec4815e7967f72023f2db63272e1c144 passed Bootstrap #213 / run 35775861240 at 229/229 tests, 2052 statements / 906 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0058 opened only after this proof."
-  - "REVIEW-0058 OPEN checkpoint 5e8cf6c9ce1d8ad39b75102963b91712422c37ea passed Bootstrap #214 / run 35776333361 at 229/229 tests, 2052 statements / 906 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0058 frozen head 11e8b86e67bdb2f69c2db4823b09bd051e211855 passed Bootstrap #215 / run 35776698177 at 229/229 tests, 2052 statements / 906 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5783103201, then author-side PRR_kwDOUUI5ts8AAAABOuVyaw exposed the non-linearizable sequential snapshot defect."
-  - "REVIEW-0059 canonical Actions frontier candidate 5c1dc5b2337b275d91dbb07a27becdd88261b317 passed Bootstrap #220 / run 35794235973 at 245/245 tests, 2151 statements / 942 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0059 opened only after this proof."
-  - "REVIEW-0059 OPEN checkpoint d369650372b2cc59c34ca6618c1ab163d23df7d9 passed Bootstrap #221 / run 35797915783 at 245/245 tests, 2151 statements / 942 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0059 frozen head b3834693cd65074b43866b0ed9cba55b6d7309f1 passed Bootstrap #222 / run 35798260021 at 245/245 tests, 2151 statements / 942 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5786201245, then author-side PRR_kwDOUUI5ts8AAAABOwZrZw exposed creation-time versus rerun-attempt authority mismatch."
-  - "REVIEW-0060 attempt-aware authority candidate 3b72d4f31da6b05ad28d6fe2e8cdc39d3707fe30 passed Bootstrap #227 / run 35800041465 at 261/261 tests, 2283 statements / 1008 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0060 opened only after this proof."
-  - "REVIEW-0060 OPEN checkpoint 3fa070761058a5a5e2dbcd197523f04ce78ccff0 passed Bootstrap #228 / run 35833351150 at 261/261 tests, 2283 statements / 1008 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0060 frozen head 729a3d1b917d4cb14f8e66083b11994947d37e42 passed Bootstrap #229 / run 35833554806 at 261/261 tests, 2283 statements / 1008 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5791098069, then author-side PRR_kwDOUUI5ts8AAAABOzV1xw exposed missing run-start/job-start cross-object chronology validation."
-  - "REVIEW-0061 cross-object chronology candidate a04569ed115eb5b046b037bf10169b5f39e0d92f passed Bootstrap #232 / run 35835205839 at 273/273 tests, 2347 statements / 1028 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0061 opened only after this proof."
-  - "REVIEW-0061 OPEN checkpoint a7a4b9ff75c266718d4da808bdc2f4f5c1234d73 passed Bootstrap #233 / run 35835781074 at 273/273 tests, 2347 statements / 1028 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0061 frozen head f5bbad18911208b2f408d1aeb245aed32506b742 passed Bootstrap #234 / run 35836023032 at 273/273 tests, 2347 statements / 1028 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5791436226, then author-side PRR_kwDOUUI5ts8AAAABOzuvcA exposed candidate terminal-state drift across authority proof."
-  - "REVIEW-0062 terminal-snapshot candidate c38c2200583ebe83e8ac3fe97831c7e43e7de41f passed Bootstrap #237 / run 35839421844 at 283/283 tests, 2403 statements / 1046 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0062 opened only after this proof."
-  - "REVIEW-0062 OPEN checkpoint d7f8a896c2020453d089efd03cd13930d0f347c2 passed Bootstrap #238 / run 35839740175 at 283/283 tests, 2403 statements / 1046 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0062 frozen head 589970c57808d0161c78eb6c5f7a07a19c2773ef passed Bootstrap #239 / run 35839947248 at 283/283 tests, 2403 statements / 1046 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused via 5791956923, then author-side PRR_kwDOUUI5ts8AAAABOz4vxA exposed missing protected-job upper chronology containment."
-  - "REVIEW-0063 full-lifetime-containment technical candidate d1a2a6d921ca85c8424f7aa707f893306d939189 passed Bootstrap #242 / run 35841368355 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0063 opened only after this proof."
-  - "REVIEW-0063 OPEN checkpoint 2b92575013d39257fb61c516c4dfa9ab10f74ebf passed Bootstrap #243 / run 35848570089 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0064 initial candidate 57fe16eae6c15ae2ec587ac902aa6867f93e2a68 / Bootstrap #246 passed 301 tests and live PR #2 probe but was rejected by the 100 percent coverage gate; test-only descendant 7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a then passed Bootstrap #247 / run 35850145099 at 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; REVIEW-0064 lifecycle opened only after this exact proof."
-  - "REVIEW-0064 OPEN checkpoint 9ab74b7d2d775bb764d95921021a70d97cf8a6ca passed Bootstrap #248 / run 35850458914 at 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0064 frozen head 9292e5f01d389d9a1280878eea4cda4a29dd0aef passed Bootstrap #249 / run 35850591855 at 303/303 tests, 2521 statements / 1092 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; fresh Codex L2 request 5793447096 was quota-refused by 5793449737, then author-side PRR_kwDOUUI5ts8AAAABO1CeRg exposed the final mutation-bound global Gate-authority race."
-  - "REVIEW-0064 CLOSED checkpoint dfcd219f27c7f662b849eeac2ad6d797a2d635e4 passed Bootstrap #250 / run 35852454144; REVIEW-0065 technical candidate 188945f3e2b9db977c0906b57e9bfdf0f29bc27a then passed Bootstrap #251 / run 35852981670 at 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0065 opened only after this proof."
-  - "REVIEW-0065 OPEN checkpoint 6d40c6c4d8edc8965003c4e34c199bb14d65935b passed Bootstrap #252 / run 35853220600 at 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0065 frozen head 72814dd559e7ad4f42dbbe5205488b1ed5fa3696 passed Bootstrap #253 / run 35853367540 at 312/312 tests, 2579 statements / 1112 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; fresh Codex L2 request 5793836688 was quota-refused by 5793838794, then author-side PRR_kwDOUUI5ts8AAAABO1L5Mw exposed PR/thread drift during the final Gate proof."
-  - "REVIEW-0065 CLOSED checkpoint 395eb382eabd99058f3504fb7cc7235cbf9c2fa4 passed Bootstrap #254 / run 35854055051; REVIEW-0066 technical candidate a816853357a57f5b09c4504129a4630b82754218 then passed Bootstrap #255 / run 35854415761 at 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0066 opened only after this proof."
-  - "REVIEW-0066 OPEN checkpoint b2250f25aa4e52f4406f2b730ea1576a72b7a2b4 passed Bootstrap #256 / run 35854630241 at 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0066 frozen head 6f8784bd7f2edf570dcaad34fd729ef8d052bc5f passed Bootstrap #257 / run 35854881781 at 323/323 tests, 2646 statements / 1136 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused by 5794040822, then author-side PRR_kwDOUUI5ts8AAAABO1Ts9g exposed PR drift after P1 inside the Gate-stable sandwich."
-  - "REVIEW-0066 CLOSED checkpoint 0c7939c860f6b932ebf5359e91625e8de63a7882 passed Bootstrap #258 / run 35855234194; REVIEW-0067 technical candidate 65a155d43e027f7c618a4dfa3a10a67e366f08fb then passed Bootstrap #259 / run 35857211412 at 335/335 tests, 2707 statements / 1158 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle REVIEW-0067 opened only after this proof."
-  - "REVIEW-0067 OPEN checkpoint e4f994c2b1661427f83ff23b8c9ece21fc296aa1 passed Bootstrap #260 / run 35857491772 at 335/335 tests, 2707 statements / 1158 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0067 frozen head 0c1ccbb1bf80c4328ff24c0e9079c7734d367f52 passed Bootstrap #261 / run 35857716751 at 335/335 tests, 2707 statements / 1158 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused by 5794416378, then author-side PRR_kwDOUUI5ts8AAAABO1qQqg exposed permanent request-budget starvation for sufficiently many distinct same-head canonical Gate runs."
-  - "REVIEW-0067 CLOSED checkpoint ba80a4ab32a679ecc5bb3e10262f74651b058c89 passed Bootstrap #262 / run 35859105244; REVIEW-0068 initial candidate 13391ebdf9dc06b750ad98749b9a9e8635d0256b then produced Bootstrap #263 negative harness evidence, followed by #264 negative budget-fixture evidence and #265 negative coverage-gate evidence (347/347 tests PASS but REVIEW-0068 86 percent / repository total 99 percent)."
-  - "REVIEW-0068 exact technical candidate 00a6518a57f8c0f7498455dc062210bb3d250aa7 passed Bootstrap #266 / run 35874735620 at 352/352 tests, 2982 statements / 1278 branches, 100 percent line+branch, REVIEW-0068 275 statements / 120 branches at 100 percent and live PR #2 probe SUCCESS at 7/100 requests; lifecycle opened only after this proof."
-  - "REVIEW-0068 OPEN checkpoint 41f654884f7461a901c23f74fd7a5ddacae5a295 passed Bootstrap #267 / run 35875277280 at 352/352 tests, 2982 statements / 1278 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0068 frozen head 466c37d56f7daab97fed1a0cbbe545ea593609f1 passed Bootstrap #268 / run 35875607764 at 352/352 tests, 2982 statements / 1278 branches, 100 percent line+branch, REVIEW-0068 275 statements / 120 branches at 100 percent and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused by 5796886353, then author-side PRR_kwDOUUI5ts8AAAABO3Wwiw exposed dense-overlap request-budget starvation at M>=35 valid overlapping same-head current runs."
-  - "REVIEW-0068 CLOSED checkpoint 467f08d546b369554e09054fb25fe6bf3f1fe564 passed Bootstrap #269 / run 35876732282; REVIEW-0069 initial candidate 13673e19e62c5b4f6e6753a01477587f564a3bc4 then produced Bootstrap #270 negative fixture evidence, followed by #271 negative coverage-gate evidence (364/364 tests PASS but REVIEW-0069 96 percent / repository total 99 percent)."
-  - "REVIEW-0069 exact technical candidate c22f1ea6655adfd11ecb881972c4e36ea3616b57 passed Bootstrap #272 / run 35878601779 at 365/365 tests, 3178 statements / 1356 branches, 100 percent line+branch, REVIEW-0069 196 statements / 78 branches at 100 percent and live PR #2 probe SUCCESS at 7/100 requests; lifecycle opened only after this proof."
-  - "REVIEW-0069 OPEN checkpoint fddf258989427f7a64e57fc05596572e98fd14c6 passed Bootstrap #273 / run 35881158808 at 365/365 tests, 3178 statements / 1356 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0069 frozen head f047a085e94b4f5bd7c575ba31b4eff3b79daa8f passed Bootstrap #274 / run 35881521467 at 365/365 tests, 3178 statements / 1356 branches, 100 percent line+branch, REVIEW-0069 196 statements / 78 branches at 100 percent and live PR #2 probe SUCCESS at 7/100 requests; Codex L2 was quota-refused by 5797674597, then author-side PRR_kwDOUUI5ts8AAAABO346_Q exposed page-linear request-budget starvation at 901 current suites/runs and MAX_PAGES deadlock above 2000 Check Runs."
-  - "REVIEW-0069 CLOSED checkpoint 6abe3c352572bb10dae7aeea0deeea2a9b6edd82 passed Bootstrap #275 / run 35882375042 at 365/365 tests, 3178 statements / 1356 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; REVIEW-0070 draft-guard implementation begins only from this proven checkpoint."
-  - "REVIEW-0070 candidate 8cf1cf238d00dc3d95adf928bd4244ef0b2bea1c produced Bootstrap #276 negative fixture/legacy-workflow expectation evidence; 137da853a0ee2dd7f77603c8bf68c5569e88d06a / #277 then passed all 385 functional tests but failed the strict coverage gate at 99 percent total."
-  - "REVIEW-0070 exact technical candidate 1611356cbd3ab21be9cd47828acdfecbc1479b16 passed Bootstrap #278 / run 35909146544 at 385/385 tests, 3375 statements / 1438 branches, 100 percent line+branch, REVIEW-0070 197 statements / 82 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests."
-  - "Real GitHub rehearsal converted PR #2 ready -> draft -> ready without changing head 90d762af389990b5e57fce83397a558276500dd5; ready_for_review immediately created fresh canonical MONDE Gate run #253 / 35912455093 on the same head; no review thread was resolved."
-  - "REVIEW-0070 OPEN checkpoint b122b86f95d557d58d4a9ebd39ead3224c4c60e4 passed Bootstrap #279 / run 35912747306 at 385/385 tests, 3375 statements / 1438 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0070 frozen head 487ea3c6addd870eb86c5f17756b8268fd98cb88 passed Bootstrap #280 / run 35913019741 at 385/385 tests, 3375 statements / 1438 branches, 100 percent line+branch, REVIEW-0070 197 statements / 82 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; independent Codex L2 PRR_kwDOUUI5ts8AAAABO64xew then produced five material findings and increased unresolved PR #5 threads from 65 to 70."
-  - "REVIEW-0070 CLOSED checkpoint a7285c0bd74a2228dce3cd7882cb1423ebe25eba passed Bootstrap #281 / run 35915252517; REVIEW-0071 implementation begins only from this proven terminal checkpoint."
-  - "REVIEW-0071 candidate 2f36acbf182cb58a155c279fda80120b29e9afed / Bootstrap #282 retained negative coverage evidence at 401/401 functional tests; ff2923d9260d9a0b2326cdcada715d0aff7c3440 / #283 retained negative final-branch coverage evidence at 409/409 tests."
-  - "REVIEW-0071 exact technical candidate 9627c5ac5499210107e817dc49ff9b62407d5520 passed Bootstrap #284 / run 35916713082 at 410/410 tests, 3543 statements / 1514 branches, 100 percent line+branch, REVIEW-0071 168 statements / 76 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests; the 2001-PR / 21-page durable discovery regression crosses the former MAX_PAGES boundary."
-  - "REVIEW-0071 OPEN checkpoint 0755bdd0fa17514104d30b462b46baee8d7c13c6 passed Bootstrap #285 / run 35917159123 at 410/410 tests, 3543 statements / 1514 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 2/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0071 frozen head 69c68959f1144bbccf76fef79d0624961d593d13 passed Bootstrap #286 / run 35917430655 at 410/410 tests, 3543 statements / 1514 branches, 100 percent line+branch, REVIEW-0071 168 statements / 76 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests; Codex L2 request 5802595691 was quota-refused by 5802597968 and author-side PRR_kwDOUUI5ts8AAAABO7OKJw then exposed the draft/closed page-snapshot race."
-  - "REVIEW-0071 CLOSED checkpoint a3cde9dc00a64fb36c3fa917be44e87219a2655e passed Bootstrap #287 / run 35918357919; REVIEW-0072 implementation begins only from this proven terminal checkpoint."
-  - "REVIEW-0072 exact technical candidate a003455476468a9ac40343b368c195f4178a5d61 passed Bootstrap #288 / run 35918943484 at 423/423 tests, 3610 statements / 1542 branches, 100 percent line+branch, REVIEW-0072 67 statements / 28 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
-  - "REVIEW-0072 OPEN checkpoint 494d547f1e66415838f0b0425a4f9c9252c202d2 passed Bootstrap #289 / run 35919284637; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0072 frozen head bc5fb064a7955854e5b4a849b2ed5e2843f55576 passed Bootstrap #290 / run 35919570373 at 423/423 tests, 3610 statements / 1542 branches, 100 percent line+branch, REVIEW-0072 67 statements / 28 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests; Codex L2 request 5802871704 was quota-refused by 5802873335 and author-side PRR_kwDOUUI5ts8AAAABO7ZUCw then exposed the closed-path coercive PR identity bug."
-  - "REVIEW-0072 CLOSED checkpoint 1809ba60d8acb88571fc217a4725efad1283b9df passed Bootstrap #291 / run 35920235156; REVIEW-0073 implementation begins only from this proven terminal checkpoint."
-  - "REVIEW-0073 exact technical candidate 11289692153cf073d6e9c71f525809d7e66b298d passed Bootstrap #292 / run 35920768442 at 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests."
-  - "REVIEW-0073 initial OPEN checkpoint 8356e291f400ba3ccca3399debf17592ef9fd4c4 passed Bootstrap #293 / run 35921085079 technically, but lifecycle advancement was withheld because live PR #5 had 71 unresolved threads while WORK-0002/PROJECT_STATE still recorded 70 and omitted PRRT_kwDOUUI5ts6lXTqJ; a reconciled OPEN checkpoint is required."
-  - "REVIEW-0073 reconciled OPEN checkpoint 00cb73716b34e72884f8f529f00a0db6e2553c12 passed Bootstrap #294 / run 35930000762 at 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0073 frozen head 46591d6d66246c5942eba09c712b196f3c1a16fc passed Bootstrap #295 / run 35930261078 at 428/428 tests, 3697 statements / 1578 branches, 100 percent line+branch, REVIEW-0073 87 statements / 36 branches at 100 percent and live PR #2 probe SUCCESS at 2/100 requests; Codex L2 was quota-refused by 5804251803, then author-side PRR_kwDOUUI5ts8AAAABO8S_3w produced P1 PRRT_kwDOUUI5ts6lXj4D and P2 PRRT_kwDOUUI5ts6lXj4K."
-  - "REVIEW-0073 CLOSED checkpoint a455d4f3431f3bb388567e9f8eb371e3df4d9067 passed Bootstrap #296 / run 35931004610; REVIEW-0074 implementation begins only from this proven terminal checkpoint."
-  - "REVIEW-0074 exact technical candidate 1a90e73bb107e9f77763103bed059bc12ab11575 passed Bootstrap #297 / run 35931690262 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; lifecycle opens only after this proof."
-  - "REVIEW-0074 OPEN checkpoint d39fe379c8acc11f41988caa81600e68a0e05946 passed Bootstrap #298 / run 35972837681 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0074 frozen head 2e228ba5f016f25eacffab0ca0cd9a7e095cd757 passed Bootstrap #299 / run 35973035600 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch, REVIEW-0074 106 statements / 44 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; independent Codex L2 PRR_kwDOUUI5ts8AAAABPAAMUQ then added P1 PRRT_kwDOUUI5ts6lfj-O and P2 PRRT_kwDOUUI5ts6lfj-U, increasing unresolved PR #5 threads from 73 to 75."
-  - "REVIEW-0074 CLOSED checkpoint 327da248e7b7f167d88dfe4c06c739e3140e0bac passed Bootstrap #300 / run 35974182236 at 440/440 tests, 3803 statements / 1622 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0075 implementation begins only from this proven terminal checkpoint."
-  - "REVIEW-0075 candidate 187982171e76d7e80e1e3ae3c03721c0d56e0c59 / Bootstrap #301 retained negative fixture-isolation evidence; runtime live probe was green but lifecycle opening stayed withheld."
-  - "REVIEW-0075 exact technical candidate ca800f3e261d6fae699e37438aaee928e2112cb8 passed Bootstrap #302 / run 35974879638 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; lifecycle opens only after this proof."
-  - "REVIEW-0075 OPEN checkpoint 4a096babd415bde93dc1419ce2e4a2cfb97ae98e passed Bootstrap #303 / run 35975215661 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0075 frozen head cfb1fabb308167d1133872a099a7a1b8709f4440 passed Bootstrap #304 / run 35981180705 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch, REVIEW-0075 50 statements / 18 branches at 100 percent and live PR #2 probe SUCCESS at 3/100 requests; Codex L2 request 5811504923 was quota-refused by 5811506815, then author-side PRR_kwDOUUI5ts8AAAABPBZHCg added P2 PRRT_kwDOUUI5ts6liZGL and increased unresolved PR #5 threads from 75 to 76."
-  - "REVIEW-0076 documentation candidate e82ac8ac599e4f3611d5ab90358939e789288def passed #306, OPEN checkpoint f20894d87799c33faf97e3360ae9c0fc96d95cef passed #307, and frozen exact head 6a68226c79e0d3ae7856b2b56eda58bf1ef2511c passed #308 / run 35987642101 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; quota refusals produced no L2, then author-side P2 PRRT_kwDOUUI5ts6ljD7h increased unresolved threads from 76 to 77."
-  - "REVIEW-0076 CLOSED checkpoint a625b477474e5ba100d0d6e7232ee49406f54898 passed Bootstrap #309 / run 35989979265 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0077 documentation-only candidate begins only from this proven terminal checkpoint."
-  - "REVIEW-0077 exact documentation candidate a50971e5718cd0878e22479806b3177c1964f053 passed Bootstrap #310 / run 35990255357 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; compare from REVIEW-0076 CLOSED checkpoint changes exactly PROJECT_STATE.md and registry/work-items/WORK-0002.yaml."
-  - "REVIEW-0077 OPEN checkpoint d9efa5fa7d9f49c3aa4819d9f19aef8417ddaec8 passed Bootstrap #311 / run 35990495999 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0077 frozen head ff08b299d64d30f71b8f55ce48e9c8db811e7ab9 passed Bootstrap #312 / run 35990766361 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; Codex L2 request 5812861596 was quota-refused by 5812863419, then author-side P2 PRRT_kwDOUUI5ts6ljXzi exposed the self-referential frozen-proof handover model and increased unresolved threads from 77 to 78."
-  - "REVIEW-0077 CLOSED checkpoint 024870e9109ec5aaffbeaed3ce97174e00aafed5 passed Bootstrap #313 / run 35991600188 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0078 governance-documentation candidate starts only from this proven terminal checkpoint."
-  - "REVIEW-0078 exact governance-documentation candidate f07796388bc13388de05146fec4bf2294dab72ef passed Bootstrap #314 / run 35991898265 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; compare changes only PROJECT_STATE.md, WORK-0002 and the three canonical governance docs."
-  - "REVIEW-0078 OPEN checkpoint 1c017bbf3e44816bed12dc0e5752cf70fd5b7b67 passed Bootstrap #315 / run 35992228587 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0078 exact IN_PROGRESS head 9f596039277906c67e916bbf3b1f509989b71def passed Bootstrap #316 / run 35992467389 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABPDhWdw then produced P2 PRRT_kwDOUUI5ts6lm-ef and raised live unresolved threads from 78 to 79."
-  - "REVIEW-0078 CLOSED checkpoint 67d6e358dbdb24a0f51cc917604a85b2ade143bd passed Bootstrap #317 / run 36008323720 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0079 documentation-only reconciliation starts only from this proven terminal checkpoint."
-  - "REVIEW-0079 exact documentation/traceability candidate dd3930574f1879fd1102291d55ec3bcca7508d00 passed Bootstrap #318 / run 36008738638 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; compare changes exactly PROJECT_STATE.md and WORK-0002, and the 79 live PRRT IDs exactly equal the 79 machine-readable open_findings PRRT IDs."
-  - "REVIEW-0079 OPEN checkpoint 3027b7369f3819f09a03d48057623cc10b296ef4 passed Bootstrap #319 / run 36009156116 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0079 exact IN_PROGRESS head 1501fe77d8d5986fb29e381515de47e706ac2c02 passed Bootstrap #320 / run 36009526029 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABPDwpnQ then produced P2 PRRT_kwDOUUI5ts6lnfaG and raised live unresolved threads from 79 to 80."
-  - "REVIEW-0079 CLOSED checkpoint 56d35f134dcde7ddb331e441ad9424712be886b9 passed Bootstrap #321 / run 36010993526 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; follow-up exact-head Codex review PRR_kwDOUUI5ts8AAAABPD1fJA then produced P1 PRRT_kwDOUUI5ts6lnqJY and raised live unresolved threads from 80 to 81."
-  - "REVIEW-0080 initial candidate 2afe54a6d06aecab8f16c9764e687e6950411181 / Bootstrap #322 remained lifecycle-withheld after inconsistent execution.evidence indentation was detected before opening."
-  - "REVIEW-0080 exact traceability candidate a4008a93d858a34de56e07924421748c78accc51 passed Bootstrap #323 / run 36013738537 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; compare from REVIEW-0079 CLOSED checkpoint changes exactly PROJECT_STATE.md, REVIEW-0079.yaml, TEST-0009.yaml and WORK-0002.yaml, and live/machine PRRT sets are exactly equal at 81."
-  - "REVIEW-0080 OPEN checkpoint 6801fdd9a25517ec7af0250b64f5fcd835741737 passed Bootstrap #324 / run 36014119704 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitions to IN_PROGRESS only after this proof."
-  - "REVIEW-0080 exact IN_PROGRESS head 7a6516ea8c57a8f2538e4df3f237cf6ea4b70dce passed live Bootstrap #325 / run 36014347342 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; Codex request was quota-refused, then author-side PRR_kwDOUUI5ts8AAAABPENlRg produced P1 PRRT_kwDOUUI5ts6loe5m and raised unresolved threads from 81 to 82."
-  - "REVIEW-0081 OPEN checkpoint 9ee48bf0265855e2296e25fc7ce0489d62a62473 passed Bootstrap #327 / run 36015957795; frozen exact head 7bc0be1acaee237df7fba3dba6f33f5e17b3061c passed Bootstrap #328 / run 36030185175 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; independent Codex L2 PRR_kwDOUUI5ts8AAAABPHAnaQ then produced P2 PRRT_kwDOUUI5ts6lumiR and raised unresolved threads from 82 to 83."
-  - "REVIEW-0081 CLOSED checkpoint a1821ff4ffd302716b640e4ec27eb3c911d20ac1 passed Bootstrap #329 / run 36046708888 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0082 may open only from this proven terminal checkpoint."
-  - "REVIEW-0082 OPEN checkpoint c137f4ea30092298d691c7c3abd0b989f650a9cc passed Bootstrap #330 / run 36047087635 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitions to IN_PROGRESS only after this proof."
-  - "REVIEW-0082 exact IN_PROGRESS head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618 passed Bootstrap #331 / run 36047476826 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; fresh independent Codex L2 issue comment 5820761929 / IC_kwDOUUI5ts8AAAABWvHHSQ then reported no major issues and added no material finding, yielding REVIEW-0082 COMPLETE/APPROVE."
-  - "REVIEW-0081 OPEN checkpoint 9ee48bf0265855e2296e25fc7ce0489d62a62473 passed Bootstrap #327 / run 36015957795 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitions to IN_PROGRESS only after this proof."
-  - "REVIEW-0075 CLOSED checkpoint b8de445952c0cfb916e5ead7ce7009dff4809a41 passed Bootstrap #305 / run 35986900739 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; REVIEW-0076 documentation-only candidate starts only from this proven terminal checkpoint."
-  - "REVIEW-0076 exact documentation candidate e82ac8ac599e4f3611d5ab90358939e789288def passed Bootstrap #306 / run 35987119706 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; compare from REVIEW-0075 CLOSED checkpoint changes exactly PROJECT_STATE.md and registry/work-items/WORK-0002.yaml."
-  - "REVIEW-0076 OPEN checkpoint f20894d87799c33faf97e3360ae9c0fc96d95cef passed Bootstrap #307 / run 35987412834 at 450/450 tests, 3853 statements / 1640 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests; lifecycle transitioned to IN_PROGRESS only after this proof."
-  - "REVIEW-0063 frozen head 22dd22d5f9e50eea6d3bd351af8e12ab9a935440 passed Bootstrap #244 / run 35848734246 at 291/291 tests, 2440 statements / 1060 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests; fresh Codex L2 request 5793162559 was quota-refused by 5793166351, then author-side PRR_kwDOUUI5ts8AAAABO0xdhQ exposed malformed Check Run terminal temporal metadata being accepted as authority."
-
+- run: RUN-3
+  date: '2026-09-25'
+  note: 'REVIEW-0086 OPEN checkpoint 846c4cfee2df680bd06023b481ac4673c5693afd passed Bootstrap #374 / run 36142902577 and Gate #316 / run 36142903564: 829 tests, 7977 statements / 3680 branches at 100 percent line+branch; 38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 18/18 T13 mutations; all deterministic/T7-T11 validators, CodeQL and Dependency Review green. Live gate failed closed only on 91 unresolved threads and missing trusted exact-head approval. Lifecycle advances REVIEW-0086 to IN_PROGRESS only after this proof.'
+- run: RUN-3
+  date: '2026-09-25'
+  note: 'REVIEW-0086 technical candidate cc0a62661aac2150983ebcaf4c3dd0529012a209 passed Bootstrap #373 / run 36141676466 and Gate #315 / run 36141676897: 829 tests, 7977 statements / 3680 branches at 100 percent line+branch; 38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 18/18 T13 mutations; repository/strict/path/change/L2/review/T7/T8/T9/T10/T11/context validators, CodeQL and Dependency Review green. Live gate failed closed only on 91 unresolved threads and missing trusted exact-head approval, with no durable-finding mismatch. REVIEW-0086 is materialized OPEN only after this proof.'
+- run: RUN-3
+  date: '2026-09-25'
+  note: 'REVIEW-0085 frozen head 4cbe42fd2c5b2fc14cd50e843c103340cf4dac99 passed Bootstrap #367 / run 36136417818 and Gate #302 / run 36136417961: 827 tests, 7932 statements / 3652 branches at 100 percent line+branch; 38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 14/14 T13 mutations; all deterministic/T7-T11 validators, CodeQL and Dependency Review green. Live gate failed closed only on 86 unresolved threads plus missing exact-head approval. Fresh independent L2 PRR_kwDOUUI5ts8AAAABPPl4wg then added four P1 threads PRRT_kwDOUUI5ts6mAc8I PRRT_kwDOUUI5ts6mAc8M PRRT_kwDOUUI5ts6mAc8O PRRT_kwDOUUI5ts6mAc8S; author-side PRRT_kwDOUUI5ts6mAdoV added the subshell-function shadowing variant. REVIEW-0085 closes CHANGES_REQUIRED and live/durable closure set becomes 91.'
+- run: RUN-3
+  date: '2026-09-25'
+  note: 'REVIEW-0085 OPEN checkpoint 5b3c57fb347ce189c70eec30f819e422cd0a254f passed Bootstrap #366 / run 36135753228 and Gate #301 / run 36135753428: 827 tests, 7932 statements / 3652 branches at 100 percent line+branch; 38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 14/14 T13 mutations; repository/strict/path/change/L2/review/T7/T8/T9/T10/T11/context validators, CodeQL and Dependency Review green. Live gate failed closed only on 86 unresolved threads and missing trusted exact-head approval. Lifecycle advances REVIEW-0085 to IN_PROGRESS only after this proof.'
+- run: RUN-3
+  date: '2026-09-25'
+  note: 'REVIEW-0085 technical candidate 9289a93c6ace18593c06a94c1de83f95785259f7 passed Bootstrap #365 / run 36134916018 and Gate #300 / run 36134916263: 827 tests, 7932 statements / 3652 branches at 100 percent line+branch; 38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 14/14 T13 mutations; repository/strict/path/change/L2/review/T7/T8/T9/T10/T11/context validators, CodeQL and Dependency Review green. Live gate failed closed only on 86 unresolved threads and missing trusted exact-head approval. REVIEW-0085 is materialized OPEN only after this proof.'
+- run: RUN-3
+  date: '2026-09-25'
+  note: 'REVIEW-0084 frozen head d1850542494492a388b545dec954e078b825d9b5 passed Bootstrap #356 / run 36124803925 and Gate #286 / run 36124804464 with 824 tests, 7851 statements / 3596 branches at 100 percent line+branch, 38/38 + 40/40 + 5/5 + 11/11 + 9/9 mutations, all deterministic/T7-T11 validators green, CodeQL/Dependency Review green and live gate blocked only by 81 unresolved threads plus missing exact-head approval. Fresh independent L2 PRR_kwDOUUI5ts8AAAABPOcDnA added five P1 threads: PRRT_kwDOUUI5ts6l9_hk, PRRT_kwDOUUI5ts6l9_ht, PRRT_kwDOUUI5ts6l9_hz, PRRT_kwDOUUI5ts6l9_h4, PRRT_kwDOUUI5ts6l9_h8. REVIEW-0084 closes CHANGES_REQUIRED and the closure set becomes 86.'
+- run: RUN-3
+  date: '2026-09-25'
+  note: 'REVIEW-0084 OPEN checkpoint a42026dfbe5467c30667681179feec954f2ab59b passed Bootstrap #355 / run 36124201977 and Gate #285 / run 36124202258: 824 tests, 7851 statements / 3596 branches at 100 percent line+branch; 38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 9/9 T13 mutations; all deterministic/T7-T11 validators, CodeQL and Dependency Review green. Live gate failed closed only on 81 unresolved threads and missing trusted exact-head approval. Lifecycle advances REVIEW-0084 to IN_PROGRESS only after this proof.'
+- run: RUN-3
+  date: '2026-09-25'
+  note: 'REVIEW-0084 technical candidate dce9fbbfbe720adcde8ce91fc2e13b98c6544152 passed Bootstrap #354 / run 36123442666 and Gate #284 / run 36123443244: 824 tests, 7851 statements / 3596 branches at 100 percent line+branch; 38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 9/9 T13 mutations; all deterministic/T7-T11 validators, CodeQL and Dependency Review green. Live gate failed closed only on 81 unresolved threads and missing trusted exact-head approval. REVIEW-0084 is materialized OPEN only after this proof.'
+- run: RUN-1
+  date: '2026-09-10'
+  note: Initial validator and real CI established.
+- run: RUN-2
+  date: '2026-09-10'
+  note: Successive P0-P2 hardening rounds reached c50c330 with a green MONDE Gate; a fresh L2 then found six remaining gaps in assurance-derived independence, exact review SHA binding, substantive PASS proof, N/A justification, registry-change context seeding and handover currentness.
+- run: RUN-2
+  date: '2026-09-11'
+  note: Prepared one atomic six-finding correction plus dedicated final-L2 regressions and expanded mutation targets; real GitHub CI and post-WORK-0001 integration proof remained pending before completion.
+- run: RUN-2
+  date: '2026-09-14'
+  note: 'Integrated merged WORK-0001/main@29086643387ff46ab6636dd2fa3014efccc10165 into PR #2 after an exact-head merge probe. WORK-0002 remained IN_REVIEW pending full integrated CI proof and fresh L2.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'REVIEW-0030 was truthfully preauthorized, imported as COMPLETE/CHANGES_REQUIRED, bound to import commit 630604416bdccd3b07f57c011152e7fe14e0f2b4 and consumed. Its six new R2 findings reopened implementation/tests/specification/handover evidence. Resume audit also discovered duplicate-key YAML ambiguity in WORK-0004.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'Exact author-side candidate 42e4e93c0e25294b26d2a00d958660c9124697d1 passed MONDE Gate run 34868556415: 147 tests, 100% line/branch, 37/37 mutations, repository/strict/path/change validators zero, context manifest success, CodeQL success and Dependency Review success. Final live gate failed only on 18 intentionally unresolved threads.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'GitHub Codex review PRR_kwDOUUI5ts8AAAABNfhWLQ on 5e4dd33995d17587be1452265b830f2b32e0f89b added nine material findings. T6 corrected all nine with exact-head checkout, immutable review semantics, actor-bound authority, real import materialization, requirement evidence finalization/reachability, progress lifecycle enforcement, non-reusable squash provenance and DONE task/run checks.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'Exact author-side candidate 965d484e7063d5c11c9964faa89bd7cf8d5aa75c passed Gate #142 with 219/219 tests, 100% line/branch across 2530 statements/1282 branches including project-owned L2 scripts, 37/37 + 18/18 mutations and every deterministic validator/hardening gate at zero; metadata descendant 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 passed Gate #143 with the same proof and live gate blocked only on 38 threads.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNiFSzA on exact HEAD 09e4c89c31d6db7343b22d1e0b3badb7b9db7706 opened eight new P1/P2 findings. The durable closure set became 46 and T7 was opened.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'T7 corrected all eight NiFSzA findings. Exact substantive candidate 52e1dd3aad0ee625f824440f9c87b920c58edec2 passed Gate #156 / run 34902136446 with 244/244 tests, 100% line/branch across 2801 statements/1374 branches, 37/37 + 26/26 mutations and every deterministic/T7 gate at zero. The live gate validated owner/admin and durable 46-finding tracking, then blocked only on 46 unresolved threads plus missing independent exact-HEAD APPROVED review. T7 is DONE author-side; T4 resumed for exact metadata-head proof and fresh L2 closure.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'Exact metadata candidate 296ef2005de2ab5964d004d6383393b693594de9 passed Gate #160 / run 34904175139, then fresh-context Codex review PRR_kwDOUUI5ts8AAAABNih5Qw opened six new P1/P2 findings. The closure set became 52; T8 reopened implementation/tests/real-system/handover while T4 was blocked.'
+- run: RUN-3
+  date: '2026-09-14'
+  note: 'T8 corrected all six Nih5Qw findings. Exact substantive candidate a8e576ea9ea32b59a95b397de87727a7a52b2926 passed Gate #163 / run 34908856210 with 258/258 tests, 100% line+branch across 2998 statements/1476 branches, 37/37 + 33/33 mutations and every deterministic/T7/T8 gate at zero. Live gate matched all 52 unresolved threads and blocked only on those threads plus missing trusted context-separated L2/L3 exact-head approval. T8 is DONE author-side; T4 resumes for exact metadata-head proof and fresh independent closure.'
+- run: RUN-3
+  date: '2026-09-15'
+  note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNmehrQ on exact HEAD 061c17e7144396cbfd01963fb4036f3fc3c58ed3 opened six new P1/P2 findings and expanded the live closure set to 58. T9 corrected all six. Exact substantive candidate 3da4047cacaaad4962b647a6625767001d328027 passed Gate #178 / run 34952991296 with 291/291 tests, 100% line+branch across 3313 statements/1624 branches, 37/37 + 39/39 mutations and every deterministic/T7/T8/T9 gate at zero. The pre-sync live gate observed all 58 threads and correctly rejected the stale durable set plus missing independent exact-head approval. T9 is DONE author-side; T4 remains IN_PROGRESS for metadata-head proof and fresh independent closure.'
+- run: RUN-3
+  date: '2026-09-15'
+  note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNnPvYg on exact HEAD 9e4144d255590360f99652e59c38a02dbf95ccfa opened four new P1 findings and expanded the live closure set to 62. T10 corrected all four with dedicated regression and mutation protection. Exact substantive candidate ef161b7e54c7f90433e1f303cdfd464827773870 passed Gate #190 / run 34962364980. Synchronized descendant 002926039c964e9e362b3c396a0d710323d9f1cf passed Gate #191 / run 34965242824 with 312/312 tests, 100% line+branch across 3482 statements/1696 branches, 37/37 + 40/40 + 5/5 mutations, every deterministic/T7/T8/T9/T10 gate at zero, 19-file context manifest, CodeQL success and Dependency Review success; live durable identity equality is 62/62. T10 is DONE author-side; T4 resumes for exact closure-metadata proof and fresh independent review.'
+- run: RUN-3
+  date: '2026-09-15'
+  note: 'Fresh-context Codex review PRR_kwDOUUI5ts8AAAABNoalkw on exact HEAD cc6e98d542fbedf097a8ffbb7eb5dcf128237c84 opened five new material findings and expanded the live closure set to 67. T11 corrected all five. Exact substantive candidate 5e7af51bcc08698de930eed5dba62ab9ba3e74af passed Gate #201 / run 34973462479 with 344/344 tests, 100% line+branch across 3761 statements/1808 branches, 37/37 + 40/40 + 5/5 + 8/8 mutations, every deterministic/T7/T8/T9/T10/T11 validator at zero, 19-file context manifest, CodeQL success and Dependency Review success. The live gate observed all 67 unresolved threads, exactly the five expected durable IDs missing and no stale IDs, plus no trusted exact-head approval. T11 is DONE author-side; T4 remains IN_PROGRESS for synchronized-metadata proof and fresh independent closure.'
+- run: RUN-3
+  date: '2026-09-22'
+  note: 'Cold live preflight found 73 unresolved PR #2 review threads while WORK-0002 durably listed 67. Gate #228 / run 34997568781 on exact HEAD 4046e03b1e00a2051d29ccd6dcf5f0af7426259a confirmed missing=[PRRT_kwDOUUI5ts6ijUT4, PRRT_kwDOUUI5ts6ijUTn, PRRT_kwDOUUI5ts6ijUUC, PRRT_kwDOUUI5ts6ijUUK, PRRT_kwDOUUI5ts6ijUUV, PRRT_kwDOUUI5ts6ijUUf], stale=[], with 357/357 deterministic tests and 100% coverage. Five findings are already represented by current code; PRRT_kwDOUUI5ts6ijUTn requires the trusted default-branch predecessor from PR #5. This synchronization adds all six IDs without resolving any thread.'
+- run: RUN-3
+  date: '2026-09-22'
+  note: 'Task-ID collision preflight reserved T12 for the PR #5 trusted default-branch stale-green predecessor and renamed the existing five-finding PR #2 correction wave and its mutation/test artifacts to T13. This is an identity/traceability refactor only; the five branch-local corrections remain unchanged and T13 is DONE author-side, while T12 remains IN_REVIEW until PR #5 obtains independent acceptance and is integrated.'
+- run: RUN-3
+  date: '2026-09-22'
+  note: 'Gate #230 / run 35710776945 on 47d7bcc1840af45059e47e979040808e4b202d4e established exact 73/73 durable/live finding identity equality. Gate #231 / run 35711181317 on T12/T13 split head 242f6c9553c4e42bfbb4e6aad2ca27596573ecb2 passed 357/357 tests, 100% line+branch, 37/37 + 40/40 + 5/5 + 8/8 + T13 5/5 mutations, all deterministic closure validators at zero, 19-file context manifest, CodeQL and Dependency Review. Its live gate failed only on the intentionally unresolved 73 threads and absent trusted exact-head approval.'
+- run: RUN-3
+  date: '2026-09-22'
+  note: 'Clean post-PR5 integration rehearsal PR #11 / head c4af0e0c896d7023f64ecebfdddd26a6882eedbe proved the branch-local T14 design before production-branch adoption: 365 tests, 100% line+branch over 3893 statements/1880 branches, 37/37 baseline + 40/40 L2 + 5/5 T10 + 9/9 T11 + 5/5 T13 mutations, repository/strict/path/change/L2/review/T7/T8/T9/T10/T11 validators at zero, context manifest success, CodeQL success, Dependency Review success and MONDE Merge Gate success. Bootstrap #183 independently remained 202/202 and 100% line+branch. This rehearsal is not completion evidence for PR #2; T14 remains IN_PROGRESS until exact PR #2 CI proves the port.'
 discoveries:
-  - "A break-glass clear based on non-atomic GET revalidation cannot exclude an external rerun starting before the clear commits."
-  - "Positive authorization requires recovery to preserve durable pending authority rather than erase it when external mutation actors cannot share the same lock."
-
+- 100 percent coverage did not prevent missing governance properties; review, mutation and transition checks are separately required.
+- GitHub live state can invalidate stale PROJECT_STATE prose after it is committed.
+- Test/review definitions must be separated from SHA-bound execution evidence.
+- Meta-governance authorization must bind the changed sensitive path to the active work item, not merely observe an unrelated A3/A4 record.
+- Canonical policy registries that define validators, including integration-provenance exception policy, are themselves meta-governance trust anchors and cannot authorize their own weakening from candidate state.
+- Security scanning must account for reachable PR commit history until squash-only merge is enforced; textual patches alone are insufficient because Git may classify a secret-bearing blob as binary.
+- Assurance level must impose a minimum review-independence floor rather than trusting a self-declared weaker target.
+- Requirement acceptance must use one qualifying review and one qualifying cold-read record that each co-satisfy their full contract; properties cannot be split across unrelated evidence records.
+- Acceptance evidence must bind the exact content-identity policy revision as well as the resulting digest, and no intervening policy revision may be hidden by a later byte-for-byte revert or merge-history simplification.
+- ACCEPTED requirement/risk records are continuing invariants: same-status edits and later dependency changes must not bypass the original acceptance contract.
+- Dependency-driven continuing acceptance is required; globally rejudging every historical ACCEPTED record under later rules is also incorrect because it creates retroactive governance.
+- A changed registry record is itself an impact-analysis seed; path-only WORK matching is insufficient.
+- Repository-owner authority evidence must bind the actual GitHub repository and independently verify the named actor/permission rather than trust mutable policy-internal agreement.
+- Exact-head GitHub approval is necessary but not sufficient; the approver must be trusted, context-separated and bound to qualifying L2 evidence.
+- The live merge gate must prove exact-head independent approval and must be rerun when supported review state changes rather than relying on stale success; unsupported review-thread state changes require a trusted bounded polling bridge.
+- Canonical YAML must fail closed on duplicate mapping keys; last-key-wins parsing can silently corrupt durable project state.
+- A risk cannot enter ACCEPTED when its owning-work assurance cannot be resolved deterministically from canonical scope; ambiguous ownership fails closed.
+- Squash merging preserves tree state but destroys direct branch ancestry, so exact source-head/tree/integrated-commit provenance is required for historical SHA-bound test evidence.
+- Historical first-status materialization through an exact tree-equivalent squash is distinct from whether that record is eligible as acceptance evidence; evidence allowlists remain a separate fail-closed contract.
+- A fail-closed parser must distinguish an exact known malformed historical blob from a deleted file without making malformed YAML generically acceptable.
+- Exact-head proof must separate the PR head from GitHub's synthetic merge ref; otherwise base-only history can contaminate ancestry and current-tree claims.
+- New fail-closed lifecycle rules need immutable predecessor-bound, non-reusable adoption boundaries so candidate state cannot move the enforcement start point.
+- Progress reopening evidence, including top-level WORK-status reopenings, must be scoped to the exact target and must represent a genuinely new trigger rather than reorder/delete/prose churn.
+- Squash provenance may bridge historical review/test evidence only for explicit eligible IDs and exact equal-tree source/integrated commits.
+- One-shot review import binding and import eligibility are distinct phases: the field may bind once to the exact earlier first-COMPLETE materialization commit under prior authorization, while later evidence use additionally requires consumed authorization.
+- Durable closure integrity is an identity-set property: equal counts cannot substitute for exact one-to-one PRRT coverage.
+- Effective workflow semantics must be validated from parsed YAML structure rather than textual snippets that comments or formatting can mimic.
 blockers:
-  - "REVIEW-0057 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0057 approval."
-  - "REVIEW-0058 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0058 approval."
-  - "REVIEW-0059 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0059 approval."
-  - "REVIEW-0060 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0060 approval."
-  - "REVIEW-0061 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0061 approval."
-  - "REVIEW-0062 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0062 approval."
-  - "REVIEW-0063 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0063 approval."
-  - "REVIEW-0064 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0064 approval."
-  - "REVIEW-0065 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0065 approval."
-  - "REVIEW-0066 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0066 approval."
-  - "REVIEW-0067 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0067 approval."
-  - "REVIEW-0068 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0068 approval."
-  - "REVIEW-0069 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0069 approval."
-  - "REVIEW-0070 is terminal CLOSED/CHANGES_REQUIRED after independent exact-head L2; do not resolve any of the 70 threads."
-  - "REVIEW-0071 is terminal CLOSED/CHANGES_REQUIRED after author-side P1 PRR_kwDOUUI5ts8AAAABO7OKJw; do not request further REVIEW-0071 approval."
-  - "REVIEW-0072 is terminal CLOSED/CHANGES_REQUIRED after author-side P1 PRR_kwDOUUI5ts8AAAABO7ZUCw; do not request further REVIEW-0072 approval."
-  - "REVIEW-0073 is terminal CLOSED/CHANGES_REQUIRED after author-side P1/P2 findings; do not resolve any of the 73 threads."
-  - "REVIEW-0074 is terminal CLOSED/CHANGES_REQUIRED after independent exact-head L2; do not resolve any of the 75 threads."
-  - "REVIEW-0075 is terminal CLOSED/CHANGES_REQUIRED after author-side P2 PRRT_kwDOUUI5ts6liZGL; do not request further REVIEW-0075 approval."
-  - "REVIEW-0076 is terminal CLOSED/CHANGES_REQUIRED after author-side P2 PRRT_kwDOUUI5ts6ljD7h; frozen proof #308 was already complete and no independent L2 exists."
-  - "REVIEW-0077 is terminal CLOSED/CHANGES_REQUIRED after author-side P2 PRRT_kwDOUUI5ts6ljXzi; frozen proof #312 succeeded, but the in-tree handover model was self-referential and no independent L2 exists."
-  - "REVIEW-0078 is terminal CLOSED/CHANGES_REQUIRED after independent exact-head L2 P2 PRRT_kwDOUUI5ts6lm-ef; do not resolve any of the 79 threads."
-  - "REVIEW-0079 is terminal CLOSED/CHANGES_REQUIRED after independent exact-head P2 PRRT_kwDOUUI5ts6lnfaG and follow-up exact-head P1 PRRT_kwDOUUI5ts6lnqJY; do not resolve any of the 81 threads."
-  - "REVIEW-0080 is terminal CLOSED/CHANGES_REQUIRED after P1 PRRT_kwDOUUI5ts6loe5m; do not request further REVIEW-0080 approval."
-  - "REVIEW-0081 is terminal CLOSED/CHANGES_REQUIRED after fresh exact-head independent L2 P2 PRRT_kwDOUUI5ts6lumiR; do not request further REVIEW-0081 approval."
-  - "REVIEW-0082 is COMPLETE/APPROVE on exact reviewed head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618 via fresh independent Codex L2 issue comment 5820761929; controlled resolution of the 83 reviewed material threads is now permitted."
-  - "PR #5 controlled thread resolution is complete: 83/83 resolved, 0 unresolved; exact reconciliation-head Bootstrap proof is the remaining PR #5 merge-eligibility gate."
-  - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
-  - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
-  - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."
-  - "REVIEW-0054 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0054 approval."
-  - "REVIEW-0055 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0055 approval."
-  - "REVIEW-0056 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0056 approval."
-  - "T12 and T4 remain IN_REVIEW."
-  - "PR #2 integration/approval remains downstream."
-follow_up_work_items: []
-
+- Live PR #2 closure set is now 91 unresolved material threads. REVIEW-0083/0084/0085 adverse review identities and author-side duplicates remain live and durably tracked; no thread is resolved before clean successor review.
+- T12 is DONE/integrated: independently accepted PR #5 is merged on default branch main at b4b52c77fbf05eda65e8f0e951959da70e7edbe7.
+- T13 and T14 remain DONE author-side but require final exact-head independent re-verification as part of T4.
+- REVIEW-0084 is terminal CLOSED/CHANGES_REQUIRED on d1850542494492a388b545dec954e078b825d9b5 after independent L2 PRR_kwDOUUI5ts8AAAABPOcDnA added five P1 findings. All five defects now have exact technical proof on 9289a93c6ace18593c06a94c1de83f95785259f7 via Gate #300.
+- REVIEW-0085 is terminal CLOSED/CHANGES_REQUIRED on 4cbe42fd2c5b2fc14cd50e843c103340cf4dac99 after independent L2 PRR_kwDOUUI5ts8AAAABPPl4wg added four P1s; author-side PRRT_kwDOUUI5ts6mAdoV adds a fifth live thread. All 91 threads remain unresolved. REVIEW-0086 OPEN checkpoint proof is complete on 846c4cfee2df680bd06023b481ac4673c5693afd via Gate #316; REVIEW-0086 is IN_PROGRESS and must receive one frozen exact-head proof before a fresh independent L2. A trusted context-separated exact-head APPROVED review remains required before any thread resolution or merge.
+- Gate #259 / run 36055246141 failed closed before L2 because T13 mutation smoke still matched the superseded pre-refactor executable-command helper shape. The current correction retargets t13-executable-command-proof to the exact current per-step parsed-command branch; runtime governance semantics are unchanged. A fresh exact-head Gate must prove this integrated correction before review.
+- Gate #260 / run 36058286810 killed the corrected T13 mutation and passed static validation, then failed change_guard REVIEW_FRESHNESS because inherited REVIEW-0082 (PR #5 / second-parent main lineage) was being misapplied as freshness authority for first-parent PR #2 changes. The current correction scopes freshness authority to reviewed commits on the current head's first-parent lineage while retaining ancestor validation and ordinary first-parent stale-review enforcement. A real two-parent regression reproduces the post-PR5 integration shape.
+follow_up_work_items:
+- run: RUN-3
+  date: '2026-09-24'
+  note: 'T12 integration boundary: REVIEW-0082 clean independent L2 approved PR #5 predecessor semantics; PR #5 resolved all 83 reviewed threads, reconciliation head e9d67333f35fc0460ea65806f829257ed0a0266a passed Bootstrap #333, and main now contains merge b4b52c77fbf05eda65e8f0e951959da70e7edbe7. This PR #2 merge commit must have parents 90d762af389990b5e57fce83397a558276500dd5 and b4b52c77fbf05eda65e8f0e951959da70e7edbe7. Live PR #2 has 75 unresolved findings including fresh PRRT_kwDOUUI5ts6lURur and PRRT_kwDOUUI5ts6lURuu; T4 remains IN_PROGRESS.'
+- run: RUN-3
+  date: '2026-09-24'
+  note: 'Integrated Gate #259 / run 36055246141 reached 100 percent test coverage and killed baseline/L2/T10/T11 mutations, then failed closed at T13 executable-command-proof because the mutation harness still targeted the old return-any helper shape after the hardened per-step refactor. This commit retargets only that mutant and synchronizes handover; next action is one fresh exact-head Gate before independent L2.'
+- run: RUN-3
+  date: '2026-09-24'
+  note: 'Gate #260 / run 36058286810 proved the T13 retarget, then failed change_guard REVIEW_FRESHNESS because completed REVIEW-0082 came from the integrated PR #5/main second-parent lineage and was incorrectly required to cover PR #2 first-parent changes. The current correction makes review freshness first-parent scoped and adds both inherited-second-parent and ordinary-first-parent regressions; next action remains one fresh exact-head Gate before L2.'
+- WORK-0003
+- WORK-0004
+- run: RUN-3
+  date: '2026-09-22'
+  note: 'Gate #251 / run 35727146538 on exact PR #2 head e462639ec9b29ecbe3bef3845ab2a3def5bb9a6c re-proved T14 on the production branch: 364 tests, 100% line+branch over 3893 statements/1880 branches, 37/37 baseline + 40/40 L2 + 5/5 T10 + 9/9 T11 + 5/5 T13 mutations, repository/strict/path/change/L2/review/T7/T8/T9/T10/T11 validators at zero, 19-file context manifest, CodeQL success and Dependency Review success. The live gate failed closed only on the intentionally unresolved 73 threads and missing trusted context-separated exact-head approval; durable/live finding identity remained matched. T14 is DONE author-side. This metadata-only descendant requires one exact-head Gate before any further action.'
+- run: RUN-3
+  date: '2026-09-24'
+  note: 'REVIEW-0083 frozen head cc37d74e2ee49aea62cfdfa30634c01a1032751f passed Bootstrap #346 / run 36066922675 and Gate #272 / run 36066923152: 821 tests, 7816 statements / 3568 branches at 100 percent line+branch, 38/38 + 40/40 + 5/5 + 11/11 + 6/6 mutations, all deterministic validators green, CodeQL and Dependency Review green; live gate failed only on 77 unresolved threads plus missing exact-head approval. Fresh independent L2 PRR_kwDOUUI5ts8AAAABPJeT9Q produced three new P1 threads PRRT_kwDOUUI5ts6lzzao, PRRT_kwDOUUI5ts6lzzas and PRRT_kwDOUUI5ts6lzzax. Author-side duplicate PRRT_kwDOUUI5ts6lz1l8 brings the live/durable closure set to 81. REVIEW-0083 is CLOSED/CHANGES_REQUIRED and a successor review is required.'
 completion:
   definition_of_ready_checked: true
   definition_of_done_checked: false

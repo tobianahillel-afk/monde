@@ -1,0 +1,87 @@
+id: REVIEW-0086
+status: IN_PROGRESS
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "PR #5 T12 predecessor remains merged to main as b4b52c77fbf05eda65e8f0e951959da70e7edbe7 and REVIEW-0082 remains predecessor-only evidence"
+    - "T13 and T14 remain DONE author-side and intact on the final integrated candidate"
+    - "REVIEW-0085 remains terminal CLOSED/CHANGES_REQUIRED negative evidence and is not retroactively converted into approval"
+    - "P1 PRRT_kwDOUUI5ts6mAc8I is closed only if trusted checkout and reusable-core head inputs bind the exact expected event/head expression"
+    - "P1 PRRT_kwDOUUI5ts6mAc8M and author-side PRRT_kwDOUUI5ts6mAdoV are closed only if split-line and subshell-body Bash function shadowing is rejected"
+    - "P1 PRRT_kwDOUUI5ts6mAc8O is closed only if security-sensitive commands are matched as constrained complete argv rather than prefixes"
+    - "P1 PRRT_kwDOUUI5ts6mAc8S is closed only if conditional Dependency Review is bound to the exact fail-closed depgraph producer"
+    - "REVIEW-0084 action-binding, live-gate, complete-command-inventory and CodeQL protections remain intact"
+    - "REVIEW-0083 inherited-control, backgrounding and PR-family Dependency Review protections remain intact"
+    - "WORK-0002 durable open_findings exactly equals all 91 live unresolved PR #2 thread identities"
+    - "no PR #2 review thread is resolved before a clean REVIEW-0086 result and eligible trusted exact-head approval"
+  risks:
+    - "pinned checkout action can execute an older tree if ref/head input is mutable"
+    - "Bash function grammar can shadow python without brace-on-same-line syntax"
+    - "prefix-only argv proof can accept --help or other early-success suffixes"
+    - "Dependency Review action can be skipped if its capability producer is not structurally bound"
+    - "technical proof can be mistaken for independent semantic approval"
+    - "durable and live finding sets can drift while preserving equal counts"
+findings: []
+checks:
+  assumptions_challenged:
+    - "pinning actions/checkout proves the checked-out commit without validating ref"
+    - "brace-form function declarations cover all Bash executable-shadowing syntax"
+    - "an accepted argv prefix proves the intended validator actually runs to completion"
+    - "a condition referencing steps.depgraph.outputs.supported proves that depgraph is trustworthy"
+    - "a fully green deterministic gate is equivalent to an independent L2"
+  omitted_categories_considered:
+    - "reusable governance-core head_sha input tampering"
+    - "core checkout ref tampering"
+    - "CodeQL checkout ref tampering"
+    - "final live-gate checkout ref tampering"
+    - "split-line function declarations"
+    - "subshell-body function declarations"
+    - "help or early-exit suffixes after otherwise valid commands"
+    - "dependency probe id removal or body replacement"
+    - "all 91 live/durable PRRT identities"
+  duplicate_or_reuse_search:
+    - "REVIEW-0085 independent P1 threads remain source evidence."
+    - "Author-side PRRT_kwDOUUI5ts6mAdoV remains separately tracked non-independent source evidence."
+    - "Existing T11 parser and T13 mutation harness are hardened rather than replaced."
+    - "Existing T12 T13 T14 integration contracts are reused unchanged."
+    - "No historical negative review is rewritten as approval."
+  failure_modes_considered:
+    - "checkout action remains pinned while ref targets stale commit"
+    - "Bash function shadow uses split declaration or subshell body"
+    - "required validator receives --help and exits success before validation"
+    - "conditional Dependency Review producer is replaced with supported=false no-op"
+    - "mutation target occurrence drifts after exact-argv refactor"
+    - "live and durable finding sets differ despite equal count"
+  evidence_requested:
+    - "Exact technical candidate cc0a62661aac2150983ebcaf4c3dd0529012a209 passed Bootstrap #373 / run 36141676466 and Gate #315 / run 36141676897."
+    - "Gate #315 passed 829 tests with 7977 statements and 3680 branches at 100 percent line+branch coverage."
+    - "Gate #315 killed 38/38 baseline 40/40 L2 5/5 T10 11/11 T11 and 18/18 T13 critical mutations."
+    - "Gate #315 passed repository strict path change L2 review T7 T8 T9 T10 T11 and context-manifest validators with CodeQL and Dependency Review success."
+    - "Gate #315 live merge gate failed closed only on UNRESOLVED_THREADS:91 and INDEPENDENT_EXACT_HEAD_APPROVAL with no durable-finding mismatch."
+    - "This OPEN checkpoint must pass before transition to IN_PROGRESS."
+    - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
+    - "Fresh independent L2 must review all 91 unresolved material threads plus integration effects under all six required hats."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-25"
+  updated_at: "2026-09-25"

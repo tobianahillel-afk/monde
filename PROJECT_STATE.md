@@ -7,542 +7,243 @@ Canonical operational state: Yes
 
 ## Current phase / lot
 
-- PHASE-0 / LOT-0 remain `IN_PROGRESS`.
-- WORK-0001 is `DONE / A3`, integrated on `main` at `29086643387ff46ab6636dd2fa3014efccc10165`.
-- WORK-0002 remains `IN_REVIEW / A3`; WORK-0003 and WORK-0004 remain blocked.
+- **PHASE-0 — Specification and repository governance** is `IN_PROGRESS`.
+- **LOT-0 — AI-first repository operating system** is `IN_PROGRESS`.
+- **SUBLOT-0.1 / WORK-0001** is `DONE / A3` and was squash-merged to `main` as `29086643387ff46ab6636dd2fa3014efccc10165`.
+- **SUBLOT-0.2 / WORK-0002** remains `IN_REVIEW / A3` on PR #2 / `feat/work-0002-governance-ci`.
+- WORK-0003 and WORK-0004 remain planned downstream work. Do not start them before WORK-0002 is independently closed.
 
-## PR #5 / T12 trusted predecessor
+## T11 trigger and closure state
 
-PR #5 (`chore/work-0002-stale-green-bootstrap`) remains the narrow trusted-default-branch predecessor for WORK-0002/T12. No merge and no historical review-thread resolution is permitted while material findings remain open or a successor review is incomplete.
+Fresh-context GitHub Codex review `PRR_kwDOUUI5ts8AAAABNoalkw` against exact candidate `cc6e98d542fbedf097a8ffbb7eb5dcf128237c84` opened five material findings:
 
-REVIEW-0049 is terminal `COMPLETE / CHANGES_REQUIRED` independent negative evidence on exact head `c8f1fec24358c25224771a15b647d56c8a2f0287` via `PRR_kwDOUUI5ts8AAAABN4sxvg`.
+1. audit the pre-T10 `registry/integration-provenance.yaml` bootstrap rather than skipping those historical edits;
+2. traverse full merge history when locating the first imported `COMPLETE` / `PASS` materialization;
+3. invalidate a previously successful merge gate when an existing review conversation is later unresolved even though GitHub Actions has no native review-thread trigger;
+4. scan committed Git blobs rather than textual patches so binary-classified secret-bearing blobs cannot bypass history scanning;
+5. validate effective workflow-trigger structure from parsed YAML rather than matching source snippets.
 
-## REVIEW-0050 — administrative terminal negative evidence
+The exact new thread identities are:
 
-REVIEW-0050 technical candidate `cbe21fa4cebc1c8f8b3030af17284de5700f9818` passed Bootstrap #154 / run `35152847816` with **194/194 tests**, **1,856 statements / 842 branches**, **100% line + branch**, and live read-only PR #2 contract probe SUCCESS. Its OPEN checkpoint `871850ac5b66a43cfd8491ef445d1738ad09d822` passed #155 and frozen IN_PROGRESS head `f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c` passed #156.
+- `PRRT_kwDOUUI5ts6igleE`
+- `PRRT_kwDOUUI5ts6igleI`
+- `PRRT_kwDOUUI5ts6igleM`
+- `PRRT_kwDOUUI5ts6igleS`
+- `PRRT_kwDOUUI5ts6igleV`
 
-REVIEW-0050 is nevertheless now **`CLOSED / CHANGES_REQUIRED`**. No exact-head independent L2 was submitted before author-side adversarial review **`PRR_kwDOUUI5ts8AAAABN7LvGQ`** invalidated the frozen head.
+This expands the material closure set from 62 to **67**. None of these 67 threads is author-resolved.
 
-The P1 is a positive-authorization failure in break-glass recovery: recovery reads the baseline run attempt and prior effective-check identity, then later clears issue #7. The workflow concurrency group serializes this bootstrap workflow with itself, but cannot serialize collaborators, GitHub UI, REST clients or another workflow capable of rerunning the canonical run. An external rerun can therefore start after the last GET and before the issue PATCH, leaving a new head-scoped mutation in flight after the only durable pending identity has been erased.
+T11 corrected all five and is **DONE author-side**. T4 independent closure remains `IN_PROGRESS`.
 
-A third or fourth GET cannot solve this TOCTOU. REVIEW-0051 must remove recovery's authority to clear pending state from non-atomic observations.
+## Live PR #2 preflight — 73-thread closure set
 
-All **65** historical inline material threads remain unresolved. No merge is permitted.
+A cold live re-query on 2026-09-22 found **73 unresolved** PR #2 review threads, while the branch-local WORK-0002 durable set still contained 67. Gate #228 / run `34997568781` on exact HEAD `4046e03b1e00a2051d29ccd6dcf5f0af7426259a` confirmed the exact six missing identities and no stale durable IDs:
 
-The REVIEW-0050 `CLOSED` state-only checkpoint `71c40aeb7ca7de4968a78953e9d003a5f65c3f9f` passed Bootstrap #157 / run `35211526610`: **194/194 tests**, **1,856 statements / 842 branches**, **100% line + branch**, and live read-only PR #2 contract probe SUCCESS at **7/100** requests.
+- `PRRT_kwDOUUI5ts6ijUTn` — deploy the stale-green poller before relying on a default-branch-only schedule;
+- `PRRT_kwDOUUI5ts6ijUT4` — include review/review-comment-triggered successes in polling;
+- `PRRT_kwDOUUI5ts6ijUUC` — reject ambiguous parallel first-status materializations;
+- `PRRT_kwDOUUI5ts6ijUUK` — reject terminal external imports without import binding;
+- `PRRT_kwDOUUI5ts6ijUUV` — validate executable command structure rather than run-text substrings;
+- `PRRT_kwDOUUI5ts6ijUUf` — resolve durable findings from the active work item rather than hard-code WORK-0002.
 
-## REVIEW-0051 corrective direction
+Current code already represents the latter five corrections. The first finding is the cross-branch/default-branch bootstrap problem owned by PR #5 / the trusted stale-green predecessor and cannot close until that predecessor is independently accepted and integrated.
 
-The minimum safe successor is intentionally simpler:
+Gate #228's deterministic lane passed **357/357 tests**, **100% coverage**, repository validation **0 errors / 0 warnings**. Its merge gate failed closed on the 73 intentionally unresolved threads, the six then-missing durable IDs, and absence of trusted context-separated exact-head approval.
 
-- preserve the proven REVIEW-0050 V5 poll and closed-origin pending observation behavior;
-- replace break-glass clear with an inspection/authorization runbook that **never writes scheduler state and never automatically reruns**;
-- require the exact durable pending tuple, exact confirmation phrase and auditable reason;
-- positively revalidate unchanged baseline attempt and prior effective-check identity only to establish that the operator is looking at the intended pending record;
-- keep issue #7 pending unchanged throughout recovery inspection;
-- instruct the operator to rerun the exact canonical run manually if they have independently established that the original POST never occurred;
-- let the normal serialized poll observe `baseline+1` under the existing durable pending identity;
-- if another actor races and attribution becomes ambiguous, retain pending state and fail closed rather than erasing authority;
-- keep recovery permissions read-only for Actions and without `actions:write`;
-- add regressions proving recovery cannot call `_write_state` or `rerun_workflow` and cannot clear pending under any accepted request.
+The exact durable-set correction head `47d7bcc1840af45059e47e979040808e4b202d4e` then reached **Gate #230 / run `35710776945`**. The live gate reported only `UNRESOLVED_THREADS: 73` and `INDEPENDENT_EXACT_HEAD_APPROVAL`: **the DURABLE_FINDING_SET error disappeared, proving exact 73/73 durable/live PRRT identity equality**.
 
-## REVIEW-0051 implementation candidate
+The T12/T13 identity-split head `242f6c9553c4e42bfbb4e6aad2ca27596573ecb2` reached **Gate #231 / run `35711181317`**:
+- **357/357 tests**, **100% line + branch coverage**;
+- mutations **37/37 baseline**, **40/40 L2**, **5/5 T10**, **8/8 T11**, **5/5 T13**;
+- repository/strict/path/change/L2/review/T7/T8/T9/T10/T11 validators **0 errors**;
+- context manifest **19 MUST_READ files**;
+- CodeQL and Dependency Review **success**;
+- live gate failed only on the intentionally unresolved **73 threads** and missing trusted context-separated exact-head approval.
 
-Development now proceeds through a new `stale_green_bootstrap_authority_review0051_recovery.py` adapter. Normal scheduled polling still reuses the proven REVIEW-0050 V5 closed-origin/pending-observation semantics. The manual recovery surface becomes inspection-only: it validates the exact durable pending tuple plus explicit confirmation/reason, revalidates unchanged baseline attempt and prior effective-check identity, prints the exact canonical run for a separately authorized manual rerun, and **never clears or writes issue #7 and never calls a rerun API**. Its workflow permissions are read-only for Actions and Issues.
+No thread was resolved by these synchronizations.
 
-Technical candidate `63001400659273252771d32c61665203b7d43ef3` passed Bootstrap #159 / run `35708508061`: **200/200 tests**, **1,894 statements / 856 branches**, **100% line + branch**, and the live read-only PR #2 probe succeeded at **7/100** requests. The active 0051 adapter contains no `_write_state()` call and no `rerun_workflow()` call, and the workflow regression proves manual recovery has `actions: read` + `issues: read` with no corresponding write permission.
+## Exact T11 proof
 
-Because that technical candidate is proved, REVIEW-0051 was opened on `2017a6ef2143574aa3b43028d776352bfa81d401`. Bootstrap #160 / run `35708741464` then proved the `OPEN` state-only checkpoint SUCCESS. REVIEW-0051 was transitioned to `IN_PROGRESS`; exact head `dd97f30617f1772032def036cdb94b1030001adf` then passed Bootstrap #161 with **200/200 tests**, **1,894 statements / 856 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests.
+The first T11 candidate `0b943783c80e22e7d47c854b3a4db0b79ebe9f0f` reached MONDE Gate #199 / run `34971757299`: all 339 tests passed, but the 100% coverage gate correctly failed on newly introduced T11/poller branches. The coverage-only descendant `b3daae25ec569b960e95c12d98f387a44f562abe` reached Gate #200 / run `34972089486`, where coverage and mutations passed but the T11 validator exposed 12 historical WORK-0001 review imports whose source-side materialization was hidden by squash integration.
 
-Fresh Codex review trigger comment `5773961643` was refused by the platform review quota via comment `5773963162`. **No REVIEW-0051 independent L2 was produced.** Reviewer actor/context and reviewed commit therefore remain unset. This is a tooling-capacity blocker, not approval and not a semantic finding.
+The correction deliberately did **not** modify the `integration-provenance` trust anchor. Instead T11 now separates two contracts:
 
-## PR #2 relationship
+- exact historical first-status recovery may follow an already-authorized tree-equivalent squash bridge when the source/import/integrated commits, ancestry, expected tree and non-reuse flags all match exactly;
+- evidence qualification remains separately fail-closed under T7/T9 and still requires explicit eligible review/test IDs.
 
-PR #2 remains the durable WORK-0002 implementation branch on `4046e03b1e00a2051d29ccd6dcf5f0af7426259a` as last re-queried. After PR #5 eventually merges, PR #2 must explicitly integrate new `main` and port/reuse the final proven behavior. Pull-request base retargeting must positively create a fresh gate; dynamic `workflow_run.pull_requests[]` is not event-time provenance.
+Exact substantive T11 SHA **`5e7af51bcc08698de930eed5dba62ab9ba3e74af`** passed deterministic/security lanes in **MONDE Gate #201 / run `34973462479`** with:
 
-T12 cannot close merely because PR #5 exists or merges. Final WORK-0002 closure still requires a fresh exact-head L2 plus eligible trusted non-author exact-head `APPROVED` collaborator evidence.
+- **344/344 tests PASS**;
+- **3761/3761 statements** and **1808/1808 branches**, **100.00% line + branch coverage**;
+- baseline mutation smoke **37/37**;
+- fresh-L2/T7/T8/T9 mutation smoke **40/40**;
+- dedicated T10 mutation smoke **5/5**;
+- dedicated T11 mutation smoke **8/8**;
+- repository validator **0 errors / 0 warnings across 67 records**;
+- strict governance, path safety, change guard, fresh-L2 hardening, review-closure, T7, T8, T9, T10 and **T11** closure validators **0 errors**;
+- context manifest **19 MUST_READ files**;
+- CodeQL **success**;
+- Dependency Review lane **success**.
 
-## REVIEW-0051 — terminal negative evidence
+The exact live gate on `5e7af51...` observed **67 unresolved review threads** and failed closed only on:
 
-REVIEW-0051 preserved its successful inspection-only recovery correction, but is now **CLOSED / CHANGES_REQUIRED** on exact head `151fcd13e2fc5b15420de097635b6c9fbc9795ba`.
+- `ERROR UNRESOLVED_THREADS: 67 unresolved review thread(s)`;
+- `ERROR DURABLE_FINDING_SET`: exactly the five T11 identities above were missing from the then-current 62-entry durable set, with `stale=[]`;
+- `ERROR INDEPENDENT_EXACT_HEAD_APPROVAL`: no trusted, context-separated L2/L3 GitHub `APPROVED` review was bound to that exact HEAD.
 
-Integration rehearsal PR #8 reproduced a new real-system P1: PR #2 head `0c06fa7a...` legitimately has two GitHub Actions-owned `MONDE / Merge Gate` checks from Gate #232 and review-event Gate #233. Bootstrap #163 rejected this as malformed because `latest_required_check()` assumed `filter=latest` implies exactly one check globally. Author-side finding `PRR_kwDOUUI5ts8AAAABOoOnSQ` therefore invalidated REVIEW-0051 before any independent L2 ran.
+This durable-state synchronization commit adds exactly those five PRRT identities and no author-side resolutions. Because it changes HEAD, it must receive its own exact-SHA MONDE Gate before the next independent review; Gate #201 proves its substantive parent, not this later metadata state.
 
-The successor must keep REVIEW-0051's non-mutating recovery semantics while validating every candidate check and selecting the newest legitimate effective check deterministically. Duplicate IDs, malformed identity, wrong app/name/head and invalid status/conclusion remain fail-closed.
+## T11 implementation result
 
-A rehearsal-only correction was proved on PR #8: Bootstrap #166 / run `35714306323` passed **202/202 tests**, **1,899 statements / 858 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded against the same multi-check state. The exact proven code was then ported to PR #5 at `deb6190983bd2cc97e3adffcd4769b4e44d58cb8`; Bootstrap #168 / run `35715152696` passed **202/202 tests**, **1,899 statements / 858 branches**, **100% line + branch**, and live PR #2 multi-check probe SUCCESS. REVIEW-0052 was opened on `fc7308302bb5fc76467ef55f3d1978cf2a39afc6`; Bootstrap #169 / run `35715662864` passed the OPEN checkpoint SUCCESS. REVIEW-0052 is therefore now transitioned to lifecycle state `IN_PROGRESS`. Reviewer actor/context and reviewed commit remain unset until a fresh independent L2 actually executes.
+T11 now enforces that:
 
-## REVIEW-0052 — terminal negative evidence
+1. the pre-T10 `integration-provenance` bootstrap equals the exact immutable five-commit history already independently reviewed;
+2. imported REVIEW/TEST first-status discovery uses full merge history and cannot hide a side-branch materialization;
+3. exact squash-tree history recovery proves materialization without silently broadening acceptance-evidence allowlists;
+4. changed committed blobs are scanned directly for high-confidence secrets with an explicit fail-closed size bound, including blobs Git classifies as binary;
+5. supported review/review-comment events rerun the live gate immediately, while a bounded scheduled poll invalidates a previously green gate if an existing review thread is later unresolved;
+6. workflow review/poll triggers and T11 wiring are validated from effective parsed YAML structure rather than comments or text fragments.
 
-REVIEW-0052 preserved REVIEW-0051's inspection-only recovery and corrected multi-check selection, but is now **CLOSED / CHANGES_REQUIRED** on exact head `654e24fdb7df17b5e92cad13bd5264faa128bfab`.
+## WORK-0002 execution state
 
-Bootstrap #170 / run `35715826007` proved that frozen head at **202/202 tests**, **1,899 statements / 858 branches**, **100% line + branch**, with the live PR #2 multi-check probe succeeding at **7/100** requests. Independent Codex review retries were blocked by platform quota.
+- T1, T2, T3, T5, T6, T7, T8, T9, T10, **T11**, **T12**, **T13** and **T14** are DONE for their author-side/integration scopes.
+- **T12 — trusted default-branch stale-green predecessor — is now `DONE / integrated`.** PR #5 received clean independent REVIEW-0082 on exact reviewed head `71ed1cb233d16f032ff27cf5a88dfe039e2ba618`, all 83 reviewed PR #5 threads were resolved under controlled closure, reconciliation head `e9d67333f35fc0460ea65806f829257ed0a0266a` passed Bootstrap #333 / run `36053041482`, and PR #5 merged to `main` as `b4b52c77fbf05eda65e8f0e951959da70e7edbe7`.
+- T13 is the canonical name for the five branch-local corrections previously carried by files named `t12`; those artifacts remain DONE author-side.
+- **T14 — post-PR5 two-parent merge-history integration hardening — remains `DONE` author-side.** This integration commit must preserve its contract by taking PR #2 head `90d762af389990b5e57fce83397a558276500dd5` and new `main` `b4b52c77fbf05eda65e8f0e951959da70e7edbe7` as its two parents.
+- **T4 — exact final-integrated-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`.
+- Gate #259 / run `36055246141` on integrated head `6e8014c7d46e2aceefa03902c37c6bdf2fac0c19` exposed one deterministic integration defect before L2: `.github/scripts/governance_t13_mutation_smoke.py` still targeted the pre-refactor `return any(...)` form of `_steps_execute_prefix`, while the current hardened implementation uses per-step parsed commands plus `if any(...): return True`. The runtime guard was correct; the mutation harness failed closed with `t13-executable-command-proof: target occurrence count != 1`. The current correction retargets that mutant to the exact current executable-prefix branch without weakening the mutation. A fresh exact-head Gate is required before any L2 request.
+- Gate #260 / run `36058286810` proved the T13 mutation retarget itself, then exposed a second integration-specific defect in `change_guard`: inherited REVIEW-0082 from the PR #5/main second-parent lineage was incorrectly treated as freshness authority for substantive first-parent PR #2 changes. REVIEW-0082 is valid T12 predecessor evidence, not a review of the current PR #2 delta. The correction makes review freshness authority first-parent scoped: a reviewed commit must remain an ancestor of the head, but only a reviewed commit on the current head's first-parent lineage can stale subsequent first-parent work. A real two-parent regression reproduces PR #5/main as second parent and preserves ordinary first-parent stale-review detection.
+**
+- Live PR #2 now has **91 unresolved material threads**. REVIEW-0085 frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` passed Bootstrap #367 / Gate #302 with **827 tests**, **7,932 statements / 3,652 branches**, **100% line + branch**, mutations **38/38 + 40/40 + 5/5 + 11/11 + 14/14**, every deterministic validator green, CodeQL and Dependency Review green; live gate failed only on **86 unresolved threads** and missing exact-head approval before review. Fresh independent L2 `PRR_kwDOUUI5ts8AAAABPPl4wg` then added four P1s: exact checkout-ref binding (`PRRT_kwDOUUI5ts6mAc8I`), split-line function shadowing (`PRRT_kwDOUUI5ts6mAc8M`), complete-argv validation (`PRRT_kwDOUUI5ts6mAc8O`), and Dependency Review probe binding (`PRRT_kwDOUUI5ts6mAc8S`). Author-side `PRRT_kwDOUUI5ts6mAdoV` additionally exposed the Bash subshell-function shadowing form. REVIEW-0085 is **CLOSED / CHANGES_REQUIRED**.
+- WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
+- Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` author-side; `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending exact integrated-head closure.
 
-Author-side adversarial finding `PRR_kwDOUUI5ts8AAAABOpz-Bg` then exposed a new P1 before independent approval: `latest_required_check()` requests the filtered check-runs endpoint with `per_page=100` but never paginates, while requiring `len(check_runs) == total_count`. More than 100 legitimate same-head check suites therefore make every poll fail as an incomplete response, potentially leaving a stale successful merge gate un-invalidated.
+## Current WORK-0002 gate
 
-The REVIEW-0053 successor must preserve all prior recovery/multi-check guarantees while collecting the filtered required-check set completely under an explicit bounded pagination/request-budget contract, validating every page/candidate and rejecting duplicates, malformed totals, drift or unprovable completeness.
+Required sequence from this integrated state:
 
-## REVIEW-0053 — bounded required-check pagination successor
+1. Keep all **91** PR #2 material review threads unresolved.
+2. REVIEW-0083 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPJeT9Q` on `cc37d74e2ee49aea62cfdfa30634c01a1032751f`.
+3. Correct the three distinct REVIEW-0083 defects: inherited workflow/job execution controls, single-ampersand background masking, and PR-family dependency-review skip enforcement.
+4. Keep the author duplicate `PRRT_kwDOUUI5ts6lz1l8` durably tracked until a clean successor review authorizes controlled resolution.
+5. Exact technical proof is complete on `dce9fbbfbe720adcde8ce91fc2e13b98c6544152` via Bootstrap #354 and Gate #284.
+6. REVIEW-0084 is terminal **CLOSED / CHANGES_REQUIRED** after fresh independent L2 `PRR_kwDOUUI5ts8AAAABPOcDnA` on exact frozen head `d1850542494492a388b545dec954e078b825d9b5` added five new P1 findings.
+7. REVIEW-0085 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPPl4wg` on frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` added four P1s; author-side `PRRT_kwDOUUI5ts6mAdoV` adds a fifth live thread.
+8. The four REVIEW-0085 defect classes are corrected; REVIEW-0086 OPEN checkpoint proof is complete via Bootstrap #374 / Gate #316 and REVIEW-0086 is IN_PROGRESS. Prove/freeze this exact head, then request one fresh independent L2 over all 91 unresolved threads.
+9. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
+10. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
-REVIEW-0053 is now **IN_PROGRESS** after exact technical proof on `1470320c1b19f94ad697d0b91e1b90921923ee91` and OPEN checkpoint proof on `e6f77aa0bbd3eff80f136228fc4d00a8c09ad2a8`.
+## REVIEW-0086 — exact-ref / complete-argv / probe-binding successor
 
-Bootstrap #186 / run `35731235939` passed **204/204 tests**, **1,891 statements / 852 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0086 is **IN_PROGRESS** after exact technical proof on `cc0a62661aac2150983ebcaf4c3dd0529012a209` and OPEN checkpoint proof on `846c4cfee2df680bd06023b481ac4673c5693afd`.
 
-The correction reuses the existing bounded `paged()` helper for filtered required-check authority. A 101-check regression proves page-2 collection and effective-check selection; total-count drift, cross-page duplicate identity and incomplete later-page cases fail closed. Candidate identity/status/conclusion/recency validation remains applied to the full collected set, and REVIEW-0051 inspection-only recovery is unchanged.
+Bootstrap #373 / run `36141676466` and Gate #315 / run `36141676897` proved:
+- **829 tests PASS**;
+- **7,977 statements / 3,680 branches**, **100% line + branch**;
+- mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 18/18 T13**;
+- repository/strict/path/change/L2/review/T7/T8/T9/T10/T11 validators all green;
+- context manifest **25 MUST_READ files**;
+- CodeQL and Dependency Review jobs **success**;
+- live gate failed closed only on **91 unresolved threads** and missing trusted exact-head approval, with no durable-finding mismatch.
 
-Bootstrap #187 / run `35731526951` proved the OPEN checkpoint at **204/204 tests**, **1,891 statements / 852 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
+The successor rechecks exact checkout/ref and reusable-core head binding, split-line and subshell Bash executable shadowing, complete constrained argv instead of prefix matching, and exact Dependency Review capability-probe producer binding while preserving the WORK-0003 capability boundary.
 
-## REVIEW-0053 — terminal negative evidence
+Bootstrap #374 / run `36142902577` and Gate #316 / run `36142903564` proved the OPEN checkpoint with the same **829 tests**, **7,977 statements / 3,680 branches**, **100% line + branch**, **18/18 T13 mutations**, all deterministic validators green, and live gate blocked only on **91 unresolved threads** plus missing exact-head approval. This IN_PROGRESS state must now receive one frozen exact-head proof before fresh independent L2.
 
-REVIEW-0053 added complete bounded filtered required-check pagination and passed exact frozen proof on `56a24864caa67db2af2e830f75ce279c4cc056c3`: Bootstrap #188 / run `35731769188` passed **204/204 tests**, **1,891 statements / 852 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
+## REVIEW-0085 — terminal negative integrated-head review
 
-REVIEW-0053 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOqC8Gg` exposed a write-ahead authority regression: after pending is durably written and a rerun POST succeeds, a generic post-condition `RuntimeError` is not converted into a pending-preserving mutation error. REVIEW-0049 `poll()` can then treat it as an ordinary head error and later write an idle scheduler state, erasing the only durable pending mutation identity.
+REVIEW-0085 completed on exact frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` with independent reviewer `chatgpt-codex-connector` / `PRR_kwDOUUI5ts8AAAABPPl4wg` and outcome **CHANGES_REQUIRED**.
 
-The REVIEW-0054 successor must preserve all prior recovery/multi-check/pagination guarantees and make every post-POST observation RuntimeError retain pending state and fail loud; the next invocation must resume observation from that pending identity without any automatic duplicate POST.
+Independent P1 findings:
+- `PRRT_kwDOUUI5ts6mAc8I` — checkout action pinning does not bind the exact expected ref;
+- `PRRT_kwDOUUI5ts6mAc8M` — split-line Bash function declaration can shadow the required executable;
+- `PRRT_kwDOUUI5ts6mAc8O` — prefix-only command proof accepts suffixes such as `--help` that bypass real validation;
+- `PRRT_kwDOUUI5ts6mAc8S` — Dependency Review action condition relies on an unvalidated capability-probe producer.
 
-## REVIEW-0054 — post-POST pending retention successor
+Author-side `PRRT_kwDOUUI5ts6mAdoV` independently exposed the related Bash subshell-function form `python() ( ... )`.
 
-REVIEW-0054 is now **IN_PROGRESS** after exact technical proof on `8b8b23072e77b83e3c86dbdc4f0486035e04dd26` and OPEN checkpoint proof on `1002256314b2988470620172b58422fa08547605`.
+The live/durable unresolved closure set is now **91**. No thread is resolved. A successor review may be materialized only after all four distinct defect classes receive exact technical proof.
 
-Bootstrap #191 / run `35735060972` passed **210/210 tests**, **1,927 statements / 860 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+Historical pre-review proof on this review remains Bootstrap #365/#366 and Gate #300/#301; frozen proof is Bootstrap #367 / Gate #302.
 
-The successor is deliberately narrow: a new adapter wraps only REVIEW-0048 terminal post-condition observation. Existing `DeferredObservation` and `PendingMutationUncertain` semantics are preserved; any other `RuntimeError` after a potentially successful rerun POST is promoted to `PendingMutationUncertain`, so REVIEW-0049 poll rethrows before any idle scheduler-state rewrite. The next invocation therefore resumes the durable V5 pending identity without an automatic duplicate POST.
+Bootstrap #365 / run `36134916018` and Gate #300 / run `36134916263` proved the corrected candidate:
+- **827 tests PASS**;
+- **7,932 statements / 3,652 branches**, **100% line + branch**;
+- mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 14/14 T13**;
+- repository/strict/path/change/L2/review/T7/T8/T9/T10/T11 validators all green;
+- context manifest **25 MUST_READ files**;
+- CodeQL and Dependency Review **success**;
+- live gate failed closed only on **86 unresolved threads** and missing trusted exact-head approval, with no durable-finding mismatch.
 
-The scheduled poll and live contract probe use REVIEW-0054. Manual pending recovery remains directly wired to the proven REVIEW-0051 inspection-only adapter with `actions: read` and `issues: read`, preserving separation of mutable poll authority from recovery inspection.
+The successor must independently falsify the five REVIEW-0084 fixes: shell-executable shadowing, Dependency Review action execution binding, required final live-gate command, complete governance-core command inventory, and pinned CodeQL init/analyze action binding.
 
-Bootstrap #192 / run `35735482885` proved the OPEN checkpoint at **210/210 tests**, **1,927 statements / 860 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
+Bootstrap #366 / run `36135753228` and Gate #301 / run `36135753428` proved the OPEN checkpoint with the same **827 tests**, **7,932 statements / 3,652 branches**, **100% line + branch**, **14/14 T13 mutations**, all deterministic validators green, and live gate blocked only on **86 unresolved threads** plus missing trusted exact-head approval. This IN_PROGRESS state now requires one frozen exact-head proof before a fresh independent L2.
 
-## REVIEW-0054 — terminal negative evidence
+## REVIEW-0084 — terminal negative integrated-head review
 
-REVIEW-0054 passed frozen exact-head proof on `38e57b16791466114568a8d7b99ba11480c743a9`: Bootstrap #193 / run `35735778963` passed **210/210 tests**, **1,927 statements / 860 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
+REVIEW-0084 completed on exact frozen head `d1850542494492a388b545dec954e078b825d9b5` with independent reviewer `chatgpt-codex-connector` / `PRR_kwDOUUI5ts8AAAABPOcDnA` and outcome **CHANGES_REQUIRED**.
 
-REVIEW-0054 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOqcmhQ` exposed that protecting only terminal observation is insufficient. After terminal observation returns but before the durable pending clear is acknowledged, review-thread reclassification can still raise `RuntimeError`. REVIEW-0049 poll can then classify that as an ordinary head error and later overwrite pending with idle state.
+The frozen candidate passed Bootstrap #356 / run `36124803925` and Gate #286 / run `36124804464`: **824 tests**, **7,851 statements / 3,596 branches**, **100% line + branch**, mutations **38/38 + 40/40 + 5/5 + 11/11 + 9/9**, all deterministic/T7-T11 validators, CodeQL and Dependency Review green. The live gate failed only on 81 unresolved threads and missing exact-head approval before review.
 
-REVIEW-0055 must protect the complete interval from acknowledged pending write until an acknowledged safe clear. Existing `PendingMutationObservation` and `PendingMutationUncertain` semantics must remain intact; only generic RuntimeError while durable pending is still active may be promoted to pending uncertainty.
+Independent P1 findings:
+- `PRRT_kwDOUUI5ts6l9_hk` — shell function/declaration can shadow the required executable while accepted argv remains visible;
+- `PRRT_kwDOUUI5ts6l9_ht` — dependency-review job condition is checked but the pinned Dependency Review action itself is not required;
+- `PRRT_kwDOUUI5ts6l9_hz` — final-gate structure does not require the blocking `tools.governance.github_live_gate` command;
+- `PRRT_kwDOUUI5ts6l9_h4` — governance-core structure does not require the complete deterministic command inventory;
+- `PRRT_kwDOUUI5ts6l9_h8` — CodeQL job identity/result is checked but pinned init/analyze actions are not structurally required.
 
-## REVIEW-0055 — full pending-lifetime successor
+The live/durable unresolved closure set is now **86**. No thread is resolved. A successor review may be materialized only after all five defects receive exact technical proof.
 
-REVIEW-0055 is now **IN_PROGRESS** after exact technical proof on `ec5cbddfc7f1760dac094cb227c093499c71cd9a` and OPEN checkpoint proof on `e1b420eb2cac2a4f950aeae0aa1d9b0a1f404c8a`.
+## REVIEW-0083 — terminal negative integrated-head review
 
-Bootstrap #197 / run `35737368210` passed **217/217 tests**, **1,969 statements / 870 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+REVIEW-0083 completed on exact frozen head `cc37d74e2ee49aea62cfdfa30634c01a1032751f` with independent reviewer `chatgpt-codex-connector` / `PRR_kwDOUUI5ts8AAAABPJeT9Q` and outcome **CHANGES_REQUIRED**.
 
-The successor adds a narrow process adapter above the existing REVIEW-0054 chain. It tracks only acknowledged scheduler writes during one `_process_head_group()` call: after a pending write is durably acknowledged, generic `RuntimeError` is promoted to `PendingMutationUncertain` until a safe clear is itself durably acknowledged. Pre-pending errors and errors after confirmed clear retain ordinary behavior. Existing `PendingMutationObservation` / `PendingMutationUncertain` are rethrown unchanged.
+Independent P1 findings:
+- `PRRT_kwDOUUI5ts6lzzao` — inherited workflow/job env and defaults.run bypass required-command proof;
+- `PRRT_kwDOUUI5ts6lzzas` — single `&` backgrounds a required validator while preserving the accepted argv prefix;
+- `PRRT_kwDOUUI5ts6lzzax` — PR-family dependency-review may be skipped while final gate accepts `skipped`.
 
-Bootstrap #198 / run `35737725013` proved the OPEN checkpoint at **217/217 tests**, **1,969 statements / 870 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
+Author-side duplicate `PRRT_kwDOUUI5ts6lz1l8` independently rediscovered the first defect and remains part of the live/durable 81-thread closure set.
 
-## REVIEW-0055 — terminal negative evidence
+A REVIEW-0084 successor may be created only after these defects receive exact technical proof.
 
-REVIEW-0055 passed frozen exact-head proof on `c294f6f663424d13d3534a8b7cc5131878936c31`: Bootstrap #199 / run `35738070833` passed **217/217 tests**, **1,969 statements / 870 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
+## REVIEW-0083 — historical context
 
-REVIEW-0055 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOr4qTA` exposed an acknowledgement-boundary flaw. The active V5 writer PATCHes issue #7 and only then validates the returned state. If that PATCH commits remotely but acknowledgement fails locally, REVIEW-0055 never flips its local `pending_active` flag, so the error can still be treated as pre-pending and followed by an idle overwrite.
+Fresh independent Codex review `PRR_kwDOUUI5ts8AAAABPIVhXA` reviewed exact integrated head `c80ff3a3cd9640256fca65285ba28094ac848365` and added P1 `PRRT_kwDOUUI5ts6lxalB` plus P1 `PRRT_kwDOUUI5ts6lxalH`. That negative review is retained as GitHub source evidence.
 
-REVIEW-0056 must classify every failed/ambiguous attempted pending-state write acknowledgement as `PendingMutationUncertain` immediately. No rerun POST or later idle writer may execute in that invocation; if the remote pending write committed, the next invocation must observe it, while if it did not commit then no rerun POST occurred and an idle retry remains safe.
+A first attempt to record the external negative review directly as a new canonical `CLOSED` record was rejected by Gate #266 because the review registry lifecycle starts at `OPEN`; that invalid state-only commit was removed from branch history. After the two P1 fixes received exact technical proof on `854c4e8aa076bd6ac1c57baae96b9f278e995c0e`, REVIEW-0083 was materialized truthfully at **OPEN**, that checkpoint is now exactly proved, and the record advances to **IN_PROGRESS**.
 
-## REVIEW-0056 — ambiguous pending-write acknowledgement successor
+## Integration-provenance boundary
 
-REVIEW-0056 is now **IN_PROGRESS** after exact technical proof on `fcf91076f0b212c3473f53e335503290a0323fc1` and OPEN checkpoint proof on `105f20d8cc4784d4340dc62814ecac63a217d6d4`.
+`registry/integration-provenance.yaml` is an A3 meta-governance trust anchor because validators consume it as exact historical exception/adoption authority. Candidate state cannot make a same-PR exception self-authorizing. Existing WORK-0001 squash provenance, progress adoption records and malformed-YAML repair episodes remain exact historical-only, future-reuse-forbidden bridges.
 
-Bootstrap #202 / run `35751712104` passed **224/224 tests**, **2,011 statements / 880 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
+Historical **materialization** and evidence **eligibility** are intentionally distinct: an exact equal-tree squash bridge may recover where a record first reached its evidence-bearing status, while acceptance/completion qualification still requires the separately authorized eligible review/test identity and every current proof contract.
 
-The successor adds one narrow wrapper above REVIEW-0055. When a writer call attempts to persist a pending state, any acknowledgement failure is immediately promoted to `PendingMutationUncertain`. Because this occurs before the rerun POST, the same invocation cannot emit a rerun or later overwrite a remotely committed pending record with idle state. Successful pending writes continue into REVIEW-0055 full-lifetime protection; non-pending writes remain transparent.
+## Repository visibility
 
-Bootstrap #203 / run `35752124326` proved the OPEN checkpoint at **224/224 tests**, **2,011 statements / 880 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
+MONDE intentionally remains **public**. Never commit credentials, tokens, secrets, private/personal datasets or user-identifying runtime data. Sensitive runtime material remains outside Git. WORK-0003 owns repository/ruleset/required-check/security-setting hardening while preserving public visibility.
 
-## REVIEW-0056 — terminal negative evidence
+## Product/UI/UX owner gate
 
-REVIEW-0056 passed frozen exact-head proof on `e83eea9d48b7f42539575dda52e205211d261948`: Bootstrap #204 / run `35752415317` passed **224/224 tests**, **2,011 statements / 880 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
-
-REVIEW-0056 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOsEGIw` exposed that count-complete offset pagination is not snapshot-complete. A page-1 insert combined with a page-1 deletion can preserve `total_count` and global uniqueness while causing page 2 to complete the old collection and silently omit the new most-recent required check.
-
-REVIEW-0057 must add bounded membership drift detection to filtered required-check pagination. Re-reading/anchoring the previous page identity/order after each next-page fetch is acceptable if it remains within the 100-request hard cap and fails closed on any boundary change.
-
-## REVIEW-0057 — drift-detecting required-check pagination successor
-
-REVIEW-0057 is now **IN_PROGRESS** after exact technical proof on `7ca3c1b3dfa6d1b55c73d3efb41eb290fd43f07d` and OPEN checkpoint proof on `e9bab74e5a2f45379d8271e0f761d63af0ab15f5`.
-
-Bootstrap #208 / run `35754043037` passed **227/227 tests**, **2,039 statements / 900 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
-
-The correction extends the shared bounded paginator with optional previous-page stability verification. For filtered required checks, after each additional page fetch the immediately previous page is re-read and its exact ordered integer IDs plus `total_count` are compared against the earlier snapshot. Count-stable insert/delete/reorder drift therefore fails closed instead of silently omitting a newly-created effective check.
-
-Bootstrap #209 / run `35758466500` proved the OPEN checkpoint at **227/227 tests**, **2,039 statements / 900 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
-
-## REVIEW-0057 — terminal negative evidence
-
-REVIEW-0057 passed frozen exact-head proof on `33f24d354f513f4b925f0b1f56ad8775da8b8ab2`: Bootstrap #210 / run `35758795593` passed **227/227 tests**, **2,039 statements / 900 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
-
-REVIEW-0057 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOtCssw` exposed that adjacent previous-page revalidation is insufficient over 3+ pages. A page already revalidated after page 2 can drift later before page 3 completes while total_count, uniqueness and the page-2 boundary remain stable, allowing the old collection to omit a newer effective check.
-
-REVIEW-0058 must add a bounded end-of-traversal stability proof for every fetched page before returning the collection. With `MAX_PAGES=20`, retaining the current adjacent checks plus one final re-read of all fetched pages costs at most 59 pagination requests, remaining within the 100-request hard cap.
-
-## REVIEW-0058 — end-of-traversal snapshot stability successor
-
-REVIEW-0058 is now **IN_PROGRESS** after exact technical proof on `4b4d1ae6ec4815e7967f72023f2db63272e1c144` and OPEN checkpoint proof on `5e8cf6c9ce1d8ad39b75102963b91712422c37ea`.
-
-Bootstrap #213 / run `35775861240` passed **229/229 tests**, **2,052 statements / 906 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
-
-The correction retains REVIEW-0057 adjacent boundary revalidation and adds a final stability pass over every fetched page before a multi-page collection may return. A three-page regression proves late page-1 insert/delete drift is caught even after page 1 already passed its first adjacent revalidation. A stable three-page traversal performs the bounded sequence `1,2,1,3,2,1,2,3`. Single-page collections receive no extra final read. With `MAX_PAGES=20`, worst-case pagination stability traffic is 59 requests, below the global 100-request hard cap.
-
-Bootstrap #214 / run `35776333361` proved the OPEN checkpoint at **229/229 tests**, **2,052 statements / 906 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
-
-## REVIEW-0058 — terminal negative evidence
-
-REVIEW-0058 passed frozen exact-head proof on `11e8b86e67bdb2f69c2db4823b09bd051e211855`: Bootstrap #215 / run `35776698177` passed **229/229 tests**, **2,052 statements / 906 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
-
-REVIEW-0058 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOuVyaw` proved that sequential all-page revalidation is still not a linearizable authority snapshot. Page 1 can change again after its own final re-read while later pages remain stable, so broad offset pagination cannot by itself authorize mutation.
-
-REVIEW-0059 changes the proof boundary: paginated check-runs remain conservative candidate discovery, but a merge-acceptable candidate may authorize mutation only after it is bound to the current attempt of an exact canonical MONDE workflow run and that run is proved to be the newest canonical PR-family run existing at a time frontier captured immediately after candidate discovery. A concurrently-created newer run before that frontier must make authority fail closed; a run created after the frontier is outside the chosen linearization point.
-
-## REVIEW-0059 — canonical Actions frontier successor
-
-REVIEW-0059 is now **IN_PROGRESS** after exact technical proof on `5c1dc5b2337b275d91dbb07a27becdd88261b317` and OPEN checkpoint proof on `d369650372b2cc59c34ca6618c1ab163d23df7d9`.
-
-Bootstrap #220 / run `35794235973` passed **245/245 tests**, **2,151 statements / 942 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
-
-The proof boundary no longer treats paginated check-runs as a linearizable authority snapshot. They remain conservative candidate discovery only. A merge-acceptable candidate is rebound to its exact canonical MONDE workflow run, protected job and current attempt, then compared against all canonical same-head runs created no later than a timestamp frontier captured after discovery. Any newer canonical run before that frontier makes authority fail closed; runs created after the frontier are outside the chosen linearization point. Filtered-search limits are handled by bounded time-range splitting with duplicate/malformed identity rejection.
-
-Bootstrap #221 / run `35797915783` proved the OPEN checkpoint at **245/245 tests**, **2,151 statements / 942 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. Lifecycle transition commit `70079015e492ac0661397001e1bb76eb5792fa89` moved REVIEW-0059 to `IN_PROGRESS`; this state-only descendant is the frozen exact-head proof checkpoint and must pass Bootstrap before any fresh independent L2 is requested.
-
-## REVIEW-0059 — terminal negative evidence
-
-REVIEW-0059 passed frozen exact-head proof on `b3834693cd65074b43866b0ed9cba55b6d7309f1`: Bootstrap #222 / run `35798260021` passed **245/245 tests**, **2,151 statements / 942 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
-
-REVIEW-0059 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOwZrZw` exposed a chronology mismatch. The required-check selector defines authority by fresh check `started_at`, while REVIEW-0059 orders canonical workflow runs by original `created_at`. A rerun of an older run id can therefore produce the newest effective check yet be rejected solely because another run id was created later.
-
-REVIEW-0060 must preserve the canonical Actions frontier but make it attempt-aware. Current run recency/attempt identity—not original run creation alone—must decide which canonical attempt is authoritative at the captured frontier.
-
-## REVIEW-0060 — attempt-aware canonical Actions frontier successor
-
-REVIEW-0060 is now **IN_PROGRESS** after exact technical proof on `3b72d4f31da6b05ad28d6fe2e8cdc39d3707fe30` and OPEN checkpoint proof on `3fa070761058a5a5e2dbcd197523f04ce78ccff0`.
-
-Bootstrap #227 / run `35800041465` passed **261/261 tests**, **2,283 statements / 1,008 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
-
-The successor preserves REVIEW-0059's explicit Actions authority frontier but replaces original workflow-run creation chronology with **current-attempt protected-job chronology**. A rerun of an older workflow-run id can therefore become authoritative when its exact current protected `MONDE / Merge Gate` job is the newest by `started_at/id` at the captured frontier. A newer canonical same-head protected job already existing before that frontier makes authority fail closed. Candidate check start identity must match the exact protected job/current attempt.
-
-Bootstrap #228 / run `35833351150` proved the OPEN checkpoint at **261/261 tests**, **2,283 statements / 1,008 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
-
-## REVIEW-0060 — terminal negative evidence
-
-REVIEW-0060 passed frozen exact-head proof on `729a3d1b917d4cb14f8e66083b11994947d37e42`: Bootstrap #229 / run `35833554806` passed **261/261 tests**, **2,283 statements / 1,008 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
-
-REVIEW-0060 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOzV1xw` exposed a cross-object chronology gap. Runs and jobs are validated separately, but the code does not enforce `protected_job.started_at >= current run_started_at`. A malformed competitor job timestamp can therefore make a genuinely newer current attempt appear older in the authority ordering and allow a stale candidate.
-
-REVIEW-0061 must preserve attempt-aware frontier semantics while enforcing this run/job chronology for both the direct candidate and every frontier run before authority ordering.
-
-## REVIEW-0061 — current-attempt/protected-job chronology successor
-
-REVIEW-0061 is now **IN_PROGRESS** after exact technical proof on `a04569ed115eb5b046b037bf10169b5f39e0d92f` and OPEN checkpoint proof on `a7a4b9ff75c266718d4da808bdc2f4f5c1234d73`.
-
-Bootstrap #232 / run `35835205839` passed **273/273 tests**, **2,347 statements / 1,028 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
-
-The successor layers one fail-closed invariant on REVIEW-0060 attempt-aware authority: every protected `MONDE / Merge Gate` job used for authority must satisfy `job.started_at >= current run_started_at`. This is enforced for the direct candidate and every frontier run before authority ordering. Candidate check/job `started_at` identity remains exact. The adapter reuses already-fetched payloads and adds no GitHub requests.
-
-Bootstrap #233 / run `35835781074` proved the OPEN checkpoint at **273/273 tests**, **2,347 statements / 1,028 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
-
-## REVIEW-0061 — terminal negative evidence
-
-REVIEW-0061 passed frozen exact-head proof on `f5bbad18911208b2f408d1aeb245aed32506b742`: Bootstrap #234 / run `35836023032` passed **273/273 tests**, **2,347 statements / 1,028 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
-
-REVIEW-0061 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOzuvcA` exposed a candidate terminal-state stability gap. The direct candidate job is bound to the required check's success conclusion, but when the same current job is reread through the attempt frontier the proof compares only run identity, attempt, job id and started_at. A same-id/same-start frontier reread with changed status/conclusion/completed_at can therefore leave the older success check authoritative.
-
-REVIEW-0062 must preserve REVIEW-0061 run/job chronology while binding candidate authority to an exact terminal protected-job snapshot across both reads. Any status, conclusion or completed_at drift must fail closed before authority ordering.
-
-## REVIEW-0062 — candidate terminal-snapshot successor
-
-REVIEW-0062 is now **IN_PROGRESS** after exact technical proof on `c38c2200583ebe83e8ac3fe97831c7e43e7de41f` and OPEN checkpoint proof on `d7f8a896c2020453d089efd03cd13930d0f347c2`.
-
-Bootstrap #237 / run `35839421844` passed **283/283 tests**, **2,403 statements / 1,046 branches**, **100% line + branch**, and the live PR #2 contract probe succeeded at **7/100** requests.
-
-The successor reuses the full REVIEW-0061 authority proof and adds no GitHub requests. It captures the direct candidate protected-job payload and the candidate job reread through the frontier, then requires an exact terminal snapshot match on `status`, `conclusion` and `completed_at`. Same-id/same-start drift from success to failure, completed to in-progress, or a changed completion timestamp is therefore rejected before an older check snapshot can authorize mutation.
-
-Bootstrap #238 / run `35839740175` proved the OPEN checkpoint at **283/283 tests**, **2,403 statements / 1,046 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests. This IN_PROGRESS state must now receive one frozen exact-head proof before any fresh independent L2 is requested.
-
-## REVIEW-0062 — terminal negative evidence
-
-REVIEW-0062 passed frozen exact-head proof on `589970c57808d0161c78eb6c5f7a07a19c2773ef`: Bootstrap #239 / run `35839947248` passed **283/283 tests**, **2,403 statements / 1,046 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. The fresh Codex L2 request was blocked by quota.
-
-REVIEW-0062 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABOz4vxA` exposed the missing upper cross-object chronology bound. REVIEW-0061 proves `job.started_at >= run_started_at`, but protected job activity is not required to fit inside the current run's observed lifetime. An impossible job start after `run.updated_at` can therefore be ranked as newer authority; a completed job can likewise report `completed_at > run.updated_at`.
-
-REVIEW-0063 must enforce full containment: `run_started_at <= job.started_at <= run.updated_at`, and completed jobs must also satisfy `job.completed_at <= run.updated_at`, for both the direct candidate and every frontier job before authority ordering.
-
-## REVIEW-0063 — terminal negative evidence
-
-REVIEW-0063 proved its full run/job lifetime-containment correction through technical candidate `d1a2a6d921ca85c8424f7aa707f893306d939189`, OPEN checkpoint `2b92575013d39257fb61c516c4dfa9ab10f74ebf`, and frozen exact head `22dd22d5f9e50eea6d3bd351af8e12ab9a935440`. Bootstrap #244 / run `35848734246` passed **291/291 tests**, **2,440 statements / 1,060 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests.
-
-The fresh Codex L2 request `5793162559` was refused by quota via `5793166351`; no independent REVIEW-0063 L2 was produced.
-
-REVIEW-0063 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO0xdhQ` proved a remaining positive-authority gap: the selected terminal Check Run's own `completed_at` is not validated. Current REVIEW-0060 fixtures even accept a candidate whose inherited `completed_at=2026-09-15T14:30:00Z` is one week before its `started_at=2026-09-22T21:01:00Z`. The current chain validates the protected job timing but never requires the Check Run to have parseable/ordered terminal timing or to bind its completion to the protected job/frontier. Live PR #2 evidence shows Check Run/job `106746593212` both report `12:35:25Z -> 12:35:37Z`.
-
-REVIEW-0064 must validate temporal metadata for every current required-check candidate, reject missing/malformed or completion-before-start terminal checks, reject non-completed checks carrying `completed_at`, require the selected terminal candidate to complete no later than the captured authority frontier, and bind its terminal timing to the exact protected Actions job under the proven live contract. REVIEW-0063 run/job lifetime containment and every earlier guarantee remain mandatory.
-
-## REVIEW-0064 — terminal negative evidence
-
-REVIEW-0064 proved required-check temporal-snapshot validation through technical candidate `7ad3ff6dbb21ab2b0e4ff1d3cb7844ade73d3d3a`, OPEN checkpoint `9ab74b7d2d775bb764d95921021a70d97cf8a6ca`, and frozen exact head `9292e5f01d389d9a1280878eea4cda4a29dd0aef`. Bootstrap #249 / run `35850591855` passed **303/303 tests**, **2,521 statements / 1,092 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests.
-
-The fresh Codex L2 request `5793447096` was quota-refused via `5793449737`; no independent REVIEW-0064 L2 was produced.
-
-REVIEW-0064 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO1CeRg` proved a remaining mutation-bound race. The last full `core.latest_required_check()` authority proof occurs before target `_mutation_baseline()`, final PR refresh, final unresolved-thread check, durable pending write and rerun POST. A different canonical `MONDE / Merge Gate` run can therefore advance after that proof while the selected historical target run remains unchanged; target baseline and PR identity still pass and MONDE can POST using stale global authority.
-
-REVIEW-0065 must add one final global Gate-authority proof after target baseline plus final PR/thread revalidation and immediately before durable pending write / rerun POST. The final proof must remain merge-acceptable and bind to the same expected authority identity used for the mutation. If the authority advanced, changed, became in-progress/non-acceptable, or cannot be proved exactly, the invocation must emit neither pending write nor rerun POST. REVIEW-0064 temporal binding and every prior pending/recovery/frontier invariant remain mandatory.
-
-## REVIEW-0065 — terminal negative evidence
-
-REVIEW-0065 proved final Gate-authority revalidation through technical candidate `188945f3e2b9db977c0906b57e9bfdf0f29bc27a`, OPEN checkpoint `6d40c6c4d8edc8965003c4e34c199bb14d65935b`, and frozen exact head `72814dd559e7ad4f42dbbe5205488b1ed5fa3696`. Bootstrap #253 / run `35853367540` passed **312/312 tests**, **2,579 statements / 1,112 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests.
-
-The fresh Codex L2 request `5793836688` was quota-refused via `5793838794`; no independent REVIEW-0065 L2 was produced.
-
-REVIEW-0065 is nevertheless now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO1L5Mw` proved another cross-object TOCTOU. The exact current PR plus unresolved-thread checks occur before REVIEW-0065 begins its final, potentially multi-request Gate proof. The PR can close, retarget or change merge-ref/base authority — or review threads can resolve — while that Gate proof runs. If the Gate itself remains unchanged, REVIEW-0065 can still write the stale pending PR authority and POST before post-rerun observation discovers the mismatch.
-
-REVIEW-0066 must form one coherent mutation-bound control-plane snapshot: **G1 -> P/T -> G2**. G1 and G2 are full active Gate proofs and must both remain merge-acceptable with the exact `pending_check_id`. Between them, `pending._current_pending_pr(repo, token, pending_state)` must return the exact open authority encoded in `pending_authority`, and unresolved review threads for `pending_pr` must still be true. Only after G1 == G2 around that exact PR/thread observation and after the full mutation reserve remains may the pending PATCH be attempted.
-
-## REVIEW-0066 — terminal negative evidence
-
-REVIEW-0066 proved its Gate-stable sandwich through technical candidate `a816853357a57f5b09c4504129a4630b82754218`, OPEN checkpoint `b2250f25aa4e52f4406f2b730ea1576a72b7a2b4`, and frozen exact head `6f8784bd7f2edf570dcaad34fd729ef8d052bc5f`. Bootstrap #257 / run `35854881781` passed **323/323 tests**, **2,646 statements / 1,136 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests. Codex L2 request `5794038865` was quota-refused via `5794040822`.
-
-REVIEW-0066 is now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO1Ts9g`. G1/P1/T/G2 proves Gate stability around the observation interval but only reads PR authority once. The PR can change after P1 while Gate identity remains unchanged; T and G2 can then succeed and stale `pending_authority` can still be written.
-
-REVIEW-0067 must establish overlapping Gate-stable and PR-stable intervals using **G1 -> P1 -> T -> P2 -> G2**. P1 and P2 both re-read the exact pending PR and must match the stored open `pending_authority`; T occurs between them; G1/G2 both prove the same merge-acceptable `pending_check_id`. Only after these overlapping intervals and the post-G2 mutation reserve may pending state be written.
-
-## REVIEW-0067 — terminal negative evidence
-
-REVIEW-0067 proved the G1 -> P1 -> unresolved threads -> P2 -> G2 mutation snapshot through technical candidate `65a155d43e027f7c618a4dfa3a10a67e366f08fb`, OPEN checkpoint `e4f994c2b1661427f83ff23b8c9ece21fc296aa1`, and frozen exact head `0c1ccbb1bf80c4328ff24c0e9079c7734d367f52`. Bootstrap #261 / run `35857716751` passed **335/335 tests**, **2,707 statements / 1,158 branches**, **100% line + branch**, and live PR #2 probe SUCCESS at **7/100** requests.
-
-Fresh Codex L2 request `5794413357` was quota-refused via `5794416378`; no independent REVIEW-0067 L2 was produced.
-
-REVIEW-0067 is now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO1qQqg` proved deterministic request-budget starvation. The mutation path executes four full merge-acceptable Gate authority proofs before POST. Under the active Actions-frontier proof, each costs at least `N + 4` GitHub requests for `N` distinct canonical same-head workflow runs because every frontier run requires its current protected-job page. REVIEW-0067 must also leave 23 requests after G2. At only `N = 16`, the lower bound is already `4 × (16 + 4) + 23 = 103`, before any PR/thread/state/target-discovery requests.
-
-When this path raises `DeferredForBudget`, REVIEW-0049 poll breaks without persisting Actions-frontier continuation. For the current first head, the cursor remains unchanged; the next invocation repeats from scratch and hits the same wall. A supported stale-green head can therefore remain merge-eligible indefinitely.
-
-REVIEW-0068 must preserve the hard 100-request cap while eliminating permanent O(N)-per-proof starvation. It may introduce a safely reusable bounded authority witness or durable frontier continuation plus bounded final revalidation, but it must preserve REVIEW-0067 cross-object snapshot safety and every prior pending/recovery invariant. A regression with at least 16 distinct canonical same-head runs must use the real shared request counter and prove durable forward progress; mocking `latest_required_check` is insufficient.
-
-## REVIEW-0068 — terminal negative evidence
-
-REVIEW-0068 proved its bounded reusable Gate witness through technical candidate `00a6518a57f8c0f7498455dc062210bb3d250aa7`, OPEN checkpoint `41f654884f7461a901c23f74fd7a5ddacae5a295`, and frozen exact head `466c37d56f7daab97fed1a0cbbe545ea593609f1`. Bootstrap #268 / run `35875607764` passed **352/352 tests**, **2,982 statements / 1,278 branches**, **100% line + branch**; REVIEW-0068 itself remained **275 statements / 120 branches at 100%**, and live PR #2 probe succeeded at **7/100** requests.
-
-Fresh Codex L2 request `5796883761` was quota-refused via `5796886353`; no independent REVIEW-0068 L2 was produced.
-
-REVIEW-0068 is now **CLOSED / CHANGES_REQUIRED** after author-side `PRR_kwDOUUI5ts8AAAABO3Wwiw` proved dense-overlap request-budget starvation. REVIEW-0068 prunes non-overlapping historical runs, but every temporally overlapping canonical same-head current run still causes one protected-job collection in G1 and one in G2.
-
-For `M` overlapping runs, the strict lower bound from G1 through the mandatory post-G2 reserve is `2M + 32`: G1 costs at least `M+4`, P1/thread/P2 cost at least 3, G2 costs at least `M+2`, and 23 requests must remain. At only **M=35**, this is **102 > 100**, before scheduler-state, open-PR snapshot, target discovery, baseline or other earlier requests.
-
-This is a supported control-plane state. MONDE explicitly supports multiple open PRs sharing one SHA, the scheduler imposes no sibling-count bound inside one head group, and `MAX_HEADS_PER_INVOCATION=7` limits groups rather than PRs/runs within a group. The canonical Gate concurrency key is per PR number, so distinct shared-head PRs are not serialized by SHA and can legitimately expose many overlapping current runs.
-
-When this path exhausts budget, no G1 witness/frontier continuation is persisted. The next scheduled invocation restarts the same proof, so a current shared head can remain stale-green indefinitely.
-
-REVIEW-0069 must remove request cost linear in the count of overlapping runs from one invocation or make exact overlapping-frontier proof durably resumable across invocations, without raising the hard 100-request cap or weakening REVIEW-0068 authority safety. A real shared-counter regression with at least **35 valid temporally overlapping same-head current runs** is mandatory.
-
-## REVIEW-0069 — terminal negative evidence
-
-REVIEW-0069 is terminal **CLOSED / CHANGES_REQUIRED** on frozen head `f047a085e94b4f5bd7c575ba31b4eff3b79daa8f`. Bootstrap #274 / run `35881521467` passed **365/365 tests**, **3,178 statements / 1,356 branches**, **100% line + branch**; REVIEW-0069 itself was **196 statements / 78 branches at 100%**, and live PR #2 probe succeeded at **7/100** requests.
-
-Fresh Codex L2 request `5797672132` was quota-refused via `5797674597`; no independent REVIEW-0069 L2 was produced.
-
-Author-side `PRR_kwDOUUI5ts8AAAABO346_Q` proved page-linear starvation remains possible. With **901 valid current same-head suites/runs**, the stable bulk Check Run proof and Actions frontier require a strict lower bound of **108 requests** before earlier scheduler/target work, above the hard **100-request** cap. Above **2,000 Check Runs**, `core.MAX_PAGES=20` prevents the bulk collection from completing at all. No accepted repository contract bounds those states away.
-
-REVIEW-0069 CLOSED checkpoint `6abe3c352572bb10dae7aeea0deeea2a9b6edd82` passed Bootstrap #275 / run `35882375042` at **365/365**, **3,178 / 1,356**, **100% line + branch**, with live PR #2 probe SUCCESS at **7/100** requests.
-
-## REVIEW-0070 — terminal independent negative evidence
-
-REVIEW-0070 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `487ea3c6addd870eb86c5f17756b8268fd98cb88`.
-
-Bootstrap #280 / run `35913019741` passed **385/385 tests**, **3,375 statements / 1,438 branches**, **100% line + branch**; REVIEW-0070 itself was **197 statements / 82 branches at 100%**, and the live PR #2 contract probe succeeded at **3/100** requests.
-
-Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABO64xew** produced five material findings:
-- P1 `PRRT_kwDOUUI5ts6lUcz8` — initial RESOLVED thread state returned too early and skipped the required second observation.
-- P1 `PRRT_kwDOUUI5ts6lUcz_` — scheduled legacy pending reconciliation lost required `actions: read` / `checks: read`.
-- P1 `PRRT_kwDOUUI5ts6lUc0F` — exhaustive open-PR discovery still deadlocked at inherited `MAX_PAGES=20`.
-- P1 `PRRT_kwDOUUI5ts6lUc0K` — mutation ACK number accepted Python-coercible non-integer identities.
-- P2 `PRRT_kwDOUUI5ts6lUc0Q` — WORK-0002 retained contradictory stale successor text.
-
-PR #5 now has **70/70 unresolved material threads**. None has been resolved.
-
-The REVIEW-0070 CLOSED state-only checkpoint `a7285c0bd74a2228dce3cd7882cb1423ebe25eba` passed Bootstrap #281 / run `35915252517`.
-
-## REVIEW-0071 — terminal negative evidence
-
-REVIEW-0071 is **CLOSED / CHANGES_REQUIRED** on frozen exact HEAD `69c68959f1144bbccf76fef79d0624961d593d13`.
-
-Bootstrap #286 / run `35917430655` passed **410/410 tests**, **3,543 statements / 1,514 branches**, **100% line + branch**; REVIEW-0071 itself was **168 statements / 76 branches at 100%**, and the live PR #2 contract probe succeeded at **2/100** requests.
-
-Fresh Codex L2 request `5802595691` was quota-refused by `5802597968`; no independent REVIEW-0071 L2 was produced. Author-side adversarial review **PRR_kwDOUUI5ts8AAAABO7OKJw** found the mutable discovery-state P1: a PR observed draft/closed can become ready/open before consumption, still be skipped, and have the durable cursor advance past it.
-
-REVIEW-0071 CLOSED checkpoint `a3cde9dc00a64fb36c3fa917be44e87219a2655e` passed Bootstrap #287 / run `35918357919`.
-
-## REVIEW-0072 — terminal negative evidence
-
-REVIEW-0072 is **CLOSED / CHANGES_REQUIRED** on frozen exact HEAD `bc5fb064a7955854e5b4a849b2ed5e2843f55576`.
-
-Bootstrap #290 / run `35919570373` passed **423/423 tests**, **3,610 statements / 1,542 branches**, **100% line + branch**; REVIEW-0072 itself was **67 statements / 28 branches at 100%**, and the live PR #2 contract probe succeeded at **2/100** requests.
-
-Fresh Codex L2 request `5802871704` was quota-refused by `5802873335`; no independent REVIEW-0072 L2 was produced. Author-side adversarial review **PRR_kwDOUUI5ts8AAAABO7ZUCw** found the coercive exact-identity P1: inherited `_direct_pr` accepts values such as `true == 1` or `5.0 == 5`, and its `closed` branch returns before strict open-PR validation.
-
-REVIEW-0072 CLOSED checkpoint `1809ba60d8acb88571fc217a4725efad1283b9df` passed Bootstrap #291 / run `35920235156`.
-
-## REVIEW-0073 — terminal negative evidence
-
-REVIEW-0073 is **CLOSED / CHANGES_REQUIRED** on frozen exact HEAD `46591d6d66246c5942eba09c712b196f3c1a16fc`.
-
-Bootstrap #295 / run `35930261078` passed **428/428 tests**, **3,697 statements / 1,578 branches**, **100% line + branch**; REVIEW-0073 itself was **87 statements / 36 branches at 100%**, and the live PR #2 probe succeeded at **2/100** requests.
-
-Fresh Codex L2 request `5804250089` was quota-refused by `5804251803`; no independent REVIEW-0073 L2 was produced.
-
-Author-side adversarial review **PRR_kwDOUUI5ts8AAAABO8S_3w** found two material gaps:
-- **P1 `PRRT_kwDOUUI5ts6lXj4D`** — REVIEW-0073 strictifies the first discovered/current reread, but inherited REVIEW-0071 `_guard_one` still performs both internal rereads through weak REVIEW-0070 `_direct_pr`.
-- **P2 `PRRT_kwDOUUI5ts6lXj4K`** — the live contract probe is still wired to REVIEW-0071 `_validate_guard_contract`, so it does not exercise the strict successor path.
-
-PR #5 has **73/73 unresolved material threads**. None has been resolved.
-
-The REVIEW-0073 CLOSED checkpoint `a455d4f3431f3bb388567e9f8eb371e3df4d9067` passed Bootstrap #296 / run `35931004610`.
-
-## REVIEW-0074 — terminal independent negative evidence
-
-REVIEW-0074 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `2e228ba5f016f25eacffab0ca0cd9a7e095cd757`.
-
-Bootstrap #299 / run `35973035600` passed **440/440 tests**, **3,803 statements / 1,622 branches**, **100% line + branch**; REVIEW-0074 itself was **106 statements / 44 branches at 100%**, and the live PR #2 contract probe succeeded at **3/100** requests.
-
-Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABPAAMUQ** completed on the exact frozen head and produced two new material findings:
-
-- **P1 — `PRRT_kwDOUUI5ts6lfj-O`:** REVIEW-0071 `_convert_to_draft` validates the GraphQL ACK strictly, but its direct REST postcondition still checks `observed.get("number") != guard.number` with Python coercive equality and returns immediately on `state == "closed"`. A malformed closed response such as `number: 5.0` for PR 5 or a wrong/missing `node_id` can therefore be accepted as the durable same-PR postcondition.
-- **P2 — `PRRT_kwDOUUI5ts6lfj-U`:** TEST-0010 prose records REVIEW-0074 #297 correctly, but machine-readable `execution.commit_sha` and `last_run_at` still identify REVIEW-0073 / 2026-09-23.
-
-PR #5 now has **75/75 unresolved material threads**. None has been resolved.
-
-REVIEW-0075 must preserve all REVIEW-0074 strict runtime/live-validator guarantees while:
-1. making the post-mutation REST postcondition use exact positive non-Boolean PR number + exact expected node identity before **any** closed/open branch;
-2. requiring exact Boolean draft + state in `open/closed`; valid closed may return only after exact identity/type validation, while valid open must still prove exact same node is draft;
-3. updating TEST-0010 structured execution identity to REVIEW-0074 technical proof #297 / `1a90e73bb107e9f77763103bed059bc12ab11575` dated 2026-09-24;
-4. adding explicit regressions for `number:true`, `5.0`, wrong/missing node id and malformed draft/state on the postcondition closed path.
-
-The REVIEW-0074 CLOSED checkpoint `327da248e7b7f167d88dfe4c06c739e3140e0bac` passed Bootstrap #300 / run `35974182236` at **440/440 tests**, **3,803 statements / 1,622 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
-
-## REVIEW-0075 — terminal author-side traceability negative evidence
-
-REVIEW-0075 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `cfb1fabb308167d1133872a099a7a1b8709f4440`.
-
-Its runtime remained technically green:
-- #302 / `35974879638`: **450/450**, **3,853 statements / 1,640 branches**, **100% line + branch**, REVIEW-0075 **50 / 18 at 100%**, live PR #2 **3/100**;
-- #303 / `35975215661`: OPEN checkpoint, same proof;
-- #304 / `35981180705`: frozen proof, same proof.
-
-Codex L2 request `5811504923` was quota-refused by `5811506815`. Author-side review `PRR_kwDOUUI5ts8AAAABPBZHCg` then added P2 `PRRT_kwDOUUI5ts6liZGL`: the active WORK-0002 regression invariant still said 73 findings although PR #5 had reached 76 unresolved threads.
-
-The REVIEW-0075 CLOSED state-only checkpoint `b8de445952c0cfb916e5ead7ce7009dff4809a41` passed Bootstrap #305 / run `35986900739` at **450/450 tests**, **3,853 / 1,640**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
-
-## REVIEW-0076 — terminal traceability negative evidence
-
-REVIEW-0076 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `6a68226c79e0d3ae7856b2b56eda58bf1ef2511c`.
-
-Bootstrap #306 / run `35987119706`, OPEN checkpoint #307 / run `35987412834`, and frozen proof **#308 / run `35987642101`** all passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests. REVIEW-0075 runtime/workflow semantics remained unchanged.
-
-Fresh independent REVIEW-0076 L2 requests `5812432588` and `5812484732` were quota-refused by `5812434586` and `5812486456`; no independent REVIEW-0076 L2 exists.
-
-Author-side P2 **`PRRT_kwDOUUI5ts6ljD7h`** then proved that the active canonical handover still said the frozen proof was pending after #308 had already completed. The live PR body was correct, but PROJECT_STATE and WORK-0002 would have instructed a fresh agent to repeat a completed lifecycle step.
-
-PR #5 therefore has **77/77 unresolved material threads**. None has been resolved.
-
-## REVIEW-0077 — terminal self-referential handover negative evidence
-
-REVIEW-0077 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `ff08b299d64d30f71b8f55ce48e9c8db811e7ab9`.
-
-Bootstrap #310 / run `35990255357`, OPEN checkpoint #311 / run `35990495999`, and frozen proof **#312 / run `35990766361`** all passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
-
-Fresh independent REVIEW-0077 request `5812861596` was quota-refused by `5812863419`; no independent L2 exists.
-
-Author-side P2 **`PRRT_kwDOUUI5ts6ljXzi`** proves the handover model itself was wrong: after #312 succeeds, committing “#312 is complete” changes the HEAD, which invalidates #312 as an exact-head closure proof and requires another run. Repeating that pattern creates an infinite proof/documentation loop.
-
-PR #5 now has **78/78 unresolved material threads**. None has been resolved.
-
-## REVIEW-0078 — terminal independent negative evidence
-
-REVIEW-0078 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `9f596039277906c67e916bbf3b1f509989b71def`.
-
-Bootstrap #316 / run `35992467389` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests. The tree remained frozen while fresh independent Codex L2 ran.
-
-Fresh independent L2 **PRR_kwDOUUI5ts8AAAABPDhWdw** produced **P2 `PRRT_kwDOUUI5ts6lm-ef`**: the canonical `WORK-0002.review_plan.open_findings` list contained only 76 unique PRRT IDs and omitted the historical 77th and 78th findings even though active regression prose claimed all 78 were represented.
-
-The new L2 finding raised PR #5 to **79/79 unresolved material threads**. REVIEW-0078 CLOSED checkpoint `67d6e358dbdb24a0f51cc917604a85b2ade143bd` then passed Bootstrap #317 / run `36008323720` at **450/450 tests**, **3,853 / 1,640**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100**.
-
-## REVIEW-0079 — terminal independent negative evidence
-
-REVIEW-0079 is **CLOSED / CHANGES_REQUIRED** on exact HEAD `1501fe77d8d5986fb29e381515de47e706ac2c02`.
-
-Bootstrap #320 / run `36009526029` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests. The finding inventory itself was exact at that point: **79 live PRRT IDs == 79 WORK-0002 PRRT IDs**.
-
-Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABPDwpnQ** produced **P2 `PRRT_kwDOUUI5ts6lnfaG`** because the canonical Resume sequence still said `reviews/78 threads` while active state required all 79.
-
-A follow-up exact-head independent Codex review **PRR_kwDOUUI5ts8AAAABPD1fJA** explicitly confirmed that it reviewed all **79 pre-existing unresolved material threads** and returned **CHANGES_REQUIRED** with **P1 `PRRT_kwDOUUI5ts6lnqJY`**: `registry/tests/TEST-0009.yaml` is syntactically invalid because `execution:` begins with sequence items and later adds mapping keys at the same node.
-
-The two REVIEW-0079 findings raise PR #5 to **81/81 unresolved material threads**. No thread has been resolved.
-
-REVIEW-0079 CLOSED checkpoint `56d35f134dcde7ddb331e441ad9424712be886b9` passed Bootstrap #321 / run `36010993526` at **450/450 tests**, **3,853 / 1,640**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
-
-## REVIEW-0080 — terminal author-side governance negative evidence
-
-REVIEW-0080 is **CLOSED / CHANGES_REQUIRED** on exact HEAD `7a6516ea8c57a8f2538e4df3f237cf6ea4b70dce`.
-
-Its traceability/TEST-0009 repair remained technically green through candidate #323, OPEN #324 and exact IN_PROGRESS proof #325. Fresh Codex request `5816298535` was quota-refused by `5816301096`.
-
-Author-side governance review **PRR_kwDOUUI5ts8AAAABPENlRg** produced **P1 `PRRT_kwDOUUI5ts6loe5m`** because REVIEW-0080 declared only three of the six mandatory WORK-0002 hats.
-
-The REVIEW-0080 CLOSED checkpoint `eacd7d3b861b82902fa2aec9486556557383ec21` passed Bootstrap #326 / run `36015443542` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100**.
-
-PR #5 now has **83/83 unresolved material threads** and WORK-0002 open_findings exposes the exact same 83 PRRT IDs.
-
-## REVIEW-0081 — terminal independent negative evidence
-
-REVIEW-0081 is **CLOSED / CHANGES_REQUIRED** on exact frozen HEAD `7bc0be1acaee237df7fba3dba6f33f5e17b3061c`.
-
-Its OPEN checkpoint `9ee48bf0265855e2296e25fc7ce0489d62a62473` passed Bootstrap #327 / run `36015957795`. The exact IN_PROGRESS frozen HEAD then passed trusted Bootstrap #328 / run `36030185175` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
-
-Fresh independent Codex L2 **PRR_kwDOUUI5ts8AAAABPHAnaQ** reviewed that exact HEAD and produced **P2 `PRRT_kwDOUUI5ts6lumiR`**: `findings` was indented under `scope`, so the active review YAML had no canonical top-level `findings` field.
-
-The terminal REVIEW-0081 record now carries that finding at the canonical top level and binds the exact reviewed commit. Repairing the terminal record does not convert the independent negative result into approval.
-
-PR #5 now has **83/83 unresolved material threads** and WORK-0002's machine PRRT set exactly matches the live 83-thread identity set.
-
-## REVIEW-0082 — canonical review-shape successor
-
-REVIEW-0082 is now **COMPLETE / APPROVE**. Its exact IN_PROGRESS head `71ed1cb233d16f032ff27cf5a88dfe039e2ba618` passed Bootstrap #331 / run `36047476826` at **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100**. Fresh independent Codex L2 issue comment `5820761929` / `IC_kwDOUUI5ts8AAAABWvHHSQ` reviewed that exact head and reported **no major issues**.
-
-This successor is governance/traceability-only. It changes no runtime Python, workflow, REQ-0026 or TEST-0009 semantic behavior.
-
-Its review contract is deliberately minimal and explicit:
-- all six WORK-0002 required hats are declared exactly;
-- `findings: []` is a canonical **top-level** field, a peer of `scope` and `checks`;
-- REVIEW-0081 P2 `PRRT_kwDOUUI5ts6lumiR` remains terminal negative evidence;
-- the REVIEW-0080 TEST-0009 repair remains unchanged;
-- live PR #5 and WORK-0002 machine inventories are exactly equal at **83 unique unresolved PRRT IDs**;
-- historical older thread counts remain historical truth;
-- no post-proof commit will be created merely to copy live CI completion.
-
-### Controlled resolution after approval
-
-The lifecycle-recording commit `cabb259aa686028def1c7b9a4e80b85d15b82d99` passed Bootstrap #332 / run `36048764381`. With branch content held fixed after that proof, all **83 reviewed PR #5 material threads were resolved** in the permitted controlled batch. Live PR #5 now exposes **83 total / 83 resolved / 0 unresolved** material threads and no new material finding appeared.
-
-The repository now needs one reconciliation commit so machine `open_findings` and the active handover stop describing already-resolved PR #5 threads. The exact reconciliation HEAD must pass Bootstrap. That exact-head success is an external live eligibility fact; do **not** create another commit merely to copy its run number into the tree.
-
-## Current next action
-
-1. REVIEW-0082 independent L2 is clean and remains `COMPLETE / APPROVE` on exact reviewed head `71ed1cb233d16f032ff27cf5a88dfe039e2ba618`.
-2. Lifecycle-recording commit `cabb259aa686028def1c7b9a4e80b85d15b82d99` passed Bootstrap #332 / run `36048764381`.
-3. Controlled PR #5 resolution is complete: **83/83 resolved, 0 unresolved, no new finding**, with branch content fixed during resolution.
-4. Prove the current reconciliation HEAD with Bootstrap at 100% line + branch and live contract success; do not create a post-proof commit just to record completion.
-5. If that exact-head proof is green and live PR #5 still has 0 unresolved/new findings, assess guarded PR #5 merge eligibility and merge only with expected-head protection.
-6. After PR #5 merges, PR #2 must explicitly integrate new `main` with a two-parent merge, reconcile canonical state, rerun full proof, receive fresh L2 and eligible trusted non-author exact-head APPROVED evidence before WORK-0002 closes.
-7. WORK-0003 and WORK-0004 remain blocked until WORK-0002 closure sequencing permits them.
+Product specification and product identity remain owner-gated decisions. Agents must not silently canonize product experience, UI/UX, visual identity, brand, color system, interface density, interaction language, emotional/psychovisual tone or other strong design choices. Major product-function decisions require explicit owner co-design rather than irreversible invention.
 
 ## Resume sequence
 
-1. README.md
-2. AGENTS.md
-3. docs/00_START_HERE.md
-4. PROJECT_STATE.md
-5. registry/work-items/WORK-0002.yaml
-6. registry/requirements/REQ-0026.yaml
-7. registry/tests/TEST-0009.yaml
-8. registry/reviews/REVIEW-0049.yaml
-9. registry/reviews/REVIEW-0050.yaml
-10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/0 unresolved threads
-12. live PR #2 exact HEAD/checks/reviews/threads
+1. `README.md`
+2. `AGENTS.md`
+3. `docs/00_START_HERE.md`
+4. this file
+5. `registry/work-items/WORK-0002.yaml`
+6. `registry/progress/matrix.yaml`
+7. `registry/status-machines.yaml`
+8. `registry/acceptance-authority.yaml`
+9. `registry/content-identity.yaml`
+10. `registry/integration-provenance.yaml`
+11. live PR #2 exact HEAD, checks, reviews and all **91 unresolved review threads**
+12. `.github/workflows/governance.yml`, `.github/workflows/_governance-core.yml`
+13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `t11_closure.py`, `github_live_gate.py`, `thread_state_poll.py`
+14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_t11_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`
+15. `tests/governance/test_t11_findings.py`, `test_t11_additional_coverage.py`, `test_t13_findings.py`, `test_thread_state_poll.py` and prior T7/T8/T9/T10 regression suites
+16. `registry/requirements/REQ-0026.yaml`, `registry/tests/TEST-0009.yaml`, `registry/tests/TEST-0010.yaml`, `registry/reviews/REVIEW-0082.yaml`, `registry/reviews/REVIEW-0083.yaml`, `registry/reviews/REVIEW-0084.yaml`, `registry/reviews/REVIEW-0085.yaml`, `registry/reviews/REVIEW-0086.yaml`, and `.github/workflows/monde-stale-green-bootstrap.yml`
 
-MONDE remains public. Never commit credentials, tokens or secrets.
+No prior chat history is required.

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools==82.0.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "monde-governance"
+version = "0.2.0"
+description = "Deterministic repository and GitHub control-plane governance for MONDE"
+requires-python = ">=3.12"
+dependencies = ["PyYAML==6.0.3", "jsonschema==4.26.0", "rfc8785==0.1.4"]
+
+[project.optional-dependencies]
+test = ["pytest==9.0.3", "pytest-cov==7.0.0", "coverage==7.13.3"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", ".github/scripts"]
+addopts = "-ra --strict-markers"
+
+[tool.coverage.run]
+branch = true
+source = ["tools.governance", ".github/scripts"]
+omit = [
+  ".github/scripts/test_*.py",
+  ".github/scripts/governance_l2_mutation_smoke.py",
+  ".github/scripts/governance_t10_mutation_smoke.py",
+  ".github/scripts/governance_t11_mutation_smoke.py",
+  ".github/scripts/governance_t13_mutation_smoke.py",
+]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_covered = false

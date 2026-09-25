@@ -1,0 +1,174 @@
+name: MONDE Governance Core
+
+on:
+  workflow_call:
+    inputs:
+      event_name:
+        required: true
+        type: string
+      base_sha:
+        required: true
+        type: string
+      head_sha:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Deterministic governance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13.15'
+          cache: pip
+          cache-dependency-path: requirements/governance-ci.txt
+
+      - name: Install governance toolchain
+        run: python -m pip install --require-hashes -r requirements/governance-ci.txt
+
+      - name: Unit, property and branch coverage
+        run: |
+          python -m pytest \
+            --cov \
+            --cov-branch \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=100
+
+      - name: Critical mutation smoke
+        run: |
+          python scripts/governance_mutation_smoke.py
+          python .github/scripts/governance_l2_mutation_smoke.py
+          python .github/scripts/governance_t10_mutation_smoke.py
+          python .github/scripts/governance_t11_mutation_smoke.py
+          python .github/scripts/governance_t13_mutation_smoke.py
+
+      - name: Validate repository state
+        run: |
+          python -m tools.governance.validate_repo . --json-out governance-findings.json
+          python -m tools.governance.strict_contracts . --json-out strict-findings.json
+          python -m tools.governance.path_safety . --json-out path-findings.json
+
+      - name: Validate base-to-head transition
+        if: startsWith(inputs.event_name, 'pull_request')
+        run: |
+          python -m tools.governance.change_guard . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --json-out change-findings.json
+
+      - name: Validate fresh-L2 hardening invariants
+        if: startsWith(inputs.event_name, 'pull_request')
+        run: |
+          PYTHONPATH="$PWD:$PWD/.github/scripts" python .github/scripts/governance_l2_gate.py . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --json-out l2-hardening-findings.json
+
+      - name: Validate independent-review closure invariants
+        if: startsWith(inputs.event_name, 'pull_request')
+        run: |
+          python -m tools.governance.review_closure_gate . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --json-out review-closure-findings.json
+
+      - name: Validate T7 closure invariants
+        if: startsWith(inputs.event_name, 'pull_request')
+        run: |
+          python -m tools.governance.t7_closure . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --json-out t7-closure-findings.json
+
+      - name: Validate T8 closure invariants
+        if: startsWith(inputs.event_name, 'pull_request')
+        run: |
+          python -m tools.governance.t8_closure . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --json-out t8-closure-findings.json
+
+      - name: Validate T9 closure invariants
+        if: startsWith(inputs.event_name, 'pull_request')
+        run: |
+          python -m tools.governance.t9_closure . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --json-out t9-closure-findings.json
+
+      - name: Validate T10 closure invariants
+        if: startsWith(inputs.event_name, 'pull_request')
+        run: |
+          python -m tools.governance.t10_closure . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --json-out t10-closure-findings.json
+
+      - name: Validate T11 closure invariants
+        if: startsWith(inputs.event_name, 'pull_request')
+        run: |
+          python -m tools.governance.t11_closure . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --json-out t11-closure-findings.json
+
+      - name: Generate AI context manifest
+        if: startsWith(inputs.event_name, 'pull_request')
+        run: |
+          python -m tools.governance.context_manifest . \
+            --base '${{ inputs.base_sha }}' \
+            --head '${{ inputs.head_sha }}' \
+            --out context-manifest.json
+
+      - name: Write job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## MONDE deterministic governance'
+            echo
+            echo '- Event: `${{ inputs.event_name }}`'
+            echo '- Base: `${{ inputs.base_sha }}`'
+            echo '- Head: `${{ inputs.head_sha }}`'
+            echo '- Checkout: exact requested head SHA (never the synthetic PR merge ref)'
+            echo '- Coverage target: **100% line + branch**, including project-owned L2/T7/T8/T9/T10/T11/T13 branch-local decision logic; T12 is the separately proved default-branch stale-green bridge'
+            echo '- Mutation smoke: baseline + fresh-L2/T7/T8/T9 + dedicated T10 + T11 + T13 critical governance mutants must be killed; T12 bridge mutations are proved by its bootstrap suite'
+            echo '- Static repository, strict lifecycle/proof, path, schema, secret-pattern, action-pin, transition, L2-hardening, independent-review-closure, T7, T8, T9, T10 and T11 closure guards executed above'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload governance evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: monde-governance-${{ inputs.head_sha }}
+          path: |
+            coverage.xml
+            governance-findings.json
+            strict-findings.json
+            path-findings.json
+            change-findings.json
+            l2-hardening-findings.json
+            review-closure-findings.json
+            t7-closure-findings.json
+            t8-closure-findings.json
+            t9-closure-findings.json
+            t10-closure-findings.json
+            t11-closure-findings.json
+            context-manifest.json
+          if-no-files-found: warn
+          retention-days: 14

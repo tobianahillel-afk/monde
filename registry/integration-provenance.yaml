@@ -1,0 +1,66 @@
+version: 2
+canonical: true
+updated_at: "2026-09-14"
+purpose: "Preserve exact Git integration-history equivalence and exact reviewed enforcement-adoption exceptions when immutable historical commits cannot satisfy newer fail-closed parsing, ancestry or transition rules without fabricating history."
+
+squash_integrations:
+  - work_item: WORK-0001
+    source_pull_request: 3
+    source_branch: "chore/work-0001-assurance-closure"
+    source_head_sha: "2292b00fe04cbaf47cdd00df1578e1dab670d0cc"
+    integrated_commit_sha: "29086643387ff46ab6636dd2fa3014efccc10165"
+    expected_tree_sha: "b89689ca631c0d64791904e74bf6672908b855c0"
+    eligible_test_ids: [TEST-0004, TEST-0005, TEST-0006, TEST-0007, TEST-0008]
+    eligible_review_ids: [REVIEW-0027]
+    historical_only: true
+    future_reuse_forbidden: true
+    reason: |
+      PR #3 was intentionally squash-merged after WORK-0001 reached DONE. GitHub records source HEAD 2292b00fe04cbaf47cdd00df1578e1dab670d0cc and squash commit 29086643387ff46ab6636dd2fa3014efccc10165 with the same exact tree b89689ca631c0d64791904e74bf6672908b855c0. TEST-0004..TEST-0008 execution SHAs and REVIEW-0027's one-shot external-import materialization are real ancestors/events on that exact source history. This record preserves only those explicitly enumerated evidence IDs across that exact tree-equivalent squash bridge; it does not make arbitrary branch commits or review imports valid evidence.
+
+enforcement_adoptions:
+  - rule_id: PROGRESS_LIFECYCLE_EDGE_ENFORCEMENT_V1
+    adoption_commit_sha: "cfa15015839acd34743318ffebbbe37185f46e10"
+    guard_path: ".github/scripts/governance_l2_hardening.py"
+    historical_only: true
+    future_reuse_forbidden: true
+    reason: |
+      Fresh independent L2 review PRR_kwDOUUI5ts8AAAABNfhWLQ identified missing progress lifecycle-edge enforcement. Commit cfa15015839acd34743318ffebbbe37185f46e10 introduced the first executable guard for that property without changing registry/progress/matrix.yaml. Earlier immutable PR #2 progress edits occurred before this enforcement existed and are not retroactively relabeled as valid lifecycle evidence. Every progress edge whose parent is at or after this exact adoption commit must satisfy the canonical progress machine; this adoption marker cannot be moved forward or reused to exempt a later edge.
+  - rule_id: PROGRESS_REOPENING_EVIDENCE_V1
+    adoption_commit_sha: "cf1a7a7e62d76acb21450d0e5ad3211352ec9f98"
+    guard_path: "tools/governance/review_closure.py"
+    activation_path: ".github/workflows/_governance-core.yml"
+    historical_only: true
+    future_reuse_forbidden: true
+    reason: |
+      The second fresh GitHub Codex follow-up identified that a progress reopening could be justified by unrelated review evidence. Commit cf1a7a7e62d76acb21450d0e5ad3211352ec9f98 is the first commit that activates the dedicated review-closure validator in the deterministic governance workflow. Immutable earlier PR #2 progress edits are not retroactively reinterpreted under this newer evidence-linking rule. Every progress edge whose parent is at or after this exact activation commit must link DONE -> IN_REVIEW reopening to evidence scoped to the affected progress/work surface. The boundary is Git/path/activation-bound, historical only and cannot be moved forward or reused to exempt a later edge.
+
+historical_malformed_yaml:
+  - path: "registry/work-items/WORK-0004.yaml"
+    malformed_commit_sha: "b63fc190a0fa3e02ad1b3e03d0d01b16617c9b49"
+    malformed_blob_sha: "6a436898955f301e82bf1b0ad0ec080127c7d071"
+    repaired_commit_sha: "94a6d2601179ccfde6eca7ed6b7e192dd640f2ca"
+    repaired_blob_sha: "dd94bc173354f1bd81e9ad53662753807bf04af2"
+    malformed_condition: "duplicate top-level progress_justifications mapping key"
+    historical_only: true
+    future_reuse_forbidden: true
+    reason: |
+      The WORK-0001/main integration merge combined the branch-local and main-side WORK-0004 progress_justifications blocks, leaving two top-level keys in immutable commit b63fc190a0fa3e02ad1b3e03d0d01b16617c9b49. The file remained present in Git and retained WORK-0004/PLANNED, but the later fail-closed duplicate-key loader correctly refuses to parse that historical blob. Commit 94a6d2601179ccfde6eca7ed6b7e192dd640f2ca repairs exactly that one file by removing the duplicate mapping. This exception prevents the guard from misreporting that exact malformed->repaired episode as deletion/recreation; it never makes malformed YAML valid current state or authorizes another malformed record.
+  - path: "registry/work-items/WORK-0002.yaml"
+    malformed_commit_sha: "cab03c2b27e544212afe4fe52f38668d5fa0529d"
+    malformed_blob_sha: "7097e6e48b6fc5bba2b6bddf940458cc1c5883e5"
+    repaired_commit_sha: "12105d7537cb0742b428c39929a3d79ad67edbac"
+    repaired_blob_sha: "5058b77637a9238a918633299873a00500a726d6"
+    malformed_condition: "plain YAML scope_change.rationale contained an unquoted colon"
+    historical_only: true
+    future_reuse_forbidden: true
+    reason: |
+      Commit cab03c2b27e544212afe4fe52f38668d5fa0529d extended WORK-0002 governance provenance text but accidentally left a colon inside a multiline plain scalar, so the later fail-closed loader correctly cannot parse that immutable blob. Commit 12105d7537cb0742b428c39929a3d79ad67edbac immediately repairs exactly that field as a literal block without changing the intended governance semantics. This exception prevents the change guard from misreporting only that exact malformed->repaired episode as deletion/recreation; it does not make malformed YAML acceptable at HEAD or authorize reuse for another path/blob/commit.
+
+validation_rule: |
+  A PASS TEST execution revision or externally imported COMPLETE REVIEW that is not an ancestor/materialization event on the current first-parent integration history may qualify through a squash integration only when its evidence ID is explicitly eligible, its bound source event/revision is real and belongs to the exact source_head_sha history, source_head_sha and integrated_commit_sha both resolve to expected_tree_sha, integrated_commit_sha is an ancestor of the current governed HEAD, and historical_only/future_reuse_forbidden are both true. Every mismatch fails closed.
+
+enforcement_adoption_rule: |
+  A newer fail-closed rule may avoid retroactively judging immutable pre-adoption edges only through one exact enforcement_adoptions entry. The adoption commit must exist, contain the declared guard_path, be an ancestor of the governed HEAD, and carry historical_only=true plus future_reuse_forbidden=true. When an activation_path is declared, the adoption commit must also contain and change that exact activation path while not changing this provenance file. All matching edges at or after adoption are enforced; the marker never exempts a later edge and cannot be advanced silently.
+
+historical_malformed_yaml_rule: |
+  A registry path that exists as a Git blob but cannot be parsed by the current fail-closed YAML loader may avoid false deletion/re-introduction findings only for an exact historical_malformed_yaml entry whose path, malformed commit/blob and repaired commit/blob all match Git exactly, whose repair descends from the malformed commit, whose repair is an ancestor of the governed HEAD, and whose historical_only and future_reuse_forbidden flags are true. All unlisted malformed YAML remains invalid and fails closed.

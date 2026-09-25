@@ -1,84 +1,173 @@
 version: 10
 canonical: true
-updated_at: "2026-09-14"
-
+updated_at: '2026-09-14'
 principles:
-  - "A record status is valid only when declared by the machine for its registry."
-  - "Transitions not listed here are invalid unless an exact reviewed migration, historical-import or historical-replay exception in this contract applies."
-  - "Migration/import/replay exceptions are historical, record-specific and commit-bound; they never add a generic transition or alternate initial state and may not be reused for future records."
-  - "A metadata-only edit may retain the same status; this is not a lifecycle transition."
-  - "Terminal and superseded records remain historically addressable; IDs are never reused."
-  - "Project/work progress dimensions use their own lifecycle and must not be treated as the status vocabulary of every registry."
-  - "Completion evidence may be reopened when later evidence invalidates or materially re-questions it; reopening is recorded rather than rewriting the prior state."
-  - "Lifecycle checkpoints represent states that actually existed while the governed activity was occurring; replaying OPEN/IN_PROGRESS after an external review already completed is not evidence that those execution states occurred."
-  - "A review completed externally before registry materialization may be imported in its resulting status only through immutable pre-v7 historical evidence or a one-shot external-import authorization that already exists in a parent commit before materialization and is later bound to the actual import commit."
-  - "A TEST execution completed externally while its registry record is still non-terminal may be imported in its resulting status only through an exact one-shot external-execution authorization that exists in a parent commit before result materialization, binds the source/executor/exact tested revision, and is later bound and consumed by the actual import commit; normal lifecycle checkpoints must never be replayed after the external execution already finished."
-  - "Requirement acceptance proof is content-bound: review and cold-read evidence qualify only for the exact normative digest being accepted."
-  - "A generic PASS test is never automatically a requirement-acceptance cold read; qualifying cold reads carry explicit fresh-context provenance, exact requirement digests and required outcomes."
-  - "Risk and blocking-finding acceptance authority is resolved from registry/acceptance-authority.yaml; free-form authority labels or prose evidence alone never grant authority."
-
+- A record status is valid only when declared by the machine for its registry.
+- Transitions not listed here are invalid unless an exact reviewed migration, historical-import or historical-replay exception
+  in this contract applies.
+- Migration/import/replay exceptions are historical, record-specific and commit-bound; they never add a generic transition
+  or alternate initial state and may not be reused for future records.
+- A metadata-only edit may retain the same status; this is not a lifecycle transition.
+- Terminal and superseded records remain historically addressable; IDs are never reused.
+- Project/work progress dimensions use their own lifecycle and must not be treated as the status vocabulary of every registry.
+- Completion evidence may be reopened when later evidence invalidates or materially re-questions it; reopening is recorded
+  rather than rewriting the prior state.
+- Lifecycle checkpoints represent states that actually existed while the governed activity was occurring; replaying OPEN/IN_PROGRESS
+  after an external review already completed is not evidence that those execution states occurred.
+- A review completed externally before registry materialization may be imported in its resulting status only through immutable
+  pre-v7 historical evidence or a one-shot external-import authorization that already exists in a parent commit before materialization
+  and is later bound to the actual import commit.
+- A TEST execution completed externally while its registry record is still non-terminal may be imported in its resulting status
+  only through an exact one-shot external-execution authorization that exists in a parent commit before result materialization,
+  binds the source/executor/exact tested revision, and is later bound and consumed by the actual import commit; normal lifecycle
+  checkpoints must never be replayed after the external execution already finished.
+- 'Requirement acceptance proof is content-bound: review and cold-read evidence qualify only for the exact normative digest
+  being accepted.'
+- A generic PASS test is never automatically a requirement-acceptance cold read; qualifying cold reads carry explicit fresh-context
+  provenance, exact requirement digests and required outcomes.
+- Risk and blocking-finding acceptance authority is resolved from registry/acceptance-authority.yaml; free-form authority
+  labels or prose evidence alone never grant authority.
 registry_machines:
   work_items:
     initial: PROPOSED
-    states: [PROPOSED, PLANNED, READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, DEPRECATED, CANCELLED]
+    states:
+    - PROPOSED
+    - PLANNED
+    - READY
+    - IN_PROGRESS
+    - PARTIAL
+    - BLOCKED
+    - IN_REVIEW
+    - DONE
+    - DEPRECATED
+    - CANCELLED
     transitions:
-      PROPOSED: [PLANNED, CANCELLED]
-      PLANNED: [READY, BLOCKED, CANCELLED]
-      READY: [IN_PROGRESS, BLOCKED, CANCELLED]
-      IN_PROGRESS: [PARTIAL, BLOCKED, IN_REVIEW, CANCELLED]
-      PARTIAL: [IN_PROGRESS, BLOCKED, IN_REVIEW, CANCELLED]
-      BLOCKED: [READY, IN_PROGRESS, PARTIAL, CANCELLED]
-      IN_REVIEW: [IN_PROGRESS, PARTIAL, BLOCKED, DONE]
-      DONE: [DEPRECATED]
+      PROPOSED:
+      - PLANNED
+      - CANCELLED
+      PLANNED:
+      - READY
+      - BLOCKED
+      - CANCELLED
+      READY:
+      - IN_PROGRESS
+      - BLOCKED
+      - CANCELLED
+      IN_PROGRESS:
+      - PARTIAL
+      - BLOCKED
+      - IN_REVIEW
+      - CANCELLED
+      PARTIAL:
+      - IN_PROGRESS
+      - BLOCKED
+      - IN_REVIEW
+      - CANCELLED
+      BLOCKED:
+      - READY
+      - IN_PROGRESS
+      - PARTIAL
+      - CANCELLED
+      IN_REVIEW:
+      - IN_PROGRESS
+      - PARTIAL
+      - BLOCKED
+      - DONE
+      DONE:
+      - DEPRECATED
       DEPRECATED: []
       CANCELLED: []
-
   capabilities:
     initial: PROPOSED
-    states: [PROPOSED, PLANNED, READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, DEPRECATED, CANCELLED]
+    states:
+    - PROPOSED
+    - PLANNED
+    - READY
+    - IN_PROGRESS
+    - PARTIAL
+    - BLOCKED
+    - IN_REVIEW
+    - DONE
+    - DEPRECATED
+    - CANCELLED
     transitions:
-      PROPOSED: [PLANNED, CANCELLED]
-      PLANNED: [READY, BLOCKED, CANCELLED]
-      READY: [IN_PROGRESS, BLOCKED, CANCELLED]
-      IN_PROGRESS: [PARTIAL, BLOCKED, IN_REVIEW, CANCELLED]
-      PARTIAL: [IN_PROGRESS, BLOCKED, IN_REVIEW, CANCELLED]
-      BLOCKED: [READY, IN_PROGRESS, PARTIAL, CANCELLED]
-      IN_REVIEW: [IN_PROGRESS, PARTIAL, BLOCKED, DONE]
-      DONE: [DEPRECATED]
+      PROPOSED:
+      - PLANNED
+      - CANCELLED
+      PLANNED:
+      - READY
+      - BLOCKED
+      - CANCELLED
+      READY:
+      - IN_PROGRESS
+      - BLOCKED
+      - CANCELLED
+      IN_PROGRESS:
+      - PARTIAL
+      - BLOCKED
+      - IN_REVIEW
+      - CANCELLED
+      PARTIAL:
+      - IN_PROGRESS
+      - BLOCKED
+      - IN_REVIEW
+      - CANCELLED
+      BLOCKED:
+      - READY
+      - IN_PROGRESS
+      - PARTIAL
+      - CANCELLED
+      IN_REVIEW:
+      - IN_PROGRESS
+      - PARTIAL
+      - BLOCKED
+      - DONE
+      DONE:
+      - DEPRECATED
       DEPRECATED: []
       CANCELLED: []
-
   requirements:
     initial: PROPOSED
-    states: [PROPOSED, ACCEPTED, SUPERSEDED, DEPRECATED, CANCELLED]
+    states:
+    - PROPOSED
+    - ACCEPTED
+    - SUPERSEDED
+    - DEPRECATED
+    - CANCELLED
     transitions:
-      PROPOSED: [ACCEPTED, CANCELLED]
-      ACCEPTED: [SUPERSEDED, DEPRECATED]
+      PROPOSED:
+      - ACCEPTED
+      - CANCELLED
+      ACCEPTED:
+      - SUPERSEDED
+      - DEPRECATED
       SUPERSEDED: []
       DEPRECATED: []
       CANCELLED: []
     acceptance_preconditions:
-      transition: "PROPOSED -> ACCEPTED"
+      transition: PROPOSED -> ACCEPTED
       content_identity:
-        scheme_source: "registry/content-identity.yaml#schemes.REQUIREMENT_NORMATIVE_V1"
-        requirement_field: "content_identity"
+        scheme_source: registry/content-identity.yaml#schemes.REQUIREMENT_NORMATIVE_V1
+        requirement_field: content_identity
         required_scheme: REQUIREMENT_NORMATIVE_V1
         digest_must_match_recomputation: true
       independent_review:
-        evidence_field: "verification.acceptance_evidence"
+        evidence_field: verification.acceptance_evidence
         required_record_type: REVIEW
         required_status: COMPLETE
-        required_outcomes: [APPROVE, APPROVE_WITH_FOLLOWUP]
-        minimum_independence_source: "applicable owning-work assurance policy"
+        required_outcomes:
+        - APPROVE
+        - APPROVE_WITH_FOLLOWUP
+        minimum_independence_source: applicable owning-work assurance policy
         requirement_must_be_in_scope: true
         reviewed_while_requirement_status: PROPOSED
-        revision_binding_field: "scope.requirement_revisions"
+        revision_binding_field: scope.requirement_revisions
         exact_content_digest_match: true
       cold_read:
-        evidence_field: "verification.acceptance_cold_read_test_ids"
+        evidence_field: verification.acceptance_cold_read_test_ids
         required_record_type: TEST
         required_status: PASS
-        qualification_field: "acceptance_cold_read.qualifies"
+        qualification_field: acceptance_cold_read.qualifies
         qualification_required_value: true
         exact_revision_required: true
         requirement_must_be_protected: true
@@ -86,462 +175,859 @@ registry_machines:
         source_id_required: true
         source_submitted_at_required: true
         executor_context_id_required: true
-        allowed_independence_levels: [L2, L3]
+        allowed_independence_levels:
+        - L2
+        - L3
         fresh_context_required: true
         authoring_context_separated_required: true
-        requirement_binding_field: "acceptance_cold_read.requirements"
+        requirement_binding_field: acceptance_cold_read.requirements
         exact_content_digest_match: true
         required_status_at_read: PROPOSED
         required_outcomes:
-          - understood_without_author_reasoning
-          - atomic_and_testable
-          - dependencies_and_conflicts_checked
-          - omissions_and_failure_modes_checked
-          - evidence_plan_sufficient
+        - understood_without_author_reasoning
+        - atomic_and_testable
+        - dependencies_and_conflicts_checked
+        - omissions_and_failure_modes_checked
+        - evidence_plan_sufficient
         all_required_outcomes_value: PASS
-        all_required_outcomes_pass_field: "acceptance_cold_read.all_required_outcomes_pass"
+        all_required_outcomes_pass_field: acceptance_cold_read.all_required_outcomes_pass
         all_required_outcomes_pass_required_value: true
-      invalidation_rule: "If any field included by the requirement's content_identity scheme changes after a qualifying review or cold read, the recomputed digest changes and every acceptance proof bound to the prior digest becomes non-qualifying. Remaining in PROPOSED status does not preserve stale proof. Evidence/provenance-link edits excluded by the identity scheme may occur without changing normative identity."
-      rule: "A normal PROPOSED → ACCEPTED edge is necessary but not sufficient. The requirement's declared normative digest must recompute correctly. At acceptance there must be at least one resolvable COMPLETE approval-capable independent REVIEW referenced through verification.acceptance_evidence whose scope includes the requirement, whose scope.requirement_revisions binds that requirement to the exact current digest, whose independence satisfies policy and which inspected it while PROPOSED; and at least one resolvable PASS TEST referenced through verification.acceptance_cold_read_test_ids that protects the requirement and explicitly qualifies as a fresh-context authoring-separated cold read, binds the same exact digest while PROPOSED, carries durable source/executor provenance and records PASS for every required cold-read outcome. Generic PASS tests, stale digests, negative reviews, prose/docs, author assertion, or a lifecycle-valid edge alone never satisfy this precondition."
+      invalidation_rule: If any field included by the requirement's content_identity scheme changes after a qualifying review
+        or cold read, the recomputed digest changes and every acceptance proof bound to the prior digest becomes non-qualifying.
+        Remaining in PROPOSED status does not preserve stale proof. Evidence/provenance-link edits excluded by the identity
+        scheme may occur without changing normative identity.
+      rule: "A normal PROPOSED \u2192 ACCEPTED edge is necessary but not sufficient. The requirement's declared normative\
+        \ digest must recompute correctly. At acceptance there must be at least one resolvable COMPLETE approval-capable independent\
+        \ REVIEW referenced through verification.acceptance_evidence whose scope includes the requirement, whose scope.requirement_revisions\
+        \ binds that requirement to the exact current digest, whose independence satisfies policy and which inspected it while\
+        \ PROPOSED; and at least one resolvable PASS TEST referenced through verification.acceptance_cold_read_test_ids that\
+        \ protects the requirement and explicitly qualifies as a fresh-context authoring-separated cold read, binds the same\
+        \ exact digest while PROPOSED, carries durable source/executor provenance and records PASS for every required cold-read\
+        \ outcome. Generic PASS tests, stale digests, negative reviews, prose/docs, author assertion, or a lifecycle-valid\
+        \ edge alone never satisfy this precondition."
     historical_import_exceptions:
-      - record_id: REQ-0015
-        imported_status: ACCEPTED
-        import_commit: "2712795dc9f10c1efed2088313d125f6f915cc98"
-        reason: "REQ-0015 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint must not be fabricated retroactively."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-2"
-      - record_id: REQ-0016
-        imported_status: ACCEPTED
-        import_commit: "2712795dc9f10c1efed2088313d125f6f915cc98"
-        reason: "REQ-0016 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint must not be fabricated retroactively."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-2"
-      - record_id: REQ-0017
-        imported_status: ACCEPTED
-        import_commit: "2712795dc9f10c1efed2088313d125f6f915cc98"
-        reason: "REQ-0017 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint must not be fabricated retroactively."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-2"
-      - record_id: REQ-0018
-        imported_status: ACCEPTED
-        import_commit: "2712795dc9f10c1efed2088313d125f6f915cc98"
-        reason: "REQ-0018 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint must not be fabricated retroactively."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-2"
-      - record_id: REQ-0019
-        imported_status: ACCEPTED
-        import_commit: "2712795dc9f10c1efed2088313d125f6f915cc98"
-        reason: "REQ-0019 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint must not be fabricated retroactively."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-2"
-    historical_import_rule: "A post-contract requirement introduced in a non-initial status is valid only when record_id, imported_status and import_commit exactly match a reviewed exception above and actual Git history. The exception preserves immutable history only; it does not make ACCEPTED an initial state, does not create a generic transition, and cannot authorize any future requirement to bypass PROPOSED. Records introduced in the same bootstrap commit that established this machine are baseline state, not post-contract imports."
-
+    - record_id: REQ-0015
+      imported_status: ACCEPTED
+      import_commit: 2712795dc9f10c1efed2088313d125f6f915cc98
+      reason: REQ-0015 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine
+        existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint
+        must not be fabricated retroactively.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-2
+    - record_id: REQ-0016
+      imported_status: ACCEPTED
+      import_commit: 2712795dc9f10c1efed2088313d125f6f915cc98
+      reason: REQ-0016 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine
+        existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint
+        must not be fabricated retroactively.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-2
+    - record_id: REQ-0017
+      imported_status: ACCEPTED
+      import_commit: 2712795dc9f10c1efed2088313d125f6f915cc98
+      reason: REQ-0017 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine
+        existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint
+        must not be fabricated retroactively.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-2
+    - record_id: REQ-0018
+      imported_status: ACCEPTED
+      import_commit: 2712795dc9f10c1efed2088313d125f6f915cc98
+      reason: REQ-0018 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine
+        existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint
+        must not be fabricated retroactively.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-2
+    - record_id: REQ-0019
+      imported_status: ACCEPTED
+      import_commit: 2712795dc9f10c1efed2088313d125f6f915cc98
+      reason: REQ-0019 was split from the already accepted compound AC-10 requirement after the requirement lifecycle machine
+        existed. Immutable history materialized this canonical atomic requirement directly as ACCEPTED; a PROPOSED checkpoint
+        must not be fabricated retroactively.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-2
+    historical_import_rule: A post-contract requirement introduced in a non-initial status is valid only when record_id, imported_status
+      and import_commit exactly match a reviewed exception above and actual Git history. The exception preserves immutable
+      history only; it does not make ACCEPTED an initial state, does not create a generic transition, and cannot authorize
+      any future requirement to bypass PROPOSED. Records introduced in the same bootstrap commit that established this machine
+      are baseline state, not post-contract imports.
   assumptions:
     initial: OPEN
-    states: [OPEN, VALIDATING, RESOLVED, SUPERSEDED, EXPIRED]
+    states:
+    - OPEN
+    - VALIDATING
+    - RESOLVED
+    - SUPERSEDED
+    - EXPIRED
     transitions:
-      OPEN: [VALIDATING, RESOLVED, SUPERSEDED, EXPIRED]
-      VALIDATING: [OPEN, RESOLVED, SUPERSEDED, EXPIRED]
-      RESOLVED: [SUPERSEDED]
+      OPEN:
+      - VALIDATING
+      - RESOLVED
+      - SUPERSEDED
+      - EXPIRED
+      VALIDATING:
+      - OPEN
+      - RESOLVED
+      - SUPERSEDED
+      - EXPIRED
+      RESOLVED:
+      - SUPERSEDED
       SUPERSEDED: []
-      EXPIRED: [OPEN, SUPERSEDED]
-    resolution_outcomes: [CONFIRMED, REJECTED, PARTIALLY_CONFIRMED, UNKNOWN]
-
+      EXPIRED:
+      - OPEN
+      - SUPERSEDED
+    resolution_outcomes:
+    - CONFIRMED
+    - REJECTED
+    - PARTIALLY_CONFIRMED
+    - UNKNOWN
   risks:
     initial: OPEN
-    states: [OPEN, MITIGATING, MONITORING, ACCEPTED, CLOSED, SUPERSEDED]
+    states:
+    - OPEN
+    - MITIGATING
+    - MONITORING
+    - ACCEPTED
+    - CLOSED
+    - SUPERSEDED
     transitions:
-      OPEN: [MITIGATING, MONITORING, ACCEPTED, CLOSED, SUPERSEDED]
-      MITIGATING: [OPEN, MONITORING, ACCEPTED, CLOSED, SUPERSEDED]
-      MONITORING: [OPEN, MITIGATING, ACCEPTED, CLOSED, SUPERSEDED]
-      ACCEPTED: [OPEN, MONITORING, CLOSED, SUPERSEDED]
-      CLOSED: [OPEN, SUPERSEDED]
+      OPEN:
+      - MITIGATING
+      - MONITORING
+      - ACCEPTED
+      - CLOSED
+      - SUPERSEDED
+      MITIGATING:
+      - OPEN
+      - MONITORING
+      - ACCEPTED
+      - CLOSED
+      - SUPERSEDED
+      MONITORING:
+      - OPEN
+      - MITIGATING
+      - ACCEPTED
+      - CLOSED
+      - SUPERSEDED
+      ACCEPTED:
+      - OPEN
+      - MONITORING
+      - CLOSED
+      - SUPERSEDED
+      CLOSED:
+      - OPEN
+      - SUPERSEDED
       SUPERSEDED: []
     acceptance_preconditions:
       target_status: ACCEPTED
       required_fields:
-        - resolution.accepted
-        - resolution.accepted_by
-        - resolution.authority_role
-        - resolution.authority_evidence_type
-        - resolution.authority_evidence_ref
-        - resolution.authority_matrix_version
-        - resolution.authority_rule_id
-        - resolution.acceptance_rationale
-        - resolution.accepted_at
-        - resolution.review_condition
+      - resolution.accepted
+      - resolution.accepted_by
+      - resolution.authority_role
+      - resolution.authority_evidence_type
+      - resolution.authority_evidence_ref
+      - resolution.authority_matrix_version
+      - resolution.authority_rule_id
+      - resolution.acceptance_rationale
+      - resolution.accepted_at
+      - resolution.review_condition
       accepted_flag_required_value: true
-      authority_matrix_source: "registry/acceptance-authority.yaml#risk_acceptance"
-      authority_evidence_contract_source: "registry/acceptance-authority.yaml#evidence_contract"
-      rule: "Any transition into ACCEPTED requires resolution.accepted=true plus a named accepting actor, authority role, typed evidence reference, exact authority-matrix version/rule, rationale, acceptance timestamp and review/expiry condition. The role MUST be allowed by the resolved category + owning-work assurance + assessment.impact matrix rule; the evidence type MUST be allowed for that role; the durable evidence reference MUST establish that the named actor holds that role/delegation. Unknown matrix inputs or free-form/unrecognized roles/evidence fail closed. An unresolved critical security finding or unknown critical trust boundary may be accepted only under the matrix rule applicable to that exact security category, assurance and impact."
-
+      authority_matrix_source: registry/acceptance-authority.yaml#risk_acceptance
+      authority_evidence_contract_source: registry/acceptance-authority.yaml#evidence_contract
+      rule: Any transition into ACCEPTED requires resolution.accepted=true plus a named accepting actor, authority role, typed
+        evidence reference, exact authority-matrix version/rule, rationale, acceptance timestamp and review/expiry condition.
+        The role MUST be allowed by the resolved category + owning-work assurance + assessment.impact matrix rule; the evidence
+        type MUST be allowed for that role; the durable evidence reference MUST establish that the named actor holds that
+        role/delegation. Unknown matrix inputs or free-form/unrecognized roles/evidence fail closed. An unresolved critical
+        security finding or unknown critical trust boundary may be accepted only under the matrix rule applicable to that
+        exact security category, assurance and impact.
   reviews:
     initial: OPEN
-    states: [OPEN, IN_PROGRESS, COMPLETE, CLOSED]
+    states:
+    - OPEN
+    - IN_PROGRESS
+    - COMPLETE
+    - CLOSED
     transitions:
-      OPEN: [IN_PROGRESS, CLOSED]
-      IN_PROGRESS: [COMPLETE, CLOSED]
+      OPEN:
+      - IN_PROGRESS
+      - CLOSED
+      IN_PROGRESS:
+      - COMPLETE
+      - CLOSED
       COMPLETE: []
       CLOSED: []
-    outcomes: [APPROVE, APPROVE_WITH_FOLLOWUP, CHANGES_REQUIRED, BLOCKED]
-    approval_capable_outcomes: [APPROVE, APPROVE_WITH_FOLLOWUP]
-    finding_severities: [R1_CRITICAL, R2_MAJOR, R3_MODERATE, R4_MINOR]
-    finding_dispositions: [OPEN, RESOLVED, ACCEPTED, TRACKED_FOLLOWUP, OWNER_ACTION_REQUIRED]
+    outcomes:
+    - APPROVE
+    - APPROVE_WITH_FOLLOWUP
+    - CHANGES_REQUIRED
+    - BLOCKED
+    approval_capable_outcomes:
+    - APPROVE
+    - APPROVE_WITH_FOLLOWUP
+    finding_severities:
+    - R1_CRITICAL
+    - R2_MAJOR
+    - R3_MODERATE
+    - R4_MINOR
+    finding_dispositions:
+    - OPEN
+    - RESOLVED
+    - ACCEPTED
+    - TRACKED_FOLLOWUP
+    - OWNER_ACTION_REQUIRED
     accepted_finding_required_fields:
-      - acceptance.accepted_by
-      - acceptance.authority_role
-      - acceptance.authority_evidence_type
-      - acceptance.authority_evidence_ref
-      - acceptance.authority_matrix_version
-      - acceptance.authority_rule_id
-      - acceptance.rationale
-      - acceptance.accepted_at
-      - acceptance.review_condition
-    accepted_finding_authority_matrix_source: "registry/acceptance-authority.yaml#finding_acceptance"
-    accepted_finding_authority_evidence_contract_source: "registry/acceptance-authority.yaml#evidence_contract"
-    accepted_finding_rule: "A finding with disposition ACCEPTED must identify the accepting actor, matrix-authorized role, typed durable authority evidence, matrix version/rule, rationale, acceptance time and a future review/expiry condition. The role MUST be allowed by the finding-acceptance matrix for the owning work assurance level + finding severity, and the evidence type/reference MUST satisfy the authority role contract. Merely authoring the finding, naming an arbitrary role, supplying prose, or populating non-empty fields is insufficient."
-    completion_rule: "Only a COMPLETE review whose outcome is one of approval_capable_outcomes may provide approval evidence. It must be bound to the reviewed artifact/version, include the required executed review roles/independence, and have no unresolved blocking R1/R2 finding unless that finding satisfies accepted_finding_rule. COMPLETE reviews with CHANGES_REQUIRED or BLOCKED are durable negative review evidence and never satisfy a work-item review-completion gate."
-    closed_rule: "CLOSED is an administrative terminal state for a review that will not provide approval evidence; CLOSED never satisfies a work-item review-completion gate."
+    - acceptance.accepted_by
+    - acceptance.authority_role
+    - acceptance.authority_evidence_type
+    - acceptance.authority_evidence_ref
+    - acceptance.authority_matrix_version
+    - acceptance.authority_rule_id
+    - acceptance.rationale
+    - acceptance.accepted_at
+    - acceptance.review_condition
+    accepted_finding_authority_matrix_source: registry/acceptance-authority.yaml#finding_acceptance
+    accepted_finding_authority_evidence_contract_source: registry/acceptance-authority.yaml#evidence_contract
+    accepted_finding_rule: A finding with disposition ACCEPTED must identify the accepting actor, matrix-authorized role,
+      typed durable authority evidence, matrix version/rule, rationale, acceptance time and a future review/expiry condition.
+      The role MUST be allowed by the finding-acceptance matrix for the owning work assurance level + finding severity, and
+      the evidence type/reference MUST satisfy the authority role contract. Merely authoring the finding, naming an arbitrary
+      role, supplying prose, or populating non-empty fields is insufficient.
+    completion_rule: Only a COMPLETE review whose outcome is one of approval_capable_outcomes may provide approval evidence.
+      It must be bound to the reviewed artifact/version, include the required executed review roles/independence, and have
+      no unresolved blocking R1/R2 finding unless that finding satisfies accepted_finding_rule. COMPLETE reviews with CHANGES_REQUIRED
+      or BLOCKED are durable negative review evidence and never satisfy a work-item review-completion gate.
+    closed_rule: CLOSED is an administrative terminal state for a review that will not provide approval evidence; CLOSED never
+      satisfies a work-item review-completion gate.
     external_import_required_fields:
-      - record_id
-      - imported_status
-      - artifact_commit_sha
-      - source_review_id
-      - source_submitted_at
-      - reviewer_context_id
-      - expected_outcome
-      - one_shot
-      - consumed_by_commit
+    - record_id
+    - imported_status
+    - artifact_commit_sha
+    - source_review_id
+    - source_submitted_at
+    - reviewer_context_id
+    - expected_outcome
+    - one_shot
+    - consumed_by_commit
     external_import_authorizations:
-      - record_id: REVIEW-0015
-        imported_status: COMPLETE
-        artifact_commit_sha: "a27d01a9c0add10d0de220b9443a7f7d113152d9"
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNFp3uw"
-        source_submitted_at: "2026-09-10T23:37:39Z"
-        reviewer_context_id: "fresh-context-pr3-a27d01a9"
-        expected_outcome: CHANGES_REQUIRED
-        one_shot: true
-        consumed_by_commit: "877d5bce12c7854701843747783891558ab05d37"
-        finding_origin: "PRRT_kwDOUUI5ts6hSJ77"
-        reason: "The fresh-context GitHub Codex review of a27d01a9 completed externally before REVIEW-0015 is materialized. This authorization exists first so the finished review can be imported directly as COMPLETE without replaying OPEN/IN_PROGRESS after the fact."
-      - record_id: REVIEW-0016
-        imported_status: COMPLETE
-        artifact_commit_sha: "7c9cc98fefc45eab2e500925dca846f23bd2936e"
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNGFLJg"
-        source_submitted_at: "2026-09-11T00:36:00Z"
-        reviewer_context_id: "fresh-context-pr3-7c9cc98f"
-        expected_outcome: CHANGES_REQUIRED
-        one_shot: true
-        consumed_by_commit: "83b98e1b2a06ca0312614b44c8b8e8ccc6468c44"
-        finding_origin: "PRRT_kwDOUUI5ts6hTD9-"
-        reason: "The fresh-context GitHub Codex review of 7c9cc98f completed externally before REVIEW-0016 is materialized. This authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native lifecycle checkpoints."
-      - record_id: REVIEW-0017
-        imported_status: COMPLETE
-        artifact_commit_sha: "06dbb76c68287130169d41f50b2464bc4f878bb5"
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNGifMw"
-        source_submitted_at: "2026-09-11T02:01:36Z"
-        reviewer_context_id: "fresh-context-pr3-06dbb76c"
-        expected_outcome: CHANGES_REQUIRED
-        one_shot: true
-        consumed_by_commit: "36b0a46e04843937b065feaf5e8e0c53c36b4664"
-        finding_origin: "PRRT_kwDOUUI5ts6hUHol;PRRT_kwDOUUI5ts6hUHoo"
-        reason: "The fresh-context GitHub Codex review of 06dbb76c completed externally before REVIEW-0017 is materialized. This authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native lifecycle checkpoints."
-      - record_id: REVIEW-0018
-        imported_status: COMPLETE
-        artifact_commit_sha: "8f0aea5b9c1cd9387b59da40ff2d08a8a975d1a1"
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNG0cVw"
-        source_submitted_at: "2026-09-11T02:49:23Z"
-        reviewer_context_id: "fresh-context-pr3-8f0aea5b"
-        expected_outcome: CHANGES_REQUIRED
-        one_shot: true
-        consumed_by_commit: "85c3b09507d0a4dce48f992eaeee142f82bd768f"
-        finding_origin: "PRRT_kwDOUUI5ts6hUtAz"
-        reason: "The fresh-context GitHub Codex review of 8f0aea5b completed externally before REVIEW-0018 is materialized. This authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native lifecycle checkpoints."
-      - record_id: REVIEW-0019
-        imported_status: COMPLETE
-        artifact_commit_sha: "13f6b315df8d3734e90b212748f730e0d921c33c"
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNHCCdQ"
-        source_submitted_at: "2026-09-11T03:41:03Z"
-        reviewer_context_id: "fresh-context-pr3-13f6b315"
-        expected_outcome: CHANGES_REQUIRED
-        one_shot: true
-        consumed_by_commit: "40050f6fda6787feb42769cb6fa66547d5a1f7fb"
-        finding_origin: "PRRT_kwDOUUI5ts6hVPWB;PRRT_kwDOUUI5ts6hVPWG"
-        reason: "The fresh-context GitHub Codex review of 13f6b315 completed externally before REVIEW-0019 is materialized. This authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native lifecycle checkpoints."
-      - record_id: REVIEW-0020
-        imported_status: COMPLETE
-        artifact_commit_sha: "13b977bf5e821bbd32464a90c0bee9539b3afefe"
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNKfNCA"
-        source_submitted_at: "2026-09-11T12:00:10Z"
-        reviewer_context_id: "fresh-context-pr3-13b977bf"
-        expected_outcome: CHANGES_REQUIRED
-        one_shot: true
-        consumed_by_commit: "f7955c10d4c932df86c3238c8e91322c24ce6929"
-        finding_origin: "PRRT_kwDOUUI5ts6hdSzI"
-        reason: "The fresh-context GitHub Codex review of 13b977bf completed externally before REVIEW-0020 is materialized. This authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native lifecycle checkpoints."
-      - record_id: REVIEW-0021
-        imported_status: COMPLETE
-        artifact_commit_sha: "f0d0410cd31df1b348fddf09528588e43e956945"
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNK7CHA"
-        source_submitted_at: "2026-09-11T12:53:40Z"
-        reviewer_context_id: "fresh-context-pr3-f0d0410c"
-        expected_outcome: CHANGES_REQUIRED
-        one_shot: true
-        consumed_by_commit: "aca6010aaf59a923e59a8cc587cc9b8689ce8425"
-        finding_origin: "PRRT_kwDOUUI5ts6heTMK"
-        reason: "The fresh-context GitHub Codex review of f0d0410c completed externally before REVIEW-0021 is materialized. This authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native lifecycle checkpoints."
-      - record_id: REVIEW-0022
-        imported_status: COMPLETE
-        artifact_commit_sha: "97be290c21840098f02b92aa26a195a6e1017fbb"
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNNVwjQ"
-        source_submitted_at: "2026-09-11T16:58:46Z"
-        reviewer_context_id: "fresh-context-pr3-97be290c"
-        expected_outcome: CHANGES_REQUIRED
-        one_shot: true
-        consumed_by_commit: "5e22bd5b63c723f29a2e20ad07c8d69c9881cae5"
-        finding_origin: "PRRT_kwDOUUI5ts6hj-XI;PRRT_kwDOUUI5ts6hj-XR"
-        reason: "The fresh-context GitHub Codex review of 97be290c completed externally before REVIEW-0022 is materialized. This authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native lifecycle checkpoints."
-      - record_id: REVIEW-0023
-        imported_status: COMPLETE
-        artifact_commit_sha: "3a05ec6f14ea71d15b1cc842ef634e00279217e6"
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNNnSjw"
-        source_submitted_at: "2026-09-11T17:27:49Z"
-        reviewer_context_id: "fresh-context-pr3-3a05ec6f"
-        expected_outcome: CHANGES_REQUIRED
-        one_shot: true
-        consumed_by_commit: "026849083f8baf7a40a67ec6ac70e2b2e169abbe"
-        finding_origin: "PRRT_kwDOUUI5ts6hksrz"
-        reason: "The fresh-context GitHub Codex review of 3a05ec6f completed externally before REVIEW-0023 is materialized. This authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native lifecycle checkpoints."
-      - record_id: REVIEW-0024
-        imported_status: COMPLETE
-        artifact_commit_sha: "9551a78c7431d1b7ce3334d4a6529d92ba69ab5a"
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNN5SgQ"
-        source_submitted_at: "2026-09-11T17:59:25Z"
-        reviewer_context_id: "fresh-context-pr3-9551a78c"
-        expected_outcome: CHANGES_REQUIRED
-        one_shot: true
-        consumed_by_commit: "0b2ee6f13430d367c99dde55c6be726c13ab561a"
-        finding_origin: "PRRT_kwDOUUI5ts6hlUxy;PRRT_kwDOUUI5ts6hlUx3"
-        reason: "The fresh-context GitHub Codex review of 9551a78c completed externally before REVIEW-0024 is materialized. This authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native lifecycle checkpoints."
-      - record_id: REVIEW-0025
-        imported_status: COMPLETE
-        artifact_commit_sha: "e405c977f9de58cd4d88849784d425de6a61cd1d"
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNX_ZcQ"
-        source_submitted_at: "2026-09-13T22:36:15Z"
-        reviewer_context_id: "fresh-context-pr3-e405c977"
-        expected_outcome: CHANGES_REQUIRED
-        one_shot: true
-        consumed_by_commit: "a44296d3e02cc74fa511a471e560e63e75a1cf30"
-        finding_origin: "PRRT_kwDOUUI5ts6h8mbR;PRRT_kwDOUUI5ts6h8mbS;PRRT_kwDOUUI5ts6h8mbT"
-        reason: "The fresh-context GitHub Codex review of e405c977 completed externally before REVIEW-0025 is materialized. This authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native lifecycle checkpoints."
-      - record_id: REVIEW-0026
-        imported_status: COMPLETE
-        artifact_commit_sha: "4f8cebeeca36d895cc17b1103d7689bcf27b5541"
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNYK4AQ"
-        source_submitted_at: "2026-09-13T23:27:28Z"
-        reviewer_context_id: "fresh-context-pr3-4f8cebee"
-        expected_outcome: CHANGES_REQUIRED
-        one_shot: true
-        consumed_by_commit: "6075c1d87853f8c0c144e7d95bfa767ba476aa72"
-        finding_origin: "PRRT_kwDOUUI5ts6h8-Hz;PRRT_kwDOUUI5ts6h8-H0;PRRT_kwDOUUI5ts6h8-H2"
-        reason: "The fresh-context GitHub Codex review of exact frozen candidate 4f8cebee completed externally before REVIEW-0026 is materialized. This one-shot authorization is committed before first materialization so the completed negative review can be imported truthfully without replaying OPEN/IN_PROGRESS after the fact."
-      - record_id: REVIEW-0027
-        imported_status: COMPLETE
-        artifact_commit_sha: "c12a5b55c89168f20c028c2964da16de6f95ac56"
-        source_review_id: "github-actions-run:34793888383:attempt:1"
-        source_submitted_at: "2026-09-14T00:49:49.870683Z"
-        reviewer_context_id: "github-actions:34793888383:1:test-0008-v2"
-        expected_outcome: APPROVE_WITH_FOLLOWUP
-        one_shot: true
-        consumed_by_commit: "f78d5575a94b49d90abb166003cf4520bf167d3a"
-        source_kind: GITHUB_ACTIONS_COPILOT_CLI
-        reason: "A fresh-context GitHub Actions Copilot CLI L2 completed against exact frozen candidate c12a5b55 before REVIEW-0027 materialization. It independently parsed WORK-0001, recomputed all three requirement digests, verified REVIEW-0026/F-1/F-2/F-3, recorded all fifteen TEST-0008 cold-read outcomes PASS, returned APPROVE_WITH_FOLLOWUP with no material findings, and is therefore preauthorized for one-shot truthful import without replaying OPEN/IN_PROGRESS."
-    external_import_rule: "For an externally completed review materialized after v7, a matching one-shot authorization must already exist in a parent commit before the REVIEW record first appears. The authorization binds record_id, resulting status, reviewed artifact SHA, source review identity/time, reviewer context and expected outcome. The imported REVIEW must declare that authorization. A later metadata-only binding must set consumed_by_commit to the actual first-materialization commit before the imported review may satisfy any work completion gate. An authorization with consumed_by_commit set cannot be reused."
+    - record_id: REVIEW-0015
+      imported_status: COMPLETE
+      artifact_commit_sha: a27d01a9c0add10d0de220b9443a7f7d113152d9
+      source_review_id: PRR_kwDOUUI5ts8AAAABNFp3uw
+      source_submitted_at: '2026-09-10T23:37:39Z'
+      reviewer_context_id: fresh-context-pr3-a27d01a9
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: 877d5bce12c7854701843747783891558ab05d37
+      finding_origin: PRRT_kwDOUUI5ts6hSJ77
+      reason: The fresh-context GitHub Codex review of a27d01a9 completed externally before REVIEW-0015 is materialized. This
+        authorization exists first so the finished review can be imported directly as COMPLETE without replaying OPEN/IN_PROGRESS
+        after the fact.
+    - record_id: REVIEW-0016
+      imported_status: COMPLETE
+      artifact_commit_sha: 7c9cc98fefc45eab2e500925dca846f23bd2936e
+      source_review_id: PRR_kwDOUUI5ts8AAAABNGFLJg
+      source_submitted_at: '2026-09-11T00:36:00Z'
+      reviewer_context_id: fresh-context-pr3-7c9cc98f
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: 83b98e1b2a06ca0312614b44c8b8e8ccc6468c44
+      finding_origin: PRRT_kwDOUUI5ts6hTD9-
+      reason: The fresh-context GitHub Codex review of 7c9cc98f completed externally before REVIEW-0016 is materialized. This
+        authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native
+        lifecycle checkpoints.
+    - record_id: REVIEW-0017
+      imported_status: COMPLETE
+      artifact_commit_sha: 06dbb76c68287130169d41f50b2464bc4f878bb5
+      source_review_id: PRR_kwDOUUI5ts8AAAABNGifMw
+      source_submitted_at: '2026-09-11T02:01:36Z'
+      reviewer_context_id: fresh-context-pr3-06dbb76c
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: 36b0a46e04843937b065feaf5e8e0c53c36b4664
+      finding_origin: PRRT_kwDOUUI5ts6hUHol;PRRT_kwDOUUI5ts6hUHoo
+      reason: The fresh-context GitHub Codex review of 06dbb76c completed externally before REVIEW-0017 is materialized. This
+        authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native
+        lifecycle checkpoints.
+    - record_id: REVIEW-0018
+      imported_status: COMPLETE
+      artifact_commit_sha: 8f0aea5b9c1cd9387b59da40ff2d08a8a975d1a1
+      source_review_id: PRR_kwDOUUI5ts8AAAABNG0cVw
+      source_submitted_at: '2026-09-11T02:49:23Z'
+      reviewer_context_id: fresh-context-pr3-8f0aea5b
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: 85c3b09507d0a4dce48f992eaeee142f82bd768f
+      finding_origin: PRRT_kwDOUUI5ts6hUtAz
+      reason: The fresh-context GitHub Codex review of 8f0aea5b completed externally before REVIEW-0018 is materialized. This
+        authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native
+        lifecycle checkpoints.
+    - record_id: REVIEW-0019
+      imported_status: COMPLETE
+      artifact_commit_sha: 13f6b315df8d3734e90b212748f730e0d921c33c
+      source_review_id: PRR_kwDOUUI5ts8AAAABNHCCdQ
+      source_submitted_at: '2026-09-11T03:41:03Z'
+      reviewer_context_id: fresh-context-pr3-13f6b315
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: 40050f6fda6787feb42769cb6fa66547d5a1f7fb
+      finding_origin: PRRT_kwDOUUI5ts6hVPWB;PRRT_kwDOUUI5ts6hVPWG
+      reason: The fresh-context GitHub Codex review of 13f6b315 completed externally before REVIEW-0019 is materialized. This
+        authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native
+        lifecycle checkpoints.
+    - record_id: REVIEW-0020
+      imported_status: COMPLETE
+      artifact_commit_sha: 13b977bf5e821bbd32464a90c0bee9539b3afefe
+      source_review_id: PRR_kwDOUUI5ts8AAAABNKfNCA
+      source_submitted_at: '2026-09-11T12:00:10Z'
+      reviewer_context_id: fresh-context-pr3-13b977bf
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: f7955c10d4c932df86c3238c8e91322c24ce6929
+      finding_origin: PRRT_kwDOUUI5ts6hdSzI
+      reason: The fresh-context GitHub Codex review of 13b977bf completed externally before REVIEW-0020 is materialized. This
+        authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native
+        lifecycle checkpoints.
+    - record_id: REVIEW-0021
+      imported_status: COMPLETE
+      artifact_commit_sha: f0d0410cd31df1b348fddf09528588e43e956945
+      source_review_id: PRR_kwDOUUI5ts8AAAABNK7CHA
+      source_submitted_at: '2026-09-11T12:53:40Z'
+      reviewer_context_id: fresh-context-pr3-f0d0410c
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: aca6010aaf59a923e59a8cc587cc9b8689ce8425
+      finding_origin: PRRT_kwDOUUI5ts6heTMK
+      reason: The fresh-context GitHub Codex review of f0d0410c completed externally before REVIEW-0021 is materialized. This
+        authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native
+        lifecycle checkpoints.
+    - record_id: REVIEW-0022
+      imported_status: COMPLETE
+      artifact_commit_sha: 97be290c21840098f02b92aa26a195a6e1017fbb
+      source_review_id: PRR_kwDOUUI5ts8AAAABNNVwjQ
+      source_submitted_at: '2026-09-11T16:58:46Z'
+      reviewer_context_id: fresh-context-pr3-97be290c
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: 5e22bd5b63c723f29a2e20ad07c8d69c9881cae5
+      finding_origin: PRRT_kwDOUUI5ts6hj-XI;PRRT_kwDOUUI5ts6hj-XR
+      reason: The fresh-context GitHub Codex review of 97be290c completed externally before REVIEW-0022 is materialized. This
+        authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native
+        lifecycle checkpoints.
+    - record_id: REVIEW-0023
+      imported_status: COMPLETE
+      artifact_commit_sha: 3a05ec6f14ea71d15b1cc842ef634e00279217e6
+      source_review_id: PRR_kwDOUUI5ts8AAAABNNnSjw
+      source_submitted_at: '2026-09-11T17:27:49Z'
+      reviewer_context_id: fresh-context-pr3-3a05ec6f
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: 026849083f8baf7a40a67ec6ac70e2b2e169abbe
+      finding_origin: PRRT_kwDOUUI5ts6hksrz
+      reason: The fresh-context GitHub Codex review of 3a05ec6f completed externally before REVIEW-0023 is materialized. This
+        authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native
+        lifecycle checkpoints.
+    - record_id: REVIEW-0024
+      imported_status: COMPLETE
+      artifact_commit_sha: 9551a78c7431d1b7ce3334d4a6529d92ba69ab5a
+      source_review_id: PRR_kwDOUUI5ts8AAAABNN5SgQ
+      source_submitted_at: '2026-09-11T17:59:25Z'
+      reviewer_context_id: fresh-context-pr3-9551a78c
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: 0b2ee6f13430d367c99dde55c6be726c13ab561a
+      finding_origin: PRRT_kwDOUUI5ts6hlUxy;PRRT_kwDOUUI5ts6hlUx3
+      reason: The fresh-context GitHub Codex review of 9551a78c completed externally before REVIEW-0024 is materialized. This
+        authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native
+        lifecycle checkpoints.
+    - record_id: REVIEW-0025
+      imported_status: COMPLETE
+      artifact_commit_sha: e405c977f9de58cd4d88849784d425de6a61cd1d
+      source_review_id: PRR_kwDOUUI5ts8AAAABNX_ZcQ
+      source_submitted_at: '2026-09-13T22:36:15Z'
+      reviewer_context_id: fresh-context-pr3-e405c977
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: a44296d3e02cc74fa511a471e560e63e75a1cf30
+      finding_origin: PRRT_kwDOUUI5ts6h8mbR;PRRT_kwDOUUI5ts6h8mbS;PRRT_kwDOUUI5ts6h8mbT
+      reason: The fresh-context GitHub Codex review of e405c977 completed externally before REVIEW-0025 is materialized. This
+        authorization is committed first so the completed negative review can be imported truthfully without replaying repository-native
+        lifecycle checkpoints.
+    - record_id: REVIEW-0026
+      imported_status: COMPLETE
+      artifact_commit_sha: 4f8cebeeca36d895cc17b1103d7689bcf27b5541
+      source_review_id: PRR_kwDOUUI5ts8AAAABNYK4AQ
+      source_submitted_at: '2026-09-13T23:27:28Z'
+      reviewer_context_id: fresh-context-pr3-4f8cebee
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: 6075c1d87853f8c0c144e7d95bfa767ba476aa72
+      finding_origin: PRRT_kwDOUUI5ts6h8-Hz;PRRT_kwDOUUI5ts6h8-H0;PRRT_kwDOUUI5ts6h8-H2
+      reason: The fresh-context GitHub Codex review of exact frozen candidate 4f8cebee completed externally before REVIEW-0026
+        is materialized. This one-shot authorization is committed before first materialization so the completed negative review
+        can be imported truthfully without replaying OPEN/IN_PROGRESS after the fact.
+    - record_id: REVIEW-0027
+      imported_status: COMPLETE
+      artifact_commit_sha: c12a5b55c89168f20c028c2964da16de6f95ac56
+      source_review_id: github-actions-run:34793888383:attempt:1
+      source_submitted_at: '2026-09-14T00:49:49.870683Z'
+      reviewer_context_id: github-actions:34793888383:1:test-0008-v2
+      expected_outcome: APPROVE_WITH_FOLLOWUP
+      one_shot: true
+      consumed_by_commit: f78d5575a94b49d90abb166003cf4520bf167d3a
+      source_kind: GITHUB_ACTIONS_COPILOT_CLI
+      reason: A fresh-context GitHub Actions Copilot CLI L2 completed against exact frozen candidate c12a5b55 before REVIEW-0027
+        materialization. It independently parsed WORK-0001, recomputed all three requirement digests, verified REVIEW-0026/F-1/F-2/F-3,
+        recorded all fifteen TEST-0008 cold-read outcomes PASS, returned APPROVE_WITH_FOLLOWUP with no material findings,
+        and is therefore preauthorized for one-shot truthful import without replaying OPEN/IN_PROGRESS.
+    - record_id: REVIEW-0029
+      imported_status: COMPLETE
+      artifact_commit_sha: 40550a5d3e3e3f75f467c6e6cd29d3fe729a25e5
+      source_review_id: PRR_kwDOUUI5ts8AAAABNbhVFw
+      source_submitted_at: '2026-09-14T09:48:59Z'
+      reviewer_context_id: fresh-context-pr2-40550a5d
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: ef1658c21ad844543612482d1cf2f09decd58742
+      finding_origin: PRRT_kwDOUUI5ts6iD2t4;PRRT_kwDOUUI5ts6iD2t-;PRRT_kwDOUUI5ts6iD2uH;PRRT_kwDOUUI5ts6iD2uL;PRRT_kwDOUUI5ts6iD2uQ;PRRT_kwDOUUI5ts6iD2ub
+      reason: 'The fresh-context GitHub Codex review of exact PR #2 candidate 40550a5d completed externally before REVIEW-0029
+        materialization and produced six material findings. This one-shot authorization is committed first so the negative
+        review can be imported truthfully as COMPLETE without replaying OPEN/IN_PROGRESS after the fact.'
+    - record_id: REVIEW-0030
+      imported_status: COMPLETE
+      artifact_commit_sha: cbc2dfc065e73b9086d13a483b8b693ddc2fa6cc
+      source_review_id: PRR_kwDOUUI5ts8AAAABNccy5Q
+      source_submitted_at: '2026-09-14T11:45:39Z'
+      reviewer_context_id: fresh-context-pr2-cbc2dfc
+      expected_outcome: CHANGES_REQUIRED
+      one_shot: true
+      consumed_by_commit: 630604416bdccd3b07f57c011152e7fe14e0f2b4
+      finding_origin: PRRT_kwDOUUI5ts6iF6p2;PRRT_kwDOUUI5ts6iF6qN;PRRT_kwDOUUI5ts6iF6qU;PRRT_kwDOUUI5ts6iF6qY;PRRT_kwDOUUI5ts6iF6qf;PRRT_kwDOUUI5ts6iF6qm
+      reason: 'The fresh-context GitHub Codex review of exact PR #2 candidate cbc2dfc completed externally before REVIEW-0030 materialization and produced six new material P1 findings. This one-shot authorization is committed first so the negative review can be imported truthfully as COMPLETE without replaying OPEN/IN_PROGRESS after the fact.'
+    external_import_rule: For an externally completed review materialized after v7, a matching one-shot authorization must
+      already exist in a parent commit before the REVIEW record first appears. The authorization binds record_id, resulting
+      status, reviewed artifact SHA, source review identity/time, reviewer context and expected outcome. The imported REVIEW
+      must declare that authorization. A later metadata-only binding must set consumed_by_commit to the actual first-materialization
+      commit before the imported review may satisfy any work completion gate. An authorization with consumed_by_commit set
+      cannot be reused.
     historical_import_exceptions:
-      - record_id: REVIEW-0004
-        imported_status: COMPLETE
-        import_commit: "98e8cdccc07bd3c2d8313d81f296f49c97c44379"
-        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0004 as COMPLETE."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-1"
-      - record_id: REVIEW-0005
-        imported_status: COMPLETE
-        import_commit: "2712795dc9f10c1efed2088313d125f6f915cc98"
-        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0005 as COMPLETE."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-1"
-      - record_id: REVIEW-0006
-        imported_status: COMPLETE
-        import_commit: "2593b93891a7d5c8ba6fa60522cbc48c787c1a96"
-        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0006 as COMPLETE."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-1"
-      - record_id: REVIEW-0007
-        imported_status: COMPLETE
-        import_commit: "e93017e6382fa30fa752091ef204edc14ca14d11"
-        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0007 as COMPLETE."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-1"
-      - record_id: REVIEW-0008
-        imported_status: COMPLETE
-        import_commit: "f75dd13309caa6d0d55d41cc300fdf4f4ab8b858"
-        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0008 as COMPLETE."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-1"
-      - record_id: REVIEW-0009
-        imported_status: COMPLETE
-        import_commit: "c00d32512608afd0e8f60b5413f6067b5af42158"
-        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0009 as COMPLETE."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-1"
-      - record_id: REVIEW-0010
-        imported_status: COMPLETE
-        import_commit: "3b78f0f996b1aced47b7f9ab3f17364f27997a99"
-        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0010 as COMPLETE."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-1"
-      - record_id: REVIEW-0011
-        imported_status: COMPLETE
-        import_commit: "46fd37beaedcce90b6d8357c314336fbe956f659"
-        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0011 as COMPLETE."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-1"
-      - record_id: REVIEW-0012
-        imported_status: COMPLETE
-        import_commit: "319e12aade5e188594ef6da721ec8ff57aa7fdd2"
-        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0012 as COMPLETE."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-1"
-      - record_id: REVIEW-0013
-        imported_status: COMPLETE
-        import_commit: "69cb8c083fb7f55c5895f42d4f7e1a1e7820d320"
-        reason: "An external fresh-context review completed before its durable registry record was materialized; immutable Git history therefore first contains REVIEW-0013 as COMPLETE."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0014/F-1"
-    historical_import_rule: "Pre-v7 post-contract reviews may first appear as COMPLETE only when record_id, imported_status and import_commit exactly match a reviewed immutable-history exception above and Git history demonstrates that the review was externally completed before registry materialization. These exceptions are historical only and cannot authorize any future record."
+    - record_id: REVIEW-0004
+      imported_status: COMPLETE
+      import_commit: 98e8cdccc07bd3c2d8313d81f296f49c97c44379
+      reason: An external fresh-context review completed before its durable registry record was materialized; immutable Git
+        history therefore first contains REVIEW-0004 as COMPLETE.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-1
+    - record_id: REVIEW-0005
+      imported_status: COMPLETE
+      import_commit: 2712795dc9f10c1efed2088313d125f6f915cc98
+      reason: An external fresh-context review completed before its durable registry record was materialized; immutable Git
+        history therefore first contains REVIEW-0005 as COMPLETE.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-1
+    - record_id: REVIEW-0006
+      imported_status: COMPLETE
+      import_commit: 2593b93891a7d5c8ba6fa60522cbc48c787c1a96
+      reason: An external fresh-context review completed before its durable registry record was materialized; immutable Git
+        history therefore first contains REVIEW-0006 as COMPLETE.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-1
+    - record_id: REVIEW-0007
+      imported_status: COMPLETE
+      import_commit: e93017e6382fa30fa752091ef204edc14ca14d11
+      reason: An external fresh-context review completed before its durable registry record was materialized; immutable Git
+        history therefore first contains REVIEW-0007 as COMPLETE.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-1
+    - record_id: REVIEW-0008
+      imported_status: COMPLETE
+      import_commit: f75dd13309caa6d0d55d41cc300fdf4f4ab8b858
+      reason: An external fresh-context review completed before its durable registry record was materialized; immutable Git
+        history therefore first contains REVIEW-0008 as COMPLETE.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-1
+    - record_id: REVIEW-0009
+      imported_status: COMPLETE
+      import_commit: c00d32512608afd0e8f60b5413f6067b5af42158
+      reason: An external fresh-context review completed before its durable registry record was materialized; immutable Git
+        history therefore first contains REVIEW-0009 as COMPLETE.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-1
+    - record_id: REVIEW-0010
+      imported_status: COMPLETE
+      import_commit: 3b78f0f996b1aced47b7f9ab3f17364f27997a99
+      reason: An external fresh-context review completed before its durable registry record was materialized; immutable Git
+        history therefore first contains REVIEW-0010 as COMPLETE.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-1
+    - record_id: REVIEW-0011
+      imported_status: COMPLETE
+      import_commit: 46fd37beaedcce90b6d8357c314336fbe956f659
+      reason: An external fresh-context review completed before its durable registry record was materialized; immutable Git
+        history therefore first contains REVIEW-0011 as COMPLETE.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-1
+    - record_id: REVIEW-0012
+      imported_status: COMPLETE
+      import_commit: 319e12aade5e188594ef6da721ec8ff57aa7fdd2
+      reason: An external fresh-context review completed before its durable registry record was materialized; immutable Git
+        history therefore first contains REVIEW-0012 as COMPLETE.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-1
+    - record_id: REVIEW-0013
+      imported_status: COMPLETE
+      import_commit: 69cb8c083fb7f55c5895f42d4f7e1a1e7820d320
+      reason: An external fresh-context review completed before its durable registry record was materialized; immutable Git
+        history therefore first contains REVIEW-0013 as COMPLETE.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0014/F-1
+    - record_id: REVIEW-0002
+      imported_status: IN_PROGRESS
+      import_commit: b63fc190a0fa3e02ad1b3e03d0d01b16617c9b49
+      reason: 'PR #2''s branch-local REVIEW-0002 predated the WORK-0001/main integration. In first-parent integrated history
+        it becomes visible at merge commit b63fc190..., already IN_PROGRESS. Preserve that real integration edge without fabricating
+        a later OPEN checkpoint.'
+      historical_only: true
+      future_reuse_forbidden: true
+      provenance: 'merge(main): integrate completed WORK-0001 into WORK-0002; parents ab62faa1743705600a0f11335579db68a2166ab3
+        and 29086643387ff46ab6636dd2fa3014efccc10165'
+    historical_import_rule: Pre-v7 post-contract reviews may first appear as COMPLETE only when record_id, imported_status
+      and import_commit exactly match a reviewed immutable-history exception above and Git history demonstrates that the review
+      was externally completed before registry materialization. These exceptions are historical only and cannot authorize
+      any future record.
     historical_replay_exceptions:
-      - record_id: REVIEW-0014
-        source_review_id: "PRR_kwDOUUI5ts8AAAABNFU66A"
-        source_submitted_at: "2026-09-10T22:43:13Z"
-        first_materialization_commit: "ec69110468c7e1cd79984dedb835504de8c0b561"
-        replay_in_progress_commit: "2926a070de8371e7ad3aaebeca0d9e424700d43f"
-        replay_complete_commit: "b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7"
-        final_status: COMPLETE
-        final_outcome: CHANGES_REQUIRED
-        reason: "REVIEW-0014's external Codex review had already completed before its first registry materialization. The OPEN and IN_PROGRESS commits therefore replayed statuses after the substantive findings/outcome were already known. Immutable history is preserved through this exact exception rather than pretending those commits prove execution-time checkpoints."
-        historical_only: true
-        future_reuse_forbidden: true
-        finding_origin: "PRRT_kwDOUUI5ts6hSJ77"
-    historical_replay_rule: "A lifecycle replay performed after the governed external review activity already completed is invalid evidence of normal review execution. Only an exact sequence listed in historical_replay_exceptions may remain in immutable history, and such an exception cannot be reused. Future externally completed reviews must use external_import_rule rather than replay OPEN/IN_PROGRESS."
-
+    - record_id: REVIEW-0014
+      source_review_id: PRR_kwDOUUI5ts8AAAABNFU66A
+      source_submitted_at: '2026-09-10T22:43:13Z'
+      first_materialization_commit: ec69110468c7e1cd79984dedb835504de8c0b561
+      replay_in_progress_commit: 2926a070de8371e7ad3aaebeca0d9e424700d43f
+      replay_complete_commit: b03880759f7dde54b6f59f3ecaf4f2d5889e1eb7
+      final_status: COMPLETE
+      final_outcome: CHANGES_REQUIRED
+      reason: REVIEW-0014's external Codex review had already completed before its first registry materialization. The OPEN
+        and IN_PROGRESS commits therefore replayed statuses after the substantive findings/outcome were already known. Immutable
+        history is preserved through this exact exception rather than pretending those commits prove execution-time checkpoints.
+      historical_only: true
+      future_reuse_forbidden: true
+      finding_origin: PRRT_kwDOUUI5ts6hSJ77
+    historical_replay_rule: A lifecycle replay performed after the governed external review activity already completed is
+      invalid evidence of normal review execution. Only an exact sequence listed in historical_replay_exceptions may remain
+      in immutable history, and such an exception cannot be reused. Future externally completed reviews must use external_import_rule
+      rather than replay OPEN/IN_PROGRESS.
   tests:
     initial: PLANNED
-    states: [PLANNED, READY, RUNNING, PASS, FAIL, BLOCKED, CANCELLED, SUPERSEDED]
+    states:
+    - PLANNED
+    - READY
+    - RUNNING
+    - PASS
+    - FAIL
+    - BLOCKED
+    - CANCELLED
+    - SUPERSEDED
     transitions:
-      PLANNED: [READY, BLOCKED, CANCELLED]
-      READY: [RUNNING, BLOCKED, CANCELLED]
-      RUNNING: [PASS, FAIL, BLOCKED]
-      PASS: [READY, SUPERSEDED]
-      FAIL: [READY, BLOCKED, SUPERSEDED]
-      BLOCKED: [READY, CANCELLED, SUPERSEDED]
+      PLANNED:
+      - READY
+      - BLOCKED
+      - CANCELLED
+      READY:
+      - RUNNING
+      - BLOCKED
+      - CANCELLED
+      RUNNING:
+      - PASS
+      - FAIL
+      - BLOCKED
+      PASS:
+      - READY
+      - SUPERSEDED
+      FAIL:
+      - READY
+      - BLOCKED
+      - SUPERSEDED
+      BLOCKED:
+      - READY
+      - CANCELLED
+      - SUPERSEDED
       CANCELLED: []
       SUPERSEDED: []
-    pass_rule: "PASS is evidence-bearing: the record must identify what it protects, how it ran, its result, and concrete evidence; every state-bound PASS execution must have a non-null exact tested/reviewed commit_sha."
-    acceptance_cold_read_rule: "A TEST may qualify for requirement acceptance only when acceptance_cold_read.qualifies=true and all v10 requirement cold-read preconditions are satisfied: durable source identity/time, L2/L3 context-separated executor identity, fresh_context=true, authoring_context_separated=true, exact REQUIREMENT_NORMATIVE_V1 digest binding for every covered requirement while PROPOSED, all required outcome keys equal PASS, all_required_outcomes_pass=true, and exact execution.commit_sha/result=PASS. Generic PASS TEST records with no such qualification remain valid test evidence but never satisfy requirement acceptance."
+    pass_rule: 'PASS is evidence-bearing: the record must identify what it protects, how it ran, its result, and concrete
+      evidence; every state-bound PASS execution must have a non-null exact tested/reviewed commit_sha.'
+    acceptance_cold_read_rule: 'A TEST may qualify for requirement acceptance only when acceptance_cold_read.qualifies=true
+      and all v10 requirement cold-read preconditions are satisfied: durable source identity/time, L2/L3 context-separated
+      executor identity, fresh_context=true, authoring_context_separated=true, exact REQUIREMENT_NORMATIVE_V1 digest binding
+      for every covered requirement while PROPOSED, all required outcome keys equal PASS, all_required_outcomes_pass=true,
+      and exact execution.commit_sha/result=PASS. Generic PASS TEST records with no such qualification remain valid test evidence
+      but never satisfy requirement acceptance.'
     external_execution_import_required_fields:
-      - record_id
-      - from_status
-      - imported_status
-      - execution_commit_sha
-      - source_id
-      - source_submitted_at
-      - executor_context_id
-      - expected_result
-      - one_shot
-      - consumed_by_commit
+    - record_id
+    - from_status
+    - imported_status
+    - execution_commit_sha
+    - source_id
+    - source_submitted_at
+    - executor_context_id
+    - expected_result
+    - one_shot
+    - consumed_by_commit
     external_execution_import_authorizations:
-      - record_id: TEST-0008
-        from_status: PLANNED
-        imported_status: PASS
-        execution_commit_sha: "c12a5b55c89168f20c028c2964da16de6f95ac56"
-        source_id: "github-actions-run:34793888383:attempt:1"
-        source_submitted_at: "2026-09-14T00:49:49.870683Z"
-        executor_context_id: "github-actions:34793888383:1:test-0008-v2"
-        expected_result: PASS
-        one_shot: true
-        consumed_by_commit: "4035cbd9fe5a9dc113d95ba83ad3c72d7d0b76f1"
-        source_kind: GITHUB_ACTIONS_COPILOT_CLI
-        reason: "TEST-0008 was genuinely executed outside the registry lifecycle by a fresh-context GitHub Actions Copilot CLI L2 while the canonical record remained PLANNED. The run inspected exact candidate c12a5b55 while REQ-0023/24/25 were PROPOSED, independently parsed WORK-0001, recomputed the exact JCS digests, returned PASS for all fifteen required cold-read outcomes, verified REVIEW-0026/F-1/F-2/F-3 and produced approval-capable evidence. This authorization permits exactly one truthful PLANNED -> PASS result import instead of fabricating READY/RUNNING checkpoints after execution."
-    external_execution_import_rule: "A TEST execution that already completed externally may bypass the normal repository-native state path only when an exact matching authorization above existed in a parent commit before the result/status import. The authorization must bind record_id, actual pre-import status, imported status/result, exact execution.commit_sha, durable source identity/time and executor context. The imported TEST must declare external_import.authorization_source and initially external_import.import_commit=null. A later metadata-only binding must set external_import.import_commit to the actual result-import commit and set the authorization consumed_by_commit to that same import commit before the TEST may satisfy any requirement-acceptance or work-completion gate. No READY/RUNNING checkpoints may be invented retroactively, and a consumed authorization cannot be reused."
-    historical_pass_rule: "If an older PASS execution has no provable exact revision, do not invent one and do not keep that record as active gating PASS evidence. Preserve its historical execution fields, transition the record to SUPERSEDED, identify replacement evidence that actually re-executes or explicitly partitions the superseded scope, and use revision-bound evidence for current gates."
+    - record_id: TEST-0008
+      from_status: PLANNED
+      imported_status: PASS
+      execution_commit_sha: c12a5b55c89168f20c028c2964da16de6f95ac56
+      source_id: github-actions-run:34793888383:attempt:1
+      source_submitted_at: '2026-09-14T00:49:49.870683Z'
+      executor_context_id: github-actions:34793888383:1:test-0008-v2
+      expected_result: PASS
+      one_shot: true
+      consumed_by_commit: 4035cbd9fe5a9dc113d95ba83ad3c72d7d0b76f1
+      source_kind: GITHUB_ACTIONS_COPILOT_CLI
+      reason: TEST-0008 was genuinely executed outside the registry lifecycle by a fresh-context GitHub Actions Copilot CLI
+        L2 while the canonical record remained PLANNED. The run inspected exact candidate c12a5b55 while REQ-0023/24/25 were
+        PROPOSED, independently parsed WORK-0001, recomputed the exact JCS digests, returned PASS for all fifteen required
+        cold-read outcomes, verified REVIEW-0026/F-1/F-2/F-3 and produced approval-capable evidence. This authorization permits
+        exactly one truthful PLANNED -> PASS result import instead of fabricating READY/RUNNING checkpoints after execution.
+    external_execution_import_rule: A TEST execution that already completed externally may bypass the normal repository-native
+      state path only when an exact matching authorization above existed in a parent commit before the result/status import.
+      The authorization must bind record_id, actual pre-import status, imported status/result, exact execution.commit_sha,
+      durable source identity/time and executor context. The imported TEST must declare external_import.authorization_source
+      and initially external_import.import_commit=null. A later metadata-only binding must set external_import.import_commit
+      to the actual result-import commit and set the authorization consumed_by_commit to that same import commit before the
+      TEST may satisfy any requirement-acceptance or work-completion gate. No READY/RUNNING checkpoints may be invented retroactively,
+      and a consumed authorization cannot be reused.
+    historical_pass_rule: If an older PASS execution has no provable exact revision, do not invent one and do not keep that
+      record as active gating PASS evidence. Preserve its historical execution fields, transition the record to SUPERSEDED,
+      identify replacement evidence that actually re-executes or explicitly partitions the superseded scope, and use revision-bound
+      evidence for current gates.
     historical_transition_exceptions:
-      - record_id: TEST-0004
-        from: PLANNED
-        to: PASS
-        before_commit: "98e8cdccc07bd3c2d8313d81f296f49c97c44379"
-        transition_commit: "e8337d833ca0b524bed69318ca4b3691c9ce6c23"
-        reason: "TEST-0004 was executed and recorded before the corrective branch consistently applied READY/RUNNING checkpoints. The immutable branch history cannot be repaired by inventing commits; this exact historical edge is retained as a reviewed migration exception while the evidence remains SHA-bound to 23ef1a88e9a5106b12144d4c6649868a6a691a8f."
-        historical_only: true
-        future_reuse_forbidden: true
-        review_origin: "REVIEW-0009/F-2"
-    transition_exception_rule: "A historical transition exception is valid only when record_id, from, to, before_commit and transition_commit all exactly match the recorded Git history. It does not modify the generic transitions table, cannot authorize any future transition, and requires independent review of the migration rationale."
-
+    - record_id: TEST-0004
+      from: PLANNED
+      to: PASS
+      before_commit: 98e8cdccc07bd3c2d8313d81f296f49c97c44379
+      transition_commit: e8337d833ca0b524bed69318ca4b3691c9ce6c23
+      reason: TEST-0004 was executed and recorded before the corrective branch consistently applied READY/RUNNING checkpoints.
+        The immutable branch history cannot be repaired by inventing commits; this exact historical edge is retained as a
+        reviewed migration exception while the evidence remains SHA-bound to 23ef1a88e9a5106b12144d4c6649868a6a691a8f.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0009/F-2
+    transition_exception_rule: A historical transition exception is valid only when record_id, from, to, before_commit and
+      transition_commit all exactly match the recorded Git history. It does not modify the generic transitions table, cannot
+      authorize any future transition, and requires independent review of the migration rationale.
+    historical_import_exceptions:
+    - record_id: TEST-0002
+      imported_status: PASS
+      import_commit: 97287dd84ba424fa44b5d82e98060bcd2f6d1bcd
+      reason: Bootstrap-era WORK-0002 test record was first materialized directly as PASS before repository-native TEST lifecycle
+        checkpoints were enforced. Immutable history is preserved exactly; current PASS evidence is separately revision-bound
+        to a real execution.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0029/F-1
+    - record_id: TEST-0003
+      imported_status: PASS
+      import_commit: 74eee2b3a37017ba197df98a9eb7982cfb53e41a
+      reason: Bootstrap-era WORK-0002 test record was first materialized directly as PASS before repository-native TEST lifecycle
+        checkpoints were enforced. Immutable history is preserved exactly; current PASS evidence is separately revision-bound
+        to a real execution.
+      historical_only: true
+      future_reuse_forbidden: true
+      review_origin: REVIEW-0029/F-1
+    - record_id: TEST-0002
+      imported_status: PASS
+      import_commit: b63fc190a0fa3e02ad1b3e03d0d01b16617c9b49
+      reason: TEST-0002 existed branch-locally before the WORK-0001/main integration. In first-parent integrated history it
+        becomes visible at merge commit b63fc190... already PASS. The original branch provenance remains preserved separately;
+        this exception binds only the integration materialization edge.
+      historical_only: true
+      future_reuse_forbidden: true
+      provenance: 'merge(main): integrate completed WORK-0001 into WORK-0002; parents ab62faa1743705600a0f11335579db68a2166ab3
+        and 29086643387ff46ab6636dd2fa3014efccc10165'
+    - record_id: TEST-0003
+      imported_status: PASS
+      import_commit: b63fc190a0fa3e02ad1b3e03d0d01b16617c9b49
+      reason: TEST-0003 existed branch-locally before the WORK-0001/main integration. In first-parent integrated history it
+        becomes visible at merge commit b63fc190... already PASS. The original branch provenance remains preserved separately;
+        this exception binds only the integration materialization edge.
+      historical_only: true
+      future_reuse_forbidden: true
+      provenance: 'merge(main): integrate completed WORK-0001 into WORK-0002; parents ab62faa1743705600a0f11335579db68a2166ab3
+        and 29086643387ff46ab6636dd2fa3014efccc10165'
   experiments:
     initial: PLANNED
-    states: [PLANNED, READY, RUNNING, COMPLETE, FAILED, BLOCKED, CANCELLED, SUPERSEDED]
+    states:
+    - PLANNED
+    - READY
+    - RUNNING
+    - COMPLETE
+    - FAILED
+    - BLOCKED
+    - CANCELLED
+    - SUPERSEDED
     transitions:
-      PLANNED: [READY, BLOCKED, CANCELLED]
-      READY: [RUNNING, BLOCKED, CANCELLED]
-      RUNNING: [COMPLETE, FAILED, BLOCKED]
-      COMPLETE: [SUPERSEDED]
-      FAILED: [READY, SUPERSEDED]
-      BLOCKED: [READY, CANCELLED, SUPERSEDED]
+      PLANNED:
+      - READY
+      - BLOCKED
+      - CANCELLED
+      READY:
+      - RUNNING
+      - BLOCKED
+      - CANCELLED
+      RUNNING:
+      - COMPLETE
+      - FAILED
+      - BLOCKED
+      COMPLETE:
+      - SUPERSEDED
+      FAILED:
+      - READY
+      - SUPERSEDED
+      BLOCKED:
+      - READY
+      - CANCELLED
+      - SUPERSEDED
       CANCELLED: []
       SUPERSEDED: []
-
   dependencies:
     initial: PROPOSED
-    states: [PROPOSED, ACTIVE, SUPERSEDED, RETIRED]
+    states:
+    - PROPOSED
+    - ACTIVE
+    - SUPERSEDED
+    - RETIRED
     transitions:
-      PROPOSED: [ACTIVE, RETIRED]
-      ACTIVE: [SUPERSEDED, RETIRED]
+      PROPOSED:
+      - ACTIVE
+      - RETIRED
+      ACTIVE:
+      - SUPERSEDED
+      - RETIRED
       SUPERSEDED: []
       RETIRED: []
-
 progress:
-  canonical_source: "This section is the sole lifecycle vocabulary for phase, lot, sublot, acceptance-criterion, task, run, quality-dimension and WORK progress-dimension state. registry/progress/matrix.yaml stores current instances only."
+  canonical_source: This section is the sole lifecycle vocabulary for phase, lot, sublot, acceptance-criterion, task, run,
+    quality-dimension and WORK progress-dimension state. registry/progress/matrix.yaml stores current instances only.
   initial: NOT_STARTED
-  applies_to: [PHASE, LOT, SUBLOT, ACCEPTANCE_CRITERION, TASK, RUN, QUALITY_DIMENSION, WORK_PROGRESS_DIMENSION]
-  states: [NOT_STARTED, PROPOSED, PLANNED, READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, DEPRECATED, CANCELLED, NOT_APPLICABLE]
+  applies_to:
+  - PHASE
+  - LOT
+  - SUBLOT
+  - ACCEPTANCE_CRITERION
+  - TASK
+  - RUN
+  - QUALITY_DIMENSION
+  - WORK_PROGRESS_DIMENSION
+  states:
+  - NOT_STARTED
+  - PROPOSED
+  - PLANNED
+  - READY
+  - IN_PROGRESS
+  - PARTIAL
+  - BLOCKED
+  - IN_REVIEW
+  - DONE
+  - DEPRECATED
+  - CANCELLED
+  - NOT_APPLICABLE
   transitions:
-    NOT_STARTED: [PROPOSED, PLANNED, READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
-    PROPOSED: [PLANNED, READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
-    PLANNED: [READY, IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
-    READY: [IN_PROGRESS, PARTIAL, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
-    IN_PROGRESS: [PARTIAL, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
-    PARTIAL: [IN_PROGRESS, BLOCKED, IN_REVIEW, DONE, CANCELLED, NOT_APPLICABLE]
-    BLOCKED: [READY, IN_PROGRESS, PARTIAL, IN_REVIEW, CANCELLED, NOT_APPLICABLE]
-    IN_REVIEW: [IN_PROGRESS, PARTIAL, BLOCKED, DONE, CANCELLED, NOT_APPLICABLE]
-    DONE: [IN_REVIEW, DEPRECATED]
+    NOT_STARTED:
+    - PROPOSED
+    - PLANNED
+    - READY
+    - IN_PROGRESS
+    - PARTIAL
+    - BLOCKED
+    - IN_REVIEW
+    - DONE
+    - CANCELLED
+    - NOT_APPLICABLE
+    PROPOSED:
+    - PLANNED
+    - READY
+    - IN_PROGRESS
+    - PARTIAL
+    - BLOCKED
+    - IN_REVIEW
+    - DONE
+    - CANCELLED
+    - NOT_APPLICABLE
+    PLANNED:
+    - READY
+    - IN_PROGRESS
+    - PARTIAL
+    - BLOCKED
+    - IN_REVIEW
+    - DONE
+    - CANCELLED
+    - NOT_APPLICABLE
+    READY:
+    - IN_PROGRESS
+    - PARTIAL
+    - BLOCKED
+    - IN_REVIEW
+    - DONE
+    - CANCELLED
+    - NOT_APPLICABLE
+    IN_PROGRESS:
+    - PARTIAL
+    - BLOCKED
+    - IN_REVIEW
+    - DONE
+    - CANCELLED
+    - NOT_APPLICABLE
+    PARTIAL:
+    - IN_PROGRESS
+    - BLOCKED
+    - IN_REVIEW
+    - DONE
+    - CANCELLED
+    - NOT_APPLICABLE
+    BLOCKED:
+    - READY
+    - IN_PROGRESS
+    - PARTIAL
+    - IN_REVIEW
+    - CANCELLED
+    - NOT_APPLICABLE
+    IN_REVIEW:
+    - IN_PROGRESS
+    - PARTIAL
+    - BLOCKED
+    - DONE
+    - CANCELLED
+    - NOT_APPLICABLE
+    DONE:
+    - IN_REVIEW
+    - DEPRECATED
     DEPRECATED: []
     CANCELLED: []
-    NOT_APPLICABLE: [NOT_STARTED, PLANNED]
-  reopening_rule: "DONE → IN_REVIEW is a reviewed reopening transition, not silent regression. It is allowed only when new evidence, a review finding, dependency change, or invalidated proof materially re-questions prior completion. The owning WORK/project handover must identify the trigger and affected evidence, downstream completion assumptions must be re-evaluated, and the reopened dimension must satisfy the normal review/completion gates before returning to DONE."
-  work_item_status_rule: "The status field of a WORK entry in the progress matrix mirrors the canonical registry_machines.work_items state and transition; NOT_APPLICABLE is never a WORK record status."
-  done_allowed_dimension_states: [DONE, NOT_APPLICABLE]
-  not_applicable_rule: "Every NOT_APPLICABLE dimension requires a non-empty justification in the corresponding work item and remains subject to review for non-compensable gates."
+    NOT_APPLICABLE:
+    - NOT_STARTED
+    - PLANNED
+  reopening_rule: "DONE \u2192 IN_REVIEW is a reviewed reopening transition, not silent regression. It is allowed only when\
+    \ new evidence, a review finding, dependency change, or invalidated proof materially re-questions prior completion. The\
+    \ owning WORK/project handover must identify the trigger and affected evidence, downstream completion assumptions must\
+    \ be re-evaluated, and the reopened dimension must satisfy the normal review/completion gates before returning to DONE."
+  work_item_status_rule: The status field of a WORK entry in the progress matrix mirrors the canonical registry_machines.work_items
+    state and transition; NOT_APPLICABLE is never a WORK record status.
+  done_allowed_dimension_states:
+  - DONE
+  - NOT_APPLICABLE
+  not_applicable_rule: Every NOT_APPLICABLE dimension requires a non-empty justification in the corresponding work item and
+    remains subject to review for non-compensable gates.
