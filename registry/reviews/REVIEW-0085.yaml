@@ -1,0 +1,90 @@
+id: REVIEW-0085
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "PR #5 T12 predecessor remains merged to main as b4b52c77fbf05eda65e8f0e951959da70e7edbe7 and REVIEW-0082 remains predecessor-only evidence"
+    - "T13 and T14 remain DONE author-side and must remain intact on the final integrated candidate"
+    - "REVIEW-0084 remains terminal CLOSED/CHANGES_REQUIRED negative evidence and is not retroactively converted into approval"
+    - "P1 PRRT_kwDOUUI5ts6l9_hk is closed only if required-command proof rejects shell declarations/functions that can shadow the required executable"
+    - "P1 PRRT_kwDOUUI5ts6l9_ht is closed only if the pinned Dependency Review action itself is structurally required with safe execution controls"
+    - "P1 PRRT_kwDOUUI5ts6l9_hz is closed only if final-gate structurally requires a blocking tools.governance.github_live_gate command"
+    - "P1 PRRT_kwDOUUI5ts6l9_h4 is closed only if the complete governance-core deterministic command inventory is structurally required"
+    - "P1 PRRT_kwDOUUI5ts6l9_h8 is closed only if pinned CodeQL init and analyze actions are structurally required with safe execution controls"
+    - "all prior REVIEW-0083 inherited-control backgrounding and PR-family dependency-review protections remain intact"
+    - "WORK-0002 durable open_findings exactly equals all 86 live unresolved PR #2 thread identities"
+    - "no PR #2 review thread is resolved before a clean REVIEW-0085 result and eligible exact-head approval"
+  risks:
+    - "shell function or declaration shadows python while accepted argv text remains present"
+    - "dependency-review job succeeds without executing the pinned dependency-review action"
+    - "final gate reports success without executing the live exact-head governance check"
+    - "governance core omits one or more deterministic validators while structural validation still passes"
+    - "CodeQL job reports success without executing pinned init/analyze actions"
+    - "mutation harnesses drift from the hardened implementation and create false proof"
+    - "technical proof is mistaken for independent semantic approval"
+    - "durable and live finding sets drift while preserving equal counts"
+findings: []
+checks:
+  assumptions_challenged:
+    - "argv-prefix parsing alone proves the executable cannot be shadowed by shell declarations"
+    - "dependency-review job identity/result proves the dependency action ran"
+    - "final-gate dependency-result checks prove the live-state command ran"
+    - "a partial governance-core command set is sufficient structural proof"
+    - "CodeQL job identity/result proves init/analyze actions ran"
+    - "a fully green deterministic gate is equivalent to an independent L2"
+  omitted_categories_considered:
+    - "shell function declaration before required python command"
+    - "shell alias or declaration-like executable shadowing"
+    - "dependency-review action removal replacement or execution-control masking"
+    - "final live-gate command deletion renaming or failure masking"
+    - "removal of pytest repository strict path change L2 review T7 T8 T9 T10 T11 or context-manifest command"
+    - "CodeQL init or analyze action removal replacement or execution-control masking"
+    - "workflow-level and job-level inherited execution controls"
+    - "single ampersand backgrounding"
+    - "all 86 live/durable PRRT identities"
+  duplicate_or_reuse_search:
+    - "REVIEW-0084 independent P1 threads remain source evidence."
+    - "Existing T11 workflow-structure parser and T13 mutation harness are hardened rather than replaced."
+    - "Existing T12 T13 T14 integration contracts are reused unchanged."
+    - "No historical negative review is rewritten as approval."
+  failure_modes_considered:
+    - "required command text remains visible while a shell function shadows the executable"
+    - "dependency-review or CodeQL job becomes a successful no-op"
+    - "final gate keeps dependency-result checks but drops github_live_gate"
+    - "governance core retains only a subset of required validators"
+    - "mutation target occurrence drift creates a false-negative harness failure"
+    - "REVIEW-0085 is materialized before exact technical proof"
+    - "live and durable finding sets differ despite equal count"
+  evidence_requested:
+    - "Exact technical candidate 9289a93c6ace18593c06a94c1de83f95785259f7 passed Bootstrap #365 / run 36134916018."
+    - "MONDE Gate #300 / run 36134916263 on exact 9289a93c6ace18593c06a94c1de83f95785259f7 passed 827 tests with 7932 statements and 3652 branches at 100 percent line+branch coverage."
+    - "Gate #300 killed 38/38 baseline 40/40 L2 5/5 T10 11/11 T11 and 14/14 T13 critical mutations."
+    - "Gate #300 passed repository strict path change L2 review T7 T8 T9 T10 T11 and context-manifest validators with CodeQL and Dependency Review success."
+    - "Gate #300 live merge gate failed closed only on UNRESOLVED_THREADS:86 and INDEPENDENT_EXACT_HEAD_APPROVAL."
+    - "This OPEN checkpoint must pass before transition to IN_PROGRESS."
+    - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
+    - "Fresh independent L2 must review all 86 unresolved material threads plus integration effects under all six required hats."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-25"
+  updated_at: "2026-09-25"

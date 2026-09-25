@@ -224,6 +224,7 @@ affected_docs:
 - registry/reviews/REVIEW-0082.yaml
 - registry/reviews/REVIEW-0083.yaml
 - registry/reviews/REVIEW-0084.yaml
+- registry/reviews/REVIEW-0085.yaml
 affected_paths:
 - .github/
 - tools/governance/
@@ -614,7 +615,8 @@ validation:
   - Repository administration/ruleset enforcement belongs to WORK-0003.
   - Gate #231 / run 35711181317 is the exact substantive T13/task-identity proof on 242f6c9553c4e42bfbb4e6aad2ca27596573ecb2. This final handover synchronization changes only WORK-0002/PROJECT_STATE and therefore requires one exact-head state-only Gate before any future integration/review decision.
   - All 86 live material review threads/findings remain intentionally unresolved after REVIEW-0084 independent L2; no author-side resolution counts as completion evidence.
-  - REVIEW-0084 frozen head d1850542494492a388b545dec954e078b825d9b5 passed Bootstrap #356 / run 36124803925 and Gate #286 / run 36124804464 with 824 tests, 7851 statements / 3596 branches at 100 percent line+branch, 38/38 + 40/40 + 5/5 + 11/11 + 9/9 mutations, all deterministic validators green, CodeQL and Dependency Review green; live gate failed only on 81 unresolved threads plus missing exact-head approval. Fresh independent L2 PRR_kwDOUUI5ts8AAAABPOcDnA then added five new P1 findings, expanding the live/durable closure set to 86. REVIEW-0084 is CLOSED/CHANGES_REQUIRED and a successor review must follow only after all five defects receive exact technical proof.
+  - REVIEW-0084 frozen head d1850542494492a388b545dec954e078b825d9b5 passed Bootstrap #356 / run 36124803925 and Gate #286 / run 36124804464 with 824 tests, 7851 statements / 3596 branches at 100 percent line+branch, 38/38 + 40/40 + 5/5 + 11/11 + 9/9 mutations, all deterministic validators green, CodeQL and Dependency Review green; live gate failed only on 81 unresolved threads plus missing exact-head approval. Fresh independent L2 PRR_kwDOUUI5ts8AAAABPOcDnA then added five new P1 findings, expanding the live/durable closure set to 86. REVIEW-0084 is CLOSED/CHANGES_REQUIRED.
+  - REVIEW-0085 technical candidate 9289a93c6ace18593c06a94c1de83f95785259f7 passed Bootstrap #365 / run 36134916018 and Gate #300 / run 36134916263: 827 tests, 7932 statements / 3652 branches at 100 percent line+branch; 38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 14/14 T13 mutations; all deterministic/T7-T11 validators, CodeQL and Dependency Review green; live gate failed only on 86 unresolved threads and missing exact-head approval. REVIEW-0085 is now OPEN pending exact-head OPEN checkpoint proof.
   - Canonical task identity is now explicit: T12 is reserved for the trusted default-branch stale-green predecessor on PR #5, while T13 names the five branch-local corrections already implemented on PR #2. Historical filenames using t12 for that local correction wave are renamed to t13 without changing behavior.
   - Gate #228 / run 34997568781 on exact HEAD 4046e03b1e00a2051d29ccd6dcf5f0af7426259a proved 357/357 tests and 100% coverage, then correctly reported six durable IDs missing from the 73-thread live set.
   - Five of those six later-review findings are already represented by current code: PR-family review events are included in thread polling; ambiguous first-status materializations are rejected; terminal external imports without binding are rejected; workflow command wiring is parsed as executable argv; and live closure work is resolved dynamically rather than hard-coded to WORK-0002.
@@ -632,6 +634,9 @@ risk:
 rollback:
   strategy: Revert the governance hardening commit; keep canonical process documentation authoritative while the gate is repaired.
 run_log:
+- run: RUN-3
+  date: '2026-09-25'
+  note: 'REVIEW-0085 technical candidate 9289a93c6ace18593c06a94c1de83f95785259f7 passed Bootstrap #365 / run 36134916018 and Gate #300 / run 36134916263: 827 tests, 7932 statements / 3652 branches at 100 percent line+branch; 38/38 baseline + 40/40 L2 + 5/5 T10 + 11/11 T11 + 14/14 T13 mutations; repository/strict/path/change/L2/review/T7/T8/T9/T10/T11/context validators, CodeQL and Dependency Review green. Live gate failed closed only on 86 unresolved threads and missing trusted exact-head approval. REVIEW-0085 is materialized OPEN only after this proof.'
 - run: RUN-3
   date: '2026-09-25'
   note: 'REVIEW-0084 frozen head d1850542494492a388b545dec954e078b825d9b5 passed Bootstrap #356 / run 36124803925 and Gate #286 / run 36124804464 with 824 tests, 7851 statements / 3596 branches at 100 percent line+branch, 38/38 + 40/40 + 5/5 + 11/11 + 9/9 mutations, all deterministic/T7-T11 validators green, CodeQL/Dependency Review green and live gate blocked only by 81 unresolved threads plus missing exact-head approval. Fresh independent L2 PRR_kwDOUUI5ts8AAAABPOcDnA added five P1 threads: PRRT_kwDOUUI5ts6l9_hk, PRRT_kwDOUUI5ts6l9_ht, PRRT_kwDOUUI5ts6l9_hz, PRRT_kwDOUUI5ts6l9_h4, PRRT_kwDOUUI5ts6l9_h8. REVIEW-0084 closes CHANGES_REQUIRED and the closure set becomes 86.'
@@ -730,7 +735,8 @@ blockers:
 - Live PR #2 closure set is now 81 unresolved material threads. REVIEW-0083 independent L2 PRR_kwDOUUI5ts8AAAABPJeT9Q added P1 PRRT_kwDOUUI5ts6lzzao, P1 PRRT_kwDOUUI5ts6lzzas and P1 PRRT_kwDOUUI5ts6lzzax; author-side duplicate P1 PRRT_kwDOUUI5ts6lz1l8 is also live and durably tracked.
 - T12 is DONE/integrated: independently accepted PR #5 is merged on default branch main at b4b52c77fbf05eda65e8f0e951959da70e7edbe7.
 - T13 and T14 remain DONE author-side but require final exact-head independent re-verification as part of T4.
-- REVIEW-0084 is terminal CLOSED/CHANGES_REQUIRED on d1850542494492a388b545dec954e078b825d9b5 after independent L2 PRR_kwDOUUI5ts8AAAABPOcDnA added five P1 findings. Correct shell-executable shadowing, Dependency Review action execution proof, final live-gate command presence, complete governance-core required-command inventory and CodeQL action binding before materializing the next successor review. A trusted context-separated exact-head APPROVED review remains required before any thread resolution or merge.
+- REVIEW-0084 is terminal CLOSED/CHANGES_REQUIRED on d1850542494492a388b545dec954e078b825d9b5 after independent L2 PRR_kwDOUUI5ts8AAAABPOcDnA added five P1 findings. All five defects now have exact technical proof on 9289a93c6ace18593c06a94c1de83f95785259f7 via Gate #300.
+- REVIEW-0085 is OPEN and must receive exact-head OPEN checkpoint proof before advancing to IN_PROGRESS. A trusted context-separated exact-head APPROVED review remains required before any thread resolution or merge.
 - Gate #259 / run 36055246141 failed closed before L2 because T13 mutation smoke still matched the superseded pre-refactor executable-command helper shape. The current correction retargets t13-executable-command-proof to the exact current per-step parsed-command branch; runtime governance semantics are unchanged. A fresh exact-head Gate must prove this integrated correction before review.
 - Gate #260 / run 36058286810 killed the corrected T13 mutation and passed static validation, then failed change_guard REVIEW_FRESHNESS because inherited REVIEW-0082 (PR #5 / second-parent main lineage) was being misapplied as freshness authority for first-parent PR #2 changes. The current correction scopes freshness authority to reviewed commits on the current head's first-parent lineage while retaining ancestor validation and ordinary first-parent stale-review enforcement. A real two-parent regression reproduces the post-PR5 integration shape.
 follow_up_work_items:
