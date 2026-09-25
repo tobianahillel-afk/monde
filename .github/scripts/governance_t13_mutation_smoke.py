@@ -62,7 +62,7 @@ MUTATIONS = {
     ),
     "t13-dependency-action-binding": (
         ".github/workflows/governance.yml",
-        "        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294\n",
+        "        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0\n",
         "        run: true\n",
     ),
     "t13-final-live-gate-wiring": (
