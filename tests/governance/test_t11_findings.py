@@ -607,6 +607,60 @@ def test_review0084_structural_p1_regressions(tmp_path: Path) -> None:
         assert rule in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
 
 
+def test_review0084_remaining_structural_branches(tmp_path: Path) -> None:
+    cases = [
+        (
+            t11.WORKFLOW_PATH,
+            "  codeql:\n    if: github.event_name != 'schedule'\n",
+            "  codeql:\n    if: false\n",
+            "CODEQL_SCOPE",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ github.event.pull_request.head.sha || github.sha }}\n          persist-credentials: false\n",
+            "      - run: true\n",
+            "CODEQL_CHECKOUT_ACTION",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "      - uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63\n",
+            "      - run: true\n",
+            "CODEQL_ANALYZE_ACTION",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "  final-gate:\n    if: always() && github.event_name != 'schedule'\n",
+            "  final-gate:\n    if: false\n",
+            "FINAL_GATE_SCOPE",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "      - run: test '${{ needs.governance-core.result }}' = 'success'\n",
+            "      - run: true\n",
+            "GOVERNANCE_CORE_REQUIRED",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "      - run: test '${{ needs.codeql.result }}' = 'success'\n",
+            "      - run: true\n",
+            "CODEQL_REQUIRED",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "      - if: startsWith(github.event_name, 'pull_request')\n        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n          persist-credentials: false\n",
+            "      - if: startsWith(github.event_name, 'pull_request')\n        run: true\n",
+            "FINAL_GATE_CHECKOUT_ACTION",
+        ),
+    ]
+    for path, old, new, rule in cases:
+        _write_valid_workflows(tmp_path)
+        target = tmp_path / path
+        text = target.read_text(encoding="utf-8")
+        assert old in text
+        target.write_text(text.replace(old, new, 1), encoding="utf-8")
+        assert rule in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
+
 def test_action_and_shadow_helpers_fail_closed() -> None:
     expected = ("python", "-m", "tools.governance.thread_state_poll")
     for run in (
