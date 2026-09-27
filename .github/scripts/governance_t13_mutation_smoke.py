@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TESTS = [
     "tests/governance/test_t13_findings.py",
     "tests/governance/test_t11_repository_wiring.py",
+    "tests/governance/test_t11_findings.py",
     "tests/governance/test_thread_state_poll.py",
     "tests/governance/test_github_live_gate.py",
 ]
@@ -30,10 +31,10 @@ MUTATIONS = {
         "            if len(boundaries) > 1:\n",
         "            if False:\n",
     ),
-    "t13-executable-command-proof": (
-        "tools/governance/t11_closure.py",
-        "        if commands == [list(expected)]:\n",
-        "        if any(tuple(command) == expected for command in commands):\n",
+    "t13-run-local-state-change": (
+        ".github/workflows/governance.yml",
+        "        run: |\n          python -m tools.governance.github_live_gate \\\n",
+        "        run: |\n          export PATH=\"$PWD/attacker:$PATH\"\n          python -m tools.governance.github_live_gate \\\n",
     ),
     "t13-step-control-enforcement": (
         "tools/governance/t11_closure.py",
@@ -45,10 +46,10 @@ MUTATIONS = {
         "def _steps_execute_prefix(\n    job: dict[str, Any],\n    expected: tuple[str, ...],\n    *,\n    workflow: dict[str, Any] | None = None,\n    allowed_job_ifs: frozenset[str] = frozenset(),\n    allowed_step_ifs: frozenset[str] = frozenset(),\n) -> bool:\n    if not _inherited_execution_controls_safe(workflow, job):\n        return False\n",
         "def _steps_execute_prefix(\n    job: dict[str, Any],\n    expected: tuple[str, ...],\n    *,\n    workflow: dict[str, Any] | None = None,\n    allowed_job_ifs: frozenset[str] = frozenset(),\n    allowed_step_ifs: frozenset[str] = frozenset(),\n) -> bool:\n    if False:\n        return False\n",
     ),
-    "t13-background-command-mask": (
+    "t13-dependency-producer-order": (
         "tools/governance/t11_closure.py",
-        '_FAILURE_MASKING_SHELL_FRAGMENTS = ("||", "&&", "&", ";", "|", ">", "<", "`", "$(")',
-        '_FAILURE_MASKING_SHELL_FRAGMENTS = ("||", "&&", ";", "|", ">", "<", "`", "$(")',
+        "            after_index=probe_index,\n",
+        "            after_index=None,\n",
     ),
     "t13-dependency-review-required": (
         ".github/workflows/governance.yml",
