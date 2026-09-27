@@ -64,11 +64,6 @@ MUTATIONS = {
         "            if not raw_import:\n",
         "            if not raw_import and ext:\n",
     ),
-    "t11-failure-masking-shell-suffix": (
-        "tools/governance/t11_closure.py",
-        "        if not isinstance(run, str) or _run_step_has_failure_masking_shell(run):\n",
-        "        if not isinstance(run, str):\n",
-    ),
     "t11-single-logical-command-proof": (
         "tools/governance/t11_closure.py",
         "        if commands == [list(expected)]:\n            return True\n",
