@@ -128,13 +128,13 @@ Required sequence from this integrated state:
 5. Exact technical proof is complete on `dce9fbbfbe720adcde8ce91fc2e13b98c6544152` via Bootstrap #354 and Gate #284.
 6. REVIEW-0084 is terminal **CLOSED / CHANGES_REQUIRED** after fresh independent L2 `PRR_kwDOUUI5ts8AAAABPOcDnA` on exact frozen head `d1850542494492a388b545dec954e078b825d9b5` added five new P1 findings.
 7. REVIEW-0085 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPPl4wg` on frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` added four P1s; author-side `PRRT_kwDOUUI5ts6mAdoV` adds a fifth live thread.
-8. REVIEW-0086 is terminal **CLOSED / CHANGES_REQUIRED** after independent L2 `PRR_kwDOUUI5ts8AAAABPQM5sQ` added two P1s on exact frozen head `e42ddbcffce8a0265ac34b46818e021d87fc7ca8`. Both defects now have exact technical proof on `dfe8584721b4963d27e3ee0ce8eead5c89953e88` via Bootstrap #395 and Gate #325. REVIEW-0087 is `OPEN`; prove this OPEN checkpoint exact-head before transition to `IN_PROGRESS`.
+8. REVIEW-0086 is terminal **CLOSED / CHANGES_REQUIRED** after independent L2 `PRR_kwDOUUI5ts8AAAABPQM5sQ` added two P1s on exact frozen head `e42ddbcffce8a0265ac34b46818e021d87fc7ca8`. Both defects now have exact technical proof; REVIEW-0087 OPEN checkpoint is proved via Bootstrap #397 / Gate #326 and REVIEW-0087 is `IN_PROGRESS`. Prove/freeze this exact head, then request one fresh independent L2.
 9. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
 10. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
 ## REVIEW-0087 — successor for run-local command state and dependency-producer order
 
-REVIEW-0087 is now **OPEN** after exact technical proof on `dfe8584721b4963d27e3ee0ce8eead5c89953e88`.
+REVIEW-0087 is now **IN_PROGRESS** after exact technical proof on `dfe8584721b4963d27e3ee0ce8eead5c89953e88` and OPEN checkpoint proof on `7289f38be16c85ace1e59f88eab25e8ffe5f1588`.
 
 Bootstrap #395 / run `36356256422` passed **450 tests** at **100% line + branch**, and its live PR #2 contract probe succeeded at **3/100** requests. Gate #325 / run `36356256679` passed **829 tests**, **7,982 statements / 3,682 branches**, **100% line + branch**, mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 12/12 T11 + 18/18 T13**, every deterministic/T7-T11/context validator, CodeQL and Dependency Review. The live merge gate failed closed only on **93 unresolved threads** and missing trusted context-separated exact-head approval, with no durable-finding mismatch.
 
@@ -142,7 +142,7 @@ The successor specifically challenges the two REVIEW-0086 P1s:
 - `PRRT_kwDOUUI5ts6mBvTj` — security-sensitive required-command steps must be a single logical command, with no preceding run-local state mutation capable of altering executable/module resolution;
 - `PRRT_kwDOUUI5ts6mBvTp` — the exact Dependency Graph producer must be structurally bound to and strictly precede its guarded Dependency Review consumer.
 
-No thread is resolved. This OPEN checkpoint must receive its own exact-head proof before REVIEW-0087 may transition to `IN_PROGRESS`.
+No thread is resolved. Bootstrap #397 / run `36359044428` and Gate #326 / run `36359044665` proved the OPEN checkpoint with the same **829 tests**, **7,982 statements / 3,682 branches**, **100% line + branch**, all mutation lanes/validators green, and live gate blocked only on **93 unresolved threads** plus missing exact-head approval. This IN_PROGRESS state must now receive one frozen exact-head proof before a fresh independent L2.
 
 ## REVIEW-0086 — terminal negative exact-ref / complete-argv / probe-binding review
 
