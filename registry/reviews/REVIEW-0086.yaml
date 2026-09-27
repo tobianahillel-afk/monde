@@ -1,12 +1,12 @@
 id: REVIEW-0086
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-2"
-  commit_sha: null
+  commit_sha: "e42ddbcffce8a0265ac34b46818e021d87fc7ca8"
 reviewer:
-  actor: null
-  context_id: null
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABPQM5sQ"
   independence_level: L2
 roles:
   - ARCHITECTURE_REUSE
@@ -31,7 +31,7 @@ scope:
     - "P1 PRRT_kwDOUUI5ts6mAc8S is closed only if conditional Dependency Review is bound to the exact fail-closed depgraph producer"
     - "REVIEW-0084 action-binding, live-gate, complete-command-inventory and CodeQL protections remain intact"
     - "REVIEW-0083 inherited-control, backgrounding and PR-family Dependency Review protections remain intact"
-    - "WORK-0002 durable open_findings exactly equals all 91 live unresolved PR #2 thread identities"
+    - "WORK-0002 durable open_findings exactly equals all 93 live unresolved PR #2 thread identities"
     - "no PR #2 review thread is resolved before a clean REVIEW-0086 result and eligible trusted exact-head approval"
   risks:
     - "pinned checkout action can execute an older tree if ref/head input is mutable"
@@ -40,7 +40,9 @@ scope:
     - "Dependency Review action can be skipped if its capability producer is not structurally bound"
     - "technical proof can be mistaken for independent semantic approval"
     - "durable and live finding sets can drift while preserving equal counts"
-findings: []
+findings:
+  - "PRRT_kwDOUUI5ts6mBvTj"
+  - "PRRT_kwDOUUI5ts6mBvTp"
 checks:
   assumptions_challenged:
     - "pinning actions/checkout proves the checked-out commit without validating ref"
@@ -69,6 +71,8 @@ checks:
     - "Bash function shadow uses split declaration or subshell body"
     - "required validator receives --help and exits success before validation"
     - "conditional Dependency Review producer is replaced with supported=false no-op"
+    - "run-local export or other preparatory state change alters command/module resolution before an otherwise exact required argv"
+    - "exact Dependency Graph producer is moved after the guarded Dependency Review consumer"
     - "mutation target occurrence drifts after exact-argv refactor"
     - "live and durable finding sets differ despite equal count"
   evidence_requested:
@@ -79,9 +83,10 @@ checks:
     - "Gate #315 live merge gate failed closed only on UNRESOLVED_THREADS:91 and INDEPENDENT_EXACT_HEAD_APPROVAL with no durable-finding mismatch."
     - "This OPEN checkpoint must pass before transition to IN_PROGRESS."
     - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
-    - "Fresh independent L2 must review all 91 unresolved material threads plus integration effects under all six required hats."
+    - "Fresh independent L2 PRR_kwDOUUI5ts8AAAABPQM5sQ reviewed exact frozen head e42ddbcffce8a0265ac34b46818e021d87fc7ca8 and added P1 threads PRRT_kwDOUUI5ts6mBvTj and PRRT_kwDOUUI5ts6mBvTp."
+    - "A successor must prove required run steps cannot execute preparatory state-changing commands and the exact depgraph producer precedes its guarded action consumer."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-25T14:02:16Z"
 history:
   created_at: "2026-09-25"
   updated_at: "2026-09-25"
