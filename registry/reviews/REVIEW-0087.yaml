@@ -1,9 +1,9 @@
 id: REVIEW-0087
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-2"
-  commit_sha: null
+  commit_sha: "47091d48b40d37dfb18b32f0546ea348731d7cc9"
 reviewer:
   actor: null
   context_id: null
@@ -38,7 +38,8 @@ scope:
     - "Dependency Review can be skipped if the depgraph producer is moved after its consumer while both nodes remain individually valid"
     - "technical green proof can be mistaken for independent semantic approval"
     - "durable and live finding sets can drift while preserving equal cardinality"
-findings: []
+findings:
+  - "PRRT_kwDOUUI5ts6mfxiN"
 checks:
   assumptions_challenged:
     - "an exact required argv is sufficient even when earlier commands in the same run step mutate shell/process state"
@@ -62,6 +63,7 @@ checks:
     - "mutation harness targets stale helper shape and gives false confidence"
     - "live and durable finding sets differ despite equal count"
     - "review lifecycle is materialized before exact technical proof"
+    - "an earlier job step persists execution-context state through GITHUB_PATH/GITHUB_ENV or equivalent workspace mutation, while the later sensitive step retains an exact accepted argv"
   evidence_requested:
     - "Exact technical candidate dfe8584721b4963d27e3ee0ce8eead5c89953e88 passed Bootstrap #395 / run 36356256422 and Gate #325 / run 36356256679."
     - "Bootstrap #395 passed 450 tests at 100 percent line+branch for the default-branch stale-green bridge and live PR #2 probe SUCCESS at 3/100 requests."
@@ -71,8 +73,9 @@ checks:
     - "Gate #325 live merge gate failed closed only on UNRESOLVED_THREADS:93 and INDEPENDENT_EXACT_HEAD_APPROVAL, with no durable-finding mismatch."
     - "This OPEN checkpoint must pass exact-head proof before transition to IN_PROGRESS."
     - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
+    - "Author-side PRRT_kwDOUUI5ts6mfxiN proves a successor must bind sensitive commands to a trusted predecessor-step prefix/order, not merely validate the matching step in isolation."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-27T23:48:35Z"
 history:
   created_at: "2026-09-28"
   updated_at: "2026-09-28"
