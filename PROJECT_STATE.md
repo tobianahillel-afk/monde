@@ -110,10 +110,9 @@ T11 now enforces that:
 - **T12 — trusted default-branch stale-green predecessor — is now `DONE / integrated`.** PR #5 received clean independent REVIEW-0082 on exact reviewed head `71ed1cb233d16f032ff27cf5a88dfe039e2ba618`, all 83 reviewed PR #5 threads were resolved under controlled closure, reconciliation head `e9d67333f35fc0460ea65806f829257ed0a0266a` passed Bootstrap #333 / run `36053041482`, and PR #5 merged to `main` as `b4b52c77fbf05eda65e8f0e951959da70e7edbe7`.
 - T13 is the canonical name for the five branch-local corrections previously carried by files named `t12`; those artifacts remain DONE author-side.
 - **T14 — post-PR5 two-parent merge-history integration hardening — remains `DONE` author-side.** This integration commit must preserve its contract by taking PR #2 head `90d762af389990b5e57fce83397a558276500dd5` and new `main` `b4b52c77fbf05eda65e8f0e951959da70e7edbe7` as its two parents.
-- **T4 — exact final-integrated-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`.
+- **T4 — exact final-integrated-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`.**
 - Gate #259 / run `36055246141` on integrated head `6e8014c7d46e2aceefa03902c37c6bdf2fac0c19` exposed one deterministic integration defect before L2: `.github/scripts/governance_t13_mutation_smoke.py` still targeted the pre-refactor `return any(...)` form of `_steps_execute_prefix`, while the current hardened implementation uses per-step parsed commands plus `if any(...): return True`. The runtime guard was correct; the mutation harness failed closed with `t13-executable-command-proof: target occurrence count != 1`. The current correction retargets that mutant to the exact current executable-prefix branch without weakening the mutation. A fresh exact-head Gate is required before any L2 request.
 - Gate #260 / run `36058286810` proved the T13 mutation retarget itself, then exposed a second integration-specific defect in `change_guard`: inherited REVIEW-0082 from the PR #5/main second-parent lineage was incorrectly treated as freshness authority for substantive first-parent PR #2 changes. REVIEW-0082 is valid T12 predecessor evidence, not a review of the current PR #2 delta. The correction makes review freshness authority first-parent scoped: a reviewed commit must remain an ancestor of the head, but only a reviewed commit on the current head's first-parent lineage can stale subsequent first-parent work. A real two-parent regression reproduces PR #5/main as second parent and preserves ordinary first-parent stale-review detection.
-**
 - Live PR #2 now has **93 unresolved material threads**. REVIEW-0086 frozen head `e42ddbcffce8a0265ac34b46818e021d87fc7ca8` received independent L2 `PRR_kwDOUUI5ts8AAAABPQM5sQ`, which added `PRRT_kwDOUUI5ts6mBvTj` (run-local state mutation before an exact required command) and `PRRT_kwDOUUI5ts6mBvTp` (Dependency Graph producer may appear after its guarded consumer). REVIEW-0086 is **CLOSED / CHANGES_REQUIRED**.
 - WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
 - Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` author-side; `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending exact integrated-head closure.
@@ -129,9 +128,21 @@ Required sequence from this integrated state:
 5. Exact technical proof is complete on `dce9fbbfbe720adcde8ce91fc2e13b98c6544152` via Bootstrap #354 and Gate #284.
 6. REVIEW-0084 is terminal **CLOSED / CHANGES_REQUIRED** after fresh independent L2 `PRR_kwDOUUI5ts8AAAABPOcDnA` on exact frozen head `d1850542494492a388b545dec954e078b825d9b5` added five new P1 findings.
 7. REVIEW-0085 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPPl4wg` on frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` added four P1s; author-side `PRRT_kwDOUUI5ts6mAdoV` adds a fifth live thread.
-8. REVIEW-0086 is terminal **CLOSED / CHANGES_REQUIRED** after independent L2 `PRR_kwDOUUI5ts8AAAABPQM5sQ` added two P1s on exact frozen head `e42ddbcffce8a0265ac34b46818e021d87fc7ca8`. Correct both defects under REVIEW-0087, then prove a new exact successor candidate over all 93 unresolved threads.
+8. REVIEW-0086 is terminal **CLOSED / CHANGES_REQUIRED** after independent L2 `PRR_kwDOUUI5ts8AAAABPQM5sQ` added two P1s on exact frozen head `e42ddbcffce8a0265ac34b46818e021d87fc7ca8`. Both defects now have exact technical proof on `dfe8584721b4963d27e3ee0ce8eead5c89953e88` via Bootstrap #395 and Gate #325. REVIEW-0087 is `OPEN`; prove this OPEN checkpoint exact-head before transition to `IN_PROGRESS`.
 9. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
 10. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
+
+## REVIEW-0087 — successor for run-local command state and dependency-producer order
+
+REVIEW-0087 is now **OPEN** after exact technical proof on `dfe8584721b4963d27e3ee0ce8eead5c89953e88`.
+
+Bootstrap #395 / run `36356256422` passed **450 tests** at **100% line + branch**, and its live PR #2 contract probe succeeded at **3/100** requests. Gate #325 / run `36356256679` passed **829 tests**, **7,982 statements / 3,682 branches**, **100% line + branch**, mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 12/12 T11 + 18/18 T13**, every deterministic/T7-T11/context validator, CodeQL and Dependency Review. The live merge gate failed closed only on **93 unresolved threads** and missing trusted context-separated exact-head approval, with no durable-finding mismatch.
+
+The successor specifically challenges the two REVIEW-0086 P1s:
+- `PRRT_kwDOUUI5ts6mBvTj` — security-sensitive required-command steps must be a single logical command, with no preceding run-local state mutation capable of altering executable/module resolution;
+- `PRRT_kwDOUUI5ts6mBvTp` — the exact Dependency Graph producer must be structurally bound to and strictly precede its guarded Dependency Review consumer.
+
+No thread is resolved. This OPEN checkpoint must receive its own exact-head proof before REVIEW-0087 may transition to `IN_PROGRESS`.
 
 ## REVIEW-0086 — terminal negative exact-ref / complete-argv / probe-binding review
 

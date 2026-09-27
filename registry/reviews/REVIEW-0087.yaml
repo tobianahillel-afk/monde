@@ -1,0 +1,78 @@
+id: REVIEW-0087
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "PR #5 / T12 remains merged on main as b4b52c77fbf05eda65e8f0e951959da70e7edbe7 and REVIEW-0082 remains predecessor-only evidence"
+    - "T13 and T14 remain DONE author-side and intact on the final integrated candidate"
+    - "REVIEW-0086 remains terminal CLOSED/CHANGES_REQUIRED negative evidence and is not retroactively converted into approval"
+    - "P1 PRRT_kwDOUUI5ts6mBvTj is closed only if a security-sensitive required-command run step cannot execute any preparatory state-changing shell command before the exact required argv"
+    - "P1 PRRT_kwDOUUI5ts6mBvTp is closed only if the exact Dependency Graph producer is structurally bound to and strictly precedes the guarded Dependency Review consumer"
+    - "REVIEW-0083 inherited-control, backgrounding and dependency-review protections remain intact"
+    - "REVIEW-0084 shell-shadow, action-binding, live-gate, command-inventory and CodeQL protections remain intact"
+    - "REVIEW-0085 exact-ref, complete-argv, function-shadowing and dependency-action binding protections remain intact"
+    - "REVIEW-0086 exact-ref, complete-argv and dependency-producer binding protections remain intact"
+    - "WORK-0002 durable open_findings exactly equals all 93 live unresolved PR #2 thread identities"
+    - "no PR #2 review thread is resolved before a clean REVIEW-0087 result and eligible trusted exact-head approval"
+  risks:
+    - "a required validator argv can look exact while a preceding export or shell mutation changes executable/module resolution"
+    - "Dependency Review can be skipped if the depgraph producer is moved after its consumer while both nodes remain individually valid"
+    - "technical green proof can be mistaken for independent semantic approval"
+    - "durable and live finding sets can drift while preserving equal cardinality"
+findings: []
+checks:
+  assumptions_challenged:
+    - "an exact required argv is sufficient even when earlier commands in the same run step mutate shell/process state"
+    - "validating the Dependency Graph producer and Dependency Review consumer independently proves their execution order"
+    - "a fully green deterministic gate is equivalent to independent L2 closure"
+  omitted_categories_considered:
+    - "export PATH/PYTHONPATH/PYTHONHOME/BASH_ENV/ENV/SHELLOPTS before required argv"
+    - "assignment, alias, function or shell-option mutation before required argv"
+    - "producer moved after consumer"
+    - "duplicate or substitute depgraph ids"
+    - "consumer condition bound to a different producer"
+    - "all 93 live/durable PRRT identities"
+  duplicate_or_reuse_search:
+    - "REVIEW-0086 independent P1 threads remain source evidence."
+    - "Existing T11 parser and T13 mutation harness are hardened rather than replaced."
+    - "Existing T12/T13/T14 integration contracts are reused unchanged."
+    - "No historical negative review is rewritten as approval."
+  failure_modes_considered:
+    - "run-local state mutation occurs before an otherwise exact security-sensitive argv"
+    - "exact depgraph probe exists but appears after Dependency Review"
+    - "mutation harness targets stale helper shape and gives false confidence"
+    - "live and durable finding sets differ despite equal count"
+    - "review lifecycle is materialized before exact technical proof"
+  evidence_requested:
+    - "Exact technical candidate dfe8584721b4963d27e3ee0ce8eead5c89953e88 passed Bootstrap #395 / run 36356256422 and Gate #325 / run 36356256679."
+    - "Bootstrap #395 passed 450 tests at 100 percent line+branch for the default-branch stale-green bridge and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Gate #325 passed 829 tests with 7982 statements and 3682 branches at 100 percent line+branch coverage."
+    - "Gate #325 killed 38/38 baseline, 40/40 L2, 5/5 T10, 12/12 T11 and 18/18 T13 critical mutations."
+    - "Gate #325 passed repository/path/change/L2/review/T7/T8/T9/T10/T11/context validators with CodeQL and Dependency Review success."
+    - "Gate #325 live merge gate failed closed only on UNRESOLVED_THREADS:93 and INDEPENDENT_EXACT_HEAD_APPROVAL, with no durable-finding mismatch."
+    - "This OPEN checkpoint must pass exact-head proof before transition to IN_PROGRESS."
+    - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-28"
+  updated_at: "2026-09-28"
