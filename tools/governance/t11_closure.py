@@ -520,6 +520,7 @@ def _steps_use_action(
     allowed_job_ifs: frozenset[str] = frozenset(),
     allowed_step_ifs: frozenset[str] = frozenset(),
     required_with: dict[str, Any] | None = None,
+    after_index: int | None = None,
 ) -> bool:
     if not _inherited_execution_controls_safe(workflow, job):
         return False
@@ -527,7 +528,9 @@ def _steps_use_action(
     if not isinstance(steps, list):
         return False
     expected_with = required_with or {}
-    for step in steps:
+    for index, step in enumerate(steps):
+        if after_index is not None and index <= after_index:
+            continue
         if not isinstance(step, dict) or step.get("uses") != expected_use:
             continue
         if not _execution_controls_safe(job, step, allowed_job_ifs, allowed_step_ifs):
@@ -542,15 +545,15 @@ def _steps_use_action(
     return False
 
 
-def _dependency_probe_safe(workflow: dict[str, Any], job: dict[str, Any]) -> bool:
+def _dependency_probe_index(workflow: dict[str, Any], job: dict[str, Any]) -> int | None:
     if not _inherited_execution_controls_safe(workflow, job):
-        return False
+        return None
     if job.get("continue-on-error") not in (None, False):
-        return False
+        return None
     steps = job.get("steps")
     if not isinstance(steps, list):
-        return False
-    for step in steps:
+        return None
+    for index, step in enumerate(steps):
         if not isinstance(step, dict) or step.get("id") != "depgraph":
             continue
         if step.get("continue-on-error") not in (None, False) or step.get("if") is not None:
@@ -562,8 +565,12 @@ def _dependency_probe_safe(workflow: dict[str, Any], job: dict[str, Any]) -> boo
         run = step.get("run")
         if not isinstance(run, str) or run != DEPENDENCY_PROBE_RUN:
             continue
-        return True
-    return False
+        return index
+    return None
+
+
+def _dependency_probe_safe(workflow: dict[str, Any], job: dict[str, Any]) -> bool:
+    return _dependency_probe_index(workflow, job) is not None
 
 
 def _steps_execute_prefix(
@@ -591,7 +598,7 @@ def _steps_execute_prefix(
         if _run_step_can_shadow_executable(run, executable):
             continue
         commands = _logical_run_commands({"steps": [step]})
-        if any(tuple(command) == expected for command in commands):
+        if commands == [list(expected)]:
             return True
     return False
 
@@ -733,7 +740,8 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
                     "dependency-review job must run for every pull-request-family event",
                 )
             )
-        if not _dependency_probe_safe(workflow, dependency_review):
+        probe_index = _dependency_probe_index(workflow, dependency_review)
+        if probe_index is None:
             out.append(
                 Finding(
                     WORKFLOW_PATH,
@@ -748,12 +756,13 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
             allowed_job_ifs=frozenset({PR_EVENT_IF}),
             allowed_step_ifs=frozenset({"steps.depgraph.outputs.supported == 'true'"}),
             required_with={"fail-on-severity": "moderate"},
+            after_index=probe_index,
         ):
             out.append(
                 Finding(
                     WORKFLOW_PATH,
                     "DEPENDENCY_REVIEW_ACTION",
-                    "dependency-review job must execute the pinned Dependency Review action under the expected supported-capability condition",
+                    "dependency-review job must execute the pinned Dependency Review action after the exact fail-closed capability producer under the expected supported-capability condition",
                 )
             )
 

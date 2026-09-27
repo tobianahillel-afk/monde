@@ -32,8 +32,8 @@ MUTATIONS = {
     ),
     "t13-executable-command-proof": (
         "tools/governance/t11_closure.py",
+        "        if commands == [list(expected)]:\n",
         "        if any(tuple(command) == expected for command in commands):\n",
-        "        if any(tuple(command[: len(expected)]) == expected for command in commands):\n",
     ),
     "t13-step-control-enforcement": (
         "tools/governance/t11_closure.py",

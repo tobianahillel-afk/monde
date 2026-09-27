@@ -49,19 +49,29 @@ jobs:
             --cov-report=xml:coverage.xml \
             --cov-fail-under=100
 
-      - name: Critical mutation smoke
-        run: |
-          python scripts/governance_mutation_smoke.py
-          python .github/scripts/governance_l2_mutation_smoke.py
-          python .github/scripts/governance_t10_mutation_smoke.py
-          python .github/scripts/governance_t11_mutation_smoke.py
-          python .github/scripts/governance_t13_mutation_smoke.py
+      - name: Baseline critical mutation smoke
+        run: python scripts/governance_mutation_smoke.py
+
+      - name: Fresh-L2 critical mutation smoke
+        run: python .github/scripts/governance_l2_mutation_smoke.py
+
+      - name: T10 critical mutation smoke
+        run: python .github/scripts/governance_t10_mutation_smoke.py
+
+      - name: T11 critical mutation smoke
+        run: python .github/scripts/governance_t11_mutation_smoke.py
+
+      - name: T13 critical mutation smoke
+        run: python .github/scripts/governance_t13_mutation_smoke.py
 
       - name: Validate repository state
-        run: |
-          python -m tools.governance.validate_repo . --json-out governance-findings.json
-          python -m tools.governance.strict_contracts . --json-out strict-findings.json
-          python -m tools.governance.path_safety . --json-out path-findings.json
+        run: python -m tools.governance.validate_repo . --json-out governance-findings.json
+
+      - name: Validate strict governance contracts
+        run: python -m tools.governance.strict_contracts . --json-out strict-findings.json
+
+      - name: Validate path safety
+        run: python -m tools.governance.path_safety . --json-out path-findings.json
 
       - name: Validate base-to-head transition
         if: startsWith(inputs.event_name, 'pull_request')

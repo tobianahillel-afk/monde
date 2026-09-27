@@ -405,16 +405,14 @@ jobs:
           cache-dependency-path: requirements/governance-ci.txt
       - run: python -m pip install --require-hashes -r requirements/governance-ci.txt
       - run: python -m pytest --cov --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=100
-      - run: |
-          python scripts/governance_mutation_smoke.py
-          python .github/scripts/governance_l2_mutation_smoke.py
-          python .github/scripts/governance_t10_mutation_smoke.py
-          python .github/scripts/governance_t11_mutation_smoke.py
-          python .github/scripts/governance_t13_mutation_smoke.py
-      - run: |
-          python -m tools.governance.validate_repo . --json-out governance-findings.json
-          python -m tools.governance.strict_contracts . --json-out strict-findings.json
-          python -m tools.governance.path_safety . --json-out path-findings.json
+      - run: python scripts/governance_mutation_smoke.py
+      - run: python .github/scripts/governance_l2_mutation_smoke.py
+      - run: python .github/scripts/governance_t10_mutation_smoke.py
+      - run: python .github/scripts/governance_t11_mutation_smoke.py
+      - run: python .github/scripts/governance_t13_mutation_smoke.py
+      - run: python -m tools.governance.validate_repo . --json-out governance-findings.json
+      - run: python -m tools.governance.strict_contracts . --json-out strict-findings.json
+      - run: python -m tools.governance.path_safety . --json-out path-findings.json
       - if: startsWith(inputs.event_name, 'pull_request')
         run: python -m tools.governance.change_guard . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --json-out change-findings.json
       - if: startsWith(inputs.event_name, 'pull_request')
@@ -501,6 +499,9 @@ def test_step_prefix_requires_complete_argv_and_rejects_failure_masking_shell() 
     safe = {"steps": [{"run": "python -m tools.governance.t11_closure . --base base --head head --json-out out.json"}]}
     assert t11._steps_execute_prefix(safe, expected) is True
     assert t11._steps_execute_prefix({"steps": [{"run": "python -m tools.governance.t11_closure . --base base --head head --json-out out.json --help"}]}, expected) is False
+    assert t11._steps_execute_prefix({"steps": [{"run": "export PATH=\"$PWD/attacker:$PATH\"\npython -m tools.governance.t11_closure . --base base --head head --json-out out.json"}]}, expected) is False
+    assert t11._steps_execute_prefix({"steps": [{"run": "echo prep\npython -m tools.governance.t11_closure . --base base --head head --json-out out.json"}]}, expected) is False
+    assert t11._steps_execute_prefix({"steps": [{"run": "python -m tools.governance.t11_closure . --base base --head head --json-out out.json\necho after"}]}, expected) is False
     assert t11._steps_execute_prefix({}, expected) is False
     assert t11._steps_execute_prefix({"steps": ["bad"]}, expected) is False
 
@@ -655,6 +656,42 @@ def test_review0085_successor_regressions(tmp_path: Path) -> None:
             item.rule for item in t11.validate_workflow_structure(tmp_path)
         }
 
+    # REVIEW-0086: an exact required command cannot share a run block with
+    # preparatory shell state changes that alter executable/module resolution.
+    _write_valid_workflows(tmp_path)
+    target = tmp_path / t11.WORKFLOW_PATH
+    text = target.read_text(encoding="utf-8")
+    exact_live = "        run: python -m tools.governance.github_live_gate --repo '${{ github.repository }}' --pr '${{ github.event.pull_request.number }}' --head '${{ github.event.pull_request.head.sha }}' --root . --json-out github-live-gate.json\n"
+    assert exact_live in text
+    target.write_text(
+        text.replace(
+            exact_live,
+            "        run: |\n          export PATH=\"$PWD/attacker:$PATH\"\n          python -m tools.governance.github_live_gate --repo '${{ github.repository }}' --pr '${{ github.event.pull_request.number }}' --head '${{ github.event.pull_request.head.sha }}' --root . --json-out github-live-gate.json\n",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    assert "FINAL_GATE_LIVE_WIRING" in {
+        item.rule for item in t11.validate_workflow_structure(tmp_path)
+    }
+
+    # REVIEW-0086: the exact depgraph producer must precede its guarded consumer.
+    _write_valid_workflows(tmp_path)
+    target = tmp_path / t11.WORKFLOW_PATH
+    text = target.read_text(encoding="utf-8")
+    probe_start = text.index("      - id: depgraph\n")
+    action_start = text.index("      - if: steps.depgraph.outputs.supported == 'true'\n", probe_start)
+    codeql_start = text.index("  codeql:\n", action_start)
+    probe_block = text[probe_start:action_start]
+    consumer_block = text[action_start:codeql_start]
+    target.write_text(
+        text[:probe_start] + consumer_block + probe_block + text[codeql_start:],
+        encoding="utf-8",
+    )
+    assert "DEPENDENCY_REVIEW_ACTION" in {
+        item.rule for item in t11.validate_workflow_structure(tmp_path)
+    }
+
 
 def test_review0085_probe_fail_closed_branches_and_core_call(tmp_path: Path) -> None:
     valid_probe_job = {
@@ -667,6 +704,7 @@ def test_review0085_probe_fail_closed_branches_and_core_call(tmp_path: Path) -> 
             }
         ]
     }
+    assert t11._dependency_probe_index({}, valid_probe_job) == 0
     assert t11._dependency_probe_safe({}, valid_probe_job) is True
     assert t11._dependency_probe_safe({"env": {"PATH": "/tmp/fake"}}, valid_probe_job) is False
     assert t11._dependency_probe_safe({}, {**valid_probe_job, "continue-on-error": True}) is False
