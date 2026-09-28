@@ -565,32 +565,32 @@ def test_review0089_rejects_job_container_execution_context(tmp_path: Path) -> N
     cases = [
         (
             t11.WORKFLOW_PATH,
-            "  dependency-review:\n    name: Dependency review\n",
-            "  dependency-review:\n    name: Dependency review\n    container:\n      image: attacker/image\n      env:\n        PYTHONPATH: /attacker\n",
+            "  dependency-review:\n    if: startsWith(github.event_name, 'pull_request')\n",
+            "  dependency-review:\n    container:\n      image: attacker/image\n      env:\n        PYTHONPATH: /attacker\n    if: startsWith(github.event_name, 'pull_request')\n",
             "DEPENDENCY_REVIEW_TRUSTED_PREFIX",
         ),
         (
             t11.WORKFLOW_PATH,
-            "  codeql:\n    name: CodeQL\n",
-            "  codeql:\n    name: CodeQL\n    container:\n      image: attacker/image\n",
+            "  codeql:\n    if: github.event_name != 'schedule'\n",
+            "  codeql:\n    container:\n      image: attacker/image\n    if: github.event_name != 'schedule'\n",
             "CODEQL_TRUSTED_PREFIX",
         ),
         (
             t11.WORKFLOW_PATH,
-            "  final-gate:\n    name: MONDE / Merge Gate\n",
-            "  final-gate:\n    name: MONDE / Merge Gate\n    container:\n      image: attacker/image\n",
+            "  final-gate:\n    if: always() && github.event_name != 'schedule'\n",
+            "  final-gate:\n    container:\n      image: attacker/image\n    if: always() && github.event_name != 'schedule'\n",
             "FINAL_GATE_TRUSTED_PREFIX",
         ),
         (
             t11.WORKFLOW_PATH,
-            "  review-thread-state-poll:\n    name: Review thread stale-green poll\n",
-            "  review-thread-state-poll:\n    name: Review thread stale-green poll\n    container:\n      image: attacker/image\n",
+            "  review-thread-state-poll:\n    if: github.event_name == 'schedule'\n",
+            "  review-thread-state-poll:\n    container:\n      image: attacker/image\n    if: github.event_name == 'schedule'\n",
             "REVIEW_THREAD_POLL_TRUSTED_PREFIX",
         ),
         (
             t11.CORE_WORKFLOW_PATH,
-            "  validate:\n    name: Deterministic governance\n",
-            "  validate:\n    name: Deterministic governance\n    container:\n      image: attacker/image\n      env:\n        PYTHONPATH: /attacker\n",
+            "  validate:\n    steps:\n",
+            "  validate:\n    container:\n      image: attacker/image\n      env:\n        PYTHONPATH: /attacker\n    steps:\n",
             "CORE_TRUSTED_PREFIX",
         ),
     ]
