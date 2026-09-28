@@ -612,8 +612,8 @@ def test_review0090_rejects_unrecognized_env_and_requires_exact_step_env(tmp_pat
         ),
         (
             t11.CORE_WORKFLOW_PATH,
-            "  validate:\n    name: Deterministic governance\n",
-            "  validate:\n    name: Deterministic governance\n    env:\n      LD_PRELOAD: ${{ github.workspace }}/payload.so\n",
+            "  validate:\n    steps:\n",
+            "  validate:\n    env:\n      LD_PRELOAD: ${{ github.workspace }}/payload.so\n    steps:\n",
             "CORE_TRUSTED_PREFIX",
         ),
     ]
@@ -835,15 +835,15 @@ def test_review0085_successor_regressions(tmp_path: Path) -> None:
 
     # Bash permits both split-line and subshell compound-command function bodies.
     for shadow in (
-        "      - run: |\n          function python\n          {\n            true\n          }\n          python -m tools.governance.thread_state_poll\n",
-        "      - run: |\n          python() (\n            true\n          )\n          python -m tools.governance.thread_state_poll\n",
+        "      - env:\n          GITHUB_TOKEN: ${{ github.token }}\n        run: |\n          function python\n          {\n            true\n          }\n          python -m tools.governance.thread_state_poll\n",
+        "      - env:\n          GITHUB_TOKEN: ${{ github.token }}\n        run: |\n          python() (\n            true\n          )\n          python -m tools.governance.thread_state_poll\n",
     ):
         _write_valid_workflows(tmp_path)
         target = tmp_path / t11.WORKFLOW_PATH
         text = target.read_text(encoding="utf-8")
         target.write_text(
             text.replace(
-                "      - run: python -m tools.governance.thread_state_poll\n",
+                "      - env:\n          GITHUB_TOKEN: ${{ github.token }}\n        run: python -m tools.governance.thread_state_poll\n",
                 shadow,
                 1,
             ),
@@ -924,7 +924,7 @@ def test_review0088_rejects_cross_step_execution_context_poisoning(tmp_path: Pat
     cases = [
         (
             t11.WORKFLOW_PATH,
-            "      - if: startsWith(github.event_name, 'pull_request')\n        run: python -m tools.governance.github_live_gate",
+            "      - if: startsWith(github.event_name, 'pull_request')\n        env:\n          GITHUB_TOKEN: ${{ github.token }}\n        run: python -m tools.governance.github_live_gate",
             "      - run: echo \"$PWD/attacker\" >> \"$GITHUB_PATH\"\n",
             "FINAL_GATE_TRUSTED_PREFIX",
         ),
@@ -936,7 +936,7 @@ def test_review0088_rejects_cross_step_execution_context_poisoning(tmp_path: Pat
         ),
         (
             t11.WORKFLOW_PATH,
-            "      - run: python -m tools.governance.thread_state_poll\n",
+            "      - env:\n          GITHUB_TOKEN: ${{ github.token }}\n        run: python -m tools.governance.thread_state_poll\n",
             "      - run: echo '/tmp/attacker' >> \"$GITHUB_PATH\"\n",
             "REVIEW_THREAD_POLL_TRUSTED_PREFIX",
         ),
@@ -1106,8 +1106,8 @@ def test_review0084_structural_p1_regressions(tmp_path: Path) -> None:
     cases = [
         (
             t11.WORKFLOW_PATH,
-            "      - run: python -m tools.governance.thread_state_poll\n",
-            "      - run: |\n          python() {\n            true\n          }\n          python -m tools.governance.thread_state_poll\n",
+            "      - env:\n          GITHUB_TOKEN: ${{ github.token }}\n        run: python -m tools.governance.thread_state_poll\n",
+            "      - env:\n          GITHUB_TOKEN: ${{ github.token }}\n        run: |\n          python() {\n            true\n          }\n          python -m tools.governance.thread_state_poll\n",
             "REVIEW_THREAD_POLL_WIRING",
         ),
         (
