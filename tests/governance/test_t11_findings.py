@@ -314,7 +314,6 @@ permissions:
   contents: read
 jobs:
   governance-core:
-    name: Governance core
     if: github.event_name != 'schedule'
     uses: ./.github/workflows/_governance-core.yml
     with:
@@ -322,9 +321,7 @@ jobs:
       base_sha: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
       head_sha: ${{ github.event.pull_request.head.sha || github.sha }}
   review-thread-state-poll:
-    name: Review thread stale-green poll
     if: github.event_name == 'schedule'
-    runs-on: ubuntu-24.04
     permissions:
       actions: write
       contents: read
@@ -343,9 +340,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: python -m tools.governance.thread_state_poll
   dependency-review:
-    name: Dependency review
     if: startsWith(github.event_name, 'pull_request')
-    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -379,9 +374,7 @@ jobs:
         with:
           fail-on-severity: moderate
   codeql:
-    name: CodeQL
     if: github.event_name != 'schedule'
-    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -397,10 +390,8 @@ jobs:
           languages: python
       - uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63
   final-gate:
-    name: MONDE / Merge Gate
     if: always() && github.event_name != 'schedule'
     needs: [governance-core, dependency-review, codeql]
-    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: read
@@ -435,15 +426,12 @@ jobs:
     )
     core = root / t11.CORE_WORKFLOW_PATH
     core.write_text(
-        """name: MONDE Governance Core
-on:
+        """on:
   workflow_call:
 permissions:
   contents: read
 jobs:
   validate:
-    name: Deterministic governance
-    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -645,20 +633,20 @@ def test_review0091_rejects_permission_escalation_across_sensitive_jobs(tmp_path
         ),
         (
             t11.WORKFLOW_PATH,
-            "  governance-core:\n    name: Governance core\n",
-            "  governance-core:\n    name: Governance core\n    permissions:\n      contents: write\n",
+            "  governance-core:\n    if: github.event_name != 'schedule'\n",
+            "  governance-core:\n    if: github.event_name != 'schedule'\n    permissions:\n      contents: write\n",
             "CORE_CALL_PERMISSIONS",
         ),
         (
             t11.CORE_WORKFLOW_PATH,
-            "  validate:\n    name: Deterministic governance\n",
-            "  validate:\n    name: Deterministic governance\n    permissions:\n      contents: write\n",
+            "  validate:\n    steps:\n",
+            "  validate:\n    permissions:\n      contents: write\n    steps:\n",
             "CORE_VALIDATE_PERMISSIONS",
         ),
         (
             t11.WORKFLOW_PATH,
-            "  dependency-review:\n    name: Dependency review\n",
-            "  dependency-review:\n    name: Dependency review\n    permissions:\n      contents: read\n      issues: write\n",
+            "  dependency-review:\n    if: startsWith(github.event_name, 'pull_request')\n    permissions:\n      contents: read\n",
+            "  dependency-review:\n    if: startsWith(github.event_name, 'pull_request')\n    permissions:\n      contents: read\n      issues: write\n",
             "DEPENDENCY_REVIEW_PERMISSIONS",
         ),
         (
@@ -669,8 +657,8 @@ def test_review0091_rejects_permission_escalation_across_sensitive_jobs(tmp_path
         ),
         (
             t11.WORKFLOW_PATH,
-            "  final-gate:\n    name: MONDE / Merge Gate\n",
-            "  final-gate:\n    name: MONDE / Merge Gate\n    permissions:\n      contents: read\n      pull-requests: write\n",
+            "  final-gate:\n    if: always() && github.event_name != 'schedule'\n    needs: [governance-core, dependency-review, codeql]\n    permissions:\n      contents: read\n      pull-requests: read\n",
+            "  final-gate:\n    if: always() && github.event_name != 'schedule'\n    needs: [governance-core, dependency-review, codeql]\n    permissions:\n      contents: read\n      pull-requests: read\n      issues: write\n",
             "FINAL_GATE_PERMISSIONS",
         ),
         (
