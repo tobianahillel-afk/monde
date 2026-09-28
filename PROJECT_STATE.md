@@ -129,9 +129,30 @@ Required sequence from this integrated state:
 6. REVIEW-0084 is terminal **CLOSED / CHANGES_REQUIRED** after fresh independent L2 `PRR_kwDOUUI5ts8AAAABPOcDnA` on exact frozen head `d1850542494492a388b545dec954e078b825d9b5` added five new P1 findings.
 7. REVIEW-0085 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPPl4wg` on frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` added four P1s; author-side `PRRT_kwDOUUI5ts6mAdoV` adds a fifth live thread.
 8. REVIEW-0087 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen head `47091d48b40d37dfb18b32f0546ea348731d7cc9` after author-side `PRRT_kwDOUUI5ts6mfxiN` exposed cross-step execution-context poisoning.
-9. REVIEW-0088 is **CLOSED / CHANGES_REQUIRED** on `2c1d72b42094e3f72d5eaa0421a9ba0d4f59a12e` after author-side `PRRT_kwDOUUI5ts6mnZ-N` exposed unbound job.container/container.env execution-context poisoning. Implement and prove REVIEW-0089 successor semantics before another L2.
-10. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
-11. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
+9. REVIEW-0088 is **CLOSED / CHANGES_REQUIRED** on `2c1d72b42094e3f72d5eaa0421a9ba0d4f59a12e` after author-side `PRRT_kwDOUUI5ts6mnZ-N` exposed unbound job.container/container.env execution-context poisoning.
+10. REVIEW-0089 technical candidate `80caf94465129918395f5e185f33d9b86c24d882` is proved and REVIEW-0089 is **OPEN**. Prove this OPEN checkpoint exact-head before advancing to IN_PROGRESS.
+11. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
+12. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
+
+## REVIEW-0089 — trusted job execution substrate successor
+
+REVIEW-0089 is now **OPEN** after exact technical proof on `80caf94465129918395f5e185f33d9b86c24d882`.
+
+Bootstrap #410 / run `36416893514` passed **450/450 bridge tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+
+Gate #341 / run `36416893817` proved the implementation before lifecycle materialization:
+- **833 governance tests PASS**;
+- **8,076 statements / 3,736 branches**, **100% line + branch**;
+- mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 16/16 T11 + 18/18 T13**;
+- CodeQL and Dependency Review SUCCESS.
+
+The deterministic lane stopped only at repository validation because WORK-0002 referenced REVIEW-0089 before this lifecycle file existed. No test, coverage, mutation, CodeQL or Dependency Review defect remained.
+
+The successor preserves REVIEW-0088 exact trusted predecessor ordering and now binds the job execution substrate: security-sensitive jobs reject `container`, reject `services`, and reject any explicit noncanonical `runs-on` value. The reviewed real jobs use `ubuntu-24.04`. The runner check is scoped to trusted sensitive-job validation rather than generic parser helpers, so reusable workflow call jobs and minimal unit fixtures are not falsely treated as execution proof.
+
+Live/durable finding parity is **95 == 95**, zero missing, zero stale. All 95 threads remain unresolved.
+
+This OPEN checkpoint must now receive one exact-head Bootstrap/Gate proof before REVIEW-0089 may transition to `IN_PROGRESS`.
 
 ## REVIEW-0088 — trusted predecessor-step prefix successor
 
@@ -266,11 +287,11 @@ Product specification and product identity remain owner-gated decisions. Agents 
 8. `registry/acceptance-authority.yaml`
 9. `registry/content-identity.yaml`
 10. `registry/integration-provenance.yaml`
-11. live PR #2 exact HEAD, checks, reviews and all **91 unresolved review threads**
+11. live PR #2 exact HEAD, checks, reviews and all **95 unresolved review threads**
 12. `.github/workflows/governance.yml`, `.github/workflows/_governance-core.yml`
 13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `t11_closure.py`, `github_live_gate.py`, `thread_state_poll.py`
 14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_t11_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`
 15. `tests/governance/test_t11_findings.py`, `test_t11_additional_coverage.py`, `test_t13_findings.py`, `test_thread_state_poll.py` and prior T7/T8/T9/T10 regression suites
-16. `registry/requirements/REQ-0026.yaml`, `registry/tests/TEST-0009.yaml`, `registry/tests/TEST-0010.yaml`, `registry/reviews/REVIEW-0082.yaml`, `registry/reviews/REVIEW-0083.yaml`, `registry/reviews/REVIEW-0084.yaml`, `registry/reviews/REVIEW-0085.yaml`, `registry/reviews/REVIEW-0086.yaml`, and `.github/workflows/monde-stale-green-bootstrap.yml`
+16. `registry/requirements/REQ-0026.yaml`, `registry/tests/TEST-0009.yaml`, `registry/tests/TEST-0010.yaml`, `registry/reviews/REVIEW-0082.yaml`, `registry/reviews/REVIEW-0083.yaml`, `registry/reviews/REVIEW-0084.yaml`, `registry/reviews/REVIEW-0085.yaml`, `registry/reviews/REVIEW-0086.yaml`, `registry/reviews/REVIEW-0087.yaml`, `registry/reviews/REVIEW-0088.yaml`, `registry/reviews/REVIEW-0089.yaml`, and `.github/workflows/monde-stale-green-bootstrap.yml`
 
 No prior chat history is required.
