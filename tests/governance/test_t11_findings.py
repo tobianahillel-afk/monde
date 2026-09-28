@@ -804,6 +804,36 @@ def test_review0092_binds_exact_job_sets_test_isolation_and_final_needs(tmp_path
     )
     assert "CORE_PYTEST_WIRING" in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
 
+    assert t11._exact_needs({"needs": "candidate-tests"}, t11.CORE_VALIDATE_NEEDS)
+    assert not t11._candidate_test_prefix(
+        t11._load_yaml_mapping(tmp_path / t11.CORE_WORKFLOW_PATH),
+        {"runs-on": "self-hosted", "steps": []},
+    )
+
+    _write_valid_workflows(tmp_path)
+    core = tmp_path / t11.CORE_WORKFLOW_PATH
+    text = core.read_text(encoding="utf-8")
+    core.write_text(
+        text.replace(
+            "  candidate-tests:\n    steps:\n",
+            "  candidate-tests:\n    needs: [validate]\n    permissions:\n      contents: write\n    steps:\n",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    rules = {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+    assert "CORE_CANDIDATE_TEST_NEEDS" in rules
+    assert "CORE_CANDIDATE_TEST_PERMISSIONS" in rules
+
+    _write_valid_workflows(tmp_path)
+    core = tmp_path / t11.CORE_WORKFLOW_PATH
+    text = core.read_text(encoding="utf-8")
+    needle = "ref: ${{ inputs.head_sha }}"
+    first = text.index(needle)
+    second = text.index(needle, first + 1)
+    core.write_text(text[:second] + text[second:].replace(needle, "ref: deadbeef", 1), encoding="utf-8")
+    assert "CORE_CHECKOUT_ACTION" in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
 
 def test_review0090_rejects_extra_action_inputs() -> None:
     base = {
@@ -999,7 +1029,7 @@ def test_workflow_structure_rejects_dependency_review_bypasses(tmp_path: Path) -
 def test_review0085_successor_regressions(tmp_path: Path) -> None:
     # Exact checkout bindings at the reusable core, CodeQL and live final gate.
     checkout_cases = [
-        (t11.CORE_WORKFLOW_PATH, "ref: ${{ inputs.head_sha }}", "ref: deadbeef", "CORE_CHECKOUT_ACTION"),
+        (t11.CORE_WORKFLOW_PATH, "ref: ${{ inputs.head_sha }}", "ref: deadbeef", "CORE_PYTEST_WIRING"),
         (t11.WORKFLOW_PATH, "ref: ${{ github.event.pull_request.head.sha || github.sha }}", "ref: deadbeef", "CODEQL_CHECKOUT_ACTION"),
         (t11.WORKFLOW_PATH, "ref: ${{ github.event.pull_request.head.sha }}", "ref: deadbeef", "FINAL_GATE_CHECKOUT_ACTION"),
         (t11.WORKFLOW_PATH, "head_sha: ${{ github.event.pull_request.head.sha || github.sha }}", "head_sha: deadbeef", "CORE_CALL_INPUTS"),
@@ -1448,7 +1478,7 @@ def test_workflow_structure_rejects_bad_poll_and_core_wiring(tmp_path: Path) -> 
         "REVIEW_THREAD_POLL_WIRING",
         "CORE_CHECKOUT_ACTION",
         "CORE_SETUP_PYTHON_ACTION",
-        "CORE_PYTEST_WIRING",
+        "CORE_CANDIDATE_TEST_JOB",
         "T11_GATE_WIRING",
         "T11_MUTATION_WIRING",
     }.issubset(rules)
