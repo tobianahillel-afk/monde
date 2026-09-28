@@ -130,13 +130,13 @@ Required sequence from this integrated state:
 7. REVIEW-0085 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPPl4wg` on frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` added four P1s; author-side `PRRT_kwDOUUI5ts6mAdoV` adds a fifth live thread.
 8. REVIEW-0087 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen head `47091d48b40d37dfb18b32f0546ea348731d7cc9` after author-side `PRRT_kwDOUUI5ts6mfxiN` exposed cross-step execution-context poisoning.
 9. REVIEW-0088 is **CLOSED / CHANGES_REQUIRED** on `2c1d72b42094e3f72d5eaa0421a9ba0d4f59a12e` after author-side `PRRT_kwDOUUI5ts6mnZ-N` exposed unbound job.container/container.env execution-context poisoning.
-10. REVIEW-0089 technical candidate `80caf94465129918395f5e185f33d9b86c24d882` is proved and REVIEW-0089 is **OPEN**. Prove this OPEN checkpoint exact-head before advancing to IN_PROGRESS.
+10. REVIEW-0089 OPEN proof is complete and REVIEW-0089 is **IN_PROGRESS**. Prove/freeze this exact head, then request one fresh independent L2.
 11. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
 12. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
 ## REVIEW-0089 — trusted job execution substrate successor
 
-REVIEW-0089 is now **OPEN** after exact technical proof on `80caf94465129918395f5e185f33d9b86c24d882`.
+REVIEW-0089 is now **IN_PROGRESS** after exact technical proof on `80caf94465129918395f5e185f33d9b86c24d882` and OPEN checkpoint proof on `4bbf27c42003e70d4bac26902f2fd4f26271e2f2`.
 
 Bootstrap #410 / run `36416893514` passed **450/450 bridge tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
@@ -152,7 +152,7 @@ The successor preserves REVIEW-0088 exact trusted predecessor ordering and now b
 
 Live/durable finding parity is **95 == 95**, zero missing, zero stale. All 95 threads remain unresolved.
 
-This OPEN checkpoint must now receive one exact-head Bootstrap/Gate proof before REVIEW-0089 may transition to `IN_PROGRESS`.
+Bootstrap #411 / run `36417698358` and Gate #342 / run `36417698618` proved the OPEN checkpoint: all tests/mutations/validators, CodeQL and Dependency Review were green, while the live gate failed closed only on **95 unresolved threads** and missing trusted exact-head approval. This IN_PROGRESS state now requires one frozen exact-head proof before fresh independent L2.
 
 ## REVIEW-0088 — trusted predecessor-step prefix successor
 
