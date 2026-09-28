@@ -113,7 +113,7 @@ T11 now enforces that:
 - **T4 — exact final-integrated-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`.**
 - Gate #259 / run `36055246141` on integrated head `6e8014c7d46e2aceefa03902c37c6bdf2fac0c19` exposed one deterministic integration defect before L2: `.github/scripts/governance_t13_mutation_smoke.py` still targeted the pre-refactor `return any(...)` form of `_steps_execute_prefix`, while the current hardened implementation uses per-step parsed commands plus `if any(...): return True`. The runtime guard was correct; the mutation harness failed closed with `t13-executable-command-proof: target occurrence count != 1`. The current correction retargets that mutant to the exact current executable-prefix branch without weakening the mutation. A fresh exact-head Gate is required before any L2 request.
 - Gate #260 / run `36058286810` proved the T13 mutation retarget itself, then exposed a second integration-specific defect in `change_guard`: inherited REVIEW-0082 from the PR #5/main second-parent lineage was incorrectly treated as freshness authority for substantive first-parent PR #2 changes. REVIEW-0082 is valid T12 predecessor evidence, not a review of the current PR #2 delta. The correction makes review freshness authority first-parent scoped: a reviewed commit must remain an ancestor of the head, but only a reviewed commit on the current head's first-parent lineage can stale subsequent first-parent work. A real two-parent regression reproduces PR #5/main as second parent and preserves ordinary first-parent stale-review detection.
-- Live PR #2 now has **95 unresolved material threads**. REVIEW-0087 is **CLOSED / CHANGES_REQUIRED** after author-side `PRRT_kwDOUUI5ts6mfxiN` added the cross-step execution-context finding; REVIEW-0086's two P1s remain live source evidence.
+- Live PR #2 now has **97 unresolved material threads**. REVIEW-0089 independent L2 added `PRRT_kwDOUUI5ts6muevI` and `PRRT_kwDOUUI5ts6muevQ`; no thread is resolved.
 - WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
 - Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` author-side; `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending exact integrated-head closure.
 
@@ -121,7 +121,7 @@ T11 now enforces that:
 
 Required sequence from this integrated state:
 
-1. Keep all **95** PR #2 material review threads unresolved.
+1. Keep all **97** PR #2 material review threads unresolved.
 2. REVIEW-0083 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPJeT9Q` on `cc37d74e2ee49aea62cfdfa30634c01a1032751f`.
 3. Correct the three distinct REVIEW-0083 defects: inherited workflow/job execution controls, single-ampersand background masking, and PR-family dependency-review skip enforcement.
 4. Keep the author duplicate `PRRT_kwDOUUI5ts6lz1l8` durably tracked until a clean successor review authorizes controlled resolution.
@@ -130,13 +130,14 @@ Required sequence from this integrated state:
 7. REVIEW-0085 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPPl4wg` on frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` added four P1s; author-side `PRRT_kwDOUUI5ts6mAdoV` adds a fifth live thread.
 8. REVIEW-0087 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen head `47091d48b40d37dfb18b32f0546ea348731d7cc9` after author-side `PRRT_kwDOUUI5ts6mfxiN` exposed cross-step execution-context poisoning.
 9. REVIEW-0088 is **CLOSED / CHANGES_REQUIRED** on `2c1d72b42094e3f72d5eaa0421a9ba0d4f59a12e` after author-side `PRRT_kwDOUUI5ts6mnZ-N` exposed unbound job.container/container.env execution-context poisoning.
-10. REVIEW-0089 OPEN proof is complete and REVIEW-0089 is **IN_PROGRESS**. Prove/freeze this exact head, then request one fresh independent L2.
+10. REVIEW-0089 is **CLOSED / CHANGES_REQUIRED** on exact frozen head `fa2c1cc6162068d1268e9f5b7a24bc73bedfdbc5` after independent L2 `PRR_kwDOUUI5ts8AAAABPk5JjQ` added P1 `PRRT_kwDOUUI5ts6muevI` and P1 `PRRT_kwDOUUI5ts6muevQ`.
+11. Build and prove REVIEW-0090 successor: reject unrecognized inherited execution env and require exact action `with:` mappings, then re-run exact-head proof over all 97 findings before another independent L2.
 11. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
 12. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
 ## REVIEW-0089 — trusted job execution substrate successor
 
-REVIEW-0089 is now **IN_PROGRESS** after exact technical proof on `80caf94465129918395f5e185f33d9b86c24d882` and OPEN checkpoint proof on `4bbf27c42003e70d4bac26902f2fd4f26271e2f2`.
+REVIEW-0089 is now **CLOSED / CHANGES_REQUIRED** on exact frozen head `fa2c1cc6162068d1268e9f5b7a24bc73bedfdbc5` after fresh independent L2 `PRR_kwDOUUI5ts8AAAABPk5JjQ` found two P1s.
 
 Bootstrap #410 / run `36416893514` passed **450/450 bridge tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
@@ -152,7 +153,7 @@ The successor preserves REVIEW-0088 exact trusted predecessor ordering and now b
 
 Live/durable finding parity is **95 == 95**, zero missing, zero stale. All 95 threads remain unresolved.
 
-Bootstrap #411 / run `36417698358` and Gate #342 / run `36417698618` proved the OPEN checkpoint: all tests/mutations/validators, CodeQL and Dependency Review were green, while the live gate failed closed only on **95 unresolved threads** and missing trusted exact-head approval. This IN_PROGRESS state now requires one frozen exact-head proof before fresh independent L2.
+Bootstrap #412 / run `36418281503` and Gate #343 / run `36418281767` proved the frozen REVIEW-0089 head: deterministic governance, CodeQL and Dependency Review were green; live closure failed only on **95 unresolved threads** and missing trusted exact-head approval. Independent L2 then added `PRRT_kwDOUUI5ts6muevI` (execution-poisoning env keys such as `LD_PRELOAD`) and `PRRT_kwDOUUI5ts6muevQ` (extra Dependency Review inputs such as `warn-only: true`), expanding the closure set to **97**. REVIEW-0090 must correct both before another review.
 
 ## REVIEW-0088 — trusted predecessor-step prefix successor
 
@@ -287,7 +288,7 @@ Product specification and product identity remain owner-gated decisions. Agents 
 8. `registry/acceptance-authority.yaml`
 9. `registry/content-identity.yaml`
 10. `registry/integration-provenance.yaml`
-11. live PR #2 exact HEAD, checks, reviews and all **95 unresolved review threads**
+11. live PR #2 exact HEAD, checks, reviews and all **97 unresolved review threads**
 12. `.github/workflows/governance.yml`, `.github/workflows/_governance-core.yml`
 13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `t11_closure.py`, `github_live_gate.py`, `thread_state_poll.py`
 14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_t11_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`
