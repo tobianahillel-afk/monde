@@ -84,6 +84,16 @@ MUTATIONS = {
         '    if "container" in job:\n        return False\n',
         '    if False:\n        return False\n',
     ),
+    "t11-job-runner-execution-context": (
+        "tools/governance/t11_closure.py",
+        '    if workflow is not None and job.get("runs-on") != TRUSTED_RUNNER:\n        return False\n',
+        '    if False:\n        return False\n',
+    ),
+    "t11-job-service-execution-context": (
+        "tools/governance/t11_closure.py",
+        '    if "services" in job:\n        return False\n',
+        '    if False:\n        return False\n',
+    ),
 }
 
 

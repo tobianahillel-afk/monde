@@ -46,6 +46,7 @@ PR_EVENT_IF = "startsWith(github.event_name, 'pull_request')"
 CORE_PR_IF = "startsWith(inputs.event_name, 'pull_request')"
 FINAL_GATE_IF = "always() && github.event_name != 'schedule'"
 CODEQL_JOB_IF = "github.event_name != 'schedule'"
+TRUSTED_RUNNER = "ubuntu-24.04"
 
 CORE_WORKFLOW_USES = "./.github/workflows/_governance-core.yml"
 CORE_EVENT_EXPR = "${{ github.event_name }}"
@@ -509,7 +510,11 @@ def _inherited_execution_controls_safe(
     workflow: dict[str, Any] | None,
     job: dict[str, Any],
 ) -> bool:
+    if workflow is not None and job.get("runs-on") != TRUSTED_RUNNER:
+        return False
     if "container" in job:
+        return False
+    if "services" in job:
         return False
     return _container_execution_defaults_safe(workflow or {}) and _container_execution_defaults_safe(job)
 
