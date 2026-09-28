@@ -109,6 +109,11 @@ MUTATIONS = {
         "        if not isinstance(normalized_with, dict) or normalized_with != expected_with:\n            continue\n",
         "        if not isinstance(normalized_with, dict) or any(normalized_with.get(key) != value for key, value in expected_with.items()):\n            continue\n",
     ),
+    "t11-exact-permission-binding": (
+        "tools/governance/t11_closure.py",
+        "    return isinstance(actual, dict) and actual == required_permissions\n",
+        "    return isinstance(actual, dict) and all(actual.get(key) == value for key, value in required_permissions.items())\n",
+    ),
 }
 
 

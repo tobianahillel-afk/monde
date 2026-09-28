@@ -47,6 +47,21 @@ CORE_PR_IF = "startsWith(inputs.event_name, 'pull_request')"
 FINAL_GATE_IF = "always() && github.event_name != 'schedule'"
 CODEQL_JOB_IF = "github.event_name != 'schedule'"
 TRUSTED_RUNNER = "ubuntu-24.04"
+WORKFLOW_PERMISSIONS = {"contents": "read"}
+CORE_WORKFLOW_PERMISSIONS = {"contents": "read"}
+DEPENDENCY_REVIEW_PERMISSIONS = {"contents": "read"}
+CODEQL_PERMISSIONS = {
+    "actions": "read",
+    "contents": "read",
+    "packages": "read",
+    "security-events": "write",
+}
+FINAL_GATE_PERMISSIONS = {"contents": "read", "pull-requests": "read"}
+POLL_PERMISSIONS = {
+    "actions": "write",
+    "contents": "read",
+    "pull-requests": "read",
+}
 
 CORE_WORKFLOW_USES = "./.github/workflows/_governance-core.yml"
 CORE_EVENT_EXPR = "${{ github.event_name }}"
@@ -494,6 +509,16 @@ def _exact_environment_safe(
     return isinstance(env, dict) and env == required_env
 
 
+def _exact_permissions_safe(
+    container: dict[str, Any],
+    required_permissions: dict[str, Any] | None = None,
+) -> bool:
+    if required_permissions is None:
+        return "permissions" not in container
+    actual = container.get("permissions")
+    return isinstance(actual, dict) and actual == required_permissions
+
+
 def _container_execution_defaults_safe(container: dict[str, Any]) -> bool:
     if not _exact_environment_safe(container.get("env")):
         return False
@@ -520,13 +545,16 @@ def _inherited_execution_controls_safe(
     return _container_execution_defaults_safe(workflow or {}) and _container_execution_defaults_safe(job)
 
 
-def _trusted_job_execution_substrate_safe(job: dict[str, Any]) -> bool:
+def _trusted_job_execution_substrate_safe(
+    job: dict[str, Any],
+    required_permissions: dict[str, Any] | None = None,
+) -> bool:
     runner = job.get("runs-on")
     if runner is not None and runner != TRUSTED_RUNNER:
         return False
     if "services" in job:
         return False
-    return True
+    return _exact_permissions_safe(job, required_permissions)
 
 
 def _execution_controls_safe(
@@ -756,7 +784,7 @@ def _exact_run_at(
 
 
 def _poll_trusted_prefix(workflow: dict[str, Any], poll: dict[str, Any]) -> bool:
-    if not _trusted_job_execution_substrate_safe(poll):
+    if not _trusted_job_execution_substrate_safe(poll, POLL_PERMISSIONS):
         return False
     job_ifs = frozenset({"github.event_name == 'schedule'"})
     return _trusted_prefix(
@@ -801,7 +829,7 @@ def _poll_trusted_prefix(workflow: dict[str, Any], poll: dict[str, Any]) -> bool
 
 
 def _core_trusted_prefix(core: dict[str, Any], validate: dict[str, Any]) -> bool:
-    if not _trusted_job_execution_substrate_safe(validate):
+    if not _trusted_job_execution_substrate_safe(validate, None):
         return False
     checks: list[bool] = [
         _action_at(
@@ -857,7 +885,7 @@ def _dependency_review_trusted_prefix(
     workflow: dict[str, Any],
     job: dict[str, Any],
 ) -> bool:
-    if not _trusted_job_execution_substrate_safe(job):
+    if not _trusted_job_execution_substrate_safe(job, DEPENDENCY_REVIEW_PERMISSIONS):
         return False
     job_ifs = frozenset({PR_EVENT_IF})
     return _trusted_prefix(
@@ -877,7 +905,7 @@ def _dependency_review_trusted_prefix(
 
 
 def _codeql_trusted_prefix(workflow: dict[str, Any], job: dict[str, Any]) -> bool:
-    if not _trusted_job_execution_substrate_safe(job):
+    if not _trusted_job_execution_substrate_safe(job, CODEQL_PERMISSIONS):
         return False
     job_ifs = frozenset({CODEQL_JOB_IF})
     return _trusted_prefix(
@@ -910,7 +938,7 @@ def _codeql_trusted_prefix(workflow: dict[str, Any], job: dict[str, Any]) -> boo
 
 
 def _final_gate_trusted_prefix(workflow: dict[str, Any], job: dict[str, Any]) -> bool:
-    if not _trusted_job_execution_substrate_safe(job):
+    if not _trusted_job_execution_substrate_safe(job, FINAL_GATE_PERMISSIONS):
         return False
     job_ifs = frozenset({FINAL_GATE_IF})
     pr_ifs = frozenset({PR_EVENT_IF})
@@ -1002,6 +1030,23 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
     if not has_poll_schedule:
         out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_SCHEDULE", f"effective schedule must include cron {POLL_CRON!r}"))
 
+    if not _exact_permissions_safe(workflow, WORKFLOW_PERMISSIONS):
+        out.append(
+            Finding(
+                WORKFLOW_PATH,
+                "WORKFLOW_PERMISSIONS",
+                f"workflow permissions must equal the exact least-privilege mapping {WORKFLOW_PERMISSIONS!r}",
+            )
+        )
+    if not _exact_permissions_safe(core, CORE_WORKFLOW_PERMISSIONS):
+        out.append(
+            Finding(
+                CORE_WORKFLOW_PATH,
+                "CORE_WORKFLOW_PERMISSIONS",
+                f"reusable governance-core permissions must equal the exact least-privilege mapping {CORE_WORKFLOW_PERMISSIONS!r}",
+            )
+        )
+
     jobs = workflow.get("jobs")
     jobs = jobs if isinstance(jobs, dict) else {}
 
@@ -1021,15 +1066,15 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
         actual_inputs = governance_core.get("with")
         if not isinstance(actual_inputs, dict) or actual_inputs != expected_inputs:
             out.append(Finding(WORKFLOW_PATH, "CORE_CALL_INPUTS", "governance-core must bind event/base/head inputs to the exact current GitHub event expressions"))
+        if not _exact_permissions_safe(governance_core, None):
+            out.append(Finding(WORKFLOW_PATH, "CORE_CALL_PERMISSIONS", "governance-core caller must inherit the exact workflow permission boundary without a job-level override"))
 
     poll = jobs.get("review-thread-state-poll")
     if not isinstance(poll, dict):
         out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_JOB", "review-thread-state-poll job is missing"))
     else:
-        permissions = poll.get("permissions")
-        permissions = permissions if isinstance(permissions, dict) else {}
-        if permissions.get("actions") != "write" or permissions.get("pull-requests") != "read" or permissions.get("contents") != "read":
-            out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_PERMISSIONS", "poll job requires actions:write plus pull-requests:read and contents:read"))
+        if not _exact_permissions_safe(poll, POLL_PERMISSIONS):
+            out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_PERMISSIONS", f"poll job permissions must equal the exact mapping {POLL_PERMISSIONS!r}"))
         if str(poll.get("if") or "") != "github.event_name == 'schedule'":
             out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_SCOPE", "poll job must run only for schedule events"))
         if not _steps_execute_prefix(
@@ -1045,6 +1090,9 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
     core_jobs = core_jobs if isinstance(core_jobs, dict) else {}
     validate = core_jobs.get("validate")
     validate = validate if isinstance(validate, dict) else {}
+
+    if not _exact_permissions_safe(validate, None):
+        out.append(Finding(CORE_WORKFLOW_PATH, "CORE_VALIDATE_PERMISSIONS", "governance-core validate job must inherit the exact reusable-workflow permission boundary without a job-level override"))
 
     if not _steps_use_action(
         validate,
@@ -1098,6 +1146,8 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
     if not isinstance(dependency_review, dict):
         out.append(Finding(WORKFLOW_PATH, "DEPENDENCY_REVIEW_JOB", "dependency-review job is missing"))
     else:
+        if not _exact_permissions_safe(dependency_review, DEPENDENCY_REVIEW_PERMISSIONS):
+            out.append(Finding(WORKFLOW_PATH, "DEPENDENCY_REVIEW_PERMISSIONS", f"dependency-review permissions must equal the exact mapping {DEPENDENCY_REVIEW_PERMISSIONS!r}"))
         if str(dependency_review.get("if") or "") != PR_EVENT_IF:
             out.append(
                 Finding(
@@ -1136,6 +1186,8 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
     if not isinstance(codeql, dict):
         out.append(Finding(WORKFLOW_PATH, "CODEQL_JOB", "codeql job is missing"))
     else:
+        if not _exact_permissions_safe(codeql, CODEQL_PERMISSIONS):
+            out.append(Finding(WORKFLOW_PATH, "CODEQL_PERMISSIONS", f"CodeQL permissions must equal the exact mapping {CODEQL_PERMISSIONS!r}"))
         if str(codeql.get("if") or "") != CODEQL_JOB_IF:
             out.append(Finding(WORKFLOW_PATH, "CODEQL_SCOPE", "codeql job must run for every non-schedule event"))
         codeql_job_ifs = frozenset({CODEQL_JOB_IF})
@@ -1167,6 +1219,8 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
     if not isinstance(final_gate, dict):
         out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_JOB", "final-gate job is missing"))
     else:
+        if not _exact_permissions_safe(final_gate, FINAL_GATE_PERMISSIONS):
+            out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_PERMISSIONS", f"final-gate permissions must equal the exact mapping {FINAL_GATE_PERMISSIONS!r}"))
         if str(final_gate.get("if") or "") != FINAL_GATE_IF:
             out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_SCOPE", "final-gate must run for every non-schedule event"))
         needs = final_gate.get("needs")

@@ -576,6 +576,92 @@ def test_execution_container_defaults_cover_safe_and_malformed_shapes() -> None:
     assert t11._trusted_job_execution_substrate_safe(
         {"services": {"poison": {"image": "attacker/service"}}}
     ) is False
+    assert t11._trusted_job_execution_substrate_safe(
+        {"runs-on": t11.TRUSTED_RUNNER, "permissions": {"contents": "read"}},
+        {"contents": "read"},
+    ) is True
+    assert t11._trusted_job_execution_substrate_safe(
+        {"runs-on": t11.TRUSTED_RUNNER, "permissions": {"contents": "read", "issues": "write"}},
+        {"contents": "read"},
+    ) is False
+
+
+def test_review0091_permission_helper_requires_exact_mapping_or_inheritance() -> None:
+    assert t11._exact_permissions_safe({}, None) is True
+    assert t11._exact_permissions_safe({"permissions": {}}, None) is False
+    assert t11._exact_permissions_safe(
+        {"permissions": {"contents": "read"}},
+        {"contents": "read"},
+    ) is True
+    assert t11._exact_permissions_safe(
+        {"permissions": {"contents": "read", "issues": "write"}},
+        {"contents": "read"},
+    ) is False
+    assert t11._exact_permissions_safe(
+        {"permissions": "read-all"},
+        {"contents": "read"},
+    ) is False
+
+
+def test_review0091_rejects_permission_escalation_across_sensitive_jobs(tmp_path: Path) -> None:
+    cases = [
+        (
+            t11.WORKFLOW_PATH,
+            "permissions:\n  contents: read\n",
+            "permissions:\n  contents: read\n  issues: write\n",
+            "WORKFLOW_PERMISSIONS",
+        ),
+        (
+            t11.CORE_WORKFLOW_PATH,
+            "permissions:\n  contents: read\n",
+            "permissions:\n  contents: read\n  actions: write\n",
+            "CORE_WORKFLOW_PERMISSIONS",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "  governance-core:\n    name: Governance core\n",
+            "  governance-core:\n    name: Governance core\n    permissions:\n      contents: write\n",
+            "CORE_CALL_PERMISSIONS",
+        ),
+        (
+            t11.CORE_WORKFLOW_PATH,
+            "  validate:\n    name: Deterministic governance\n",
+            "  validate:\n    name: Deterministic governance\n    permissions:\n      contents: write\n",
+            "CORE_VALIDATE_PERMISSIONS",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "  dependency-review:\n    name: Dependency review\n",
+            "  dependency-review:\n    name: Dependency review\n    permissions:\n      contents: read\n      issues: write\n",
+            "DEPENDENCY_REVIEW_PERMISSIONS",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "      security-events: write\n",
+            "      security-events: write\n      id-token: write\n",
+            "CODEQL_PERMISSIONS",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "  final-gate:\n    name: MONDE / Merge Gate\n",
+            "  final-gate:\n    name: MONDE / Merge Gate\n    permissions:\n      contents: read\n      pull-requests: write\n",
+            "FINAL_GATE_PERMISSIONS",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "      pull-requests: read\n    steps:\n      - name: Checkout trusted default-branch poller\n",
+            "      pull-requests: read\n      issues: write\n    steps:\n      - name: Checkout trusted default-branch poller\n",
+            "REVIEW_THREAD_POLL_PERMISSIONS",
+        ),
+    ]
+    for path, needle, replacement, rule in cases:
+        _write_valid_workflows(tmp_path)
+        target = tmp_path / path
+        text = target.read_text(encoding="utf-8")
+        assert needle in text
+        target.write_text(text.replace(needle, replacement, 1), encoding="utf-8")
+        rules = {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+        assert rule in rules
 
 
 def test_review0090_rejects_unrecognized_env_and_requires_exact_step_env(tmp_path: Path) -> None:
