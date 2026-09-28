@@ -121,33 +121,36 @@ T11 now enforces that:
 
 Required sequence from this integrated state:
 
-1. Keep all **100** PR #2 material review threads unresolved.
-2. REVIEW-0083 through REVIEW-0090 remain terminal negative evidence.
-3. REVIEW-0091 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen head `214a24f126caf45182153a298b6189b436231b1a`.
-4. REVIEW-0091 CLOSED checkpoint `c6d8cf88212595b2ec4330677a19111c2485c37a` passed Gate #369 deterministic/security proof before successor implementation.
-5. REVIEW-0092 technical candidate `b830aaaeb1954541da102d4e897b734e5c82485a` passed Bootstrap #433 / run `36498023728` and Gate #371 / run `36498024030`: **839 tests**, **8,120 statements / 3,758 branches**, **100% line + branch**, mutations **38/38 + 40/40 + 5/5 + 24/24 + 18/18**, all deterministic/T7-T11/context validators, CodeQL and Dependency Review green.
-6. Candidate pytest now runs in a separate `candidate-tests` runner/job; trusted `validate` starts only after it succeeds on a fresh runner. Main/core workflow job sets and final-gate `needs` are exact.
-7. REVIEW-0092 is **OPEN**. Prove this state-only OPEN checkpoint on its exact HEAD before transitioning to IN_PROGRESS.
-8. Keep all **100** threads unresolved throughout the OPEN/IN_PROGRESS proof.
-9. After REVIEW-0092 OPEN and frozen IN_PROGRESS proof, request fresh independent L2 over all **100** unresolved findings.
+1. Keep all **101** PR #2 material review threads unresolved.
+2. REVIEW-0083 through REVIEW-0092 remain terminal negative evidence.
+3. REVIEW-0092 technical candidate `b830aaaeb1954541da102d4e897b734e5c82485a` passed Bootstrap #433 / run `36498023728` and Gate #371 / run `36498024030`, proving the exact job graph and top-level pytest isolation.
+4. REVIEW-0092 OPEN checkpoint `fcf3e755050bfefa652fcf082bf786e19dea9bfd` was invalidated before lifecycle advance by author-side P1 `PRRT_kwDOUUI5ts6m5xW5`: all five mutation smokes still execute PR-controlled pytest inside trusted `validate`.
+5. Gate #372 was cancelled by that review event and is not completion evidence.
+6. REVIEW-0093 must move **every pytest-executing mutation smoke** into `candidate-tests`, keep `validate` to fresh checkout/setup/hash-locked install plus trusted validators only, remove trusted-job pip-cache restoration, and structurally prevent candidate execution from migrating back into `validate`.
+7. Preserve REVIEW-0092 exact primary/core job sets, exact `validate.needs`, exact final-gate `needs`, and every REVIEW-0091/0090/0089/0088 permission/env/action/substrate/trusted-prefix protection.
+8. Prove REVIEW-0092 CLOSED checkpoint before any REVIEW-0093 implementation commit.
+9. After REVIEW-0093 technical/OPEN/IN_PROGRESS frozen proof, request fresh independent L2 over all **101** unresolved findings.
 10. Only after clean independent semantic verification and eligible trusted non-author exact-head approval may independently verified PR #2 threads/findings be resolved and WORK-0002 completion be synchronized.
 11. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
-## REVIEW-0092 — isolated candidate-test and exact job-graph successor
+## REVIEW-0092 — terminal negative evidence
 
-REVIEW-0092 is now **OPEN** after exact technical proof on `b830aaaeb1954541da102d4e897b734e5c82485a`.
+REVIEW-0092 is **CLOSED / CHANGES_REQUIRED** on exact OPEN checkpoint head `fcf3e755050bfefa652fcf082bf786e19dea9bfd`.
 
-Bootstrap #433 / run `36498023728` succeeded. Gate #371 / run `36498024030` proved:
-- **839 governance tests PASS**;
-- **8,120 statements / 3,758 branches**, **100% line + branch**;
+Its substantive technical candidate `b830aaaeb1954541da102d4e897b734e5c82485a` passed Bootstrap #433 / run `36498023728` and Gate #371 / run `36498024030`:
+- **450 bridge tests**, **3,853 statements / 1,640 branches**, **100% line + branch**;
+- **839 governance tests**, **8,120 statements / 3,758 branches**, **100% line + branch**;
 - mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 24/24 T11 + 18/18 T13**;
-- repository/strict/path/change/L2/review/T7/T8/T9/T10/T11/context validators all green;
-- CodeQL and Dependency Review SUCCESS;
-- live merge closure failed only on **100 unresolved threads** and missing trusted context-separated exact-head approval, with no durable-set mismatch.
+- candidate-tests, deterministic governance, CodeQL and Dependency Review all green;
+- live merge gate failed only on the then-**100 unresolved threads** and missing trusted exact-head approval.
 
-The successor closes both REVIEW-0091 P1 classes structurally. PR-controlled pytest now executes in a dedicated `candidate-tests` job on its own runner; the trusted `validate` job contains no pytest and starts on a fresh runner only after `candidate-tests` succeeds. The validator binds the complete top-level and reusable-workflow job-ID sets exactly, binds `validate.needs` exactly to `candidate-tests`, and binds `final-gate.needs` exactly to `governance-core`, `dependency-review` and `codeql`. Four new T11 mutants protect these properties.
+The structural job-graph fixes are valid: top-level pytest is isolated, primary/core job sets are exact, `validate.needs` and final-gate `needs` are exact, and the exact permission/env/action/substrate protections remain intact.
 
-No review thread is resolved. This OPEN checkpoint must receive its own exact-head Bootstrap/Gate proof before REVIEW-0092 may transition to `IN_PROGRESS`.
+However author-side review `PRR_kwDOUUI5ts8AAAABPqVtcQ` / P1 `PRRT_kwDOUUI5ts6m5xW5` proved the isolation boundary is incomplete. Every mutation-smoke script copies `os.environ` and launches PR-controlled pytest. Because all five smokes still run in `validate`, a malicious test can write GitHub's `GITHUB_PATH` / `GITHUB_ENV` files and alter later trusted validators while their reviewed argv remains exact.
+
+The trusted `validate` job also restores the same pip cache key used by candidate execution. REVIEW-0093 must eliminate both couplings.
+
+The closure set is now **101 unresolved material threads**. No thread is resolved. REVIEW-0092 closed before `IN_PROGRESS`; Gate #372 was cancelled by the review event and is not approval or lifecycle-completion evidence.
 
 ## REVIEW-0091 — terminal negative evidence
 
