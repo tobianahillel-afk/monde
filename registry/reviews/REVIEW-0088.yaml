@@ -1,0 +1,88 @@
+id: REVIEW-0088
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "PR #5 / T12 remains merged on main as b4b52c77fbf05eda65e8f0e951959da70e7edbe7"
+    - "T13 and T14 remain DONE author-side and intact on the final integrated candidate"
+    - "REVIEW-0087 remains terminal CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten as approval"
+    - "P1 PRRT_kwDOUUI5ts6mfxiN is closed only if every security-sensitive command/action is bound to its canonical trusted predecessor-step prefix and order"
+    - "arbitrary extra or reordered predecessor steps before sensitive governance commands/actions fail closed, including GITHUB_PATH/GITHUB_ENV persistence attempts"
+    - "review-thread poll requires exact checkout -> setup-python -> hashed toolchain install -> poller order"
+    - "governance core requires exact canonical checkout/setup/command order through the final context-manifest validator"
+    - "Dependency Review requires exact fail-closed depgraph producer at position 0 and pinned consumer at position 1"
+    - "CodeQL requires exact pinned checkout -> init -> analyze order"
+    - "final gate requires the exact fail-closed lane-results verifier, required lane assertions, exact-head checkout and live gate in canonical order"
+    - "existing REVIEW-0086 single-logical-command and dependency-producer ordering protections remain intact"
+    - "existing exact-ref, complete-argv, shell-shadow, inherited-control, background-mask and live-gate protections remain intact"
+    - "WORK-0002 durable open_findings exactly equals all 94 live unresolved PR #2 material thread identities"
+    - "no PR #2 review thread is resolved before a clean REVIEW-0088 result and eligible trusted exact-head approval"
+  risks:
+    - "an earlier same-job step can persist attacker-controlled PATH/PYTHONPATH or other execution context into a later exact required command"
+    - "an inserted or reordered action can alter workspace/toolchain state while the later sensitive node remains individually valid"
+    - "strict positional binding can become stale when the canonical workflow legitimately evolves, so changes must update both workflow and validator atomically"
+    - "technical green proof can be mistaken for independent semantic approval"
+    - "durable and live finding identity sets can drift while preserving equal cardinality"
+findings: []
+checks:
+  assumptions_challenged:
+    - "validating each sensitive step in isolation is sufficient to establish trusted execution"
+    - "only same-run-block preparatory state mutations need to be rejected"
+    - "pinned actions remain safe even if arbitrary predecessor steps are inserted before them"
+    - "a fully green deterministic gate is equivalent to independent L2 closure"
+  omitted_categories_considered:
+    - "GITHUB_PATH persistence from a preceding step"
+    - "GITHUB_ENV persistence from a preceding step"
+    - "workspace or executable-resolution mutation in an inserted predecessor"
+    - "extra predecessor before final live gate"
+    - "extra predecessor before T11/core validators"
+    - "extra predecessor before scheduled poller"
+    - "extra predecessor between depgraph producer and Dependency Review consumer"
+    - "extra predecessor before CodeQL analyze"
+    - "reordered canonical predecessor steps"
+    - "all 94 live/durable PRRT identities"
+  duplicate_or_reuse_search:
+    - "Existing T11 command/action semantic validators are reused unchanged; REVIEW-0088 adds a separate positional-prefix layer rather than replacing them."
+    - "Existing T11 mutation harness is extended with one trusted-prefix mutant rather than creating a second mutation framework."
+    - "Existing T12/T13/T14 integration contracts are reused unchanged."
+    - "No historical negative review is rewritten as approval."
+  failure_modes_considered:
+    - "extra predecessor shifts a sensitive command while its argv remains exact"
+    - "reordering canonical predecessors leaves all individual nodes present but changes trust ordering"
+    - "poll checkout/setup/install sequence is replaced or reordered"
+    - "Dependency Review producer/consumer remain individually valid but gain an untrusted interposed step"
+    - "CodeQL checkout/init/analyze gain an untrusted interposed step"
+    - "final-gate lane verifier or exact-head checkout is displaced by an injected step"
+    - "mutation harness no longer detects loss of trusted-prefix enforcement"
+    - "live and durable finding sets differ despite equal count"
+  evidence_requested:
+    - "Exact technical candidate 831dd71499cbc066e208c599dee94488cf536436 reached Gate #332 / run 36399267742 with 831 tests PASS, 8056 statements / 3720 branches at 100 percent line+branch, all mutation lanes including T11 13/13, CodeQL and Dependency Review success."
+    - "Gate #332 stopped at repository validation only because REVIEW-0088 was already referenced by WORK-0002 but this lifecycle record had not yet been materialized; no runtime/test/mutation failure remained."
+    - "Bootstrap #403 / run 36399267697 passed 450/450 bridge tests, 3853 statements / 1640 branches at 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "This OPEN checkpoint must pass a complete exact-head Gate including repository/strict/path/change/L2/review/T7/T8/T9/T10/T11/context validators before transition to IN_PROGRESS."
+    - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
+    - "Resolve no PR #2 thread until REVIEW-0088 independent L2 is clean and exact-head trusted approval exists."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-28"
+  updated_at: "2026-09-28"
