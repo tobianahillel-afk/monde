@@ -325,6 +325,15 @@ jobs:
       pull-requests: read
       contents: read
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13.15'
+          cache: pip
+          cache-dependency-path: requirements/governance-ci.txt
+      - run: python -m pip install --require-hashes -r requirements/governance-ci.txt
       - run: python -m tools.governance.thread_state_poll
   dependency-review:
     if: startsWith(github.event_name, 'pull_request')
@@ -373,6 +382,18 @@ jobs:
     if: always() && github.event_name != 'schedule'
     needs: [governance-core, dependency-review, codeql]
     steps:
+      - shell: bash
+        run: |
+          set -euo pipefail
+          echo "governance-core=${{ needs.governance-core.result }}"
+          echo "dependency-review=${{ needs.dependency-review.result }}"
+          echo "codeql=${{ needs.codeql.result }}"
+          test '${{ needs.governance-core.result }}' = 'success'
+          test '${{ needs.codeql.result }}' = 'success'
+          case '${{ needs.dependency-review.result }}' in
+            success|skipped) ;;
+            *) exit 1 ;;
+          esac
       - run: test '${{ needs.governance-core.result }}' = 'success'
       - run: test '${{ needs.codeql.result }}' = 'success'
       - if: startsWith(github.event_name, 'pull_request')
@@ -691,6 +712,57 @@ def test_review0085_successor_regressions(tmp_path: Path) -> None:
     assert "DEPENDENCY_REVIEW_ACTION" in {
         item.rule for item in t11.validate_workflow_structure(tmp_path)
     }
+
+
+def test_review0088_rejects_cross_step_execution_context_poisoning(tmp_path: Path) -> None:
+    cases = [
+        (
+            t11.WORKFLOW_PATH,
+            "      - if: startsWith(github.event_name, 'pull_request')\n        run: python -m tools.governance.github_live_gate",
+            "      - run: echo \"$PWD/attacker\" >> \"$GITHUB_PATH\"\n",
+            "FINAL_GATE_TRUSTED_PREFIX",
+        ),
+        (
+            t11.CORE_WORKFLOW_PATH,
+            "      - if: startsWith(inputs.event_name, 'pull_request')\n        run: python -m tools.governance.t11_closure",
+            "      - run: echo 'PYTHONPATH=/tmp/attacker' >> \"$GITHUB_ENV\"\n",
+            "CORE_TRUSTED_PREFIX",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "      - run: python -m tools.governance.thread_state_poll\n",
+            "      - run: echo '/tmp/attacker' >> \"$GITHUB_PATH\"\n",
+            "REVIEW_THREAD_POLL_TRUSTED_PREFIX",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "      - if: steps.depgraph.outputs.supported == 'true'\n        uses: actions/dependency-review-action@",
+            "      - run: echo 'PYTHONPATH=/tmp/attacker' >> \"$GITHUB_ENV\"\n",
+            "DEPENDENCY_REVIEW_TRUSTED_PREFIX",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "      - uses: github/codeql-action/analyze@",
+            "      - run: echo '/tmp/attacker' >> \"$GITHUB_PATH\"\n",
+            "CODEQL_TRUSTED_PREFIX",
+        ),
+    ]
+    for path, needle, poison, rule in cases:
+        _write_valid_workflows(tmp_path)
+        target = tmp_path / path
+        text = target.read_text(encoding="utf-8")
+        assert needle in text
+        target.write_text(text.replace(needle, poison + needle, 1), encoding="utf-8")
+        assert rule in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
+
+def test_review0088_trusted_prefix_helpers_fail_closed() -> None:
+    job = {"steps": [{"run": "one"}]}
+    assert t11._single_step_job(job, 0)["steps"] == [{"run": "one"}]
+    assert t11._single_step_job(job, 1)["steps"] == []
+    assert t11._single_step_job({"steps": "bad"}, 0)["steps"] == []
+    assert t11._trusted_prefix([True, True]) is True
+    assert t11._trusted_prefix([True, False]) is False
 
 
 def test_review0085_probe_fail_closed_branches_and_core_call(tmp_path: Path) -> None:

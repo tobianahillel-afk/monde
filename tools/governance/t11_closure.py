@@ -98,6 +98,38 @@ REQUIRED_CORE_COMMANDS = (
     ("CORE_CONTEXT_MANIFEST_WIRING", ("python", "-m", "tools.governance.context_manifest", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--out", "context-manifest.json"), frozenset({CORE_PR_IF})),
 )
 
+CORE_REQUIRED_STEP_INDEXES = {
+    "CORE_TOOLCHAIN_WIRING": 2,
+    "CORE_PYTEST_WIRING": 3,
+    "CORE_BASE_MUTATION_WIRING": 4,
+    "CORE_L2_MUTATION_WIRING": 5,
+    "CORE_T10_MUTATION_WIRING": 6,
+    "CORE_T13_MUTATION_WIRING": 8,
+    "CORE_VALIDATE_REPO_WIRING": 9,
+    "CORE_STRICT_CONTRACTS_WIRING": 10,
+    "CORE_PATH_SAFETY_WIRING": 11,
+    "CORE_CHANGE_GUARD_WIRING": 12,
+    "CORE_L2_GATE_WIRING": 13,
+    "CORE_REVIEW_CLOSURE_WIRING": 14,
+    "CORE_T7_WIRING": 15,
+    "CORE_T8_WIRING": 16,
+    "CORE_T9_WIRING": 17,
+    "CORE_T10_WIRING": 18,
+    "CORE_CONTEXT_MANIFEST_WIRING": 20,
+}
+
+FINAL_GATE_LANE_RESULTS_RUN = """set -euo pipefail
+echo "governance-core=${{ needs.governance-core.result }}"
+echo "dependency-review=${{ needs.dependency-review.result }}"
+echo "codeql=${{ needs.codeql.result }}"
+test '${{ needs.governance-core.result }}' = 'success'
+test '${{ needs.codeql.result }}' = 'success'
+case '${{ needs.dependency-review.result }}' in
+  success|skipped) ;;
+  *) exit 1 ;;
+esac
+"""
+
 
 @dataclass(frozen=True)
 class Finding:
@@ -603,6 +635,300 @@ def _steps_execute_prefix(
     return False
 
 
+def _single_step_job(job: dict[str, Any], index: int) -> dict[str, Any]:
+    steps = job.get("steps")
+    narrowed = dict(job)
+    if not isinstance(steps, list) or index < 0 or index >= len(steps):
+        narrowed["steps"] = []
+        return narrowed
+    narrowed["steps"] = [steps[index]]
+    return narrowed
+
+
+def _trusted_prefix(checks: Iterable[bool]) -> bool:
+    return all(checks)
+
+
+def _action_at(
+    job: dict[str, Any],
+    index: int,
+    expected_use: str,
+    *,
+    workflow: dict[str, Any] | None = None,
+    allowed_job_ifs: frozenset[str] = frozenset(),
+    allowed_step_ifs: frozenset[str] = frozenset(),
+    required_with: dict[str, Any] | None = None,
+) -> bool:
+    return _steps_use_action(
+        _single_step_job(job, index),
+        expected_use,
+        workflow=workflow,
+        allowed_job_ifs=allowed_job_ifs,
+        allowed_step_ifs=allowed_step_ifs,
+        required_with=required_with,
+    )
+
+
+def _command_at(
+    job: dict[str, Any],
+    index: int,
+    expected: tuple[str, ...],
+    *,
+    workflow: dict[str, Any] | None = None,
+    allowed_job_ifs: frozenset[str] = frozenset(),
+    allowed_step_ifs: frozenset[str] = frozenset(),
+) -> bool:
+    return _steps_execute_prefix(
+        _single_step_job(job, index),
+        expected,
+        workflow=workflow,
+        allowed_job_ifs=allowed_job_ifs,
+        allowed_step_ifs=allowed_step_ifs,
+    )
+
+
+def _exact_run_at(
+    job: dict[str, Any],
+    index: int,
+    expected_run: str,
+    *,
+    workflow: dict[str, Any] | None = None,
+    allowed_job_ifs: frozenset[str] = frozenset(),
+    required_shell: str | None = None,
+) -> bool:
+    if not _inherited_execution_controls_safe(workflow, job):
+        return False
+    narrowed = _single_step_job(job, index)
+    steps = narrowed.get("steps")
+    if not isinstance(steps, list) or len(steps) != 1 or not isinstance(steps[0], dict):
+        return False
+    step = steps[0]
+    if narrowed.get("continue-on-error") not in (None, False):
+        return False
+    job_if = narrowed.get("if")
+    if job_if is not None and (
+        not isinstance(job_if, str) or job_if not in allowed_job_ifs
+    ):
+        return False
+    if step.get("continue-on-error") not in (None, False) or step.get("if") is not None:
+        return False
+    if "working-directory" in step:
+        return False
+    if required_shell is None:
+        if "shell" in step:
+            return False
+    elif step.get("shell") != required_shell:
+        return False
+    env = step.get("env")
+    if env is not None:
+        if not isinstance(env, dict):
+            return False
+        if any(str(key).upper() in _DANGEROUS_STEP_ENV_KEYS for key in env):
+            return False
+    return step.get("run") == expected_run
+
+
+def _poll_trusted_prefix(workflow: dict[str, Any], poll: dict[str, Any]) -> bool:
+    job_ifs = frozenset({"github.event_name == 'schedule'"})
+    return _trusted_prefix(
+        (
+            _action_at(
+                poll,
+                0,
+                CHECKOUT_ACTION,
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+                required_with={"persist-credentials": "false"},
+            ),
+            _action_at(
+                poll,
+                1,
+                SETUP_PYTHON_ACTION,
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+                required_with={
+                    "python-version": "3.13.15",
+                    "cache": "pip",
+                    "cache-dependency-path": "requirements/governance-ci.txt",
+                },
+            ),
+            _command_at(
+                poll,
+                2,
+                ("python", "-m", "pip", "install", "--require-hashes", "-r", "requirements/governance-ci.txt"),
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+            ),
+            _command_at(
+                poll,
+                3,
+                ("python", "-m", "tools.governance.thread_state_poll"),
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+            ),
+        )
+    )
+
+
+def _core_trusted_prefix(core: dict[str, Any], validate: dict[str, Any]) -> bool:
+    checks: list[bool] = [
+        _action_at(
+            validate,
+            0,
+            CHECKOUT_ACTION,
+            workflow=core,
+            required_with={"ref": CORE_INPUT_HEAD_EXPR, "persist-credentials": "false"},
+        ),
+        _action_at(
+            validate,
+            1,
+            SETUP_PYTHON_ACTION,
+            workflow=core,
+            required_with={
+                "python-version": "3.13.15",
+                "cache": "pip",
+                "cache-dependency-path": "requirements/governance-ci.txt",
+            },
+        ),
+    ]
+    for rule, expected, allowed_step_ifs in REQUIRED_CORE_COMMANDS:
+        checks.append(
+            _command_at(
+                validate,
+                CORE_REQUIRED_STEP_INDEXES[rule],
+                expected,
+                workflow=core,
+                allowed_step_ifs=allowed_step_ifs,
+            )
+        )
+    checks.extend(
+        (
+            _command_at(
+                validate,
+                7,
+                ("python", ".github/scripts/governance_t11_mutation_smoke.py"),
+                workflow=core,
+            ),
+            _command_at(
+                validate,
+                19,
+                ("python", "-m", "tools.governance.t11_closure", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "t11-closure-findings.json"),
+                workflow=core,
+                allowed_step_ifs=frozenset({CORE_PR_IF}),
+            ),
+        )
+    )
+    return _trusted_prefix(checks)
+
+
+def _dependency_review_trusted_prefix(
+    workflow: dict[str, Any],
+    job: dict[str, Any],
+) -> bool:
+    job_ifs = frozenset({PR_EVENT_IF})
+    return _trusted_prefix(
+        (
+            _dependency_probe_safe(workflow, _single_step_job(job, 0)),
+            _action_at(
+                job,
+                1,
+                DEPENDENCY_REVIEW_ACTION,
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+                allowed_step_ifs=frozenset({"steps.depgraph.outputs.supported == 'true'"}),
+                required_with={"fail-on-severity": "moderate"},
+            ),
+        )
+    )
+
+
+def _codeql_trusted_prefix(workflow: dict[str, Any], job: dict[str, Any]) -> bool:
+    job_ifs = frozenset({CODEQL_JOB_IF})
+    return _trusted_prefix(
+        (
+            _action_at(
+                job,
+                0,
+                CHECKOUT_ACTION,
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+                required_with={"ref": CODEQL_HEAD_EXPR, "persist-credentials": "false"},
+            ),
+            _action_at(
+                job,
+                1,
+                CODEQL_INIT_ACTION,
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+                required_with={"languages": "python"},
+            ),
+            _action_at(
+                job,
+                2,
+                CODEQL_ANALYZE_ACTION,
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+            ),
+        )
+    )
+
+
+def _final_gate_trusted_prefix(workflow: dict[str, Any], job: dict[str, Any]) -> bool:
+    job_ifs = frozenset({FINAL_GATE_IF})
+    pr_ifs = frozenset({PR_EVENT_IF})
+    return _trusted_prefix(
+        (
+            _exact_run_at(
+                job,
+                0,
+                FINAL_GATE_LANE_RESULTS_RUN,
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+                required_shell="bash",
+            ),
+            _command_at(
+                job,
+                1,
+                ("test", "${{ needs.governance-core.result }}", "=", "success"),
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+            ),
+            _command_at(
+                job,
+                2,
+                ("test", "${{ needs.codeql.result }}", "=", "success"),
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+            ),
+            _command_at(
+                job,
+                3,
+                ("test", "${{ needs.dependency-review.result }}", "=", "success"),
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+                allowed_step_ifs=pr_ifs,
+            ),
+            _action_at(
+                job,
+                4,
+                CHECKOUT_ACTION,
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+                allowed_step_ifs=pr_ifs,
+                required_with={"ref": FINAL_HEAD_EXPR, "persist-credentials": "false"},
+            ),
+            _command_at(
+                job,
+                5,
+                ("python", "-m", "tools.governance.github_live_gate", "--repo", "${{ github.repository }}", "--pr", "${{ github.event.pull_request.number }}", "--head", FINAL_HEAD_EXPR, "--root", ".", "--json-out", "github-live-gate.json"),
+                workflow=workflow,
+                allowed_job_ifs=job_ifs,
+                allowed_step_ifs=pr_ifs,
+            ),
+        )
+    )
+
+
 def _steps_contain_run(job: dict[str, Any], needle: str) -> bool:
     """Legacy helper retained for compatibility; security-sensitive wiring checks do not use it."""
     steps = job.get("steps")
@@ -860,6 +1186,17 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
             allowed_step_ifs=frozenset({PR_EVENT_IF}),
         ):
             out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_LIVE_WIRING", "final gate must execute the blocking live GitHub state validator"))
+
+    if isinstance(poll, dict) and not _poll_trusted_prefix(workflow, poll):
+        out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_TRUSTED_PREFIX", "poll job sensitive command must be preceded only by the canonical checkout/setup/toolchain prefix"))
+    if isinstance(validate, dict) and not _core_trusted_prefix(core, validate):
+        out.append(Finding(CORE_WORKFLOW_PATH, "CORE_TRUSTED_PREFIX", "governance core sensitive commands must remain in the exact canonical trusted predecessor order"))
+    if isinstance(dependency_review, dict) and not _dependency_review_trusted_prefix(workflow, dependency_review):
+        out.append(Finding(WORKFLOW_PATH, "DEPENDENCY_REVIEW_TRUSTED_PREFIX", "Dependency Review consumer must have only the exact fail-closed producer as its predecessor"))
+    if isinstance(codeql, dict) and not _codeql_trusted_prefix(workflow, codeql):
+        out.append(Finding(WORKFLOW_PATH, "CODEQL_TRUSTED_PREFIX", "CodeQL actions must remain in the exact checkout/init/analyze trusted order"))
+    if isinstance(final_gate, dict) and not _final_gate_trusted_prefix(workflow, final_gate):
+        out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_TRUSTED_PREFIX", "final-gate live validation must remain behind the exact canonical lane-check/checkout predecessor sequence"))
     return out
 
 

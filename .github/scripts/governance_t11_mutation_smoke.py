@@ -74,6 +74,11 @@ MUTATIONS = {
         "            after_index=probe_index,\n",
         "            after_index=None,\n",
     ),
+    "t11-trusted-predecessor-prefix": (
+        "tools/governance/t11_closure.py",
+        "    return all(checks)\n",
+        "    return True\n",
+    ),
 }
 
 
