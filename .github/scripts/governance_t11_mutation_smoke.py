@@ -94,6 +94,21 @@ MUTATIONS = {
         '    if "services" in job:\n        return False\n',
         '    if False:\n        return False\n',
     ),
+    "t11-inherited-env-execution-context": (
+        "tools/governance/t11_closure.py",
+        "    if required_env is None:\n        return env in (None, {})\n",
+        "    if required_env is None:\n        return True\n",
+    ),
+    "t11-exact-step-env-binding": (
+        "tools/governance/t11_closure.py",
+        "    return isinstance(env, dict) and env == required_env\n",
+        "    return isinstance(env, dict) and all(env.get(key) == value for key, value in required_env.items())\n",
+    ),
+    "t11-exact-action-input-binding": (
+        "tools/governance/t11_closure.py",
+        "        if not isinstance(normalized_with, dict) or normalized_with != expected_with:\n            continue\n",
+        "        if not isinstance(normalized_with, dict) or any(normalized_with.get(key) != value for key, value in expected_with.items()):\n            continue\n",
+    ),
 }
 
 

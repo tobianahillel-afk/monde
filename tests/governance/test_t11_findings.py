@@ -546,6 +546,10 @@ def test_execution_container_defaults_cover_safe_and_malformed_shapes() -> None:
     assert t11._container_execution_defaults_safe({"defaults": {}}) is True
     assert t11._container_execution_defaults_safe({"defaults": {"run": {}}}) is True
     assert t11._container_execution_defaults_safe({"env": "bad"}) is False
+    assert t11._container_execution_defaults_safe({"env": {"SAFE": "1"}}) is False
+    assert t11._container_execution_defaults_safe(
+        {"env": {"LD_PRELOAD": "${{ github.workspace }}/payload.so"}}
+    ) is False
     assert t11._container_execution_defaults_safe({"defaults": "bad"}) is False
     assert t11._container_execution_defaults_safe({"defaults": {"run": "bad"}}) is False
     assert t11._container_execution_defaults_safe(
@@ -567,6 +571,106 @@ def test_execution_container_defaults_cover_safe_and_malformed_shapes() -> None:
     assert t11._trusted_job_execution_substrate_safe(
         {"services": {"poison": {"image": "attacker/service"}}}
     ) is False
+
+
+def test_review0090_rejects_unrecognized_env_and_requires_exact_step_env(tmp_path: Path) -> None:
+    expected = ("python", "-m", "tools.governance.thread_state_poll")
+    token_env = {"GITHUB_TOKEN": "${{ github.token }}"}
+    assert t11._steps_execute_prefix(
+        {"steps": [{"run": "python -m tools.governance.thread_state_poll", "env": token_env}]},
+        expected,
+        required_env=token_env,
+    ) is True
+    assert t11._steps_execute_prefix(
+        {
+            "steps": [
+                {
+                    "run": "python -m tools.governance.thread_state_poll",
+                    "env": {**token_env, "LD_PRELOAD": "${{ github.workspace }}/payload.so"},
+                }
+            ]
+        },
+        expected,
+        required_env=token_env,
+    ) is False
+    assert t11._steps_execute_prefix(
+        {"steps": [{"run": "python -m tools.governance.thread_state_poll", "env": {"SAFE": "1"}}]},
+        expected,
+    ) is False
+
+    cases = [
+        (
+            t11.WORKFLOW_PATH,
+            "  final-gate:\n    name: MONDE / Merge Gate\n",
+            "  final-gate:\n    name: MONDE / Merge Gate\n    env:\n      LD_PRELOAD: ${{ github.workspace }}/payload.so\n",
+            "FINAL_GATE_TRUSTED_PREFIX",
+        ),
+        (
+            t11.CORE_WORKFLOW_PATH,
+            "  validate:\n    name: Deterministic governance\n",
+            "  validate:\n    name: Deterministic governance\n    env:\n      LD_PRELOAD: ${{ github.workspace }}/payload.so\n",
+            "CORE_TRUSTED_PREFIX",
+        ),
+    ]
+    for path, needle, replacement, rule in cases:
+        _write_valid_workflows(tmp_path)
+        target = tmp_path / path
+        text = target.read_text(encoding="utf-8")
+        assert needle in text
+        target.write_text(text.replace(needle, replacement, 1), encoding="utf-8")
+        assert rule in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
+
+def test_review0090_rejects_extra_action_inputs() -> None:
+    base = {
+        "steps": [
+            {
+                "uses": t11.DEPENDENCY_REVIEW_ACTION,
+                "with": {"fail-on-severity": "moderate"},
+            }
+        ]
+    }
+    assert t11._steps_use_action(
+        base,
+        t11.DEPENDENCY_REVIEW_ACTION,
+        required_with={"fail-on-severity": "moderate"},
+    ) is True
+    weakened = {
+        "steps": [
+            {
+                "uses": t11.DEPENDENCY_REVIEW_ACTION,
+                "with": {"fail-on-severity": "moderate", "warn-only": "true"},
+            }
+        ]
+    }
+    assert t11._steps_use_action(
+        weakened,
+        t11.DEPENDENCY_REVIEW_ACTION,
+        required_with={"fail-on-severity": "moderate"},
+    ) is False
+    assert t11._steps_use_action(
+        {"steps": [{"uses": t11.CODEQL_ANALYZE_ACTION, "with": {"unexpected": "true"}}]},
+        t11.CODEQL_ANALYZE_ACTION,
+    ) is False
+
+
+def test_review0090_workflow_rejects_warn_only_dependency_review(tmp_path: Path) -> None:
+    _write_valid_workflows(tmp_path)
+    target = tmp_path / t11.WORKFLOW_PATH
+    text = target.read_text(encoding="utf-8")
+    needle = "        with:\n          fail-on-severity: moderate\n"
+    assert needle in text
+    target.write_text(
+        text.replace(
+            needle,
+            "        with:\n          fail-on-severity: moderate\n          warn-only: true\n",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    rules = {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+    assert "DEPENDENCY_REVIEW_ACTION" in rules
+    assert "DEPENDENCY_REVIEW_TRUSTED_PREFIX" in rules
 
 
 def test_review0089_rejects_job_container_execution_context(tmp_path: Path) -> None:
@@ -929,6 +1033,14 @@ def test_review0088_trusted_prefix_helpers_fail_closed() -> None:
         "ok",
         allowed_job_ifs=frozenset({"allowed"}),
         required_shell="bash",
+    ) is False
+    assert t11._exact_run_at(
+        {"if": "allowed", "steps": [{"run": "ok", "shell": "bash", "env": {"SAFE": "1"}}]},
+        0,
+        "ok",
+        allowed_job_ifs=frozenset({"allowed"}),
+        required_shell="bash",
+        required_env={"SAFE": "1"},
     ) is True
 
 

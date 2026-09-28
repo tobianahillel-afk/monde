@@ -485,13 +485,18 @@ def _run_step_can_shadow_executable(run: str, executable: str) -> bool:
     return False
 
 
+def _exact_environment_safe(
+    env: Any,
+    required_env: dict[str, Any] | None = None,
+) -> bool:
+    if required_env is None:
+        return env in (None, {})
+    return isinstance(env, dict) and env == required_env
+
+
 def _container_execution_defaults_safe(container: dict[str, Any]) -> bool:
-    env = container.get("env")
-    if env is not None:
-        if not isinstance(env, dict):
-            return False
-        if any(str(key).upper() in _DANGEROUS_STEP_ENV_KEYS for key in env):
-            return False
+    if not _exact_environment_safe(container.get("env")):
+        return False
 
     defaults = container.get("defaults")
     if defaults is not None:
@@ -529,6 +534,7 @@ def _execution_controls_safe(
     step: dict[str, Any],
     allowed_job_ifs: frozenset[str],
     allowed_step_ifs: frozenset[str],
+    required_env: dict[str, Any] | None = None,
 ) -> bool:
     if job.get("continue-on-error") not in (None, False):
         return False
@@ -547,12 +553,8 @@ def _execution_controls_safe(
         return False
     if "shell" in step or "working-directory" in step:
         return False
-    env = step.get("env")
-    if env is not None:
-        if not isinstance(env, dict):
-            return False
-        if any(str(key).upper() in _DANGEROUS_STEP_ENV_KEYS for key in env):
-            return False
+    if not _exact_environment_safe(step.get("env"), required_env):
+        return False
     return True
 
 
@@ -564,6 +566,7 @@ def _steps_use_action(
     allowed_job_ifs: frozenset[str] = frozenset(),
     allowed_step_ifs: frozenset[str] = frozenset(),
     required_with: dict[str, Any] | None = None,
+    required_env: dict[str, Any] | None = None,
     after_index: int | None = None,
 ) -> bool:
     if not _inherited_execution_controls_safe(workflow, job):
@@ -577,14 +580,18 @@ def _steps_use_action(
             continue
         if not isinstance(step, dict) or step.get("uses") != expected_use:
             continue
-        if not _execution_controls_safe(job, step, allowed_job_ifs, allowed_step_ifs):
+        if not _execution_controls_safe(
+            job,
+            step,
+            allowed_job_ifs,
+            allowed_step_ifs,
+            required_env,
+        ):
             continue
         actual_with = step.get("with")
-        if expected_with:
-            if not isinstance(actual_with, dict):
-                continue
-            if any(actual_with.get(key) != value for key, value in expected_with.items()):
-                continue
+        normalized_with = {} if actual_with is None else actual_with
+        if not isinstance(normalized_with, dict) or normalized_with != expected_with:
+            continue
         return True
     return False
 
@@ -624,6 +631,7 @@ def _steps_execute_prefix(
     workflow: dict[str, Any] | None = None,
     allowed_job_ifs: frozenset[str] = frozenset(),
     allowed_step_ifs: frozenset[str] = frozenset(),
+    required_env: dict[str, Any] | None = None,
 ) -> bool:
     if not _inherited_execution_controls_safe(workflow, job):
         return False
@@ -633,7 +641,13 @@ def _steps_execute_prefix(
     for step in steps:
         if not isinstance(step, dict):
             continue
-        if not _execution_controls_safe(job, step, allowed_job_ifs, allowed_step_ifs):
+        if not _execution_controls_safe(
+            job,
+            step,
+            allowed_job_ifs,
+            allowed_step_ifs,
+            required_env,
+        ):
             continue
         run = step.get("run")
         if not isinstance(run, str) or _run_step_has_failure_masking_shell(run):
@@ -670,6 +684,7 @@ def _action_at(
     allowed_job_ifs: frozenset[str] = frozenset(),
     allowed_step_ifs: frozenset[str] = frozenset(),
     required_with: dict[str, Any] | None = None,
+    required_env: dict[str, Any] | None = None,
 ) -> bool:
     return _steps_use_action(
         _single_step_job(job, index),
@@ -678,6 +693,7 @@ def _action_at(
         allowed_job_ifs=allowed_job_ifs,
         allowed_step_ifs=allowed_step_ifs,
         required_with=required_with,
+        required_env=required_env,
     )
 
 
@@ -689,6 +705,7 @@ def _command_at(
     workflow: dict[str, Any] | None = None,
     allowed_job_ifs: frozenset[str] = frozenset(),
     allowed_step_ifs: frozenset[str] = frozenset(),
+    required_env: dict[str, Any] | None = None,
 ) -> bool:
     return _steps_execute_prefix(
         _single_step_job(job, index),
@@ -696,6 +713,7 @@ def _command_at(
         workflow=workflow,
         allowed_job_ifs=allowed_job_ifs,
         allowed_step_ifs=allowed_step_ifs,
+        required_env=required_env,
     )
 
 
@@ -707,6 +725,7 @@ def _exact_run_at(
     workflow: dict[str, Any] | None = None,
     allowed_job_ifs: frozenset[str] = frozenset(),
     required_shell: str | None = None,
+    required_env: dict[str, Any] | None = None,
 ) -> bool:
     if not _inherited_execution_controls_safe(workflow, job):
         return False
@@ -731,12 +750,8 @@ def _exact_run_at(
             return False
     elif step.get("shell") != required_shell:
         return False
-    env = step.get("env")
-    if env is not None:
-        if not isinstance(env, dict):
-            return False
-        if any(str(key).upper() in _DANGEROUS_STEP_ENV_KEYS for key in env):
-            return False
+    if not _exact_environment_safe(step.get("env"), required_env):
+        return False
     return step.get("run") == expected_run
 
 
@@ -779,6 +794,7 @@ def _poll_trusted_prefix(workflow: dict[str, Any], poll: dict[str, Any]) -> bool
                 ("python", "-m", "tools.governance.thread_state_poll"),
                 workflow=workflow,
                 allowed_job_ifs=job_ifs,
+                required_env={"GITHUB_TOKEN": "${{ github.token }}"},
             ),
         )
     )
@@ -946,6 +962,7 @@ def _final_gate_trusted_prefix(workflow: dict[str, Any], job: dict[str, Any]) ->
                 workflow=workflow,
                 allowed_job_ifs=job_ifs,
                 allowed_step_ifs=pr_ifs,
+                required_env={"GITHUB_TOKEN": "${{ github.token }}"},
             ),
         )
     )
@@ -1020,6 +1037,7 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
             ("python", "-m", "tools.governance.thread_state_poll"),
             workflow=workflow,
             allowed_job_ifs=frozenset({"github.event_name == 'schedule'"}),
+            required_env={"GITHUB_TOKEN": "${{ github.token }}"},
         ):
             out.append(Finding(WORKFLOW_PATH, "REVIEW_THREAD_POLL_WIRING", "poll job must execute the trusted review-thread state poller"))
 
@@ -1206,6 +1224,7 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
             workflow=workflow,
             allowed_job_ifs=final_job_ifs,
             allowed_step_ifs=frozenset({PR_EVENT_IF}),
+            required_env={"GITHUB_TOKEN": "${{ github.token }}"},
         ):
             out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_LIVE_WIRING", "final gate must execute the blocking live GitHub state validator"))
 
