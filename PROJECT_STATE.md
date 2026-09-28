@@ -113,7 +113,7 @@ T11 now enforces that:
 - **T4 — exact final-integrated-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`.**
 - Gate #259 / run `36055246141` on integrated head `6e8014c7d46e2aceefa03902c37c6bdf2fac0c19` exposed one deterministic integration defect before L2: `.github/scripts/governance_t13_mutation_smoke.py` still targeted the pre-refactor `return any(...)` form of `_steps_execute_prefix`, while the current hardened implementation uses per-step parsed commands plus `if any(...): return True`. The runtime guard was correct; the mutation harness failed closed with `t13-executable-command-proof: target occurrence count != 1`. The current correction retargets that mutant to the exact current executable-prefix branch without weakening the mutation. A fresh exact-head Gate is required before any L2 request.
 - Gate #260 / run `36058286810` proved the T13 mutation retarget itself, then exposed a second integration-specific defect in `change_guard`: inherited REVIEW-0082 from the PR #5/main second-parent lineage was incorrectly treated as freshness authority for substantive first-parent PR #2 changes. REVIEW-0082 is valid T12 predecessor evidence, not a review of the current PR #2 delta. The correction makes review freshness authority first-parent scoped: a reviewed commit must remain an ancestor of the head, but only a reviewed commit on the current head's first-parent lineage can stale subsequent first-parent work. A real two-parent regression reproduces PR #5/main as second parent and preserves ordinary first-parent stale-review detection.
-- Live PR #2 now has **98 unresolved material threads**. REVIEW-0089 independent L2 added `PRRT_kwDOUUI5ts6muevI` and `PRRT_kwDOUUI5ts6muevQ`; REVIEW-0090 author-side `PRRT_kwDOUUI5ts6m0_t1` adds the permission-binding P1. No thread is resolved.
+- Live PR #2 now has **100 unresolved material threads**. REVIEW-0089 independent L2 added `PRRT_kwDOUUI5ts6muevI` and `PRRT_kwDOUUI5ts6muevQ`; REVIEW-0090 author-side `PRRT_kwDOUUI5ts6m0_t1` adds the permission-binding P1. No thread is resolved.
 - WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
 - Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` author-side; `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending exact integrated-head closure.
 
@@ -121,56 +121,31 @@ T11 now enforces that:
 
 Required sequence from this integrated state:
 
-1. Keep all **98** PR #2 material review threads unresolved.
-2. REVIEW-0083 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPJeT9Q` on `cc37d74e2ee49aea62cfdfa30634c01a1032751f`.
-3. Correct the three distinct REVIEW-0083 defects: inherited workflow/job execution controls, single-ampersand background masking, and PR-family dependency-review skip enforcement.
-4. Keep the author duplicate `PRRT_kwDOUUI5ts6lz1l8` durably tracked until a clean successor review authorizes controlled resolution.
-5. Exact technical proof is complete on `dce9fbbfbe720adcde8ce91fc2e13b98c6544152` via Bootstrap #354 and Gate #284.
-6. REVIEW-0084 is terminal **CLOSED / CHANGES_REQUIRED** after fresh independent L2 `PRR_kwDOUUI5ts8AAAABPOcDnA` on exact frozen head `d1850542494492a388b545dec954e078b825d9b5` added five new P1 findings.
-7. REVIEW-0085 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPPl4wg` on frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` added four P1s; author-side `PRRT_kwDOUUI5ts6mAdoV` adds a fifth live thread.
-8. REVIEW-0087 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen head `47091d48b40d37dfb18b32f0546ea348731d7cc9` after author-side `PRRT_kwDOUUI5ts6mfxiN` exposed cross-step execution-context poisoning.
-9. REVIEW-0088 is **CLOSED / CHANGES_REQUIRED** on `2c1d72b42094e3f72d5eaa0421a9ba0d4f59a12e` after author-side `PRRT_kwDOUUI5ts6mnZ-N` exposed unbound job.container/container.env execution-context poisoning.
-10. REVIEW-0089 is **CLOSED / CHANGES_REQUIRED** on exact frozen head `fa2c1cc6162068d1268e9f5b7a24bc73bedfdbc5` after independent L2 `PRR_kwDOUUI5ts8AAAABPk5JjQ` added P1 `PRRT_kwDOUUI5ts6muevI` and P1 `PRRT_kwDOUUI5ts6muevQ`.
-11. REVIEW-0090 is CLOSED/CHANGES_REQUIRED on `7ac20ffb81be8ffe216c6fc52073fa269e9966d9` after author-side P1 `PRRT_kwDOUUI5ts6m0_t1` exposed unbound GITHUB_TOKEN permission maps.
-12. REVIEW-0091 is now `OPEN` after exact technical proof on `c1149c06c4aa14ad0ff07902c075aab8dfb6c10d`; prove this OPEN state-only checkpoint before `IN_PROGRESS`.
-13. After one frozen exact-head proof, request fresh independent L2 over all **98** unresolved findings plus integrated T11/T12/T13/T14 trust boundaries.
-14. Only after clean independent semantic verification and eligible trusted non-author exact-head approval may independently verified PR #2 threads/findings be resolved and WORK-0002 completion be synchronized.
-15. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
+1. Keep all **100** PR #2 material review threads unresolved.
+2. REVIEW-0083 through REVIEW-0090 remain terminal negative evidence.
+3. REVIEW-0091 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen head `214a24f126caf45182153a298b6189b436231b1a`.
+4. Exact REVIEW-0091 technical proof is complete via Bootstrap #429 / run `36490673993` and Gate #363 / run `36490674152`.
+5. Independent Codex L2 `PRR_kwDOUUI5ts8AAAABPp84qg` added P1 `PRRT_kwDOUUI5ts6m5Bky`: PR-controlled pytest can persist GITHUB_PATH/GITHUB_ENV state into later trusted validators in the same governance-core job.
+6. Author-side adversarial `PRR_kwDOUUI5ts8AAAABPp9nTw` added P1 `PRRT_kwDOUUI5ts6m5DOC`: the workflow does not bind the complete allowed job set, so an added job can independently elevate GITHUB_TOKEN permissions.
+7. REVIEW-0092 must isolate PR-controlled tests onto a distinct runner/job, bind exact job-ID sets in both governance workflows, require exact final-gate `needs`, and preserve REVIEW-0091 exact permission protections plus T11/T12/T13/T14.
+8. Prove REVIEW-0091 CLOSED checkpoint before any REVIEW-0092 implementation commit.
+9. After REVIEW-0092 technical/OPEN/IN_PROGRESS frozen proof, request fresh independent L2 over all **100** unresolved findings.
+10. Only after clean independent semantic verification and eligible trusted non-author exact-head approval may independently verified PR #2 threads/findings be resolved and WORK-0002 completion be synchronized.
+11. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
-## REVIEW-0091 — exact GitHub token permission binding successor
+## REVIEW-0091 — terminal negative evidence
 
-REVIEW-0091 is now **IN_PROGRESS** after exact technical proof on `c1149c06c4aa14ad0ff07902c075aab8dfb6c10d` and OPEN checkpoint proof on `ea48e06438da4208da274b6d2ecd281e124b38dd`.
+REVIEW-0091 is **CLOSED / CHANGES_REQUIRED** on exact frozen head `214a24f126caf45182153a298b6189b436231b1a`.
 
-Bootstrap #427 / run `36488714331` succeeded. Gate #361 / run `36488714770` proved the successor implementation before lifecycle materialization:
+Bootstrap #429 / run `36490673993` proved **450 bridge tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
-- **838 governance tests PASS**;
-- **8,089 statements / 3,738 branches**, **100% line + branch**;
-- mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 20/20 T11 + 18/18 T13**;
-- CodeQL and Dependency Review **SUCCESS**.
+Gate #363 / run `36490674152` proved **838 governance tests**, **8,089 statements / 3,738 branches**, **100% line + branch**, mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 20/20 T11 + 18/18 T13**, deterministic governance, CodeQL and Dependency Review green. The live gate failed only on the then-**98 unresolved threads** and missing trusted exact-head approval.
 
-The deterministic lane stopped only at repository validation with `unknown registry reference REVIEW-0091`, because WORK-0002 already referenced the successor before this lifecycle record existed. No unit/property/coverage/mutation defect remained.
+Fresh independent Codex L2 `PRR_kwDOUUI5ts8AAAABPp84qg` then added P1 `PRRT_kwDOUUI5ts6m5Bky`: the PR-controlled pytest step runs before the trusted mutation/validator sequence in the same job and can persist execution-context mutations such as `GITHUB_PATH` into later steps.
 
-REVIEW-0091 closes REVIEW-0090 P1 `PRRT_kwDOUUI5ts6m0_t1` by binding GitHub-token permissions exactly rather than as a required-key subset:
+Author-side red-team `PRR_kwDOUUI5ts8AAAABPp9nTw` added P1 `PRRT_kwDOUUI5ts6m5DOC`: REVIEW-0091 binds permissions exactly only for known jobs, but does not require the complete workflow job set to equal the reviewed canonical set; an extra job can declare an elevated job-level token permission map.
 
-- governance workflow top-level permissions: exactly `contents: read`;
-- reusable governance-core workflow: exactly `contents: read`;
-- governance-core caller and reusable validate job: inherit with **no job-level permission override**;
-- Dependency Review: exactly `contents: read`;
-- CodeQL: exactly `actions: read`, `contents: read`, `packages: read`, `security-events: write`;
-- final gate: exactly `contents: read`, `pull-requests: read`;
-- review-thread stale-green poll: exactly `actions: write`, `contents: read`, `pull-requests: read`.
-
-The T11 mutation harness now kills weakening exact permission equality into subset matching. REVIEW-0090 exact environment/action-input guarantees and REVIEW-0088/0089 trusted execution-substrate/prefix guarantees remain intact.
-
-Bootstrap #428 / run `36489766360` and Gate #362 / run `36489766700` proved the OPEN checkpoint with the same **838 tests**, **8,089 statements / 3,738 branches**, **100% line + branch**, **38/38 + 40/40 + 5/5 + 20/20 + 18/18 mutations**, every deterministic/T7–T11/context validator, CodeQL and Dependency Review green. The live gate failed only on **98 unresolved threads** plus missing trusted exact-head approval. All **98/98 PR #2 material threads remain unresolved**. One frozen exact-head proof is now required before fresh L2.
-
-### REVIEW-0091 next action
-
-1. OPEN checkpoint proof is complete via Bootstrap #428 / Gate #362 and REVIEW-0091 is now `IN_PROGRESS`.
-2. Prove/freeze this exact IN_PROGRESS head once more.
-3. Request a fresh independent L2 over all **98 unresolved** material findings and all inherited T11/T12/T13/T14 trust boundaries without mutating the tree while it runs.
-4. Any material finding closes REVIEW-0091 as negative evidence and requires a successor.
-5. Resolve no thread without a clean L2 **and** eligible trusted non-author exact-head `APPROVED` evidence.
+The live/durable closure set is now **100 unresolved material threads**. REVIEW-0092 is required; no thread is resolved.
 
 ## REVIEW-0090 — exact execution-env and action-input successor
 
@@ -186,7 +161,7 @@ The deterministic lane stopped only at repository validation because WORK-0002 a
 
 The successor closes the two REVIEW-0089 P1 classes by making execution environment and action inputs exact rather than blocklist/subset based. Workflow/job env must be empty for trusted execution; sensitive step env must exactly match its reviewed required mapping. Pinned actions must expose exactly the canonical `with:` mapping, so Dependency Review rejects extra weakening inputs such as `warn-only: true`.
 
-Bootstrap #421 / run `36469876751` and Gate #354 / run `36469877334` proved the frozen REVIEW-0090 implementation with 450 bridge tests, 836 governance tests, 100% line+branch coverage, all mutation lanes and deterministic/security validators green. The live gate failed only on 97 unresolved threads plus missing trusted exact-head approval. Codex L2 was quota-refused via `5876717580`. Author-side `PRR_kwDOUUI5ts8AAAABPn9-Eg` then added P1 `PRRT_kwDOUUI5ts6m0_t1`: security-sensitive GITHUB_TOKEN permissions are not exact-bound. The live/durable closure target is now **98 unresolved threads**. REVIEW-0091 must correct that before another L2.
+Bootstrap #421 / run `36469876751` and Gate #354 / run `36469877334` proved the frozen REVIEW-0090 implementation with 450 bridge tests, 836 governance tests, 100% line+branch coverage, all mutation lanes and deterministic/security validators green. The live gate failed only on 97 unresolved threads plus missing trusted exact-head approval. Codex L2 was quota-refused via `5876717580`. Author-side `PRR_kwDOUUI5ts8AAAABPn9-Eg` then added P1 `PRRT_kwDOUUI5ts6m0_t1`: security-sensitive GITHUB_TOKEN permissions are not exact-bound. The live/durable closure target is now **100 unresolved threads**. REVIEW-0091 must correct that before another L2.
 
 ## REVIEW-0089 — trusted job execution substrate successor
 

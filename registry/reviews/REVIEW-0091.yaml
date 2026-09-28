@@ -1,12 +1,12 @@
 id: REVIEW-0091
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-2"
-  commit_sha: null
+  commit_sha: "214a24f126caf45182153a298b6189b436231b1a"
 reviewer:
-  actor: null
-  context_id: null
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABPp84qg"
   independence_level: L2
 roles:
   - ARCHITECTURE_REUSE
@@ -47,7 +47,9 @@ scope:
     - "legacy test fixtures can fail to exercise new permission invariants even when production workflow validation is correct"
     - "technical green proof can be mistaken for independent semantic approval"
     - "live and durable finding identity sets can drift while preserving equal cardinality"
-findings: []
+findings:
+  - "PRRT_kwDOUUI5ts6m5Bky"
+  - "PRRT_kwDOUUI5ts6m5DOC"
 checks:
   assumptions_challenged:
     - "validating only required permission keys is sufficient for least privilege"
@@ -90,9 +92,14 @@ checks:
     - "After this OPEN proof REVIEW-0091 transitions to IN_PROGRESS; one frozen exact-head proof is required before fresh independent L2."
     - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
     - "Fresh independent L2 must inspect all 98 unresolved PR #2 material threads plus REVIEW-0083 through REVIEW-0090 negative evidence."
-    - "Resolve no PR #2 thread until REVIEW-0091 independent L2 is clean and an eligible trusted non-author exact-head APPROVED review exists."
+    - "Frozen exact head 214a24f126caf45182153a298b6189b436231b1a passed Bootstrap #429 / run 36490673993 with 450 tests, 3853 statements / 1640 branches at 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Gate #363 / run 36490674152 passed deterministic governance, Dependency Review and CodeQL with 838 tests, 8089 statements / 3738 branches at 100 percent line+branch, 38/38 baseline + 40/40 L2 + 5/5 T10 + 20/20 T11 + 18/18 T13 mutations; live closure failed only on 98 unresolved threads and missing trusted exact-head approval."
+    - "Fresh independent Codex L2 PRR_kwDOUUI5ts8AAAABPp84qg on exact frozen head added P1 PRRT_kwDOUUI5ts6m5Bky: PR-controlled pytest executes before trusted validators in the same job and can persist GITHUB_PATH/GITHUB_ENV execution-context poisoning."
+    - "Author-side adversarial PRR_kwDOUUI5ts8AAAABPp9nTw added P1 PRRT_kwDOUUI5ts6m5DOC: exact permissions are enforced only on known jobs; an unexpected additional job can declare its own elevated GITHUB_TOKEN permissions."
+    - "REVIEW-0091 is terminal CLOSED/CHANGES_REQUIRED; successor REVIEW-0092 must isolate PR-controlled tests from trusted validators, bind exact canonical job sets in both workflows, require exact final-gate needs, and preserve REVIEW-0091 exact permission guarantees."
+    - "Resolve no PR #2 thread until a clean successor L2 and eligible trusted non-author exact-head APPROVED review exist."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-28T22:59:43Z"
 history:
   created_at: "2026-09-28"
-  updated_at: "2026-09-28"
+  updated_at: "2026-09-29"
