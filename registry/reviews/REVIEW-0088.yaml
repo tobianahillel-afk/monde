@@ -1,9 +1,9 @@
 id: REVIEW-0088
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-2"
-  commit_sha: null
+  commit_sha: "2c1d72b42094e3f72d5eaa0421a9ba0d4f59a12e"
 reviewer:
   actor: null
   context_id: null
@@ -42,7 +42,8 @@ scope:
     - "strict positional binding can become stale when the canonical workflow legitimately evolves, so changes must update both workflow and validator atomically"
     - "technical green proof can be mistaken for independent semantic approval"
     - "durable and live finding identity sets can drift while preserving equal cardinality"
-findings: []
+findings:
+  - "PRRT_kwDOUUI5ts6mnZ-N"
 checks:
   assumptions_challenged:
     - "validating each sensitive step in isolation is sufficient to establish trusted execution"
@@ -74,6 +75,7 @@ checks:
     - "final-gate lane verifier or exact-head checkout is displaced by an injected step"
     - "mutation harness no longer detects loss of trusted-prefix enforcement"
     - "live and durable finding sets differ despite equal count"
+    - "job.container or container.env changes the execution context while every trusted predecessor step remains exact"
   evidence_requested:
     - "Exact technical candidate 831dd71499cbc066e208c599dee94488cf536436 reached Gate #332 / run 36399267742 with 831 tests PASS, 8056 statements / 3720 branches at 100 percent line+branch, all mutation lanes including T11 13/13, CodeQL and Dependency Review success."
     - "Gate #332 stopped at repository validation only because REVIEW-0088 was already referenced by WORK-0002 but this lifecycle record had not yet been materialized; no runtime/test/mutation failure remained."
@@ -82,8 +84,9 @@ checks:
     - "This IN_PROGRESS checkpoint must receive one frozen exact-head proof before fresh independent L2."
     - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
     - "Resolve no PR #2 thread until REVIEW-0088 independent L2 is clean and exact-head trusted approval exists."
+    - "Successor must reject untrusted job containers/container-level execution context for all security-sensitive jobs and add regression/mutation proof."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-09-28T09:34:00Z"
 history:
   created_at: "2026-09-28"
   updated_at: "2026-09-28"
