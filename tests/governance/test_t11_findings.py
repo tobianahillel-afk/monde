@@ -310,8 +310,11 @@ on:
     types: [created, edited, deleted]
   schedule:
     - cron: '*/5 * * * *'
+permissions:
+  contents: read
 jobs:
   governance-core:
+    name: Governance core
     if: github.event_name != 'schedule'
     uses: ./.github/workflows/_governance-core.yml
     with:
@@ -319,11 +322,13 @@ jobs:
       base_sha: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
       head_sha: ${{ github.event.pull_request.head.sha || github.sha }}
   review-thread-state-poll:
+    name: Review thread stale-green poll
     if: github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
     permissions:
       actions: write
-      pull-requests: read
       contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -338,7 +343,11 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: python -m tools.governance.thread_state_poll
   dependency-review:
+    name: Dependency review
     if: startsWith(github.event_name, 'pull_request')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - id: depgraph
         shell: bash
@@ -370,7 +379,14 @@ jobs:
         with:
           fail-on-severity: moderate
   codeql:
+    name: CodeQL
     if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      security-events: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -381,8 +397,13 @@ jobs:
           languages: python
       - uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63
   final-gate:
+    name: MONDE / Merge Gate
     if: always() && github.event_name != 'schedule'
     needs: [governance-core, dependency-review, codeql]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - shell: bash
         run: |
@@ -414,10 +435,15 @@ jobs:
     )
     core = root / t11.CORE_WORKFLOW_PATH
     core.write_text(
-        """on:
+        """name: MONDE Governance Core
+on:
   workflow_call:
+permissions:
+  contents: read
 jobs:
   validate:
+    name: Deterministic governance
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
