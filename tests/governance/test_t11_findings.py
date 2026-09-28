@@ -663,8 +663,8 @@ def test_review0091_rejects_permission_escalation_across_sensitive_jobs(tmp_path
         ),
         (
             t11.WORKFLOW_PATH,
-            "      pull-requests: read\n    steps:\n      - name: Checkout trusted default-branch poller\n",
-            "      pull-requests: read\n      issues: write\n    steps:\n      - name: Checkout trusted default-branch poller\n",
+            "      pull-requests: read\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n",
+            "      pull-requests: read\n      issues: write\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n",
             "REVIEW_THREAD_POLL_PERMISSIONS",
         ),
     ]
