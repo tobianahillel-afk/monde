@@ -131,13 +131,13 @@ Required sequence from this integrated state:
 8. REVIEW-0087 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen head `47091d48b40d37dfb18b32f0546ea348731d7cc9` after author-side `PRRT_kwDOUUI5ts6mfxiN` exposed cross-step execution-context poisoning.
 9. REVIEW-0088 is **CLOSED / CHANGES_REQUIRED** on `2c1d72b42094e3f72d5eaa0421a9ba0d4f59a12e` after author-side `PRRT_kwDOUUI5ts6mnZ-N` exposed unbound job.container/container.env execution-context poisoning.
 10. REVIEW-0089 is **CLOSED / CHANGES_REQUIRED** on exact frozen head `fa2c1cc6162068d1268e9f5b7a24bc73bedfdbc5` after independent L2 `PRR_kwDOUUI5ts8AAAABPk5JjQ` added P1 `PRRT_kwDOUUI5ts6muevI` and P1 `PRRT_kwDOUUI5ts6muevQ`.
-11. REVIEW-0090 technical candidate `859daedc3686376217bea7d11eec5f1ee902dfdb` is proved through tests/coverage/mutations and REVIEW-0090 is OPEN; prove this OPEN checkpoint exact-head before transitioning to IN_PROGRESS.
+11. REVIEW-0090 OPEN checkpoint `7f98f33d70e25de42f410865c955b23dfaab8e89` passed Bootstrap #420 / Gate #353 and REVIEW-0090 is IN_PROGRESS; prove/freeze this exact head, then request one fresh independent L2.
 11. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
 12. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
 ## REVIEW-0090 — exact execution-env and action-input successor
 
-REVIEW-0090 is now **OPEN** after technical proof on exact candidate `859daedc3686376217bea7d11eec5f1ee902dfdb`.
+REVIEW-0090 is now **IN_PROGRESS** after technical proof on `859daedc3686376217bea7d11eec5f1ee902dfdb` and OPEN checkpoint proof on `7f98f33d70e25de42f410865c955b23dfaab8e89`.
 
 Bootstrap #419 / run `36459855072` succeeded. Gate #352 / run `36459855485` proved:
 - **836 governance tests PASS**;
@@ -149,7 +149,7 @@ The deterministic lane stopped only at repository validation because WORK-0002 a
 
 The successor closes the two REVIEW-0089 P1 classes by making execution environment and action inputs exact rather than blocklist/subset based. Workflow/job env must be empty for trusted execution; sensitive step env must exactly match its reviewed required mapping. Pinned actions must expose exactly the canonical `with:` mapping, so Dependency Review rejects extra weakening inputs such as `warn-only: true`.
 
-All **97** PR #2 material threads remain unresolved. This OPEN checkpoint must now receive one exact-head Bootstrap/Gate proof before REVIEW-0090 may transition to `IN_PROGRESS`.
+All **97** PR #2 material threads remain unresolved. Bootstrap #420 / run `36460957322` and Gate #353 / run `36460957444` proved the OPEN checkpoint with 450 bridge tests, 836 governance tests, 100% line+branch coverage, all mutation lanes and deterministic/security validators green. The live gate failed only on 97 unresolved threads plus missing trusted exact-head approval. This IN_PROGRESS state now requires one frozen exact-head proof before fresh independent L2.
 
 ## REVIEW-0089 — trusted job execution substrate successor
 

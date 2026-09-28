@@ -1,5 +1,5 @@
 id: REVIEW-0090
-status: OPEN
+status: IN_PROGRESS
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-2"
@@ -76,7 +76,7 @@ checks:
     - "Bootstrap #419 / run 36459855072 succeeds on exact technical candidate 859daedc3686376217bea7d11eec5f1ee902dfdb."
     - "Gate #352 / run 36459855485 reaches 836 tests PASS, 8066 statements / 3722 branches at 100 percent line+branch, 38/38 baseline + 40/40 L2 + 5/5 T10 + 19/19 T11 + 18/18 T13 mutations, CodeQL and Dependency Review success."
     - "Gate #352 stops only at repository validation because WORK-0002 references REVIEW-0090 before this lifecycle file exists."
-    - "This OPEN checkpoint must receive one exact-head Bootstrap/Gate proof before REVIEW-0090 transitions to IN_PROGRESS."
+    - "OPEN checkpoint 7f98f33d70e25de42f410865c955b23dfaab8e89 passed Bootstrap #420 / run 36460957322 and Gate #353 / run 36460957444; one frozen exact-head proof is now required before fresh independent L2."
     - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
     - "Resolve no PR #2 thread until REVIEW-0090 independent L2 is clean and exact-head trusted approval exists."
 outcome: CHANGES_REQUIRED
