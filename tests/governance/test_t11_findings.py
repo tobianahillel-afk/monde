@@ -554,6 +554,53 @@ def test_execution_container_defaults_cover_safe_and_malformed_shapes() -> None:
     assert t11._container_execution_defaults_safe(
         {"defaults": {"run": {"working-directory": "subdir"}}}
     ) is False
+    assert t11._inherited_execution_controls_safe({}, {"steps": []}) is True
+    assert t11._inherited_execution_controls_safe(
+        {},
+        {"container": {"image": "attacker/image", "env": {"PYTHONPATH": "/attacker"}}, "steps": []},
+    ) is False
+
+
+def test_review0089_rejects_job_container_execution_context(tmp_path: Path) -> None:
+    cases = [
+        (
+            t11.WORKFLOW_PATH,
+            "  dependency-review:\n    name: Dependency review\n",
+            "  dependency-review:\n    name: Dependency review\n    container:\n      image: attacker/image\n      env:\n        PYTHONPATH: /attacker\n",
+            "DEPENDENCY_REVIEW_TRUSTED_PREFIX",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "  codeql:\n    name: CodeQL\n",
+            "  codeql:\n    name: CodeQL\n    container:\n      image: attacker/image\n",
+            "CODEQL_TRUSTED_PREFIX",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "  final-gate:\n    name: MONDE / Merge Gate\n",
+            "  final-gate:\n    name: MONDE / Merge Gate\n    container:\n      image: attacker/image\n",
+            "FINAL_GATE_TRUSTED_PREFIX",
+        ),
+        (
+            t11.WORKFLOW_PATH,
+            "  review-thread-state-poll:\n    name: Review thread stale-green poll\n",
+            "  review-thread-state-poll:\n    name: Review thread stale-green poll\n    container:\n      image: attacker/image\n",
+            "REVIEW_THREAD_POLL_TRUSTED_PREFIX",
+        ),
+        (
+            t11.CORE_WORKFLOW_PATH,
+            "  validate:\n    name: Deterministic governance\n",
+            "  validate:\n    name: Deterministic governance\n    container:\n      image: attacker/image\n      env:\n        PYTHONPATH: /attacker\n",
+            "CORE_TRUSTED_PREFIX",
+        ),
+    ]
+    for path, needle, replacement, rule in cases:
+        _write_valid_workflows(tmp_path)
+        target = tmp_path / path
+        text = target.read_text(encoding="utf-8")
+        assert needle in text
+        target.write_text(text.replace(needle, replacement, 1), encoding="utf-8")
+        assert rule in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
 
 
 def test_workflow_structure_rejects_dependency_review_bypasses(tmp_path: Path) -> None:

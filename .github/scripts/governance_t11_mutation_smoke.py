@@ -79,6 +79,11 @@ MUTATIONS = {
         "    return all(checks)\n",
         "    return True\n",
     ),
+    "t11-job-container-execution-context": (
+        "tools/governance/t11_closure.py",
+        '    if "container" in job:\n        return False\n',
+        '    if False:\n        return False\n',
+    ),
 }
 
 

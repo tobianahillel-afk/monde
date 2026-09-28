@@ -509,6 +509,8 @@ def _inherited_execution_controls_safe(
     workflow: dict[str, Any] | None,
     job: dict[str, Any],
 ) -> bool:
+    if "container" in job:
+        return False
     return _container_execution_defaults_safe(workflow or {}) and _container_execution_defaults_safe(job)
 
 
