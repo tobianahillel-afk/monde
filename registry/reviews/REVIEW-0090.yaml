@@ -1,0 +1,86 @@
+id: REVIEW-0090
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "PR #5 / T12 remains independently accepted and merged on main as b4b52c77fbf05eda65e8f0e951959da70e7edbe7"
+    - "T13 and T14 remain DONE and intact on the integrated PR #2 candidate"
+    - "REVIEW-0089 remains terminal CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten as approval"
+    - "P1 PRRT_kwDOUUI5ts6muevI is closed only if inherited execution environments are exact rather than blocklisted"
+    - "workflow and sensitive-job env are empty unless an exact reviewed mapping is explicitly required"
+    - "security-sensitive step env is either empty or exactly equal to the reviewed required mapping; extra keys such as LD_PRELOAD fail closed"
+    - "P1 PRRT_kwDOUUI5ts6muevQ is closed only if pinned action with mappings are exact rather than subset-matched"
+    - "Dependency Review uses exactly fail-on-severity moderate and rejects extra weakening inputs such as warn-only true"
+    - "checkout, setup-python, CodeQL and other reviewed actions retain exact canonical with mappings and reject extras"
+    - "REVIEW-0083 through REVIEW-0089 runner/container/services, trusted-prefix, command, shell-shadow, dependency-producer and live-gate protections remain intact"
+    - "WORK-0002 durable open_findings exactly equals all 97 live unresolved PR #2 material thread identities"
+    - "no PR #2 review thread is resolved before a clean REVIEW-0090 result and eligible trusted exact-head approval"
+  risks:
+    - "unrecognized inherited environment such as LD_PRELOAD can execute code before exact validators while step text remains unchanged"
+    - "extra action inputs can weaken a pinned action without changing its identity or required key values"
+    - "exact env enforcement can accidentally reject the canonical GITHUB_TOKEN or GH_TOKEN call-site mappings"
+    - "exact action-input enforcement can accidentally overconstrain actions whose canonical mapping is intentionally empty"
+    - "mutation harnesses can become stale when trusted helper signatures gain exact-env parameters"
+    - "technical green proof can be mistaken for independent semantic approval"
+    - "live and durable finding identity sets can drift while preserving equal cardinality"
+findings: []
+checks:
+  assumptions_challenged:
+    - "a short dangerous-environment denylist is sufficient for security-sensitive jobs"
+    - "matching all required action inputs is sufficient even when additional weakening inputs are accepted"
+    - "new exact-env parameters do not require historical mutation harness retargeting"
+    - "a fully green deterministic gate is equivalent to independent L2 closure"
+  omitted_categories_considered:
+    - "workflow-level arbitrary env"
+    - "job-level arbitrary env"
+    - "step-level arbitrary env"
+    - "required exact GITHUB_TOKEN and GH_TOKEN mappings"
+    - "Dependency Review warn-only and other additional inputs"
+    - "CodeQL and checkout extra-input weakening"
+    - "runner/container/services and predecessor-prefix preservation"
+    - "all 97 live/durable PRRT identities"
+  duplicate_or_reuse_search:
+    - "Existing _exact_environment_safe and _steps_use_action helpers are hardened and reused rather than adding parallel policy logic."
+    - "Existing REVIEW-0089 trusted substrate and REVIEW-0088 trusted-prefix validators remain the execution-context authority."
+    - "Existing T11 mutation harness is extended with inherited-env, exact-step-env and exact-action-input mutants."
+    - "T13 mutation targets are retargeted to the current required_env-aware helper shape without changing runtime semantics."
+    - "No historical negative review is rewritten as approval."
+  failure_modes_considered:
+    - "workflow/job LD_PRELOAD remains accepted"
+    - "sensitive step carries required token plus an extra poisoning key"
+    - "Dependency Review carries fail-on-severity moderate plus warn-only true"
+    - "action with no required inputs accepts arbitrary with mapping"
+    - "exact required token mapping is rejected accidentally"
+    - "historical T13 mutation target no longer matches the current helper shape"
+    - "live and durable finding sets differ despite equal count"
+  evidence_requested:
+    - "Bootstrap #419 / run 36459855072 succeeds on exact technical candidate 859daedc3686376217bea7d11eec5f1ee902dfdb."
+    - "Gate #352 / run 36459855485 reaches 836 tests PASS, 8066 statements / 3722 branches at 100 percent line+branch, 38/38 baseline + 40/40 L2 + 5/5 T10 + 19/19 T11 + 18/18 T13 mutations, CodeQL and Dependency Review success."
+    - "Gate #352 stops only at repository validation because WORK-0002 references REVIEW-0090 before this lifecycle file exists."
+    - "This OPEN checkpoint must receive one exact-head Bootstrap/Gate proof before REVIEW-0090 transitions to IN_PROGRESS."
+    - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
+    - "Resolve no PR #2 thread until REVIEW-0090 independent L2 is clean and exact-head trusted approval exists."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-28"
+  updated_at: "2026-09-28"
