@@ -1,0 +1,97 @@
+id: REVIEW-0091
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "PR #5 / T12 remains independently accepted and merged on main as b4b52c77fbf05eda65e8f0e951959da70e7edbe7"
+    - "T13 and T14 remain DONE and intact on the integrated PR #2 candidate"
+    - "REVIEW-0090 remains terminal CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten as approval"
+    - "P1 PRRT_kwDOUUI5ts6m0_t1 is closed only if every GitHub-token permission boundary used by security-sensitive governance execution is exact rather than subset matched"
+    - "governance workflow top-level permissions equal exactly contents:read"
+    - "reusable governance-core workflow permissions equal exactly contents:read"
+    - "governance-core caller and reusable validate job inherit their reviewed workflow permission boundary without job-level override"
+    - "Dependency Review job permissions equal exactly contents:read"
+    - "CodeQL job permissions equal exactly actions:read, contents:read, packages:read and security-events:write"
+    - "final-gate permissions equal exactly contents:read and pull-requests:read"
+    - "review-thread-state poll permissions equal exactly actions:write, contents:read and pull-requests:read"
+    - "extra permission keys or elevated values including issues:write, id-token:write, contents:write or pull-requests:write fail closed on the corresponding sensitive boundary"
+    - "REVIEW-0090 exact environment and action-input contracts remain intact"
+    - "REVIEW-0089 trusted runner/container/services and REVIEW-0088 trusted predecessor-step protections remain intact"
+    - "T11 mutation smoke kills the exact-permission-binding mutant that weakens equality into required-key subset matching"
+    - "WORK-0002 durable open_findings exactly equals all 98 live unresolved PR #2 material thread identities"
+    - "no PR #2 review thread is resolved before a clean REVIEW-0091 result and eligible trusted exact-head approval"
+  risks:
+    - "workflow-level least privilege can be widened while job commands and action pins remain unchanged"
+    - "job-level permission overrides can silently escape the inherited workflow boundary"
+    - "a subset-based permission validator can accept extra write or OIDC capabilities"
+    - "reusable-workflow caller and callee permission inheritance can be confused with explicit job permissions"
+    - "legacy test fixtures can fail to exercise new permission invariants even when production workflow validation is correct"
+    - "technical green proof can be mistaken for independent semantic approval"
+    - "live and durable finding identity sets can drift while preserving equal cardinality"
+findings: []
+checks:
+  assumptions_challenged:
+    - "validating only required permission keys is sufficient for least privilege"
+    - "top-level workflow permissions make sensitive job overrides irrelevant"
+    - "reusable workflow permission inheritance does not need structural proof"
+    - "a permission mutation is redundant once runner env action and command execution are exact"
+    - "a fully green deterministic implementation is equivalent to independent L2 closure"
+  omitted_categories_considered:
+    - "workflow-level permission widening"
+    - "reusable workflow permission widening"
+    - "governance-core caller override"
+    - "governance-core validate job override"
+    - "Dependency Review extra write capability"
+    - "CodeQL extra id-token or contents write capability"
+    - "final-gate pull-request write capability"
+    - "review-thread poll extra issue or token capability"
+    - "all 98 live/durable PRRT identities"
+  duplicate_or_reuse_search:
+    - "Existing REVIEW-0090 exact environment/action-input validators are preserved and reused."
+    - "Existing REVIEW-0089 trusted job-substrate and REVIEW-0088 trusted-prefix validators remain the execution authority."
+    - "One narrow _exact_permissions_safe helper is reused across workflow and sensitive-job boundaries."
+    - "Existing T11 mutation harness is extended with one exact-permission-binding mutant rather than creating a parallel mutation framework."
+    - "No historical negative review is rewritten as approval."
+  failure_modes_considered:
+    - "contents:read plus issues:write is accepted as equivalent to contents:read"
+    - "CodeQL gains id-token:write while retaining every required permission"
+    - "final gate gains pull-requests:write"
+    - "poll gains issues:write"
+    - "governance-core caller or validate job adds a local override"
+    - "permission object is malformed or non-mapping"
+    - "exact production validation is correct but fixtures do not represent canonical permission maps"
+    - "live and durable finding sets differ despite equal count"
+  evidence_requested:
+    - "Bootstrap #427 / run 36488714331 succeeds on exact technical candidate c1149c06c4aa14ad0ff07902c075aab8dfb6c10d."
+    - "Gate #361 / run 36488714770 proves 838 governance tests PASS with 8089 statements / 3738 branches at 100 percent line+branch."
+    - "Gate #361 kills 38/38 baseline + 40/40 L2 + 5/5 T10 + 20/20 T11 + 18/18 T13 critical mutations."
+    - "Gate #361 CodeQL and Dependency Review lanes succeed."
+    - "Gate #361 deterministic lane stops only at repository validation because WORK-0002 already references REVIEW-0091 while this lifecycle record does not yet exist."
+    - "This OPEN state-only checkpoint must receive exact Bootstrap/Gate proof before REVIEW-0091 transitions to IN_PROGRESS."
+    - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
+    - "Fresh independent L2 must inspect all 98 unresolved PR #2 material threads plus REVIEW-0083 through REVIEW-0090 negative evidence."
+    - "Resolve no PR #2 thread until REVIEW-0091 independent L2 is clean and an eligible trusted non-author exact-head APPROVED review exists."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-28"
+  updated_at: "2026-09-28"
