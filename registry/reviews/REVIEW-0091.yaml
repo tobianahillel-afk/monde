@@ -1,5 +1,5 @@
 id: REVIEW-0091
-status: OPEN
+status: IN_PROGRESS
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-2"
@@ -86,7 +86,8 @@ checks:
     - "Gate #361 kills 38/38 baseline + 40/40 L2 + 5/5 T10 + 20/20 T11 + 18/18 T13 critical mutations."
     - "Gate #361 CodeQL and Dependency Review lanes succeed."
     - "Gate #361 deterministic lane stops only at repository validation because WORK-0002 already references REVIEW-0091 while this lifecycle record does not yet exist."
-    - "This OPEN state-only checkpoint must receive exact Bootstrap/Gate proof before REVIEW-0091 transitions to IN_PROGRESS."
+    - "OPEN checkpoint ea48e06438da4208da274b6d2ecd281e124b38dd passed Bootstrap #428 / run 36489766360 and Gate #362 / run 36489766700: 838 tests, 8089 statements / 3738 branches at 100 percent line+branch, 38/38 baseline + 40/40 L2 + 5/5 T10 + 20/20 T11 + 18/18 T13 mutations, every deterministic/T7-T11/context validator, CodeQL and Dependency Review green; live gate failed only on 98 unresolved threads and missing trusted exact-head approval."
+    - "After this OPEN proof REVIEW-0091 transitions to IN_PROGRESS; one frozen exact-head proof is required before fresh independent L2."
     - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
     - "Fresh independent L2 must inspect all 98 unresolved PR #2 material threads plus REVIEW-0083 through REVIEW-0090 negative evidence."
     - "Resolve no PR #2 thread until REVIEW-0091 independent L2 is clean and an eligible trusted non-author exact-head APPROVED review exists."

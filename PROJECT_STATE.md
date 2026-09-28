@@ -139,7 +139,7 @@ Required sequence from this integrated state:
 
 ## REVIEW-0091 — exact GitHub token permission binding successor
 
-REVIEW-0091 is now **OPEN** after exact technical proof on `c1149c06c4aa14ad0ff07902c075aab8dfb6c10d`.
+REVIEW-0091 is now **IN_PROGRESS** after exact technical proof on `c1149c06c4aa14ad0ff07902c075aab8dfb6c10d` and OPEN checkpoint proof on `ea48e06438da4208da274b6d2ecd281e124b38dd`.
 
 Bootstrap #427 / run `36488714331` succeeded. Gate #361 / run `36488714770` proved the successor implementation before lifecycle materialization:
 
@@ -162,14 +162,14 @@ REVIEW-0091 closes REVIEW-0090 P1 `PRRT_kwDOUUI5ts6m0_t1` by binding GitHub-toke
 
 The T11 mutation harness now kills weakening exact permission equality into subset matching. REVIEW-0090 exact environment/action-input guarantees and REVIEW-0088/0089 trusted execution-substrate/prefix guarantees remain intact.
 
-All **98/98 PR #2 material threads remain unresolved**. Green technical proof is not semantic approval. This OPEN checkpoint must pass before REVIEW-0091 may transition to `IN_PROGRESS`.
+Bootstrap #428 / run `36489766360` and Gate #362 / run `36489766700` proved the OPEN checkpoint with the same **838 tests**, **8,089 statements / 3,738 branches**, **100% line + branch**, **38/38 + 40/40 + 5/5 + 20/20 + 18/18 mutations**, every deterministic/T7–T11/context validator, CodeQL and Dependency Review green. The live gate failed only on **98 unresolved threads** plus missing trusted exact-head approval. All **98/98 PR #2 material threads remain unresolved**. One frozen exact-head proof is now required before fresh L2.
 
 ### REVIEW-0091 next action
 
-1. Prove this exact OPEN state-only checkpoint with Bootstrap and MONDE Gate.
-2. If deterministic/security lanes remain green, transition REVIEW-0091 `OPEN -> IN_PROGRESS` only in canonical state.
-3. Prove that frozen exact HEAD once more.
-4. Request a fresh independent L2 over all **98 unresolved** material findings and all inherited T11/T12/T13/T14 trust boundaries.
+1. OPEN checkpoint proof is complete via Bootstrap #428 / Gate #362 and REVIEW-0091 is now `IN_PROGRESS`.
+2. Prove/freeze this exact IN_PROGRESS head once more.
+3. Request a fresh independent L2 over all **98 unresolved** material findings and all inherited T11/T12/T13/T14 trust boundaries without mutating the tree while it runs.
+4. Any material finding closes REVIEW-0091 as negative evidence and requires a successor.
 5. Resolve no thread without a clean L2 **and** eligible trusted non-author exact-head `APPROVED` evidence.
 
 ## REVIEW-0090 — exact execution-env and action-input successor
