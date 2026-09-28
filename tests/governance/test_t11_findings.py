@@ -764,6 +764,76 @@ def test_review0088_trusted_prefix_helpers_fail_closed() -> None:
     assert t11._trusted_prefix([True, True]) is True
     assert t11._trusted_prefix([True, False]) is False
 
+    assert t11._exact_run_at(
+        {"steps": [{"run": "ok"}]},
+        0,
+        "ok",
+    ) is True
+    assert t11._exact_run_at(
+        {"env": {"PATH": "/tmp/fake"}, "steps": [{"run": "ok"}]},
+        0,
+        "ok",
+    ) is False
+    assert t11._exact_run_at({"steps": []}, 0, "ok") is False
+    assert t11._exact_run_at(
+        {"continue-on-error": True, "steps": [{"run": "ok"}]},
+        0,
+        "ok",
+    ) is False
+    assert t11._exact_run_at(
+        {"if": 7, "steps": [{"run": "ok"}]},
+        0,
+        "ok",
+    ) is False
+    assert t11._exact_run_at(
+        {"if": "unexpected", "steps": [{"run": "ok"}]},
+        0,
+        "ok",
+    ) is False
+    assert t11._exact_run_at(
+        {"steps": [{"run": "ok", "continue-on-error": True}]},
+        0,
+        "ok",
+    ) is False
+    assert t11._exact_run_at(
+        {"steps": [{"run": "ok", "if": "always()"}]},
+        0,
+        "ok",
+    ) is False
+    assert t11._exact_run_at(
+        {"steps": [{"run": "ok", "working-directory": "subdir"}]},
+        0,
+        "ok",
+    ) is False
+    assert t11._exact_run_at(
+        {"steps": [{"run": "ok", "shell": "bash"}]},
+        0,
+        "ok",
+    ) is False
+    assert t11._exact_run_at(
+        {"steps": [{"run": "ok"}]},
+        0,
+        "ok",
+        required_shell="bash",
+    ) is False
+    assert t11._exact_run_at(
+        {"steps": [{"run": "ok", "env": "bad"}]},
+        0,
+        "ok",
+    ) is False
+    assert t11._exact_run_at(
+        {"steps": [{"run": "ok", "env": {"PYTHONPATH": "/tmp/fake"}}]},
+        0,
+        "ok",
+    ) is False
+    assert t11._exact_run_at(
+        {"if": "allowed", "steps": [{"run": "ok", "shell": "bash", "env": {"SAFE": "1"}}]},
+        0,
+        "ok",
+        allowed_job_ifs=frozenset({"allowed"}),
+        required_shell="bash",
+    ) is True
+
 
 def test_review0085_probe_fail_closed_branches_and_core_call(tmp_path: Path) -> None:
     valid_probe_job = {
