@@ -80,17 +80,20 @@ def test_workflow_command_matching_rejects_failure_masking_step_controls() -> No
         safe_poll,
         poll_expected,
         allowed_job_ifs=frozenset({"github.event_name == 'schedule'"}),
+        required_env={"GITHUB_TOKEN": "token"},
     )
 
     assert not t11._steps_execute_prefix(
         {**safe_poll, "continue-on-error": True},
         poll_expected,
         allowed_job_ifs=frozenset({"github.event_name == 'schedule'"}),
+        required_env={"GITHUB_TOKEN": "token"},
     )
     assert not t11._steps_execute_prefix(
         {**safe_poll, "if": "false"},
         poll_expected,
         allowed_job_ifs=frozenset({"github.event_name == 'schedule'"}),
+        required_env={"GITHUB_TOKEN": "token"},
     )
 
     base_step = {"run": "python -m tools.governance.thread_state_poll"}
@@ -175,7 +178,7 @@ def test_workflow_command_matching_rejects_inherited_controls_and_backgrounding(
         expected,
         workflow={"defaults": {"run": "not-a-map"}},
     )
-    assert t11._steps_execute_prefix(
+    assert not t11._steps_execute_prefix(
         {"env": {"SAFE_FLAG": "1"}, **job},
         expected,
         workflow={"env": {"ANOTHER_SAFE_FLAG": "1"}},

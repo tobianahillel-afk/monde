@@ -809,7 +809,7 @@ def _core_trusted_prefix(core: dict[str, Any], validate: dict[str, Any]) -> bool
             0,
             CHECKOUT_ACTION,
             workflow=core,
-            required_with={"ref": CORE_INPUT_HEAD_EXPR, "persist-credentials": "false"},
+            required_with={"ref": CORE_INPUT_HEAD_EXPR, "fetch-depth": "0", "persist-credentials": "false"},
         ),
         _action_at(
             validate,
@@ -1050,7 +1050,7 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
         validate,
         CHECKOUT_ACTION,
         workflow=core,
-        required_with={"ref": CORE_INPUT_HEAD_EXPR, "persist-credentials": "false"},
+        required_with={"ref": CORE_INPUT_HEAD_EXPR, "fetch-depth": "0", "persist-credentials": "false"},
     ):
         out.append(Finding(CORE_WORKFLOW_PATH, "CORE_CHECKOUT_ACTION", "governance core must checkout the exact requested head with the pinned checkout action"))
     if not _steps_use_action(

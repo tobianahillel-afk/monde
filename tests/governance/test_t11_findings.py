@@ -334,7 +334,9 @@ jobs:
           cache: pip
           cache-dependency-path: requirements/governance-ci.txt
       - run: python -m pip install --require-hashes -r requirements/governance-ci.txt
-      - run: python -m tools.governance.thread_state_poll
+      - env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python -m tools.governance.thread_state_poll
   dependency-review:
     if: startsWith(github.event_name, 'pull_request')
     steps:
@@ -404,6 +406,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - if: startsWith(github.event_name, 'pull_request')
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: python -m tools.governance.github_live_gate --repo '${{ github.repository }}' --pr '${{ github.event.pull_request.number }}' --head '${{ github.event.pull_request.head.sha }}' --root . --json-out github-live-gate.json
 """,
         encoding="utf-8",
@@ -418,6 +422,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.head_sha }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
@@ -601,8 +606,8 @@ def test_review0090_rejects_unrecognized_env_and_requires_exact_step_env(tmp_pat
     cases = [
         (
             t11.WORKFLOW_PATH,
-            "  final-gate:\n    name: MONDE / Merge Gate\n",
-            "  final-gate:\n    name: MONDE / Merge Gate\n    env:\n      LD_PRELOAD: ${{ github.workspace }}/payload.so\n",
+            "  final-gate:\n    if: always() && github.event_name != 'schedule'\n",
+            "  final-gate:\n    if: always() && github.event_name != 'schedule'\n    env:\n      LD_PRELOAD: ${{ github.workspace }}/payload.so\n",
             "FINAL_GATE_TRUSTED_PREFIX",
         ),
         (
