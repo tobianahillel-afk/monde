@@ -124,14 +124,30 @@ Required sequence from this integrated state:
 1. Keep all **100** PR #2 material review threads unresolved.
 2. REVIEW-0083 through REVIEW-0090 remain terminal negative evidence.
 3. REVIEW-0091 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen head `214a24f126caf45182153a298b6189b436231b1a`.
-4. Exact REVIEW-0091 technical proof is complete via Bootstrap #429 / run `36490673993` and Gate #363 / run `36490674152`.
-5. Independent Codex L2 `PRR_kwDOUUI5ts8AAAABPp84qg` added P1 `PRRT_kwDOUUI5ts6m5Bky`: PR-controlled pytest can persist GITHUB_PATH/GITHUB_ENV state into later trusted validators in the same governance-core job.
-6. Author-side adversarial `PRR_kwDOUUI5ts8AAAABPp9nTw` added P1 `PRRT_kwDOUUI5ts6m5DOC`: the workflow does not bind the complete allowed job set, so an added job can independently elevate GITHUB_TOKEN permissions.
-7. REVIEW-0092 must isolate PR-controlled tests onto a distinct runner/job, bind exact job-ID sets in both governance workflows, require exact final-gate `needs`, and preserve REVIEW-0091 exact permission protections plus T11/T12/T13/T14.
-8. Prove REVIEW-0091 CLOSED checkpoint before any REVIEW-0092 implementation commit.
-9. After REVIEW-0092 technical/OPEN/IN_PROGRESS frozen proof, request fresh independent L2 over all **100** unresolved findings.
+4. REVIEW-0091 CLOSED checkpoint `c6d8cf88212595b2ec4330677a19111c2485c37a` passed Gate #369 deterministic/security proof before successor implementation.
+5. REVIEW-0092 technical candidate `b830aaaeb1954541da102d4e897b734e5c82485a` passed Bootstrap #433 / run `36498023728` and Gate #371 / run `36498024030`: **839 tests**, **8,120 statements / 3,758 branches**, **100% line + branch**, mutations **38/38 + 40/40 + 5/5 + 24/24 + 18/18**, all deterministic/T7-T11/context validators, CodeQL and Dependency Review green.
+6. Candidate pytest now runs in a separate `candidate-tests` runner/job; trusted `validate` starts only after it succeeds on a fresh runner. Main/core workflow job sets and final-gate `needs` are exact.
+7. REVIEW-0092 is **OPEN**. Prove this state-only OPEN checkpoint on its exact HEAD before transitioning to IN_PROGRESS.
+8. Keep all **100** threads unresolved throughout the OPEN/IN_PROGRESS proof.
+9. After REVIEW-0092 OPEN and frozen IN_PROGRESS proof, request fresh independent L2 over all **100** unresolved findings.
 10. Only after clean independent semantic verification and eligible trusted non-author exact-head approval may independently verified PR #2 threads/findings be resolved and WORK-0002 completion be synchronized.
 11. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
+
+## REVIEW-0092 — isolated candidate-test and exact job-graph successor
+
+REVIEW-0092 is now **OPEN** after exact technical proof on `b830aaaeb1954541da102d4e897b734e5c82485a`.
+
+Bootstrap #433 / run `36498023728` succeeded. Gate #371 / run `36498024030` proved:
+- **839 governance tests PASS**;
+- **8,120 statements / 3,758 branches**, **100% line + branch**;
+- mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 24/24 T11 + 18/18 T13**;
+- repository/strict/path/change/L2/review/T7/T8/T9/T10/T11/context validators all green;
+- CodeQL and Dependency Review SUCCESS;
+- live merge closure failed only on **100 unresolved threads** and missing trusted context-separated exact-head approval, with no durable-set mismatch.
+
+The successor closes both REVIEW-0091 P1 classes structurally. PR-controlled pytest now executes in a dedicated `candidate-tests` job on its own runner; the trusted `validate` job contains no pytest and starts on a fresh runner only after `candidate-tests` succeeds. The validator binds the complete top-level and reusable-workflow job-ID sets exactly, binds `validate.needs` exactly to `candidate-tests`, and binds `final-gate.needs` exactly to `governance-core`, `dependency-review` and `codeql`. Four new T11 mutants protect these properties.
+
+No review thread is resolved. This OPEN checkpoint must receive its own exact-head Bootstrap/Gate proof before REVIEW-0092 may transition to `IN_PROGRESS`.
 
 ## REVIEW-0091 — terminal negative evidence
 
