@@ -431,7 +431,7 @@ jobs:
 permissions:
   contents: read
 jobs:
-  validate:
+  candidate-tests:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -445,6 +445,19 @@ jobs:
           cache-dependency-path: requirements/governance-ci.txt
       - run: python -m pip install --require-hashes -r requirements/governance-ci.txt
       - run: python -m pytest --cov --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=100
+  validate:
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13.15'
+          cache: pip
+          cache-dependency-path: requirements/governance-ci.txt
+      - run: python -m pip install --require-hashes -r requirements/governance-ci.txt
       - run: python scripts/governance_mutation_smoke.py
       - run: python .github/scripts/governance_l2_mutation_smoke.py
       - run: python .github/scripts/governance_t10_mutation_smoke.py
@@ -471,6 +484,7 @@ jobs:
         run: python -m tools.governance.t11_closure . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --json-out t11-closure-findings.json
       - if: startsWith(inputs.event_name, 'pull_request')
         run: python -m tools.governance.context_manifest . --base '${{ inputs.base_sha }}' --head '${{ inputs.head_sha }}' --out context-manifest.json
+    needs: [candidate-tests]
 """,
         encoding="utf-8",
     )
@@ -724,6 +738,71 @@ def test_review0090_rejects_unrecognized_env_and_requires_exact_step_env(tmp_pat
         assert needle in text
         target.write_text(text.replace(needle, replacement, 1), encoding="utf-8")
         assert rule in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
+
+def test_review0092_binds_exact_job_sets_test_isolation_and_final_needs(tmp_path: Path) -> None:
+    _write_valid_workflows(tmp_path)
+    assert t11.validate_workflow_structure(tmp_path) == []
+
+    workflow = tmp_path / t11.WORKFLOW_PATH
+    text = workflow.read_text(encoding="utf-8")
+    workflow.write_text(
+        text.replace(
+            "jobs:\n  governance-core:\n",
+            "jobs:\n  attacker-job:\n    permissions:\n      contents: write\n    steps: []\n  governance-core:\n",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    assert "WORKFLOW_JOB_SET" in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
+    _write_valid_workflows(tmp_path)
+    core = tmp_path / t11.CORE_WORKFLOW_PATH
+    text = core.read_text(encoding="utf-8")
+    core.write_text(
+        text.replace(
+            "jobs:\n  candidate-tests:\n",
+            "jobs:\n  attacker-job:\n    steps: []\n  candidate-tests:\n",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    assert "CORE_JOB_SET" in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
+    _write_valid_workflows(tmp_path)
+    workflow = tmp_path / t11.WORKFLOW_PATH
+    text = workflow.read_text(encoding="utf-8")
+    workflow.write_text(
+        text.replace(
+            "needs: [governance-core, dependency-review, codeql]",
+            "needs: [governance-core, dependency-review, codeql, attacker-job]",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    assert "FINAL_GATE_NEEDS" in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
+    _write_valid_workflows(tmp_path)
+    core = tmp_path / t11.CORE_WORKFLOW_PATH
+    text = core.read_text(encoding="utf-8")
+    core.write_text(text.replace("    needs: [candidate-tests]\n", "", 1), encoding="utf-8")
+    assert "CORE_VALIDATE_NEEDS" in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
+    _write_valid_workflows(tmp_path)
+    core = tmp_path / t11.CORE_WORKFLOW_PATH
+    text = core.read_text(encoding="utf-8")
+    first = text.index("  candidate-tests:\n")
+    second = text.index("  validate:\n", first)
+    candidate = text[first:second]
+    core.write_text(
+        text[:first] + candidate.replace(
+            "      - run: python -m pytest --cov --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=100\n",
+            "",
+            1,
+        ) + text[second:],
+        encoding="utf-8",
+    )
+    assert "CORE_PYTEST_WIRING" in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
 
 
 def test_review0090_rejects_extra_action_inputs() -> None:

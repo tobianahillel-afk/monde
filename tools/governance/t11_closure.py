@@ -62,6 +62,12 @@ POLL_PERMISSIONS = {
     "contents": "read",
     "pull-requests": "read",
 }
+WORKFLOW_JOB_IDS = frozenset(
+    {"governance-core", "dependency-review", "codeql", "final-gate", "review-thread-state-poll"}
+)
+CORE_WORKFLOW_JOB_IDS = frozenset({"candidate-tests", "validate"})
+CORE_VALIDATE_NEEDS = frozenset({"candidate-tests"})
+FINAL_GATE_NEEDS = frozenset({"governance-core", "dependency-review", "codeql"})
 
 CORE_WORKFLOW_USES = "./.github/workflows/_governance-core.yml"
 CORE_EVENT_EXPR = "${{ github.event_name }}"
@@ -94,9 +100,13 @@ case "$code" in
 esac
 """
 
+CANDIDATE_PYTEST_COMMAND = (
+    "python", "-m", "pytest", "--cov", "--cov-branch",
+    "--cov-report=term-missing", "--cov-report=xml:coverage.xml", "--cov-fail-under=100",
+)
+
 REQUIRED_CORE_COMMANDS = (
     ("CORE_TOOLCHAIN_WIRING", ("python", "-m", "pip", "install", "--require-hashes", "-r", "requirements/governance-ci.txt"), frozenset()),
-    ("CORE_PYTEST_WIRING", ("python", "-m", "pytest", "--cov", "--cov-branch", "--cov-report=term-missing", "--cov-report=xml:coverage.xml", "--cov-fail-under=100"), frozenset()),
     ("CORE_BASE_MUTATION_WIRING", ("python", "scripts/governance_mutation_smoke.py"), frozenset()),
     ("CORE_L2_MUTATION_WIRING", ("python", ".github/scripts/governance_l2_mutation_smoke.py"), frozenset()),
     ("CORE_T10_MUTATION_WIRING", ("python", ".github/scripts/governance_t10_mutation_smoke.py"), frozenset()),
@@ -116,22 +126,21 @@ REQUIRED_CORE_COMMANDS = (
 
 CORE_REQUIRED_STEP_INDEXES = {
     "CORE_TOOLCHAIN_WIRING": 2,
-    "CORE_PYTEST_WIRING": 3,
-    "CORE_BASE_MUTATION_WIRING": 4,
-    "CORE_L2_MUTATION_WIRING": 5,
-    "CORE_T10_MUTATION_WIRING": 6,
-    "CORE_T13_MUTATION_WIRING": 8,
-    "CORE_VALIDATE_REPO_WIRING": 9,
-    "CORE_STRICT_CONTRACTS_WIRING": 10,
-    "CORE_PATH_SAFETY_WIRING": 11,
-    "CORE_CHANGE_GUARD_WIRING": 12,
-    "CORE_L2_GATE_WIRING": 13,
-    "CORE_REVIEW_CLOSURE_WIRING": 14,
-    "CORE_T7_WIRING": 15,
-    "CORE_T8_WIRING": 16,
-    "CORE_T9_WIRING": 17,
-    "CORE_T10_WIRING": 18,
-    "CORE_CONTEXT_MANIFEST_WIRING": 20,
+    "CORE_BASE_MUTATION_WIRING": 3,
+    "CORE_L2_MUTATION_WIRING": 4,
+    "CORE_T10_MUTATION_WIRING": 5,
+    "CORE_T13_MUTATION_WIRING": 7,
+    "CORE_VALIDATE_REPO_WIRING": 8,
+    "CORE_STRICT_CONTRACTS_WIRING": 9,
+    "CORE_PATH_SAFETY_WIRING": 10,
+    "CORE_CHANGE_GUARD_WIRING": 11,
+    "CORE_L2_GATE_WIRING": 12,
+    "CORE_REVIEW_CLOSURE_WIRING": 13,
+    "CORE_T7_WIRING": 14,
+    "CORE_T8_WIRING": 15,
+    "CORE_T9_WIRING": 16,
+    "CORE_T10_WIRING": 17,
+    "CORE_CONTEXT_MANIFEST_WIRING": 19,
 }
 
 FINAL_GATE_LANE_RESULTS_RUN = """set -euo pipefail
@@ -828,6 +837,51 @@ def _poll_trusted_prefix(workflow: dict[str, Any], poll: dict[str, Any]) -> bool
     )
 
 
+def _exact_needs(job: dict[str, Any], required: frozenset[str]) -> bool:
+    raw = job.get("needs")
+    if isinstance(raw, str):
+        items = [raw]
+    elif isinstance(raw, list) and all(isinstance(item, str) for item in raw):
+        items = raw
+    else:
+        return False
+    return len(items) == len(required) and set(items) == set(required)
+
+
+def _candidate_test_prefix(core: dict[str, Any], job: dict[str, Any]) -> bool:
+    if not _trusted_job_execution_substrate_safe(job, None):
+        return False
+    return _trusted_prefix(
+        (
+            _action_at(
+                job,
+                0,
+                CHECKOUT_ACTION,
+                workflow=core,
+                required_with={"ref": CORE_INPUT_HEAD_EXPR, "fetch-depth": "0", "persist-credentials": "false"},
+            ),
+            _action_at(
+                job,
+                1,
+                SETUP_PYTHON_ACTION,
+                workflow=core,
+                required_with={
+                    "python-version": "3.13.15",
+                    "cache": "pip",
+                    "cache-dependency-path": "requirements/governance-ci.txt",
+                },
+            ),
+            _command_at(
+                job,
+                2,
+                ("python", "-m", "pip", "install", "--require-hashes", "-r", "requirements/governance-ci.txt"),
+                workflow=core,
+            ),
+            _command_at(job, 3, CANDIDATE_PYTEST_COMMAND, workflow=core),
+        )
+    )
+
+
 def _core_trusted_prefix(core: dict[str, Any], validate: dict[str, Any]) -> bool:
     if not _trusted_job_execution_substrate_safe(validate, None):
         return False
@@ -865,13 +919,13 @@ def _core_trusted_prefix(core: dict[str, Any], validate: dict[str, Any]) -> bool
         (
             _command_at(
                 validate,
-                7,
+                6,
                 ("python", ".github/scripts/governance_t11_mutation_smoke.py"),
                 workflow=core,
             ),
             _command_at(
                 validate,
-                19,
+                18,
                 ("python", "-m", "tools.governance.t11_closure", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "t11-closure-findings.json"),
                 workflow=core,
                 allowed_step_ifs=frozenset({CORE_PR_IF}),
@@ -1049,6 +1103,14 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
 
     jobs = workflow.get("jobs")
     jobs = jobs if isinstance(jobs, dict) else {}
+    if set(jobs) != WORKFLOW_JOB_IDS:
+        out.append(
+            Finding(
+                WORKFLOW_PATH,
+                "WORKFLOW_JOB_SET",
+                f"workflow jobs must equal the reviewed canonical set {sorted(WORKFLOW_JOB_IDS)}; observed={sorted(jobs)}",
+            )
+        )
 
     governance_core = jobs.get("governance-core")
     if not isinstance(governance_core, dict):
@@ -1088,8 +1150,30 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
 
     core_jobs = core.get("jobs")
     core_jobs = core_jobs if isinstance(core_jobs, dict) else {}
+    if set(core_jobs) != CORE_WORKFLOW_JOB_IDS:
+        out.append(
+            Finding(
+                CORE_WORKFLOW_PATH,
+                "CORE_JOB_SET",
+                f"reusable governance-core jobs must equal {sorted(CORE_WORKFLOW_JOB_IDS)}; observed={sorted(core_jobs)}",
+            )
+        )
+
+    candidate_tests = core_jobs.get("candidate-tests")
+    if not isinstance(candidate_tests, dict):
+        out.append(Finding(CORE_WORKFLOW_PATH, "CORE_CANDIDATE_TEST_JOB", "candidate-tests isolation job is missing"))
+    else:
+        if "needs" in candidate_tests:
+            out.append(Finding(CORE_WORKFLOW_PATH, "CORE_CANDIDATE_TEST_NEEDS", "candidate-tests must start on its own fresh runner without depending on another workflow job"))
+        if not _exact_permissions_safe(candidate_tests, None):
+            out.append(Finding(CORE_WORKFLOW_PATH, "CORE_CANDIDATE_TEST_PERMISSIONS", "candidate-tests must inherit the exact reusable-workflow permission boundary without a job-level override"))
+        if not _candidate_test_prefix(core, candidate_tests):
+            out.append(Finding(CORE_WORKFLOW_PATH, "CORE_PYTEST_WIRING", "PR-controlled pytest must run only in the isolated candidate-tests job with the exact checkout/setup/toolchain/test prefix"))
+
     validate = core_jobs.get("validate")
     validate = validate if isinstance(validate, dict) else {}
+    if not _exact_needs(validate, CORE_VALIDATE_NEEDS):
+        out.append(Finding(CORE_WORKFLOW_PATH, "CORE_VALIDATE_NEEDS", f"trusted validate job must depend exactly on {sorted(CORE_VALIDATE_NEEDS)}"))
 
     if not _exact_permissions_safe(validate, None):
         out.append(Finding(CORE_WORKFLOW_PATH, "CORE_VALIDATE_PERMISSIONS", "governance-core validate job must inherit the exact reusable-workflow permission boundary without a job-level override"))
@@ -1223,15 +1307,18 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
             out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_PERMISSIONS", f"final-gate permissions must equal the exact mapping {FINAL_GATE_PERMISSIONS!r}"))
         if str(final_gate.get("if") or "") != FINAL_GATE_IF:
             out.append(Finding(WORKFLOW_PATH, "FINAL_GATE_SCOPE", "final-gate must run for every non-schedule event"))
-        needs = final_gate.get("needs")
-        observed_needs = {str(item) for item in needs} if isinstance(needs, list) else set()
-        required_needs = {"governance-core", "dependency-review", "codeql"}
-        if not required_needs.issubset(observed_needs):
+        if not _exact_needs(final_gate, FINAL_GATE_NEEDS):
+            needs = final_gate.get("needs")
+            observed_needs = (
+                [needs] if isinstance(needs, str)
+                else needs if isinstance(needs, list)
+                else []
+            )
             out.append(
                 Finding(
                     WORKFLOW_PATH,
                     "FINAL_GATE_NEEDS",
-                    f"final-gate must depend on {sorted(required_needs)}; observed={sorted(observed_needs)}",
+                    f"final-gate needs must equal {sorted(FINAL_GATE_NEEDS)}; observed={observed_needs}",
                 )
             )
         final_job_ifs = frozenset({FINAL_GATE_IF})

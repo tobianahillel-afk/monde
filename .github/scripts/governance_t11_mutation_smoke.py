@@ -114,6 +114,26 @@ MUTATIONS = {
         "    return isinstance(actual, dict) and actual == required_permissions\n",
         "    return isinstance(actual, dict) and all(actual.get(key) == value for key, value in required_permissions.items())\n",
     ),
+    "t11-exact-workflow-job-set": (
+        "tools/governance/t11_closure.py",
+        "    if set(jobs) != WORKFLOW_JOB_IDS:\n",
+        "    if not WORKFLOW_JOB_IDS.issubset(set(jobs)):\n",
+    ),
+    "t11-exact-core-job-set": (
+        "tools/governance/t11_closure.py",
+        "    if set(core_jobs) != CORE_WORKFLOW_JOB_IDS:\n",
+        "    if not CORE_WORKFLOW_JOB_IDS.issubset(set(core_jobs)):\n",
+    ),
+    "t11-candidate-test-isolation": (
+        "tools/governance/t11_closure.py",
+        "    if not _exact_needs(validate, CORE_VALIDATE_NEEDS):\n",
+        "    if False:\n",
+    ),
+    "t11-exact-final-gate-needs": (
+        "tools/governance/t11_closure.py",
+        "        if not _exact_needs(final_gate, FINAL_GATE_NEEDS):\n",
+        "        if False:\n",
+    ),
 }
 
 
