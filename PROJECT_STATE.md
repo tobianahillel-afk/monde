@@ -129,13 +129,13 @@ Required sequence from this integrated state:
 6. REVIEW-0084 is terminal **CLOSED / CHANGES_REQUIRED** after fresh independent L2 `PRR_kwDOUUI5ts8AAAABPOcDnA` on exact frozen head `d1850542494492a388b545dec954e078b825d9b5` added five new P1 findings.
 7. REVIEW-0085 is terminal **CLOSED / CHANGES_REQUIRED** after exact independent L2 `PRR_kwDOUUI5ts8AAAABPPl4wg` on frozen head `4cbe42fd2c5b2fc14cd50e843c103340cf4dac99` added four P1s; author-side `PRRT_kwDOUUI5ts6mAdoV` adds a fifth live thread.
 8. REVIEW-0087 is terminal **CLOSED / CHANGES_REQUIRED** on exact frozen head `47091d48b40d37dfb18b32f0546ea348731d7cc9` after author-side `PRRT_kwDOUUI5ts6mfxiN` exposed cross-step execution-context poisoning.
-9. REVIEW-0088 is **OPEN** after technical candidate `831dd71499cbc066e208c599dee94488cf536436` passed 831 tests, 100% line+branch and all mutation lanes through T13; prove this OPEN checkpoint completely before transition to IN_PROGRESS.
+9. REVIEW-0088 is **IN_PROGRESS** after OPEN checkpoint `e9bda0fcf80fbe9b820663f09450b2aea2c99ed5` passed Bootstrap #404 and Gate #333; prove/freeze this exact state descendant, then request fresh independent L2.
 10. Only after independent semantic verification and trusted exact-head approval may independently verified PR #2 threads/findings be resolved, WORK-0002 completion be synchronized and the final exact-head merge gate be considered.
 11. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
 ## REVIEW-0088 — trusted predecessor-step prefix successor
 
-REVIEW-0088 is now **OPEN** after exact technical candidate proof on `831dd71499cbc066e208c599dee94488cf536436`.
+REVIEW-0088 is now **IN_PROGRESS** after exact technical candidate proof on `831dd71499cbc066e208c599dee94488cf536436` and complete OPEN checkpoint proof on `e9bda0fcf80fbe9b820663f09450b2aea2c99ed5`.
 
 Bootstrap #403 / run `36399267697` passed **450/450 tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
 
@@ -149,7 +149,7 @@ Gate #332 then stopped at repository validation only because WORK-0002 already r
 
 The new T11 layer preserves every existing semantic validator and additionally binds sensitive nodes to canonical predecessor positions. Extra or reordered same-job steps before poll/core/Dependency Review/CodeQL/final-gate sensitive execution now fail closed, including `GITHUB_PATH` / `GITHUB_ENV` persistence attempts.
 
-This OPEN checkpoint must now receive one complete exact-head Gate proof before REVIEW-0088 may transition to `IN_PROGRESS`. All **94** PR #2 material threads remain unresolved.
+Bootstrap #404 / run `36400367147` and Gate #333 / run `36400367846` proved the OPEN checkpoint: **450/450** bridge tests; **831** governance tests; **3,853 / 1,640** bootstrap and **8,056 / 3,720** governance coverage at **100% line + branch**; mutations **38/38 + 40/40 + 5/5 + 13/13 + 18/18**; all deterministic/T7-T11/context validators, CodeQL and Dependency Review green. The live gate failed closed only on **94 unresolved threads** and missing trusted exact-head approval. This IN_PROGRESS state now requires one frozen exact-head proof before fresh independent L2.
 
 ## REVIEW-0087 — terminal negative cross-step execution-context review
 

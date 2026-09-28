@@ -1,5 +1,5 @@
 id: REVIEW-0088
-status: OPEN
+status: IN_PROGRESS
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-2"
@@ -78,7 +78,8 @@ checks:
     - "Exact technical candidate 831dd71499cbc066e208c599dee94488cf536436 reached Gate #332 / run 36399267742 with 831 tests PASS, 8056 statements / 3720 branches at 100 percent line+branch, all mutation lanes including T11 13/13, CodeQL and Dependency Review success."
     - "Gate #332 stopped at repository validation only because REVIEW-0088 was already referenced by WORK-0002 but this lifecycle record had not yet been materialized; no runtime/test/mutation failure remained."
     - "Bootstrap #403 / run 36399267697 passed 450/450 bridge tests, 3853 statements / 1640 branches at 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
-    - "This OPEN checkpoint must pass a complete exact-head Gate including repository/strict/path/change/L2/review/T7/T8/T9/T10/T11/context validators before transition to IN_PROGRESS."
+    - "OPEN checkpoint e9bda0fcf80fbe9b820663f09450b2aea2c99ed5 passed Bootstrap #404 / run 36400367147 and Gate #333 / run 36400367846: 450/450 bridge tests at 100 percent; 831 governance tests, 8056 statements / 3720 branches at 100 percent; 38/38 baseline + 40/40 L2 + 5/5 T10 + 13/13 T11 + 18/18 T13 mutations; all deterministic/T7-T11/context validators, CodeQL and Dependency Review green. Live gate failed closed only on 94 unresolved threads and missing trusted exact-head approval."
+    - "This IN_PROGRESS checkpoint must receive one frozen exact-head proof before fresh independent L2."
     - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
     - "Resolve no PR #2 thread until REVIEW-0088 independent L2 is clean and exact-head trusted approval exists."
 outcome: CHANGES_REQUIRED
