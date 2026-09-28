@@ -554,27 +554,18 @@ def test_execution_container_defaults_cover_safe_and_malformed_shapes() -> None:
     assert t11._container_execution_defaults_safe(
         {"defaults": {"run": {"working-directory": "subdir"}}}
     ) is False
+    assert t11._inherited_execution_controls_safe({}, {"steps": []}) is True
     assert t11._inherited_execution_controls_safe(
-        {}, {"runs-on": t11.TRUSTED_RUNNER, "steps": []}
+        {},
+        {"container": {"image": "attacker/image", "env": {"PYTHONPATH": "/attacker"}}, "steps": []},
+    ) is False
+    assert t11._trusted_job_execution_substrate_safe({}) is True
+    assert t11._trusted_job_execution_substrate_safe(
+        {"runs-on": t11.TRUSTED_RUNNER}
     ) is True
-    assert t11._inherited_execution_controls_safe(
-        {}, {"runs-on": "self-hosted", "steps": []}
-    ) is False
-    assert t11._inherited_execution_controls_safe(
-        {},
-        {
-            "runs-on": t11.TRUSTED_RUNNER,
-            "container": {"image": "attacker/image", "env": {"PYTHONPATH": "/attacker"}},
-            "steps": [],
-        },
-    ) is False
-    assert t11._inherited_execution_controls_safe(
-        {},
-        {
-            "runs-on": t11.TRUSTED_RUNNER,
-            "services": {"poison": {"image": "attacker/service"}},
-            "steps": [],
-        },
+    assert t11._trusted_job_execution_substrate_safe({"runs-on": "self-hosted"}) is False
+    assert t11._trusted_job_execution_substrate_safe(
+        {"services": {"poison": {"image": "attacker/service"}}}
     ) is False
 
 
@@ -624,13 +615,13 @@ def test_review0089_rejects_untrusted_runner_and_service_context(tmp_path: Path)
     cases = [
         (
             t11.WORKFLOW_PATH,
-            "  dependency-review:\n    if: startsWith(github.event_name, 'pull_request')\n    runs-on: ubuntu-24.04\n",
+            "  dependency-review:\n    if: startsWith(github.event_name, 'pull_request')\n",
             "  dependency-review:\n    if: startsWith(github.event_name, 'pull_request')\n    runs-on: self-hosted\n",
             "DEPENDENCY_REVIEW_TRUSTED_PREFIX",
         ),
         (
             t11.WORKFLOW_PATH,
-            "  codeql:\n    if: github.event_name != 'schedule'\n    runs-on: ubuntu-24.04\n",
+            "  codeql:\n    if: github.event_name != 'schedule'\n",
             "  codeql:\n    if: github.event_name != 'schedule'\n    runs-on: self-hosted\n",
             "CODEQL_TRUSTED_PREFIX",
         ),
@@ -642,14 +633,14 @@ def test_review0089_rejects_untrusted_runner_and_service_context(tmp_path: Path)
         ),
         (
             t11.WORKFLOW_PATH,
-            "  review-thread-state-poll:\n    if: github.event_name == 'schedule'\n    runs-on: ubuntu-24.04\n",
+            "  review-thread-state-poll:\n    if: github.event_name == 'schedule'\n",
             "  review-thread-state-poll:\n    if: github.event_name == 'schedule'\n    runs-on: self-hosted\n",
             "REVIEW_THREAD_POLL_TRUSTED_PREFIX",
         ),
         (
             t11.CORE_WORKFLOW_PATH,
-            "  validate:\n    name: Deterministic governance\n    runs-on: ubuntu-24.04\n",
-            "  validate:\n    name: Deterministic governance\n    runs-on: self-hosted\n",
+            "  validate:\n    steps:\n",
+            "  validate:\n    runs-on: self-hosted\n    steps:\n",
             "CORE_TRUSTED_PREFIX",
         ),
     ]

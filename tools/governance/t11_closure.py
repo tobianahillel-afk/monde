@@ -510,13 +510,18 @@ def _inherited_execution_controls_safe(
     workflow: dict[str, Any] | None,
     job: dict[str, Any],
 ) -> bool:
-    if workflow is not None and job.get("runs-on") != TRUSTED_RUNNER:
-        return False
     if "container" in job:
+        return False
+    return _container_execution_defaults_safe(workflow or {}) and _container_execution_defaults_safe(job)
+
+
+def _trusted_job_execution_substrate_safe(job: dict[str, Any]) -> bool:
+    runner = job.get("runs-on")
+    if runner is not None and runner != TRUSTED_RUNNER:
         return False
     if "services" in job:
         return False
-    return _container_execution_defaults_safe(workflow or {}) and _container_execution_defaults_safe(job)
+    return True
 
 
 def _execution_controls_safe(
@@ -736,6 +741,8 @@ def _exact_run_at(
 
 
 def _poll_trusted_prefix(workflow: dict[str, Any], poll: dict[str, Any]) -> bool:
+    if not _trusted_job_execution_substrate_safe(poll):
+        return False
     job_ifs = frozenset({"github.event_name == 'schedule'"})
     return _trusted_prefix(
         (
@@ -778,6 +785,8 @@ def _poll_trusted_prefix(workflow: dict[str, Any], poll: dict[str, Any]) -> bool
 
 
 def _core_trusted_prefix(core: dict[str, Any], validate: dict[str, Any]) -> bool:
+    if not _trusted_job_execution_substrate_safe(validate):
+        return False
     checks: list[bool] = [
         _action_at(
             validate,
@@ -832,6 +841,8 @@ def _dependency_review_trusted_prefix(
     workflow: dict[str, Any],
     job: dict[str, Any],
 ) -> bool:
+    if not _trusted_job_execution_substrate_safe(job):
+        return False
     job_ifs = frozenset({PR_EVENT_IF})
     return _trusted_prefix(
         (
@@ -850,6 +861,8 @@ def _dependency_review_trusted_prefix(
 
 
 def _codeql_trusted_prefix(workflow: dict[str, Any], job: dict[str, Any]) -> bool:
+    if not _trusted_job_execution_substrate_safe(job):
+        return False
     job_ifs = frozenset({CODEQL_JOB_IF})
     return _trusted_prefix(
         (
@@ -881,6 +894,8 @@ def _codeql_trusted_prefix(workflow: dict[str, Any], job: dict[str, Any]) -> boo
 
 
 def _final_gate_trusted_prefix(workflow: dict[str, Any], job: dict[str, Any]) -> bool:
+    if not _trusted_job_execution_substrate_safe(job):
+        return False
     job_ifs = frozenset({FINAL_GATE_IF})
     pr_ifs = frozenset({PR_EVENT_IF})
     return _trusted_prefix(
