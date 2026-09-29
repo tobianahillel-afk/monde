@@ -1,0 +1,93 @@
+id: REVIEW-0093
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "PR #5 / T12 remains independently accepted and merged on main as b4b52c77fbf05eda65e8f0e951959da70e7edbe7"
+    - "T13 and T14 remain DONE and intact on the integrated PR #2 candidate"
+    - "REVIEW-0092 remains terminal CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten as approval"
+    - "P1 PRRT_kwDOUUI5ts6m5xW5 is closed only if every pytest-executing mutation smoke is isolated in candidate-tests and no candidate execution occurs in trusted validate"
+    - "candidate-tests owns exact checkout, pinned cached Python, hash-locked install, full pytest coverage command and all five mutation-smoke commands"
+    - "trusted validate starts on a fresh runner only after candidate-tests succeeds"
+    - "trusted validate uses exact-head checkout, pinned Python without pip-cache restoration, fresh hash-locked install and trusted validators only"
+    - "validate needs equals exactly candidate-tests"
+    - "the reusable governance-core workflow job-id set remains exactly candidate-tests and validate"
+    - "the top-level governance workflow job-id set and final-gate dependency set remain exact"
+    - "REVIEW-0091 exact permission maps, REVIEW-0090 exact environment/action inputs, REVIEW-0089 trusted substrate and REVIEW-0088 trusted predecessor order remain intact"
+    - "T11 mutation smoke attacks the candidate-execution detector itself so the isolation mutant cannot survive through duplicate checks"
+    - "WORK-0002 durable open_findings exactly equals all 101 live unresolved PR #2 material thread identities"
+    - "no PR #2 review thread is resolved before a clean REVIEW-0093 result and eligible trusted non-author exact-head APPROVED review"
+  risks:
+    - "candidate-controlled pytest or mutation-smoke execution can persist GITHUB_PATH GITHUB_ENV or workspace state into later trusted validators when colocated"
+    - "trusted validate can restore candidate-influenced pip cache and inherit untrusted package state"
+    - "mutation protection can give a false negative when a mutant disables only one of two redundant enforcement calls"
+    - "candidate-tests can be skipped or trusted validate can start without candidate-tests success if dependency graph equality regresses"
+    - "technical green proof can be mistaken for independent semantic approval"
+    - "live and durable finding identity sets can drift while preserving equal cardinality"
+findings: []
+checks:
+  assumptions_challenged:
+    - "moving top-level pytest alone is sufficient to isolate candidate execution"
+    - "mutation-smoke scripts are trusted merely because their wrapper code is reviewed"
+    - "restoring the same pip cache in candidate and trusted jobs preserves runner isolation"
+    - "a mutation that removes one redundant check meaningfully tests the security boundary"
+    - "green deterministic CI is equivalent to independent L2 closure"
+  omitted_categories_considered:
+    - "each of the five mutation smokes executes PR-controlled pytest through subprocess"
+    - "candidate-tests loses one mutation-smoke command"
+    - "candidate mutation command migrates into validate"
+    - "trusted validate setup-python regains pip cache"
+    - "validate loses exact candidate-tests dependency"
+    - "candidate-tests gains elevated permissions or dependencies"
+    - "trusted validate gains pytest or any candidate mutation command at any position"
+    - "all 101 live and durable PRRT identities"
+  duplicate_or_reuse_search:
+    - "Existing REVIEW-0092 exact job-set and needs validators are preserved and reused."
+    - "Existing REVIEW-0091 exact permission validators remain unchanged."
+    - "Existing REVIEW-0090 exact environment/action-input validators remain unchanged."
+    - "Existing REVIEW-0089 trusted job-substrate and REVIEW-0088 trusted-prefix validators remain the execution authority."
+    - "Existing _job_contains_candidate_execution is reused as the single semantic detector; mutation protection now neutralizes the detector itself rather than one redundant caller."
+    - "No historical negative review is rewritten as approval."
+  failure_modes_considered:
+    - "candidate execution remains in validate despite top-level pytest split"
+    - "candidate mutation lane becomes incomplete while T11 smoke still appears present"
+    - "trusted validate restores pip cache shared with candidate-tests"
+    - "candidate-tests and validate execute on the same runner or validate starts without candidate success"
+    - "mutation harness reports a surviving mutant because it targeted redundant enforcement rather than the semantic detector"
+    - "live merge gate reports a durable-finding mismatch"
+  evidence_requested:
+    - "Bootstrap #442 / run 36564708174 succeeds on exact technical candidate 3168913c85c6a122b932833297395922e61f6275 with 450 tests and 3853 statements / 1640 branches at 100 percent line+branch."
+    - "Bootstrap #442 live PR #2 probe succeeds at 3/100 requests."
+    - "Gate #381 / run 36564708685 proves 840 governance tests PASS with 8138 statements / 3770 branches at 100 percent line+branch."
+    - "Gate #381 kills 38/38 baseline + 40/40 L2 + 5/5 T10 + 26/26 T11 + 18/18 T13 critical mutations."
+    - "Gate #381 Candidate tests, Deterministic governance, CodeQL and Dependency Review all succeed."
+    - "Gate #381 live merge gate fails closed only on 101 unresolved threads and missing trusted context-separated exact-head approval, with no durable-finding mismatch."
+    - "Gate #380 / run 36556657374 is retained negative mutation-harness evidence: runtime tests and coverage passed but the old T11 mutation disabled only one redundant caller and survived at 25/26."
+    - "The only change from 5574e6f812f3ad9524e7ca9f573a6b9dc9aa6a43 to 3168913c85c6a122b932833297395922e61f6275 is the mutation target; production runtime remains unchanged."
+    - "After this technical proof REVIEW-0093 is materialized OPEN; one exact-head OPEN checkpoint is required before transition to IN_PROGRESS."
+    - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2 over all 101 unresolved PR #2 material threads."
+    - "Resolve no PR #2 thread until a clean REVIEW-0093 L2 and eligible trusted non-author exact-head APPROVED review exist."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-09-29"
+  updated_at: "2026-09-29"

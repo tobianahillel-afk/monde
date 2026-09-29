@@ -113,7 +113,7 @@ T11 now enforces that:
 - **T4 — exact final-integrated-candidate proof plus fresh independent L2 closure — remains `IN_PROGRESS`.**
 - Gate #259 / run `36055246141` on integrated head `6e8014c7d46e2aceefa03902c37c6bdf2fac0c19` exposed one deterministic integration defect before L2: `.github/scripts/governance_t13_mutation_smoke.py` still targeted the pre-refactor `return any(...)` form of `_steps_execute_prefix`, while the current hardened implementation uses per-step parsed commands plus `if any(...): return True`. The runtime guard was correct; the mutation harness failed closed with `t13-executable-command-proof: target occurrence count != 1`. The current correction retargets that mutant to the exact current executable-prefix branch without weakening the mutation. A fresh exact-head Gate is required before any L2 request.
 - Gate #260 / run `36058286810` proved the T13 mutation retarget itself, then exposed a second integration-specific defect in `change_guard`: inherited REVIEW-0082 from the PR #5/main second-parent lineage was incorrectly treated as freshness authority for substantive first-parent PR #2 changes. REVIEW-0082 is valid T12 predecessor evidence, not a review of the current PR #2 delta. The correction makes review freshness authority first-parent scoped: a reviewed commit must remain an ancestor of the head, but only a reviewed commit on the current head's first-parent lineage can stale subsequent first-parent work. A real two-parent regression reproduces PR #5/main as second parent and preserves ordinary first-parent stale-review detection.
-- Live PR #2 now has **100 unresolved material threads**. REVIEW-0089 independent L2 added `PRRT_kwDOUUI5ts6muevI` and `PRRT_kwDOUUI5ts6muevQ`; REVIEW-0090 author-side `PRRT_kwDOUUI5ts6m0_t1` adds the permission-binding P1. No thread is resolved.
+- Live PR #2 now has **101 unresolved material threads**. REVIEW-0089 independent L2 added `PRRT_kwDOUUI5ts6muevI` and `PRRT_kwDOUUI5ts6muevQ`; REVIEW-0090 author-side `PRRT_kwDOUUI5ts6m0_t1` adds the permission-binding P1. No thread is resolved.
 - WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
 - Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` author-side; `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending exact integrated-head closure.
 
@@ -123,15 +123,33 @@ Required sequence from this integrated state:
 
 1. Keep all **101** PR #2 material review threads unresolved.
 2. REVIEW-0083 through REVIEW-0092 remain terminal negative evidence.
-3. REVIEW-0092 technical candidate `b830aaaeb1954541da102d4e897b734e5c82485a` passed Bootstrap #433 / run `36498023728` and Gate #371 / run `36498024030`, proving the exact job graph and top-level pytest isolation.
-4. REVIEW-0092 OPEN checkpoint `fcf3e755050bfefa652fcf082bf786e19dea9bfd` was invalidated before lifecycle advance by author-side P1 `PRRT_kwDOUUI5ts6m5xW5`: all five mutation smokes still execute PR-controlled pytest inside trusted `validate`.
-5. Gate #372 was cancelled by that review event and is not completion evidence.
-6. REVIEW-0093 must move **every pytest-executing mutation smoke** into `candidate-tests`, keep `validate` to fresh checkout/setup/hash-locked install plus trusted validators only, remove trusted-job pip-cache restoration, and structurally prevent candidate execution from migrating back into `validate`.
-7. Preserve REVIEW-0092 exact primary/core job sets, exact `validate.needs`, exact final-gate `needs`, and every REVIEW-0091/0090/0089/0088 permission/env/action/substrate/trusted-prefix protection.
-8. Prove REVIEW-0092 CLOSED checkpoint before any REVIEW-0093 implementation commit.
-9. After REVIEW-0093 technical/OPEN/IN_PROGRESS frozen proof, request fresh independent L2 over all **101** unresolved findings.
-10. Only after clean independent semantic verification and eligible trusted non-author exact-head approval may independently verified PR #2 threads/findings be resolved and WORK-0002 completion be synchronized.
-11. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
+3. REVIEW-0093 exact technical candidate `3168913c85c6a122b932833297395922e61f6275` passed Bootstrap #442 / run `36564708174` and Gate #381 / run `36564708685`.
+4. Bootstrap #442 proves **450 bridge tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
+5. Gate #381 proves **840 governance tests**, **8,138 statements / 3,770 branches**, **100% line + branch**, mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 26/26 T11 + 18/18 T13**, with Candidate tests, Deterministic governance, CodeQL and Dependency Review green.
+6. The live merge gate on #381 fails closed only on **101 unresolved threads** and missing trusted context-separated exact-head approval; no durable-finding mismatch is present.
+7. Gate #380 / run `36556657374` remains negative mutation-harness evidence: the old T11 mutant disabled only one redundant candidate-execution caller and survived at 25/26; the corrected candidate changes only the mutant target and not production runtime.
+8. REVIEW-0093 is now `OPEN`. Prove this state-only checkpoint before any lifecycle advance.
+9. After OPEN proof, transition REVIEW-0093 `OPEN -> IN_PROGRESS`, then prove one frozen exact HEAD.
+10. Request fresh independent L2 over all **101 unresolved findings** on that exact frozen head.
+11. Only after clean independent semantic verification and eligible trusted non-author exact-head approval may independently verified PR #2 threads/findings be resolved and WORK-0002 completion be synchronized.
+12. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
+
+## REVIEW-0093 — candidate-execution isolation successor
+
+REVIEW-0093 is now **OPEN** after exact technical proof on `3168913c85c6a122b932833297395922e61f6275`.
+
+The successor closes REVIEW-0092 P1 `PRRT_kwDOUUI5ts6m5xW5` by moving every pytest-executing mutation smoke into the isolated `candidate-tests` job. The trusted `validate` job now starts on a fresh runner only after `candidate-tests` succeeds and is limited to exact-head checkout, pinned Python **without pip-cache restore**, fresh hash-locked toolchain install and trusted validators.
+
+The exact workflow graph remains bound:
+- top-level job set is unchanged and exact;
+- reusable core job set is exactly `candidate-tests` + `validate`;
+- `validate.needs` is exactly `candidate-tests`;
+- final-gate needs remain exact;
+- REVIEW-0091 exact permissions, REVIEW-0090 exact env/action-input bindings, REVIEW-0089 trusted execution substrate and REVIEW-0088 trusted predecessor-prefix protections remain intact.
+
+The corrected T11 mutation harness now neutralizes the semantic `_job_contains_candidate_execution()` detector itself instead of removing only one redundant caller. Gate #381 therefore proves **26/26 T11 critical mutations killed**.
+
+All **101/101 PR #2 material threads remain unresolved**. Green technical proof is not semantic approval. This OPEN checkpoint must pass before REVIEW-0093 may advance to `IN_PROGRESS`.
 
 ## REVIEW-0092 — terminal negative evidence
 
@@ -335,11 +353,11 @@ Product specification and product identity remain owner-gated decisions. Agents 
 8. `registry/acceptance-authority.yaml`
 9. `registry/content-identity.yaml`
 10. `registry/integration-provenance.yaml`
-11. live PR #2 exact HEAD, checks, reviews and all **97 unresolved review threads**
+11. live PR #2 exact HEAD, checks, reviews and all **101 unresolved review threads**
 12. `.github/workflows/governance.yml`, `.github/workflows/_governance-core.yml`
 13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `t11_closure.py`, `github_live_gate.py`, `thread_state_poll.py`
 14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_t11_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`
 15. `tests/governance/test_t11_findings.py`, `test_t11_additional_coverage.py`, `test_t13_findings.py`, `test_thread_state_poll.py` and prior T7/T8/T9/T10 regression suites
-16. `registry/requirements/REQ-0026.yaml`, `registry/tests/TEST-0009.yaml`, `registry/tests/TEST-0010.yaml`, `registry/reviews/REVIEW-0082.yaml`, `registry/reviews/REVIEW-0083.yaml`, `registry/reviews/REVIEW-0084.yaml`, `registry/reviews/REVIEW-0085.yaml`, `registry/reviews/REVIEW-0086.yaml`, `registry/reviews/REVIEW-0087.yaml`, `registry/reviews/REVIEW-0088.yaml`, `registry/reviews/REVIEW-0089.yaml`, and `.github/workflows/monde-stale-green-bootstrap.yml`
+16. `registry/requirements/REQ-0026.yaml`, `registry/tests/TEST-0009.yaml`, `registry/tests/TEST-0010.yaml`, `registry/reviews/REVIEW-0082.yaml`, `registry/reviews/REVIEW-0083.yaml`, `registry/reviews/REVIEW-0084.yaml`, `registry/reviews/REVIEW-0085.yaml`, `registry/reviews/REVIEW-0086.yaml`, `registry/reviews/REVIEW-0087.yaml`, `registry/reviews/REVIEW-0088.yaml`, `registry/reviews/REVIEW-0089.yaml`, `registry/reviews/REVIEW-0090.yaml`, `registry/reviews/REVIEW-0091.yaml`, `registry/reviews/REVIEW-0092.yaml`, `registry/reviews/REVIEW-0093.yaml`, and `.github/workflows/monde-stale-green-bootstrap.yml`
 
 No prior chat history is required.
