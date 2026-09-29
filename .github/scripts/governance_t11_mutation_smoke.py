@@ -141,8 +141,15 @@ MUTATIONS = {
     ),
     "t11-trusted-validate-candidate-execution-ban": (
         "tools/governance/t11_closure.py",
-        "    if _job_contains_candidate_execution(validate):\n        return False\n",
-        "    if False:\n        return False\n",
+        "def _job_contains_candidate_execution(job: dict[str, Any]) -> bool:\n"
+        "    for command in _logical_run_commands(job):\n"
+        "        if len(command) >= 3 and command[:3] == [\"python\", \"-m\", \"pytest\"]:\n"
+        "            return True\n"
+        "        if len(command) >= 2 and command[0] == \"python\" and command[1] in CANDIDATE_MUTATION_SCRIPT_PATHS:\n"
+        "            return True\n"
+        "    return False\n",
+        "def _job_contains_candidate_execution(job: dict[str, Any]) -> bool:\n"
+        "    return False\n",
     ),
 }
 
