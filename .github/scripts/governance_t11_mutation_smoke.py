@@ -134,6 +134,16 @@ MUTATIONS = {
         "        if not _exact_needs(final_gate, FINAL_GATE_NEEDS):\n",
         "        if False:\n",
     ),
+    "t11-candidate-mutation-completeness": (
+        "tools/governance/t11_closure.py",
+        "    for offset, expected in enumerate(CANDIDATE_MUTATION_COMMANDS, start=4):\n",
+        "    for offset, expected in enumerate(CANDIDATE_MUTATION_COMMANDS[:-1], start=4):\n",
+    ),
+    "t11-trusted-validate-candidate-execution-ban": (
+        "tools/governance/t11_closure.py",
+        "    if _job_contains_candidate_execution(validate):\n        return False\n",
+        "    if False:\n        return False\n",
+    ),
 }
 
 

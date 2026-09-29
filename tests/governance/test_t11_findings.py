@@ -445,6 +445,11 @@ jobs:
           cache-dependency-path: requirements/governance-ci.txt
       - run: python -m pip install --require-hashes -r requirements/governance-ci.txt
       - run: python -m pytest --cov --cov-branch --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=100
+      - run: python scripts/governance_mutation_smoke.py
+      - run: python .github/scripts/governance_l2_mutation_smoke.py
+      - run: python .github/scripts/governance_t10_mutation_smoke.py
+      - run: python .github/scripts/governance_t11_mutation_smoke.py
+      - run: python .github/scripts/governance_t13_mutation_smoke.py
   validate:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -455,14 +460,7 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: '3.13.15'
-          cache: pip
-          cache-dependency-path: requirements/governance-ci.txt
       - run: python -m pip install --require-hashes -r requirements/governance-ci.txt
-      - run: python scripts/governance_mutation_smoke.py
-      - run: python .github/scripts/governance_l2_mutation_smoke.py
-      - run: python .github/scripts/governance_t10_mutation_smoke.py
-      - run: python .github/scripts/governance_t11_mutation_smoke.py
-      - run: python .github/scripts/governance_t13_mutation_smoke.py
       - run: python -m tools.governance.validate_repo . --json-out governance-findings.json
       - run: python -m tools.governance.strict_contracts . --json-out strict-findings.json
       - run: python -m tools.governance.path_safety . --json-out path-findings.json
@@ -833,6 +831,78 @@ def test_review0092_binds_exact_job_sets_test_isolation_and_final_needs(tmp_path
     second = text.index(needle, first + 1)
     core.write_text(text[:second] + text[second:].replace(needle, "ref: deadbeef", 1), encoding="utf-8")
     assert "CORE_CHECKOUT_ACTION" in {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+
+
+def test_review0093_keeps_candidate_execution_out_of_trusted_validate(tmp_path: Path) -> None:
+    _write_valid_workflows(tmp_path)
+    assert t11.validate_workflow_structure(tmp_path) == []
+
+    core = tmp_path / t11.CORE_WORKFLOW_PATH
+    original = core.read_text(encoding="utf-8")
+    split = original.index("  validate:\n")
+    candidate = original[:split]
+    validate = original[split:]
+
+    for command in (
+        "python scripts/governance_mutation_smoke.py",
+        "python .github/scripts/governance_l2_mutation_smoke.py",
+        "python .github/scripts/governance_t10_mutation_smoke.py",
+        "python .github/scripts/governance_t11_mutation_smoke.py",
+        "python .github/scripts/governance_t13_mutation_smoke.py",
+    ):
+        assert command in candidate
+        assert command not in validate
+
+        _write_valid_workflows(tmp_path)
+        core = tmp_path / t11.CORE_WORKFLOW_PATH
+        text = core.read_text(encoding="utf-8")
+        first = text.index("  candidate-tests:\n")
+        second = text.index("  validate:\n", first)
+        candidate_block = text[first:second]
+        validate_block = text[second:]
+        core.write_text(
+            text[:first]
+            + candidate_block.replace(f"      - run: {command}\n", "", 1)
+            + validate_block,
+            encoding="utf-8",
+        )
+        rules = {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+        assert "CORE_PYTEST_WIRING" in rules or "T11_MUTATION_WIRING" in rules
+
+    for forbidden in (
+        "      - run: python -m pytest -q tests/governance/test_t11_findings.py\n",
+        "      - run: python scripts/governance_mutation_smoke.py\n",
+        "      - run: python .github/scripts/governance_l2_mutation_smoke.py\n",
+        "      - run: python .github/scripts/governance_t10_mutation_smoke.py\n",
+        "      - run: python .github/scripts/governance_t11_mutation_smoke.py\n",
+        "      - run: python .github/scripts/governance_t13_mutation_smoke.py\n",
+    ):
+        _write_valid_workflows(tmp_path)
+        core = tmp_path / t11.CORE_WORKFLOW_PATH
+        text = core.read_text(encoding="utf-8")
+        marker = "      - run: python -m tools.governance.validate_repo . --json-out governance-findings.json\n"
+        assert marker in text
+        core.write_text(text.replace(marker, forbidden + marker, 1), encoding="utf-8")
+        rules = {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+        assert "CORE_VALIDATE_CANDIDATE_EXECUTION" in rules
+        assert "CORE_TRUSTED_PREFIX" in rules
+
+    _write_valid_workflows(tmp_path)
+    core = tmp_path / t11.CORE_WORKFLOW_PATH
+    text = core.read_text(encoding="utf-8")
+    validate_start = text.index("  validate:\n")
+    validate_text = text[validate_start:]
+    setup = "          python-version: '3.13.15'\n"
+    assert setup in validate_text
+    validate_text = validate_text.replace(
+        setup,
+        setup + "          cache: pip\n          cache-dependency-path: requirements/governance-ci.txt\n",
+        1,
+    )
+    core.write_text(text[:validate_start] + validate_text, encoding="utf-8")
+    rules = {item.rule for item in t11.validate_workflow_structure(tmp_path)}
+    assert "CORE_SETUP_PYTHON_ACTION" in rules
+    assert "CORE_TRUSTED_PREFIX" in rules
 
 
 def test_review0090_rejects_extra_action_inputs() -> None:

@@ -104,13 +104,23 @@ CANDIDATE_PYTEST_COMMAND = (
     "python", "-m", "pytest", "--cov", "--cov-branch",
     "--cov-report=term-missing", "--cov-report=xml:coverage.xml", "--cov-fail-under=100",
 )
+CANDIDATE_MUTATION_COMMANDS = (
+    ("python", "scripts/governance_mutation_smoke.py"),
+    ("python", ".github/scripts/governance_l2_mutation_smoke.py"),
+    ("python", ".github/scripts/governance_t10_mutation_smoke.py"),
+    ("python", ".github/scripts/governance_t11_mutation_smoke.py"),
+    ("python", ".github/scripts/governance_t13_mutation_smoke.py"),
+)
+CANDIDATE_MUTATION_SCRIPT_PATHS = frozenset(command[1] for command in CANDIDATE_MUTATION_COMMANDS)
+CANDIDATE_SETUP_PYTHON_WITH = {
+    "python-version": "3.13.15",
+    "cache": "pip",
+    "cache-dependency-path": "requirements/governance-ci.txt",
+}
+TRUSTED_VALIDATE_SETUP_PYTHON_WITH = {"python-version": "3.13.15"}
 
 REQUIRED_CORE_COMMANDS = (
     ("CORE_TOOLCHAIN_WIRING", ("python", "-m", "pip", "install", "--require-hashes", "-r", "requirements/governance-ci.txt"), frozenset()),
-    ("CORE_BASE_MUTATION_WIRING", ("python", "scripts/governance_mutation_smoke.py"), frozenset()),
-    ("CORE_L2_MUTATION_WIRING", ("python", ".github/scripts/governance_l2_mutation_smoke.py"), frozenset()),
-    ("CORE_T10_MUTATION_WIRING", ("python", ".github/scripts/governance_t10_mutation_smoke.py"), frozenset()),
-    ("CORE_T13_MUTATION_WIRING", ("python", ".github/scripts/governance_t13_mutation_smoke.py"), frozenset()),
     ("CORE_VALIDATE_REPO_WIRING", ("python", "-m", "tools.governance.validate_repo", ".", "--json-out", "governance-findings.json"), frozenset()),
     ("CORE_STRICT_CONTRACTS_WIRING", ("python", "-m", "tools.governance.strict_contracts", ".", "--json-out", "strict-findings.json"), frozenset()),
     ("CORE_PATH_SAFETY_WIRING", ("python", "-m", "tools.governance.path_safety", ".", "--json-out", "path-findings.json"), frozenset()),
@@ -126,21 +136,17 @@ REQUIRED_CORE_COMMANDS = (
 
 CORE_REQUIRED_STEP_INDEXES = {
     "CORE_TOOLCHAIN_WIRING": 2,
-    "CORE_BASE_MUTATION_WIRING": 3,
-    "CORE_L2_MUTATION_WIRING": 4,
-    "CORE_T10_MUTATION_WIRING": 5,
-    "CORE_T13_MUTATION_WIRING": 7,
-    "CORE_VALIDATE_REPO_WIRING": 8,
-    "CORE_STRICT_CONTRACTS_WIRING": 9,
-    "CORE_PATH_SAFETY_WIRING": 10,
-    "CORE_CHANGE_GUARD_WIRING": 11,
-    "CORE_L2_GATE_WIRING": 12,
-    "CORE_REVIEW_CLOSURE_WIRING": 13,
-    "CORE_T7_WIRING": 14,
-    "CORE_T8_WIRING": 15,
-    "CORE_T9_WIRING": 16,
-    "CORE_T10_WIRING": 17,
-    "CORE_CONTEXT_MANIFEST_WIRING": 19,
+    "CORE_VALIDATE_REPO_WIRING": 3,
+    "CORE_STRICT_CONTRACTS_WIRING": 4,
+    "CORE_PATH_SAFETY_WIRING": 5,
+    "CORE_CHANGE_GUARD_WIRING": 6,
+    "CORE_L2_GATE_WIRING": 7,
+    "CORE_REVIEW_CLOSURE_WIRING": 8,
+    "CORE_T7_WIRING": 9,
+    "CORE_T8_WIRING": 10,
+    "CORE_T9_WIRING": 11,
+    "CORE_T10_WIRING": 12,
+    "CORE_CONTEXT_MANIFEST_WIRING": 14,
 }
 
 FINAL_GATE_LANE_RESULTS_RUN = """set -euo pipefail
@@ -851,39 +857,47 @@ def _exact_needs(job: dict[str, Any], required: frozenset[str]) -> bool:
 def _candidate_test_prefix(core: dict[str, Any], job: dict[str, Any]) -> bool:
     if not _trusted_job_execution_substrate_safe(job, None):
         return False
-    return _trusted_prefix(
-        (
-            _action_at(
-                job,
-                0,
-                CHECKOUT_ACTION,
-                workflow=core,
-                required_with={"ref": CORE_INPUT_HEAD_EXPR, "fetch-depth": "0", "persist-credentials": "false"},
-            ),
-            _action_at(
-                job,
-                1,
-                SETUP_PYTHON_ACTION,
-                workflow=core,
-                required_with={
-                    "python-version": "3.13.15",
-                    "cache": "pip",
-                    "cache-dependency-path": "requirements/governance-ci.txt",
-                },
-            ),
-            _command_at(
-                job,
-                2,
-                ("python", "-m", "pip", "install", "--require-hashes", "-r", "requirements/governance-ci.txt"),
-                workflow=core,
-            ),
-            _command_at(job, 3, CANDIDATE_PYTEST_COMMAND, workflow=core),
-        )
-    )
+    checks: list[bool] = [
+        _action_at(
+            job,
+            0,
+            CHECKOUT_ACTION,
+            workflow=core,
+            required_with={"ref": CORE_INPUT_HEAD_EXPR, "fetch-depth": "0", "persist-credentials": "false"},
+        ),
+        _action_at(
+            job,
+            1,
+            SETUP_PYTHON_ACTION,
+            workflow=core,
+            required_with=CANDIDATE_SETUP_PYTHON_WITH,
+        ),
+        _command_at(
+            job,
+            2,
+            ("python", "-m", "pip", "install", "--require-hashes", "-r", "requirements/governance-ci.txt"),
+            workflow=core,
+        ),
+        _command_at(job, 3, CANDIDATE_PYTEST_COMMAND, workflow=core),
+    ]
+    for offset, expected in enumerate(CANDIDATE_MUTATION_COMMANDS, start=4):
+        checks.append(_command_at(job, offset, expected, workflow=core))
+    return _trusted_prefix(checks)
+
+
+def _job_contains_candidate_execution(job: dict[str, Any]) -> bool:
+    for command in _logical_run_commands(job):
+        if len(command) >= 3 and command[:3] == ["python", "-m", "pytest"]:
+            return True
+        if len(command) >= 2 and command[0] == "python" and command[1] in CANDIDATE_MUTATION_SCRIPT_PATHS:
+            return True
+    return False
 
 
 def _core_trusted_prefix(core: dict[str, Any], validate: dict[str, Any]) -> bool:
     if not _trusted_job_execution_substrate_safe(validate, None):
+        return False
+    if _job_contains_candidate_execution(validate):
         return False
     checks: list[bool] = [
         _action_at(
@@ -898,11 +912,7 @@ def _core_trusted_prefix(core: dict[str, Any], validate: dict[str, Any]) -> bool
             1,
             SETUP_PYTHON_ACTION,
             workflow=core,
-            required_with={
-                "python-version": "3.13.15",
-                "cache": "pip",
-                "cache-dependency-path": "requirements/governance-ci.txt",
-            },
+            required_with=TRUSTED_VALIDATE_SETUP_PYTHON_WITH,
         ),
     ]
     for rule, expected, allowed_step_ifs in REQUIRED_CORE_COMMANDS:
@@ -915,21 +925,13 @@ def _core_trusted_prefix(core: dict[str, Any], validate: dict[str, Any]) -> bool
                 allowed_step_ifs=allowed_step_ifs,
             )
         )
-    checks.extend(
-        (
-            _command_at(
-                validate,
-                6,
-                ("python", ".github/scripts/governance_t11_mutation_smoke.py"),
-                workflow=core,
-            ),
-            _command_at(
-                validate,
-                18,
-                ("python", "-m", "tools.governance.t11_closure", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "t11-closure-findings.json"),
-                workflow=core,
-                allowed_step_ifs=frozenset({CORE_PR_IF}),
-            ),
+    checks.append(
+        _command_at(
+            validate,
+            13,
+            ("python", "-m", "tools.governance.t11_closure", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "t11-closure-findings.json"),
+            workflow=core,
+            allowed_step_ifs=frozenset({CORE_PR_IF}),
         )
     )
     return _trusted_prefix(checks)
@@ -1189,13 +1191,9 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
         validate,
         SETUP_PYTHON_ACTION,
         workflow=core,
-        required_with={
-            "python-version": "3.13.15",
-            "cache": "pip",
-            "cache-dependency-path": "requirements/governance-ci.txt",
-        },
+        required_with=TRUSTED_VALIDATE_SETUP_PYTHON_WITH,
     ):
-        out.append(Finding(CORE_WORKFLOW_PATH, "CORE_SETUP_PYTHON_ACTION", "governance core must use the pinned Python setup action and expected toolchain inputs"))
+        out.append(Finding(CORE_WORKFLOW_PATH, "CORE_SETUP_PYTHON_ACTION", "trusted governance validation must use pinned Python without restoring candidate-influenced dependency caches"))
 
     for rule, expected, allowed_step_ifs in REQUIRED_CORE_COMMANDS:
         if not _steps_execute_prefix(
@@ -1219,12 +1217,14 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
         allowed_step_ifs=frozenset({CORE_PR_IF}),
     ):
         out.append(Finding(CORE_WORKFLOW_PATH, "T11_GATE_WIRING", "governance core must execute the T11 closure validator"))
-    if not _steps_execute_prefix(
-        validate,
+    if isinstance(candidate_tests, dict) and not _steps_execute_prefix(
+        candidate_tests,
         ("python", ".github/scripts/governance_t11_mutation_smoke.py"),
         workflow=core,
     ):
-        out.append(Finding(CORE_WORKFLOW_PATH, "T11_MUTATION_WIRING", "governance core must execute the T11 mutation smoke"))
+        out.append(Finding(CORE_WORKFLOW_PATH, "T11_MUTATION_WIRING", "isolated candidate-tests must execute the T11 mutation smoke"))
+    if _job_contains_candidate_execution(validate):
+        out.append(Finding(CORE_WORKFLOW_PATH, "CORE_VALIDATE_CANDIDATE_EXECUTION", "trusted validate job must not execute pytest or any candidate mutation smoke"))
 
     dependency_review = jobs.get("dependency-review")
     if not isinstance(dependency_review, dict):
