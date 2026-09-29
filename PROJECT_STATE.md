@@ -128,15 +128,15 @@ Required sequence from this integrated state:
 5. Gate #381 proves **840 governance tests**, **8,138 statements / 3,770 branches**, **100% line + branch**, mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 26/26 T11 + 18/18 T13**, with Candidate tests, Deterministic governance, CodeQL and Dependency Review green.
 6. The live merge gate on #381 fails closed only on **101 unresolved threads** and missing trusted context-separated exact-head approval; no durable-finding mismatch is present.
 7. Gate #380 / run `36556657374` remains negative mutation-harness evidence: the old T11 mutant disabled only one redundant candidate-execution caller and survived at 25/26; the corrected candidate changes only the mutant target and not production runtime.
-8. REVIEW-0093 is now `OPEN`. Prove this state-only checkpoint before any lifecycle advance.
-9. After OPEN proof, transition REVIEW-0093 `OPEN -> IN_PROGRESS`, then prove one frozen exact HEAD.
-10. Request fresh independent L2 over all **101 unresolved findings** on that exact frozen head.
+8. REVIEW-0093 OPEN checkpoint proof is complete via Bootstrap #443 / Gate #382 and REVIEW-0093 is now `IN_PROGRESS`.
+9. Prove/freeze this exact IN_PROGRESS head with Bootstrap + Gate.
+10. Request fresh independent L2 over all **101 unresolved findings** on that exact frozen head without mutating the tree while it runs.
 11. Only after clean independent semantic verification and eligible trusted non-author exact-head approval may independently verified PR #2 threads/findings be resolved and WORK-0002 completion be synchronized.
 12. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
 
 ## REVIEW-0093 — candidate-execution isolation successor
 
-REVIEW-0093 is now **OPEN** after exact technical proof on `3168913c85c6a122b932833297395922e61f6275`.
+REVIEW-0093 is now **IN_PROGRESS** after exact technical proof on `3168913c85c6a122b932833297395922e61f6275` and OPEN checkpoint proof on `2c5305d3f49815b3df1eab1cd51bd2ce23629bc6`.
 
 The successor closes REVIEW-0092 P1 `PRRT_kwDOUUI5ts6m5xW5` by moving every pytest-executing mutation smoke into the isolated `candidate-tests` job. The trusted `validate` job now starts on a fresh runner only after `candidate-tests` succeeds and is limited to exact-head checkout, pinned Python **without pip-cache restore**, fresh hash-locked toolchain install and trusted validators.
 
@@ -149,7 +149,7 @@ The exact workflow graph remains bound:
 
 The corrected T11 mutation harness now neutralizes the semantic `_job_contains_candidate_execution()` detector itself instead of removing only one redundant caller. Gate #381 therefore proves **26/26 T11 critical mutations killed**.
 
-All **101/101 PR #2 material threads remain unresolved**. Green technical proof is not semantic approval. This OPEN checkpoint must pass before REVIEW-0093 may advance to `IN_PROGRESS`.
+Bootstrap #443 / run `36566136600` and Gate #382 / run `36566136926` proved the OPEN checkpoint with the same complete technical proof; the live gate still failed only on **101 unresolved threads** and missing trusted exact-head approval. All **101/101 PR #2 material threads remain unresolved**. REVIEW-0093 is now `IN_PROGRESS` and requires one frozen exact-head proof before fresh independent L2.
 
 ## REVIEW-0092 — terminal negative evidence
 
