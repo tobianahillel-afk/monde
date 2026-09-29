@@ -1,0 +1,153 @@
+id: REVIEW-0030
+status: COMPLETE
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: "cbc2dfc065e73b9086d13a483b8b693ddc2fa6cc"
+reviewer:
+  actor: "GitHub Codex fresh-context reviewer"
+  context_id: "fresh-context-pr2-cbc2dfc"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+external_import:
+  mode: PREAUTHORIZED_EXTERNAL_COMPLETION
+  authorization_commit: "1c7693b4a6ee7b003947599b0bf5ffefd444bcbd"
+  source_review_id: "PRR_kwDOUUI5ts8AAAABNccy5Q"
+  source_submitted_at: "2026-09-14T11:45:39Z"
+  import_commit: "630604416bdccd3b07f57c011152e7fe14e0f2b4"
+
+scope:
+  work_items: [WORK-0002]
+  requirements: []
+  capabilities: []
+  contracts:
+    - "risk acceptance transition preconditions"
+    - "REQUIREMENT_NORMATIVE_V1 digest recomputation"
+    - "repository-owner authority evidence binding"
+    - "one-shot review import binding and consumption"
+    - "PASS TEST execution revision existence and ancestry"
+    - "review completion eligibility for COMPLETE versus CLOSED"
+  risks:
+    - "Risk records can transition to ACCEPTED without the canonical authority/precondition contract."
+    - "Requirement acceptance evidence can repeat an invented digest instead of binding canonical normative content."
+    - "A contributor can present an unrelated GitHub repository URL as repository-owner authority proof."
+    - "An imported COMPLETE review can be consumed as completion evidence before its one-shot authorization is bound/consumed."
+    - "A PASS test can cite a syntactically valid but nonexistent execution revision."
+    - "A CLOSED review can be repurposed as approval evidence."
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: VERIFICATION_VALIDATION
+    description: "Transitions into RISK ACCEPTED validate adjacency but do not enforce the v10 risk acceptance preconditions: accepted flag, actor, matrix-authorized role, typed durable evidence, matrix version/rule, rationale, timestamp, and review condition."
+    evidence:
+      - "GitHub Codex review PRR_kwDOUUI5ts8AAAABNccy5Q on exact head cbc2dfc065e73b9086d13a483b8b693ddc2fa6cc"
+      - "Inline thread PRRT_kwDOUUI5ts6iF6p2"
+      - "tools/governance/change_guard.py risk edge validation"
+      - "registry/status-machines.yaml risks.acceptance_preconditions"
+    disposition: OPEN
+    resolved_by: null
+
+  - id: F-2
+    severity: R2_MAJOR
+    category: VERIFICATION_VALIDATION
+    description: "Requirement PROPOSED-to-ACCEPTED validation checks digest syntax and matching evidence but does not recompute REQUIREMENT_NORMATIVE_V1 from the canonical normative projection using the configured RFC 8785/JCS byte serialization."
+    evidence:
+      - "GitHub Codex review PRR_kwDOUUI5ts8AAAABNccy5Q on exact head cbc2dfc065e73b9086d13a483b8b693ddc2fa6cc"
+      - "Inline thread PRRT_kwDOUUI5ts6iF6qN"
+      - "tools/governance/change_guard.py requirement_acceptance_satisfied"
+      - "registry/content-identity.yaml REQUIREMENT_NORMATIVE_V1"
+    disposition: OPEN
+    resolved_by: null
+
+  - id: F-3
+    severity: R2_MAJOR
+    category: SECURITY
+    description: "GITHUB_REPOSITORY_OWNER_PERMISSION authority validation accepts an arbitrary GitHub repository-shaped URL whose owner path matches accepted_by; it is not bound to the governed MONDE repository or a durable permission artifact establishing the actor's role."
+    evidence:
+      - "GitHub Codex review PRR_kwDOUUI5ts8AAAABNccy5Q on exact head cbc2dfc065e73b9086d13a483b8b693ddc2fa6cc"
+      - "Inline thread PRRT_kwDOUUI5ts6iF6qU"
+      - "tools/governance/strict_contracts.py authority evidence validation"
+      - "registry/acceptance-authority.yaml evidence_contract"
+    disposition: OPEN
+    resolved_by: null
+
+  - id: F-4
+    severity: R2_MAJOR
+    category: VERIFICATION_VALIDATION
+    description: "A preauthorized external COMPLETE review can be materialized while its authorization is unconsumed, but completion validation does not require the later import_commit binding and consumed_by_commit state before that review becomes eligible evidence."
+    evidence:
+      - "GitHub Codex review PRR_kwDOUUI5ts8AAAABNccy5Q on exact head cbc2dfc065e73b9086d13a483b8b693ddc2fa6cc"
+      - "Inline thread PRRT_kwDOUUI5ts6iF6qY"
+      - "tools/governance/change_guard.py historical_import_allowed"
+      - "registry/status-machines.yaml reviews.external_import_rule"
+    disposition: OPEN
+    resolved_by: null
+
+  - id: F-5
+    severity: R2_MAJOR
+    category: VERIFICATION_VALIDATION
+    description: "PASS TEST execution.commit_sha is shape-checked but not verified to exist as a Git commit in relevant ancestry, so a fabricated 40-hex revision can satisfy required test evidence."
+    evidence:
+      - "GitHub Codex review PRR_kwDOUUI5ts8AAAABNccy5Q on exact head cbc2dfc065e73b9086d13a483b8b693ddc2fa6cc"
+      - "Inline thread PRRT_kwDOUUI5ts6iF6qf"
+      - "tools/governance/strict_contracts.py PASS TEST evidence validation"
+    disposition: OPEN
+    resolved_by: null
+
+  - id: F-6
+    severity: R2_MAJOR
+    category: VERIFICATION_VALIDATION
+    description: "DONE review validation accepts CLOSED reviews with an approving outcome and lets them contribute roles/independence even though the canonical review lifecycle says CLOSED never satisfies a work-item completion gate."
+    evidence:
+      - "GitHub Codex review PRR_kwDOUUI5ts8AAAABNccy5Q on exact head cbc2dfc065e73b9086d13a483b8b693ddc2fa6cc"
+      - "Inline thread PRRT_kwDOUUI5ts6iF6qm"
+      - "tools/governance/validate_repo.py completed review validation"
+      - "registry/status-machines.yaml reviews.closed_rule"
+    disposition: OPEN
+    resolved_by: null
+
+checks:
+  assumptions_challenged:
+    - "Lifecycle adjacency is sufficient for risk acceptance."
+    - "A repeated syntactically valid requirement digest proves normative identity."
+    - "A repository-shaped GitHub URL proves repository-owner authority."
+    - "Preauthorization alone makes an imported review eligible completion evidence."
+    - "A 40-hex TEST execution SHA necessarily names a real tested revision."
+    - "CLOSED reviews remain approval-capable."
+  omitted_categories_considered:
+    - "risk acceptance authority"
+    - "normative digest recomputation"
+    - "durable repository-owner evidence"
+    - "external review import finalization"
+    - "test revision existence/ancestry"
+    - "review lifecycle completion eligibility"
+  duplicate_or_reuse_search:
+    - "All twelve prior open threads were rechecked but not assumed exhaustive."
+    - "These six findings are fresh gaps found on the exact REVIEW-0029-corrected candidate."
+  failure_modes_considered:
+    - "unauthorized risk acceptance"
+    - "invented normative digest"
+    - "cross-repository owner-proof spoofing"
+    - "half-finished one-shot review import used as approval"
+    - "fabricated tested revision"
+    - "abandoned CLOSED review reused as approval"
+  evidence_requested:
+    - "Regression tests for all six findings"
+    - "Full line/branch coverage and mutation smoke"
+    - "Repository/strict/path/change validators green on the corrected exact SHA"
+    - "Fresh independent L2 after correction"
+
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-14T11:45:39Z"
+
+history:
+  created_at: "2026-09-14"
+  updated_at: "2026-09-14"

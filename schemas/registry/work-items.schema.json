@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["id", "status"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^WORK-[0-9]+$"},
+    "status": {"type": "string"},
+    "affected_paths": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "in": {"type": "array"},
+        "out": {"type": "array"}
+      },
+      "required": ["in", "out"]
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "status"],
+        "properties": {
+          "id": {"type": "string"},
+          "description": {"type": "string", "minLength": 1},
+          "status": {"type": "string"}
+        }
+      }
+    },
+    "assurance": {
+      "type": "object",
+      "required": ["level", "rationale"],
+      "properties": {
+        "level": {"enum": ["A0", "A1", "A2", "A3", "A4"]},
+        "rationale": {"type": "string", "minLength": 1}
+      }
+    },
+    "implementation_plan": {
+      "type": "object",
+      "required": ["tasks", "planned_runs"],
+      "properties": {
+        "tasks": {"type": "array"},
+        "planned_runs": {"type": "array"}
+      }
+    },
+    "review_plan": {
+      "type": "object",
+      "required": ["required_hats", "independence_level", "completed_reviews"],
+      "properties": {
+        "required_hats": {"type": "array"},
+        "independence_level": {
+          "enum": ["L0", "L1", "L2", "L3", "L0_TARGET", "L1_TARGET", "L2_TARGET", "L3_TARGET"]
+        },
+        "completed_reviews": {"type": "array"}
+      }
+    },
+    "required_tests": {"type": "object"},
+    "validation": {"type": "object"},
+    "risk": {"type": "object"},
+    "risks": {"type": "array"},
+    "rollback": {
+      "type": "object",
+      "required": ["strategy"],
+      "properties": {"strategy": {"type": "string", "minLength": 1}}
+    },
+    "completion": {"type": "object"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {"enum": ["READY", "IN_PROGRESS", "PARTIAL", "BLOCKED", "IN_REVIEW", "DONE"]}
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "required": [
+          "title",
+          "phase",
+          "lot",
+          "sublot",
+          "purpose",
+          "scope",
+          "acceptance_criteria",
+          "assurance",
+          "read_before",
+          "depends_on",
+          "implementation_plan",
+          "review_plan",
+          "required_tests",
+          "risks",
+          "validation",
+          "risk",
+          "rollback",
+          "completion"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "assurance": {
+            "type": "object",
+            "properties": {"level": {"const": "A3"}},
+            "required": ["level"]
+          }
+        },
+        "required": ["assurance"]
+      },
+      "then": {
+        "required": ["review_plan"],
+        "properties": {
+          "review_plan": {
+            "properties": {
+              "independence_level": {"enum": ["L2", "L3", "L2_TARGET", "L3_TARGET"]}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "assurance": {
+            "type": "object",
+            "properties": {"level": {"const": "A4"}},
+            "required": ["level"]
+          }
+        },
+        "required": ["assurance"]
+      },
+      "then": {
+        "required": ["review_plan"],
+        "properties": {
+          "review_plan": {
+            "properties": {
+              "independence_level": {"enum": ["L3", "L3_TARGET"]}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
+}

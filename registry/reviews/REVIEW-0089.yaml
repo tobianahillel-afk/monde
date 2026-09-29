@@ -1,0 +1,92 @@
+id: REVIEW-0089
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: "fa2c1cc6162068d1268e9f5b7a24bc73bedfdbc5"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABPk5JjQ"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "PR #5 / T12 remains merged on main as b4b52c77fbf05eda65e8f0e951959da70e7edbe7"
+    - "T13 and T14 remain DONE author-side and intact on the final integrated candidate"
+    - "REVIEW-0088 remains terminal CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten as approval"
+    - "P1 PRRT_kwDOUUI5ts6mnZ-N is closed only if every security-sensitive job has a trusted execution substrate in addition to exact predecessor-step ordering"
+    - "security-sensitive jobs fail closed when job.container is present"
+    - "security-sensitive trusted-prefix jobs reject a noncanonical explicit runs-on value; the reviewed repository contract is ubuntu-24.04"
+    - "security-sensitive trusted-prefix jobs fail closed when job.services is present"
+    - "workflow/job env and defaults.run shell/working-directory controls remain fail closed"
+    - "review-thread poll, governance core, Dependency Review, CodeQL and final gate retain exact REVIEW-0088 predecessor-step ordering"
+    - "existing REVIEW-0083 through REVIEW-0088 exact-ref, complete-argv, shell-shadow, background-mask, dependency-producer, inherited-control and live-gate protections remain intact"
+    - "WORK-0002 durable open_findings exactly equals all 95 live unresolved PR #2 material thread identities"
+    - "no PR #2 review thread is resolved before a clean REVIEW-0089 result and eligible trusted exact-head approval"
+  risks:
+    - "an attacker-controlled job container can change executable/import/filesystem behavior while exact sensitive steps remain unchanged"
+    - "a self-hosted or otherwise noncanonical runner can supply attacker-controlled system state while step YAML remains exact"
+    - "job service containers can introduce unreviewed execution/network side effects into a sensitive job"
+    - "trusted runner enforcement must apply to real sensitive jobs without overconstraining generic parser helpers and unit fixtures"
+    - "technical green proof can be mistaken for independent semantic approval"
+    - "durable and live finding identity sets can drift while preserving equal cardinality"
+findings:
+  - "PRRT_kwDOUUI5ts6muevI"
+  - "PRRT_kwDOUUI5ts6muevQ"
+checks:
+  assumptions_challenged:
+    - "trusted predecessor-step order is sufficient without binding the job execution substrate"
+    - "rejecting job.container alone is sufficient when runs-on and services remain mutable"
+    - "a runner label can be treated as irrelevant to exact-command proof"
+    - "a fully green deterministic gate is equivalent to independent L2 closure"
+  omitted_categories_considered:
+    - "job.container and container.env poisoning"
+    - "explicit self-hosted or other noncanonical runs-on"
+    - "job.services side effects"
+    - "workflow/job env and defaults.run inheritance"
+    - "poll job substrate"
+    - "governance-core validate job substrate"
+    - "Dependency Review job substrate"
+    - "CodeQL job substrate"
+    - "final-gate job substrate"
+    - "all 95 live/durable PRRT identities"
+  duplicate_or_reuse_search:
+    - "Existing _inherited_execution_controls_safe and trusted-prefix validators are reused; REVIEW-0089 adds a narrow trusted job-substrate helper rather than replacing command/action validation."
+    - "Existing T11 mutation harness is extended with runner and services mutants alongside the REVIEW-0088 container mutant."
+    - "Existing T12/T13/T14 integration contracts are reused unchanged."
+    - "No historical negative review is rewritten as approval."
+  failure_modes_considered:
+    - "exact command executes in attacker-controlled job container"
+    - "exact command executes on self-hosted/noncanonical runner"
+    - "service container mutates sensitive job context while exact steps remain present"
+    - "runner enforcement is accidentally applied to reusable-workflow call jobs that do not own run steps"
+    - "generic parser helper fixtures are mistaken for real job-substrate proof"
+    - "container/runner/services mutation protection regresses"
+    - "live and durable finding sets differ despite equal count"
+    - "unrecognized workflow/job/step environment such as LD_PRELOAD changes execution while trusted runner/order remains exact"
+    - "Dependency Review pinned action receives extra weakening inputs such as warn-only: true while required fail-on-severity remains present"
+  evidence_requested:
+    - "Bootstrap #410 / run 36416893514 passes 450/450 bridge tests, 3853 statements / 1640 branches at 100 percent line+branch and live PR #2 probe SUCCESS at 3/100 requests."
+    - "Exact technical candidate 80caf94465129918395f5e185f33d9b86c24d882 reaches Gate #341 / run 36416893817 with 833 tests PASS, 8076 statements / 3736 branches at 100 percent line+branch, baseline/L2/T10/T11/T13 mutations green, CodeQL and Dependency Review success."
+    - "Gate #341 T11 mutation smoke kills 16/16 including job-container, job-runner and job-service execution-context mutants."
+    - "Gate #341 stops at repository validation only because WORK-0002 already references REVIEW-0089 before this lifecycle file exists; no runtime/test/mutation failure remains."
+    - "This OPEN checkpoint must receive one exact-head Bootstrap/Gate proof before REVIEW-0089 transitions to IN_PROGRESS."
+    - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
+    - "Resolve no PR #2 thread until REVIEW-0089 independent L2 is clean and exact-head trusted approval exists."
+    - "Independent L2 PRR_kwDOUUI5ts8AAAABPk5JjQ on exact head fa2c1cc6162068d1268e9f5b7a24bc73bedfdbc5 found P1 PRRT_kwDOUUI5ts6muevI (execution-poisoning env keys) and P1 PRRT_kwDOUUI5ts6muevQ (extra Dependency Review inputs); REVIEW-0089 is adverse and requires successor correction."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-28T14:39:22Z"
+history:
+  created_at: "2026-09-28"
+  updated_at: "2026-09-28"
