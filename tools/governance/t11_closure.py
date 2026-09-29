@@ -1217,7 +1217,7 @@ def validate_workflow_structure(root: Path) -> list[Finding]:
         allowed_step_ifs=frozenset({CORE_PR_IF}),
     ):
         out.append(Finding(CORE_WORKFLOW_PATH, "T11_GATE_WIRING", "governance core must execute the T11 closure validator"))
-    if isinstance(candidate_tests, dict) and not _steps_execute_prefix(
+    if not isinstance(candidate_tests, dict) or not _steps_execute_prefix(
         candidate_tests,
         ("python", ".github/scripts/governance_t11_mutation_smoke.py"),
         workflow=core,
