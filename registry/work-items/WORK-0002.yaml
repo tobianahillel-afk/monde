@@ -484,7 +484,8 @@ review_plan:
   - PRRT_kwDOUUI5ts6m0_t1
   - PRRT_kwDOUUI5ts6m5Bky
   - PRRT_kwDOUUI5ts6m5DOC
-  - PRRT_kwDOUUI5ts6m5xW5  - PRRT_kwDOUUI5ts6qjLmJ
+  - PRRT_kwDOUUI5ts6m5xW5
+  - PRRT_kwDOUUI5ts6qjLmJ
 
 required_tests:
   unit:
@@ -671,6 +672,9 @@ risk:
 rollback:
   strategy: Revert the governance hardening commit; keep canonical process documentation authoritative while the gate is repaired.
 run_log:
+- run: RUN-3
+  date: '2026-10-08'
+  note: 'REVIEW-0094 OPEN checkpoint eaa256627cbc4289777e0d4da91b0df93e7c5818 passed Bootstrap #493 / 37845682858 and Gate #388 / 37845683806 candidate coverage, 38/40/5/28/18 mutations, deterministic governance, CodeQL and Dependency Review. Live merge gate failed closed on 102 unresolved threads, absent trusted exact-head approval and one durable-finding mismatch: PRRT_kwDOUUI5ts6qjLmJ was concatenated into the prior PRRT line rather than a separate YAML item. This state-only correction splits the two exact identities without resolving either; a fresh exact-head Gate must reprove 102/102 equality.'
 - run: RUN-3
   date: '2026-10-08'
   note: 'REVIEW-0094 technical candidate b4591d506f425b53a2da0ba3d72d7c1d416c4edb passed Bootstrap #492 / 37844427321 (450 tests, 3853 statements / 1640 branches, 100 percent, live probe 3/100). Gate #387 / 37844428189 passed 841 candidate tests, 8143 statements / 3770 branches at 100 percent, mutations 38/38 + 40/40 + 5/5 + 28/28 + 18/18, CodeQL and Dependency Review; the trusted validate job proved immutable lock extraction/byte-comparison/installation, but repo validation failed closed on exactly two unknown REVIEW-0094 references. REVIEW-0094 OPEN state-only record repairs the circular forward-reference problem without modifying terminal REVIEW-0093; no review approval or thread resolution is implied.'
