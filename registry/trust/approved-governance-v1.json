@@ -2,6 +2,18 @@
   "version": 1,
   "origin_candidate_sha": "2e2664ca8c9cb4f3eb81ea41a172da1ed7fbaf32",
   "files": {
+    ".github/dependabot.yml": {
+      "sha": "bc4c3a8a2b8711fa83edfde502c4c49043f0cf1b",
+      "mode": "100644"
+    },
+    ".github/ISSUE_TEMPLATE/bug.yml": {
+      "sha": "6dbda13b615a9c095438279f3f64e39f98c1ecd9",
+      "mode": "100644"
+    },
+    ".github/ISSUE_TEMPLATE/feature.yml": {
+      "sha": "de7ab534a245ab582f6eecc3548b2822eef2e669",
+      "mode": "100644"
+    },
     ".github/scripts/governance_l2_followup.py": {
       "sha": "154e1b6ae912e512c23edfdec8aed72c7452821a",
       "mode": "100644"
@@ -348,6 +360,38 @@
     },
     "requirements/governance-ci.txt": {
       "sha": "d61291f0dd17103995a0ac4473475d6782d48aeb",
+      "mode": "100644"
+    },
+    "schemas/registry/assumptions.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/capabilities.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/experiments.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/requirements.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/reviews.schema.json": {
+      "sha": "80c363fbb217aa53752aa154bf6a386e315824a3",
+      "mode": "100644"
+    },
+    "schemas/registry/risks.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/tests.schema.json": {
+      "sha": "e612f115581ca4030f2c6ec3160a366e5513f083",
+      "mode": "100644"
+    },
+    "schemas/registry/work-items.schema.json": {
+      "sha": "f43b15a1001230f980b2a32eb76cb9833dc8d34b",
       "mode": "100644"
     },
     "scripts/governance_mutation_smoke.py": {

@@ -9,6 +9,8 @@ import argparse
 import json
 import os
 from pathlib import Path
+from urllib.parse import quote
+import subprocess
 import re
 import sys
 from typing import Any
@@ -42,12 +44,17 @@ def trust_root_path(path: str) -> bool:
     )
 
 
-def protected_path(path: str) -> bool:
+def protected_path(path: str, mode: str | None = None) -> bool:
     if trust_root_path(path):
         return False
     return (
-        path.startswith((".github/workflows/", ".github/actions/", "requirements/", "tools/governance/"))
+        mode == "100755"
+        or path.startswith((".github/workflows/", ".github/actions/", "requirements/", "tools/governance/", "schemas/"))
         or path.endswith(EXECUTABLE_SUFFIXES)
+        or (
+            path.endswith((".yaml", ".yml", ".json"))
+            and not path.startswith(("registry/", "docs/"))
+        )
         or path.rsplit("/", 1)[-1] in {"Dockerfile", "Makefile", "Pipfile", "Gemfile"}
     )
 
@@ -66,7 +73,7 @@ def index_tree(payload: Any) -> dict[str, tuple[str, str]]:
         if not isinstance(path, str) or not path or path.startswith("/") or ".." in path.split("/"):
             raise TrustFailure("Git tree path is unsafe")
         if node.get("type") != "blob":
-            if protected_path(path) or trust_root_path(path):
+            if protected_path(path, node.get("mode")) or trust_root_path(path):
                 raise TrustFailure(f"Protected path is not a blob: {path}")
             continue
         oid, mode = node.get("sha"), node.get("mode")
@@ -90,10 +97,10 @@ def validate_manifest(payload: Any) -> dict[str, tuple[str, str]]:
         raise TrustFailure("Trusted manifest has no files")
     files: dict[str, tuple[str, str]] = {}
     for path, item in rows.items():
-        if not isinstance(path, str) or not protected_path(path) or trust_root_path(path):
-            raise TrustFailure(f"Unprotected manifest path: {path}")
         if not isinstance(item, dict) or set(item) != {"sha", "mode"}:
             raise TrustFailure(f"Invalid manifest entry: {path}")
+        if not isinstance(path, str) or not protected_path(path, item["mode"]) or trust_root_path(path):
+            raise TrustFailure(f"Unprotected manifest path: {path}")
         if not valid_sha(item["sha"]) or item["mode"] not in {"100644", "100755"}:
             raise TrustFailure(f"Invalid manifest blob/mode: {path}")
         files[path] = (item["sha"], item["mode"])
@@ -114,7 +121,7 @@ def verify_trees(
     base: dict[str, tuple[str, str]],
     candidate: dict[str, tuple[str, str]],
 ) -> None:
-    actual = {p: identity for p, identity in candidate.items() if protected_path(p)}
+    actual = {p: identity for p, identity in candidate.items() if protected_path(p, identity[1])}
     if any(mode == "120000" for _sha, mode in actual.values()):
         raise TrustFailure("Executable source contains a symlink")
     if actual != approved:
@@ -134,6 +141,59 @@ def verify_trees(
         raise TrustFailure("Candidate modified, removed or added trusted-root executables/metadata")
 
 
+
+def strict_json(data: str | bytes) -> Any:
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise TrustFailure(f"Duplicate JSON object key: {key}")
+            result[key] = value
+        return result
+
+    def no_constant(value: str) -> Any:
+        raise TrustFailure(f"Invalid JSON constant: {value}")
+
+    try:
+        return json.loads(data, object_pairs_hook=unique_object, parse_constant=no_constant)
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise TrustFailure("GitHub or manifest returned malformed JSON") from exc
+
+
+def exact_default_branch(payload: Any, branch: str, base_sha: str) -> None:
+    if (
+        not isinstance(payload, dict)
+        or payload.get("name") != branch
+        or not isinstance(payload.get("commit"), dict)
+        or payload["commit"].get("sha") != base_sha
+    ):
+        raise TrustFailure("PR base is not the current default-branch commit")
+
+
+def exact_pr_snapshot(
+    snapshot: Any, repo: str, number: int, head: str,
+    base_sha: str, branch: str,
+) -> None:
+    try:
+        if not isinstance(snapshot, dict):
+            raise TypeError("not a JSON object")
+        head_ref = snapshot["head"]
+        base_ref = snapshot["base"]
+        if (
+            not isinstance(head_ref, dict) or not isinstance(base_ref, dict)
+            or type(snapshot["number"]) is not int
+            or snapshot["number"] != number
+            or snapshot["state"] != "open"
+            or head_ref["sha"] != head
+            or base_ref["sha"] != base_sha
+            or base_ref["ref"] != branch
+            or head_ref["repo"]["full_name"] != repo
+            or base_ref["repo"]["full_name"] != repo
+        ):
+            raise TrustFailure("Pull request authority changed or is not default-branch scoped")
+    except (TypeError, KeyError, AttributeError) as exc:
+        raise TrustFailure("Pull request authority snapshot is malformed") from exc
+
 def fetch_json(url: str, token: str) -> Any:
     if not token:
         raise TrustFailure("GitHub token is missing")
@@ -150,7 +210,7 @@ def fetch_json(url: str, token: str) -> Any:
         if len(data) > 16_000_000:
             raise TrustFailure("GitHub API response exceeds bounded proof size")
     try:
-        return json.loads(data)
+        return strict_json(data)
     except (ValueError, UnicodeDecodeError) as exc:
         raise TrustFailure("GitHub API returned malformed JSON") from exc
 
@@ -166,30 +226,37 @@ def attest(
 
     approved = validate_manifest(manifest)
     url = f"https://api.github.com/repos/{repo}"
-    snapshot = fetch_json(f"{url}/pulls/{pr_number}", token)
-    try:
-        actual_head = snapshot["head"]["sha"]
-        head_repo = snapshot["head"]["repo"]["full_name"]
-        actual_base = snapshot["base"]["sha"]
-        base_repo = snapshot["base"]["repo"]["full_name"]
-        state = snapshot["state"]
-        number = snapshot["number"]
-    except (KeyError, TypeError) as exc:
-        raise TrustFailure("Pull request authority snapshot is malformed") from exc
+
+    repository = fetch_json(url, token)
+    branch = repository.get("default_branch") if isinstance(repository, dict) else None
     if (
-        type(number) is not int or number != pr_number
-        or head_repo != repo or base_repo != repo or state != "open"
-        or actual_head != head or actual_base != base_sha
+        not isinstance(branch, str)
+        or not re.fullmatch(r"[A-Za-z0-9_.\\-/]+", branch)
+        or ".." in branch.split("/")
     ):
-        raise TrustFailure("Pull request authority changed or belongs to another repository")
+        raise TrustFailure("GitHub default branch authority is malformed")
+    branch_url = f"{url}/branches/{quote(branch, safe='')}"
+    exact_default_branch(fetch_json(branch_url, token), branch, base_sha)
+
+    snapshot = fetch_json(f"{url}/pulls/{pr_number}", token)
+    exact_pr_snapshot(snapshot, repo, pr_number, head, base_sha, branch)
+
+    # The origin is never executed. It proves that the reviewed manifest is
+    # actually the complete protected-file selection at the declared commit.
+    origin = manifest["origin_candidate_sha"]
+    origin_tree = index_tree(fetch_json(f"{url}/git/trees/{origin}?recursive=1", token))
+    origin_files = {p: identity for p, identity in origin_tree.items() if protected_path(p, identity[1])}
+    if origin_files != approved:
+        raise TrustFailure("Manifest identities are not the declared origin commit's exact protected tree")
 
     base = index_tree(fetch_json(f"{url}/git/trees/{base_sha}?recursive=1", token))
     candidate = index_tree(fetch_json(f"{url}/git/trees/{head}?recursive=1", token))
     verify_trees(approved, base, candidate)
-    # Detect a concurrent PR head/base move after the multi-call proof.
+
+    # Re-read ALL authority, including PR identity and default branch HEAD.
     after = fetch_json(f"{url}/pulls/{pr_number}", token)
-    if not isinstance(after, dict) or after.get("head", {}).get("sha") != head or after.get("base", {}).get("sha") != base_sha or after.get("state") != "open":
-        raise TrustFailure("Pull request authority drifted after executable-source proof")
+    exact_pr_snapshot(after, repo, pr_number, head, base_sha, branch)
+    exact_default_branch(fetch_json(branch_url, token), branch, base_sha)
     return len(approved)
 
 
@@ -198,7 +265,10 @@ def main() -> int:
     parser.add_argument("--manifest", type=Path, required=True)
     args = parser.parse_args()
     try:
-        raw = json.loads(args.manifest.read_text(encoding="utf-8"))
+        raw = strict_json(args.manifest.read_text(encoding="utf-8"))
+        checked_out = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        if checked_out != os.environ.get("MONDE_TRUST_PR_BASE", ""):
+            raise TrustFailure("Trusted checkout is not the exact default-branch base commit")
         count = attest(
             os.environ.get("GITHUB_REPOSITORY", ""),
             int(os.environ.get("MONDE_TRUST_PR_NUMBER", "0")),

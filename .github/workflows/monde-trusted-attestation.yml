@@ -9,7 +9,7 @@ on:
       - .github/workflows/monde-trusted-attestation.yml
       - requirements/governance-ci.txt
   pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
 
 permissions:
   contents: read
@@ -41,12 +41,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Checkout only trusted base commit
+      - name: Checkout only the repository default branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
-      - name: Compare exact PR source to approved base manifest
+      - name: Check default-branch identity and exact candidate source provenance
         env:
           GITHUB_TOKEN: ${{ github.token }}
           MONDE_TRUST_PR_NUMBER: ${{ github.event.pull_request.number }}
