@@ -209,10 +209,7 @@ def fetch_json(url: str, token: str) -> Any:
         data = response.read(16_000_001)
         if len(data) > 16_000_000:
             raise TrustFailure("GitHub API response exceeds bounded proof size")
-    try:
-        return strict_json(data)
-    except (ValueError, UnicodeDecodeError) as exc:
-        raise TrustFailure("GitHub API returned malformed JSON") from exc
+    return strict_json(data)
 
 
 def attest(
