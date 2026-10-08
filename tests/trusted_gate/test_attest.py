@@ -241,7 +241,7 @@ class TrustedAttestationTests(unittest.TestCase):
 
     def test_snapshot_shape_missing_field_is_rejected(self):
         malformed = {"head": {}, "base": {}}
-        with mock.patch.object(subject, "fetch_json", return_value=malformed):
+        with mock.patch.object(subject, "fetch_json", side_effect=[repository(), branch(), malformed]):
             with self.assertRaisesRegex(subject.TrustFailure, "snapshot is malformed"):
                 subject.attest("o/r", 2, H, C, manifest(), "token")
 

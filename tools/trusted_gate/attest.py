@@ -231,7 +231,7 @@ def attest(
     branch = repository.get("default_branch") if isinstance(repository, dict) else None
     if (
         not isinstance(branch, str)
-        or not re.fullmatch(r"[A-Za-z0-9_.\\-/]+", branch)
+        or not re.fullmatch(r"[A-Za-z0-9_./-]+", branch)
         or ".." in branch.split("/")
     ):
         raise TrustFailure("GitHub default branch authority is malformed")
