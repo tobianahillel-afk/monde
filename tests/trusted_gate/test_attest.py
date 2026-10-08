@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 import copy
+import io
+import json
+import os
+from pathlib import Path
+import runpy
+import sys
 import unittest
 from unittest import mock
 
@@ -165,6 +171,104 @@ class TrustedAttestationTests(unittest.TestCase):
                 with self.assertRaises(subject.TrustFailure):
                     subject.attest(repo, number, head, C, manifest(), "token")
                 fetch.assert_not_called()
+
+
+    def test_tree_malformed_nonblob_and_safe_unprotected_tree(self):
+        with self.assertRaisesRegex(subject.TrustFailure, "node is malformed"):
+            subject.index_tree({"truncated": False, "tree": [None]})
+        value = {
+            "truncated": False,
+            "tree": [{"path": "docs", "type": "tree", "mode": "040000", "sha": A}],
+        }
+        self.assertEqual(subject.index_tree(value), {})
+
+    def test_manifest_bad_shape_and_missing_mandatory(self):
+        cases = [
+            {"version": 1, "origin_candidate_sha": H, "files": {"go.py": "no"}},
+            {"version": 1, "origin_candidate_sha": H, "files": {"go.py": {"sha": A}}},
+            {"version": 1, "origin_candidate_sha": H, "files": {"go.py": {"sha": A, "mode": "100644"}}},
+        ]
+        for value in cases:
+            with self.subTest(value=value):
+                with self.assertRaises(subject.TrustFailure):
+                    subject.validate_manifest(value)
+
+    def test_rejects_executable_symlinks_explicitly(self):
+        candidate = candidate_tree()
+        candidate["extra/sitecustomize.py"] = (B, "120000")
+        with self.assertRaisesRegex(subject.TrustFailure, "symlink"):
+            subject.verify_trees(subject.validate_manifest(manifest()), base_tree(), candidate)
+
+    def test_git_client_response_is_bounded_and_strictly_json(self):
+        with self.assertRaisesRegex(subject.TrustFailure, "token is missing"):
+            subject.fetch_json("https://api.github.com", "")
+
+        def client(data):
+            response = mock.MagicMock()
+            response.__enter__.return_value.read.return_value = data
+            return mock.patch.object(subject.request, "urlopen", return_value=response)
+
+        with client(b'{"good": true}') as fetch:
+            self.assertEqual(subject.fetch_json("https://api.github.com/x", "token"), {"good": True})
+            self.assertEqual(fetch.call_args.kwargs["timeout"], 20)
+        for payload, error in (
+            (b"x", "malformed JSON"),
+            (b"\xff", "malformed JSON"),
+            (b"x" * 16_000_001, "exceeds bounded"),
+        ):
+            with self.subTest(error=error), client(payload):
+                with self.assertRaisesRegex(subject.TrustFailure, error):
+                    subject.fetch_json("https://api.github.com", "token")
+
+    def test_snapshot_shape_missing_field_is_rejected(self):
+        malformed = {"head": {}, "base": {}}
+        with mock.patch.object(subject, "fetch_json", return_value=malformed):
+            with self.assertRaisesRegex(subject.TrustFailure, "snapshot is malformed"):
+                subject.attest("o/r", 2, H, C, manifest(), "token")
+
+    def test_cli_success_error_and_module_entrypoint(self):
+        env = {
+            "GITHUB_REPOSITORY": "o/r",
+            "MONDE_TRUST_PR_NUMBER": "2",
+            "MONDE_TRUST_PR_HEAD": H,
+            "MONDE_TRUST_PR_BASE": C,
+            "GITHUB_TOKEN": "token",
+        }
+        with (
+            mock.patch.object(sys, "argv", ["attest.py", "--manifest", "dummy.json"]),
+            mock.patch.object(Path, "read_text", return_value=json.dumps(manifest())),
+            mock.patch.dict(os.environ, env, clear=True),
+            mock.patch.object(subject, "attest", return_value=5) as call,
+            mock.patch.object(sys, "stdout", new_callable=io.StringIO) as out,
+        ):
+            self.assertEqual(subject.main(), 0)
+            self.assertIn("PASS: 5", out.getvalue())
+        call.assert_called_once()
+
+        with (
+            mock.patch.object(sys, "argv", ["attest.py", "--manifest", "dummy.json"]),
+            mock.patch.object(Path, "read_text", side_effect=OSError("broken")),
+            mock.patch.object(sys, "stderr", new_callable=io.StringIO) as err,
+        ):
+            self.assertEqual(subject.main(), 1)
+            self.assertIn("FAILED: broken", err.getvalue())
+
+        with (
+            mock.patch.object(sys, "argv", ["attest.py", "--manifest", "dummy.json"]),
+            mock.patch.object(Path, "read_text", return_value=json.dumps(manifest())),
+            mock.patch.dict(os.environ, {**env, "MONDE_TRUST_PR_NUMBER": "nope"}, clear=True),
+            mock.patch.object(sys, "stderr", new_callable=io.StringIO),
+        ):
+            self.assertEqual(subject.main(), 1)
+
+        with (
+            mock.patch.object(sys, "argv", ["attest.py", "--manifest", "dummy.json"]),
+            mock.patch.object(Path, "read_text", return_value="NOT JSON"),
+            mock.patch.object(sys, "stderr", new_callable=io.StringIO),
+        ):
+            with self.assertRaises(SystemExit) as raised:
+                runpy.run_module("tools.trusted_gate.attest", run_name="__main__")
+        self.assertEqual(raised.exception.code, 1)
 
 
 if __name__ == "__main__":

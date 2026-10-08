@@ -115,6 +115,8 @@ def verify_trees(
     candidate: dict[str, tuple[str, str]],
 ) -> None:
     actual = {p: identity for p, identity in candidate.items() if protected_path(p)}
+    if any(mode == "120000" for _sha, mode in actual.values()):
+        raise TrustFailure("Executable source contains a symlink")
     if actual != approved:
         missing = sorted(set(approved) - set(actual))
         added = sorted(set(actual) - set(approved))
@@ -130,8 +132,6 @@ def verify_trees(
     actual_roots = {p: identity for p, identity in candidate.items() if trust_root_path(p)}
     if actual_roots != roots:
         raise TrustFailure("Candidate modified, removed or added trusted-root executables/metadata")
-    if any(mode == "120000" for _sha, mode in actual.values()):
-        raise TrustFailure("Executable source contains a symlink")
 
 
 def fetch_json(url: str, token: str) -> Any:
