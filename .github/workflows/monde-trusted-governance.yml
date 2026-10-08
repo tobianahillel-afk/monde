@@ -1,0 +1,67 @@
+name: MONDE Trusted Governance Preflight (non-authoritative)
+
+# Default-branch-controlled proposal for WORK-0002 / REVIEW-0095.
+# This is NOT a required merge gate or a substitute for trusted exact-head
+# approval. Never execute candidate programs with pull_request_target.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: monde-trusted-preflight-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    name: Base-rooted governance preflight (non-authoritative)
+    if: github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout trusted base (never candidate as validator)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          persist-credentials: false
+
+      - name: Set up pinned Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13.15'
+
+      - name: Install base-approved dependencies only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --require-hashes -r trusted/requirements/governance-ci.txt
+
+      - name: Checkout candidate only as untrusted data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          persist-credentials: false
+          submodules: false
+
+      - name: Validate candidate data with base-rooted modules
+        shell: bash
+        working-directory: trusted
+        env:
+          PYTHONPATH: ${{ github.workspace }}/trusted:${{ github.workspace }}/trusted/.github/scripts
+          PYTHONNOUSERSITE: '1'
+          CANDIDATE_ROOT: ${{ github.workspace }}/candidate
+        run: |
+          set -euo pipefail
+          python -m tools.governance.validate_repo "$CANDIDATE_ROOT" --json-out "$RUNNER_TEMP/monde-validate-findings.json"
+          python -m tools.governance.strict_contracts "$CANDIDATE_ROOT" --json-out "$RUNNER_TEMP/monde-strict-findings.json"
+          python -m tools.governance.path_safety "$CANDIDATE_ROOT" --json-out "$RUNNER_TEMP/monde-path-findings.json"
