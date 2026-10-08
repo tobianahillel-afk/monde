@@ -1,0 +1,52 @@
+name: MONDE Trusted Source Attestation
+# This file has no trusted authority until independently reviewed and merged to main.
+on:
+  pull_request:
+    paths:
+      - tools/trusted_gate/**
+      - tests/trusted_gate/**
+      - registry/trust/**
+      - .github/workflows/monde-trusted-attestation.yml
+      - requirements/governance-ci.txt
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  self-test:
+    name: Attestor unit tests (candidate, non-authoritative)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate for non-trusted unit tests
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Test standard-library attestor
+        run: python3 -m unittest discover -s tests/trusted_gate -p 'test_*.py' -v
+
+  attest:
+    name: Default-branch trusted executable provenance
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout only trusted base commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Compare exact PR source to approved base manifest
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MONDE_TRUST_PR_NUMBER: ${{ github.event.pull_request.number }}
+          MONDE_TRUST_PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          MONDE_TRUST_PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python3 -m tools.trusted_gate.attest \
+            --manifest registry/trust/approved-governance-v1.json
