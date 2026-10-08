@@ -118,9 +118,18 @@ CANDIDATE_SETUP_PYTHON_WITH = {
     "cache-dependency-path": "requirements/governance-ci.txt",
 }
 TRUSTED_VALIDATE_SETUP_PYTHON_WITH = {"python-version": "3.13.15"}
+TRUSTED_APPROVED_LOCK_RUN = (
+    "git cat-file blob d61291f0dd17103995a0ac4473475d6782d48aeb > "
+    '"$RUNNER_TEMP/monde-approved-governance-ci.txt"'
+)
+TRUSTED_APPROVED_LOCK_MATCH = (
+    "cmp", "requirements/governance-ci.txt",
+    "$RUNNER_TEMP/monde-approved-governance-ci.txt",
+)
+TRUSTED_APPROVED_LOCK_PATH = "$RUNNER_TEMP/monde-approved-governance-ci.txt"
 
 REQUIRED_CORE_COMMANDS = (
-    ("CORE_TOOLCHAIN_WIRING", ("python", "-m", "pip", "install", "--require-hashes", "-r", "requirements/governance-ci.txt"), frozenset()),
+    ("CORE_TOOLCHAIN_WIRING", ("python", "-m", "pip", "install", "--require-hashes", "-r", TRUSTED_APPROVED_LOCK_PATH), frozenset()),
     ("CORE_VALIDATE_REPO_WIRING", ("python", "-m", "tools.governance.validate_repo", ".", "--json-out", "governance-findings.json"), frozenset()),
     ("CORE_STRICT_CONTRACTS_WIRING", ("python", "-m", "tools.governance.strict_contracts", ".", "--json-out", "strict-findings.json"), frozenset()),
     ("CORE_PATH_SAFETY_WIRING", ("python", "-m", "tools.governance.path_safety", ".", "--json-out", "path-findings.json"), frozenset()),
@@ -135,18 +144,18 @@ REQUIRED_CORE_COMMANDS = (
 )
 
 CORE_REQUIRED_STEP_INDEXES = {
-    "CORE_TOOLCHAIN_WIRING": 2,
-    "CORE_VALIDATE_REPO_WIRING": 3,
-    "CORE_STRICT_CONTRACTS_WIRING": 4,
-    "CORE_PATH_SAFETY_WIRING": 5,
-    "CORE_CHANGE_GUARD_WIRING": 6,
-    "CORE_L2_GATE_WIRING": 7,
-    "CORE_REVIEW_CLOSURE_WIRING": 8,
-    "CORE_T7_WIRING": 9,
-    "CORE_T8_WIRING": 10,
-    "CORE_T9_WIRING": 11,
-    "CORE_T10_WIRING": 12,
-    "CORE_CONTEXT_MANIFEST_WIRING": 14,
+    "CORE_TOOLCHAIN_WIRING": 4,
+    "CORE_VALIDATE_REPO_WIRING": 5,
+    "CORE_STRICT_CONTRACTS_WIRING": 6,
+    "CORE_PATH_SAFETY_WIRING": 7,
+    "CORE_CHANGE_GUARD_WIRING": 8,
+    "CORE_L2_GATE_WIRING": 9,
+    "CORE_REVIEW_CLOSURE_WIRING": 10,
+    "CORE_T7_WIRING": 11,
+    "CORE_T8_WIRING": 12,
+    "CORE_T9_WIRING": 13,
+    "CORE_T10_WIRING": 14,
+    "CORE_CONTEXT_MANIFEST_WIRING": 16,
 }
 
 FINAL_GATE_LANE_RESULTS_RUN = """set -euo pipefail
@@ -915,6 +924,17 @@ def _core_trusted_prefix(core: dict[str, Any], validate: dict[str, Any]) -> bool
             required_with=TRUSTED_VALIDATE_SETUP_PYTHON_WITH,
         ),
     ]
+    checks.append(
+        _exact_run_at(
+            validate, 2, TRUSTED_APPROVED_LOCK_RUN, workflow=core,
+        )
+    )
+    checks.append(
+        _command_at(
+            validate, 3, TRUSTED_APPROVED_LOCK_MATCH, workflow=core,
+            allowed_step_ifs=frozenset({CORE_PR_IF}),
+        )
+    )
     for rule, expected, allowed_step_ifs in REQUIRED_CORE_COMMANDS:
         checks.append(
             _command_at(
@@ -928,7 +948,7 @@ def _core_trusted_prefix(core: dict[str, Any], validate: dict[str, Any]) -> bool
     checks.append(
         _command_at(
             validate,
-            13,
+            15,
             ("python", "-m", "tools.governance.t11_closure", ".", "--base", CORE_INPUT_BASE_EXPR, "--head", CORE_INPUT_HEAD_EXPR, "--json-out", "t11-closure-findings.json"),
             workflow=core,
             allowed_step_ifs=frozenset({CORE_PR_IF}),

@@ -139,6 +139,25 @@ MUTATIONS = {
         "    for offset, expected in enumerate(CANDIDATE_MUTATION_COMMANDS, start=4):\n",
         "    for offset, expected in enumerate(CANDIDATE_MUTATION_COMMANDS[:-1], start=4):\n",
     ),
+    "t11-base-approved-lock-provenance": (
+        "tools/governance/t11_closure.py",
+        "    checks.append(\n"
+        "        _exact_run_at(\n"
+        "            validate, 2, TRUSTED_APPROVED_LOCK_RUN, workflow=core,\n"
+        "        )\n"
+        "    )\n",
+        "    checks.append(True)\n",
+    ),
+    "t11-base-approved-lock-drift-rejection": (
+        "tools/governance/t11_closure.py",
+        "    checks.append(\n"
+        "        _command_at(\n"
+        "            validate, 3, TRUSTED_APPROVED_LOCK_MATCH, workflow=core,\n"
+        "            allowed_step_ifs=frozenset({CORE_PR_IF}),\n"
+        "        )\n"
+        "    )\n",
+        "    checks.append(True)\n",
+    ),
     "t11-trusted-validate-candidate-execution-ban": (
         "tools/governance/t11_closure.py",
         "def _job_contains_candidate_execution(job: dict[str, Any]) -> bool:\n"

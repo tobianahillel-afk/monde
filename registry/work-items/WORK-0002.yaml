@@ -830,7 +830,7 @@ discoveries:
 - Durable closure integrity is an identity-set property: equal counts cannot substitute for exact one-to-one PRRT coverage.
 - Effective workflow semantics must be validated from parsed YAML structure rather than textual snippets that comments or formatting can mimic.
 blockers:
-- REVIEW-0094 must use a base/default-branch approved, immutable lockfile for trusted validation; PR-controlled lock changes must not run startup hooks in trusted validator processes. Existing 102 review threads stay unresolved until a fresh independent L2.
+- REVIEW-0094 uses immutable Git blob d61291f0dd17103995a0ac4473475d6782d48aeb (the pre-existing governance CI dependency lock) as a trusted validation source because default-branch main does not yet contain requirements/governance-ci.txt. Trusted validate must reject PR lock drift, install only the immutable blob, and T11 must structurally protect this boundary with two critical mutations. All 102 findings remain unresolved pending proof and fresh L2.
 - Live PR #2 closure set is 101 unresolved material threads. REVIEW-0083 through REVIEW-0092 adverse review identities/findings remain live and durably tracked; no thread is resolved before a clean successor review plus eligible trusted non-author exact-head approval.
 - T12 is DONE/integrated: independently accepted PR #5 is merged on default branch main at b4b52c77fbf05eda65e8f0e951959da70e7edbe7.
 - T13 and T14 remain DONE author-side but require final exact-head independent re-verification as part of T4.

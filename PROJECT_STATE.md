@@ -349,6 +349,16 @@ Fresh Codex L2 `PRR_kwDOUUI5ts8AAAABRZrUqg` on that exact head added **P1 `PRRT_
 
 REVIEW-0093 is **CLOSED / CHANGES_REQUIRED**, never approval. PR #2 now has **102 unresolved material review threads**. REVIEW-0094 must bind the validation toolchain to an approved default-branch/base lockfile, prove that binding in executable T11 governance validation, and test malicious candidate lock changes. PR #5/T12 is already merged into main and must not be redeveloped.
 
+## REVIEW-0094 — immutable-lock technical candidate
+
+REVIEW-0093 is terminal negative evidence for P1 `PRRT_kwDOUUI5ts6qjLmJ`. The current default branch does **not** yet contain `requirements/governance-ci.txt`, so a direct `git show <main>:requirements/governance-ci.txt` would fail. REVIEW-0094 instead uses the Git-immutable reference blob `d61291f0dd17103995a0ac4473475d6782d48aeb` (the pre-existing governance CI lock observed on 2026-10-08).
+
+The trusted `validate` job, on its separate runner, uses `git cat-file blob` to obtain exactly that immutable lock in `RUNNER_TEMP` before executing any candidate Python. For PR-family events it compares the candidate lock to that approved byte sequence, then installs dependencies only from the immutable copy. `candidate-tests` remains an isolated, untrusted execution lane; no candidate-provided lock can introduce a Python startup hook into `validate`.
+
+T11 structurally binds the exact lock extraction, comparison, installation source and step order. The T11 mutation harness separately disables provenance and drift-rejection checks and must kill both mutations. This is an interim reviewed immutable pin; adopting an ordinary default-branch-owned governance lock is a distinct future approval/migration decision.
+
+This successor remains a **technical candidate only** until exact-head GitHub Gate, coverage, mutation evidence and fresh L2 complete. All 102 PR #2 threads remain unresolved.
+
 ## Resume sequence
 
 1. `README.md`

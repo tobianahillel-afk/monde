@@ -460,7 +460,10 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: '3.13.15'
-      - run: python -m pip install --require-hashes -r requirements/governance-ci.txt
+      - run: git cat-file blob d61291f0dd17103995a0ac4473475d6782d48aeb > "$RUNNER_TEMP/monde-approved-governance-ci.txt"
+      - if: startsWith(inputs.event_name, 'pull_request')
+        run: cmp requirements/governance-ci.txt "$RUNNER_TEMP/monde-approved-governance-ci.txt"
+      - run: python -m pip install --require-hashes -r "$RUNNER_TEMP/monde-approved-governance-ci.txt"
       - run: python -m tools.governance.validate_repo . --json-out governance-findings.json
       - run: python -m tools.governance.strict_contracts . --json-out strict-findings.json
       - run: python -m tools.governance.path_safety . --json-out path-findings.json
@@ -486,6 +489,34 @@ jobs:
 """,
         encoding="utf-8",
     )
+
+def test_trusted_governance_toolchain_comes_from_base_lock(tmp_path: Path) -> None:
+    _write_valid_workflows(tmp_path)
+    assert t11.validate_workflow_structure(tmp_path) == []
+
+    path = tmp_path / t11.CORE_WORKFLOW_PATH
+    original = path.read_text(encoding="utf-8")
+    cases = [
+        (
+            "git cat-file blob d61291f0dd17103995a0ac4473475d6782d48aeb",
+            "git cat-file blob 0000000000000000000000000000000000000000",
+        ),
+        (
+            'run: cmp requirements/governance-ci.txt "$RUNNER_TEMP/monde-approved-governance-ci.txt"',
+            "run: echo bypassed",
+        ),
+        (
+            'python -m pip install --require-hashes -r "$RUNNER_TEMP/monde-approved-governance-ci.txt"',
+            "python -m pip install --require-hashes -r requirements/governance-ci.txt",
+        ),
+    ]
+    for approved, weakened in cases:
+        assert approved in original
+        path.write_text(original.replace(approved, weakened, 1), encoding="utf-8")
+        findings = {finding.rule for finding in t11.validate_workflow_structure(tmp_path)}
+        assert "CORE_TRUSTED_PREFIX" in findings, findings
+        path.write_text(original, encoding="utf-8")
+
 
 def test_workflow_structure_parses_effective_yaml_not_comments(tmp_path: Path) -> None:
     _write_valid_workflows(tmp_path)
