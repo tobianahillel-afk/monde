@@ -27,8 +27,13 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - name: Test standard-library attestor
-        run: python3 -m unittest discover -s tests/trusted_gate -p 'test_*.py' -v
+      - name: Install hash-locked coverage tool
+        run: python3 -m pip install --require-hashes -r requirements/bootstrap-governance-ci.txt
+      - name: Test attestor with full line and branch coverage
+        run: |
+          python3 -m coverage erase
+          python3 -m coverage run --branch -m unittest discover -s tests/trusted_gate -p 'test_*.py' -v
+          python3 -m coverage report --include=tools/trusted_gate/attest.py --show-missing --fail-under=100
 
   attest:
     name: Default-branch trusted executable provenance
