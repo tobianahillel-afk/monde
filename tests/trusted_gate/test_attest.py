@@ -179,7 +179,7 @@ class TrustedAttestationTests(unittest.TestCase):
             subject, "fetch_json",
             side_effect=[repository(), branch(), snapshot(), api_tree(origin_tree()), api_tree(base_tree()), api_tree(candidate_tree()), changed_after],
         ):
-            with self.assertRaisesRegex(subject.TrustFailure, "drifted"):
+            with self.assertRaisesRegex(subject.TrustFailure, "authority changed"):
                 subject.attest("o/r", 2, H, C, approved, "token")
 
     def test_invalid_selector_is_rejected_before_network(self):
