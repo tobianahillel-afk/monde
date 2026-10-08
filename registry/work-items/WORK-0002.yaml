@@ -482,7 +482,8 @@ review_plan:
   - PRRT_kwDOUUI5ts6m0_t1
   - PRRT_kwDOUUI5ts6m5Bky
   - PRRT_kwDOUUI5ts6m5DOC
-  - PRRT_kwDOUUI5ts6m5xW5
+  - PRRT_kwDOUUI5ts6m5xW5  - PRRT_kwDOUUI5ts6qjLmJ
+
 required_tests:
   unit:
   - TEST-0002
@@ -640,8 +641,8 @@ validation:
     line: 100
     branch: 100
   known_gaps:
-  - All 101 live PR #2 material review threads/findings remain intentionally unresolved. REVIEW-0093 is the active successor; no author-side resolution counts as completion evidence.
-  - REVIEW-0093 exact technical candidate 3168913c85c6a122b932833297395922e61f6275 passed Bootstrap #442 / Gate #381, and OPEN checkpoint 2c5305d3f49815b3df1eab1cd51bd2ce23629bc6 passed Bootstrap #443 / Gate #382 with the same complete proof. REVIEW-0093 is IN_PROGRESS pending one frozen exact-head proof and fresh independent L2 over all 101 unresolved findings.
+  - All 102 live PR #2 material review threads/findings remain intentionally unresolved. REVIEW-0093 is CLOSED/CHANGES_REQUIRED after exact-head independent P1 PRRT_kwDOUUI5ts6qjLmJ; REVIEW-0094 will move the trusted-validator toolchain to base-approved lock provenance.
+  - REVIEW-0093 exact head 6cacafed55931d0f37fb0088ef4425ff05681597 passed Bootstrap #444 and deterministic Gate #383; independent Codex review PRR_kwDOUUI5ts8AAAABRZrUqg found a new P1 in candidate-sourced governance lock installation. REVIEW-0093 is CLOSED/CHANGES_REQUIRED, not approved.
   - Repository administration/ruleset enforcement belongs to WORK-0003.
   - Gate #231 / run 35711181317 is the exact substantive T13/task-identity proof on 242f6c9553c4e42bfbb4e6aad2ca27596573ecb2. This final handover synchronization changes only WORK-0002/PROJECT_STATE and therefore requires one exact-head state-only Gate before any future integration/review decision.
   - All 100 live material review threads/findings remain intentionally unresolved. REVIEW-0091 added PRRT_kwDOUUI5ts6m5Bky and PRRT_kwDOUUI5ts6m5DOC after the prior REVIEW-0090 closure set; no author-side resolution counts as completion evidence.
@@ -829,6 +830,7 @@ discoveries:
 - Durable closure integrity is an identity-set property: equal counts cannot substitute for exact one-to-one PRRT coverage.
 - Effective workflow semantics must be validated from parsed YAML structure rather than textual snippets that comments or formatting can mimic.
 blockers:
+- REVIEW-0094 must use a base/default-branch approved, immutable lockfile for trusted validation; PR-controlled lock changes must not run startup hooks in trusted validator processes. Existing 102 review threads stay unresolved until a fresh independent L2.
 - Live PR #2 closure set is 101 unresolved material threads. REVIEW-0083 through REVIEW-0092 adverse review identities/findings remain live and durably tracked; no thread is resolved before a clean successor review plus eligible trusted non-author exact-head approval.
 - T12 is DONE/integrated: independently accepted PR #5 is merged on default branch main at b4b52c77fbf05eda65e8f0e951959da70e7edbe7.
 - T13 and T14 remain DONE author-side but require final exact-head independent re-verification as part of T4.

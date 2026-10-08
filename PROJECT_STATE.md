@@ -341,6 +341,14 @@ MONDE intentionally remains **public**. Never commit credentials, tokens, secret
 
 Product specification and product identity remain owner-gated decisions. Agents must not silently canonize product experience, UI/UX, visual identity, brand, color system, interface density, interaction language, emotional/psychovisual tone or other strong design choices. Major product-function decisions require explicit owner co-design rather than irreversible invention.
 
+## REVIEW-0093 — terminal independent security finding (2026-10-08)
+
+Exact PR #2 head `6cacafed55931d0f37fb0088ef4425ff05681597` passed Bootstrap #444 and deterministic governance, CodeQL and Dependency Review in Gate #383. The live merge gate remained blocked on unresolved threads and missing exact-head trusted approval.
+
+Fresh Codex L2 `PRR_kwDOUUI5ts8AAAABRZrUqg` on that exact head added **P1 `PRRT_kwDOUUI5ts6qjLmJ`**: the trusted `validate` job still installs Python dependencies from the PR candidate's own `requirements/governance-ci.txt`. A candidate-selected, hash-locked wheel can execute a Python startup `.pth` hook before the supposed trusted validators. Hash locking alone does not establish approval of the dependency set.
+
+REVIEW-0093 is **CLOSED / CHANGES_REQUIRED**, never approval. PR #2 now has **102 unresolved material review threads**. REVIEW-0094 must bind the validation toolchain to an approved default-branch/base lockfile, prove that binding in executable T11 governance validation, and test malicious candidate lock changes. PR #5/T12 is already merged into main and must not be redeveloped.
+
 ## Resume sequence
 
 1. `README.md`
@@ -353,7 +361,7 @@ Product specification and product identity remain owner-gated decisions. Agents 
 8. `registry/acceptance-authority.yaml`
 9. `registry/content-identity.yaml`
 10. `registry/integration-provenance.yaml`
-11. live PR #2 exact HEAD, checks, reviews and all **101 unresolved review threads**
+11. live PR #2 exact HEAD, checks, reviews and all **102 unresolved review threads**
 12. `.github/workflows/governance.yml`, `.github/workflows/_governance-core.yml`
 13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `t11_closure.py`, `github_live_gate.py`, `thread_state_poll.py`
 14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_t11_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`
