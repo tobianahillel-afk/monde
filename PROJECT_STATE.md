@@ -346,20 +346,27 @@ Fresh Codex L2 `PRR_kwDOUUI5ts8AAAABRZrUqg` on that exact head added **P1 `PRRT_
 
 REVIEW-0093 is **CLOSED / CHANGES_REQUIRED**, never approval. PR #2 now has **102 unresolved material review threads**. REVIEW-0094 must bind the validation toolchain to an approved default-branch/base lockfile, prove that binding in executable T11 governance validation, and test malicious candidate lock changes. PR #5/T12 is already merged into main and must not be redeveloped.
 
-## REVIEW-0094 — immutable governance dependency lock / IN_PROGRESS
+## REVIEW-0094 — terminal independent L2 findings
 
-REVIEW-0093 is terminal negative evidence for P1 `PRRT_kwDOUUI5ts6qjLmJ`. `main` does not yet contain `requirements/governance-ci.txt`; this phase uses the exact immutable Git blob `d61291f0dd17103995a0ac4473475d6782d48aeb` as an interim explicit trust anchor, not a false claim that an approved lock already exists on the default branch.
+REVIEW-0094 is **CLOSED / CHANGES_REQUIRED** on exact frozen PR #2 HEAD `b73fda4943beb88b6241eb6e7341f20c4ee63337`. Bootstrap #495 / 37847326018 succeeded; Gate #390 / 37847326228 passed candidate tests, deterministic governance, CodeQL and Dependency Review, then failed closed on live review/approval requirements.
 
-On a separate runner, trusted `validate` extracts that blob into `RUNNER_TEMP`, compares PR candidate lock bytes before installing anything from it, and installs only from the immutable copy. `candidate-tests` remains isolated. T11 binds source, ordering, comparison and installation; its mutant suite proves both the source and drift checks cannot be bypassed.
+Independent Codex L2 `PRR_kwDOUUI5ts8AAAABRaGkng` added two P1 findings:
+- `PRRT_kwDOUUI5ts6qkGa6`: pinned dependency lock blob `d61291f0dd17103995a0ac4473475d6782d48aeb` came from candidate PR history rather than approved default-branch history.
+- `PRRT_kwDOUUI5ts6qkGbA`: trusted governance validators were executed from the PR-controlled checkout and could be altered by the candidate.
 
-**The REVIEW-0094 OPEN checkpoint is now proved.** Exact head `a3a3a94f3ae1c0377c495c7b4c88283782a2703e` passed Bootstrap #494 / run `37846507623` and Gate #389 / run `37846508065`:
-- Bootstrap: **450/450 tests** and **100% line + branch**, live PR #2 probe successful.
-- Governance: **841 tests**, **8,143 statements / 3,770 branches**, **100% line + branch**.
-- Mutations: **38/38 baseline + 40/40 L2 + 5/5 T10 + 28/28 T11 + 18/18 T13** killed.
-- Deterministic governance, CodeQL and Dependency Review: **SUCCESS**.
-- Live final gate: fail-closed **only** on **102 unresolved PR #2 threads** and missing independently trusted exact-head APPROVED review. Live/durable finding identity remains aligned.
+PR #2 has **125 review threads, 104 unresolved**; WORK-0002 lists exactly the same 104 unresolved PRRT identities. No thread has been resolved.
 
-REVIEW-0094 now advances `OPEN -> IN_PROGRESS` in a state-only commit. This new frozen head needs its own Bootstrap + complete Gate proof before fresh-context L2. No review thread may be resolved before independent semantic acceptance and the separate qualifying non-author exact-head GitHub approval.
+## REVIEW-0095 — independently rooted validation prerequisite
+
+A separately reviewed default-branch trust root must supply BOTH the approved dependency lock and the trusted validation implementation. Candidate code is data to validate, never an authoritative validator; moving a different SHA literal into the candidate YAML does not solve provenance. Protect the trusted workflow/status from candidate edits; WORK-0003 retains settings ownership.
+
+## Current next action
+
+1. Keep all **104 unresolved PR #2 threads**.
+2. Prove this REVIEW-0094 CLOSED state-only checkpoint.
+3. Implement and independently accept a narrow trusted-base predecessor before claiming REVIEW-0095 trust authority.
+4. Keep historical negative reviews and merged PR #5/T12 unchanged.
+5. WORK-0003 and WORK-0004 remain blocked.
 
 ## Resume sequence
 
@@ -373,11 +380,11 @@ REVIEW-0094 now advances `OPEN -> IN_PROGRESS` in a state-only commit. This new 
 8. `registry/acceptance-authority.yaml`
 9. `registry/content-identity.yaml`
 10. `registry/integration-provenance.yaml`
-11. live PR #2 exact HEAD, checks, reviews and all **102 unresolved review threads**
+11. live PR #2 exact HEAD, checks, reviews and all **104 unresolved review threads**
 12. `.github/workflows/governance.yml`, `.github/workflows/_governance-core.yml`
 13. `tools/governance/t7_closure.py`, `t8_closure.py`, `t9_closure.py`, `t10_closure.py`, `t11_closure.py`, `github_live_gate.py`, `thread_state_poll.py`
 14. `.github/scripts/governance_t10_mutation_smoke.py`, `.github/scripts/governance_t11_mutation_smoke.py`, `.github/scripts/governance_l2_mutation_smoke.py`
 15. `tests/governance/test_t11_findings.py`, `test_t11_additional_coverage.py`, `test_t13_findings.py`, `test_thread_state_poll.py` and prior T7/T8/T9/T10 regression suites
-16. `registry/requirements/REQ-0026.yaml`, `registry/tests/TEST-0009.yaml`, `registry/tests/TEST-0010.yaml`, `registry/reviews/REVIEW-0082.yaml`, `registry/reviews/REVIEW-0083.yaml`, `registry/reviews/REVIEW-0084.yaml`, `registry/reviews/REVIEW-0085.yaml`, `registry/reviews/REVIEW-0086.yaml`, `registry/reviews/REVIEW-0087.yaml`, `registry/reviews/REVIEW-0088.yaml`, `registry/reviews/REVIEW-0089.yaml`, `registry/reviews/REVIEW-0090.yaml`, `registry/reviews/REVIEW-0091.yaml`, `registry/reviews/REVIEW-0092.yaml`, `registry/reviews/REVIEW-0093.yaml`, and `.github/workflows/monde-stale-green-bootstrap.yml`
+16. `registry/requirements/REQ-0026.yaml`, `registry/tests/TEST-0009.yaml`, `registry/tests/TEST-0010.yaml`, `registry/reviews/REVIEW-0082.yaml`, `registry/reviews/REVIEW-0083.yaml`, `registry/reviews/REVIEW-0084.yaml`, `registry/reviews/REVIEW-0085.yaml`, `registry/reviews/REVIEW-0086.yaml`, `registry/reviews/REVIEW-0087.yaml`, `registry/reviews/REVIEW-0088.yaml`, `registry/reviews/REVIEW-0089.yaml`, `registry/reviews/REVIEW-0090.yaml`, `registry/reviews/REVIEW-0091.yaml`, `registry/reviews/REVIEW-0092.yaml`, `registry/reviews/REVIEW-0093.yaml`, `registry/reviews/REVIEW-0094.yaml`, and `.github/workflows/monde-stale-green-bootstrap.yml`
 
 No prior chat history is required.

@@ -14,6 +14,7 @@ purpose: 'Turn MONDE governance/specification/traceability contracts into execut
 scope_change:
   approved: true
   rationale: |
+    REVIEW-0094 is terminal CLOSED/CHANGES_REQUIRED after independent exact-head Codex L2 PRR_kwDOUUI5ts8AAAABRaGkng found candidate-controlled dependency lock blob and trusted validator source (P1 qkGa6/qkGbA). Bootstrap #495 and deterministic/security Gate #390 passed on b73fda4943beb88b6241eb6e7341f20c4ee63337; live gate correctly failed closed. Exactly 104 unresolved PR #2 threads match the durable WORK-0002 inventory. REVIEW-0095 must establish independent base/default-branch-approved lock and executable validator provenance. No thread resolution or merge authorized.
     REVIEW-0094 is IN_PROGRESS after OPEN checkpoint a3a3a94f3ae1c0377c495c7b4c88283782a2703e passed Bootstrap #494 and Gate #389 / run 37846508065. Gate #389 proves 841 tests, 8143 statements / 3770 branches at 100 percent line+branch, 38/40/5/28/18 mutations, deterministic governance/CodeQL/Dependency Review success, and final live gate blocked only by exactly 102 unresolved threads and missing independently trusted exact-head APPROVED review. The new frozen IN_PROGRESS head needs full exact-head proof before fresh L2. Historical initial candidate evidence: Gate #387 proved 841 candidate tests, 8143 statements / 3770 branches at 100 percent, 38/40/5/28/18 mutations and green CodeQL/Dependency Review, but failed closed on two premature REVIEW-0094 references in immutable REVIEW-0093 and WORK-0002. Bootstrap #492 proved 450 bridge tests, 3853 statements / 1640 branches at 100 percent and live PR #2 probe SUCCESS 3/100. All 102 live/durable findings stay unresolved; Gate #387 remains negative repository-reference evidence, not an approved gate.
     REVIEW-0093 OPEN checkpoint 2c5305d3f49815b3df1eab1cd51bd2ce23629bc6 passed Bootstrap #443 / run 36566136600 and Gate #382 / run 36566136926 with the same 450 bridge tests, 840 governance tests, 100 percent line+branch and 38/40/5/26/18 mutation lanes. Candidate tests, Deterministic governance, CodeQL and Dependency Review were green; live gate failed only on 101 unresolved threads and missing trusted exact-head approval. REVIEW-0093 is now IN_PROGRESS pending one frozen exact-head proof before fresh independent L2.
     REVIEW-0092 remains terminal CLOSED/CHANGES_REQUIRED. REVIEW-0093 exact technical candidate 3168913c85c6a122b932833297395922e61f6275 passed Bootstrap #442 / run 36564708174 and Gate #381 / run 36564708685: 450 bridge tests at 3853 statements / 1640 branches and 840 governance tests at 8138 statements / 3770 branches, all at 100 percent line+branch; mutation lanes 38/38 baseline + 40/40 L2 + 5/5 T10 + 26/26 T11 + 18/18 T13; Candidate tests, Deterministic governance, CodeQL and Dependency Review all green. The live merge gate failed only on 101 unresolved threads and missing trusted context-separated exact-head approval, with no durable-finding mismatch. Gate #380 is retained negative harness evidence: the old T11 mutant disabled only one redundant candidate-execution caller and survived at 25/26; 3168913c changes only that mutation target and leaves production runtime unchanged. REVIEW-0093 is OPEN pending its exact-head state-only checkpoint. All 101 material threads remain unresolved; T4/AC-6 remain open.
@@ -486,6 +487,8 @@ review_plan:
   - PRRT_kwDOUUI5ts6m5DOC
   - PRRT_kwDOUUI5ts6m5xW5
   - PRRT_kwDOUUI5ts6qjLmJ
+  - PRRT_kwDOUUI5ts6qkGa6
+  - PRRT_kwDOUUI5ts6qkGbA
 
 required_tests:
   unit:
@@ -644,6 +647,7 @@ validation:
     line: 100
     branch: 100
   known_gaps:
+  - REVIEW-0094 is CLOSED/CHANGES_REQUIRED after independent P1 PRRT_kwDOUUI5ts6qkGa6 and PRRT_kwDOUUI5ts6qkGbA. Exactly 104 live/durable findings remain unresolved. REVIEW-0095 requires independent trust roots for dependencies and validators, not candidate-owned SHA pins.
   - All 102 live PR #2 material review threads/findings remain intentionally unresolved. REVIEW-0093 is CLOSED/CHANGES_REQUIRED after exact-head independent P1 PRRT_kwDOUUI5ts6qjLmJ; REVIEW-0094 will move the trusted-validator toolchain to base-approved lock provenance.
   - REVIEW-0093 exact head 6cacafed55931d0f37fb0088ef4425ff05681597 passed Bootstrap #444 and deterministic Gate #383; independent Codex review PRR_kwDOUUI5ts8AAAABRZrUqg found a new P1 in candidate-sourced governance lock installation. REVIEW-0093 is CLOSED/CHANGES_REQUIRED, not approved.
   - Repository administration/ruleset enforcement belongs to WORK-0003.
@@ -672,6 +676,9 @@ risk:
 rollback:
   strategy: Revert the governance hardening commit; keep canonical process documentation authoritative while the gate is repaired.
 run_log:
+- run: RUN-3
+  date: '2026-10-08'
+  note: 'Frozen b73fda4943beb88b6241eb6e7341f20c4ee63337 passed Bootstrap #495 and deterministic/security Gate #390; independent Codex REVIEW-0094 L2 PRR_kwDOUUI5ts8AAAABRaGkng added two P1 qkGa6/qkGbA. REVIEW-0094 CLOSED/CHANGES_REQUIRED, 104 unresolved live/durable findings; REVIEW-0095 trust-root predecessor required.'
 - run: RUN-3
   date: '2026-10-08'
   note: 'REVIEW-0094 OPEN checkpoint eaa256627cbc4289777e0d4da91b0df93e7c5818 passed Bootstrap #493 / 37845682858 and Gate #388 / 37845683806 candidate coverage, 38/40/5/28/18 mutations, deterministic governance, CodeQL and Dependency Review. Live merge gate failed closed on 102 unresolved threads, absent trusted exact-head approval and one durable-finding mismatch: PRRT_kwDOUUI5ts6qjLmJ was concatenated into the prior PRRT line rather than a separate YAML item. This state-only correction splits the two exact identities without resolving either; a fresh exact-head Gate must reprove 102/102 equality.'
