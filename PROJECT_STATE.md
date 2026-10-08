@@ -117,22 +117,17 @@ T11 now enforces that:
 - WORK-0002 remains `IN_REVIEW`; AC-6 and completion remain open.
 - Matrix dimensions `implementation`, `tests`, `real_system_validation` and `handover` remain `DONE` author-side; `specification_governance`, `security_review` and `review` remain `IN_REVIEW` pending exact integrated-head closure.
 
-## Current WORK-0002 gate
+## Current WORK-0002 gate — REVIEW-0094 OPEN
 
-Required sequence from this integrated state:
+WORK-0002 remains **IN_REVIEW / A3**, with PR #5/T12 already merged to `main`. PR #2 currently has **102/102 unresolved material review threads**, exactly matching its durable WORK-0002 finding IDs.
 
-1. Keep all **101** PR #2 material review threads unresolved.
-2. REVIEW-0083 through REVIEW-0092 remain terminal negative evidence.
-3. REVIEW-0093 exact technical candidate `3168913c85c6a122b932833297395922e61f6275` passed Bootstrap #442 / run `36564708174` and Gate #381 / run `36564708685`.
-4. Bootstrap #442 proves **450 bridge tests**, **3,853 statements / 1,640 branches**, **100% line + branch**, with live PR #2 probe SUCCESS at **3/100** requests.
-5. Gate #381 proves **840 governance tests**, **8,138 statements / 3,770 branches**, **100% line + branch**, mutations **38/38 baseline + 40/40 L2 + 5/5 T10 + 26/26 T11 + 18/18 T13**, with Candidate tests, Deterministic governance, CodeQL and Dependency Review green.
-6. The live merge gate on #381 fails closed only on **101 unresolved threads** and missing trusted context-separated exact-head approval; no durable-finding mismatch is present.
-7. Gate #380 / run `36556657374` remains negative mutation-harness evidence: the old T11 mutant disabled only one redundant candidate-execution caller and survived at 25/26; the corrected candidate changes only the mutant target and not production runtime.
-8. REVIEW-0093 OPEN checkpoint proof is complete via Bootstrap #443 / Gate #382 and REVIEW-0093 is now `IN_PROGRESS`.
-9. Prove/freeze this exact IN_PROGRESS head with Bootstrap + Gate.
-10. Request fresh independent L2 over all **101 unresolved findings** on that exact frozen head without mutating the tree while it runs.
-11. Only after clean independent semantic verification and eligible trusted non-author exact-head approval may independently verified PR #2 threads/findings be resolved and WORK-0002 completion be synchronized.
-12. Merge PR #2 with exact-head guard, then continue to WORK-0003 and WORK-0004.
+The latest negative independent L2 `PRR_kwDOUUI5ts8AAAABRZrUqg` closed REVIEW-0093 with P1 `PRRT_kwDOUUI5ts6qjLmJ`: a candidate-controlled lockfile could execute untrusted dependencies inside the trusted validator.
+
+REVIEW-0094's candidate `b4591d506f425b53a2da0ba3d72d7c1d416c4edb` uses immutable Git blob `d61291f0dd17103995a0ac4473475d6782d48aeb` instead. Trusted validation loads the blob from Git to RUNNER_TEMP, compares against the PR lock before install, and installs exclusively from the immutable copy; T11 binds this exact sequence. This is an interim pinned source, not a claim that the lock path exists on default-branch main.
+
+**Technical proof:** Bootstrap **#492 / 37844427321** succeeded: 450 tests, 3,853 statements / 1,640 branches, 100% line+branch and live PR #2 probe 3/100. Gate **#387 / 37844428189** passed 841 candidate tests, 8,143 statements / 3,770 branches, 100% line+branch, mutation lanes 38/38 + 40/40 + 5/5 + 28/28 + 18/18; CodeQL and Dependency Review succeeded. Trusted validate successfully loaded and compared the immutable blob, then **failed repository validation solely on two unknown references to REVIEW-0094** because that lifecycle file did not yet exist. Gate #387 is failed/negative evidence, never approval.
+
+This commit materializes REVIEW-0094 in its true **OPEN** initial state. The next mandatory sequence is OPEN checkpoint Bootstrap+Gate → IN_PROGRESS state-only transition → frozen exact-head Bootstrap+Gate → independent fresh-context L2 across all 102 findings. No thread resolution or merge until a clean L2 and trusted non-author exact-head APPROVED evidence. WORK-0003 and WORK-0004 remain blocked.
 
 ## REVIEW-0093 — candidate-execution isolation successor
 
