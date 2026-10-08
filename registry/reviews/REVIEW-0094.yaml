@@ -1,5 +1,5 @@
 id: REVIEW-0094
-status: OPEN
+status: IN_PROGRESS
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-2"
@@ -85,7 +85,8 @@ checks:
     - "Verify the pinned blob SHA matches the actual repository lockfile content and is reachable on the exact trusted checkout."
     - "Prove malicious candidate lock source substitution cannot affect the trusted validation job."
     - "Prove exact machine finding set equality 102 == 102, no missing, stale or duplicate PRRT identities."
-    - "Prove this OPEN checkpoint with exact-head Bootstrap and Gate before transition to IN_PROGRESS."
+    - "Gate #389 / run 37846508065 proved exact OPEN checkpoint a3a3a94f3ae1c0377c495c7b4c88283782a2703e: 841 candidate tests PASS, 8143 statements / 3770 branches at 100 percent line+branch, 38/38 baseline + 40/40 L2 + 5/5 T10 + 28/28 T11 + 18/18 T13 mutations killed, deterministic governance/CodeQL/Dependency Review SUCCESS; final live gate failed closed only on 102 unresolved review threads and missing exact-head approval."
+    - "OPEN checkpoint is proved; require fresh full GitHub Gate and Bootstrap proof on this new frozen IN_PROGRESS head before independent L2."
     - "Prove subsequent frozen IN_PROGRESS exact head with Bootstrap and Gate before fresh independent L2."
     - "Independent L2 must re-evaluate all 102 unresolved PR #2 material threads and inherited review findings."
     - "No thread resolution or merge is authorized by a successful technical run alone."

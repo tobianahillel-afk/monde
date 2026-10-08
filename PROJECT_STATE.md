@@ -346,15 +346,20 @@ Fresh Codex L2 `PRR_kwDOUUI5ts8AAAABRZrUqg` on that exact head added **P1 `PRRT_
 
 REVIEW-0093 is **CLOSED / CHANGES_REQUIRED**, never approval. PR #2 now has **102 unresolved material review threads**. REVIEW-0094 must bind the validation toolchain to an approved default-branch/base lockfile, prove that binding in executable T11 governance validation, and test malicious candidate lock changes. PR #5/T12 is already merged into main and must not be redeveloped.
 
-## REVIEW-0094 — immutable-lock technical candidate
+## REVIEW-0094 — immutable governance dependency lock / IN_PROGRESS
 
-REVIEW-0093 is terminal negative evidence for P1 `PRRT_kwDOUUI5ts6qjLmJ`. The current default branch does **not** yet contain `requirements/governance-ci.txt`, so a direct `git show <main>:requirements/governance-ci.txt` would fail. REVIEW-0094 instead uses the Git-immutable reference blob `d61291f0dd17103995a0ac4473475d6782d48aeb` (the pre-existing governance CI lock observed on 2026-10-08).
+REVIEW-0093 is terminal negative evidence for P1 `PRRT_kwDOUUI5ts6qjLmJ`. `main` does not yet contain `requirements/governance-ci.txt`; this phase uses the exact immutable Git blob `d61291f0dd17103995a0ac4473475d6782d48aeb` as an interim explicit trust anchor, not a false claim that an approved lock already exists on the default branch.
 
-The trusted `validate` job, on its separate runner, uses `git cat-file blob` to obtain exactly that immutable lock in `RUNNER_TEMP` before executing any candidate Python. For PR-family events it compares the candidate lock to that approved byte sequence, then installs dependencies only from the immutable copy. `candidate-tests` remains an isolated, untrusted execution lane; no candidate-provided lock can introduce a Python startup hook into `validate`.
+On a separate runner, trusted `validate` extracts that blob into `RUNNER_TEMP`, compares PR candidate lock bytes before installing anything from it, and installs only from the immutable copy. `candidate-tests` remains isolated. T11 binds source, ordering, comparison and installation; its mutant suite proves both the source and drift checks cannot be bypassed.
 
-T11 structurally binds the exact lock extraction, comparison, installation source and step order. The T11 mutation harness separately disables provenance and drift-rejection checks and must kill both mutations. This is an interim reviewed immutable pin; adopting an ordinary default-branch-owned governance lock is a distinct future approval/migration decision.
+**The REVIEW-0094 OPEN checkpoint is now proved.** Exact head `a3a3a94f3ae1c0377c495c7b4c88283782a2703e` passed Bootstrap #494 / run `37846507623` and Gate #389 / run `37846508065`:
+- Bootstrap: **450/450 tests** and **100% line + branch**, live PR #2 probe successful.
+- Governance: **841 tests**, **8,143 statements / 3,770 branches**, **100% line + branch**.
+- Mutations: **38/38 baseline + 40/40 L2 + 5/5 T10 + 28/28 T11 + 18/18 T13** killed.
+- Deterministic governance, CodeQL and Dependency Review: **SUCCESS**.
+- Live final gate: fail-closed **only** on **102 unresolved PR #2 threads** and missing independently trusted exact-head APPROVED review. Live/durable finding identity remains aligned.
 
-This successor remains a **technical candidate only** until exact-head GitHub Gate, coverage, mutation evidence and fresh L2 complete. All 102 PR #2 threads remain unresolved.
+REVIEW-0094 now advances `OPEN -> IN_PROGRESS` in a state-only commit. This new frozen head needs its own Bootstrap + complete Gate proof before fresh-context L2. No review thread may be resolved before independent semantic acceptance and the separate qualifying non-author exact-head GitHub approval.
 
 ## Resume sequence
 
