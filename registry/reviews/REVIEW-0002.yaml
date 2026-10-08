@@ -1,0 +1,127 @@
+id: REVIEW-0002
+status: IN_PROGRESS
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: "c074a3faf5a8928472ea468d37cdbfc8f32d577f"
+reviewer:
+  actor: "AI WORK-0002 reviewer"
+  context_id: "same-context-work-0002"
+  independence_level: L1
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+
+scope:
+  requirements: []
+  capabilities: []
+  contracts:
+    - "repository governance validation"
+    - "CI quality gate"
+    - "work-item tracking contract"
+  risks: []
+
+findings:
+  - id: F-1
+    severity: R2_MAJOR
+    category: SUPPLY_CHAIN_SECURITY
+    description: "Initial workflow referenced mutable major GitHub Action tags and persisted checkout credentials by default."
+    evidence:
+      - ".github/workflows/governance.yml initial PR diff"
+      - "official action refs verified for checkout v7.0.1 and setup-python v7.0.0"
+    disposition: RESOLVED
+    resolved_by: "Pinned checkout/setup-python to immutable commit SHAs and set persist-credentials=false."
+  - id: F-2
+    severity: R3_MODERATE
+    category: DEPENDENCY_REPRODUCIBILITY
+    description: "Initial CI dependency ranges allowed environment drift and pip was upgraded on each run."
+    evidence:
+      - "initial pyproject/workflow"
+    disposition: RESOLVED
+    resolved_by: "Pinned validated direct/transitive governance dependency versions in requirements/governance-ci.txt and removed pip upgrade."
+  - id: F-3
+    severity: R2_MAJOR
+    category: PATH_BOUNDARY
+    description: "Path validation originally checked existence but did not reject absolute or traversal/symlink paths resolving outside repository root."
+    evidence:
+      - "validate_paths and validate_markdown code review"
+      - "tests/governance/test_path_safety.py"
+      - "GitHub Actions run 34418747551"
+    disposition: RESOLVED
+    resolved_by: "Added deterministic path-safety gate for YAML declarations and Markdown links, including traversal/absolute/symlink escapes; regression tests retain 100 percent line/branch coverage."
+  - id: F-4
+    severity: R3_MODERATE
+    category: SUPPLY_CHAIN_SECURITY
+    description: "Python package versions are exact but package artifact hashes are not yet locked."
+    evidence:
+      - "requirements/governance-ci.txt"
+    disposition: TRACKED_FOLLOWUP
+    resolved_by: "Hash-locked dependency generation is deferred to dedicated supply-chain hardening; exact versions already remove ordinary resolver drift."
+  - id: F-5
+    severity: R4_LOW
+    category: CI_TRUST_BOUNDARY
+    description: "PR CI necessarily executes repository test code on a hosted runner."
+    evidence:
+      - ".github/workflows/governance.yml"
+      - "GitHub Actions run 34418747551 logs"
+    disposition: ACCEPTED
+    resolved_by: "Use GitHub-hosted runner, pull_request event, read-only contents token, no repository secrets, no privileged/self-hosted runner, immutable actions, and non-persisted checkout credentials."
+  - id: F-6
+    severity: R3_MODERATE
+    category: SCHEMA_DEPTH
+    description: "Current validator enforces selected deterministic invariants but does not yet validate every registry field through formal JSON Schema."
+    evidence:
+      - "WORK-0002 bounded scope"
+      - "validator implementation"
+    disposition: TRACKED_FOLLOWUP
+    resolved_by: "Keep this deterministic first slice bounded; add machine-readable JSON Schema validation as registries stabilize."
+  - id: F-7
+    severity: R4_LOW
+    category: SELF_ENFORCEMENT
+    description: "During hardening, CI correctly failed when WORK-0002 referenced REVIEW-0002 before that registry record existed."
+    evidence:
+      - "GitHub Actions run 34418545142"
+    disposition: RESOLVED
+    resolved_by: "Created REVIEW-0002 as the declared review artifact; subsequent hardened run is green. This demonstrates cross-record enforcement on the actual repository."
+
+checks:
+  assumptions_challenged:
+    - "A green 100 percent coverage run proves the validator has no security boundary flaws."
+    - "File existence alone is sufficient path validation."
+    - "Mutable action major tags are adequate for a repository-wide hard gate."
+    - "An expected registry artifact may safely remain only a prose promise."
+  omitted_categories_considered:
+    - "supply-chain integrity"
+    - "path traversal and symlink escape"
+    - "CI token/secret exposure"
+    - "test meaningfulness"
+    - "runtime and timeout budget"
+    - "false-positive and false-negative governance behavior"
+    - "schema validation depth"
+  duplicate_or_reuse_search:
+    - "Existing governance contracts and validator architecture were reused; path containment was added as a small deterministic companion rule module rather than a second state system."
+  failure_modes_considered:
+    - "malformed YAML"
+    - "unknown/duplicate IDs"
+    - "dependency cycles"
+    - "stale project state"
+    - "false DONE claims"
+    - "repository path escape"
+    - "dependency/action supply-chain drift"
+    - "untrusted PR code execution"
+    - "declared evidence record missing"
+  evidence_requested:
+    - "green hardened GitHub Actions run: satisfied by 34418747551"
+    - "path-containment regression tests: satisfied"
+    - "fresh-context L2 review before final completion claim: still required"
+
+outcome: L2_REVIEW_REQUIRED
+completed_at: null
+
+history:
+  created_at: "2026-09-10"
+  updated_at: "2026-09-10"

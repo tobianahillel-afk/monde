@@ -1,0 +1,96 @@
+id: REVIEW-0084
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: "d1850542494492a388b545dec954e078b825d9b5"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABPOcDnA"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "PR #5 T12 predecessor remains merged to main as b4b52c77fbf05eda65e8f0e951959da70e7edbe7 and REVIEW-0082 remains predecessor-only evidence"
+    - "T14 two-parent merge-history integration hardening remains intact on PR #2"
+    - "REVIEW-0083 remains terminal CLOSED/CHANGES_REQUIRED negative evidence and is not retroactively converted into approval"
+    - "P1 PRRT_kwDOUUI5ts6lzzao is closed only if required-command proof rejects dangerous workflow-level and job-level inherited env/defaults.run controls"
+    - "dangerous inherited PATH PYTHONPATH PYTHONHOME BASH_ENV ENV SHELLOPTS shell and working-directory controls cannot alter required validator execution while preserving command text"
+    - "P1 PRRT_kwDOUUI5ts6lzzas is closed only if a single ampersand background operator is rejected as failure masking"
+    - "required validator commands cannot be made asynchronous while preserving the accepted argv prefix"
+    - "P1 PRRT_kwDOUUI5ts6lzzax is closed only if PR-family Dependency Review cannot be structurally skipped while the final merge gate still succeeds"
+    - "Dependency Review skip remains acceptable only where the workflow contract explicitly permits it outside the pull-request family"
+    - "author-side duplicate PRRT_kwDOUUI5ts6lz1l8 remains durably tracked until clean independent closure"
+    - "WORK-0002 durable open_findings exactly equals all 81 live unresolved PR #2 thread identities"
+    - "T13 and T14 remain DONE author-side but are re-reviewed on this final integrated candidate"
+    - "no PR #2 review thread is resolved before a clean REVIEW-0084 result and eligible exact-head approval"
+  risks:
+    - "workflow or job inherited env/defaults could change Python lookup imports shell semantics or working directory without altering the run scalar"
+    - "single ampersand could detach a validator and return immediate success"
+    - "dependency-review job condition could skip the only dependency scan on pull_request-family runs"
+    - "final gate could treat skipped dependency review as acceptable on a PR"
+    - "second-parent predecessor review freshness could be confused with current first-parent PR #2 review authority"
+    - "durable and live closure sets could drift while preserving equal counts"
+    - "technical proof could be mistaken for independent semantic approval"
+findings:
+  - "PRRT_kwDOUUI5ts6l9_hk"
+  - "PRRT_kwDOUUI5ts6l9_ht"
+  - "PRRT_kwDOUUI5ts6l9_hz"
+  - "PRRT_kwDOUUI5ts6l9_h4"
+  - "PRRT_kwDOUUI5ts6l9_h8"
+checks:
+  assumptions_challenged:
+    - "step-local execution controls are sufficient even when workflow/job defaults and env are inherited"
+    - "only semicolon double-ampersand or pipe suffixes can mask validator failure"
+    - "dependency review skipped is always acceptable because the final gate sees a terminal job result"
+    - "a fully green deterministic gate is equivalent to an independent L2"
+  omitted_categories_considered:
+    - "workflow-level dangerous env"
+    - "job-level dangerous env"
+    - "workflow defaults.run.shell"
+    - "workflow defaults.run.working-directory"
+    - "job defaults.run.shell"
+    - "job defaults.run.working-directory"
+    - "single ampersand backgrounding"
+    - "dependency-review PR-family job if mutation"
+    - "final-gate acceptance of skipped dependency review"
+    - "ordinary non-PR dependency-review skip behavior"
+    - "first-parent review freshness after T12 second-parent integration"
+    - "all 81 live/durable PRRT identities"
+  duplicate_or_reuse_search:
+    - "REVIEW-0083 independent P1 threads PRRT_kwDOUUI5ts6lzzao PRRT_kwDOUUI5ts6lzzas and PRRT_kwDOUUI5ts6lzzax remain source evidence."
+    - "Author-side PRRT_kwDOUUI5ts6lz1l8 remains a separately tracked duplicate of the inherited-control defect."
+    - "Existing T13 parsed-command and execution-control proof is hardened rather than replaced."
+    - "Existing T12 and T14 integration contracts are reused unchanged."
+  failure_modes_considered:
+    - "required command text remains exact while inherited environment redirects execution"
+    - "required command is backgrounded and shell returns success immediately"
+    - "dependency-review is skipped on pull_request but merge gate accepts skipped"
+    - "mutation smoke targets a superseded code shape"
+    - "REVIEW-0084 is materialized before exact technical proof"
+    - "live and durable finding sets differ despite equal count"
+  evidence_requested:
+    - "Exact technical candidate dce9fbbfbe720adcde8ce91fc2e13b98c6544152 passed Bootstrap #354 / run 36123442666."
+    - "MONDE Gate #284 / run 36123443244 on exact dce9fbbfbe720adcde8ce91fc2e13b98c6544152 passed 824 tests with 7851 statements and 3596 branches at 100 percent line+branch coverage."
+    - "Gate #284 killed 38/38 baseline 40/40 L2 5/5 T10 11/11 T11 and 9/9 T13 critical mutations."
+    - "Gate #284 passed repository strict path change L2 review T7 T8 T9 T10 T11 and context-manifest validators with CodeQL and Dependency Review success."
+    - "Gate #284 live merge gate failed closed only on UNRESOLVED_THREADS:81 and INDEPENDENT_EXACT_HEAD_APPROVAL."
+    - "This OPEN checkpoint must pass before transition to IN_PROGRESS."
+    - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2."
+    - "Fresh independent L2 must review all 81 unresolved material threads plus integration effects under all six required hats."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-25T10:44:38Z"
+history:
+  created_at: "2026-09-25"
+  updated_at: "2026-09-25"

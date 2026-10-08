@@ -1,0 +1,95 @@
+id: REVIEW-0083
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: "cc37d74e2ee49aea62cfdfa30634c01a1032751f"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABPJeT9Q"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "PR #5 T12 predecessor remains merged to main as b4b52c77fbf05eda65e8f0e951959da70e7edbe7"
+    - "external integrated-head Codex review PRR_kwDOUUI5ts8AAAABPIVhXA remains adverse source evidence and is not retroactively converted into canonical approval"
+    - "P1 PRRT_kwDOUUI5ts6lxalB is closed only by one exact non-reusable WORK-0002 REVIEW-0082 PR-5 predecessor freshness exception"
+    - "the REVIEW-0082 exception binds reviewed SHA 71ed1cb233d16f032ff27cf5a88dfe039e2ba618 integration b4b52c77fbf05eda65e8f0e951959da70e7edbe7 and its exact two parents"
+    - "every other non-first-parent completed review remains a review-freshness authority"
+    - "P1 PRRT_kwDOUUI5ts6lxalH is closed only when required workflow commands cannot be made non-blocking by job or step controls"
+    - "continue-on-error unexpected if custom shell custom working-directory and dangerous PATH/Python environment overrides invalidate required command proof"
+    - "prior shell-suffix failure masking fix PRRT_kwDOUUI5ts6lURur remains enforced"
+    - "prior empty external_import terminal-import fix PRRT_kwDOUUI5ts6lURuu remains enforced"
+    - "baseline and T13 mutation suites protect both new fixes"
+    - "WORK-0002 durable open_findings exactly equals the 77 live unresolved PR #2 thread identities"
+    - "no PR #2 review thread is resolved before a clean successor L2 and eligible exact-head approval"
+  risks:
+    - "the historical predecessor exception could become a generic second-parent freshness bypass"
+    - "the exact exception could be silently retargeted to another work review PR SHA or merge"
+    - "workflow command text could remain present while execution metadata makes failures non-blocking"
+    - "job or step environment could redirect Python or command lookup"
+    - "a conditional validator step could be accepted without matching the one explicitly expected condition"
+    - "the two fixes could pass unit tests but survive critical mutation"
+    - "durable and live closure sets could drift while preserving the same count"
+findings:
+  - "PRRT_kwDOUUI5ts6lzzao"
+  - "PRRT_kwDOUUI5ts6lzzas"
+  - "PRRT_kwDOUUI5ts6lzzax"
+checks:
+  assumptions_challenged:
+    - "all non-first-parent reviews are predecessor-only evidence and may be ignored by freshness"
+    - "run scalar parsing alone proves a required workflow command is blocking"
+    - "continue-on-error is harmless when the expected command text is present"
+    - "workflow shell working-directory and PATH/PYTHON overrides do not affect enforcement"
+    - "the earlier external negative L2 can be materialized directly as a terminal canonical review"
+  omitted_categories_considered:
+    - "unrelated second-parent review followed by substantive first-parent work"
+    - "wrong work id review id artifact PR reviewed SHA integration SHA or integration parents"
+    - "integration commit absent from current history"
+    - "job continue-on-error"
+    - "step continue-on-error"
+    - "unexpected job or step if"
+    - "explicit shell"
+    - "explicit working-directory"
+    - "PATH PYTHONPATH PYTHONHOME BASH_ENV ENV or SHELLOPTS override"
+    - "malformed env mapping"
+    - "mutation that restores topology-wide second-parent exemption"
+    - "mutation that bypasses execution-control validation"
+  duplicate_or_reuse_search:
+    - "REVIEW-0082 remains clean independent predecessor evidence for PR #5 only."
+    - "T13 parsed-command proof is reused and hardened rather than replaced."
+    - "T14 two-parent integration hardening remains unchanged."
+    - "All 81 live PR #2 material threads remain unresolved after this L2 plus the author-side duplicate thread PRRT_kwDOUUI5ts6lz1l8."
+  failure_modes_considered:
+    - "candidate-specific exception accepts a different second-parent review"
+    - "later substantive changes remain fresh under an unrelated inherited review"
+    - "required validator command executes under failure-masking controls"
+    - "mutation smoke no longer targets the hardened decision branch"
+    - "state-only review lifecycle is replayed retroactively"
+  evidence_requested:
+    - "Exact technical candidate 854c4e8aa076bd6ac1c57baae96b9f278e995c0e passed Bootstrap #344 / run 36065670134."
+    - "MONDE Gate #270 / run 36065670495 on exact 854c4e8aa076bd6ac1c57baae96b9f278e995c0e passed 821 tests with 7816 statements and 3568 branches at 100 percent line+branch coverage."
+    - "Gate #270 killed 38/38 baseline 40/40 L2 5/5 T10 11/11 T11 and 6/6 T13 critical mutations."
+    - "Gate #270 passed repository strict path change L2 review T7 T8 T9 T10 T11 and context-manifest validators with CodeQL and Dependency Review success."
+    - "Gate #270 live merge gate failed closed only on UNRESOLVED_THREADS:77 and INDEPENDENT_EXACT_HEAD_APPROVAL."
+    - "The earlier invalid attempt to materialize REVIEW-0083 directly as CLOSED was rejected by Gate #266 and removed from branch history; this OPEN record is the first valid canonical materialization."
+    - "OPEN checkpoint 5033c5ae4010ab63ed28b19200a94eb84d2bdfe5 passed Bootstrap #345 / run 36066385035 and Gate #271 / run 36066385383: 821 tests, 7816 statements / 3568 branches at 100 percent line+branch, all mutation suites and deterministic/T7-T11 validators green; live gate failed only on 77 unresolved threads and missing exact-head approval."
+    - "Frozen exact-head proof on cc37d74e2ee49aea62cfdfa30634c01a1032751f: Bootstrap #346 / run 36066922675 SUCCESS and Gate #272 / run 36066923152 with 821 tests, 7816 statements / 3568 branches at 100 percent line+branch, 38/38 + 40/40 + 5/5 + 11/11 + 6/6 mutations and every deterministic validator green."
+    - "Fresh independent L2 PRR_kwDOUUI5ts8AAAABPJeT9Q reviewed exact head cc37d74e2ee49aea62cfdfa30634c01a1032751f and produced P1 PRRT_kwDOUUI5ts6lzzao (inherited workflow/job controls), P1 PRRT_kwDOUUI5ts6lzzas (backgrounded validator commands) and P1 PRRT_kwDOUUI5ts6lzzax (dependency-review skip bypass)."
+    - "Author-side duplicate P1 PRRT_kwDOUUI5ts6lz1l8 independently rediscovered the inherited-control issue; it remains live/unresolved and must be tracked durably, but is not attributed to the independent reviewer."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-24T23:40:32Z"
+history:
+  created_at: "2026-09-24"
+  updated_at: "2026-09-24"

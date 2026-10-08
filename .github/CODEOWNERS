@@ -1,0 +1,11 @@
+# CODEOWNERS routes sensitive areas. Required-review enforcement is a repository setting.
+* @tobianahillel-afk
+/.github/ @tobianahillel-afk
+/tools/governance/ @tobianahillel-afk
+/scripts/governance_mutation_smoke.py @tobianahillel-afk
+/schemas/governance/ @tobianahillel-afk
+/registry/ @tobianahillel-afk
+/docs/09_GOVERNANCE/ @tobianahillel-afk
+/docs/13_QUALITY/ @tobianahillel-afk
+/AGENTS.md @tobianahillel-afk
+/PROJECT_STATE.md @tobianahillel-afk

@@ -1,0 +1,100 @@
+id: REVIEW-0092
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: "fcf3e755050bfefa652fcf082bf786e19dea9bfd"
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "PR #5 / T12 remains independently accepted and merged on main as b4b52c77fbf05eda65e8f0e951959da70e7edbe7"
+    - "T13 and T14 remain DONE and intact on the integrated PR #2 candidate"
+    - "REVIEW-0091 remains terminal CLOSED/CHANGES_REQUIRED negative evidence and is not rewritten as approval"
+    - "P1 PRRT_kwDOUUI5ts6m5Bky is closed only if PR-controlled pytest executes in a distinct candidate-tests job on its own runner before trusted validators"
+    - "the trusted validate job contains no pytest execution and starts on a fresh runner only after candidate-tests succeeds"
+    - "validate needs equals exactly candidate-tests"
+    - "the top-level governance workflow job-id set equals exactly governance-core, dependency-review, codeql, final-gate and review-thread-state-poll"
+    - "the reusable governance-core workflow job-id set equals exactly candidate-tests and validate"
+    - "final-gate needs equals exactly governance-core, dependency-review and codeql"
+    - "P1 PRRT_kwDOUUI5ts6m5DOC is closed only if unexpected extra jobs cannot gain independent elevated token authority"
+    - "REVIEW-0091 exact permission maps, REVIEW-0090 exact environment/action inputs, REVIEW-0089 trusted substrate and REVIEW-0088 trusted predecessor order remain intact"
+    - "T11 mutation smoke kills exact workflow-job-set, exact core-job-set, candidate-test-isolation and exact final-gate-needs weakening mutants"
+    - "WORK-0002 durable open_findings exactly equals all 100 live unresolved PR #2 material thread identities"
+    - "no PR #2 review thread is resolved before a clean REVIEW-0092 result and eligible trusted non-author exact-head approval"
+  risks:
+    - "PR-controlled pytest can persist GITHUB_PATH, GITHUB_ENV or workspace state into later trusted validators when run in the same job"
+    - "an unexpected additional workflow job can obtain a separate elevated GITHUB_TOKEN permission map"
+    - "candidate-tests can be skipped, reordered or made parallel to trusted validation if the needs graph is not exact"
+    - "an extra final-gate dependency can introduce unreviewed authority or execution before live merge validation"
+    - "job-set equality can regress to subset matching while all expected jobs remain present"
+    - "technical green proof can be mistaken for independent semantic approval"
+    - "live and durable finding identity sets can drift while preserving equal cardinality"
+findings:
+  - "PRRT_kwDOUUI5ts6m5xW5"
+checks:
+  assumptions_challenged:
+    - "a trusted step sequence in one job is sufficient when PR-controlled pytest executes earlier in that job"
+    - "validating all known jobs is sufficient even when unknown jobs are permitted"
+    - "requiring a subset of final-gate needs is equivalent to binding the reviewed dependency graph"
+    - "a successful candidate-test job proves trusted validators ran on a fresh runner"
+    - "a fully green deterministic implementation is equivalent to independent L2 closure"
+  omitted_categories_considered:
+    - "candidate-tests gains needs and no longer starts independently"
+    - "candidate-tests gains a local permission override"
+    - "candidate-tests loses exact checkout/setup/toolchain/pytest wiring"
+    - "validate loses its exact candidate-tests dependency"
+    - "validate reintroduces pytest before trusted validators"
+    - "extra top-level job with elevated token permissions"
+    - "extra reusable-core job"
+    - "extra final-gate need"
+    - "missing or malformed needs values"
+    - "all 100 live/durable PRRT identities"
+  duplicate_or_reuse_search:
+    - "Existing REVIEW-0091 exact permission validators are preserved and reused."
+    - "Existing REVIEW-0090 exact environment/action-input validators remain unchanged."
+    - "Existing REVIEW-0089 trusted job-substrate and REVIEW-0088 trusted-prefix validators remain the execution authority."
+    - "One narrow _exact_needs helper is reused for validate and final-gate graph equality."
+    - "Existing T11 mutation harness is extended with four graph/isolation mutants rather than creating a parallel mutation framework."
+    - "No historical negative review is rewritten as approval."
+  failure_modes_considered:
+    - "candidate tests and trusted validators execute on the same runner"
+    - "trusted validate starts without candidate-tests success"
+    - "unexpected job is added while all reviewed jobs remain unchanged"
+    - "final-gate accepts a superset of reviewed dependencies"
+    - "candidate-tests or validate gains an explicit elevated permission override"
+    - "legacy fixtures validate the old monolithic core workflow rather than the current split graph"
+    - "live and durable finding sets differ despite equal count"
+  evidence_requested:
+    - "Bootstrap #433 / run 36498023728 succeeds on exact technical candidate b830aaaeb1954541da102d4e897b734e5c82485a."
+    - "Gate #371 / run 36498024030 proves 839 governance tests PASS with 8120 statements / 3758 branches at 100 percent line+branch."
+    - "Gate #371 executes candidate-tests on a distinct job and starts trusted Deterministic governance only after candidate-tests succeeds."
+    - "Gate #371 kills 38/38 baseline + 40/40 L2 + 5/5 T10 + 24/24 T11 + 18/18 T13 critical mutations."
+    - "Gate #371 repository/strict/path/change/L2/review/T7/T8/T9/T10/T11/context validators, CodeQL and Dependency Review all succeed."
+    - "Gate #371 live merge gate fails closed only on 100 unresolved threads and missing trusted context-separated exact-head approval, with no durable-finding mismatch."
+    - "After this technical proof REVIEW-0092 is materialized OPEN; one exact-head OPEN checkpoint is required before transition to IN_PROGRESS."
+    - "After IN_PROGRESS one frozen exact-head proof is required before fresh independent L2 over all 100 unresolved PR #2 material threads."
+    - "Resolve no PR #2 thread until a clean successor L2 and eligible trusted non-author exact-head APPROVED review exist."
+    - "Author-side review PRR_kwDOUUI5ts8AAAABPqVtcQ / thread PRRT_kwDOUUI5ts6m5xW5 on exact OPEN head fcf3e755050bfefa652fcf082bf786e19dea9bfd proves all five mutation-smoke scripts still execute PR-controlled pytest inside the trusted validate job and can persist GITHUB_PATH/GITHUB_ENV state into later validators."
+    - "REVIEW-0092 closes CHANGES_REQUIRED before IN_PROGRESS; Gate #372 was cancelled by the review event and is not completion evidence."
+    - "Successor must move every mutation smoke that executes PR-controlled tests into candidate-tests, keep validate limited to fresh checkout/setup/hash-locked install plus trusted validators, and remove cross-job pip-cache restoration from validate."
+    - "Successor must structurally bind that no pytest or mutation-smoke command can appear in validate while preserving exact job-set/needs/permission/env/action/substrate protections."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-09-29T00:44:10Z"
+history:
+  created_at: "2026-09-29"
+  updated_at: "2026-09-29"

@@ -1,0 +1,103 @@
+id: REVIEW-0094
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-2"
+  commit_sha: "b73fda4943beb88b6241eb6e7341f20c4ee63337"
+reviewer:
+  actor: "chatgpt-codex-connector"
+  context_id: "PRR_kwDOUUI5ts8AAAABRaGkng"
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: [REQ-0026]
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "PR #5 / T12 independently reviewed, closed and merged on main b4b52c77fbf05eda65e8f0e951959da70e7edbe7"
+    - "T13 / T14 integrated-head predecessor contracts remain intact"
+    - "REVIEW-0093 remains CLOSED/CHANGES_REQUIRED negative independent L2 evidence"
+    - "P1 PRRT_kwDOUUI5ts6qjLmJ cannot be considered fixed by PR-controlled --require-hashes alone"
+    - "trusted validate uses a separate runner after candidate-tests and no candidate-controlled test process or pip cache is carried over"
+    - "approved governance lock bytes are retrieved from one exact immutable Git blob d61291f0dd17103995a0ac4473475d6782d48aeb"
+    - "trusted validate writes the immutable blob to RUNNER_TEMP and installs dependencies from that exact local immutable copy only"
+    - "pull_request-family trusted validation rejects PR lock drift by exact bytewise comparison with immutable source before installing dependencies"
+    - "T11 validates exact immutable lock source, comparison condition, installation source and order within the complete reviewed job graph"
+    - "T11 mutation harness independently kills both immutable-source and drift-rejection bypass mutations without degrading predecessor mutations"
+    - "the direct candidate lock remains untrusted and only candidate-tests may install it for untrusted tests"
+    - "the reviewed immutable blob is a temporary explicit trust anchor, not falsely represented as a path currently present on main"
+    - "all 102 live unresolved PR #2 PRRT thread identities match WORK-0002 exactly, including the REVIEW-0093 L2 P1"
+    - "no review thread is resolved or PR #2 merged before clean independent successor L2 and trusted exact-head approval"
+  risks:
+    - "a hash-locked yet attacker-selected wheel executes .pth or install-time code inside trusted validators"
+    - "candidate modifies or deletes governance-ci.txt to change dependency resolution"
+    - "Git blob identity is falsely called default-branch-approved without provenance"
+    - "checkout fails to fetch pinned blob, or malicious PR affects Git object lookup"
+    - "comparison is skipped on PR events or occurs after installing candidate dependencies"
+    - "an extra setup/cache/candidate-execution step bypasses a complete trusted prefix"
+    - "mutation harness fails to exercise a removed immutable-source or drift guard"
+    - "CI green is mistaken for semantic independence or review approval"
+findings:
+  - "PRRT_kwDOUUI5ts6qkGa6"
+  - "PRRT_kwDOUUI5ts6qkGbA"
+checks:
+  assumptions_challenged:
+    - "pip --require-hashes alone creates a trusted toolchain when the lock is PR-controlled"
+    - "a hardcoded blob SHA automatically establishes base/default-branch approval provenance"
+    - "the pin can be loaded after candidate Python executes without risk"
+    - "candidate test environment can share pip cache or runner with trusted validation"
+    - "successful deterministic CI substitutes for independent security review"
+  omitted_categories_considered:
+    - "candidate lock changes to an attacker-controlled local wheel with .pth startup hook"
+    - "candidate lock changes only whitespace or comments"
+    - "candidate lock deleted or replaced by symlink"
+    - "incorrect pinned Git blob object or object unavailable to full-history checkout"
+    - "lock comparison condition removed, broadened, reordered or restricted"
+    - "immutable load command points to a different file or uses unquoted path"
+    - "pip install reads candidate lock rather than RUNNER_TEMP immutable copy"
+    - "new or reordered workflow step before validator install"
+    - "malformed env, shell, job/container or action inputs"
+    - "non-PR event and pull_request event behavior under exact workflow inputs"
+    - "T11 critical mutation count and predecessor survival"
+    - "all 102 unresolved live/durable thread identities"
+  duplicate_or_reuse_search:
+    - "REVIEW-0093 frozen negative L2 finding PRRT_kwDOUUI5ts6qjLmJ is retained unchanged."
+    - "REVIEW-0092 candidate-execution job isolation and REVIEW-0091 exact job/permission contracts are reused."
+    - "REVIEW-0090 exact action-input/env contracts and REVIEW-0088/0089 trusted-prefix/substrate boundaries remain active."
+    - "Existing T11 structural workflow validator, fixtures and mutation harness are extended rather than replaced."
+    - "Existing immutable Git blob mechanism is used; no new external service is introduced."
+  failure_modes_considered:
+    - "blob identity exists but its content contains attacker-controlled install hooks"
+    - "trusted checkout cannot resolve exact approved object and silently falls back to candidate lock"
+    - "comparison accepts a drifted lock or is moved after install"
+    - "candidate-tests writes GITHUB_PATH or GITHUB_ENV affecting trusted validate"
+    - "a new job gains permissions or bypasses validate.needs"
+    - "trusted validator executable/module source can be changed independently of lock"
+    - "legacy review threads remain unresolved and gate still passes without proper approval"
+  evidence_requested:
+    - "Exact technical candidate b4591d506f425b53a2da0ba3d72d7c1d416c4edb, Bootstrap #492 / run 37844427321: completed SUCCESS with 450 bridge tests, 3853 statements / 1640 branches at 100 percent and read-only PR #2 contract probe 3/100 requests."
+    - "Require Gate #387 / run 37844428189 to finish and document complete deterministic coverage, T11 mutations, CodeQL, Dependency Review and negative live closure conditions."
+    - "Verify the pinned blob SHA matches the actual repository lockfile content and is reachable on the exact trusted checkout."
+    - "Prove malicious candidate lock source substitution cannot affect the trusted validation job."
+    - "Prove exact machine finding set equality 102 == 102, no missing, stale or duplicate PRRT identities."
+    - "Gate #389 / run 37846508065 proved exact OPEN checkpoint a3a3a94f3ae1c0377c495c7b4c88283782a2703e: 841 candidate tests PASS, 8143 statements / 3770 branches at 100 percent line+branch, 38/38 baseline + 40/40 L2 + 5/5 T10 + 28/28 T11 + 18/18 T13 mutations killed, deterministic governance/CodeQL/Dependency Review SUCCESS; final live gate failed closed only on 102 unresolved review threads and missing exact-head approval."
+    - "OPEN checkpoint is proved; require fresh full GitHub Gate and Bootstrap proof on this new frozen IN_PROGRESS head before independent L2."
+    - "Prove subsequent frozen IN_PROGRESS exact head with Bootstrap and Gate before fresh independent L2."
+    - "Independent L2 must re-evaluate all 102 unresolved PR #2 material threads and inherited review findings."
+    - "No thread resolution or merge is authorized by a successful technical run alone."
+    - "Frozen b73fda4943beb88b6241eb6e7341f20c4ee63337 passed Bootstrap #495 / 37847326018 and deterministic/security Gate #390 / 37847326228; live gate failed closed on unresolved findings and missing exact-head approval."
+    - "Independent Codex L2 PRR_kwDOUUI5ts8AAAABRaGkng on b73fda4943beb88b6241eb6e7341f20c4ee63337 added P1 PRRT_kwDOUUI5ts6qkGa6 (lock blob candidate-originated rather than base-approved) and P1 PRRT_kwDOUUI5ts6qkGbA (trusted validators loaded from candidate checkout)."
+    - "104/104 live/durable findings remain unresolved. REVIEW-0095 requires independently approved default-branch trusted dependency and executable validator sources."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-10-08T21:41:52Z"
+history:
+  created_at: "2026-10-08"
+  updated_at: "2026-10-08"

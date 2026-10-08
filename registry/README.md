@@ -72,13 +72,16 @@ A material accepted governance behavior is not exempt merely because no product 
 
 ## Canonical cross-registry contracts
 
-Three repository-root registry contracts are intentionally shared rather than duplicated into individual record types:
+Four repository-root registry contracts are intentionally shared rather than duplicated into individual record types:
 
 - `registry/status-machines.yaml` — lifecycle transitions and evidence-bearing status preconditions;
 - `registry/content-identity.yaml` — machine-recomputable semantic content identities, including `REQUIREMENT_NORMATIVE_V1`;
-- `registry/acceptance-authority.yaml` — machine-resolvable authority roles/evidence for residual-risk and finding acceptance.
+- `registry/acceptance-authority.yaml` — machine-resolvable authority roles/evidence for residual-risk and finding acceptance;
+- `registry/integration-provenance.yaml` — exact, historical Git ancestry bridges for reviewed source trees that were squash-integrated and therefore no longer remain ancestors of the integrated first-parent history.
 
-Human-readable documents may explain these contracts but must not create competing lifecycle, content-identity or authority rules.
+Human-readable documents may explain these contracts but must not create competing lifecycle, content-identity, authority or Git-provenance rules.
+
+`integration-provenance.yaml` is deliberately narrow. It never makes “a commit that exists somewhere” valid evidence. A listed squash bridge qualifies only when the TEST is explicitly eligible, the exact execution revision is an ancestor of the exact source HEAD, the source HEAD and integrated squash commit resolve to the same declared tree, and the integrated commit is an ancestor of the governed current HEAD. Every mismatch fails closed.
 
 ## Requirement normative identity
 
@@ -103,8 +106,9 @@ Rules:
 10. An external-import authorization is consumable once. A consumed authorization cannot be reused by another review or commit.
 11. A requirement `PROPOSED → ACCEPTED` transition is evidence-bearing under v9: the exact current normative digest must be matched by an approval-capable independent review and by a separately qualified fresh-context cold-read TEST with explicit outcomes. Generic PASS tests do not qualify automatically.
 12. A risk or blocking finding may be accepted only when its typed authority role/evidence resolves through `registry/acceptance-authority.yaml`; unknown roles/evidence/matrix rules fail closed.
-13. Lifecycle changes are governance changes: update the canonical machine, affected templates/schemas/validators, migrations and review evidence together rather than adding an ad-hoc state locally.
-14. Governance tooling must fail closed on unknown states, invalid transitions, stale requirement digests, unqualified cold-read evidence, unbound external imports, invalid acceptance authority and migration/import/replay-exception mismatches.
+13. A SHA-bound PASS TEST must resolve to a real revision in relevant governed history. Normal ancestry is preferred; an exact squash bridge in `registry/integration-provenance.yaml` is the only alternate path and must prove tree-equivalent integration plus current integrated ancestry.
+14. Lifecycle changes are governance changes: update the canonical machine, affected templates/schemas/validators, migrations and review evidence together rather than adding an ad-hoc state locally.
+15. Governance tooling must fail closed on unknown states, invalid transitions, stale requirement digests, unqualified cold-read evidence, unbound external imports, invalid acceptance authority, invalid TEST revision ancestry and migration/import/replay-exception mismatches.
 
 Human-readable registry-specific documents may explain these states but must not define a competing lifecycle truth.
 
@@ -127,6 +131,7 @@ Governance CI should validate:
 - exact requirement-digest agreement across qualifying review and acceptance-cold-read evidence;
 - acceptance cold-read fresh-context provenance, required outcomes and exact tested revision;
 - risk/finding authority resolution against `registry/acceptance-authority.yaml`;
+- PASS TEST execution revision existence and relevant ancestry, including exact tree-equivalent squash integration provenance where explicitly declared;
 - exact matching and non-reusability of any declared historical transition/import/replay exception;
 - external-review import authorization exists in an earlier parent commit, matches the source review/result/artifact, is consumed once and is bound afterward to the actual import commit;
 - required fields by status/risk;
