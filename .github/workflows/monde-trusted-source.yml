@@ -53,4 +53,12 @@ jobs:
           MONDE_ATTEST_BASE: ${{ github.event.pull_request.base.sha || github.sha }}
           MONDE_ATTEST_BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
           MONDE_ATTEST_PR: ${{ github.event.pull_request.number || 2 }}
+          MONDE_ATTEST_PROOF_PATH: ${{ runner.temp }}/monde-trusted-source-proof.json
         run: python3 .github/trusted/trusted_source_attestor.py
+      - name: Publish completed-run evidence for independent downstream verification
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: monde-trusted-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/monde-trusted-source-proof.json
+          if-no-files-found: error
+          retention-days: 14

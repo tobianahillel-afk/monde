@@ -7,6 +7,7 @@ reviewed and merged into the default branch.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -370,6 +371,47 @@ def _verify_approved_merge(repo: str, token: str, sha: str, base_sha: str) -> in
     return count
 
 
+def _write_attestation_proof(repo: str, sha: str, base_sha: str, count: int) -> None:
+    """Write evidence only after a confirmed exact-SHA successful publication.
+
+    The eventual consumer MUST fetch this artifact from a completed successful
+    main-owned run; a candidate-supplied JSON object is not trusted evidence.
+    """
+    path = os.environ.get("MONDE_ATTEST_PROOF_PATH")
+    if not path:
+        return  # Direct local tests do not publish a GitHub Actions artifact.
+    run_id = os.environ.get("GITHUB_RUN_ID", "")
+    attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "")
+    if (
+        repo != "tobianahillel-afk/monde"
+        or not _sha(sha)
+        or not _sha(base_sha)
+        or not run_id.isascii() or not run_id.isdecimal() or int(run_id) <= 0
+        or not attempt.isascii() or not attempt.isdecimal() or int(attempt) <= 0
+        or type(count) is not int or count <= 0
+    ):
+        raise AttestationError("invalid trusted attestation proof identity")
+    manifest_path = Path(__file__).resolve().parent / "approved_sources.json"
+    proof = {
+        "schema_version": 1,
+        "repository": repo,
+        "pr_number": 2,
+        "candidate_sha": sha,
+        "base_sha": base_sha,
+        "run_id": int(run_id),
+        "run_attempt": int(attempt),
+        "manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+        "approved_source_count": count,
+    }
+    # Exclusive creation rejects accidental overwrite/symlink substitution.
+    try:
+        with Path(path).open("x", encoding="utf-8") as evidence:
+            json.dump(proof, evidence, sort_keys=True, separators=(",", ":"))
+            evidence.write("\n")
+    except (OSError, UnicodeError) as exc:
+        raise AttestationError("trusted attestation proof emission failed") from exc
+
+
 def main() -> int:
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     sha = os.environ.get("MONDE_ATTEST_HEAD", "")
@@ -453,6 +495,7 @@ def main() -> int:
                 "failure compensation also unconfirmed"
             ) from compensation
         raise
+    _write_attestation_proof(repo, sha, base_sha, count)
     print(f"MONDE trusted-source attestation PASS: PR #{pr}, {count} approved Git objects, head={sha}")
     return 0
 

@@ -27,6 +27,9 @@ protects:
     - "the GitHub test-merge result must retain all default-branch trusted workflow/manifest/attestor object identities even if a pre-integration candidate legitimately omits them"
     - "a base-owned workflow publishes trusted-source pending then terminal success/failure status under one immutable context on the exact validated candidate HEAD SHA rather than using its base-SHA Actions result"
     - "current live PR HEAD/base/merge object and main branch SHA are revalidated before an exact-candidate success status is published"
+    - "a completed-run proof binds candidate SHA, current main/base SHA, run ID, run attempt, manifest digest, and approved source count"
+    - "a raw success status without a completed successful main-owned workflow run and uniquely linked unexpired proof artifact never authorizes merge"
+    - "the proposed read-only consumer rejects main advancement, a changed PR head, failed/in-progress runs, wrong artifact run, tampered manifest, duplicate JSON and coercive identity types"
 location:
   test_path: ".github/trusted/test_trusted_source_attestor.py"
   suite: "MONDE Trusted WORK-0002 Source / Trusted-source self-tests"
@@ -58,6 +61,10 @@ cases:
     - "malicious candidate overwrites default-branch attestor or trust manifest"
     - "post-integration candidate removes trusted workflow/manifest/attestor while all original 167 approved sources still match"
     - "pull_request_target run succeeds only on base SHA and thus cannot be used directly as PR-head merge authority"
+    - "remote commit-status success survives a failed or ambiguously acknowledged workflow run; the consumer rejects it without completed successful run provenance"
+    - "main advances after a successful old-base run and PR candidate HEAD remains unchanged; consumer rejects the old-base proof"
+    - "artifact name matches but artifact workflow_run identity differs; consumer rejects"
+
 acceptance_cold_read:
   qualifies: false
   source: {kind: null, source_id: null, submitted_at: null}
@@ -98,6 +105,7 @@ execution:
     - "REVIEW-0097 frozen HEAD 7699e1fb1a28bac1b1f8541ebf92126653d14a0d passed Trusted Source #20 and Bootstrap #510, but independent L2 PRR_kwDOUUI5ts8AAAABRh5KCg produced two P1 defects PRRT_kwDOUUI5ts6q0YNM (base advancement) and PRRT_kwDOUUI5ts6q0YNX (ambiguous terminal success). The review is CLOSED/CHANGES_REQUIRED."
     - "First REVIEW-0098 mitigation candidate 0b5ce3aaf25e12a96142472fc261681212f2a88f passed Trusted Source #22 / 37945534737 with 29/29 tests and Bootstrap #512 / 37945534851 with 450 tests at 100 percent line/branch. These are technical mitigation tests only; base-change and trusted-run consumer enforcement remain unproved; TEST-0011 retains PLANNED lifecycle."
     - "Exact technical main-push successor 46f43f1ef472e64de14d1e4d7c8271012d71add2 passed Trusted Source #28 / 37947528012 (33 tests) and Bootstrap #518 / 37947527987 (450 tests, 3853 statements / 1640 branches at 100 percent). GitHub pull_request_target live attestation is still skipped until main integration; a trusted downstream consumer and actual base-push post-merge rehearsal remain mandatory."
+    - "REVIEW-0098 completed-run artifact producer and pure read-only consumer implemented as a technical candidate, pending exact-head CI, independent L2 and default-branch deployment; not required merge authority."
 
 
 coverage: {line_contribution: null, branch_contribution: null}

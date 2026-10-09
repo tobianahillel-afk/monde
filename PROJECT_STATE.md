@@ -589,6 +589,14 @@ PR #14 has **11 unresolved / 12 total review threads**. PR #2 retains **104 unre
 
 The candidate source-attestation workflow now listens to `pull_request_target.edited` as well as opened/synchronize/reopened/ready_for_review. A structural test guards this trigger together with the existing main-only base condition and exact base-SHA checkout. This is a narrow candidate correction, **not** accepted merge authority: a separate trusted consumer must still bind current base SHA and completed successful base-owned workflow provenance; REVIEW-0098 remains unapproved.
 
+## REVIEW-0098 — completed-run provenance candidate (not merge authority)
+
+The main-owned attestor now emits a size-bounded JSON proof artifact **only after confirming candidate-SHA success publication**. The proof binds PR #2, candidate HEAD SHA, validated main/base SHA, exact GitHub run ID/attempt, approved manifest digest, and approved source count. The workflow uploads this proof only after the attestation step succeeds, with `if-no-files-found: error`.
+
+New proposed base-owned `.github/trusted/trusted_source_consumer.py` checks the independently fetched **completed successful** GitHub workflow-run identity, the uniquely named non-expired artifact, proof content and exact current PR/base identity. A raw GitHub status of `success`, or candidate-controlled proof bytes without independent GitHub run/artifact retrieval, cannot satisfy this contract. Tests include base advancement, wrong candidate/run/attempt, failed or pending runs, tampered manifests and duplicate JSON.
+
+This is **a candidate implementation only**. The consumer is not yet wired to an independently protected required check or a proven live base-owned run. REVIEW-0098 remains unapproved; no thread resolution or PR #14/#2 merge is justified. The trusted consumer must be integrated from `main`, fetch its own GitHub evidence, revalidate immediately before decision, and be coupled to WORK-0003 branch-protection/required-check rules.
+
 ## Current next action
 
 1. Keep 11 PR #14 threads and 104 PR #2 threads unresolved.
