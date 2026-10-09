@@ -532,6 +532,85 @@ class TrustedSourceTests(unittest.TestCase):
                 with self.assertRaisesRegex(subject.AttestationError, "acknowledgement is not exact"):
                     subject._publish_status("o/r", head, "t", "success", "done")
 
+    def test_status_description_binds_exact_main_base_sha(self):
+        head, base = "a" * 40, "b" * 40
+
+        def response(request, timeout=0):
+            payload = json.loads(request.data)
+            self.assertTrue(payload["description"].startswith("base=" + base + ";"))
+            self.assertEqual(payload["context"], subject.STATUS_CONTEXT)
+            return io.BytesIO(json.dumps({
+                "state": payload["state"],
+                "context": payload["context"],
+                "sha": head,
+            }).encode("utf-8"))
+
+        with mock.patch.object(subject.urllib.request, "urlopen", side_effect=response):
+            subject._publish_status(
+                "o/r", head, "t", "success", "approved", base_sha=base,
+            )
+        with self.assertRaisesRegex(subject.AttestationError, "base identity"):
+            subject._publish_status(
+                "o/r", head, "t", "success", "approved", base_sha="bad",
+            )
+
+    def test_ambiguous_success_ack_is_compensated_and_never_returns_success(self):
+        env = {
+            "GITHUB_REPOSITORY": "tobianahillel-afk/monde",
+            "MONDE_ATTEST_HEAD": "a" * 40,
+            "MONDE_ATTEST_BASE": "b" * 40,
+            "MONDE_ATTEST_BASE_REF": "main",
+            "MONDE_ATTEST_PR": "2",
+            "GITHUB_TOKEN": "test-only",
+        }
+        states = []
+
+        def publish(_repo, _head, _token, state, _desc, *, base_sha=None):
+            states.append((state, base_sha))
+            if state == "success":
+                raise subject.AttestationError("response lost after remote success")
+
+        with (
+            mock.patch.dict(os.environ, env, clear=True),
+            mock.patch.object(subject, "_verify_approved_merge", return_value=179),
+            mock.patch.object(subject, "_publish_status", side_effect=publish),
+        ):
+            with self.assertRaisesRegex(subject.AttestationError, "response lost"):
+                subject.main()
+        self.assertEqual(
+            states,
+            [("pending", env["MONDE_ATTEST_BASE"]),
+             ("success", env["MONDE_ATTEST_BASE"]),
+             ("failure", env["MONDE_ATTEST_BASE"])],
+        )
+
+    def test_unconfirmed_success_and_failed_compensation_are_terminal_failure(self):
+        env = {
+            "GITHUB_REPOSITORY": "tobianahillel-afk/monde",
+            "MONDE_ATTEST_HEAD": "a" * 40,
+            "MONDE_ATTEST_BASE": "b" * 40,
+            "MONDE_ATTEST_BASE_REF": "main",
+            "MONDE_ATTEST_PR": "2",
+            "GITHUB_TOKEN": "test-only",
+        }
+        states = []
+
+        def publish(_repo, _head, _token, state, _desc, *, base_sha=None):
+            states.append(state)
+            if state == "success":
+                raise subject.AttestationError("lost success response")
+            if state == "failure":
+                raise subject.AttestationError("lost failure response")
+
+        with (
+            mock.patch.dict(os.environ, env, clear=True),
+            mock.patch.object(subject, "_verify_approved_merge", return_value=179),
+            mock.patch.object(subject, "_publish_status", side_effect=publish),
+        ):
+            with self.assertRaisesRegex(subject.AttestationError, "compensation also unconfirmed"):
+                subject.main()
+        self.assertEqual(states, ["pending", "success", "failure"])
+
     def test_commit_and_tree_are_never_executed(self):
         manifest, tree = fixture()
         self.assertEqual(subject.verify_tree(manifest, tree), len(manifest["source_files"]))

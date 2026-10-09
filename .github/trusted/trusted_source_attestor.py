@@ -245,13 +245,22 @@ STATUS_CONTEXT = "MONDE / Trusted Source Attestation"
 
 def _publish_status(
     repo: str, sha: str, token: str, state: str, description: str,
+    *, base_sha: str | None = None,
 ) -> None:
     if not _sha(sha) or state not in {"pending", "success", "failure"}:
         raise AttestationError("invalid exact trusted-source status identity")
+    if base_sha is not None and not _sha(base_sha):
+        raise AttestationError("invalid trusted-source base identity")
+    # A candidate-commit status alone is not merge authority: its description
+    # carries the exact validated base SHA, which the downstream live gate
+    # MUST compare against current main before accepting any success.
+    bound_description = (
+        f"base={base_sha};{description}" if base_sha is not None else description
+    )
     payload = json.dumps({
         "state": state,
         "context": STATUS_CONTEXT,
-        "description": description[:140],
+        "description": bound_description[:140],
     }, separators=(",", ":")).encode("utf-8")
     request = urllib.request.Request(
         f"https://api.github.com/repos/{repo}/statuses/{sha}",
@@ -380,13 +389,43 @@ def main() -> int:
     # Pending invalidates any prior success for the same head/context before
     # reading mutable GitHub authority. A failure is published on the SAME
     # candidate head; a base-owned run status is never used as PR-head proof.
-    _publish_status(repo, sha, token, "pending", "Validating exact PR #2 source and merge tree")
+    _publish_status(
+        repo, sha, token, "pending", "Validating exact PR #2 source and merge tree",
+        base_sha=base_sha,
+    )
     try:
         count = _verify_approved_merge(repo, token, sha, base_sha)
     except (AttestationError, OSError, ValueError):
-        _publish_status(repo, sha, token, "failure", "Trusted source or merged-result authority rejected")
+        _publish_status(
+            repo, sha, token, "failure",
+            "Trusted source or merged-result authority rejected",
+            base_sha=base_sha,
+        )
         raise
-    _publish_status(repo, sha, token, "success", "Approved source and merge result verified")
+    try:
+        _publish_status(
+            repo, sha, token, "success",
+            "Approved source and merge result verified",
+            base_sha=base_sha,
+        )
+    except (AttestationError, OSError, ValueError):
+        # A failed/malformed acknowledgement does not mean the remote success
+        # POST was rejected. Attempt a terminal compensating failure on the
+        # SAME head/context/base, and never return a successful workflow run.
+        # Even a confirmed compensation is not sufficient merge authority:
+        # consumers must also verify the trusted run completed successfully.
+        try:
+            _publish_status(
+                repo, sha, token, "failure",
+                "Unconfirmed trusted-source success must not authorize merge",
+                base_sha=base_sha,
+            )
+        except (AttestationError, OSError, ValueError) as compensation:
+            raise AttestationError(
+                "trusted-source success acknowledgement ambiguous; "
+                "failure compensation also unconfirmed"
+            ) from compensation
+        raise
     print(f"MONDE trusted-source attestation PASS: PR #{pr}, {count} approved Git objects, head={sha}")
     return 0
 
