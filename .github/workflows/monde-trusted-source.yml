@@ -11,6 +11,8 @@ on:
       - registry/tests/TEST-0011.yaml
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -32,7 +34,7 @@ jobs:
 
   trusted-attestation:
     name: MONDE / Trusted Source
-    if: github.event_name == 'pull_request_target' && github.event.pull_request.number == 2 && github.event.pull_request.base.ref == 'main'
+    if: (github.event_name == 'pull_request_target' && github.event.pull_request.number == 2 && github.event.pull_request.base.ref == 'main') || github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -42,13 +44,13 @@ jobs:
       - name: Checkout default-branch owned attestor only
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
           persist-credentials: false
       - name: Validate and publish exact PR-head trusted-source status without executing PR code
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          MONDE_ATTEST_HEAD: ${{ github.event.pull_request.head.sha }}
-          MONDE_ATTEST_BASE: ${{ github.event.pull_request.base.sha }}
-          MONDE_ATTEST_BASE_REF: ${{ github.event.pull_request.base.ref }}
-          MONDE_ATTEST_PR: ${{ github.event.pull_request.number }}
+          MONDE_ATTEST_HEAD: ${{ github.event.pull_request.head.sha || 'CURRENT_PR_2' }}
+          MONDE_ATTEST_BASE: ${{ github.event.pull_request.base.sha || github.sha }}
+          MONDE_ATTEST_BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+          MONDE_ATTEST_PR: ${{ github.event.pull_request.number || 2 }}
         run: python3 .github/trusted/trusted_source_attestor.py

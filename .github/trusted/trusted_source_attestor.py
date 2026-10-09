@@ -374,9 +374,31 @@ def main() -> int:
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     sha = os.environ.get("MONDE_ATTEST_HEAD", "")
     pr = os.environ.get("MONDE_ATTEST_PR", "")
+    event = os.environ.get("GITHUB_EVENT_NAME", "")
     base_sha = os.environ.get("MONDE_ATTEST_BASE", "")
     base_ref = os.environ.get("MONDE_ATTEST_BASE_REF", "")
     token = os.environ.get("GITHUB_TOKEN", "")
+    if sha == "CURRENT_PR_2":
+        # A base-branch push does not emit a pull_request_target event on the
+        # unchanged candidate. This trusted main-owned run must fetch the
+        # current exact PR #2 HEAD instead of recycling a previous event HEAD.
+        if event != "push" or not token or repo != "tobianahillel-afk/monde":
+            raise AttestationError("untrusted base-push attestation invocation")
+        current = _get_json(repo, "pulls/2", token)
+        if current.get("state") == "closed":
+            return 0
+        if (
+            type(current.get("number")) is not int
+            or current["number"] != 2
+            or current.get("state") != "open"
+            or not isinstance(current.get("head"), dict)
+            or not _sha(current["head"].get("sha"))
+            or not isinstance(current.get("base"), dict)
+            or current["base"].get("ref") != "main"
+            or current["base"].get("sha") != base_sha
+        ):
+            raise AttestationError("invalid current PR #2 base-push authority")
+        sha = current["head"]["sha"]
     if (
         repo != "tobianahillel-afk/monde"
         or not _sha(sha)

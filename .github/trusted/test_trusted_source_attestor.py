@@ -483,7 +483,9 @@ class TrustedSourceTests(unittest.TestCase):
         trusted = workflow.split("  trusted-attestation:", 1)[1]
         self.assertIn("statuses: write", trusted)
         self.assertIn("contents: read", trusted)
-        self.assertIn("MONDE_ATTEST_HEAD: ${{ github.event.pull_request.head.sha }}", trusted)
+        self.assertIn("MONDE_ATTEST_HEAD: ${{ github.event.pull_request.head.sha || 'CURRENT_PR_2' }}", trusted)
+        self.assertIn("github.event_name == 'push'", trusted)
+        self.assertIn("ref: ${{ github.event.pull_request.base.sha || github.sha }}", trusted)
         self.assertNotIn("actions: write", trusted)
         self.assertNotIn("pull-requests: write", trusted)
 
@@ -635,6 +637,84 @@ class TrustedSourceTests(unittest.TestCase):
             with self.assertRaisesRegex(subject.AttestationError, "invalid synthetic merge tree") as raised:
                 subject.main()
         self.assertIs(raised.exception.__cause__, publish_failure)
+
+    def test_main_push_revalidates_current_pr2_head_against_new_base(self):
+        head, base = "a" * 40, "b" * 40
+        env = {
+            "GITHUB_REPOSITORY": "tobianahillel-afk/monde",
+            "GITHUB_EVENT_NAME": "push",
+            "MONDE_ATTEST_HEAD": "CURRENT_PR_2",
+            "MONDE_ATTEST_BASE": base,
+            "MONDE_ATTEST_BASE_REF": "main",
+            "MONDE_ATTEST_PR": "2",
+            "GITHUB_TOKEN": "test-only",
+        }
+        pr = {
+            "number": 2, "state": "open",
+            "head": {"sha": head},
+            "base": {"ref": "main", "sha": base},
+        }
+        with (
+            mock.patch.dict(os.environ, env, clear=True),
+            mock.patch.object(subject, "_get_json", return_value=pr) as get,
+            mock.patch.object(subject, "_verify_approved_merge", return_value=179) as verify,
+            mock.patch.object(subject, "_publish_status") as publish,
+        ):
+            self.assertEqual(subject.main(), 0)
+        get.assert_called_once_with(env["GITHUB_REPOSITORY"], "pulls/2", env["GITHUB_TOKEN"])
+        verify.assert_called_once_with(env["GITHUB_REPOSITORY"], env["GITHUB_TOKEN"], head, base)
+        self.assertEqual([x.args[3] for x in publish.call_args_list], ["pending", "success"])
+        self.assertTrue(all(x.kwargs["base_sha"] == base for x in publish.call_args_list))
+
+    def test_main_push_rejects_stale_base_or_wrong_event_without_status(self):
+        head, base = "a" * 40, "b" * 40
+        env = {
+            "GITHUB_REPOSITORY": "tobianahillel-afk/monde",
+            "GITHUB_EVENT_NAME": "push",
+            "MONDE_ATTEST_HEAD": "CURRENT_PR_2",
+            "MONDE_ATTEST_BASE": base,
+            "MONDE_ATTEST_BASE_REF": "main",
+            "MONDE_ATTEST_PR": "2",
+            "GITHUB_TOKEN": "test-only",
+        }
+        bad_pr = {
+            "number": 2, "state": "open",
+            "head": {"sha": head},
+            "base": {"ref": "main", "sha": "c" * 40},
+        }
+        with (
+            mock.patch.dict(os.environ, env, clear=True),
+            mock.patch.object(subject, "_get_json", return_value=bad_pr),
+            mock.patch.object(subject, "_publish_status") as publish,
+        ):
+            with self.assertRaisesRegex(subject.AttestationError, "base-push authority"):
+                subject.main()
+        publish.assert_not_called()
+        with (
+            mock.patch.dict(os.environ, {**env, "GITHUB_EVENT_NAME": "pull_request"}, clear=True),
+            mock.patch.object(subject, "_get_json") as get,
+        ):
+            with self.assertRaisesRegex(subject.AttestationError, "base-push attestation invocation"):
+                subject.main()
+        get.assert_not_called()
+
+    def test_main_push_noops_when_target_pr_is_closed(self):
+        env = {
+            "GITHUB_REPOSITORY": "tobianahillel-afk/monde",
+            "GITHUB_EVENT_NAME": "push",
+            "MONDE_ATTEST_HEAD": "CURRENT_PR_2",
+            "MONDE_ATTEST_BASE": "b" * 40,
+            "MONDE_ATTEST_BASE_REF": "main",
+            "MONDE_ATTEST_PR": "2",
+            "GITHUB_TOKEN": "test-only",
+        }
+        with (
+            mock.patch.dict(os.environ, env, clear=True),
+            mock.patch.object(subject, "_get_json", return_value={"state": "closed"}),
+            mock.patch.object(subject, "_publish_status") as publish,
+        ):
+            self.assertEqual(subject.main(), 0)
+        publish.assert_not_called()
 
     def test_commit_and_tree_are_never_executed(self):
         manifest, tree = fixture()
