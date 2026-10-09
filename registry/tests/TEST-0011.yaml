@@ -66,6 +66,7 @@ execution:
   evidence:
     - "PR #14 technical run #9 / 37915736299 succeeded after the strict JSON parser fix; execution outcome is evidence only and does not fabricate the TEST lifecycle"
     - "Read-only exact Git tree preflight verified PR #2 SHA 2e2664ca8c9cb4f3eb81ea41a172da1ed7fbaf32 has 167/167 approved source objects, zero missing/extra/drift, and omits the proposed main-owned trust files"
+    - "Exact REVIEW-0095 OPEN checkpoint ffce3e36ab414234f971723a4993d26e4d170c24: trusted-source #10 / 37916223896 PASSED 17/17 unprivileged tests; bootstrap #500 / 37916223836 PASSED 450 tests, 3853 statements / 1640 branches at 100 percent line+branch, live PR #2 probe successful"
     - "Trusted base-owned pull_request_target attestation is unavailable before PR #14 merge; this remains a mandatory post-merge live-system gate"
 coverage: {line_contribution: null, branch_contribution: null}
 history: {created_at: "2026-10-09", updated_at: "2026-10-09"}

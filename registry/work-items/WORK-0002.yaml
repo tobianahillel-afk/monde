@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5/T12 is merged; PR #2 remains IN_REVIEW and is blocked by independently approved default-branch source provenance. PR #14 is the bounded WORK-0002 T15 trust-root predecessor. It proposes a main-owned 167-file SHA/mode manifest, an unprivileged self-test workflow and a base-owned read-only pull_request_target verifier that never executes candidate code. Initial technical runs through #9 succeeded; strict duplicate-key parsing and pre-integration candidate trust-root absence are explicitly tested. REVIEW-0095 is OPEN only; independent approval and live post-merge attestation remain required. PR #2 retains 104 unresolved findings. WORK-0003 and WORK-0004 remain blocked."
+  rationale: "PR #5/T12 is merged; PR #2 remains IN_REVIEW and is blocked by independently approved default-branch source provenance. PR #14 is the bounded WORK-0002 T15 trust-root predecessor. It proposes a main-owned 167-file SHA/mode manifest, an unprivileged self-test workflow and a base-owned read-only pull_request_target verifier that never executes candidate code. Initial technical runs through #9 succeeded; strict duplicate-key parsing and pre-integration candidate trust-root absence are explicitly tested. REVIEW-0095 is IN_PROGRESS after exact OPEN checkpoint ffce3e36ab414234f971723a4993d26e4d170c24 passed trusted-source #10 and Bootstrap #500; independent approval and live post-merge attestation remain required. PR #2 retains 104 unresolved findings. WORK-0003 and WORK-0004 remain blocked."
 
 scope:
   in:
@@ -207,7 +207,7 @@ rollback:
   strategy: "Do not merge PR #5 until a clean exact-head successor review permits controlled thread resolution; main remains on WORK-0001 governance if PR #5 is rejected."
 
 run_log:
-  - "2026-10-09: WORK-0002 T15 / PR #14 proposed main-owned trust root; 167 approved source objects matched PR #2 exact head with no drift; #9 technical CI succeeded; independent REVIEW-0095 remains OPEN and default-branch attestation unproved until merge."
+  - "2026-10-09: WORK-0002 T15 / PR #14 proposed main-owned trust root; 167 approved source objects matched PR #2 exact head with no drift; #9 technical CI succeeded; REVIEW-0095 OPEN checkpoint ffce3e36ab414234f971723a4993d26e4d170c24 passed trusted-source #10 (17 tests) and Bootstrap #500 (450 tests, 100 percent line+branch, live probe); lifecycle now IN_PROGRESS pending frozen exact-head proof and independent L2."
   - "REVIEW-0082 COMPLETE/APPROVE reviewed exact head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618; lifecycle-recording commit cabb259aa686028def1c7b9a4e80b85d15b82d99 passed Bootstrap #332 / run 36048764381, then all 83 reviewed PR #5 material threads were resolved with branch content fixed and no new finding."
   - "REVIEW-0049 terminal independent negative: c8f1fec24358c25224771a15b647d56c8a2f0287 / PRR_kwDOUUI5ts8AAAABN4sxvg."
   - "REVIEW-0050 candidate cbe21fa4cebc1c8f8b3030af17284de5700f9818 passed #154 at 194 tests / 1856 statements / 842 branches / 100 percent plus live PR #2 probe."

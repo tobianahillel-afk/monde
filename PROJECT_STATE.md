@@ -531,12 +531,12 @@ REVIEW-0094 is terminal `CLOSED / CHANGES_REQUIRED` after independent PR #2 P1 f
 
 Codex PR #14 raised two further material findings: P1 `PRRT_kwDOUUI5ts6qu5kG` requires canonical work/review/test handover; P2 `PRRT_kwDOUUI5ts6qu5kO` requires duplicate-key rejection in approved manifest JSON. The strict parser and targeted tests were added and workflow **#9 / run 37915736299** succeeded on exact code head `a2fd780ec517b4875d92777a255d397c4adf1b17`.
 
-This state records the canonical **REVIEW-0095 OPEN** entry and **TEST-0011 PLANNED** contract. Neither a green proposed workflow nor an author-written state record is a clean independent L2, default-branch installation, or real `pull_request_target` proof.
+REVIEW-0095 is **IN_PROGRESS** after the OPEN checkpoint `ffce3e36ab414234f971723a4993d26e4d170c24` passed trusted-source #10 / `37916223896` (17/17 tests) and Bootstrap #500 / `37916223836` (450 tests, 3,853 statements / 1,640 branches, 100% coverage and live PR #2 probe). TEST-0011 remains PLANNED; this execution proof is not a retroactive lifecycle transition. Neither a green proposed workflow nor an author-written state record is a clean independent L2, default-branch installation, or real `pull_request_target` proof.
 
 ## Current next action
 
 1. Keep all **104 PR #2 material findings unresolved** until its own fresh closure L2.
-2. Prove PR #14's new canonical state checkpoint and receive a fresh independent exact-head REVIEW-0095.
+2. Prove/freeze REVIEW-0095 IN_PROGRESS exact HEAD and obtain a fresh independent exact-head L2 over the two PR #14 findings.
 3. Resolve the two PR #14 Codex findings only after verifying their fixes and the review outcome.
 4. Merge PR #14 to `main` only after the required independent and GitHub checks are clean.
 5. Trigger and inspect the real base-owned `MONDE / Trusted Source` attestation for exact PR #2; candidate CI alone is insufficient.
