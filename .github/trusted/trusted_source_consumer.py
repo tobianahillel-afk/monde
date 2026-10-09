@@ -153,7 +153,7 @@ def verify_completed_proof(
         or r.get("status") != "completed"
         or r.get("conclusion") != "success"
         or r.get("event") not in {"pull_request_target", "push"}
-        or r.get("path") not in {WORKFLOW_PATH, WORKFLOW_PATH + "@refs/heads/main"}
+        or r.get("path") not in {WORKFLOW_PATH, WORKFLOW_PATH + "@main", WORKFLOW_PATH + "@refs/heads/main"}
         or _object(r.get("repository"), "run repository").get("full_name")
             != "tobianahillel-afk/monde"
     ):

@@ -129,6 +129,12 @@ class TrustedCompletedProofTests(unittest.TestCase):
         alternate["event"] = "push"
         alternate["path"] += "@refs/heads/main"
         self.assertEqual(self.verify(run=alternate), (self.head, self.base))
+        # GitHub REST's documented workflow-run path form is @main.
+        alternate["path"] = consumer.WORKFLOW_PATH + "@main"
+        self.assertEqual(self.verify(run=alternate), (self.head, self.base))
+        alternate["path"] = consumer.WORKFLOW_PATH + "@untrusted"
+        with self.assertRaises(source.AttestationError):
+            self.verify(run=alternate)
 
     def test_artifact_selection_is_exact_and_bounded(self):
         self.assertEqual(

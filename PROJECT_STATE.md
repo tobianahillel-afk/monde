@@ -12,7 +12,15 @@ Canonical operational state: Yes
 - WORK-0002 remains `IN_REVIEW / A3`; WORK-0003 and WORK-0004 remain blocked.
 - PR #5/T12 was independently accepted and merged to `main` on 2026-09-24.
 - PR #2 is open with 104 unresolved findings; REVIEW-0094 is terminal negative after two independent P1 source-provenance findings.
-- PR #14 is the active proposed main-owned trust-root predecessor; REVIEW-0095 and REVIEW-0096 are `CLOSED / CHANGES_REQUIRED`; no PR #14 review is approved or merged.
+- PR #14 is the active proposed main-owned trust-root predecessor; REVIEW-0095/0096/0097 are `CLOSED / CHANGES_REQUIRED`, REVIEW-0098 has no clean approval; PR #14 is open/unmerged with 14 material threads (13 or more unresolved at last check).
+
+## REVIEW-0098 — active PR #14 trust-root candidate (2026-10-09)
+
+PR #14 frozen technical predecessor `2595f9f54e7783eac6dc165b77c6c8930db3ab17` passed Trusted Source #33 (**53/53 tests**) and Bootstrap #524, but it did **not** establish accepted default-branch authority. The latest independent Codex review raised P1 `PRRT_kwDOUUI5ts6q2D3L`: live GitHub REST workflow-run paths use the `@main` suffix; P1 `PRRT_kwDOUUI5ts6q2D3U`: unrelated `pull_request_target` runs have skipped attestation jobs and must not supersede a relevant PR #2 or main-push run; P2 `PRRT_kwDOUUI5ts6q2D3d`: T15 plan omitted collector/consumer files and risks.
+
+The next unapproved technical candidate updates the consumer to recognize the exact GitHub `@main` workflow path, adds direct Actions job-provenance checking before chronological run selection, preserves newer *relevant* failed runs over older successful runs, and expands T15 plus TEST-0011 regression scope. An unrelated PR's skipped trust job must not become merge-authoritative; malformed/incomplete job evidence must fail closed. The base-owned workflow is still **not deployed to main**. This technical correction is neither L2 approval nor permission to merge.
+
+Current closure order: exact-head CI; fresh independent L2 across all material PR #14 threads and the 179-file trust manifest; guarded PR #14 integration; live main-owned attestation; protected required-check settings under WORK-0003; PR #2 reintegration and separate exact-head L2. Do not automatically resolve threads or promote WORK-0002 to DONE.
 
 ## PR #5 / T12 trusted predecessor
 

@@ -50,6 +50,71 @@ class CompletedRunCollectorTests(unittest.TestCase):
                 )
             self.proof = path.read_bytes()
 
+    @staticmethod
+    def job_payload(run_id, conclusion="success", status="completed"):
+        return {"total_count": 1, "jobs": [{
+            "id": run_id + 10000,
+            "run_id": run_id,
+            "name": collector.TRUSTED_JOB_NAME,
+            "status": status,
+            "conclusion": conclusion if status == "completed" else None,
+        }]}
+
+    def test_run_selection_skips_newer_unrelated_pr_target(self):
+        unrelated = {**self.run, "id": 9002, "event": "pull_request_target",
+                     "created_at": "2026-10-09T12:00:00Z"}
+        def fetch(_repo, route, _token):
+            if "event=pull_request_target" in route:
+                return {"total_count": 2, "workflow_runs": [unrelated, self.run]}
+            if "event=push" in route:
+                return {"total_count": 0, "workflow_runs": []}
+            if route == "actions/runs/9002/jobs?per_page=100":
+                return self.job_payload(9002, conclusion="skipped")
+            if route == "actions/runs/9001/jobs?per_page=100":
+                return self.job_payload(9001)
+            if route == "actions/runs/9001":
+                return self.run
+            raise AssertionError(route)
+        with mock.patch.object(source, "_get_json", side_effect=fetch) as query:
+            self.assertEqual(collector._collect_run(collector.REPO, "t")["id"], 9001)
+        self.assertNotIn(
+            "actions/runs/9002", [call.args[1] for call in query.call_args_list]
+        )
+
+    def test_newer_failed_relevant_run_supersedes_older_success(self):
+        failed = {**self.run, "id": 9003, "conclusion": "failure",
+                  "created_at": "2026-10-09T13:00:00Z"}
+        def fetch(_repo, route, _token):
+            if "event=pull_request_target" in route:
+                return {"total_count": 2, "workflow_runs": [failed, self.run]}
+            if "event=push" in route:
+                return {"total_count": 0, "workflow_runs": []}
+            if route == "actions/runs/9003/jobs?per_page=100":
+                return self.job_payload(9003, conclusion="failure")
+            if route == "actions/runs/9003":
+                return failed
+            raise AssertionError(route)
+        with mock.patch.object(source, "_get_json", side_effect=fetch):
+            newest = collector._collect_run(collector.REPO, "t")
+        self.assertEqual(newest["id"], 9003)
+        with self.assertRaises(source.AttestationError):
+            consumer.verify_completed_proof(
+                self.proof, newest, self.artifact, self.pr, self.branch, self.manifest
+            )
+
+    def test_unknown_job_provenance_never_falls_back_to_old_green(self):
+        for response in (
+            {"total_count": 0, "jobs": []},
+            {"total_count": 2, "jobs": self.job_payload(9002)["jobs"]},
+            {"total_count": 1, "jobs": [{"id": 10002, "name": "other"}]},
+            {"total_count": 1, "jobs": self.job_payload(9002)["jobs"] * 2},
+        ):
+            with self.subTest(response=response), mock.patch.object(
+                source, "_get_json", return_value=response
+            ):
+                with self.assertRaises(source.AttestationError):
+                    collector._attestation_job_relevant(collector.REPO, "t", {"id": 9002})
+
     def test_run_selection_refetches_exact_latest_across_two_events(self):
         old = {**self.run, "id": 9000, "created_at": "2026-10-09T10:00:00Z"}
         def fetch(_repo, route, _token):
@@ -57,6 +122,8 @@ class CompletedRunCollectorTests(unittest.TestCase):
                 return {"total_count": 1, "workflow_runs": [old]}
             if "event=push" in route:
                 return {"total_count": 1, "workflow_runs": [self.run]}
+            if route == "actions/runs/9001/jobs?per_page=100":
+                return self.job_payload(9001)
             if route == "actions/runs/9001":
                 return self.run
             raise AssertionError(route)
@@ -71,6 +138,8 @@ class CompletedRunCollectorTests(unittest.TestCase):
                 return {"total_count": 1, "workflow_runs": [failure]}
             if "event=push" in route:
                 return {"total_count": 1, "workflow_runs": [self.run]}
+            if route == "actions/runs/9002/jobs?per_page=100":
+                return self.job_payload(9002, conclusion="failure")
             if route == "actions/runs/9002":
                 return failure
             raise AssertionError(route)

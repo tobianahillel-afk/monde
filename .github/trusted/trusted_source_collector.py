@@ -21,6 +21,50 @@ REPO = "tobianahillel-afk/monde"
 MAX_ZIP_BYTES = consumer.MAX_ARCHIVE_BYTES
 PROOF_FILE = consumer.PROOF_FILENAME
 MAX_RUNS = 100
+TRUSTED_JOB_NAME = "MONDE / Trusted Source"
+
+
+def _attestation_job_relevant(repo: str, token: str, run: dict[str, Any]) -> bool:
+    """Only a non-skipped, base-owned attestation job represents PR #2/push.
+
+    Unrelated pull_request_target workflow invocations exist for other PRs,
+    but their exact job is SKIPPED by the default-branch-owned workflow guard.
+    Never use mere run existence or mutable display_title as PR provenance.
+    """
+    run_id = run.get("id")
+    if not consumer._positive_int(run_id):
+        raise source.AttestationError("invalid trusted run identity")
+    response = source._get_json(repo, f"actions/runs/{run_id}/jobs?per_page=100", token)
+    jobs = response.get("jobs")
+    total = response.get("total_count")
+    if (
+        type(total) is not int or total < 0 or total > 100
+        or not isinstance(jobs, list) or len(jobs) != total
+        or any(not isinstance(j, dict) for j in jobs)
+    ):
+        raise source.AttestationError("incomplete trusted attestation job provenance")
+    matches = [j for j in jobs if j.get("name") == TRUSTED_JOB_NAME]
+    if len(matches) != 1:
+        # A queued run whose job graph is not visible cannot authorize an old
+        # success: deny transiently, rather than guess a PR association.
+        raise source.AttestationError("missing or ambiguous trusted attestation job")
+    job = matches[0]
+    if not consumer._positive_int(job.get("id")) or job.get("run_id") != run_id:
+        raise source.AttestationError("malformed trusted attestation job identity")
+    status = job.get("status")
+    conclusion = job.get("conclusion")
+    if status == "completed" and conclusion == "skipped":
+        return False
+    if (
+        status not in {"queued", "in_progress", "completed", "waiting"}
+        or (status == "completed" and conclusion not in {
+            "success", "failure", "cancelled", "timed_out", "action_required",
+            "neutral", "stale"
+        })
+        or (status != "completed" and conclusion is not None)
+    ):
+        raise source.AttestationError("ambiguous trusted attestation job state")
+    return True
 
 
 def _collect_run(repo: str, token: str) -> dict[str, Any]:
@@ -49,12 +93,27 @@ def _collect_run(repo: str, token: str) -> dict[str, Any]:
            for r in runs):
         raise source.AttestationError("malformed trusted workflow-run ordering")
     runs.sort(key=lambda r: (r["created_at"], r["id"]), reverse=True)
-    newest = runs[0]
-    # Re-fetch by ID rather than trusting only the list projection.
-    run = source._get_json(repo, f"actions/runs/{newest['id']}", token)
-    if run.get("id") != newest["id"] or run.get("created_at") != newest["created_at"]:
-        raise source.AttestationError("trusted source run identity changed")
-    return run
+    seen: set[int] = set()
+    for candidate in runs:
+        run_id = candidate["id"]
+        if run_id in seen:
+            raise source.AttestationError("duplicate trusted source run identity")
+        seen.add(run_id)
+        if not _attestation_job_relevant(repo, token, candidate):
+            # Other PRs targeting main schedule the same workflow, but the
+            # only security-sensitive job is skipped by the exact PR #2 guard.
+            continue
+        # Re-fetch by ID rather than trusting only the list projection.
+        run = source._get_json(repo, f"actions/runs/{run_id}", token)
+        if (
+            run.get("id") != run_id
+            or run.get("created_at") != candidate["created_at"]
+            or run.get("run_attempt") != candidate.get("run_attempt")
+            or run.get("event") != candidate.get("event")
+        ):
+            raise source.AttestationError("trusted source run identity changed")
+        return run
+    raise source.AttestationError("no relevant PR #2 or main-push attestation run")
 
 
 def _unique_artifact(repo: str, token: str, run: dict[str, Any]) -> dict[str, Any]:
