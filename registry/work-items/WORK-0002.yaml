@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5 remains the narrow trusted-default-branch T12 predecessor. REVIEW-0050 through REVIEW-0081 remain terminal negative evidence. REVIEW-0082 COMPLETE/APPROVE on exact reviewed head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618 permitted controlled resolution of all 83 reviewed PR #5 material threads. Lifecycle-recording commit cabb259aa686028def1c7b9a4e80b85d15b82d99 passed Bootstrap #332 / run 36048764381, then all 83 threads were resolved with branch content fixed and no new material finding appeared. This reconciliation commit removes the now-resolved PRRT inventory from current open_findings while preserving historical negative evidence in reviews/run logs/known gaps. T4/T12/AC-6 remain IN_REVIEW until this exact reconciliation head passes Bootstrap and guarded PR #5 merge eligibility is assessed; PR #2 integration/review remains downstream."
+  rationale: "PR #5/T12 is merged; PR #2 remains IN_REVIEW and is blocked by independently approved default-branch source provenance. PR #14 is the bounded WORK-0002 T15 trust-root predecessor. It proposes a main-owned 167-file SHA/mode manifest, an unprivileged self-test workflow and a base-owned read-only pull_request_target verifier that never executes candidate code. Initial technical runs through #9 succeeded; strict duplicate-key parsing and pre-integration candidate trust-root absence are explicitly tested. REVIEW-0095 is OPEN only; independent approval and live post-merge attestation remain required. PR #2 retains 104 unresolved findings. WORK-0003 and WORK-0004 remain blocked."
 
 scope:
   in:
@@ -61,7 +61,7 @@ reuses: ["status vocabulary", "registry contracts", "Review Council and assuranc
 affected_capabilities: []
 affected_engines: []
 affected_schemas: []
-affected_docs: [PROJECT_STATE.md, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/tests/TEST-0010.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml, registry/reviews/REVIEW-0060.yaml, registry/reviews/REVIEW-0061.yaml, registry/reviews/REVIEW-0062.yaml, registry/reviews/REVIEW-0063.yaml, registry/reviews/REVIEW-0064.yaml, registry/reviews/REVIEW-0065.yaml, registry/reviews/REVIEW-0066.yaml, registry/reviews/REVIEW-0067.yaml, registry/reviews/REVIEW-0068.yaml, registry/reviews/REVIEW-0069.yaml, registry/reviews/REVIEW-0070.yaml, registry/reviews/REVIEW-0071.yaml, registry/reviews/REVIEW-0072.yaml, registry/reviews/REVIEW-0073.yaml, registry/reviews/REVIEW-0074.yaml, registry/reviews/REVIEW-0075.yaml, registry/reviews/REVIEW-0076.yaml, registry/reviews/REVIEW-0077.yaml, registry/reviews/REVIEW-0078.yaml, registry/reviews/REVIEW-0079.yaml, registry/reviews/REVIEW-0080.yaml, registry/reviews/REVIEW-0081.yaml, registry/reviews/REVIEW-0082.yaml, docs/00_START_HERE.md, docs/13_QUALITY/review-council.md, docs/10_ROADMAP/development-process.md]
+affected_docs: [PROJECT_STATE.md, registry/requirements/REQ-0026.yaml, registry/tests/TEST-0009.yaml, registry/tests/TEST-0010.yaml, registry/reviews/REVIEW-0050.yaml, registry/reviews/REVIEW-0051.yaml, registry/reviews/REVIEW-0052.yaml, registry/reviews/REVIEW-0053.yaml, registry/reviews/REVIEW-0054.yaml, registry/reviews/REVIEW-0055.yaml, registry/reviews/REVIEW-0056.yaml, registry/reviews/REVIEW-0057.yaml, registry/reviews/REVIEW-0058.yaml, registry/reviews/REVIEW-0059.yaml, registry/reviews/REVIEW-0060.yaml, registry/reviews/REVIEW-0061.yaml, registry/reviews/REVIEW-0062.yaml, registry/reviews/REVIEW-0063.yaml, registry/reviews/REVIEW-0064.yaml, registry/reviews/REVIEW-0065.yaml, registry/reviews/REVIEW-0066.yaml, registry/reviews/REVIEW-0067.yaml, registry/reviews/REVIEW-0068.yaml, registry/reviews/REVIEW-0069.yaml, registry/reviews/REVIEW-0070.yaml, registry/reviews/REVIEW-0071.yaml, registry/reviews/REVIEW-0072.yaml, registry/reviews/REVIEW-0073.yaml, registry/reviews/REVIEW-0074.yaml, registry/reviews/REVIEW-0075.yaml, registry/reviews/REVIEW-0076.yaml, registry/reviews/REVIEW-0077.yaml, registry/reviews/REVIEW-0078.yaml, registry/reviews/REVIEW-0079.yaml, registry/reviews/REVIEW-0080.yaml, registry/reviews/REVIEW-0081.yaml, registry/reviews/REVIEW-0082.yaml, registry/reviews/REVIEW-0095.yaml, registry/tests/TEST-0011.yaml, .github/trusted/trusted_source_attestor.py, .github/workflows/monde-trusted-source.yml, docs/00_START_HERE.md, docs/13_QUALITY/review-council.md, docs/10_ROADMAP/development-process.md]
 contracts: ["repository governance validation", "GitHub control-plane merge gate", "AI context routing"]
 adrs: []
 
@@ -79,10 +79,12 @@ implementation_plan:
     - {id: T3, description: "Add GitHub control plane, context router, live gate and supply-chain hardening.", depends_on: [T2], expected_files: [], status: DONE}
     - {id: T4, description: "Prove final HEAD and complete independent review including fresh findings.", depends_on: [T3, T12], expected_files: [], status: IN_REVIEW}
     - {id: T12, description: "Pre-deploy and independently prove the trusted default-branch stale-green bridge.", depends_on: [T3], expected_files: [], status: IN_REVIEW}
+    - {id: T15, description: "Independently accept a main-owned manifest and non-executing verifier for PR #2 trusted validation sources.", depends_on: [T12], expected_files: [.github/trusted/trusted_source_attestor.py, .github/trusted/approved_sources.json, .github/workflows/monde-trusted-source.yml, registry/tests/TEST-0011.yaml, registry/reviews/REVIEW-0095.yaml], status: IN_REVIEW}
   planned_runs:
     - {id: RUN-1, objective: "Initial deterministic governance implementation", tasks: [T1], exit_condition: "Initial deterministic validator and traceability proof complete.", status: DONE}
     - {id: RUN-2, objective: "P0-P2 hardening and real GitHub proof", tasks: [T2, T3, T4], exit_condition: "Fresh exact-head independent closure and trusted collaborator approval.", status: IN_REVIEW}
     - {id: RUN-3, objective: "Trusted stale-green predecessor, real GitHub proof and independent re-review", tasks: [T12], exit_condition: "Clean successor L2 and guarded PR #5 merge eligibility.", status: IN_REVIEW}
+    - {id: RUN-4, objective: "PR #14 main-owned trusted-source root, strict manifest parsing and live attestation", tasks: [T15], exit_condition: "Exact-head CI and independent L2, guarded PR #14 merge and real PR #2 base-owned attestation.", status: IN_REVIEW}
 
 review_plan:
   artifact_class: GOVERNANCE_AUTOMATION
@@ -103,7 +105,7 @@ required_tests:
     - "pending mutation identity survives delayed visibility, scheduler restart and origin-PR closure"
     - "recovery cannot erase pending authority from stale pre-mutation observations"
     - "one poll invocation considers at most seven head groups and performs at most three actual rerun POSTs"
-  integration: [TEST-0009, TEST-0010]
+  integration: [TEST-0009, TEST-0010, TEST-0011]
   contract: ["registry/schema/progress/review/change-control integrity", "bootstrap GitHub Checks/REST/GraphQL/Actions/Issues control-plane contract"]
   e2e: []
   regression:
@@ -114,7 +116,7 @@ required_tests:
     - "origin PR closes after POST while same-head sibling remains unresolved; pending mutation is not forgotten"
   security: ["immutable pins", "hash-locked Python artifacts", "least privilege", "live probe read-only"]
   performance: ["100 script-issued GitHub call hard cap", "seven-head bound", "three actual rerun POST cap"]
-  real_system: [TEST-0009, TEST-0010]
+  real_system: [TEST-0009, TEST-0010, TEST-0011]
   epistemic: ["technical green proof is not semantic approval", "dynamic workflow_run.pull_requests associations are not event-time provenance"]
 
 scientific_validation:
@@ -135,6 +137,8 @@ observability:
 
 validation:
   executed:
+    - "PR #14 trusted-source self-tests #9 / 37915736299 succeeded on a2fd780ec517b4875d92777a255d397c4adf1b17 (before canonical REVIEW-0095 OPEN checkpoint)"
+    - "Read-only live Git-tree preflight checked 167/167 SHA+mode source objects in PR #2 head 2e2664ca8c9cb4f3eb81ea41a172da1ed7fbaf32"
     - "Bootstrap #154 / run 35152847816 on REVIEW-0050 technical candidate cbe21fa4cebc1c8f8b3030af17284de5700f9818"
     - "Bootstrap #155 / run 35153416874 on REVIEW-0050 OPEN checkpoint 871850ac5b66a43cfd8491ef445d1738ad09d822"
     - "Bootstrap #156 / run 35162557737 on frozen REVIEW-0050 IN_PROGRESS head f2ec7e8a0ca30b2be3272b2b1f022b7dabd7048c"
@@ -155,6 +159,8 @@ validation:
     - "Bootstrap #258 / run 35855234194 proved the REVIEW-0066 CLOSED state-only checkpoint after PRR_kwDOUUI5ts8AAAABO1Ts9g"
     - "Bootstrap #259 / run 35857211412 proved REVIEW-0067 technical candidate 65a155d43e027f7c618a4dfa3a10a67e366f08fb at 335/335 tests, 2707 statements / 1158 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
   evidence:
+    - "PR #14 trusted-source attestor only reads Git objects from exact base/head commits, never checks out or executes PR #2 code; GitHub draft/ready and eventual post-merge pull_request_target proof remain distinct gates."
+    - "Two fresh Codex PR #14 findings PRRT_kwDOUUI5ts6qu5kG / PRRT_kwDOUUI5ts6qu5kO require canonical handover and strict duplicate JSON keys; REVIEW-0095 OPEN preserves independent acceptance work."
     - "Bootstrap #154/#155/#156: 194/194 tests PASS; 1856 statements / 842 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS"
     - "Bootstrap #157 re-proved the CLOSED state-only checkpoint at 194/194 tests, 1856 statements / 842 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests"
     - "Bootstrap #159 proved REVIEW-0051 technical candidate at 200/200 tests, 1894 statements / 856 branches, 100 percent line+branch, and live PR #2 probe SUCCESS at 7/100 requests; pending recovery job remained skipped on PR CI"
@@ -201,6 +207,7 @@ rollback:
   strategy: "Do not merge PR #5 until a clean exact-head successor review permits controlled thread resolution; main remains on WORK-0001 governance if PR #5 is rejected."
 
 run_log:
+  - "2026-10-09: WORK-0002 T15 / PR #14 proposed main-owned trust root; 167 approved source objects matched PR #2 exact head with no drift; #9 technical CI succeeded; independent REVIEW-0095 remains OPEN and default-branch attestation unproved until merge."
   - "REVIEW-0082 COMPLETE/APPROVE reviewed exact head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618; lifecycle-recording commit cabb259aa686028def1c7b9a4e80b85d15b82d99 passed Bootstrap #332 / run 36048764381, then all 83 reviewed PR #5 material threads were resolved with branch content fixed and no new finding."
   - "REVIEW-0049 terminal independent negative: c8f1fec24358c25224771a15b647d56c8a2f0287 / PRR_kwDOUUI5ts8AAAABN4sxvg."
   - "REVIEW-0050 candidate cbe21fa4cebc1c8f8b3030af17284de5700f9818 passed #154 at 194 tests / 1856 statements / 842 branches / 100 percent plus live PR #2 probe."
@@ -365,6 +372,9 @@ blockers:
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
 follow_up_work_items: []
+# WORK-0002 T15 is the active trust-root predecessor; PR #2 must merge it
+# from main and obtain fresh exact-head independent evidence before closure.
+
 
 completion:
   definition_of_ready_checked: true

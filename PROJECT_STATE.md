@@ -10,10 +10,13 @@ Canonical operational state: Yes
 - PHASE-0 / LOT-0 remain `IN_PROGRESS`.
 - WORK-0001 is `DONE / A3`, integrated on `main` at `29086643387ff46ab6636dd2fa3014efccc10165`.
 - WORK-0002 remains `IN_REVIEW / A3`; WORK-0003 and WORK-0004 remain blocked.
+- PR #5/T12 was independently accepted and merged to `main` on 2026-09-24.
+- PR #2 is open with 104 unresolved findings; REVIEW-0094 is terminal negative after two independent P1 source-provenance findings.
+- PR #14 is the active proposed main-owned trust-root predecessor; REVIEW-0095 is `OPEN`, not approved or merged.
 
 ## PR #5 / T12 trusted predecessor
 
-PR #5 (`chore/work-0002-stale-green-bootstrap`) remains the narrow trusted-default-branch predecessor for WORK-0002/T12. No merge and no historical review-thread resolution is permitted while material findings remain open or a successor review is incomplete.
+Historical T12 predecessor PR #5 was independently accepted as REVIEW-0082 and merged to `main`. Its 83 reviewed threads are resolved. It is not an active blocker and must not be redeveloped.
 
 REVIEW-0049 is terminal `COMPLETE / CHANGES_REQUIRED` independent negative evidence on exact head `c8f1fec24358c25224771a15b647d56c8a2f0287` via `PRR_kwDOUUI5ts8AAAABN4sxvg`.
 
@@ -520,15 +523,25 @@ The lifecycle-recording commit `cabb259aa686028def1c7b9a4e80b85d15b82d99` passed
 
 The repository now needs one reconciliation commit so machine `open_findings` and the active handover stop describing already-resolved PR #5 threads. The exact reconciliation HEAD must pass Bootstrap. That exact-head success is an external live eligibility fact; do **not** create another commit merely to copy its run number into the tree.
 
+## REVIEW-0094 to REVIEW-0095 trusted-source handover (2026-10-09)
+
+REVIEW-0094 is terminal `CLOSED / CHANGES_REQUIRED` after independent PR #2 P1 findings `PRRT_kwDOUUI5ts6qkGa6` and `PRRT_kwDOUUI5ts6qkGbA`: neither an immutable candidate-controlled dependency lock nor candidate-executed validation code constitutes a default-branch trusted source.
+
+**WORK-0002 / T15** owns the narrow **PR #14** predecessor. PR #14 proposes `.github/trusted/approved_sources.json`, a strict read-only attestor and a base-owned `pull_request_target` workflow. The proposed manifest pins **167** PR #2 executable/sensitive Git source objects by exact SHA and mode. Direct Git-tree preflight on PR #2 head `2e2664ca8c9cb4f3eb81ea41a172da1ed7fbaf32` found **167/167** matches, zero missing/extra/drift, and no new base-owned trust-root files in the older candidate. The attestor permits this legitimate absence but rejects any candidate-provided trust file that differs from main.
+
+Codex PR #14 raised two further material findings: P1 `PRRT_kwDOUUI5ts6qu5kG` requires canonical work/review/test handover; P2 `PRRT_kwDOUUI5ts6qu5kO` requires duplicate-key rejection in approved manifest JSON. The strict parser and targeted tests were added and workflow **#9 / run 37915736299** succeeded on exact code head `a2fd780ec517b4875d92777a255d397c4adf1b17`.
+
+This state records the canonical **REVIEW-0095 OPEN** entry and **TEST-0011 PLANNED** contract. Neither a green proposed workflow nor an author-written state record is a clean independent L2, default-branch installation, or real `pull_request_target` proof.
+
 ## Current next action
 
-1. REVIEW-0082 independent L2 is clean and remains `COMPLETE / APPROVE` on exact reviewed head `71ed1cb233d16f032ff27cf5a88dfe039e2ba618`.
-2. Lifecycle-recording commit `cabb259aa686028def1c7b9a4e80b85d15b82d99` passed Bootstrap #332 / run `36048764381`.
-3. Controlled PR #5 resolution is complete: **83/83 resolved, 0 unresolved, no new finding**, with branch content fixed during resolution.
-4. Prove the current reconciliation HEAD with Bootstrap at 100% line + branch and live contract success; do not create a post-proof commit just to record completion.
-5. If that exact-head proof is green and live PR #5 still has 0 unresolved/new findings, assess guarded PR #5 merge eligibility and merge only with expected-head protection.
-6. After PR #5 merges, PR #2 must explicitly integrate new `main` with a two-parent merge, reconcile canonical state, rerun full proof, receive fresh L2 and eligible trusted non-author exact-head APPROVED evidence before WORK-0002 closes.
-7. WORK-0003 and WORK-0004 remain blocked until WORK-0002 closure sequencing permits them.
+1. Keep all **104 PR #2 material findings unresolved** until its own fresh closure L2.
+2. Prove PR #14's new canonical state checkpoint and receive a fresh independent exact-head REVIEW-0095.
+3. Resolve the two PR #14 Codex findings only after verifying their fixes and the review outcome.
+4. Merge PR #14 to `main` only after the required independent and GitHub checks are clean.
+5. Trigger and inspect the real base-owned `MONDE / Trusted Source` attestation for exact PR #2; candidate CI alone is insufficient.
+6. Reconcile PR #2 against new `main`, preserve the provenance boundary, and obtain fresh final exact-head L2/approval.
+7. Only after WORK-0002 closure may WORK-0003/WORK-0004 progress; the remaining MOND lots follow their own specifications, tests and reviews.
 
 ## Resume sequence
 
@@ -542,7 +555,9 @@ The repository now needs one reconciliation commit so machine `open_findings` an
 8. registry/reviews/REVIEW-0049.yaml
 9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/0 unresolved threads
-12. live PR #2 exact HEAD/checks/reviews/threads
+11. live PR #14 exact HEAD, all review threads, REVIEW-0095 and TEST-0011
+12. live PR #2 exact HEAD/checks/reviews/104 unresolved material threads
+13. .github/trusted/approved_sources.json and trusted_source_attestor.py on PR #14
+14. .github/workflows/monde-trusted-source.yml and WORK-0002 T15
 
 MONDE remains public. Never commit credentials, tokens or secrets.
