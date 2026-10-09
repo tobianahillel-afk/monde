@@ -159,6 +159,7 @@ validation:
     - "Bootstrap #258 / run 35855234194 proved the REVIEW-0066 CLOSED state-only checkpoint after PRR_kwDOUUI5ts8AAAABO1Ts9g"
     - "Bootstrap #259 / run 35857211412 proved REVIEW-0067 technical candidate 65a155d43e027f7c618a4dfa3a10a67e366f08fb at 335/335 tests, 2707 statements / 1158 branches, 100 percent line+branch and live PR #2 probe SUCCESS at 7/100 requests"
   evidence:
+    - "REVIEW-0098 candidate completed-run artifact ZIP decoder accepts only one exact bounded regular proof member and rejects corrupt, traversal, symlink, extra-file and oversize archives; actual GitHub artifact retrieval and protected consumer authority remain unimplemented."
     - "PR #14 trusted-source attestor only reads Git objects from exact base/head commits, never checks out or executes PR #2 code; GitHub draft/ready and eventual post-merge pull_request_target proof remain distinct gates."
     - "Two fresh Codex PR #14 findings PRRT_kwDOUUI5ts6qu5kG / PRRT_kwDOUUI5ts6qu5kO require canonical handover and strict duplicate JSON keys; REVIEW-0095 OPEN preserves independent acceptance work."
     - "Bootstrap #154/#155/#156: 194/194 tests PASS; 1856 statements / 842 branches at 100 percent line and branch coverage; live PR #2 probe SUCCESS"

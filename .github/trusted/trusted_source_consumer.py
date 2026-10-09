@@ -8,7 +8,10 @@ from GitHub independently and verify them again immediately before use.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
+import stat
+import zipfile
 from typing import Any
 
 import trusted_source_attestor as source
@@ -22,6 +25,8 @@ PROOF_KEYS = frozenset({
 PROOF_PREFIX = "monde-trusted-proof-"
 WORKFLOW_PATH = ".github/workflows/monde-trusted-source.yml"
 MAX_PROOF_BYTES = 8192
+MAX_ARCHIVE_BYTES = 65536
+PROOF_FILENAME = "monde-trusted-source-proof.json"
 
 
 def _positive_int(value: Any) -> bool:
@@ -32,6 +37,37 @@ def _object(value: Any, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise source.AttestationError(f"malformed trusted consumer {label}")
     return value
+
+
+def extract_exact_proof_archive(archive: bytes) -> bytes:
+    """Decode a bounded GitHub artifact ZIP without trusting archive paths."""
+    if not isinstance(archive, bytes) or not archive or len(archive) > MAX_ARCHIVE_BYTES:
+        raise source.AttestationError("invalid or oversized trusted artifact archive")
+    try:
+        with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
+            members = bundle.infolist()
+            if len(members) != 1:
+                raise source.AttestationError("trusted artifact must contain one proof file")
+            entry = members[0]
+            mode = (entry.external_attr >> 16) & 0xFFFF
+            if (
+                entry.filename != PROOF_FILENAME
+                or entry.is_dir()
+                or entry.flag_bits & 1
+                or stat.S_IFMT(mode) not in (0, stat.S_IFREG)
+                or entry.file_size < 1
+                or entry.file_size > MAX_PROOF_BYTES
+            ):
+                raise source.AttestationError("unsafe trusted artifact member")
+            with bundle.open(entry, "r") as handle:
+                proof = handle.read(MAX_PROOF_BYTES + 1)
+            if len(proof) != entry.file_size:
+                raise source.AttestationError("trusted artifact member size mismatch")
+            return proof
+    except source.AttestationError:
+        raise
+    except (OSError, ValueError, RuntimeError, EOFError, zipfile.BadZipFile, NotImplementedError) as exc:
+        raise source.AttestationError("cannot decode trusted artifact ZIP") from exc
 
 
 def select_unique_artifact(artifacts: Any, run: Any) -> dict[str, Any]:
@@ -142,3 +178,14 @@ def verify_completed_proof(
     ):
         raise source.AttestationError("trusted proof stale against current PR or main")
     return head, base_sha
+
+def verify_completed_archive(
+    archive_bytes: bytes, run: Any, artifact: Any,
+    pull_request: Any, main_branch: Any, manifest_bytes: bytes,
+) -> tuple[str, str]:
+    """Decode the exact downloaded artifact before completed-run verification."""
+    return verify_completed_proof(
+        extract_exact_proof_archive(archive_bytes),
+        run, artifact, pull_request, main_branch, manifest_bytes,
+    )
+

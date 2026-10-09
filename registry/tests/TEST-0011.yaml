@@ -26,6 +26,7 @@ protects:
     - "the exact GitHub synthetic candidate+base merge commit must have parents [event base SHA, event candidate SHA] and a complete exact tree"
     - "the GitHub test-merge result must retain all default-branch trusted workflow/manifest/attestor object identities even if a pre-integration candidate legitimately omits them"
     - "a base-owned workflow publishes trusted-source pending then terminal success/failure status under one immutable context on the exact validated candidate HEAD SHA rather than using its base-SHA Actions result"
+    - "a downloaded completed-run artifact ZIP has exactly one bounded canonical regular proof file; path traversal, extra files, symlinks, corrupt CRC and decompression oversize fail closed"
     - "current live PR HEAD/base/merge object and main branch SHA are revalidated before an exact-candidate success status is published"
     - "a completed-run proof binds candidate SHA, current main/base SHA, run ID, run attempt, manifest digest, and approved source count"
     - "a raw success status without a completed successful main-owned workflow run and uniquely linked unexpired proof artifact never authorizes merge"

@@ -595,6 +595,8 @@ The main-owned attestor now emits a size-bounded JSON proof artifact **only afte
 
 New proposed base-owned `.github/trusted/trusted_source_consumer.py` checks the independently fetched **completed successful** GitHub workflow-run identity, the uniquely named non-expired artifact, proof content and exact current PR/base identity. A raw GitHub status of `success`, or candidate-controlled proof bytes without independent GitHub run/artifact retrieval, cannot satisfy this contract. Tests include base advancement, wrong candidate/run/attempt, failed or pending runs, tampered manifests and duplicate JSON.
 
+The candidate consumer also includes a bounded, single-file GitHub artifact ZIP decoder. It rejects path traversal, symlinks, additional files, corrupt archives and oversized proof payloads before verifying completed-run evidence. This is an unprivileged testable parsing boundary, **not** a live artifact-fetch or merge-authorization integration.
+
 This is **a candidate implementation only**. The consumer is not yet wired to an independently protected required check or a proven live base-owned run. REVIEW-0098 remains unapproved; no thread resolution or PR #14/#2 merge is justified. The trusted consumer must be integrated from `main`, fetch its own GitHub evidence, revalidate immediately before decision, and be coupled to WORK-0003 branch-protection/required-check rules.
 
 ## Current next action

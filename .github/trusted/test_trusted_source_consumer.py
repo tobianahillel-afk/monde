@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import copy
+import io
 import json
+import zipfile
 import os
 import tempfile
 import unittest
@@ -74,6 +76,52 @@ class TrustedCompletedProofTests(unittest.TestCase):
             self.main if base is None else base,
             self.manifest_bytes if manifest_bytes is None else manifest_bytes,
         )
+
+    def test_exact_artifact_archive_decoder_rejects_unsafe_zip_members(self):
+        def archive(entries, compression=zipfile.ZIP_DEFLATED):
+            output = io.BytesIO()
+            with zipfile.ZipFile(output, "w", compression=compression) as bundle:
+                for name, payload in entries:
+                    bundle.writestr(name, payload)
+            return output.getvalue()
+
+        valid = archive([(consumer.PROOF_FILENAME, self.proof_bytes)])
+        self.assertEqual(consumer.extract_exact_proof_archive(valid), self.proof_bytes)
+        self.assertEqual(
+            consumer.verify_completed_archive(
+                valid, self.run, self.artifact, self.pr, self.main, self.manifest_bytes
+            ),
+            (self.head, self.base),
+        )
+        invalid = [
+            b"", b"not a zip", b"x" * (consumer.MAX_ARCHIVE_BYTES + 1),
+            archive([]),
+            archive([("other.json", self.proof_bytes)]),
+            archive([("../" + consumer.PROOF_FILENAME, self.proof_bytes)]),
+            archive([(consumer.PROOF_FILENAME, self.proof_bytes), ("extra", b"x")]),
+            archive([(consumer.PROOF_FILENAME, b"")]),
+            archive([(consumer.PROOF_FILENAME, b"x" * (consumer.MAX_PROOF_BYTES + 1))]),
+        ]
+        symlink = zipfile.ZipInfo(consumer.PROOF_FILENAME)
+        symlink.create_system = 3
+        symlink.external_attr = 0o120777 << 16
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as bundle:
+            bundle.writestr(symlink, self.proof_bytes)
+        invalid.append(output.getvalue())
+
+        stored = bytearray(archive(
+            [(consumer.PROOF_FILENAME, self.proof_bytes)], zipfile.ZIP_STORED
+        ))
+        position = stored.find(self.proof_bytes)
+        self.assertGreaterEqual(position, 0)
+        stored[position] ^= 1  # CRC mismatch after tampering with stored ZIP bytes.
+        invalid.append(bytes(stored))
+        for bad in invalid:
+            with self.subTest(length=len(bad)), self.assertRaises(source.AttestationError):
+                consumer.extract_exact_proof_archive(bad)
+        with self.assertRaises(source.AttestationError):
+            consumer.extract_exact_proof_archive("not bytes")
 
     def test_exact_completed_main_run_and_artifact_pass(self):
         self.assertEqual(self.verify(), (self.head, self.base))
