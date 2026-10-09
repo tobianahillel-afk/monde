@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -181,9 +182,37 @@ class TrustedSourceTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         trusted = workflow.split("  trusted-attestation:", 1)[1]
         self.assertIn("ref: ${{ github.event.pull_request.base.sha }}", trusted)
+        self.assertIn("github.event.pull_request.base.ref == 'main'", trusted)
+        self.assertIn("MONDE_ATTEST_BASE_REF: ${{ github.event.pull_request.base.ref }}", trusted)
         self.assertNotIn("github.event.repository.default_branch", trusted)
         self.assertIn("persist-credentials: false", trusted)
         self.assertNotIn("head.sha", trusted.split("      - name: Verify exact candidate", 1)[0])
+
+    def test_runtime_rejects_non_default_base_before_network_request(self):
+        common = {
+            "GITHUB_REPOSITORY": "tobianahillel-afk/monde",
+            "MONDE_ATTEST_HEAD": "a" * 40,
+            "MONDE_ATTEST_BASE": "b" * 40,
+            "MONDE_ATTEST_PR": "2",
+            "GITHUB_TOKEN": "not-a-real-token",
+        }
+        for ref in ("", "feature", "Main", "refs/heads/main"):
+            with (
+                self.subTest(ref=ref),
+                mock.patch.dict(os.environ, {**common, "MONDE_ATTEST_BASE_REF": ref}, clear=True),
+                mock.patch.object(subject, "_get_json") as network,
+            ):
+                with self.assertRaisesRegex(subject.AttestationError, "invalid trusted-source invocation identity"):
+                    subject.main()
+                network.assert_not_called()
+
+        with (
+            mock.patch.dict(os.environ, {**common, "MONDE_ATTEST_BASE_REF": "main"}, clear=True),
+            mock.patch.object(subject, "_get_json", return_value={}) as network,
+        ):
+            with self.assertRaisesRegex(subject.AttestationError, "candidate commit identity mismatch"):
+                subject.main()
+            network.assert_called_once()
 
     def test_commit_and_tree_are_never_executed(self):
         manifest, tree = fixture()

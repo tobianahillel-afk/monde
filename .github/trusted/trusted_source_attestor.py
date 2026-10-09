@@ -191,12 +191,14 @@ def main() -> int:
     sha = os.environ.get("MONDE_ATTEST_HEAD", "")
     pr = os.environ.get("MONDE_ATTEST_PR", "")
     base_sha = os.environ.get("MONDE_ATTEST_BASE", "")
+    base_ref = os.environ.get("MONDE_ATTEST_BASE_REF", "")
     token = os.environ.get("GITHUB_TOKEN", "")
     if (
         repo != "tobianahillel-afk/monde"
         or not _sha(sha)
         or pr != "2"
         or not _sha(base_sha)
+        or base_ref != "main"
         or not token
     ):
         raise AttestationError("invalid trusted-source invocation identity")
