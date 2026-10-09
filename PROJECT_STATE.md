@@ -558,14 +558,23 @@ The unapproved REVIEW-0097 technical successor now binds **all governance policy
 
 Technical candidate `74a294162b137870aab92c2de25d226509bb68cc` passed trusted-source #18 / `37942396359` with **26/26 tests** and Bootstrap #508 / `37942396392` with **450/450 tests and 100% line/branch**. REVIEW-0097 is now **IN_PROGRESS** after its OPEN checkpoint `40891d113e15759a69fd4e6ee92f15c7fda35327` passed trusted-source #19 / `37942839218` and Bootstrap #509 / `37942838940`. No independent approval or integration exists.
 
+## REVIEW-0097 — terminal independent negative evidence (2026-10-09)
+
+The frozen candidate `7699e1fb1a28bac1b1f8541ebf92126653d14a0d` passed Trusted Source #20 / `37943214775` and Bootstrap #510 / `37943214711`, but fresh independent L2 `PRR_kwDOUUI5ts8AAAABRh5KCg` identified **two new P1 findings**:
+
+- `PRRT_kwDOUUI5ts6q0YNM`: a successful candidate-SHA status remains on the same candidate when `main` advances; `pull_request_target` has no automatic base-push trigger, so a success can become stale for a different merged tree.
+- `PRRT_kwDOUUI5ts6q0YNX`: GitHub may accept a terminal success POST even if the response is lost or malformed. The local job fails, but remote green can survive; a raw success status is therefore insufficient authority.
+
+REVIEW-0097 is **CLOSED / CHANGES_REQUIRED**, not an approval. PR #14 now has **9 unresolved review threads**, and PR #2 remains at **104 unresolved threads**. Nothing is merged or resolved.
+
 ## Current next action
 
-1. REVIEW-0097 OPEN checkpoint is proven and its lifecycle is now `IN_PROGRESS`.
-2. Prove the resulting frozen exact HEAD with trusted-source self-tests and Bootstrap.
-3. Request fresh independent L2 over all seven unresolved PR #14 threads and the 179-object policy/schema manifest.
-4. Obtain a fresh independent L2 over all **7 unresolved PR #14 threads** before any resolution or guarded merge.
-5. After any authorized PR #14 integration into `main`, re-prove actual base-owned attestation on PR #2 candidate HEAD and finalize T15 / WORK-0002 only under its own reviews.
-6. WORK-0003, WORK-0004 and all product lots are still incomplete.
+1. Preserve all nine PR #14 findings and 104 PR #2 findings.
+2. Prove the REVIEW-0097 CLOSED checkpoint.
+3. In REVIEW-0098, make merge authority depend on **both exact candidate SHA and validated base SHA**, and bind any claimed success to a **successfully completed trusted publisher execution**; invalidate or reject stale/ambiguous status evidence.
+4. Exercise base-push-without-candidate-change and ambiguous-POST regressions under the true GitHub semantics.
+5. Only after a clean fresh independent L2, reconcile findings and consider protected PR #14 integration.
+6. WORK-0003, WORK-0004 and product lots remain incomplete.
 
 ## Resume sequence
 
