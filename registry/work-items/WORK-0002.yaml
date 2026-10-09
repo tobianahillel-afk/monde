@@ -210,6 +210,9 @@ rollback:
 run_log:
 - run: RUN-4
   date: '2026-10-09'
+  note: 'REVIEW-0098 candidate adds read-only independent GitHub run/artifact collection, ZIP decode reuse and final live PR/main revalidation. No candidate-owned status or artifact is accepted on its own; main-owned deployment, required-check binding and independent L2 remain pending.'
+- run: RUN-4
+  date: '2026-10-09'
   note: 'REVIEW-0098 technical candidate adds exact completed-run provenance evidence: trusted base-owned publisher writes an immutable-name proof artifact after confirmed success, and a proposed read-only consumer validates candidate/base/run/attempt/manifest identities. No existing success status or candidate-owned proof is accepted by itself. Candidate CI and independent L2 are still required; the consumer is not wired to an enforceable required check and no PR thread is resolved.'
   - "2026-10-09: Exact PR #14 technical candidate 46f43f1ef472e64de14d1e4d7c8271012d71add2 passed Trusted Source #28 / 37947528012 at 33/33 tests and Bootstrap #518 / 37947527987 at 450/450, 3853 statements / 1640 branches and 100 percent line+branch. Main-push re-attestation was added to the base-owned workflow with current PR #2 HEAD lookup, base-SHA status binding and ambiguous-status compensation. The trusted consumer binding current base plus successful trusted run is still missing, so REVIEW-0098 remains unopened and no merge/thread-resolution is authorized."
   - "2026-10-09: Historical reconciliation: T12 and RUN-3 reach DONE because REVIEW-0082 independently accepted the trusted default-branch bridge, PR #5 merged into main at b4b52c77fbf05eda65e8f0e951959da70e7edbe7, and all 83 PR #5 review threads were resolved. This does not complete WORK-0002, T4, T15 or RUN-4. No historical negative review is erased."

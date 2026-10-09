@@ -27,6 +27,9 @@ protects:
     - "the GitHub test-merge result must retain all default-branch trusted workflow/manifest/attestor object identities even if a pre-integration candidate legitimately omits them"
     - "a base-owned workflow publishes trusted-source pending then terminal success/failure status under one immutable context on the exact validated candidate HEAD SHA rather than using its base-SHA Actions result"
     - "a downloaded completed-run artifact ZIP has exactly one bounded canonical regular proof file; path traversal, extra files, symlinks, corrupt CRC and decompression oversize fail closed"
+    - "the collector independently retrieves the latest relevant main-owned GitHub run and exact artifact identity; newer failed runs cannot be bypassed by older successes"
+    - "all GitHub artifact ZIP content uses one vetted decoder with strict redirect, path, size and provenance checks"
+    - "current PR #2 HEAD and main must remain stable before and after API collection"
     - "current live PR HEAD/base/merge object and main branch SHA are revalidated before an exact-candidate success status is published"
     - "a completed-run proof binds candidate SHA, current main/base SHA, run ID, run attempt, manifest digest, and approved source count"
     - "a raw success status without a completed successful main-owned workflow run and uniquely linked unexpired proof artifact never authorizes merge"
@@ -86,6 +89,7 @@ execution:
   commit_sha: null
   result: null
   evidence:
+    - "REVIEW-0098 read-only API collector and adversarial tests are a technical candidate; they have not yet received exact-head CI, independent L2 or trusted default-branch deployment and do not create protected merge authority."
     - "PR #14 technical run #9 / 37915736299 succeeded after the strict JSON parser fix; execution outcome is evidence only and does not fabricate the TEST lifecycle"
     - "Read-only exact Git tree preflight verified PR #2 SHA 2e2664ca8c9cb4f3eb81ea41a172da1ed7fbaf32 has 167/167 approved source objects, zero missing/extra/drift, and omits the proposed main-owned trust files"
     - "Exact REVIEW-0095 OPEN checkpoint ffce3e36ab414234f971723a4993d26e4d170c24: trusted-source #10 / 37916223896 PASSED 17/17 unprivileged tests; bootstrap #500 / 37916223836 PASSED 450 tests, 3853 statements / 1640 branches at 100 percent line+branch, live PR #2 probe successful"

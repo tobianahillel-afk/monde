@@ -599,6 +599,12 @@ The candidate consumer also includes a bounded, single-file GitHub artifact ZIP 
 
 This is **a candidate implementation only**. The consumer is not yet wired to an independently protected required check or a proven live base-owned run. REVIEW-0098 remains unapproved; no thread resolution or PR #14/#2 merge is justified. The trusted consumer must be integrated from `main`, fetch its own GitHub evidence, revalidate immediately before decision, and be coupled to WORK-0003 branch-protection/required-check rules.
 
+## REVIEW-0098 — read-only GitHub evidence collector candidate
+
+The new proposed default-branch-owned `.github/trusted/trusted_source_collector.py` fetches the newest relevant trusted-source workflow run, re-fetches its exact run identity, selects a unique bounded proof artifact, downloads it through restricted HTTPS redirects and reuses `trusted_source_consumer.extract_exact_proof_archive` as the **single** ZIP validation implementation. It independently re-reads PR #2 and current `main` before accepting the completed-run proof.
+
+The collector rejects missing, stale, failed or ambiguous runs, malformed artifact collections, mismatched run/attempt, unsafe archive redirects and PR/main drift. Candidate tests include a newer failing run superseding an older success. This is **not yet a deployed main-owned consumer or an enforceable required merge check**; REVIEW-0098 remains unapproved, with all material threads unresolved.
+
 ## Current next action
 
 1. Keep 11 PR #14 threads and 104 PR #2 threads unresolved.
