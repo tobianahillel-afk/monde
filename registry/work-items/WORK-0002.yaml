@@ -78,12 +78,12 @@ implementation_plan:
     - {id: T2, description: "Add schemas, transition/scope/review-freshness and meta-governance guards.", depends_on: [T1], expected_files: [], status: DONE}
     - {id: T3, description: "Add GitHub control plane, context router, live gate and supply-chain hardening.", depends_on: [T2], expected_files: [], status: DONE}
     - {id: T4, description: "Prove final HEAD and complete independent review including fresh findings.", depends_on: [T3, T12], expected_files: [], status: IN_REVIEW}
-    - {id: T12, description: "Pre-deploy and independently prove the trusted default-branch stale-green bridge.", depends_on: [T3], expected_files: [], status: IN_REVIEW}
+    - {id: T12, description: "Pre-deploy and independently prove the trusted default-branch stale-green bridge.", depends_on: [T3], expected_files: [], status: DONE}
     - {id: T15, description: "Independently accept a main-owned manifest and non-executing verifier for PR #2 trusted validation sources.", depends_on: [T12], expected_files: [.github/trusted/trusted_source_attestor.py, .github/trusted/approved_sources.json, .github/workflows/monde-trusted-source.yml, registry/tests/TEST-0011.yaml, registry/reviews/REVIEW-0095.yaml], status: IN_REVIEW}
   planned_runs:
     - {id: RUN-1, objective: "Initial deterministic governance implementation", tasks: [T1], exit_condition: "Initial deterministic validator and traceability proof complete.", status: DONE}
     - {id: RUN-2, objective: "P0-P2 hardening and real GitHub proof", tasks: [T2, T3, T4], exit_condition: "Fresh exact-head independent closure and trusted collaborator approval.", status: IN_REVIEW}
-    - {id: RUN-3, objective: "Trusted stale-green predecessor, real GitHub proof and independent re-review", tasks: [T12], exit_condition: "Clean successor L2 and guarded PR #5 merge eligibility.", status: IN_REVIEW}
+    - {id: RUN-3, objective: "Trusted stale-green predecessor, real GitHub proof and independent re-review", tasks: [T12], exit_condition: "Clean successor L2 and guarded PR #5 merge eligibility.", status: DONE}
     - {id: RUN-4, objective: "PR #14 main-owned trusted-source root, strict manifest parsing and live attestation", tasks: [T15], exit_condition: "Exact-head CI and independent L2, guarded PR #14 merge and real PR #2 base-owned attestation.", status: IN_REVIEW}
 
 review_plan:
@@ -207,6 +207,7 @@ rollback:
   strategy: "Do not merge PR #5 until a clean exact-head successor review permits controlled thread resolution; main remains on WORK-0001 governance if PR #5 is rejected."
 
 run_log:
+  - "2026-10-09: Historical reconciliation: T12 and RUN-3 reach DONE because REVIEW-0082 independently accepted the trusted default-branch bridge, PR #5 merged into main at b4b52c77fbf05eda65e8f0e951959da70e7edbe7, and all 83 PR #5 review threads were resolved. This does not complete WORK-0002, T4, T15 or RUN-4. No historical negative review is erased."
   - "2026-10-09: REVIEW-0098 partial technical mitigation on PR #14 exact 0b5ce3aaf25e12a96142472fc261681212f2a88f passed Trusted Source #22 / 37945534737 (29/29 tests) and Bootstrap #512 / 37945534851 (450 tests, 3853 statements / 1640 branches at 100 percent). Status publication now includes exact validated base SHA and attempts failure compensation after ambiguous success, but this is NOT a complete fix: trusted consumer must reject mismatched base and require successful trusted run, and base push without candidate change must fail closed. REVIEW-0098 remains unopened, nine PR #14 and 104 PR #2 threads remain unresolved."
   - "2026-10-09: REVIEW-0097 frozen head 7699e1fb1a28bac1b1f8541ebf92126653d14a0d passed Trusted Source #20 / 37943214775 and Bootstrap #510 / 37943214711; independent Codex L2 PRR_kwDOUUI5ts8AAAABRh5KCg identified two P1 defects: PRRT_kwDOUUI5ts6q0YNM stale success after main advances, PRRT_kwDOUUI5ts6q0YNX ambiguous remote success publication. REVIEW-0097 is CLOSED/CHANGES_REQUIRED; nine PR #14 threads remain unresolved. REVIEW-0098 must bind base-SHA and completed trusted-run provenance before claiming status as merge authority."
   - "2026-10-09: REVIEW-0097 OPEN checkpoint 40891d113e15759a69fd4e6ee92f15c7fda35327 passed trusted-source #19 / 37942839218 and Bootstrap #509 / 37942838940 with the real PR #2 source manifest 179/179 exact SHA/mode identities. REVIEW-0097 advanced to IN_PROGRESS only after this proof." 
