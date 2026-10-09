@@ -12,7 +12,7 @@ Canonical operational state: Yes
 - WORK-0002 remains `IN_REVIEW / A3`; WORK-0003 and WORK-0004 remain blocked.
 - PR #5/T12 was independently accepted and merged to `main` on 2026-09-24.
 - PR #2 is open with 104 unresolved findings; REVIEW-0094 is terminal negative after two independent P1 source-provenance findings.
-- PR #14 is the active proposed main-owned trust-root predecessor; REVIEW-0095 is `OPEN`, not approved or merged.
+- PR #14 is the active proposed main-owned trust-root predecessor; REVIEW-0095 and REVIEW-0096 are `CLOSED / CHANGES_REQUIRED`; no PR #14 review is approved or merged.
 
 ## PR #5 / T12 trusted predecessor
 
@@ -540,29 +540,32 @@ PR #14 has **5 total review threads: 1 resolved, 4 unresolved**; the two earlier
 
 The next successor must preserve the pre-integration absence exception **without permitting post-integration deletion**, preferably by checking the exact candidate+base merge-result Git tree or an equivalent ancestry-bound guarantee, then publish an immutable-name trusted attestation result **on the exact validated candidate SHA**, fail-closed on mismatched current heads/merge metadata. Both behaviors require unit/adversarial tests and a fresh exact-head independent L2 before PR #14 merge. Repository protection/required-check binding remains separate WORK-0003 authority and must not be silently treated as already configured.
 
-## REVIEW-0096 — candidate-status and exact merge-result successor
+## REVIEW-0096 — terminal independent negative evidence (2026-10-09)
 
-REVIEW-0095 remains terminal `CLOSED / CHANGES_REQUIRED` after fresh independent P1 findings `PRRT_kwDOUUI5ts6qy--U` (base-SHA Actions checks cannot prove exact candidate-SHA trust status) and `PRRT_kwDOUUI5ts6qy--k` (post-integration deletion of main-owned trust roots). The REVIEW-0095 CLOSED checkpoint `a96e8a55c7b19e26c6480c0fea1b3a64aebe4996` passed trusted-source workflow #12 and Bootstrap #502.
+Frozen exact PR #14 HEAD `b9ccdc55a41943e0ea47aef6e6b589c86705a4b0` passed trusted-source self-tests #16 / `37939247069` at **23/23** and Bootstrap #506 / `37939247146`. Its base-owned attestation remains intentionally SKIPPED until an independently accepted source-root commit is present on `main`.
 
-REVIEW-0096 is now **IN_PROGRESS** after candidate correction, exact technical proof and OPEN checkpoint `87dab2fb306d44bd672af3ef3579815735a64d74` which passed trusted-source #15 / `37939002174` and Bootstrap #505 / `37939002240`:
+Independent Codex review `PRR_kwDOUUI5ts8AAAABRhi1ug` on this same HEAD identified three material defects. REVIEW-0096 is therefore **CLOSED / CHANGES_REQUIRED**, not accepted:
 
-- The first candidate `b38c70c7c05642f61d5631a46937d75b61b35287` returned negative trusted-source workflow **#13 / `37938220830`** because two unit fixtures still expected an obsolete failure message and workflow step name (21/23 passed). Bootstrap #503 succeeded; #13 is not success evidence.
-- The corrected technical candidate `dcec959c96ca1484f1ff77fc5f7c23078e1365f9` passed trusted-source workflow **#14 / `37938493770`** at **23/23 tests**. Bootstrap **#504 / `37938494014`** also completed successfully. The base-owned attestation remains SKIPPED until an independently approved merge.
+- P1 `PRRT_kwDOUUI5ts78Lb92`: candidate-owned registry policy YAML and `schemas/` JSON were absent from the 167-entry trusted-source manifest, allowing authority rules to drift while source Python stays identical.
+- P2 `PRRT_kwDOUUI5ts78Lb-I`: a missing `sha` in the GitHub status-post acknowledgement was treated as acceptable instead of failing closed.
+- P2 `PRRT_kwDOUUI5ts78Lb-R`: operational handover still carried contradictory historical `OPEN` / `IN_PROGRESS` labels despite terminal and active review records.
 
-The successor retains the same exact **167 approved candidate path/SHA/mode objects** without approving new PR-controlled executables. It now validates the GitHub test-merge commit with ordered parents `[event base SHA, exact PR #2 candidate SHA]`, validates the complete synthetic merge-result Git tree, and **requires all base-owned trust-root paths to survive at their exact approved Git identities**. Legitimate pre-integration candidate absence is still supported.
+The live PR #14 has **8 total review threads, 7 unresolved**, and PR #2 still has **104 unresolved**. Historical findings remain open until a clean independent successor review authorizes controlled resolution.
 
-Only the base-owned `pull_request_target` job gets `statuses: write`; it publishes fixed-context `MONDE / Trusted Source Attestation` status on the **exact candidate SHA**, first `pending` and then `success`/`failure`, while rechecking current PR/base/merge and default-branch authority before success. The source is checked out only from the event base commit, never PR #2 candidate code.
+## REVIEW-0097 — proposed successor correction
 
-These controls still require an independent L2, exact-head live proof after base integration, and repository protection / status-creator enforcement before anyone treats the status as merge authorization. REVIEW-0096 `OPEN` is not semantic approval. All **four** live PR #14 material threads and **104** PR #2 material threads remain unresolved.
+The next narrow successor must bind **all governance policy YAML files** `registry/status-machines.yaml`, `registry/acceptance-authority.yaml`, `registry/content-identity.yaml`, `registry/integration-provenance.yaml` and **every JSON/YAML schema beneath `schemas/`** to exact reviewed Git blob SHA/mode in the base-owned trust manifest. Its executable policy must require these fixed paths and reject additional or modified schema files by the same source proof. GitHub status publication must require an exact candidate `sha` field in each acknowledgement. Candidate tests must falsify changed/missing policy/schema inputs, malformed/missing status SHA, while preserving pre-integration candidate exception, synthetic test-merge root retention, and zero candidate-code execution.
+
+No REVIEW-0097 lifecycle record should be marked OPEN until a corrected technical candidate passes exact-head CI.
 
 ## Current next action
 
-1. REVIEW-0096 OPEN checkpoint is proven; the status is now `IN_PROGRESS`.
-2. Prove the resulting frozen exact HEAD with trusted-source self-tests and Bootstrap.
-3. Request fresh independent L2 over all four unresolved PR #14 threads, exact candidate-SHA status publication, and synthetic merged-tree trust-root preservation.
-4. Do not resolve/merge until a clean independently accepted review and guarded authority checks.
-5. After guarded PR #14 merge, verify actual base-owned attestation against current PR #2 candidate and required-check identity before WORK-0002 closure.
-6. WORK-0003, WORK-0004 and all product lots remain incomplete and dependent.
+1. Prove this REVIEW-0096 terminal state-only checkpoint on PR #14.
+2. Implement and run REVIEW-0097 technical successor proof with newly protected policy/schema dependencies and strict status ACK SHA.
+3. Create OPEN, then IN_PROGRESS checkpoints only after their own successful CI, and freeze exact SHA.
+4. Obtain a fresh independent L2 over all **7 unresolved PR #14 threads** before any resolution or guarded merge.
+5. After any authorized PR #14 integration into `main`, re-prove actual base-owned attestation on PR #2 candidate HEAD and finalize T15 / WORK-0002 only under its own reviews.
+6. WORK-0003, WORK-0004 and all product lots are still incomplete.
 
 ## Resume sequence
 
