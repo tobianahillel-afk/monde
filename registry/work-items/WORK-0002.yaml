@@ -214,19 +214,39 @@ run_log:
 - run: RUN-4
   date: '2026-10-09'
   note: 'REVIEW-0098 technical candidate adds exact completed-run provenance evidence: trusted base-owned publisher writes an immutable-name proof artifact after confirmed success, and a proposed read-only consumer validates candidate/base/run/attempt/manifest identities. No existing success status or candidate-owned proof is accepted by itself. Candidate CI and independent L2 are still required; the consumer is not wired to an enforceable required check and no PR thread is resolved.'
-  - "2026-10-09: Exact PR #14 technical candidate 46f43f1ef472e64de14d1e4d7c8271012d71add2 passed Trusted Source #28 / 37947528012 at 33/33 tests and Bootstrap #518 / 37947527987 at 450/450, 3853 statements / 1640 branches and 100 percent line+branch. Main-push re-attestation was added to the base-owned workflow with current PR #2 HEAD lookup, base-SHA status binding and ambiguous-status compensation. The trusted consumer binding current base plus successful trusted run is still missing, so REVIEW-0098 remains unopened and no merge/thread-resolution is authorized."
-  - "2026-10-09: Historical reconciliation: T12 and RUN-3 reach DONE because REVIEW-0082 independently accepted the trusted default-branch bridge, PR #5 merged into main at b4b52c77fbf05eda65e8f0e951959da70e7edbe7, and all 83 PR #5 review threads were resolved. This does not complete WORK-0002, T4, T15 or RUN-4. No historical negative review is erased."
-  - "2026-10-09: REVIEW-0098 partial technical mitigation on PR #14 exact 0b5ce3aaf25e12a96142472fc261681212f2a88f passed Trusted Source #22 / 37945534737 (29/29 tests) and Bootstrap #512 / 37945534851 (450 tests, 3853 statements / 1640 branches at 100 percent). Status publication now includes exact validated base SHA and attempts failure compensation after ambiguous success, but this is NOT a complete fix: trusted consumer must reject mismatched base and require successful trusted run, and base push without candidate change must fail closed. REVIEW-0098 remains unopened, nine PR #14 and 104 PR #2 threads remain unresolved."
-  - "2026-10-09: REVIEW-0097 frozen head 7699e1fb1a28bac1b1f8541ebf92126653d14a0d passed Trusted Source #20 / 37943214775 and Bootstrap #510 / 37943214711; independent Codex L2 PRR_kwDOUUI5ts8AAAABRh5KCg identified two P1 defects: PRRT_kwDOUUI5ts6q0YNM stale success after main advances, PRRT_kwDOUUI5ts6q0YNX ambiguous remote success publication. REVIEW-0097 is CLOSED/CHANGES_REQUIRED; nine PR #14 threads remain unresolved. REVIEW-0098 must bind base-SHA and completed trusted-run provenance before claiming status as merge authority."
+ - run: RUN-4
+   date: '2026-10-09'
+   note: "2026-10-09: Exact PR #14 technical candidate 46f43f1ef472e64de14d1e4d7c8271012d71add2 passed Trusted Source #28 / 37947528012 at 33/33 tests and Bootstrap #518 / 37947527987 at 450/450, 3853 statements / 1640 branches and 100 percent line+branch. Main-push re-attestation was added to the base-owned workflow with current PR #2 HEAD lookup, base-SHA status binding and ambiguous-status compensation. The trusted consumer binding current base plus successful trusted run is still missing, so REVIEW-0098 remains unopened and no merge/thread-resolution is authorized."
+ - run: RUN-4
+   date: '2026-10-09'
+   note: "2026-10-09: Historical reconciliation: T12 and RUN-3 reach DONE because REVIEW-0082 independently accepted the trusted default-branch bridge, PR #5 merged into main at b4b52c77fbf05eda65e8f0e951959da70e7edbe7, and all 83 PR #5 review threads were resolved. This does not complete WORK-0002, T4, T15 or RUN-4. No historical negative review is erased."
+ - run: RUN-4
+   date: '2026-10-09'
+   note: "2026-10-09: REVIEW-0098 partial technical mitigation on PR #14 exact 0b5ce3aaf25e12a96142472fc261681212f2a88f passed Trusted Source #22 / 37945534737 (29/29 tests) and Bootstrap #512 / 37945534851 (450 tests, 3853 statements / 1640 branches at 100 percent). Status publication now includes exact validated base SHA and attempts failure compensation after ambiguous success, but this is NOT a complete fix: trusted consumer must reject mismatched base and require successful trusted run, and base push without candidate change must fail closed. REVIEW-0098 remains unopened, nine PR #14 and 104 PR #2 threads remain unresolved."
+ - run: RUN-4
+   date: '2026-10-09'
+   note: "2026-10-09: REVIEW-0097 frozen head 7699e1fb1a28bac1b1f8541ebf92126653d14a0d passed Trusted Source #20 / 37943214775 and Bootstrap #510 / 37943214711; independent Codex L2 PRR_kwDOUUI5ts8AAAABRh5KCg identified two P1 defects: PRRT_kwDOUUI5ts6q0YNM stale success after main advances, PRRT_kwDOUUI5ts6q0YNX ambiguous remote success publication. REVIEW-0097 is CLOSED/CHANGES_REQUIRED; nine PR #14 threads remain unresolved. REVIEW-0098 must bind base-SHA and completed trusted-run provenance before claiming status as merge authority."
   - "2026-10-09: REVIEW-0097 OPEN checkpoint 40891d113e15759a69fd4e6ee92f15c7fda35327 passed trusted-source #19 / 37942839218 and Bootstrap #509 / 37942838940 with the real PR #2 source manifest 179/179 exact SHA/mode identities. REVIEW-0097 advanced to IN_PROGRESS only after this proof." 
   - "2026-10-09: REVIEW-0097 technical candidate 74a294162b137870aab92c2de25d226509bb68cc passed trusted-source #18 / 37942396359 (26/26 tests) and Bootstrap #508 / 37942396392 (450 tests at 100 percent line+branch). Exact policy/schema source count is now 179; status ACK SHA is required. REVIEW-0097 OPEN checkpoint and fresh L2 remain outstanding; 7 PR #14 threads unresolved." 
   - "2026-10-09: REVIEW-0096 frozen head b9ccdc55a41943e0ea47aef6e6b589c86705a4b0 passed source #16 / 37939247069 (23/23) and Bootstrap #506 / 37939247146. Fresh independent Codex PRR_kwDOUUI5ts8AAAABRhi1ug added P1 PRRT_kwDOUUI5ts78Lb92 and P2 PRRT_kwDOUUI5ts78Lb-I / PRRT_kwDOUUI5ts78Lb-R. REVIEW-0096 is CLOSED/CHANGES_REQUIRED with 7 PR #14 threads unresolved; REVIEW-0097 is a successor proposal, not opened." 
-  - "2026-10-09: REVIEW-0096 OPEN checkpoint 87dab2fb306d44bd672af3ef3579815735a64d74 passed trusted-source #15 / 37939002174 and Bootstrap #505 / 37939002240; only then advanced to IN_PROGRESS for frozen exact-head proof."
-  - "2026-10-09: REVIEW-0096 exact technical candidate dcec959c96ca1484f1ff77fc5f7c23078e1365f9 passed trusted-source #14 / 37938493770 (23/23 tests), Bootstrap #504 / 37938494014 SUCCESS. First candidate b38c70c7c05642f61d5631a46937d75b61b35287 / #13 remained negative fixture-evidence. REVIEW-0096 OPEN checkpoint and independent L2 remain pending; PR #14 still has four unresolved material threads."
-  - "2026-10-09: After proven REVIEW-0095 CLOSED checkpoint a96e8a55c7b19e26c6480c0fea1b3a64aebe4996 / source #12 / Bootstrap #502, a successor candidate adds exact GitHub merge-result trust-root retention and base-owned publication of a fixed-context status on the exact PR #2 candidate SHA; technical proof and independent review remain pending."
-  - "2026-10-09: PR #14 exact candidate 3731213c23e25711a3118a2b78357dd2d1d63161 passed trusted-source workflow #11 / 37916592454 at 17/17 unprivileged tests and Bootstrap #501 / 37916592324; live default-branch attestation remained skipped."
-  - "2026-10-09: Fresh independent REVIEW-0095 L2 PRR_kwDOUUI5ts8AAAABRhODCQ on exact 3731213c23e25711a3118a2b78357dd2d1d63161 produced P1 PRRT_kwDOUUI5ts6qy--U (no candidate-SHA check binding) and P1 PRRT_kwDOUUI5ts6qy--k (post-integration trust-root deletion bypass). REVIEW-0095 closed CHANGES_REQUIRED; four PR #14 review threads remain unresolved, with PR #2 still at 104 unresolved."
-  - "2026-10-09: WORK-0002 T15 / PR #14 proposed main-owned trust root; 167 approved source objects matched PR #2 exact head with no drift; #9 technical CI succeeded; REVIEW-0095 OPEN checkpoint ffce3e36ab414234f971723a4993d26e4d170c24 passed trusted-source #10 (17 tests) and Bootstrap #500 (450 tests, 100 percent line+branch, live probe); lifecycle now IN_PROGRESS pending frozen exact-head proof and independent L2."
+ - run: RUN-4
+   date: '2026-10-09'
+   note: "2026-10-09: REVIEW-0096 OPEN checkpoint 87dab2fb306d44bd672af3ef3579815735a64d74 passed trusted-source #15 / 37939002174 and Bootstrap #505 / 37939002240; only then advanced to IN_PROGRESS for frozen exact-head proof."
+ - run: RUN-4
+   date: '2026-10-09'
+   note: "2026-10-09: REVIEW-0096 exact technical candidate dcec959c96ca1484f1ff77fc5f7c23078e1365f9 passed trusted-source #14 / 37938493770 (23/23 tests), Bootstrap #504 / 37938494014 SUCCESS. First candidate b38c70c7c05642f61d5631a46937d75b61b35287 / #13 remained negative fixture-evidence. REVIEW-0096 OPEN checkpoint and independent L2 remain pending; PR #14 still has four unresolved material threads."
+ - run: RUN-4
+   date: '2026-10-09'
+   note: "2026-10-09: After proven REVIEW-0095 CLOSED checkpoint a96e8a55c7b19e26c6480c0fea1b3a64aebe4996 / source #12 / Bootstrap #502, a successor candidate adds exact GitHub merge-result trust-root retention and base-owned publication of a fixed-context status on the exact PR #2 candidate SHA; technical proof and independent review remain pending."
+ - run: RUN-4
+   date: '2026-10-09'
+   note: "2026-10-09: PR #14 exact candidate 3731213c23e25711a3118a2b78357dd2d1d63161 passed trusted-source workflow #11 / 37916592454 at 17/17 unprivileged tests and Bootstrap #501 / 37916592324; live default-branch attestation remained skipped."
+ - run: RUN-4
+   date: '2026-10-09'
+   note: "2026-10-09: Fresh independent REVIEW-0095 L2 PRR_kwDOUUI5ts8AAAABRhODCQ on exact 3731213c23e25711a3118a2b78357dd2d1d63161 produced P1 PRRT_kwDOUUI5ts6qy--U (no candidate-SHA check binding) and P1 PRRT_kwDOUUI5ts6qy--k (post-integration trust-root deletion bypass). REVIEW-0095 closed CHANGES_REQUIRED; four PR #14 review threads remain unresolved, with PR #2 still at 104 unresolved."
+ - run: RUN-4
+   date: '2026-10-09'
+   note: "2026-10-09: WORK-0002 T15 / PR #14 proposed main-owned trust root; 167 approved source objects matched PR #2 exact head with no drift; #9 technical CI succeeded; REVIEW-0095 OPEN checkpoint ffce3e36ab414234f971723a4993d26e4d170c24 passed trusted-source #10 (17 tests) and Bootstrap #500 (450 tests, 100 percent line+branch, live probe); lifecycle now IN_PROGRESS pending frozen exact-head proof and independent L2."
   - "REVIEW-0082 COMPLETE/APPROVE reviewed exact head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618; lifecycle-recording commit cabb259aa686028def1c7b9a4e80b85d15b82d99 passed Bootstrap #332 / run 36048764381, then all 83 reviewed PR #5 material threads were resolved with branch content fixed and no new finding."
   - "REVIEW-0049 terminal independent negative: c8f1fec24358c25224771a15b647d56c8a2f0287 / PRR_kwDOUUI5ts8AAAABN4sxvg."
   - "REVIEW-0050 candidate cbe21fa4cebc1c8f8b3030af17284de5700f9818 passed #154 at 194 tests / 1856 statements / 842 branches / 100 percent plus live PR #2 probe."
@@ -381,16 +401,16 @@ blockers:
   - "REVIEW-0080 is terminal CLOSED/CHANGES_REQUIRED after P1 PRRT_kwDOUUI5ts6loe5m; do not request further REVIEW-0080 approval."
   - "REVIEW-0081 is terminal CLOSED/CHANGES_REQUIRED after fresh exact-head independent L2 P2 PRRT_kwDOUUI5ts6lumiR; do not request further REVIEW-0081 approval."
   - "REVIEW-0082 is COMPLETE/APPROVE on exact reviewed head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618 via fresh independent Codex L2 issue comment 5820761929; controlled resolution of the 83 reviewed material threads is now permitted."
-  - "PR #5 controlled thread resolution is complete: 83/83 resolved, 0 unresolved; exact reconciliation-head Bootstrap proof is the remaining PR #5 merge-eligibility gate."
+  - "PR #5/T12 was independently approved and merged into main on 2026-09-24, with all 83 reviewed threads resolved; its historical reconciliation checkpoint is complete."
   - "REVIEW-0051 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0051 approval."
   - "REVIEW-0052 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0052 approval."
   - "REVIEW-0053 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0053 approval."
   - "REVIEW-0054 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0054 approval."
   - "REVIEW-0055 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0055 approval."
   - "REVIEW-0056 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0056 approval."
-  - "T12 and T4 remain IN_REVIEW."
+  - "T4 and T15 remain IN_REVIEW; T12 is DONE and its PR #5 predecessor is merged."
   - "PR #2 integration/approval remains downstream."
-  - "REVIEW-0098 technical candidate 85ef6ef7321f4fc16ef9d130424d6543123cb520 passed Trusted Source #34 / 37954879182 (56/56 unprivileged tests; main-owned attestation skipped premerge) and Bootstrap #525 / 37954879194 (450/450, 100 percent line and branch). REVIEW-0098 OPEN checkpoint cf736aa69fdf6a40a41f91e8fd22135f37585edd passed Trusted Source #35 / 37955608152 and Bootstrap #526 / 37955608154. It is now IN_PROGRESS pending frozen exact-head proof and fresh L2; PR #14 remains unmerged."
+  - "REVIEW-0098 is terminal CLOSED/CHANGES_REQUIRED after independent L2; REVIEW-0099 is terminal CLOSED/CHANGES_REQUIRED after new CodeRabbit runtime, handover and YAML findings. REVIEW-0100 technical correction and fresh independent L2 are required before merging PR #14."
 follow_up_work_items: []
 # WORK-0002 T15 is the active trust-root predecessor; PR #2 must merge it
 # from main and obtain fresh exact-head independent evidence before closure.

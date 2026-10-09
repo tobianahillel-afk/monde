@@ -1,9 +1,9 @@
 id: REVIEW-0099
-status: IN_PROGRESS
+status: CLOSED
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-14"
-  commit_sha: null
+  commit_sha: "c83469b3a4781f70573567f052773db53116d955"
 reviewer:
   actor: null
   context_id: null
@@ -40,7 +40,11 @@ scope:
     - "GitHub list pages can shift due to concurrent new runs, causing omissions or duplicates"
     - "status ACK duplicate keys can mask ambiguous exact-SHA identity"
     - "untrusted PR code could be mistaken for base-owned attestor before merge"
-findings: []
+findings:
+  - "PRRT_kwDOUUI5ts6q3TSz"
+  - "PRRT_kwDOUUI5ts6q3TS8"
+  - "PRRT_kwDOUUI5ts6q3TTA"
+  - "PRRT_kwDOUUI5ts6q3TTE"
 checks:
   assumptions_challenged:
     - "original workflow creation date ranks the latest attempt"
@@ -78,8 +82,11 @@ checks:
     - "This REVIEW-0099 OPEN state-only checkpoint must pass before transition to IN_PROGRESS."
     - "Frozen exact IN_PROGRESS head requires fresh proof and independent security L2 on all unresolved threads."
     - "No main-owned attestation or protected merge authority is claimed until guarded PR #14 integration and real GitHub validation."
+    - "Fresh Codex REVIEW-0099 request on c83469b3a4781f70573567f052773db53116d955 was quota-refused; this is not independent approval."
+    - "CodeRabbit exposed a concrete closed-PR push/artifact mismatch (PRRT_kwDOUUI5ts6q3TSz), stale current handover (PRRT_kwDOUUI5ts6q3TS8), obsolete T12 blocker (PRRT_kwDOUUI5ts6q3TTA), and malformed YAML RUN-4 indentation (PRRT_kwDOUUI5ts6q3TTE)."
+    - "REVIEW-0099 is terminal CLOSED/CHANGES_REQUIRED; REVIEW-0100 must be independently reviewed on its own exact frozen head."
 outcome: CHANGES_REQUIRED
-completed_at: null
+completed_at: "2026-10-09T17:15:39.312Z"
 history:
   created_at: "2026-10-09"
   updated_at: "2026-10-09"

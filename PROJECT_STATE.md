@@ -12,7 +12,7 @@ Canonical operational state: Yes
 - WORK-0002 remains `IN_REVIEW / A3`; WORK-0003 and WORK-0004 remain blocked.
 - PR #5/T12 was independently accepted and merged to `main` on 2026-09-24.
 - PR #2 is open with 104 unresolved findings; REVIEW-0094 is terminal negative after two independent P1 source-provenance findings.
-- PR #14 is the active proposed main-owned trust-root predecessor; REVIEW-0095/0096/0097 are `CLOSED / CHANGES_REQUIRED`, REVIEW-0098 has no clean approval; PR #14 is open/unmerged with 14 material threads (13 or more unresolved at last check).
+- PR #14 is the active proposed main-owned trust-root predecessor; REVIEW-0095/0096/0097 are `CLOSED / CHANGES_REQUIRED`, REVIEW-0098 has no clean approval; PR #14 is open/unmerged with 21 unresolved review threads at the latest live query; REVIEW-0099 is terminal negative and REVIEW-0100 corrections are required.
 
 ## REVIEW-0098 — active PR #14 trust-root candidate (2026-10-09)
 
@@ -20,7 +20,7 @@ PR #14 frozen technical predecessor `2595f9f54e7783eac6dc165b77c6c8930db3ab17` p
 
 The next unapproved technical candidate updates the consumer to recognize the exact GitHub `@main` workflow path, adds direct Actions job-provenance checking before chronological run selection, preserves newer *relevant* failed runs over older successful runs, and expands T15 plus TEST-0011 regression scope. An unrelated PR's skipped trust job must not become merge-authoritative; malformed/incomplete job evidence must fail closed. The base-owned workflow is still **not deployed to main**. This technical correction is neither L2 approval nor permission to merge.
 
-The exact corrective candidate `85ef6ef7321f4fc16ef9d130424d6543123cb520` passed Trusted Source #34 / `37954879182` (**56/56** tests, protected base-owned job skipped before integration) and Bootstrap #525 / `37954879194` (**450/450** tests, 100% line and branch, live PR #2 read-only probe success). REVIEW-0098 OPEN checkpoint `cf736aa69fdf6a40a41f91e8fd22135f37585edd` passed Trusted Source #35 / `37955608152` and Bootstrap #526 / `37955608154`. **REVIEW-0098 is now IN_PROGRESS**, pending frozen exact-HEAD CI and independent L2. All PR #14 findings remain unresolved; no accepted trust root or merge authority exists yet.
+The exact corrective candidate `85ef6ef7321f4fc16ef9d130424d6543123cb520` passed Trusted Source #34 / `37954879182` (**56/56** tests, protected base-owned job skipped before integration) and Bootstrap #525 / `37954879194` (**450/450** tests, 100% line and branch, live PR #2 read-only probe success). REVIEW-0098 OPEN checkpoint `cf736aa69fdf6a40a41f91e8fd22135f37585edd` passed Trusted Source #35 / `37955608152` and Bootstrap #526 / `37955608154`. **REVIEW-0098 is CLOSED / CHANGES_REQUIRED** following independent L2; REVIEW-0099 was subsequently closed negative after review and handover defects. All PR #14 findings remain unresolved; no accepted trust root or merge authority exists yet.
 
 Current closure order: exact-head CI; fresh independent L2 across all material PR #14 threads and the 179-file trust manifest; guarded PR #14 integration; live main-owned attestation; protected required-check settings under WORK-0003; PR #2 reintegration and separate exact-head L2. Do not automatically resolve threads or promote WORK-0002 to DONE.
 
@@ -619,7 +619,7 @@ The collector rejects missing, stale, failed or ambiguous runs, malformed artifa
 
 REVIEW-0098 is `CLOSED / CHANGES_REQUIRED` after independent Codex L2 `PRR_kwDOUUI5ts8AAAABRi_KWA` on exact frozen `449f2f8805df4d6878afe22548c6c29f39909b14`. The successor must address P1 rerun attempt chronology (`PRRT_kwDOUUI5ts6q2tdv`), P1 post-artifact run frontier stability (`PRRT_kwDOUUI5ts6q2td4`), P1 multi-page source-run discovery (`PRRT_kwDOUUI5ts6q2teD`), P2 duplicate JSON keys in status acknowledgement (`PRRT_kwDOUUI5ts6q2teM`), and P2 the missing REVIEW-0098 task-specific expected-file declaration (`PRRT_kwDOUUI5ts6q2teU`). All **19 unresolved PR #14 threads** remain open. The prior trusted-source #36 and Bootstrap #527 prove only the frozen predecessor, not a corrected successor.
 
-REVIEW-0099 is **not yet opened**. No default-branch trust authority, successful base-owned attestation, or required merge check exists yet. Preserve the 179-object source identity proposal and all previous negative reviews. Never merge PR #14 or resolve threads solely from author-side tests.
+REVIEW-0099 is now terminal **CLOSED / CHANGES_REQUIRED**. No default-branch trust authority, successful base-owned attestation, or required merge check exists yet. Preserve the 179-object source identity proposal and all previous negative reviews. Never merge PR #14 or resolve threads solely from author-side tests.
 
 ## REVIEW-0099 — trusted-source frontier hardening candidate
 
@@ -641,6 +641,10 @@ The run pagination budget remains explicit and fail-closed; this is not a claim 
 3. REVIEW-0099 `OPEN` checkpoint passed Trusted Source #39 and Bootstrap #530; prove this `IN_PROGRESS` frozen exact HEAD before any independent approval.
 4. Request a fresh-context L2 on the exact frozen SHA, reviewing all 19 unresolved PR #14 threads, attempt chronology, paginated run provenance, post-artifact frontier stability and strict status ACK parsing.
 5. No thread resolution or PR #14 merge before clean independent review and a trusted main-owned deployment. PR #2 and WORK-0003/WORK-0004 remain blocked.
+
+## REVIEW-0099 — terminal negative; REVIEW-0100 corrective candidate (2026-10-09)
+
+The frozen PR #14 head `c83469b3a4781f70573567f052773db53116d955` completed Trusted Source #40 and Bootstrap #531, but unprivileged CI is not main-owned attestation. Codex quota refusal is not approval. CodeRabbit found PRRT_kwDOUUI5ts6q3TSz (closed PR #2 makes the push artifact step fail), PRRT_kwDOUUI5ts6q3TS8 (stale handover), PRRT_kwDOUUI5ts6q3TTA (obsolete T12 blocker), and PRRT_kwDOUUI5ts6q3TTE (invalid YAML run_log indentation). REVIEW-0099 closes as CHANGES_REQUIRED. The successor must preserve the security boundary and demonstrate a safe closed-PR no-op artifact path, parseable canonical registries, and new exact-head unprivileged proof before fresh independent review. PR #14 remains unmerged and its current 21 unresolved threads remain unresolved.
 
 ## Resume sequence
 
