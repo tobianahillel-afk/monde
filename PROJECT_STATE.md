@@ -632,15 +632,15 @@ The corrected exact technical candidate `41319695c2c56c3e9f2506560c009da94582160
 - rejects duplicate JSON keys in GitHub status acknowledgements using the same strict manifest parser;
 - includes `REVIEW-0098.yaml` in T15 task-specific scope.
 
-The run pagination budget remains explicit and fail-closed; this is not a claim of unbounded-liveness or of default-branch attestation. REVIEW-0099 must pass an `OPEN` checkpoint, `IN_PROGRESS` exact-head proof, fresh independent security L2 and controlled thread resolution before PR #14 can merge. **19 PR #14 threads remain unresolved and PR #2 has 104 unresolved.** No owner-sensitive product UX decisions have been made.
+The run pagination budget remains explicit and fail-closed; this is not a claim of unbounded-liveness or of default-branch attestation. REVIEW-0099 passed its `OPEN` checkpoint (Trusted Source #39 / `37958702891` and Bootstrap #530 / `37958702393`); it is now `IN_PROGRESS` pending one frozen exact-head proof, fresh independent security L2 and controlled thread resolution before PR #14 can merge. **19 PR #14 threads remain unresolved and PR #2 has 104 unresolved.** No owner-sensitive product UX decisions have been made.
 
 ## Current next action
 
-1. Keep 11 PR #14 threads and 104 PR #2 threads unresolved.
-2. Implement the **trusted consumer**: require exact current PR #2 HEAD, current `main` base SHA, candidate/base-bound status provenance, and a successfully completed trusted main-owned attestor workflow run. Reject any status from a failed, pending, mismatched or ambiguous publisher.
-3. Prove that main advancing without candidate changes invalidates merge authority immediately; the new main-push workflow is only the asynchronous re-attestation mechanism.
-4. Exercise simultaneous main push, candidate head drift, API errors, and ambiguous remote success/failure; require exact-head CI, live GitHub proof and independent L2 before materializing REVIEW-0098.
-5. Preserve REVIEW-0097 CLOSED/CHANGES_REQUIRED and all previous negative evidence; T15/WORK-0002 and all downstream product lots remain incomplete.
+1. Preserve all 19 unresolved PR #14 material threads and all 104 unresolved PR #2 findings.
+2. REVIEW-0098 remains terminal `CLOSED / CHANGES_REQUIRED`.
+3. REVIEW-0099 `OPEN` checkpoint passed Trusted Source #39 and Bootstrap #530; prove this `IN_PROGRESS` frozen exact HEAD before any independent approval.
+4. Request a fresh-context L2 on the exact frozen SHA, reviewing all 19 unresolved PR #14 threads, attempt chronology, paginated run provenance, post-artifact frontier stability and strict status ACK parsing.
+5. No thread resolution or PR #14 merge before clean independent review and a trusted main-owned deployment. PR #2 and WORK-0003/WORK-0004 remain blocked.
 
 ## Resume sequence
 
