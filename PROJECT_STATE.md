@@ -575,13 +575,23 @@ The proposed default-branch-owned publisher now embeds the **validated main/base
 
 **This does not close either P1.** A remote success may survive both ambiguous writes; a base SHA in a description is not an independently enforced rule. The downstream trusted live gate must positively check current main/base SHA, the exact candidate SHA, and a successfully completed trusted publisher run. GitHub base-push updates without candidate HEAD changes must also invalidate/re-attest or fail merge authority. No REVIEW-0098 lifecycle review has been opened. Nine PR #14 and 104 PR #2 material threads remain unresolved.
 
+## REVIEW-0098 — base-push freshness candidate, technical proof only
+
+Exact PR #14 candidate `46f43f1ef472e64de14d1e4d7c8271012d71add2` passed **Trusted Source #28 / 37947528012 (33/33 tests)** and **Bootstrap #518 / 37947527987 (450/450 tests, 3,853 statements / 1,640 branches, 100% line+branch)**.
+
+The proposed default-branch-owned workflow now has a dedicated `push` trigger on `main`. When no `pull_request_target` event is emitted for an unchanged candidate, the base-owned attestor retrieves PR #2's current HEAD and verifies its actual main/base SHA rather than reusing an older event SHA. The same publisher still includes the exact validated base SHA in the commit-status description, attempts failure compensation after ambiguous success, and preserves the original verification exception if publishing negative status fails.
+
+These controls **reduce staleness but are not complete merge authority**. A base push can occur before its workflow executes; a double-ambiguous status POST can leave remote green even while the trusted run fails. A downstream gate must require exact current base SHA plus completed successful trusted-run provenance (and a currently accepted source tree), not just a raw status context. Until that consumer is implemented, independently reviewed, and proven on real GitHub, REVIEW-0098 must not be opened or approved and PR #14/PR #2 must not be merged.
+
+PR #14 has **11 unresolved / 12 total review threads**. PR #2 retains **104 unresolved material threads**.
+
 ## Current next action
 
-1. Preserve all **9** unresolved PR #14 findings and **104** PR #2 findings; REVIEW-0097 remains terminal negative.
-2. Complete REVIEW-0098 consumer enforcement: exact candidate SHA, exact current main/base SHA, trusted publisher workflow provenance and confirmed successful run, with fail-closed handling of ambiguous terminal status.
-3. Exercise a main-branch advance without a candidate change, including stale prior success; do not trust raw status alone.
-4. Require exact technical and real control-plane proof before opening REVIEW-0098, then obtain fresh independent L2.
-5. Continue WORK-0002/T15 and WORK-0003/WORK-0004 only after the required dependencies and reviews; the product lots are not complete.
+1. Keep 11 PR #14 threads and 104 PR #2 threads unresolved.
+2. Implement the **trusted consumer**: require exact current PR #2 HEAD, current `main` base SHA, candidate/base-bound status provenance, and a successfully completed trusted main-owned attestor workflow run. Reject any status from a failed, pending, mismatched or ambiguous publisher.
+3. Prove that main advancing without candidate changes invalidates merge authority immediately; the new main-push workflow is only the asynchronous re-attestation mechanism.
+4. Exercise simultaneous main push, candidate head drift, API errors, and ambiguous remote success/failure; require exact-head CI, live GitHub proof and independent L2 before materializing REVIEW-0098.
+5. Preserve REVIEW-0097 CLOSED/CHANGES_REQUIRED and all previous negative evidence; T15/WORK-0002 and all downstream product lots remain incomplete.
 
 ## Resume sequence
 

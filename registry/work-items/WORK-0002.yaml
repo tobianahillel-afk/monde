@@ -6,14 +6,14 @@ lot: LOT-0
 sublot: SUBLOT-0.2
 owner: "repository governance"
 created_at: "2026-09-10"
-updated_at: "2026-09-24"
+updated_at: "2026-10-09"
 
 purpose: |
   Turn MONDE governance/specification/traceability contracts into executable CI and GitHub control-plane checks so repository state, review evidence, scope and proof cannot silently drift.
 
 scope_change:
   approved: true
-  rationale: "PR #14/T15 REVIEW-0096 remains CLOSED/CHANGES_REQUIRED with three independent supply-chain/ACK/handover findings. REVIEW-0097 exact technical candidate 74a294162b137870aab92c2de25d226509bb68cc passed trusted-source #18 (26/26) and Bootstrap #508 (450 tests, 100 percent line+branch), pinning 179 immutable Git object identities including 12 policy/schema contracts and requiring exact status ACK SHA. REVIEW-0097 is IN_PROGRESS after its OPEN checkpoint passed source #19 and Bootstrap #509; frozen exact-head proof and independent L2 remain outstanding over all 7 PR #14 unresolved material threads. PR #2 retains 104 unresolved findings and no merge authority is established."
+  rationale: "T12 / RUN-3 are DONE after independently accepted PR #5 merge. T15 / PR #14 is the active, still-untrusted predecessor. REVIEW-0097 is terminal CLOSED/CHANGES_REQUIRED after independent P1 base-advance and ambiguous-success findings. REVIEW-0098 technical partial candidate 46f43f1ef472e64de14d1e4d7c8271012d71add2 passed Trusted Source #28 (33 tests) and Bootstrap #518 (450 tests, 100 percent). It adds a main push re-attestation path, binds published status description to base SHA, compensates ambiguous success, and preserves verification errors. This is not independent approval or complete merge authority; a downstream consumer must bind success to current main/base and an actually completed successful trusted run. PR #14 retains 11 unresolved threads and PR #2 retains 104; neither PR may merge on these tests alone."
 
 scope:
   in:
@@ -207,6 +207,7 @@ rollback:
   strategy: "Do not merge PR #5 until a clean exact-head successor review permits controlled thread resolution; main remains on WORK-0001 governance if PR #5 is rejected."
 
 run_log:
+  - "2026-10-09: Exact PR #14 technical candidate 46f43f1ef472e64de14d1e4d7c8271012d71add2 passed Trusted Source #28 / 37947528012 at 33/33 tests and Bootstrap #518 / 37947527987 at 450/450, 3853 statements / 1640 branches and 100 percent line+branch. Main-push re-attestation was added to the base-owned workflow with current PR #2 HEAD lookup, base-SHA status binding and ambiguous-status compensation. The trusted consumer binding current base plus successful trusted run is still missing, so REVIEW-0098 remains unopened and no merge/thread-resolution is authorized."
   - "2026-10-09: Historical reconciliation: T12 and RUN-3 reach DONE because REVIEW-0082 independently accepted the trusted default-branch bridge, PR #5 merged into main at b4b52c77fbf05eda65e8f0e951959da70e7edbe7, and all 83 PR #5 review threads were resolved. This does not complete WORK-0002, T4, T15 or RUN-4. No historical negative review is erased."
   - "2026-10-09: REVIEW-0098 partial technical mitigation on PR #14 exact 0b5ce3aaf25e12a96142472fc261681212f2a88f passed Trusted Source #22 / 37945534737 (29/29 tests) and Bootstrap #512 / 37945534851 (450 tests, 3853 statements / 1640 branches at 100 percent). Status publication now includes exact validated base SHA and attempts failure compensation after ambiguous success, but this is NOT a complete fix: trusted consumer must reject mismatched base and require successful trusted run, and base push without candidate change must fail closed. REVIEW-0098 remains unopened, nine PR #14 and 104 PR #2 threads remain unresolved."
   - "2026-10-09: REVIEW-0097 frozen head 7699e1fb1a28bac1b1f8541ebf92126653d14a0d passed Trusted Source #20 / 37943214775 and Bootstrap #510 / 37943214711; independent Codex L2 PRR_kwDOUUI5ts8AAAABRh5KCg identified two P1 defects: PRRT_kwDOUUI5ts6q0YNM stale success after main advances, PRRT_kwDOUUI5ts6q0YNX ambiguous remote success publication. REVIEW-0097 is CLOSED/CHANGES_REQUIRED; nine PR #14 threads remain unresolved. REVIEW-0098 must bind base-SHA and completed trusted-run provenance before claiming status as merge authority."
