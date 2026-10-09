@@ -254,6 +254,15 @@ def attest(
     after = fetch_json(f"{url}/pulls/{pr_number}", token)
     exact_pr_snapshot(after, repo, pr_number, head, base_sha, branch)
     exact_default_branch(fetch_json(branch_url, token), branch, base_sha)
+    # A branch may still exist at the right SHA after the repository default
+    # is retargeted. Re-read repository metadata *after* the branch proof so a
+    # successful response cannot rely on a superseded default-branch name.
+    final_repository = fetch_json(url, token)
+    if (
+        not isinstance(final_repository, dict)
+        or final_repository.get("default_branch") != branch
+    ):
+        raise TrustFailure("Repository default branch changed during attestation")
     return len(approved)
 
 

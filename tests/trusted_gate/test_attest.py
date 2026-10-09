@@ -158,10 +158,11 @@ class TrustedAttestationTests(unittest.TestCase):
 
     def test_live_exact_revision_and_final_snapshot(self):
         approved = manifest()
-        resources = [repository(), branch(), snapshot(), api_tree(origin_tree()), api_tree(base_tree()), api_tree(candidate_tree()), snapshot(), branch()]
+        resources = [repository(), branch(), snapshot(), api_tree(origin_tree()), api_tree(base_tree()), api_tree(candidate_tree()), snapshot(), branch(), repository()]
         with mock.patch.object(subject, "fetch_json", side_effect=resources) as fetch:
             self.assertEqual(subject.attest("o/r", 2, H, C, approved, "token"), 5)
-        self.assertEqual(fetch.call_count, 8)
+        self.assertEqual(fetch.call_count, 9)
+        self.assertEqual(fetch.call_args_list[-1].args[0], "https://api.github.com/repos/o/r")
 
         for altered in (
             {**snapshot(), "number": True},
@@ -274,7 +275,7 @@ class TrustedAttestationTests(unittest.TestCase):
 
     def test_attestation_rejects_changed_default_ref_and_changed_final_identity(self):
         good = [repository(), branch(), snapshot(), api_tree(origin_tree()),
-                api_tree(base_tree()), api_tree(candidate_tree()), snapshot(), branch()]
+                api_tree(base_tree()), api_tree(candidate_tree()), snapshot(), branch(), repository()]
         cases = []
         for index,value in (
             (0, {"default_branch": "feature"}),
@@ -283,6 +284,9 @@ class TrustedAttestationTests(unittest.TestCase):
             (6, {**snapshot(), "number":True}),
             (6, {**snapshot(), "head":{"sha":H,"repo":{"full_name":"fork/x"}}}),
             (7, {"name":"main","commit":{"sha":B}}),
+            (8, {"default_branch":"release"}),
+            (8, {"default_branch":None}),
+            (8, []),
         ):
             candidate = copy.deepcopy(good)
             candidate[index] = value
@@ -291,6 +295,35 @@ class TrustedAttestationTests(unittest.TestCase):
             with self.subTest(case=case), mock.patch.object(subject, "fetch_json", side_effect=case):
                 with self.assertRaises(subject.TrustFailure):
                     subject.attest("o/r", 2, H, C, manifest(), "token")
+
+    def test_default_branch_retarged_mid_attestation_is_rejected(self):
+        # The old default branch can still exist at the same base SHA after a
+        # repository settings change. The final /branches/main read alone is
+        # not sufficient authority to call that SHA the current default.
+        valid_proof = [
+            repository(), branch(), snapshot(), api_tree(origin_tree()),
+            api_tree(base_tree()), api_tree(candidate_tree()), snapshot(), branch(),
+        ]
+        for final_repository in (
+            {"default_branch": "release"},
+            {"default_branch": "main-renamed"},
+            {"default_branch": None},
+            [],
+        ):
+            with self.subTest(final_repository=final_repository):
+                with mock.patch.object(
+                    subject, "fetch_json",
+                    side_effect=[*valid_proof, final_repository],
+                ) as fetch:
+                    with self.assertRaisesRegex(
+                        subject.TrustFailure, "default branch changed"
+                    ):
+                        subject.attest("o/r", 2, H, C, manifest(), "token")
+                self.assertEqual(fetch.call_count, 9)
+                self.assertEqual(
+                    fetch.call_args_list[-1].args[0],
+                    "https://api.github.com/repos/o/r",
+                )
 
     def test_manifest_bound_to_exact_declared_origin_tree(self):
         bads = [
