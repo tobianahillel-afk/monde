@@ -1,0 +1,68 @@
+name: MONDE Trusted WORK-0002 Source
+
+on:
+  pull_request:
+    paths:
+      - '.github/trusted/**'
+      - '.github/workflows/monde-trusted-source.yml'
+      - PROJECT_STATE.md
+      - registry/work-items/WORK-0002.yaml
+      - registry/reviews/REVIEW-0095.yaml
+      - registry/tests/TEST-0011.yaml
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Trusted-source self-tests (unprivileged)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout candidate for unprivileged unit tests only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Test the proposed attestor without GitHub credentials
+        run: python3 -m unittest discover -s .github/trusted -p 'test_*.py' -v
+
+  trusted-attestation:
+    name: MONDE / Trusted Source
+    if: (github.event_name == 'pull_request_target' && github.event.pull_request.number == 2 && github.event.pull_request.base.ref == 'main') || github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - name: Checkout default-branch owned attestor only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
+      - name: Validate and publish exact PR-head trusted-source status without executing PR code
+        id: trusted_attestor
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MONDE_ATTEST_HEAD: ${{ github.event.pull_request.head.sha || 'CURRENT_PR_2' }}
+          MONDE_ATTEST_BASE: ${{ github.event.pull_request.base.sha || github.sha }}
+          MONDE_ATTEST_BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+          MONDE_ATTEST_PR: ${{ github.event.pull_request.number || 2 }}
+          MONDE_ATTEST_PROOF_PATH: ${{ runner.temp }}/monde-trusted-source-proof.json
+        run: python3 .github/trusted/trusted_source_attestor.py
+      - name: Publish completed-run evidence for independent downstream verification
+        # A closed PR #2 is the only allowed successful no-op. Otherwise a
+        # missing proof must still fail via if-no-files-found: error.
+        if: steps.trusted_attestor.outputs.closed_pr_noop != 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: monde-trusted-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/monde-trusted-source-proof.json
+          if-no-files-found: error
+          retention-days: 14

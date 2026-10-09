@@ -10,10 +10,23 @@ Canonical operational state: Yes
 - PHASE-0 / LOT-0 remain `IN_PROGRESS`.
 - WORK-0001 is `DONE / A3`, integrated on `main` at `29086643387ff46ab6636dd2fa3014efccc10165`.
 - WORK-0002 remains `IN_REVIEW / A3`; WORK-0003 and WORK-0004 remain blocked.
+- PR #5/T12 was independently accepted and merged to `main` on 2026-09-24.
+- PR #2 is open with 104 unresolved findings; REVIEW-0094 is terminal negative after two independent P1 source-provenance findings.
+- PR #14 is the active proposed main-owned trust-root predecessor; REVIEW-0095/0096/0097 are `CLOSED / CHANGES_REQUIRED`, REVIEW-0098 has no clean approval; PR #14 is open/unmerged with 21 unresolved review threads at the latest live query; REVIEW-0099 is terminal negative; REVIEW-0100 is IN_PROGRESS on an unapproved corrective candidate after its successful OPEN checkpoint. Independent L2 is eligible only after successful live exact-head CI.
+
+## PR #14 trust-root history and current successor (2026-10-09)
+
+PR #14 frozen technical predecessor `2595f9f54e7783eac6dc165b77c6c8930db3ab17` passed Trusted Source #33 (**53/53 tests**) and Bootstrap #524, but it did **not** establish accepted default-branch authority. The latest independent Codex review raised P1 `PRRT_kwDOUUI5ts6q2D3L`: live GitHub REST workflow-run paths use the `@main` suffix; P1 `PRRT_kwDOUUI5ts6q2D3U`: unrelated `pull_request_target` runs have skipped attestation jobs and must not supersede a relevant PR #2 or main-push run; P2 `PRRT_kwDOUUI5ts6q2D3d`: T15 plan omitted collector/consumer files and risks.
+
+The next unapproved technical candidate updates the consumer to recognize the exact GitHub `@main` workflow path, adds direct Actions job-provenance checking before chronological run selection, preserves newer *relevant* failed runs over older successful runs, and expands T15 plus TEST-0011 regression scope. An unrelated PR's skipped trust job must not become merge-authoritative; malformed/incomplete job evidence must fail closed. The base-owned workflow is still **not deployed to main**. This technical correction is neither L2 approval nor permission to merge.
+
+The exact corrective candidate `85ef6ef7321f4fc16ef9d130424d6543123cb520` passed Trusted Source #34 / `37954879182` (**56/56** tests, protected base-owned job skipped before integration) and Bootstrap #525 / `37954879194` (**450/450** tests, 100% line and branch, live PR #2 read-only probe success). REVIEW-0098 OPEN checkpoint `cf736aa69fdf6a40a41f91e8fd22135f37585edd` passed Trusted Source #35 / `37955608152` and Bootstrap #526 / `37955608154`. **REVIEW-0098 is CLOSED / CHANGES_REQUIRED** following independent L2; REVIEW-0099 was subsequently closed negative after review and handover defects. All PR #14 findings remain unresolved; no accepted trust root or merge authority exists yet.
+
+Current closure order: exact-head CI; fresh independent L2 across all material PR #14 threads and the 179-file trust manifest; guarded PR #14 integration; live main-owned attestation; protected required-check settings under WORK-0003; PR #2 reintegration and separate exact-head L2. Do not automatically resolve threads or promote WORK-0002 to DONE.
 
 ## PR #5 / T12 trusted predecessor
 
-PR #5 (`chore/work-0002-stale-green-bootstrap`) remains the narrow trusted-default-branch predecessor for WORK-0002/T12. No merge and no historical review-thread resolution is permitted while material findings remain open or a successor review is incomplete.
+Historical T12 predecessor PR #5 was independently accepted as REVIEW-0082 and merged to `main`. Its 83 reviewed threads are resolved. It is not an active blocker and must not be redeveloped.
 
 REVIEW-0049 is terminal `COMPLETE / CHANGES_REQUIRED` independent negative evidence on exact head `c8f1fec24358c25224771a15b647d56c8a2f0287` via `PRR_kwDOUUI5ts8AAAABN4sxvg`.
 
@@ -520,15 +533,118 @@ The lifecycle-recording commit `cabb259aa686028def1c7b9a4e80b85d15b82d99` passed
 
 The repository now needs one reconciliation commit so machine `open_findings` and the active handover stop describing already-resolved PR #5 threads. The exact reconciliation HEAD must pass Bootstrap. That exact-head success is an external live eligibility fact; do **not** create another commit merely to copy its run number into the tree.
 
+## REVIEW-0095 — terminal independent trust-root findings (2026-10-09)
+
+PR #5/T12 is merged. WORK-0002 / PR #2 remains `IN_REVIEW` with **104 unresolved material threads**. Its two REVIEW-0094 supply-chain trust-boundary P1 findings require independently main-approved executable validator and dependency source; a candidate-controlled immutable Git blob is not sufficient.
+
+PR #14 / WORK-0002 T15 stages a proposed default-branch manifest and source verifier; the manifest matches **167/167** executable/sensitive Git objects on PR #2 exact head `2e2664ca8c9cb4f3eb81ea41a172da1ed7fbaf32`. The candidate adds a read-only `pull_request_target` verifier and 17 self-tests without executing untrusted PR #2 code. REVIEW-0095 OPEN checkpoint `ffce3e36ab414234f971723a4993d26e4d170c24` passed trusted-source #10 and Bootstrap #500.
+
+REVIEW-0095 is now **CLOSED / CHANGES_REQUIRED** on exact independently reviewed PR #14 head `3731213c23e25711a3118a2b78357dd2d1d63161` after **17/17 unprivileged tests passed** in trusted-source workflow #11 / `37916592454` and Bootstrap #501 / `37916592324` also passed. The base-owned attestation job was **skipped**, as expected before merge, so there is still no live trusted-source authority.
+
+Fresh independent Codex L2 `PRR_kwDOUUI5ts8AAAABRhODCQ` added two **blocking P1** findings:
+
+1. `PRRT_kwDOUUI5ts6qy--U` — a successful `pull_request_target` Actions check is attached to the **base branch SHA**, not the exact PR #2 commit that was inspected. Passing a head SHA as an environment variable does not turn that base check into a candidate-commit required check.
+2. `PRRT_kwDOUUI5ts6qy--k` — `verify_tree` allows the candidate to omit base-owned trust roots even after it has integrated `main`. A later deletion could therefore erase the merged trust root while still passing the existing 167-object manifest check.
+
+PR #14 has **5 total review threads: 1 resolved, 4 unresolved**; the two earlier still-open findings concern canonical traceability and strict duplicate JSON keys (their candidate fixes remain present). No review is approved merely because tests are green.
+
+The next successor must preserve the pre-integration absence exception **without permitting post-integration deletion**, preferably by checking the exact candidate+base merge-result Git tree or an equivalent ancestry-bound guarantee, then publish an immutable-name trusted attestation result **on the exact validated candidate SHA**, fail-closed on mismatched current heads/merge metadata. Both behaviors require unit/adversarial tests and a fresh exact-head independent L2 before PR #14 merge. Repository protection/required-check binding remains separate WORK-0003 authority and must not be silently treated as already configured.
+
+## REVIEW-0096 — terminal independent negative evidence (2026-10-09)
+
+Frozen exact PR #14 HEAD `b9ccdc55a41943e0ea47aef6e6b589c86705a4b0` passed trusted-source self-tests #16 / `37939247069` at **23/23** and Bootstrap #506 / `37939247146`. Its base-owned attestation remains intentionally SKIPPED until an independently accepted source-root commit is present on `main`.
+
+Independent Codex review `PRR_kwDOUUI5ts8AAAABRhi1ug` on this same HEAD identified three material defects. REVIEW-0096 is therefore **CLOSED / CHANGES_REQUIRED**, not accepted:
+
+- P1 `PRRT_kwDOUUI5ts78Lb92`: candidate-owned registry policy YAML and `schemas/` JSON were absent from the 167-entry trusted-source manifest, allowing authority rules to drift while source Python stays identical.
+- P2 `PRRT_kwDOUUI5ts78Lb-I`: a missing `sha` in the GitHub status-post acknowledgement was treated as acceptable instead of failing closed.
+- P2 `PRRT_kwDOUUI5ts78Lb-R`: operational handover still carried contradictory historical `OPEN` / `IN_PROGRESS` labels despite terminal and active review records.
+
+The live PR #14 has **8 total review threads, 7 unresolved**, and PR #2 still has **104 unresolved**. Historical findings remain open until a clean independent successor review authorizes controlled resolution.
+
+## REVIEW-0097 — proposed successor correction
+
+The unapproved REVIEW-0097 technical successor now binds **all governance policy YAML files** `registry/status-machines.yaml`, `registry/acceptance-authority.yaml`, `registry/content-identity.yaml`, `registry/integration-provenance.yaml` and **every JSON/YAML schema beneath `schemas/`** to exact reviewed Git blob SHA/mode in the base-owned trust manifest. Its executable policy must require these fixed paths and reject additional or modified schema files by the same source proof. GitHub status publication must require an exact candidate `sha` field in each acknowledgement. Candidate tests must falsify changed/missing policy/schema inputs, malformed/missing status SHA, while preserving pre-integration candidate exception, synthetic test-merge root retention, and zero candidate-code execution.
+
+Technical candidate `74a294162b137870aab92c2de25d226509bb68cc` passed trusted-source #18 / `37942396359` with **26/26 tests** and Bootstrap #508 / `37942396392` with **450/450 tests and 100% line/branch**. REVIEW-0097 is now **IN_PROGRESS** after its OPEN checkpoint `40891d113e15759a69fd4e6ee92f15c7fda35327` passed trusted-source #19 / `37942839218` and Bootstrap #509 / `37942838940`. No independent approval or integration exists.
+
+## REVIEW-0097 — terminal independent negative evidence (2026-10-09)
+
+The frozen candidate `7699e1fb1a28bac1b1f8541ebf92126653d14a0d` passed Trusted Source #20 / `37943214775` and Bootstrap #510 / `37943214711`, but fresh independent L2 `PRR_kwDOUUI5ts8AAAABRh5KCg` identified **two new P1 findings**:
+
+- `PRRT_kwDOUUI5ts6q0YNM`: a successful candidate-SHA status remains on the same candidate when `main` advances; `pull_request_target` has no automatic base-push trigger, so a success can become stale for a different merged tree.
+- `PRRT_kwDOUUI5ts6q0YNX`: GitHub may accept a terminal success POST even if the response is lost or malformed. The local job fails, but remote green can survive; a raw success status is therefore insufficient authority.
+
+REVIEW-0097 is **CLOSED / CHANGES_REQUIRED**, not an approval. PR #14 now has **9 unresolved review threads**, and PR #2 remains at **104 unresolved threads**. Nothing is merged or resolved.
+
+## REVIEW-0098 — partial technical mitigation, not acceptance
+
+After independent REVIEW-0097 `CLOSED / CHANGES_REQUIRED`, the first successor mitigation on exact PR #14 HEAD `0b5ce3aaf25e12a96142472fc261681212f2a88f` passed Trusted Source #22 / `37945534737` (**29/29 tests**) and Bootstrap #512 / `37945534851` (**450 tests; 3,853 statements and 1,640 branches at 100%**).
+
+The proposed default-branch-owned publisher now embeds the **validated main/base SHA** in each emitted status description, and tries to publish a same-head failure whenever terminal `success` acknowledgement is ambiguous. The publisher never reports a successful run after ambiguous success or failed compensation.
+
+**This does not close either P1.** A remote success may survive both ambiguous writes; a base SHA in a description is not an independently enforced rule. The downstream trusted live gate must positively check current main/base SHA, the exact candidate SHA, and a successfully completed trusted publisher run. GitHub base-push updates without candidate HEAD changes must also invalidate/re-attest or fail merge authority. No REVIEW-0098 lifecycle review has been opened. Nine PR #14 and 104 PR #2 material threads remain unresolved.
+
+## REVIEW-0098 — base-push freshness candidate, technical proof only
+
+Exact PR #14 candidate `46f43f1ef472e64de14d1e4d7c8271012d71add2` passed **Trusted Source #28 / 37947528012 (33/33 tests)** and **Bootstrap #518 / 37947527987 (450/450 tests, 3,853 statements / 1,640 branches, 100% line+branch)**.
+
+The proposed default-branch-owned workflow now has a dedicated `push` trigger on `main`. When no `pull_request_target` event is emitted for an unchanged candidate, the base-owned attestor retrieves PR #2's current HEAD and verifies its actual main/base SHA rather than reusing an older event SHA. The same publisher still includes the exact validated base SHA in the commit-status description, attempts failure compensation after ambiguous success, and preserves the original verification exception if publishing negative status fails.
+
+These controls **reduce staleness but are not complete merge authority**. A base push can occur before its workflow executes; a double-ambiguous status POST can leave remote green even while the trusted run fails. A downstream gate must require exact current base SHA plus completed successful trusted-run provenance (and a currently accepted source tree), not just a raw status context. Until that consumer is implemented, independently reviewed, and proven on real GitHub, REVIEW-0098 must not be opened or approved and PR #14/PR #2 must not be merged.
+
+PR #14 has **11 unresolved / 12 total review threads**. PR #2 retains **104 unresolved material threads**.
+
+## REVIEW-0098 — base-retarget trigger regression
+
+The candidate source-attestation workflow now listens to `pull_request_target.edited` as well as opened/synchronize/reopened/ready_for_review. A structural test guards this trigger together with the existing main-only base condition and exact base-SHA checkout. This is a narrow candidate correction, **not** accepted merge authority: a separate trusted consumer must still bind current base SHA and completed successful base-owned workflow provenance; REVIEW-0098 remains unapproved.
+
+## REVIEW-0098 — completed-run provenance candidate (not merge authority)
+
+The main-owned attestor now emits a size-bounded JSON proof artifact **only after confirming candidate-SHA success publication**. The proof binds PR #2, candidate HEAD SHA, validated main/base SHA, exact GitHub run ID/attempt, approved manifest digest, and approved source count. The workflow uploads this proof only after the attestation step succeeds, with `if-no-files-found: error`.
+
+New proposed base-owned `.github/trusted/trusted_source_consumer.py` checks the independently fetched **completed successful** GitHub workflow-run identity, the uniquely named non-expired artifact, proof content and exact current PR/base identity. A raw GitHub status of `success`, or candidate-controlled proof bytes without independent GitHub run/artifact retrieval, cannot satisfy this contract. Tests include base advancement, wrong candidate/run/attempt, failed or pending runs, tampered manifests and duplicate JSON.
+
+The candidate consumer also includes a bounded, single-file GitHub artifact ZIP decoder. It rejects path traversal, symlinks, additional files, corrupt archives and oversized proof payloads before verifying completed-run evidence. This is an unprivileged testable parsing boundary, **not** a live artifact-fetch or merge-authorization integration.
+
+This is **a candidate implementation only**. The consumer is not yet wired to an independently protected required check or a proven live base-owned run. REVIEW-0098 remains unapproved; no thread resolution or PR #14/#2 merge is justified. The trusted consumer must be integrated from `main`, fetch its own GitHub evidence, revalidate immediately before decision, and be coupled to WORK-0003 branch-protection/required-check rules.
+
+## REVIEW-0098 — read-only GitHub evidence collector candidate
+
+The new proposed default-branch-owned `.github/trusted/trusted_source_collector.py` fetches the newest relevant trusted-source workflow run, re-fetches its exact run identity, selects a unique bounded proof artifact, downloads it through restricted HTTPS redirects and reuses `trusted_source_consumer.extract_exact_proof_archive` as the **single** ZIP validation implementation. It independently re-reads PR #2 and current `main` before accepting the completed-run proof.
+
+The collector rejects missing, stale, failed or ambiguous runs, malformed artifact collections, mismatched run/attempt, unsafe archive redirects and PR/main drift. Candidate tests include a newer failing run superseding an older success. This is **not yet a deployed main-owned consumer or an enforceable required merge check**; REVIEW-0098 remains unapproved, with all material threads unresolved.
+
+## REVIEW-0098 — terminal independent findings on exact PR #14 HEAD
+
+REVIEW-0098 is `CLOSED / CHANGES_REQUIRED` after independent Codex L2 `PRR_kwDOUUI5ts8AAAABRi_KWA` on exact frozen `449f2f8805df4d6878afe22548c6c29f39909b14`. The successor must address P1 rerun attempt chronology (`PRRT_kwDOUUI5ts6q2tdv`), P1 post-artifact run frontier stability (`PRRT_kwDOUUI5ts6q2td4`), P1 multi-page source-run discovery (`PRRT_kwDOUUI5ts6q2teD`), P2 duplicate JSON keys in status acknowledgement (`PRRT_kwDOUUI5ts6q2teM`), and P2 the missing REVIEW-0098 task-specific expected-file declaration (`PRRT_kwDOUUI5ts6q2teU`). All **19 unresolved PR #14 threads** remain open. The prior trusted-source #36 and Bootstrap #527 prove only the frozen predecessor, not a corrected successor.
+
+REVIEW-0099 is now terminal **CLOSED / CHANGES_REQUIRED**. No default-branch trust authority, successful base-owned attestation, or required merge check exists yet. Preserve the 179-object source identity proposal and all previous negative reviews. Never merge PR #14 or resolve threads solely from author-side tests.
+
+## REVIEW-0099 — trusted-source frontier hardening candidate
+
+REVIEW-0098 is terminal `CLOSED / CHANGES_REQUIRED` on the exact independently reviewed SHA `449f2f8805df4d6878afe22548c6c29f39909b14`, with five new material findings. Its closure checkpoint `0d2d000710f2719bcf5c6437a0dade3b90ee9830` passed Trusted Source #37 / `37958043062` and Bootstrap #528 / `37958043227`.
+
+The corrected exact technical candidate `41319695c2c56c3e9f2506560c009da94582160b` passed Trusted Source #38 / `37958224986` (**62/62 unit tests**) and Bootstrap #529 / `37958224997` (SUCCESS). It:
+- orders complete relevant workflow runs by current attempt start/number rather than original creation time, failing closed on a rerun whose current attempt chronology cannot be established;
+- scans explicit pages of `pull_request_target` and `push` runs, rejecting incomplete/drifting/beyond-cap frontiers rather than silently stopping at 100;
+- recomputes the selected relevant run after downloading proof artifacts and refreshing PR/main to reject new runs and new attempts before positive verification;
+- rejects duplicate JSON keys in GitHub status acknowledgements using the same strict manifest parser;
+- includes `REVIEW-0098.yaml` in T15 task-specific scope.
+
+The run pagination budget remains explicit and fail-closed; this is not a claim of unbounded-liveness or of default-branch attestation. REVIEW-0099 passed its `OPEN` checkpoint (Trusted Source #39 / `37958702891` and Bootstrap #530 / `37958702393`); it is now `IN_PROGRESS` pending one frozen exact-head proof, fresh independent security L2 and controlled thread resolution before PR #14 can merge. **19 PR #14 threads remain unresolved and PR #2 has 104 unresolved.** No owner-sensitive product UX decisions have been made.
+
 ## Current next action
 
-1. REVIEW-0082 independent L2 is clean and remains `COMPLETE / APPROVE` on exact reviewed head `71ed1cb233d16f032ff27cf5a88dfe039e2ba618`.
-2. Lifecycle-recording commit `cabb259aa686028def1c7b9a4e80b85d15b82d99` passed Bootstrap #332 / run `36048764381`.
-3. Controlled PR #5 resolution is complete: **83/83 resolved, 0 unresolved, no new finding**, with branch content fixed during resolution.
-4. Prove the current reconciliation HEAD with Bootstrap at 100% line + branch and live contract success; do not create a post-proof commit just to record completion.
-5. If that exact-head proof is green and live PR #5 still has 0 unresolved/new findings, assess guarded PR #5 merge eligibility and merge only with expected-head protection.
-6. After PR #5 merges, PR #2 must explicitly integrate new `main` with a two-parent merge, reconcile canonical state, rerun full proof, receive fresh L2 and eligible trusted non-author exact-head APPROVED evidence before WORK-0002 closes.
-7. WORK-0003 and WORK-0004 remain blocked until WORK-0002 closure sequencing permits them.
+1. Preserve all **21** unresolved PR #14 review threads and **104** unresolved PR #2 findings.
+2. REVIEW-0099 is terminal CLOSED / CHANGES_REQUIRED; REVIEW-0100 is OPEN after exact technical candidate proof on `cfef127471782241033e2371ab33ae611aebb8e0`.
+3. Prove REVIEW-0100 OPEN state-only checkpoint, then transition OPEN → IN_PROGRESS and prove one frozen exact HEAD.
+4. Seek fresh-context independent L2 over all 21 PR #14 threads, the 179-object proposed manifest, attestor/consumer/collector, and the new closed-PR no-op/artifact semantics.
+5. Do not merge PR #14, resolve findings, or claim default-branch attestation until independent acceptance. PR #2 and WORK-0003/WORK-0004 remain blocked.
+
+## REVIEW-0099 — terminal negative; REVIEW-0100 corrective candidate (2026-10-09)
+
+The frozen PR #14 head `c83469b3a4781f70573567f052773db53116d955` completed Trusted Source #40 and Bootstrap #531, but unprivileged CI is not main-owned attestation. Codex quota refusal is not approval. CodeRabbit found PRRT_kwDOUUI5ts6q3TSz (closed PR #2 makes the push artifact step fail), PRRT_kwDOUUI5ts6q3TS8 (stale handover), PRRT_kwDOUUI5ts6q3TTA (obsolete T12 blocker), and PRRT_kwDOUUI5ts6q3TTE (invalid YAML run_log indentation). REVIEW-0099 closes as CHANGES_REQUIRED. REVIEW-0100 opens after exact technical proof: Trusted Source #42 / 37965566949 passed 63 tests, Bootstrap #533 / 37965567053 passed 450 tests with 100 percent line+branch. The successor must preserve the security boundary and demonstrate a safe closed-PR no-op artifact path, parseable canonical registries, and new exact-head unprivileged proof before fresh independent review. PR #14 remains unmerged and its current 21 unresolved threads remain unresolved; the main-owned attestation job has not executed.
 
 ## Resume sequence
 
@@ -542,7 +658,9 @@ The repository now needs one reconciliation commit so machine `open_findings` an
 8. registry/reviews/REVIEW-0049.yaml
 9. registry/reviews/REVIEW-0050.yaml
 10. issue #7 scheduler state
-11. live PR #5 exact HEAD/checks/reviews/0 unresolved threads
-12. live PR #2 exact HEAD/checks/reviews/threads
+11. live PR #14 exact HEAD, all review threads, REVIEW-0095 and TEST-0011
+12. live PR #2 exact HEAD/checks/reviews/104 unresolved material threads
+13. .github/trusted/approved_sources.json and trusted_source_attestor.py on PR #14
+14. .github/workflows/monde-trusted-source.yml and WORK-0002 T15
 
 MONDE remains public. Never commit credentials, tokens or secrets.

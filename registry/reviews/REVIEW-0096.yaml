@@ -1,0 +1,82 @@
+id: REVIEW-0096
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-14"
+  commit_sha: "b9ccdc55a41943e0ea47aef6e6b589c86705a4b0"
+reviewer: {actor: "chatgpt-codex-connector", context_id: "PRR_kwDOUUI5ts8AAAABRhi1ug", independence_level: L2}
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: []
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "base-owned attestor executes no candidate-controlled source"
+    - "all 167 approved candidate source path/SHA/mode objects match exact candidate tree"
+    - "current PR #2 number, state, draft, head, base ref/SHA, mergeable and merge commit are bound to exact event"
+    - "GitHub synthetic test-merge commit has exact ordered base/head parents"
+    - "complete GitHub synthetic merge-result tree retains every main-owned trusted manifest, attestor and workflow path at exact base SHA/mode"
+    - "pre-integration candidate may omit base-owned trust-root paths but merged-result proof never may"
+    - "trusted pull_request_target publishes fixed-context pending and terminal commit status against validated candidate head SHA"
+    - "trusted status acknowledgement binds exact context, state and candidate SHA when present"
+    - "default branch remains at event base SHA before success; live PR merge/head/base is revalidated before success"
+    - "scheduled trusted workflow grants only contents:read and statuses:write, never checks out or executes candidate code"
+    - "candidate unit workflow is unprivileged and base-owned live attestation does not run before independently reviewed main merge"
+  risks:
+    - "GitHub pull_request_target Actions conclusion is recorded on base SHA rather than validated candidate SHA"
+    - "post-integration candidate deletes trusted workflow or manifest while retaining other 167 approved files"
+    - "GitHub synthetic merge SHA is stale, missing or bound to different base/head parents"
+    - "status write context can be spoofed or stale without required-check actor/provenance enforcement"
+    - "status API acknowledgement or network mutation may be ambiguous"
+    - "trust-root candidate itself has not been integrated or accepted independently"
+findings:
+  - PRRT_kwDOUUI5ts78Lb92
+  - PRRT_kwDOUUI5ts78Lb-I
+  - PRRT_kwDOUUI5ts78Lb-R
+checks:
+  assumptions_challenged:
+    - "passing an environment head SHA changes the pull_request_target GitHub Actions check commit"
+    - "verifying only present candidate trust-root files prevents future deletion"
+    - "green unprivileged tests or author-maintained manifest establish base trust"
+    - "a published status is a required merge gate without repository protection policy"
+  omitted_categories_considered:
+    - "missing or stale GitHub test-merge reference"
+    - "wrong ordered merge parents or incomplete/truncated merged tree"
+    - "synthetic merge deletes one or all trusted workflow/attestor/manifest paths"
+    - "source tree and synthetic merge tree differ on approved path/SHA/mode"
+    - "candidate PR head/base changes during validation"
+    - "default branch advances during validation"
+    - "status acknowledgement malformed, wrong context, wrong state or wrong SHA"
+    - "failure/status API outage leaves previous green and required-check enforcement is not yet active"
+    - "same-named Actions job and commit status ambiguity; trust-publisher context is separate"
+    - "four PR #14 historical inline threads remain unresolved until independent review"
+  duplicate_or_reuse_search:
+    - "REVIEW-0095 remains terminal independent negative evidence: PRRT_kwDOUUI5ts6qy--U and PRRT_kwDOUUI5ts6qy--k."
+    - "Existing exact Git source verification, strict manifest JSON decoder and typed Git mode checks are reused."
+    - "GitHub's actual PR #2 synthetic merge commit was read and shown to have ordered parents [main, candidate]."
+    - "WORK-0002 T15 and TEST-0011 retain the single trusted-root scope; no new product feature is introduced."
+  failure_modes_considered:
+    - "older main SHA still has a successful trusted status after base changes"
+    - "candidate HEAD changes after pending status but before terminal outcome"
+    - "GitHub synthetic merge does not exist while mergeability is unknown"
+    - "status publisher succeeds on wrong candidate identity"
+    - "candidate merge-result tree removes a base-owned trust root"
+    - "trusted status context may not be enforceable by GitHub required-check rules before WORK-0003"
+  evidence_requested:
+    - "REVIEW-0095 closed checkpoint a96e8a55c7b19e26c6480c0fea1b3a64aebe4996 passed trusted-source #12 / 37937372646 and Bootstrap #502 / 37937372624."
+    - "First successor candidate b38c70c7c05642f61d5631a46937d75b61b35287 produced negative trusted-source #13 / 37938220830 because two fixtures asserted stale error/stage text."
+    - "Corrected technical candidate dcec959c96ca1484f1ff77fc5f7c23078e1365f9 passed trusted-source #14 / 37938493770 at 23/23 tests and Bootstrap #504 / 37938494014."
+    - "This OPEN state-only checkpoint requires its own exact workflow proof before transition to IN_PROGRESS."
+    - "After IN_PROGRESS, one frozen exact-head proof and fresh independent L2 must inspect all four PR #14 threads and challenge new status publisher plus synthetic merge."
+    - "No historical thread may be resolved or PR #14 merged solely based on these unit tests."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-10-09T13:52:54Z"
+history: {created_at: "2026-10-09", updated_at: "2026-10-09"}

@@ -1,0 +1,723 @@
+{
+  "schema_version": 1,
+  "target_pr": 2,
+  "source_commit_for_review": "2e2664ca8c9cb4f3eb81ea41a172da1ed7fbaf32",
+  "source_files": {
+    ".github/CODEOWNERS": {
+      "sha": "b3adfbce818eaa7affe73ee6d29434177da2ce88",
+      "mode": "100644"
+    },
+    ".github/copilot-instructions.md": {
+      "sha": "cd3c09f4b6402a402b1aa0853b50a3600627b663",
+      "mode": "100644"
+    },
+    ".github/dependabot.yml": {
+      "sha": "bc4c3a8a2b8711fa83edfde502c4c49043f0cf1b",
+      "mode": "100644"
+    },
+    ".github/ISSUE_TEMPLATE/bug.yml": {
+      "sha": "6dbda13b615a9c095438279f3f64e39f98c1ecd9",
+      "mode": "100644"
+    },
+    ".github/ISSUE_TEMPLATE/feature.yml": {
+      "sha": "de7ab534a245ab582f6eecc3548b2822eef2e669",
+      "mode": "100644"
+    },
+    ".github/pull_request_template.md": {
+      "sha": "da927f104a5c1f168f63603c97d5147cffd16efc",
+      "mode": "100644"
+    },
+    ".github/scripts/governance_l2_followup.py": {
+      "sha": "154e1b6ae912e512c23edfdec8aed72c7452821a",
+      "mode": "100644"
+    },
+    ".github/scripts/governance_l2_gate.py": {
+      "sha": "416bb933fdb296d00255b99bd218edfc86b9690f",
+      "mode": "100644"
+    },
+    ".github/scripts/governance_l2_hardening.py": {
+      "sha": "4c79add2df33808d78ddb4fd9c47adcc28cc6c20",
+      "mode": "100644"
+    },
+    ".github/scripts/governance_l2_mutation_smoke.py": {
+      "sha": "33987cf2d157bbe5c3021c66f755465d662a0d85",
+      "mode": "100644"
+    },
+    ".github/scripts/governance_t10_mutation_smoke.py": {
+      "sha": "093e57264f6e6e41076f2ffe27b016417113ba6a",
+      "mode": "100644"
+    },
+    ".github/scripts/governance_t11_mutation_smoke.py": {
+      "sha": "7e3a941658e2d29f36d8d657f0fa44c4e6757012",
+      "mode": "100644"
+    },
+    ".github/scripts/governance_t13_mutation_smoke.py": {
+      "sha": "2efe571a330597a0b3d6f8fe75db543d655b6871",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0048.py": {
+      "sha": "165b0dc8b9ef1c56b3a4bb89f363cfb01a5eab3a",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0049.py": {
+      "sha": "f35913fe7a0f54efd652a43b776771bb96f74cb1",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0050_recovery.py": {
+      "sha": "ef0ac82ac29ab1bd4aba1cfe49e50e282c37d433",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0050.py": {
+      "sha": "ecea1969217b3f9aa936fce6407a8e7dbeac9870",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0051_recovery.py": {
+      "sha": "d83813ab56f2dc3863cd93a8af386fadfa1e71bf",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0054.py": {
+      "sha": "079e50cd28b1a6c7c6f65860e0329673ec0cf2c6",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0055.py": {
+      "sha": "666fdae530532621a99b5efc32fb5d6bc720b0f5",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0056.py": {
+      "sha": "6d01445060ad606cef24a50602a803002f4ee87d",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0059.py": {
+      "sha": "7b9671018881e669fc8b440fb41bfed79b6bd87f",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0060.py": {
+      "sha": "09ea653b65d790bbe961e19a86e37e1cf0f02b32",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0061.py": {
+      "sha": "c8c7d57e4ae5e2ede2837832838e271f0e5cb807",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0062.py": {
+      "sha": "939e95b5b34e63c8dafbfdb272b39d9ff4334026",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0063.py": {
+      "sha": "3db6f5e4cd9d815409dc165bfd2ce6ef2550c01c",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0064.py": {
+      "sha": "24af96b65cb0dbfe0c7eb94802fa6054a4d0768c",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0065.py": {
+      "sha": "5db5a79445d837e0f3c90f8ad32ecbd86e1b9d17",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0066.py": {
+      "sha": "0683a7e79937cd4d90c41f2f80b375bf21313c35",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0067.py": {
+      "sha": "36a53138cdadac02ede4a9352bbe31e92052cb13",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0068.py": {
+      "sha": "425475cac6d451d9933be18b0abfd50b28754afc",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0069.py": {
+      "sha": "464967289fe074b93794429a47fc6d8fca98d7cc",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0070.py": {
+      "sha": "30a478252315da60d307795eaaf0516788c8bc48",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0071.py": {
+      "sha": "e1e1fd8f8206778bc23bb20fd78eee5a5fd7b98e",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0072.py": {
+      "sha": "f51ad55da989b59544a4c549e5a3747335d396fc",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0073.py": {
+      "sha": "4dcadeb4ff14e2b6b8a0b8ba70438f1b3bbed52e",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0074.py": {
+      "sha": "dbe11cbeca00b24fd815b8067e1d00867d5d2928",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority_review0075.py": {
+      "sha": "89d093e6f2e662d7584534c6adf6656dcdea21a2",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_authority.py": {
+      "sha": "c9341a94c9897a3b9b47cd4b6e871178afc1e44a",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap_pr_snapshot.py": {
+      "sha": "6c3ff5971a565dfe5c17acdd6e4832d590541cc4",
+      "mode": "100644"
+    },
+    ".github/scripts/stale_green_bootstrap.py": {
+      "sha": "b563d71e67989859f86e0c468f37eeb0c091931f",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_edges.py": {
+      "sha": "b3bf5b9744b56df9ab64085f24e9e7253c3f6edf",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0046.py": {
+      "sha": "c4de08a7b99b8fb628c2a2933a9bcd9cdfa9c5f2",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0047.py": {
+      "sha": "f816e5cd77a95738b8a5b6b6c1288da4ad6494e1",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0048_edges.py": {
+      "sha": "02931091954cbae53550e67bed4f91f44fb1249a",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0048_final.py": {
+      "sha": "fae2b8850d544df85bd61824c9ebdedcbe442449",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0048.py": {
+      "sha": "db468f24c5982c854825bcb3ef312211058f96ec",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0049_edges.py": {
+      "sha": "72e588ab1099f77353e710c3df1e451230d0f034",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0049_final_edges.py": {
+      "sha": "92502cafe1010f7bfcc4699ad0f874698c0bca13",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0049.py": {
+      "sha": "ed4a7f6be4bb7f2411f1f45a694a5c30be66cf02",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0050_edges.py": {
+      "sha": "ca4c4c6273c8fd0d94c915268dd41ed4267da8e6",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0050_recovery_edges.py": {
+      "sha": "7562bb4f5b0e4fcffe030c30e7f1be332523bb66",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0050_recovery.py": {
+      "sha": "8ce5cd670285b2bba9b3eb6fd65b1a47c56efe11",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0050.py": {
+      "sha": "8d5bd599ef18eb2df05ad80bea22d21936f56c8b",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0051_recovery.py": {
+      "sha": "af5fc481ab56112de5664e3d65e1ad80f406dc6d",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0054.py": {
+      "sha": "c826904bc4623e96058734ae9afb2dd0228eb70f",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0055.py": {
+      "sha": "0129ae638cdade15a26241f124bb04eca3d186ab",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0056.py": {
+      "sha": "b370fe47bbb0153aba045ca9410ac71ac8455610",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0059.py": {
+      "sha": "f80a54f3dcca077a4297866f9295c8f21e1d918c",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0060.py": {
+      "sha": "9904623f7ef84533d8eaf6018cb82d6ac87d9254",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0061.py": {
+      "sha": "a3f2fe2d1063b334ee91065e584e514e9a2a65b2",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0062.py": {
+      "sha": "ac225edc20c4996352c2072e77ac176bee8eeab0",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0063.py": {
+      "sha": "7f51139e3b2f04046c0f5260390764e00549505c",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0064.py": {
+      "sha": "d467bd804922c439a6eb0f9581a612aaac729c60",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0065.py": {
+      "sha": "a22b15ea09b1067519dc74b1212691f338c1e9bb",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0066.py": {
+      "sha": "fa6631d26ffa15b8c17e3d5cbeb3aa6c471fc104",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0067.py": {
+      "sha": "d75b244296dac1be21d7b2cef4cf3522998278b7",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0068.py": {
+      "sha": "fd8f998957259757ced7e7e75cb6ac45cd13ce72",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0069.py": {
+      "sha": "250af0564d6a08e56655fa1037b7fb6a26ce948e",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0070.py": {
+      "sha": "005cf5c8059151c090abdda8adbc05311c1e667a",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0071.py": {
+      "sha": "de30eabae7e3444460733d6095d8583a39054e32",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0072.py": {
+      "sha": "f4d0d4e14e6e26d7031044e41574f97c26cfc8a5",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0073.py": {
+      "sha": "ae7eb07af6a032a403a0a1910f92e8228140ed48",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0074.py": {
+      "sha": "76911ebc0e67a05ae94dfdff602a8184ff176a6b",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_review0075.py": {
+      "sha": "c542be289e7d442a78aba3a4469eed8dfc2ac4ef",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_shared.py": {
+      "sha": "c45f6479d4f4d41140e1b08d7338b83fe7505efd",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority_terminal_wait.py": {
+      "sha": "ae4e7a84dbe74209ede392900ef116926e790f87",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_authority.py": {
+      "sha": "647dc5421befc69219a0ae6d982ac9810cbe8f46",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_filtered_search.py": {
+      "sha": "934e1a4bb47626a8a0be08d9e0a94be8681336a7",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_incarnation.py": {
+      "sha": "5e810dcd0efd3bb602601fee7652db0be2331026",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_merge_acceptable.py": {
+      "sha": "582947f8661288fbb70af320053362e358b86468",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_poll_order.py": {
+      "sha": "8ffc537bbf8c0e0b6999df1bfb84a07f3b794ad8",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_pr_snapshot.py": {
+      "sha": "b7ad040d6c050869477391f1c9853f1e0dd13b04",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_progress_fallthrough.py": {
+      "sha": "d6b8f1073d1f5a16757221c386989d8922d2dfee",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_progress.py": {
+      "sha": "93958e3e0a68ce934354808159a6a4a44d20d99f",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap_run_created_at.py": {
+      "sha": "bd7311b20297a011c5d4c718acbc382b60bf0ae8",
+      "mode": "100644"
+    },
+    ".github/scripts/test_stale_green_bootstrap.py": {
+      "sha": "19b956b4c6d1f45f76c9944ca21c79c444179254",
+      "mode": "100644"
+    },
+    ".github/workflows/_governance-core.yml": {
+      "sha": "46a310afec48da895d889d09c6f57dac348d4cdb",
+      "mode": "100644"
+    },
+    ".github/workflows/governance.yml": {
+      "sha": "7c63399c94b973564c20ead8ce6d514e77d32deb",
+      "mode": "100644"
+    },
+    ".github/workflows/monde-stale-green-bootstrap.yml": {
+      "sha": "d43f11dad6275e0dcb582c90c9156ffa5755be42",
+      "mode": "100644"
+    },
+    "pyproject.toml": {
+      "sha": "1bca9c5c9a47da34a24fc074b54e063070dfac57",
+      "mode": "100644"
+    },
+    "registry/acceptance-authority.yaml": {
+      "sha": "795f7eb0937ff371d5a7fc6ac5e98d0490846150",
+      "mode": "100644"
+    },
+    "registry/content-identity.yaml": {
+      "sha": "48ee4c9de3206f0e7f742fae94736f67a900ada5",
+      "mode": "100644"
+    },
+    "registry/integration-provenance.yaml": {
+      "sha": "885bc21d0f4ded00d08387de1dab5af5751555b0",
+      "mode": "100644"
+    },
+    "registry/status-machines.yaml": {
+      "sha": "2e9523efd0509c22c7f1b2804adbef5b07392c0a",
+      "mode": "100644"
+    },
+    "requirements/bootstrap-governance-ci.txt": {
+      "sha": "b73f350476e2708337ff541c3daf9425c5e56e0f",
+      "mode": "100644"
+    },
+    "requirements/governance-ci.txt": {
+      "sha": "d61291f0dd17103995a0ac4473475d6782d48aeb",
+      "mode": "100644"
+    },
+    "schemas/registry/assumptions.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/capabilities.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/experiments.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/requirements.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/reviews.schema.json": {
+      "sha": "80c363fbb217aa53752aa154bf6a386e315824a3",
+      "mode": "100644"
+    },
+    "schemas/registry/risks.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/tests.schema.json": {
+      "sha": "e612f115581ca4030f2c6ec3160a366e5513f083",
+      "mode": "100644"
+    },
+    "schemas/registry/work-items.schema.json": {
+      "sha": "f43b15a1001230f980b2a32eb76cb9833dc8d34b",
+      "mode": "100644"
+    },
+    "scripts/governance_mutation_smoke.py": {
+      "sha": "91747de879b3bcd05fbb1502796a6126f935169d",
+      "mode": "100644"
+    },
+    "tests/governance/conftest.py": {
+      "sha": "369b726c7378666f86099fc7bef1fe6e1b133d97",
+      "mode": "100644"
+    },
+    "tests/governance/test_change_guard_empty_mapping_coverage.py": {
+      "sha": "23e8e0c2127a861df5a460cca020abb6fba5c0ee",
+      "mode": "100644"
+    },
+    "tests/governance/test_change_guard.py": {
+      "sha": "92b2722c02b365bea110b50371293cff1af5a36e",
+      "mode": "100644"
+    },
+    "tests/governance/test_codex_followup_coverage.py": {
+      "sha": "2e08f632407f4c85eb0a884178cd5bd672653d0c",
+      "mode": "100644"
+    },
+    "tests/governance/test_codex_followup_five.py": {
+      "sha": "07ef8040e1e54c964eb8993d9c87e38e0826157a",
+      "mode": "100644"
+    },
+    "tests/governance/test_codex_followup_mutation.py": {
+      "sha": "24333b9bb72aa52ca0576f388e3f0d35e17fb70c",
+      "mode": "100644"
+    },
+    "tests/governance/test_context_manifest.py": {
+      "sha": "3f646dc8fd0555bcf5c6bd5fae388c35c668dd3c",
+      "mode": "100644"
+    },
+    "tests/governance/test_current_gap_regressions.py": {
+      "sha": "586e262cecc435e9e4cbd84b99d8a5cb4319165d",
+      "mode": "100644"
+    },
+    "tests/governance/test_final_l2_findings.py": {
+      "sha": "9f9eac8184fdc0b1f5fe67ab770b54167efa1179",
+      "mode": "100644"
+    },
+    "tests/governance/test_github_live_gate.py": {
+      "sha": "65c3b79ec1ce4bae53eaf7dd3081de066d1f722c",
+      "mode": "100644"
+    },
+    "tests/governance/test_integration_history_provenance.py": {
+      "sha": "932d3c483700cff4b181a681d2b56326eca15383",
+      "mode": "100644"
+    },
+    "tests/governance/test_l2_findings.py": {
+      "sha": "3fce2a4789bb88ab2189e08f9ce755c6db882560",
+      "mode": "100644"
+    },
+    "tests/governance/test_l2_gate_no_adoption_branch.py": {
+      "sha": "65325a42a95791fa7bd2a2b68238fdd3d7dca0c3",
+      "mode": "100644"
+    },
+    "tests/governance/test_l2_gate_provenance.py": {
+      "sha": "310ed497c481d81b1e9a98964e35998cf9dbf2bb",
+      "mode": "100644"
+    },
+    "tests/governance/test_l2_hardening_materialization.py": {
+      "sha": "17b9daf6d6aa939db4c38630d7665092779a7ffb",
+      "mode": "100644"
+    },
+    "tests/governance/test_l2_hardening_v2.py": {
+      "sha": "d131b8f6fae822361981cf9d81de96f3a7915bf8",
+      "mode": "100644"
+    },
+    "tests/governance/test_l2_scripts_final_coverage.py": {
+      "sha": "a70e8aa6ff9e99c1400ab775c8f4965369cf3a6d",
+      "mode": "100644"
+    },
+    "tests/governance/test_l2_scripts_full_coverage.py": {
+      "sha": "d4cce37d856f7b3bd756feb55e3907adea82474c",
+      "mode": "100644"
+    },
+    "tests/governance/test_l2_scripts_last_two_branches.py": {
+      "sha": "330db6d4da068dd4e9e6c68b5b843774057ed081",
+      "mode": "100644"
+    },
+    "tests/governance/test_live_thread_id_parser.py": {
+      "sha": "622ffd629879426434349e5a69145fac56a01953",
+      "mode": "100644"
+    },
+    "tests/governance/test_path_safety.py": {
+      "sha": "73cf46d044ffa1ff0e75d62049b8febf208c6300",
+      "mode": "100644"
+    },
+    "tests/governance/test_proof_contracts_coverage.py": {
+      "sha": "40fcc9646bab6fbd57849e3c8640bca214c5ff2b",
+      "mode": "100644"
+    },
+    "tests/governance/test_review_closure_gate.py": {
+      "sha": "7bd5a1995fff8d8b0daa69ea37a4f29e89113ab6",
+      "mode": "100644"
+    },
+    "tests/governance/test_review_policy_mutations.py": {
+      "sha": "caa51a1f4d691ad27c387fb80ba6458c4792ffdb",
+      "mode": "100644"
+    },
+    "tests/governance/test_review0029_branches.py": {
+      "sha": "c27fec182a874d6cf135c39757e6e656d87d4224",
+      "mode": "100644"
+    },
+    "tests/governance/test_review0029_test_schema.py": {
+      "sha": "baa71832b1e8b390e839276e581e58261c5a08ea",
+      "mode": "100644"
+    },
+    "tests/governance/test_review0030_branch_coverage.py": {
+      "sha": "e33abd4a7a8cb4047ae80c70f95fae0c87fd985c",
+      "mode": "100644"
+    },
+    "tests/governance/test_review0030_mutation_survivors.py": {
+      "sha": "619bf4fd2dc3aa7e4a1efd65062a05a6e0889145",
+      "mode": "100644"
+    },
+    "tests/governance/test_review0030_regressions.py": {
+      "sha": "bb39a478aa78e88beebc8e1587e8e1ef40634557",
+      "mode": "100644"
+    },
+    "tests/governance/test_second_l2_followup_coverage.py": {
+      "sha": "b349d55b7e9e859f50732dba5f13fc594e1d484a",
+      "mode": "100644"
+    },
+    "tests/governance/test_second_l2_followup_last_branches.py": {
+      "sha": "4b6a455b4a2cfdc28432533a8e8f63d794fc9830",
+      "mode": "100644"
+    },
+    "tests/governance/test_second_l2_followup_loop_branch.py": {
+      "sha": "7d0cbd6ee2dc591044e02d41c2eb85a2925e2db1",
+      "mode": "100644"
+    },
+    "tests/governance/test_second_l2_followup.py": {
+      "sha": "6579c4b5fde4c4a892f48c93b1d539e6fac7ca8c",
+      "mode": "100644"
+    },
+    "tests/governance/test_secret_history_coverage.py": {
+      "sha": "e6db06774e318aaa302f99df79fe03020267dca6",
+      "mode": "100644"
+    },
+    "tests/governance/test_squash_integration_provenance.py": {
+      "sha": "054dd1aa1ff0e23dd8fe33bbbc4eb9537224118f",
+      "mode": "100644"
+    },
+    "tests/governance/test_strict_contracts_coverage.py": {
+      "sha": "2217d4204681dc2e26f85d7c6a1e2a7edf362860",
+      "mode": "100644"
+    },
+    "tests/governance/test_strict_contracts.py": {
+      "sha": "9b0a9b77ee4edde4315dd6d7c30db8199fd1593c",
+      "mode": "100644"
+    },
+    "tests/governance/test_t10_coverage.py": {
+      "sha": "7c96aa2e084df537e42f15709a0a1c4f7fb87cc5",
+      "mode": "100644"
+    },
+    "tests/governance/test_t10_findings.py": {
+      "sha": "32f033f3a9137c26ddc1ccaa3248ad4317f45cb9",
+      "mode": "100644"
+    },
+    "tests/governance/test_t11_additional_coverage.py": {
+      "sha": "27158bba9c4397d65abe85068e503a9c3840a06a",
+      "mode": "100644"
+    },
+    "tests/governance/test_t11_findings.py": {
+      "sha": "a2c3e4ae26a614adf60f0c693b91314af9092f0a",
+      "mode": "100644"
+    },
+    "tests/governance/test_t11_repository_wiring.py": {
+      "sha": "ee6311662285da9a99b947c557412bf832d2757a",
+      "mode": "100644"
+    },
+    "tests/governance/test_t13_findings.py": {
+      "sha": "41437b3fc374e05febfd8d117c43d76c5f670d2e",
+      "mode": "100644"
+    },
+    "tests/governance/test_t7_closure_coverage.py": {
+      "sha": "be433412e0be71d501d9db09ff73d3e6825271ac",
+      "mode": "100644"
+    },
+    "tests/governance/test_t7_closure.py": {
+      "sha": "b85e48a3b8fea09616dbe7318494a3c9a0e362d2",
+      "mode": "100644"
+    },
+    "tests/governance/test_t7_final_backedge.py": {
+      "sha": "3be4f36dce89feffee22f6604e253b69391b7169",
+      "mode": "100644"
+    },
+    "tests/governance/test_t7_last_coverage.py": {
+      "sha": "c6adb37cd6fe948da9c466878bf4cf7ac2c927df",
+      "mode": "100644"
+    },
+    "tests/governance/test_t8_coverage.py": {
+      "sha": "3fc86c8e2643761e98d1be66f69c03b7a9623b5f",
+      "mode": "100644"
+    },
+    "tests/governance/test_t8_findings.py": {
+      "sha": "1a1fbcba1fe2a351a881b3fb8982584fcd7c5442",
+      "mode": "100644"
+    },
+    "tests/governance/test_t9_coverage.py": {
+      "sha": "3c19a61fc4fee9dffda23d9af226775728e3d221",
+      "mode": "100644"
+    },
+    "tests/governance/test_t9_findings.py": {
+      "sha": "a288ddc7a62e11ba100bfcecb24b3213b98ff480",
+      "mode": "100644"
+    },
+    "tests/governance/test_t9_full_history_mutation.py": {
+      "sha": "246ae056b9442694c7112e0dd30b888bc1edfbfd",
+      "mode": "100644"
+    },
+    "tests/governance/test_t9_import_binding.py": {
+      "sha": "3840f9be3eff9d0fb75659d0d3dac762ab5fb622",
+      "mode": "100644"
+    },
+    "tests/governance/test_t9_last_coverage.py": {
+      "sha": "3ed21a763f8e7282a4321e09f4286c6e12721274",
+      "mode": "100644"
+    },
+    "tests/governance/test_thread_state_poll.py": {
+      "sha": "3cea93d6a2959cfdbd8fa9f1116ba0cfd2d32f91",
+      "mode": "100644"
+    },
+    "tests/governance/test_validate_repo_coverage.py": {
+      "sha": "a0248184e1e52b74d162a5b56c090a81ce018f27",
+      "mode": "100644"
+    },
+    "tests/governance/test_validate_repo.py": {
+      "sha": "e5966604918c5d8d7177418e2811097804114bb7",
+      "mode": "100644"
+    },
+    "tools/governance/__init__.py": {
+      "sha": "d112a2c4d082500c8905a1346b19a657a6bda208",
+      "mode": "100644"
+    },
+    "tools/governance/change_guard.py": {
+      "sha": "c106adb6eae47c286816b36653a66bc8ddf597cc",
+      "mode": "100644"
+    },
+    "tools/governance/context_manifest.py": {
+      "sha": "a78b0bafdb9d744d6f7d19ace98b31a937211192",
+      "mode": "100644"
+    },
+    "tools/governance/github_live_gate.py": {
+      "sha": "0df0103fd2a25e6ad501d5f64aa829f7a799d635",
+      "mode": "100644"
+    },
+    "tools/governance/path_safety.py": {
+      "sha": "f4b8cec27e4c754be8241b80b3761402d9697c7c",
+      "mode": "100644"
+    },
+    "tools/governance/proof_contracts.py": {
+      "sha": "ea794c41cc0cecf9ebe701e04aa5f65e94d35e8e",
+      "mode": "100644"
+    },
+    "tools/governance/review_closure_gate.py": {
+      "sha": "c03f0163d1b058a349990d618412e8ac13e4ac14",
+      "mode": "100644"
+    },
+    "tools/governance/review_closure.py": {
+      "sha": "d3d9768cf98563e3d12520a8b7188519fc97aa21",
+      "mode": "100644"
+    },
+    "tools/governance/strict_contracts.py": {
+      "sha": "5ae6fa68c4c1eb6f25243fd16f1f33f8be59745c",
+      "mode": "100644"
+    },
+    "tools/governance/t10_closure.py": {
+      "sha": "52a78d1309bf2f1ebcbd21639e683d6ae9f98e9c",
+      "mode": "100644"
+    },
+    "tools/governance/t11_closure.py": {
+      "sha": "6e29c9da475d68929691599b640cfdeaf75cb442",
+      "mode": "100644"
+    },
+    "tools/governance/t7_closure.py": {
+      "sha": "08f1660959b0bda23a98cb195a1ec5eb633fc0b9",
+      "mode": "100644"
+    },
+    "tools/governance/t8_closure.py": {
+      "sha": "2d550be4fbdb446d635e78b76bec142a043afeb9",
+      "mode": "100644"
+    },
+    "tools/governance/t9_closure.py": {
+      "sha": "12199c980a22ce30948680fc175182a56c8cb400",
+      "mode": "100644"
+    },
+    "tools/governance/thread_state_poll.py": {
+      "sha": "a816688644251cf7efc82a67ca081b37afa54bdc",
+      "mode": "100644"
+    },
+    "tools/governance/validate_repo.py": {
+      "sha": "0b125f4390b61b2b363d461aaee78f67bc10036a",
+      "mode": "100644"
+    }
+  }
+}

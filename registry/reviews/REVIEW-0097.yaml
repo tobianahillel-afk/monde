@@ -1,0 +1,78 @@
+id: REVIEW-0097
+status: CLOSED
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-14"
+  commit_sha: "7699e1fb1a28bac1b1f8541ebf92126653d14a0d"
+reviewer: {actor: "chatgpt-codex-connector", context_id: "PRR_kwDOUUI5ts8AAAABRh5KCg", independence_level: L2}
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: []
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "default-branch-owned validator provenance cannot be provided or modified by a PR #2 candidate"
+    - "the approved source manifest pins all 179 candidate source objects by exact Git SHA and mode"
+    - "four required registry policy YAML contracts and eight required schema JSON contracts are pinned"
+    - "new or changed schema files anywhere under schemas/ fail closed as unapproved source"
+    - "candidate removal or modification of any approved policy/schema input fails closed"
+    - "candidate pre-integration absence of base-owned root files remains allowed, but synthetic merge-result tree must retain every base-owned root"
+    - "base-owned pull_request_target publisher reports fixed-context candidate-SHA pending and terminal status"
+    - "every status publication acknowledgement must contain the validated candidate SHA exactly; missing or wrong SHA fails closed"
+    - "reviewer independently reads all seven unresolved material PR #14 threads and reviews corrected canonical handover"
+    - "trusted job never executes or imports PR-controlled source and its live attestation cannot activate until default-branch integration"
+  risks:
+    - "candidate-owned policy/schema changes bypass fixed executable Python hashes"
+    - "new or omitted authority-defining JSON schemas are not detected"
+    - "status response without SHA is mistaken for exact-head publication"
+    - "stale current review state could mislead downstream autonomous development"
+    - "manifest source bytes are still candidate-origin proposals until independent base approval"
+    - "the actual required-check creator and repository protections are not yet established"
+findings:
+  - PRRT_kwDOUUI5ts6q0YNM
+  - PRRT_kwDOUUI5ts6q0YNX
+checks:
+  assumptions_challenged:
+    - "only executable Python/source extensions define governance behavior"
+    - "schemas/registry JSON and registry root contracts are harmless mutable data"
+    - "GitHub status API can omit SHA without weakening exact-head acknowledgement"
+    - "passing proposed self-tests is equivalent to an independent L2 or trusted-base attestation"
+  omitted_categories_considered:
+    - "all four registry root authority YAML paths"
+    - "all eight schemas/registry JSON paths and future added schema files"
+    - "manifest omission of a required policy or schema"
+    - "candidate deletion, mutation or mode change of policy/schema files"
+    - "missing, null or mismatched status acknowledgement SHA"
+    - "pre-integration candidate omits base-only trust roots"
+    - "synthetic merge drops an inherited trust-root file"
+    - "reviewer reads complete PR #14 seven-thread set"
+  duplicate_or_reuse_search:
+    - "REVIEW-0095 and REVIEW-0096 remain CLOSED/CHANGES_REQUIRED negative independent evidence."
+    - "The existing Git mode/tree/manifest machinery is reused; only source coverage and strict ACK binding change."
+    - "WORK-0002 T15 and TEST-0011 remain the canonical trust-root implementation scope."
+  failure_modes_considered:
+    - "a policy file remains unpinned even though tests on the executable files pass"
+    - "a candidate adds unreviewed schema input"
+    - "a status publish omits the candidate SHA field"
+    - "an independent review occurs on a different exact HEAD"
+    - "a source is treated as default-branch-owned before an authorized merge"
+  evidence_requested:
+    - "REVIEW-0096 terminal exact-head negative evidence on b9ccdc55a41943e0ea47aef6e6b589c86705a4b0 with P1 PRRT_kwDOUUI5ts78Lb92 and P2 PRRT_kwDOUUI5ts78Lb-I / PRRT_kwDOUUI5ts78Lb-R."
+    - "REVIEW-0096 CLOSED checkpoint cbe5337f0d999525a7f4b27e13a54d3975e32897 passed trusted-source #17 and Bootstrap #507."
+    - "REVIEW-0097 technical candidate 74a294162b137870aab92c2de25d226509bb68cc passed trusted-source #18 / 37942396359 (26/26 tests) and Bootstrap #508 / 37942396392 (450 tests, 3853 statements and 1640 branches at 100 percent)."
+    - "The real PR #2 Git tree includes 179/179 manifest source identities with exact source SHA and mode."
+    - "The OPEN checkpoint must pass exact technical and live-contract CI before IN_PROGRESS is created."
+    - "Frozen exact HEAD 7699e1fb1a28bac1b1f8541ebf92126653d14a0d passed Trusted Source #20 / 37943214775 (26 tests) and Bootstrap #510 / 37943214711."
+    - "Independent L2 PRR_kwDOUUI5ts8AAAABRh5KCg on that SHA added P1 PRRT_kwDOUUI5ts6q0YNM (base advance does not invalidate candidate-scoped success) and P1 PRRT_kwDOUUI5ts6q0YNX (ambiguous success POST may leave remote green after job failure)."
+    - "REVIEW-0097 is terminal CLOSED/CHANGES_REQUIRED; PR #14 has nine unresolved threads. Successor REVIEW-0098 must require base-SHA-aware merge authority and a successfully completed trusted publisher rather than treating raw status success as sufficient."
+outcome: CHANGES_REQUIRED
+completed_at: "2026-10-09T14:24:28Z"
+history: {created_at: "2026-10-09", updated_at: "2026-10-09"}
