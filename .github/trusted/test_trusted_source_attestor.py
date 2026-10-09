@@ -247,6 +247,20 @@ class TrustedSourceTests(unittest.TestCase):
         self.assertIn("persist-credentials: false", trusted)
         self.assertNotIn("head.sha", trusted.split("      - name: Validate and publish exact", 1)[0])
 
+    def test_base_retarget_edit_retriggers_trusted_attestation(self):
+        workflow = (
+            Path(__file__).resolve().parents[1] / "workflows" /
+            "monde-trusted-source.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "types: [opened, synchronize, reopened, ready_for_review, edited]",
+            workflow,
+        )
+        trusted = workflow.split("  trusted-attestation:", 1)[1]
+        self.assertIn("github.event.pull_request.base.ref == 'main'", trusted)
+        self.assertIn("ref: ${{ github.event.pull_request.base.sha || github.sha }}", trusted)
+        self.assertIn("branches: [main]", workflow)
+
     def test_runtime_rejects_non_default_base_before_network_request(self):
         common = {
             "GITHUB_REPOSITORY": "tobianahillel-afk/monde",

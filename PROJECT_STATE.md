@@ -585,6 +585,10 @@ These controls **reduce staleness but are not complete merge authority**. A base
 
 PR #14 has **11 unresolved / 12 total review threads**. PR #2 retains **104 unresolved material threads**.
 
+## REVIEW-0098 — base-retarget trigger regression
+
+The candidate source-attestation workflow now listens to `pull_request_target.edited` as well as opened/synchronize/reopened/ready_for_review. A structural test guards this trigger together with the existing main-only base condition and exact base-SHA checkout. This is a narrow candidate correction, **not** accepted merge authority: a separate trusted consumer must still bind current base SHA and completed successful base-owned workflow provenance; REVIEW-0098 remains unapproved.
+
 ## Current next action
 
 1. Keep 11 PR #14 threads and 104 PR #2 threads unresolved.
