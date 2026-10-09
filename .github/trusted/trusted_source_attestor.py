@@ -62,6 +62,20 @@ def _sha(value: Any) -> bool:
     return isinstance(value, str) and SHA.fullmatch(value) is not None
 
 
+def _unique_json_object_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject ambiguous trusted manifest maps rather than silently keeping the last key."""
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise AttestationError(f"duplicate trusted-manifest JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def load_manifest(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_json_object_pairs)
+
+
 def validate_manifest(value: Any) -> dict[str, dict[str, str]]:
     if not isinstance(value, dict) or type(value.get("schema_version")) is not int or value["schema_version"] != 1:
         raise AttestationError("unsupported trusted-source manifest version")
@@ -229,9 +243,7 @@ def main() -> int:
         or not token
     ):
         raise AttestationError("invalid trusted-source invocation identity")
-    manifest = json.loads(
-        (Path(__file__).resolve().parent / "approved_sources.json").read_text(encoding="utf-8")
-    )
+    manifest = load_manifest(Path(__file__).resolve().parent / "approved_sources.json")
     commit = _get_json(repo, f"git/commits/{sha}", token)
     if commit.get("sha") != sha or not isinstance(commit.get("tree"), dict):
         raise AttestationError("candidate commit identity mismatch")

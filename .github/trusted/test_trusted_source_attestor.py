@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import tempfile
 import os
 import unittest
 from pathlib import Path
@@ -268,6 +270,32 @@ class TrustedSourceTests(unittest.TestCase):
             with self.assertRaisesRegex(subject.AttestationError, "candidate commit identity mismatch"):
                 subject.main()
             network.assert_called_once()
+
+    def test_trusted_manifest_rejects_duplicate_json_keys_at_every_depth(self):
+        payloads = [
+            '{"schema_version":1,"schema_version":1,"target_pr":2,"source_files":{}}',
+            '{"schema_version":1,"target_pr":2,"source_files":{'
+            '"requirements/governance-ci.txt":{"sha":"a","mode":"100644"},'
+            '"requirements/governance-ci.txt":{"sha":"b","mode":"100644"}}}',
+            '{"schema_version":1,"target_pr":2,"source_files":{'
+            '"requirements/governance-ci.txt":{"sha":"a","sha":"b","mode":"100644"}}}',
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "manifest.json"
+            for contents in payloads:
+                with self.subTest(contents=contents):
+                    path.write_text(contents, encoding="utf-8")
+                    with self.assertRaisesRegex(
+                        subject.AttestationError, "duplicate trusted-manifest JSON key"
+                    ):
+                        subject.load_manifest(path)
+
+    def test_trusted_manifest_canonical_json_load_succeeds(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "manifest.json"
+            manifest, _tree = fixture()
+            path.write_text(json.dumps(manifest), encoding="utf-8")
+            self.assertEqual(subject.load_manifest(path), manifest)
 
     def test_commit_and_tree_are_never_executed(self):
         manifest, tree = fixture()
