@@ -395,12 +395,17 @@ def main() -> int:
     )
     try:
         count = _verify_approved_merge(repo, token, sha, base_sha)
-    except (AttestationError, OSError, ValueError):
-        _publish_status(
-            repo, sha, token, "failure",
-            "Trusted source or merged-result authority rejected",
-            base_sha=base_sha,
-        )
+    except (AttestationError, OSError, ValueError) as verification_error:
+        try:
+            _publish_status(
+                repo, sha, token, "failure",
+                "Trusted source or merged-result authority rejected",
+                base_sha=base_sha,
+            )
+        except (AttestationError, OSError, ValueError) as publication_error:
+            # Keep the actual verification failure as the primary exception;
+            # the failed negative status publication is still retained as cause.
+            raise verification_error from publication_error
         raise
     try:
         _publish_status(

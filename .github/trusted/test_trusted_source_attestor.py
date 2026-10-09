@@ -611,6 +611,31 @@ class TrustedSourceTests(unittest.TestCase):
                 subject.main()
         self.assertEqual(states, ["pending", "success", "failure"])
 
+    def test_failed_negative_status_preserves_original_verification_error(self):
+        env = {
+            "GITHUB_REPOSITORY": "tobianahillel-afk/monde",
+            "MONDE_ATTEST_HEAD": "a" * 40,
+            "MONDE_ATTEST_BASE": "b" * 40,
+            "MONDE_ATTEST_BASE_REF": "main",
+            "MONDE_ATTEST_PR": "2",
+            "GITHUB_TOKEN": "test-only",
+        }
+        failure = subject.AttestationError("invalid synthetic merge tree")
+        publish_failure = subject.AttestationError("failure-status transport unavailable")
+
+        def publish(_repo, _head, _token, state, _desc, *, base_sha=None):
+            if state == "failure":
+                raise publish_failure
+
+        with (
+            mock.patch.dict(os.environ, env, clear=True),
+            mock.patch.object(subject, "_verify_approved_merge", side_effect=failure),
+            mock.patch.object(subject, "_publish_status", side_effect=publish),
+        ):
+            with self.assertRaisesRegex(subject.AttestationError, "invalid synthetic merge tree") as raised:
+                subject.main()
+        self.assertIs(raised.exception.__cause__, publish_failure)
+
     def test_commit_and_tree_are_never_executed(self):
         manifest, tree = fixture()
         self.assertEqual(subject.verify_tree(manifest, tree), len(manifest["source_files"]))
