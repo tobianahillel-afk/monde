@@ -25,9 +25,20 @@ REQUIRED = frozenset({
 })
 CONFIG_FILES = frozenset({
     "pyproject.toml", "setup.cfg", "setup.py", "tox.ini",
-    ".coveragerc", "pytest.ini",
+    ".coveragerc", "pytest.ini", ".python-version",
+    "Makefile", "GNUmakefile", "Pipfile", "Pipfile.lock",
+    "poetry.lock", "uv.lock", "package.json", "package-lock.json",
 })
-SUFFIXES = (".py", ".pyc", ".pth", ".pyd", ".so")
+# Local actions, shell scripts, plugin configs and interpreter extensions can
+# execute even without a Python suffix or Git executable bit. Treat every
+# Git blob under code/CI paths as an authority-bearing dependency.
+SOURCE_PREFIXES = (".github/", "requirements/", "scripts/", "tools/", "tests/")
+SUFFIXES = (
+    ".py", ".pyc", ".pyo", ".pth", ".pyd", ".so", ".dylib", ".dll",
+    ".node", ".js", ".mjs", ".cjs", ".ts", ".sh", ".ps1", ".bat",
+    ".cmd", ".rb", ".go", ".rs", ".wasm", ".jar", ".whl", ".egg",
+    ".zip", ".class",
+)
 MAX_RESPONSE_BYTES = 4_000_000
 
 
@@ -38,8 +49,7 @@ class AttestationError(RuntimeError):
 def in_scope(path: str, mode: str) -> bool:
     return (
         path.endswith(SUFFIXES)
-        or path.startswith(".github/workflows/")
-        or path.startswith("requirements/")
+        or path.startswith(SOURCE_PREFIXES)
         or path in CONFIG_FILES
         or mode == "100755"
     )
@@ -64,12 +74,15 @@ def validate_manifest(value: Any) -> dict[str, dict[str, str]]:
             not isinstance(path, str)
             or not path
             or path.startswith("/")
-            or ".." in Path(path).parts
+            or any(part in ("", ".", "..") for part in path.split("/"))
+            or "\\" in path
+            or "\x00" in path
             or not isinstance(expected, dict)
             or set(expected) != {"sha", "mode"}
             or not _sha(expected["sha"])
             or expected["mode"] not in ("100644", "100755")
             or not in_scope(path, expected["mode"])
+            or _base_owned(path)
         ):
             raise AttestationError(f"malformed trusted-source entry: {path!r}")
     return sources

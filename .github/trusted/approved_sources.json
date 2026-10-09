@@ -3,6 +3,30 @@
   "target_pr": 2,
   "source_commit_for_review": "2e2664ca8c9cb4f3eb81ea41a172da1ed7fbaf32",
   "source_files": {
+    ".github/CODEOWNERS": {
+      "sha": "b3adfbce818eaa7affe73ee6d29434177da2ce88",
+      "mode": "100644"
+    },
+    ".github/copilot-instructions.md": {
+      "sha": "cd3c09f4b6402a402b1aa0853b50a3600627b663",
+      "mode": "100644"
+    },
+    ".github/dependabot.yml": {
+      "sha": "bc4c3a8a2b8711fa83edfde502c4c49043f0cf1b",
+      "mode": "100644"
+    },
+    ".github/ISSUE_TEMPLATE/bug.yml": {
+      "sha": "6dbda13b615a9c095438279f3f64e39f98c1ecd9",
+      "mode": "100644"
+    },
+    ".github/ISSUE_TEMPLATE/feature.yml": {
+      "sha": "de7ab534a245ab582f6eecc3548b2822eef2e669",
+      "mode": "100644"
+    },
+    ".github/pull_request_template.md": {
+      "sha": "da927f104a5c1f168f63603c97d5147cffd16efc",
+      "mode": "100644"
+    },
     ".github/scripts/governance_l2_followup.py": {
       "sha": "154e1b6ae912e512c23edfdec8aed72c7452821a",
       "mode": "100644"

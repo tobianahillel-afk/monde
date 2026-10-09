@@ -107,6 +107,62 @@ class TrustedSourceTests(unittest.TestCase):
         self.assertTrue(subject.in_scope("requirements/override.txt", "100644"))
         self.assertTrue(subject.in_scope(".github/workflows/extra.yml", "100644"))
         self.assertFalse(subject.in_scope("docs/readme.md", "100644"))
+        self.assertTrue(subject.in_scope(".github/actions/local/action.yml", "100644"))
+        self.assertTrue(subject.in_scope(".github/CODEOWNERS", "100644"))
+        self.assertTrue(subject.in_scope(".github/dependabot.yml", "100644"))
+        self.assertTrue(subject.in_scope("scripts/gate_helper.sh", "100644"))
+        self.assertTrue(subject.in_scope("tools/governance/validator.bin", "100644"))
+        self.assertTrue(subject.in_scope("tests/governance/test_fixture.json", "100644"))
+        self.assertTrue(subject.in_scope("native_extension.dll", "100644"))
+        self.assertTrue(subject.in_scope("plugin.zip", "100644"))
+        self.assertTrue(subject.in_scope("Makefile", "100644"))
+
+    def test_candidate_cannot_add_unapproved_local_actions_or_scripts(self):
+        manifest, tree = fixture()
+        for path in (
+            ".github/actions/local/action.yml",
+            ".github/CODEOWNERS",
+            "scripts/injected_wrapper.sh",
+            "tools/governance/module.wasm",
+            "plugin.zip",
+            "Makefile",
+        ):
+            node = {"path": path, "type": "blob", "mode": "100644", "sha": "e" * 40}
+            with self.subTest(path=path), self.assertRaisesRegex(
+                subject.AttestationError, "unapproved governance source change"
+            ):
+                subject.verify_tree(
+                    manifest, {"truncated": False, "tree": tree["tree"] + [node]}
+                )
+
+    def test_manifest_cannot_claim_base_owned_sources_or_noncanonical_paths(self):
+        manifest, _ = fixture()
+        for path in (
+            ".github/trusted/new_trust_helper.py",
+            ".github/workflows/monde-trusted-source.yml",
+            "tools//governance/validate.py",
+            "tools/./governance/validate.py",
+            "tools/../governance/validate.py",
+            "tools\\governance\\validate.py",
+        ):
+            altered = dict(manifest)
+            altered["source_files"] = {
+                **manifest["source_files"],
+                path: {"sha": "e" * 40, "mode": "100644"},
+            }
+            with self.subTest(path=path), self.assertRaises(subject.AttestationError):
+                subject.validate_manifest(altered)
+
+    def test_trusted_workflow_checkout_is_bound_to_event_base_commit(self):
+        workflow = (
+            Path(__file__).resolve().parents[1] / "workflows" /
+            "monde-trusted-source.yml"
+        ).read_text(encoding="utf-8")
+        trusted = workflow.split("  trusted-attestation:", 1)[1]
+        self.assertIn("ref: ${{ github.event.pull_request.base.sha }}", trusted)
+        self.assertNotIn("github.event.repository.default_branch", trusted)
+        self.assertIn("persist-credentials: false", trusted)
+        self.assertNotIn("head.sha", trusted.split("      - name: Verify exact candidate", 1)[0])
 
     def test_commit_and_tree_are_never_executed(self):
         manifest, tree = fixture()
