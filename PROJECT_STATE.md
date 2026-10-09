@@ -556,13 +556,13 @@ The live PR #14 has **8 total review threads, 7 unresolved**, and PR #2 still ha
 
 The unapproved REVIEW-0097 technical successor now binds **all governance policy YAML files** `registry/status-machines.yaml`, `registry/acceptance-authority.yaml`, `registry/content-identity.yaml`, `registry/integration-provenance.yaml` and **every JSON/YAML schema beneath `schemas/`** to exact reviewed Git blob SHA/mode in the base-owned trust manifest. Its executable policy must require these fixed paths and reject additional or modified schema files by the same source proof. GitHub status publication must require an exact candidate `sha` field in each acknowledgement. Candidate tests must falsify changed/missing policy/schema inputs, malformed/missing status SHA, while preserving pre-integration candidate exception, synthetic test-merge root retention, and zero candidate-code execution.
 
-Technical candidate `74a294162b137870aab92c2de25d226509bb68cc` passed trusted-source #18 / `37942396359` with **26/26 tests** and Bootstrap #508 / `37942396392` with **450/450 tests and 100% line/branch**. REVIEW-0097 is now **OPEN** pending its state-only checkpoint; no independent approval or integration exists.
+Technical candidate `74a294162b137870aab92c2de25d226509bb68cc` passed trusted-source #18 / `37942396359` with **26/26 tests** and Bootstrap #508 / `37942396392` with **450/450 tests and 100% line/branch**. REVIEW-0097 is now **IN_PROGRESS** after its OPEN checkpoint `40891d113e15759a69fd4e6ee92f15c7fda35327` passed trusted-source #19 / `37942839218` and Bootstrap #509 / `37942838940`. No independent approval or integration exists.
 
 ## Current next action
 
-1. Prove the REVIEW-0097 OPEN checkpoint with trusted-source and Bootstrap CI on the exact SHA.
-2. Advance REVIEW-0097 OPEN -> IN_PROGRESS only after this evidence, with a state-only commit.
-3. Prove the resulting frozen exact HEAD before requesting any independent L2.
+1. REVIEW-0097 OPEN checkpoint is proven and its lifecycle is now `IN_PROGRESS`.
+2. Prove the resulting frozen exact HEAD with trusted-source self-tests and Bootstrap.
+3. Request fresh independent L2 over all seven unresolved PR #14 threads and the 179-object policy/schema manifest.
 4. Obtain a fresh independent L2 over all **7 unresolved PR #14 threads** before any resolution or guarded merge.
 5. After any authorized PR #14 integration into `main`, re-prove actual base-owned attestation on PR #2 candidate HEAD and finalize T15 / WORK-0002 only under its own reviews.
 6. WORK-0003, WORK-0004 and all product lots are still incomplete.

@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #14/T15 REVIEW-0096 remains CLOSED/CHANGES_REQUIRED with three independent supply-chain/ACK/handover findings. REVIEW-0097 exact technical candidate 74a294162b137870aab92c2de25d226509bb68cc passed trusted-source #18 (26/26) and Bootstrap #508 (450 tests, 100 percent line+branch), pinning 179 immutable Git object identities including 12 policy/schema contracts and requiring exact status ACK SHA. REVIEW-0097 is OPEN pending state-only checkpoint CI and then frozen exact-head independent L2 over all 7 PR #14 unresolved material threads. PR #2 retains 104 unresolved findings and no merge authority is established."
+  rationale: "PR #14/T15 REVIEW-0096 remains CLOSED/CHANGES_REQUIRED with three independent supply-chain/ACK/handover findings. REVIEW-0097 exact technical candidate 74a294162b137870aab92c2de25d226509bb68cc passed trusted-source #18 (26/26) and Bootstrap #508 (450 tests, 100 percent line+branch), pinning 179 immutable Git object identities including 12 policy/schema contracts and requiring exact status ACK SHA. REVIEW-0097 is IN_PROGRESS after its OPEN checkpoint passed source #19 and Bootstrap #509; frozen exact-head proof and independent L2 remain outstanding over all 7 PR #14 unresolved material threads. PR #2 retains 104 unresolved findings and no merge authority is established."
 
 scope:
   in:
@@ -207,6 +207,7 @@ rollback:
   strategy: "Do not merge PR #5 until a clean exact-head successor review permits controlled thread resolution; main remains on WORK-0001 governance if PR #5 is rejected."
 
 run_log:
+  - "2026-10-09: REVIEW-0097 OPEN checkpoint 40891d113e15759a69fd4e6ee92f15c7fda35327 passed trusted-source #19 / 37942839218 and Bootstrap #509 / 37942838940 with the real PR #2 source manifest 179/179 exact SHA/mode identities. REVIEW-0097 advanced to IN_PROGRESS only after this proof." 
   - "2026-10-09: REVIEW-0097 technical candidate 74a294162b137870aab92c2de25d226509bb68cc passed trusted-source #18 / 37942396359 (26/26 tests) and Bootstrap #508 / 37942396392 (450 tests at 100 percent line+branch). Exact policy/schema source count is now 179; status ACK SHA is required. REVIEW-0097 OPEN checkpoint and fresh L2 remain outstanding; 7 PR #14 threads unresolved." 
   - "2026-10-09: REVIEW-0096 frozen head b9ccdc55a41943e0ea47aef6e6b589c86705a4b0 passed source #16 / 37939247069 (23/23) and Bootstrap #506 / 37939247146. Fresh independent Codex PRR_kwDOUUI5ts8AAAABRhi1ug added P1 PRRT_kwDOUUI5ts78Lb92 and P2 PRRT_kwDOUUI5ts78Lb-I / PRRT_kwDOUUI5ts78Lb-R. REVIEW-0096 is CLOSED/CHANGES_REQUIRED with 7 PR #14 threads unresolved; REVIEW-0097 is a successor proposal, not opened." 
   - "2026-10-09: REVIEW-0096 OPEN checkpoint 87dab2fb306d44bd672af3ef3579815735a64d74 passed trusted-source #15 / 37939002174 and Bootstrap #505 / 37939002240; only then advanced to IN_PROGRESS for frozen exact-head proof."
