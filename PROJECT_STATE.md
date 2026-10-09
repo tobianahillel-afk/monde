@@ -14,7 +14,7 @@ Canonical operational state: Yes
 - PR #2 is open with 104 unresolved findings; REVIEW-0094 is terminal negative after two independent P1 source-provenance findings.
 - PR #14 is the active proposed main-owned trust-root predecessor; REVIEW-0095/0096/0097 are `CLOSED / CHANGES_REQUIRED`, REVIEW-0098 has no clean approval; PR #14 is open/unmerged with 21 unresolved review threads at the latest live query; REVIEW-0099 is terminal negative and REVIEW-0100 corrections are required.
 
-## REVIEW-0098 — active PR #14 trust-root candidate (2026-10-09)
+## PR #14 trust-root history and current successor (2026-10-09)
 
 PR #14 frozen technical predecessor `2595f9f54e7783eac6dc165b77c6c8930db3ab17` passed Trusted Source #33 (**53/53 tests**) and Bootstrap #524, but it did **not** establish accepted default-branch authority. The latest independent Codex review raised P1 `PRRT_kwDOUUI5ts6q2D3L`: live GitHub REST workflow-run paths use the `@main` suffix; P1 `PRRT_kwDOUUI5ts6q2D3U`: unrelated `pull_request_target` runs have skipped attestation jobs and must not supersede a relevant PR #2 or main-push run; P2 `PRRT_kwDOUUI5ts6q2D3d`: T15 plan omitted collector/consumer files and risks.
 
@@ -638,7 +638,7 @@ The run pagination budget remains explicit and fail-closed; this is not a claim 
 
 1. Preserve all 19 unresolved PR #14 material threads and all 104 unresolved PR #2 findings.
 2. REVIEW-0098 remains terminal `CLOSED / CHANGES_REQUIRED`.
-3. REVIEW-0099 `OPEN` checkpoint passed Trusted Source #39 and Bootstrap #530; prove this `IN_PROGRESS` frozen exact HEAD before any independent approval.
+3. REVIEW-0099 is CLOSED/CHANGES_REQUIRED; prove REVIEW-0100 technical corrections and complete a new exact-head independent review before approval.
 4. Request a fresh-context L2 on the exact frozen SHA, reviewing all 19 unresolved PR #14 threads, attempt chronology, paginated run provenance, post-artifact frontier stability and strict status ACK parsing.
 5. No thread resolution or PR #14 merge before clean independent review and a trusted main-owned deployment. PR #2 and WORK-0003/WORK-0004 remain blocked.
 

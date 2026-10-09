@@ -742,12 +742,45 @@ class TrustedSourceTests(unittest.TestCase):
             "MONDE_ATTEST_PR": "2",
             "GITHUB_TOKEN": "test-only",
         }
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "github_output"
+            with (
+                mock.patch.dict(os.environ, {**env, "GITHUB_OUTPUT": str(output)}, clear=True),
+                mock.patch.object(subject, "_get_json", return_value={"state": "closed"}),
+                mock.patch.object(subject, "_publish_status") as publish,
+            ):
+                self.assertEqual(subject.main(), 0)
+            publish.assert_not_called()
+            self.assertEqual(output.read_text(encoding="utf-8"), "closed_pr_noop=true\n")
+        workflow = (
+            Path(__file__).resolve().parent.parent
+            / "workflows" / "monde-trusted-source.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("id: trusted_attestor", workflow)
+        self.assertIn(
+            "if: steps.trusted_attestor.outputs.closed_pr_noop != 'true'",
+            workflow,
+        )
+        self.assertIn("if-no-files-found: error", workflow)
+
+    def test_closed_pr_noop_output_failure_is_fail_closed(self):
+        env = {
+            "GITHUB_REPOSITORY": "tobianahillel-afk/monde",
+            "GITHUB_EVENT_NAME": "push",
+            "MONDE_ATTEST_HEAD": "CURRENT_PR_2",
+            "MONDE_ATTEST_BASE": "b" * 40,
+            "MONDE_ATTEST_BASE_REF": "main",
+            "MONDE_ATTEST_PR": "2",
+            "GITHUB_TOKEN": "test-only",
+            "GITHUB_OUTPUT": "/not-present/monde-noop/output",
+        }
         with (
             mock.patch.dict(os.environ, env, clear=True),
             mock.patch.object(subject, "_get_json", return_value={"state": "closed"}),
             mock.patch.object(subject, "_publish_status") as publish,
         ):
-            self.assertEqual(subject.main(), 0)
+            with self.assertRaisesRegex(subject.AttestationError, "closed-PR no-op"):
+                subject.main()
         publish.assert_not_called()
 
     def test_commit_and_tree_are_never_executed(self):

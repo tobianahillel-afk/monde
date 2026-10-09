@@ -428,6 +428,14 @@ def main() -> int:
             raise AttestationError("untrusted base-push attestation invocation")
         current = _get_json(repo, "pulls/2", token)
         if current.get("state") == "closed":
+            # A closed PR #2 is the only valid push no-op with no proof artifact.
+            output_path = os.environ.get("GITHUB_OUTPUT")
+            if output_path:
+                try:
+                    with Path(output_path).open("a", encoding="utf-8") as output:
+                        output.write("closed_pr_noop=true\n")
+                except OSError as exc:
+                    raise AttestationError("could not record closed-PR no-op") from exc
             return 0
         if (
             type(current.get("number")) is not int
