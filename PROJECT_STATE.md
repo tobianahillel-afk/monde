@@ -523,25 +523,31 @@ The lifecycle-recording commit `cabb259aa686028def1c7b9a4e80b85d15b82d99` passed
 
 The repository now needs one reconciliation commit so machine `open_findings` and the active handover stop describing already-resolved PR #5 threads. The exact reconciliation HEAD must pass Bootstrap. That exact-head success is an external live eligibility fact; do **not** create another commit merely to copy its run number into the tree.
 
-## REVIEW-0094 to REVIEW-0095 trusted-source handover (2026-10-09)
+## REVIEW-0095 — terminal independent trust-root findings (2026-10-09)
 
-REVIEW-0094 is terminal `CLOSED / CHANGES_REQUIRED` after independent PR #2 P1 findings `PRRT_kwDOUUI5ts6qkGa6` and `PRRT_kwDOUUI5ts6qkGbA`: neither an immutable candidate-controlled dependency lock nor candidate-executed validation code constitutes a default-branch trusted source.
+PR #5/T12 is merged. WORK-0002 / PR #2 remains `IN_REVIEW` with **104 unresolved material threads**. Its two REVIEW-0094 supply-chain trust-boundary P1 findings require independently main-approved executable validator and dependency source; a candidate-controlled immutable Git blob is not sufficient.
 
-**WORK-0002 / T15** owns the narrow **PR #14** predecessor. PR #14 proposes `.github/trusted/approved_sources.json`, a strict read-only attestor and a base-owned `pull_request_target` workflow. The proposed manifest pins **167** PR #2 executable/sensitive Git source objects by exact SHA and mode. Direct Git-tree preflight on PR #2 head `2e2664ca8c9cb4f3eb81ea41a172da1ed7fbaf32` found **167/167** matches, zero missing/extra/drift, and no new base-owned trust-root files in the older candidate. The attestor permits this legitimate absence but rejects any candidate-provided trust file that differs from main.
+PR #14 / WORK-0002 T15 stages a proposed default-branch manifest and source verifier; the manifest matches **167/167** executable/sensitive Git objects on PR #2 exact head `2e2664ca8c9cb4f3eb81ea41a172da1ed7fbaf32`. The candidate adds a read-only `pull_request_target` verifier and 17 self-tests without executing untrusted PR #2 code. REVIEW-0095 OPEN checkpoint `ffce3e36ab414234f971723a4993d26e4d170c24` passed trusted-source #10 and Bootstrap #500.
 
-Codex PR #14 raised two further material findings: P1 `PRRT_kwDOUUI5ts6qu5kG` requires canonical work/review/test handover; P2 `PRRT_kwDOUUI5ts6qu5kO` requires duplicate-key rejection in approved manifest JSON. The strict parser and targeted tests were added and workflow **#9 / run 37915736299** succeeded on exact code head `a2fd780ec517b4875d92777a255d397c4adf1b17`.
+REVIEW-0095 is now **CLOSED / CHANGES_REQUIRED** on exact independently reviewed PR #14 head `3731213c23e25711a3118a2b78357dd2d1d63161` after **17/17 unprivileged tests passed** in trusted-source workflow #11 / `37916592454` and Bootstrap #501 / `37916592324` also passed. The base-owned attestation job was **skipped**, as expected before merge, so there is still no live trusted-source authority.
 
-REVIEW-0095 is **IN_PROGRESS** after the OPEN checkpoint `ffce3e36ab414234f971723a4993d26e4d170c24` passed trusted-source #10 / `37916223896` (17/17 tests) and Bootstrap #500 / `37916223836` (450 tests, 3,853 statements / 1,640 branches, 100% coverage and live PR #2 probe). TEST-0011 remains PLANNED; this execution proof is not a retroactive lifecycle transition. Neither a green proposed workflow nor an author-written state record is a clean independent L2, default-branch installation, or real `pull_request_target` proof.
+Fresh independent Codex L2 `PRR_kwDOUUI5ts8AAAABRhODCQ` added two **blocking P1** findings:
+
+1. `PRRT_kwDOUUI5ts6qy--U` — a successful `pull_request_target` Actions check is attached to the **base branch SHA**, not the exact PR #2 commit that was inspected. Passing a head SHA as an environment variable does not turn that base check into a candidate-commit required check.
+2. `PRRT_kwDOUUI5ts6qy--k` — `verify_tree` allows the candidate to omit base-owned trust roots even after it has integrated `main`. A later deletion could therefore erase the merged trust root while still passing the existing 167-object manifest check.
+
+PR #14 has **5 total review threads: 1 resolved, 4 unresolved**; the two earlier still-open findings concern canonical traceability and strict duplicate JSON keys (their candidate fixes remain present). No review is approved merely because tests are green.
+
+The next successor must preserve the pre-integration absence exception **without permitting post-integration deletion**, preferably by checking the exact candidate+base merge-result Git tree or an equivalent ancestry-bound guarantee, then publish an immutable-name trusted attestation result **on the exact validated candidate SHA**, fail-closed on mismatched current heads/merge metadata. Both behaviors require unit/adversarial tests and a fresh exact-head independent L2 before PR #14 merge. Repository protection/required-check binding remains separate WORK-0003 authority and must not be silently treated as already configured.
 
 ## Current next action
 
-1. Keep all **104 PR #2 material findings unresolved** until its own fresh closure L2.
-2. Prove/freeze REVIEW-0095 IN_PROGRESS exact HEAD and obtain a fresh independent exact-head L2 over the two PR #14 findings.
-3. Resolve the two PR #14 Codex findings only after verifying their fixes and the review outcome.
-4. Merge PR #14 to `main` only after the required independent and GitHub checks are clean.
-5. Trigger and inspect the real base-owned `MONDE / Trusted Source` attestation for exact PR #2; candidate CI alone is insufficient.
-6. Reconcile PR #2 against new `main`, preserve the provenance boundary, and obtain fresh final exact-head L2/approval.
-7. Only after WORK-0002 closure may WORK-0003/WORK-0004 progress; the remaining MOND lots follow their own specifications, tests and reviews.
+1. Leave PR #14 **unmerged**, all **4** material threads unresolved, and PR #2's **104** material threads unresolved.
+2. Prove the REVIEW-0095 CLOSED state-only checkpoint with trusted-source and Bootstrap workflows before the next technical successor.
+3. Implement and test exact-candidate commit status/check publication plus full post-merge trust-root preservation, without executing candidate-controlled code.
+4. Require a new independently reviewed exact-head successor; do not self-approve or resolve negative findings from green CI alone.
+5. Only then can PR #14 merge to `main` and the real base-owned attestation be exercised on PR #2.
+6. WORK-0003, WORK-0004 and the product lots remain downstream of the governance closure dependency.
 
 ## Resume sequence
 

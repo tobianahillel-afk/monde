@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #5/T12 is merged; PR #2 remains IN_REVIEW and is blocked by independently approved default-branch source provenance. PR #14 is the bounded WORK-0002 T15 trust-root predecessor. It proposes a main-owned 167-file SHA/mode manifest, an unprivileged self-test workflow and a base-owned read-only pull_request_target verifier that never executes candidate code. Initial technical runs through #9 succeeded; strict duplicate-key parsing and pre-integration candidate trust-root absence are explicitly tested. REVIEW-0095 is IN_PROGRESS after exact OPEN checkpoint ffce3e36ab414234f971723a4993d26e4d170c24 passed trusted-source #10 and Bootstrap #500; independent approval and live post-merge attestation remain required. PR #2 retains 104 unresolved findings. WORK-0003 and WORK-0004 remain blocked."
+  rationale: "PR #5/T12 is merged; PR #2 remains IN_REVIEW with 104 unresolved material threads and is blocked on independently approved default-branch validator and dependency provenance. PR #14/T15 REVIEW-0095 is now CLOSED/CHANGES_REQUIRED on exact reviewed head 3731213c23e25711a3118a2b78357dd2d1d63161 after independent Codex L2 PRR_kwDOUUI5ts8AAAABRhODCQ added two P1 findings: the pull_request_target run check is attached to base rather than the validated candidate commit SHA, and a post-integration deletion of base trust-root files is not rejected by the optional candidate check. Four PR #14 threads remain unresolved; the 167-source manifest and 17/17 candidate self-tests are insufficient for merge. The next successor must prove exact candidate-SHA trusted status publication and the resulting merge-tree preservation of main-owned trust files. No source root or final WORK-0002 completion is approved; WORK-0003 and WORK-0004 remain blocked."
 
 scope:
   in:
@@ -207,6 +207,8 @@ rollback:
   strategy: "Do not merge PR #5 until a clean exact-head successor review permits controlled thread resolution; main remains on WORK-0001 governance if PR #5 is rejected."
 
 run_log:
+  - "2026-10-09: PR #14 exact candidate 3731213c23e25711a3118a2b78357dd2d1d63161 passed trusted-source workflow #11 / 37916592454 at 17/17 unprivileged tests and Bootstrap #501 / 37916592324; live default-branch attestation remained skipped."
+  - "2026-10-09: Fresh independent REVIEW-0095 L2 PRR_kwDOUUI5ts8AAAABRhODCQ on exact 3731213c23e25711a3118a2b78357dd2d1d63161 produced P1 PRRT_kwDOUUI5ts6qy--U (no candidate-SHA check binding) and P1 PRRT_kwDOUUI5ts6qy--k (post-integration trust-root deletion bypass). REVIEW-0095 closed CHANGES_REQUIRED; four PR #14 review threads remain unresolved, with PR #2 still at 104 unresolved."
   - "2026-10-09: WORK-0002 T15 / PR #14 proposed main-owned trust root; 167 approved source objects matched PR #2 exact head with no drift; #9 technical CI succeeded; REVIEW-0095 OPEN checkpoint ffce3e36ab414234f971723a4993d26e4d170c24 passed trusted-source #10 (17 tests) and Bootstrap #500 (450 tests, 100 percent line+branch, live probe); lifecycle now IN_PROGRESS pending frozen exact-head proof and independent L2."
   - "REVIEW-0082 COMPLETE/APPROVE reviewed exact head 71ed1cb233d16f032ff27cf5a88dfe039e2ba618; lifecycle-recording commit cabb259aa686028def1c7b9a4e80b85d15b82d99 passed Bootstrap #332 / run 36048764381, then all 83 reviewed PR #5 material threads were resolved with branch content fixed and no new finding."
   - "REVIEW-0049 terminal independent negative: c8f1fec24358c25224771a15b647d56c8a2f0287 / PRR_kwDOUUI5ts8AAAABN4sxvg."
