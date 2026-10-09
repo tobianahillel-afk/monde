@@ -242,7 +242,7 @@ class TrustedSourceTests(unittest.TestCase):
         trusted = workflow.split("  trusted-attestation:", 1)[1]
         self.assertIn("ref: ${{ github.event.pull_request.base.sha || github.sha }}", trusted)
         self.assertIn("github.event.pull_request.base.ref == 'main'", trusted)
-        self.assertIn("MONDE_ATTEST_BASE_REF: ${{ github.event.pull_request.base.ref }}", trusted)
+        self.assertIn("MONDE_ATTEST_BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}", trusted)
         self.assertNotIn("github.event.repository.default_branch", trusted)
         self.assertIn("persist-credentials: false", trusted)
         self.assertNotIn("head.sha", trusted.split("      - name: Validate and publish exact", 1)[0])
