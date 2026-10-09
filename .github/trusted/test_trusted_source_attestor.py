@@ -55,7 +55,7 @@ class TrustedSourceTests(unittest.TestCase):
         ]
         base = {"truncated": False, "tree": directories + owned}
         candidate = {"truncated": False, "tree": directories + tree["tree"] + owned}
-        self.assertEqual(subject.verify_tree(manifest, candidate, base), 7)
+        self.assertEqual(subject.verify_tree(manifest, candidate, base), 4)
         self.assertEqual(subject.verify_tree(manifest, {"truncated": False, "tree": directories + tree["tree"]}), 4)
 
     def test_directory_exemption_does_not_permit_unsafe_source_entries(self):
@@ -135,7 +135,20 @@ class TrustedSourceTests(unittest.TestCase):
         ]
         base = {"truncated": False, "tree": owned}
         candidate = {"truncated": False, "tree": tree["tree"] + owned}
-        self.assertEqual(subject.verify_tree(manifest, candidate, base), 7)
+        self.assertEqual(subject.verify_tree(manifest, candidate, base), 4)
+        # WORK-0002 predates the base-owned trust files; their absence
+        # must not invalidate its otherwise approved sources.
+        preintegration = {"truncated": False, "tree": tree["tree"]}
+        self.assertEqual(subject.verify_tree(manifest, preintegration, base), 4)
+        duplicate = {"truncated": False, "tree": tree["tree"] + owned + [owned[0]]}
+        with self.assertRaisesRegex(subject.AttestationError, "duplicate candidate trust-root"):
+            subject.verify_tree(manifest, duplicate, base)
+        extra = {"truncated": False, "tree": tree["tree"] + owned + [
+            {"path": ".github/trusted/unapproved.py", "type": "blob",
+             "mode": "100644", "sha": "a" * 40}
+        ]}
+        with self.assertRaisesRegex(subject.AttestationError, "unapproved default-branch trust-root"):
+            subject.verify_tree(manifest, extra, base)
         drift = {"truncated": False, "tree": tree["tree"] + [{**x, "sha": "2" * 40} for x in owned]}
         with self.assertRaisesRegex(subject.AttestationError, "unapproved governance"):
             subject.verify_tree(manifest, drift, base)

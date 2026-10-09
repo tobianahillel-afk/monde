@@ -99,6 +99,11 @@ def verify_tree(
     manifest: dict[str, Any], candidate_tree: Any, base_tree: Any | None = None
 ) -> int:
     expected = dict(validate_manifest(manifest))
+    # These trust-root files execute solely from the default-branch checkout.
+    # A pre-integration PR is not required to carry files introduced by the
+    # independently reviewed base predecessor. If present in the PR tree,
+    # however, they must be byte-identical to the base-owned versions.
+    base_owned: dict[str, dict[str, str]] = {}
     if base_tree is not None:
         if (
             not isinstance(base_tree, dict)
@@ -122,13 +127,14 @@ def verify_tree(
                 or item.get("mode") not in ("100644", "100755")
                 or not _sha(item.get("sha"))
                 or path in expected
+                or path in base_owned
             ):
                 raise AttestationError(f"invalid default-branch trust-root source: {path}")
-            expected[path] = {"sha": item["sha"], "mode": item["mode"]}
+            base_owned[path] = {"sha": item["sha"], "mode": item["mode"]}
         if not (
-            ".github/trusted/trusted_source_attestor.py" in expected
-            and ".github/trusted/approved_sources.json" in expected
-            and ".github/workflows/monde-trusted-source.yml" in expected
+            ".github/trusted/trusted_source_attestor.py" in base_owned
+            and ".github/trusted/approved_sources.json" in base_owned
+            and ".github/workflows/monde-trusted-source.yml" in base_owned
         ):
             raise AttestationError("missing default-branch trust-root files")
     if (
@@ -138,6 +144,7 @@ def verify_tree(
     ):
         raise AttestationError("candidate tree missing, malformed or truncated")
     actual: dict[str, dict[str, str]] = {}
+    seen_base_owned: set[str] = set()
     for node in candidate_tree["tree"]:
         if not isinstance(node, dict) or not isinstance(node.get("path"), str):
             raise AttestationError("malformed candidate tree node")
@@ -159,6 +166,16 @@ def verify_tree(
         sha = node.get("sha")
         if not _sha(sha):
             raise AttestationError(f"malformed source SHA: {path}")
+        if _base_owned(path):
+            # The PR is free to omit base-owned files (as WORK-0002 does
+            # before it integrates this predecessor), but can never replace
+            # them, introduce new trust-root paths or duplicate an entry.
+            if path in seen_base_owned:
+                raise AttestationError(f"duplicate candidate trust-root path: {path}")
+            seen_base_owned.add(path)
+            if base_owned.get(path) != {"sha": sha, "mode": mode}:
+                raise AttestationError(f"unapproved default-branch trust-root source: {path}")
+            continue
         actual[path] = {"sha": sha, "mode": mode}
     missing = sorted(set(expected) - set(actual))
     unexpected = sorted(set(actual) - set(expected))
