@@ -621,6 +621,19 @@ REVIEW-0098 is `CLOSED / CHANGES_REQUIRED` after independent Codex L2 `PRR_kwDOU
 
 REVIEW-0099 is **not yet opened**. No default-branch trust authority, successful base-owned attestation, or required merge check exists yet. Preserve the 179-object source identity proposal and all previous negative reviews. Never merge PR #14 or resolve threads solely from author-side tests.
 
+## REVIEW-0099 — trusted-source frontier hardening candidate
+
+REVIEW-0098 is terminal `CLOSED / CHANGES_REQUIRED` on the exact independently reviewed SHA `449f2f8805df4d6878afe22548c6c29f39909b14`, with five new material findings. Its closure checkpoint `0d2d000710f2719bcf5c6437a0dade3b90ee9830` passed Trusted Source #37 / `37958043062` and Bootstrap #528 / `37958043227`.
+
+The corrected exact technical candidate `41319695c2c56c3e9f2506560c009da94582160b` passed Trusted Source #38 / `37958224986` (**62/62 unit tests**) and Bootstrap #529 / `37958224997` (SUCCESS). It:
+- orders complete relevant workflow runs by current attempt start/number rather than original creation time, failing closed on a rerun whose current attempt chronology cannot be established;
+- scans explicit pages of `pull_request_target` and `push` runs, rejecting incomplete/drifting/beyond-cap frontiers rather than silently stopping at 100;
+- recomputes the selected relevant run after downloading proof artifacts and refreshing PR/main to reject new runs and new attempts before positive verification;
+- rejects duplicate JSON keys in GitHub status acknowledgements using the same strict manifest parser;
+- includes `REVIEW-0098.yaml` in T15 task-specific scope.
+
+The run pagination budget remains explicit and fail-closed; this is not a claim of unbounded-liveness or of default-branch attestation. REVIEW-0099 must pass an `OPEN` checkpoint, `IN_PROGRESS` exact-head proof, fresh independent security L2 and controlled thread resolution before PR #14 can merge. **19 PR #14 threads remain unresolved and PR #2 has 104 unresolved.** No owner-sensitive product UX decisions have been made.
+
 ## Current next action
 
 1. Keep 11 PR #14 threads and 104 PR #2 threads unresolved.

@@ -99,6 +99,9 @@ execution:
   commit_sha: null
   result: null
   evidence:
+    - "REVIEW-0098 exact frozen 449f2f8805df4d6878afe22548c6c29f39909b14 received independent P1/P2 findings and closed CHANGES_REQUIRED on state-only 0d2d000710f2719bcf5c6437a0dade3b90ee9830; Trusted Source #37 / 37958043062 and Bootstrap #528 / 37958043227 both succeeded."
+    - "REVIEW-0099 exact technical candidate 41319695c2c56c3e9f2506560c009da94582160b passed Trusted Source #38 / 37958224986 with 62/62 unprivileged tests, and Bootstrap #529 / 37958224997; trusted base-owned attestation remains SKIPPED, with no merge authorization."
+    - "REVIEW-0099 tests exercise recent current rerun attempt versus original creation ordering, 101-run pagination, post-artifact new run, truncated/dynamic run pages, and ambiguous duplicate-key status response."
     - "REVIEW-0098 read-only API collector and adversarial tests are a technical candidate; they have not yet received exact-head CI, independent L2 or trusted default-branch deployment and do not create protected merge authority."
     - "Independent review on predecessor 2595f9f identified P1 @main workflow-path and unrelated pull_request_target run-provenance bugs plus P2 T15 scope omission; new successor code/tests are unapproved until exact-head real CI and fresh independent review."
     - "Exact technical PR #14 candidate 85ef6ef7321f4fc16ef9d130424d6543123cb520 passed Trusted Source #34 / 37954879182 (56/56 tests) and Bootstrap #525 / 37954879194 (450 tests, 100 percent line and branch). Main-owned attestation is not deployed; independent L2 is still required."
