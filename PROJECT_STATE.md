@@ -567,14 +567,21 @@ The frozen candidate `7699e1fb1a28bac1b1f8541ebf92126653d14a0d` passed Trusted S
 
 REVIEW-0097 is **CLOSED / CHANGES_REQUIRED**, not an approval. PR #14 now has **9 unresolved review threads**, and PR #2 remains at **104 unresolved threads**. Nothing is merged or resolved.
 
+## REVIEW-0098 — partial technical mitigation, not acceptance
+
+After independent REVIEW-0097 `CLOSED / CHANGES_REQUIRED`, the first successor mitigation on exact PR #14 HEAD `0b5ce3aaf25e12a96142472fc261681212f2a88f` passed Trusted Source #22 / `37945534737` (**29/29 tests**) and Bootstrap #512 / `37945534851` (**450 tests; 3,853 statements and 1,640 branches at 100%**).
+
+The proposed default-branch-owned publisher now embeds the **validated main/base SHA** in each emitted status description, and tries to publish a same-head failure whenever terminal `success` acknowledgement is ambiguous. The publisher never reports a successful run after ambiguous success or failed compensation.
+
+**This does not close either P1.** A remote success may survive both ambiguous writes; a base SHA in a description is not an independently enforced rule. The downstream trusted live gate must positively check current main/base SHA, the exact candidate SHA, and a successfully completed trusted publisher run. GitHub base-push updates without candidate HEAD changes must also invalidate/re-attest or fail merge authority. No REVIEW-0098 lifecycle review has been opened. Nine PR #14 and 104 PR #2 material threads remain unresolved.
+
 ## Current next action
 
-1. Preserve all nine PR #14 findings and 104 PR #2 findings.
-2. Prove the REVIEW-0097 CLOSED checkpoint.
-3. In REVIEW-0098, make merge authority depend on **both exact candidate SHA and validated base SHA**, and bind any claimed success to a **successfully completed trusted publisher execution**; invalidate or reject stale/ambiguous status evidence.
-4. Exercise base-push-without-candidate-change and ambiguous-POST regressions under the true GitHub semantics.
-5. Only after a clean fresh independent L2, reconcile findings and consider protected PR #14 integration.
-6. WORK-0003, WORK-0004 and product lots remain incomplete.
+1. Preserve all **9** unresolved PR #14 findings and **104** PR #2 findings; REVIEW-0097 remains terminal negative.
+2. Complete REVIEW-0098 consumer enforcement: exact candidate SHA, exact current main/base SHA, trusted publisher workflow provenance and confirmed successful run, with fail-closed handling of ambiguous terminal status.
+3. Exercise a main-branch advance without a candidate change, including stale prior success; do not trust raw status alone.
+4. Require exact technical and real control-plane proof before opening REVIEW-0098, then obtain fresh independent L2.
+5. Continue WORK-0002/T15 and WORK-0003/WORK-0004 only after the required dependencies and reviews; the product lots are not complete.
 
 ## Resume sequence
 
