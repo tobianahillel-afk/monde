@@ -13,12 +13,15 @@ protects:
     - "trusted attestor, workflow and approved manifest are owned by main, never executed from PR #2"
     - "base trust roots must be complete and valid, but a pre-integration candidate may omit their paths"
     - "any candidate-provided trust-root path must match exact base SHA and mode"
-    - "all approved 167 candidate source objects match the manifest exactly"
+    - "all approved 179 candidate source and policy/schema Git objects match the manifest exactly"
     - "unapproved added modified or missing executable source fails closed"
     - "Git trees are complete and linked by the exact requested commit and tree SHA"
     - "only tree/040000 directory nodes may be skipped"
     - "symlink/gitlink/checkout metadata and malformed mode or duplicate paths fail closed"
     - "trusted manifest duplicate JSON keys at any nesting level fail closed"
+    - "four base-approved registry policy YAML contracts and eight schemas/registry JSON schemas are pinned by SHA/mode and are mandatory"
+    - "any missing mutated or newly added policy/schema path is rejected before any trusted success"
+    - "GitHub status acknowledgement must include exact validated candidate SHA and cannot omit the field"
     - "pull_request_target executes only a default-branch checked-out attestor for exact PR #2 targeting main"
     - "the exact GitHub synthetic candidate+base merge commit must have parents [event base SHA, event candidate SHA] and a complete exact tree"
     - "the GitHub test-merge result must retain all default-branch trusted workflow/manifest/attestor object identities even if a pre-integration candidate legitimately omits them"
@@ -33,7 +36,7 @@ environment:
   mocked_dependencies: ["malformed manifests and Git tree API responses", "wrong base/head identity"]
 cases:
   happy_path:
-    - "167 approved executable object identities match current PR #2 exact source tree"
+    - "179 approved executable and policy/schema object identities match current PR #2 exact source tree"
     - "pre-integration PR #2 omits newer base-owned trust-root files"
     - "matching base-owned files in an integrated candidate are allowed"
     - "legitimate pre-integration absence passes candidate-source proof and its actual merge result retains all base-owned trust roots"

@@ -17,12 +17,14 @@ from pathlib import Path
 from typing import Any
 
 SHA = re.compile(r"[0-9a-f]{40}\Z")
+POLICY_FILES = frozenset(['registry/acceptance-authority.yaml','registry/content-identity.yaml','registry/integration-provenance.yaml','registry/status-machines.yaml'])
+SCHEMA_FILES = frozenset(['schemas/registry/assumptions.schema.json','schemas/registry/capabilities.schema.json','schemas/registry/experiments.schema.json','schemas/registry/requirements.schema.json','schemas/registry/reviews.schema.json','schemas/registry/risks.schema.json','schemas/registry/tests.schema.json','schemas/registry/work-items.schema.json'])
 REQUIRED = frozenset({
     "requirements/governance-ci.txt",
     "tools/governance/validate_repo.py",
     ".github/workflows/governance.yml",
     ".github/workflows/_governance-core.yml",
-})
+}) | POLICY_FILES | SCHEMA_FILES
 CONFIG_FILES = frozenset({
     "pyproject.toml", "setup.cfg", "setup.py", "tox.ini",
     ".coveragerc", "pytest.ini", ".python-version",
@@ -35,7 +37,7 @@ CONFIG_FILES = frozenset({
 # Git blob under code/CI paths as an authority-bearing dependency.
 # Also reject symlinks/gitlinks anywhere in the tree: they can redirect reads
 # or introduce nested checkouts outside a previously approved source set.
-SOURCE_PREFIXES = (".github/", "requirements/", "scripts/", "tools/", "tests/")
+SOURCE_PREFIXES = (".github/", "requirements/", "scripts/", "tools/", "tests/", "schemas/")
 SUFFIXES = (
     ".py", ".pyc", ".pyo", ".pth", ".pyd", ".so", ".dylib", ".dll",
     ".node", ".js", ".mjs", ".cjs", ".ts", ".sh", ".ps1", ".bat",
@@ -54,6 +56,7 @@ def in_scope(path: str, mode: str) -> bool:
         path.endswith(SUFFIXES)
         or path.startswith(SOURCE_PREFIXES)
         or path in CONFIG_FILES
+        or path in POLICY_FILES
         or mode in ("100755", "120000", "160000")
     )
 
@@ -276,7 +279,7 @@ def _publish_status(
         not isinstance(result, dict)
         or result.get("state") != state
         or result.get("context") != STATUS_CONTEXT
-        or ("sha" in result and result["sha"] != sha)
+        or result.get("sha") != sha
     ):
         raise AttestationError("trusted candidate-status acknowledgement is not exact")
 

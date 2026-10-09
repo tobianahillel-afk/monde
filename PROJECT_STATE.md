@@ -554,13 +554,13 @@ The live PR #14 has **8 total review threads, 7 unresolved**, and PR #2 still ha
 
 ## REVIEW-0097 — proposed successor correction
 
-The next narrow successor must bind **all governance policy YAML files** `registry/status-machines.yaml`, `registry/acceptance-authority.yaml`, `registry/content-identity.yaml`, `registry/integration-provenance.yaml` and **every JSON/YAML schema beneath `schemas/`** to exact reviewed Git blob SHA/mode in the base-owned trust manifest. Its executable policy must require these fixed paths and reject additional or modified schema files by the same source proof. GitHub status publication must require an exact candidate `sha` field in each acknowledgement. Candidate tests must falsify changed/missing policy/schema inputs, malformed/missing status SHA, while preserving pre-integration candidate exception, synthetic test-merge root retention, and zero candidate-code execution.
+The unapproved REVIEW-0097 technical successor now binds **all governance policy YAML files** `registry/status-machines.yaml`, `registry/acceptance-authority.yaml`, `registry/content-identity.yaml`, `registry/integration-provenance.yaml` and **every JSON/YAML schema beneath `schemas/`** to exact reviewed Git blob SHA/mode in the base-owned trust manifest. Its executable policy must require these fixed paths and reject additional or modified schema files by the same source proof. GitHub status publication must require an exact candidate `sha` field in each acknowledgement. Candidate tests must falsify changed/missing policy/schema inputs, malformed/missing status SHA, while preserving pre-integration candidate exception, synthetic test-merge root retention, and zero candidate-code execution.
 
-No REVIEW-0097 lifecycle record should be marked OPEN until a corrected technical candidate passes exact-head CI.
+This candidate is not reviewed or integrated. REVIEW-0097 remains unopened until technical CI succeeds on its exact SHA.
 
 ## Current next action
 
-1. Prove this REVIEW-0096 terminal state-only checkpoint on PR #14.
+1. REVIEW-0096 terminal checkpoint passed the required source and Bootstrap jobs; prove the REVIEW-0097 technical candidate on PR #14 next.
 2. Implement and run REVIEW-0097 technical successor proof with newly protected policy/schema dependencies and strict status ACK SHA.
 3. Create OPEN, then IN_PROGRESS checkpoints only after their own successful CI, and freeze exact SHA.
 4. Obtain a fresh independent L2 over all **7 unresolved PR #14 threads** before any resolution or guarded merge.

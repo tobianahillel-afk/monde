@@ -367,12 +367,60 @@
       "sha": "1bca9c5c9a47da34a24fc074b54e063070dfac57",
       "mode": "100644"
     },
+    "registry/acceptance-authority.yaml": {
+      "sha": "795f7eb0937ff371d5a7fc6ac5e98d0490846150",
+      "mode": "100644"
+    },
+    "registry/content-identity.yaml": {
+      "sha": "48ee4c9de3206f0e7f742fae94736f67a900ada5",
+      "mode": "100644"
+    },
+    "registry/integration-provenance.yaml": {
+      "sha": "885bc21d0f4ded00d08387de1dab5af5751555b0",
+      "mode": "100644"
+    },
+    "registry/status-machines.yaml": {
+      "sha": "2e9523efd0509c22c7f1b2804adbef5b07392c0a",
+      "mode": "100644"
+    },
     "requirements/bootstrap-governance-ci.txt": {
       "sha": "b73f350476e2708337ff541c3daf9425c5e56e0f",
       "mode": "100644"
     },
     "requirements/governance-ci.txt": {
       "sha": "d61291f0dd17103995a0ac4473475d6782d48aeb",
+      "mode": "100644"
+    },
+    "schemas/registry/assumptions.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/capabilities.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/experiments.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/requirements.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/reviews.schema.json": {
+      "sha": "80c363fbb217aa53752aa154bf6a386e315824a3",
+      "mode": "100644"
+    },
+    "schemas/registry/risks.schema.json": {
+      "sha": "f65af8466f4947de4bab9647d3cc4a4ec04dac8f",
+      "mode": "100644"
+    },
+    "schemas/registry/tests.schema.json": {
+      "sha": "e612f115581ca4030f2c6ec3160a366e5513f083",
+      "mode": "100644"
+    },
+    "schemas/registry/work-items.schema.json": {
+      "sha": "f43b15a1001230f980b2a32eb76cb9833dc8d34b",
       "mode": "100644"
     },
     "scripts/governance_mutation_smoke.py": {

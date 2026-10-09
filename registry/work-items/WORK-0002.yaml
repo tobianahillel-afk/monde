@@ -13,7 +13,7 @@ purpose: |
 
 scope_change:
   approved: true
-  rationale: "PR #14/T15 REVIEW-0096 is terminal CLOSED/CHANGES_REQUIRED on exact independent Codex-reviewed head b9ccdc55a41943e0ea47aef6e6b589c86705a4b0. REVIEW-0096 found three new material defects: policy/schema files outside the approved trust manifest (P1 PRRT_kwDOUUI5ts78Lb92), missing exact SHA status-ACK validation (P2 PRRT_kwDOUUI5ts78Lb-I), and contradictory canonical handover labels (P2 PRRT_kwDOUUI5ts78Lb-R). A REVIEW-0097 successor must expand the pinned source manifest and validator policy, require an exact status response SHA, and independently prove all 7 live unresolved PR #14 threads before any merge. PR #2 retains 104 unresolved findings and cannot yet use the proposed base trust root."
+  rationale: "PR #14/T15 REVIEW-0096 closed CHANGES_REQUIRED after fresh independent L2 exposed three policy/schema/status-ack/handover defects. REVIEW-0097 technical successor now pins all four critical registry policy contracts and eight schema JSON objects in the default-branch-owned manifest (179 reviewed Git objects total), hard-fails missing or wrong GitHub status acknowledgement SHA, and repairs active handover. This is an unapproved technical candidate until exact-head tests, formal review checkpoints and fresh independent L2. PR #14 keeps 7 unresolved threads, PR #2 keeps 104."
 
 scope:
   in:

@@ -25,6 +25,7 @@ def fixture():
         ".github/workflows/governance.yml": {"sha": "c" * 40, "mode": "100644"},
         ".github/workflows/_governance-core.yml": {"sha": "d" * 40, "mode": "100644"},
     }
+    expected.update({path: {"sha": "e" * 40, "mode": "100644"} for path in subject.REQUIRED - set(expected)})
     manifest = {"schema_version": 1, "target_pr": 2, "source_files": expected}
     tree = {
         "truncated": False,
@@ -39,7 +40,7 @@ def fixture():
 class TrustedSourceTests(unittest.TestCase):
     def test_exact_approved_tree_passes(self):
         manifest, tree = fixture()
-        self.assertEqual(subject.verify_tree(manifest, tree), 4)
+        self.assertEqual(subject.verify_tree(manifest, tree), len(manifest["source_files"]))
 
     def test_recursive_git_tree_directory_entries_are_structural_only(self):
         manifest, tree = fixture()
@@ -58,8 +59,8 @@ class TrustedSourceTests(unittest.TestCase):
         ]
         base = {"truncated": False, "tree": directories + owned}
         candidate = {"truncated": False, "tree": directories + tree["tree"] + owned}
-        self.assertEqual(subject.verify_tree(manifest, candidate, base), 4)
-        self.assertEqual(subject.verify_tree(manifest, {"truncated": False, "tree": directories + tree["tree"]}), 4)
+        self.assertEqual(subject.verify_tree(manifest, candidate, base), len(manifest["source_files"]))
+        self.assertEqual(subject.verify_tree(manifest, {"truncated": False, "tree": directories + tree["tree"]}), len(manifest["source_files"]))
 
     def test_directory_exemption_does_not_permit_unsafe_source_entries(self):
         manifest, tree = fixture()
@@ -138,11 +139,11 @@ class TrustedSourceTests(unittest.TestCase):
         ]
         base = {"truncated": False, "tree": owned}
         candidate = {"truncated": False, "tree": tree["tree"] + owned}
-        self.assertEqual(subject.verify_tree(manifest, candidate, base), 4)
+        self.assertEqual(subject.verify_tree(manifest, candidate, base), len(manifest["source_files"]))
         # WORK-0002 predates the base-owned trust files; their absence
         # must not invalidate its otherwise approved sources.
         preintegration = {"truncated": False, "tree": tree["tree"]}
-        self.assertEqual(subject.verify_tree(manifest, preintegration, base), 4)
+        self.assertEqual(subject.verify_tree(manifest, preintegration, base), len(manifest["source_files"]))
         duplicate = {"truncated": False, "tree": tree["tree"] + owned + [owned[0]]}
         with self.assertRaisesRegex(subject.AttestationError, "duplicate candidate trust-root"):
             subject.verify_tree(manifest, duplicate, base)
@@ -312,9 +313,9 @@ class TrustedSourceTests(unittest.TestCase):
         ]
         base = {"truncated": False, "tree": owned}
         merged = {"truncated": False, "tree": candidate["tree"] + owned}
-        self.assertEqual(subject.verify_tree(manifest, candidate, base), 4)
+        self.assertEqual(subject.verify_tree(manifest, candidate, base), len(manifest["source_files"]))
         self.assertEqual(
-            subject.verify_tree(manifest, merged, base, require_base_owned=True), 4,
+            subject.verify_tree(manifest, merged, base, require_base_owned=True), len(manifest["source_files"]),
         )
         # Simulates a PR that has integrated main and then deleted trust roots.
         for missing in owned:
@@ -401,7 +402,7 @@ class TrustedSourceTests(unittest.TestCase):
             mock.patch.object(subject, "load_manifest", return_value=manifest),
             mock.patch.object(subject, "_get_json", side_effect=get),
         ):
-            self.assertEqual(subject._verify_approved_merge("o/r", "t", head, base), 4)
+            self.assertEqual(subject._verify_approved_merge("o/r", "t", head, base), len(manifest["source_files"]))
             documents["git/commits/" + merge]["parents"] = [
                 {"sha": head}, {"sha": base},
             ]
@@ -486,9 +487,54 @@ class TrustedSourceTests(unittest.TestCase):
         self.assertNotIn("actions: write", trusted)
         self.assertNotIn("pull-requests: write", trusted)
 
+
+    def test_governance_policy_and_schema_contracts_are_mandatory(self):
+        manifest, candidate = fixture()
+        required = set(subject.POLICY_FILES) | set(subject.SCHEMA_FILES)
+        self.assertEqual(len(required), 12)
+        self.assertTrue(required <= set(manifest["source_files"]))
+        for path in sorted(required):
+            with self.subTest(path=path):
+                self.assertTrue(subject.in_scope(path, "100644"))
+                lacking = {**manifest, "source_files": {k:v for k,v in manifest["source_files"].items() if k != path}}
+                with self.assertRaises(subject.AttestationError):
+                    subject.validate_manifest(lacking)
+                missing = {"truncated": False, "tree": [n for n in candidate["tree"] if n["path"] != path]}
+                with self.assertRaisesRegex(subject.AttestationError, "missing="):
+                    subject.verify_tree(manifest, missing)
+                changed = {"truncated": False, "tree": [{**n,"sha":"f" * 40} if n["path"] == path else n for n in candidate["tree"]]}
+                with self.assertRaisesRegex(subject.AttestationError, "drift="):
+                    subject.verify_tree(manifest, changed)
+        extra_schema = {"path": "schemas/registry/new-contract.schema.json", "sha": "f" * 40, "mode": "100644", "type": "blob"}
+        with self.assertRaisesRegex(subject.AttestationError, "unexpected="):
+            subject.verify_tree(manifest, {"truncated": False, "tree": candidate["tree"]+[extra_schema]})
+
+    def test_checked_in_manifest_has_every_trusted_policy_dependency(self):
+        path = Path(__file__).resolve().parent / "approved_sources.json"
+        source = subject.load_manifest(path)
+        approved = subject.validate_manifest(source)
+        self.assertEqual(len(approved), 179)
+        for policy in subject.POLICY_FILES | subject.SCHEMA_FILES:
+            self.assertIn(policy, approved)
+            self.assertEqual(approved[policy]["mode"], "100644")
+
+    def test_status_ack_requires_non_optional_exact_sha(self):
+        head = "a" * 40
+        for payload in (
+            {"state": "success", "context": subject.STATUS_CONTEXT},
+            {"state": "success", "context": subject.STATUS_CONTEXT, "sha": None},
+            {"state": "success", "context": subject.STATUS_CONTEXT, "sha": "b" * 40},
+        ):
+            with self.subTest(payload=payload), mock.patch.object(
+                subject.urllib.request, "urlopen",
+                return_value=io.BytesIO(json.dumps(payload).encode("utf-8"))
+            ):
+                with self.assertRaisesRegex(subject.AttestationError, "acknowledgement is not exact"):
+                    subject._publish_status("o/r", head, "t", "success", "done")
+
     def test_commit_and_tree_are_never_executed(self):
         manifest, tree = fixture()
-        self.assertEqual(subject.verify_tree(manifest, tree), 4)
+        self.assertEqual(subject.verify_tree(manifest, tree), len(manifest["source_files"]))
         # All proof uses Git object identity. No subprocess, eval, import or
         # candidate-file evaluation is required by verify_tree.
 
