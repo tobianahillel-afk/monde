@@ -110,7 +110,11 @@ def _base_owned(path: str) -> bool:
 
 
 def verify_tree(
-    manifest: dict[str, Any], candidate_tree: Any, base_tree: Any | None = None
+    manifest: dict[str, Any],
+    candidate_tree: Any,
+    base_tree: Any | None = None,
+    *,
+    require_base_owned: bool = False,
 ) -> int:
     expected = dict(validate_manifest(manifest))
     # These trust-root files execute solely from the default-branch checkout.
@@ -191,6 +195,12 @@ def verify_tree(
                 raise AttestationError(f"unapproved default-branch trust-root source: {path}")
             continue
         actual[path] = {"sha": sha, "mode": mode}
+    if require_base_owned:
+        # Checking only the PR tree is not enough: pre-integration absence
+        # is legitimate, but the actual GitHub test-merge result MUST retain
+        # every approved trust-root file from the base branch.
+        if not base_owned or seen_base_owned != set(base_owned):
+            raise AttestationError("merged result removed a default-branch trust-root source")
     missing = sorted(set(expected) - set(actual))
     unexpected = sorted(set(actual) - set(expected))
     drift = sorted(path for path in set(expected) & set(actual) if expected[path] != actual[path])
@@ -227,22 +237,74 @@ def _get_json(repo: str, route: str, token: str) -> dict[str, Any]:
     return value
 
 
-def main() -> int:
-    repo = os.environ.get("GITHUB_REPOSITORY", "")
-    sha = os.environ.get("MONDE_ATTEST_HEAD", "")
-    pr = os.environ.get("MONDE_ATTEST_PR", "")
-    base_sha = os.environ.get("MONDE_ATTEST_BASE", "")
-    base_ref = os.environ.get("MONDE_ATTEST_BASE_REF", "")
-    token = os.environ.get("GITHUB_TOKEN", "")
+STATUS_CONTEXT = "MONDE / Trusted Source Attestation"
+
+
+def _publish_status(
+    repo: str, sha: str, token: str, state: str, description: str,
+) -> None:
+    if not _sha(sha) or state not in {"pending", "success", "failure"}:
+        raise AttestationError("invalid exact trusted-source status identity")
+    payload = json.dumps({
+        "state": state,
+        "context": STATUS_CONTEXT,
+        "description": description[:140],
+    }, separators=(",", ":")).encode("utf-8")
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}/statuses/{sha}",
+        data=payload,
+        method="POST",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            raw = response.read(MAX_RESPONSE_BYTES + 1)
+    except (OSError, urllib.error.HTTPError) as exc:
+        raise AttestationError("trusted candidate-status publication failed") from exc
+    if len(raw) > MAX_RESPONSE_BYTES:
+        raise AttestationError("trusted candidate-status response exceeds size bound")
+    try:
+        result = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise AttestationError("malformed trusted candidate-status response") from exc
     if (
-        repo != "tobianahillel-afk/monde"
-        or not _sha(sha)
-        or pr != "2"
-        or not _sha(base_sha)
-        or base_ref != "main"
-        or not token
+        not isinstance(result, dict)
+        or result.get("state") != state
+        or result.get("context") != STATUS_CONTEXT
+        or ("sha" in result and result["sha"] != sha)
     ):
-        raise AttestationError("invalid trusted-source invocation identity")
+        raise AttestationError("trusted candidate-status acknowledgement is not exact")
+
+
+def _exact_pr_snapshot(repo: str, token: str, sha: str, base_sha: str) -> dict[str, Any]:
+    pr = _get_json(repo, "pulls/2", token)
+    if (
+        type(pr.get("number")) is not int
+        or pr["number"] != 2
+        or pr.get("state") != "open"
+        or pr.get("draft") is not False
+        or not isinstance(pr.get("head"), dict)
+        or pr["head"].get("sha") != sha
+        or not isinstance(pr.get("base"), dict)
+        or pr["base"].get("sha") != base_sha
+        or pr["base"].get("ref") != "main"
+        or pr.get("mergeable") is not True
+        or not _sha(pr.get("merge_commit_sha"))
+    ):
+        raise AttestationError("current PR #2 authority does not match attested head/base")
+    return pr
+
+
+def _verify_approved_merge(repo: str, token: str, sha: str, base_sha: str) -> int:
+    # The current PR snapshot binds the synthetic merge SHA to the exact
+    # candidate/base; checking that merge tree prevents deleting main's
+    # attestor during or after the candidate integrates the trust root.
+    pr = _exact_pr_snapshot(repo, token, sha, base_sha)
     manifest = load_manifest(Path(__file__).resolve().parent / "approved_sources.json")
     commit = _get_json(repo, f"git/commits/{sha}", token)
     if commit.get("sha") != sha or not isinstance(commit.get("tree"), dict):
@@ -263,6 +325,65 @@ def main() -> int:
     if base_tree.get("sha") != base_tree_sha:
         raise AttestationError("trusted default-branch tree identity mismatch")
     count = verify_tree(manifest, tree, base_tree)
+
+    merge_sha = pr["merge_commit_sha"]
+    merge_commit = _get_json(repo, f"git/commits/{merge_sha}", token)
+    parents = merge_commit.get("parents")
+    if (
+        merge_commit.get("sha") != merge_sha
+        or not isinstance(parents, list)
+        or len(parents) != 2
+        or not all(isinstance(p, dict) for p in parents)
+        or [p.get("sha") for p in parents] != [base_sha, sha]
+        or not isinstance(merge_commit.get("tree"), dict)
+        or not _sha(merge_commit["tree"].get("sha"))
+    ):
+        raise AttestationError("GitHub candidate merge is not bound to exact base/head parents")
+    merge_tree_sha = merge_commit["tree"]["sha"]
+    merge_tree = _get_json(repo, f"git/trees/{merge_tree_sha}?recursive=1", token)
+    if merge_tree.get("sha") != merge_tree_sha:
+        raise AttestationError("merged result tree identity mismatch")
+    merged_count = verify_tree(manifest, merge_tree, base_tree, require_base_owned=True)
+    if merged_count != count:
+        raise AttestationError("merged result source count differs from candidate")
+
+    current_base = _get_json(repo, "branches/main", token)
+    if (
+        not isinstance(current_base.get("commit"), dict)
+        or current_base["commit"].get("sha") != base_sha
+    ):
+        raise AttestationError("trusted default branch advanced during attestation")
+    if _exact_pr_snapshot(repo, token, sha, base_sha)["merge_commit_sha"] != merge_sha:
+        raise AttestationError("GitHub candidate merge authority drifted during attestation")
+    return count
+
+
+def main() -> int:
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    sha = os.environ.get("MONDE_ATTEST_HEAD", "")
+    pr = os.environ.get("MONDE_ATTEST_PR", "")
+    base_sha = os.environ.get("MONDE_ATTEST_BASE", "")
+    base_ref = os.environ.get("MONDE_ATTEST_BASE_REF", "")
+    token = os.environ.get("GITHUB_TOKEN", "")
+    if (
+        repo != "tobianahillel-afk/monde"
+        or not _sha(sha)
+        or pr != "2"
+        or not _sha(base_sha)
+        or base_ref != "main"
+        or not token
+    ):
+        raise AttestationError("invalid trusted-source invocation identity")
+    # Pending invalidates any prior success for the same head/context before
+    # reading mutable GitHub authority. A failure is published on the SAME
+    # candidate head; a base-owned run status is never used as PR-head proof.
+    _publish_status(repo, sha, token, "pending", "Validating exact PR #2 source and merge tree")
+    try:
+        count = _verify_approved_merge(repo, token, sha, base_sha)
+    except (AttestationError, OSError, ValueError):
+        _publish_status(repo, sha, token, "failure", "Trusted source or merged-result authority rejected")
+        raise
+    _publish_status(repo, sha, token, "success", "Approved source and merge result verified")
     print(f"MONDE trusted-source attestation PASS: PR #{pr}, {count} approved Git objects, head={sha}")
     return 0
 

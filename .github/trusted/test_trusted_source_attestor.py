@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import io
 import tempfile
 import os
 import unittest
@@ -266,10 +267,12 @@ class TrustedSourceTests(unittest.TestCase):
         with (
             mock.patch.dict(os.environ, {**common, "MONDE_ATTEST_BASE_REF": "main"}, clear=True),
             mock.patch.object(subject, "_get_json", return_value={}) as network,
+            mock.patch.object(subject, "_publish_status") as publisher,
         ):
-            with self.assertRaisesRegex(subject.AttestationError, "candidate commit identity mismatch"):
+            with self.assertRaisesRegex(subject.AttestationError, "current PR #2 authority"):
                 subject.main()
             network.assert_called_once()
+            self.assertEqual([x.args[3] for x in publisher.call_args_list], ["pending", "failure"])
 
     def test_trusted_manifest_rejects_duplicate_json_keys_at_every_depth(self):
         payloads = [
@@ -296,6 +299,192 @@ class TrustedSourceTests(unittest.TestCase):
             manifest, _tree = fixture()
             path.write_text(json.dumps(manifest), encoding="utf-8")
             self.assertEqual(subject.load_manifest(path), manifest)
+
+    def test_merge_result_requires_base_trust_roots_even_when_candidate_omits_them(self):
+        manifest, candidate = fixture()
+        owned = [
+            {"path": ".github/trusted/trusted_source_attestor.py", "type": "blob",
+             "mode": "100644", "sha": "1" * 40},
+            {"path": ".github/trusted/approved_sources.json", "type": "blob",
+             "mode": "100644", "sha": "2" * 40},
+            {"path": ".github/workflows/monde-trusted-source.yml", "type": "blob",
+             "mode": "100644", "sha": "3" * 40},
+        ]
+        base = {"truncated": False, "tree": owned}
+        merged = {"truncated": False, "tree": candidate["tree"] + owned}
+        self.assertEqual(subject.verify_tree(manifest, candidate, base), 4)
+        self.assertEqual(
+            subject.verify_tree(manifest, merged, base, require_base_owned=True), 4,
+        )
+        # Simulates a PR that has integrated main and then deleted trust roots.
+        for missing in owned:
+            pr_merge = {
+                "truncated": False,
+                "tree": [n for n in merged["tree"] if n["path"] != missing["path"]],
+            }
+            with self.subTest(path=missing["path"]), self.assertRaisesRegex(
+                subject.AttestationError, "merged result removed"
+            ):
+                subject.verify_tree(manifest, pr_merge, base, require_base_owned=True)
+        with self.assertRaisesRegex(subject.AttestationError, "merged result removed"):
+            subject.verify_tree(manifest, candidate, base, require_base_owned=True)
+        with self.assertRaisesRegex(subject.AttestationError, "merged result removed"):
+            subject.verify_tree(manifest, merged, require_base_owned=True)
+
+    def test_exact_live_pr_snapshot_rejects_mismatched_authority(self):
+        head, base = "a" * 40, "b" * 40
+        pr = {
+            "number": 2, "state": "open", "draft": False,
+            "head": {"sha": head}, "base": {"sha": base, "ref": "main"},
+            "mergeable": True, "merge_commit_sha": "c" * 40,
+        }
+        with mock.patch.object(subject, "_get_json", return_value=pr):
+            self.assertEqual(
+                subject._exact_pr_snapshot("o/r", "t", head, base), pr,
+            )
+        for bad in (
+            {**pr, "number": True},
+            {**pr, "head": {"sha": "f" * 40}},
+            {**pr, "base": {"sha": base, "ref": "feature"}},
+            {**pr, "draft": True},
+            {**pr, "merge_commit_sha": None},
+        ):
+            with self.subTest(bad=bad), mock.patch.object(
+                subject, "_get_json", return_value=bad
+            ):
+                with self.assertRaisesRegex(subject.AttestationError, "current PR #2 authority"):
+                    subject._exact_pr_snapshot("o/r", "t", head, base)
+
+    def test_merged_commit_must_bind_exact_base_and_candidate_parents(self):
+        head, base, merge = "a" * 40, "b" * 40, "c" * 40
+        manifest, candidate = fixture()
+        roots = [
+            {"path": ".github/trusted/trusted_source_attestor.py", "type": "blob",
+             "mode": "100644", "sha": "1" * 40},
+            {"path": ".github/trusted/approved_sources.json", "type": "blob",
+             "mode": "100644", "sha": "2" * 40},
+            {"path": ".github/workflows/monde-trusted-source.yml", "type": "blob",
+             "mode": "100644", "sha": "3" * 40},
+        ]
+        base_tree = {"sha": "e" * 40, "truncated": False, "tree": roots}
+        candidate_tree = {"sha": "d" * 40, **candidate}
+        merged_tree = {
+            "sha": "f" * 40,
+            "truncated": False,
+            "tree": candidate["tree"] + roots,
+        }
+        pr = {
+            "number": 2, "state": "open", "draft": False,
+            "head": {"sha": head}, "base": {"sha": base, "ref": "main"},
+            "mergeable": True, "merge_commit_sha": merge,
+        }
+        documents = {
+            "pulls/2": pr,
+            "git/commits/" + head: {
+                "sha": head, "tree": {"sha": candidate_tree["sha"]},
+            },
+            "git/trees/" + candidate_tree["sha"] + "?recursive=1": candidate_tree,
+            "git/commits/" + base: {
+                "sha": base, "tree": {"sha": base_tree["sha"]},
+            },
+            "git/trees/" + base_tree["sha"] + "?recursive=1": base_tree,
+            "git/commits/" + merge: {
+                "sha": merge, "parents": [{"sha": base}, {"sha": head}],
+                "tree": {"sha": merged_tree["sha"]},
+            },
+            "git/trees/" + merged_tree["sha"] + "?recursive=1": merged_tree,
+            "branches/main": {"commit": {"sha": base}},
+        }
+        def get(_repo, route, _token):
+            return documents[route]
+        with (
+            mock.patch.object(subject, "load_manifest", return_value=manifest),
+            mock.patch.object(subject, "_get_json", side_effect=get),
+        ):
+            self.assertEqual(subject._verify_approved_merge("o/r", "t", head, base), 4)
+            documents["git/commits/" + merge]["parents"] = [
+                {"sha": head}, {"sha": base},
+            ]
+            with self.assertRaisesRegex(subject.AttestationError, "merge is not bound"):
+                subject._verify_approved_merge("o/r", "t", head, base)
+            documents["git/commits/" + merge]["parents"] = [
+                {"sha": base}, {"sha": head},
+            ]
+            documents["git/trees/" + merged_tree["sha"] + "?recursive=1"] = {
+                **merged_tree,
+                "tree": candidate["tree"],
+            }
+            with self.assertRaisesRegex(subject.AttestationError, "merged result removed"):
+                subject._verify_approved_merge("o/r", "t", head, base)
+            documents["git/trees/" + merged_tree["sha"] + "?recursive=1"] = merged_tree
+            documents["branches/main"] = {"commit": {"sha": "0" * 40}}
+            with self.assertRaisesRegex(subject.AttestationError, "default branch advanced"):
+                subject._verify_approved_merge("o/r", "t", head, base)
+
+    def test_exact_candidate_status_publisher_acknowledges_context(self):
+        head = "a" * 40
+        def response(request, timeout=0):
+            self.assertEqual(timeout, 20)
+            self.assertEqual(request.get_method(), "POST")
+            self.assertTrue(request.full_url.endswith("/statuses/" + head))
+            posted = json.loads(request.data)
+            self.assertEqual(posted["context"], subject.STATUS_CONTEXT)
+            return io.BytesIO(json.dumps({
+                "state": posted["state"],
+                "context": posted["context"],
+                "sha": head,
+            }).encode("utf-8"))
+        with mock.patch.object(subject.urllib.request, "urlopen", side_effect=response):
+            subject._publish_status("o/r", head, "t", "pending", "starting")
+            subject._publish_status("o/r", head, "t", "success", "done")
+            subject._publish_status("o/r", head, "t", "failure", "rejected")
+        for state in ("", "error"):
+            with self.assertRaisesRegex(subject.AttestationError, "invalid exact"):
+                subject._publish_status("o/r", head, "t", state, "bad")
+        with mock.patch.object(
+            subject.urllib.request, "urlopen",
+            return_value=io.BytesIO(b'{"state":"success","context":"wrong","sha":"' + head.encode() + b'"}'),
+        ):
+            with self.assertRaisesRegex(subject.AttestationError, "acknowledgement"):
+                subject._publish_status("o/r", head, "t", "success", "bad")
+
+    def test_status_publication_is_pending_then_terminal_on_exact_candidate_head(self):
+        env = {
+            "GITHUB_REPOSITORY": "tobianahillel-afk/monde",
+            "MONDE_ATTEST_HEAD": "a" * 40,
+            "MONDE_ATTEST_BASE": "b" * 40,
+            "MONDE_ATTEST_BASE_REF": "main",
+            "MONDE_ATTEST_PR": "2",
+            "GITHUB_TOKEN": "test-only",
+        }
+        with (
+            mock.patch.dict(os.environ, env, clear=True),
+            mock.patch.object(subject, "_verify_approved_merge", return_value=167),
+            mock.patch.object(subject, "_publish_status") as status,
+        ):
+            self.assertEqual(subject.main(), 0)
+        self.assertEqual([c.args[3] for c in status.call_args_list], ["pending", "success"])
+        with (
+            mock.patch.dict(os.environ, env, clear=True),
+            mock.patch.object(subject, "_verify_approved_merge",
+                              side_effect=subject.AttestationError("bad tree")),
+            mock.patch.object(subject, "_publish_status") as status,
+        ):
+            with self.assertRaisesRegex(subject.AttestationError, "bad tree"):
+                subject.main()
+        self.assertEqual([c.args[3] for c in status.call_args_list], ["pending", "failure"])
+
+    def test_workflow_publishes_commit_status_with_trusted_job_permissions(self):
+        workflow = (
+            Path(__file__).resolve().parents[1] / "workflows" /
+            "monde-trusted-source.yml"
+        ).read_text(encoding="utf-8")
+        trusted = workflow.split("  trusted-attestation:", 1)[1]
+        self.assertIn("statuses: write", trusted)
+        self.assertIn("contents: read", trusted)
+        self.assertIn("MONDE_ATTEST_HEAD: ${{ github.event.pull_request.head.sha }}", trusted)
+        self.assertNotIn("actions: write", trusted)
+        self.assertNotIn("pull-requests: write", trusted)
 
     def test_commit_and_tree_are_never_executed(self):
         manifest, tree = fixture()

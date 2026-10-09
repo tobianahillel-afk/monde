@@ -37,13 +37,14 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+      statuses: write
     steps:
       - name: Checkout default-branch owned attestor only
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
-      - name: Verify exact candidate Git object identities without executing PR code
+      - name: Validate and publish exact PR-head trusted-source status without executing PR code
         env:
           GITHUB_TOKEN: ${{ github.token }}
           MONDE_ATTEST_HEAD: ${{ github.event.pull_request.head.sha }}

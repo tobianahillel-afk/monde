@@ -540,14 +540,28 @@ PR #14 has **5 total review threads: 1 resolved, 4 unresolved**; the two earlier
 
 The next successor must preserve the pre-integration absence exception **without permitting post-integration deletion**, preferably by checking the exact candidate+base merge-result Git tree or an equivalent ancestry-bound guarantee, then publish an immutable-name trusted attestation result **on the exact validated candidate SHA**, fail-closed on mismatched current heads/merge metadata. Both behaviors require unit/adversarial tests and a fresh exact-head independent L2 before PR #14 merge. Repository protection/required-check binding remains separate WORK-0003 authority and must not be silently treated as already configured.
 
+## Trust-root successor implementation candidate — not yet reviewed
+
+The REVIEW-0095 CLOSED checkpoint `a96e8a55c7b19e26c6480c0fea1b3a64aebe4996` passed trusted-source workflow #12 / `37937372646` at **17/17 tests**, and Bootstrap #502 / `37937372624` succeeded. This preserves both independent P1 findings as negative evidence.
+
+The next technical candidate changes only the bounded PR #14 trusted-source predecessor plus TEST-0011 and canonical handover:
+
+- The base-owned verifier now reads the **actual GitHub PR #2 test-merge commit**, requires its two parents to equal the exact event base and candidate SHA, and verifies its recursive tree against the approved source manifest.
+- The pre-integration PR tree may omit newer main-owned trust files, but the **final merge-result tree must contain every base-owned attestor/manifest/workflow file with exact approved SHA/mode**. A candidate deletion or replacement is rejected.
+- The trusted default-branch job gains only `statuses: write`, retains `contents: read`, and publishes a fixed `MONDE / Trusted Source Attestation` status on the **validated PR #2 candidate SHA**, not the base SHA. It publishes `pending` before validation and terminal `success` or `failure` after.
+- Source, merge-result, live pull request head/base/merge and default branch SHA are bound at proof time; any mismatch fails closed.
+- The 167-source manifest remains unchanged; no PR candidate source is installed or executed in the trusted job.
+
+This is **not** an accepted source root or a product implementation milestone. The technical candidate must pass exact GitHub self-tests and adversarial review, then move through a fresh review lifecycle. Candidate-SHA status spoofing prevention and required-check branch settings remain outside this code and must be validated before declaring WORK-0002 complete.
+
 ## Current next action
 
-1. Leave PR #14 **unmerged**, all **4** material threads unresolved, and PR #2's **104** material threads unresolved.
-2. Prove the REVIEW-0095 CLOSED state-only checkpoint with trusted-source and Bootstrap workflows before the next technical successor.
-3. Implement and test exact-candidate commit status/check publication plus full post-merge trust-root preservation, without executing candidate-controlled code.
-4. Require a new independently reviewed exact-head successor; do not self-approve or resolve negative findings from green CI alone.
-5. Only then can PR #14 merge to `main` and the real base-owned attestation be exercised on PR #2.
-6. WORK-0003, WORK-0004 and the product lots remain downstream of the governance closure dependency.
+1. PR #14 retains **four unresolved findings**; PR #2 retains **104 unresolved**. Do not merge either.
+2. Prove the successor technical candidate at exact GitHub HEAD with both unprivileged trusted-source self-tests and Bootstrap.
+3. If technical proof is clean, materialize the successor review at `OPEN`, prove that checkpoint, advance to `IN_PROGRESS`, and prove/freeze exact HEAD.
+4. Request independent security L2 on the new candidate, specifically verifying post-merge trust-root survival and exact candidate-SHA status publication with the minimum scoped write permission.
+5. Only after independent approval and controlled PR #14 merge can the true base-owned PR #2 attestation be exercised.
+6. WORK-0003, WORK-0004 and the remaining MOND product lots retain their dependencies.
 
 ## Resume sequence
 
