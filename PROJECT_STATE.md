@@ -615,6 +615,12 @@ The new proposed default-branch-owned `.github/trusted/trusted_source_collector.
 
 The collector rejects missing, stale, failed or ambiguous runs, malformed artifact collections, mismatched run/attempt, unsafe archive redirects and PR/main drift. Candidate tests include a newer failing run superseding an older success. This is **not yet a deployed main-owned consumer or an enforceable required merge check**; REVIEW-0098 remains unapproved, with all material threads unresolved.
 
+## REVIEW-0098 — terminal independent findings on exact PR #14 HEAD
+
+REVIEW-0098 is `CLOSED / CHANGES_REQUIRED` after independent Codex L2 `PRR_kwDOUUI5ts8AAAABRi_KWA` on exact frozen `449f2f8805df4d6878afe22548c6c29f39909b14`. The successor must address P1 rerun attempt chronology (`PRRT_kwDOUUI5ts6q2tdv`), P1 post-artifact run frontier stability (`PRRT_kwDOUUI5ts6q2td4`), P1 multi-page source-run discovery (`PRRT_kwDOUUI5ts6q2teD`), P2 duplicate JSON keys in status acknowledgement (`PRRT_kwDOUUI5ts6q2teM`), and P2 the missing REVIEW-0098 task-specific expected-file declaration (`PRRT_kwDOUUI5ts6q2teU`). All **19 unresolved PR #14 threads** remain open. The prior trusted-source #36 and Bootstrap #527 prove only the frozen predecessor, not a corrected successor.
+
+REVIEW-0099 is **not yet opened**. No default-branch trust authority, successful base-owned attestation, or required merge check exists yet. Preserve the 179-object source identity proposal and all previous negative reviews. Never merge PR #14 or resolve threads solely from author-side tests.
+
 ## Current next action
 
 1. Keep 11 PR #14 threads and 104 PR #2 threads unresolved.
