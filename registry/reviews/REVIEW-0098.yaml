@@ -1,0 +1,78 @@
+id: REVIEW-0098
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-14"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: []
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "exact base-owned 179-object source approval and canonical Git tree provenance"
+    - "base-owned trusted publisher never executes candidate-controlled code"
+    - "GitHub status and completed-run proof bind current PR #2 HEAD and current main SHA"
+    - "exact completed trusted run and canonical artifact ZIP are fetched independently"
+    - "documented GitHub Actions workflow run path at @main is accepted while unrelated refs fail"
+    - "unrelated pull_request_target runs with skipped trusted attestation jobs are excluded"
+    - "newer failed or pending relevant attestation runs must not be bypassed by older green runs"
+    - "missing ambiguous or malformed trusted-job provenance fails closed"
+    - "T15 source consumer and collector are tracked in the canonical WORK plan"
+  risks:
+    - "a real workflow run is rejected by an overly restrictive path matcher"
+    - "unrelated PR events permanently deny service by outranking the PR #2 trust run"
+    - "a stale successful run is selected after a newer failed relevant attestation"
+    - "GitHub job listing or rerun attempt identity is incomplete or races with selection"
+    - "main-owned attestation is incorrectly treated as deployed before independent merge"
+    - "source approval manifest is treated as accepted merely because candidate tests pass"
+findings: []
+checks:
+  assumptions_challenged:
+    - "GitHub run.path uses only a bare path or refs/heads/main"
+    - "every pull_request_target workflow run originates from PR #2"
+    - "all workflow runs have an attestation job eligible for merge authority"
+    - "green candidate tests or author notes confer independent source approval"
+  omitted_categories_considered:
+    - "GitHub documented path suffix @main"
+    - "unrelated PR targeting main produces skipped trusted-attestation job"
+    - "newer relevant failed/pending attestation job"
+    - "malformed missing duplicated or oversized job list"
+    - "incorrect job run_id, status or conclusion"
+    - "mutating current main, candidate head, or artifact between evidence reads"
+    - "historical negative findings and all current PR #14 material review threads"
+  duplicate_or_reuse_search:
+    - "REVIEW-0095, REVIEW-0096, REVIEW-0097 remain terminal negative evidence."
+    - "Existing base-owned attestor/consumer/collector are reused, not replaced."
+    - "TEST-0011 remains the canonical draft provenance test contract."
+    - "All current PR #14 unresolved material threads remain unresolved."
+  failure_modes_considered:
+    - "GitHub's @main workflow run path is mistaken for untrusted path"
+    - "unrelated skipped PR-target run supersedes a valid PR #2 run"
+    - "newer failed relevant run is silently ignored"
+    - "candidate-owned code or manifest is accepted as main-owned before a guarded merge"
+    - "required merge check and main-owned attestation remain unconfigured"
+  evidence_requested:
+    - "Technical candidate 85ef6ef7321f4fc16ef9d130424d6543123cb520 passed Trusted Source #34 / 37954879182 (56/56 tests) and Bootstrap #525 / 37954879194 (450/450, 100 percent line+branch)."
+    - "Bootstrap live read-only PR #2 probe succeeded on exact technical candidate."
+    - "New regression covers documented @main path and rejects unrelated branches."
+    - "New regression filters newer unrelated skipped attestation run while retaining newer failed relevant run."
+    - "An OPEN state-only CI checkpoint and then IN_PROGRESS exact-head proof are required before independent L2."
+    - "Independent L2 must inspect all current unresolved PR #14 threads and all 179 source manifest objects before any guarded merge."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-10-09"
+  updated_at: "2026-10-09"

@@ -94,6 +94,7 @@ execution:
   evidence:
     - "REVIEW-0098 read-only API collector and adversarial tests are a technical candidate; they have not yet received exact-head CI, independent L2 or trusted default-branch deployment and do not create protected merge authority."
     - "Independent review on predecessor 2595f9f identified P1 @main workflow-path and unrelated pull_request_target run-provenance bugs plus P2 T15 scope omission; new successor code/tests are unapproved until exact-head real CI and fresh independent review."
+    - "Exact technical PR #14 candidate 85ef6ef7321f4fc16ef9d130424d6543123cb520 passed Trusted Source #34 / 37954879182 (56/56 tests) and Bootstrap #525 / 37954879194 (450 tests, 100 percent line and branch). Main-owned attestation is not deployed; independent L2 is still required."
     - "PR #14 technical run #9 / 37915736299 succeeded after the strict JSON parser fix; execution outcome is evidence only and does not fabricate the TEST lifecycle"
     - "Read-only exact Git tree preflight verified PR #2 SHA 2e2664ca8c9cb4f3eb81ea41a172da1ed7fbaf32 has 167/167 approved source objects, zero missing/extra/drift, and omits the proposed main-owned trust files"
     - "Exact REVIEW-0095 OPEN checkpoint ffce3e36ab414234f971723a4993d26e4d170c24: trusted-source #10 / 37916223896 PASSED 17/17 unprivileged tests; bootstrap #500 / 37916223836 PASSED 450 tests, 3853 statements / 1640 branches at 100 percent line+branch, live PR #2 probe successful"
