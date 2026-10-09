@@ -150,7 +150,7 @@ class TrustedSourceTests(unittest.TestCase):
         with self.assertRaisesRegex(subject.AttestationError, "unapproved default-branch trust-root"):
             subject.verify_tree(manifest, extra, base)
         drift = {"truncated": False, "tree": tree["tree"] + [{**x, "sha": "2" * 40} for x in owned]}
-        with self.assertRaisesRegex(subject.AttestationError, "unapproved governance"):
+        with self.assertRaisesRegex(subject.AttestationError, "unapproved default-branch trust-root"):
             subject.verify_tree(manifest, drift, base)
         with self.assertRaisesRegex(subject.AttestationError, "missing default-branch"):
             subject.verify_tree(manifest, candidate, {"truncated": False, "tree": owned[:1]})
