@@ -636,15 +636,15 @@ The run pagination budget remains explicit and fail-closed; this is not a claim 
 
 ## Current next action
 
-1. Preserve all 19 unresolved PR #14 material threads and all 104 unresolved PR #2 findings.
-2. REVIEW-0098 remains terminal `CLOSED / CHANGES_REQUIRED`.
-3. REVIEW-0099 is CLOSED/CHANGES_REQUIRED; prove REVIEW-0100 technical corrections and complete a new exact-head independent review before approval.
-4. Request a fresh-context L2 on the exact frozen SHA, reviewing all 19 unresolved PR #14 threads, attempt chronology, paginated run provenance, post-artifact frontier stability and strict status ACK parsing.
-5. No thread resolution or PR #14 merge before clean independent review and a trusted main-owned deployment. PR #2 and WORK-0003/WORK-0004 remain blocked.
+1. Preserve all **21** unresolved PR #14 review threads and **104** unresolved PR #2 findings.
+2. REVIEW-0099 is terminal CLOSED / CHANGES_REQUIRED; REVIEW-0100 is OPEN after exact technical candidate proof on `cfef127471782241033e2371ab33ae611aebb8e0`.
+3. Prove REVIEW-0100 OPEN state-only checkpoint, then transition OPEN → IN_PROGRESS and prove one frozen exact HEAD.
+4. Seek fresh-context independent L2 over all 21 PR #14 threads, the 179-object proposed manifest, attestor/consumer/collector, and the new closed-PR no-op/artifact semantics.
+5. Do not merge PR #14, resolve findings, or claim default-branch attestation until independent acceptance. PR #2 and WORK-0003/WORK-0004 remain blocked.
 
 ## REVIEW-0099 — terminal negative; REVIEW-0100 corrective candidate (2026-10-09)
 
-The frozen PR #14 head `c83469b3a4781f70573567f052773db53116d955` completed Trusted Source #40 and Bootstrap #531, but unprivileged CI is not main-owned attestation. Codex quota refusal is not approval. CodeRabbit found PRRT_kwDOUUI5ts6q3TSz (closed PR #2 makes the push artifact step fail), PRRT_kwDOUUI5ts6q3TS8 (stale handover), PRRT_kwDOUUI5ts6q3TTA (obsolete T12 blocker), and PRRT_kwDOUUI5ts6q3TTE (invalid YAML run_log indentation). REVIEW-0099 closes as CHANGES_REQUIRED. The successor must preserve the security boundary and demonstrate a safe closed-PR no-op artifact path, parseable canonical registries, and new exact-head unprivileged proof before fresh independent review. PR #14 remains unmerged and its current 21 unresolved threads remain unresolved.
+The frozen PR #14 head `c83469b3a4781f70573567f052773db53116d955` completed Trusted Source #40 and Bootstrap #531, but unprivileged CI is not main-owned attestation. Codex quota refusal is not approval. CodeRabbit found PRRT_kwDOUUI5ts6q3TSz (closed PR #2 makes the push artifact step fail), PRRT_kwDOUUI5ts6q3TS8 (stale handover), PRRT_kwDOUUI5ts6q3TTA (obsolete T12 blocker), and PRRT_kwDOUUI5ts6q3TTE (invalid YAML run_log indentation). REVIEW-0099 closes as CHANGES_REQUIRED. REVIEW-0100 opens after exact technical proof: Trusted Source #42 / 37965566949 passed 63 tests, Bootstrap #533 / 37965567053 passed 450 tests with 100 percent line+branch. The successor must preserve the security boundary and demonstrate a safe closed-PR no-op artifact path, parseable canonical registries, and new exact-head unprivileged proof before fresh independent review. PR #14 remains unmerged and its current 21 unresolved threads remain unresolved; the main-owned attestation job has not executed.
 
 ## Resume sequence
 

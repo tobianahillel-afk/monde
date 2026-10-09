@@ -1,0 +1,71 @@
+id: REVIEW-0100
+status: OPEN
+artifact:
+  type: PULL_REQUEST
+  id_or_path: "PR-14"
+  commit_sha: null
+reviewer:
+  actor: null
+  context_id: null
+  independence_level: L2
+roles:
+  - ARCHITECTURE_REUSE
+  - VERIFICATION_VALIDATION
+  - SECURITY
+  - PERFORMANCE_SRE
+  - DOCUMENTATION_TRACEABILITY
+  - RED_TEAM_SKEPTIC
+external_import: null
+scope:
+  work_items: [WORK-0002]
+  requirements: []
+  requirement_revisions: {}
+  capabilities: []
+  contracts:
+    - "The proposed main-owned trust source remains unapproved and unmerged."
+    - "Closed PR #2 on an authenticated base push emits only a separately recorded closed_pr_noop workflow output."
+    - "Only the exact closed-PR output may suppress upload of an absent completed-run evidence artifact."
+    - "Any live PR #2 attestation that fails to emit proof cannot skip the upload failure."
+    - "Closed-PR output publication failure is fail-closed and never creates a success proof."
+    - "Historical RUN-4 YAML indentation and T12/REVIEW-0098/0099 handover are reconciled."
+    - "REVIEW-0095 to REVIEW-0099 negative security findings remain available and are not treated as approval."
+    - "The exact proposed 179-object manifest, collector attempt chronology and post-artifact frontier revalidation are preserved."
+    - "Main-owned trusted-run and required-check validation remain mandatory after accepted PR #14 integration."
+  risks:
+    - "Skipping artifacts under any condition other than confirmed closed PR #2 could launder missing proof."
+    - "Malformed or missing GITHUB_OUTPUT could hide an attestation failure."
+    - "An unparseable WORK-0002 handover could prevent safe agent resumption."
+    - "Prior source-manifest authority could be mistaken for an independently trusted main-owned source."
+findings: []
+checks:
+  assumptions_challenged:
+    - "Every base push must upload an attestation artifact even after PR #2 is closed."
+    - "A success without a proof artifact can authorize merge for an open PR."
+    - "Green candidate self-tests mean the base-owned attestation has actually executed."
+  omitted_categories_considered:
+    - "Closed PR with valid GITHUB_OUTPUT no-op marker."
+    - "Closed PR where GITHUB_OUTPUT publication fails."
+    - "Open PR with missing attestation proof."
+    - "Normal and closed-run artifact upload conditional semantics."
+    - "Prior nineteen findings plus new CodeRabbit threads remain tracked and unresolved."
+    - "The 179-object proposed source manifest must not self-authorize."
+  duplicate_or_reuse_search:
+    - "Reuse the current attestor closed-PR detection and existing runner-owned GITHUB_OUTPUT."
+    - "Keep approved status/ZIP/run-source collector unchanged."
+    - "Reuse TEST-0011 and its existing unprivileged GitHub Actions workflow."
+  failure_modes_considered:
+    - "Closed PR causes expected no-op but upload-artifact fails with absent proof."
+    - "Normal open PR cannot write proof but upload is silently skipped."
+    - "Historical WORK YAML mixes incorrectly nested list items with RUN-4 entries."
+  evidence_requested:
+    - "REVIEW-0099 was CLOSED/CHANGES_REQUIRED on frozen head c83469b3a4781f70573567f052773db53116d955 after CodeRabbit material findings; prior independent L2 was quota-refused."
+    - "Exact technical candidate cfef127471782241033e2371ab33ae611aebb8e0 passed Trusted Source #42 / 37965566949 with 63/63 unprivileged tests."
+    - "Bootstrap #533 / 37965567053 passed 450 tests at 100 percent line/branch and successful live read-only GitHub probe."
+    - "This OPEN checkpoint must pass before transition to IN_PROGRESS and frozen exact-head proof."
+    - "Fresh independent L2 must assess all current 21 unresolved PR #14 threads, source approval, runner and upload guards."
+    - "The base-owned attestation is skipped before integration; do not claim a successful protected validation."
+outcome: CHANGES_REQUIRED
+completed_at: null
+history:
+  created_at: "2026-10-09"
+  updated_at: "2026-10-09"
