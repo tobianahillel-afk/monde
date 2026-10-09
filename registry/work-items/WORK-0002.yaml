@@ -390,7 +390,7 @@ blockers:
   - "REVIEW-0056 is terminal CLOSED/CHANGES_REQUIRED; do not request further REVIEW-0056 approval."
   - "T12 and T4 remain IN_REVIEW."
   - "PR #2 integration/approval remains downstream."
-  - "REVIEW-0098 technical candidate 85ef6ef7321f4fc16ef9d130424d6543123cb520 passed Trusted Source #34 / 37954879182 (56/56 unprivileged tests; main-owned attestation skipped premerge) and Bootstrap #525 / 37954879194 (450/450, 100 percent line and branch). REVIEW-0098 is OPEN awaiting its own state-only checkpoint and later independent L2; PR #14 remains unmerged."
+  - "REVIEW-0098 technical candidate 85ef6ef7321f4fc16ef9d130424d6543123cb520 passed Trusted Source #34 / 37954879182 (56/56 unprivileged tests; main-owned attestation skipped premerge) and Bootstrap #525 / 37954879194 (450/450, 100 percent line and branch). REVIEW-0098 OPEN checkpoint cf736aa69fdf6a40a41f91e8fd22135f37585edd passed Trusted Source #35 / 37955608152 and Bootstrap #526 / 37955608154. It is now IN_PROGRESS pending frozen exact-head proof and fresh L2; PR #14 remains unmerged."
 follow_up_work_items: []
 # WORK-0002 T15 is the active trust-root predecessor; PR #2 must merge it
 # from main and obtain fresh exact-head independent evidence before closure.
