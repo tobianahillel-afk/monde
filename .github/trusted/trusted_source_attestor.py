@@ -75,10 +75,41 @@ def validate_manifest(value: Any) -> dict[str, dict[str, str]]:
     return sources
 
 
+def _base_owned(path: str) -> bool:
+    return path.startswith(".github/trusted/") or path == ".github/workflows/monde-trusted-source.yml"
+
+
 def verify_tree(
-    manifest: dict[str, Any], candidate_tree: Any
+    manifest: dict[str, Any], candidate_tree: Any, base_tree: Any | None = None
 ) -> int:
-    expected = validate_manifest(manifest)
+    expected = dict(validate_manifest(manifest))
+    if base_tree is not None:
+        if (
+            not isinstance(base_tree, dict)
+            or base_tree.get("truncated") is not False
+            or not isinstance(base_tree.get("tree"), list)
+        ):
+            raise AttestationError("default-branch trust-root tree is incomplete")
+        for item in base_tree["tree"]:
+            if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+                raise AttestationError("default-branch trust-root node is malformed")
+            path = item["path"]
+            if not _base_owned(path):
+                continue
+            if (
+                item.get("type") != "blob"
+                or item.get("mode") not in ("100644", "100755")
+                or not _sha(item.get("sha"))
+                or path in expected
+            ):
+                raise AttestationError(f"invalid default-branch trust-root source: {path}")
+            expected[path] = {"sha": item["sha"], "mode": item["mode"]}
+        if not (
+            ".github/trusted/trusted_source_attestor.py" in expected
+            and ".github/trusted/approved_sources.json" in expected
+            and ".github/workflows/monde-trusted-source.yml" in expected
+        ):
+            raise AttestationError("missing default-branch trust-root files")
     if (
         not isinstance(candidate_tree, dict)
         or candidate_tree.get("truncated") is not False
@@ -93,7 +124,7 @@ def verify_tree(
         mode = node.get("mode")
         if not isinstance(mode, str):
             raise AttestationError(f"missing Git mode for {path}")
-        if not in_scope(path, mode):
+        if not (in_scope(path, mode) or _base_owned(path)):
             continue
         if path in actual:
             raise AttestationError(f"duplicate candidate source path: {path}")
@@ -143,11 +174,13 @@ def main() -> int:
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     sha = os.environ.get("MONDE_ATTEST_HEAD", "")
     pr = os.environ.get("MONDE_ATTEST_PR", "")
+    base_sha = os.environ.get("MONDE_ATTEST_BASE", "")
     token = os.environ.get("GITHUB_TOKEN", "")
     if (
         repo != "tobianahillel-afk/monde"
         or not _sha(sha)
         or pr != "2"
+        or not _sha(base_sha)
         or not token
     ):
         raise AttestationError("invalid trusted-source invocation identity")
@@ -163,7 +196,16 @@ def main() -> int:
     tree = _get_json(repo, f"git/trees/{tree_sha}?recursive=1", token)
     if tree.get("sha") != tree_sha:
         raise AttestationError("candidate tree identity mismatch")
-    count = verify_tree(manifest, tree)
+    base_commit = _get_json(repo, f"git/commits/{base_sha}", token)
+    if base_commit.get("sha") != base_sha or not isinstance(base_commit.get("tree"), dict):
+        raise AttestationError("trusted default-branch commit identity mismatch")
+    base_tree_sha = base_commit["tree"].get("sha")
+    if not _sha(base_tree_sha):
+        raise AttestationError("trusted default-branch commit lacks tree SHA")
+    base_tree = _get_json(repo, f"git/trees/{base_tree_sha}?recursive=1", token)
+    if base_tree.get("sha") != base_tree_sha:
+        raise AttestationError("trusted default-branch tree identity mismatch")
+    count = verify_tree(manifest, tree, base_tree)
     print(f"MONDE trusted-source attestation PASS: PR #{pr}, {count} approved Git objects, head={sha}")
     return 0
 

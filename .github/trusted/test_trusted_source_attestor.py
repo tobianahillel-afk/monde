@@ -83,6 +83,24 @@ class TrustedSourceTests(unittest.TestCase):
         with self.assertRaises(subject.AttestationError):
             subject.validate_manifest(bad)
 
+    def test_base_owned_trust_root_must_match_approved_main(self):
+        manifest, tree = fixture()
+        owned = [
+            {"path": ".github/trusted/trusted_source_attestor.py", "type": "blob", "mode": "100644", "sha": "e" * 40},
+            {"path": ".github/trusted/approved_sources.json", "type": "blob", "mode": "100644", "sha": "f" * 40},
+            {"path": ".github/workflows/monde-trusted-source.yml", "type": "blob", "mode": "100644", "sha": "1" * 40},
+        ]
+        base = {"truncated": False, "tree": owned}
+        candidate = {"truncated": False, "tree": tree["tree"] + owned}
+        self.assertEqual(subject.verify_tree(manifest, candidate, base), 7)
+        drift = {"truncated": False, "tree": tree["tree"] + [{**x, "sha": "2" * 40} for x in owned]}
+        with self.assertRaisesRegex(subject.AttestationError, "unapproved governance"):
+            subject.verify_tree(manifest, drift, base)
+        with self.assertRaisesRegex(subject.AttestationError, "missing default-branch"):
+            subject.verify_tree(manifest, candidate, {"truncated": False, "tree": owned[:1]})
+        with self.assertRaisesRegex(subject.AttestationError, "trust-root tree is incomplete"):
+            subject.verify_tree(manifest, candidate, {"truncated": True, "tree": owned})
+
     def test_scope_guards_unexpected_executable_sources(self):
         self.assertTrue(subject.in_scope("sitecustomize.py", "100644"))
         self.assertTrue(subject.in_scope("unknown", "100755"))
