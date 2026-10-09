@@ -28,10 +28,13 @@ CONFIG_FILES = frozenset({
     ".coveragerc", "pytest.ini", ".python-version",
     "Makefile", "GNUmakefile", "Pipfile", "Pipfile.lock",
     "poetry.lock", "uv.lock", "package.json", "package-lock.json",
+    ".gitmodules", ".gitattributes", ".lfsconfig",
 })
 # Local actions, shell scripts, plugin configs and interpreter extensions can
 # execute even without a Python suffix or Git executable bit. Treat every
 # Git blob under code/CI paths as an authority-bearing dependency.
+# Also reject symlinks/gitlinks anywhere in the tree: they can redirect reads
+# or introduce nested checkouts outside a previously approved source set.
 SOURCE_PREFIXES = (".github/", "requirements/", "scripts/", "tools/", "tests/")
 SUFFIXES = (
     ".py", ".pyc", ".pyo", ".pth", ".pyd", ".so", ".dylib", ".dll",
@@ -51,7 +54,7 @@ def in_scope(path: str, mode: str) -> bool:
         path.endswith(SUFFIXES)
         or path.startswith(SOURCE_PREFIXES)
         or path in CONFIG_FILES
-        or mode == "100755"
+        or mode in ("100755", "120000", "160000")
     )
 
 

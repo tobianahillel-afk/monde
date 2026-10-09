@@ -116,6 +116,11 @@ class TrustedSourceTests(unittest.TestCase):
         self.assertTrue(subject.in_scope("native_extension.dll", "100644"))
         self.assertTrue(subject.in_scope("plugin.zip", "100644"))
         self.assertTrue(subject.in_scope("Makefile", "100644"))
+        self.assertTrue(subject.in_scope(".gitmodules", "100644"))
+        self.assertTrue(subject.in_scope(".gitattributes", "100644"))
+        self.assertTrue(subject.in_scope(".lfsconfig", "100644"))
+        self.assertTrue(subject.in_scope("docs/unsafe-link", "120000"))
+        self.assertTrue(subject.in_scope("docs/unapproved-submodule", "160000"))
 
     def test_candidate_cannot_add_unapproved_local_actions_or_scripts(self):
         manifest, tree = fixture()
@@ -133,6 +138,22 @@ class TrustedSourceTests(unittest.TestCase):
             ):
                 subject.verify_tree(
                     manifest, {"truncated": False, "tree": tree["tree"] + [node]}
+                )
+
+    def test_unapproved_gitlinks_symlinks_and_checkout_config_fail_anywhere(self):
+        manifest, tree = fixture()
+        attacks = [
+            {"path": "docs/unsafe-link", "type": "blob", "mode": "120000", "sha": "e" * 40},
+            {"path": "docs/unapproved-submodule", "type": "commit", "mode": "160000", "sha": "e" * 40},
+            {"path": ".gitmodules", "type": "blob", "mode": "100644", "sha": "e" * 40},
+            {"path": ".gitattributes", "type": "blob", "mode": "100644", "sha": "e" * 40},
+            {"path": ".lfsconfig", "type": "blob", "mode": "100644", "sha": "e" * 40},
+        ]
+        for injected in attacks:
+            with self.subTest(path=injected["path"]), self.assertRaises(subject.AttestationError):
+                subject.verify_tree(
+                    manifest,
+                    {"truncated": False, "tree": tree["tree"] + [injected]},
                 )
 
     def test_manifest_cannot_claim_base_owned_sources_or_noncanonical_paths(self):
