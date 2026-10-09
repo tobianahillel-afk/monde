@@ -244,7 +244,7 @@ class TrustedSourceTests(unittest.TestCase):
         self.assertIn("MONDE_ATTEST_BASE_REF: ${{ github.event.pull_request.base.ref }}", trusted)
         self.assertNotIn("github.event.repository.default_branch", trusted)
         self.assertIn("persist-credentials: false", trusted)
-        self.assertNotIn("head.sha", trusted.split("      - name: Verify exact candidate", 1)[0])
+        self.assertNotIn("head.sha", trusted.split("      - name: Validate and publish exact", 1)[0])
 
     def test_runtime_rejects_non_default_base_before_network_request(self):
         common = {
@@ -328,7 +328,7 @@ class TrustedSourceTests(unittest.TestCase):
                 subject.verify_tree(manifest, pr_merge, base, require_base_owned=True)
         with self.assertRaisesRegex(subject.AttestationError, "merged result removed"):
             subject.verify_tree(manifest, candidate, base, require_base_owned=True)
-        with self.assertRaisesRegex(subject.AttestationError, "merged result removed"):
+        with self.assertRaisesRegex(subject.AttestationError, "unapproved default-branch trust-root"):
             subject.verify_tree(manifest, merged, require_base_owned=True)
 
     def test_exact_live_pr_snapshot_rejects_mismatched_authority(self):
