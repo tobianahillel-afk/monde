@@ -84,6 +84,10 @@ execution:
     - "REVIEW-0095 is terminal negative evidence; the next candidate must exercise true merge-result trust-root preservation and candidate-SHA status binding before any approval or merge"
     - "REVIEW-0095 CLOSED checkpoint a96e8a55c7b19e26c6480c0fea1b3a64aebe4996 passed source workflow #12 / 37937372646 and Bootstrap #502 / 37937372624; this is terminal negative review state only"
     - "The successor candidate adds no main-owned trust authority until separate exact-head independent review, default-branch merge and live pull_request_target proof"
+    - "First synthetic-merge/status successor b38c70c7c05642f61d5631a46937d75b61b35287 / workflow #13 37938220830 is retained negative fixture evidence: 21/23 passed, stale error-message and renamed-step tests failed"
+    - "Exact successor technical candidate dcec959c96ca1484f1ff77fc5f7c23078e1365f9 / trusted-source workflow #14 37938493770 passed 23/23 unprivileged tests; Bootstrap #504 / 37938494014 also passed"
+    - "REVIEW-0096 OPEN lifecycle is now requested, but actual default-branch publication and independent approval remain outstanding"
+
 
 coverage: {line_contribution: null, branch_contribution: null}
 history: {created_at: "2026-10-09", updated_at: "2026-10-09"}

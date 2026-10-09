@@ -540,28 +540,29 @@ PR #14 has **5 total review threads: 1 resolved, 4 unresolved**; the two earlier
 
 The next successor must preserve the pre-integration absence exception **without permitting post-integration deletion**, preferably by checking the exact candidate+base merge-result Git tree or an equivalent ancestry-bound guarantee, then publish an immutable-name trusted attestation result **on the exact validated candidate SHA**, fail-closed on mismatched current heads/merge metadata. Both behaviors require unit/adversarial tests and a fresh exact-head independent L2 before PR #14 merge. Repository protection/required-check binding remains separate WORK-0003 authority and must not be silently treated as already configured.
 
-## Trust-root successor implementation candidate — not yet reviewed
+## REVIEW-0096 — candidate-status and exact merge-result successor
 
-The REVIEW-0095 CLOSED checkpoint `a96e8a55c7b19e26c6480c0fea1b3a64aebe4996` passed trusted-source workflow #12 / `37937372646` at **17/17 tests**, and Bootstrap #502 / `37937372624` succeeded. This preserves both independent P1 findings as negative evidence.
+REVIEW-0095 remains terminal `CLOSED / CHANGES_REQUIRED` after fresh independent P1 findings `PRRT_kwDOUUI5ts6qy--U` (base-SHA Actions checks cannot prove exact candidate-SHA trust status) and `PRRT_kwDOUUI5ts6qy--k` (post-integration deletion of main-owned trust roots). The REVIEW-0095 CLOSED checkpoint `a96e8a55c7b19e26c6480c0fea1b3a64aebe4996` passed trusted-source workflow #12 and Bootstrap #502.
 
-The next technical candidate changes only the bounded PR #14 trusted-source predecessor plus TEST-0011 and canonical handover:
+REVIEW-0096 is now **OPEN** after candidate correction and exact technical proof:
 
-- The base-owned verifier now reads the **actual GitHub PR #2 test-merge commit**, requires its two parents to equal the exact event base and candidate SHA, and verifies its recursive tree against the approved source manifest.
-- The pre-integration PR tree may omit newer main-owned trust files, but the **final merge-result tree must contain every base-owned attestor/manifest/workflow file with exact approved SHA/mode**. A candidate deletion or replacement is rejected.
-- The trusted default-branch job gains only `statuses: write`, retains `contents: read`, and publishes a fixed `MONDE / Trusted Source Attestation` status on the **validated PR #2 candidate SHA**, not the base SHA. It publishes `pending` before validation and terminal `success` or `failure` after.
-- Source, merge-result, live pull request head/base/merge and default branch SHA are bound at proof time; any mismatch fails closed.
-- The 167-source manifest remains unchanged; no PR candidate source is installed or executed in the trusted job.
+- The first candidate `b38c70c7c05642f61d5631a46937d75b61b35287` returned negative trusted-source workflow **#13 / `37938220830`** because two unit fixtures still expected an obsolete failure message and workflow step name (21/23 passed). Bootstrap #503 succeeded; #13 is not success evidence.
+- The corrected technical candidate `dcec959c96ca1484f1ff77fc5f7c23078e1365f9` passed trusted-source workflow **#14 / `37938493770`** at **23/23 tests**. Bootstrap **#504 / `37938494014`** also completed successfully. The base-owned attestation remains SKIPPED until an independently approved merge.
 
-This is **not** an accepted source root or a product implementation milestone. The technical candidate must pass exact GitHub self-tests and adversarial review, then move through a fresh review lifecycle. Candidate-SHA status spoofing prevention and required-check branch settings remain outside this code and must be validated before declaring WORK-0002 complete.
+The successor retains the same exact **167 approved candidate path/SHA/mode objects** without approving new PR-controlled executables. It now validates the GitHub test-merge commit with ordered parents `[event base SHA, exact PR #2 candidate SHA]`, validates the complete synthetic merge-result Git tree, and **requires all base-owned trust-root paths to survive at their exact approved Git identities**. Legitimate pre-integration candidate absence is still supported.
+
+Only the base-owned `pull_request_target` job gets `statuses: write`; it publishes fixed-context `MONDE / Trusted Source Attestation` status on the **exact candidate SHA**, first `pending` and then `success`/`failure`, while rechecking current PR/base/merge and default-branch authority before success. The source is checked out only from the event base commit, never PR #2 candidate code.
+
+These controls still require an independent L2, exact-head live proof after base integration, and repository protection / status-creator enforcement before anyone treats the status as merge authorization. REVIEW-0096 `OPEN` is not semantic approval. All **four** live PR #14 material threads and **104** PR #2 material threads remain unresolved.
 
 ## Current next action
 
-1. PR #14 retains **four unresolved findings**; PR #2 retains **104 unresolved**. Do not merge either.
-2. Prove the successor technical candidate at exact GitHub HEAD with both unprivileged trusted-source self-tests and Bootstrap.
-3. If technical proof is clean, materialize the successor review at `OPEN`, prove that checkpoint, advance to `IN_PROGRESS`, and prove/freeze exact HEAD.
-4. Request independent security L2 on the new candidate, specifically verifying post-merge trust-root survival and exact candidate-SHA status publication with the minimum scoped write permission.
-5. Only after independent approval and controlled PR #14 merge can the true base-owned PR #2 attestation be exercised.
-6. WORK-0003, WORK-0004 and the remaining MOND product lots retain their dependencies.
+1. Prove this REVIEW-0096 `OPEN` state-only checkpoint with trusted-source workflow and Bootstrap.
+2. If both are green, transition REVIEW-0096 `OPEN -> IN_PROGRESS` in a separate state-only commit; then prove/freeze that exact head.
+3. Request fresh independent L2 explicitly over the four PR #14 threads, the exact merge-result deletion defense and exact candidate-SHA status publication; do not silently approve prior findings.
+4. Resolve threads only after a clean independent review, then guarded PR #14 merge with exact-head guard.
+5. Only after main-owned code actually runs and its check/status is verified on current PR #2 candidate SHA may WORK-0002 attempt downstream closure.
+6. WORK-0003, WORK-0004 and all MOND product lots are still incomplete and retain their declared dependencies.
 
 ## Resume sequence
 
