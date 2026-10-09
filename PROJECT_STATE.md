@@ -544,7 +544,7 @@ The next successor must preserve the pre-integration absence exception **without
 
 REVIEW-0095 remains terminal `CLOSED / CHANGES_REQUIRED` after fresh independent P1 findings `PRRT_kwDOUUI5ts6qy--U` (base-SHA Actions checks cannot prove exact candidate-SHA trust status) and `PRRT_kwDOUUI5ts6qy--k` (post-integration deletion of main-owned trust roots). The REVIEW-0095 CLOSED checkpoint `a96e8a55c7b19e26c6480c0fea1b3a64aebe4996` passed trusted-source workflow #12 and Bootstrap #502.
 
-REVIEW-0096 is now **OPEN** after candidate correction and exact technical proof:
+REVIEW-0096 is now **IN_PROGRESS** after candidate correction, exact technical proof and OPEN checkpoint `87dab2fb306d44bd672af3ef3579815735a64d74` which passed trusted-source #15 / `37939002174` and Bootstrap #505 / `37939002240`:
 
 - The first candidate `b38c70c7c05642f61d5631a46937d75b61b35287` returned negative trusted-source workflow **#13 / `37938220830`** because two unit fixtures still expected an obsolete failure message and workflow step name (21/23 passed). Bootstrap #503 succeeded; #13 is not success evidence.
 - The corrected technical candidate `dcec959c96ca1484f1ff77fc5f7c23078e1365f9` passed trusted-source workflow **#14 / `37938493770`** at **23/23 tests**. Bootstrap **#504 / `37938494014`** also completed successfully. The base-owned attestation remains SKIPPED until an independently approved merge.
@@ -557,12 +557,12 @@ These controls still require an independent L2, exact-head live proof after base
 
 ## Current next action
 
-1. Prove this REVIEW-0096 `OPEN` state-only checkpoint with trusted-source workflow and Bootstrap.
-2. If both are green, transition REVIEW-0096 `OPEN -> IN_PROGRESS` in a separate state-only commit; then prove/freeze that exact head.
-3. Request fresh independent L2 explicitly over the four PR #14 threads, the exact merge-result deletion defense and exact candidate-SHA status publication; do not silently approve prior findings.
-4. Resolve threads only after a clean independent review, then guarded PR #14 merge with exact-head guard.
-5. Only after main-owned code actually runs and its check/status is verified on current PR #2 candidate SHA may WORK-0002 attempt downstream closure.
-6. WORK-0003, WORK-0004 and all MOND product lots are still incomplete and retain their declared dependencies.
+1. REVIEW-0096 OPEN checkpoint is proven; the status is now `IN_PROGRESS`.
+2. Prove the resulting frozen exact HEAD with trusted-source self-tests and Bootstrap.
+3. Request fresh independent L2 over all four unresolved PR #14 threads, exact candidate-SHA status publication, and synthetic merged-tree trust-root preservation.
+4. Do not resolve/merge until a clean independently accepted review and guarded authority checks.
+5. After guarded PR #14 merge, verify actual base-owned attestation against current PR #2 candidate and required-check identity before WORK-0002 closure.
+6. WORK-0003, WORK-0004 and all product lots remain incomplete and dependent.
 
 ## Resume sequence
 

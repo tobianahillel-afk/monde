@@ -87,6 +87,7 @@ execution:
     - "First synthetic-merge/status successor b38c70c7c05642f61d5631a46937d75b61b35287 / workflow #13 37938220830 is retained negative fixture evidence: 21/23 passed, stale error-message and renamed-step tests failed"
     - "Exact successor technical candidate dcec959c96ca1484f1ff77fc5f7c23078e1365f9 / trusted-source workflow #14 37938493770 passed 23/23 unprivileged tests; Bootstrap #504 / 37938494014 also passed"
     - "REVIEW-0096 OPEN lifecycle is now requested, but actual default-branch publication and independent approval remain outstanding"
+    - "REVIEW-0096 OPEN checkpoint 87dab2fb306d44bd672af3ef3579815735a64d74 passed trusted-source #15 / 37939002174 and Bootstrap #505 / 37939002240; status remains PLANNED and no retroactive lifecycle is fabricated"
 
 
 coverage: {line_contribution: null, branch_contribution: null}
