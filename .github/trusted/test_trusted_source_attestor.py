@@ -240,7 +240,7 @@ class TrustedSourceTests(unittest.TestCase):
             "monde-trusted-source.yml"
         ).read_text(encoding="utf-8")
         trusted = workflow.split("  trusted-attestation:", 1)[1]
-        self.assertIn("ref: ${{ github.event.pull_request.base.sha }}", trusted)
+        self.assertIn("ref: ${{ github.event.pull_request.base.sha || github.sha }}", trusted)
         self.assertIn("github.event.pull_request.base.ref == 'main'", trusted)
         self.assertIn("MONDE_ATTEST_BASE_REF: ${{ github.event.pull_request.base.ref }}", trusted)
         self.assertNotIn("github.event.repository.default_branch", trusted)
