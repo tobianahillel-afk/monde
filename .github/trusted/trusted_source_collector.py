@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import datetime, timezone
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -21,6 +22,7 @@ REPO = "tobianahillel-afk/monde"
 MAX_ZIP_BYTES = consumer.MAX_ARCHIVE_BYTES
 PROOF_FILE = consumer.PROOF_FILENAME
 MAX_RUNS = 100
+MAX_RUN_PAGES = 20  # Explicit fail-closed limit; no partial frontier is authoritative.
 TRUSTED_JOB_NAME = "MONDE / Trusted Source"
 
 
@@ -67,49 +69,101 @@ def _attestation_job_relevant(repo: str, token: str, run: dict[str, Any]) -> boo
     return True
 
 
+def _run_timestamp(value: Any, label: str) -> datetime:
+    if not isinstance(value, str) or not value:
+        raise source.AttestationError(f"missing trusted {label} timestamp")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise source.AttestationError(f"malformed trusted {label} timestamp") from exc
+    if parsed.tzinfo is None:
+        raise source.AttestationError(f"timezone-less trusted {label} timestamp")
+    return parsed.astimezone(timezone.utc)
+
+
+def _attempt_order(run: dict[str, Any]) -> tuple[datetime, int, int]:
+    run_id = run.get("id")
+    attempt = run.get("run_attempt")
+    if not consumer._positive_int(run_id) or not consumer._positive_int(attempt):
+        raise source.AttestationError("malformed trusted current-run attempt identity")
+    created = _run_timestamp(run.get("created_at"), "run creation")
+    started = run.get("run_started_at")
+    # A fresh first attempt can be bounded by creation if GitHub has not yet
+    # published run_started_at; a rerun cannot safely be ranked that way.
+    current = _run_timestamp(started, "attempt start") if started else created
+    if attempt > 1 and not started:
+        raise source.AttestationError("rerun lacks current attempt start")
+    if current < created:
+        raise source.AttestationError("current attempt predates workflow creation")
+    return current, attempt, run_id
+
+
+def _event_runs(repo: str, token: str, event: str) -> list[dict[str, Any]]:
+    route = (
+        "actions/workflows/monde-trusted-source.yml/runs"
+        f"?branch=main&event={event}&per_page={MAX_RUNS}"
+    )
+    result: list[dict[str, Any]] = []
+    total: int | None = None
+    page = 1
+    while True:
+        suffix = "" if page == 1 else f"&page={page}"
+        response = source._get_json(repo, route + suffix, token)
+        candidates = response.get("workflow_runs")
+        count = response.get("total_count")
+        if (
+            type(count) is not int or count < 0
+            or count > MAX_RUN_PAGES * MAX_RUNS
+            or not isinstance(candidates, list)
+            or any(not isinstance(r, dict) for r in candidates)
+            or len(candidates) > MAX_RUNS
+            or (total is not None and count != total)
+        ):
+            raise source.AttestationError("incomplete trusted workflow-run frontier")
+        if total is None:
+            total = count
+        result.extend(candidates)
+        if len(result) > total or (len(result) < total and len(candidates) != MAX_RUNS):
+            raise source.AttestationError("unstable trusted workflow-run pagination")
+        if len(result) == total:
+            break
+        if page >= MAX_RUN_PAGES:
+            raise source.AttestationError("trusted workflow-run page budget exceeded")
+        page += 1
+    # Every selected candidate is later checked against an exact run GET.
+    # Missing or duplicate IDs cannot become silent frontier omissions.
+    ids = [r.get("id") for r in result]
+    if any(not consumer._positive_int(i) for i in ids) or len(set(ids)) != len(ids):
+        raise source.AttestationError("duplicate or malformed trusted run frontier")
+    return result
+
+
 def _collect_run(repo: str, token: str) -> dict[str, Any]:
     if repo != REPO or not token:
         raise source.AttestationError("invalid trusted-source evidence collection identity")
-    # Each endpoint returns GitHub-ordered most-recent first. Conservative:
-    # only the newest relevant source run may authorize the current PR; an
-    # older success cannot bypass a newer failed or pending re-attestation.
     runs: list[dict[str, Any]] = []
     for event in ("pull_request_target", "push"):
-        response = source._get_json(
-            repo,
-            "actions/workflows/monde-trusted-source.yml/runs"
-            f"?branch=main&event={event}&per_page={MAX_RUNS}",
-            token,
-        )
-        candidates = response.get("workflow_runs")
-        if not isinstance(candidates, list) or any(not isinstance(x, dict) for x in candidates):
-            raise source.AttestationError("malformed trusted workflow-run listing")
-        if type(response.get("total_count")) is not int or response["total_count"] < len(candidates):
-            raise source.AttestationError("malformed trusted workflow-run count")
-        runs.extend(candidates)
+        runs.extend(_event_runs(repo, token, event))
     if not runs:
         raise source.AttestationError("no default-branch trusted-source workflow run")
-    if any(not consumer._positive_int(r.get("id")) or not isinstance(r.get("created_at"), str)
-           for r in runs):
-        raise source.AttestationError("malformed trusted workflow-run ordering")
-    runs.sort(key=lambda r: (r["created_at"], r["id"]), reverse=True)
-    seen: set[int] = set()
+    ids = [run.get("id") for run in runs]
+    if len(set(ids)) != len(ids):
+        raise source.AttestationError("duplicate cross-event trusted run identity")
+    # Current attempt chronology is the authority order. The original run
+    # creation time alone would allow a newly rerun old run to be bypassed.
+    runs.sort(key=_attempt_order, reverse=True)
     for candidate in runs:
         run_id = candidate["id"]
-        if run_id in seen:
-            raise source.AttestationError("duplicate trusted source run identity")
-        seen.add(run_id)
         if not _attestation_job_relevant(repo, token, candidate):
-            # Other PRs targeting main schedule the same workflow, but the
-            # only security-sensitive job is skipped by the exact PR #2 guard.
             continue
-        # Re-fetch by ID rather than trusting only the list projection.
         run = source._get_json(repo, f"actions/runs/{run_id}", token)
         if (
             run.get("id") != run_id
             or run.get("created_at") != candidate["created_at"]
             or run.get("run_attempt") != candidate.get("run_attempt")
+            or run.get("run_started_at") != candidate.get("run_started_at")
             or run.get("event") != candidate.get("event")
+            or _attempt_order(run) != _attempt_order(candidate)
         ):
             raise source.AttestationError("trusted source run identity changed")
         return run
@@ -184,12 +238,15 @@ def check_current_main_owned_proof(repo: str, token: str, manifest_bytes: bytes)
     # another actor can always push AFTER this final read.
     final_pr = source._get_json(repo, "pulls/2", token)
     final_base = source._get_json(repo, "branches/main", token)
-    if (
-        original_pr != final_pr or original_base != final_base
-    ):
+    if original_pr != final_pr or original_base != final_base:
         raise source.AttestationError("PR or default branch drifted during proof collection")
+    # Rebuild the complete run frontier after artifact/network work. A rerun of
+    # an older run or a newly created relevant run must invalidate an old green.
+    final_run = _collect_run(repo, token)
+    if final_run != run:
+        raise source.AttestationError("trusted run frontier drifted during proof collection")
     return consumer.verify_completed_proof(
-        proof, run, artifact, final_pr, final_base, manifest_bytes,
+        proof, final_run, artifact, final_pr, final_base, manifest_bytes,
     )
 
 

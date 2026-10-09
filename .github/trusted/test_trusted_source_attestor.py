@@ -463,6 +463,26 @@ class TrustedSourceTests(unittest.TestCase):
             with self.assertRaisesRegex(subject.AttestationError, "acknowledgement"):
                 subject._publish_status("o/r", head, "t", "success", "bad")
 
+    def test_status_ack_rejects_duplicate_json_keys(self):
+        head = "a" * 40
+        responses = (
+            '{"state":"failure","state":"success","context":"' + subject.STATUS_CONTEXT +
+                '","sha":"' + head + '"}',
+            '{"state":"success","context":"' + subject.STATUS_CONTEXT +
+                '","sha":"' + "b" * 40 + '","sha":"' + head + '"}',
+            '{"state":"success","context":"' + subject.STATUS_CONTEXT +
+                '","context":"' + subject.STATUS_CONTEXT + '","sha":"' + head + '"}',
+        )
+        for payload in responses:
+            with self.subTest(payload=payload), mock.patch.object(
+                subject.urllib.request, "urlopen",
+                return_value=io.BytesIO(payload.encode("utf-8")),
+            ):
+                with self.assertRaisesRegex(
+                    subject.AttestationError, "duplicate trusted-manifest JSON key"
+                ):
+                    subject._publish_status("o/r", head, "t", "success", "done")
+
     def test_status_publication_is_pending_then_terminal_on_exact_candidate_head(self):
         env = {
             "GITHUB_REPOSITORY": "tobianahillel-afk/monde",

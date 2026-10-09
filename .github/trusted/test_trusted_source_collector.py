@@ -151,6 +151,96 @@ class CompletedRunCollectorTests(unittest.TestCase):
                 self.proof, selected, self.artifact, self.pr, self.branch, self.manifest,
             )
 
+    def test_older_run_rerun_attempt_outranks_newer_original_run(self):
+        older = {
+            **self.run, "id": 8001, "run_attempt": 2,
+            "created_at": "2026-10-09T09:00:00Z",
+            "run_started_at": "2026-10-09T14:00:00Z",
+            "status": "in_progress", "conclusion": None,
+        }
+        newer_original = {
+            **self.run, "id": 9002,
+            "created_at": "2026-10-09T12:00:00Z",
+            "run_started_at": "2026-10-09T12:00:01Z",
+        }
+        def fetch(_repo, route, _token):
+            if "event=pull_request_target" in route:
+                return {"total_count": 2, "workflow_runs": [newer_original, older]}
+            if "event=push" in route:
+                return {"total_count": 0, "workflow_runs": []}
+            if route == "actions/runs/8001/jobs?per_page=100":
+                return self.job_payload(8001, status="in_progress")
+            if route == "actions/runs/8001":
+                return older
+            raise AssertionError(route)
+        with mock.patch.object(source, "_get_json", side_effect=fetch):
+            selected = collector._collect_run(collector.REPO, "t")
+        self.assertEqual(selected["id"], 8001)
+        self.assertEqual(selected["run_attempt"], 2)
+
+    def test_rerun_without_current_attempt_timestamp_is_ambiguous(self):
+        older = {**self.run, "run_attempt": 2}
+        with self.assertRaisesRegex(source.AttestationError, "rerun lacks"):
+            collector._attempt_order(older)
+
+    def test_paginated_unrelated_runs_do_not_hide_relevant_second_page(self):
+        unrelated = [
+            {
+                **self.run,
+                "id": 9200 + i,
+                "created_at": "2026-10-09T13:00:00Z",
+            } for i in range(100)
+        ]
+        def fetch(_repo, route, _token):
+            if "event=pull_request_target" in route:
+                return {
+                    "total_count": 101,
+                    "workflow_runs": [self.run] if "&page=2" in route else unrelated,
+                }
+            if "event=push" in route:
+                return {"total_count": 0, "workflow_runs": []}
+            if route.endswith("/jobs?per_page=100"):
+                run_id = int(route.split("/")[2])
+                return self.job_payload(
+                    run_id, conclusion="success" if run_id == 9001 else "skipped"
+                )
+            if route == "actions/runs/9001":
+                return self.run
+            raise AssertionError(route)
+        with mock.patch.object(source, "_get_json", side_effect=fetch) as req:
+            self.assertEqual(collector._collect_run(collector.REPO, "t")["id"], 9001)
+        self.assertTrue(any("&page=2" in x.args[1] for x in req.call_args_list))
+
+    def test_truncated_or_drifting_run_pages_fail_closed(self):
+        first_page = [{**self.run, "id": 10000+i} for i in range(100)]
+        for second in (
+            {"total_count": 101, "workflow_runs": []},
+            {"total_count": 102, "workflow_runs": [{**self.run, "id": 20000}]},
+            {"total_count": 101, "workflow_runs": [first_page[0]]},
+        ):
+            def fetch(_repo, route, _token):
+                if "&page=2" in route:
+                    return second
+                return {"total_count": 101, "workflow_runs": first_page}
+            with self.subTest(second=second), mock.patch.object(source, "_get_json", side_effect=fetch):
+                with self.assertRaises(source.AttestationError):
+                    collector._event_runs(collector.REPO, "t", "pull_request_target")
+
+    def test_collector_rejects_new_relevant_run_after_artifact(self):
+        later = {**self.run, "id": 9005, "created_at": "2026-10-09T15:00:00Z"}
+        with (
+            mock.patch.object(
+                source, "_get_json",
+                side_effect=[self.pr, self.branch, self.pr, self.branch],
+            ),
+            mock.patch.object(collector, "_collect_run", side_effect=[self.run, later]) as frontier,
+            mock.patch.object(collector, "_unique_artifact", return_value=self.artifact),
+            mock.patch.object(collector, "_download_exact_proof", return_value=self.proof),
+        ):
+            with self.assertRaisesRegex(source.AttestationError, "run frontier drifted"):
+                collector.check_current_main_owned_proof(collector.REPO, "t", self.manifest)
+        self.assertEqual(frontier.call_count, 2)
+
     def test_run_count_and_id_corruption_fails_closed(self):
         bad_cases = [
             {"total_count": 1, "workflow_runs": []},

@@ -282,7 +282,7 @@ def _publish_status(
     if len(raw) > MAX_RESPONSE_BYTES:
         raise AttestationError("trusted candidate-status response exceeds size bound")
     try:
-        result = json.loads(raw.decode("utf-8"))
+        result = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_json_object_pairs)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise AttestationError("malformed trusted candidate-status response") from exc
     if (
