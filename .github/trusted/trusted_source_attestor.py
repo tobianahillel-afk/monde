@@ -110,6 +110,11 @@ def verify_tree(
             if not isinstance(item, dict) or not isinstance(item.get("path"), str):
                 raise AttestationError("default-branch trust-root node is malformed")
             path = item["path"]
+            # GitHub recursive trees include directory entries. They are
+            # structural containers, not executable Git blobs or trust roots.
+            # A different type/mode pairing is NOT exempt.
+            if item.get("type") == "tree" and item.get("mode") == "040000":
+                continue
             if not _base_owned(path):
                 continue
             if (
@@ -140,6 +145,11 @@ def verify_tree(
         mode = node.get("mode")
         if not isinstance(mode, str):
             raise AttestationError(f"missing Git mode for {path}")
+        # Recursive Git Trees carry directories as tree/040000 entries.
+        # Only this exact structural pairing can be skipped; symlinks and
+        # gitlinks remain unsafe everywhere, even outside source prefixes.
+        if node.get("type") == "tree" and mode == "040000":
+            continue
         if not (in_scope(path, mode) or _base_owned(path)):
             continue
         if path in actual:

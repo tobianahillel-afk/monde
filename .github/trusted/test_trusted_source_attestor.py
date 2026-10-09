@@ -38,6 +38,48 @@ class TrustedSourceTests(unittest.TestCase):
         manifest, tree = fixture()
         self.assertEqual(subject.verify_tree(manifest, tree), 4)
 
+    def test_recursive_git_tree_directory_entries_are_structural_only(self):
+        manifest, tree = fixture()
+        directories = [
+            {"path": ".github", "type": "tree", "mode": "040000", "sha": "1" * 40},
+            {"path": ".github/workflows", "type": "tree", "mode": "040000", "sha": "2" * 40},
+            {"path": ".github/trusted", "type": "tree", "mode": "040000", "sha": "3" * 40},
+            {"path": "requirements", "type": "tree", "mode": "040000", "sha": "4" * 40},
+            {"path": "tools", "type": "tree", "mode": "040000", "sha": "5" * 40},
+            {"path": "tools/governance", "type": "tree", "mode": "040000", "sha": "6" * 40},
+        ]
+        owned = [
+            {"path": ".github/trusted/trusted_source_attestor.py", "type": "blob", "mode": "100644", "sha": "7" * 40},
+            {"path": ".github/trusted/approved_sources.json", "type": "blob", "mode": "100644", "sha": "8" * 40},
+            {"path": ".github/workflows/monde-trusted-source.yml", "type": "blob", "mode": "100644", "sha": "9" * 40},
+        ]
+        base = {"truncated": False, "tree": directories + owned}
+        candidate = {"truncated": False, "tree": directories + tree["tree"] + owned}
+        self.assertEqual(subject.verify_tree(manifest, candidate, base), 7)
+        self.assertEqual(subject.verify_tree(manifest, {"truncated": False, "tree": directories + tree["tree"]}), 4)
+
+    def test_directory_exemption_does_not_permit_unsafe_source_entries(self):
+        manifest, tree = fixture()
+        for node in (
+            {"path": "tools/governance", "type": "blob", "mode": "040000", "sha": "1" * 40},
+            {"path": "tools/governance/untrusted", "type": "tree", "mode": "100644", "sha": "2" * 40},
+            {"path": "docs/unsafe-link", "type": "blob", "mode": "120000", "sha": "3" * 40},
+            {"path": "docs/submodule", "type": "commit", "mode": "160000", "sha": "4" * 40},
+        ):
+            with self.subTest(node=node), self.assertRaises(subject.AttestationError):
+                subject.verify_tree(manifest, {"truncated": False, "tree": tree["tree"] + [node]})
+
+        owned = [
+            {"path": ".github/trusted/trusted_source_attestor.py", "type": "blob", "mode": "100644", "sha": "7" * 40},
+            {"path": ".github/trusted/approved_sources.json", "type": "blob", "mode": "100644", "sha": "8" * 40},
+            {"path": ".github/workflows/monde-trusted-source.yml", "type": "blob", "mode": "100644", "sha": "9" * 40},
+        ]
+        bad_base = {"truncated": False, "tree": owned + [
+            {"path": ".github/trusted/unapproved", "type": "blob", "mode": "040000", "sha": "a" * 40},
+        ]}
+        with self.assertRaises(subject.AttestationError):
+            subject.verify_tree(manifest, {"truncated": False, "tree": tree["tree"] + owned}, bad_base)
+
     def test_missing_extra_and_modified_executable_fail(self):
         manifest, tree = fixture()
         for nodes in (
