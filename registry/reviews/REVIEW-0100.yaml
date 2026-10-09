@@ -1,5 +1,5 @@
 id: REVIEW-0100
-status: OPEN
+status: IN_PROGRESS
 artifact:
   type: PULL_REQUEST
   id_or_path: "PR-14"
@@ -61,7 +61,7 @@ checks:
     - "REVIEW-0099 was CLOSED/CHANGES_REQUIRED on frozen head c83469b3a4781f70573567f052773db53116d955 after CodeRabbit material findings; prior independent L2 was quota-refused."
     - "Exact technical candidate cfef127471782241033e2371ab33ae611aebb8e0 passed Trusted Source #42 / 37965566949 with 63/63 unprivileged tests."
     - "Bootstrap #533 / 37965567053 passed 450 tests at 100 percent line/branch and successful live read-only GitHub probe."
-    - "This OPEN checkpoint must pass before transition to IN_PROGRESS and frozen exact-head proof."
+    - "REVIEW-0100 OPEN checkpoint f666c90d874c312ec771cd4443a9b3a889cc3722 passed Trusted Source #43 / 37965988022 (63/63 unprivileged tests; protected job skipped premerge) and Bootstrap #534 / 37965988043 (450/450 tests, 100 percent line/branch and live read-only PR #2 probe). IN_PROGRESS exact-head CI is required before independent L2."
     - "Fresh independent L2 must assess all current 21 unresolved PR #14 threads, source approval, runner and upload guards."
     - "The base-owned attestation is skipped before integration; do not claim a successful protected validation."
 outcome: CHANGES_REQUIRED

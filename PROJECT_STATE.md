@@ -12,7 +12,7 @@ Canonical operational state: Yes
 - WORK-0002 remains `IN_REVIEW / A3`; WORK-0003 and WORK-0004 remain blocked.
 - PR #5/T12 was independently accepted and merged to `main` on 2026-09-24.
 - PR #2 is open with 104 unresolved findings; REVIEW-0094 is terminal negative after two independent P1 source-provenance findings.
-- PR #14 is the active proposed main-owned trust-root predecessor; REVIEW-0095/0096/0097 are `CLOSED / CHANGES_REQUIRED`, REVIEW-0098 has no clean approval; PR #14 is open/unmerged with 21 unresolved review threads at the latest live query; REVIEW-0099 is terminal negative and REVIEW-0100 corrections are required.
+- PR #14 is the active proposed main-owned trust-root predecessor; REVIEW-0095/0096/0097 are `CLOSED / CHANGES_REQUIRED`, REVIEW-0098 has no clean approval; PR #14 is open/unmerged with 21 unresolved review threads at the latest live query; REVIEW-0099 is terminal negative; REVIEW-0100 is IN_PROGRESS on an unapproved corrective candidate after its successful OPEN checkpoint. Independent L2 is eligible only after successful live exact-head CI.
 
 ## PR #14 trust-root history and current successor (2026-10-09)
 
