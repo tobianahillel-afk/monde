@@ -85,7 +85,7 @@ The [critical-path audit](../12_RESEARCH/chatgpt-github-only-engine-critical-pat
 
 ### A. Native GitHub + small MONDE coordination (selected for pilot)
 - Pros: zero personal servers, fits ChatGPT/GitHub connector, reuses MONDE canonical docs, low hosting overhead.
-- Cons: small custom CAS/fencing engine and strict host-side permissions required; ChatGPT schedule provides no instant event wake-up.
+- Cons: small custom Actions arbitration/reconciliation logic and strict host-side permissions required; ChatGPT schedule provides no guaranteed instant event wake-up. A CAS/fencing ref implementation is a fallback only.
 
 ### B. Gas Town/Beads/Temporal (rejected as required runtime)
 - Pros: agent pools, durable task management, more orchestration features.
