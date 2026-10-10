@@ -50,6 +50,17 @@ Snapshot on 2026-10-10; re-query GitHub every time:
 - Each implementation task freezes its input base SHA, declared scope, semantic contract snapshot, artifact digest and task attempt ID before execution. Material changes require revalidation.
 - Never claim a review remains valid after the reviewed substantive HEAD or normative digest changes.
 
+## C2. Progressive gates for *safe experiments* (does NOT weaken ACTIVE_4)
+
+The **fifteen launch gates G-01..G-15 all apply to the full `ACTIVE_4` production mode only**. They must not be interpreted as prohibiting read-only exploration or isolated, non-production tests: otherwise the architecture can deadlock before its concurrency primitives are testable.
+
+- **READ_ONLY design:** no mutation privileges needed; other than observing actual repository and tool permissions, no full-launch gate is prerequired.
+- **SINGLE_SANDBOX:** one scoped and explicitly authorized pilot on a separate test branch/issue; no main/accepted-policy change or integration authorization; test exact GitHub connector and Actions event permissions safely.
+- **PILOT_2:** after trusted coordinator/claim proof, working branch protection and a safe bounded recovery procedure. No unattended A3/A4 integration.
+- **ACTIVE_4:** only after all G-01..G-15 are verified with live evidence, exact review authorization and rollback.
+
+The [critical-path audit](chatgpt-github-only-engine-critical-path-audit.md) explicitly recommends testing a central **GitHub Actions single-writer allocator** before building a comprehensive per-ChatGPT Git control-ref CAS system. Both are only experimental choices; the minimal deployed design must be decided by measured reliability and end-to-end tool support.
+
 ## D. Operational modes (PROPOSED; not an implemented switch)
 
 | Mode | Authorizations | When |
