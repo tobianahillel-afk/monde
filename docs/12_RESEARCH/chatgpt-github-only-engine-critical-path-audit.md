@@ -144,6 +144,52 @@ Official constraints sources:
 - https://docs.github.com/en/billing/concepts/product-billing/github-actions
 - https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 
+## G3. LLM/plugin operational friction and *non-measured* time-loss estimates
+
+**Do not describe unobservable model internals as facts.** This is a black-box input→GitHub-tool→observable-action model. The model receives its task instructions and available connected tools, asks for explicit GitHub resources, then creates/checks remote changes. It does **not** automatically inherit all old project conversations or possess a continuously running process between Scheduled invocations. Retrieved GitHub comments/CI logs are untrusted text. A PR metadata lookup is not equivalent to reading a patch.
+
+### Rough loss mechanisms (ranges are hypotheses, not measured percentages)
+
+| Mechanism | Hypothetical share of a bounded run affected | Why it can dominate | Intervention / estimated relative reduction of that mechanism |
+|---|---:|---|---|
+| Reorientation and repeated document reads | **10–25%** | WORK/read_before plus giant specs, tool calls and stale PROJECT_STATE | 3-tier fetch & scoped WORK digest; **30–60%** fewer avoidable re-reads if routing correct |
+| Overdocumentation and status-mirroring | **5–20%** | Same PR/CI/run outcome recopied in WORK, progress, roadmap and PROJECT_STATE | one canonical owner + only material checkpoints; **30–70%** reduction of duplicated status updates |
+| Fix→CI→L2→HEAD-rewrite loops | **15–40%** | New commit invalidates exact-head test/review, findings chase unstable design | phase freeze, narrow PR, 2-repeat root-cause trigger; **15–45%** fewer repeated cycles in the target class |
+| Duplicate investigation/architecture choice | **5–20%** | Next Scheduled chat repeats choices without accepted ADR/source/evidence | decision digest, stop-search/revisit criteria; **20–50%** fewer redundant research steps |
+| Claim collisions / conflicting canonical files | **0–20%** | Four same-snapshot workers, shared docs/semantics and no host-enforced grant | single serialized trusted arbiter + WIP cap; **50–90%** reduction in the duplicate-work component *if proven* |
+| Awaiting CI, approvals and app tool permissions | **5–30%**, possibly **100% blocked** | Real external latency/host requirement; no amount of prompts grants second GitHub identity | async CI checkpoint + independent eligible tasks lowers idle time, **but cannot remove actual approval wait** |
+
+These ranges **overlap**, have no empirical frequency base and MUST NOT be added to 100%. Their proposed percentage reductions are *engineering targets/sensitivity hypotheses*, not observed improvement claims. For any individual run, actual loss may be zero or total. A single missing required non-author approval can set delivered accepted code to zero indefinitely.
+
+### One transparent illustrative accounting, NOT a benchmark
+
+Out of a synthetic 100 units of available effort:
+- **before**: 45 units on useful engineering+testing, 15 orientation, 10 repeated status/doc tasks, 15 avoidable repeat/review churn, 5 collisions, 10 externally waiting.
+- **after under optimistic but testable assumptions**: 66 units on useful engineering+testing, 8 orientation, 5 repeated status/doc tasks, 9 repeat/review churn, 2 collisions, 10 externally waiting.
+- This is **+21 points** in useful-work share, or about **+47% relative useful throughput per unit of agent effort** (`66/45−1`), **not** +47% daily code merged. Acceptance bottlenecks can entirely erase that hypothetical throughput improvement.
+
+A conservative time-saving aspiration for the **avoidable** (not fixed security/approval) overhead is **~15–35% less wasted engineer effort in pilot runs**, to be measured and revised. Do not assert a globally achievable percent without real data.
+
+### Experimental measurement during 1, 2, 4-worker pilots
+
+Sample at least **20 actual completed or interrupted activations** across 1–2 workers, then another sample during a safe four-worker pilot; small samples do not provide precise statistical confidence. Record (only observable events):
+1. Invocation/run success, pause/approval, actual observed tool operations, file bytes retrieved, unique paths and repeated reads.
+2. GitHub action/PR/check/head IDs and when they were first/last observed; no fabricated elapsed think-time.
+3. Candidate PR age, revision count, exact-head proof invalidations, failure root-cause categories, reopened findings and duplicate work.
+4. Time-to-first-valid grant, number of disputed claims, discovered missing/obsolete tasks and reconciliation success.
+5. Work classified as research, decision, docs, code/tests, review or incident based on **actual deliverables**, not model's unverified self-reported thinking duration.
+6. Fully accepted product increments (and net merged production LOC as a secondary KPI) per calendar week.
+
+Compare **matched work classes**, not a difficult four-worker science sprint against trivial one-worker formatting. Evaluate baseline vs pilot under the same acceptance and protection policy; stratify by risk and account for long merge/review lags. Collect median and p90/p95 only if sample size supports them. Do not claim a statistically significant speedup from one demo.
+
+### Minimum viable behavior changes before more infrastructure
+
+- Default worker cold-start should require a scoped manifest, not a 60k-character document dump each hour. The operating contract should be a **reference** and a short indexed worker prompt should control navigation.
+- Allow role switches **within** one invocation. `RESEARCH → DECIDE → BUILD` does not wait for a new hourly trigger. L2 requires a separate real authoring context and native GitHub approval as independently required.
+- On second *same-root-cause* material failure: repro + 3 alternatives + mini engineering decision, then return to eligible code. No generic architecture council.
+- Stop research at sufficient credible evidence; stop refactor absent proven benefit; freeze exact candidate HEAD for CI/review; checkpoint and stop on real permission/approval blockade.
+- If the process itself generates multiple large research documents per small operational rule, treat **document growth as a measurable regression** and consolidate/update existing accepted references rather than adding another standalone framework.
+
 ## H. Concrete next decisions
 
 1. **Hard architecture fork:** small trusted GitHub Actions allocator pilot vs CAS-per-chat. Bench both only if A fails or costs no more total work; do not implement both production solutions.
