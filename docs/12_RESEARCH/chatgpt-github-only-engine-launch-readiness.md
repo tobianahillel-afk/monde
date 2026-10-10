@@ -100,18 +100,16 @@ Useful official docs: https://docs.github.com/en/repositories/configuring-branch
 1. Finish/safely redirect WORK-0002/PR #14 trust-root blockers without altering their approved contract for expediency.
 2. Configure WORK-0003 host-enforced protection, including proof. If sequencing requires WORK-0002 completion first, perform an explicitly authorized protected prerequisite without silently marking WORK-0003 DONE.
 3. Review and accept/modify WORK-0005/ADR, including context-separation evidence and non-author authority.
-4. Introduce new tightly scoped implementation WORK. Add pure allocator+conflict tests; then control-ref CAS/fencing; then CI future/reconciler; then integration-review packet.
+4. Introduce new tightly scoped implementation WORK. First test the smallest trusted GitHub Actions Issue-comment allocator + conflict/grant fixtures; add bounded CI future reconciliation and scoped review packet. Build control-ref CAS only after a separate reviewed negative result for the simpler design; never combine two claim authorities.
 5. Trial with one, two, then four task invocations; do not launch four full scheduled writer tasks to *test* whether claims work.
 6. After all G gates pass, create four distinct Scheduled tasks, identical schedule `every hour at :00` Europe/Paris, different worker IDs; verify the platform actually supports four active new tasks without disabling unrelated automations.
 7. Preserve downgrade/pause operation and reconcilers. Stop the engine at stable MVP and prioritize the first real MONDE lawful-data/evidence/temporal-query/Console or Globe vertical slice.
 
 No fixed per-role assignment: workers change action types within a single run. A same-chat role switch remains L1; genuinely fresh separate-context L2 requires another worker context.
 
-## G. Suggested common future worker startup prompt — FAIL CLOSED (NOT FOR ACTIVE_4 TODAY)
+## G. One common candidate worker prompt — no duplicate version
 
-> MONDE WORKER W{1..4}. Repository tobianahillel-afk/monde, ChatGPT + GitHub connector only. Never use an external local host, Codex paid review, or another project's repo. On every invocation, read live main SHA, Accepted governance/AGENTS.md, the current WORK DAG and authorized policy/mode, PR/CI/review sources, operational control ref, reconciliation runbook and the readiness-gate evidence. **If the accepted scheduler, verified claim+fencing, reconciliation, review/merge and branch-protection gates are not actually deployed, work only READ_ONLY and report the missing prerequisite.** Never approximate a claim with an Issue label, clock offset, free-form task name or ChatGPT memory. After verified claim, complete as much useful scoped work as the session allows, switching RESEARCH/BUILD/FIX/TEST/L1/review-prep as appropriate. L2 must be from a genuinely different fresh context and cannot substitute for a required GitHub non-author approval. CI futures and ambiguous mutations require durable evidence/reconciliation; never blindly repeat remote writes. No direct main write, force push or stale-head merge. Report observed commits/PR/CI, blocked gates and exact next action truthfully. Do not claim completion or enable ACTIVE_4 by editing this prompt.
-
-This is an operational **template**, not permission to schedule four write-capable tasks or claim any control-plane feature exists. Separate ChatGPT conversations, not just different IDs in one chat, are needed for genuine separate-context L2.
+The **single source** for the future W1–W4 Scheduled task instructions is [Operating Contract §10A](chatgpt-github-only-engine-operating-contract.md). Do not copy/edit a second prompt in this readiness file: divergent startup instructions create review, CI-wait and authority ambiguity. It explicitly requires *continued useful work and real bounded polling* while CI/review is pending, conditional A→E phase skipping, exact-head futures and checkpoints on true runtime limits. The text remains **INACTIVE** until T0/T1 actual Scheduled-tool permission and all applicable `ACTIVE_4` launch gates are proven. Worker IDs are labels, not GitHub-native separate actors.
 
 ## H. Stop/rollback, acceptance and readiness recheck
 
