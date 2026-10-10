@@ -71,6 +71,79 @@ Minimal first experiment: [minimal foundations](chatgpt-github-only-development-
 
 If authority is not available: label the affected task BLOCKED, record exactly what proof is missing, shift to another eligible task. **Do not ask the user to approve every small reversible technical choice.** No worker can grant itself authority by generating an approval string.
 
+## 3A. Engineering deliberation: **A → B → C → D → E in ONE activation**
+
+**One ChatGPT worker can execute many phases and cross multiple transitions during a single scheduled invocation.** A new hourly activation is not a stage boundary. A phase ends only when its evidence-based *exit condition* holds, not after an arbitrary number of minutes, commits or chats.
+
+| Phase | Triggers / question | Required work for materially complex changes | Exit condition / next permitted step |
+|---|---|---|---|
+| **A — FRAME** | New capability, contradictory product requirement or unowned architectural gap | Read relevant MONDE canonical docs; identify work scope, goal, impact graph, data/compute/legal/privacy assumptions, user-visible acceptance outcome and existing owners; retrieve supported historical product intent when needed | Problem, scope, `read_before`, constraints, success/failure tests and source confidence explicit |
+| **B — RESEARCH / ENGINEER** | Material algorithm, library, architecture, security/science/scale unknown | Literature/upstream-source search, alternatives including stdlib/baseline, asymptotic analysis, dependency supply chain, representative datasets, short spike/benchmark if needed | Candidate comparison and falsifiable constraints/risks; all critical unknowns tested, deferred with mitigation or marked BLOCKED |
+| **C — DECIDE / FREEZE** | Candidate(s) compared | Hard feasibility gates; choose smallest viable reversible design; specify interface/data invariants, requirements and test oracle; classify decision authority and freeze *the decision input revision* | `LOCAL_PROVISIONAL` author decision for reversible branch work, or `REVIEW_REQUIRED` for architectural/normative work; **never infer Accepted from author freeze** |
+| **D — BUILD / EXPERIMENT** | Valid claim + C choice within authorization | Reuse vetted OSS, implement limited branch slice, tests/profiling/fault injection, refine after measurements. May loop B↔C↔D when hypotheses falsified, with recorded reason | Exact candidate SHA, meaningful test evidence, no unresolved material failure |
+| **E — VERIFY / REVIEW / DOCUMENT / INTEGRATE** | Candidate exact SHA frozen | CI real checks, impact regression, author L0/L1, other-chat L2/L3 as required, native independent GitHub approval if required; update only changed normative docs, then guarded integration | Actual eligible and merged proof, OR truthful BLOCKED+checkpoint; then choose next eligible task while invocation remains active |
+
+**Microchange path**: for a simple reversible helper, A/B/C may happen in one compact thought/report using existing approved idiom; no artificial six-hat research packet or full ADR. **Engineering gate**: if a substantial new algorithm, data semantics, performance constraint, security boundary, public API, large third-party dependency or cross-component change is detected, B and C become explicit with evidence. If D disproves a chosen approach, return to B without waiting for the next scheduled hour.
+
+**Crossing C safely:** a decision frozen *inside a worker* locks assumptions for that isolated attempt but is not policy approval. If existing Accepted governance requires independent acceptance of normative specs before implementation, a worker may perform only expressly permitted isolated experiments; it may not silently cross to protected product implementation/merge. L2 requires another real chat/context; returning to another role in the author chat stays L1. An agent may continue non-conflicting research and work during review/CI waits.
+
+### Five engineering decision triggers (rather than universal formalism)
+
+- `D0 / LOCAL`: existing library/algorithm already accepted, small localized reversible change; cite parent WORK and existing tests, continue.
+- `D1 / NEW_TECH`: new OSS dependency/tool, unusual algorithm or material performance choice; compare at least baseline and credible alternate where available; pin version only after tested.
+- `D2 / CROSS_SYSTEM`: shared protocol, schema, world semantics, multi-engine changes or migrations; complete ADR/dependency impact and required independent review.
+- `D3 / SCIENTIFIC`: learning, geospatial/time inference, 3D/4D, forecasting, causal claims or provenance/uncertainty; research literature, benchmark baselines, leakage-safe evaluation, representative sample and reproducible run.
+- `D4 / TRUST`: permissions, workflows, CI/merge root, secrets, public acquisition legality; explicit threat model and existing high assurance/owner controls; never self-approve.
+
+These gates determine research **depth**, not one fixed set of tools or role personality. This mirrors the risk-based software design-review rationale in NIST SSDF SP 800-218, especially PW.2: https://csrc.nist.gov/pubs/sp/800/218/final .
+
+## 3B. Algorithm / library / architecture research protocol
+
+**Phase B cannot be satisfied by an unverified leaderboard or one persuasive model answer.** For each genuinely important choice:
+
+1. **Define operating point**: input modalities/formats, N/day, object/world scale, spatial resolution, time granularity, quality thresholds, uncertainty, missingness, constraints on RAM/CPU/VRAM, p95 latency, cost, energy, API/GitHub runner availability and lawful data rights.
+2. **State the baseline**: accepted MONDE implementation, standard library or strong established OSS technique. Ask if a new system is genuinely necessary.
+3. **Find candidates from accessible sources**: MONDE existing components/ADRs and repos first; upstream project documentation, GitHub repository/issues/releases/security advisories, research papers with datasets/reproducible benchmarks, authoritative standards. Use built-in web search **when actually available within that Scheduled task**, otherwise eligible GitHub sources. The GitHub connector alone does not guarantee access to all papers or historical ChatGPT conversations.
+4. **Study algorithmic behavior**: expected/worst-case runtime (T(n)), memory (S(n)), incremental/streaming/parallelization, worst-case data distribution, numerical stability, deterministic seeds, confidence/error calibration, interoperability and scaling to global/time-varying entities. Evaluate GPU-specific and CPU-only paths *when relevant*; standard public GitHub Actions runners are not free GPU clusters.
+5. **Hard disqualifiers**: additional paid API/Codex/model/always-on host, unavailable license, unmaintained high-risk dependency, untestable trust boundary, source-data rights incompatibility, violation of MONDE evidence/temporal/identity invariants, unacceptable runtime/cost.
+6. **Compare fairly** with the same representative sample, data cutoffs, machine class, seeds, test oracle and units. Prefer a reproducible minimal GitHub-hosted spike; do not fake a benchmark if the needed workload/GPU is not available on free runners.
+7. **Decide explicitly**: selected option, alternatives, rationale, conditions under which it loses, expected future migrations/rollback, related CAP/REQ/ADR, measured vs theoretical vs hypothesized performance, version/license/source.
+8. **Revisit only on a real trigger**: failure against acceptance metrics, upstream security advisory, incompatible new requirement, improved measured alternative or project-scale threshold. Avoid researching the same frozen choice every hour.
+
+A bounded report may be a PR/issue comment for local scope, or a short ADR/technical note for system-level choices. Never create duplicate document sets merely to prove a worker 'researched'.
+
+**Candidate comparison record** (all fields must reflect real sources; no fabricated measurements):
+```yaml
+decision_id: "TECH-<work>-<task>"
+decision_class: "D1_NEW_TECH"
+question: "<which algorithm/technology and operating point?>"
+global_impact: ["CAP-...", "contract:...", "downstream:..."]
+constraints: ["zero paid service", "RAM <= measured budget", "provenance retained"]
+baseline: "<existing solution + source>"
+options:
+  - {name: "<candidate>", source: "<verified URL/revision>", license: "<verified>", limitations: ["..."]}
+evaluation: {theoretical: ["..."], measured: ["<run URL, or NOT_MEASURED>"], unknown: ["..."]}
+choice: "<selected for this scope>"
+decision_status: "LOCAL_PROVISIONAL|REVIEW_REQUIRED|ACCEPTED_EXACT_REVISION"
+falsifiers: ["<which measurement would force reconsideration?>"]
+rollback: "<reversible fallback>"
+```
+
+If sources disagree, distinguish dated/source-scoped evidence from a normative fact; do not silently choose the newest claim. Research cannot grant GitHub review authority.
+
+## 3C. Global MONDE consistency checkpoints
+
+At A/C/D/E ask **WHAT ELSE WOULD THIS CHANGE?** and consult linked `CAP/REQ/ENG/WORK/ADR`, actual code and downstream tests. Especially:
+- `Source → Observation → Evidence → Claim → BeliefState → World State` and derived forecast/simulation/residuals;
+- provenance, source independence, negative evidence, coverage, uncertainty/confidence calibration;
+- bitemporal event time versus knowledge/ingestion time, temporal replay and historical corrections;
+- reversible identity merges and Observation/Estimated/Simulated separation;
+- engines × lenses × capabilities × experiences (Globe and Console share a single logical World Model);
+- geospatial/2D–3D–4D interfaces, WRE as **a distinct repository/engine boundary**, not scope added to MONDE by accident;
+- security, visibility, legality and resource/CI constraints.
+
+These are **known blueprint themes**, not proof that every historical detail has been inventoried or accepted. Resolve overlaps and untraced functionality through the existing **WORK-0004** capability-inventory work, not a new development-engine product registry.
+
 ## 4. Role engine — dynamic lenses, not one specialized chat each
 
 Every worker uses the same compact operating contract. Assign its active **role per task and phase**, not permanently per W1–W4:
