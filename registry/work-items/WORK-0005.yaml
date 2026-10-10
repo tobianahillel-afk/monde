@@ -6,7 +6,7 @@ lot: LOT-0
 sublot: SUBLOT-0.4
 owner: "MONDE development operating model"
 created_at: "2026-10-10"
-updated_at: "2026-10-10"
+updated_at: "2026-10-11"
 
 purpose: |
   Specify, compare and independently validate a four-worker ChatGPT Scheduled
@@ -206,6 +206,7 @@ required_tests:
   unit: []
   property:
     - "document atomic claim/fencing and same-snapshot four-way property cases"
+    - "reversible decision choice must return to research on counterexample, without treating C local freeze as Accepted"
   integration:
     - "prove connector Git ref update and failure contracts in separately tracked implementation spike"
   contract:
@@ -213,6 +214,7 @@ required_tests:
     - "no changes to WORK-0002/WORK-0003 enforcement semantics"
   e2e:
     - "cold-read an end-to-end worker execution and handover without local files"
+    - "cold-read single-run A through E phase transitions, policy/authority boundaries and algorithm choice record"
   regression:
     - "PR #2/#14 review authority and exact-head proof remain unmodified"
   security:
@@ -221,6 +223,7 @@ required_tests:
     - "plan baseline accepted-merge throughput before 4-way deployment"
   real_system:
     - "GitHub branch protection and task connector feature availability discovery"
+    - "verify ChatGPT scheduled mode access, project file/history limits, role handover and GitHub issue_comment delivery"
   epistemic: []
 
 scientific_validation:
