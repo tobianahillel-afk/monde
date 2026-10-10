@@ -395,7 +395,7 @@ At run start, `RECONCILE`:
 3. if pending, continue other independent read-only research, or resume **only** a still-valid grant;
 4. if API side effect acknowledged ambiguously, query its exact remote target before any retry;
 5. if stale/reclaimed grant, old branch remains audit evidence, but do not promote it;
-6. if trust/permissions/rulesets/CAS integrity absent, stop all writes/merges; if only task-local defect, isolate it and continue other eligible work;
+6. if trust/permissions/rulesets/current arbiter grant integrity absent, stop writes/merges; if only a task-local defect, isolate it and continue other eligible work. Check CAS integrity only if that fallback was separately approved/deployed;
 7. append a concise run record only on meaningful change, not a source commit to report post-HEAD CI completion.
 
 Failure matrix:
