@@ -1,0 +1,69 @@
+# ADR-0001 — ChatGPT Scheduled tasks + GitHub-only Development Engine
+
+Status: Proposed
+Date: 2026-10-10
+Owners: MONDE repository engineering governance
+Related Work: WORK-0005
+Related Issue: https://github.com/tobianahillel-afk/monde/issues/17
+Research: ../12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md
+
+## Context
+
+MONDE is an evidence-grounded temporal World Model. Development currently stalls on long candidate PRs, complex trust/independent-review chains and asynchronous GitHub checks. The owner requires exactly four task-capable ChatGPT conversations on the same hourly schedule, connected only to GitHub; no local computer, persistent hosted runtime, separate Codex service or paid external model provider may be required.
+
+MONDE already has a Constitution, canonical hierarchy, work/review/requirement status machines and GitHub Actions. Duplicating that control plane or making an uninstalled external engine mandatory would increase effort without delivering product.
+
+GitHub can execute CI on its own hosted runners. The ChatGPT plugin provides GitHub operations but not a permanent daemon. Four chats can use the same linked GitHub identity; their worker labels alone cannot provide enforced separation of GitHub approvers. GitHub disallows author approval of a PR. A separate ChatGPT fresh-context technical L2 cannot be equated with the host's distinct non-author approval.
+
+## Proposed decision (NOT EFFECTIVE UNTIL ACCEPTED)
+
+1. Use ChatGPT hourly tasks for agent reasoning/actions and GitHub for durable state, PR, code, tests, documentation, issues, events, review artifacts and branch integration.
+2. Keep four **interchangeable**, role-fluid workers. Time triggers are the same nominal hourly timestamp, but safe coordination must not depend on real simultaneity.
+3. Extend existing MONDE registries/docs; add only a small assignment + atomic-control-ref + fencing + CI-reconciliation adapter, separately governed.
+4. Reuse existing GitHub-hosted workflows (CodeQL/unittest/coverage), and trial actionlint/zizmor/Hypothesis/Ruff where cost/benefit is demonstrated.
+5. Use GitHub Issues/Projects as projected work views; single canonical DAG and a separate operational reservation event ref; no duplicated state ownership.
+6. Require L0/L1 in author context, **L2 in a different ChatGPT conversation/context**, and applicable L3 multi-context/adversarial checks. An author changing roles within the same chat cannot satisfy L2.
+7. Keep existing non-author GitHub APPROVED and trusted-check requirements intact until a separately authorized governance decision changes them. Technical L2 report cannot bypass host-enforced approval.
+8. Do not activate four agents against shared writable resources until actual same-snapshot race, claim fencing, trusted review, host protection and rollback tests pass.
+9. Stop expanding the engine after it safely supports useful accepted MONDE product slices.
+
+## Alternatives considered
+
+### A. Native GitHub + small MONDE coordination (selected for pilot)
+- Pros: zero personal servers, fits ChatGPT/GitHub connector, reuses MONDE canonical docs, low hosting overhead.
+- Cons: small custom CAS/fencing engine and strict host-side permissions required; ChatGPT schedule provides no instant event wake-up.
+
+### B. Gas Town/Beads/Temporal (rejected as required runtime)
+- Pros: agent pools, durable task management, more orchestration features.
+- Cons: runtime/server/CLI/storage bridge inconsistent with zero-host and connector-only constraint. Conceptual reference only.
+
+### C. Codex/OpenHands/mini-SWE-agent or third-party paid reviewer (rejected as mandatory)
+- Pros: ready-made autonomous code agents or reviews.
+- Cons: another execution provider, token/credit quotas, runtime/API integration; contradicts required ChatGPT-only agent model.
+
+### D. Four uncoordinated ChatGPT tasks (rejected)
+- Pros: zero scheduler code.
+- Cons: double-work, merge collisions, stale reviews, unrecoverable long jobs, degraded throughput.
+
+## Consequences
+
+- **Positive:** all durable artifacts in GitHub; no local files/servers; workers can change work type during each invocation; independent technical L2 not Codex-credit-dependent.
+- **Negative:** host-native GitHub non-author review still potentially blocks high-risk work; strong isolation between chats is not cryptographic with one identity; ChatGPT tasks can pause for approvals or miss exact start; all truth must be re-fetched each run.
+- **Costs:** one small adapter and CI validation workflow; possible limited Actions minutes and connector API quotas; additional state in dedicated control ref.
+- **Scope:** no change to accepted review policy until subsequent dedicated proposal is reviewed; this ADR alone grants no merge or L2 acceptance.
+
+## Compatibility / migration
+
+WORK-0002 remains IN_REVIEW; PR #2/#14 are not merged by this decision. WORK-0003 still owns admin protection. New v2 code and an eventual control ref must be introduced on separate narrowly scoped work/PR after this ADR is accepted. Do not insert scheduler features into PR #2. Follow existing Review Council and acceptance-authority requirements.
+
+## Security and epistemic impact
+
+No candidate-controlled workflow may generate its own trusted merge authorization; do not execute untrusted PR code under elevated tokens. Provenance must bind reviewer context assertion, exact SHA, normative digests, test results and policy epoch. Unknown/ambiguous claims and acknowledgements fail closed. No review evidence may be labeled GitHub non-author APPROVED when authored under the same GitHub actor.
+
+## Validation
+
+Before acceptance: fresh-context cold read, architecture + verification + security + SRE + documentation + red-team hats, live confirmation of available GitHub features, clear independent approval strategy. After acceptance: one-worker and four-way concurrent reservation tests (including crashes), actual Actions CI-future lifecycle, trust-source/merge-eligibility test, no lost writes or unauthorized merges, and measured improvement in accepted product delivery.
+
+## Rollback / supersession
+
+Decline this Proposed ADR and close the isolated design PR; existing MONDE behavior remains unchanged. Future accepted revisions require a new ADR rather than mutating Accepted rationale.
