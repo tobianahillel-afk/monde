@@ -24,6 +24,8 @@ scope:
     - document relevant zero-host and GitHub connector limitations
     - research reusable GitHub and open-source CI/lint/QA capabilities
     - define verifiable test matrix, pilot gates and rollback criteria
+    - specify automatic reconciliation and explicit incident-recovery mode
+    - define fifteen fail-closed activation gates with proof requirements
     - produce proposed ADR and research RFC without changing Accepted semantics
   out:
     - implementation or activation of the four Scheduled tasks
@@ -38,7 +40,7 @@ acceptance_criteria:
     description: "The exact ChatGPT + GitHub-only runtime, capabilities, costs, permissions and limitations are documented, with no required external AI reviewer."
     status: NOT_STARTED
   - id: AC-2
-    description: "All assignment, lease/fencing, no-overlap, CI futures and recovery transitions are unambiguous, idempotent and testable."
+    description: "All assignment, lease/fencing, no-overlap, CI futures, automatic reconciliation and manual incident-recovery transitions are unambiguous, idempotent and testable."
     status: NOT_STARTED
   - id: AC-3
     description: "L0/L1/L2/L3 procedural independence and the separate GitHub author/non-author approval rule are accurately preserved."
@@ -47,7 +49,7 @@ acceptance_criteria:
     description: "The reuse inventory proves that no parallel custom CI, task UI, merge queue or agent host is required."
     status: NOT_STARTED
   - id: AC-5
-    description: "A cold-reading independent context can resume from the RFC and choose a safe staged implementation and product continuation."
+    description: "A cold-reading independent context can resume from the RFC and recovery/readiness runbooks, verify all launch gates and choose safe staged implementation without four premature write-enabled tasks."
     status: NOT_STARTED
   - id: AC-6
     description: "The proposed architectural decision and all mandatory review hats are assessed before acceptance; no protective gate is bypassed."
@@ -83,6 +85,8 @@ read_before:
   - registry/work-items/WORK-0002.yaml
   - registry/work-items/WORK-0003.yaml
   - docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md
+  - docs/12_RESEARCH/chatgpt-github-only-engine-launch-readiness.md
+  - docs/12_RESEARCH/chatgpt-github-only-engine-reconciliation-runbook.md
   - docs/11_ADR/ADR-0001-chatgpt-github-only-development-engine.md
 depends_on: [WORK-0001]
 blocks:
@@ -126,9 +130,9 @@ implementation_plan:
       expected_files: [docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md]
       status: NOT_STARTED
     - id: T2
-      description: "Specify task scheduler, claims, fencing, CI futures, document routing and recovery."
+      description: "Specify task scheduler, claims, fencing, CI futures, documentation routing, reconciliation and incident recovery."
       depends_on: [T1]
-      expected_files: [docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md]
+      expected_files: [docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md, docs/12_RESEARCH/chatgpt-github-only-engine-reconciliation-runbook.md]
       status: NOT_STARTED
     - id: T3
       description: "Specify reviewer separation, GitHub non-author approval limitations and migration safeguards."
@@ -138,7 +142,7 @@ implementation_plan:
     - id: T4
       description: "Compare alternatives, create proposed ADR, test plan and staged roadmap."
       depends_on: [T2, T3]
-      expected_files: [docs/11_ADR/ADR-0001-chatgpt-github-only-development-engine.md, docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md]
+      expected_files: [docs/11_ADR/ADR-0001-chatgpt-github-only-development-engine.md, docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md, docs/12_RESEARCH/chatgpt-github-only-engine-launch-readiness.md]
       status: NOT_STARTED
     - id: T5
       description: "Cold-read, independent review and controlled approval readiness without premature acceptance."
@@ -208,6 +212,9 @@ validation:
   known_gaps:
     - "No four-way claim or GitHub connector race prototype has yet been run."
     - "No host-enforced non-author approval path under four same-account ChatGPT workers is proved."
+    - "Readiness and reconciliation documentation is a draft only: there is no deployed coordinator, automatic recovery or release switch."
+    - "No independent cold-read or real GitHub Actions CI has been verified for this proposal."
+
 
 risk:
   security: HIGH
