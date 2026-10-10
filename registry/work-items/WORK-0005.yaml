@@ -30,6 +30,8 @@ scope:
     - test a single-writer GitHub Actions allocator as a simpler alternative to per-worker CAS
     - specify six minimal invariants and core GitHub-native reuse-first implementation choices
     - define context-sensitive dynamic agent roles, decision rubric, autonomy/authority limits and review evidence
+    - define same-cause repeat-failure diagnosis, refactor/redesign triggers and stop-search/freeze boundaries without adding new runtime components
+    - document observable ChatGPT/GitHub tool retrieval pitfalls, staged read routing and non-calibrated slowdown estimates
     - define proposed open-source technology families, public GitHub Actions free-tier assumptions and version pinning policy
     - specify same-invocation FRAME/RESEARCH/DECIDE/BUILD/VERIFY transitions, risk-based engineering gates, algorithm comparison and benchmark contracts
     - connect historical MONDE user intent retrieval and source provenance to existing WORK-0004 without cloning a capability registry
@@ -82,6 +84,15 @@ acceptance_criteria:
     status: NOT_STARTED
   - id: AC-12
     description: "Four-worker throughput and delivery duration are modeled as conditional scenarios with explicit assumptions and measured GitHub repo code-type baselines, not promised rates."
+    status: NOT_STARTED
+  - id: AC-13
+    description: "The operating contract includes evidence-driven root-cause/refactor/reconsider transitions, sufficient-evidence freeze and stop-search triggers, and no-bypass exit rules."
+    status: NOT_STARTED
+  - id: AC-14
+    description: "Worker GitHub cold-start and tool-output model is scoped, independently reproducible, safe against untrusted tool text and tested for redundant reads and avoidable repeated work."
+    status: NOT_STARTED
+  - id: AC-15
+    description: "The percentage slowdown model clearly labels all nonmeasured overlapping assumptions and defines matched 1/2/4-worker observational pilots before any speedup assertion."
     status: NOT_STARTED
 
 requirements: []
@@ -260,6 +271,7 @@ validation:
 
 
     - "This author-led critical-path audit is NOT an independent L2 review."
+    - "The proposed percentage friction and cost reduction estimates are not empirical; no live Scheduled-task benchmark exists."
 
 
 
