@@ -16,13 +16,21 @@ A ChatGPT worker is a bounded, possibly delayed or interrupted execution. Its la
 
 Reconciliation is NOT automatic code until separately implemented and tested. GitHub Actions cannot spontaneously wake an existing ChatGPT task; the next scheduled invocation must observe pending events, or a *trusted* GitHub-hosted workflow may perform limited non-AI read-only audits.
 
+## Recommended MINIMAL implementation, before any fallback control-ref ledger
+
+The selected experiment uses **one trusted serialized GitHub Actions arbiter** and GitHub Issues grant/result records, plus live GitHub API observations of PR/CI/check/review. No dedicated control ref, per-chat event-sourcing framework, three parallel status machines, or heavy mutation outbox is a default requirement. The following more elaborate schema/CAS sections are **defense-in-depth fallback designs only**; do not implement them without a failed minimal experiment and reviewed scope. The coordinator tracks only `AVAILABLE/OWNED/REVIEWABLE/CLOSED`, and `BLOCKED/UNKNOWN` exceptions, alongside existing GitHub IDs/HEAD. The existing WORK status machine remains normative.
+
+**Practical minimal reconciliation**: at each ChatGPT activation, fetch current HEAD/grant/branch/PR/checks/reviews and discover outstanding run futures. If CI/review is still active **and the ChatGPT invocation itself is ongoing**, leave the candidate HEAD frozen, do other authorized non-conflicting work, recheck after real elapsed work or genuine wait, and process terminal exact-head outcomes immediately. No pending CI/review alone ends an active invocation. The continuation policy lives **only** in [Operating Contract §7A](chatgpt-github-only-engine-operating-contract.md). If true runtime/tool limits stop this session, checkpoint `repo/PR/sha/run_id/attempt/status/next_action` and reconcile on next hourly invocation. Never fake sleep or claim a guarantee of 5–30+ minute uninterrupted ChatGPT execution.
+
+Unknown GitHub write outcome must be read back before replay, even in the minimal design. Introduce a durable outbox only for operations shown by a real failure-injection test to need it; avoid making every documentation edit a transaction.
+
 ## 2. Sources of truth and consistency hierarchy
 
 | Layer | Authority | Mutable by |
 |---|---|---|
 | Constitutional requirements and accepted architecture | Accepted `main` docs/ADRs/registry | Existing governed PR workflow only |
 | Current HEAD, PRs, branch refs, Actions/checks, reviews, workflow attempts | Live GitHub REST/GraphQL | GitHub itself and authorized contributors |
-| Current exclusive operational claim/epoch/mutation outbox | **Proposed** dedicated control-ref event ledger | Controlled scheduler adapter after CAS+fencing validated |
+| Current exclusive transient grants/attempt IDs | **Proposed** trusted GitHub Actions arbiter + durable GitHub Issue results | Serialized authorized controller after live event/permission testing |
 | Proposed RFC and planning | WORK-0005 branch, PR #18 | Scope-controlled authors; noncanonical |
 | Chat history / message | No authoritative lifecycle standing | Worker only |
 
@@ -30,7 +38,7 @@ A work item can be PROPOSED while planning content exists. An author's claim tha
 
 ## 3. Proposed state model (separate from existing WORK vocabulary)
 
-**Operational task state:** `ELIGIBLE, CLAIMED, WORKING, CHECKPOINTED, CI_PENDING, CI_FAILED, REVIEW_READY, L2_PENDING, READY_TO_INTEGRATE, INTEGRATING, INTEGRATED, BLOCKED, QUARANTINED, OUTCOME_UNKNOWN, ABANDONED`.
+**Historical fallback detailed task state — NOT the selected minimal implementation:** `ELIGIBLE, CLAIMED, WORKING, CHECKPOINTED, CI_PENDING, CI_FAILED, REVIEW_READY, L2_PENDING, READY_TO_INTEGRATE, INTEGRATING, INTEGRATED, BLOCKED, QUARANTINED, OUTCOME_UNKNOWN, ABANDONED`.
 **Run state:** `STARTED, OBSERVING, CLAIMED, MUTATION_PENDING, CHECKPOINTED, COMPLETED, INTERRUPTED, UNKNOWN`.
 **Integration state:** `NO_PERMISSION, CANDIDATE, GATE_PENDING, HOST_APPROVED, MERGE_ATTEMPT_PENDING, MERGED, REVALIDATE`.
 
@@ -82,12 +90,12 @@ Do not place tokens, credentials, private conversations, unbounded logs or arbit
 
 Each worker begins every run with a **read-only** sweep:
 1. Resolve actual `main` commit and applicable Accepted governance/WORK state; verify connector access and read available limits.
-2. Resolve the control ref and last complete event/claim checkpoint **if and only if** its format and trust boundary have been approved/deployed.
+2. Resolve current **GitHub Issue grant/result identity from the trusted serialized arbiter** and any pending request. Read a dedicated control ref **only if a future reviewed CAS fallback is deployed**.
 3. Pull authoritative open PR states, actual HEADs, review threads, reviews, newest relevant CI runs/jobs/attempts and required check sources. Bound API calls and paginate deliberately; partial listing = incomplete evidence, not zero findings.
 4. Diff against current control state. Deduplicate by remote event identity + attempt + head + policy hash, not by text summary.
 5. Reconcile **PENDING** operations and **OUTCOME_UNKNOWN** results individually before any replay.
 6. Recalculate dependency eligibility, active claimed resources, fencing epochs, WIP, review freshness, integration candidates, true blockers and live branch-protection state.
-7. Commit one compact reconciled event if material; if CAS loses, re-read new control HEAD and repeat from fresh data. Do not write an artificial checkpoint every run.
+7. Publish an idempotent compact trusted arbiter reconciliation result **only if material**; if an approved future CAS fallback is used, re-read its actual control HEAD after a rejected ref update. Do not write an artificial checkpoint every run.
 8. Only then allow a **new** task claim, in an explicitly supported activation mode, after all hard gates pass.
 
 A bounded optional GitHub Actions `schedule` read-only sweeper may detect anomalies but must not silently act as a fifth ChatGPT worker, force updates or approve merges. It cannot wake a ChatGPT task.
