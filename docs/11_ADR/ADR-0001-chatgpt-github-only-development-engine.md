@@ -6,6 +6,8 @@ Owners: MONDE repository engineering governance
 Related Work: WORK-0005
 Related Issue: https://github.com/tobianahillel-afk/monde/issues/17
 Research: ../12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md
+Launch gate and risk: ../12_RESEARCH/chatgpt-github-only-engine-launch-readiness.md
+Reconciliation and incident response: ../12_RESEARCH/chatgpt-github-only-engine-reconciliation-runbook.md
 
 ## Context
 
@@ -44,6 +46,12 @@ GitHub can execute CI on its own hosted runners. The ChatGPT plugin provides Git
 ### D. Four uncoordinated ChatGPT tasks (rejected)
 - Pros: zero scheduler code.
 - Cons: double-work, merge collisions, stale reviews, unrecoverable long jobs, degraded throughput.
+
+## Activation and stabilization (part of the Proposed decision)
+
+This ADR is **not accepted/frozen**, and its companion execution components are **not implemented**. Four writable ChatGPT Scheduled tasks are explicitly **NO-GO** until all fifteen evidence-backed launch gates in the linked readiness plan pass on live GitHub state. In particular, main branch protection and real GitHub non-author approvals cannot be replaced by a prompt or by technical ChatGPT L2. A proposed runbook is not an automatic reconciler.
+
+Each activation begins with a bounded read-only reconciliation; inconclusive external side effects remain in durable `OUTCOME_UNKNOWN` quarantine. Global trust defects stop writes, while isolated task defects should not block unrelated tasks after independent eligibility review. Proposed downgrade options are READ_ONLY and SINGLE_WORKER; their actual enforcement must be implemented before use. Any accepted ADR/requirement or substantive review SHA can be described as frozen **only at an exact accepted revision**; current draft is mutable through standard review.
 
 ## Consequences
 
