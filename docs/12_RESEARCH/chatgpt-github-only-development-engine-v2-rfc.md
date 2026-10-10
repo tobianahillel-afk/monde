@@ -33,7 +33,9 @@ Do NOT write a custom Git hosting system, CI queue, full task tracker UI, agent 
 
 Beads, Gas Town, OpenHands, mini-SWE-agent and Temporal are **not installable as the required runtime** under this zero-host user constraint. Their concepts can inform a later redesign, but do not add their services to MONDE.
 
-## 2. Five small v2 engines
+## 2. Five functional responsibilities (analysis lenses, **not five custom engines**) 
+
+**Current target:** only one trusted GitHub Actions arbiter using existing GitHub Issues/PR/CI, plus small `choose`/`reconcile` helpers and optional read-only `check_eligibility`. The control-ref CAS/event-sourcing detail in 2.3 is **historical FALLBACK architecture**, not the selected implementation path. See [one canonical worker operating contract](chatgpt-github-only-engine-operating-contract.md) for pending-CI behavior and conditional phases.
 
 ### 2.1 Documentation + specification router
 - Reuse `README.md`, `AGENTS.md`, `docs/00_START_HERE.md`, `registry/`, `docs/10_ROADMAP/`, `docs/11_ADR/`, `docs/13_QUALITY/`. Do not install Spec Kit over the existing constitution.
@@ -48,7 +50,9 @@ Hard filter: unauthorized/blocked/stale tasks, failed required dependency, contr
 Choose a compatible set of up to four distinct tasks maximizing expected critical-path reduction, downstream unlock and accepted deliverability minus rework/integration/review cost. Pure deterministic function; compare against FIFO on replayed actual WORK-0002 history and synthetic adversarial fixtures. Weights must be measured, not invented.
 Workers are role-fluid (DISCOVER/RESEARCH/EXPERIMENT/DECIDE/BUILD/FIX/TEST/VERIFY/L1/L2/REVIEW_PREP/TRIAGE/INTEGRATE/DOCUMENT). **No fixed W1=author/W2=reviewer assignment**.
 
-### 2.3 Atomic claim + fencing
+### 2.3 Atomic claim + fencing — FALLBACK ONLY
+
+Prefer the trusted GitHub Actions serialized allocator with durable Issue-request/grant records. Only investigate the following per-chat ref-CAS plan if the tested GitHub Actions dispatcher cannot satisfy claims safely; never build both as mandatory components.
 Read authoritative control ref sha A, calculate an allocation, create one event commit B with sole parent A. Update control ref with `force=false` and expected_sha=A when supported; concurrent siblings cannot both fast-forward. Loser re-reads; never retry against stale state or `force=true`. This property must be proved against the actual GitHub connector before relying on it.
 Persist claim_id, owner_worker, task_id, attempt_id, lease deadline, monotonic generation/fencing epoch, base SHA, allowed file/semantic sets, policy epoch and mutation_id. Use trusted GitHub observations for expiry as far as possible; local chat timestamps are not authority.
 A stalled/expired worker can leave a task branch, but no stale attempt is promoted or integrated: CI/merge eligibility recomputes against current authoritative fencing token, policy and HEAD. If connector cannot enforce a server-side lease or trusted promotion gate, classify protection as **cooperative**, never as a hard security guarantee.
@@ -57,7 +61,7 @@ Disjoint tasks can both claim; overlapping semantic contracts or shared canonica
 ### 2.4 GitHub event reconciliation / CI futures
 
 The normative candidate recovery details live in the [reconciliation/runbook proposal](chatgpt-github-only-engine-reconciliation-runbook.md). Its **automatic** and **incident** modes, two-phase mutation outbox, disputed operations, isolated quarantines, global trust pause and recovery proof are required deployment tests, **not present runtime functionality**.
-Push a small authorized task branch -> GitHub Actions runs asynchronously -> record exact SHA + run_id + run_attempt + workflow/job/check source + policy version as a future. Worker can release writing claim after a durable checkpoint and continue on another independent task; task still pending.
+Push a small authorized task branch -> GitHub Actions runs asynchronously -> track exact SHA + run_id + run_attempt + workflow/job/check source + policy version as a future. **Do not stop merely because CI is running.** While the worker invocation actually remains live, continue safe non-conflicting granted tasks or scoped read-only research/review prep; recheck exact-head CI after genuine elapsed time/useful tool work, and process a terminal result immediately when available. Keep the candidate HEAD frozen. A writing claim can be released or replaced **only through the approved arbiter's task/lease policy**: checkpointing alone does not authorize another writer to edit that branch. If the runtime cannot remain active, store a durable future pointer and reconcile next hourly activation.
 Next worker reconciles pending runs against GitHub: success -> VERIFY_READY only if qualifying trusted source, failure -> FIX_READY, skipped/cancelled/stale/unprovable -> BLOCKED or RETRY_ELIGIBLE according to reviewed rules. A raw green check never equals acceptance.
 External writes with lost ACK: mark OUTCOME_UNKNOWN, inspect authoritative ref/check/PR using idempotency key **before** retry; do not duplicate commits, workflow reruns or review requests.
 Scheduler/task states are *proposed internal v2 states*, NOT silently added to existing `registry/status-machines.yaml`. Add explicit reviewed transitions/migration if adopted.
@@ -72,15 +76,18 @@ Integration: at most one integration claim; current main SHA, head SHA, green co
 
 ## 3. Immediate continuous work within one invocation
 
-Example for worker W1:
+Example for worker W1 (select **only required** engineering phases; work continues within the SAME session when available):
 ```
 READ LIVE STATE → RECONCILE → CLAIM TASK-A
-  RESEARCH → SPECIFY/DECIDE → IMPLEMENT → SELF-TEST → L1 → PUSH
-  CI_PENDING exact head → DURABLE CHECKPOINT → RELEASE task writer
-  choose next eligible task (perhaps TEST / DOCUMENT / RESEARCH)
-  if L2 evidence appears while still active, validate origin and proceed to next authorized phase
-  end: verified run report; no artificial commit
-```
+  A(scope) → [B(research) if material unknown] → [C(decision) if needed]
+  → [D(build) if deliverable includes code] → E(verify) → PUSH
+  CI_QUEUED/IN_PROGRESS → TRACK EXACT-SHA FUTURE → KEEP CANDIDATE HEAD FROZEN
+     ↳ DO USEFUL ALLOWED WORK (other VALIDLY CLAIMED branch, review prep, research)
+     ↳ RECHECK CI/REVIEW AFTER USEFUL WORK OR ACTUAL WAIT (never fake sleep)
+  CI_TERMINAL → VALIDATE ACTUAL JOBS/HEAD/SOURCE → FIX/REVIEW/INTEGRATE IF AUTHORIZED
+  if runtime exhausted/no eligible action: DURABLE CHECKPOINT → NEXT HOURLY RECONCILE
+``
+Pending CI/review **alone does not justify terminating** a still-running invocation. Conversely, no prompt can guarantee that ChatGPT stays executing until an arbitrarily long GitHub job finishes. See the operating contract §7A.
 W2 independently picks L2 on TASK-A as soon as it becomes READY, including in the same hour if actually running. It need not wait a scheduled hour *by rule*, but no real-time wake-up is guaranteed. W1 cannot manufacture W2's fresh-context review inside W1's own uninterrupted chat.
 
 ## 4. Exact task decomposition contract and example
@@ -150,7 +157,7 @@ G0 **Review current truth:** freeze WORK-0002 scope; verify PR #14, exact L2 sta
 G1 **Decide L2 authority migration:** maintain separate L0/L1/L2/L3 definitions and review evidence. Document policy impact of removing Codex *dependency* without weakening GitHub's non-author approval rule. User authorization required for any significant governance rule change.
 G2 **Accept spec/ADR only after independent cold read:** do not prematurely mark `WORK-0005` READY/DONE or upgrade policy.
 G3 **Pilot pure scheduler with generated fixtures in GitHub Actions:** runs with one worker, 100% meaningful coverage target, no live mutable resources.
-G4 **Implement proof-of-CAS in isolated control branch:** live 4-way race, fail-closed errors, fencing, GitHub connector permissions; trust-root and main protection prerequisites.
+G4 **Prove preferred minimal trusted GitHub Actions arbiter** with one default-branch issue_comment trigger, serialized conflicting grants, readback/reconciliation and four synthetic requests; connector permissions and host protection proof. **Per-worker control-ref CAS is an explicit fallback only if this experiment fails**, subject to a new reviewed decision.
 G5 **Add reconciliation + CI futures + review packet exporter:** passive read-only first, fault injection, real GitHub Actions runs.
 G6 **Two-worker end-to-end** on independent low-risk scoped docs/code; measure actual merge and review delay.
 G7 **Four-worker trial** under simultaneous nominal schedule, limited WIP and with rollback to one worker; no L2 fabrication, no host protection bypass.
