@@ -61,6 +61,12 @@ Complex algorithm/architecture choices must inspect the current MONDE capability
 
 **Quantitative expectations:** Four hourly tasks supply at most 96 nominal hourly activations/day (not guaranteed task executions). Net accepted product-code throughput is constrained by approvals, CI, actual session runtimes and review capacity; the [critical-path audit](../12_RESEARCH/chatgpt-github-only-engine-critical-path-audit.md) carries conditional code/day and calendar effort estimates. Use observed 7/30-day integration measurements after deployment instead of promising a line-count multiplier.
 
+## Productive CI/review waiting and conditional execution (PROPOSED)
+
+An actively running ChatGPT worker **must not stop solely because a GitHub Action or review is still pending**. It should retain an exact-head future, keep that candidate frozen, use real bounded checks after meaningful elapsed work or a supported actual wait, switch to independent authorized tasks/research in the same invocation, and immediately consume terminal CI/review results when observed. If an actual session/tool/approval boundary stops work, a durable checkpoint permits next-hour recovery; a prompt cannot keep an expired ChatGPT session alive indefinitely. No fake sleep or immediate unbounded API-poll loop.
+
+The A→E model is **not a waterfall**: phase selection is task/risk dependent; skip unnecessary research/design/implementation steps, never applicable correctness/security/independent-review gates. The detailed and **only** candidate Scheduled worker prompt is in the operating contract §10A.
+
 ## Convergence discipline — engineering without infinite thought loops (PROPOSED)
 
 The [operating contract](../12_RESEARCH/chatgpt-github-only-engine-operating-contract.md) now defines explicit **P0 direct repair → P1 root-cause/refactor → P2 reconsider foundational algorithm/architecture** transitions. Two materially unsuccessful attempts against the **same** root cause trigger diagnosis rather than another near-identical patch/review; an invalidated world-model/trust invariant escalates immediately. This is a diagnostic trigger, not an authorization to weaken required CI/reviews.
@@ -103,12 +109,12 @@ Each activation begins with a bounded read-only reconciliation; inconclusive ext
 
 - **Positive:** all durable artifacts in GitHub; no local files/servers; workers can change work type during each invocation; independent technical L2 not Codex-credit-dependent.
 - **Negative:** host-native GitHub non-author review still potentially blocks high-risk work; strong isolation between chats is not cryptographic with one identity; ChatGPT tasks can pause for approvals or miss exact start; all truth must be re-fetched each run.
-- **Costs:** one small adapter and CI validation workflow; possible limited Actions minutes and connector API quotas; additional state in dedicated control ref.
+- **Costs:** one small native GitHub Actions arbiter, optional CI workflow only if existing WORK-0002 cannot be reused, bounded GitHub Issues grant/checkpoint events and available API/Actions quotas; **no dedicated control-ref ledger in the preferred design**.
 - **Scope:** no change to accepted review policy until subsequent dedicated proposal is reviewed; this ADR alone grants no merge or L2 acceptance.
 
 ## Compatibility / migration
 
-WORK-0002 remains IN_REVIEW; PR #2/#14 are not merged by this decision. WORK-0003 still owns admin protection. New v2 code and an eventual control ref must be introduced on separate narrowly scoped work/PR after this ADR is accepted. Do not insert scheduler features into PR #2. Follow existing Review Council and acceptance-authority requirements.
+WORK-0002 remains IN_REVIEW; PR #2/#14 are not merged by this decision. WORK-0003 still owns admin protection. New v2 code and serialized GitHub Issues grant handling may be introduced only on separate authorized narrowly scoped work/PR after this ADR is accepted. A dedicated Git control ref is not planned unless the Actions design fails a documented experiment and a new reviewed decision selects CAS. Do not insert scheduler features into PR #2. Follow existing Review Council and acceptance-authority requirements.
 
 ## Security and epistemic impact
 
