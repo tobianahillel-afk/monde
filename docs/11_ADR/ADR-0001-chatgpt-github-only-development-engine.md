@@ -51,6 +51,16 @@ The [worker operating contract](../12_RESEARCH/chatgpt-github-only-engine-operat
 
 The technology **categories** and constraints can be treated as a **stable design baseline for review**, not as deployed/executed locks; exact dependency versions, GitHub event identity and complete no-cost entitlement are subject to real safe proof. If the pilot shows comment-to-Action is unsupported, a replacement protocol requires an explicit recorded decision rather than an agent inventing an incompatible workflow.
 
+## Engineering-led agent autonomy and historical product intent (PROPOSED)
+
+**Within ONE Scheduled chat activation**, a worker may perform `A FRAME → B ENGINEER/RESEARCH → C DECIDE/PROVISIONAL FREEZE → D BUILD/BENCHMARK → E VERIFY/REVIEW/DOCUMENT` and repeat B/C/D on falsifying evidence, without another timer or chat. Its ability to do so remains subject to the current WORK authorization, task grant, exact SHA and required independent approval; self-freezing a high-risk decision does **not** create Accepted authority.
+
+Complex algorithm/architecture choices must inspect the current MONDE capability/requirements/dependency graph, lawful inputs, complexity and memory, scientific validity and global World Model impact. Require upstream/research evidence and a fair representative baseline where risk demands, using free built-in internet research when available or verified GitHub sources; the work may be BLOCKED if essential evidence is not accessible. Cheap reversible local decisions need proportionately smaller records. The [operating contract](../12_RESEARCH/chatgpt-github-only-engine-operating-contract.md) contains exact phase exits, engineering trigger classes, decision record schema and worker prompt.
+
+**Historical MONDE blueprint:** keep `WORK-0004` as the **single existing capability-backfill owner**, rather than inventing a second conversation-memory store or promising Scheduled tasks can read other Project chats. Future workers compare historical intent with already Accepted canonical docs, preserve provenance/uncertainty and only promote validated CAP/REQ after proper review. Do not upload private chat transcripts to the public repo.
+
+**Quantitative expectations:** Four hourly tasks supply at most 96 nominal hourly activations/day (not guaranteed task executions). Net accepted product-code throughput is constrained by approvals, CI, actual session runtimes and review capacity; the [critical-path audit](../12_RESEARCH/chatgpt-github-only-engine-critical-path-audit.md) carries conditional code/day and calendar effort estimates. Use observed 7/30-day integration measurements after deployment instead of promising a line-count multiplier.
+
 ## Research priority and exit from infrastructure work
 
 The [critical-path audit](../12_RESEARCH/chatgpt-github-only-engine-critical-path-audit.md) documents 20 qualitative risks, a central trusted Actions dispatcher proof-of-concept, 15 full-release gates and phase-specific safe experiment gates, time estimates and product-focused stop criteria. It is an author-led risk analysis, **not independent L2 evidence or a frozen architecture decision**. A control ref with a per-chat CAS client is not accepted by this ADR alone.
