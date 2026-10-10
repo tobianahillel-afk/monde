@@ -8,6 +8,7 @@ Related Issue: https://github.com/tobianahillel-afk/monde/issues/17
 Research: ../12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md
 Launch gate and risk: ../12_RESEARCH/chatgpt-github-only-engine-launch-readiness.md
 Reconciliation and incident response: ../12_RESEARCH/chatgpt-github-only-engine-reconciliation-runbook.md
+Critical-path red-team analysis: ../12_RESEARCH/chatgpt-github-only-engine-critical-path-audit.md
 
 ## Context
 
@@ -21,13 +22,17 @@ GitHub can execute CI on its own hosted runners. The ChatGPT plugin provides Git
 
 1. Use ChatGPT hourly tasks for agent reasoning/actions and GitHub for durable state, PR, code, tests, documentation, issues, events, review artifacts and branch integration.
 2. Keep four **interchangeable**, role-fluid workers. Time triggers are the same nominal hourly timestamp, but safe coordination must not depend on real simultaneity.
-3. Extend existing MONDE registries/docs; add only a small assignment + atomic-control-ref + fencing + CI-reconciliation adapter, separately governed.
+3. Extend existing MONDE registries/docs. **Before choosing a claim mechanism**, experimentally compare (A) one trusted serialized GitHub Actions allocator triggered by validated connector events with (B) per-worker Git ref CAS/fencing. Prefer A if it proves the same protected promotion guarantees with less total custom code/maintenance. Implement only the winning small adapter and reconciliation path.
 4. Reuse existing GitHub-hosted workflows (CodeQL/unittest/coverage), and trial actionlint/zizmor/Hypothesis/Ruff where cost/benefit is demonstrated.
-5. Use GitHub Issues/Projects as projected work views; single canonical DAG and a separate operational reservation event ref; no duplicated state ownership.
+5. Use GitHub Issues/Projects as projected work views; one canonical DAG and **one operational claim owner** chosen by the pilot (trusted Actions dispatcher + durable grant log OR CAS control ref), never two competing operational authorities.
 6. Require L0/L1 in author context, **L2 in a different ChatGPT conversation/context**, and applicable L3 multi-context/adversarial checks. An author changing roles within the same chat cannot satisfy L2.
 7. Keep existing non-author GitHub APPROVED and trusted-check requirements intact until a separately authorized governance decision changes them. Technical L2 report cannot bypass host-enforced approval.
-8. Do not activate four agents against shared writable resources until actual same-snapshot race, claim fencing, trusted review, host protection and rollback tests pass.
+8. Distinguish safe read-only/isolated single-worker research and test pilots from full production release: do not activate four agents against shared writable resources until actual same-snapshot race, claim fencing, trusted review, host protection and rollback tests pass.
 9. Stop expanding the engine after it safely supports useful accepted MONDE product slices.
+
+## Research priority and exit from infrastructure work
+
+The [critical-path audit](../12_RESEARCH/chatgpt-github-only-engine-critical-path-audit.md) documents 20 qualitative risks, a central trusted Actions dispatcher proof-of-concept, 15 full-release gates and phase-specific safe experiment gates, time estimates and product-focused stop criteria. It is an author-led risk analysis, **not independent L2 evidence or a frozen architecture decision**. A control ref with a per-chat CAS client is not accepted by this ADR alone.
 
 ## Alternatives considered
 
