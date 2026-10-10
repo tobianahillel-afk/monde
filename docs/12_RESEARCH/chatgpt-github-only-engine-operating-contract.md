@@ -279,6 +279,40 @@ Failure matrix:
 
 Accepted `AGENTS.md` currently requires appropriate PROJECT_STATE and registry updates; do not violate it in the name of speed. Propose a separately reviewed policy change if reducing this burden is justified.
 
+## 9A. Historical MONDE blueprint retrieval — real user intent, not invented requirements
+
+**Problem:** the owner defined MONDE over multiple historical chats, and the four future Scheduled task conversations may *not* receive full historical chat transcripts, Project context, personal-memory retrieval or conversation links automatically. GitHub connector provides **GitHub access**, not an API for ChatGPT chat history. Never promise that a newly scheduled chat can browse another conversation unless that capability is actually exposed and observed in that execution.
+
+**Authority model:** old project discussion is a discovery source, not the current accepted specification by itself. Existing Accepted MONDE Constitution/ADR/REQ/CAP wins for implementation. Historical intent informs **WORK-0004 — Inventory and canonicalize all validated MONDE capabilities**, which already explicitly owns the complete capability backfill and must not be duplicated by WORK-0005.
+
+### Recovery protocol when historical conversation is materially relevant
+
+1. **Search the repository first**: `README`, accepted `docs/01_PRODUCT`, `docs/02_WORLD_MODEL`, relevant architecture/capability registry, `WORK-0004`, accepted ADRs and `PROJECT_STATE` (but re-check PRs/current state live). Reuse existing IDs and accepted semantics.
+2. **Identify missing intent precisely**: feature expected output, interaction/result, algorithm/design rationale, original decision/alternative, or latest user override. Do not request "all old chats" on every task.
+3. **Use historical ChatGPT/Project conversation retrieval only if actually exposed to the current worker**, with proper access. Otherwise use owner-provided conversation references/exports or already reviewed GitHub research notes; **mark inaccessible original sources `UNAVAILABLE` and ask for a specific source only when decisive**. A memory summary or model reconstruction is a **lead**, not a verbatim validated source.
+4. **Keep original attribution**: source identifier or verified conversation URL (if actually available), approximate/verified date, exact text excerpt only if authorized and relevant, confidence in attribution, whether it was exploratory/proposed/explicitly accepted/superseded. Never invent chat URLs or message IDs. Preserve an uncertainty marker when wording cannot be verified.
+5. **Reconcile duplicates and conflicts**: aliases vs different functionality, chronological supersession, accepted Git docs vs historical design, and all Engine×Lens×Capability×Experience dependencies. Do not drop a validated older capability simply because a similar later version exists.
+6. **Materialize through WORK-0004**: propose new `CAP-*` or alias mappings and linked atomic `REQ-*`/acceptance tests, product examples, non-goals, constraints, dependencies and a concise evidence pointer. Promote to Accepted only through normal independent cold-read/governance; do not claim WORK-0004 complete on a summary.
+7. **Review final product intent**: does the Console/Globe/result behave as wanted? Test against examples and counterexamples from validated input. Only then use it to constrain algorithms, pipelines and UI.
+
+### Example historical retrieval map (not a claim of exhaustive inventory)
+
+| Historical theme | Canonical question workers must resolve | Owner to check |
+|---|---|---|
+| Evidence-based temporal world | Source→Observation→Evidence→Claim→BeliefState→world state, provenance and revisions | Product/World Model, WORK-0004 |
+| Observed/Estimated/Simulated separation | Are observations, inferred states, predictions and hypothetical scenarios never conflated? | Constitution, semantic schemas |
+| Coverage/negative evidence/UNKNOWN | Does absence of an observation imply absence of the entity? What coverage is known? | Evidence and epistemic contracts |
+| Entity identity/relations and reversible merges | Can conflicts be represented and undone with evidence? | Identity capability specs |
+| Causality, forecasting, residuals and World Scientist | Which explanations and counterfactuals were actually requested and validated? | Intelligence Engine CAP/REQ inventory |
+| Globe/Console/temporal replay/2D–3D–4D | What should the user visually experience at each zoom/time/uncertainty level? | Experiences and relevant world projections |
+| Public imagery/video and WRE | What is MONDE's data/geometry contract, **not** rewriting WRE inside MONDE? | MONDE boundary ADR + separate WRE project |
+
+**Privacy/public Git warning:** do not upload entire personal chat transcripts, personal information, private account data, identifiers or confidential excerpts to this public repository. Commit minimal redacted technical propositions and trace references only when release-safe. Exact conversation URLs may themselves expose private context and should not be published without authorization. Evidence detail may be marked `PRIVATE_SOURCE_HELD_BY_OWNER` without a public URL, while the technical requirement is independently reviewed.
+
+**Four-worker documentation partition:** each agent receives **one coherent capability family** or a genuinely non-overlapping research/review task under the same GitHub arbitration controls. For a shared foundational document, designate a single writer; other chats issue structured independent findings. A writer may perform A→E within one activation, but independent cold-read remains separate. Cross-family overlaps go through WORK-0004 alias/dependency reconciliation before being accepted.
+
+**Stop condition:** no unverified historical claim may be silently turned into an `ACCEPTED` requirement; but missing old chat access should not halt unrelated development where the canonical spec already fully covers the task.
+
 ## 10. Freeze gates, technology change policy and decision log
 
 **Freeze semantics:**
