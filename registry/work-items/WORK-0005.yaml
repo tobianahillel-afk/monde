@@ -26,6 +26,8 @@ scope:
     - define verifiable test matrix, pilot gates and rollback criteria
     - specify automatic reconciliation and explicit incident-recovery mode
     - define fifteen fail-closed activation gates with proof requirements
+    - audit high-impact development-engine traps, root causes, cost and progressive release gates
+    - test a single-writer GitHub Actions allocator as a simpler alternative to per-worker CAS
     - produce proposed ADR and research RFC without changing Accepted semantics
   out:
     - implementation or activation of the four Scheduled tasks
@@ -53,6 +55,9 @@ acceptance_criteria:
     status: NOT_STARTED
   - id: AC-6
     description: "The proposed architectural decision and all mandatory review hats are assessed before acceptance; no protective gate is bypassed."
+    status: NOT_STARTED
+  - id: AC-7
+    description: "Critical-path and reviewer-loop cost risks are classified and a minimal Actions-dispatcher-vs-CAS proof plan is documented with phase-specific safe experiment gates."
     status: NOT_STARTED
 
 requirements: []
@@ -87,6 +92,7 @@ read_before:
   - docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md
   - docs/12_RESEARCH/chatgpt-github-only-engine-launch-readiness.md
   - docs/12_RESEARCH/chatgpt-github-only-engine-reconciliation-runbook.md
+  - docs/12_RESEARCH/chatgpt-github-only-engine-critical-path-audit.md
   - docs/11_ADR/ADR-0001-chatgpt-github-only-development-engine.md
 depends_on: [WORK-0001]
 blocks:
@@ -142,7 +148,7 @@ implementation_plan:
     - id: T4
       description: "Compare alternatives, create proposed ADR, test plan and staged roadmap."
       depends_on: [T2, T3]
-      expected_files: [docs/11_ADR/ADR-0001-chatgpt-github-only-development-engine.md, docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md, docs/12_RESEARCH/chatgpt-github-only-engine-launch-readiness.md]
+      expected_files: [docs/11_ADR/ADR-0001-chatgpt-github-only-development-engine.md, docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md, docs/12_RESEARCH/chatgpt-github-only-engine-launch-readiness.md, docs/12_RESEARCH/chatgpt-github-only-engine-critical-path-audit.md]
       status: NOT_STARTED
     - id: T5
       description: "Cold-read, independent review and controlled approval readiness without premature acceptance."
@@ -214,6 +220,9 @@ validation:
     - "No host-enforced non-author approval path under four same-account ChatGPT workers is proved."
     - "Readiness and reconciliation documentation is a draft only: there is no deployed coordinator, automatic recovery or release switch."
     - "No independent cold-read or real GitHub Actions CI has been verified for this proposal."
+    - "Central Actions allocator is unproven and can have missing or delayed events; CAS alternative remains unverified."
+    - "This author-led critical-path audit is NOT an independent L2 review."
+
 
 
 risk:
