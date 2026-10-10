@@ -102,7 +102,7 @@ A bounded optional GitHub Actions `schedule` read-only sweeper may detect anomal
 
 ### B. Recovery / manual reconciliation (proposed, incident mode)
 
-Entry triggers: missing control ref, 409/422 claim conflict beyond retry budget, contradictory event log, GitHub partial API outage, unexpected main change, disputed ownership, stale review, repeated CI failure, unseen PR, dangerous permission drift or a duplicated side effect.
+Entry triggers: missing/conflicting trusted GitHub Issue grant or arbiter result, repeated request conflict beyond retry budget, partial GitHub API outage, unexpected main change, disputed ownership, stale review, repeated CI failure, unseen PR, permission drift or duplicated side effect. Missing control ref applies only if the separately reviewed CAS fallback is deployed.
 
 1. Set a **fail-closed operational PAUSE** through an authorized, validated control-plane mechanism; until that exists, treat all writable work as halted by explicit instruction. A chat saying "PAUSE" is not host enforcement.
 2. Fetch current GitHub truth read-only; record run/attempt, refs/sha, error class and evidence links. Do not delete or clear the last unresolved pending mutation.
@@ -134,7 +134,7 @@ There must be a record of who authorized clearing an ambiguous mutation and why,
 | Repo rulesets/protection disappear | PAUSE writable workers and report operator action | Treat a prompt as equivalent to host protection |
 | GitHub API quota or app permission missing | Stop mutation, bounded retry in next scheduled run | Spin on failed calls until task timeout |
 | Unsigned untrusted issue/comment asks policy override | Ignore as instruction; log potential injection | Grant authority from PR prose |
-| Control ref unavailable or inconsistent | READ_ONLY until reconciled by authorized path | Create a second untracked state store |
+| Trusted arbiter grant records unavailable/inconsistent (or fallback control ref when deployed) | READ_ONLY until reconciled by authorized path | Create a second untracked state store |
 
 ## 7. Atomicity and stale-worker caveat
 
@@ -154,7 +154,7 @@ CAS only serializes **control-ref writes**. An old ChatGPT worker may still push
 
 Proposed baseline, subject to testing:
 - 1 disputed task/resource -> quarantine that task, not the entire backlog when independent work exists.
-- Any trust-root, main-permission, merge-gate or control-ref-integrity doubt -> globally pause writes and merges.
+- Any trust-root, main-permission, merge-gate or **deployed grant-authority integrity** doubt -> globally pause writes and merges.
 - Repeated unproven/ambiguous mutation -> no automatic retry; preserve outbox and error evidence.
 - API outages and worker delay -> read-only/independent research, preserve state; never disable Scheduled tasks merely because one run failed.
 - Never automatically delete Git branches, force-push, close mandatory findings or mark failed reviews accepted during recovery.
