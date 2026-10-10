@@ -72,6 +72,8 @@ Status: `PLANNED`
 
 ### SUBLOT-0.4 — Proposed ChatGPT/GitHub-only development engine
 
+**Engineering and product continuity addition (2026-10-11):** [proposed operating contract](../12_RESEARCH/chatgpt-github-only-engine-operating-contract.md) now defines within-one-worker A→E transitions, complex algorithm/technology research, global system impact, actual ChatGPT Scheduled limits and privacy-safe historical-blueprint linkage to existing WORK-0004. Four workers are not deployed; initial MONDE capability inventory can proceed independently, without claiming accepted requirements from inaccessible conversations.
+
 [WORK-0005 operating contract: toolchain, roles, decision autonomy and documentary architecture](../12_RESEARCH/chatgpt-github-only-engine-operating-contract.md) is the detailed *proposed* specification. Version pins and production workflow deployment are NOT yet completed.
 
 Work: `WORK-0005` (PROPOSED), see [design RFC](../12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md) and [ADR-0001](../11_ADR/ADR-0001-chatgpt-github-only-development-engine.md).
