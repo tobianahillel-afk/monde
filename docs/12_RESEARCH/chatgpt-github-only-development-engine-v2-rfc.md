@@ -6,6 +6,8 @@ Work: WORK-0005
 Tracking: https://github.com/tobianahillel-afk/monde/issues/17
 Base reviewed for discovery: main b4b52c77fbf05eda65e8f0e951959da70e7edbe7
 
+**Critical-path simplification audit:** [risk-ranked audit, central GitHub Actions allocator experiment and effort estimates](chatgpt-github-only-engine-critical-path-audit.md). **Do not freeze a bespoke per-worker CAS architecture before empirically comparing the much smaller trusted single-writer GitHub Actions dispatcher.** All architecture options remain Proposed. 
+
 **Launch readiness: NOT_READY (design only).** Read [15 activation gates and startup mode policy](chatgpt-github-only-engine-launch-readiness.md) and [automatic/manual reconciliation contract](chatgpt-github-only-engine-reconciliation-runbook.md) **before** suggesting, creating or activating four write-capable scheduled tasks. Every listed engine is proposed; as of this draft, there is no implemented control-ref scheduler, automatic reconciliation, trusted integration switch or actual worker coordination. "Frozen" means an accepted exact-SHA contract only; this RFC and ADR are **not frozen/Accepted**.
 
 
