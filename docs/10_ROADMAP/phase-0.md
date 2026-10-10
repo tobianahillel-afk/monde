@@ -70,6 +70,21 @@ Planned deliverables / owner configuration:
 
 Status: `PLANNED`
 
+### SUBLOT-0.4 — Proposed ChatGPT/GitHub-only development engine
+
+Work: `WORK-0005` (PROPOSED), see [design RFC](../12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md) and [ADR-0001](../11_ADR/ADR-0001-chatgpt-github-only-development-engine.md).
+
+The requested deployment model uses four interchangeable hourly ChatGPT Scheduled task conversations and GitHub-only durable coordination. No local machine, persistent host, Codex-credit L2 reviewer or external agent orchestrator is required. This sublot is a **research/specification decision**, not an implemented scheduler.
+
+Proposed objectives:
+- reuse MONDE's existing Constitution, WORK DAG, review and document contracts;
+- separately specify atomic claims, fencing, asynchronous CI futures and task recovery;
+- arrange L2 technical reviews from other fresh-context ChatGPT tasks, not from a role switch in the author chat;
+- preserve non-author GitHub approval when mandated by existing rules; technical L2 does not forge GitHub approval;
+- stage one-worker / two-worker / four-worker real GitHub validation only after actual branch protection and independent gates.
+
+Status: `PROPOSED`. No runtime, policy or main-branch permission changes are authorized by this proposal.
+
 ## LOT-1 — Canonical product inventory
 
 ### SUBLOT-1.1 — Historical capability inventory
