@@ -74,6 +74,8 @@ Status: `PLANNED`
 
 Work: `WORK-0005` (PROPOSED), see [design RFC](../12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md) and [ADR-0001](../11_ADR/ADR-0001-chatgpt-github-only-development-engine.md).
 
+Before any worker activation, consult [the explicit launch-gate ledger](../12_RESEARCH/chatgpt-github-only-engine-launch-readiness.md) and [the recovery/reconciliation runbook](../12_RESEARCH/chatgpt-github-only-engine-reconciliation-runbook.md). **Both are proposals, not deployed runtime. Current result: NOT_READY.**
+
 The requested deployment model uses four interchangeable hourly ChatGPT Scheduled task conversations and GitHub-only durable coordination. No local machine, persistent host, Codex-credit L2 reviewer or external agent orchestrator is required. This sublot is a **research/specification decision**, not an implemented scheduler.
 
 Proposed objectives:
