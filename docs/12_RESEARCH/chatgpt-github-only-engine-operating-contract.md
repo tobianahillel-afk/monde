@@ -9,6 +9,18 @@ Minimal first experiment: [minimal foundations](chatgpt-github-only-development-
 
 > This document is the **single concise candidate operating contract** for the four ChatGPT workers. It specifies reusable technology families, permissible autonomy, review boundaries, decision processes, documentary routing, restart, and one minimal CI/coordination path. Accepted constitutional/registry rules on `main` take precedence. It neither enables Scheduled tasks nor gives authorization to merge or change an Accepted control. If experiments falsify the proposal, change this draft by reviewed PR *before* accepting the ADR.
 
+## Worker quick routing — read this, not the entire document every hour
+
+**Current status: Proposed; not live authorization.** Runtime once approved must:
+1. **OBSERVE** live `main` + Accepted `AGENTS.md`/START_HERE, task WORK/read_before, active grant, PR HEAD/actual diff/check/reviews. Avoid stale PROJECT_STATE-only decisions.
+2. **CHOOSE ROLE**: A frame → B research/engineering → C provisional decision → D build/test → E verify/document. Switch phases freely *within the same invocation* whenever the next phase is authorized.
+3. **DIAGNOSE** if a material failure repeats twice from the same cause: reproduce, challenge original choice, choose minimal fix/refactor/redesign; do not simply request another review.
+4. **FREEZE CORRECTLY**: stop researching when criteria are met; freeze provisional solution for an attempt and exact SHA for review; never self-accept constitutional/high-risk decisions.
+5. **CONTINUE OR STOP**: while active, pick the next safe task after checkpoint. No grant, missing authority, unknown GitHub effect or untrusted CI → quarantine/block, don't manufacture progress. L2 requires a *different chat*, GitHub-native non-author approval requires an authorized *different GitHub actor* when applicable.
+6. **REPORT** only observed changes/results and next permitted action. Measure accepted MONDE delivery, avoid document proliferation. See sections 3D/3E only for triggers, 9A for old-blueprint recovery, 10A for worker prompt.
+
+This short index is for **reorientation**; it does not replace the Accepted work's linked contracts or mandatory per-risk review tests. `AGENTS.md` precedence wins.
+
 ## 1. Mission & six formal invariants
 
 **Mission:** maximize accepted, demonstrably useful MONDE product increments per wall-clock time; bounded work is safer than unbounded "continue" prompts.
