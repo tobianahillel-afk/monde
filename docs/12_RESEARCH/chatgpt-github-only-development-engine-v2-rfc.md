@@ -1,6 +1,8 @@
 # RFC — MONDE Development Engine v2: ChatGPT + GitHub only
 
 Status: Proposed — research/engineering specification, **not Accepted**
+
+> **CURRENT SIMPLIFICATION / READ FIRST:** [Minimal foundations: GitHub-native four-worker engine](chatgpt-github-only-development-engine-minimal-foundations.md) is the preferred low-complexity experimental architecture, linked by Proposed ADR-0001. It reuses Issues, native issue dependency/subissue views, a tiny trusted `actions/github-script` dispatcher, standard CI and existing MONDE registries. Sections below describing per-worker Git-control-ref CAS, a large event-sourcing ledger or fifteen detailed machine states are **fallback research alternatives**, NOT a mandatory implementation plan. Do not implement all alternatives or create competing status authorities. All accepted rules remain in force. First empirical gate: ChatGPT Scheduled GitHub connector→issue-comment webhook→default-branch Actions dispatcher.
 Date: 2026-10-10
 Work: WORK-0005
 Tracking: https://github.com/tobianahillel-afk/monde/issues/17
