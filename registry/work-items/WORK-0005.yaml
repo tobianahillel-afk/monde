@@ -31,6 +31,10 @@ scope:
     - specify six minimal invariants and core GitHub-native reuse-first implementation choices
     - define context-sensitive dynamic agent roles, decision rubric, autonomy/authority limits and review evidence
     - define proposed open-source technology families, public GitHub Actions free-tier assumptions and version pinning policy
+    - specify same-invocation FRAME/RESEARCH/DECIDE/BUILD/VERIFY transitions, risk-based engineering gates, algorithm comparison and benchmark contracts
+    - connect historical MONDE user intent retrieval and source provenance to existing WORK-0004 without cloning a capability registry
+    - estimate 96 nominal hourly slots/day, conditional accepted product-code throughput and critical-path delivery under uncertainty
+    - record official Scheduled task active-slot and Project upload access limitations
     - produce proposed ADR and research RFC without changing Accepted semantics
   out:
     - implementation or activation of the four Scheduled tasks
@@ -66,6 +70,20 @@ acceptance_criteria:
     description: "The autonomous role policy distinguishes reversible implementation decisions, independent reviews, and owner/host authority; OSS stack and exact-version freeze policy have no hidden paid runtime dependency."
     status: NOT_STARTED
 
+  # Proposed acceptance additions for substantive engineering/research and productivity model
+  - id: AC-9
+    description: "A single scheduled worker can complete multiple authorized engineering phases and revise a provisional technical choice after falsifying evidence, without misclassifying same-chat review as L2 or making high-risk decisions Accepted by itself."
+    status: NOT_STARTED
+  - id: AC-10
+    description: "Complex algorithm/security/science/tool choices have repeatable source comparison, global dependency impact and validation rules, with research proportional to risk."
+    status: NOT_STARTED
+  - id: AC-11
+    description: "Historical MONDE conversations inform WORK-0004 through source-confidence and privacy-safe provenance; no worker is assumed to have automatic access to all past chats or Project uploads."
+    status: NOT_STARTED
+  - id: AC-12
+    description: "Four-worker throughput and delivery duration are modeled as conditional scenarios with explicit assumptions and measured GitHub repo code-type baselines, not promised rates."
+    status: NOT_STARTED
+
 requirements: []
 assumptions: []
 risks: []
@@ -95,6 +113,7 @@ read_before:
   - registry/acceptance-authority.yaml
   - registry/work-items/WORK-0002.yaml
   - registry/work-items/WORK-0003.yaml
+  - registry/work-items/WORK-0004.yaml
   - docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md
   - docs/12_RESEARCH/chatgpt-github-only-engine-launch-readiness.md
   - docs/12_RESEARCH/chatgpt-github-only-engine-reconciliation-runbook.md
@@ -110,6 +129,7 @@ reuses:
   - "GitHub Issues/PRs/Actions/reviews/checks/refs"
   - "GitHub-hosted runners, built-in unit-test and coverage tooling"
   - "Review Council existing L0-L3 semantics"
+  - "WORK-0004 historical MONDE validated capability canonicalization, not a parallel historical registry"
 affected_capabilities: []
 affected_engines: []
 affected_schemas: []
@@ -232,6 +252,8 @@ validation:
     - "Issue comment command bus requires default-branch deployment and an observed ChatGPT connector-originated webhook, neither tested yet."
     - "Same-GitHub-actor role labels are not separately authenticated identities, so native approval remains a hard constraint."
     - "OS-level tool chain version SHAs and Python dependency lock have not yet been chosen, installed or executed; decision policy is Proposed only."
+    - "ChatGPT Scheduled active-task capacity and GitHub connector write approval are account/workspace-dependent and have not been proven in a scheduled execution."
+    - "Historic MONDE discussion access is not guaranteed in scheduled chats; WORK-0004 canonical evidence inventory remains unfinished."
 
 
     - "This author-led critical-path audit is NOT an independent L2 review."
