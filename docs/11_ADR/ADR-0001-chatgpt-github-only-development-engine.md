@@ -10,6 +10,7 @@ Launch gate and risk: ../12_RESEARCH/chatgpt-github-only-engine-launch-readiness
 Reconciliation and incident response: ../12_RESEARCH/chatgpt-github-only-engine-reconciliation-runbook.md
 Critical-path red-team analysis: ../12_RESEARCH/chatgpt-github-only-engine-critical-path-audit.md
 Minimal foundational design (current preferred experiment): ../12_RESEARCH/chatgpt-github-only-development-engine-minimal-foundations.md
+Worker autonomy, roles, technology baseline and implementation contract: ../12_RESEARCH/chatgpt-github-only-engine-operating-contract.md
 
 ## Context
 
@@ -36,6 +37,19 @@ GitHub can execute CI on its own hosted runners. The ChatGPT plugin provides Git
 The [minimal foundations document](../12_RESEARCH/chatgpt-github-only-development-engine-minimal-foundations.md) now defines the **preferred smallest testable system**: six invariants, native GitHub components, one typed command issue, one serialized default-branch `issue_comment`/periodic reconciliation workflow, optional conventional PR CI, three narrow functions (choose/reconcile/check-eligibility), and T0–T5 proof. It supersedes **the earlier preferred engineering mechanism**, *not* Accepted MONDE policy. Historical longer design documents remain exploratory fallback and failure-mode references; do not combine every design alternative into an all-feature implementation.
 
 Do not conflate a **single GitHub actor** with four trustworthy distinct identities; individual worker labels are coordination metadata. Full unattended GitHub non-author approval cannot be claimed. Required rulesets/branch protection remain an owner-admin action and deployment gate.
+
+## Chosen technology families and autonomy boundary (PROPOSED, not implemented)
+
+The [worker operating contract](../12_RESEARCH/chatgpt-github-only-engine-operating-contract.md) is the preferred working specification for:
+- GitHub-only, four separate ChatGPT hourly chats, existing MONDE normative registries, Issue task views and dependencies;
+- one serialized trusted GitHub Actions arbiter on default branch using `issue_comment` and `actions/github-script`/Octokit, only if actual connector event/permission pilot succeeds;
+- standard free GitHub-hosted Ubuntu CI on public MONDE; reuse WORK-0002 validators before adding more;
+- pytest, coverage.py, Ruff and Hypothesis as relevant, plus actionlint/zizmor workflow safety, with versions and actual immutable action SHAs selected/verified at implementation;
+- role-fluid DISCOVER/RESEARCH/ARCHITECT/SPECIFY/DECIDE/BUILD/TEST/VERIFY/REVIEW L1/L2/L3/RECONCILE/INTEGRATE/DOCUMENT/INCIDENT permissions and exit evidence;
+- risk-tiered delegation, explicit review authority, exact-SHA proof, recovery, and proper Accepted-document freeze versus provisional design;
+- NO mandatory paid Codex/Copilot/API, local server, Gas Town/Beads runtime, third-party agent SaaS or duplicative backlog/documentation system.
+
+The technology **categories** and constraints can be treated as a **stable design baseline for review**, not as deployed/executed locks; exact dependency versions, GitHub event identity and complete no-cost entitlement are subject to real safe proof. If the pilot shows comment-to-Action is unsupported, a replacement protocol requires an explicit recorded decision rather than an agent inventing an incompatible workflow.
 
 ## Research priority and exit from infrastructure work
 
