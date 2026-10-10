@@ -9,6 +9,7 @@ Research: ../12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md
 Launch gate and risk: ../12_RESEARCH/chatgpt-github-only-engine-launch-readiness.md
 Reconciliation and incident response: ../12_RESEARCH/chatgpt-github-only-engine-reconciliation-runbook.md
 Critical-path red-team analysis: ../12_RESEARCH/chatgpt-github-only-engine-critical-path-audit.md
+Minimal foundational design (current preferred experiment): ../12_RESEARCH/chatgpt-github-only-development-engine-minimal-foundations.md
 
 ## Context
 
@@ -22,13 +23,19 @@ GitHub can execute CI on its own hosted runners. The ChatGPT plugin provides Git
 
 1. Use ChatGPT hourly tasks for agent reasoning/actions and GitHub for durable state, PR, code, tests, documentation, issues, events, review artifacts and branch integration.
 2. Keep four **interchangeable**, role-fluid workers. Time triggers are the same nominal hourly timestamp, but safe coordination must not depend on real simultaneity.
-3. Extend existing MONDE registries/docs. **Before choosing a claim mechanism**, experimentally compare (A) one trusted serialized GitHub Actions allocator triggered by validated connector events with (B) per-worker Git ref CAS/fencing. Prefer A if it proves the same protected promotion guarantees with less total custom code/maintenance. Implement only the winning small adapter and reconciliation path.
-4. Reuse existing GitHub-hosted workflows (CodeQL/unittest/coverage), and trial actionlint/zizmor/Hypothesis/Ruff where cost/benefit is demonstrated.
-5. Use GitHub Issues/Projects as projected work views; one canonical DAG and **one operational claim owner** chosen by the pilot (trusted Actions dispatcher + durable grant log OR CAS control ref), never two competing operational authorities.
+3. Extend existing MONDE registries/docs, and **prioritize** one lightweight GitHub-native single-writer Actions allocator using existing Issues, `issue_comment` events and `actions/github-script`. First verify the actual Scheduled ChatGPT connector event and authority contract with a small isolated T0/T1 test. Keep per-chat Git ref CAS/fencing as a documented fallback only if the simpler design fails; never implement both.
+4. Reuse GitHub-native issue dependencies/subissues and existing MONDE WORK/REQ/ADR, CI/coverage and review protocols. Only add one trusted dispatcher workflow and, if WORK-0002 cannot serve it, one ordinary PR CI workflow. `actions/github-script` supplies authenticated Octokit GitHub operations; selectively use actionlint/zizmor/Ruff/Hypothesis where justified.
+5. Use GitHub Issues/Projects as task views and transient grant records linked to canonical WORK tasks, with **one single-writer allocation authority** in the dispatcher. No separate shadow task DAG, event-sourcing framework or distributed per-worker lock; only add a control ref if tests demonstrate it is indispensable.
 6. Require L0/L1 in author context, **L2 in a different ChatGPT conversation/context**, and applicable L3 multi-context/adversarial checks. An author changing roles within the same chat cannot satisfy L2.
 7. Keep existing non-author GitHub APPROVED and trusted-check requirements intact until a separately authorized governance decision changes them. Technical L2 report cannot bypass host-enforced approval.
 8. Distinguish safe read-only/isolated single-worker research and test pilots from full production release: do not activate four agents against shared writable resources until actual same-snapshot race, claim fencing, trusted review, host protection and rollback tests pass.
 9. Stop expanding the engine after it safely supports useful accepted MONDE product slices.
+
+## Minimal realization path (PROPOSED — verify before acceptance)
+
+The [minimal foundations document](../12_RESEARCH/chatgpt-github-only-development-engine-minimal-foundations.md) now defines the **preferred smallest testable system**: six invariants, native GitHub components, one typed command issue, one serialized default-branch `issue_comment`/periodic reconciliation workflow, optional conventional PR CI, three narrow functions (choose/reconcile/check-eligibility), and T0–T5 proof. It supersedes **the earlier preferred engineering mechanism**, *not* Accepted MONDE policy. Historical longer design documents remain exploratory fallback and failure-mode references; do not combine every design alternative into an all-feature implementation.
+
+Do not conflate a **single GitHub actor** with four trustworthy distinct identities; individual worker labels are coordination metadata. Full unattended GitHub non-author approval cannot be claimed. Required rulesets/branch protection remain an owner-admin action and deployment gate.
 
 ## Research priority and exit from infrastructure work
 
