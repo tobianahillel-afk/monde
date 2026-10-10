@@ -102,6 +102,48 @@ Totals based on independent rough ranges and overlapping tasks: **~45–125 focu
 
 **Fastest path:** pilot 1 worker + existing canonical governance + read-only coordination first, then a central low-risk Actions dispatcher. Every skipped orchestration feature must preserve fail-closed main integration and required review authority.
 
+## G2. Four Scheduled tasks: quantitative, falsifiable throughput forecast
+
+**Measured current source-tree baseline** from GitHub recursive tree at `main=b4b52c77...`: 74 Python files (~897,544 bytes); 46 are `test_*.py` files (~646,895 bytes), 28 are other `.github/scripts/` CI/governance scripts (~250,649 bytes). These are **file counts and byte sizes**, NOT a counted number of code lines. **No Python product runtime source outside `.github/` appears in the current tree.** Historical governance files/CI should not be misreported as implemented MONDE World Model product code.
+
+**Nominal capacity:** 4 eligible hourly ChatGPT tasks × 24 hours = **96 nominal scheduled activations/day**, if all four are indeed installed and the scheduler keeps every hourly slot. **Not** 96 guaranteed completed executions, continuous work, four different GitHub accounts, 96 approved merges or unlimited context/tokens. At current official product settings, Plus has up to **5 active Scheduled tasks**, so four workers may crowd out other scheduled tasks. Actual account slots and permissions must be inspected.
+
+**Productivity model** (hypothetical inputs; rolling 7/30-day measured output eventually replaces them):
+
+`Net accepted functional product LOC/day = nominal activations/day × P(actual useful run) × P(unique production-code LOC eventually accepted | useful run) × net new accepted product LOC per such run`.
+
+Here “net accepted product LOC” counts non-generated non-vendored functional code once on an actually approved merged main, excluding test scripts, config and Markdown, mass renames, refactors without new net code, failed branches, unmerged PRs, deletions and duplicate code. A day with six candidates and no approvals yields **zero accepted product LOC that day**; long-window accounting credits actual merged outcomes only. Output can be negative for worthwhile simplification, so assess delivered capabilities separately.
+
+| Scenario | P(useful run) | P(code actually accepted) | LOC per successful code run | Model result/day | Interpretation |
+|---|---:|---:|---:|---:|---|
+| Constrained startup | 0.35 | 0.08 | 20 | **~54** | Lost/paused runs, research, heavy governance and limited review capacity |
+| Working baseline | 0.60 | 0.15 | 35 | **~302** | Mixed research/build/review/documentation, bounded WIP, native approvals available |
+| Favorable steady state | 0.75 | 0.25 | 55 | **~990** | Proven task/grant/CI/review integration and frequent small mergeable product slices |
+
+All input fractions and LOC per run are **illustrative assumptions**, not user/account measurements or statistically valid confidence bounds. Real effective output could be **0** indefinitely while required native GitHub non-author approvals are unavailable. No honest claim of 1,000+ LOC every day is possible before measured runs.
+
+For planning only, round the scenarios to **0–60**, **150–400**, and **500–1,000 net accepted product LOC/day**, respectively, *conditional on valid merge flow*. 2 active writers + 1–2 review/research roles may beat 4 simultaneous coders because L2, checks and integration remain bottlenecks. Workers are role-fluid, so this is a WIP cap, not permanent roles.
+
+**Product scale arithmetic (not an estimated MONDE final size)**:
+- At ~300 accepted product LOC/day: a 5,000-line isolated prototype takes ~17 productive calendar days, 20,000 lines ~67 days, 100,000 lines ~333 days; research, documentation and experimental failures can increase time.
+- At ~1,000/day: 5,000 lines 5 days, 20,000 lines 20 days and 100,000 lines 100 days; *this assumes unusually healthy continuous integrations*.
+- A historical discussion estimated ~1.0–1.4 million future runtime LOC for full-scope MONDE, but this is **not verified against a final canonical detailed capability inventory**, and MUST NOT be treated as a target. OSS reuse, model adapters, owned-vs-vendored code, functions reused across engines and deferred capabilities make gross LOC a poor size measure.
+
+### Delivery forecasts — what can start when?
+
+- **MONDE product blueprint documentation:** can start **now** as controlled read-only research and separately governed WORK-0004 capability-family documentation; four production writers are *not* prerequisites. Historical conversation fragments need source-confidence and owner confirmation before normative acceptance.
+- **Single-worker isolated Actions dispatcher event test:** **~4–12 focused engineering hours** for T0/T1 after approved workflow access, not a fixed calendar duration. Can be attempted in a safe test scope without all production launch gates.
+- **One-worker usable narrow branch/CI/reconcile pilot:** **~20–60 focused engineering hours** including rough exploration and real connection issues (planning hypothesis).
+- **Four-worker guarded, recoverable system:** **~60–160 focused engineering hours** including progressive pilots and fault tests **plus** already outstanding WORK-0002/0003 authorization debt, real user-admin settings and non-author approval strategy. Could take **~2–8 calendar weeks if all access/reviews are available**, longer if GitHub/ChatGPT grants or merge authorities remain blocked. These are not guaranteed estimates.
+- **First real product code:** can be proposed/experimented on an isolated branch as soon as a precise approved slice, task ownership and safe authorization exist; **actual merge** waits for the existing required GitHub independent approval, trusted CI and main protection. Do not delay all product research until four-worker completion.
+
+**Measurement plan**: for 7 and 30 calendar days capture nominal/successful/paused invocations, minutes of substantive tool interaction when observable, authoring/research/review/time distribution, net merged product LOC (classify source tree), functional acceptance count, PR age, reviewer wait, root-cause retries, CI outcome, API quotas, and incident recovery; do not present costless four-worker scheduling as a guaranteed performance multiplier.
+
+Official constraints sources:
+- https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt
+- https://docs.github.com/en/billing/concepts/product-billing/github-actions
+- https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+
 ## H. Concrete next decisions
 
 1. **Hard architecture fork:** small trusted GitHub Actions allocator pilot vs CAS-per-chat. Bench both only if A fails or costs no more total work; do not implement both production solutions.
