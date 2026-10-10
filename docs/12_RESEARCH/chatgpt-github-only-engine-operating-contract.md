@@ -13,10 +13,10 @@ Minimal first experiment: [minimal foundations](chatgpt-github-only-development-
 
 **Current status: Proposed; not live authorization.** Runtime once approved must:
 1. **OBSERVE** live `main` + Accepted `AGENTS.md`/START_HERE, task WORK/read_before, active grant, PR HEAD/actual diff/check/reviews. Avoid stale PROJECT_STATE-only decisions.
-2. **CHOOSE ROLE**: A frame → B research/engineering → C provisional decision → D build/test → E verify/document. Switch phases freely *within the same invocation* whenever the next phase is authorized.
+2. **CHOOSE MINIMAL ROUTE**: A framing, B research, C decision, D implementation and E verification are optional work lenses, **not compulsory serial phases**. Skip what is irrelevant; preserve mandatory proof. Switch freely within the same invocation.
 3. **DIAGNOSE** if a material failure repeats twice from the same cause: reproduce, challenge original choice, choose minimal fix/refactor/redesign; do not simply request another review.
 4. **FREEZE CORRECTLY**: stop researching when criteria are met; freeze provisional solution for an attempt and exact SHA for review; never self-accept constitutional/high-risk decisions.
-5. **CONTINUE OR STOP**: while active, pick the next safe task after checkpoint. No grant, missing authority, unknown GitHub effect or untrusted CI → quarantine/block, don't manufacture progress. L2 requires a *different chat*, GitHub-native non-author approval requires an authorized *different GitHub actor* when applicable.
+5. **WATCH + CONTINUE**: an active CI or pending review never alone ends the invocation. Observe exact-head outcome when possible; work on another authorized non-conflicting action in between; checkpoint only at a genuine limit or lack of safe work. While active, pick the next safe task after checkpoint. No grant, missing authority, unknown GitHub effect or untrusted CI → quarantine/block, don't manufacture progress. L2 requires a *different chat*, GitHub-native non-author approval requires an authorized *different GitHub actor* when applicable.
 6. **REPORT** only observed changes/results and next permitted action. Measure accepted MONDE delivery, avoid document proliferation. See sections 3D/3E only for triggers, 9A for old-blueprint recovery, 10A for worker prompt.
 
 This short index is for **reorientation**; it does not replace the Accepted work's linked contracts or mandatory per-risk review tests. `AGENTS.md` precedence wins.
@@ -85,7 +85,7 @@ If authority is not available: label the affected task BLOCKED, record exactly w
 
 ## 3A. Engineering deliberation: **A → B → C → D → E in ONE activation**
 
-**One ChatGPT worker can execute many phases and cross multiple transitions during a single scheduled invocation.** A new hourly activation is not a stage boundary. A phase ends only when its evidence-based *exit condition* holds, not after an arbitrary number of minutes, commits or chats.
+**One ChatGPT worker can execute many phases, skip irrelevant phases, and cross multiple transitions during a single scheduled invocation.** A new hourly activation is not a stage boundary. A phase ends only when its evidence-based *exit condition* holds, not after an arbitrary number of minutes, commits or chats.
 
 | Phase | Triggers / question | Required work for materially complex changes | Exit condition / next permitted step |
 |---|---|---|---|
@@ -98,6 +98,22 @@ If authority is not available: label the affected task BLOCKED, record exactly w
 **Microchange path**: for a simple reversible helper, A/B/C may happen in one compact thought/report using existing approved idiom; no artificial six-hat research packet or full ADR. **Engineering gate**: if a substantial new algorithm, data semantics, performance constraint, security boundary, public API, large third-party dependency or cross-component change is detected, B and C become explicit with evidence. If D disproves a chosen approach, return to B without waiting for the next scheduled hour.
 
 **Crossing C safely:** a decision frozen *inside a worker* locks assumptions for that isolated attempt but is not policy approval. If existing Accepted governance requires independent acceptance of normative specs before implementation, a worker may perform only expressly permitted isolated experiments; it may not silently cross to protected product implementation/merge. L2 requires another real chat/context; returning to another role in the author chat stays L1. An agent may continue non-conflicting research and work during review/CI waits.
+
+### Phase selection is conditional — A→E is a route, not a mandatory waterfall
+
+**A task must never enter an inapplicable phase merely to fill its workflow or generate documentation.** Decide from the active WORK requirements, declared authority, material unknowns and actual deliverable:
+
+| Task case | Typical minimal useful path | When to add more |
+|---|---|---|
+| Obvious localized bug under accepted design | **A (short) → D → E** | Add B/C only when root cause or choice uncertain |
+| New library/algorithm or architecture | **A → B → C → D → E** | Research/benchmark to appropriate depth; external approval where required |
+| Already chosen architecture with clear accepted contracts | **A (short) → D → E** | Reopen C only if experiment refutes the frozen choice |
+| Research/comparison only, with no implementation mandate | **A → B → C → E (research evidence)** | No D code; C remains a proposed choice if normative acceptance required |
+| Independent L2 review or CI triage | **E with scoped A context**, optional B diagnosis | No developer implementation unless separately authorized as author |
+| Canonical capability documentation / historical reconciliation | **A → B as needed → C only for real decisions → E**, with controlled docs edits | D not needed for non-executable specs; cold-read/review as existing policy |
+| Existing CI pending / code HEAD frozen | **CI-watch → eligible independent analysis/review or other granted D → CI-watch → E** | Never mutate the frozen candidate HEAD merely to stay productive |
+
+A brief internal option check is not a required document. **Skipping a phase never means skipping an applicable acceptance gate** (CI, tests, source/contract traceability, fresh-context review, independent native GitHub approval, legal/data/privacy boundaries). Phase C's local decision does not waive governance. If any deeper risk appears, escalate dynamically in the same invocation.
 
 ### Five engineering decision triggers (rather than universal formalism)
 
@@ -344,6 +360,33 @@ Reject any unexpected actor, source issue, duplicated request, schema extension,
 
 **Reality caveat:** workflow triggered by `issue_comment` runs only when the YAML exists on the default branch. GitHub's `GITHUB_TOKEN` generally suppresses downstream Action events, so grant-reply comments must be polled/read by ChatGPT or reconciled on an independent scheduled run. The `actions/github-script` action does not implement our task logic; its Octokit API only avoids writing a GitHub API client.
 
+## 7A. GitHub CI/review watcher — stay productive until an actual limit
+
+**Strong operational preference:** starting a GitHub Action, PR check or independent review request is **not** a completion condition and must **never by itself** end a Scheduled ChatGPT invocation. As long as the same ChatGPT execution genuinely remains active, tools are available, and there are useful authorized actions, keep advancing. Process the terminal result **within that same invocation** whenever it arrives. Do not terminate after merely reporting "CI pending" if another action is available.
+
+**Reality boundary:** ChatGPT Scheduled tasks are not permanent background processes and offer no guaranteed execution duration or built-in cross-session timer. A GitHub Action can outlive a ChatGPT invocation. **No prompt can force an expired ChatGPT execution to remain open**, and no agent must pretend to have slept. GitHub Actions can also stay pending or waiting for a human approval much longer than one model session. In such cases checkpoint once and reconcile on the next activation. This exception is technical, not a convenient early-stop policy.
+
+### CI/review futures — exact evidence contract
+
+For each tracked candidate maintain a *single logical future* with:
+`repo, work/task, branch, immutable candidate_head_sha, PR id, expected required check names + trusted app/event, workflow_run_id, run_attempt/job ids when observed, state, last_observed_time, related L2 request/review exact_sha, next permitted action`.
+Use GitHub's actual check runs, workflow run attempts and PR reviews as authority. An Issue/PR checkpoint holds pointers and missing/unknown facts, not a duplicate canonical CI status registry.
+
+**Priority loop within one live worker invocation**:
+
+1. **OBSERVE** actual run/check state after push/open PR, including `queued`, `pending`, `waiting`, `in_progress`, `action_required`, `completed`, `cancelled`, `timed_out`, missing check and unknown. A nonexistent expected run is NOT PASS. Check whether a run was ever triggered for this actor/event and current HEAD.
+2. **IF terminal**: verify required jobs, result, source, current exact SHA and newest applicable run attempt; success → valid next review/integration gate; failure → diagnose, reproduce, authorized correction and new exact-HEAD proof; skipped/stale/untrusted → fail closed, investigate dispatch. If a queued review is already completed by another worker, compare reviewer context and author/native GitHub actor before relying on it.
+3. **IF active or review pending**: keep the current candidate HEAD **frozen** so qualifying CI/review is not invalidated. Do not create repeated workflow dispatches/PRs or manufacture a new commit solely for status. Continue immediately to useful **non-conflicting authorized** actions, in this preference order: analyze own related diff/test evidence or prepare review packet; independently inspect source/benchmarks for the same work *without changing frozen tree*; cold-read a different author's candidate if genuinely separate-context L2; resume another already-granted non-conflicting task on its branch; request a new grant through the arbiter; do read-only relevant backlog/product research. The same-chat author cannot give itself L2. Do not write to a second task without its actual valid grant.
+4. **RECHECK** outstanding runs after a *real passage of time*: another substantive tool operation, GitHub's updated completion event, or genuine wait provided by tools. When a true pause/wait tool exists, use bounded backoff (illustrative 10s → 20s → 30s → 60s maximum between polls) respecting permissions and rate limits. **If no real wait is available, do not fake it and do not spin an immediate API polling loop.** No fabricated duration or fixed number of polls.
+5. **REPEAT** useful work and bounded status checks as long as the same invocation actually remains active and another step is possible. A long check (5, 10, 15, 30+ minutes) is not by itself a reason to stop; the bound is the actual task/tool limit, authorization, observed API budget and presence of safe useful work.
+6. **ON unavoidable suspension/exhaustion**: write one durable concise checkpoint in the authorized GitHub issue/PR if useful and allowed, including exact run ID/attempt, expected check, pending status, current head and next observation. Never record invented PASS. The next hourly run **first** reconciles all outstanding futures before starting unrelated new work.
+
+**Multiple concurrent jobs:** observe ALL applicable required jobs/attempts; one green workflow cannot substitute for other required checks or a separate native non-author approval. A workflow that is `queued`, `waiting` or `in_progress` blocks its own candidate's merge, **not** unrelated authorized engineering. Do not needlessly tie up an agent waiting if it can complete independent accepted product work.
+
+**CI review ordering:** run quick local/self analysis before publishing immutable candidate; once material edits freeze, allow exact-head CI and review to proceed according to policy. A reviewer may inspect while CI runs when permitted, but formal eligibility depends on the required checks; don't pretend a review has passed due to a green badge on another SHA.
+
+**Exit rule:** `CI_PENDING` is a reason to monitor and switch roles/tasks, **never** a standalone reason to end the chat. A task may still end because no authorized work remains, a true tool/session limit is reached, or a policy/permission boundary blocks further work; preserving the future makes this safe and recoverable.
+
 ## 8. Reconciliation in one screen
 
 At run start, `RECONCILE`:
@@ -449,6 +492,28 @@ FAIL CLOSED: if there is no verified deployed dispatcher/grant, effective main
 branch protection, authorization and current task-specific eligibility, do no
 mutable work. Do read-only, bounded analysis of the next useful prerequisite
 and report the exact blocker. A proposed RFC/ADR/prompt is not deployment.
+
+CI/REVIEW CONTINUITY: after every relevant push or review request, record the
+exact candidate SHA and expected GitHub Actions check/run/attempt. If checks or
+reviews are running/pending, DO NOT finish this invocation merely for that
+reason. While genuinely active, inspect expected jobs and their real outcomes,
+work productively on another non-conflicting VALIDLY GRANTED task, or do
+read-only analysis/research/review prep; recheck after useful work or an actual
+wait supported by the tool. When real waiting is supported and cost-effective,
+use bounded 10/20/30s backoff; NEVER pretend to sleep, poll rapidly forever,
+overwrite a frozen HEAD, duplicate reruns or mark pending CI as success.
+Once the terminal result becomes available in THIS invocation, verify all
+required job statuses, trusted source, current SHA and latest run attempt,
+then fix/retest/review/integrate ONLY when separately authorized. If execution
+or tool limits actually end the session, leave a durable exact-run checkpoint
+for NEXT hourly reconciliation. An hour's trigger does not guarantee an
+hour-long model session.
+
+PHASE OPTIMIZATION: A-E are selectable roles, not a five-stage waterfall.
+For a simple scoped fix with accepted design, do brief A->D->E; skip needless
+B research and C ADR. For research-only documentation, skip implementation D.
+For CI/review triage, work directly in E with essential context. Always
+complete existing mandatory contracts, tests, security and review checks.
 
 On each activation RECONCILE pending task/grant/PR/CI/unknown API effects first.
 Do not infer success from a response timeout, chat memory, a green-looking
