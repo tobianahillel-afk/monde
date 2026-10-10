@@ -1,0 +1,236 @@
+id: WORK-0005
+title: "Specify the GitHub-only ChatGPT development engine and independent review protocol"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-0
+sublot: SUBLOT-0.4
+owner: "MONDE development operating model"
+created_at: "2026-10-10"
+updated_at: "2026-10-10"
+
+purpose: |
+  Specify, compare and independently validate a four-worker ChatGPT Scheduled
+  tasks development model that operates exclusively through the connected
+  GitHub repository and GitHub-hosted Actions. Eliminate dependency on local
+  compute, a persistent third-party agent runtime and Codex review credits,
+  while preserving existing non-author approval and security gates.
+
+scope:
+  in:
+    - evaluate current MONDE documentation, WORK dependencies and reviewer policy
+    - define GitHub-only worker/task/DAG/claim/fencing/CI-future/review protocols
+    - define role-fluid intra-run phases and truly separate-context ChatGPT L2
+    - distinguish technical L2 evidence from GitHub non-author APPROVED reviews
+    - document relevant zero-host and GitHub connector limitations
+    - research reusable GitHub and open-source CI/lint/QA capabilities
+    - define verifiable test matrix, pilot gates and rollback criteria
+    - produce proposed ADR and research RFC without changing Accepted semantics
+  out:
+    - implementation or activation of the four Scheduled tasks
+    - modification of existing WORK-0002 or PR #2/#14 accepted trust criteria
+    - unilateral change to the Constitution or review-approval authority
+    - changing repository administrator settings without an authorized route
+    - any MONDE product or WRE implementation
+    - installation of Beads, Gas Town, OpenHands, Temporal or local services
+
+acceptance_criteria:
+  - id: AC-1
+    description: "The exact ChatGPT + GitHub-only runtime, capabilities, costs, permissions and limitations are documented, with no required external AI reviewer."
+    status: NOT_STARTED
+  - id: AC-2
+    description: "All assignment, lease/fencing, no-overlap, CI futures and recovery transitions are unambiguous, idempotent and testable."
+    status: NOT_STARTED
+  - id: AC-3
+    description: "L0/L1/L2/L3 procedural independence and the separate GitHub author/non-author approval rule are accurately preserved."
+    status: NOT_STARTED
+  - id: AC-4
+    description: "The reuse inventory proves that no parallel custom CI, task UI, merge queue or agent host is required."
+    status: NOT_STARTED
+  - id: AC-5
+    description: "A cold-reading independent context can resume from the RFC and choose a safe staged implementation and product continuation."
+    status: NOT_STARTED
+  - id: AC-6
+    description: "The proposed architectural decision and all mandatory review hats are assessed before acceptance; no protective gate is bypassed."
+    status: NOT_STARTED
+
+requirements: []
+assumptions: []
+risks: []
+progress_justifications:
+  implementation: "This WORK specifies and reviews the operating model; its executable implementation must be tracked separately after acceptance."
+  scientific_validation: "No scientific/world-forecasting model claims are made; concurrent scheduler simulations fall under property/integration testing."
+
+assurance:
+  level: A3
+  rationale: "Cross-repository process, task authorization, independent reviews and GitHub trust boundaries apply to all future MONDE work."
+  escalation_triggers:
+    - "worker authorization and protected GitHub integration"
+    - "L2/independent approval boundary changes"
+    - "canonical work/acceptance lifecycle mutation"
+
+read_before:
+  - README.md
+  - AGENTS.md
+  - docs/00_START_HERE.md
+  - PROJECT_STATE.md
+  - docs/09_GOVERNANCE/constitution.md
+  - docs/10_ROADMAP/development-process.md
+  - docs/13_QUALITY/review-council.md
+  - docs/13_QUALITY/specification-quality.md
+  - docs/13_QUALITY/definition-of-done.md
+  - registry/status-machines.yaml
+  - registry/acceptance-authority.yaml
+  - registry/work-items/WORK-0002.yaml
+  - registry/work-items/WORK-0003.yaml
+  - docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md
+  - docs/11_ADR/ADR-0001-chatgpt-github-only-development-engine.md
+depends_on: [WORK-0001]
+blocks:
+  - "proposed four-worker deployment work item"
+reuses:
+  - "MONDE governance and work/requirements/review registry contracts"
+  - "GitHub Issues/PRs/Actions/reviews/checks/refs"
+  - "GitHub-hosted runners, built-in unit-test and coverage tooling"
+  - "Review Council existing L0-L3 semantics"
+affected_capabilities: []
+affected_engines: []
+affected_schemas: []
+affected_docs:
+  - docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md
+  - docs/11_ADR/ADR-0001-chatgpt-github-only-development-engine.md
+  - docs/10_ROADMAP/phase-0.md
+  - registry/progress/matrix.yaml
+contracts:
+  - "development-only task claim and protected merge eligibility"
+  - "context-separated L2 evidence versus host non-author approval"
+adrs:
+  - ADR-0001
+
+impact_analysis:
+  blast_radius: CROSS_COMPONENT
+  upstream: [WORK-0001, WORK-0002, WORK-0003]
+  downstream:
+    - "future ChatGPT worker control plane"
+    - "all future MONDE work-item handovers and guarded integration"
+  migrations_or_reprocessing: []
+  compatibility_notes: |
+    No preexisting Accepted governance rule is changed in this proposal.
+    Existing WORK-0002 and WORK-0003 continue on their current branches.
+    Any future reviewer/authority migration must be explicit and independently reviewed.
+
+implementation_plan:
+  tasks:
+    - id: T1
+      description: "Inventory existing control plane, GitHub connector limitations and reusable services."
+      depends_on: []
+      expected_files: [docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md]
+      status: NOT_STARTED
+    - id: T2
+      description: "Specify task scheduler, claims, fencing, CI futures, document routing and recovery."
+      depends_on: [T1]
+      expected_files: [docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md]
+      status: NOT_STARTED
+    - id: T3
+      description: "Specify reviewer separation, GitHub non-author approval limitations and migration safeguards."
+      depends_on: [T1]
+      expected_files: [docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md]
+      status: NOT_STARTED
+    - id: T4
+      description: "Compare alternatives, create proposed ADR, test plan and staged roadmap."
+      depends_on: [T2, T3]
+      expected_files: [docs/11_ADR/ADR-0001-chatgpt-github-only-development-engine.md, docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md]
+      status: NOT_STARTED
+    - id: T5
+      description: "Cold-read, independent review and controlled approval readiness without premature acceptance."
+      depends_on: [T4]
+      expected_files: [registry/work-items/WORK-0005.yaml]
+      status: NOT_STARTED
+  planned_runs:
+    - id: RUN-1
+      objective: "Bounded RFC and decision preparation"
+      tasks: [T1, T2, T3, T4]
+      exit_condition: "RFC, work scope and Proposed ADR available for independent review."
+      status: NOT_STARTED
+    - id: RUN-2
+      objective: "Independent cold-read and architecture/security feasibility decision"
+      tasks: [T5]
+      exit_condition: "Valid review evidence and explicit accept/block decision."
+      status: NOT_STARTED
+
+review_plan:
+  artifact_class: GOVERNANCE_AUTOMATION
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY, RED_TEAM_SKEPTIC]
+  completed_reviews: []
+  open_findings: []
+
+required_tests:
+  unit: []
+  property:
+    - "document atomic claim/fencing and same-snapshot four-way property cases"
+  integration:
+    - "prove connector Git ref update and failure contracts in separately tracked implementation spike"
+  contract:
+    - "reviewer context is not identical to GitHub account/author identity"
+    - "no changes to WORK-0002/WORK-0003 enforcement semantics"
+  e2e:
+    - "cold-read an end-to-end worker execution and handover without local files"
+  regression:
+    - "PR #2/#14 review authority and exact-head proof remain unmodified"
+  security:
+    - "self-approval, check spoof, late worker and prompt injection fail closed by design"
+  performance:
+    - "plan baseline accepted-merge throughput before 4-way deployment"
+  real_system:
+    - "GitHub branch protection and task connector feature availability discovery"
+  epistemic: []
+
+scientific_validation:
+  required: false
+  baseline: null
+  backtest: []
+  temporal_leakage_check: null
+  reproducibility_manifest: null
+  shadow_or_canary: null
+
+observability:
+  required: true
+  logs: ["one stable run checkpoint per real execution"]
+  metrics: ["accepted merged work/time", "READY to MERGED delay", "rework", "collisions"]
+  traces: ["task -> claim epoch -> head -> tests -> L2 -> merge"]
+  alerts: ["unresolved quota and missed reviewer authority"]
+  slis_slos: []
+
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps:
+    - "No four-way claim or GitHub connector race prototype has yet been run."
+    - "No host-enforced non-author approval path under four same-account ChatGPT workers is proved."
+
+risk:
+  security: HIGH
+  data: LOW
+  epistemic: MEDIUM
+  performance: MEDIUM
+  operational: HIGH
+
+rollback:
+  strategy: "Reject/close this isolated proposal PR without modifying protected existing branches or current main."
+run_log: []
+discoveries: []
+blockers:
+  - "Proposed only; must not be treated as Accepted policy or executable engine."
+follow_up_work_items:
+  - "Proposed GitHub-native scheduler implementation only after independent approval."
+
+completion:
+  definition_of_ready_checked: false
+  definition_of_done_checked: false
+  specification_gates_checked: false
+  traceability_checked: false
+  review_complete: false
+  docs_updated: false
+  registries_updated: false
+  project_state_updated: false
