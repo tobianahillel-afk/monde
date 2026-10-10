@@ -403,6 +403,20 @@ next_step: "<one permitted verifiable action>"
 
 The report is not a new store for dynamic GitHub truth; re-fetch live APIs at the next invocation.
 
+## 10C. ChatGPT Scheduled constraints — verified official product behavior, not assumptions
+
+OpenAI official product guide (consulted 2026-10-11): https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt
+
+- Scheduled tasks on **Plus** are subject to a documented **5 active-task limit** (other plans differ), so four new W1–W4 workers consume four slots and may not coexist with the owner's other active automations. **Inspect actual available slots before creating tasks**, never silently pause/delete unrelated tasks. The limit may change; re-verify before deployment.
+- Hourly schedules require an eligible plan. **Four hourly nominal starts = 96 scheduled invocations/day**, not 96 completed runs, 96 independent hours of computation, 96 merges or unlimited model access.
+- Connected GitHub apps may be usable where authorized; an app action may require interactive approval and pause the task. Real Scheduled worker access and permission persistence must be proven with T0, not inferred from ordinary chat plugin access.
+- OpenAI states that a task created within a **ChatGPT Project cannot access uploaded files or files stored in that project**. Historical project conversations/project files therefore must not be prerequisites for the worker. **GitHub canonical documents and WORK-0004 backfill are the durable path**.
+- Even when ChatGPT Memory/personal context exists for an interactive chat, do not assert a new Scheduled chat can retrieve all old project conversations. Verify retrieval capability in that exact runtime; classify unobserved history as unavailable.
+- Supported GitHub **event-triggered** tasks have separate conditions and permissions; they do not imply that GitHub Actions can arbitrarily wake a Scheduled ChatGPT worker. Our initial design uses hourly scheduled polling, not a hidden webhook-to-ChatGPT service.
+- ChatGPT Plus subscription and connection access are assumed existing entitlements, **not zero-cost independently of subscription**. The engine must add no *extra* paid Codex, external AI API or server dependency.
+
+**Operational preflight**: `active task slot available`, `hourly schedule supported`, `GitHub connector read/write authorized`, `task does not rely on uploaded project files`, `source files on GitHub`, `ruleset and native review approval available`. If any fails, no claim of four-worker autonomous readiness.
+
 ## 11. Milestones, stop rules and evidence
 
 - **M0** (NOW): review this operating contract and ADR; independently cold-read, classify native GitHub reviewer-approval gap. NO four-agent writes.
