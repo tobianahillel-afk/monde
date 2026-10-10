@@ -34,14 +34,14 @@ Snapshot on 2026-10-10; re-query GitHub every time:
 | G-02 | Existing WORK-0002 trust root established | PR #14 and PR #2 applicable review/CI/threads settled per existing gates | FAIL: IN_REVIEW |
 | G-03 | `main` protected by actual GitHub ruleset or branch protection | Current targeted effective rules: PR, required checks from trusted source, review policy, no force/delete and checked bypass rights | FAIL: unprotected |
 | G-04 | Accurate, accepted documentation/progress state | Canonical WORK, status machine, `PROJECT_STATE.md`, accepted ADRs and valid references align | FAIL: proposal only; known stale handover |
-| G-05 | Coordinator implementation merged via protected checks | allocator, claims, fencing, ledger, CI future reconcile, bounded error handling | FAIL: not implemented |
-| G-06 | Connector real-world atomic claim proven | same initial ref, four simultaneous contenders, one-winner for colliding resources, no lost update | FAIL: untested |
+| G-05 | Coordinator implementation merged via protected checks | one trusted serialized Actions allocator, durable Issue grants, stale-candidate prevention, CI future reconcile and bounded errors; no mandatory CAS ledger | FAIL: not implemented |
+| G-06 | Connector + trusted arbiter collision test proven | four same-snapshot concurrent Issue commands, one effective grant for overlapping resources, duplicate/lost comment reconciled; CAS ref race **only if fallback chosen** | FAIL: untested |
 | G-07 | Fencing and stale-worker eligibility enforcement | expired/reassigned writer attempts cannot be promoted/merged after recovery | FAIL: untested |
-| G-08 | Automatic+manual reconciliation verified | ambiguous GitHub API result, missed run, late CI, stale review, orphan PR and conflicting control log covered | FAIL: not implemented |
+| G-08 | Automatic+manual reconciliation verified | ambiguous GitHub API result, missed run, late CI, stale review, orphan PR, conflicting Issue grant or fallback control log covered; active-chat CI waiting trial | FAIL: not implemented |
 | G-09 | CI source, status and attempt qualification hardened | exact SHA/job/run/attempt trust checked; skipped/spoofed/old green rejected | FAIL: not proven for v2 |
 | G-10 | L2 context separation and GitHub authority verified | separate ChatGPT contexts/hats, exact-head review packet; non-author host approval where existing policy demands | FAIL: not proven |
 | G-11 | Production-grade bounded resource permissions/WIP | worker write-set/semantic conflict and code branch isolation; one integrator; leak/abuse-safe tools | FAIL: untested |
-| G-12 | Pilot with one worker | real GitHub scoped task + CI + durable checkpoint + resume + review without false success | FAIL: not done |
+| G-12 | Pilot with one worker | real scoped task + CI pending during active chat, useful permitted work, terminal recheck when observable, durable checkpoint and resumed review; phase skipping when applicable | FAIL: not done |
 | G-13 | Pilot with two simultaneous workers | same snapshot races, independent work/merges, no owner collision | FAIL: not done |
 | G-14 | Four-worker trial and rollback | same nominal hour, delayed/duplicate/missing runs, test failures, rate limits, review unavailability | FAIL: not done |
 | G-15 | Task identity and scheduled app authorization | actual distinct task/chat/run identities, app permissions, notification and slot settings verified | FAIL: not configured |
