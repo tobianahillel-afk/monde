@@ -152,10 +152,12 @@ Every worker uses the same compact operating contract. Assign its active **role 
 |---|---|---|---|
 | `DISCOVER` | New WORK/topic | Search canonical names, synonyms, prior decisions, existing implementations and OSS | Reuse map and missing facts |
 | `RESEARCH` | Uncertain factual/technical choice | Prefer upstream docs, licenses, maintenance/releases, alternatives; cite sources and known unknowns | Bounded evidence table |
+| `ENGINEER` | Significant algorithm, performance or architecture uncertainty | Examine formal complexity, counterexamples, scaling laws, global MONDE invariants, literature/upstream OSS | Bounded algorithm/architecture tradeoff with falsifiers and benchmarks |
 | `ARCHITECT` | Cross-component or durable choice | Contracts, failure/rollback, dependency direction, blast radius | Proposed ADR or small decision record |
 | `SPECIFY` | Ambiguous behavior | Atomic REQ/AC, examples, counterexamples, typed missingness/assumptions, tests | Narrow specification with exact links |
 | `DECIDE` | Options comparable | Apply the fixed decision rubric; choose smallest reversible valid option within authority | Selected option and falsifiable rationale |
 | `BUILD` | Reserved eligible implementation | Small code/docs slice on assigned branch, tests and PR; avoid scope creep | Exact artifact SHA |
+| `BENCHMARK` | Competing viable algorithms or nontrivial resource cost | Compare same dataset/input constraints/hardware, p95/memory/quality, source/reproducibility; report NOT_MEASURED honestly | Reproducible benchmark or explicit unmeasured blockers |
 | `TEST` | Candidate implementation | Unit/integration/regression/contract/property tests as risk merits | Test evidence bound to artifact |
 | `VERIFY` | CI/checks complete | Confirm trusted job provenance, run/attempt/HEAD, check current requirements | Accurate gate outcomes and stale flags |
 | `REVIEW_L1` | Before submitting candidate | Author's own architecture/security/test/doc review hats; fix own findings | Explicit L0/L1 record |
@@ -351,11 +353,30 @@ Do not infer success from a response timeout, chat memory, a green-looking
 untrusted check, an expired lease, a stale branch or an Issue label.
 
 If a valid exclusive grant exists, choose the most useful role among DISCOVER,
-RESEARCH, ARCHITECT, SPECIFY, DECIDE, BUILD, TEST, VERIFY, REVIEW_L1,
+RESEARCH, ENGINEER, BENCHMARK, ARCHITECT, SPECIFY, DECIDE, BUILD, TEST, VERIFY, REVIEW_L1,
 REVIEW_L2 (only for different fresh authoring context), REVIEW_L3 (real
 separate contexts), RECONCILE, DOCUMENT, INCIDENT and INTEGRATE.
 Change roles fluidly within the invocation and keep progressing while it is
 actually running. Do not invent long-running background ability.
+
+Within ONE activation, move freely FRAME(A) -> RESEARCH/ENGINEER(B) ->
+DECIDE/PROVISIONAL_FREEZE(C) -> BUILD/EXPERIMENT(D) ->
+VERIFY/REVIEW/DOCUMENT(E), including returns to earlier phases if a benchmark
+disproves the choice. A local freeze enables authorized experiment, not
+Acceptance of a high-assurance spec. Do not stop just because a phase completes.
+
+If the requested feature/behavior or user expectation is missing from the
+canonical MONDE documentation, first consult product docs and WORK-0004
+historical capability inventory. Search old project conversations only
+when a real supported access route is available to this task; never invent
+conversation links or infer access to uploaded Project files. Otherwise mark
+the source UNAVAILABLE and document a precise privacy-safe provenance
+question, while continuing unrelated eligible work.
+
+For significant algorithms compare asymptotic cost, performance/accuracy,
+reproducible benchmarks, source maintenance/licensing/security and global
+World Model downstream impact. Choose the lowest-complexity reversible
+candidate that passes hard constraints and record its falsifiers.
 
 For decisions, search reusable MONDE code/docs and open-source alternatives,
 apply the hard compatibility/licensing/security/no-cost gates and the smallest
