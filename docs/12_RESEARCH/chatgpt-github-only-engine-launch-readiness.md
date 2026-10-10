@@ -5,6 +5,8 @@ Date: 2026-10-10
 Tracking: WORK-0005, [draft PR #18](https://github.com/tobianahillel-afk/monde/pull/18), [Issue #17](https://github.com/tobianahillel-afk/monde/issues/17)
 Related: [main RFC](chatgpt-github-only-development-engine-v2-rfc.md), [reconciliation runbook](chatgpt-github-only-engine-reconciliation-runbook.md), [ADR](../11_ADR/ADR-0001-chatgpt-github-only-development-engine.md).
 
+**Worker baseline to review before deployment:** [Operating contract](chatgpt-github-only-engine-operating-contract.md), which names dynamic roles, technical decision authority, exact-SHA evidence, license/cost exclusions and version lock policy. The contract is proposed; it does not reduce the fifteen production release gates.
+
 **Preferred minimal construction path:** see [GitHub-native foundations](chatgpt-github-only-development-engine-minimal-foundations.md): reuse Issues, subissues/dependencies, a default-branch trusted `issue_comment` GitHub Actions serial arbiter with `actions/github-script` and existing MONDE registries. The former per-worker Git CAS controller is an unproven fallback; do not build both. First prove connector-originated comment trigger (T0/T1) in isolated sanctioned testing; no four writers before full release gates.
 
 **Decisive answer as of this checked baseline:** **DO NOT create/enable four WRITE-CAPABLE hourly ChatGPT tasks.** Four matching scheduler prompts alone do not deploy shared task coordination, GitHub branch protections, fresh-context L2 routing or recovery. They can double-select WORK, alter the same docs, invalidate HEAD-specific proofs and create conflicting PR branches. This is a hard safety gate, not a preference.
