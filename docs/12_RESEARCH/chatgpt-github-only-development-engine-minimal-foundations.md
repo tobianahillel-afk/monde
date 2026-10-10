@@ -1,6 +1,8 @@
 # MONDE — Minimal development operating model (GitHub-native)
 
 Status: PROPOSED — design cut, not deployed, not approved, not an L2 review
+
+**Detailed proposed operating standard:** [Technology baseline, decision rubric, worker roles, authorization, evidence and freeze policy](chatgpt-github-only-engine-operating-contract.md). It supplies the agent discretion and concrete choices omitted from this minimal overview, without adding a second normatively binding process.
 Date: 2026-10-11
 Scope: WORK-0005 / ADR-0001 / draft PR #18
 Constraint: four ChatGPT Scheduled tasks + connected GitHub plugin + GitHub-hosted Actions; **no local machine, external daemon or paid external AI reviewer**.
