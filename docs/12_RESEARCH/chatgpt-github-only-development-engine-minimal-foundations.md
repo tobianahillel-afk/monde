@@ -85,12 +85,12 @@ Simplified operational phases are: **AVAILABLE → OWNED → REVIEWABLE → CLOS
 1. Read current `main`, AGENTS, WORK/task scope, claims/PR checks and latest issue arbitration outcomes; reconcile before any mutation.
 2. If holding a valid grant, resume. Otherwise submit one typed claim request. If result is not yet available, do read-only eligible research/review preparation; no conflicting writes.
 3. On grant, use a task branch and make the smallest reviewable change; update only normative artifacts actually affected. Add targeted tests and publish PR/review packet.
-4. When CI is pending, checkpoint exact HEAD and continue immediately with another compatible *authorized* task if the invocation remains active.
+4. When CI or a review is pending, **do not end merely because it is pending**: track exact candidate SHA + run/check/review identity, keep that HEAD frozen, and while the same ChatGPT invocation is still active do other compatible validly granted work or read-only analysis. Recheck after real wait or useful intervening work, and act on the terminal result immediately when it arrives. Checkpoint for the next scheduled run **only when the actual session/tool limit or lack of safe work prevents continuation**. Never fake waiting, poll pointlessly, or release a writing grant without arbiter authorization.
 5. Independent W2/W3/W4 can carry out L2 technical cold-read on the immutable SHA; the same author chat swapping hats cannot. Native GitHub different-account approval remains separate.
 6. Mark actual completion only from GitHub proof; report one concise handover comment, not a new source commit merely to copy a green status.
-7. If no grant/review capacity exists, return a truthful blocker; do not invent work to keep four agents busy.
+7. If no grant/review capacity exists, use any genuinely useful safe research/review preparation; if no useful authorized work or actual ability to wait remains, preserve pending CI/review futures and return a truthful blocker rather than inventing activity.
 
-Four tasks use same nominal `:00` hour; no time offsets are used as locks. They do not run continuously; an event triggered during a finished ChatGPT task becomes visible at its next scheduled activation.
+Phases A→E are conditional: skip B/C for clear authorized local fixes, skip D for research/review-only tasks, always retain applicable tests/reviews/authority. Four tasks use the same nominal `:00` hour; no time offsets are locks. They do not run continuously; an event finishing after a ChatGPT task stops is picked up during the next scheduled reconciliation. [The single canonical prompt and CI watcher](chatgpt-github-only-engine-operating-contract.md) specify the detailed behavior; do not author a second worker prompt here.
 
 ## 6. Failure modes must be covered, but not by a giant framework
 
