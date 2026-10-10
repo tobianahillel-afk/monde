@@ -72,7 +72,7 @@ A different ChatGPT Scheduled task / different conversation / fresh prompt, with
 Record reviewer_worker, fresh_context assertion, review_source, reviewed_sha, reviewed norm digests, tests/evidence, findings, outcome and limitations. Because shared GitHub identity cannot cryptographically establish context separation, grade as context-attested rather than hard-verified unless a verifiable independent identity/evidence mechanism is added.
 L3 requires multiple genuinely independent contexts and additional adversarial scrutiny; multiplying hats in one chat remains L1. Any material code change invalidates prior exact-head L2.
 **Do not equate L2 evidence with GitHub's APPROVED review by a non-author.** Where WORK-0002 or repository policies require an actual non-author collaborator review, integration stays BLOCKED until that separately valid approval occurs. A change to this process requires a dedicated reviewable governance proposal with security impact, owner authorization and live host enforcement.
-Integration: at most one integration claim; current main SHA, head SHA, green correct-source required checks, active fencing token, authorized writes and accepted reviews; merge with expected head SHA and re-check main. No direct main edits; no force push.
+Integration: at most one integration claim; current main SHA, head SHA, green correct-source required checks, **current authoritative Actions grant generation/attempt** (or fencing token only if the CAS fallback was selected), authorized writes and accepted reviews; merge with expected head SHA and re-check main. No direct main edits; no force push.
 
 ## 3. Immediate continuous work within one invocation
 
@@ -130,7 +130,7 @@ Spec Kit may inform checklist templates, never replace existing MONDE specificat
 
 T01 four starts on same SHA with four independent eligible tasks; 4 distinct claims, zero duplicate.
 T02 four starts with only two conflicting write/semantic resources; at most compatible owners.
-T03 same Git ref parent, two incompatible children; non-force CAS rejects one and it re-reads.
+T03 serialized Actions arbiter: four simultaneous conflicting and non-conflicting Issue requests yield exactly one grant per overlapping resource; if fallback CAS is chosen instead, test same Git-ref-parent sibling commit rejection.
 T04 old worker persists after reclaim; old SHA/fencing cannot be promoted/merged.
 T05 ambiguous POST/update acknowledgement; reconciliation prevents replay.
 T06 CIDAG prerequisite not satisfied; successor not runnable.
@@ -172,7 +172,7 @@ For every bounded invocation record `worker_id, run_id, observed_start, initial_
 2. GitHub same-account reviews cannot meet author≠reviewer host rule; high assurance needs an independent actor or an explicit governance choice.
 3. Self-stated `worker_id`/fresh_context cannot prove a second ChatGPT context cryptographically.
 4. Personal-account `main` currently unprotected; admin changes are outside the current GitHub connector's supported operations.
-5. An unverified CAS implementation can corrupt operational task assignment.
+5. An unverified Actions arbiter grant protocol (or unverified CAS fallback if selected) can corrupt operational task assignment; no claim mechanism is operational until actual connector and concurrency tests pass.
 6. GitHub Actions cannot wake or spawn a ChatGPT Scheduled task by writing a file, and CI is not an LLM reviewer.
 7. Four tasks on an eligible ChatGPT plan consume a limited active-task budget; other tasks may be affected by account limits.
 8. Treating work histories from branch-local stale documents as current could deadlock progress.
