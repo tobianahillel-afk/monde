@@ -6,6 +6,9 @@ Work: WORK-0005
 Tracking: https://github.com/tobianahillel-afk/monde/issues/17
 Base reviewed for discovery: main b4b52c77fbf05eda65e8f0e951959da70e7edbe7
 
+**Launch readiness: NOT_READY (design only).** Read [15 activation gates and startup mode policy](chatgpt-github-only-engine-launch-readiness.md) and [automatic/manual reconciliation contract](chatgpt-github-only-engine-reconciliation-runbook.md) **before** suggesting, creating or activating four write-capable scheduled tasks. Every listed engine is proposed; as of this draft, there is no implemented control-ref scheduler, automatic reconciliation, trusted integration switch or actual worker coordination. "Frozen" means an accepted exact-SHA contract only; this RFC and ADR are **not frozen/Accepted**.
+
+
 ## 0. Hard platform and assurance constraints
 
 MONDE is developed exclusively with four independent ChatGPT Scheduled task conversations, the **GitHub connector**, the GitHub repository and **GitHub-hosted Actions**. No user-controlled PC, shell, persistent host, external coordinator, independent paid Codex reviewer, Temporal, Beads/Dolt service, OpenHands server or Gas Town service may be required. GitHub-hosted runner compute may execute tests, validators and simulations, **not an autonomous ChatGPT L2 session**. GitHub Actions workflows cannot secretly call paid models or Codex; AI reasoning occurs in the four ChatGPT conversations.
@@ -46,6 +49,8 @@ A stalled/expired worker can leave a task branch, but no stale attempt is promot
 Disjoint tasks can both claim; overlapping semantic contracts or shared canonical YAML/Markdown owners cannot. One security/trust-root writer at a time. Prefer work-set reservation over a global execution lock.
 
 ### 2.4 GitHub event reconciliation / CI futures
+
+The normative candidate recovery details live in the [reconciliation/runbook proposal](chatgpt-github-only-engine-reconciliation-runbook.md). Its **automatic** and **incident** modes, two-phase mutation outbox, disputed operations, isolated quarantines, global trust pause and recovery proof are required deployment tests, **not present runtime functionality**.
 Push a small authorized task branch -> GitHub Actions runs asynchronously -> record exact SHA + run_id + run_attempt + workflow/job/check source + policy version as a future. Worker can release writing claim after a durable checkpoint and continue on another independent task; task still pending.
 Next worker reconciles pending runs against GitHub: success -> VERIFY_READY only if qualifying trusted source, failure -> FIX_READY, skipped/cancelled/stale/unprovable -> BLOCKED or RETRY_ELIGIBLE according to reviewed rules. A raw green check never equals acceptance.
 External writes with lost ACK: mark OUTCOME_UNKNOWN, inspect authoritative ref/check/PR using idempotency key **before** retry; do not duplicate commits, workflow reruns or review requests.
