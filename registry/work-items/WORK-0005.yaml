@@ -51,7 +51,7 @@ acceptance_criteria:
     description: "The exact ChatGPT + GitHub-only runtime, capabilities, costs, permissions and limitations are documented, with no required external AI reviewer."
     status: NOT_STARTED
   - id: AC-2
-    description: "All assignment, lease/fencing, no-overlap, CI futures, automatic reconciliation and manual incident-recovery transitions are unambiguous, idempotent and testable."
+    description: "Minimal trusted GitHub Actions assignment, no-overlap, CI/review futures, safe grant recovery and incident-recovery transitions are unambiguous, idempotent and testable; CAS/fencing control ref is a fallback only if separately selected."
     status: NOT_STARTED
   - id: AC-3
     description: "L0/L1/L2/L3 procedural independence and the separate GitHub author/non-author approval rule are accurately preserved."
@@ -93,6 +93,12 @@ acceptance_criteria:
     status: NOT_STARTED
   - id: AC-15
     description: "The percentage slowdown model clearly labels all nonmeasured overlapping assumptions and defines matched 1/2/4-worker observational pilots before any speedup assertion."
+    status: NOT_STARTED
+  - id: AC-16
+    description: "A pending or running GitHub Action or review does not itself end an active ChatGPT invocation: valid independent work and bounded real status polling continue, terminal results are handled, and only genuine runtime/tool/policy limits force a recoverable checkpoint."
+    status: NOT_STARTED
+  - id: AC-17
+    description: "The A through E engineering phases are selected per task and risk; irrelevant research, choice or implementation phases can be skipped while all applicable tests, independent review and protected merge gates remain mandatory."
     status: NOT_STARTED
 
 requirements: []
@@ -219,12 +225,15 @@ required_tests:
     - "document atomic claim/fencing and same-snapshot four-way property cases"
     - "reversible decision choice must return to research on counterexample, without treating C local freeze as Accepted"
   integration:
-    - "prove connector Git ref update and failure contracts in separately tracked implementation spike"
+    - "prove GitHub connector issue_comment to trusted default-branch Actions dispatch with actual actor/permissions, or mark the selected mechanism unproven"
+    - "test two conflicting claims and one authorized independent grant with serialized GitHub Actions; CAS proof is only required if alternative explicitly selected"
   contract:
     - "reviewer context is not identical to GitHub account/author identity"
     - "no changes to WORK-0002/WORK-0003 enforcement semantics"
   e2e:
     - "cold-read an end-to-end worker execution and handover without local files"
+    - "simulate 5/15/30-minute running CI or review: work while pending, recheck after real elapsed work, process terminal exact-HEAD result, or checkpoint if the actual ChatGPT session ends"
+    - "simulate simple bug A-D-E, research-only A-B-E, and complex A-B-C-D-E with same-chat transitions and required review gates"
     - "cold-read single-run A through E phase transitions, policy/authority boundaries and algorithm choice record"
   regression:
     - "PR #2/#14 review authority and exact-head proof remain unmodified"
@@ -232,6 +241,7 @@ required_tests:
     - "self-approval, check spoof, late worker and prompt injection fail closed by design"
   performance:
     - "plan baseline accepted-merge throughput before 4-way deployment"
+    - "measure useful work during genuine CI/review waits without faking timers, and avoid redundant API polling"
   real_system:
     - "GitHub branch protection and task connector feature availability discovery"
     - "verify ChatGPT scheduled mode access, project file/history limits, role handover and GitHub issue_comment delivery"
@@ -272,6 +282,7 @@ validation:
 
     - "This author-led critical-path audit is NOT an independent L2 review."
     - "The proposed percentage friction and cost reduction estimates are not empirical; no live Scheduled-task benchmark exists."
+    - "A ChatGPT session cannot be guaranteed to outlive a long-running GitHub Actions job; the invariant is no voluntary early exit, productive work while active, and durable next-run recovery."
 
 
 
