@@ -24,10 +24,13 @@ function oneLine(value, max = 1000) {
   return typeof value === 'string' && value.length > 0 && value.length <= max &&
     !/[\u0000-\u001f\u007f\u2028\u2029]/.test(value);
 }
-function validPath(value) {
-  return oneLine(value, 180) && PATH.test(value) &&
-    !value.startsWith('/') &&
-    value.split('/').every(part => part && part !== '.' && part !== '..');
+function validPath(value, allowDirectory=false) {
+  if (!oneLine(value, 180) || !PATH.test(value) ||
+      value.startsWith('/')) return false;
+  const normalized = allowDirectory && value.endsWith('/') ?
+    value.slice(0, -1) : value;
+  return normalized.length > 0 && normalized.split('/')
+    .every(part => part && part !== '.' && part !== '..');
 }
 function assignment(input) {
   exactFields(input, ['assignment_id', 'repo', 'pr', 'head_sha',
@@ -41,7 +44,7 @@ function assignment(input) {
       !ID.test(input.author_context_id) ||
       !Array.isArray(input.paths) || input.paths.length < 1 ||
       input.paths.length > 24 ||
-      input.paths.some(path => !validPath(path)) ||
+      input.paths.some(path => !validPath(path, true)) ||
       new Set(input.paths).size !== input.paths.length) bad('INVALID_ASSIGNMENT');
   return {
     ...input,

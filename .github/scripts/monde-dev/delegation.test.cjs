@@ -247,3 +247,14 @@ test('handoff cannot republish a review against a newer SHA',()=>{
   assert.equal(packet.can_publish,false);
   assert.equal(packet.status,'STALE_SHA');
 });
+
+test('directory scope is explicit, bounded and matches findings within it',()=>{
+  const directory={...H,paths:['.github/scripts/monde-dev/']};
+  assert.deepEqual(d.assignment(directory).paths,['.github/scripts/monde-dev/']);
+  const out=d.assessReview({expected:directory,response:message(data()),
+    current_head:SHA,source});
+  assert.equal(out.status,'NEEDS_CORRECTION');
+  assert.deepEqual(out.out_of_scope_findings,[]);
+  for(const paths of [['/'],['src//'],['src/../'],['src/.'],['.']])
+    assert.throws(()=>d.assignment({...H,paths}));
+});
