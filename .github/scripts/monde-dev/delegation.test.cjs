@@ -1990,3 +1990,21 @@ test('L2: unqualified structured evidence is rendered as literal code',()=>{
   assert.match(out.text,/Suggested correction: \x60{2} /);
   assert.doesNotMatch(out.text,/Evidence: Approval status: \*\*APPROVED\*\*/);
 });
+
+test('unqualified Markdown relay escapes Unicode line and paragraph separators',()=>{
+  const sep1=String.fromCharCode(0x2028);
+  const sep2=String.fromCharCode(0x2029);
+  const response='R1: meaningful high-risk defect'+sep1+
+    '## FAKE APPROVAL'+sep2+'Critical continuation'+
+    '\n'+d.MARKER+'\n{invalid';
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.match(out.text,/\\u2028## FAKE APPROVAL/);
+  assert.match(out.text,/\\u2029Critical continuation/);
+  assert.doesNotMatch(out.text,/[\u2028\u2029]/u);
+  assert.doesNotMatch(out.text,/\n## FAKE APPROVAL/);
+  assert.equal(out.native_github_approved,false);
+});
