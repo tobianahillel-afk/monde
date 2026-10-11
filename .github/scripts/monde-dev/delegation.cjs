@@ -621,12 +621,12 @@ function prepareInteractiveHandoff(args) {
       JSON.stringify(metadata)
     ]:[])
   ].join('\n');
-  if(HIDDEN_FORMAT.test(note))
-    return {status:'UNSAFE_INVISIBLE_IN_RELAY',can_publish:false,
-      ready_for_manual_relay:false,requires_manual_qualification:true,
-      native_github_approved:false,text:null};
   if(BIDI_CONTROL.test(note))
     return {status:'UNSAFE_BIDI_IN_RELAY',can_publish:false,
+      ready_for_manual_relay:false,requires_manual_qualification:true,
+      native_github_approved:false,text:null};
+  if(HIDDEN_FORMAT.test(note))
+    return {status:'UNSAFE_INVISIBLE_IN_RELAY',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
   // Scan exactly what could reach the public PR, not only the source text.
@@ -731,10 +731,10 @@ function prepareUnqualifiedTriageHandoff(args) {
     'context separation and all unresolved findings.',
     'This text MUST NOT be used as an APPROVE decision or merge authorization.'
   ].join('\n');
-  if(HIDDEN_FORMAT.test(note))
-    return refused('UNSAFE_INVISIBLE_IN_RELAY');
   if(BIDI_CONTROL.test(note))
     return refused('UNSAFE_BIDI_IN_RELAY');
+  if(HIDDEN_FORMAT.test(note))
+    return refused('UNSAFE_INVISIBLE_IN_RELAY');
   if(CREDENTIAL_PATTERNS.some(re=>[args.response,note,source.message_ref]
       .some(s=>typeof s==='string'&&re.test(s))))
     return refused('POTENTIAL_SECRET_IN_REPORT');
