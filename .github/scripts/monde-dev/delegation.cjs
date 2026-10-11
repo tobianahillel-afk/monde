@@ -248,7 +248,69 @@ function prepareInteractiveHandoff(args) {
   };
 }
 
+
+// This is a pure in-memory batch of 1–4 read-only missions, not a scheduler.
+// Prevents duplicate missions and mismatched target revisions from being
+// delegated as though they were one exact-HEAD review packet.
+function planDelegations(inputs) {
+  if (!Array.isArray(inputs) || inputs.length < 1 || inputs.length > 4)
+    bad('INVALID_BATCH_SIZE');
+  const work = inputs.map(assignment);
+  const seen = new Set();
+  const anchor = work[0];
+  for (const item of work) {
+    if (seen.has(item.assignment_id)) bad('DUPLICATE_ASSIGNMENT');
+    seen.add(item.assignment_id);
+    if (item.repo !== anchor.repo || item.pr !== anchor.pr ||
+        item.head_sha !== anchor.head_sha ||
+        item.author_context_id !== anchor.author_context_id)
+      bad('MIXED_BATCH_TARGET');
+  }
+  return work.map(item => ({
+    assignment_id: item.assignment_id,
+    repo: item.repo,
+    pr: item.pr,
+    head_sha: item.head_sha,
+    read_only: true,
+    prompt: buildReviewPrompt(item)
+  }));
+}
+
+// Reports are supplied by the foreground chat *after* retrieving actual
+// conversations; a scheduler success cannot be substituted for the text.
+// A batch status does not confer GitHub approval, even if every report says APPROVE.
+function assessDelegationBatch({ assignments, reports, sources, current_head }) {
+  const plan = planDelegations(assignments);
+  if (!plain(reports) || !plain(sources))
+    bad('INVALID_REPORT_MAP');
+  const ids = new Set(plan.map(p => p.assignment_id));
+  if (Object.keys(reports).some(id => !ids.has(id)) ||
+      Object.keys(sources).some(id => !ids.has(id)))
+    bad('UNKNOWN_ASSIGNMENT_RESULT');
+  const results = plan.map((target, index) => {
+    const key = target.assignment_id;
+    const input = {
+      expected: assignments[index],
+      response: Object.prototype.hasOwnProperty.call(reports, key) ?
+        reports[key] : null,
+      source: Object.prototype.hasOwnProperty.call(sources, key) ?
+        sources[key] : undefined,
+      current_head
+    };
+    return { assignment_id: key, ...assessReview(input) };
+  });
+  const counts = {};
+  for (const result of results)
+    counts[result.status] = (counts[result.status] || 0) + 1;
+  return {
+    repo: plan[0].repo, pr: plan[0].pr, head_sha: plan[0].head_sha,
+    total: plan.length, results, counts,
+    native_github_approved: false, ready_for_merge: false
+  };
+}
+
 module.exports = {
   MARKER, InvalidReport, assignment, buildReviewPrompt, validateReport,
-  parseReviewResponse, assessReview, prepareInteractiveHandoff
+  parseReviewResponse, assessReview, prepareInteractiveHandoff,
+  planDelegations, assessDelegationBatch
 };

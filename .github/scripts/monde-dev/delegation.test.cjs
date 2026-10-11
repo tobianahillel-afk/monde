@@ -301,3 +301,75 @@ test('interactive relay is never interpreted as automatic publication approval',
   assert.match(packet.text,/Observed message reference: history-msg-l2-20261011-001/);
   assert.match(packet.text,/verify manually/);
 });
+
+
+test('delegation batch supports one through four distinct read-only missions', () => {
+  for (let size = 1; size <= 4; size++) {
+    const entries = Array.from({length:size}, (_,i) => ({
+      ...H, assignment_id: 'L2-PR19-BATCH-0'+(i+1),
+      objective: 'Independently assess risk group '+(i+1)
+    }));
+    const plan = d.planDelegations(entries);
+    assert.equal(plan.length,size);
+    assert.ok(plan.every(x=>x.read_only===true));
+    assert.ok(plan.every(x=>x.head_sha===SHA));
+    assert.ok(plan.every(x=>x.prompt.includes('INTERDIT: commentaire GitHub')));
+  }
+});
+test('delegation batch rejects empty, oversized, duplicate and mixed scope cohorts', () => {
+  for (const entries of [[],Array(5).fill(H),[H,H],
+    [H,{...H,assignment_id:'L2-PR19-DIFF-SHA',head_sha:'b'.repeat(40)}],
+    [H,{...H,assignment_id:'L2-PR19-DIFF-CHAT',author_context_id:'different-author-chat'}],
+    [H,{...H,assignment_id:'L2-PR19-DIFF-PR',pr:20}]
+  ]) assert.throws(()=>d.planDelegations(entries));
+});
+test('batch reporter keeps missing, stale and retrieved reports separate', () => {
+  const h1={...H,assignment_id:'L2-PR19-MISSION-01'};
+  const h2={...H,assignment_id:'L2-PR19-MISSION-02'};
+  const out=d.assessDelegationBatch({
+    assignments:[h1,h2],
+    current_head:SHA,
+    reports:{[h1.assignment_id]:message(data({
+      assignment_id:h1.assignment_id
+    }))},
+    sources:{[h1.assignment_id]:source}
+  });
+  assert.equal(out.total,2);
+  assert.equal(out.results[0].status,'NEEDS_CORRECTION');
+  assert.equal(out.results[1].status,'REPORT_UNAVAILABLE');
+  assert.equal(out.counts.NEEDS_CORRECTION,1);
+  assert.equal(out.counts.REPORT_UNAVAILABLE,1);
+  assert.equal(out.native_github_approved,false);
+  assert.equal(out.ready_for_merge,false);
+});
+test('a forged or stale batch result never becomes an approved merge', () => {
+  const packet={...H,assignment_id:'L2-PR19-APPROVE-01'};
+  const positive=message(data({
+    assignment_id:packet.assignment_id,
+    verdict:'APPROVE',findings:[]
+  }));
+  const obs=d.assessDelegationBatch({
+    assignments:[packet],
+    reports:{[packet.assignment_id]:positive},
+    sources:{[packet.assignment_id]:source},
+    current_head:SHA
+  });
+  assert.equal(obs.results[0].status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(obs.native_github_approved,false);
+  assert.equal(obs.ready_for_merge,false);
+  const stale=d.assessDelegationBatch({
+    assignments:[packet],
+    reports:{[packet.assignment_id]:positive},
+    sources:{[packet.assignment_id]:source},
+    current_head:'b'.repeat(40)
+  });
+  assert.equal(stale.results[0].status,'STALE_SHA');
+});
+test('batch rejects unexpected report keys, missing source map and invalid JSON-like inputs', () => {
+  for (const value of [
+    {assignments:[H],reports:{OTHER:'report'},sources:{},current_head:SHA},
+    {assignments:[H],reports:{},sources:{OTHER:source},current_head:SHA},
+    {assignments:[H],reports:[],sources:{},current_head:SHA},
+    {assignments:[H],reports:{},sources:null,current_head:SHA}
+  ]) assert.throws(()=>d.assessDelegationBatch(value));
+});
