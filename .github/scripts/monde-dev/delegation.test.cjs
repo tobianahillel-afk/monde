@@ -1574,8 +1574,9 @@ test('L2 regression: BLOCKED with one R2 never advertises a self-contained remed
   assert.match(x.text,/Suggested correction:/);
 });
 test('L2 regression: partial reviewed-path coverage cannot claim complete remediation',()=>{
-  const packet=data({reviewed_paths:[],limitations:['Coverage of assigned file missing']});
-  const x=d.prepareInteractiveHandoff({expected:H,response:message(packet),
+  const wider={...H,paths:[...H.paths,'.github/scripts/monde-dev/delegation.test.cjs']};
+  const packet=data({reviewed_paths:H.paths,limitations:['Coverage of assigned file missing']});
+  const x=d.prepareInteractiveHandoff({expected:wider,response:message(packet),
     current_head:SHA,source,publication_clearance:{
       secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
       finding_details_approved:true}});
