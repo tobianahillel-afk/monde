@@ -18,6 +18,7 @@ jobs:
   arbitrate:
     if: >-
       github.event_name == 'issue_comment' &&
+      github.actor == 'tobianahillel-afk' &&
       !github.event.issue.pull_request &&
       github.event.issue.number == 20
     runs-on: ubuntu-latest
