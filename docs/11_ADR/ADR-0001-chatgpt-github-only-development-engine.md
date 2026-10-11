@@ -32,6 +32,14 @@ GitHub can execute CI on its own hosted runners. The ChatGPT plugin provides Git
 8. Distinguish safe read-only/isolated single-worker research and test pilots from full production release: do not activate four agents against shared writable resources until actual same-snapshot race, claim fencing, trusted review, host protection and rollback tests pass.
 9. Stop expanding the engine after it safely supports useful accepted MONDE product slices.
 
+## Immediate productivity without an engine (PROPOSED)
+
+The [minimal foundations](../12_RESEARCH/chatgpt-github-only-development-engine-minimal-foundations.md) define **L0 (0-code read-only documentation/research)** → **L1 (one authorized scoped writer, no allocator)** → **L2 (only then one trusted Actions arbiter if a second writer needs exclusive grants)** → **L3 (four writers once all launch gates prove host enforcement)**. The four-agent software engine is **not a prerequisite** for WORK-0004 research or a narrow source-backed product documentation slice. A single-author accepted workflow under current permissions may be useful before a generalized controller exists.
+
+**Do not bootstrap the coordinator with four uncoordinated WRITE-CAPABLE Scheduled tasks**: it increases branch conflicts and non-author review bottlenecks; no tested claim authority exists. A temporary **one writer + up to three nonconflicting researchers/fresh-context reviewers** arrangement is preferred *after* one safe Scheduled GitHub permission trial, with accepted review and host boundaries unchanged. Current ChatGPT Plus allows five active tasks; four new MONDE tasks would occupy the four currently spare slots, not an unlimited pool. Four-way automatic writing remains `NO-GO`.
+
+[Critical path audit](../12_RESEARCH/chatgpt-github-only-engine-critical-path-audit.md) §G4 compares focused-hour and elapsed-time planning ranges. Batch Git tree/commit operations using the existing connector can reduce repetitive single-file commits where safely tested, without adding a custom source-control framework.
+
 ## Minimal realization path (PROPOSED — verify before acceptance)
 
 The [minimal foundations document](../12_RESEARCH/chatgpt-github-only-development-engine-minimal-foundations.md) now defines the **preferred smallest testable system**: six invariants, native GitHub components, one typed command issue, one serialized default-branch `issue_comment`/periodic reconciliation workflow, optional conventional PR CI, three narrow functions (choose/reconcile/check-eligibility), and T0–T5 proof. It supersedes **the earlier preferred engineering mechanism**, *not* Accepted MONDE policy. Historical longer design documents remain exploratory fallback and failure-mode references; do not combine every design alternative into an all-feature implementation.
