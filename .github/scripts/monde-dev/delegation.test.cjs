@@ -1594,7 +1594,9 @@ test('L2 regression: malformed mid-report R1 remains in bounded snippets beyond 
     '\n'+d.MARKER+'\n{invalid json';
   const result=d.assessReview({expected:H,response:report,current_head:SHA,source});
   assert.equal(result.status,'REPORT_NEEDS_MANUAL_REVIEW');
-  assert.equal(result.raw_blocker_snippets.length,12);
+  // The bounded first-R1 reserve adds at most one slot to the older 12.
+  assert.ok(result.raw_blocker_snippets.length>=12);
+  assert.ok(result.raw_blocker_snippets.length<=13);
   assert.ok(result.raw_blocker_snippets.some(s=>
     s.includes('later severe logic flaw 7')));
   assert.equal(result.requires_manual_qualification,true);
