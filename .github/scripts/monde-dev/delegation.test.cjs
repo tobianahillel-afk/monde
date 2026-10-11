@@ -144,3 +144,30 @@ test('single-writer GitHub workflow has no automatic comment trigger or write to
   assert.doesNotMatch(workflow,/createComment|merge_pull_request|createCommit/);
   assert.match(workflow,/^\s+issues:\s*read\b/m);
 });
+
+test('critical R1 or major R2 findings cannot be laundered as APPROVE', () => {
+  for (const severity of ['R1','R2']) {
+    const report=data({verdict:'APPROVE',findings:[{
+      ...data().findings[0],severity
+    }]});
+    assert.throws(()=>d.validateReport(report),
+      error=>error.code==='APPROVAL_WITH_BLOCKING_FINDINGS');
+    assert.throws(()=>d.assessReview({
+      expected:H,response:message(report),current_head:SHA,source
+    }),error=>error.code==='APPROVAL_WITH_BLOCKING_FINDINGS');
+  }
+});
+test('APPROVE may record non-blocking R3 recommendations without native authority', () => {
+  const response=message(data({verdict:'APPROVE',findings:[{
+    ...data().findings[0],severity:'R3'
+  }]}));
+  const result=d.assessReview({expected:H,response,current_head:SHA,source});
+  assert.equal(result.status,'TECHNICAL_L2_COMPLETE');
+  assert.equal(result.native_github_approved,false);
+  assert.equal(result.finding_count,1);
+});
+test('generated review brief states the R1/R2 approval restriction', () => {
+  const prompt=d.buildReviewPrompt(H);
+  assert.match(prompt,/APPROVE est interdit/);
+  assert.match(prompt,/R1\/R2/);
+});

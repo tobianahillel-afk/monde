@@ -85,8 +85,9 @@ function buildReviewPrompt(input) {
     'Ligne suivante: JSON COMPACT avec exactement ce schema:',
     JSON.stringify(example),
     'Les constats non nuls doivent inclure preuve et correction precise.',
-    'CHANGES_REQUIRED exige au moins un constat. Aucun controle ne publie',
-    'automatiquement ton resultat dans GitHub.'
+    'CHANGES_REQUIRED exige au moins un constat. APPROVE est interdit',
+    'avec des constats R1/R2 encore ouverts dans son propre rapport.',
+    'Aucun controle ne publie automatiquement ton resultat dans GitHub.'
   ].join('\n');
 }
 function validateReport(x) {
@@ -115,6 +116,11 @@ function validateReport(x) {
   }
   if (x.verdict === 'CHANGES_REQUIRED' && x.findings.length === 0)
     bad('MISSING_FINDINGS');
+  // An alleged clean L2 approval cannot coexist with unresolved high-risk
+  // findings in its own machine-verifiable review packet.
+  if (x.verdict === 'APPROVE' &&
+      x.findings.some(f => f.severity === 'R1' || f.severity === 'R2'))
+    bad('APPROVAL_WITH_BLOCKING_FINDINGS');
   return x;
 }
 function parseReviewResponse(text) {
