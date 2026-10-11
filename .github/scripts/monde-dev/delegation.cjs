@@ -530,6 +530,15 @@ const CREDENTIAL_PATTERNS=[
   /(?:^|[^A-Za-z0-9])Authorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}/i
 ];
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
+// Full-report consent authorizes review text, not copying private ChatGPT
+// provenance identifiers embedded in prose, findings or limitations. Match
+// literal identifiers only; fingerprints are computed from untouched sources.
+function redactPrivateProvenance(note, values) {
+  const ids=[...new Set(values.filter(v=>typeof v==='string'&&
+    v.length>=8&&oneLine(v,160)))].sort((a,b)=>b.length-a.length);
+  for(const id of ids)note=note.split(id).join('[REDACTED_CONTEXT_REFERENCE]');
+  return note;
+}
 function prepareInteractiveHandoff(args) {
   const evaluation = assessReview(args);
   if (!['NEEDS_CORRECTION', 'BLOCKED', 'L2_REPORT_SCOPE_EXPANSION',
@@ -561,7 +570,7 @@ function prepareInteractiveHandoff(args) {
   const fullReport=clearance.full_report_approved===true;
   // This is a COPY-READY artifact for the foreground developer. No GitHub
   // mutation or independent-review attestation is possible from this module.
-  const note = [
+  let note = [
     '## External ChatGPT L2 review — manually relayed, not GitHub approval',
     'Assignment: ' + a.assignment_id,
     'Repository: ' + a.repo + '; PR #' + a.pr,
@@ -626,6 +635,10 @@ function prepareInteractiveHandoff(args) {
       }))
     ]:[])
   ].join('\n');
+  note=redactPrivateProvenance(note,[
+    metadata.reviewer_context_id, a.author_context_id,
+    args.source?.context_id,args.source?.message_ref
+  ]);
   if(BIDI_CONTROL.test(note))
     return {status:'UNSAFE_BIDI_IN_RELAY',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
@@ -730,7 +743,7 @@ function prepareUnqualifiedTriageHandoff(args) {
   const suspected=analysis.reported_blocking_unknown===true||
     analysis.reported_claims_incomplete===true;
   const source=plain(args.source)?args.source:{};
-  const note=[
+  let note=[
     '## Unqualified ChatGPT reviewer evidence — foreground relay only',
     'Repository: '+a.repo+'; PR #'+a.pr,
     'Assignment: '+a.assignment_id+'; mission: '+a.mission_kind,
@@ -762,6 +775,9 @@ function prepareUnqualifiedTriageHandoff(args) {
     'context separation and all unresolved findings.',
     'This text MUST NOT be used as an APPROVE decision or merge authorization.'
   ].join('\n');
+  note=redactPrivateProvenance(note,[
+    a.author_context_id,source.context_id,source.message_ref
+  ]);
   if(BIDI_CONTROL.test(note))
     return refused('UNSAFE_BIDI_IN_RELAY');
   if(HIDDEN_FORMAT.test(note))

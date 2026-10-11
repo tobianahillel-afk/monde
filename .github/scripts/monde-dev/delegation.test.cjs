@@ -2318,3 +2318,57 @@ test('provenance fingerprint opt-in never exposes raw structured reviewer ID',()
   assert.equal(packet.reviewer_context_id,'[REDACTED]');
   assert.equal(out.native_github_approved,false);
 });
+
+
+test('explicit full-report consent redacts identifiers repeated in report prose',()=>{
+  const reviewer=source.context_id;
+  const analysis='Independent analysis of the actual source and threat model. '+
+    'Private reviewer: '+reviewer+'; private source ref: '+source.message_ref+
+    '; author context: '+H.author_context_id+'.';
+  const response=analysis+'\n'+d.MARKER+'\n'+JSON.stringify(data({
+    verdict:'APPROVE',findings:[]
+  }));
+  const out=d.prepareInteractiveHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      full_report_approved:true,provenance_hashes_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  for(const identifier of [reviewer,source.message_ref,H.author_context_id])
+    assert.equal(out.text.includes(identifier),false);
+  assert.match(out.text,/REDACTED_CONTEXT_REFERENCE/);
+  assert.match(out.text,/Normalization: copied analysis/);
+});
+
+test('approved finding excerpts and limitations never publish private context IDs',()=>{
+  const reviewer=source.context_id;
+  const response=message(data({findings:[{
+    ...data().findings[0],evidence:'Private L2 context '+reviewer+
+      ' found a concrete unsafe branch',action:'Keep note '+source.message_ref+
+      ' inside source chat only'
+  }],limitations:['Reviewer internal '+H.author_context_id+
+    ' not to be relayed']}));
+  const out=d.prepareInteractiveHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  for(const identifier of [reviewer,source.message_ref,H.author_context_id])
+    assert.equal(out.text.includes(identifier),false);
+  assert.match(out.text,/REDACTED_CONTEXT_REFERENCE/);
+  assert.equal(out.native_github_approved,false);
+});
+
+test('unqualified fallback redacts conversation provenance inside R1 snippet',()=>{
+  const response='Review: R1 serious issue tied to '+source.context_id+
+    ' and '+source.message_ref+'; manual triage required.\\n'+
+    d.MARKER+'\\n{broken-json';
+  const out=d.prepareUnqualifiedTriageHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.equal(out.text.includes(source.context_id),false);
+  assert.equal(out.text.includes(source.message_ref),false);
+  assert.match(out.text,/REDACTED_CONTEXT_REFERENCE/);
+  assert.equal(out.native_github_approved,false);
+});
