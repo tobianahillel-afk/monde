@@ -2260,3 +2260,31 @@ test('C1 control U+009B in full L2 prose is never publicly relayed',()=>{
   assert.equal(out.ready_for_manual_relay,false);
   assert.equal(out.text,null);
 });
+
+
+test('unqualified L2 fallback refuses raw C1 controls in malformed R1 excerpts',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const cp of [0x80,0x85,0x9b,0x9f]){
+    const value=String.fromCodePoint(cp);
+    const response='Independent review: R1 critical error'+value+
+      ' concealed in authentication logic\n'+d.MARKER+'\n{invalid';
+    const out=d.prepareUnqualifiedTriageHandoff({expected:H,response,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(out.status,'UNSAFE_CONTROL_IN_RELAY','U+'+cp.toString(16));
+    assert.equal(out.ready_for_manual_relay,false);
+    assert.equal(out.text,null);
+  }
+});
+
+test('unqualified L2 fallback permits readable ordinary R1 excerpts',()=>{
+  const response='Independent review: R1 critical branch should reject stale claims'+
+    '\n'+d.MARKER+'\n{invalid';
+  const out=d.prepareUnqualifiedTriageHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.match(out.text,/R1 critical branch/);
+});

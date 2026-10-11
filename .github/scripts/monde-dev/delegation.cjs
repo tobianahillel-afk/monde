@@ -762,6 +762,11 @@ function prepareUnqualifiedTriageHandoff(args) {
     return refused('UNSAFE_BIDI_IN_RELAY');
   if(HIDDEN_FORMAT.test(note))
     return refused('UNSAFE_INVISIBLE_IN_RELAY');
+  // Raw fallback snippets are not validated structured finding fields.
+  // JSON.stringify leaves Unicode C1 controls intact, so check the exact
+  // public text just as the qualified-report relay does.
+  if(UNSAFE_CONTROL.test(note))
+    return refused('UNSAFE_CONTROL_IN_RELAY');
   if(CREDENTIAL_PATTERNS.some(re=>[args.response,note,source.message_ref]
       .some(s=>typeof s==='string'&&re.test(s))))
     return refused('POTENTIAL_SECRET_IN_REPORT');
