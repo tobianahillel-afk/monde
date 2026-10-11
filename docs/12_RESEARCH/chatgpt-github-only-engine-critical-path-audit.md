@@ -190,6 +190,54 @@ Compare **matched work classes**, not a difficult four-worker science sprint aga
 - Stop research at sufficient credible evidence; stop refactor absent proven benefit; freeze exact candidate HEAD for CI/review; checkpoint and stop on real permission/approval blockade.
 - If the process itself generates multiple large research documents per small operational rule, treat **document growth as a measurable regression** and consolidate/update existing accepted references rather than adding another standalone framework.
 
+## G4. Bootstrap faster: one writer vs four premature writers vs 1+3 mixed
+
+**Comparison assumes** same MONDE repo, same current accepted quality gates, current public GitHub Actions standard runner access, one shared GitHub actor across four ChatGPT chats, no paid API/Codex, and ability to use the connector in the actual Scheduled execution **not yet empirically proved**. Engineering hours are human-equivalent *focused task effort* (research, code, tests, review), **not measured ChatGPT runtime**; the current WORK-0002/3 backlog and human-admin/non-author approvals are separate and may dominate/invalidate calendar forecasts.
+
+| Bootstrapping strategy | What it really entails | Added engineering effort to guarded 4-worker pilot (subjective planning band) | Relative calendar speed if reviewed tools available | Verdict |
+|---|---|---:|---|---|
+| **A — one writer first** | Manual GitHub task scope; one actual connector T0/T1 proof; implement and test arbiter once; gradually test 2/4 | **60–160 focused h** | Roughly **3–8 weeks** at intermittent bounded Scheduled-task productivity; not guaranteed | Safest default, predictable |
+| **B — four unconstrained writer tasks NOW** | No tested allocator, no protected main, uncertain plugin approvals; collisions, stale heads, divergent designs/reviews | **70–220+ focused h**, possibly no legitimate merge | **Potentially slower than A; unbounded blocker** | **NO-GO** for write-capable workers |
+| **C — one writer + up to three read-only researchers/reviewers** | One authorized scoped writer on actual GH branch; three chats examine independent WORK-0004 capabilities, contracts/algorithms and other-author L2 while writer builds arbiter | **55–145 focused h** across all contexts (research integration still costs); possible **20–45% shorter elapsed critical path** than A if independent review can be obtained | Roughly **2–6 weeks**, plus approval bottlenecks; 20–45% is hypothesis | **Preferred phased bootstrap**, not an asserted performance fact |
+| **D — no controller, product research first** | One interactive/current authorized chat and 0 custom runtime code, WORK-0004 evidence inventory in parallel | **0 development-engine runtime hours** | Product research starts **immediately** | Best to begin MONDE documentation |
+
+**More informative subtargets**: first read-only GitHub/Scheduled connector proof **~2–6 focused h** if permissions work; first event→default-branch Actions synthetic proof **~4–12 h** *once a reviewed workflow can be deployed*; basic 1-writer branch/CI/reconciliation pilot **~20–60 h**; four-writer trusted end-to-end **~60–160 h** including fault injection, not counting backlog/dependencies. These are overlapping stages: **do not add** the subtargets as separate costs to a quoted four-worker total.
+
+**Why four writers do not quadruple engine speed**: engine code is a very small sequential trust-root component; work cannot be parallelized into four simultaneously independent implementations without extra cross-check/integration. Approval of `main`, actor identity, privileged workflow trust, T0/T1 event delivery, test fixture choice, and stable API schemas are *serial gates*. Parallelism pays most for **WORK-0004 historical product inventory, source checking, cold-read, technology research, independent tests**, not for four agents all rewriting `dispatcher.yml`.
+
+**Early high-value run assignment example** (logical tasks, not authorized current production):
+- Writer W1: connector proof and tiny Actions dispatcher only under accepted, scoped GitHub authority.
+- W2: read-only GitHub checkout/branch-protection/API threat model and minimal test fixture critique.
+- W3: WORK-0004 product capability family inventory and historical-source/provenance audit.
+- W4: independent, different-chat cold-read of W1 candidate, or review of product/requirements gaps. Technical cross-chat L2 **does not create different native GitHub reviewer actor**.
+- Rotate freely *after each completed task*; four fixed roles are a **temporary bootstrap handoff**, not permanent worker personalities.
+
+**Capacity/account constraint verified as of 2026-10-11**: Plus currently allows up to 5 active Scheduled tasks (official help), and the account had 1 active scheduled Mariage OS task with previous MONDE task paused. Four MONDE tasks would use all remaining capacity. **Do not create all four just to verify connectivity**; one read-only Scheduled pilot first, and preserve existing tasks.
+
+**Better still**: a GitHub PR event-triggered ChatGPT Work task is an officially supported feature for eligible connected GitHub/Work installations. It *may* eventually reduce review polling, but GitHub PR activity events are not a generic issue-comment command channel and it is **not** a proven free fifth independent L2/second GitHub actor. It would compete with active-task limits; therefore **not a v2 dependency**. Evaluate later only if a measured CI/review wait is bottleneck.
+
+### Critical-path calculation rather than worker count theater
+
+Elapsed delivery time is bounded by:
+`T = serial setup/owner approval + max(parallel research, controller coding) + integration reviews/CI + fault-pilot + unknown tool waits`.
+The critical serial steps cannot be accelerated by scheduling four ChatGPT workers on the same hour. Raw `4 × 24 = 96` nominal starts/day has no empirically established mapping to hours of effective code edits.
+
+**After v2 activation (hypothetical)**: previously defined conditional **~150–400 net newly merged functional product LOC/day** is a middle scenario, **500–1,000/day** a favorable high-throughput integration scenario, and **0/day** is possible if the actual approval gate blocks merges. Distinguish high-quality validated tests, docs and reductions in owned code from new LOC. Review bottleneck/approval is often tighter than writer throughput; build an accepted product slice and measure 7/30-day actual outcomes before scaling.
+
+**Documentation lead time**: product/WORLD blueprint research may start now **without four-worker control-plane or even four Scheduled tasks**. A bounded capability-family map and a first approved narrow vertical slice might take **~1–4 weeks** of concentrated, sourced work if old intent is accessible and independent review is available; the **exhaustive historical WORLD/MONDE capability inventory** could take **many additional weeks/months** and has no justified finite completion date before the full evidence/source census. Avoid gating *all* product implementation on every feature being documented: accepted contracts for the **specific slice** are enough where existing PHASE-0 rules allow implementation.
+
+### What is still capable of making every time estimate meaningless?
+
+**A. Host authority**: current `main.protected=false` and rulesets `[]`; no automatic unattended safe merge. Different ChatGPT contexts with one GitHub actor cannot satisfy native non-author review.
+
+**B. Scheduler/plugin write actions**: official Scheduled docs say write actions can pause for human permission; existing installed plugin in this interactive conversation does not prove auto-permission in scheduled Work tasks.
+
+**C. Historical sources**: four Scheduled tasks do not automatically access all private Project chats/files; WORK-0004 must canonize or mark inaccessible evidence, preserving private data.
+
+**D. Artificial time pressure**: 5/10/30-min CI jobs can outlive ChatGPT session. Never end *voluntarily* merely because CI pending, but do not claim nonexistent persistent worker life; record exact future and resume. A Github PR Work event trigger may help a specific measured review gap, not replace full guarded integration.
+
+**E. Output incentives**: a raw LOC target causes scaffolding, mock tests, duplication and parallel unused abstractions. Track accepted capability/throughput and regression first, net merged functional LOC second; avoid model-generated code that fails reproducibility or outside-bounds science checks.
+
 ## H. Concrete next decisions
 
 1. **Hard architecture fork:** small trusted GitHub Actions allocator pilot vs CAS-per-chat. Bench both only if A fails or costs no more total work; do not implement both production solutions.
