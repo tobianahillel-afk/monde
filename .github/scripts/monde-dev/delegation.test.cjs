@@ -2108,3 +2108,56 @@ test('L2 malformed-report relay blocks underscore-prefixed bearer even with clea
   assert.equal(result.ready_for_manual_relay,false);
   assert.equal(result.text,null);
 });
+
+test('valid L2 with unverified distinct-chat provenance can relay allegations only',()=>{
+  const report=message(data({verdict:'CHANGES_REQUIRED'}));
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,source:undefined,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.ready_for_manual_relay,true);
+  assert.equal(result.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.equal(result.self_contained_for_remediation,false);
+  assert.equal(result.native_github_approved,false);
+  assert.equal(result.ready_for_merge,false);
+  assert.match(result.text,/provenance: UNVERIFIED/);
+  assert.match(result.text,/F01 \[R1\]/);
+  assert.doesNotMatch(result.text,/Footer: MALFORMED/);
+});
+test('valid same-chat or forged provenance never qualifies relay as L2 approval',()=>{
+  const report=message(data({verdict:'CHANGES_REQUIRED'}));
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,
+    source:{...source,context_id:H.author_context_id},
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.ready_for_manual_relay,true);
+  assert.equal(result.native_github_approved,false);
+  assert.match(result.text,/NOT INDEPENDENTLY VERIFIED/);
+});
+test('unverified structured L2 handoff is blocked for stale HEAD or no clearance',()=>{
+  const args={expected:H,response:message(data({verdict:'CHANGES_REQUIRED'})),
+    source:undefined,current_head:SHA};
+  assert.equal(d.prepareUnqualifiedTriageHandoff({...args,
+    current_head:'b'.repeat(40),publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}}).status,'STALE_SHA');
+  assert.equal(d.prepareUnqualifiedTriageHandoff(args).status,
+    'CONFIDENTIALITY_REVIEW_REQUIRED');
+});
+test('unverified structured L2 report with bearer secret cannot be relayed',()=>{
+  const report=message(data({verdict:'CHANGES_REQUIRED'})).replace(
+    'Review the request authorization before token reuse.',
+    'Review the request authorization before token reuse.');
+  const compromised=report.replace('Evidence of overlapping side effect',
+    'file_Authorization: Bearer '+'Y'.repeat(35));
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:compromised,current_head:SHA,source:undefined,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.ready_for_manual_relay,false);
+  assert.equal(result.status,'POTENTIAL_SECRET_IN_REPORT');
+});

@@ -687,7 +687,12 @@ function prepareUnqualifiedTriageHandoff(args) {
   const refused=(status)=>({status,ready_for_manual_relay:false,
     requires_manual_qualification:true,native_github_approved:false,
     ready_for_merge:false,text:null});
-  if(analysis.status!=='REPORT_NEEDS_MANUAL_REVIEW')
+  // A structurally valid report with unverifiable chat provenance may still
+  // supply actionable allegations. Relay only as UNQUALIFIED triage, never L2.
+  const unverifiedSource=analysis.status==='INDEPENDENCE_UNVERIFIED' &&
+    Array.isArray(analysis.reported_findings) &&
+    analysis.reported_findings.length>0;
+  if(analysis.status!=='REPORT_NEEDS_MANUAL_REVIEW'&&!unverifiedSource)
     return refused('NOT_UNQUALIFIED_REPORT');
   if(args.current_head!==a.head_sha)return refused('STALE_SHA');
   const clear=args.publication_clearance;
@@ -721,8 +726,11 @@ function prepareUnqualifiedTriageHandoff(args) {
       'Message ref fingerprint (consent-cleared SHA-256): '+
         createHash('sha256').update(source.message_ref,'utf8').digest('hex')
     ]:[]),
-    'Footer: MALFORMED; L2 qualification: NONE; GitHub native approval: NONE',
-    'Open R1/R2 may be missing: '+(suspected?'YES':'UNKNOWN'),
+    (unverifiedSource?
+      'Footer: PARSEABLE; conversation provenance: UNVERIFIED; L2 qualification: NONE; GitHub native approval: NONE':
+      'Footer: MALFORMED; L2 qualification: NONE; GitHub native approval: NONE'),
+    'Open R1/R2 may be missing: '+(suspected?'YES':
+      unverifiedSource?'NOT EXCLUDED':'UNKNOWN'),
     '',
     '### Suspected findings (NOT VERIFIED)',
     ...findings.flatMap(f=>[
