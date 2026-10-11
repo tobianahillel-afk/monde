@@ -4,9 +4,9 @@
 
 Status: Proposed — research/engineering specification, **not Accepted**
 
-> **CURRENT WORKER AUTONOMY + TECH BASELINE:** [Operating contract and technology decisions](chatgpt-github-only-engine-operating-contract.md) sets role switching, automatic decisions, research/technology comparison, review separation, documentary change discipline, open-source test stack and dependency pinning. Proposed until independent review; no workflow deployed.
+> **HISTORICAL FOUR-WRITER DESIGN (not current V2):** [Operating contract and technology decisions](chatgpt-github-only-engine-operating-contract.md) sets role switching, automatic decisions, research/technology comparison, review separation, documentary change discipline, open-source test stack and dependency pinning. Proposed until independent review; no workflow deployed.
 
-**CURRENT SIMPLIFICATION / READ FIRST:** [Minimal foundations: GitHub-native four-worker engine](chatgpt-github-only-development-engine-minimal-foundations.md) is the preferred low-complexity experimental architecture, linked by Proposed ADR-0001. It reuses Issues, native issue dependency/subissue views, a tiny trusted `actions/github-script` dispatcher, standard CI and existing MONDE registries. Sections below describing per-worker Git-control-ref CAS, a large event-sourcing ledger or fifteen detailed machine states are **fallback research alternatives**, NOT a mandatory implementation plan. Do not implement all alternatives or create competing status authorities. All accepted rules remain in force. First empirical gate: ChatGPT Scheduled GitHub connector→issue-comment webhook→default-branch Actions dispatcher.
+**SUPERSEDED RESEARCH / DO NOT IMPLEMENT IN INTERACTIVE V2:** [Minimal foundations: historical four-writer GitHub-native proposal](chatgpt-github-only-development-engine-minimal-foundations.md) is the preferred low-complexity experimental architecture, linked by Proposed ADR-0001. It reuses Issues, native issue dependency/subissue views, a tiny trusted `actions/github-script` dispatcher, standard CI and existing MONDE registries. Sections below describing per-worker Git-control-ref CAS, a large event-sourcing ledger or fifteen detailed machine states are **fallback research alternatives**, NOT a mandatory implementation plan. Do not implement all alternatives or create competing status authorities. All accepted rules remain in force. First empirical gate: ChatGPT Scheduled GitHub connector→issue-comment webhook→default-branch Actions dispatcher.
 Date: 2026-10-10
 Work: WORK-0005
 Tracking: https://github.com/tobianahillel-afk/monde/issues/17
@@ -35,7 +35,7 @@ Do NOT write a custom Git hosting system, CI queue, full task tracker UI, agent 
 
 Beads, Gas Town, OpenHands, mini-SWE-agent and Temporal are **not installable as the required runtime** under this zero-host user constraint. Their concepts can inform a later redesign, but do not add their services to MONDE.
 
-## 1A. IMPLEMENTATION-READY DESIGN FREEZE — proposed, NOT an Accepted ADR
+## 1A. SUPERSEDED four-writer implementation blueprint — historical proposal only
 
 **Use this section as the next implementation PR's contract.** It freezes *author-side technical choices only*, not existing repository governance or launch permission. Build interactively when the user says to code. **Do not create or run any Scheduled task while building**; Scheduled ChatGPT W1–W4 are exclusively later controlled test subjects until the user separately approves launch. Nothing below authorizes changing `main`, bypassing WORK-0002/3 or marking this PR Accepted.
 
