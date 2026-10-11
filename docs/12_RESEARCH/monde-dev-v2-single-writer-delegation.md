@@ -49,3 +49,15 @@ Independence **cannot be proved by a self-declared JSON field**. The caller must
 
 Use the module where it reduces manual transcription errors. The ChatGPT interactive session does **not** need to run JavaScript locally to honor the same protocol. A missing machine footer may still supply useful qualitative findings, but it must not automatically count as a qualified L2 approval. The reviewer prompt explicitly requests the marker on the penultimate line and compact JSON on the final line (no Markdown fence or trailing prose). No scheduled task may write a GitHub comment, even to post the report.
 
+
+## Fast interactive handoff from a read-only L2 reviewer
+
+The optional pure `prepareInteractiveHandoff` function creates a copy-ready, fully attributed
+review artifact **only after the reviewer report has been retrieved from another
+ChatGPT conversation, matched to its assignment, and checked against the exact
+current SHA**. This helper does not publish anything or approve any GitHub PR.
+The main interactive ChatGPT writer decides whether to relay it on GitHub.
+Out-of-scope findings are preserved as useful discoveries, but a narrow
+`APPROVE` with out-of-scope findings yields `L2_REPORT_SCOPE_EXPANSION` and
+requires manual qualification. A `BLOCKED` review without any limitation or
+finding is malformed. No machine footer is an assertion of native independence.

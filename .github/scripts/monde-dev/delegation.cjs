@@ -117,6 +117,10 @@ function validateReport(x) {
   }
   if (x.verdict === 'CHANGES_REQUIRED' && x.findings.length === 0)
     bad('MISSING_FINDINGS');
+  // A blocked reviewer must provide at least one actionable reason, even when
+  // the connector or requested source could not be accessed.
+  if (x.verdict === 'BLOCKED' && x.findings.length === 0 &&
+      x.limitations.length === 0) bad('MISSING_BLOCK_REASON');
   // An alleged clean L2 approval cannot coexist with unresolved high-risk
   // findings in its own machine-verifiable review packet.
   if (x.verdict === 'APPROVE' &&
@@ -142,6 +146,11 @@ function parseReviewResponse(text) {
   const analysis = lines.slice(0, -2).join('\n').trim();
   if (analysis.length < 40) bad('MISSING_FULL_REPORT');
   return { analysis, metadata };
+}
+function scopeMatches(path, paths) {
+  // Scope is exact for files and prefix-only for paths expressly ending in '/'.
+  return paths.some(scope => scope === path ||
+    (scope.endsWith('/') && path.startsWith(scope)));
 }
 function assessReview({ expected, response, current_head, source }) {
   const a = assignment(expected);
@@ -172,20 +181,65 @@ function assessReview({ expected, response, current_head, source }) {
       source.context_id !== metadata.reviewer_context_id ||
       source.context_id === a.author_context_id)
     return { status: 'INDEPENDENCE_UNVERIFIED', native_github_approved: false };
+  // Out-of-scope findings may uncover genuine cross-component defects. Keep
+  // them actionable, but do not silently count a narrow review as a complete
+  // review of those additional components.
+  const outOfScope = metadata.findings
+    .filter(f => !scopeMatches(f.path, a.paths))
+    .map(f => f.id);
   // Structural shape + a caller-supplied provenance observation are not an
   // independent substantive review nor a host-native reviewer approval.
   return {
     status: metadata.verdict === 'CHANGES_REQUIRED' ? 'NEEDS_CORRECTION' :
       metadata.verdict === 'BLOCKED' ? 'BLOCKED' :
-        'L2_REPORT_RECEIVED_PENDING_VALIDATION',
+        outOfScope.length ? 'L2_REPORT_SCOPE_EXPANSION' :
+          'L2_REPORT_RECEIVED_PENDING_VALIDATION',
     requires_manual_qualification: true,
     native_github_approved: false,
     finding_count: metadata.findings.length,
+    out_of_scope_findings: outOfScope,
     severity_r1: metadata.findings.filter(x => x.severity === 'R1').length,
     analysis_length: analysis.length
   };
 }
+
+function prepareInteractiveHandoff(args) {
+  const evaluation = assessReview(args);
+  if (!['NEEDS_CORRECTION', 'BLOCKED', 'L2_REPORT_SCOPE_EXPANSION',
+      'L2_REPORT_RECEIVED_PENDING_VALIDATION'].includes(evaluation.status))
+    return { status: evaluation.status, can_publish: false,
+      native_github_approved: false, text: null };
+  const { metadata, analysis } = parseReviewResponse(args.response);
+  const a = assignment(args.expected);
+  // This is a COPY-READY artifact for the foreground developer. No GitHub
+  // mutation or independent-review attestation is possible from this module.
+  const note = [
+    '## External ChatGPT L2 review — manually relayed, not GitHub approval',
+    'Assignment: ' + a.assignment_id,
+    'Repository: ' + a.repo + '; PR #' + a.pr,
+    'Reviewed SHA: ' + a.head_sha,
+    'Observed separate context: ' + args.source.context_id,
+    'Reviewer verdict: ' + metadata.verdict,
+    'Qualification: ' + evaluation.status +
+      '; independent accuracy and eligibility still require checking',
+    'GitHub native approval: NONE (same connected GitHub principal)',
+    'Findings outside assignment scope: ' +
+      (evaluation.out_of_scope_findings.join(', ') || 'none'),
+    '',
+    '### Review text (verbatim)',
+    analysis,
+    '',
+    '### Verbatim machine footer',
+    MARKER,
+    JSON.stringify(metadata)
+  ].join('\n');
+  return {
+    status: evaluation.status, can_publish: true,
+    native_github_approved: false, text: note
+  };
+}
+
 module.exports = {
   MARKER, InvalidReport, assignment, buildReviewPrompt, validateReport,
-  parseReviewResponse, assessReview
+  parseReviewResponse, assessReview, prepareInteractiveHandoff
 };

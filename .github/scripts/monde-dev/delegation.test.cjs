@@ -202,3 +202,48 @@ test('task briefing names the correct penultimate and final footer lines', () =>
   assert.match(prompt,/DERNIERE ligne/);
   assert.match(prompt,/aucun texte ni bloc Markdown apres la derniere ligne JSON/);
 });
+
+test('BLOCKED without findings or limitations cannot hide reviewer failure',()=>{
+  assert.throws(()=>d.validateReport(data({
+    verdict:'BLOCKED',findings:[],limitations:[]
+  })),e=>e.code==='MISSING_BLOCK_REASON');
+});
+test('unexpected finding path keeps correction actionable but never expands approval',()=>{
+  const report=data({findings:[{...data().findings[0],
+    path:'docs/09_GOVERNANCE/constitution.md'}]});
+  const changes=d.assessReview({expected:H,response:message(report),current_head:SHA,source});
+  assert.equal(changes.status,'NEEDS_CORRECTION');
+  assert.deepEqual(changes.out_of_scope_findings,['F01']);
+  const approved=d.assessReview({expected:H,response:message({
+    ...report,verdict:'APPROVE',findings:[{...report.findings[0],severity:'R3'}]
+  }),current_head:SHA,source});
+  assert.equal(approved.status,'L2_REPORT_SCOPE_EXPANSION');
+  assert.equal(approved.requires_manual_qualification,true);
+});
+test('interactive handoff copies the reviewer analysis without publishing',()=>{
+  const reply=message(data());
+  const packet=d.prepareInteractiveHandoff({expected:H,response:reply,
+    current_head:SHA,source});
+  assert.equal(packet.can_publish,true);
+  assert.equal(packet.status,'NEEDS_CORRECTION');
+  assert.match(packet.text,/Review text \(verbatim\)/);
+  assert.match(packet.text,/native approval: NONE/i);
+  assert.match(packet.text,new RegExp(H.assignment_id));
+  assert.match(packet.text,new RegExp(H.head_sha));
+  assert.match(packet.text,/This is a complete independent technical code review/);
+  assert.match(packet.text,new RegExp(d.MARKER));
+  assert.equal(typeof d.createComment,'undefined');
+});
+test('handoff refuses source it cannot associate with distinct chat',()=>{
+  const packet=d.prepareInteractiveHandoff({expected:H,response:message(data()),
+    current_head:SHA,source:undefined});
+  assert.equal(packet.can_publish,false);
+  assert.equal(packet.status,'INDEPENDENCE_UNVERIFIED');
+  assert.equal(packet.text,null);
+});
+test('handoff cannot republish a review against a newer SHA',()=>{
+  const packet=d.prepareInteractiveHandoff({expected:H,response:message(data()),
+    current_head:'b'.repeat(40),source});
+  assert.equal(packet.can_publish,false);
+  assert.equal(packet.status,'STALE_SHA');
+});
