@@ -222,7 +222,7 @@ test('unexpected finding path keeps correction actionable but never expands appr
   assert.equal(approved.status,'L2_REPORT_SCOPE_EXPANSION');
   assert.equal(approved.requires_manual_qualification,true);
 });
-test('interactive handoff copies the reviewer analysis without publishing',()=>{
+test('interactive handoff relays minimal attribution without publishing full report',()=>{
   const reply=message(data());
   const packet=d.prepareInteractiveHandoff({expected:H,response:reply,
     current_head:SHA,source,publication_clearance:{secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
@@ -230,12 +230,12 @@ test('interactive handoff copies the reviewer analysis without publishing',()=>{
   assert.equal(packet.ready_for_manual_relay,true);
   assert.equal(packet.requires_manual_qualification,true);
   assert.equal(packet.status,'NEEDS_CORRECTION');
-  assert.match(packet.text,/Retrieved review analysis \(normalized text\)/);
+  assert.match(packet.text,/Public relay \(minimum necessary data\)/);
   assert.match(packet.text,/native approval: NONE/i);
   assert.match(packet.text,new RegExp(H.assignment_id));
   assert.match(packet.text,new RegExp(H.head_sha));
-  assert.match(packet.text,/This is a complete independent technical code review/);
-  assert.match(packet.text,new RegExp(d.MARKER));
+  assert.doesNotMatch(packet.text,/This is a complete independent technical code review/);
+  assert.doesNotMatch(packet.text,new RegExp(d.MARKER));
   assert.equal(typeof d.createComment,'undefined');
 });
 test('handoff refuses source it cannot associate with distinct chat',()=>{
@@ -298,7 +298,8 @@ test('interactive relay is never interpreted as automatic publication approval',
     current_head:SHA,source,publication_clearance:{secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
   assert.equal(packet.can_publish,false);
   assert.equal(packet.ready_for_manual_relay,true);
-  assert.match(packet.text,/Observed message reference: history-msg-l2-20261011-001/);
+  assert.match(packet.text,/Message reference SHA-256: [a-f0-9]{64}/);
+  assert.doesNotMatch(packet.text,/history-msg-l2-20261011-001/);
   assert.match(packet.text,/verify manually/);
 });
 
