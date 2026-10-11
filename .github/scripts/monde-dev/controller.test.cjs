@@ -202,3 +202,37 @@ test('status is read-only and has no resource grant',()=>{
   const result=select(empty(),requestStatus);
   a.equal(result.outcome,'NO_CHANGE');a.equal(result.grant_id,null);
 });
+
+test('E3 threat model: unauthorized request authors cannot poison current grant journal',()=>{
+  const legit=request(1,q());
+  const forged=request(2,q(1,{resources:['contract:Different']}),'untrusted-contributor');
+  const decision=select(c.replay([legit,forged]),q());
+  a.equal(decision.outcome,'GRANTED');
+});
+test('E3 threat model: a bot result for an unauthorized request is orphaned',()=>{
+  const unauthorized=request(1,q(),'untrusted-contributor');
+  const res=response(2,unauthorized,{outcome:'GRANTED',reason:'TEST_FIXTURE',
+    grant_id:'grant:req-case-0001',epoch:1,resources:q().resources,observed_base_sha:SHA});
+  assertReject(()=>c.replay([unauthorized,res]),'ORPHAN_RESULT');
+});
+test('E3 threat model: missing or empty actor allowlist fails closed',()=>{
+  assertReject(()=>c.replay([],undefined,[]),'INVALID_ALLOWED_ACTORS');
+  assertReject(()=>c.replay([],undefined,['']),'INVALID_ALLOWED_ACTORS');
+});
+test('E3 synthetic: result encoder never publishes an invalid authorization',()=>{
+  const ev=request(11,q()),result=c.makeResult(q(),ev,{outcome:'GRANTED',reason:'TEST',
+    grant_id:'grant:req-case-0001',epoch:1,resources:q().resources,observed_base_sha:SHA},
+    {runId:1,runAttempt:1});
+  result.write_authority=true;
+  assertReject(()=>c.encodeResult(result),'BAD_RESULT');
+});
+test('E3 event mode denies non-create operations without GitHub I/O',async()=>{
+  const ctx=event(q());ctx.payload.action='edited';
+  const out=await c.run({github:null,context:ctx,core:{warning:()=>{}},settings:settings()});
+  a.equal(out.ignored,true);
+});
+test('E3 fail-closed: missing matching observed bot result fails readback',async()=>{
+  const ctx=event(q()),hist=[ctx.payload.comment];
+  await a.rejects(c.run({github:api(hist,{discardWrite:true}),context:ctx,
+    core:{warning:()=>{}},settings:settings()}),e=>e.code==='RESULT_NOT_OBSERVED');
+});

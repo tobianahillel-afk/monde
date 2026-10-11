@@ -68,15 +68,21 @@ function parseResult(body){
   if(r.resources.length)r.resources=normalizeResources(r.resources);
   return r;
 }
-function encodeResult(r){return RESULT+'\n'+JSON.stringify(r);}
-function replay(comments,bot='github-actions[bot]'){
+function encodeResult(r){
+  const body=RESULT+'\n'+JSON.stringify(r);
+  parseResult(body);
+  return body;
+}
+function replay(comments,bot='github-actions[bot]',allowedActors=['tobianahillel-afk']){
+  if(!Array.isArray(allowedActors)||allowedActors.length===0||
+     allowedActors.some(x=>typeof x!=='string'||!x))fail('INVALID_ALLOWED_ACTORS');
   if(!Array.isArray(comments)||comments.length>=10000)fail('INCOMPLETE_HISTORY');
   const requests=new Map(),decisions=new Map(),grants=new Map();
   let epoch=0,lastId=0;
   for(const c of comments.slice().sort((a,b)=>a.id-b.id)){
     if(!Number.isSafeInteger(c.id)||c.id<=lastId)fail('CORRUPT_HISTORY');lastId=c.id;
     if(typeof c.body!=='string')continue;
-    if(c.body.startsWith(COMMAND+'\n')){
+    if(c.body.startsWith(COMMAND+'\n')&&c.user&&allowedActors.includes(c.user.login)){
       let q;try{q=parseRequest(c.body);}catch{continue;}
       const prev=requests.get(q.request_id);
       if(prev&&prev.canonical!==JSON.stringify(q))fail('DUPLICATE_ID_CONFLICT');
@@ -88,6 +94,8 @@ function replay(comments,bot='github-actions[bot]'){
        source.q.work!==r.work||source.q.task!==r.task)fail('ORPHAN_RESULT');
     if(decisions.has(r.request_id))fail('DUPLICATE_RESULT');
     decisions.set(r.request_id,r);
+    if((r.outcome==='RELEASED'&&source.q.op!=='RELEASE')||
+       (r.outcome==='GRANTED'&&source.q.op!=='CLAIM'))fail('INVALID_OUTCOME_OP');
     if(r.outcome==='GRANTED'){
       if(source.q.op!=='CLAIM'||r.grant_id===null||grants.has(r.grant_id)||r.epoch===null||r.epoch<=epoch||
          r.observed_base_sha!==source.q.base_sha||
@@ -109,7 +117,10 @@ function replay(comments,bot='github-actions[bot]'){
 function choose(state,q,config){
   const known=state.requests.get(q.request_id),dec=state.decisions.get(q.request_id);
   if(known&&known.canonical!==JSON.stringify(q))fail('DUPLICATE_ID_CONFLICT');
-  if(dec)return {...dec,replayed:true};
+  if(dec){
+    if(!known)fail('ORPHAN_RESULT');
+    return {...dec,replayed:true};
+  }
   const block=(reason,outcome='BLOCKED')=>({outcome,reason,grant_id:null,epoch:null,
     resources:[],observed_base_sha:null});
   if(q.op==='STATUS')return block('STATUS_ONLY','NO_CHANGE');
@@ -158,14 +169,14 @@ async function run({github,context,core,settings}){
   if(typeof event.body!=='string'||!event.body.startsWith(COMMAND+'\n'))return {ignored:true};
   const q=parseRequest(event.body);
   const prior=replay(await listComments(github,owner,repo,settings.issueNumber),
-     settings.botActor||'github-actions[bot]');
+     settings.botActor||'github-actions[bot]',settings.allowedActors);
   const chosen=choose(prior,q,{mode:'TEST_ONLY',baseSha:settings.baseSha});
   if(chosen.replayed)return {replayed:true,result:chosen};
   const result=makeResult(q,event,chosen,{runId:context.runId,runAttempt:context.runAttempt});
   try{await github.rest.issues.createComment({owner,repo,issue_number:settings.issueNumber,body:encodeResult(result)});}
   catch(err){core.warning('UNKNOWN_WRITE '+(err.status||'API'));return {unknown:true};}
   const after=replay(await listComments(github,owner,repo,settings.issueNumber),
-     settings.botActor||'github-actions[bot]');
+     settings.botActor||'github-actions[bot]',settings.allowedActors);
   if(!after.decisions.has(q.request_id))fail('RESULT_NOT_OBSERVED');
   return {result:after.decisions.get(q.request_id)};
 }
