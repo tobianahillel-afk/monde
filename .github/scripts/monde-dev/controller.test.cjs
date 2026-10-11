@@ -280,3 +280,27 @@ test('E5: missing or ambiguous host facts remain blocked',()=>{
   a.equal(bad.blockers.includes('UNKNOWN_REQUIRED_CHECKS'),true);
   a.equal(bad.blockers.includes('NO_ELIGIBLE_NON_AUTHOR_APPROVAL'),true);
 });
+
+test('E3: never publish a response unless the triggering comment is in the authoritative journal',async()=>{
+  const ctx=event(q());
+  let sends=0;
+  const github={
+    rest:{issues:{listComments:()=>{},createComment:async()=>{sends++;}}},
+    paginate:async()=>[]
+  };
+  await a.rejects(c.run({github,context:ctx,core:{warning:()=>{}},settings:settings()}),
+    e=>e.code==='TRIGGER_NOT_IN_HISTORY');
+  a.equal(sends,0);
+});
+test('E3: a matching request ID from a different journal event is not authorized',async()=>{
+  const ctx=event(q(),44);
+  const other=request(10,q());
+  let sends=0;
+  const github={
+    rest:{issues:{listComments:()=>{},createComment:async()=>{sends++;}}},
+    paginate:async()=>[other]
+  };
+  await a.rejects(c.run({github,context:ctx,core:{warning:()=>{}},settings:settings()}),
+    e=>e.code==='TRIGGER_NOT_IN_HISTORY');
+  a.equal(sends,0);
+});

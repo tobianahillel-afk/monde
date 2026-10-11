@@ -170,6 +170,11 @@ async function run({github,context,core,settings}){
   const q=parseRequest(event.body);
   const prior=replay(await listComments(github,owner,repo,settings.issueNumber),
      settings.botActor||'github-actions[bot]',settings.allowedActors);
+  // The triggering event must be visible in authoritative paginated history
+  // before publishing a grant or status reply; otherwise fail closed.
+  const observedRequest=prior.requests.get(q.request_id);
+  if(!observedRequest||observedRequest.comment_id!==event.id)
+    fail('TRIGGER_NOT_IN_HISTORY');
   const chosen=choose(prior,q,{mode:'TEST_ONLY',baseSha:settings.baseSha});
   if(chosen.replayed)return {replayed:true,result:chosen};
   const result=makeResult(q,event,chosen,{runId:context.runId,runAttempt:context.runAttempt});
