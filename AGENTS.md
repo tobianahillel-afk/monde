@@ -218,6 +218,17 @@ If a useful adjacent feature is discovered:
 - record dependency and rationale;
 - continue the current scope.
 
+## 12A. Progressive delivery, findings triage and stop-the-detail-loop
+
+Prioritize **useful working increments** over perfecting every edge case before continuing.
+
+- **Immediate correction / stop the affected promotion:** a reproducible functional failure; security, privacy, data loss, authorization, integrity or core contract risk; R1/R2 material findings; a missing hard prerequisite; or a mandatory release/acceptance check that failed. Correct the root cause with risk-appropriate focused verification.
+- **Defer and continue independent work:** R3/minor cosmetic, wording, speculative edge-case or low-impact robustness findings that do not break the current function or threaten a protected invariant. Record each with evidence, impact, work-item/PR, proposed fix and priority in existing tracking; do not silently discard or mislabel unresolved findings as fixed.
+- **Uncertain impact is not automatically minor.** First do one bounded classification to decide whether it might cross a safety/functional hard boundary. Unknown R1/R2 is not cleared by a green test or time budget.
+- **Batch related fixes once.** Reuse previously established reproductions and unchanged evidence. Write a targeted regression test when it protects a material behavior; do not repeatedly recreate the same failure, relaunch full CI, or seek repetitive fresh-context reviews for each microscopic correction. Prefer one complete candidate and exact-HEAD validation at its real promotion/review boundary.
+- **Delivery states remain honest:** "functional candidate / next feature in progress" may precede "fully accepted / DONE / merged." Deferral authorizes progressing on other eligible work, not bypassing required DoD, release gates, independent review, branch protection or CI.
+- Stop polishing when remaining issues are demonstrably nonblocking, preserve a bounded follow-up backlog, and select the next ready feature. Reopen a deferred issue promptly if real usage makes it impactful.
+
 ## 13. Mandatory state updates
 
 When work starts:

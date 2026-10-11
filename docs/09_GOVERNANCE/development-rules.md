@@ -222,3 +222,13 @@ When available/configured by an administrator:
 - prefer squash merge or another single documented policy for clean traceability.
 
 Repository settings must complement, not replace, the work-item/DoD process.
+
+## 21. Progressive delivery and risk-ranked correction budget
+
+**Make forward progress on functioning features; do not spend repeated cycles chasing minor details.** Apply the mandatory risk-based triage in `AGENTS.md §12A`:
+
+- R1/R2, functional blockers and security/data/authorization failures: address before the affected release/acceptance, with focused proof.
+- R3 and low-impact, nonblocking polish: record a concrete follow-up with evidence and move to the next scoped feature. Reassess if severity or impact changes.
+- Unknown criticality must be classified, not automatically deferred. Do not erase independent reviewer findings or overrule protected checks.
+- Prefer one coherent change batch, targeted tests during development, and one full authoritative CI/review sequence on a stable release candidate. Reuse unchanged evidence instead of repeatedly re-proving the same minor issue.
+- A *functional development candidate* is not automatically `DONE` or merge-eligible. All applicable Definition-of-Done and GitHub host gates still apply at acceptance.
