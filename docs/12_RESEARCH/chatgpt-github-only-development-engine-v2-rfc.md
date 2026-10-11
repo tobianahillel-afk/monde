@@ -47,7 +47,7 @@ Beads, Gas Town, OpenHands, mini-SWE-agent and Temporal are **not installable as
 
 ### One typed request / one signed-by-origin *logical* answer
 
-One GitHub Issue **comment**, no embedded shell or markdown instructions. Body consists of an exact first-line marker `MONDE_DEV_V1` and one JSON object on the second line; maximum **4 KiB**, reject additional material or unknown fields. Schema for `CLAIM`:
+One GitHub Issue **comment**, no embedded shell or markdown instructions. Body consists of an exact first-line marker `MONDE_DEV_V1` and **one compact single-line JSON object on the second line**; maximum **4 KiB**, reject additional material or unknown fields. The following multiline object is **schema illustration only**, not a copyable wire-format command. Schema for `CLAIM`:
 
 ```json
 {
@@ -76,6 +76,8 @@ Also accept `RELEASE` (`request_id,worker,work,task,grant_id,epoch,observed_head
 4. Publish one durable result and **read it back**. If publishing ACK is lost, re-list by request/event ID before retrying; if still ambiguous, quarantine. Response comments have no authority to mark normative WORK `DONE`, auto-approve a PR or alter protected branches.
 5. `RELEASE` only for the matching **current** `grant_id + epoch + worker + task`, with expected observed branch HEAD checked when relevant. No **time-only** automatic reassignment: stale worker may still have connector write permission. A stalled grant is BLOCKED/QUARANTINED until a controlled authorized recovery with independent host verification; mere chat elapsed time is not a lock or a credential.
 6. Every worker rereads the grant and target branch HEAD before mutation and after uncertain writes, works only in its owned branch/resource set, and freezes candidate HEAD during exact-head CI/review. No automatic merge, force push, native self-approval or direct `main` edit. **Cooperative collision prevention is not hard per-chat authentication** under one shared GitHub account.
+
+**Latency/volume constraint:** commands are not a global re-read of all repo specs. Read only the linked WORK/REQ and semantically overlapping contracts. For the Issue event journal, use paginated source-authoritative reading at first; add bot-authored **verified same-Issue checkpoint summaries only after measured history size causes real API cost**. A cached summary may accelerate replay but may not supersede an incomplete/contradictory remote log; missing history fails closed. Do not create a new event store or dashboard for speculative scale.
 
 **Modes:** `TEST_ONLY` is the **deployed starting mode**. Synthetic claims/fixture conflicts may be recorded, but no task gets product branch-write authorization or integration from this controller. Transition to four real write-capable workers is a separate reviewed change after T0–T5, WORK-0002/3 host gates and user launch consent. Interactive authoring on isolated branches can continue through pre-existing authority independently of this test mode.
 
