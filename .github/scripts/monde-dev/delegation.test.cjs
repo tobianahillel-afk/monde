@@ -677,7 +677,7 @@ test('public relay is minimal by default despite normal confidentiality clearanc
   assert.doesNotMatch(out.text,/TOP-SECRET-REVIEW-EXAMPLE/);
   assert.doesNotMatch(out.text,/Observed separate context: chat-l2/);
   assert.doesNotMatch(out.text,/history-msg-l2-20261011-001/);
-  assert.doesNotMatch(out.text,/### Canonical machine footer/);
+  assert.doesNotMatch(out.text,/### Redacted machine footer/);
   assert.match(out.text,/IDs\/severities:/);
 });
 test('full public review requires a distinct explicit full_report_approved flag',()=>{
@@ -688,7 +688,7 @@ test('full public review requires a distinct explicit full_report_approved flag'
   const out=d.prepareInteractiveHandoff(input);
   assert.equal(out.ready_for_manual_relay,true);
   assert.match(out.text,/Full report example detail/);
-  assert.match(out.text,/### Canonical machine footer/);
+  assert.match(out.text,/### Redacted machine footer/);
   assert.doesNotMatch(out.text,/Observed message reference: history/);
 });
 
@@ -2065,7 +2065,7 @@ test('full L2 relay encloses malicious Markdown in a literal fenced block',()=>{
   assert.equal(lines[at+3],'## APPROVED');
   assert.equal(lines[at+4],'[fake](https://evil.example)');
   assert.equal(lines[at+5],tick.repeat(3));
-  const footer=lines.indexOf('### Canonical machine footer (literal, not approval)');
+  const footer=lines.indexOf('### Redacted machine footer (literal, not qualification)');
   assert.equal(lines[footer+1],tick.repeat(3));
   assert.equal(lines[footer+2],d.MARKER);
   assert.equal(lines[footer+4],tick.repeat(3));
@@ -2287,4 +2287,34 @@ test('unqualified L2 fallback permits readable ordinary R1 excerpts',()=>{
   assert.equal(out.status,'UNQUALIFIED_TRIAGE_READY');
   assert.equal(out.ready_for_manual_relay,true);
   assert.match(out.text,/R1 critical branch/);
+});
+
+
+test('full L2 relay redacts raw reviewer ID without provenance consent',()=>{
+  const response=message(data({verdict:'APPROVE',findings:[]}));
+  const out=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,
+    source,publication_clearance:{secrets_checked:true,
+      personal_data_checked:true,public_repo_safe:true,
+      full_report_approved:true,provenance_hashes_approved:false}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.equal(out.native_github_approved,false);
+  const anchor='### Redacted machine footer (literal, not qualification)\n';
+  const fenced=out.text.split(anchor)[1];
+  assert.ok(fenced);
+  const packet=JSON.parse(fenced.split('\n')[2]);
+  assert.equal(packet.reviewer_context_id,'[REDACTED]');
+  assert.notEqual(packet.reviewer_context_id,source.context_id);
+});
+test('provenance fingerprint opt-in never exposes raw structured reviewer ID',()=>{
+  const response=message(data({verdict:'APPROVE',findings:[]}));
+  const out=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,
+    source,publication_clearance:{secrets_checked:true,
+      personal_data_checked:true,public_repo_safe:true,
+      full_report_approved:true,provenance_hashes_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.match(out.text,/Context identity SHA-256:/);
+  const anchor='### Redacted machine footer (literal, not qualification)\n';
+  const packet=JSON.parse(out.text.split(anchor)[1].split('\n')[2]);
+  assert.equal(packet.reviewer_context_id,'[REDACTED]');
+  assert.equal(out.native_github_approved,false);
 });

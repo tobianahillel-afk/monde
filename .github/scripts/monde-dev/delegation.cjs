@@ -618,8 +618,12 @@ function prepareInteractiveHandoff(args) {
       '### Explicitly authorized full review text (normalized)',
       quoteUntrustedBlock(analysis),
       '',
-      '### Canonical machine footer (literal, not approval)',
-      quoteUntrustedBlock(MARKER+'\n'+JSON.stringify(metadata))
+      '### Redacted machine footer (literal, not qualification)',
+      // Full-report consent does not authorize disclosure of the raw L2
+      // reviewer context ID. Exact canonical evidence stays in source chat.
+      quoteUntrustedBlock(MARKER+'\n'+JSON.stringify({
+        ...metadata, reviewer_context_id:'[REDACTED]'
+      }))
     ]:[])
   ].join('\n');
   if(BIDI_CONTROL.test(note))
