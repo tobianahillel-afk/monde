@@ -12,6 +12,27 @@ The foreground agent may create 1–4 **one-shot scheduled ChatGPT tasks** when 
 
 These tasks are not four development writers. The older four-writer allocator remains only in the previous Git commit history; its source and dispatcher are removed from this V2 candidate to avoid deploying unnecessary privileged coordination code. ChatGPT alone decides what to write in a manually initiated conversation; the pure delegation helper produces read-only briefings and validates the format of retrieved reports, not their independent accuracy.
 
+## Distinct read-only mission kinds
+
+The foreground developer may delegate `L2_REVIEW`, `TECH_RESEARCH`,
+`ARCH_ANALYSIS`, `SECURITY_ANALYSIS`, or `TEST_IDEATION`.
+Each mission has an immutable assignment ID, PR, exact HEAD, scope and author
+context ID. A cohort of one to four missions may mix kinds only for the same
+repository, PR and SHA. Research missions are analytical work, **not L2**.
+
+The pure helper `planDelegations` accepts an optional `mission_kind`;
+omission means legacy `L2_REVIEW`. Research tasks receive the distinct
+`MONDE_V2_RESEARCH_RESULT_V1` marker and may return `COMPLETED`,
+`CHANGES_REQUIRED` or `BLOCKED`. `COMPLETED` is *never* GitHub
+`APPROVED`. Verified R1/R2 findings in completed research remain
+`NEEDS_CORRECTION`. A report without real separate-chat provenance is
+`INDEPENDENCE_UNVERIFIED`, and a missing report is `REPORT_UNAVAILABLE`.
+
+The original L2 marker `MONDE_V2_L2_RESULT_V1` and its formal verdict
+contract remain distinct and backwards compatible. Both kinds preserve
+read-only task permissions, require full output in the task's ChatGPT
+conversation, and can never mark a PR eligible for merge on their own.
+
 ## Delegation protocol
 
 1. The foreground developer verifies the current repository, exact PR HEAD, and relevant accepted rules.
