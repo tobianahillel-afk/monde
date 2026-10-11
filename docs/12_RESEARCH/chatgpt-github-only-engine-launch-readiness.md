@@ -28,6 +28,8 @@ Snapshot on 2026-10-10; re-query GitHub every time:
 
 **CI coverage on the present draft is not established:** the only workflow observed on current `main`, `.github/workflows/monde-stale-green-bootstrap.yml`, has `pull_request.paths` filters restricted to bootstrap scripts, selected contracts, WORK-0002 and `PROJECT_STATE.md`. The documentation files changed in PR #18 do not match those paths, explaining why the current HEAD has no normal PR check-run. Its independent `schedule` every 10 minutes is a bootstrap watcher, **not** the missing Development Engine v2 arbiter. Therefore draft PR #18 needs actual applicable verification, independent review and valid source/authority; absence of checks must never mean green.
 
+**L0/L1 bootstrap is separate from ACTIVE_4:** `READ_ONLY` WORK-0004 historical blueprint research and independent source critique may begin with no coordinator. A legitimately approved, non-conflicting single-author scoped branch/PR trial may be possible under existing policy, but **cannot bypass WORK-0002/3 protection, required CI or distinct GitHub-actor approval**. Prefer one real Scheduled task GitHub T0 permission trial before creating four; four uncontrolled writers are NOT a safe way to develop their own arbitration. [Minimal foundations](chatgpt-github-only-development-engine-minimal-foundations.md) defines levels L0–L3; [critical-path audit](chatgpt-github-only-engine-critical-path-audit.md) §G4 compares effort.
+
 ## B. Launch gates — an explicit all-green checklist
 
 | ID | Gate | Evidence required | Current result |
