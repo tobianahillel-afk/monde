@@ -242,5 +242,119 @@ function checkEligibility(snapshot){
   return {ready:blocked.length===0,advisoryOnly:true,blockers:blocked};
 }
 
+
+// Candidate ACTIVE_4 eligibility: pure, default-disabled; no GitHub write rights.
+const WORK_READY=new Set(['READY','IN_PROGRESS','PARTIAL']);
+const TASK_READY=new Set(['READY','IN_PROGRESS']);
+function parseList(text,re){
+  if(text==='[]')return [];
+  const match=/^\[([^\][\r\n]+)\]$/.exec(text);
+  if(!match)fail('UNSUPPORTED_WORK_YAML');
+  const result=match[1].split(',').map(s=>s.trim().replace(/^["']|["']$/g,''));
+  if(result.some(s=>!re.test(s))||result.length!==new Set(result).size)
+    fail('UNSUPPORTED_WORK_YAML');
+  return result;
+}
+function parseWorkGate(text,id){
+  if(typeof text!=='string'||text.length>500000||
+     typeof id!=='string'||!/^WORK-\d{4,}$/.test(id))fail('BAD_WORK_SOURCE');
+  const lines=text.replace(/\r\n/g,'\n').split('\n');
+  const get=name=>lines.filter(s=>s.startsWith(name+':'));
+  for(const key of ['id','status','depends_on','implementation_plan'])
+    if(get(key).length!==1)fail('AMBIGUOUS_WORK_SOURCE');
+  if(get('id')[0]!=='id: '+id)fail('WORK_ID_MISMATCH');
+  const status=get('status')[0].slice(7).trim();
+  if(!/^[A-Z_]+$/.test(status))fail('BAD_WORK_STATUS');
+  const dependencies=parseList(get('depends_on')[0].slice(11).trim(),/^WORK-\d{4,}$/);
+  const start=lines.indexOf('implementation_plan:');
+  let end=lines.findIndex((s,i)=>i>start&&s!==''&&!s.startsWith(' ')&&!s.startsWith('#'));
+  if(end<0)end=lines.length;
+  const body=lines.slice(start,end);
+  if(body[1]!=='  tasks:'&&body[1]!=='  tasks: []')
+    fail('UNSUPPORTED_WORK_YAML');
+  const tasks=[];
+  if(body[1]==='  tasks:'){
+    for(const line of body.slice(2)){
+      if(line.startsWith('  planned_runs:'))break;
+      if(!line.trim())continue;
+      if(!line.startsWith('    - {')||!line.endsWith('}'))
+        fail('UNSUPPORTED_TASK_YAML');
+      const taskId=/^\s+- \{id: (T[1-9]\d*),/.exec(line)?.[1];
+      const taskStatus=/,\sstatus: ([A-Z_]+)\}$/.exec(line)?.[1];
+      const dep=/,\sdepends_on: (\[[^\]]*\])/.exec(line)?.[1];
+      const files=/,\sexpected_files: (\[[^\]]*\])/.exec(line)?.[1];
+      if(!taskId||!taskStatus||!dep||!files)fail('UNSUPPORTED_TASK_YAML');
+      const taskDeps=parseList(dep,/^T[1-9]\d*$/);
+      const paths=parseList(files,/^[A-Za-z0-9_.\/-]+$/);
+      if(paths.some(s=>s.startsWith('/')||s.includes('//')||
+          s.split('/').some(part=>!part||part==='.'||part==='..')))
+        fail('UNSUPPORTED_TASK_PATH');
+      if(tasks.some(t=>t.id===taskId))fail('DUPLICATE_TASK');
+      tasks.push({id:taskId,status:taskStatus,
+        depends_on:taskDeps,expected_files:paths});
+    }
+  }
+  return {id,status,depends_on:dependencies,tasks};
+}
+function eligibleRealClaim(req,work,dependencies,baseSha){
+  const deny=reason=>({eligible:false,reason});
+  if(req.op!=='CLAIM'||!work||work.id!==req.work||
+     typeof baseSha!=='string'||!SHA.test(baseSha)||
+     req.base_sha!==baseSha)return deny('STALE_OR_INVALID_WORK');
+  if(!WORK_READY.has(work.status))return deny('WORK_NOT_READY');
+  for(const dep of work.depends_on)
+    if(!dependencies||dependencies[dep]!=='DONE')
+      return deny('WORK_DEPENDENCY_NOT_DONE');
+  const task=work.tasks.find(t=>t.id===req.task);
+  if(!task||!TASK_READY.has(task.status))return deny('TASK_NOT_READY');
+  for(const dep of task.depends_on)
+    if(work.tasks.find(t=>t.id===dep)?.status!=='DONE')
+      return deny('TASK_DEPENDENCY_NOT_DONE');
+  // Claimed file write scope must be explicitly declared in canonical WORK.
+  const allowed=task.expected_files.map(p=>'path:'+p);
+  if(!allowed.length||!req.resources.length||
+     req.resources.some(p=>!allowed.includes(p)))
+    return deny('UNDECLARED_WRITE_SCOPE');
+  return {eligible:true,reason:'VERIFIED_WORK_SCOPE'};
+}
+async function getWorkGate(github,owner,repo,work,sha){
+  if(typeof work!=='string'||!/^WORK-\d{4,}$/.test(work)||
+     typeof sha!=='string'||!SHA.test(sha))fail('BAD_WORK_LOOKUP');
+  const path='registry/work-items/'+work+'.yaml';
+  const got=await github.rest.repos.getContent({owner,repo,path,ref:sha});
+  if(!got||!got.data||got.data.type!=='file'||
+     got.data.encoding!=='base64'||typeof got.data.content!=='string')
+    fail('UNTRUSTED_WORK_BLOB');
+  return parseWorkGate(Buffer.from(got.data.content.replace(/\s/g,''),'base64').toString('utf8'),work);
+}
+async function trustedWorkContext(github,owner,repo,req,mainSha){
+  const work=await getWorkGate(github,owner,repo,req.work,mainSha);
+  const dependencies={};
+  for(const dep of work.depends_on)
+    dependencies[dep]=(await getWorkGate(github,owner,repo,dep,mainSha)).status;
+  return {work,dependencies,baseSha:mainSha};
+}
+function chooseActive(state,req,source){
+  const block=(reason,outcome='BLOCKED')=>({outcome,reason,grant_id:null,
+    epoch:null,resources:[],observed_base_sha:null});
+  if(!source||!source.work)return block('NO_TRUSTED_WORK');
+  const prior=state.requests.get(req.request_id);
+  if(prior&&prior.canonical!==JSON.stringify(req))fail('DUPLICATE_ID_CONFLICT');
+  const existing=state.decisions.get(req.request_id);
+  if(existing)return {...existing,replayed:true};
+  const verdict=eligibleRealClaim(req,source.work,source.dependencies,source.baseSha);
+  if(!verdict.eligible)return block(verdict.reason);
+  for(const grant of state.grants.values()){
+    if(grant.worker===req.worker&&grant.task===req.task)
+      return block('ALREADY_OWNED','DENIED');
+    for(const a of grant.resources)for(const b of req.resources)
+      if(overlaps(a,b))return block('RESOURCE_CONFLICT','DENIED');
+  }
+  return {outcome:'GRANTED',reason:'COORDINATION_ONLY',
+    grant_id:'grant:'+req.request_id,epoch:state.epoch+1,
+    resources:req.resources,observed_base_sha:req.base_sha};
+}
+
 module.exports={COMMAND,RESULT,Invalid,parseRequest,encodeRequest,parseResult,
-  encodeResult,normalizeResources,overlaps,replay,choose,makeResult,listComments,run,checkEligibility};
+  encodeResult,normalizeResources,overlaps,replay,choose,makeResult,listComments,run,checkEligibility,
+  parseWorkGate,eligibleRealClaim,getWorkGate,trustedWorkContext,chooseActive};
