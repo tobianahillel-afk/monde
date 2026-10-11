@@ -2372,3 +2372,43 @@ test('unqualified fallback redacts conversation provenance inside R1 snippet',()
   assert.match(out.text,/REDACTED_CONTEXT_REFERENCE/);
   assert.equal(out.native_github_approved,false);
 });
+
+test('unqualified L2 relay redacts reviewer-claimed ID even if source context differs',()=>{
+  const untrustedId='chat-reviewer-private-different-20261011';
+  const report=message(data({
+    reviewer_context_id:untrustedId,
+    findings:[{...data().findings[0],
+      evidence:'Observed R1 in private context '+untrustedId,
+      action:'Fix isolated source branch'}]
+  }));
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.equal(result.ready_for_manual_relay,true);
+  assert.equal(result.text.includes(untrustedId),false);
+  assert.match(result.text,/REDACTED_CONTEXT_REFERENCE/);
+  assert.equal(result.native_github_approved,false);
+});
+test('malformed but parseable footer does not leak a separate claimed reviewer ID',()=>{
+  const untrustedId='chat-reviewer-private-in-malformed-report';
+  const report='Separate L2 review assessed the source and found an R2 issue.'+
+    '\n'+d.MARKER+'\n'+JSON.stringify({...data({
+      reviewer_context_id:untrustedId,
+      findings:[{...data().findings[0],
+        severity:'R2',
+        evidence:'Private report reference '+untrustedId+' at conditional branch'}]
+    }),unexpected_field:'forces_manual_recovery'});
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.equal(result.ready_for_manual_relay,true);
+  assert.equal(result.text.includes(untrustedId),false);
+  assert.match(result.text,/REDACTED_CONTEXT_REFERENCE/);
+  assert.equal(result.native_github_approved,false);
+});
