@@ -579,6 +579,17 @@ On each activation RECONCILE pending task/grant/PR/CI/unknown API effects first.
 Do not infer success from a response timeout, chat memory, a green-looking
 untrusted check, an expired lease, a stale branch or an Issue label.
 
+PRODUCTION THROUGHOUT THIS INVOCATION: favor finish-before-start. When building,
+implement one coherent accepted-scope feature with real tests; use verified
+GitHub tree/commit batching for related source/test/doc changes if the connector
+allows it, rather than one status-changing commit per file. Verify the branch
+HEAD after mutations. Seek early focused feedback, then preserve a frozen
+candidate for ALL existing required final CI and genuinely separate reviews.
+Do not grow unrelated frameworks or fill line-count quotas with boilerplate.
+Optimize delivered CAP/REQ behavior, then meaningful net merged product LOC.
+When code is blocked by genuine native approval, produce only eligible
+independent specs/tests/review findings instead of fabricating an approval.
+
 If a valid exclusive grant exists, choose the most useful role among DISCOVER,
 RESEARCH, ENGINEER, BENCHMARK, ROOT_CAUSE, REFACTOR, ARCHITECT, SPECIFY, DECIDE, BUILD, TEST, VERIFY, REVIEW_L1,
 REVIEW_L2 (only for different fresh authoring context), REVIEW_L3 (real
