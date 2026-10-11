@@ -932,7 +932,7 @@ test('new L2: mismatched assignment retains serious findings',()=>{
   assert.equal(out.reported_findings[0].action,data().findings[0].action);
   assert.equal(out.needs_attention,true);
 });
-test('new L2: a directory report may cover 25 distinct files',()=>{
+test('new L2: a claimed 25-file directory still requires host verification',()=>{
   const files=Array.from({length:25},(_,i)=>'src/file'+i+'.cjs');
   const assigned={...H,paths:['src/']};
   const out=d.assessReview({expected:assigned,response:message(data({
@@ -940,7 +940,8 @@ test('new L2: a directory report may cover 25 distinct files',()=>{
     current_head:SHA,source,coverage_manifest:{
       head_sha:SHA,verified_at_head:true,source_kind:'github_recursive_tree',
       enumeration_complete:true,tree_sha:SHA,enumerated_count:files.length,files}});
-  assert.equal(out.status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(out.status,'L2_SCOPE_NOT_EVIDENCED');
+  assert.equal(out.directory_requires_external_verification,true);
   assert.equal(out.ready_for_merge,false);
 });
 test('new L2: incomplete directory coverage stays attention-required',()=>{
@@ -1119,8 +1120,9 @@ test('L2 F35 F03: malformed first fifty claims cannot hide the 51st R1',()=>{
     evidence:'The 51st entry documents an independently reported critical bug',
     action:'Correct the relevant code after validating the reported bug'};
   const badEntries=Array.from({length:50},(_,i)=>({id:'BAD-'+i}));
+  const lower={...good,id:'F52',severity:'R3'};
   const contradict=message(data({verdict:'APPROVE',
-    findings:badEntries.concat(good)}));
+    findings:badEntries.concat(lower,good)}));
   const assessed=d.assessReview({expected:H,response:contradict,
     current_head:SHA,source});
   assert.equal(assessed.status,'REPORT_NEEDS_MANUAL_REVIEW');
