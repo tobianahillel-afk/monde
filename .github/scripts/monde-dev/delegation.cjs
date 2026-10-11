@@ -505,20 +505,22 @@ function assessReview({ expected, response, current_head, source, coverage_manif
   };
 }
 
+// Token prefix boundaries must also match after '_' (a JS word character):
+// do not use \\b here or a public handoff may miss an embedded credential.
 const CREDENTIAL_PATTERNS=[
   /-----BEGIN (?:[A-Z ]* )?PRIVATE KEY-----/,
-  /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/,
-  /\bgithub_pat_[A-Za-z0-9_]{20,}\b/,
-  /\bAKIA[0-9A-Z]{16}\b/,
-  /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/,
-  /\bxapp-[A-Za-z0-9-]{12,}\b/,
-  /\bglpat-[A-Za-z0-9_-]{15,}\b/,
-  /\bnpm_[A-Za-z0-9]{20,}\b/,
+  /(?:^|[^A-Za-z0-9])gh[pousr]_[A-Za-z0-9_]{20,}/,
+  /(?:^|[^A-Za-z0-9])github_pat_[A-Za-z0-9_]{20,}/,
+  /(?:^|[^A-Za-z0-9])AKIA[0-9A-Z]{16}/,
+  /(?:^|[^A-Za-z0-9])xox[baprs]-[A-Za-z0-9-]{10,}/,
+  /(?:^|[^A-Za-z0-9])xapp-[A-Za-z0-9-]{12,}/,
+  /(?:^|[^A-Za-z0-9])glpat-[A-Za-z0-9_-]{15,}/,
+  /(?:^|[^A-Za-z0-9])npm_[A-Za-z0-9]{20,}/,
   /(?:^|[^A-Za-z0-9])(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{12,}/,
   /(?:^|[^A-Za-z0-9])sk-(?:proj|org|svcacct)-[A-Za-z0-9_-]{12,}/,
   /(?:^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{20,}/,
-  /\bAIza[0-9A-Za-z_-]{30,}\b/,
-  /\bASIA[0-9A-Z]{16}\b/,
+  /(?:^|[^A-Za-z0-9])AIza[0-9A-Za-z_-]{30,}/,
+  /(?:^|[^A-Za-z0-9])ASIA[0-9A-Z]{16}/,
   /\bAuthorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}\b/i
 ];
 const PUBLIC_RELAY_MAX_BYTES=12*1024;

@@ -1819,3 +1819,28 @@ test('L2 relay: bidi markers in opt-in full prose fail closed',()=>{
   assert.equal(out.ready_for_manual_relay,false);
   assert.equal(out.text,null);
 });
+
+test('privacy: embedded provider credentials after underscore are never public-relayed',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const examples=[
+    'ghp_'+'A'.repeat(32),'github_pat_'+'B'.repeat(32),
+    'glpat-'+'C'.repeat(25),'npm_'+'D'.repeat(25),
+    'xoxb-'+'E'.repeat(25),'xapp-'+'F'.repeat(25),
+    'AKIA'+'G'.repeat(16),'ASIA'+'H'.repeat(16),
+    'AIza'+'I'.repeat(32)
+  ];
+  for(const token of examples)for(const prefix of ['_','filename_','path/to_']){
+    const raw='Potential leak: '+prefix+token;
+    const response=message(data({limitations:[raw]}));
+    const regular=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(regular.status,'POTENTIAL_SECRET_IN_REPORT',prefix+token.slice(0,8));
+    assert.equal(regular.ready_for_manual_relay,false);
+    const malformed='R1: '+raw+'\n'+d.MARKER+'\n{invalid';
+    const unqualified=d.prepareUnqualifiedTriageHandoff({expected:H,response:malformed,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(unqualified.status,'POTENTIAL_SECRET_IN_REPORT',prefix+token.slice(0,8));
+    assert.equal(unqualified.ready_for_manual_relay,false);
+  }
+});
