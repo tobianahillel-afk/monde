@@ -2,6 +2,7 @@
 
 // Interactive-only V2: pure, read-only delegation/report helpers.
 // Deliberately no GitHub client, scheduler, filesystem or network dependency.
+const { createHash } = require('node:crypto');
 const MARKER = 'MONDE_V2_L2_RESULT_V1';
 const RESEARCH_MARKER = 'MONDE_V2_RESEARCH_RESULT_V1';
 const KINDS = new Set(['L2_REVIEW','TECH_RESEARCH','ARCH_ANALYSIS',
@@ -327,6 +328,19 @@ function prepareInteractiveHandoff(args) {
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
   const { metadata, analysis } = parseReviewResponse(args.response);
+  // A clearance checkbox does not justify relaying unmistakable credential
+  // material into a PUBLIC GitHub comment. This is a conservative backstop,
+  // never a substitute for the foreground developer's manual inspection.
+  const sensitive = [
+    /-----BEGIN (?:[A-Z ]* )?PRIVATE KEY-----/,
+    /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/,
+    /\bgithub_pat_[A-Za-z0-9_]{20,}\b/,
+    /\bAKIA[0-9A-Z]{16}\b/
+  ];
+  if (sensitive.some(pattern => pattern.test(args.response)))
+    return {status:'POTENTIAL_SECRET_IN_REPORT',can_publish:false,
+      ready_for_manual_relay:false,requires_manual_qualification:true,
+      native_github_approved:false,text:null};
   const a = assignment(args.expected);
   // This is a COPY-READY artifact for the foreground developer. No GitHub
   // mutation or independent-review attestation is possible from this module.
@@ -338,6 +352,10 @@ function prepareInteractiveHandoff(args) {
     'Observed separate context: ' + args.source.context_id,
     'Observed message reference: ' + args.source.message_ref,
     'Retrieval: chat_history (caller-provided observation, verify manually)',
+    'Original response SHA-256: ' +
+      createHash('sha256').update(args.response,'utf8').digest('hex'),
+    'Original response bytes: ' + Buffer.byteLength(args.response,'utf8'),
+    'Normalization: copied analysis may differ from original message bytes',
     'Reviewer verdict: ' + metadata.verdict,
     'Qualification: ' + evaluation.status +
       '; independent accuracy and eligibility still require checking',

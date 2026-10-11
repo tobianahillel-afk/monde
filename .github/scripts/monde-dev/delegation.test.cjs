@@ -18,7 +18,7 @@ const data = (overrides={}) => ({
     path: '.github/scripts/monde-dev/controller.cjs',
     evidence: 'At line X, stale lease still allows an operation',
     action: 'Refuse the stale operation using current state'
-  }], limitations: ['Could not exercise real branch protection'],
+  }], reviewed_paths: H.paths, limitations: ['Could not exercise real branch protection'],
   ...overrides
 });
 const message = meta => 'This is a complete independent technical code review and analysis.\n' +
@@ -542,4 +542,61 @@ test('two actually distinct reviewer contexts and messages remain separately obs
   });
   assert.equal(res.counts.NEEDS_CORRECTION,2);
   assert.equal(res.counts.INDEPENDENCE_UNVERIFIED||0,0);
+});
+
+test('L2 clean verdict without an explicit reviewed-file inventory is incomplete',()=>{
+  const payload=data({verdict:'APPROVE',findings:[]});
+  delete payload.reviewed_paths;
+  const x=d.assessReview({expected:H,response:message(payload),
+    current_head:SHA,source});
+  assert.equal(x.status,'L2_SCOPE_NOT_EVIDENCED');
+  assert.deepEqual(x.missing_reviewed_paths,H.paths);
+  assert.equal(x.requires_manual_qualification,true);
+  assert.equal(x.native_github_approved,false);
+});
+test('L2 APPROVE with unexamined file or inflated declared coverage is incomplete',()=>{
+  const e={...H,paths:['.github/scripts/monde-dev/delegation.cjs',
+    '.github/scripts/monde-dev/delegation.test.cjs']};
+  const partial=d.assessReview({expected:e,response:message(data({
+    verdict:'APPROVE',findings:[],
+    reviewed_paths:['.github/scripts/monde-dev/delegation.cjs']
+  })),current_head:SHA,source});
+  assert.equal(partial.status,'L2_SCOPE_NOT_EVIDENCED');
+  assert.deepEqual(partial.missing_reviewed_paths,
+    ['.github/scripts/monde-dev/delegation.test.cjs']);
+  const inflated=d.assessReview({expected:H,response:message(data({
+    verdict:'APPROVE',findings:[],
+    reviewed_paths:[...H.paths,'docs/other.md']
+  })),current_head:SHA,source});
+  assert.equal(inflated.status,'L2_SCOPE_NOT_EVIDENCED');
+  assert.deepEqual(inflated.extraneous_reviewed_paths,['docs/other.md']);
+});
+test('invalid or duplicate claimed reviewed file paths are rejected',()=>{
+  for(const paths of [null,[],['../secrets'],[H.paths[0],H.paths[0]]])
+    assert.throws(()=>d.validateReport(data({reviewed_paths:paths})),
+      e=>e.code==='INVALID_REVIEW_COVERAGE');
+});
+test('public relay includes immutable source digest, not a claim of byte identical copying',()=>{
+  const response=message(data());
+  const relay=d.prepareInteractiveHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
+  const crypto=require('node:crypto');
+  const digest=crypto.createHash('sha256').update(response,'utf8').digest('hex');
+  assert.equal(relay.ready_for_manual_relay,true);
+  assert.match(relay.text,new RegExp('Original response SHA-256: '+digest));
+  assert.match(relay.text,/Original response bytes:/);
+  assert.match(relay.text,/Normalization:/);
+});
+test('public relay blocks recognizable private credentials despite clearance',()=>{
+  const meta=data({findings:[{...data().findings[0],
+    evidence:'Visible secret: ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+    action:'Do not post the credential'}]});
+  const input={expected:H,response:message(meta),
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true}};
+  const report=d.prepareInteractiveHandoff(input);
+  assert.equal(report.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(report.ready_for_manual_relay,false);
+  assert.equal(report.text,null);
 });
