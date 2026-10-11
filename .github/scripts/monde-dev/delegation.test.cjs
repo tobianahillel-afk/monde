@@ -1003,7 +1003,7 @@ test('a huge malformed L2 report is bounded and remains unqualified',()=>{
 
 test('repeated L2 discoveries are grouped but every source and severity remains available',()=>{
   const a={assignment_id:'L2-MISSION-0001',id:'F01',severity:'R3',status:'NEEDS_CORRECTION',
-    path:'src/a.cjs',evidence:'Lost ACK  after retry',action:'Reconcile the journal'};
+    path:'src/a.cjs',evidence:'Lost ACK after retry',action:'Reconcile the journal'};
   const b={...a,assignment_id:'L2-MISSION-0002',id:'F07',severity:'R1',
     evidence:'Lost ACK after retry'};
   const c={...a,assignment_id:'L2-MISSION-0003',id:'F08',severity:'R2',
@@ -2164,9 +2164,9 @@ test('L2 grouping: whitespace-sensitive code evidence must not be deduplicated',
   const shared={assignment_id:'L2-PR19-EXACT-0001',id:'F01',
     status:'NEEDS_CORRECTION',path:'src/important.js',severity:'R2',
     action:'Correct the branch condition'};
-  const one={...shared,evidence:'if (ok) {\n  deny();\n}'};
+  const one={...shared,evidence:'if (ok) {  deny(); }'};
   const two={...shared,assignment_id:'L2-PR19-EXACT-0002',id:'F02',
-    evidence:'if (ok) {\n    deny();\n}'};
+    evidence:'if (ok) {    deny(); }'};
   const result=d.groupTriageFindings([one,two,one]);
   assert.equal(result.groups.length,2);
   assert.equal(result.duplicate_occurrences,1);
