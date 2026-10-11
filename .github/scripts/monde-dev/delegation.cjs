@@ -708,6 +708,22 @@ function quoteUntrustedBlock(value) {
 // Explicit, non-authoritative foreground triage for a malformed L2/research
 // response. This preserves relevant evidence without pretending that a broken
 // footer constitutes a completed review or permitting an unverified merge.
+// Treat a parseable footer as untrusted privacy data, never as provenance.
+// A reviewer may claim a different context ID than the actually retrieved
+// source: redact both in any public fallback excerpt.
+function claimedReviewerContext(response, marker) {
+  if (typeof response !== 'string' ||
+      Buffer.byteLength(response, 'utf8') > 1024*1024) return null;
+  const end = response.trimEnd();
+  const lastNewline = end.lastIndexOf('\n');
+  if (lastNewline < 0 || !end.slice(0,lastNewline).endsWith(marker)) return null;
+  let packet;
+  try { packet=JSON.parse(end.slice(lastNewline+1)); }
+  catch { return null; }
+  const id=packet && packet.reviewer_context_id;
+  return typeof id==='string' && oneLine(id,96) && ID.test(id) ? id:null;
+}
+
 function prepareUnqualifiedTriageHandoff(args) {
   if(!plain(args))bad('INVALID_HANDOFF');
   const a=assignment(args.expected);
@@ -776,7 +792,9 @@ function prepareUnqualifiedTriageHandoff(args) {
     'This text MUST NOT be used as an APPROVE decision or merge authorization.'
   ].join('\n');
   note=redactPrivateProvenance(note,[
-    a.author_context_id,source.context_id,source.message_ref
+    a.author_context_id,source.context_id,source.message_ref,
+    claimedReviewerContext(args.response,
+      a.mission_kind==='L2_REVIEW'?MARKER:RESEARCH_MARKER)
   ]);
   if(BIDI_CONTROL.test(note))
     return refused('UNSAFE_BIDI_IN_RELAY');
