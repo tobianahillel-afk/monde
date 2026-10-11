@@ -268,6 +268,69 @@ The critical serial steps cannot be accelerated by scheduling four ChatGPT worke
 
 **Why “ensure the blockers never happen” is not an implementable guarantee:** GitHub and ChatGPT service outages, human approval, rate limits, flaky dependencies and scientific unknowns are external. We can **prevent known unsafe side effects and bound recovery/rework**, not promise zero failures or 24h-per-day continuous ChatGPT reasoning. Any throughput target must include the number of accepted slices and unresolved risk, not just newly typed LOC.
 
+## G6. ROOT CAUSE OF REJECTED CODE — live GitHub evidence and the smallest preventative controls
+
+**2026-10-11 live audit, not a model guess:**
+- `WORK-0001` is already **DONE**, not a task that can be meaningfully "paused"; `WORK-0002` is **IN_REVIEW**, `WORK-0003` is **PLANNED**, `WORK-0005` is **PROPOSED**. `main.protected=false`, repository rulesets `[]`.
+- **PR #2** HEAD `2e2664ca8c9cb4f3eb81ea41a172da1ed7fbaf32`, **298 commits, 127 changed files**, ~22,080 lines added; **73 GitHub review submissions**, all `COMMENTED`, and **104 of 125 PR review threads currently unresolved** (may include outdated/nonblocking threads; not a count of verified current defects).
+- **PR #14** HEAD `34e7b07ff5683f8128fafe0bf74810efe3a00373`, **44 commits**, **21 of 24 review threads unresolved** (same qualification); selected CI checks succeeded, but no native APPROVED reviews observed in its listed submissions.
+- PR #2 check `Governance core / Deterministic governance` failed in Actions run **37849674798**, job **113560978657**, with **four registry reference errors** from `registry/work-items/WORK-0002.yaml` and `registry/reviews/REVIEW-0094.yaml` referring to absent `REVIEW-0095`; downstream `MONDE / Merge Gate` job **113561113576** failed because governance-core failed. The failing check was not evidence that GitHub needed to execute more generative LLM code: **referential consistency was missing before the expensive integration stage**. This is evidence for a high-value *preflight* and absence of a clean candidate, not a diagnosis that all historic PR findings have the same cause.
+- Accepted `docs/13_QUALITY/definition-of-done.md` demands 100% meaningful project-owned line/branch coverage target or reviewed exception, meaningful tests and risk-targeted independent review. Accepted `review-council.md` fixes L2 independence/digest exactness; Accepted `development-process.md` supplies ordered gates and mandatory auditability. **Do not silently lower these Accepted obligations**.
+- PR #18 itself now has a sizeable, still Proposed spec on a branch without generic docs PR CI; it demonstrates a **documentation-generation feedback loop**, not a deployed v2 engine.
+
+### Failure tree (cause → avoidable waste → correction)
+
+| Root cause | Visible symptom / rejection mechanism | Tiny preventative quick win | Limit or prior authority |
+|---|---|---|---|
+| **1. Missing independently frozen contract/test oracle** | Semantics and examples drift after code/review, so new findings cause costly rewrites | **Definition of Ready card:** `WORK/CAP/REQ + exact expected behavior + 3 representative negative cases + impacted contracts + applicable assurance`; for A3 trust-root **adversarial design review before implementation** | Existing Accepted REQ review/approval remains mandatory; a card is routing, not a second registry |
+| **2. Structural validity checked late** | Dangling `REVIEW-0095` references, malformed YAML, missing required path/check trigger | **Preflight in branch BEFORE review/frozen CI:** syntax + referenced IDs + file/semantic scope + test discovery, reusing the **existing** MONDE governance validator and fast unit subset. Confirm error-free snapshot then batch publish | Do not run PR-controlled code with privileged tokens; trusted validation boundaries persist |
+| **3. Reviewer and author disagree about trust boundaries** | Long chains of new security findings about executing candidate scripts or consuming candidate lockfiles in privileged validator | **1-page trust model first:** explicit candidate/untrusted vs protected/default-branch source, GitHub_TOKEN permissions, check-source authenticity, file/branch write boundary, 2–3 injected negative cases; cold-read before implementation | Correct real P1/R0 findings, do not dismiss the review or grant author approval |
+| **4. Candidate HEAD churn and huge mixed PR** | Same PR accumulates many commits and stale exact-head check/review proofs | **One cohesive vertical slice per PR**, batch Git tree/commit operations when supported, stable `review-ready` SHA, parallel L2 prep + CI only then; no status-only code commit | New snapshot invalidates substantive exact-head proof; do not hide or squash historically required evidence without reviewed migration |
+| **5. Non-author GitHub approval and unprotected main** | No legal merge even if model-generated code is good and code checks pass | **Owner/admin prerequisite:** configure effective public-repo ruleset and identify eligible distinct GitHub reviewer early. Use separate ChatGPT context for technical L2 independently | Cannot be implemented by W1–W4 sharing one GitHub actor; cannot be bypassed by faster codegen |
+| **6. Over-modeling coordination before useful work** | 2,000+ lines of RFC/spec, no running dispatcher, repeat reading 70–85 KB documentation | **Stop adding orchestration features**. Start WORK-0004 inventory/low-risk read-only research now; implement only the event/request/grant controller required by proven second-writer concurrency | Actual protected four-writer launch still requires governed review and negative T0/T1/T2 tests |
+
+**Operational lesson:** prioritize **prevention of rejection in the first 5–10% of a task's execution**, not maximizing corrective throughput after the same defect has propagated through dozens of commits and later reviews. The point of `preflight` is **routing to existing validators**, not a parallel custom QA engine.
+
+### A tiny Ready-to-Build gate, reusing what MONDE already owns
+
+Before a worker performs material code implementation, answer just six yes/no/unknown questions in existing WORK/issue or PR:
+
+1. `INTENT`: is the target CAP/REQ/AC actually supported and sufficiently accepted for the authorized change?
+2. `INTERFACE`: who owns changed contracts/files/semantic resources and what are the permitted dependents?
+3. `ORACLE`: can independent test inputs, expected outputs and at least meaningful failure cases be stated now?
+4. `TRUST`: are API/token/provenance/security boundaries explicit for A3/A4, or genuinely inapplicable?
+5. `PREFLIGHT`: do cheap syntax, reference, scope and relevant subset tests pass on the actual candidate?
+6. `ACCEPTOR`: is there a **real route** to the required CI/L2/native non-author approval and eventual merge?
+
+If `1–4` are material UNKNOWN, research/specify first; don't speculate code. If `5` fails, diagnose/repair before requesting review. If `6` is blocked, prefer source research/test preparation on an isolated branch and DON'T label the product accepted; do not create a pile of permanently unmergeable feature PRs. For trivial local changes, this can be a 30-second internal check, not an issue template or formal ADR. Do not add a new persistence schema.
+
+**Root prevention vs runtime**: the quick win is *one reviewer test-case pass at the beginning*, *one targeted preflight before CI*, and *one viable host approval route*. No custom dev-engine service needed to obtain this benefit.
+
+### Pausing WORK-0001/0002 does NOT remove their gates
+
+`WORK-0001` is **DONE** and must remain done. `WORK-0002` is **IN_REVIEW**, its candidate validator/merge protection functionality is still needed to make a high-assurance V2 safely accepted. **Owner may reprioritize and temporarily park further speculative WORK-0002 feature expansion after a reviewed stop boundary**, preserving its failing CI, unresolved findings and traceability. Do not silently set `DONE`, `BLOCKED`, drop checks/review requirements, or delete prior evidence. `WORK-0003` host ruleset settings and native reviewer authorization are still preconditions, and cannot be postponed *if* fully automated trusted four-writer promotion is expected.
+
+The fastest *safe* switch is **parallel research/design (WORK-0004/0005) plus a separately governed tiny V2 T0/T1 prototype**, without claiming V2 trusted merged/deployed before WORK-0002/3. A governance scope/priority change belongs in a separately reviewed authorization. Merely changing the worker prompt does not permit breaking this dependency.
+
+### MVP contraction: the Development Engine is a protocol, not a product platform
+
+**Zero custom runtime for single writer**: one scoped branch, GitHub Issues, existing WORK registry, existing trusted validators, existing approvals and a concise 20–40-line startup prompt.
+
+**Smallest genuinely multi-writer v2 controller only if required**:
+- one default-branch GitHub Actions `issue_comment` handler restricted to one dispatch issue, serialized by GitHub Actions concurrency, with 2 small tested pure functions: `choose(eligible,active_claims,write_sets)` and `reconcile(live_issue_results,refs,run_attempts)`;
+- a minimal typed claim/grant record in GitHub Issue comments; **do not create a distributed ledger, custom queue/cron service, project dashboard, own git-CAS service or another state machine**;
+- a normal PR CI workflow only if existing WORK-0002 check set cannot satisfy actual requirements (reuse instead);
+- four interchangeable Scheduled prompts differing by label, live state and scoped pointers. **No automatic reviewer or native approval invented**.
+
+**Risk-weighted development effort, hypotheses and exclusions:**
+- **0–4 focused engineering hours:** ready-to-build/preflight/checklist and WORK-0004 research without new executable orchestration; this is a process improvement, not a host-granted writer.
+- **4–12 hours:** one Scheduled ChatGPT connector T0/T1 probe (subject to actual workflow review/permissions).
+- **12–35 hours:** an isolated serial Action command/grant prototype with deterministic resource-collision tests and basic future lookup, **not trusted four-worker launch**.
+- **24–70 focused hours total:** optimistic technically functional minimal controller + 1/2 worker pilots if source event/permissions work; review/host administration additional and may dominate.
+- **50–120+ focused hours total:** production-qualified four-worker orchestration, long CI/review-future recovery, negative spoof/stale/reclaim tests and actual main rulesets, **excluding indefinite WAIT for eligible distinct GitHub reviewer or unresolved WORK-0002/3**. These ranges are *unmeasured engineering planning estimates*, not a promised calendar duration; overlap, DO NOT SUM.
+
+**Falsifier:** if a real 1-writer→2-writer pilot shows controller overhead + review delays greater than accepted product delivery gained, keep one authorized writer and three source/review roles. Do not continue building speculative v2 infrastructure because a roadmap said "four agents".
+
 ## H. Concrete next decisions
 
 1. **Hard architecture fork:** small trusted GitHub Actions allocator pilot vs CAS-per-chat. Bench both only if A fails or costs no more total work; do not implement both production solutions.
