@@ -1076,7 +1076,7 @@ test('E3 manual inspector cannot be configured as a production writer',async()=>
 test('E3 manual inspector fails closed on inconsistent bot journal results',async()=>{
   const command=request(1,q(1));
   const bad={id:2,user:{login:'github-actions[bot]'},
-    body:c.RESULT+'\\n{"unexpected":"result"}'};
+    body:c.RESULT+'\n{"unexpected":"result"}'};
   await a.rejects(c.inspect(api([command,bad]),{
     owner:'tobianahillel-afk',repo:'monde',issueNumber:20,
     mode:'TEST_ONLY',allowedActors:['tobianahillel-afk']
