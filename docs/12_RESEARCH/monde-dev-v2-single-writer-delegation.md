@@ -8,7 +8,7 @@ The user initiates the main development conversation manually. This foreground C
 
 The foreground agent may create 1–4 **one-shot scheduled ChatGPT tasks** when independent information will materially improve a current work item. Tasks have no development authority. Their permitted work is GitHub read-only research, architecture comparison, test ideation, and independent context-separated L2 code review. They must never attempt source or comment writes, merge PRs, configure the repository, create additional tasks, or request an external paid AI runtime.
 
-These tasks are not four development writers. The previous issue-comment allocator remains an isolated TEST_ONLY prototype and is not the production operating mode. Its synthetic GRANTED result conveys no GitHub write authorization. The ACTIVE_4 design is dormant and must not be deployed as part of single-writer activation.
+These tasks are not four development writers. The previous issue-comment allocator remains an isolated **code-only TEST_ONLY prototype** and is not the operating mode. The branch's legacy-named `.github/workflows/monde-dev-dispatch.yml` has been converted to **manual `workflow_dispatch` inspection only** with read permissions; it neither listens to `issue_comment` nor writes bot comments. This prevents accidental deployment of a second GitHub writer. Its synthetic GRANTED result conveys no GitHub write authorization. The ACTIVE_4 design is dormant and must not be deployed as part of single-writer activation.
 
 ## Delegation protocol
 

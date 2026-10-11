@@ -1,61 +1,17 @@
-name: MONDE Dev V2 Arbiter (TEST ONLY)
-run-name: MONDE-DEV-V2-${{ github.event.comment.id || 'inspect' }}
-# Inert on a draft branch. On reviewed main, only test Issue #20 is eligible.
+name: MONDE Dev V2 Journal Inspector (READ ONLY)
+# The legacy file path is retained to avoid breaking traceability. As of the
+# single-interactive-writer topology, NO issue_comment event may post results.
 on:
-  issue_comment:
-    types: [created]
   workflow_dispatch:
-
-concurrency:
-  group: monde-dev-v2-arbiter
-  queue: max
-  cancel-in-progress: false
 
 permissions:
   contents: read
-  issues: write
-  # Only used for independently verifying provenance of ACTIVE_4 receipts.
-  actions: read
+  issues: read
 
 jobs:
-  arbitrate:
-    if: >-
-      github.event_name == 'issue_comment' &&
-      github.actor == 'tobianahillel-afk' &&
-      !github.event.issue.pull_request &&
-      github.event.issue.number == 20
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout trusted default branch only
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
-        with:
-          ref: main
-          persist-credentials: false
-      - name: Process synthetically scoped request
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const controller = require('./.github/scripts/monde-dev/controller.cjs');
-            await controller.run({
-              github, context, core,
-              settings: {
-                mode: 'TEST_ONLY',
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issueNumber: 20,
-                allowedActors: ['tobianahillel-afk'],
-                botActor: 'github-actions[bot]'
-              }
-            });
-
   inspect:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    permissions:
-      contents: read
-      issues: read
     steps:
       - name: Checkout trusted default branch
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0

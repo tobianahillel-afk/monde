@@ -133,3 +133,14 @@ test('terminal dot segments and controls are rejected in scope and findings', ()
   }
   assert.throws(()=>d.assignment({...H,objective:'bad\nextra'}));
 });
+
+test('single-writer GitHub workflow has no automatic comment trigger or write token', () => {
+  const workflow=require('node:fs').readFileSync(
+    require('node:path').join(__dirname,'../../workflows/monde-dev-dispatch.yml'),
+    'utf8');
+  assert.match(workflow,/^\s+workflow_dispatch:/m);
+  assert.doesNotMatch(workflow,/^\s+issue_comment:/m);
+  assert.doesNotMatch(workflow,/^\s+issues:\s*write\b/m);
+  assert.doesNotMatch(workflow,/createComment|merge_pull_request|createCommit/);
+  assert.match(workflow,/^\s+issues:\s*read\b/m);
+});
