@@ -927,3 +927,41 @@ test('ACTIVE_4: no trusted workflow ID or Actions API blocks before result mutat
     [cmd,result],{...activeSettings(),trustedWorkflowId:0}),
     e=>e.code==='UNVERIFIED_WORKFLOW_ORIGIN');
 });
+
+test('real repository: canonical WORK-0001 and WORK-0002 parse without hand-made fixtures',()=>{
+  const fs=require('node:fs');
+  for(const work of [
+    {id:'WORK-0001',state:'DONE',tasks:8},
+    {id:'WORK-0002',state:'IN_REVIEW',tasks:5}
+  ]){
+    const contents=fs.readFileSync('registry/work-items/'+work.id+'.yaml','utf8');
+    const gate=c.parseWorkGate(contents,work.id);
+    a.equal(gate.status,work.state);
+    a.equal(gate.tasks.length,work.tasks);
+    a.equal(gate.tasks.every(t=>t.id.startsWith('T')),true);
+  }
+});
+test('real repository: WORK-0002 unresolved review tasks cannot claim arbitrary product files',()=>{
+  const fs=require('node:fs');
+  const gate=c.parseWorkGate(
+    fs.readFileSync('registry/work-items/WORK-0002.yaml','utf8'),'WORK-0002');
+  const reviewed={
+    ...q(1,{work:'WORK-0002',task:'T4',
+      resources:['review:WORK-0002-T4']})
+  };
+  a.equal(c.eligibleRealClaim(reviewed,gate,{'WORK-0001':'DONE'},SHA).eligible,false);
+  // The actual T4 dependency on T12 is currently IN_REVIEW, so the
+  // reviewed task cannot be independently claimed without that prerequisite.
+  a.equal(c.eligibleRealClaim(reviewed,gate,{'WORK-0001':'DONE'},SHA).reason,
+    'TASK_DEPENDENCY_NOT_DONE');
+  a.equal(c.eligibleRealClaim({...reviewed,resources:['path:src/unsafe.js']},
+    gate,{'WORK-0001':'DONE'},SHA).eligible,false);
+});
+test('real repository: WORK-0003 remains ineligible until canonical planning completes',()=>{
+  const fs=require('node:fs');
+  const gate=c.parseWorkGate(
+    fs.readFileSync('registry/work-items/WORK-0003.yaml','utf8'),'WORK-0003');
+  const r=q(1,{work:'WORK-0003',resources:['trust:actions']});
+  a.equal(c.eligibleRealClaim(r,gate,{'WORK-0001':'DONE'},SHA).reason,
+    'WORK_NOT_READY');
+});
