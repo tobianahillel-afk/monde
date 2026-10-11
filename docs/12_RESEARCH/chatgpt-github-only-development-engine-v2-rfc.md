@@ -1,3 +1,5 @@
+> **OPERATING MODEL REVISION — 2026-10-11.** The user has selected ONE interactive ChatGPT writer, triggered by direct chat messages, rather than four Scheduled task writers. The foreground chat may create 1–4 one-shot READ-ONLY Scheduled ChatGPT tasks for technical research, critical review or independent L2; it retrieves task conversation outputs only where available and validates report provenance and exact reviewed SHA. Reports must stay in the task response; GitHub writes from Scheduled tasks have been blocked in live trials. The four-writer ACTIVE_4 grant/issue-comment proposal below remains dormant research, not an active production requirement. The current implementation candidate records the single-writer contract in PR #19 in `docs/12_RESEARCH/monde-dev-v2-single-writer-delegation.md` and `monde-dev-v2-interactive-prompt.md`. The legacy draft architecture below must not be deployed without a new explicit decision. Existing accepted review/branch governance is not changed by this proposal.
+
 # RFC — MONDE Development Engine v2: ChatGPT + GitHub only
 
 Status: Proposed — research/engineering specification, **not Accepted**
