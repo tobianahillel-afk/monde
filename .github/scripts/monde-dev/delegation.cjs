@@ -1067,10 +1067,100 @@ function assessDelegationBatch({
   };
 }
 
+
+// Select an *advisory* next interactive task from verified WORK snapshots.
+// Never converts an in-progress candidate into Accepted work, starts a
+// scheduled task, or interprets a reported finding as a confirmed risk.
+const WORK_EXECUTABLE=new Set(['READY','IN_PROGRESS','PARTIAL']);
+const TASK_EXECUTABLE=new Set(['READY','IN_PROGRESS','PARTIAL']);
+const FINISHED=new Set(['DONE']);
+function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
+  if(typeof repo!=='string'||!REPO.test(repo)||
+     typeof head_sha!=='string'||!SHA.test(head_sha)||
+     !Array.isArray(works)||works.length<1||works.length>120||
+     !Array.isArray(triage_findings)||triage_findings.length>200)
+    bad('INVALID_WORK_PLAN');
+  const indexed=new Map(), candidates=[], deferred=[], blocked=[];
+  for(const work of works){
+    if(!plain(work)||typeof work.id!=='string'||
+       !/^WORK-[0-9]{4,}$/.test(work.id)||indexed.has(work.id)||
+       typeof work.status!=='string'||!Array.isArray(work.depends_on)||
+       !Array.isArray(work.tasks)||work.tasks.length>120||
+       work.depends_on.some(id=>typeof id!=='string'||!/^WORK-[0-9]{4,}$/.test(id))||
+       new Set(work.depends_on).size!==work.depends_on.length||
+       work.depends_on.includes(work.id))bad('INVALID_WORK_PLAN');
+    indexed.set(work.id,work);
+    const tasks=new Set();
+    for(const task of work.tasks){
+      if(!plain(task)||typeof task.id!=='string'||!/^T[1-9][0-9]*$/.test(task.id)||
+         tasks.has(task.id)||typeof task.status!=='string'||
+         !Array.isArray(task.depends_on)||!Array.isArray(task.expected_files)||
+         task.depends_on.some(id=>typeof id!=='string'||!/^T[1-9][0-9]*$/.test(id))||
+         new Set(task.depends_on).size!==task.depends_on.length||
+         task.expected_files.length>80||
+         task.expected_files.some(path=>!validPath(path))||
+         new Set(task.expected_files).size!==task.expected_files.length)
+        bad('INVALID_WORK_PLAN');
+      tasks.add(task.id);
+    }
+  }
+  const issues=[];
+  for(const finding of triage_findings){
+    if(!plain(finding)||!['R1','R2','R3'].includes(finding.severity)||
+       !validPath(finding.path)||!oneLine(finding.evidence,3000))
+      bad('INVALID_WORK_FINDING');
+    issues.push(finding);
+  }
+  const isOverlapping=(a,b)=>{
+    const x=a.replace(/\/$/,''),y=b.replace(/\/$/,'');
+    return x===y||x.startsWith(y+'/')||y.startsWith(x+'/');
+  };
+  for(const work of works){
+    const tasks=new Map(work.tasks.map(t=>[t.id,t]));
+    const unknown=work.depends_on.filter(id=>!indexed.has(id));
+    const workDeps=work.depends_on.filter(id=>indexed.get(id)?.status!=='DONE');
+    for(const task of work.tasks){
+      if(FINISHED.has(task.status))continue;
+      const id=work.id+'/'+task.id;
+      const reasons=[];
+      if(!WORK_EXECUTABLE.has(work.status))reasons.push('WORK_NOT_READY');
+      if(!TASK_EXECUTABLE.has(task.status))reasons.push('TASK_NOT_READY');
+      if(unknown.length)reasons.push('WORK_DEPENDENCIES_UNAVAILABLE');
+      else if(workDeps.length)reasons.push('WORK_DEPENDENCIES_PENDING');
+      if(task.depends_on.some(dep=>!tasks.has(dep)))
+        reasons.push('UNKNOWN_TASK_DEPENDENCY');
+      else if(task.depends_on.some(dep=>tasks.get(dep)?.status!=='DONE'))
+        reasons.push('TASK_DEPENDENCIES_PENDING');
+      if(!task.expected_files.length)reasons.push('UNDECLARED_SCOPE');
+      const material=issues.filter(f=>
+        f.severity!=='R3'&&task.expected_files.some(path=>isOverlapping(path,f.path)));
+      if(material.length)reasons.push('MATERIAL_FINDINGS_NEED_TRIAGE');
+      const note={work:work.id,task:task.id,expected_files:task.expected_files.slice(),
+        reasons,related_material_findings:material.length};
+      if(reasons.length)blocked.push(note);
+      else candidates.push({...note,state:task.status,work_state:work.status});
+    }
+  }
+  // Do not let a cosmetic issue trump already started work. All suggestions
+  // remain human/foreground-reviewed; paths are candidate scopes, not grants.
+  const priority={IN_PROGRESS:0,PARTIAL:1,READY:2};
+  candidates.sort((a,b)=>priority[a.state]-priority[b.state]||
+    priority[a.work_state]-priority[b.work_state]||
+    a.work.localeCompare(b.work)||a.task.localeCompare(b.task));
+  const minor=issues.filter(f=>f.severity==='R3');
+  return {repo,head_sha,advisory_only:true,authorized_to_write:false,
+    automatically_accepted:0,
+    recommended:candidates.length?candidates[0]:null,
+    eligible:candidates,blocked,unqualified_material_findings:
+      issues.filter(f=>f.severity!=='R3').length,
+    deferred_r3_candidates:minor.length,
+    continuation:'RECHECK_REPO_AND_SCOPE_BEFORE_WRITE'};
+}
+
 module.exports = {
   MARKER, RESEARCH_MARKER, InvalidReport, assignment,
   buildReviewPrompt, buildResearchPrompt, assessResearchReport, validateReport,
   parseReviewResponse, assessReview, prepareInteractiveHandoff,
   planDelegations, assessDelegationBatch, groupTriageFindings,
-  prepareUnqualifiedTriageHandoff
+  prepareUnqualifiedTriageHandoff, planNextIncrement
 };

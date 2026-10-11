@@ -2539,3 +2539,65 @@ test('progress-first: empty triage recommends more eligible work, never marks me
   assert.equal(result.automatically_accepted,0);
   assert.equal(Object.hasOwn(result,'ready_for_merge'),false);
 });
+
+
+const WORK_PLAN_SHA='b'.repeat(40);
+const workPlan=(overrides={})=>({
+  id:'WORK-0123',status:'IN_PROGRESS',depends_on:['WORK-0001'],
+  tasks:[
+    {id:'T1',status:'DONE',depends_on:[],expected_files:['src/a.js']},
+    {id:'T2',status:'IN_PROGRESS',depends_on:['T1'],expected_files:['src/b.js']},
+    {id:'T3',status:'READY',depends_on:['T1'],expected_files:['src/c.js']}
+  ],...overrides
+});
+const completedWork={id:'WORK-0001',status:'DONE',depends_on:[],tasks:[]};
+const plan=(works=[completedWork,workPlan()],findings=[])=>d.planNextIncrement({
+  repo:'tobianahillel-afk/monde',head_sha:WORK_PLAN_SHA,
+  works,triage_findings:findings
+});
+test('work continuation: already started task outranks next ready task',()=>{
+  const p=plan();
+  assert.equal(p.recommended.task,'T2');
+  assert.equal(p.eligible.length,2);
+  assert.equal(p.automatically_accepted,0);
+  assert.equal(p.authorized_to_write,false);
+  assert.equal(p.advisory_only,true);
+});
+test('work continuation: critical finding blocks only overlapping scope',()=>{
+  const p=plan(undefined,[{severity:'R1',path:'src/b.js',evidence:'Fails auth check'}]);
+  assert.equal(p.recommended.task,'T3');
+  assert.equal(p.blocked.filter(x=>x.reasons.includes('MATERIAL_FINDINGS_NEED_TRIAGE')).length,1);
+  assert.equal(p.unqualified_material_findings,1);
+});
+test('work continuation: related R3 stays visible, but does not block',()=>{
+  const p=plan(undefined,[{severity:'R3',path:'src/b.js',evidence:'Spacing polish'}]);
+  assert.equal(p.recommended.task,'T2');
+  assert.equal(p.deferred_r3_candidates,1);
+});
+test('work continuation: no recommendation for PROPOSED work or incomplete dependencies',()=>{
+  const proposed=plan([completedWork,workPlan({status:'PROPOSED'})]);
+  assert.equal(proposed.recommended,null);
+  const pending=plan([workPlan()]);
+  assert.equal(pending.recommended,null);
+  assert.ok(pending.blocked.some(x=>x.reasons.includes('WORK_DEPENDENCIES_UNAVAILABLE')));
+});
+test('work continuation: unfinished prerequisite task never schedules dependent',()=>{
+  const w=workPlan({tasks:[
+    {id:'T1',status:'READY',depends_on:[],expected_files:['src/a.js']},
+    {id:'T2',status:'READY',depends_on:['T1'],expected_files:['src/b.js']}
+  ]});
+  const p=plan([completedWork,w]);
+  assert.equal(p.recommended.task,'T1');
+  assert.ok(p.blocked.some(x=>x.task==='T2'&&x.reasons.includes('TASK_DEPENDENCIES_PENDING')));
+});
+test('work continuation: out of scope unqualified material finding remains reported',()=>{
+  const p=plan(undefined,[{severity:'R2',path:'lib/unrelated.js',evidence:'Unknown impact'}]);
+  assert.equal(p.recommended.task,'T2');
+  assert.equal(p.unqualified_material_findings,1);
+});
+test('work continuation: duplicated and malformed work snapshots fail closed',()=>{
+  assert.throws(()=>plan([completedWork,completedWork]),{code:'INVALID_WORK_PLAN'});
+  assert.throws(()=>plan([completedWork,workPlan({depends_on:['WORK-0001','WORK-0001']})]),{code:'INVALID_WORK_PLAN'});
+  assert.throws(()=>plan([completedWork,workPlan({tasks:[{id:'T1',status:'READY',depends_on:[],expected_files:['../x']}]})]),{code:'INVALID_WORK_PLAN'});
+  assert.throws(()=>plan(undefined,[{severity:'UNKNOWN',path:'src/b.js',evidence:'unverified'}]),{code:'INVALID_WORK_FINDING'});
+});
