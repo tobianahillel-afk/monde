@@ -21,10 +21,12 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
-      - name: Validate controller syntax
-        run: node --check .github/scripts/monde-dev/controller.cjs
-      - name: Run deterministic unit and adversarial tests
-        run: node --test --experimental-test-coverage .github/scripts/monde-dev/controller.test.cjs
+      - name: Validate development engine modules
+        run: |
+          node --check .github/scripts/monde-dev/controller.cjs
+          node --check .github/scripts/monde-dev/delegation.cjs
+      - name: Run focused controller and interactive delegation tests
+        run: node --test --experimental-test-coverage .github/scripts/monde-dev/*.test.cjs
       - name: E3 preview - load real controller with pinned github-script v9 (read-only)
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
