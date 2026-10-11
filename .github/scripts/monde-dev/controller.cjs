@@ -101,7 +101,9 @@ function replay(comments,bot='github-actions[bot]',allowedActors=['tobianahillel
     if((r.outcome==='RELEASED'&&source.q.op!=='RELEASE')||
        (r.outcome==='GRANTED'&&source.q.op!=='CLAIM'))fail('INVALID_OUTCOME_OP');
     if(r.outcome==='GRANTED'){
-      if(source.q.op!=='CLAIM'||r.grant_id===null||grants.has(r.grant_id)||r.epoch===null||r.epoch<=epoch||
+      if(source.q.op!=='CLAIM'||source.q.work!=='WORK-0000'||
+          !['T1','T2','T3','T4'].includes(source.q.task)||
+          r.grant_id===null||grants.has(r.grant_id)||r.epoch===null||r.epoch<=epoch||
          r.observed_base_sha!==source.q.base_sha||
          JSON.stringify(r.resources)!==JSON.stringify(source.q.resources))fail('INVALID_GRANT');
       for(const g of grants.values())for(const a of g.resources)for(const b of r.resources)
@@ -128,6 +130,8 @@ function choose(state,q,config){
   const block=(reason,outcome='BLOCKED')=>({outcome,reason,grant_id:null,epoch:null,
     resources:[],observed_base_sha:null});
   if(q.op==='STATUS')return block('STATUS_ONLY','NO_CHANGE');
+  // No state mutation is permitted in any unexpected execution mode.
+  if(!config||config.mode!=='TEST_ONLY')return block('TEST_ONLY_REQUIRED');
   if(q.op==='RELEASE'){
     const g=state.grants.get(q.grant_id);
     if(!g||g.epoch!==q.epoch||g.worker!==q.worker||g.work!==q.work||

@@ -503,3 +503,23 @@ test('mutated bot result cannot promote revoked or untrusted authority',()=>{
     else a.throws(()=>c.replay([req,forged]),e=>e.code==='INVALID_GRANT');
   }
 });
+
+test('E5 hardening: fixture result for a real WORK can never become an effective grant',()=>{
+  const nonFixture=q(1,{work:'WORK-0005'});
+  const command=request(21,nonFixture);
+  const responseForRealWork=response(22,command,{
+    outcome:'GRANTED',reason:'BAD_FIXTURE',grant_id:'grant:req-case-0001',
+    epoch:1,resources:nonFixture.resources,observed_base_sha:SHA
+  });
+  assertReject(()=>c.replay([command,responseForRealWork]),'INVALID_GRANT');
+});
+test('E5 hardening: RELEASE cannot mutate a grant outside TEST_ONLY mode',()=>{
+  const s=simulated(),grant=s.apply(q(1));
+  const release={v:1,op:'RELEASE',request_id:'req-release-0005',
+    worker:'W1',work:'WORK-0000',task:'T1',grant_id:grant.grant_id,
+    epoch:grant.epoch,observed_head:SHA};
+  const outcome=c.choose(s.state(),c.parseRequest(c.encodeRequest(release)),
+    {mode:'ACTIVE'});
+  a.equal(outcome.outcome,'BLOCKED');
+  a.equal(outcome.reason,'TEST_ONLY_REQUIRED');
+});
