@@ -1,0 +1,29 @@
+name: MONDE Dev V2 Controller CI
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/monde-dev/**'
+      - '.github/workflows/monde-dev-dispatch.yml'
+      - '.github/workflows/monde-dev-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  controller-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout candidate for unprivileged tests
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          persist-credentials: false
+      - name: Node test runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Validate controller syntax
+        run: node --check .github/scripts/monde-dev/controller.cjs
+      - name: Run deterministic unit and adversarial tests
+        run: node --test .github/scripts/monde-dev/controller.test.cjs

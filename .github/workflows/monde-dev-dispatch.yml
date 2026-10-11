@@ -1,0 +1,61 @@
+name: MONDE Dev V2 Arbiter (TEST ONLY)
+# Inert until reviewed configuration is set on the default branch.
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+
+concurrency:
+  group: monde-dev-v2-arbiter
+  queue: max
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  arbitrate:
+    if: >-
+      github.event_name == 'issue_comment' &&
+      !github.event.issue.pull_request &&
+      vars.MONDE_DEV_MODE == 'TEST_ONLY' &&
+      format('{0}', github.event.issue.number) == vars.MONDE_DEV_COMMAND_ISSUE
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted default branch only
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Process synthetically scoped request
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          MONDE_DEV_COMMAND_ISSUE: ${{ vars.MONDE_DEV_COMMAND_ISSUE }}
+        with:
+          script: |
+            const controller = require('./.github/scripts/monde-dev/controller.cjs');
+            await controller.run({
+              github, context, core,
+              settings: {
+                mode: 'TEST_ONLY',
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issueNumber: Number(process.env.MONDE_DEV_COMMAND_ISSUE),
+                allowedActors: ['tobianahillel-afk'],
+                botActor: 'github-actions[bot]'
+              }
+            });
+
+  inspect:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - name: Test-only configuration notice
+        run: |
+          echo 'TEST_ONLY. No product branch or merge authority is granted.'
+          echo 'Use the issue_comment flow only after reviewed default-branch deployment.'
