@@ -296,7 +296,9 @@ test('candidate CI checks the exact PR head and does not use merge-ref checkout'
 });
 test('interactive relay is never interpreted as automatic publication approval',()=>{
   const packet=d.prepareInteractiveHandoff({expected:H,response:message(data()),
-    current_head:SHA,source,publication_clearance:{secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
+    current_head:SHA,source,publication_clearance:{secrets_checked:true,
+      personal_data_checked:true,public_repo_safe:true,
+      provenance_hashes_approved:true}});
   assert.equal(packet.can_publish,false);
   assert.equal(packet.ready_for_manual_relay,true);
   assert.match(packet.text,/Message reference SHA-256: [a-f0-9]{64}/);
