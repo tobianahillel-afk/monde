@@ -2148,11 +2148,9 @@ test('unverified structured L2 handoff is blocked for stale HEAD or no clearance
     'CONFIDENTIALITY_REVIEW_REQUIRED');
 });
 test('unverified structured L2 report with bearer secret cannot be relayed',()=>{
-  const report=message(data({verdict:'CHANGES_REQUIRED'})).replace(
-    'Review the request authorization before token reuse.',
-    'Review the request authorization before token reuse.');
-  const compromised=report.replace('Evidence of overlapping side effect',
-    'file_Authorization: Bearer '+'Y'.repeat(35));
+  const compromised=message(data({verdict:'CHANGES_REQUIRED',
+    findings:[{...data().findings[0],
+      evidence:'file_Authorization: Bearer '+'Y'.repeat(35)}]}));
   const result=d.prepareUnqualifiedTriageHandoff({
     expected:H,response:compromised,current_head:SHA,source:undefined,
     publication_clearance:{secrets_checked:true,personal_data_checked:true,

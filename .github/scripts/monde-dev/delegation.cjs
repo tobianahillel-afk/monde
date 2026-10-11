@@ -689,6 +689,7 @@ function prepareUnqualifiedTriageHandoff(args) {
     ready_for_merge:false,text:null});
   // A structurally valid report with unverifiable chat provenance may still
   // supply actionable allegations. Relay only as UNQUALIFIED triage, never L2.
+  if(args.current_head!==a.head_sha)return refused('STALE_SHA');
   const unverifiedSource=analysis.status==='INDEPENDENCE_UNVERIFIED' &&
     Array.isArray(analysis.reported_findings) &&
     analysis.reported_findings.length>0;
