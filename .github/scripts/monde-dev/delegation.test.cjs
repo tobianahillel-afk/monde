@@ -7,7 +7,7 @@ const H = {
   assignment_id: 'L2-PR19-20261011-A',
   repo: 'tobianahillel-afk/monde', pr: 19,
   head_sha: SHA, objective: 'Review coordination security and recovery',
-  paths: ['.github/scripts/monde-dev/controller.cjs'],
+  paths: ['.github/scripts/monde-dev/delegation.cjs'],
   author_context_id: 'chat-foreground-20261011',
   mission_kind: 'L2_REVIEW'
 };
@@ -16,7 +16,7 @@ const data = (overrides={}) => ({
   head_sha: H.head_sha, reviewer_context_id: 'chat-l2-20261011-new',
   verdict: 'CHANGES_REQUIRED', findings: [{
     id: 'F01', severity: 'R1',
-    path: '.github/scripts/monde-dev/controller.cjs',
+    path: '.github/scripts/monde-dev/delegation.cjs',
     evidence: 'At line X, stale lease still allows an operation',
     action: 'Refuse the stale operation using current state'
   }], reviewed_paths: H.paths, limitations: ['Could not exercise real branch protection'],
@@ -1369,4 +1369,53 @@ test('finding detail permission does not override credential checks',()=>{
   assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
   assert.equal(out.ready_for_manual_relay,false);
   assert.equal(out.text,null);
+});
+
+test('malformed L2 can produce a bounded non-approving review triage relay',()=>{
+  const response='Detailed independent analysis: '+('a'.repeat(9100))+
+    '\nR2: scope gate missing at src/critical.cjs; validate repository authority.'+
+    '\n'+d.MARKER+'\n{broken';
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.equal(out.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.equal(out.native_github_approved,false);
+  assert.equal(out.ready_for_merge,false);
+  assert.match(out.text,/scope gate missing/);
+  assert.doesNotMatch(out.text,/a{2000}/);
+  assert.match(out.text,/NOT INDEPENDENTLY VERIFIED/);
+});
+test('malformed review triage refuses forwarding without explicit details clearance',()=>{
+  const args={expected:H,response:'R1: access bypass in src/auth.js\n'+d.MARKER+'\n{bad',
+    current_head:SHA,source};
+  const blocked=d.prepareUnqualifiedTriageHandoff(args);
+  assert.equal(blocked.status,'CONFIDENTIALITY_REVIEW_REQUIRED');
+  assert.equal(blocked.ready_for_manual_relay,false);
+});
+test('triage refuses dangerous source report even if clearance flags are true',()=>{
+  const response='R1: exposed ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 '+
+    'in review body\n'+d.MARKER+'\n{broken';
+  const out=d.prepareUnqualifiedTriageHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}});
+  assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(out.text,null);
+});
+test('triage does not relay stale or validly formatted reports as unqualified L2',()=>{
+  const base={expected:H,response:'R2: fix stale claim in src/agent.cjs\n'+d.MARKER+'\n{broken',
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}};
+  assert.equal(d.prepareUnqualifiedTriageHandoff({...base,
+    current_head:'b'.repeat(40)}).status,'STALE_SHA');
+  assert.equal(d.prepareUnqualifiedTriageHandoff({...base,
+    response:message(data())}).status,'NOT_UNQUALIFIED_REPORT');
+});
+test('read-only reviewer task briefing explicitly checks HEAD at start and end',()=>{
+  assert.match(d.buildReviewPrompt(H),/debut ET a la fin/);
+  assert.match(d.buildResearchPrompt(RESEARCH),/debut et a la fin/);
 });

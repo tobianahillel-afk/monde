@@ -36,3 +36,8 @@ Un résultat structuré `L2_REPORT_RECEIVED_PENDING_VALIDATION` atteste seulemen
 **Cadence :** corriger les constats L2 justifiés par lots cohérents, tester les risques modifiés et faire une CI au HEAD stabilisé, sans répéter les mêmes échecs ou requalifier chaque anomalie déjà établie. Préserver la gouvernance MONDE et la distinction entre tests verts et validation finale.
 
 **Récupération L2 :** le développeur interactif planifie les revues ponctuelles ChatGPT dans un contexte séparé, consulte lui-même les conversations de ces tâches et exploite leurs rapports au SHA concerné. Les réviseurs restent en lecture seule ; si la publication GitHub est indisponible, la réponse ChatGPT doit contenir le rapport intégral. Aucun compte rendu non retrouvé ne vaut approbation.
+
+
+## Rapports imparfaits et relai de constats
+
+Lorsqu'une tache rend un rapport sans pied JSON valide, utiliser la sortie de `assessDelegationBatch` pour conserver les constats bruts, puis `prepareUnqualifiedTriageHandoff` seulement apres verification humaine de confidentialite et de la securite de publication. Les fragments R1/R2 restent non qualifies, ne comptent jamais comme une revue L2 acceptee et ne peuvent autoriser une fusion. Le contexte reviewer et le HEAD exact doivent etre verifies independamment. Chaque tache doit reverifier HEAD au debut et a la fin.

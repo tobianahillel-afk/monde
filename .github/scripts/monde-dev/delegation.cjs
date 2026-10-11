@@ -74,6 +74,9 @@ function buildReviewPrompt(input) {
     'Mission: ' + a.assignment_id,
     'Depot: ' + a.repo + ' ; PR #' + a.pr,
     'HEAD exact a examiner: ' + a.head_sha,
+    'Verifie le SHA du commit au debut ET a la fin de ton analyse.',
+    'Si la PR a change de HEAD, signale clairement BLOCKED/STALE_SHA;',
+    'ne recycle pas les preuves d un ancien commit en APPROVE.',
     'Contexte auteur (ne pas reutiliser): ' + a.author_context_id,
     'Objectif: ' + a.objective,
     'Fichiers: ' + a.paths.join(', '),
@@ -123,6 +126,7 @@ function buildResearchPrompt(input) {
     'MONDE V2 — RECHERCHE TECHNIQUE EN LECTURE SEULE',
     'Mission: '+a.assignment_id+' / '+a.mission_kind,
     'Depot: '+a.repo+' PR #'+a.pr+' HEAD: '+a.head_sha,
+    'Verifie le SHA au debut et a la fin; si HEAD differe, dis BLOCKED.',
     'Contexte auteur: '+a.author_context_id,
     'Objectif: '+a.objective,
     'Chemins: '+a.paths.join(', '),
@@ -586,6 +590,72 @@ function prepareInteractiveHandoff(args) {
 // This is a pure in-memory batch of 1–4 read-only missions, not a scheduler.
 // Prevents duplicate missions and mismatched target revisions from being
 // delegated as though they were one exact-HEAD review packet.
+
+// Explicit, non-authoritative foreground triage for a malformed L2/research
+// response. This preserves relevant evidence without pretending that a broken
+// footer constitutes a completed review or permitting an unverified merge.
+function prepareUnqualifiedTriageHandoff(args) {
+  if(!plain(args))bad('INVALID_HANDOFF');
+  const a=assignment(args.expected);
+  const analysis=a.mission_kind==='L2_REVIEW' ?
+    assessReview(args):assessResearchReport(args);
+  const refused=(status)=>({status,ready_for_manual_relay:false,
+    requires_manual_qualification:true,native_github_approved:false,
+    ready_for_merge:false,text:null});
+  if(analysis.status!=='REPORT_NEEDS_MANUAL_REVIEW')
+    return refused('NOT_UNQUALIFIED_REPORT');
+  if(args.current_head!==a.head_sha)return refused('STALE_SHA');
+  const clear=args.publication_clearance;
+  if(!plain(clear)||clear.secrets_checked!==true||
+     clear.personal_data_checked!==true||clear.public_repo_safe!==true||
+     clear.finding_details_approved!==true)
+    return refused('CONFIDENTIALITY_REVIEW_REQUIRED');
+  if(typeof args.response!=='string'||args.response.length>1024*1024)
+    return refused('UNSUPPORTED_REPORT_SIZE');
+  // The original report is preserved in ChatGPT, not automatically published.
+  // Only a small reviewed extract leaves that conversation.
+  const snippets=(analysis.raw_blocker_snippets||[]).slice(0,12);
+  const findings=(analysis.reported_findings||[]).slice(0,50);
+  if(!snippets.length&&!findings.length)
+    return refused('NO_REVIEWED_ACTIONABLE_EXCERPTS');
+  const suspected=analysis.reported_blocking_unknown===true||
+    analysis.reported_claims_incomplete===true;
+  const source=plain(args.source)?args.source:{};
+  const note=[
+    '## Unqualified ChatGPT reviewer evidence — foreground relay only',
+    'Repository: '+a.repo+'; PR #'+a.pr,
+    'Assignment: '+a.assignment_id+'; mission: '+a.mission_kind,
+    'Reviewed assignment SHA: '+a.head_sha,
+    'Original report SHA-256: '+analysis.raw_report_sha256,
+    'Source provenance: NOT INDEPENDENTLY VERIFIED',
+    'Message ref fingerprint: '+
+      (oneLine(source.message_ref,160)?
+        createHash('sha256').update(source.message_ref,'utf8').digest('hex'):'UNKNOWN'),
+    'Footer: MALFORMED; L2 qualification: NONE; GitHub native approval: NONE',
+    'Open R1/R2 may be missing: '+(suspected?'YES':'UNKNOWN'),
+    '',
+    '### Suspected findings (NOT VERIFIED)',
+    ...findings.flatMap(f=>[
+      f.id+' ['+f.severity+'] '+f.path,
+      'Evidence: '+f.evidence,
+      'Suggested correction: '+f.action
+    ]),
+    ...snippets.map((s,i)=>'Unqualified R1/R2 extract '+(i+1)+': '+s),
+    '',
+    'The entire original ChatGPT conversation is required to confirm scope,',
+    'context separation and all unresolved findings.',
+    'This text MUST NOT be used as an APPROVE decision or merge authorization.'
+  ].join('\n');
+  if(CREDENTIAL_PATTERNS.some(re=>[args.response,note,source.message_ref]
+      .some(s=>typeof s==='string'&&re.test(s))))
+    return refused('POTENTIAL_SECRET_IN_REPORT');
+  if(Buffer.byteLength(note,'utf8')>PUBLIC_RELAY_MAX_BYTES)
+    return refused('PUBLIC_RELAY_TOO_LARGE');
+  return {status:'UNQUALIFIED_TRIAGE_READY',ready_for_manual_relay:true,
+    requires_manual_qualification:true,self_contained_for_remediation:false,
+    native_github_approved:false,ready_for_merge:false,text:note};
+}
+
 function planDelegations(inputs) {
   if (!Array.isArray(inputs) || inputs.length < 1 || inputs.length > 4)
     bad('INVALID_BATCH_SIZE');
@@ -810,5 +880,6 @@ module.exports = {
   MARKER, RESEARCH_MARKER, InvalidReport, assignment,
   buildReviewPrompt, buildResearchPrompt, assessResearchReport, validateReport,
   parseReviewResponse, assessReview, prepareInteractiveHandoff,
-  planDelegations, assessDelegationBatch, groupTriageFindings
+  planDelegations, assessDelegationBatch, groupTriageFindings,
+  prepareUnqualifiedTriageHandoff
 };
