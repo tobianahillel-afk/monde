@@ -27,3 +27,18 @@ jobs:
         run: node --check .github/scripts/monde-dev/controller.cjs
       - name: Run deterministic unit and adversarial tests
         run: node --test --experimental-test-coverage .github/scripts/monde-dev/controller.test.cjs
+      - name: E3 preview - load real controller with pinned github-script v9 (read-only)
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const controller = require('./.github/scripts/monde-dev/controller.cjs');
+            const request = controller.parseRequest(
+              'MONDE_DEV_V1\n{"v":1,"op":"STATUS","request_id":"req-ci-preview01","worker":"W1","work":"WORK-0000","task":"T1"}'
+            );
+            const state = {requests:new Map(),decisions:new Map(),grants:new Map(),epoch:0};
+            const decision = controller.choose(state,request,{mode:'TEST_ONLY'});
+            if (decision.outcome !== 'NO_CHANGE' || decision.grant_id !== null) {
+              throw new Error('E3 preview must stay read-only');
+            }
+            core.info('E3 github-script v9 module load OK; synthetic STATUS only, no GitHub writes.');
+
