@@ -414,7 +414,21 @@ function planDelegations(inputs) {
 // Reports are supplied by the foreground chat *after* retrieving actual
 // conversations; a scheduler success cannot be substituted for the text.
 // A batch status does not confer GitHub approval, even if every report says APPROVE.
-function assessDelegationBatch({ assignments, reports, sources, current_head }) {
+function assessDelegationBatch({
+  assignments, reports, sources, current_head, prior_sources=[]
+}) {
+  // Prior observations must be supplied by the foreground reader from
+  // separate previously retrieved conversations. In-memory detection across
+  // cohorts is advisory, not a cryptographic provenance guarantee.
+  if(!Array.isArray(prior_sources)||prior_sources.length>1000)
+    bad('INVALID_PRIOR_OBSERVATIONS');
+  for(const item of prior_sources){
+    exactFields(item,['assignment_id','context_id','message_ref']);
+    if(typeof item.assignment_id!=='string'||!ID.test(item.assignment_id)||
+       !oneLine(item.context_id,160)||!ID.test(item.context_id)||
+       !oneLine(item.message_ref,160))
+      bad('INVALID_PRIOR_OBSERVATIONS');
+  }
   const plan = planDelegations(assignments);
   if (!plain(reports) || !plain(sources))
     bad('INVALID_REPORT_MAP');
@@ -458,14 +472,40 @@ function assessDelegationBatch({ assignments, reports, sources, current_head }) 
   const conflicting=new Set();
   for(const ids of colliders.values())
     if(ids.length>1)for(const id of ids)conflicting.add(id);
+  const older=new Map();
+  for(const item of prior_sources){
+    for(const key of ['context_id','message_ref']){
+      const lookup=(key==='context_id'?'context:':'message:')+item[key];
+      const ids=older.get(lookup)||new Set();
+      ids.add(item.assignment_id);
+      older.set(lookup,ids);
+    }
+  }
+  for(const target of plan){
+    const key=target.assignment_id;
+    if(!Object.prototype.hasOwnProperty.call(reports,key)||
+       typeof reports[key]!=='string'||!plain(sources[key]))continue;
+    const observation=sources[key];
+    for(const field of ['context_id','message_ref']){
+      const prefix=field==='context_id'?'context:':'message:';
+      const historical=older.get(prefix+observation[field]);
+      if(historical&&[...historical].some(id=>id!==key))
+        conflicting.add(key);
+    }
+  }
   for(const outcome of results)
-    if(conflicting.has(outcome.assignment_id)&&
-       !['REPORT_UNAVAILABLE','WRONG_ASSIGNMENT','STALE_SHA',
-         'REPORT_NEEDS_MANUAL_REVIEW','INDEPENDENCE_UNVERIFIED'].includes(outcome.status)){
-      outcome.original_status=outcome.status;
-      outcome.status='INDEPENDENCE_UNVERIFIED';
-      outcome.reason='DUPLICATE_CHAT_CONTEXT_OR_MESSAGE';
+    if(conflicting.has(outcome.assignment_id)){
+      outcome.independence_unverified=true;
+      outcome.independence_reason='REUSED_CHAT_CONTEXT_OR_MESSAGE';
       outcome.requires_manual_qualification=true;
+      // Security findings have higher priority than a provenance warning:
+      // retain NEEDS_CORRECTION/BLOCKED so callers cannot miss remediation.
+      if(!['NEEDS_CORRECTION','BLOCKED','REPORT_UNAVAILABLE',
+           'WRONG_ASSIGNMENT','STALE_SHA','REPORT_NEEDS_MANUAL_REVIEW',
+           'INDEPENDENCE_UNVERIFIED'].includes(outcome.status)){
+        outcome.original_status=outcome.status;
+        outcome.status='INDEPENDENCE_UNVERIFIED';
+      }
     }
   const counts = {};
   for (const result of results)
@@ -473,6 +513,8 @@ function assessDelegationBatch({ assignments, reports, sources, current_head }) 
   return {
     repo: plan[0].repo, pr: plan[0].pr, head_sha: plan[0].head_sha,
     total: plan.length, results, counts,
+    independence_conflicts: conflicting.size,
+    prior_observations_supplied: prior_sources.length,
     native_github_approved: false, ready_for_merge: false
   };
 }

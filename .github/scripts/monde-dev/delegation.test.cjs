@@ -498,11 +498,12 @@ test('two L2 missions cannot claim independent provenance from the same reviewer
       [a1.assignment_id]:source,
       [a2.assignment_id]:source
     }});
-  assert.equal(batch.counts.INDEPENDENCE_UNVERIFIED,2);
+  assert.equal(batch.counts.NEEDS_CORRECTION,2);
+  assert.equal(batch.independence_conflicts,2);
   for(const result of batch.results){
-    assert.equal(result.status,'INDEPENDENCE_UNVERIFIED');
-    assert.equal(result.original_status,'NEEDS_CORRECTION');
-    assert.equal(result.reason,'DUPLICATE_CHAT_CONTEXT_OR_MESSAGE');
+    assert.equal(result.status,'NEEDS_CORRECTION');
+    assert.equal(result.independence_unverified,true);
+    assert.equal(result.independence_reason,'REUSED_CHAT_CONTEXT_OR_MESSAGE');
     assert.equal(result.native_github_approved,false);
   }
   assert.equal(batch.ready_for_merge,false);
@@ -522,7 +523,8 @@ test('different chat contexts still cannot recycle the same message reference',(
       [a2.assignment_id]:{...source,context_id:'chat-other-reviewer'}
     }
   });
-  assert.equal(res.counts.INDEPENDENCE_UNVERIFIED,2);
+  assert.equal(res.counts.NEEDS_CORRECTION,2);
+  assert.equal(res.independence_conflicts,2);
 });
 test('two actually distinct reviewer contexts and messages remain separately observed',()=>{
   const a1={...H,assignment_id:'L2-PR19-UNIQ-01'};
@@ -606,4 +608,55 @@ test('read-only L2 prompt never asserts example files were actually read',()=>{
   assert.match(prompt,/"reviewed_paths":\[\]/);
   assert.doesNotMatch(prompt,/"reviewed_paths":\["\.github/);
   assert.match(prompt,/Ne declare aucun fichier examine sans l avoir reellement lu/);
+});
+
+test('cross-batch reused reviewer context is unverified without losing R1 correction',()=>{
+  const report=message(data());
+  const out=d.assessDelegationBatch({
+    assignments:[H],reports:{[H.assignment_id]:report},
+    sources:{[H.assignment_id]:source},current_head:SHA,
+    prior_sources:[{assignment_id:'L2-PREVIOUS-PR19-0001',
+      context_id:source.context_id,message_ref:'history-prior-distinct'}]
+  });
+  assert.equal(out.results[0].status,'NEEDS_CORRECTION');
+  assert.equal(out.results[0].independence_unverified,true);
+  assert.equal(out.independence_conflicts,1);
+  assert.equal(out.ready_for_merge,false);
+});
+test('cross-batch reused message_ref cannot qualify a clean L2',()=>{
+  const clean=message(data({verdict:'APPROVE',findings:[]}));
+  const out=d.assessDelegationBatch({assignments:[H],
+    reports:{[H.assignment_id]:clean},
+    sources:{[H.assignment_id]:source},current_head:SHA,
+    prior_sources:[{assignment_id:'L2-PREVIOUS-PR19-0002',
+      context_id:'another-chat-id',message_ref:source.message_ref}]});
+  assert.equal(out.results[0].status,'INDEPENDENCE_UNVERIFIED');
+  assert.equal(out.results[0].independence_unverified,true);
+  assert.equal(out.independence_conflicts,1);
+});
+test('historical observation of same mission is not treated as another reviewer',()=>{
+  const out=d.assessDelegationBatch({assignments:[H],
+    reports:{[H.assignment_id]:message(data())},
+    sources:{[H.assignment_id]:source},current_head:SHA,
+    prior_sources:[{assignment_id:H.assignment_id,
+      context_id:source.context_id,message_ref:source.message_ref}]});
+  assert.equal(out.results[0].status,'NEEDS_CORRECTION');
+  assert.equal(out.independence_conflicts,0);
+});
+test('empty or malformed prior observation inventories reject ambiguous input',()=>{
+  for(const prior_sources of [null,{},[{}],[
+    {assignment_id:'valid-id-1234',context_id:'valid-context',message_ref:''}
+  ]]){
+    assert.throws(()=>d.assessDelegationBatch({assignments:[H],
+      reports:{},sources:{},current_head:SHA,prior_sources}));
+  }
+});
+test('cross-batch independent contexts remain distinguishable',()=>{
+  const out=d.assessDelegationBatch({assignments:[H],
+    reports:{[H.assignment_id]:message(data())},
+    sources:{[H.assignment_id]:source},current_head:SHA,
+    prior_sources:[{assignment_id:'L2-PREVIOUS-PR19-0003',
+      context_id:'independent-past-reviewer',message_ref:'history-past-msg'}]});
+  assert.equal(out.results[0].status,'NEEDS_CORRECTION');
+  assert.equal(out.independence_conflicts,0);
 });
