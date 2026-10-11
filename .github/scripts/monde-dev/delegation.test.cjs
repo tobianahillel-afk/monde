@@ -675,7 +675,7 @@ test('public relay is minimal by default despite normal confidentiality clearanc
   assert.doesNotMatch(out.text,/Observed separate context: chat-l2/);
   assert.doesNotMatch(out.text,/history-msg-l2-20261011-001/);
   assert.doesNotMatch(out.text,/### Canonical machine footer/);
-  assert.match(out.text,/IDs\/severities only:/);
+  assert.match(out.text,/IDs\/severities:/);
 });
 test('full public review requires a distinct explicit full_report_approved flag',()=>{
   const response=message(data({limitations:['Full report example detail']}));  
