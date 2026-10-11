@@ -238,6 +238,36 @@ The critical serial steps cannot be accelerated by scheduling four ChatGPT worke
 
 **E. Output incentives**: a raw LOC target causes scaffolding, mock tests, duplication and parallel unused abstractions. Track accepted capability/throughput and regression first, net merged functional LOC second; avoid model-generated code that fails reproducibility or outside-bounds science checks.
 
+## G5. Maximum deliverable code throughput — refine the old conservative baseline
+
+**The prior ~150–400 net accepted product LOC/day is a conservative early operating scenario, NOT an inherent model output limit, maximum or production target.** It assumed substantial research/review and a low probability of a useful code contribution per hourly activation. A model may generate thousands of lines of text in an activation; text generation is not the hard engineering constraint. The actual constraining path is executable correctness, user-intended capability, exact-head CI, review, conflict-safe merge and stable maintenance.
+
+**Sensitivity if integration/approvals actually work:** 12, 24 or 36 productive **eventually accepted code activations** among 96 nominal hourly starts, at 80/150/250 *unique net accepted product LOC* each, imply respectively **960 / 3,600 / 9,000 lines/day smoothed across the integration window**. These numbers are *unmeasured constructed input assumptions*. The upper illustration is not a validated forecast, and acceptance often occurs on bursts rather than steadily per calendar day. If host/native approval is blocked, actual merged accepted LOC stays at zero regardless of raw generated volume.
+
+**Targets must be conditional:** a proposed **1,000–3,000 net functional accepted LOC/day exploratory target** after proving a stable flow is more ambitious than the old initial scenario and should be tested, not promised. **5,000–10,000/day** could appear for repetitive, well-specified adapters or short bursts with low coupling and reviews keeping pace, but it is not justified as a sustainable entire complex scientific World Model production rate. Generating 20,000 lines of stubs, tests, vendored code or schema bindings in one action does **not** mean 20,000 lines of working novel World Model capability.
+
+**Levers ordered by practical value and zero extra infrastructure:**
+1. fix the *native GitHub independent approver and protected main* serial trust gap. This dominates every LOC rate; no four-ChatGPT trick bypasses host identity.
+2. reuse original code, scientific libraries and MONDE contracts instead of custom implementing entire subsystems. Reducing owned LOC is a success when behavior is equivalent and maintainable.
+3. pre-contract independent vertical slices, static assignment first, and two active feature branches max until collision-free dynamic arbitration measured. Finish ready PR before making new PRs.
+4. use connector-exposed `create_tree` + `create_commit` + `update_ref` to batch multiple relevant code/test/docs files into a coherent scoped commit **only when actual tool capability and ref safety verified**; avoid one-file-per-commit cascading CI/review invalidation. No unbounded mega-diff.
+5. run cheap fast targeted feedback while building, **all Accepted-required checks at final frozen exact-head**; start independent fresh-context review preparation during CI.
+6. keep short GitHub startup manifest, decision status and next action rather than full 84KB operational contract and repeated 50KB governance files each hour; GitHub live state is still mandatory.
+7. use generators/templates for truly mechanical sections but account them separately from new product LOC; require deterministic regenerate+contract tests.
+
+**Counterfactual tests on known project risks:**
+- wrong/old CI head → no promotion; recheck actual run source/head; batch revisions to limit invalidations.
+- repeated same-category review cycle → root-cause rearchitecture before another similar author patch; no weakening L2.
+- missing non-author approval → stop affected integration and continue honest product research/other eligible work; do not falsify APPROVED.
+- two workers overlap file/semantic contract → one gets no authorized grant, others remain on disjoint work.
+- GitHub `403/429` secondary limit → honor `retry-after`/backoff; no burst mutation storm.
+- 10/30-minute Action still running → productive related granted work and real rechecks while session active; exact future checkpoint after true limit.
+- user intent untraced → consult accepted CAP/REQ then WORK-0004 retrieval, no speculative World Model side branch.
+- large generated patch with weak/placeholder tests → reject for insufficient behavioral acceptance, independently derive adversarial tests.
+- fully frozen design that performs poorly on real distribution → targeted benchmark and reviewed change, not forever tuning a faulty strategy.
+
+**Why “ensure the blockers never happen” is not an implementable guarantee:** GitHub and ChatGPT service outages, human approval, rate limits, flaky dependencies and scientific unknowns are external. We can **prevent known unsafe side effects and bound recovery/rework**, not promise zero failures or 24h-per-day continuous ChatGPT reasoning. Any throughput target must include the number of accepted slices and unresolved risk, not just newly typed LOC.
+
 ## H. Concrete next decisions
 
 1. **Hard architecture fork:** small trusted GitHub Actions allocator pilot vs CAS-per-chat. Bench both only if A fails or costs no more total work; do not implement both production solutions.
