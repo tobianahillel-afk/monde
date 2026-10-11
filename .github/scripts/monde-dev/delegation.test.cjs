@@ -1507,3 +1507,31 @@ test('L2 F05 public context hashes require separate provenance clearance',()=>{
     ...input.publication_clearance,provenance_hashes_approved:true}});
   assert.match(disclosed.text,/Context identity SHA-256/);
 });
+
+test('unqualified relay omits message-reference hashes unless explicitly consented',()=>{
+  const response='R2: privacy-sensitive result needs review.\n'+d.MARKER+'\n{broken';
+  const args={expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}};
+  const privateRelay=d.prepareUnqualifiedTriageHandoff(args);
+  assert.equal(privateRelay.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.equal(privateRelay.ready_for_manual_relay,true);
+  assert.doesNotMatch(privateRelay.text,/Message ref fingerprint/);
+  const approved=d.prepareUnqualifiedTriageHandoff({...args,
+    publication_clearance:{...args.publication_clearance,
+      provenance_hashes_approved:true}});
+  assert.equal(approved.ready_for_manual_relay,true);
+  assert.match(approved.text,/Message ref fingerprint \(consent-cleared SHA-256\): [a-f0-9]{64}/);
+  assert.doesNotMatch(approved.text,/history-msg-l2-20261011-001/);
+});
+test('unqualified relay rejects deceptive bidi controls in raw R1 snippets',()=>{
+  const response='R1: misleading finding \u202evisible but reversed\n'+
+    d.MARKER+'\n{broken';
+  const output=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(output.status,'UNSAFE_BIDI_IN_RELAY');
+  assert.equal(output.ready_for_manual_relay,false);
+  assert.equal(output.text,null);
+});

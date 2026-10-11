@@ -641,9 +641,10 @@ function prepareUnqualifiedTriageHandoff(args) {
     'Reviewed assignment SHA: '+a.head_sha,
     'Original report SHA-256: '+analysis.raw_report_sha256,
     'Source provenance: NOT INDEPENDENTLY VERIFIED',
-    'Message ref fingerprint: '+
-      (oneLine(source.message_ref,160)?
-        createHash('sha256').update(source.message_ref,'utf8').digest('hex'):'UNKNOWN'),
+    ...(clear.provenance_hashes_approved===true&&oneLine(source.message_ref,160)?[
+      'Message ref fingerprint (consent-cleared SHA-256): '+
+        createHash('sha256').update(source.message_ref,'utf8').digest('hex')
+    ]:[]),
     'Footer: MALFORMED; L2 qualification: NONE; GitHub native approval: NONE',
     'Open R1/R2 may be missing: '+(suspected?'YES':'UNKNOWN'),
     '',
@@ -659,6 +660,8 @@ function prepareUnqualifiedTriageHandoff(args) {
     'context separation and all unresolved findings.',
     'This text MUST NOT be used as an APPROVE decision or merge authorization.'
   ].join('\n');
+  if(/[\u202a-\u202e\u2066-\u2069]/.test(note))
+    return refused('UNSAFE_BIDI_IN_RELAY');
   if(CREDENTIAL_PATTERNS.some(re=>[args.response,note,source.message_ref]
       .some(s=>typeof s==='string'&&re.test(s))))
     return refused('POTENTIAL_SECRET_IN_REPORT');
