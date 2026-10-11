@@ -176,3 +176,29 @@ test('unsupported and noncanonical requests fail before GitHub I/O',()=>{
   const x=q();x.op='MERGE';
   assertReject(()=>c.encodeRequest(x),'UNKNOWN_OP');
 });
+
+test('rejects non-string request IDs and SHAs, even if regexp would coerce',()=>{
+  a.throws(()=>c.encodeRequest({...q(),request_id:12345678}),e=>e.code==='BAD_IDENTITY');
+  a.throws(()=>c.encodeRequest({...q(),base_sha:12345678901234567890}),e=>e.code==='BAD_SHA');
+});
+test('rejects duplicate grant identifiers even for disjoint resources',()=>{
+  const s=simulated();s.apply(q(1));
+  const command=request(100,q(2)),decision=select(s.state(),q(2));
+  const forged={...decision,grant_id:s.comments.length?c.replay(s.comments).grants.keys().next().value:''};
+  const comment=response(101,command,forged);
+  assertReject(()=>c.replay([...s.comments,command,comment]),'INVALID_GRANT');
+});
+test('a forged release with incorrect SHA and resources cannot clear grant',()=>{
+  const s=simulated();const grant=s.apply(q(1));
+  const r={v:1,op:'RELEASE',request_id:'req-rel-strict-0001',worker:'W1',
+    work:'WORK-0000',task:'T1',grant_id:grant.grant_id,epoch:grant.epoch,observed_head:SHA};
+  const src=request(100,r);
+  const bad={...select(s.state(),r),observed_base_sha:'b'.repeat(40)};
+  assertReject(()=>c.replay([...s.comments,src,response(101,src,bad)]),
+    'INVALID_RELEASE_HISTORY');
+});
+test('status is read-only and has no resource grant',()=>{
+  const requestStatus={v:1,op:'STATUS',request_id:'req-status-test01',worker:'W1',work:'WORK-0000',task:'T1'};
+  const result=select(empty(),requestStatus);
+  a.equal(result.outcome,'NO_CHANGE');a.equal(result.grant_id,null);
+});

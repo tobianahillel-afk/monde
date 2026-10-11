@@ -40,10 +40,10 @@ function overlaps(a,b){
 }
 function validate(x){
   if(!x||!fields[x.op])fail('UNKNOWN_OP');equalFields(x,fields[x.op]);
-  if(x.v!==1||!ID.test(x.request_id)||!/^W[1-4]$/.test(x.worker)||
+  if(x.v!==1||typeof x.request_id!=='string'||typeof x.worker!=='string'||typeof x.work!=='string'||typeof x.task!=='string'||!ID.test(x.request_id)||!/^W[1-4]$/.test(x.worker)||
     !/^WORK-\d{4,}$/.test(x.work)||!/^T[1-9]\d*$/.test(x.task))fail('BAD_IDENTITY');
-  if(x.op==='CLAIM'){if(!SHA.test(x.base_sha))fail('BAD_SHA');x.resources=normalizeResources(x.resources);}
-  if(x.op==='RELEASE'&&(!ID.test(x.grant_id)||!Number.isSafeInteger(x.epoch)||
+  if(x.op==='CLAIM'){if(typeof x.base_sha!=='string'||!SHA.test(x.base_sha))fail('BAD_SHA');x.resources=normalizeResources(x.resources);}
+  if(x.op==='RELEASE'&&(typeof x.grant_id!=='string'||typeof x.observed_head!=='string'||!ID.test(x.grant_id)||!Number.isSafeInteger(x.epoch)||
     x.epoch<1||!SHA.test(x.observed_head)))fail('BAD_RELEASE');
   return x;
 }
@@ -53,7 +53,7 @@ const resultFields=['v','request_id','event_comment_id','worker','work','task','
   'resources','observed_base_sha','mode','write_authority','workflow_run_id','workflow_run_attempt','reason'];
 function parseResult(body){
   const r=unpack(body,RESULT);equalFields(r,resultFields);
-  if(r.v!==1||!ID.test(r.request_id)||!/^W[1-4]$/.test(r.worker)||
+  if(r.v!==1||typeof r.request_id!=='string'||typeof r.worker!=='string'||typeof r.work!=='string'||typeof r.task!=='string'||!ID.test(r.request_id)||!/^W[1-4]$/.test(r.worker)||
      !/^WORK-\d{4,}$/.test(r.work)||!/^T[1-9]\d*$/.test(r.task)||
      !['GRANTED','DENIED','BLOCKED','NO_CHANGE','UNKNOWN','RELEASED'].includes(r.outcome)||
      r.mode!=='TEST_ONLY'||r.write_authority!==false||
@@ -61,9 +61,9 @@ function parseResult(body){
      !Number.isSafeInteger(r.workflow_run_id)||r.workflow_run_id<1||
      !Number.isSafeInteger(r.workflow_run_attempt)||r.workflow_run_attempt<1||
      typeof r.reason!=='string'||r.reason.length>120)fail('BAD_RESULT');
-  if(r.grant_id!==null&&!ID.test(r.grant_id))fail('BAD_GRANT_ID');
+  if(r.grant_id!==null&&(typeof r.grant_id!=='string'||!ID.test(r.grant_id)))fail('BAD_GRANT_ID');
   if(r.epoch!==null&&(!Number.isSafeInteger(r.epoch)||r.epoch<1))fail('BAD_EPOCH');
-  if(r.observed_base_sha!==null&&!SHA.test(r.observed_base_sha))fail('BAD_SHA');
+  if(r.observed_base_sha!==null&&(typeof r.observed_base_sha!=='string'||!SHA.test(r.observed_base_sha)))fail('BAD_SHA');
   if(!Array.isArray(r.resources))fail('BAD_RESOURCES');
   if(r.resources.length)r.resources=normalizeResources(r.resources);
   return r;
@@ -89,7 +89,7 @@ function replay(comments,bot='github-actions[bot]'){
     if(decisions.has(r.request_id))fail('DUPLICATE_RESULT');
     decisions.set(r.request_id,r);
     if(r.outcome==='GRANTED'){
-      if(source.q.op!=='CLAIM'||r.grant_id===null||r.epoch===null||r.epoch<=epoch||
+      if(source.q.op!=='CLAIM'||r.grant_id===null||grants.has(r.grant_id)||r.epoch===null||r.epoch<=epoch||
          r.observed_base_sha!==source.q.base_sha||
          JSON.stringify(r.resources)!==JSON.stringify(source.q.resources))fail('INVALID_GRANT');
       for(const g of grants.values())for(const a of g.resources)for(const b of r.resources)
@@ -99,7 +99,7 @@ function replay(comments,bot='github-actions[bot]'){
     if(r.outcome==='RELEASED'){
       const g=grants.get(r.grant_id);
       if(!g||source.q.op!=='RELEASE'||source.q.grant_id!==r.grant_id||
-         source.q.epoch!==g.epoch||source.q.worker!==g.worker||
+         source.q.epoch!==g.epoch||source.q.observed_head!==g.observed_base_sha||r.epoch!==g.epoch||r.observed_base_sha!==g.observed_base_sha||JSON.stringify(r.resources)!==JSON.stringify(g.resources)||source.q.worker!==g.worker||
          source.q.work!==g.work||source.q.task!==g.task)fail('INVALID_RELEASE_HISTORY');
       grants.delete(r.grant_id);
     }
