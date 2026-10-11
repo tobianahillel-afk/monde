@@ -328,3 +328,62 @@ test('E4: 4-worker exhaustive resource interleavings never admit overlapping own
   }
   a.equal(tested,256);
 });
+
+test('security: reject a matrix of noncanonical or dangerous command envelopes',()=>{
+  const good=c.encodeRequest(q());
+  for(const badBody of [
+    '', 'MONDE_DEV_V1', 'WRONG\n'+good.split('\n')[1],
+    good+'\nEXTRA',good.replace('MONDE_DEV_V1','MONDE_DEV_V2'),
+    good.replace('"v":1','"v":2'),
+    'MONDE_DEV_V1\n{bad-json}',
+    'MONDE_DEV_V1\n{"v":1,"v":1}',
+    good+'\r', good+'\\u0000', 'A'.repeat(4097)
+  ])a.throws(()=>c.parseRequest(badBody));
+});
+test('security: reject invalid work, worker, op and task identifiers',()=>{
+  for(const mutate of [
+    {worker:'W5'}, {worker:null}, {work:'WORK-BAD'}, {work:7},
+    {task:'T0'}, {task:'T999+'},{request_id:'short'},
+    {request_id:'bad id with spaces'}, {v:2},{op:'ADMIN'}
+  ])a.throws(()=>c.encodeRequest({...q(),...mutate}));
+});
+test('security: reject ambiguous resource and file ownership representations',()=>{
+  for(const resources of [
+    [], new Array(17).fill('contract:ABC'), null,
+    ['path:'],['path:../'],['path:src/../main'],['path:src/./main'],
+    ['path://root'],['path:C:\\windows'],['path:foo//bar'],
+    ['path:foo bar'],['path:foo\nbar'],['path:./foo'],
+    ['trust:'],['contract::hello'],['unknown:thing'],[true],[{}]
+  ])a.throws(()=>c.encodeRequest({...q(),resources}));
+});
+test('security: malformed release must never free a grant',()=>{
+  const release={v:1,op:'RELEASE',request_id:'req-badrel-0001',worker:'W1',
+    work:'WORK-0000',task:'T1',grant_id:'grant:req-case-0001',epoch:1,
+    observed_head:SHA};
+  for(const mutate of [
+    {epoch:0},{epoch:'1'},{grant_id:10},{grant_id:''},
+    {observed_head:null},{observed_head:'a'.repeat(39)}
+  ])a.throws(()=>c.encodeRequest({...release,...mutate}));
+});
+test('security: result receipt must reject every missing, stale or privilege-bearing field',()=>{
+  const ev=request(14,q());
+  const good=c.makeResult(q(),ev,{outcome:'GRANTED',grant_id:'grant:req-case-0001',
+    epoch:1,resources:c.normalizeResources(q().resources),observed_base_sha:SHA,
+    reason:'FIXTURE'},{runId:1,runAttempt:1});
+  const bad=[
+    {v:0},{outcome:'MERGED'},{mode:'ACTIVE'},{write_authority:true},
+    {event_comment_id:0},{workflow_run_id:0},{workflow_run_attempt:0},
+    {request_id:null},{worker:'W7'},{reason:'X'.repeat(121)},
+    {grant_id:4},{epoch:0},{observed_base_sha:'zzz'},
+    {resources:null},{resources:['path:../']}
+  ];
+  for(const mutation of bad)
+    a.throws(()=>c.parseResult(c.RESULT+'\n'+JSON.stringify({...good,...mutation})));
+});
+test('security: a different untrusted bot author cannot issue operational results',()=>{
+  const command=request(1,q()),grant={outcome:'GRANTED',reason:'TEST_FIXTURE',
+    grant_id:'grant:req-case-0001',epoch:1,resources:q().resources,observed_base_sha:SHA};
+  const fake=response(2,command,grant);
+  fake.user.login='random-bot';
+  a.equal(c.replay([command,fake]).grants.size,0);
+});
