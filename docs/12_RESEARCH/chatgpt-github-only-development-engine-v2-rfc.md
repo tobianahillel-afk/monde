@@ -17,7 +17,7 @@ Base reviewed for discovery: main b4b52c77fbf05eda65e8f0e951959da70e7edbe7
 
 ## 0. Hard platform and assurance constraints
 
-MONDE is developed exclusively with four independent ChatGPT Scheduled task conversations, the **GitHub connector**, the GitHub repository and **GitHub-hosted Actions**. No user-controlled PC, shell, persistent host, external coordinator, independent paid Codex reviewer, Temporal, Beads/Dolt service, OpenHands server or Gas Town service may be required. GitHub-hosted runner compute may execute tests, validators and simulations, **not an autonomous ChatGPT L2 session**. GitHub Actions workflows cannot secretly call paid models or Codex; AI reasoning occurs in the four ChatGPT conversations.
+**BOOTSTRAP DECISION (2026-10-11):** development of the v2 engine itself is performed **interactively**, on explicit user messages in this GitHub-connected ChatGPT conversation; it is NOT delegated to four Scheduled tasks. Those four Scheduled ChatGPT tasks will be created/used **only in controlled tests after the code and applicable authorizations are ready**, then operated as workers only after a distinct user launch decision. Future routine MONDE product development targets four independent Scheduled task conversations, the **GitHub connector**, the GitHub repository and **GitHub-hosted Actions**. No user-controlled PC, shell, persistent host, external coordinator, independent paid Codex reviewer, Temporal, Beads/Dolt service, OpenHands server or Gas Town service may be required. GitHub-hosted runner compute may execute tests, validators and simulations, **not an autonomous ChatGPT L2 session**. GitHub Actions workflows cannot secretly call paid models or Codex; AI reasoning occurs in the four ChatGPT conversations.
 
 The four scheduled tasks have the same nominal hourly trigger (exact_schedule; Europe/Paris), equivalent capabilities and different worker identifiers W1..W4. The ChatGPT scheduler does **not** promise simultaneous start, fixed duration, nonstop execution, or permission-free GitHub writes. Calls may require approval, be skipped, fail or hit quotas. A task is a bounded activation, not a daemon.
 
@@ -27,7 +27,7 @@ The four scheduled tasks have the same nominal hourly trigger (exact_schedule; E
 
 Optimize useful **accepted merged MONDE product increments per wall-clock time**, not generated LOC, worker uptime or count of branches. Preserve one World Model, evidence/provenance/temporal/uncertainty invariants and the canonical work hierarchy `PHASE → LOT → SUBLOT → WORK → TASK → RUN → PR → REVIEW → MERGE`.
 
-Owner of normative truth: `main` Constitution + accepted ADRs + `registry/` + `docs/`. Owner of volatile GitHub evidence: GitHub PR, review, action-run/check, ref and API state. Proposed operational coordination: **one dedicated append-only control ref**, separate from `main`, that stores compact task reservations, event IDs and checkpoints; never edit historical decisions in place. Issues/subissues/projects are view/projection, not a second transaction authority.
+Owner of normative truth: accepted Constitution, ADRs, `registry/` and `docs/` on `main`. Owner of volatile GitHub evidence: GitHub PR, review, action-run/check, ref and API state. **Selected for the next prototype: one trusted serialized GitHub Actions Issue-comment arbiter**, with strictly parsed requests and bot-authored response comments on one designated Issue. **No Git control-ref ledger or second status database.** The ref-CAS approach in §2.3 remains fallback-only research and MUST NOT be implemented beside the selected arbiter.
 
 Do NOT write a custom Git hosting system, CI queue, full task tracker UI, agent SDK, code-review model, test framework, GitHub merge queue, or duplicate document corpus. Use GitHub Actions, native PR reviews, requirements work records, shared action workflows, CodeQL, Dependabot and existing templates first. GitHub native merge queue is not available for a public personal-owned MONDE repository; integration must be serialized and protected under available branch/ruleset settings.
 
@@ -108,16 +108,15 @@ Tasks A and C may overlap on `PROJECT_STATE.md` in their drafts; allocator must 
 
 ```text
 .github/workflows/monde-dev-dispatch.yml   # one default-branch Issue-comment arbiter, after accepted/reviewed deployment
-.github/scripts/monde-dev/choose.py         # pure task selection/conflict filtering, if needed
-.github/scripts/monde-dev/reconcile.py      # idempotent latest remote fact reconciliation, if needed
-.github/scripts/test_monde_dev.py           # synthetic collision, unknown reply and CI-future tests
+.github/scripts/monde-dev/controller.cjs   # one locally loaded JS module, pure core + Octokit adapter
+.github/scripts/monde-dev/controller.test.cjs # node:test 4-worker/race/unknown-effect tests
 # optional: one ordinary PR CI workflow if existing WORK-0002/CI cannot provide verified required checks
 ```
 
 One command Issue, existing WORK/REQ/ADR registry, GitHub PR/CI/reviews and required GitHub Rulesets remain the platform. Exact files, language and action SHAs are finalized **only after T0/T1 connector/event proof**; this list is a small sketch, not a demand to implement every file. Protected promotion must rely on real GitHub host gates. No local server, model API or second status registry.
 
 ## 6. Reuse matrix
-**NOW**: GitHub Git refs/commits/PRs/Issues/Actions/Artifacts, existing MONDE work registers/templates, Python unittest+coverage and a narrowly scoped bootstrap governance workflow. **CodeQL/Dependabot/dependency checks are optional future choices only if their availability and configuration are actually verified**; do not claim them installed.
+**NOW**: GitHub refs/commits/PRs/Issues/Actions/Artifacts; existing MONDE registries/templates and an intentionally narrow bootstrap workflow on `main`. Other current candidate-PR checks (including CodeQL on PR #2) are **not automatically trusted default-branch integration gates**. Prefer a `controller.cjs` loaded by pinned `actions/github-script` and tested via native `node --test`, subject to the actual hosted runner/runtime and an independent review. Reuse Python only where tested compatibility with already accepted MONDE governance materially reduces cost.
 **SCOPED CI TEST**: actionlint + zizmor (workflow correctness/security), Ruff (Python lint), Hypothesis (concurrency property/model tests), Pyright optionally if benefits are demonstrated. Pin versions and use controlled permissions.
 **NOT REQUIRED**: Gas Town, Beads runtime/Dolt, Temporal, OpenHands, mini-SWE-agent, Docker, local caches, Redis, paid reviewer services, new dashboard.
 **OPTIONAL FUTURE**: GitHub Projects as human projection, broader static analysis when real product code appears, event-triggered ChatGPT tasks only if verified supported and consistent with four-task limit.
@@ -150,7 +149,7 @@ Acceptance for the controller: **0 unauthorized merges, 0 lost authoritative cla
 
 ## 8. Deployment sequence (hard-stop checkpoints)
 
-G0 **Review current truth:** freeze WORK-0002 scope; verify PR #14, exact L2 state and native branch protection; present owner-accessible WORK-0003 settings checklist. Do not merge untrusted candidate.
+G0 **Interactive implementation only:** user directs every development iteration here, on a separately scoped branch/PR. No scheduled-task development or activation until dedicated tests. Confirm WORK-0002/PR #14 state, independent native review and WORK-0003 branch protections; these remain host acceptance blockers. Do not merge untrusted candidate.
 G1 **Decide L2 authority migration:** maintain separate L0/L1/L2/L3 definitions and review evidence. Document policy impact of removing Codex *dependency* without weakening GitHub's non-author approval rule. User authorization required for any significant governance rule change.
 G2 **Accept spec/ADR only after independent cold read:** do not prematurely mark `WORK-0005` READY/DONE or upgrade policy.
 G3 **Pilot pure scheduler with generated fixtures in GitHub Actions:** runs with one worker, 100% meaningful coverage target, no live mutable resources.
