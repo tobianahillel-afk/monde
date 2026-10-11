@@ -308,6 +308,22 @@ Choose smallest reversible candidate meeting mandatory requirements. Reject more
 
 Review transitions are risk-based **within existing Accepted obligations**. Changes to these obligations require their own explicit governance review, never a silent exception.
 
+## 5A. Maximum accepted product throughput — not maximum speculative branch LOC
+
+At every task handoff or after a CI result, choose **the most valuable permitted next action**, not the action that yields the most instant text. Use a simple transparent ordering, not a new priority engine or ML model:
+
+1. **Finish** a ready-to-merge accepted-scope candidate (exact checks, reviewer authority and host rules permitting); fix the **one** blocking root cause if justified.
+2. **Unblock** critical-path dependencies, including a real failing CI/contract, independent L2 cold-read of another author's exact SHA, or a currently blocking accepted spec.
+3. **Deliver** the smallest task on an agreed MONDE product vertical slice with clear CAP/REQ/AC and test oracle.
+4. **Research/decide** a genuine unknown that unblocks such a slice; stop once sufficient evidence exists.
+5. **Maintain/document** only canonical truths materially changed by accepted behavior and concise recovery pointers; do not rewrite large PROJECT_STATE snapshots solely because a job is pending.
+
+Prefer **finish-before-start** and keep the initial WIP small (pilot target: at most two implementation branches actively written, one integration candidate, and remaining effort on eligible reviews/research). This is a throughput heuristic to test, **not** a bypass of existing WORK priority, ownership or review obligations. If every eligible task is blocked, record truthful blocker; don't manufacture work.
+
+**Anti-side-quest:** before starting adjacent work ask `which WORK/CAP/REQ and acceptance test does it unblock?`. If there is no direct traceable answer, file it as a separate proposed backlog idea without coding. Do not drift into WRE, unrelated experiments or speculative universal libraries. Code-lines metric counts only actual integrated non-generated, non-vendored **product** code on `main`, but optimize **accepted usable capability, correctness, quality, performance and time-to-merge**; a refactor that deletes 300 unnecessary lines may be more productive than adding 1,000 new lines.
+
+**CI while active:** a worker can finish requirements analysis, prepare a separate granted patch, audit another author's review packet or draft a benchmark plan in the SAME session while GitHub jobs are pending, and return immediately upon a trusted terminal observation. Avoid preemptively switching to a low-value unrelated task just because a CI takes minutes. See §7A.
+
 ## 6. Single task contract — everything an agent needs, little duplication
 
 Retain canonical `registry/work-items/WORK-XXXX.yaml` for lifecycle, dependencies, rights, risk, tests, requirements and canonical documentation. Each separate GitHub issue links the canonical `WORK-ID/TASK-ID`, read_before and acceptance conditions. It is a work surface, not a second WORK record.
