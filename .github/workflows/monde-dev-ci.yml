@@ -1,10 +1,8 @@
 name: MONDE Dev V2 Controller CI
+# Stable required-check identity: do not path-filter pull_request. GitHub
+# leaves a skipped path-filtered required workflow Pending on unrelated PRs.
 on:
   pull_request:
-    paths:
-      - '.github/scripts/monde-dev/**'
-      - '.github/workflows/monde-dev-dispatch.yml'
-      - '.github/workflows/monde-dev-ci.yml'
   workflow_dispatch:
 
 permissions:
