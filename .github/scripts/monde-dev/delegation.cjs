@@ -291,14 +291,15 @@ function manualRecovery(response) {
   if(typeof response!=='string') return {raw_report_excerpt:null,
     raw_report_tail_excerpt:null,raw_report_excerpt_truncated:false,
     raw_blocker_snippets:[],manual_source_required:true,raw_report_sha256:null};
-  const n=response.length, first=[], last=[];
+  const n=response.length, bytes=Buffer.byteLength(response,'utf8');
+  const first=[], last=[];
   let firstCritical=null;
   const re=/\bR[12]\b|["']severity["']\s*:\s*["']R[12]["']/gi;
   // Keep both ends of the sequence: twelve early mentions of R2 must not
   // hide a later R1 outside the fixed head/tail excerpts.
   // Oversized input is never a qualifying report; inspect only bounded
   // windows and leave the full original in its ChatGPT conversation.
-  const windows=n>1024*1024?[
+  const windows=bytes>1024*1024?[
     {text:response.slice(0,8192),offset:0},
     {text:response.slice(-8192),offset:n-8192}
   ]:[{text:response,offset:0}];
@@ -320,7 +321,7 @@ function manualRecovery(response) {
     raw_report_tail_excerpt:n>8192?response.slice(-8192):null,
     raw_report_excerpt_truncated:n>8192,raw_blocker_snippets:snippets,
     manual_source_required:true,
-    raw_report_sha256:n<=1024*1024?
+    raw_report_sha256:bytes<=1024*1024?
       createHash('sha256').update(response,'utf8').digest('hex'):null};
 }
 
@@ -329,36 +330,50 @@ function manualRecovery(response) {
 // In particular, APPROVE + R1/R2 is contradictory, not a clean review.
 function recoverUnqualifiedClaims(response,marker=MARKER) {
   if(marker!==MARKER&&marker!==RESEARCH_MARKER)bad('INVALID_CLAIM_MARKER');
-  if(typeof response!=='string'||response.length>1024*1024)return {};
+  if(typeof response!=='string'||Buffer.byteLength(response,'utf8')>1024*1024)return {};
   const lines=response.replace(/\r\n/g,'\n').trimEnd().split('\n');
   if(lines.length<3||lines[lines.length-2]!==marker)return {};
   let packet;
   try{packet=JSON.parse(lines[lines.length-1]);}catch{return {};}
   if(!plain(packet)||!Array.isArray(packet.findings))return {};
-  // First validate ALL bounded input, then prioritize R1/R2 over benign noise.
-  // Never truncate before filtering: 50 junk entries must not hide entry 51.
-  const recognized=packet.findings.filter(f=>
-    plain(f)&&typeof f.severity==='string'&&SEVERITIES.has(f.severity)&&
-    typeof f.id==='string'&&/^F[0-9]{2,4}$/.test(f.id)&&
-    typeof f.path==='string'&&validPath(f.path)&&
-    typeof f.evidence==='string'&&oneLine(f.evidence,3000)&&
-    typeof f.action==='string'&&oneLine(f.action,3000));
-  const rank={R1:0,R2:1,R3:2};
-  const limited=recognized.slice().sort((a,b)=>rank[a.severity]-rank[b.severity])
-    .slice(0,50).map(f=>({id:f.id,severity:f.severity,path:f.path,
-      evidence:f.evidence,action:f.action}));
+  // Scan all parsed claims but retain at most 50 entries. Unlike a full
+  // filter+sort, this never holds an additional copy of every finding.
+  const rank={R1:0,R2:1,R3:2},limited=[];
+  let recognizedCount=0,r1Count=0,r2Count=0;
+  for(const f of packet.findings){
+    if(!plain(f)||typeof f.severity!=='string'||!SEVERITIES.has(f.severity)||
+       typeof f.id!=='string'||!/^F[0-9]{2,4}$/.test(f.id)||
+       typeof f.path!=='string'||!validPath(f.path)||
+       typeof f.evidence!=='string'||!oneLine(f.evidence,3000)||
+       typeof f.action!=='string'||!oneLine(f.action,3000))continue;
+    recognizedCount++;
+    if(f.severity==='R1')r1Count++;
+    if(f.severity==='R2')r2Count++;
+    const entry={id:f.id,severity:f.severity,path:f.path,
+      evidence:f.evidence,action:f.action};
+    if(limited.length<50)limited.push(entry);
+    else {
+      // A late R1 displaces a lower priority R2/R3, never the reverse.
+      let worst=0;
+      for(let i=1;i<limited.length;i++)
+        if(rank[limited[i].severity]>=rank[limited[worst].severity])worst=i;
+      if(rank[entry.severity]<rank[limited[worst].severity])
+        limited[worst]=entry;
+    }
+  }
+  limited.sort((a,b)=>rank[a.severity]-rank[b.severity]);
   const limitations=Array.isArray(packet.limitations)?
     packet.limitations.slice(0,30).filter(l=>oneLine(l,2000)):[];
   return {
     reported_finding_count:limited.length,
     reported_claims_total:packet.findings.length,
-    reported_claims_incomplete:packet.findings.length!==recognized.length||
-      recognized.length>limited.length,
-    reported_blocking_unknown:packet.findings.length!==recognized.length,
+    reported_claims_incomplete:packet.findings.length!==recognizedCount||
+      recognizedCount>limited.length,
+    reported_blocking_unknown:packet.findings.length!==recognizedCount,
     reported_findings:limited,
     reported_limitations:limitations,
-    reported_severity_r1:recognized.filter(f=>f.severity==='R1').length,
-    reported_severity_r2:recognized.filter(f=>f.severity==='R2').length,
+    reported_severity_r1:r1Count,
+    reported_severity_r2:r2Count,
     reported_blocking_findings:limited.some(f=>
       f.severity==='R1'||f.severity==='R2'),
     claims_unqualified:true
@@ -652,7 +667,7 @@ function prepareUnqualifiedTriageHandoff(args) {
      clear.personal_data_checked!==true||clear.public_repo_safe!==true||
      clear.finding_details_approved!==true)
     return refused('CONFIDENTIALITY_REVIEW_REQUIRED');
-  if(typeof args.response!=='string'||args.response.length>1024*1024)
+  if(typeof args.response!=='string'||Buffer.byteLength(args.response,'utf8')>1024*1024)
     return refused('UNSUPPORTED_REPORT_SIZE');
   // The original report is preserved in ChatGPT, not automatically published.
   // Only a small reviewed extract leaves that conversation.

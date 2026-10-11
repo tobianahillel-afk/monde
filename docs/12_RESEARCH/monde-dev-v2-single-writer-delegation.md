@@ -110,9 +110,11 @@ Before a manually copied L2 review is prepared for a **public** GitHub PR, `prep
 
 For any fresh L2 report, the machine footer requests `reviewed_paths` with the actual paths examined. This is reviewer-declared evidence, **not proof that all source files were read**. An `APPROVE` without declared coverage of the assigned paths returns `L2_SCOPE_NOT_EVIDENCED`, never accepted review. The interactive author must still inspect evidence and actual independent context; old footer versions remain parseable for correction reports.
 
-Manual public-repo handoff additionally requires explicit confidentiality clearance and refuses obvious private key / GitHub credential patterns even when the flags are set. Each copy-ready relay gives the SHA-256 and byte length of the **original retrieved ChatGPT response**; the normalized relay text is not represented as byte-for-byte verbatim. Neither a digest nor a reviewed-file list proves external identity or GitHub-native approval.
+Manual public-repo handoff additionally requires explicit confidentiality clearance and refuses obvious private key / GitHub credential patterns even when the flags are set. Only with explicit interactive opt-in (`provenance_hashes_approved:true`) may a copy-ready relay include the original response SHA-256 and byte length, and observer-identifier fingerprints. These are **never published by default**; the normalized relay text is not represented as byte-for-byte verbatim. Neither a digest nor a reviewed-file list proves external identity or GitHub-native approval.
 
 ## Distinct-context reuse across batches (2026-10-11)
+
+When malformed machine footers contain numerous finding objects, the fallback scans every claim but retains **at most 50 actionable details**, prioritizing R1 before R2/R3; a complete original report stays in its ChatGPT conversation. This bounded list and any malformed report remain unqualified for acceptance. The 1 MiB inspection threshold is measured in UTF-8 bytes.
 
 The foreground writer can pass `prior_sources` to `assessDelegationBatch`: a bounded inventory of earlier observed `{assignment_id,context_id,message_ref}` values, retrieved from real separate ChatGPT task conversations. The helper now detects same-conversation/same-message reuse **both within the current batch and across supplied earlier batches**. This is a caller-supplied observation, **not authenticated provenance**. Missing historical observations do not prove independence. For duplicate contexts, R1/R2 `NEEDS_CORRECTION` and `BLOCKED` remain the primary status; the separate `independence_unverified` flag and `independence_conflicts` count prevent concealment of actionable findings. An otherwise clean result is instead downgraded to `INDEPENDENCE_UNVERIFIED`. No independent GitHub approval or automatic merge is produced.
 
@@ -146,7 +148,7 @@ footer. `assessReview` classifies it as `REPORT_NEEDS_MANUAL_REVIEW`,
 retains a **foreground-only**, bounded 8,192-character head excerpt and
 (optional) 8,192-character tail excerpt, plus at most **13** R1/R2 snippets
 (first six, last six, and the first detected R1 even if it occurs in the middle).
-The extractor keeps no unbounded set of matches. Reports above 1 MiB are
+The extractor keeps no unbounded set of matches. The limit means **1,048,576 UTF-8 bytes** (not JavaScript string length). Reports above that size are
 inspected only through bounded head/tail windows, so findings in their
 uninspected middle remain **unknown**. A SHA-256 is computed internally
 only for responses of 1 MiB or less; any publication of report fingerprints,

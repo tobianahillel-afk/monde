@@ -1743,3 +1743,47 @@ test('L2 current HEAD F04: malformed report restricted rk_live_ never enters rel
   assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
   assert.equal(out.ready_for_manual_relay,false);
 });
+
+test('L2 current F01: hundreds of malformed structured allegations preserve late R1 within 50 retained findings',()=>{
+  const findings=Array.from({length:500},(_,i)=>({
+    id:'F'+String(i+10).padStart(4,'0'),severity:'R2',
+    path:'src/module.js',evidence:'Potential defect '+i,action:'Review '+i
+  }));
+  findings.splice(421,0,{id:'F9999',severity:'R1',path:'src/module.js',
+    evidence:'Critical middle authentication finding',action:'Fix authorization'});
+  const report='Detailed independent report that has an invalid oversized findings footer.\n'+
+    d.MARKER+'\n'+JSON.stringify({...data(),findings,verdict:'CHANGES_REQUIRED'});
+  assert.ok(Buffer.byteLength(report,'utf8')<1024*1024);
+  const out=d.assessReview({expected:H,response:report,current_head:SHA,source});
+  assert.equal(out.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(out.reported_severity_r1,1);
+  assert.equal(out.reported_severity_r2,500);
+  assert.equal(out.reported_findings.length,50);
+  assert.equal(out.reported_findings[0].severity,'R1');
+  assert.equal(out.reported_findings[0].evidence,'Critical middle authentication finding');
+  assert.equal(out.reported_claims_incomplete,true);
+  assert.equal(out.native_github_approved,false);
+});
+test('L2 current F02: report inspection threshold uses UTF-8 bytes rather than characters',()=>{
+  const report='é'.repeat(600000)+'\nR1: critical last finding\n'+d.MARKER+'\n{broken';
+  assert.ok(report.length<1024*1024);
+  assert.ok(Buffer.byteLength(report,'utf8')>1024*1024);
+  const out=d.assessReview({expected:H,response:report,current_head:SHA,source});
+  assert.equal(out.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(out.raw_report_sha256,null);
+  assert.ok(out.raw_blocker_snippets.some(s=>s.includes('critical last finding')));
+  assert.equal(out.reported_blocking_unknown,true);
+});
+test('L2 current F03: opt-in controls publication of original response fingerprint and byte size',()=>{
+  const response=message(data());
+  const opts={secrets_checked:true,personal_data_checked:true,public_repo_safe:true};
+  const withheld=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,
+    source,publication_clearance:opts});
+  assert.equal(withheld.ready_for_manual_relay,true);
+  assert.doesNotMatch(withheld.text,/Original response (SHA-256|bytes):/);
+  const approved=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,
+    source,publication_clearance:{...opts,provenance_hashes_approved:true}});
+  assert.equal(approved.ready_for_manual_relay,true);
+  assert.match(approved.text,/Original response SHA-256:/);
+  assert.match(approved.text,/Original response bytes:/);
+});
