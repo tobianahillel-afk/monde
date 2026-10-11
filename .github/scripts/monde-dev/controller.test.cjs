@@ -49,7 +49,7 @@ function event(req,id=10){
   return {eventName:'issue_comment',repo:{owner:'tobianahillel-afk',repo:'monde'},
     actor:'tobianahillel-afk',issue:{number:999},
     payload:{action:'created',issue:{number:999},comment:msg},
-    runId:101,runAttempt:1};
+    runId:id+10000,runAttempt:1};
 }
 function settings(){
   return {mode:'TEST_ONLY',owner:'tobianahillel-afk',repo:'monde',
@@ -646,13 +646,18 @@ test('real-work gate: fails closed if GitHub returns a directory or nonbase64 co
 function guardedApi(history,workSource,flags={}){
   const base=api(history);
   let branchReads=0,workReads=0;
-  base.rest.actions={getWorkflowRun:async({run_id})=>({
-    data:{id:run_id,workflow_id:2345,event:'issue_comment',head_branch:'main',
-      head_repository:{full_name:'tobianahillel-afk/monde'},
+  base.rest.actions={getWorkflowRun:async({run_id})=>{
+    const receipt=history.map(x=>{
+      if(!x.body?.startsWith(c.RESULT+'\n'))return null;
+      try{return JSON.parse(x.body.split('\n')[1]);}catch{return null;}
+    }).find(x=>x?.workflow_run_id===run_id);
+    return {data:{id:run_id,workflow_id:2345,event:'issue_comment',
+      display_title:receipt?'MONDE-DEV-V2-'+receipt.trigger_comment_id:'unknown',
+      head_branch:'main',head_repository:{full_name:'tobianahillel-afk/monde'},
       path:'.github/workflows/monde-dev-dispatch.yml@main',run_attempt:1,
-       head_sha:SHA,actor:{login:'tobianahillel-afk'},
-       triggering_actor:{login:'tobianahillel-afk'}}
-  })};
+      head_sha:SHA,actor:{login:'tobianahillel-afk'},
+      triggering_actor:{login:'tobianahillel-afk'}}};
+  }};
   base.rest.repos={
     getBranch:async()=>{branchReads++;return {data:{protected:flags.protected!==false,
       commit:{sha:flags.mainSha||SHA}}};},
@@ -1119,4 +1124,41 @@ test('inspector returns active public grant inventory but never a production tok
   a.equal(out.grants[0].work,'WORK-0000');
   a.equal(out.grants[0].resources[0],'path:src/unit1');
   a.equal('write_authority' in out.grants[0],false);
+});
+
+test('ACTIVE_4 receipt cannot borrow a trusted run from another comment',async()=>{
+  const q2=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const ctx=event(q2,40),hist=[ctx.payload.comment],gh=guardedApi(hist,REAL_READY_WORK);
+  const run=gh.rest.actions.getWorkflowRun;
+  gh.rest.actions.getWorkflowRun=async args=>{
+    const response=await run(args);
+    response.data.display_title='MONDE-DEV-V2-999';
+    return response;
+  };
+  await a.rejects(c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:activeSettings()}),e=>e.code==='UNVERIFIED_WORKFLOW_ORIGIN');
+});
+test('ACTIVE_4 receipt must point to authenticated triggering request',async()=>{
+  const q2=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const ctx=event(q2,40),hist=[ctx.payload.comment],gh=guardedApi(hist,REAL_READY_WORK);
+  const original=gh.rest.issues.createComment;
+  gh.rest.issues.createComment=async opts=>{
+    const obj=JSON.parse(opts.body.split('\n')[1]);
+    obj.trigger_comment_id=123456;
+    await original({...opts,body:c.RESULT+'\n'+JSON.stringify(obj)});
+  };
+  await a.rejects(c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:activeSettings()}),e=>e.code==='UNVERIFIED_TRIGGER_COMMENT');
+});
+test('ACTIVE_4 retry binds run to retry event but result to original command',async()=>{
+  const r=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const old=event(r,40),newEvent=event(r,44);
+  const hist=[old.payload.comment,newEvent.payload.comment];
+  const gh=guardedApi(hist,REAL_READY_WORK);
+  const result=await c.run({github:gh,context:newEvent,core:{warning:()=>{}},
+    settings:activeSettings()});
+  a.equal(result.result.event_comment_id,40);
+  a.equal(result.result.trigger_comment_id,44);
+  a.equal(result.result.workflow_run_id,newEvent.runId);
+  a.equal(result.result.outcome,'GRANTED');
 });

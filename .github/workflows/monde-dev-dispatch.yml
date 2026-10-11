@@ -1,4 +1,5 @@
 name: MONDE Dev V2 Arbiter (TEST ONLY)
+run-name: MONDE-DEV-V2-${{ github.event.comment.id || 'inspect' }}
 # Inert on a draft branch. On reviewed main, only test Issue #20 is eligible.
 on:
   issue_comment:

@@ -49,7 +49,7 @@ function validate(x){
 }
 function parseRequest(body){return validate(unpack(body,COMMAND));}
 function encodeRequest(x){return COMMAND+'\n'+JSON.stringify(validate(JSON.parse(JSON.stringify(x))));}
-const resultFields=['v','request_id','event_comment_id','worker','work','task','outcome','grant_id','epoch',
+const resultFields=['v','request_id','event_comment_id','trigger_comment_id','worker','work','task','outcome','grant_id','epoch',
   'resources','observed_base_sha','mode','write_authority','workflow_run_id','workflow_run_attempt','reason'];
 function parseResult(body,expectedMode='TEST_ONLY'){
   if(!['TEST_ONLY','ACTIVE_4'].includes(expectedMode))fail('BAD_EXPECTED_MODE');
@@ -59,6 +59,7 @@ function parseResult(body,expectedMode='TEST_ONLY'){
      !['GRANTED','DENIED','BLOCKED','NO_CHANGE','UNKNOWN','RELEASED'].includes(r.outcome)||
      r.mode!==expectedMode||r.write_authority!==false||
      !Number.isSafeInteger(r.event_comment_id)||r.event_comment_id<1||
+     !Number.isSafeInteger(r.trigger_comment_id)||r.trigger_comment_id<1||
      !Number.isSafeInteger(r.workflow_run_id)||r.workflow_run_id<1||
      !Number.isSafeInteger(r.workflow_run_attempt)||r.workflow_run_attempt<1||
      typeof r.reason!=='string'||r.reason.length>120)fail('BAD_RESULT');
@@ -179,7 +180,8 @@ function choose(state,q,config){
     epoch:state.epoch+1,resources:q.resources,observed_base_sha:q.base_sha};
 }
 function makeResult(q,event,choice,ctx){
-  return {v:1,request_id:q.request_id,event_comment_id:event.id,worker:q.worker,
+  return {v:1,request_id:q.request_id,event_comment_id:event.id,
+    trigger_comment_id:ctx.triggerCommentId||event.id,worker:q.worker,
     work:q.work,task:q.task,outcome:choice.outcome,grant_id:choice.grant_id,
     epoch:choice.epoch,resources:choice.resources,observed_base_sha:choice.observed_base_sha,
     mode:ctx.mode||'TEST_ONLY',write_authority:false,workflow_run_id:ctx.runId,
@@ -203,7 +205,7 @@ async function verifyActiveResultOrigins(github,owner,repo,comments,settings){
      !Array.isArray(settings.allowedActors)||settings.allowedActors.length===0||
      typeof github?.rest?.actions?.getWorkflowRun!=='function')
     fail('UNVERIFIED_WORKFLOW_ORIGIN');
-  const seen=new Map();
+  const seen=new Map(),runReceipts=new Set();
   for(const comment of comments){
     if(typeof comment.body!=='string'||
        !comment.body.startsWith(RESULT+'\n')||
@@ -211,6 +213,27 @@ async function verifyActiveResultOrigins(github,owner,repo,comments,settings){
     const envelope=unpack(comment.body,RESULT);
     if(envelope.mode!=='ACTIVE_4')continue;
     const result=parseResult(comment.body,'ACTIVE_4');
+    // The run name is derived by GitHub from the actual triggering comment
+    // ID; a bot actor alone (shared across workflows) is insufficient proof.
+    const trigger=comments.find(c=>c.id===result.trigger_comment_id);
+    const original=comments.find(c=>c.id===result.event_comment_id);
+    if(!trigger||!original||
+       !settings.allowedActors.includes(trigger.user?.login)||
+       original.user?.login!==trigger.user.login)
+      fail('UNVERIFIED_TRIGGER_COMMENT');
+    let originalRequest,triggerRequest;
+    try{
+      originalRequest=parseRequest(original.body);
+      triggerRequest=parseRequest(trigger.body);
+    }catch{fail('UNVERIFIED_TRIGGER_COMMENT');}
+    if(JSON.stringify(originalRequest)!==JSON.stringify(triggerRequest)||
+       result.request_id!==triggerRequest.request_id||
+       result.worker!==triggerRequest.worker||
+       result.work!==triggerRequest.work||
+       result.task!==triggerRequest.task)
+      fail('UNVERIFIED_TRIGGER_COMMENT');
+    if(runReceipts.has(result.workflow_run_id))fail('DUPLICATE_WORKFLOW_RECEIPT');
+    runReceipts.add(result.workflow_run_id);
     let run=seen.get(result.workflow_run_id);
     if(!run){
       const response=await github.rest.actions.getWorkflowRun({
@@ -222,6 +245,7 @@ async function verifyActiveResultOrigins(github,owner,repo,comments,settings){
     }
     if(run.id!==result.workflow_run_id||
        run.workflow_id!==settings.trustedWorkflowId||
+       run.display_title!=='MONDE-DEV-V2-'+result.trigger_comment_id||
        typeof run.head_sha!=='string'||!settings.trustedDeploymentShas.includes(run.head_sha)||
        !settings.allowedActors.includes(run.actor?.login)||
        !settings.allowedActors.includes(run.triggering_actor?.login)||
@@ -315,7 +339,8 @@ async function run({github,context,core,settings}){
   // an identical replay to recover a lost outcome without double granting.
   const sourceEvent={...event,id:observedRequest.comment_id};
   const result=makeResult(q,sourceEvent,chosen,{runId:context.runId,
-    runAttempt:context.runAttempt,mode:settings.mode});
+    runAttempt:context.runAttempt,mode:settings.mode,
+    triggerCommentId:event.id});
   let writeError;
   try {
     await github.rest.issues.createComment({
