@@ -967,3 +967,27 @@ test('new L2: bad provenance still retains actionable R1 across batch',()=>{
   assert.equal(out.unqualified_r1,1);
   assert.equal(out.results[0].status,'INDEPENDENCE_UNVERIFIED');
 });
+
+test('a prose-only L2 report is retained for manual triage, never automatic approval',()=>{
+  const raw='Review without valid machine marker, but with concrete security findings:\n'+
+    'R1 security bypass caused by forged approval.\n'+
+    'R2 missing stale branch check. Fix both before acceptance.';
+  const out=d.assessReview({expected:H,response:raw,current_head:SHA,source});
+  assert.equal(out.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(out.native_github_approved,false);
+  assert.equal(out.ready_for_merge,false);
+  assert.equal(out.needs_attention,true);
+  assert.equal(out.raw_report_excerpt,raw);
+  assert.match(out.raw_report_sha256,/^[0-9a-f]{64}$/);
+});
+test('a huge malformed L2 report is bounded and remains unqualified',()=>{
+  const raw='A'.repeat(12000);
+  const out=d.assessReview({expected:H,response:raw,current_head:SHA,source});
+  assert.equal(out.raw_report_excerpt.length,8192);
+  assert.equal(out.raw_report_excerpt_truncated,true);
+  assert.equal(out.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  const attempt=d.prepareInteractiveHandoff({expected:H,response:raw,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
+  assert.equal(attempt.ready_for_manual_relay,false);
+});

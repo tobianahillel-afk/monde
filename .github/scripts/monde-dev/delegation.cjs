@@ -272,9 +272,19 @@ function assessReview({ expected, response, current_head, source, coverage_manif
   catch (error) {
     // A useful prose review may omit the machine footer. Preserve it for the
     // interactive writer, but NEVER qualify it as a verified L2 approval.
-    if (error instanceof InvalidReport)
-      return {status:'REPORT_NEEDS_MANUAL_REVIEW', native_github_approved:false,
-        requires_manual_qualification:true,needs_attention:true,reason:error.code};
+    if (error instanceof InvalidReport) {
+      // A separate ChatGPT reviewer may return a substantial prose analysis
+      // without the requested footer. Keep bounded untrusted text available
+      // ONLY for foreground manual triage; never qualify it as L2 acceptance.
+      const excerpt=typeof response==='string'?response.slice(0,8192):null;
+      return {status:'REPORT_NEEDS_MANUAL_REVIEW',native_github_approved:false,
+        ready_for_merge:false,requires_manual_qualification:true,
+        needs_attention:true,reason:error.code,
+        raw_report_excerpt:excerpt,
+        raw_report_excerpt_truncated:typeof response==='string'&&response.length>8192,
+        raw_report_sha256:typeof response==='string'?
+          createHash('sha256').update(response,'utf8').digest('hex'):null};
+    }
     throw error;
   }
   const { analysis, metadata } = parsed;

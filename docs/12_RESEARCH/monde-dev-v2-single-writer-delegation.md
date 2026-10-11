@@ -131,3 +131,12 @@ Manual relays to the public GitHub PR must be cleared by the foreground ChatGPT 
 ## Triage interactif des constats récupérés
 
 Le moteur conserve en mémoire les preuves et corrections des constats L2 et recherches. Un rapport ancien ou de provenance non qualifiée expose ses constats sous `reported_findings` (allégations), sans statut d'approbation. Le résultat L2 valide de format expose `findings_for_triage`; l'agrégateur retourne `triage_findings` explicitement marqués `UNVERIFIED_REPORT_CLAIM`. Les tâches déléguées restent strictement en lecture seule ; aucun constat n'est automatiquement publié, accepté ou fusionné. Le relais public exige toujours une vérification humaine de confidentialité.
+
+## Recovery for a reviewer report without a machine footer
+
+A separate ChatGPT reviewer may return a useful technical report without the exact
+footer. `assessReview` classifies it as `REPORT_NEEDS_MANUAL_REVIEW`, retains
+at most 8,192 characters of **untrusted text for foreground-only triage**, and
+reports its SHA-256. This is **not** L2 acceptance evidence, native GitHub approval,
+or permission for public publication. The main interactive writer may inspect
+and apply substantiated findings directly while preserving original provenance.
