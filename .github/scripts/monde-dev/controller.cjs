@@ -39,7 +39,7 @@ function overlaps(a,b){
   const x=a.slice(5),y=b.slice(5);return x.startsWith(y+'/')||y.startsWith(x+'/');
 }
 function validate(x){
-  if(!x||!fields[x.op])fail('UNKNOWN_OP');equalFields(x,fields[x.op]);
+  if(!x||typeof x.op!=='string'||!Object.prototype.hasOwnProperty.call(fields,x.op))fail('UNKNOWN_OP');equalFields(x,fields[x.op]);
   if(x.v!==1||typeof x.request_id!=='string'||typeof x.worker!=='string'||typeof x.work!=='string'||typeof x.task!=='string'||!ID.test(x.request_id)||!/^W[1-4]$/.test(x.worker)||
     !/^WORK-\d{4,}$/.test(x.work)||!/^T[1-9]\d*$/.test(x.task))fail('BAD_IDENTITY');
   if(x.op==='CLAIM'){if(typeof x.base_sha!=='string'||!SHA.test(x.base_sha))fail('BAD_SHA');x.resources=normalizeResources(x.resources);}
