@@ -26,7 +26,7 @@ function exactFields(value, names) {
 }
 // Unicode Bidi_Control covers invisible LRM/RLM/ALM, isolates, embeddings
 // and formatting controls. Centralize this filter for every public handoff.
-const BIDI_CONTROL=/\p{Bidi_Control}/u;
+const BIDI_CONTROL=/(?:\p{Bidi_Control}|[\u206a-\u206f])/u;
 function oneLine(value, max = 1000) {
   return typeof value === 'string' && value.length > 0 && value.length <= max &&
     !/[\u0000-\u001f\u007f\u2028\u2029]/.test(value) &&
