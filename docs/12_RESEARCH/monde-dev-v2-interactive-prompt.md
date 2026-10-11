@@ -41,3 +41,8 @@ Un résultat structuré `L2_REPORT_RECEIVED_PENDING_VALIDATION` atteste seulemen
 ## Rapports imparfaits et relai de constats
 
 Lorsqu'une tache rend un rapport sans pied JSON valide, utiliser la sortie de `assessDelegationBatch` pour conserver les constats bruts, puis `prepareUnqualifiedTriageHandoff` seulement apres verification humaine de confidentialite et de la securite de publication. Les fragments R1/R2 restent non qualifies, ne comptent jamais comme une revue L2 acceptee et ne peuvent autoriser une fusion. Le contexte reviewer et le HEAD exact doivent etre verifies independamment. Chaque tache doit reverifier HEAD au debut et a la fin.
+
+## Cadence progressive — priorité au fonctionnel
+
+**Par défaut, avancer vers la prochaine fonction utile lorsque l'incrément fonctionne.**
+Classer les retours de revue en un passage : R1/R2 et pannes fonctionnelles/sécurité/données réelles → correction prioritaire ciblée ; R3 et détails prouvés non bloquants → backlog existant avec preuve, impact, périmètre et correction suggérée, puis passage au prochain travail éligible. Ne pas inventer de qualification R3 quand la gravité est incertaine. Ne pas relancer une revue complète après chaque micro-correctif ; regrouper les corrections pertinentes et effectuer la validation exacte au candidat stabilisé. La progression en développement ne prouve pas `DONE` ou l'éligibilité à la fusion : conserver les règles acceptées de sécurité, DoD, couverture, approbation et protection GitHub.

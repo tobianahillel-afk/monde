@@ -889,8 +889,17 @@ function groupTriageFindings(items){
   const grouped=[...groups.values()].sort((a,b)=>
     rank[a.highest_severity]-rank[b.highest_severity]||
     a.path.localeCompare(b.path)||a.fingerprint.localeCompare(b.fingerprint));
+  // Advisory only. R3 is a backlog candidate, not proof of low risk;
+  // uncertain or missing severity was rejected above, never silently deferred.
+  const material=grouped.filter(g=>g.highest_severity!=='R3');
+  const minor=grouped.filter(g=>g.highest_severity==='R3');
   return {groups:grouped,input_occurrences:items.length,
-    duplicate_occurrences:items.length-grouped.length,automatically_resolved:0};
+    duplicate_occurrences:items.length-grouped.length,automatically_resolved:0,
+    material_triage_candidates:material,
+    deferred_backlog_candidates:minor,
+    progression_advice:material.length?'TRIAGE_MATERIAL_FINDINGS':
+      'CONTINUE_NEXT_ELIGIBLE_INCREMENT',
+    automatically_accepted:0,advisory_only:true};
 }
 
 function assessDelegationBatch({
@@ -1034,6 +1043,10 @@ function assessDelegationBatch({
   return {
     triage_findings,
     actionable_finding_groups:grouped.groups,
+    material_triage_candidates:grouped.material_triage_candidates,
+    deferred_backlog_candidates:grouped.deferred_backlog_candidates,
+    progression_advice:grouped.progression_advice,
+    triage_is_advisory:true,
     repeated_finding_occurrences:grouped.duplicate_occurrences,
     unqualified_blocking_reports,unqualified_r1,unqualified_r2,
     needs_attention:results.some(r=>r.needs_attention===true||

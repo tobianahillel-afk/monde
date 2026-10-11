@@ -2495,3 +2495,47 @@ test('unqualified relay blocks malformed source provenance that cannot be redact
     assert.equal(output.text,null);
   }
 });
+
+test('progress-first: R3 finding becomes advisory backlog candidate, not an approval',()=>{
+  const input={assignment_id:'L2-MISSION-9001',id:'F01',status:'REPORT_NEEDS_MANUAL_REVIEW',
+    path:'src/minor.cjs',evidence:'Cosmetic issue',action:'Polish later',severity:'R3'};
+  const result=d.groupTriageFindings([input]);
+  assert.equal(result.progression_advice,'CONTINUE_NEXT_ELIGIBLE_INCREMENT');
+  assert.equal(result.material_triage_candidates.length,0);
+  assert.equal(result.deferred_backlog_candidates.length,1);
+  assert.equal(result.deferred_backlog_candidates[0].evidence,input.evidence);
+  assert.equal(result.automatically_accepted,0);
+  assert.equal(result.advisory_only,true);
+});
+test('progress-first: R1 and R2 never become deferred backlog candidates',()=>{
+  const basis={assignment_id:'L2-MISSION-9002',status:'NEEDS_CORRECTION',
+    path:'src/core.cjs',evidence:'Broken invariant',action:'Fix before promotion'};
+  const result=d.groupTriageFindings([
+    {...basis,id:'F01',severity:'R1'},
+    {...basis,id:'F02',severity:'R2',path:'src/auth.cjs'},
+    {...basis,id:'F03',severity:'R3',path:'docs/typo.md'}
+  ]);
+  assert.equal(result.progression_advice,'TRIAGE_MATERIAL_FINDINGS');
+  assert.equal(result.material_triage_candidates.length,2);
+  assert.deepEqual(result.material_triage_candidates.map(x=>x.highest_severity),['R1','R2']);
+  assert.equal(result.deferred_backlog_candidates.length,1);
+  assert.equal(result.automatically_resolved,0);
+});
+test('progress-first: any duplicate escalated severity follows most severe finding',()=>{
+  const basis={assignment_id:'L2-MISSION-9003',status:'NEEDS_CORRECTION',
+    path:'src/a.cjs',evidence:'Repeated bug',action:'Repair'};
+  const grouped=d.groupTriageFindings([
+    {...basis,id:'F01',severity:'R3'},
+    {...basis,assignment_id:'L2-MISSION-9004',id:'F02',severity:'R1'}
+  ]);
+  assert.equal(grouped.material_triage_candidates.length,1);
+  assert.equal(grouped.deferred_backlog_candidates.length,0);
+  assert.equal(grouped.groups[0].occurrences,2);
+  assert.equal(grouped.groups[0].highest_severity,'R1');
+});
+test('progress-first: empty triage recommends more eligible work, never marks merge-ready',()=>{
+  const result=d.groupTriageFindings([]);
+  assert.equal(result.progression_advice,'CONTINUE_NEXT_ELIGIBLE_INCREMENT');
+  assert.equal(result.automatically_accepted,0);
+  assert.equal(Object.hasOwn(result,'ready_for_merge'),false);
+});
