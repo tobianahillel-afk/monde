@@ -9,6 +9,25 @@ Constraint: four ChatGPT Scheduled tasks + connected GitHub plugin + GitHub-host
 
 > **One-sentence architecture:** preserve MONDE's existing normative WORK/REQ/ADR/Review system, use GitHub Issues as operational task cards, one trusted `issue_comment`-driven GitHub Actions arbiter for *mutually exclusive* assignment and basic reconciliation, branches/PRs for actual implementation, and native GitHub Actions/branch protection for tests and integration. ChatGPT does the reasoning and coding, Actions does only deterministic bookkeeping/testing.
 
+## Even simpler bootstrap: **NO custom engine needed to start**
+
+**Recommended staged adoption (PROPOSED; not host authorization):**
+
+| Level | Custom controller/runtime code | ChatGPT posture | Exactly what becomes possible | What is still prohibited |
+|---|---|---|---|---|
+| **L0 / immediately** | **0 lines** | One interactive or otherwise explicitly authorized developer, up to three separate research/cold-read contexts | Repository inspection, WORK-0004 historical capability backfill research, algorithm comparisons, independent read-only challenge, reviewable scoped proposals. A single developer may edit a task branch **only under already applicable governance/authority** | Never enable uncoordinated four writers, silently change `main`, claim L2 GitHub non-author approval, or call a research draft Accepted |
+| **L1 / one-worker pilot** | No allocator; reuse GitHub Issue + single explicit ownership convention | One scoped writer; other chats research/review independently | Small delegated implementation with branch/PR, CI evidence, durable pointer and human-authorized integration; learn connector permission reality | No automatic conflicting multi-writer grants or unattended merge |
+| **L2 / two-worker pilot** | Small **trusted GitHub Actions Issue-comment arbiter**, only if concurrent writers really required | Two writers on distinct grants, other eligible roles flexible | Proven serialized resource grants, duplicate replay, stale attempt quarantine and 2-way recovery | Not yet four automatic writes; old identity/native approval limits remain |
+| **L3 / four-worker production** | Same one dispatcher with 4-request fault tests, not an additional framework | Four role-fluid writers/reviewers, actual validated scheduled-task connections | Highest safe parallelism under WIP caps and merge approvals | No bypass of G-01..G-15 or claim of guaranteed simultaneous hourly runs |
+
+**Crucial:** L0 and research portions of L1 **can start before** the four-writer engine is finished. In fact, explicit user-approved documentation research does not need the allocator at all. However, *even a single writer cannot bypass the existing WORK-0002/3 and required A3/native GitHub approval restrictions*. This table describes allowable architecture stages, not permission to alter currently protected project governance.
+
+**Four Scheduled tasks right now?** This is at most four **READ_ONLY research/check roles** until launch gates actually pass. Scheduling them does not itself make four stable agents with shared context. One actual Scheduled task-to-GitHub T0 test should precede any attempt to create four. Plus publishes five active-task slots; one active non-MONDE task currently occupies one. Never pause another project to gain MONDE capacity without its owner's explicit direction.
+
+**No-new-code proof first:** ask a single authorized chat to inspect current issue/work/PR/head, report a fresh-context source-based research finding and resume a pending CI from a known run ID. This tests most ChatGPT/GitHub reality constraints without a dispatcher. Introduce a dispatcher only upon an observed need for simultaneous exclusive grants.
+
+**Stop building the engine at L1/L2 temporarily** if capability inventory, docs, single-worker implementation or independent review is the critical path. A work process can be sufficiently useful before being fully automated. Don't make `ACTIVE_4` a prerequisite for MONDE's productive documentation.
+
 ## 0. Six non-negotiable invariants (short enough for every worker)
 
 **I1. One authority per fact.** Accepted MONDE registers/ADRs on main own normative meaning, requirements and WORK lifecycle. GitHub refs/PR/Actions own current code, CI and review facts. One serialized GitHub Actions controller owns transient task grants. Issue labels/comments are *operational projections*, not competing WORK status machines.
