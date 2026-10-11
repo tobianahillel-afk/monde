@@ -31,4 +31,9 @@ jobs:
       - name: Check pure delegation syntax
         run: node --check .github/scripts/monde-dev/delegation.cjs
       - name: Run read-only delegation tests
-        run: node --test --experimental-test-coverage .github/scripts/monde-dev/delegation.test.cjs
+        run: >-
+          node --test --experimental-test-coverage
+          --test-coverage-lines=99
+          --test-coverage-branches=93
+          --test-coverage-functions=100
+          .github/scripts/monde-dev/delegation.test.cjs

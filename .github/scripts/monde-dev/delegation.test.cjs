@@ -686,3 +686,79 @@ test('full public review requires a distinct explicit full_report_approved flag'
   assert.match(out.text,/### Canonical machine footer/);
   assert.doesNotMatch(out.text,/Observed message reference: history/);
 });
+
+test('L2 BLOCKED may truthfully declare zero examined files and a limitation',()=>{
+  const res=d.assessReview({expected:H,response:message(data({
+    verdict:'BLOCKED',findings:[],reviewed_paths:[],
+    limitations:['GitHub read permission was unavailable for this run']
+  })),current_head:SHA,source});
+  assert.equal(res.status,'BLOCKED');
+  assert.deepEqual(res.missing_reviewed_paths,H.paths);
+  assert.throws(()=>d.validateReport(data({verdict:'APPROVE',findings:[],
+    reviewed_paths:[]})),e=>e.code==='INVALID_REVIEW_COVERAGE');
+});
+test('a technical research assignment cannot be promoted by assessReview to L2',()=>{
+  const research={...H,mission_kind:'TECH_RESEARCH'};
+  const out=d.assessReview({expected:research,response:message(data({
+    verdict:'APPROVE',findings:[]})),current_head:SHA,source});
+  assert.equal(out.status,'NOT_L2_MISSION');
+  assert.equal(out.native_github_approved,false);
+});
+test('directory review cannot be provisionally complete from folder declaration alone',()=>{
+  const assigned={...H,paths:['src/']};
+  const response=message(data({verdict:'APPROVE',findings:[],
+    reviewed_paths:['src/']}));
+  const incomplete=d.assessReview({expected:assigned,response,
+    current_head:SHA,source});
+  assert.equal(incomplete.status,'L2_SCOPE_NOT_EVIDENCED');
+  const manifest={verified_at_head:true,head_sha:SHA,
+    files:['src/a.cjs','src/b.cjs']};
+  const partial=d.assessReview({expected:assigned,current_head:SHA,source,
+    coverage_manifest:manifest,response:message(data({verdict:'APPROVE',
+      findings:[],reviewed_paths:['src/a.cjs']}))});
+  assert.equal(partial.status,'L2_SCOPE_NOT_EVIDENCED');
+  assert.deepEqual(partial.missing_reviewed_paths,['src/b.cjs']);
+  const complete=d.assessReview({expected:assigned,current_head:SHA,source,
+    coverage_manifest:manifest,response:message(data({verdict:'APPROVE',
+      findings:[],reviewed_paths:['src/a.cjs','src/b.cjs']}))});
+  assert.equal(complete.status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(complete.requires_manual_qualification,true);
+  const stale=d.assessReview({expected:assigned,current_head:SHA,source,
+    coverage_manifest:{...manifest,head_sha:'b'.repeat(40)},
+    response:message(data({verdict:'APPROVE',findings:[],
+      reviewed_paths:['src/a.cjs','src/b.cjs']}))});
+  assert.equal(stale.status,'L2_SCOPE_NOT_EVIDENCED');
+});
+test('manual relay rejects recognizable credentials in message reference too',()=>{
+  const out=d.prepareInteractiveHandoff({expected:H,response:message(data()),
+    current_head:SHA,source:{...source,
+      message_ref:'ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'},
+    publication_clearance:{secrets_checked:true,
+      personal_data_checked:true,public_repo_safe:true}});
+  assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(out.ready_for_manual_relay,false);
+});
+test('oversize explicit full report cannot be emitted to public GitHub',()=>{
+  const response=message(data({limitations:['L'.repeat(1800)]}))+
+    '\n';
+  // Preserve canonical footer and insert a human report too large for public relay.
+  const lines=response.trimEnd().split('\n');
+  lines.splice(-2,0,'N'.repeat(14000));
+  const huge=lines.join('\n');
+  const out=d.prepareInteractiveHandoff({expected:H,response:huge,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,full_report_approved:true}});
+  assert.equal(out.status,'PUBLIC_RELAY_TOO_LARGE');
+  assert.equal(out.text,null);
+  const small=d.prepareInteractiveHandoff({expected:H,response:huge,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
+  assert.equal(small.ready_for_manual_relay,true);
+});
+test('generated L2 prompt has all Review Council hats, not just a generic role',()=>{
+  const prompt=d.buildReviewPrompt(H);
+  for(const role of ['SECURITY','ARCHITECTURE_REUSE','VERIFICATION_VALIDATION',
+    'PERFORMANCE_SRE','DOCUMENTATION_TRACEABILITY','RED_TEAM_SKEPTIC'])
+    assert.ok(prompt.includes(role),role);
+});

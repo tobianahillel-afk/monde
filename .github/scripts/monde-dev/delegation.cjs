@@ -79,6 +79,11 @@ function buildReviewPrompt(input) {
     'Lis le code reel, les exigences acceptees et les preuves CI au SHA.',
     'Cherche activement les erreurs de securite, concurrence, logique,',
     'architecture, performance, tests et integration. Cite les preuves.',
+    'MATRICE REVIEW COUNCIL: traite explicitement les 6 hats suivants:',
+    'SECURITY, ARCHITECTURE_REUSE, VERIFICATION_VALIDATION,',
+    'PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY, RED_TEAM_SKEPTIC.',
+    'Pour chaque hat: perimetre effectivement lu, preuve ou limitation.',
+    'Une perspective non examinee est une limitation; ne feins pas APPROVE.',
     'Tu es uniquement un analyste ChatGPT temporaire: LECTURE SEULE.',
     'INTERDIT: commentaire GitHub, commit, fichier, PR, review native,',
     'fusion, parametre GitHub, nouvelle tache, developpement autonome.',
@@ -198,7 +203,8 @@ function validateReport(x) {
       x.limitations.some(v => !oneLine(v, 2000)))
     bad('INVALID_REPORT');
   if(hasCoverage&&(!Array.isArray(x.reviewed_paths)||
-     x.reviewed_paths.length<1||x.reviewed_paths.length>24||
+     (x.reviewed_paths.length===0&&x.verdict!=='BLOCKED')||
+     x.reviewed_paths.length>24||
      x.reviewed_paths.some(path=>!validPath(path,true))||
      new Set(x.reviewed_paths).size!==x.reviewed_paths.length))
     bad('INVALID_REVIEW_COVERAGE');
@@ -249,8 +255,10 @@ function scopeMatches(path, paths) {
   return paths.some(scope => scope === path ||
     (scope.endsWith('/') && path.startsWith(scope)));
 }
-function assessReview({ expected, response, current_head, source }) {
+function assessReview({ expected, response, current_head, source, coverage_manifest }) {
   const a = assignment(expected);
+  if(a.mission_kind!=='L2_REVIEW')
+    return {status:'NOT_L2_MISSION',native_github_approved:false};
   if (response === null || response === undefined)
     return { status: 'REPORT_UNAVAILABLE', native_github_approved: false };
   let parsed;
@@ -289,7 +297,27 @@ function assessReview({ expected, response, current_head, source }) {
   const examined=Array.isArray(metadata.reviewed_paths)?metadata.reviewed_paths:[];
   // The inventory is a reviewer claim; actual file reading still needs
   // independent qualification by the interactive foreground author.
-  const missingCoverage=a.paths.filter(path=>!examined.includes(path));
+  // A claimed directory does not prove that every file under that directory
+  // was read. A trusted exact-SHA enumeration must accompany broad scopes.
+  // The manifest is an external operator observation, not proof of reading.
+  const manifestOK=plain(coverage_manifest)&&
+    coverage_manifest.verified_at_head===true&&
+    coverage_manifest.head_sha===a.head_sha&&
+    Array.isArray(coverage_manifest.files)&&
+    coverage_manifest.files.length>0&&
+    coverage_manifest.files.length<=2000&&
+    coverage_manifest.files.every(file=>validPath(file)&&!file.endsWith('/'))&&
+    new Set(coverage_manifest.files).size===coverage_manifest.files.length;
+  const missingCoverage=[];
+  for(const path of a.paths){
+    if(path.endsWith('/')){
+      if(!manifestOK){missingCoverage.push(path);continue;}
+      const scoped=coverage_manifest.files.filter(file=>file.startsWith(path));
+      if(!scoped.length){missingCoverage.push(path);continue;}
+      for(const file of scoped)if(!examined.includes(file))
+        missingCoverage.push(file);
+    }else if(!examined.includes(path))missingCoverage.push(path);
+  }
   const extraneousCoverage=examined.filter(path=>!scopeMatches(path,a.paths));
   // Structural shape + a caller-supplied provenance observation are not an
   // independent substantive review nor a host-native reviewer approval.
@@ -311,6 +339,13 @@ function assessReview({ expected, response, current_head, source }) {
   };
 }
 
+const CREDENTIAL_PATTERNS=[
+  /-----BEGIN (?:[A-Z ]* )?PRIVATE KEY-----/,
+  /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/,
+  /\bgithub_pat_[A-Za-z0-9_]{20,}\b/,
+  /\bAKIA[0-9A-Z]{16}\b/
+];
+const PUBLIC_RELAY_MAX_BYTES=12000;
 function prepareInteractiveHandoff(args) {
   const evaluation = assessReview(args);
   if (!['NEEDS_CORRECTION', 'BLOCKED', 'L2_REPORT_SCOPE_EXPANSION',
@@ -331,13 +366,9 @@ function prepareInteractiveHandoff(args) {
   // A clearance checkbox does not justify relaying unmistakable credential
   // material into a PUBLIC GitHub comment. This is a conservative backstop,
   // never a substitute for the foreground developer's manual inspection.
-  const sensitive = [
-    /-----BEGIN (?:[A-Z ]* )?PRIVATE KEY-----/,
-    /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/,
-    /\bgithub_pat_[A-Za-z0-9_]{20,}\b/,
-    /\bAKIA[0-9A-Z]{16}\b/
-  ];
-  if (sensitive.some(pattern => pattern.test(args.response)))
+  if (CREDENTIAL_PATTERNS.some(pattern=>[
+    args.response,args.source?.message_ref,args.source?.context_id
+  ].some(value=>typeof value==='string'&&pattern.test(value))))
     return {status:'POTENTIAL_SECRET_IN_REPORT',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
@@ -385,6 +416,15 @@ function prepareInteractiveHandoff(args) {
       JSON.stringify(metadata)
     ]:[])
   ].join('\n');
+  // Scan exactly what could reach the public PR, not only the source text.
+  if(CREDENTIAL_PATTERNS.some(pattern=>pattern.test(note)))
+    return {status:'POTENTIAL_SECRET_IN_RELAY',can_publish:false,
+      ready_for_manual_relay:false,requires_manual_qualification:true,
+      native_github_approved:false,text:null};
+  if(Buffer.byteLength(note,'utf8')>PUBLIC_RELAY_MAX_BYTES)
+    return {status:'PUBLIC_RELAY_TOO_LARGE',can_publish:false,
+      ready_for_manual_relay:false,requires_manual_qualification:true,
+      native_github_approved:false,text:null};
   return {
     status: evaluation.status, can_publish: false,
     ready_for_manual_relay: true,
