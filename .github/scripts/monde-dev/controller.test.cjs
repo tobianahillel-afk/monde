@@ -430,3 +430,76 @@ test('E3 retry: real audit history still requires trigger exact body',async()=>{
     settings:settings()}),e=>e.code==='DUPLICATE_ID_CONFLICT'||
       e.code==='TRIGGER_NOT_IN_HISTORY');
 });
+
+test('independent oracle: path/contract conflicts match segment-set containment',()=>{
+  // Do not call controller.overlaps() inside the independent reference oracle.
+  function oracle(a,b){
+    if(a===b)return true;
+    if(!a.startsWith('path:')||!b.startsWith('path:'))return false;
+    const aa=a.slice(5).split('/'),bb=b.slice(5).split('/');
+    const n=Math.min(aa.length,bb.length);
+    for(let i=0;i<n;i++)if(aa[i]!==bb[i])return false;
+    return true;
+  }
+  const values=[
+    'path:src','path:src/a','path:src/a/b','path:src/aa','path:src/a2',
+    'path:.github','path:.github/workflows','path:registry/reviews',
+    'path:registry/reviews/test.yaml','path:registry/reviews2',
+    'path:lib','path:lib/a.js','contract:GeoV1','contract:GeoV2',
+    'registry:shared','registry:work','trust:actions','integrate:main'
+  ];
+  for(const aName of values)for(const bName of values){
+    a.equal(c.overlaps(aName,bName),oracle(aName,bName),
+      'overlap mismatch '+aName+' vs '+bName);
+    a.equal(c.overlaps(aName,bName),c.overlaps(bName,aName),
+      'overlap asymmetry '+aName+' vs '+bName);
+  }
+});
+test('independent oracle: randomly composed four-worker grants never intersect',()=>{
+  let seed=0x12345678;
+  function rand(){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return(seed>>>0);}
+  const pool=[
+    'path:src','path:src/geo','path:src/geo/tile.cjs','path:src/geology',
+    'path:src/stats','path:src/stats/model.cjs','path:docs',
+    'contract:Geo','contract:Time','registry:WORK','trust:actions'
+  ];
+  const referenceConflict=(one,two)=>{
+    if(one===two)return true;
+    if(!one.startsWith('path:')||!two.startsWith('path:'))return false;
+    const a=one.slice(5).split('/'),b=two.slice(5).split('/');
+    return a.slice(0,Math.min(a.length,b.length))
+      .every((part,i)=>part===b[i]);
+  };
+  for(let round=0;round<160;round++){
+    const work=simulated(),expected=[];
+    for(let worker=1;worker<=4;worker++){
+      const r=pool[rand()%pool.length],request=q(worker,{resources:[r]});
+      const shouldGrant=expected.every(old=>!referenceConflict(old,r));
+      const decision=work.apply(request);
+      a.equal(decision.outcome,shouldGrant?'GRANTED':'DENIED',
+        'independent four-worker oracle round='+round+' worker='+worker);
+      if(shouldGrant)expected.push(r);
+    }
+    a.equal(work.state().grants.size,expected.length);
+  }
+});
+test('mutated bot result cannot promote revoked or untrusted authority',()=>{
+  const req=request(4,q());
+  const decision={outcome:'GRANTED',reason:'TEST_FIXTURE',grant_id:'grant:req-case-0001',
+    epoch:1,resources:q().resources,observed_base_sha:SHA};
+  const valid=response(5,req,decision),res=c.parseResult(valid.body);
+  for(const mutation of [
+    {write_authority:true},{mode:'PRODUCTION'},{outcome:'MERGED'},
+    {workflow_run_id:0},{event_comment_id:999},{resources:['trust:actions']},
+    {observed_base_sha:'b'.repeat(40)}
+  ]){
+    const changed={...res,...mutation};
+    const forged={...valid,body:c.RESULT+'\n'+JSON.stringify(changed)};
+    const throwsProtocol=['write_authority','mode','outcome','workflow_run_id']
+      .some(k=>Object.prototype.hasOwnProperty.call(mutation,k));
+    if(throwsProtocol)a.throws(()=>c.replay([req,forged]));
+    else if(mutation.event_comment_id!==undefined)a.throws(()=>c.replay([req,forged]),
+      e=>e.code==='ORPHAN_RESULT');
+    else a.throws(()=>c.replay([req,forged]),e=>e.code==='INVALID_GRANT');
+  }
+});
