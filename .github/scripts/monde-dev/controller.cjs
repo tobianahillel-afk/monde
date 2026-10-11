@@ -51,12 +51,13 @@ function parseRequest(body){return validate(unpack(body,COMMAND));}
 function encodeRequest(x){return COMMAND+'\n'+JSON.stringify(validate(JSON.parse(JSON.stringify(x))));}
 const resultFields=['v','request_id','event_comment_id','worker','work','task','outcome','grant_id','epoch',
   'resources','observed_base_sha','mode','write_authority','workflow_run_id','workflow_run_attempt','reason'];
-function parseResult(body){
+function parseResult(body,expectedMode='TEST_ONLY'){
+  if(!['TEST_ONLY','ACTIVE_4'].includes(expectedMode))fail('BAD_EXPECTED_MODE');
   const r=unpack(body,RESULT);equalFields(r,resultFields);
   if(r.v!==1||typeof r.request_id!=='string'||typeof r.worker!=='string'||typeof r.work!=='string'||typeof r.task!=='string'||!ID.test(r.request_id)||!/^W[1-4]$/.test(r.worker)||
      !/^WORK-\d{4,}$/.test(r.work)||!/^T[1-9]\d*$/.test(r.task)||
      !['GRANTED','DENIED','BLOCKED','NO_CHANGE','UNKNOWN','RELEASED'].includes(r.outcome)||
-     r.mode!=='TEST_ONLY'||r.write_authority!==false||
+     r.mode!==expectedMode||r.write_authority!==false||
      !Number.isSafeInteger(r.event_comment_id)||r.event_comment_id<1||
      !Number.isSafeInteger(r.workflow_run_id)||r.workflow_run_id<1||
      !Number.isSafeInteger(r.workflow_run_attempt)||r.workflow_run_attempt<1||
@@ -70,10 +71,11 @@ function parseResult(body){
 }
 function encodeResult(r){
   const body=RESULT+'\n'+JSON.stringify(r);
-  parseResult(body);
+  parseResult(body,r.mode);
   return body;
 }
-function replay(comments,bot='github-actions[bot]',allowedActors=['tobianahillel-afk']){
+function replay(comments,bot='github-actions[bot]',allowedActors=['tobianahillel-afk'],mode='TEST_ONLY'){
+  if(!['TEST_ONLY','ACTIVE_4'].includes(mode))fail('BAD_EXPECTED_MODE');
   if(!Array.isArray(allowedActors)||allowedActors.length===0||
      allowedActors.some(x=>typeof x!=='string'||!x))fail('INVALID_ALLOWED_ACTORS');
   if(!Array.isArray(comments)||comments.length>=10000)fail('INCOMPLETE_HISTORY');
@@ -93,7 +95,7 @@ function replay(comments,bot='github-actions[bot]',allowedActors=['tobianahillel
         actor:c.user.login,canonical:JSON.stringify(q)});
     }
     if(!c.body.startsWith(RESULT+'\n')||!c.user||c.user.login!==bot)continue;
-    const r=parseResult(c.body),source=requests.get(r.request_id);
+    const r=parseResult(c.body,mode),source=requests.get(r.request_id);
     if(!source||source.comment_id!==r.event_comment_id||source.q.worker!==r.worker||
        source.q.work!==r.work||source.q.task!==r.task)fail('ORPHAN_RESULT');
     if(decisions.has(r.request_id))fail('DUPLICATE_RESULT');
@@ -101,8 +103,10 @@ function replay(comments,bot='github-actions[bot]',allowedActors=['tobianahillel
     if((r.outcome==='RELEASED'&&source.q.op!=='RELEASE')||
        (r.outcome==='GRANTED'&&source.q.op!=='CLAIM'))fail('INVALID_OUTCOME_OP');
     if(r.outcome==='GRANTED'){
-      if(source.q.op!=='CLAIM'||source.q.work!=='WORK-0000'||
-          !['T1','T2','T3','T4'].includes(source.q.task)||
+      if(source.q.op!=='CLAIM'||
+          (mode==='TEST_ONLY'&&(source.q.work!=='WORK-0000'||
+            !['T1','T2','T3','T4'].includes(source.q.task)))||
+          (mode==='ACTIVE_4'&&source.q.work==='WORK-0000')||
           r.grant_id===null||grants.has(r.grant_id)||r.epoch===null||r.epoch<=epoch||
          r.observed_base_sha!==source.q.base_sha||
          JSON.stringify(r.resources)!==JSON.stringify(source.q.resources))fail('INVALID_GRANT');
@@ -155,7 +159,7 @@ function makeResult(q,event,choice,ctx){
   return {v:1,request_id:q.request_id,event_comment_id:event.id,worker:q.worker,
     work:q.work,task:q.task,outcome:choice.outcome,grant_id:choice.grant_id,
     epoch:choice.epoch,resources:choice.resources,observed_base_sha:choice.observed_base_sha,
-    mode:'TEST_ONLY',write_authority:false,workflow_run_id:ctx.runId,
+    mode:ctx.mode||'TEST_ONLY',write_authority:false,workflow_run_id:ctx.runId,
     workflow_run_attempt:ctx.runAttempt,reason:choice.reason};
 }
 async function listComments(github,owner,repo,number){
@@ -167,7 +171,9 @@ async function listComments(github,owner,repo,number){
 async function run({github,context,core,settings}){
   if(context.eventName!=='issue_comment'||context.payload.action!=='created')return {ignored:true};
   const {owner,repo}=context.repo;
-  if(!settings||settings.mode!=='TEST_ONLY'||settings.owner!==owner||
+  if(!settings||!['TEST_ONLY','ACTIVE_4'].includes(settings.mode)||
+     (settings.mode==='ACTIVE_4'&&settings.activeLaunchApproved!==true)||
+     settings.owner!==owner||
      settings.repo!==repo||!Number.isSafeInteger(settings.issueNumber)||
      settings.issueNumber<1||context.issue.number!==settings.issueNumber||
      context.payload.issue.pull_request||!Array.isArray(settings.allowedActors))fail('UNTRUSTED_EVENT');
@@ -177,7 +183,8 @@ async function run({github,context,core,settings}){
   if(typeof event.body!=='string'||!event.body.startsWith(COMMAND+'\n'))return {ignored:true};
   const q=parseRequest(event.body);
   const before=await listComments(github,owner,repo,settings.issueNumber);
-  const prior=replay(before,settings.botActor||'github-actions[bot]',settings.allowedActors);
+  const prior=replay(before,settings.botActor||'github-actions[bot]',
+     settings.allowedActors,settings.mode);
   // The triggering event must be visible in authoritative paginated history
   // before publishing a grant or status reply; otherwise fail closed.
   const observedRequest=prior.requests.get(q.request_id);
@@ -188,16 +195,30 @@ async function run({github,context,core,settings}){
   const matching=before.some(c=>c.id===event.id && c.user &&
     c.user.login===context.actor && c.body===event.body);
   if(!matching)fail('TRIGGER_NOT_IN_HISTORY');
-  const chosen=choose(prior,q,{mode:'TEST_ONLY',baseSha:settings.baseSha});
+  let chosen;
+  if(settings.mode==='ACTIVE_4'&&q.op==='CLAIM'){
+    if(!github.rest?.repos?.getBranch||!github.rest?.repos?.getContent)
+      fail('MISSING_TRUSTED_WORK_API');
+    const branch=await github.rest.repos.getBranch({
+      owner,repo,branch:'main'});
+    if(!branch?.data?.protected||!branch?.data?.commit?.sha||
+       !SHA.test(branch.data.commit.sha))fail('MAIN_NOT_PROTECTED');
+    const workSource=await trustedWorkContext(
+      github,owner,repo,q,branch.data.commit.sha);
+    chosen=chooseActive(prior,q,workSource);
+  }else{
+    chosen=choose(prior,q,{mode:'TEST_ONLY',baseSha:settings.baseSha});
+  }
   if(chosen.replayed)return {replayed:true,result:chosen};
   // Always bind the result to the *original* request comment ID; this permits
   // an identical replay to recover a lost outcome without double granting.
   const sourceEvent={...event,id:observedRequest.comment_id};
-  const result=makeResult(q,sourceEvent,chosen,{runId:context.runId,runAttempt:context.runAttempt});
+  const result=makeResult(q,sourceEvent,chosen,{runId:context.runId,
+    runAttempt:context.runAttempt,mode:settings.mode});
   try{await github.rest.issues.createComment({owner,repo,issue_number:settings.issueNumber,body:encodeResult(result)});}
   catch(err){core.warning('UNKNOWN_WRITE '+(err.status||'API'));return {unknown:true};}
   const after=replay(await listComments(github,owner,repo,settings.issueNumber),
-     settings.botActor||'github-actions[bot]',settings.allowedActors);
+     settings.botActor||'github-actions[bot]',settings.allowedActors,settings.mode);
   if(!after.decisions.has(q.request_id))fail('RESULT_NOT_OBSERVED');
   return {result:after.decisions.get(q.request_id)};
 }
