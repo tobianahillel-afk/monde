@@ -268,7 +268,7 @@ function assessReview({ expected, response, current_head, source, coverage_manif
     // interactive writer, but NEVER qualify it as a verified L2 approval.
     if (error instanceof InvalidReport)
       return {status:'REPORT_NEEDS_MANUAL_REVIEW', native_github_approved:false,
-        requires_manual_qualification:true, reason:error.code};
+        requires_manual_qualification:true,needs_attention:true,reason:error.code};
     throw error;
   }
   const { analysis, metadata } = parsed;
@@ -287,7 +287,8 @@ function assessReview({ expected, response, current_head, source, coverage_manif
   };
   if (typeof current_head !== 'string' || !SHA.test(current_head) ||
       current_head !== a.head_sha)
-    return { status: 'STALE_SHA', native_github_approved: false, ...reported };
+    return {status:'STALE_SHA',native_github_approved:false,
+      needs_attention:reported.reported_blocking_findings,...reported};
   // Source verification is an external observable fact, never inferred
   // from the report's self-asserted reviewer_context_id.
   if (!plain(source) || source.retrieved_from_distinct_chat !== true ||
@@ -296,8 +297,8 @@ function assessReview({ expected, response, current_head, source, coverage_manif
       source.context_id === a.author_context_id ||
       source.retrieval_kind !== 'chat_history' ||
       !oneLine(source.message_ref, 160))
-    return { status: 'INDEPENDENCE_UNVERIFIED', native_github_approved: false,
-      ...reported };
+    return {status:'INDEPENDENCE_UNVERIFIED',native_github_approved:false,
+      needs_attention:reported.reported_blocking_findings,...reported};
   // Out-of-scope findings may uncover genuine cross-component defects. Keep
   // them actionable, but do not silently count a narrow review as a complete
   // review of those additional components.
@@ -476,7 +477,7 @@ function planDelegations(inputs) {
 // conversations; a scheduler success cannot be substituted for the text.
 // A batch status does not confer GitHub approval, even if every report says APPROVE.
 function assessDelegationBatch({
-  assignments, reports, sources, current_head, prior_sources=[]
+  assignments, reports, sources, current_head, prior_sources=[], coverage_manifests={}
 }) {
   // Prior observations must be supplied by the foreground reader from
   // separate previously retrieved conversations. In-memory detection across
@@ -491,11 +492,12 @@ function assessDelegationBatch({
       bad('INVALID_PRIOR_OBSERVATIONS');
   }
   const plan = planDelegations(assignments);
-  if (!plain(reports) || !plain(sources))
+  if (!plain(reports) || !plain(sources) || !plain(coverage_manifests))
     bad('INVALID_REPORT_MAP');
   const ids = new Set(plan.map(p => p.assignment_id));
   if (Object.keys(reports).some(id => !ids.has(id)) ||
-      Object.keys(sources).some(id => !ids.has(id)))
+      Object.keys(sources).some(id => !ids.has(id)) ||
+       Object.keys(coverage_manifests).some(id => !ids.has(id)))
     bad('UNKNOWN_ASSIGNMENT_RESULT');
   const results = plan.map((target, index) => {
     const key = target.assignment_id;
@@ -505,7 +507,8 @@ function assessDelegationBatch({
         reports[key] : null,
       source: Object.prototype.hasOwnProperty.call(sources, key) ?
         sources[key] : undefined,
-      current_head
+       current_head,
+       coverage_manifest:coverage_manifests[key]
     };
     return { assignment_id: key,
       ...(target.mission_kind==='L2_REVIEW'?
@@ -562,6 +565,7 @@ function assessDelegationBatch({
   for(const outcome of results)
     if(conflicting.has(outcome.assignment_id)){
       outcome.independence_unverified=true;
+       outcome.needs_attention=true;
       outcome.independence_reason='REUSED_CHAT_CONTEXT_OR_MESSAGE';
       outcome.requires_manual_qualification=true;
       // Security findings have higher priority than a provenance warning:
@@ -576,11 +580,19 @@ function assessDelegationBatch({
   const counts = {};
   for (const result of results)
     counts[result.status] = (counts[result.status] || 0) + 1;
-  const unqualified_blocking_reports=results.filter(result=>
-    result.reported_blocking_findings===true &&
-    ['STALE_SHA','INDEPENDENCE_UNVERIFIED'].includes(result.status)).length;
+  const unqualifiedStatuses=new Set(['STALE_SHA','INDEPENDENCE_UNVERIFIED',
+    'WRONG_ASSIGNMENT','REPORT_NEEDS_MANUAL_REVIEW','L2_SCOPE_NOT_EVIDENCED']);
+  const unqualified=results.filter(r=>r.reported_blocking_findings===true&&
+    (unqualifiedStatuses.has(r.status)||r.independence_unverified===true));
+  const unqualified_blocking_reports=unqualified.length;
+  const unqualified_r1=unqualified.reduce((n,r)=>n+(r.reported_severity_r1||0),0);
+  const unqualified_r2=unqualified.reduce((n,r)=>n+(r.reported_severity_r2||0),0);
   return {
-    unqualified_blocking_reports,
+    unqualified_blocking_reports,unqualified_r1,unqualified_r2,
+    needs_attention:results.some(r=>r.needs_attention===true||
+      r.reported_blocking_findings===true||
+      ['NEEDS_CORRECTION','BLOCKED','REPORT_UNAVAILABLE',
+        'REPORT_NEEDS_MANUAL_REVIEW','INDEPENDENCE_UNVERIFIED'].includes(r.status)),
     repo: plan[0].repo, pr: plan[0].pr, head_sha: plan[0].head_sha,
     total: plan.length, results, counts,
     independence_conflicts: conflicting.size,

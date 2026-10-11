@@ -802,3 +802,31 @@ test('cross-batch same assignment with changed source fails provenance qualifica
   assert.equal(out.independence_conflicts,1);
   assert.equal(out.ready_for_merge,false);
 });
+
+test('directory coverage manifests propagate in a batch and stay exact-SHA',()=>{
+  const assigned={...H,paths:['src/']};
+  const report=message(data({verdict:'APPROVE',findings:[],
+    reviewed_paths:['src/a.cjs','src/b.cjs']}));
+  const base={assignments:[assigned],reports:{[assigned.assignment_id]:report},
+    sources:{[assigned.assignment_id]:source},current_head:SHA};
+  assert.equal(d.assessDelegationBatch(base).results[0].status,'L2_SCOPE_NOT_EVIDENCED');
+  const manifest={verified_at_head:true,head_sha:SHA,
+    files:['src/a.cjs','src/b.cjs']};
+  assert.equal(d.assessDelegationBatch({...base,
+    coverage_manifests:{[assigned.assignment_id]:manifest}}).results[0].status,
+    'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.throws(()=>d.assessDelegationBatch({...base,coverage_manifests:{unknown:manifest}}),
+    e=>e.code==='UNKNOWN_ASSIGNMENT_RESULT');
+});
+test('batch reports unqualified R1/R2 and required human attention',()=>{
+  const report=message(data({findings:[data().findings[0],{
+    ...data().findings[0],id:'F02',severity:'R2'}]}));
+  const out=d.assessDelegationBatch({assignments:[H],current_head:SHA,
+    reports:{[H.assignment_id]:report},
+    sources:{[H.assignment_id]:{...source,retrieval_kind:'not-observed'}}});
+  assert.equal(out.unqualified_blocking_reports,1);
+  assert.equal(out.unqualified_r1,1);
+  assert.equal(out.unqualified_r2,1);
+  assert.equal(out.needs_attention,true);
+  assert.equal(out.results[0].needs_attention,true);
+});
