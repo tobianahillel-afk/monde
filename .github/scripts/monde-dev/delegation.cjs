@@ -666,20 +666,26 @@ function prepareInteractiveHandoff(args) {
 // Untrusted reviewer excerpts must render as literal Markdown code spans.
 // JSON serialization removes source newlines; a longer delimiter than any
 // internal backtick run prevents a malicious excerpt from ending the span.
+// Scan literal backtick runs incrementally. Materializing all runs and
+// spreading them into Math.max throws RangeError for long reviewer reports
+// with densely repeated backticks, even when the report is below 1 MiB.
+function maxBacktickRun(value) {
+  let max = 0;
+  for (const run of value.matchAll(/\x60+/g))
+    if (run[0].length > max) max = run[0].length;
+  return max;
+}
 function quoteUntrustedExcerpt(value) {
   const literal=JSON.stringify(value).replace(/[\u2028\u2029]/g,
     c=>c==='\u2028'?'\\u2028':'\\u2029');
-  const runs=literal.match(/\x60+/g)||[];
-  const delimiter=String.fromCharCode(96).repeat(
-    Math.max(0,...runs.map(run=>run.length))+1);
+  const delimiter=String.fromCharCode(96).repeat(maxBacktickRun(literal)+1);
   return delimiter+' '+literal+' '+delimiter;
 }
 
 // Preserve full-report paragraphs while making every Markdown token literal.
 function quoteUntrustedBlock(value) {
-  const matches=value.match(/\x60+/g)||[];
-  const length=Math.max(3,...matches.map(s=>s.length+1));
-  const fence=String.fromCharCode(96).repeat(length);
+  const fence=String.fromCharCode(96).repeat(
+    Math.max(3,maxBacktickRun(value)+1));
   return fence+'\n'+value+'\n'+fence;
 }
 // Explicit, non-authoritative foreground triage for a malformed L2/research

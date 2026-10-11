@@ -2207,3 +2207,36 @@ test('minimal public relay omits unsafe full prose until separate full-report op
   assert.doesNotMatch(result.text,/\u001b/);
   assert.equal(result.native_github_approved,false);
 });
+
+test('L2 full report with dense backticks fails with bounded refusal, not RangeError',()=>{
+  // This is below the 1 MiB report limit but contains enough short runs to
+  // overflow Math.max(...runs) in the old public relay implementation.
+  const analysis='A substantial L2 review with dense quoted code. '+
+    ('\x60'+ 'a').repeat(90000);
+  const response=analysis+'\n'+d.MARKER+'\n'+JSON.stringify(data({
+    verdict:'APPROVE',findings:[]
+  }));
+  assert.ok(Buffer.byteLength(response,'utf8')<1024*1024);
+  const result=d.prepareInteractiveHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,full_report_approved:true}
+  });
+  assert.equal(result.status,'PUBLIC_RELAY_TOO_LARGE');
+  assert.equal(result.ready_for_manual_relay,false);
+  assert.equal(result.text,null);
+});
+test('L2 full relay safely fences a single long untrusted backtick run',()=>{
+  const ticks=String.fromCharCode(96).repeat(251);
+  const response='Actual independent review: '+ticks+' and substantive details.'+
+    '\n'+d.MARKER+'\n'+JSON.stringify(data({
+      verdict:'APPROVE',findings:[]
+    }));
+  const result=d.prepareInteractiveHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      full_report_approved:true}});
+  assert.equal(result.ready_for_manual_relay,true);
+  assert.match(result.text,new RegExp(String.fromCharCode(96).repeat(252)));
+  assert.equal(result.native_github_approved,false);
+});
