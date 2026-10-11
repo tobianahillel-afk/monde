@@ -1844,3 +1844,34 @@ test('privacy: embedded provider credentials after underscore are never public-r
     assert.equal(unqualified.ready_for_manual_relay,false);
   }
 });
+
+test('public evidence rejects zero-width formatting in structured fields',()=>{
+  for(const cp of [0x00ad,0x034f,0x180e,0x200b,0x200c,0x200d,0x2060,0xfeff]){
+    const hidden=String.fromCodePoint(cp);
+    assert.throws(()=>d.validateReport(data({limitations:['unseen'+hidden+'change']})),
+      e=>e.code==='INVALID_REPORT','U+'+cp.toString(16));
+    assert.throws(()=>d.validateReport(data({findings:[{
+      ...data().findings[0],action:'fix'+hidden+'path'}]})),
+      e=>e.code==='INVALID_FINDING','U+'+cp.toString(16));
+  }
+});
+test('public relay refuses zero-width alterations to approved full prose',()=>{
+  const response=message(data()).replace('complete independent',
+    'complete \u200bindependent');
+  const result=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,
+    source,publication_clearance:{secrets_checked:true,
+      personal_data_checked:true,public_repo_safe:true,full_report_approved:true}});
+  assert.equal(result.status,'UNSAFE_INVISIBLE_IN_RELAY');
+  assert.equal(result.ready_for_manual_relay,false);
+  assert.equal(result.text,null);
+});
+test('unqualified evidence relay rejects invisible formatting in R1 excerpts',()=>{
+  const response='R1: critical defect\u2060concealed\n'+d.MARKER+'\n{broken';
+  const result=d.prepareUnqualifiedTriageHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(result.status,'UNSAFE_INVISIBLE_IN_RELAY');
+  assert.equal(result.ready_for_manual_relay,false);
+  assert.equal(result.text,null);
+});

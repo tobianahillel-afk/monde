@@ -27,10 +27,13 @@ function exactFields(value, names) {
 // Unicode Bidi_Control covers invisible LRM/RLM/ALM, isolates, embeddings
 // and formatting controls. Centralize this filter for every public handoff.
 const BIDI_CONTROL=/(?:\p{Bidi_Control}|[\u206a-\u206f])/u;
+// Zero-width/default-ignorable formatting characters can conceal changes in
+// copied public GitHub review evidence even without changing text direction.
+const HIDDEN_FORMAT=/[\u00ad\u034f\u180e\u200b-\u200d\u2060\ufeff]/u;
 function oneLine(value, max = 1000) {
   return typeof value === 'string' && value.length > 0 && value.length <= max &&
     !/[\u0000-\u001f\u007f\u2028\u2029]/.test(value) &&
-    !BIDI_CONTROL.test(value);
+    !BIDI_CONTROL.test(value) && !HIDDEN_FORMAT.test(value);
 }
 function validPath(value, allowDirectory=false) {
   if (!oneLine(value, 180) || !PATH.test(value) ||
@@ -617,6 +620,10 @@ function prepareInteractiveHandoff(args) {
       JSON.stringify(metadata)
     ]:[])
   ].join('\n');
+  if(HIDDEN_FORMAT.test(note))
+    return {status:'UNSAFE_INVISIBLE_IN_RELAY',can_publish:false,
+      ready_for_manual_relay:false,requires_manual_qualification:true,
+      native_github_approved:false,text:null};
   if(BIDI_CONTROL.test(note))
     return {status:'UNSAFE_BIDI_IN_RELAY',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
@@ -710,6 +717,8 @@ function prepareUnqualifiedTriageHandoff(args) {
     'context separation and all unresolved findings.',
     'This text MUST NOT be used as an APPROVE decision or merge authorization.'
   ].join('\n');
+  if(HIDDEN_FORMAT.test(note))
+    return refused('UNSAFE_INVISIBLE_IN_RELAY');
   if(BIDI_CONTROL.test(note))
     return refused('UNSAFE_BIDI_IN_RELAY');
   if(CREDENTIAL_PATTERNS.some(re=>[args.response,note,source.message_ref]
