@@ -671,7 +671,9 @@ function prepareUnqualifiedTriageHandoff(args) {
     return refused('UNSUPPORTED_REPORT_SIZE');
   // The original report is preserved in ChatGPT, not automatically published.
   // Only a small reviewed extract leaves that conversation.
-  const snippets=(analysis.raw_blocker_snippets||[]).slice(0,12);
+  // manualRecovery retains at most thirteen: first six, first distinct R1,
+  // and last six. Do not silently discard the final distinct observation.
+  const snippets=(analysis.raw_blocker_snippets||[]).slice(0,13);
   const findings=(analysis.reported_findings||[]).slice(0,50);
   if(!snippets.length&&!findings.length)
     return refused('NO_REVIEWED_ACTIONABLE_EXCERPTS');

@@ -1679,15 +1679,14 @@ test('privacy: malformed-report relay also omits report fingerprint without opt-
     publication_clearance:{secrets_checked:true,personal_data_checked:true,
       public_repo_safe:true,finding_details_approved:true}};
   const withheld=d.prepareUnqualifiedTriageHandoff(cfg);
-  if(withheld.ready_for_manual_relay){
-    assert.doesNotMatch(withheld.text,/Original report SHA-256:/);
-    const approved=d.prepareUnqualifiedTriageHandoff({
-      ...cfg,publication_clearance:{...cfg.publication_clearance,
-        provenance_hashes_approved:true}});
-    assert.match(approved.text,/Original report SHA-256: [a-f0-9]{64}/);
-  }else{
-    assert.equal(withheld.ready_for_manual_relay,false);
-  }
+  assert.equal(withheld.ready_for_manual_relay,true);
+  assert.equal(withheld.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.doesNotMatch(withheld.text,/Original report SHA-256:/);
+  const approved=d.prepareUnqualifiedTriageHandoff({
+    ...cfg,publication_clearance:{...cfg.publication_clearance,
+      provenance_hashes_approved:true}});
+  assert.equal(approved.ready_for_manual_relay,true);
+  assert.match(approved.text,/Original report SHA-256: [a-f0-9]{64}/);
 });
 
 test('L2 current HEAD F02: middle R1 survives twelve leading and trailing R2 mentions',()=>{
@@ -1786,4 +1785,37 @@ test('L2 current F03: opt-in controls publication of original response fingerpri
   assert.equal(approved.ready_for_manual_relay,true);
   assert.match(approved.text,/Original response SHA-256:/);
   assert.match(approved.text,/Original response bytes:/);
+});
+
+test('L2 handoff F03: thirteenth distinct blocker snippet survives relay',()=>{
+  const early=Array.from({length:12},(_,i)=>
+    'R2: early peripheral observation '+i+' '+'.'.repeat(850)).join('\n');
+  const critical='R1: central authentication safety finding needing triage';
+  const late=Array.from({length:12},(_,i)=>
+    'R2: late noncritical observation '+i+' '+'.'.repeat(850)).join('\n');
+  const response=early+'\n'+critical+'\n'+late+'\n'+d.MARKER+'\n{broken';
+  const triage=d.assessReview({expected:H,response,current_head:SHA,source});
+  assert.equal(triage.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(triage.raw_blocker_snippets.length,13);
+  const out=d.prepareUnqualifiedTriageHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.equal(out.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.match(out.text,/Unqualified R1\/R2 extract 13:/);
+  assert.match(out.text,/R1: central authentication safety finding/);
+  assert.match(out.text,/late noncritical observation 11/);
+  assert.equal(out.self_contained_for_remediation,false);
+});
+test('L2 relay: bidi markers in opt-in full prose fail closed',()=>{
+  const response=message(data()).replace('complete independent',
+    'complete \u202eindependent');
+  const out=d.prepareInteractiveHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,full_report_approved:true}});
+  assert.equal(out.status,'UNSAFE_BIDI_IN_RELAY');
+  assert.equal(out.ready_for_manual_relay,false);
+  assert.equal(out.text,null);
 });
