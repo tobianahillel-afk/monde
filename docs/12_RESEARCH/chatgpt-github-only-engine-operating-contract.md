@@ -520,6 +520,58 @@ Accepted `AGENTS.md` currently requires appropriate PROJECT_STATE and registry u
 
 **Stop condition:** no unverified historical claim may be silently turned into an `ACCEPTED` requirement; but missing old chat access should not halt unrelated development where the canonical spec already fully covers the task.
 
+## 9B. Minimum MONDE specification and **reuse of review/research evidence** — four-worker mode
+
+**Do not make a complete global MONDE blueprint a prerequisite for implementing one approved vertical slice.** Existing Accepted [Definition of Ready](../13_QUALITY/definition-of-ready.md), [Specification Quality Protocol](../13_QUALITY/specification-quality.md), [Review Council](../13_QUALITY/review-council.md), [Review template](../../registry/reviews/_TEMPLATE.yaml), [Test template](../../registry/tests/_TEMPLATE.yaml) and `WORK-0004` remain the authorities. This section defines only a *routing/efficiency policy*, not a competing schema or weakened requirement.
+
+### Smallest useful specification by risk — no duplicated narrative
+
+| Change | What must already be retrievable from accepted/candidate WORK/REQ/CAP and tests | Only additional work when necessary |
+|---|---|---|
+| Reversible local implementation using accepted interfaces | goal/observable acceptance, inputs/outputs, error conditions, named interface, owner, downstream impact, reproducible test oracle | A short delta in current WORK/PR; avoid creating duplicate specification docs |
+| New product capability/engine or shared API | user-visible behavior, atomic REQ/AC, contracts/schema, examples and negative examples, ownership/dependencies, validation/review plan | Source provenance/history via WORK-0004, alternatives, ADR, failure/uncertainty/temporal/epistemic semantics *where applicable* |
+| Critical A3/A4 security, identity, scientific or world-semantic change | all relevant accepted contracts; independent trust/semantics review **before** heavy implementation; falsifiable tests, resource/rollout/rollback and cold-read plans | Risk-specific stronger checks per Accepted assurance; no shortcut from short template |
+
+A ChatGPT worker may produce **research → draft spec → test criteria → safe experiment/code → review handoff** in the same Scheduled invocation where allowed. Source research by one worker never automatically makes the REQ `Accepted`; substantial product specs remain subject to the existing approval process. Continue independent eligible code/research while other specs await review. Allocate four workers to disjoint capability families or different value-adding tasks, not four writers of the same canonical document.
+
+### Review/research "memory": existing registry, not a new database
+
+**At task entry, BEFORE repeating a comprehensive analysis**, query the current linked `WORK-*` (`review_plan.completed_reviews`, `open_findings`, `required_tests`, `validation.executed`, `read_before`) and actual GitHub PR reviews/threads; resolve exact `registry/reviews/REVIEW-*.yaml`, `registry/tests/TEST-*.yaml`, research/ADR source links and current SHA/digests. Search neighboring relevant components only where the scope overlaps. Do not read every historical review file every hour.
+
+**Review coverage statement**, carried in the **existing** REVIEW check/finding/role/scope fields and a compact existing WORK/PR handoff pointer, not a second ledger:
+
+```yaml
+review_ref: REVIEW-XXXX  # existing canonical record or actual GitHub review URL
+artifact_head: "<actual immutable reviewed SHA>"
+scope: {files_or_blobs: ["..."], contracts: ["..."], req_digests: ["..."]}
+reviewed: ["security: untrusted-PR execution", "negative: revoked token"]
+not_reviewed: ["external GPU benchmark (not available)"]
+result: "APPROVE|CHANGES_REQUIRED|BLOCKED"
+finding_refs: ["F-1", "PR-thread-url"]
+evidence_refs: ["TEST-...", "verified-CI-run-url"]
+invalidate_if: ["relevant contract digest or reviewed code changes", "new material risk"]
+next_uncovered_question: "<one bounded question or NONE>"
+```
+
+This is an **illustrative handoff view**; don't create an additional `REVIEW-coverage.yaml` schema or claim that all example fields map literally onto the fixed Accepted template. The canonical existing REVIEW fields own the review; an issue/PR summary only links to them. Public GitHub should receive no private historical chat content.
+
+**Before a new reviewer begins**, compare coverage of prior *real* reviews against today's `scope + current relevant blobs + accepted REQ normative digests + risk class + source/tool versions + new evidence`. The decision is one of:
+
+- **REUSE FACTS**: prior sources, methodology, negative cases, unaffected code findings, adversarial hypotheses and resolved findings are still relevant; cite the exact record and original revision. Do not make a new review merely to repeat those questions.
+- **TARGET DELTA**: only changed files/contracts or newly exposed threat surface require further inspection; cover impacted invariants and adjacent components, retain a clear map of unchanged coverage. Issue a new exact-revision review where the Accepted assurance/approval process actually demands it.
+- **FULL ADVERSARIAL REVIEW**: new foundational trust boundary, scientific assumption, architecture, major code movement or unknown reviewed scope means prior coverage cannot establish correctness; start full risk-appropriate new review, recording its breadth and what's still untested.
+- **BLOCKED**: no authentic independent reviewer or required source/CI; don't relabel previous `COMMENTED` discussions as APPROVED or invent a fresh-context identity.
+
+**Critical invariant:** *reuse of reviewer knowledge ≠ reuse of a stale formal approval*. Existing Accepted `review-council.md` exact-head and requirement-digest rules govern. If the reviewed HEAD changes and policy needs an exact-head independent review, obtain that new evidence even when the implementation delta is tiny. A separate ChatGPT chat supplies different-context L2 only, not a separate GitHub identity for required native approvals.
+
+### Four-worker workload and flexible review depth
+
+**Target mini-engine is FOUR operational Scheduled workers**, not a two-worker product. Tests at 1/2 workers are intermediate, and the same controller must pass 4-way no-conflict, full-conflict and mixed-conflict tests before claiming L3. All W1–W4 can obtain independent work, produce research/docs/tests and **write to up to four genuinely non-overlapping task branches** if the allocator grants them and applicable policies permit. **Do not hardcode a maximum of two coding agents**: treat `2` as a measured initial WIP recommendation, elevate to `3/4` if acceptance throughput, scope separation and review capacity actually justify it. An active task lacking a write grant can do useful read-only research/review preparation; all four should remain productive where possible.
+
+The arbiter serializes *claims* using GitHub Actions, but four Scheduled tasks currently use a shared GitHub account: `W1`–`W4` are coordination labels, **not independently authenticated actors**. GitHub repository protections still guard integration. Cooperative scope discipline, separate branches and remote readbacks prevent accidental conflicts; the proposed coordinator cannot physically prevent a fully privileged misbehaving connected actor from editing another branch. Do not claim stronger isolation until verified GitHub permissions/rulesets enforce it.
+
+**Review breadth adapts to evidence**: a severe unknown may require an entire subsystem/security/world-semantics audit; its coverage must be documented completely. Another agent begins from the saved coverage and outstanding questions rather than repeating completed inspection without an invalidation trigger. Review freshness and independent authority take precedence over reducing the number of review calls.
+
 ## 10. Freeze gates, technology change policy and decision log
 
 **Freeze semantics:**
