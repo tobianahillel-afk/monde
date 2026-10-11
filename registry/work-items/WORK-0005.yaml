@@ -36,6 +36,8 @@ scope:
     - compare one-writer, premature four-writer, and 1+3 research/reviewer critical paths and budgets
     - prioritize useful accepted MONDE output by batching coherent source/test/doc GitHub operations, freeze final candidate once and use risk-relevant rapid feedback before all mandatory trusted checks
     - require the final mini-engine to serve all four scheduled workers, including four simultaneous disjoint grants, rather than stopping the product at a two-worker pilot
+    - clarify that the engine itself is written interactively on user request, without delegation to scheduled tasks; use tasks later only for explicitly approved tests
+    - freeze RFC prototype contracts: one trusted issue-comment workflow, one JS controller, Node tests and independent read-only PR CI only when not already provided
     - link spec discovery and review/test coverage memory to already Accepted WORK/REQ/CAP/REVIEW/TEST artifacts, avoiding redundant re-audits and a parallel registry
     - measure generated-vs-merged product LOC funnel and challenge conservative throughput assumptions with real executed Scheduled-task evidence
     - define proposed open-source technology families, public GitHub Actions free-tier assumptions and version pinning policy
@@ -130,6 +132,15 @@ acceptance_criteria:
     status: NOT_STARTED
   - id: AC-25
     description: "Workers reuse existing Accepted Definition of Ready, WORK/REQ/CAP and TEST/REVIEW records for minimum-slice specifications and exhaustive-or-delta review coverage, without a second ledger or stale-review approval reuse."
+    status: NOT_STARTED
+  - id: AC-26
+    description: "The user-directed engineering mode is explicitly interactive GitHub development; four Scheduled tasks are not used to author v2 and will only be created for bounded tests after explicit authorization."
+    status: NOT_STARTED
+  - id: AC-27
+    description: "The proposed coding contract freezes workflow/module/test paths, event actor/repo/issue validation, one strict v1 command/result protocol, semantic conflicts, fail-closed recovery and TEST_ONLY; no custom CAS ledger."
+    status: NOT_STARTED
+  - id: AC-28
+    description: "Before an operational claim, candidate implementation satisfies the RFC E0-E5 sequence and AT-01..AT-16 test oracle, preserving all existing Accepted non-author review, trust and protected-main requirements."
     status: NOT_STARTED
 
 requirements: []
@@ -265,6 +276,7 @@ required_tests:
     - "cold-read an end-to-end worker execution and handover without local files"
     - "simulate 5/15/30-minute running CI or review: work while pending, recheck after real elapsed work, process terminal exact-HEAD result, or checkpoint if the actual ChatGPT session ends"
     - "simulate all four valid independent grants and full/mixed four-way collisions; role switches and scoped reviews use actual prior REVIEW/TEST evidence without stale approval reuse"
+    - "validate RFC test vectors AT-01 through AT-16, including trusted event origin, duplicate requests, resource path normalization and TEST_ONLY not granting product write authority"
     - "simulate simple bug A-D-E, research-only A-B-E, and complex A-B-C-D-E with same-chat transitions and required review gates"
     - "cold-read single-run A through E phase transitions, policy/authority boundaries and algorithm choice record"
   regression:
