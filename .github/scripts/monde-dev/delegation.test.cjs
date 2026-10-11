@@ -713,7 +713,8 @@ test('directory review cannot be provisionally complete from folder declaration 
     current_head:SHA,source});
   assert.equal(incomplete.status,'L2_SCOPE_NOT_EVIDENCED');
   const manifest={verified_at_head:true,head_sha:SHA,
-    files:['src/a.cjs','src/b.cjs']};
+    source_kind:'github_recursive_tree',enumeration_complete:true,
+    tree_sha:SHA,enumerated_count:2,files:['src/a.cjs','src/b.cjs']};
   const partial=d.assessReview({expected:assigned,current_head:SHA,source,
     coverage_manifest:manifest,response:message(data({verdict:'APPROVE',
       findings:[],reviewed_paths:['src/a.cjs']}))});
@@ -936,7 +937,8 @@ test('new L2: a directory report may cover 25 distinct files',()=>{
   const out=d.assessReview({expected:assigned,response:message(data({
     verdict:'APPROVE',findings:[],reviewed_paths:files})),
     current_head:SHA,source,coverage_manifest:{
-      head_sha:SHA,verified_at_head:true,files}});
+      head_sha:SHA,verified_at_head:true,source_kind:'github_recursive_tree',
+      enumeration_complete:true,tree_sha:SHA,enumerated_count:files.length,files}});
   assert.equal(out.status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
   assert.equal(out.ready_for_merge,false);
 });
@@ -944,7 +946,8 @@ test('new L2: incomplete directory coverage stays attention-required',()=>{
   const assigned={...H,paths:['src/']};
   const out=d.assessReview({expected:assigned,response:message(data({
     verdict:'APPROVE',findings:[],reviewed_paths:['src/a.cjs']})),
-    current_head:SHA,source,coverage_manifest:{head_sha:SHA,
+    current_head:SHA,source,coverage_manifest:{head_sha:SHA,source_kind:'github_recursive_tree',
+      enumeration_complete:true,tree_sha:SHA,enumerated_count:2,
       verified_at_head:true,files:['src/a.cjs','src/b.cjs']}});
   assert.equal(out.status,'L2_SCOPE_NOT_EVIDENCED');
   assert.equal(out.needs_attention,true);
@@ -1019,4 +1022,63 @@ test('grouping refuses malformed or excessive untrusted reports',()=>{
     id:'F01',severity:'R8',path:'a.cjs',evidence:'A',action:'B'}]),
     e=>e.code==='INVALID_TRIAGE_FINDING');
   assert.deepEqual(d.groupTriageFindings([]).groups,[]);
+});
+
+
+test('L2 R1 regression: contradictory APPROVE+R1 is unqualified yet preserves corrective evidence',()=>{
+  const contradictory=message(data({verdict:'APPROVE'}));
+  const single=d.assessReview({expected:H,response:contradictory,current_head:SHA,source});
+  assert.equal(single.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(single.reported_severity_r1,1);
+  assert.equal(single.reported_blocking_findings,true);
+  assert.equal(single.reported_findings[0].action,data().findings[0].action);
+  assert.equal(single.native_github_approved,false);
+  const batch=d.assessDelegationBatch({assignments:[H],
+    reports:{[H.assignment_id]:contradictory},
+    sources:{[H.assignment_id]:source},current_head:SHA});
+  assert.equal(batch.unqualified_r1,1);
+  assert.equal(batch.unqualified_blocking_reports,1);
+  assert.equal(batch.needs_attention,true);
+  assert.equal(batch.triage_findings.length,1);
+  assert.equal(batch.ready_for_merge,false);
+});
+test('L2 R2 regression: a purported clean report always requires foreground attention',()=>{
+  const reviewed=d.assessReview({expected:H,
+    response:message(data({verdict:'APPROVE',findings:[]})),
+    current_head:SHA,source});
+  assert.equal(reviewed.status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(reviewed.needs_attention,true);
+  assert.equal(reviewed.human_review_required,true);
+  assert.equal(reviewed.ready_for_merge,false);
+  const batch=d.assessDelegationBatch({assignments:[H],
+    reports:{[H.assignment_id]:message(data({verdict:'APPROVE',findings:[]}))},
+    sources:{[H.assignment_id]:source},current_head:SHA});
+  assert.equal(batch.needs_attention,true);
+});
+test('L2 R2 regression: a partial or unverified directory tree cannot qualify coverage',()=>{
+  const files=['src/a.cjs','src/b.cjs'];
+  const assign={...H,paths:['src/']};
+  const payload=message(data({verdict:'APPROVE',findings:[],reviewed_paths:files}));
+  const observed={verified_at_head:true,head_sha:SHA,files};
+  for(const incomplete of [
+    observed,
+    {...observed,source_kind:'github_recursive_tree',
+      enumeration_complete:true,tree_sha:SHA,enumerated_count:1},
+    {...observed,source_kind:'github_recursive_tree',
+      enumeration_complete:false,tree_sha:SHA,enumerated_count:2},
+    {...observed,source_kind:'github_recursive_tree',
+      enumeration_complete:true,tree_sha:'z'.repeat(40),enumerated_count:2}
+  ]){
+    const out=d.assessReview({expected:assign,response:payload,current_head:SHA,
+      source,coverage_manifest:incomplete});
+    assert.equal(out.status,'L2_SCOPE_NOT_EVIDENCED');
+    assert.equal(out.needs_attention,true);
+  }
+  const documented={...observed,source_kind:'github_recursive_tree',
+    enumeration_complete:true,tree_sha:SHA,enumerated_count:2};
+  const qualified=d.assessReview({expected:assign,response:payload,current_head:SHA,
+    source,coverage_manifest:documented});
+  assert.equal(qualified.status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(qualified.needs_attention,true);
+  assert.equal(qualified.native_github_approved,false);
 });

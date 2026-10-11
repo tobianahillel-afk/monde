@@ -261,6 +261,39 @@ function scopeMatches(path, paths) {
   return paths.some(scope => scope === path ||
     (scope.endsWith('/') && path.startsWith(scope)));
 }
+
+// Untrusted structured allegations from a malformed L2 footer are useful for
+// manual correction, but can NEVER qualify the review or grant any authority.
+// In particular, APPROVE + R1/R2 is contradictory, not a clean review.
+function recoverUnqualifiedClaims(response) {
+  if(typeof response!=='string'||response.length>1024*1024)return {};
+  const lines=response.replace(/\r\n/g,'\n').trimEnd().split('\n');
+  if(lines.length<3||lines[lines.length-2]!==MARKER)return {};
+  let packet;
+  try{packet=JSON.parse(lines[lines.length-1]);}catch{return {};}
+  if(!plain(packet)||!Array.isArray(packet.findings))return {};
+  const limited=packet.findings.slice(0,50).filter(f=>
+    plain(f)&&typeof f.severity==='string'&&SEVERITIES.has(f.severity)&&
+    typeof f.id==='string'&&/^F[0-9]{2,4}$/.test(f.id)&&
+    typeof f.path==='string'&&validPath(f.path)&&
+    typeof f.evidence==='string'&&oneLine(f.evidence,3000)&&
+    typeof f.action==='string'&&oneLine(f.action,3000)
+  ).map(f=>({id:f.id,severity:f.severity,path:f.path,
+    evidence:f.evidence,action:f.action}));
+  const limitations=Array.isArray(packet.limitations)?
+    packet.limitations.slice(0,30).filter(l=>oneLine(l,2000)):[];
+  return {
+    reported_finding_count:limited.length,
+    reported_findings:limited,
+    reported_limitations:limitations,
+    reported_severity_r1:limited.filter(f=>f.severity==='R1').length,
+    reported_severity_r2:limited.filter(f=>f.severity==='R2').length,
+    reported_blocking_findings:limited.some(f=>
+      f.severity==='R1'||f.severity==='R2'),
+    claims_unqualified:true
+  };
+}
+
 function assessReview({ expected, response, current_head, source, coverage_manifest }) {
   const a = assignment(expected);
   if(a.mission_kind!=='L2_REVIEW')
@@ -282,6 +315,7 @@ function assessReview({ expected, response, current_head, source, coverage_manif
         needs_attention:true,reason:error.code,
         raw_report_excerpt:excerpt,
         raw_report_excerpt_truncated:typeof response==='string'&&response.length>8192,
+        ...recoverUnqualifiedClaims(response),
         raw_report_sha256:typeof response==='string'?
           createHash('sha256').update(response,'utf8').digest('hex'):null};
     }
@@ -331,10 +365,16 @@ function assessReview({ expected, response, current_head, source, coverage_manif
   // The manifest is an external operator observation, not proof of reading.
   const manifestOK=plain(coverage_manifest)&&
     coverage_manifest.verified_at_head===true&&
+    coverage_manifest.source_kind==='github_recursive_tree'&&
+    coverage_manifest.enumeration_complete===true&&
+    typeof coverage_manifest.tree_sha==='string'&&
+    SHA.test(coverage_manifest.tree_sha)&&
+    Number.isSafeInteger(coverage_manifest.enumerated_count)&&
     coverage_manifest.head_sha===a.head_sha&&
     Array.isArray(coverage_manifest.files)&&
     coverage_manifest.files.length>0&&
     coverage_manifest.files.length<=2000&&
+    coverage_manifest.files.length===coverage_manifest.enumerated_count&&
     coverage_manifest.files.every(file=>validPath(file)&&!file.endsWith('/'))&&
     new Set(coverage_manifest.files).size===coverage_manifest.files.length;
   const missingCoverage=[];
@@ -359,8 +399,9 @@ function assessReview({ expected, response, current_head, source, coverage_manif
     requires_manual_qualification: true,
     native_github_approved: false,
     ready_for_merge:false,
-    needs_attention:metadata.verdict!=='APPROVE'||outOfScope.length>0||
-      missingCoverage.length>0||extraneousCoverage.length>0,
+    // Every L2 report still requires substantive foreground qualification.
+    needs_attention:true,
+    human_review_required:true,
     finding_count: metadata.findings.length,
     out_of_scope_findings: outOfScope,
     missing_reviewed_paths: missingCoverage,
