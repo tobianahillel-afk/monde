@@ -300,6 +300,15 @@ function prepareInteractiveHandoff(args) {
     return { status: evaluation.status, can_publish: false,
       ready_for_manual_relay: false,
       native_github_approved: false, text: null };
+  // The public-repo relay must be explicitly cleared by the interactive
+  // writer. Report metadata never certifies absence of sensitive content.
+  const clearance=args.publication_clearance;
+  if(!plain(clearance)||clearance.secrets_checked!==true||
+      clearance.personal_data_checked!==true||
+      clearance.public_repo_safe!==true)
+    return {status:'CONFIDENTIALITY_REVIEW_REQUIRED',can_publish:false,
+      ready_for_manual_relay:false,requires_manual_qualification:true,
+      native_github_approved:false,text:null};
   const { metadata, analysis } = parseReviewResponse(args.response);
   const a = assignment(args.expected);
   // This is a COPY-READY artifact for the foreground developer. No GitHub
@@ -319,10 +328,10 @@ function prepareInteractiveHandoff(args) {
     'Findings outside assignment scope: ' +
       (evaluation.out_of_scope_findings.join(', ') || 'none'),
     '',
-    '### Review text (verbatim)',
+    '### Retrieved review analysis (normalized text)',
     analysis,
     '',
-    '### Verbatim machine footer',
+    '### Canonical machine footer',
     MARKER,
     JSON.stringify(metadata)
   ].join('\n');
@@ -388,6 +397,37 @@ function assessDelegationBatch({ assignments, reports, sources, current_head }) 
       ...(target.mission_kind==='L2_REVIEW'?
         assessReview(input):assessResearchReport(input)) };
   });
+  // Independent tasks require independent retrieved conversations. One chat
+  // answering multiple assignments is not multiple independent contexts.
+  // Flag all affected missions, retaining the original finding status so
+  // critical issues are never silently discarded by deduplication.
+  const colliders=new Map();
+  for(const target of plan){
+    const key=target.assignment_id,observation=sources[key];
+    if(!Object.prototype.hasOwnProperty.call(reports,key)||
+       typeof reports[key]!=='string'||!plain(observation))continue;
+    for(const [kind,value] of [
+      ['context',observation.context_id],
+      ['message',observation.message_ref]
+    ]){
+      if(!oneLine(value,160))continue;
+      const slot=kind+':'+value;
+      const prior=colliders.get(slot)||[];
+      prior.push(key);colliders.set(slot,prior);
+    }
+  }
+  const conflicting=new Set();
+  for(const ids of colliders.values())
+    if(ids.length>1)for(const id of ids)conflicting.add(id);
+  for(const outcome of results)
+    if(conflicting.has(outcome.assignment_id)&&
+       !['REPORT_UNAVAILABLE','WRONG_ASSIGNMENT','STALE_SHA',
+         'REPORT_NEEDS_MANUAL_REVIEW','INDEPENDENCE_UNVERIFIED'].includes(outcome.status)){
+      outcome.original_status=outcome.status;
+      outcome.status='INDEPENDENCE_UNVERIFIED';
+      outcome.reason='DUPLICATE_CHAT_CONTEXT_OR_MESSAGE';
+      outcome.requires_manual_qualification=true;
+    }
   const counts = {};
   for (const result of results)
     counts[result.status] = (counts[result.status] || 0) + 1;

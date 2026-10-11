@@ -225,12 +225,12 @@ test('unexpected finding path keeps correction actionable but never expands appr
 test('interactive handoff copies the reviewer analysis without publishing',()=>{
   const reply=message(data());
   const packet=d.prepareInteractiveHandoff({expected:H,response:reply,
-    current_head:SHA,source});
+    current_head:SHA,source,publication_clearance:{secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
   assert.equal(packet.can_publish,false);
   assert.equal(packet.ready_for_manual_relay,true);
   assert.equal(packet.requires_manual_qualification,true);
   assert.equal(packet.status,'NEEDS_CORRECTION');
-  assert.match(packet.text,/Review text \(verbatim\)/);
+  assert.match(packet.text,/Retrieved review analysis \(normalized text\)/);
   assert.match(packet.text,/native approval: NONE/i);
   assert.match(packet.text,new RegExp(H.assignment_id));
   assert.match(packet.text,new RegExp(H.head_sha));
@@ -295,7 +295,7 @@ test('candidate CI checks the exact PR head and does not use merge-ref checkout'
 });
 test('interactive relay is never interpreted as automatic publication approval',()=>{
   const packet=d.prepareInteractiveHandoff({expected:H,response:message(data()),
-    current_head:SHA,source});
+    current_head:SHA,source,publication_clearance:{secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
   assert.equal(packet.can_publish,false);
   assert.equal(packet.ready_for_manual_relay,true);
   assert.match(packet.text,/Observed message reference: history-msg-l2-20261011-001/);
@@ -471,4 +471,75 @@ test('malformed finding collections stay reports needing manual review',()=>{
       current_head:SHA,source});
     assert.equal(out.status,'REPORT_NEEDS_MANUAL_REVIEW');
   }
+});
+
+test('public GitHub review relay defaults to blocked pending manual confidentiality clearance',()=>{
+  const input={expected:H,response:message(data()),current_head:SHA,source};
+  const noClearance=d.prepareInteractiveHandoff(input);
+  assert.equal(noClearance.status,'CONFIDENTIALITY_REVIEW_REQUIRED');
+  assert.equal(noClearance.ready_for_manual_relay,false);
+  assert.equal(noClearance.text,null);
+  for(const missing of ['secrets_checked','personal_data_checked','public_repo_safe']){
+    const clearance={secrets_checked:true,personal_data_checked:true,public_repo_safe:true};
+    clearance[missing]=false;
+    const blocked=d.prepareInteractiveHandoff({...input,publication_clearance:clearance});
+    assert.equal(blocked.ready_for_manual_relay,false);
+    assert.equal(blocked.text,null);
+  }
+});
+test('two L2 missions cannot claim independent provenance from the same reviewer context',()=>{
+  const a1={...H,assignment_id:'L2-PR19-DUP-01'};
+  const a2={...H,assignment_id:'L2-PR19-DUP-02'};
+  const batch=d.assessDelegationBatch({assignments:[a1,a2],current_head:SHA,
+    reports:{
+      [a1.assignment_id]:message(data({assignment_id:a1.assignment_id})),
+      [a2.assignment_id]:message(data({assignment_id:a2.assignment_id}))
+    },sources:{
+      [a1.assignment_id]:source,
+      [a2.assignment_id]:source
+    }});
+  assert.equal(batch.counts.INDEPENDENCE_UNVERIFIED,2);
+  for(const result of batch.results){
+    assert.equal(result.status,'INDEPENDENCE_UNVERIFIED');
+    assert.equal(result.original_status,'NEEDS_CORRECTION');
+    assert.equal(result.reason,'DUPLICATE_CHAT_CONTEXT_OR_MESSAGE');
+    assert.equal(result.native_github_approved,false);
+  }
+  assert.equal(batch.ready_for_merge,false);
+});
+test('different chat contexts still cannot recycle the same message reference',()=>{
+  const a1={...H,assignment_id:'L2-PR19-MSG-01'};
+  const a2={...H,assignment_id:'L2-PR19-MSG-02'};
+  const res=d.assessDelegationBatch({
+    assignments:[a1,a2],current_head:SHA,
+    reports:{
+      [a1.assignment_id]:message(data({assignment_id:a1.assignment_id})),
+      [a2.assignment_id]:message(data({assignment_id:a2.assignment_id,
+        reviewer_context_id:'chat-other-reviewer'}))
+    },
+    sources:{
+      [a1.assignment_id]:source,
+      [a2.assignment_id]:{...source,context_id:'chat-other-reviewer'}
+    }
+  });
+  assert.equal(res.counts.INDEPENDENCE_UNVERIFIED,2);
+});
+test('two actually distinct reviewer contexts and messages remain separately observed',()=>{
+  const a1={...H,assignment_id:'L2-PR19-UNIQ-01'};
+  const a2={...H,assignment_id:'L2-PR19-UNIQ-02'};
+  const res=d.assessDelegationBatch({
+    assignments:[a1,a2],current_head:SHA,
+    reports:{
+      [a1.assignment_id]:message(data({assignment_id:a1.assignment_id})),
+      [a2.assignment_id]:message(data({assignment_id:a2.assignment_id,
+        reviewer_context_id:'chat-other-reviewer'}))
+    },
+    sources:{
+      [a1.assignment_id]:source,
+      [a2.assignment_id]:{...source,context_id:'chat-other-reviewer',
+        message_ref:'history-msg-l2-another'}
+    }
+  });
+  assert.equal(res.counts.NEEDS_CORRECTION,2);
+  assert.equal(res.counts.INDEPENDENCE_UNVERIFIED||0,0);
 });

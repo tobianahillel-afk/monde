@@ -92,3 +92,9 @@ When a task result is retrieved from ChatGPT history, preserve the actual messag
 The candidate PR CI must check out the PR's **head SHA**, verify it explicitly, and run without persisted checkout credentials. Default GitHub `pull_request` merge-ref CI is useful for compatibility, but is not proof that the *candidate HEAD itself* is what the reviewer checked. A separate trusted merge-gate remains the responsibility of repository governance when promotion is authorized.
 
 `WORK-0005` in draft PR #18 describes an earlier four-writer architecture and is **not** a valid launch requirement for this interactive-only V2. Before accepting work-level normative status, that proposal must be reconciled through the governed documentation PR; this code PR does not silently rewrite a proposed WORK in another branch.
+
+## Controls added for recovered-batch provenance and public relay
+
+Two assignments cannot count as two context-separated L2 or research observations if their actual retrieved `context_id` **or** `message_ref` is reused. `assessDelegationBatch` marks every affected observed result `INDEPENDENCE_UNVERIFIED`, preserves its prior status, and never claims GitHub approval. These fields remain caller observations, not cryptographic signatures: the foreground ChatGPT must still verify their real conversation provenance.
+
+Before a manually copied L2 review is prepared for a **public** GitHub PR, `prepareInteractiveHandoff` requires an explicit foreground confidentiality review (`secrets_checked`, `personal_data_checked`, `public_repo_safe` all true). A missing check returns `CONFIDENTIALITY_REVIEW_REQUIRED` without building public-ready text. Even after clearance, the writer remains solely responsible for accuracy, privacy and whether publication is authorized. The output labels normalized analysis and canonical JSON, not byte-identical original messages.
