@@ -24,9 +24,13 @@ function exactFields(value, names) {
   if (!plain(value) || Object.keys(value).sort().join('|') !==
       names.slice().sort().join('|')) bad('INVALID_FIELDS');
 }
+// Unicode Bidi_Control covers invisible LRM/RLM/ALM, isolates, embeddings
+// and formatting controls. Centralize this filter for every public handoff.
+const BIDI_CONTROL=/\p{Bidi_Control}/u;
 function oneLine(value, max = 1000) {
   return typeof value === 'string' && value.length > 0 && value.length <= max &&
-    !/[\u0000-\u001f\u007f\u2028\u2029\u202a-\u202e\u2066-\u2069]/.test(value);
+    !/[\u0000-\u001f\u007f\u2028\u2029]/.test(value) &&
+    !BIDI_CONTROL.test(value);
 }
 function validPath(value, allowDirectory=false) {
   if (!oneLine(value, 180) || !PATH.test(value) ||
@@ -493,8 +497,8 @@ const CREDENTIAL_PATTERNS=[
   /\bglpat-[A-Za-z0-9_-]{15,}\b/,
   /\bnpm_[A-Za-z0-9]{20,}\b/,
   /\bsk_(?:live|test)_[A-Za-z0-9]{12,}\b/,
-  /\bsk-(?:proj|org|svcacct)-[A-Za-z0-9_-]{12,}\b/,
-  /\bsk-[A-Za-z0-9_-]{20,}\b/,
+  /(?:^|[^A-Za-z0-9])sk-(?:proj|org|svcacct)-[A-Za-z0-9_-]{12,}/,
+  /(?:^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{20,}/,
   /\bAIza[0-9A-Za-z_-]{30,}\b/,
   /\bASIA[0-9A-Z]{16}\b/,
   /\bAuthorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}\b/i
@@ -591,7 +595,7 @@ function prepareInteractiveHandoff(args) {
       JSON.stringify(metadata)
     ]:[])
   ].join('\n');
-  if(/[\u202a-\u202e\u2066-\u2069]/.test(note))
+  if(BIDI_CONTROL.test(note))
     return {status:'UNSAFE_BIDI_IN_RELAY',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
@@ -680,7 +684,7 @@ function prepareUnqualifiedTriageHandoff(args) {
     'context separation and all unresolved findings.',
     'This text MUST NOT be used as an APPROVE decision or merge authorization.'
   ].join('\n');
-  if(/[\u202a-\u202e\u2066-\u2069]/.test(note))
+  if(BIDI_CONTROL.test(note))
     return refused('UNSAFE_BIDI_IN_RELAY');
   if(CREDENTIAL_PATTERNS.some(re=>[args.response,note,source.message_ref]
       .some(s=>typeof s==='string'&&re.test(s))))

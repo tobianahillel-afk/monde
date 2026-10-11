@@ -1609,3 +1609,53 @@ test('L2 regression: overlong malformed text recovers tail R1 using bounded extr
     s.includes('last severe finding')));
   assert.equal(r.reported_blocking_unknown,true);
 });
+
+test('L2: reject full Unicode Bidi_Control family in structured review fields',()=>{
+  for(const cp of [0x061c,0x200e,0x200f,0x202a,0x202b,0x202c,
+    0x202d,0x202e,0x2066,0x2067,0x2068,0x2069]){
+    const control=String.fromCodePoint(cp);
+    assert.throws(()=>d.validateReport(data({
+      limitations:['Unsafe'+control+'metadata']})),
+      e=>e.code==='INVALID_REPORT', 'U+'+cp.toString(16));
+    assert.throws(()=>d.validateReport(data({findings:[{
+      ...data().findings[0],action:'Check'+control+'action'}]})),
+      e=>e.code==='INVALID_FINDING', 'U+'+cp.toString(16));
+  }
+});
+test('L2: reject less-common bidi controls in an unqualified public relay',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const cp of [0x061c,0x200e,0x200f,0x206a,0x206b,0x206c,0x206d,0x206e,0x206f]){
+    const response='R1: concealed'+String.fromCodePoint(cp)+'content\n'+
+      d.MARKER+'\n{invalid';
+    const outcome=d.prepareUnqualifiedTriageHandoff({expected:H,response,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(outcome.ready_for_manual_relay,false,
+      'U+'+cp.toString(16));
+    assert.equal(outcome.status,'UNSAFE_BIDI_IN_RELAY',
+      'U+'+cp.toString(16));
+  }
+});
+test('L2: embedded sk- credentials are rejected before normal public relay',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const prefix of ['_','prefix_','code:','(', 'x_']){
+    const token=prefix+'sk-'+'A'.repeat(40);
+    const report=message(data({findings:[{
+      ...data().findings[0],evidence:'Suspicious '+token}]}));
+    const result=d.prepareInteractiveHandoff({expected:H,response:report,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(result.status,'POTENTIAL_SECRET_IN_REPORT',prefix);
+    assert.equal(result.ready_for_manual_relay,false,prefix);
+  }
+});
+test('L2: embedded sk- credentials are rejected in unqualified public relay',()=>{
+  const response='R1: credential prefix_'+('sk-'+'z'.repeat(40))+
+    '\n'+d.MARKER+'\n{invalid';
+  const result=d.prepareUnqualifiedTriageHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}});
+  assert.equal(result.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(result.ready_for_manual_relay,false);
+});
