@@ -142,7 +142,7 @@ function assessResearchReport({expected,response,current_head,source}) {
   const result=(status,reason)=>({status,
     ...(reason?{reason}:{}),native_github_approved:false,ready_for_merge:false});
   if(response===null||response===undefined)return result('REPORT_UNAVAILABLE');
-  if(typeof response!=='string'||response.length>200000)
+  if(typeof response!=='string'||response.length>1024*1024)
     return result('REPORT_NEEDS_MANUAL_REVIEW','INVALID_RESPONSE');
   const lines=response.replace(/\r\n/g,'\n').trimEnd().split('\n');
   if(lines.length<3||lines[lines.length-2]!==RESEARCH_MARKER||
@@ -174,19 +174,20 @@ function assessResearchReport({expected,response,current_head,source}) {
     reported_severity_r2:packet.findings.filter(f=>f.severity==='R2').length};
   if(packet.assignment_id!==a.assignment_id||packet.repo!==a.repo||
     packet.pr!==a.pr||packet.head_sha!==a.head_sha||
-    packet.mission_kind!==a.mission_kind)return {...result('WRONG_ASSIGNMENT'),...alleged};
-  if(current_head!==a.head_sha)return {...result('STALE_SHA'),...alleged};
+    packet.mission_kind!==a.mission_kind)return {...result('WRONG_ASSIGNMENT'),needs_attention:true,...alleged};
+  if(current_head!==a.head_sha)return {...result('STALE_SHA'),needs_attention:true,...alleged};
   if(!plain(source)||source.retrieved_from_distinct_chat!==true||
     source.retrieval_kind!=='chat_history'||
     source.context_id!==packet.reviewer_context_id||
     source.context_id===a.author_context_id||
-    !oneLine(source.message_ref,160))return {...result('INDEPENDENCE_UNVERIFIED'),...alleged};
+    !oneLine(source.message_ref,160))return {...result('INDEPENDENCE_UNVERIFIED'),needs_attention:true,...alleged};
   const blocking=packet.findings.some(f=>f.severity==='R1'||f.severity==='R2');
   return {status:packet.verdict==='CHANGES_REQUIRED'||blocking?'NEEDS_CORRECTION':
     packet.verdict==='BLOCKED'?'BLOCKED':
     'RESEARCH_REPORT_RECEIVED_PENDING_VALIDATION',
     mission_kind:a.mission_kind,requires_manual_qualification:true,
     findings:packet.findings.length,...alleged,
+    needs_attention:packet.verdict!=='COMPLETED'||blocking,
     requires_manual_qualification:true,native_github_approved:false,
     ready_for_merge:false};
 }
@@ -209,7 +210,7 @@ function validateReport(x) {
     bad('INVALID_REPORT');
   if(hasCoverage&&(!Array.isArray(x.reviewed_paths)||
      (x.reviewed_paths.length===0&&x.verdict!=='BLOCKED')||
-     x.reviewed_paths.length>24||
+     x.reviewed_paths.length>2000||
      x.reviewed_paths.some(path=>!validPath(path,true))||
      new Set(x.reviewed_paths).size!==x.reviewed_paths.length))
     bad('INVALID_REVIEW_COVERAGE');
@@ -237,7 +238,7 @@ function validateReport(x) {
   return x;
 }
 function parseReviewResponse(text) {
-  if (typeof text !== 'string' || text.length > 200000)
+  if (typeof text !== 'string' || text.length > 1024*1024)
     bad('INVALID_RESPONSE');
   // Keep the complete human-readable analysis. The machine footer is only
   // a consistency marker; it is not cryptographic proof of authorship.
@@ -277,12 +278,7 @@ function assessReview({ expected, response, current_head, source, coverage_manif
     throw error;
   }
   const { analysis, metadata } = parsed;
-  if (metadata.assignment_id !== a.assignment_id ||
-      metadata.repo !== a.repo || metadata.pr !== a.pr ||
-      metadata.head_sha !== a.head_sha)
-    return { status: 'WRONG_ASSIGNMENT', native_github_approved: false };
-  // Preserve security diagnostics as unqualified allegations if provenance
-  // or freshness is missing; they cannot become acceptance evidence.
+  // Preserve all allegations before rejecting a wrong assignment or provenance.
   const reported = {
     reported_finding_count: metadata.findings.length,
     reported_severity_r1: metadata.findings.filter(x=>x.severity==='R1').length,
@@ -292,10 +288,15 @@ function assessReview({ expected, response, current_head, source, coverage_manif
     reported_findings:metadata.findings.map(f=>({...f})),
     reported_limitations:metadata.limitations.slice()
   };
+  if (metadata.assignment_id !== a.assignment_id ||
+      metadata.repo !== a.repo || metadata.pr !== a.pr ||
+      metadata.head_sha !== a.head_sha)
+    return {status:'WRONG_ASSIGNMENT',native_github_approved:false,
+      needs_attention:true,requires_manual_qualification:true,...reported};
   if (typeof current_head !== 'string' || !SHA.test(current_head) ||
       current_head !== a.head_sha)
     return {status:'STALE_SHA',native_github_approved:false,
-      needs_attention:reported.reported_blocking_findings,...reported};
+      needs_attention:true,...reported};
   // Source verification is an external observable fact, never inferred
   // from the report's self-asserted reviewer_context_id.
   if (!plain(source) || source.retrieved_from_distinct_chat !== true ||
@@ -305,7 +306,7 @@ function assessReview({ expected, response, current_head, source, coverage_manif
       source.retrieval_kind !== 'chat_history' ||
       !oneLine(source.message_ref, 160))
     return {status:'INDEPENDENCE_UNVERIFIED',native_github_approved:false,
-      needs_attention:reported.reported_blocking_findings,...reported};
+      needs_attention:true,...reported};
   // Out-of-scope findings may uncover genuine cross-component defects. Keep
   // them actionable, but do not silently count a narrow review as a complete
   // review of those additional components.
@@ -347,6 +348,9 @@ function assessReview({ expected, response, current_head, source, coverage_manif
           'L2_SCOPE_NOT_EVIDENCED':'L2_REPORT_RECEIVED_PENDING_VALIDATION',
     requires_manual_qualification: true,
     native_github_approved: false,
+    ready_for_merge:false,
+    needs_attention:metadata.verdict!=='APPROVE'||outOfScope.length>0||
+      missingCoverage.length>0||extraneousCoverage.length>0,
     finding_count: metadata.findings.length,
     out_of_scope_findings: outOfScope,
     missing_reviewed_paths: missingCoverage,
@@ -612,13 +616,13 @@ function assessDelegationBatch({
   const counts = {};
   for (const result of results)
     counts[result.status] = (counts[result.status] || 0) + 1;
-  const unqualifiedStatuses=new Set(['STALE_SHA','INDEPENDENCE_UNVERIFIED',
-    'WRONG_ASSIGNMENT','REPORT_NEEDS_MANUAL_REVIEW','L2_SCOPE_NOT_EVIDENCED']);
-  const unqualified=results.filter(r=>r.reported_blocking_findings===true&&
-    (unqualifiedStatuses.has(r.status)||r.independence_unverified===true));
+  // All reported R1/R2 findings remain unqualified until manual review;
+  // neither wrong mission nor provenance collision may suppress them.
+  const unqualified=results.filter(r=>r.reported_blocking_findings===true||
+    (r.severity_r1||0)>0||(r.severity_r2||0)>0);
   const unqualified_blocking_reports=unqualified.length;
-  const unqualified_r1=unqualified.reduce((n,r)=>n+(r.reported_severity_r1||0),0);
-  const unqualified_r2=unqualified.reduce((n,r)=>n+(r.reported_severity_r2||0),0);
+  const unqualified_r1=unqualified.reduce((n,r)=>n+(r.reported_severity_r1??r.severity_r1??0),0);
+  const unqualified_r2=unqualified.reduce((n,r)=>n+(r.reported_severity_r2??r.severity_r2??0),0);
   // Triage is in memory only. Reports are untrusted, never approval evidence.
   const triage_findings=results.flatMap(outcome=>{
     const details=Array.isArray(outcome.findings_for_triage)?
@@ -631,9 +635,9 @@ function assessDelegationBatch({
     triage_findings,
     unqualified_blocking_reports,unqualified_r1,unqualified_r2,
     needs_attention:results.some(r=>r.needs_attention===true||
-      r.reported_blocking_findings===true||
-      ['NEEDS_CORRECTION','BLOCKED','REPORT_UNAVAILABLE',
-        'REPORT_NEEDS_MANUAL_REVIEW','INDEPENDENCE_UNVERIFIED'].includes(r.status)),
+      r.reported_blocking_findings===true||r.severity_r1>0||r.severity_r2>0||
+      !['L2_REPORT_RECEIVED_PENDING_VALIDATION',
+        'RESEARCH_REPORT_RECEIVED_PENDING_VALIDATION'].includes(r.status)),
     repo: plan[0].repo, pr: plan[0].pr, head_sha: plan[0].head_sha,
     total: plan.length, results, counts,
     independence_conflicts: conflicting.size,

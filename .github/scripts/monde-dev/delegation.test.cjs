@@ -920,3 +920,50 @@ test('public relay rejects additional API key formats',()=>{
     assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
   }
 });
+
+test('new L2: mismatched assignment retains serious findings',()=>{
+  const out=d.assessReview({expected:H,response:message(data({
+    assignment_id:'wrong-assignment-20261011'})),
+    source,current_head:SHA});
+  assert.equal(out.status,'WRONG_ASSIGNMENT');
+  assert.equal(out.reported_severity_r1,1);
+  assert.equal(out.reported_findings[0].action,data().findings[0].action);
+  assert.equal(out.needs_attention,true);
+});
+test('new L2: a directory report may cover 25 distinct files',()=>{
+  const files=Array.from({length:25},(_,i)=>'src/file'+i+'.cjs');
+  const assigned={...H,paths:['src/']};
+  const out=d.assessReview({expected:assigned,response:message(data({
+    verdict:'APPROVE',findings:[],reviewed_paths:files})),
+    current_head:SHA,source,coverage_manifest:{
+      head_sha:SHA,verified_at_head:true,files}});
+  assert.equal(out.status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(out.ready_for_merge,false);
+});
+test('new L2: incomplete directory coverage stays attention-required',()=>{
+  const assigned={...H,paths:['src/']};
+  const out=d.assessReview({expected:assigned,response:message(data({
+    verdict:'APPROVE',findings:[],reviewed_paths:['src/a.cjs']})),
+    current_head:SHA,source,coverage_manifest:{head_sha:SHA,
+      verified_at_head:true,files:['src/a.cjs','src/b.cjs']}});
+  assert.equal(out.status,'L2_SCOPE_NOT_EVIDENCED');
+  assert.equal(out.needs_attention,true);
+});
+test('new L2: batch preserves R1 count through wrong assignment',()=>{
+  const out=d.assessDelegationBatch({assignments:[H],
+    reports:{[H.assignment_id]:message(data({assignment_id:'bad-assignment-20261011'}))},
+    sources:{[H.assignment_id]:source},current_head:SHA});
+  assert.equal(out.counts.WRONG_ASSIGNMENT,1);
+  assert.equal(out.unqualified_r1,1);
+  assert.equal(out.needs_attention,true);
+  assert.equal(out.triage_findings.length,1);
+});
+test('new L2: bad provenance still retains actionable R1 across batch',()=>{
+  const out=d.assessDelegationBatch({assignments:[H],
+    reports:{[H.assignment_id]:message(data())},
+    sources:{[H.assignment_id]:{...source,context_id:'unverified-chat-20261011'}},
+    current_head:SHA});
+  assert.equal(out.unqualified_blocking_reports,1);
+  assert.equal(out.unqualified_r1,1);
+  assert.equal(out.results[0].status,'INDEPENDENCE_UNVERIFIED');
+});
