@@ -1687,3 +1687,57 @@ test('privacy: malformed-report relay also omits report fingerprint without opt-
     assert.equal(withheld.ready_for_manual_relay,false);
   }
 });
+
+test('L2 current HEAD F02: middle R1 survives twelve leading and trailing R2 mentions',()=>{
+  const early=Array.from({length:12},(_,i)=>
+    'R2: preliminary observation '+i+' '+'.'.repeat(850)).join('\n');
+  const late=Array.from({length:12},(_,i)=>
+    'R2: final noncritical observation '+i+' '+'.'.repeat(850)).join('\n');
+  const critical='R1: critical middle finding authorization bypass requires correction';
+  const broken=early+'\n'+critical+'\n'+late+'\n'+d.MARKER+'\n{broken';
+  assert.equal(broken.indexOf(critical)>8192,true);
+  assert.equal(broken.length-broken.indexOf(critical)>8192,true);
+  const out=d.assessReview({expected:H,response:broken,current_head:SHA,source});
+  assert.equal(out.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(out.raw_blocker_snippets.length,13);
+  assert.ok(out.raw_blocker_snippets.some(x=>x.includes(critical)));
+  assert.equal(out.needs_attention,true);
+  assert.equal(out.native_github_approved,false);
+});
+test('L2 current HEAD F02: thousands of malformed R2 matches have bounded recovery',()=>{
+  const report=Array.from({length:4000},(_,i)=>'R2: observation '+i)
+    .join('\n')+'\n'+d.MARKER+'\n{broken';
+  const result=d.assessReview({expected:H,response:report,current_head:SHA,source});
+  assert.equal(result.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.ok(result.raw_blocker_snippets.length<=13);
+  assert.equal(result.raw_report_excerpt.length,8192);
+  assert.equal(result.raw_report_excerpt_truncated,true);
+  assert.equal(result.requires_manual_qualification,true);
+});
+test('L2 current HEAD F04: Stripe restricted rk_live_ credentials block public relay',()=>{
+  const token='rk_live_'+'z'.repeat(24);
+  const report=message(data({findings:[{
+    ...data().findings[0],evidence:'Accidental restricted credential '+token
+  }]}));
+  const out=d.prepareInteractiveHandoff({expected:H,response:report,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true,provenance_hashes_approved:false
+    }});
+  assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(out.ready_for_manual_relay,false);
+  assert.equal(out.text,null);
+});
+test('L2 current HEAD F04: malformed report restricted rk_live_ never enters relay',()=>{
+  const report='R1: restricted key '+('rk_live_'+'Q'.repeat(24))+
+    '\n'+d.MARKER+'\n{malformed';
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,source,
+    publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true
+    }
+  });
+  assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(out.ready_for_manual_relay,false);
+});

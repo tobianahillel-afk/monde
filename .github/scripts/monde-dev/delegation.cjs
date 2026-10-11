@@ -291,7 +291,8 @@ function manualRecovery(response) {
   if(typeof response!=='string') return {raw_report_excerpt:null,
     raw_report_tail_excerpt:null,raw_report_excerpt_truncated:false,
     raw_blocker_snippets:[],manual_source_required:true,raw_report_sha256:null};
-  const n=response.length, first=[], last=[], seen=new Set();
+  const n=response.length, first=[], last=[];
+  let firstCritical=null;
   const re=/\bR[12]\b|["']severity["']\s*:\s*["']R[12]["']/gi;
   // Keep both ends of the sequence: twelve early mentions of R2 must not
   // hide a later R1 outside the fixed head/tail excerpts.
@@ -306,13 +307,15 @@ function manualRecovery(response) {
       const offset=window.offset+match.index;
       const sample=response.slice(Math.max(0,offset-180),
         Math.min(n,offset+320));
-      if(seen.has(sample))continue;
-      seen.add(sample);
+      // Retain the first R1 anywhere in the inspected windows. A middle R1
+      // must not be evicted by many earlier/later R2s. Memory stays O(1).
+      if(!firstCritical&&/\bR1\b/i.test(match[0]))firstCritical=sample;
       if(first.length<6)first.push(sample);
       else {last.push(sample);if(last.length>6)last.shift();}
     }
   }
-  const snippets=[...first,...last];
+  // Deduplicate only the bounded selection, never all matches in the report.
+  const snippets=[...new Set([...first,...(firstCritical?[firstCritical]:[]),...last])];
   return {raw_report_excerpt:response.slice(0,8192),
     raw_report_tail_excerpt:n>8192?response.slice(-8192):null,
     raw_report_excerpt_truncated:n>8192,raw_blocker_snippets:snippets,
@@ -496,7 +499,7 @@ const CREDENTIAL_PATTERNS=[
   /\bxapp-[A-Za-z0-9-]{12,}\b/,
   /\bglpat-[A-Za-z0-9_-]{15,}\b/,
   /\bnpm_[A-Za-z0-9]{20,}\b/,
-  /\bsk_(?:live|test)_[A-Za-z0-9]{12,}\b/,
+  /(?:^|[^A-Za-z0-9])(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{12,}/,
   /(?:^|[^A-Za-z0-9])sk-(?:proj|org|svcacct)-[A-Za-z0-9_-]{12,}/,
   /(?:^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{20,}/,
   /\bAIza[0-9A-Za-z_-]{30,}\b/,

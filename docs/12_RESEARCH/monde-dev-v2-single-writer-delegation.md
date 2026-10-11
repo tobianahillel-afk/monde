@@ -133,7 +133,7 @@ The foreground writer passes an external, exact-HEAD `coverage_manifests` map in
 
 For cross-cohort history, use `prior_sources` with `assignment_id`, actual retrieved `context_id` and `message_ref`, plus `head_sha`, `mission_kind` and SHA-256 `response_sha256` of the *entire raw retrieved message*. An old three-field record is readable for historical context, but if its mission ID is reused it is **ambiguous**, not fresh review approval. A different SHA, mission type or message digest for the same ID is disqualified. Never reuse an assignment ID after a HEAD change: create a new mission instead.
 
-Manual relays to the public GitHub PR must be cleared by the foreground ChatGPT writer. Best-effort secret-pattern checks now include Slack, GitLab, npm, payment/API and bearer credentials, and the maximum generated relay is **12 KiB = 12,288 bytes**. The pattern scanner is a safety backstop, not confidentiality certification. The former four-writer RFC text in PR #18 is superseded. The revised `WORK-0005` now targets single-writer V2 but remains **PROPOSED**, not Accepted or sufficient for deployment.
+Manual relays to the public GitHub PR must be cleared by the foreground ChatGPT writer. Best-effort secret-pattern checks now include Slack, GitLab, npm, Stripe secret/restricted `sk_live_`/`rk_live_` keys, payment/API and bearer credentials, and the maximum generated relay is **12 KiB = 12,288 bytes**. The pattern scanner is a safety backstop, not confidentiality certification. The former four-writer RFC text in PR #18 is superseded. The revised `WORK-0005` now targets single-writer V2 but remains **PROPOSED**, not Accepted or sufficient for deployment.
 
 ## Triage interactif des constats récupérés
 
@@ -142,9 +142,18 @@ Le moteur conserve en mémoire les preuves et corrections des constats L2 et rec
 ## Recovery for a reviewer report without a machine footer
 
 A separate ChatGPT reviewer may return a useful technical report without the exact
-footer. `assessReview` classifies it as `REPORT_NEEDS_MANUAL_REVIEW`, retains
-at most 8,192 characters of **untrusted text for foreground-only triage**, and
-reports its SHA-256. This is **not** L2 acceptance evidence, native GitHub approval,
+footer. `assessReview` classifies it as `REPORT_NEEDS_MANUAL_REVIEW`,
+retains a **foreground-only**, bounded 8,192-character head excerpt and
+(optional) 8,192-character tail excerpt, plus at most **13** R1/R2 snippets
+(first six, last six, and the first detected R1 even if it occurs in the middle).
+The extractor keeps no unbounded set of matches. Reports above 1 MiB are
+inspected only through bounded head/tail windows, so findings in their
+uninspected middle remain **unknown**. A SHA-256 is computed internally
+only for responses of 1 MiB or less; any publication of report fingerprints,
+message-reference fingerprints or original-response byte counts requires
+explicit `provenance_hashes_approved:true` plus the normal confidentiality
+clearance. Nothing is published by default. This is **not** L2 acceptance
+evidence, native GitHub approval,
 or permission for public publication. The main interactive writer may inspect
 and apply substantiated findings directly while preserving original provenance.
 
