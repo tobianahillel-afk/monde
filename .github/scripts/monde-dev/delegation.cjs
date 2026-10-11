@@ -354,9 +354,15 @@ const CREDENTIAL_PATTERNS=[
   /-----BEGIN (?:[A-Z ]* )?PRIVATE KEY-----/,
   /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/,
   /\bgithub_pat_[A-Za-z0-9_]{20,}\b/,
-  /\bAKIA[0-9A-Z]{16}\b/
+  /\bAKIA[0-9A-Z]{16}\b/,
+  /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/,
+  /\bxapp-[A-Za-z0-9-]{12,}\b/,
+  /\bglpat-[A-Za-z0-9_-]{15,}\b/,
+  /\bnpm_[A-Za-z0-9]{20,}\b/,
+  /\bsk_(?:live|test)_[A-Za-z0-9]{12,}\b/,
+  /\bAuthorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}\b/i
 ];
-const PUBLIC_RELAY_MAX_BYTES=12000;
+const PUBLIC_RELAY_MAX_BYTES=12*1024;
 function prepareInteractiveHandoff(args) {
   const evaluation = assessReview(args);
   if (!['NEEDS_CORRECTION', 'BLOCKED', 'L2_REPORT_SCOPE_EXPANSION',
@@ -485,10 +491,16 @@ function assessDelegationBatch({
   if(!Array.isArray(prior_sources)||prior_sources.length>1000)
     bad('INVALID_PRIOR_OBSERVATIONS');
   for(const item of prior_sources){
-    exactFields(item,['assignment_id','context_id','message_ref']);
+    const bound=plain(item)&&Object.prototype.hasOwnProperty.call(item,'head_sha');
+    exactFields(item,bound?
+      ['assignment_id','context_id','message_ref','head_sha','mission_kind','response_sha256']:
+      ['assignment_id','context_id','message_ref']);
     if(typeof item.assignment_id!=='string'||!ID.test(item.assignment_id)||
        !oneLine(item.context_id,160)||!ID.test(item.context_id)||
-       !oneLine(item.message_ref,160))
+       !oneLine(item.message_ref,160)||
+       (bound&&(!SHA.test(item.head_sha)||!KINDS.has(item.mission_kind)||
+         typeof item.response_sha256!=='string'||
+         !/^[a-f0-9]{64}$/.test(item.response_sha256))))
       bad('INVALID_PRIOR_OBSERVATIONS');
   }
   const plan = planDelegations(assignments);
@@ -551,10 +563,16 @@ function assessDelegationBatch({
        typeof reports[key]!=='string'||!plain(sources[key]))continue;
     const observation=sources[key];
     for(const earlier of prior_sources)
-      if(earlier.assignment_id===key &&
-         (earlier.context_id!==observation.context_id ||
-          earlier.message_ref!==observation.message_ref))
-        conflicting.add(key);
+      if(earlier.assignment_id===key){
+        const digest=createHash('sha256').update(reports[key],'utf8').digest('hex');
+        if(!Object.prototype.hasOwnProperty.call(earlier,'head_sha')||
+           earlier.head_sha!==target.head_sha||
+           earlier.mission_kind!==target.mission_kind||
+           earlier.response_sha256!==digest||
+           earlier.context_id!==observation.context_id||
+           earlier.message_ref!==observation.message_ref)
+          conflicting.add(key);
+      }
     for(const field of ['context_id','message_ref']){
       const prefix=field==='context_id'?'context:':'message:';
       const historical=older.get(prefix+observation[field]);
