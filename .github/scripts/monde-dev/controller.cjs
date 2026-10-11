@@ -21,7 +21,7 @@ function normalizeResources(rs){
   const a=rs.map(r=>{
     if(typeof r!=='string'||r.length>160)fail('BAD_RESOURCE');
     if(!r.startsWith('path:')){
-      if(!/^(contract|registry|trust|integrate):[A-Za-z0-9][A-Za-z0-9_.-]{0,95}$/.test(r))fail('BAD_RESOURCE');
+      if(!/^(contract|registry|trust|integrate|review):[A-Za-z0-9][A-Za-z0-9_.-]{0,95}$/.test(r))fail('BAD_RESOURCE');
       return r;
     }
     let p=r.slice(5);if(!p||p.startsWith('/')||p.includes('\\')||p.includes('//')||
@@ -327,15 +327,27 @@ function eligibleRealClaim(req,work,dependencies,baseSha){
   if(req.op!=='CLAIM'||!work||work.id!==req.work||
      typeof baseSha!=='string'||!SHA.test(baseSha)||
      req.base_sha!==baseSha)return deny('STALE_OR_INVALID_WORK');
-  if(!WORK_READY.has(work.status))return deny('WORK_NOT_READY');
+  if(!WORK_READY.has(work.status)&&work.status!=='IN_REVIEW')
+    return deny('WORK_NOT_READY');
   for(const dep of work.depends_on)
     if(!dependencies||dependencies[dep]!=='DONE')
       return deny('WORK_DEPENDENCY_NOT_DONE');
   const task=work.tasks.find(t=>t.id===req.task);
-  if(!task||!TASK_READY.has(task.status))return deny('TASK_NOT_READY');
+  if(!task||(!TASK_READY.has(task.status)&&
+      !(work.status==='IN_REVIEW'&&task.status==='IN_REVIEW')))
+    return deny('TASK_NOT_READY');
   for(const dep of task.depends_on)
     if(work.tasks.find(t=>t.id===dep)?.status!=='DONE')
       return deny('TASK_DEPENDENCY_NOT_DONE');
+  // Review claim reserves review coverage only. Fresh-context L2 identity and
+  // its exact-head evidence must still be established outside this arbiter.
+  if(work.status==='IN_REVIEW'&&task.status==='IN_REVIEW'){
+    return req.resources.length===1&&
+      req.resources[0]==='review:'+work.id+'-'+task.id
+      ?{eligible:true,reason:'REVIEW_COORDINATION_ONLY'}
+      :deny('REVIEW_SCOPE_ONLY');
+  }
+  if(!WORK_READY.has(work.status))return deny('WORK_NOT_READY');
   // Claimed file write scope must be explicitly declared in canonical WORK.
   const allowed=task.expected_files.map(p=>'path:'+p);
   if(!allowed.length||!req.resources.length||
