@@ -30,6 +30,8 @@ Snapshot on 2026-10-10; re-query GitHub every time:
 
 **L0/L1 bootstrap is separate from ACTIVE_4:** `READ_ONLY` WORK-0004 historical blueprint research and independent source critique may begin with no coordinator. A legitimately approved, non-conflicting single-author scoped branch/PR trial may be possible under existing policy, but **cannot bypass WORK-0002/3 protection, required CI or distinct GitHub-actor approval**. Prefer one real Scheduled task GitHub T0 permission trial before creating four; four uncontrolled writers are NOT a safe way to develop their own arbitration. [Minimal foundations](chatgpt-github-only-development-engine-minimal-foundations.md) defines levels L0–L3; [critical-path audit](chatgpt-github-only-engine-critical-path-audit.md) §G4 compares effort.
 
+**New user directive (2026-10-11):** this project will be **developed interactively, on explicit user messages**, not bootstrapped by four Scheduled coding tasks. No new Scheduled task is authorized now. Later W1–W4 Scheduled tasks are **testing-only** until the owner distinctly authorizes ACTIVE_4 production after every applicable launch gate. [RFC §§1A–1B](chatgpt-github-only-development-engine-v2-rfc.md) freezes the interactive implementation contract and 16 test vectors. `TEST_ONLY` does not confer product repo writes or native GitHub approval, and a draft PR never deploys a default-branch event handler.
+
 ## B. Launch gates — an explicit all-green checklist
 
 | ID | Gate | Evidence required | Current result |
