@@ -373,3 +373,81 @@ test('batch rejects unexpected report keys, missing source map and invalid JSON-
     {assignments:[H],reports:{},sources:null,current_head:SHA}
   ]) assert.throws(()=>d.assessDelegationBatch(value));
 });
+
+
+const RESEARCH={...H,assignment_id:'RESEARCH-PR19-0001',
+  objective:'Compare alternatives without an autonomous writer',
+  mission_kind:'TECH_RESEARCH'};
+const researchData=(changes={})=>({
+  v:1,assignment_id:RESEARCH.assignment_id,repo:RESEARCH.repo,pr:RESEARCH.pr,
+  head_sha:SHA,mission_kind:RESEARCH.mission_kind,
+  reviewer_context_id:source.context_id,
+  verdict:'COMPLETED',findings:[],limitations:[],...changes});
+const researchMessage=packet=>[
+  'Independent technical research with concrete evidence and tradeoffs.',
+  'Specific engineering implications, caveats, and next steps are detailed.',
+  d.RESEARCH_MARKER,JSON.stringify(packet)].join('\n');
+test('four supported research kinds produce bounded read-only, non-L2 instructions',()=>{
+  for(const mission_kind of ['TECH_RESEARCH','ARCH_ANALYSIS',
+    'SECURITY_ANALYSIS','TEST_IDEATION']){
+    const prompt=d.buildReviewPrompt({...RESEARCH,mission_kind});
+    assert.match(prompt,/LECTURE SEULE/);
+    assert.match(prompt,/INTERDIT: commentaire GitHub/);
+    assert.match(prompt,/RAPPORT COMPLET/);
+    assert.match(prompt,/pas APPROVE ni revue L2/);
+    assert.match(prompt,new RegExp(d.RESEARCH_MARKER));
+    assert.doesNotMatch(prompt,/REVUE L2 TECHNIQUE/);
+  }
+});
+test('completed research is evidence, never native approval or a completed L2',()=>{
+  const result=d.assessResearchReport({expected:RESEARCH,
+    response:researchMessage(researchData()),current_head:SHA,source});
+  assert.equal(result.status,'RESEARCH_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(result.native_github_approved,false);
+  assert.equal(result.ready_for_merge,false);
+});
+test('research reports with mismatched kind or HEAD fail closed',()=>{
+  const wrong=d.assessResearchReport({expected:RESEARCH,response:
+    researchMessage(researchData({mission_kind:'ARCH_ANALYSIS'})),
+    current_head:SHA,source});
+  assert.equal(wrong.status,'WRONG_ASSIGNMENT');
+  const stale=d.assessResearchReport({expected:RESEARCH,response:
+    researchMessage(researchData()),current_head:'b'.repeat(40),source});
+  assert.equal(stale.status,'STALE_SHA');
+  const noContext=d.assessResearchReport({expected:RESEARCH,response:
+    researchMessage(researchData()),current_head:SHA,source:undefined});
+  assert.equal(noContext.status,'INDEPENDENCE_UNVERIFIED');
+});
+test('research cannot return APPROVE or hide a failed report',()=>{
+  for(const value of [
+    researchData({verdict:'APPROVE'}),
+    researchData({verdict:'CHANGES_REQUIRED'}),
+    researchData({verdict:'BLOCKED'})
+  ]){
+    assert.equal(d.assessResearchReport({expected:RESEARCH,
+      response:researchMessage(value),current_head:SHA,source}).status,
+      'REPORT_NEEDS_MANUAL_REVIEW');
+  }
+});
+test('mixed research and L2 batch keep independent classifications',()=>{
+  const x=[H,{...RESEARCH,assignment_id:'RESEARCH-PR19-0002'}];
+  const plan=d.planDelegations(x);
+  assert.deepEqual(plan.map(t=>t.mission_kind),['L2_REVIEW','TECH_RESEARCH']);
+  assert.ok(plan.every(t=>t.read_only));
+  const result=d.assessDelegationBatch({
+    assignments:x,
+    reports:{'RESEARCH-PR19-0002':researchMessage(researchData({
+      assignment_id:'RESEARCH-PR19-0002'}))},
+    sources:{'RESEARCH-PR19-0002':source},
+    current_head:SHA
+  });
+  assert.equal(result.results[0].status,'REPORT_UNAVAILABLE');
+  assert.equal(result.results[1].status,'RESEARCH_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(result.ready_for_merge,false);
+});
+test('invalid task categories cannot become development permissions',()=>{
+  assert.throws(()=>d.assignment({...RESEARCH,mission_kind:'AUTONOMOUS_WRITER'}),
+    error=>error.code==='INVALID_MISSION_KIND');
+  assert.throws(()=>d.assignment({...RESEARCH,can_write:true}),
+    error=>error.code==='INVALID_FIELDS');
+});
