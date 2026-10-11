@@ -32,10 +32,10 @@ const BIDI_CONTROL=/(?:\p{Bidi_Control}|[\u206a-\u206f])/u;
 // Covers Hangul fillers, variation selectors and future invisible characters.
 const HIDDEN_FORMAT=/\p{Default_Ignorable_Code_Point}/u;
 // Preserve line breaks, but never relay invisible terminal/line control bytes.
-const UNSAFE_CONTROL=/[\u0000-\u0009\u000b-\u001f\u007f\u2028\u2029]/u;
+const UNSAFE_CONTROL=/[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u2028\u2029]/u;
 function oneLine(value, max = 1000) {
   return typeof value === 'string' && value.length > 0 && value.length <= max &&
-    !/[\u0000-\u001f\u007f\u2028\u2029]/.test(value) &&
+    !/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(value) &&
     !BIDI_CONTROL.test(value) && !HIDDEN_FORMAT.test(value);
 }
 function validPath(value, allowDirectory=false) {

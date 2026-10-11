@@ -2240,3 +2240,23 @@ test('L2 full relay safely fences a single long untrusted backtick run',()=>{
   assert.match(result.text,new RegExp(String.fromCharCode(96).repeat(252)));
   assert.equal(result.native_github_approved,false);
 });
+
+test('C1 control U+0085 cannot be hidden in a structured L2 finding',()=>{
+  const contaminated=data({findings:[{
+    ...data().findings[0],
+    evidence:'Replay issue with invisible \u0085 control in the evidence'
+  }]});
+  assert.throws(()=>d.validateReport(contaminated),
+    err=>err.code==='INVALID_FINDING');
+});
+test('C1 control U+009B in full L2 prose is never publicly relayed',()=>{
+  const report=message(data()).replace('It explains the concrete',
+    'It explains\u009b the concrete');
+  const out=d.prepareInteractiveHandoff({
+    expected:H,response:report,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,full_report_approved:true}});
+  assert.equal(out.status,'UNSAFE_CONTROL_IN_RELAY');
+  assert.equal(out.ready_for_manual_relay,false);
+  assert.equal(out.text,null);
+});
