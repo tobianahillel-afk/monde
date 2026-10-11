@@ -1,6 +1,6 @@
 > **REVISED PROPOSED DECISION — 2026-10-11 (single-writer v2):** One user-triggered ChatGPT conversation is the sole GitHub writer. Optional 1–4 one-shot ChatGPT scheduled tasks are strictly READ-ONLY researchers/reviewers and return complete L2 reports in their own chat; the foreground writer conditionally retrieves and verifies provenance/SHA before corrections. The four Scheduled writers, central issue-comment dispatcher, and ACTIVE_4 coordinator discussed below are SUPERSEDED historical alternatives, not prerequisites or active instructions. See the proposed revised `WORK-0005` and code candidate [PR #19](https://github.com/tobianahillel-afk/monde/pull/19). No Accepted MONDE governance or GitHub reviewer authority is modified by this proposed revision.
 
-# ADR-0001 — ChatGPT Scheduled tasks + GitHub-only Development Engine
+# ADR-0001 — Interactive ChatGPT writer + read-only Scheduled review assistants
 
 Status: Proposed
 Date: 2026-10-10
@@ -16,13 +16,21 @@ Worker autonomy, roles, technology baseline and implementation contract: ../12_R
 
 ## Context
 
-MONDE is an evidence-grounded temporal World Model. Development currently stalls on long candidate PRs, complex trust/independent-review chains and asynchronous GitHub checks. The owner requires exactly four task-capable ChatGPT conversations on the same hourly schedule, connected only to GitHub; no local computer, persistent hosted runtime, separate Codex service or paid external model provider may be required.
+MONDE is an evidence-grounded temporal World Model. Development currently stalls on long candidate PRs, complex trust/independent-review chains and asynchronous GitHub checks. The owner now requires exactly **one interactive ChatGPT development writer**, triggered by user requests, and **zero to four optional one-shot Scheduled ChatGPT read-only research or L2 review assistants**. No local computer, persistent hosted runtime, separate Codex service or paid external model provider may be required.
 
 MONDE already has a Constitution, canonical hierarchy, work/review/requirement status machines and GitHub Actions. Duplicating that control plane or making an uninstalled external engine mandatory would increase effort without delivering product.
 
 GitHub can execute CI on its own hosted runners. The ChatGPT plugin provides GitHub operations but not a permanent daemon. Four chats can use the same linked GitHub identity; their worker labels alone cannot provide enforced separation of GitHub approvers. GitHub disallows author approval of a PR. A separate ChatGPT fresh-context technical L2 cannot be equated with the host's distinct non-author approval.
 
-## Proposed decision (NOT EFFECTIVE UNTIL ACCEPTED)
+## Current proposed decision (NOT EFFECTIVE UNTIL ACCEPTED)
+
+1. The user's interactive ChatGPT conversation is the **sole authorized GitHub writer** for MONDE development and review relay.
+2. Optional 1–4 one-shot ChatGPT Scheduled tasks are **read-only** researchers, architecture/security reviewers, or test ideation assistants. They do not write comments, files, branches, PRs, settings or merges on GitHub.
+3. L2 reviewers operate in truly separate ChatGPT contexts and return full reports in their own responses. The foreground writer retrieves them when available, verifies assignment ID, PR and exact SHA, and treats unavailable or stale reports as such.
+4. The single writer makes coherent changes, uses focused intermediate tests and applies the existing mandatory exact-head checks/reviews at promotion. No independent native GitHub approver is invented from a ChatGPT context.
+5. The optional helper in candidate PR #19 is a pure parser/validator of read-only delegation reports. It is not a scheduler, GitHub arbiter, grant database or merge authority. Existing Accepted MONDE governance remains binding.
+
+## Superseded historical four-writer proposal — nonoperative research (NOT CURRENT V2)
 
 1. Use ChatGPT hourly tasks for agent reasoning/actions and GitHub for durable state, PR, code, tests, documentation, issues, events, review artifacts and branch integration.
 2. Keep four **interchangeable**, role-fluid workers. Time triggers are the same nominal hourly timestamp, but safe coordination must not depend on real simultaneity.

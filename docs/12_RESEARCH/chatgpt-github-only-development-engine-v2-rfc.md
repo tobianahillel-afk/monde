@@ -17,7 +17,17 @@ Base reviewed for discovery: main b4b52c77fbf05eda65e8f0e951959da70e7edbe7
 **Launch readiness: NOT_READY (design only).** Read [15 activation gates and startup mode policy](chatgpt-github-only-engine-launch-readiness.md) and [automatic/manual reconciliation contract](chatgpt-github-only-engine-reconciliation-runbook.md) **before** suggesting, creating or activating four write-capable scheduled tasks. Every listed engine is proposed; as of this draft, there is no implemented control-ref scheduler, automatic reconciliation, trusted integration switch or actual worker coordination. "Frozen" means an accepted exact-SHA contract only; this RFC and ADR are **not frozen/Accepted**.
 
 
-## 0. Hard platform and assurance constraints
+## Current interactive-only V2 contract (Proposed)
+
+- **One** user-triggered ChatGPT foreground developer is the only writer to GitHub.
+- **Up to four** temporary ChatGPT tasks may independently research/review in strictly read-only mode. They publish full reports in their own ChatGPT conversations, never in the repository.
+- The foreground developer alone retrieves available reports, qualifies provenance/exact SHA, applies corrections and executes mandatory promotion checks. No automatic merge or fabricated native GitHub approval.
+- [PR #19](https://github.com/tobianahillel-afk/monde/pull/19) is the current code candidate, consisting of a pure delegation/report helper, its tests, read-only PR CI and operating notes. [WORK-0005](../../registry/work-items/WORK-0005.yaml) is still `PROPOSED`, not accepted.
+- **All four-writer scheduler/allocator/dispatcher sections below are archived research, not implementation requirements**, and cannot be used to justify creating Scheduled GitHub writers or privileged workflow mutations.
+
+## Historical four-writer proposal (superseded; not current V2)
+
+## 0. Historical platform and assurance constraints
 
 **BOOTSTRAP DECISION (2026-10-11):** development of the v2 engine itself is performed **interactively**, on explicit user messages in this GitHub-connected ChatGPT conversation; it is NOT delegated to four Scheduled tasks. Those four Scheduled ChatGPT tasks will be created/used **only in controlled tests after the code and applicable authorizations are ready**, then operated as workers only after a distinct user launch decision. Future routine MONDE product development targets four independent Scheduled task conversations, the **GitHub connector**, the GitHub repository and **GitHub-hosted Actions**. No user-controlled PC, shell, persistent host, external coordinator, independent paid Codex reviewer, Temporal, Beads/Dolt service, OpenHands server or Gas Town service may be required. GitHub-hosted runner compute may execute tests, validators and simulations, **not an autonomous ChatGPT L2 session**. GitHub Actions workflows cannot secretly call paid models or Codex; AI reasoning occurs in the four ChatGPT conversations.
 

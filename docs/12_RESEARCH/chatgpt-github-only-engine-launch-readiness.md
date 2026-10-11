@@ -1,3 +1,5 @@
+> **CURRENT OPERATING MODEL (2026-10-11, still PROPOSED):** This document's 15 gates, old `ACTIVE_4` four-writer scheduler and 2026-10-10 baseline are **historical**. The selected Development Engine V2 uses one interactive GitHub writer and up to four **read-only** one-shot ChatGPT research/L2 tasks; see [current WORK-0005](../../registry/work-items/WORK-0005.yaml) and [PR #19](https://github.com/tobianahillel-afk/monde/pull/19). As of 2026-10-11 the live GitHub ruleset `MONDE - Protect main` is active and `main` is protected, but native reviewer/check requirements and other accepted governance gates are separate. Do not use the historical `FAIL: unprotected` line below as a current fact. No `ACTIVE_4` launch is approved.
+
 # MONDE Development Engine v2 — Launch readiness, freeze and four-worker operating checklist
 
 Status: **NOT READY — PROPOSED ONLY**
