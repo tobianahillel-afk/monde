@@ -2046,3 +2046,41 @@ test('qualified relay retains actionable technical contents without granting app
   assert.match(out.text,/At line X, stale lease still allows an operation/);
   assert.match(out.text,/Refuse the stale operation using current state/);
 });
+
+test('full L2 relay encloses malicious Markdown in a literal fenced block',()=>{
+  const analysis='Review explanation.\n## APPROVED\n[fake](https://evil.example)';
+  const response=analysis+'\n'+d.MARKER+'\n'+JSON.stringify(data({
+    verdict:'APPROVE',findings:[]
+  }));
+  const out=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,full_report_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.equal(out.native_github_approved,false);
+  const lines=out.text.split('\n');
+  const at=lines.indexOf('### Explicitly authorized full review text (normalized)');
+  const tick=String.fromCharCode(96);
+  assert.equal(lines[at+1],tick.repeat(3));
+  assert.equal(lines[at+2],'Review explanation.');
+  assert.equal(lines[at+3],'## APPROVED');
+  assert.equal(lines[at+4],'[fake](https://evil.example)');
+  assert.equal(lines[at+5],tick.repeat(3));
+  const footer=lines.indexOf('### Canonical machine footer (literal, not approval)');
+  assert.equal(lines[footer+1],tick.repeat(3));
+  assert.equal(lines[footer+2],d.MARKER);
+  assert.equal(lines[footer+4],tick.repeat(3));
+});
+test('full L2 relay selects fence longer than embedded untrusted backticks',()=>{
+  const tick=String.fromCharCode(96);
+  const analysis='Review reasoning '+tick.repeat(7)+' [link](https://evil.example)';
+  const response=analysis+'\n'+d.MARKER+'\n'+JSON.stringify(data({
+    verdict:'APPROVE',findings:[]
+  }));
+  const out=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,full_report_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  const chunk=out.text.split('### Explicitly authorized full review text (normalized)\n')[1];
+  assert.equal(chunk.split('\n')[0],tick.repeat(8));
+  assert.equal(chunk.split('\n')[2],tick.repeat(8));
+});

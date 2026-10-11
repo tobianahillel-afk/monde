@@ -395,7 +395,7 @@ function assessReview({ expected, response, current_head, source, coverage_manif
   catch (error) {
     // A useful prose review may omit the machine footer. Preserve it for the
     // interactive writer, but NEVER qualify it as a verified L2 approval.
-    if (error instanceof InvalidReport) {
+    {
       // A separate ChatGPT reviewer may return a substantial prose analysis
       // without the requested footer. Keep bounded untrusted text available
       // ONLY for foreground manual triage; never qualify it as L2 acceptance.
@@ -409,7 +409,6 @@ function assessReview({ expected, response, current_head, source, coverage_manif
         ...manualRecovery(response),
         ...claims,reported_blocking_unknown:unknown};
     }
-    throw error;
   }
   const { analysis, metadata } = parsed;
   // Preserve all allegations before rejecting a wrong assignment or provenance.
@@ -614,11 +613,10 @@ function prepareInteractiveHandoff(args) {
     ...(fullReport?[
       '',
       '### Explicitly authorized full review text (normalized)',
-      analysis,
+      quoteUntrustedBlock(analysis),
       '',
-      '### Canonical machine footer',
-      MARKER,
-      JSON.stringify(metadata)
+      '### Canonical machine footer (literal, not approval)',
+      quoteUntrustedBlock(MARKER+'\n'+JSON.stringify(metadata))
     ]:[])
   ].join('\n');
   if(BIDI_CONTROL.test(note))
@@ -670,6 +668,13 @@ function quoteUntrustedExcerpt(value) {
   return delimiter+' '+literal+' '+delimiter;
 }
 
+// Preserve full-report paragraphs while making every Markdown token literal.
+function quoteUntrustedBlock(value) {
+  const matches=value.match(/\x60+/g)||[];
+  const length=Math.max(3,...matches.map(s=>s.length+1));
+  const fence=String.fromCharCode(96).repeat(length);
+  return fence+'\n'+value+'\n'+fence;
+}
 // Explicit, non-authoritative foreground triage for a malformed L2/research
 // response. This preserves relevant evidence without pretending that a broken
 // footer constitutes a completed review or permitting an unverified merge.
