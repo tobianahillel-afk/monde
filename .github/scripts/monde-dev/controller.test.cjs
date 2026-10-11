@@ -523,3 +523,96 @@ test('E5 hardening: RELEASE cannot mutate a grant outside TEST_ONLY mode',()=>{
   a.equal(outcome.outcome,'BLOCKED');
   a.equal(outcome.reason,'TEST_ONLY_REQUIRED');
 });
+
+const REAL_READY_WORK=[
+  'id: WORK-0099','title: "Ready test work"','status: READY',
+  'depends_on: [WORK-0001]','implementation_plan:',
+  '  tasks:',
+  '    - {id: T1, description: "Prepare", depends_on: [], expected_files: [src/geo/a.js], status: DONE}',
+  '    - {id: T2, description: "Implement", depends_on: [T1], expected_files: [src/geo/b.js, src/geo/c.js], status: READY}',
+  '  planned_runs: []','review_plan:','  completed_reviews: []'
+].join('\n');
+test('real-work gate: parse conservative canonical task fields',()=>{
+  const w=c.parseWorkGate(REAL_READY_WORK,'WORK-0099');
+  a.equal(w.status,'READY');
+  a.deepEqual(w.depends_on,['WORK-0001']);
+  a.equal(w.tasks.length,2);
+  a.deepEqual(w.tasks[1].expected_files,['src/geo/b.js','src/geo/c.js']);
+});
+test('real-work gate: proposed, incomplete or out-of-scope work is denied',()=>{
+  const w=c.parseWorkGate(REAL_READY_WORK,'WORK-0099');
+  const r={...q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']})};
+  a.equal(c.eligibleRealClaim(r,w,{'WORK-0001':'DONE'},SHA).eligible,true);
+  a.equal(c.eligibleRealClaim(r,{...w,status:'PROPOSED'},
+    {'WORK-0001':'DONE'},SHA).reason,'WORK_NOT_READY');
+  a.equal(c.eligibleRealClaim(r,w,{'WORK-0001':'IN_REVIEW'},SHA).reason,
+    'WORK_DEPENDENCY_NOT_DONE');
+  a.equal(c.eligibleRealClaim({...r,resources:['path:src/geo/']},
+    w,{'WORK-0001':'DONE'},SHA).reason,'UNDECLARED_WRITE_SCOPE');
+  a.equal(c.eligibleRealClaim({...r,base_sha:'b'.repeat(40)},
+    w,{'WORK-0001':'DONE'},SHA).reason,'STALE_OR_INVALID_WORK');
+});
+test('real-work gate: task status and dependency must be validated',()=>{
+  const w=c.parseWorkGate(REAL_READY_WORK,'WORK-0099');
+  const r=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const deps={'WORK-0001':'DONE'};
+  a.equal(c.eligibleRealClaim(r,w,deps,SHA).eligible,true);
+  const w1={...w,tasks:w.tasks.map(t=>t.id==='T1'?{...t,status:'IN_REVIEW'}:t)};
+  a.equal(c.eligibleRealClaim(r,w1,deps,SHA).reason,'TASK_DEPENDENCY_NOT_DONE');
+  const w2={...w,tasks:w.tasks.map(t=>t.id==='T2'?{...t,status:'PLANNED'}:t)};
+  a.equal(c.eligibleRealClaim(r,w2,deps,SHA).reason,'TASK_NOT_READY');
+});
+test('real-work gate: ambiguous YAML, unsupported tasks and mismatched IDs fail closed',()=>{
+  for(const src of [
+    REAL_READY_WORK.replace('id: WORK-0099','id: WORK-0009'),
+    REAL_READY_WORK+'\nstatus: READY',
+    REAL_READY_WORK.replace('depends_on: [WORK-0001]','depends_on:\n  - WORK-0001'),
+    REAL_READY_WORK.replace('status: READY','status: BLOCKED'),
+    REAL_READY_WORK.replace('    - {id: T2,','    - {id: T1,'),
+    REAL_READY_WORK.replace('src/geo/b.js','src/../evil.js')
+  ]){
+    if(src.includes('status: BLOCKED'))a.equal(c.parseWorkGate(src,'WORK-0099').status,'BLOCKED');
+    else a.throws(()=>c.parseWorkGate(src,'WORK-0099'));
+  }
+});
+test('real-work gate: four independent actual-file claims vs shared file',()=>{
+  const work={id:'WORK-0099',status:'READY',depends_on:[],
+    tasks:[1,2,3,4].map(i=>({id:'T'+i,status:'READY',depends_on:[],
+      expected_files:['src/p'+i+'.js']}))};
+  const state={requests:new Map(),decisions:new Map(),grants:new Map(),epoch:0};
+  for(let i=1;i<=4;i++){
+    const request=q(i,{work:work.id,resources:['path:src/p'+i+'.js']});
+    const got=c.chooseActive(state,request,{work,dependencies:{},baseSha:SHA});
+    a.equal(got.outcome,'GRANTED');
+    const fake={...got,worker:'W'+i,task:'T'+i};
+    state.grants.set(fake.grant_id,fake);state.epoch=got.epoch;
+  }
+  a.equal(state.grants.size,4);
+  const collision=q(1,{request_id:'req-retry-nine',work:work.id,
+    resources:['path:src/p1.js']});
+  a.equal(c.chooseActive(state,collision,{work,dependencies:{},baseSha:SHA}).outcome,'DENIED');
+});
+test('real-work gate: immutable trusted-base REST blob and dependency lookup',async()=>{
+  let lookups=[];
+  const build=work=>work==='WORK-0099'?REAL_READY_WORK:[
+    'id: WORK-0001','status: DONE','depends_on: []',
+    'implementation_plan:','  tasks: []'
+  ].join('\n');
+  const api={
+    rest:{repos:{getContent:async({owner,repo,path,ref})=>{
+      a.equal(owner,'tobianahillel-afk');a.equal(repo,'monde');a.equal(ref,SHA);
+      lookups.push(path);
+      return {data:{type:'file',encoding:'base64',
+        content:Buffer.from(build(path.match(/WORK-\d+/)[0])).toString('base64')}};
+    }}}
+  };
+  const req=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const source=await c.trustedWorkContext(api,'tobianahillel-afk','monde',req,SHA);
+  a.equal(c.chooseActive(empty(),req,source).outcome,'GRANTED');
+  a.equal(lookups.length,2);
+});
+test('real-work gate: fails closed if GitHub returns a directory or nonbase64 content',async()=>{
+  const api={rest:{repos:{getContent:async()=>({data:{type:'dir'}})}}};
+  await a.rejects(c.getWorkGate(api,'tobianahillel-afk','monde','WORK-0099',SHA),
+    e=>e.code==='UNTRUSTED_WORK_BLOB');
+});
