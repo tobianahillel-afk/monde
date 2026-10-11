@@ -830,3 +830,41 @@ test('batch reports unqualified R1/R2 and required human attention',()=>{
   assert.equal(out.needs_attention,true);
   assert.equal(out.results[0].needs_attention,true);
 });
+
+test('prior report observations bind mission ID to SHA, mission kind and raw digest',()=>{
+  const crypto=require('node:crypto'),reply=message(data({verdict:'APPROVE',findings:[]}));
+  const bound={assignment_id:H.assignment_id,context_id:source.context_id,
+    message_ref:source.message_ref,head_sha:SHA,mission_kind:'L2_REVIEW',
+    response_sha256:crypto.createHash('sha256').update(reply,'utf8').digest('hex')};
+  const base={assignments:[H],current_head:SHA,
+    reports:{[H.assignment_id]:reply},sources:{[H.assignment_id]:source}};
+  assert.equal(d.assessDelegationBatch({...base,prior_sources:[bound]}).independence_conflicts,0);
+  for(const edit of [{head_sha:'b'.repeat(40)},{mission_kind:'TECH_RESEARCH'},
+     {response_sha256:'c'.repeat(64)}]){
+    const x=d.assessDelegationBatch({...base,prior_sources:[{...bound,...edit}]});
+    assert.equal(x.independence_conflicts,1);
+    assert.equal(x.results[0].status,'INDEPENDENCE_UNVERIFIED');
+    assert.equal(x.ready_for_merge,false);
+  }
+  const legacy=d.assessDelegationBatch({...base,prior_sources:[{
+    assignment_id:H.assignment_id,context_id:source.context_id,
+    message_ref:source.message_ref}]});
+  assert.equal(legacy.independence_conflicts,1);
+});
+test('public relay scanner covers Slack, npm, GitLab and bearer credentials',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,public_repo_safe:true};
+  for(const token of ['xoxb-123456789012-ABCDEFGHIJK',
+    'xapp-123456789012-AABBCCDD',
+    'glpat-abcdefghijklmnopq','npm_123456789012345678901234',
+    'sk_live_12345678901234567890',
+    'Authorization: Bearer abcdefghijklmnopqrstuv']){
+    const reply=message(data({limitations:['Exposure '+token]}));
+    const x=d.prepareInteractiveHandoff({expected:H,response:reply,current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(x.status,'POTENTIAL_SECRET_IN_REPORT',token);
+  }
+});
+test('public relay budget is 12 KiB not 12000 decimal bytes',()=>{
+  const text=require('node:fs').readFileSync(__dirname+'/delegation.cjs','utf8');
+  assert.match(text,/PUBLIC_RELAY_MAX_BYTES=12\*1024/);
+});
