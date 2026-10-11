@@ -1535,3 +1535,26 @@ test('unqualified relay rejects deceptive bidi controls in raw R1 snippets',()=>
   assert.equal(output.ready_for_manual_relay,false);
   assert.equal(output.text,null);
 });
+
+test('generic sk-prefixed tokens are rejected before normal GitHub relay',()=>{
+  const report=message(data({findings:[{...data().findings[0],
+    evidence:'Suspicious token '+'sk-'+'Q'.repeat(40)}]}));
+  const out=d.prepareInteractiveHandoff({expected:H,response:report,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(out.ready_for_manual_relay,false);
+  assert.equal(out.text,null);
+});
+test('generic sk-prefixed tokens are rejected in malformed GitHub relay',()=>{
+  const report='R1: exposed token '+'sk-'+'A'.repeat(40)+'\n'+
+    d.MARKER+'\n{broken';
+  const out=d.prepareUnqualifiedTriageHandoff({expected:H,response:report,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(out.ready_for_manual_relay,false);
+  assert.equal(out.text,null);
+});

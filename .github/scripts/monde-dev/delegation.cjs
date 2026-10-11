@@ -480,6 +480,7 @@ const CREDENTIAL_PATTERNS=[
   /\bnpm_[A-Za-z0-9]{20,}\b/,
   /\bsk_(?:live|test)_[A-Za-z0-9]{12,}\b/,
   /\bsk-(?:proj|org|svcacct)-[A-Za-z0-9_-]{12,}\b/,
+  /\bsk-[A-Za-z0-9_-]{20,}\b/,
   /\bAIza[0-9A-Za-z_-]{30,}\b/,
   /\bASIA[0-9A-Z]{16}\b/,
   /\bAuthorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}\b/i
