@@ -3,6 +3,9 @@
 // Interactive-only V2: pure, read-only delegation/report helpers.
 // Deliberately no GitHub client, scheduler, filesystem or network dependency.
 const MARKER = 'MONDE_V2_L2_RESULT_V1';
+const RESEARCH_MARKER = 'MONDE_V2_RESEARCH_RESULT_V1';
+const KINDS = new Set(['L2_REVIEW','TECH_RESEARCH','ARCH_ANALYSIS',
+  'SECURITY_ANALYSIS','TEST_IDEATION']);
 const SHA = /^[a-f0-9]{40}$/;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,95}$/;
 const REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
@@ -33,8 +36,11 @@ function validPath(value, allowDirectory=false) {
     .every(part => part && part !== '.' && part !== '..');
 }
 function assignment(input) {
-  exactFields(input, ['assignment_id', 'repo', 'pr', 'head_sha',
-    'objective', 'paths', 'author_context_id']);
+  const names=['assignment_id','repo','pr','head_sha','objective','paths','author_context_id'];
+  const typed=plain(input)&&Object.prototype.hasOwnProperty.call(input,'mission_kind');
+  exactFields(input,typed?names.concat('mission_kind'):names);
+  const kind=typed?input.mission_kind:'L2_REVIEW';
+  if(!KINDS.has(kind))bad('INVALID_MISSION_KIND');
   if (!oneLine(input.assignment_id, 96) || !ID.test(input.assignment_id) ||
       typeof input.repo !== 'string' || !REPO.test(input.repo) ||
       !Number.isSafeInteger(input.pr) || input.pr < 1 ||
@@ -47,12 +53,13 @@ function assignment(input) {
       input.paths.some(path => !validPath(path, true)) ||
       new Set(input.paths).size !== input.paths.length) bad('INVALID_ASSIGNMENT');
   return {
-    ...input,
+    ...input, mission_kind: kind,
     paths: input.paths.slice().sort()
   };
 }
 function buildReviewPrompt(input) {
   const a = assignment(input);
+  if(a.mission_kind!=='L2_REVIEW')return buildResearchPrompt(a);
   // The separate conversation must report back in ChatGPT, NOT write to GitHub.
   const example = {
     v: 1, assignment_id: a.assignment_id, repo: a.repo, pr: a.pr,
@@ -92,6 +99,83 @@ function buildReviewPrompt(input) {
     'Aucun controle ne publie automatiquement ton resultat dans GitHub.'
   ].join('\n');
 }
+
+// Read-only research is NOT an L2 review or GitHub approval.
+function buildResearchPrompt(input) {
+  const a=assignment(input);
+  if(a.mission_kind==='L2_REVIEW')bad('NOT_RESEARCH_MISSION');
+  const example={v:1,assignment_id:a.assignment_id,repo:a.repo,pr:a.pr,
+    head_sha:a.head_sha,mission_kind:a.mission_kind,
+    reviewer_context_id:'new-distinct-chat-id',verdict:'BLOCKED',
+    findings:[],limitations:['Exemple seulement: remplacer par le resultat reel']};
+  return [
+    'MONDE V2 — RECHERCHE TECHNIQUE EN LECTURE SEULE',
+    'Mission: '+a.assignment_id+' / '+a.mission_kind,
+    'Depot: '+a.repo+' PR #'+a.pr+' HEAD: '+a.head_sha,
+    'Contexte auteur: '+a.author_context_id,
+    'Objectif: '+a.objective,
+    'Chemins: '+a.paths.join(', '),
+    'Analyse en detail, compare les options et cite des preuves verifiables.',
+    'INTERDIT: commentaire GitHub, commit, fichier, PR, review native,',
+    'fusion, parametre GitHub, nouvelle tache ou developpement autonome.',
+    'Livre le RAPPORT COMPLET dans TA PROPRE REPONSE ChatGPT.',
+    'COMPLETED signifie recherche livree, pas APPROVE ni revue L2.',
+    'Pour CHANGES_REQUIRED, precise findings: id, severity R1/R2/R3,',
+    'path, evidence, action. En cas de BLOCKED, precise les limitations.',
+    'Avant-derniere ligne: '+RESEARCH_MARKER,
+    'Derniere ligne: JSON COMPACT valide avec exactement ce schema:',
+    JSON.stringify(example),
+    'Remplace le verdict et les exemples. Aucun texte apres le JSON.'
+  ].join('\n');
+}
+function assessResearchReport({expected,response,current_head,source}) {
+  const a=assignment(expected);
+  if(a.mission_kind==='L2_REVIEW')bad('NOT_RESEARCH');
+  const result=(status,reason)=>({status,
+    ...(reason?{reason}:{}),native_github_approved:false,ready_for_merge:false});
+  if(response===null||response===undefined)return result('REPORT_UNAVAILABLE');
+  if(typeof response!=='string'||response.length>200000)
+    return result('REPORT_NEEDS_MANUAL_REVIEW','INVALID_RESPONSE');
+  const lines=response.replace(/\r\n/g,'\n').trimEnd().split('\n');
+  if(lines.length<3||lines[lines.length-2]!==RESEARCH_MARKER||
+    lines.slice(0,-2).join('\n').trim().length<40||
+    lines.slice(0,-2).some(line=>line===RESEARCH_MARKER||line===MARKER))
+    return result('REPORT_NEEDS_MANUAL_REVIEW','INVALID_FOOTER');
+  let packet;
+  try{packet=JSON.parse(lines[lines.length-1]);}
+  catch{return result('REPORT_NEEDS_MANUAL_REVIEW','INVALID_JSON');}
+  try{
+    exactFields(packet,['v','assignment_id','repo','pr','head_sha',
+      'mission_kind','reviewer_context_id','verdict','findings','limitations']);
+    if(JSON.stringify(packet)!==lines[lines.length-1]||packet.v!==1||
+      !KINDS.has(packet.mission_kind)||packet.mission_kind==='L2_REVIEW'||
+      !['COMPLETED','CHANGES_REQUIRED','BLOCKED'].includes(packet.verdict))
+      bad('INVALID_RESEARCH_PACKET');
+    const mapped={...packet};
+    delete mapped.mission_kind;
+    mapped.verdict=packet.verdict==='COMPLETED'?
+      (packet.findings?.some(f=>f.severity==='R1'||f.severity==='R2')?
+        'CHANGES_REQUIRED':'APPROVE'):packet.verdict;
+    validateReport(mapped);
+  }catch(e){if(e instanceof InvalidReport)
+    return result('REPORT_NEEDS_MANUAL_REVIEW',e.code);throw e;}
+  if(packet.assignment_id!==a.assignment_id||packet.repo!==a.repo||
+    packet.pr!==a.pr||packet.head_sha!==a.head_sha||
+    packet.mission_kind!==a.mission_kind)return result('WRONG_ASSIGNMENT');
+  if(current_head!==a.head_sha)return result('STALE_SHA');
+  if(!plain(source)||source.retrieved_from_distinct_chat!==true||
+    source.retrieval_kind!=='chat_history'||
+    source.context_id!==packet.reviewer_context_id||
+    source.context_id===a.author_context_id||
+    !oneLine(source.message_ref,160))return result('INDEPENDENCE_UNVERIFIED');
+  return {status:packet.verdict==='CHANGES_REQUIRED'?'NEEDS_CORRECTION':
+    packet.verdict==='BLOCKED'?'BLOCKED':
+    'RESEARCH_REPORT_RECEIVED_PENDING_VALIDATION',
+    mission_kind:a.mission_kind,requires_manual_qualification:true,
+    findings:packet.findings.length,native_github_approved:false,
+    ready_for_merge:false};
+}
+
 function validateReport(x) {
   exactFields(x, ['v', 'assignment_id', 'repo', 'pr', 'head_sha',
     'reviewer_context_id', 'verdict', 'findings', 'limitations']);
@@ -271,6 +355,7 @@ function planDelegations(inputs) {
     repo: item.repo,
     pr: item.pr,
     head_sha: item.head_sha,
+    mission_kind: item.mission_kind,
     read_only: true,
     prompt: buildReviewPrompt(item)
   }));
@@ -297,7 +382,9 @@ function assessDelegationBatch({ assignments, reports, sources, current_head }) 
         sources[key] : undefined,
       current_head
     };
-    return { assignment_id: key, ...assessReview(input) };
+    return { assignment_id: key,
+      ...(target.mission_kind==='L2_REVIEW'?
+        assessReview(input):assessResearchReport(input)) };
   });
   const counts = {};
   for (const result of results)
@@ -310,7 +397,8 @@ function assessDelegationBatch({ assignments, reports, sources, current_head }) 
 }
 
 module.exports = {
-  MARKER, InvalidReport, assignment, buildReviewPrompt, validateReport,
+  MARKER, RESEARCH_MARKER, InvalidReport, assignment,
+  buildReviewPrompt, buildResearchPrompt, assessResearchReport, validateReport,
   parseReviewResponse, assessReview, prepareInteractiveHandoff,
   planDelegations, assessDelegationBatch
 };
