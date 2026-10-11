@@ -714,14 +714,16 @@ function quoteUntrustedBlock(value) {
 function claimedReviewerContext(response, marker) {
   if (typeof response !== 'string' ||
       Buffer.byteLength(response, 'utf8') > 1024*1024) return null;
-  const end = response.trimEnd();
+  const end = response.replace(/\r\n/g,'\n').trimEnd();
   const lastNewline = end.lastIndexOf('\n');
   if (lastNewline < 0 || !end.slice(0,lastNewline).endsWith(marker)) return null;
   let packet;
   try { packet=JSON.parse(end.slice(lastNewline+1)); }
   catch { return null; }
   const id=packet && packet.reviewer_context_id;
-  return typeof id==='string' && oneLine(id,96) && ID.test(id) ? id:null;
+  // Privacy redaction must not require a valid *proof* identifier: malformed
+  // reports can still carry a sensitive URI-like or longer conversation ID.
+  return typeof id==='string' && id.length>=8 && oneLine(id,160) ? id:null;
 }
 
 function prepareUnqualifiedTriageHandoff(args) {
