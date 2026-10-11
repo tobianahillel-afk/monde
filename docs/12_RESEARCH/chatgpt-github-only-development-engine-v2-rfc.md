@@ -33,6 +33,51 @@ Do NOT write a custom Git hosting system, CI queue, full task tracker UI, agent 
 
 Beads, Gas Town, OpenHands, mini-SWE-agent and Temporal are **not installable as the required runtime** under this zero-host user constraint. Their concepts can inform a later redesign, but do not add their services to MONDE.
 
+## 1A. IMPLEMENTATION-READY DESIGN FREEZE — proposed, NOT an Accepted ADR
+
+**Use this section as the next implementation PR's contract.** It freezes *author-side technical choices only*, not existing repository governance or launch permission. Build interactively when the user says to code. **Do not create or run any Scheduled task while building**; Scheduled ChatGPT W1–W4 are exclusively later controlled test subjects until the user separately approves launch. Nothing below authorizes changing `main`, bypassing WORK-0002/3 or marking this PR Accepted.
+
+**Exactly three new executable files for the prototype** (new scoped implementation WORK/PR, not this draft PR):
+- `.github/workflows/monde-dev-dispatch.yml`: one serialized GitHub Actions event adapter, with `issue_comment: created` (non-PR designated command Issue) and `workflow_dispatch` for a manual reconciliation/fixture test. Constant `concurrency.group: monde-dev-dispatch`, `queue: max`, `cancel-in-progress: false`. Checkout **trusted default-branch source only**; pin reviewed immutable full action SHAs; `permissions` limited to `contents: read, issues: write, checks: read, actions: read, pull-requests: read` where actually required. Do not run PR-controlled commands, install from a PR, inject Issue text into shell or give `contents: write`.
+- `.github/scripts/monde-dev/controller.cjs`: a **single** CommonJS module loaded by `actions/github-script`, using its provided Octokit client. Export pure `parseRequest`, `normalizeResources`, `choose`, `reduceEvents`, `reconcile` plus a small `run` adapter. Keep GitHub API I/O at the boundary and logic deterministic; no external package, framework, database, worker daemon or second trust ledger.
+- `.github/scripts/monde-dev/controller.test.cjs`: Node's built-in `node:test` + `assert/strict` with synthetic REST fixtures, real four-way conflict cases and negative security/recovery cases.
+
+**First-run constant configuration** is held in trusted workflow code (not user comments or candidate branches): allowlisted command Issue number **TBD_REAL_ISSUE_ID** (must be an actual new non-PR GitHub Issue), allowed authenticated GitHub actor(s) **TBD_REAL_ALLOWED_ACTOR** from verified live event, `MODE=TEST_ONLY`, expected default-branch repository identity, policy revision. These values are external observations, NOT architectural choices for the model to invent. Workflow refuses work until configured and reviewed.
+
+### One typed request / one signed-by-origin *logical* answer
+
+One GitHub Issue **comment**, no embedded shell or markdown instructions. Body consists of an exact first-line marker `MONDE_DEV_V1` and one JSON object on the second line; maximum **4 KiB**, reject additional material or unknown fields. Schema for `CLAIM`:
+
+```json
+{
+  "v": 1,
+  "op": "CLAIM",
+  "request_id": "uuid-or-unique-opaque-id",
+  "worker": "W1",
+  "work": "WORK-0006",
+  "task": "T1",
+  "base_sha": "40-hex-commit-sha",
+  "resources": ["path:.github/scripts/monde-dev/", "contract:dev-grants"]
+}
+```
+
+Also accept `RELEASE` (`request_id,worker,work,task,grant_id,epoch,observed_head`) and `STATUS` (`request_id,worker,work,task`). `STATUS` only reads current GitHub facts and does not create/release a grant. All commands carry `v=1` and strict schema; `request_id` deduplicates retries and is unique within authenticated request provenance. **Actor identity comes from GitHub's signed event, never the `worker` string**. W1–W4 are coordination labels; all may share a single GitHub principal. Unknown `op`, malformed ID, extra keys, unauthorized actor, wrong Issue or PR comment → reject/fail closed.
+
+`resources` are canonical **exclusive names**, e.g. `path:src/geo/`, `path:src/geo/tile.py`, `contract:GeoTileV1`, `registry:shared`, `trust:actions`, `integrate:main`. Normalize `path:` as repository-relative POSIX, reject `..`, absolute paths, empty components, control characters and ambiguous separators. Conflict when resource tokens are equal or path namespace/prefix overlaps; reject ambiguous shorthand and never infer that two different file paths imply disjoint shared contract ownership. Task eligibility must be read from existing current WORK/accepted `read_before`, `depends_on`, `status` and scoped rights; command claims cannot override them.
+
+**Bot response** is a distinct Issue comment with marker `MONDE_DEV_RESULT_V1` and machine-readable JSON: `request_id,event_comment_id,worker,work,task,outcome,grant_id,epoch,resources,observed_base_sha,workflow_run_id,workflow_run_attempt,reason,created_at`. Outcomes `GRANTED|DENIED|NO_CHANGE|BLOCKED|UNKNOWN|RELEASED`; no client can turn a refusal into grant by editing a comment. Confirm result author is expected GitHub Actions identity and cross-check run/repo when authoritative; bot comments are durable **operational evidence**, not cryptographic independent worker identities. Do not store secrets or private Project chat content.
+
+### Event reduction and safety invariants
+
+1. Parse the actual single incoming comment from event payload only if the repo, Issue, GitHub actor and event type match the trusted allowlists.
+2. Fetch **all** relevant Issue comments with pagination, reconstruct only trustworthy request/result events, and compare each request's exact ID and **current** canonical task status. Missing pages, inconsistent bot results, ambiguous API failure or unknown remote mutation outcome → `UNKNOWN/BLOCKED`, never issue speculative grants.
+3. Under GitHub Actions **serialized concurrency**, derive active grants deterministically from verified results; reject duplicate request IDs unless the earlier result matches exactly (idempotent replay); reject overlapping file or semantic resources. Multiple non-conflicting grants W1–W4 are allowed. No fairness/FIFO guarantee is assumed.
+4. Publish one durable result and **read it back**. If publishing ACK is lost, re-list by request/event ID before retrying; if still ambiguous, quarantine. Response comments have no authority to mark normative WORK `DONE`, auto-approve a PR or alter protected branches.
+5. `RELEASE` only for the matching **current** `grant_id + epoch + worker + task`, with expected observed branch HEAD checked when relevant. No **time-only** automatic reassignment: stale worker may still have connector write permission. A stalled grant is BLOCKED/QUARANTINED until a controlled authorized recovery with independent host verification; mere chat elapsed time is not a lock or a credential.
+6. Every worker rereads the grant and target branch HEAD before mutation and after uncertain writes, works only in its owned branch/resource set, and freezes candidate HEAD during exact-head CI/review. No automatic merge, force push, native self-approval or direct `main` edit. **Cooperative collision prevention is not hard per-chat authentication** under one shared GitHub account.
+
+**Modes:** `TEST_ONLY` is the **deployed starting mode**. Synthetic claims/fixture conflicts may be recorded, but no task gets product branch-write authorization or integration from this controller. Transition to four real write-capable workers is a separate reviewed change after T0–T5, WORK-0002/3 host gates and user launch consent. Interactive authoring on isolated branches can continue through pre-existing authority independently of this test mode.
+
 ## 2. Five functional responsibilities (analysis lenses, **not five custom engines**) 
 
 **Current target:** only one trusted GitHub Actions arbiter using existing GitHub Issues/PR/CI, plus small `choose`/`reconcile` helpers and optional read-only `check_eligibility`. The control-ref CAS/event-sourcing detail in 2.3 is **historical FALLBACK architecture**, not the selected implementation path. See [one canonical worker operating contract](chatgpt-github-only-engine-operating-contract.md) for pending-CI behavior and conditional phases.
