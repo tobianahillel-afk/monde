@@ -1311,3 +1311,62 @@ test('malformed L2 in batch retains uncertainty about blocking findings',()=>{
   assert.equal(batch.unqualified_blocking_reports,1);
   assert.equal(batch.native_github_approved,false);
 });
+
+
+test('L2 late R1 survives an invalid footer beyond the first 8192 chars',()=>{
+  const full='review evidence '+('x'.repeat(9000))+
+    '\nR1: permission bypass in src/critical.cjs; correct access control now.';
+  const result=d.assessReview({expected:H,response:full,current_head:SHA,source});
+  assert.equal(result.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(result.reported_blocking_unknown,true);
+  assert.equal(result.manual_source_required,true);
+  assert.equal(result.raw_report_excerpt_truncated,true);
+  assert.match(result.raw_report_tail_excerpt,/R1: permission bypass/);
+  assert.ok(result.raw_blocker_snippets.some(s=>s.includes('permission bypass')));
+  assert.equal(result.native_github_approved,false);
+});
+test('research invalid footer preserves late actionable R2 as unqualified evidence',()=>{
+  const text='Independent research '+('a'.repeat(9500))+
+    '\nR2: missing integrity boundary; implement strict checks.';
+  const out=d.assessResearchReport({expected:RESEARCH,response:text,
+    current_head:SHA,source});
+  assert.equal(out.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(out.reported_blocking_unknown,true);
+  assert.ok(out.raw_blocker_snippets.some(x=>x.includes('integrity boundary')));
+  assert.equal(out.manual_source_required,true);
+  assert.equal(out.ready_for_merge,false);
+});
+test('minimal public relay cannot masquerade as sufficient to repair an R2',()=>{
+  const reply=message(data());
+  const out=d.prepareInteractiveHandoff({expected:H,response:reply,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.equal(out.self_contained_for_remediation,false);
+  assert.match(out.text,/original reviewer report is necessary/i);
+  assert.doesNotMatch(out.text,/Suggested correction:/);
+});
+test('explicitly reviewed finding details allow actionable standalone GitHub handoff',()=>{
+  const reply=message(data());
+  const out=d.prepareInteractiveHandoff({expected:H,response:reply,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.equal(out.self_contained_for_remediation,true);
+  assert.match(out.text,/### Actionable findings/);
+  assert.match(out.text,/Evidence: At line X/);
+  assert.match(out.text,/Suggested correction: Refuse the stale operation/);
+  assert.equal(out.native_github_approved,false);
+});
+test('finding detail permission does not override credential checks',()=>{
+  const dangerous=data({findings:[{...data().findings[0],
+    evidence:'Exposed ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 in review'}]});
+  const out=d.prepareInteractiveHandoff({expected:H,response:message(dangerous),
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}});
+  assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(out.ready_for_manual_relay,false);
+  assert.equal(out.text,null);
+});
