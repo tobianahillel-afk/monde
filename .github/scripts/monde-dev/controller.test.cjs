@@ -916,11 +916,11 @@ test('ACTIVE_4: verified default-branch workflow origin accepts actual grant his
   a.equal(second.result.outcome,'NO_CHANGE');
 });
 test('ACTIVE_4: no trusted workflow ID or Actions API blocks before result mutation',async()=>{
-  const request=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
-  const cmd=request(1,request);
+  const claim=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const cmd=request(1,claim);
   const result=response(2,cmd,{outcome:'GRANTED',reason:'COORDINATION_ONLY',
-    grant_id:'grant:'+request.request_id,epoch:1,
-    resources:request.resources,observed_base_sha:SHA});
+    grant_id:'grant:'+claim.request_id,epoch:1,
+    resources:claim.resources,observed_base_sha:SHA});
   result.body=result.body.replace('"mode":"TEST_ONLY"','"mode":"ACTIVE_4"');
   const gh=guardedApi([cmd,result],REAL_READY_WORK);
   await a.rejects(c.verifyActiveResultOrigins(gh,'tobianahillel-afk','monde',
