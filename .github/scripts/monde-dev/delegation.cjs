@@ -65,7 +65,7 @@ function buildReviewPrompt(input) {
   const example = {
     v: 1, assignment_id: a.assignment_id, repo: a.repo, pr: a.pr,
     head_sha: a.head_sha, reviewer_context_id: 'new-separate-context-id',
-    verdict: 'BLOCKED', findings: [], reviewed_paths: a.paths,
+    verdict: 'BLOCKED', findings: [], reviewed_paths: [],
     limitations: ['Exemple de format uniquement; remplacer par les constats et limites réellement observés']
   };
   return [

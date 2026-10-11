@@ -600,3 +600,10 @@ test('public relay blocks recognizable private credentials despite clearance',()
   assert.equal(report.ready_for_manual_relay,false);
   assert.equal(report.text,null);
 });
+
+test('read-only L2 prompt never asserts example files were actually read',()=>{
+  const prompt=d.buildReviewPrompt(H);
+  assert.match(prompt,/"reviewed_paths":\[\]/);
+  assert.doesNotMatch(prompt,/"reviewed_paths":\["\.github/);
+  assert.match(prompt,/Ne declare aucun fichier examine sans l avoir reellement lu/);
+});
