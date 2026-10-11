@@ -47,7 +47,8 @@ test('evidence-bearing distinct-context CHANGES_REQUIRED stays actionable', () =
 test('separate-context APPROVE is never native GitHub approval', () => {
   const out=d.assessReview({expected:H,response:message(data({
     verdict:'APPROVE',findings:[] })),current_head:SHA,source});
-  assert.equal(out.status,'TECHNICAL_L2_COMPLETE');
+  assert.equal(out.status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(out.requires_manual_qualification,true);
   assert.equal(out.native_github_approved,false);
 });
 test('missing report is unavailable; scheduled execution alone is not proof', () => {
@@ -170,4 +171,28 @@ test('generated review brief states the R1/R2 approval restriction', () => {
   const prompt=d.buildReviewPrompt(H);
   assert.match(prompt,/APPROVE est interdit/);
   assert.match(prompt,/R1\/R2/);
+});
+
+test('APPROVE footer alone never certifies substantive independent L2', () => {
+  const output=d.assessReview({expected:H,response:message(data({
+    verdict:'APPROVE',findings:[],limitations:[]
+  })),current_head:SHA,source});
+  assert.equal(output.status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(output.native_github_approved,false);
+  assert.equal(output.requires_manual_qualification,true);
+});
+test('task report without compact footer is retained as unqualified evidence', () => {
+  const output=d.assessReview({expected:H,response:
+    'Cette revue a trouvé un problème de provenance sur le chemin du code. '+
+    'Elle nécessite une analyse manuelle avant toute acceptation.',
+    current_head:SHA,source});
+  assert.equal(output.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(output.requires_manual_qualification,true);
+  assert.equal(output.native_github_approved,false);
+});
+test('task briefing names the correct penultimate and final footer lines', () => {
+  const prompt=d.buildReviewPrompt(H);
+  assert.match(prompt,/AVANT-DERNIERE ligne/);
+  assert.match(prompt,/DERNIERE ligne/);
+  assert.match(prompt,/aucun texte ni bloc Markdown apres la derniere ligne JSON/);
 });

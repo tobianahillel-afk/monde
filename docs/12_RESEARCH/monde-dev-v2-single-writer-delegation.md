@@ -2,13 +2,15 @@
 
 Status: implementation candidate (not Accepted). Updated 2026-10-11.
 
+> **Implementation scope clarified 2026-10-11:** V2 implements one manually triggered GitHub writer plus 1–4 ephemeral ChatGPT read-only research/L2 reviewers. The obsolete issue-comment arbiter, `controller.cjs`, synthetic four-writer tests, and workflow dispatcher are **not included** in this implementation PR. No `ACTIVE_4` code runs in this release. The older RFC in PR #18 is a historical proposal, not authorization for a second GitHub writer.
+
 ## Execution topology
 
 The user initiates the main development conversation manually. This foreground ChatGPT conversation is the sole writer of source code, tests, branches, PR updates and review publication through the connected GitHub app. Its work is scoped by the existing MONDE governance and repository protections.
 
 The foreground agent may create 1–4 **one-shot scheduled ChatGPT tasks** when independent information will materially improve a current work item. Tasks have no development authority. Their permitted work is GitHub read-only research, architecture comparison, test ideation, and independent context-separated L2 code review. They must never attempt source or comment writes, merge PRs, configure the repository, create additional tasks, or request an external paid AI runtime.
 
-These tasks are not four development writers. The previous issue-comment allocator remains an isolated **code-only TEST_ONLY prototype** and is not the operating mode. The branch's legacy-named `.github/workflows/monde-dev-dispatch.yml` has been converted to **manual `workflow_dispatch` inspection only** with read permissions; it neither listens to `issue_comment` nor writes bot comments. This prevents accidental deployment of a second GitHub writer. Its synthetic GRANTED result conveys no GitHub write authorization. The ACTIVE_4 design is dormant and must not be deployed as part of single-writer activation.
+These tasks are not four development writers. The older four-writer allocator remains only in the previous Git commit history; its source and dispatcher are removed from this V2 candidate to avoid deploying unnecessary privileged coordination code. ChatGPT alone decides what to write in a manually initiated conversation; the pure delegation helper produces read-only briefings and validates the format of retrieved reports, not their independent accuracy.
 
 ## Delegation protocol
 
@@ -41,9 +43,9 @@ The branch-local `.github/scripts/monde-dev/delegation.cjs` provides a **small o
 - `assignment` checks a unique mission ID, exact PR SHA, intended scope and originating author context.
 - `buildReviewPrompt` assembles the read-only ChatGPT task instruction and demands the complete report in the separate conversation's response with a compact footer labelled `MONDE_V2_L2_RESULT_V1`.
 - `parseReviewResponse` validates the **actual retrieved response text**. It accepts UTF-8 French report content, flags evidence-bearing findings and rejects a missing, duplicate or noncanonical footer.
-- `assessReview` distinguishes `REPORT_UNAVAILABLE`, `WRONG_ASSIGNMENT`, `STALE_SHA`, `INDEPENDENCE_UNVERIFIED`, `NEEDS_CORRECTION`, `BLOCKED` and `TECHNICAL_L2_COMPLETE`. It always returns `native_github_approved:false`.
+- `assessReview` distinguishes `REPORT_UNAVAILABLE`, `REPORT_NEEDS_MANUAL_REVIEW`, `WRONG_ASSIGNMENT`, `STALE_SHA`, `INDEPENDENCE_UNVERIFIED`, `NEEDS_CORRECTION`, `BLOCKED` and `L2_REPORT_RECEIVED_PENDING_VALIDATION`. A formatted positive result **still requires external substantive manual qualification**, even if a separate-chat provenance observation was supplied. It always returns `native_github_approved:false`.
 
 Independence **cannot be proved by a self-declared JSON field**. The caller must have actually retrieved and matched the separate ChatGPT conversation and its provenance before marking that external observation verified. A review that cannot be retrieved remains unavailable regardless of the automation run's success. The older L2 report at SHA `4e4234f8f73ebe6d22be0724907c127143ca166e` is usable to inform corrections, but does not approve the current PR HEAD.
 
-Use the module where it reduces manual transcription errors. The ChatGPT interactive session does **not** need to run JavaScript locally to honor the same protocol. A missing machine footer may still supply useful qualitative findings, but it must not automatically count as a qualified L2 approval. No scheduled task may write a GitHub comment, even to post the report.
+Use the module where it reduces manual transcription errors. The ChatGPT interactive session does **not** need to run JavaScript locally to honor the same protocol. A missing machine footer may still supply useful qualitative findings, but it must not automatically count as a qualified L2 approval. The reviewer prompt explicitly requests the marker on the penultimate line and compact JSON on the final line (no Markdown fence or trailing prose). No scheduled task may write a GitHub comment, even to post the report.
 

@@ -1,6 +1,6 @@
-name: MONDE Dev V2 Controller CI
-# Stable required-check identity: do not path-filter pull_request. GitHub
-# leaves a skipped path-filtered required workflow Pending on unrelated PRs.
+name: MONDE Dev V2 Interactive Delegation CI
+# PR code is tested with read-only checkout; NO candidate-controlled github-script,
+# privileged event trigger, Issue mutation or GitHub token-capable code execution.
 on:
   pull_request:
   workflow_dispatch:
@@ -9,36 +9,19 @@ permissions:
   contents: read
 
 jobs:
-  controller-test:
+  delegation-test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout candidate for unprivileged tests
+      - name: Checkout candidate without persisted GitHub credentials
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           persist-credentials: false
-      - name: Node test runtime
+      - name: Node runtime
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
-      - name: Validate development engine modules
-        run: |
-          node --check .github/scripts/monde-dev/controller.cjs
-          node --check .github/scripts/monde-dev/delegation.cjs
-      - name: Run focused controller and interactive delegation tests
-        run: node --test --experimental-test-coverage .github/scripts/monde-dev/*.test.cjs
-      - name: E3 preview - load real controller with pinned github-script v9 (read-only)
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const controller = require('./.github/scripts/monde-dev/controller.cjs');
-            const request = controller.parseRequest(
-              'MONDE_DEV_V1\n{"v":1,"op":"STATUS","request_id":"req-ci-preview01","worker":"W1","work":"WORK-0000","task":"T1"}'
-            );
-            const state = {requests:new Map(),decisions:new Map(),grants:new Map(),epoch:0};
-            const decision = controller.choose(state,request,{mode:'TEST_ONLY'});
-            if (decision.outcome !== 'NO_CHANGE' || decision.grant_id !== null) {
-              throw new Error('E3 preview must stay read-only');
-            }
-            core.info('E3 github-script v9 module load OK; synthetic STATUS only, no GitHub writes.');
-
+      - name: Check pure delegation syntax
+        run: node --check .github/scripts/monde-dev/delegation.cjs
+      - name: Run read-only delegation tests
+        run: node --test --experimental-test-coverage .github/scripts/monde-dev/delegation.test.cjs

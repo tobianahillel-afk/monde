@@ -81,12 +81,13 @@ function buildReviewPrompt(input) {
     'Pour la provenance, fournis ton identifiant de conversation distinct',
     'si accessible; sinon un identifiant de contexte declare et indique',
     'explicitement que son independance reste a verifier.',
-    'Derniere ligne: ' + MARKER,
-    'Ligne suivante: JSON COMPACT avec exactement ce schema:',
+    'AVANT-DERNIERE ligne: exactement ' + MARKER,
+    'DERNIERE ligne: JSON COMPACT avec exactement ce schema:',
     JSON.stringify(example),
     'Les constats non nuls doivent inclure preuve et correction precise.',
     'CHANGES_REQUIRED exige au moins un constat. APPROVE est interdit',
     'avec des constats R1/R2 encore ouverts dans son propre rapport.',
+    'Ne mets aucun texte ni bloc Markdown apres la derniere ligne JSON.',
     'Aucun controle ne publie automatiquement ton resultat dans GitHub.'
   ].join('\n');
 }
@@ -146,7 +147,17 @@ function assessReview({ expected, response, current_head, source }) {
   const a = assignment(expected);
   if (response === null || response === undefined)
     return { status: 'REPORT_UNAVAILABLE', native_github_approved: false };
-  const { analysis, metadata } = parseReviewResponse(response);
+  let parsed;
+  try { parsed = parseReviewResponse(response); }
+  catch (error) {
+    // A useful prose review may omit the machine footer. Preserve it for the
+    // interactive writer, but NEVER qualify it as a verified L2 approval.
+    if (error instanceof InvalidReport)
+      return {status:'REPORT_NEEDS_MANUAL_REVIEW', native_github_approved:false,
+        requires_manual_qualification:true, reason:error.code};
+    throw error;
+  }
+  const { analysis, metadata } = parsed;
   if (metadata.assignment_id !== a.assignment_id ||
       metadata.repo !== a.repo || metadata.pr !== a.pr ||
       metadata.head_sha !== a.head_sha)
@@ -161,9 +172,13 @@ function assessReview({ expected, response, current_head, source }) {
       source.context_id !== metadata.reviewer_context_id ||
       source.context_id === a.author_context_id)
     return { status: 'INDEPENDENCE_UNVERIFIED', native_github_approved: false };
+  // Structural shape + a caller-supplied provenance observation are not an
+  // independent substantive review nor a host-native reviewer approval.
   return {
     status: metadata.verdict === 'CHANGES_REQUIRED' ? 'NEEDS_CORRECTION' :
-      metadata.verdict === 'BLOCKED' ? 'BLOCKED' : 'TECHNICAL_L2_COMPLETE',
+      metadata.verdict === 'BLOCKED' ? 'BLOCKED' :
+        'L2_REPORT_RECEIVED_PENDING_VALIDATION',
+    requires_manual_qualification: true,
     native_github_approved: false,
     finding_count: metadata.findings.length,
     severity_r1: metadata.findings.filter(x => x.severity === 'R1').length,
