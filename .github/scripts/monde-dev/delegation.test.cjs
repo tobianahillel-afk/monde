@@ -660,3 +660,28 @@ test('cross-batch independent contexts remain distinguishable',()=>{
   assert.equal(out.results[0].status,'NEEDS_CORRECTION');
   assert.equal(out.independence_conflicts,0);
 });
+
+test('public relay is minimal by default despite normal confidentiality clearance',()=>{
+  const privatePhrase='Internal context message location TOP-SECRET-REVIEW-EXAMPLE';
+  const response=message(data({limitations:[privatePhrase]}));
+  const out=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,
+    source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.doesNotMatch(out.text,/TOP-SECRET-REVIEW-EXAMPLE/);
+  assert.doesNotMatch(out.text,/Observed separate context: chat-l2/);
+  assert.doesNotMatch(out.text,/history-msg-l2-20261011-001/);
+  assert.doesNotMatch(out.text,/### Canonical machine footer/);
+  assert.match(out.text,/IDs\/severities only:/);
+});
+test('full public review requires a distinct explicit full_report_approved flag',()=>{
+  const response=message(data({limitations:['Full report example detail']}));  
+  const input={expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,full_report_approved:true}};
+  const out=d.prepareInteractiveHandoff(input);
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.match(out.text,/Full report example detail/);
+  assert.match(out.text,/### Canonical machine footer/);
+  assert.doesNotMatch(out.text,/Observed message reference: history/);
+});

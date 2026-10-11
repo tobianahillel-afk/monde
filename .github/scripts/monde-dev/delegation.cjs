@@ -349,8 +349,10 @@ function prepareInteractiveHandoff(args) {
     'Assignment: ' + a.assignment_id,
     'Repository: ' + a.repo + '; PR #' + a.pr,
     'Reviewed SHA: ' + a.head_sha,
-    'Observed separate context: ' + args.source.context_id,
-    'Observed message reference: ' + args.source.message_ref,
+    'Context identity SHA-256: ' +
+      createHash('sha256').update(args.source.context_id,'utf8').digest('hex'),
+    'Message reference SHA-256: ' +
+      createHash('sha256').update(args.source.message_ref,'utf8').digest('hex'),
     'Retrieval: chat_history (caller-provided observation, verify manually)',
     'Original response SHA-256: ' +
       createHash('sha256').update(args.response,'utf8').digest('hex'),
@@ -367,12 +369,21 @@ function prepareInteractiveHandoff(args) {
     'Examination outside assignment scope: ' +
       (evaluation.extraneous_reviewed_paths.join(', ') || 'none'),
     '',
-    '### Retrieved review analysis (normalized text)',
-    analysis,
-    '',
-    '### Canonical machine footer',
-    MARKER,
-    JSON.stringify(metadata)
+    '### Public relay (minimum necessary data)',
+    'Finding counts: ' + metadata.findings.length +
+      '; IDs/severities only: ' +
+      (metadata.findings.map(f=>f.id+'('+f.severity+')').join(', ')||'none'),
+    'Full report retained in original ChatGPT reviewer conversation.',
+    'A public relay is not a technical L2 acceptance decision.',
+    ...(clearance.full_report_approved===true?[
+      '',
+      '### Explicitly authorized full review text (normalized)',
+      analysis,
+      '',
+      '### Canonical machine footer',
+      MARKER,
+      JSON.stringify(metadata)
+    ]:[])
   ].join('\n');
   return {
     status: evaluation.status, can_publish: false,
