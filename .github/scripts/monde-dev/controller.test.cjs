@@ -798,3 +798,28 @@ test('ACTIVE_4 review: do not claim a review before its prerequisite task is DON
     resources:['review:WORK-0002-T12']});
   a.equal(c.eligibleRealClaim(r,w,{},SHA).reason,'TASK_DEPENDENCY_NOT_DONE');
 });
+
+const MULTILINE_READY_WORK=[
+  'id: WORK-0099','status: READY','depends_on: []','implementation_plan:',
+  '  tasks:',
+  '    - id: T1','      description: "First task"',
+  '      depends_on: []','      expected_files: [src/a.cjs]',
+  '      status: DONE',
+  '    - id: T2','      description: "Implement"',
+  '      depends_on: [T1]','      expected_files: [src/b.cjs]',
+  '      status: READY','  planned_runs: []'
+].join('\n');
+test('WORK parser: canonical multiline tasks from accepted template are supported',()=>{
+  const r=c.parseWorkGate(MULTILINE_READY_WORK,'WORK-0099');
+  a.equal(r.tasks.length,2);
+  const req=q(2,{work:'WORK-0099',resources:['path:src/b.cjs']});
+  a.equal(c.eligibleRealClaim(req,r,{},SHA).eligible,true);
+});
+test('WORK parser: malformed/ambiguous multiline task fields fail closed',()=>{
+  for(const text of [
+    MULTILINE_READY_WORK.replace('      status: READY','      status: READY\n      status: READY'),
+    MULTILINE_READY_WORK.replace('      expected_files: [src/b.cjs]','      expected_files: [src/../x.cjs]'),
+    MULTILINE_READY_WORK.replace('      depends_on: [T1]','      depends_on: {T1}'),
+    MULTILINE_READY_WORK.replace('    - id: T2','     - id: T2')
+  ])a.throws(()=>c.parseWorkGate(text,'WORK-0099'));
+});
