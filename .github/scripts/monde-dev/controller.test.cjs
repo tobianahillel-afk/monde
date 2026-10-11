@@ -111,12 +111,38 @@ test('AT08: missing journal pagination fails closed',async()=>{
   await a.rejects(c.run({github:api(hist,{incomplete:true}),context:ctx,
     core:{warning:()=>{}},settings:settings()}),e=>e.code==='INCOMPLETE_HISTORY');
 });
-test('AT08b: lost acknowledgement returns unknown and does not retry write',async()=>{
+test('AT08b: lost HTTP ACK recovers a persisted result without retrying mutation',async()=>{
   const ctx=event(q()),hist=[ctx.payload.comment];
   const got=await c.run({github:api(hist,{throwAck:true}),context:ctx,
     core:{warning:()=>{}},settings:settings()});
-  a.equal(got.unknown,true);a.equal(hist.length,2);
+  a.equal(got.recovered,true);a.equal(hist.length,2);
+  a.equal(got.result.outcome,'GRANTED');
   a.equal(c.replay(hist).grants.size,1);
+});
+test('AT08c: lost HTTP ACK without persistent result remains unknown',async()=>{
+  const ctx=event(q()),hist=[ctx.payload.comment];
+  const got=await c.run({github:api(hist,{throwAck:true,discardWrite:true}),
+    context:ctx,core:{warning:()=>{}},settings:settings()});
+  a.equal(got.unknown,true);
+  a.equal(got.request_id,q().request_id);
+  a.equal(hist.length,1);
+});
+test('AT08d: uncertain API mutation + unreadable journal never retries blindly',async()=>{
+  const ctx=event(q()),hist=[ctx.payload.comment];
+  const gh=api(hist,{throwAck:true});
+  let reads=0,posts=0;
+  const list=gh.paginate;
+  gh.paginate=async(...args)=>{
+    reads++;
+    if(reads===2)throw Object.assign(new Error('429'),{status:429});
+    return list(...args);
+  };
+  const old=gh.rest.issues.createComment;
+  gh.rest.issues.createComment=async x=>{posts++;return old(x);};
+  const got=await c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:settings()});
+  a.equal(got.unknown,true);
+  a.equal(posts,1);
 });
 test('AT09: matching release succeeds; wrong epoch or SHA cannot release',()=>{
   const s=simulated();const result=s.apply(q());
@@ -1081,4 +1107,16 @@ test('E3 manual inspector fails closed on inconsistent bot journal results',asyn
     owner:'tobianahillel-afk',repo:'monde',issueNumber:20,
     mode:'TEST_ONLY',allowedActors:['tobianahillel-afk']
   }));
+});
+
+test('inspector returns active public grant inventory but never a production token',async()=>{
+  const s=simulated();s.apply(q(1));
+  const out=await c.inspect(api(s.comments),{
+    owner:'tobianahillel-afk',repo:'monde',issueNumber:20,
+    mode:'TEST_ONLY',allowedActors:['tobianahillel-afk']});
+  a.equal(out.grants.length,1);
+  a.equal(out.grants[0].worker,'W1');
+  a.equal(out.grants[0].work,'WORK-0000');
+  a.equal(out.grants[0].resources[0],'path:src/unit1');
+  a.equal('write_authority' in out.grants[0],false);
 });

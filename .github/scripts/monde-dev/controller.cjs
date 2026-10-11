@@ -255,6 +255,11 @@ async function inspect(github,settings){
     decisionCount:state.decisions.size,
     unansweredCount:state.requests.size-state.decisions.size,
     activeGrantCount:state.grants.size,
+    // Exposes only public coordination facts; never a write credential.
+    grants:Array.from(state.grants.values(),g=>({
+      grant_id:g.grant_id,worker:g.worker,work:g.work,task:g.task,
+      epoch:g.epoch,resources:g.resources
+    })),
     maxEpoch:state.epoch
   };
 }
@@ -311,15 +316,40 @@ async function run({github,context,core,settings}){
   const sourceEvent={...event,id:observedRequest.comment_id};
   const result=makeResult(q,sourceEvent,chosen,{runId:context.runId,
     runAttempt:context.runAttempt,mode:settings.mode});
-  try{await github.rest.issues.createComment({owner,repo,issue_number:settings.issueNumber,body:encodeResult(result)});}
-  catch(err){core.warning('UNKNOWN_WRITE '+(err.status||'API'));return {unknown:true};}
-  const history=await listComments(github,owner,repo,settings.issueNumber);
-  if(settings.mode==='ACTIVE_4')
-    await verifyActiveResultOrigins(github,owner,repo,history,settings);
-  const after=replay(history,settings.botActor||'github-actions[bot]',
-     settings.allowedActors,settings.mode);
-  if(!after.decisions.has(q.request_id))fail('RESULT_NOT_OBSERVED');
-  return {result:after.decisions.get(q.request_id)};
+  let writeError;
+  try {
+    await github.rest.issues.createComment({
+      owner,repo,issue_number:settings.issueNumber,body:encodeResult(result)
+    });
+  } catch(err) {
+    // HTTP 5xx / connection failure can occur *after* GitHub saved the comment.
+    // Re-read exactly once; never issue a second mutation without a new event.
+    writeError=err;
+    core.warning('UNCERTAIN_RESULT_ACK '+(err.status||'API'));
+  }
+  let history;
+  try {
+    history=await listComments(github,owner,repo,settings.issueNumber);
+    if(settings.mode==='ACTIVE_4')
+      await verifyActiveResultOrigins(github,owner,repo,history,settings);
+    const after=replay(history,settings.botActor||'github-actions[bot]',
+      settings.allowedActors,settings.mode);
+    const accepted=after.decisions.get(q.request_id);
+    if(!accepted) {
+      if(writeError)return {unknown:true,request_id:q.request_id};
+      fail('RESULT_NOT_OBSERVED');
+    }
+    // Do not accept a different reply merely because the ID matches.
+    if(accepted.event_comment_id!==sourceEvent.id ||
+       JSON.stringify(accepted)!==JSON.stringify(parseResult(encodeResult(result),settings.mode)))
+      fail('RESULT_MISMATCH');
+    return {result:accepted,recovered:!!writeError};
+  } catch (err) {
+    if(!writeError)throw err;
+    // Post-write read failure cannot prove persistence or non-persistence.
+    core.warning('UNKNOWN_POST_WRITE '+(err.code||err.status||'API'));
+    return {unknown:true,request_id:q.request_id};
+  }
 }
 
 // Advisory only: native GitHub rulesets/reviewer/CI enforce promotion.
