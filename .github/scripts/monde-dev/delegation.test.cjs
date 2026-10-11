@@ -813,7 +813,8 @@ test('directory coverage manifests propagate in a batch and stay exact-SHA',()=>
     sources:{[assigned.assignment_id]:source},current_head:SHA};
   assert.equal(d.assessDelegationBatch(base).results[0].status,'L2_SCOPE_NOT_EVIDENCED');
   const manifest={verified_at_head:true,head_sha:SHA,
-    files:['src/a.cjs','src/b.cjs']};
+    source_kind:'github_recursive_tree',enumeration_complete:true,
+    tree_sha:SHA,enumerated_count:2,files:['src/a.cjs','src/b.cjs']};
   assert.equal(d.assessDelegationBatch({...base,
     coverage_manifests:{[assigned.assignment_id]:manifest}}).results[0].status,
     'L2_REPORT_RECEIVED_PENDING_VALIDATION');
