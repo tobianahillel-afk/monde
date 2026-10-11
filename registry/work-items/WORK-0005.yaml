@@ -32,6 +32,8 @@ scope:
     - define context-sensitive dynamic agent roles, decision rubric, autonomy/authority limits and review evidence
     - define same-cause repeat-failure diagnosis, refactor/redesign triggers and stop-search/freeze boundaries without adding new runtime components
     - document observable ChatGPT/GitHub tool retrieval pitfalls, staged read routing and non-calibrated slowdown estimates
+    - prefer immediate zero-custom-runtime MONDE capability inventory and one-worker pilot before adding a concurrency controller
+    - compare one-writer, premature four-writer, and 1+3 research/reviewer critical paths and budgets
     - define proposed open-source technology families, public GitHub Actions free-tier assumptions and version pinning policy
     - specify same-invocation FRAME/RESEARCH/DECIDE/BUILD/VERIFY transitions, risk-based engineering gates, algorithm comparison and benchmark contracts
     - connect historical MONDE user intent retrieval and source provenance to existing WORK-0004 without cloning a capability registry
@@ -99,6 +101,12 @@ acceptance_criteria:
     status: NOT_STARTED
   - id: AC-17
     description: "The A through E engineering phases are selected per task and risk; irrelevant research, choice or implementation phases can be skipped while all applicable tests, independent review and protected merge gates remain mandatory."
+    status: NOT_STARTED
+  - id: AC-18
+    description: "The product-documentation bootstrap is achievable without an engine: L0 research, L1 single authorized writer, L2 trusted arbiter only for needed parallel writes, L3 four writers after accepted safety gates."
+    status: NOT_STARTED
+  - id: AC-19
+    description: "One-writer vs four unconstrained vs one-writer-plus-independent-research/review scenarios explicitly quantify critical-path effort and limits, no fictitious four-times productivity claim."
     status: NOT_STARTED
 
 requirements: []
@@ -244,6 +252,7 @@ required_tests:
     - "measure useful work during genuine CI/review waits without faking timers, and avoid redundant API polling"
   real_system:
     - "GitHub branch protection and task connector feature availability discovery"
+    - "prove one Scheduled-task real connector capability/permission before relying on four hourly app writers; four-write mode cannot be inferred from interactive GitHub plugin access"
     - "verify ChatGPT scheduled mode access, project file/history limits, role handover and GitHub issue_comment delivery"
   epistemic: []
 
