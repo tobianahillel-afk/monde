@@ -180,5 +180,46 @@ async function run({github,context,core,settings}){
   if(!after.decisions.has(q.request_id))fail('RESULT_NOT_OBSERVED');
   return {result:after.decisions.get(q.request_id)};
 }
+
+// Advisory only: native GitHub rulesets/reviewer/CI enforce promotion.
+// All snapshot inputs must be retrieved from the GitHub host independently.
+function checkEligibility(snapshot){
+  const blocked=[];
+  if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))
+    return {ready:false,advisoryOnly:true,blockers:['INVALID_HOST_SNAPSHOT']};
+  const sha=snapshot.candidateSha;
+  if(typeof sha!=='string'||!SHA.test(sha)||
+      snapshot.liveHeadSha!==sha)blocked.push('STALE_OR_UNKNOWN_HEAD');
+  if(snapshot.targetBranch!=='main')blocked.push('WRONG_TARGET_BRANCH');
+  if(snapshot.isDraft!==false)blocked.push('DRAFT_PR');
+  if(snapshot.mergeable!==true)blocked.push('NOT_MERGEABLE');
+  if(snapshot.protectedMain!==true||snapshot.rulesetEnforced!==true)
+    blocked.push('UNPROTECTED_MAIN');
+  if(typeof snapshot.author!=='string'||!snapshot.author)
+    blocked.push('UNKNOWN_AUTHOR');
+  const required=snapshot.requiredChecks,checks=snapshot.checks;
+  if(!Array.isArray(required)||!required.length||
+      required.some(x=>typeof x!=='string'||!x)||
+      new Set(required).size!==required.length||
+      !Array.isArray(checks)){
+    blocked.push('UNKNOWN_REQUIRED_CHECKS');
+  }else{
+    for(const name of required){
+      if(!checks.some(x=>x&&x.name===name&&x.head_sha===sha&&
+         x.status==='completed'&&x.conclusion==='success'&&
+         x.trustedSource===true&&Number.isSafeInteger(x.run_id)&&x.run_id>0))
+        blocked.push('BAD_REQUIRED_CHECK:'+name);
+    }
+  }
+  const reviews=snapshot.reviews;
+  if(!Array.isArray(reviews)||!reviews.some(x=>x&&x.state==='APPROVED'&&
+      x.commit_sha===sha&&x.eligible===true&&x.dismissed!==true&&
+      typeof x.author==='string'&&x.author!==snapshot.author))
+    blocked.push('NO_ELIGIBLE_NON_AUTHOR_APPROVAL');
+  if(snapshot.requiresL2===true&&snapshot.l2EvidenceQualified!==true)
+    blocked.push('NO_QUALIFIED_L2');
+  return {ready:blocked.length===0,advisoryOnly:true,blockers:blocked};
+}
+
 module.exports={COMMAND,RESULT,Invalid,parseRequest,encodeRequest,parseResult,
-  encodeResult,normalizeResources,overlaps,replay,choose,makeResult,listComments,run};
+  encodeResult,normalizeResources,overlaps,replay,choose,makeResult,listComments,run,checkEligibility};

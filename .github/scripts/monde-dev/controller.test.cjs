@@ -236,3 +236,47 @@ test('E3 fail-closed: missing matching observed bot result fails readback',async
   await a.rejects(c.run({github:api(hist,{discardWrite:true}),context:ctx,
     core:{warning:()=>{}},settings:settings()}),e=>e.code==='RESULT_NOT_OBSERVED');
 });
+
+test('E5: advisory readiness cannot bypass absent protected main',()=>{
+  const base={candidateSha:SHA,liveHeadSha:SHA,targetBranch:'main',isDraft:false,
+    mergeable:true,protectedMain:false,rulesetEnforced:false,author:'alice',
+    requiredChecks:['controller-test'],checks:[{name:'controller-test',head_sha:SHA,
+      status:'completed',conclusion:'success',trustedSource:true,run_id:1}],
+    reviews:[{state:'APPROVED',commit_sha:SHA,eligible:true,author:'bob'}]};
+  const result=c.checkEligibility(base);
+  a.equal(result.ready,false);a.equal(result.advisoryOnly,true);
+  a.equal(result.blockers.includes('UNPROTECTED_MAIN'),true);
+  a.equal(c.checkEligibility({...base,protectedMain:true,rulesetEnforced:true}).ready,true);
+});
+test('E5: CI skipped, unknown source, stale SHA or no native approver are blocked',()=>{
+  const valid={candidateSha:SHA,liveHeadSha:SHA,targetBranch:'main',isDraft:false,
+    mergeable:true,protectedMain:true,rulesetEnforced:true,author:'alice',
+    requiredChecks:['controller-test'],checks:[{name:'controller-test',head_sha:SHA,
+      status:'completed',conclusion:'success',trustedSource:true,run_id:5}],
+    reviews:[{state:'APPROVED',commit_sha:SHA,eligible:true,author:'bob'}]};
+  const skipped=c.checkEligibility({...valid,checks:[{...valid.checks[0],conclusion:'skipped'}]});
+  a.equal(skipped.blockers.includes('BAD_REQUIRED_CHECK:controller-test'),true);
+  const untrusted=c.checkEligibility({...valid,checks:[{...valid.checks[0],trustedSource:false}]});
+  a.equal(untrusted.ready,false);
+  const stale=c.checkEligibility({...valid,liveHeadSha:'b'.repeat(40)});
+  a.equal(stale.blockers.includes('STALE_OR_UNKNOWN_HEAD'),true);
+  const self=c.checkEligibility({...valid,reviews:[{...valid.reviews[0],author:'alice'}]});
+  a.equal(self.blockers.includes('NO_ELIGIBLE_NON_AUTHOR_APPROVAL'),true);
+});
+test('E5: qualifying L2 still differs from required native GitHub approval',()=>{
+  const state={candidateSha:SHA,liveHeadSha:SHA,targetBranch:'main',isDraft:false,
+    mergeable:true,protectedMain:true,rulesetEnforced:true,author:'alice',
+    requiredChecks:['test'],checks:[{name:'test',head_sha:SHA,status:'completed',
+      conclusion:'success',trustedSource:true,run_id:9}],reviews:[],
+    requiresL2:true,l2EvidenceQualified:true};
+  a.equal(c.checkEligibility(state).blockers.includes('NO_ELIGIBLE_NON_AUTHOR_APPROVAL'),true);
+  const b=c.checkEligibility({...state,reviews:[{state:'APPROVED',commit_sha:SHA,
+    eligible:true,author:'bob'}],l2EvidenceQualified:false});
+  a.equal(b.blockers.includes('NO_QUALIFIED_L2'),true);
+});
+test('E5: missing or ambiguous host facts remain blocked',()=>{
+  a.equal(c.checkEligibility(null).ready,false);
+  const bad=c.checkEligibility({requiredChecks:[],checks:[],reviews:[]});
+  a.equal(bad.blockers.includes('UNKNOWN_REQUIRED_CHECKS'),true);
+  a.equal(bad.blockers.includes('NO_ELIGIBLE_NON_AUTHOR_APPROVAL'),true);
+});
