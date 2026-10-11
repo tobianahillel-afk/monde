@@ -1252,3 +1252,27 @@ test('malformed research report with invalid finding shape stays incomplete',()=
   assert.equal(outcome.reported_claims_incomplete,true);
   assert.equal(outcome.reported_blocking_unknown,true);
 });
+
+test('research missing JSON footer retains its R1 prose for manual triage only',()=>{
+  const expected={...H,mission_kind:'TECH_RESEARCH'};
+  const response='Independent technical review: suspected R1 in report ingestion. '+
+    'Needs manual qualification, not approval.\n'+d.RESEARCH_MARKER+
+    '\n{"v":1,"invalid":';
+  const outcome=d.assessResearchReport({expected,response,current_head:SHA,source:null});
+  assert.equal(outcome.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(outcome.needs_attention,true);
+  assert.equal(outcome.requires_manual_qualification,true);
+  assert.match(outcome.raw_report_excerpt,/suspected R1/);
+  assert.equal(outcome.raw_report_excerpt_truncated,false);
+  assert.equal(outcome.native_github_approved,false);
+});
+test('research malformed footer keeps excerpt bounded at 8192 characters',()=>{
+  const expected={...H,mission_kind:'TECH_RESEARCH'};
+  const response='Technical research '+('x'.repeat(8500))+
+    '\n'+d.RESEARCH_MARKER+'\ninvalid-json';
+  const outcome=d.assessResearchReport({expected,response,current_head:SHA,source:null});
+  assert.equal(outcome.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(outcome.raw_report_excerpt.length,8192);
+  assert.equal(outcome.raw_report_excerpt_truncated,true);
+  assert.equal(outcome.ready_for_merge,false);
+});

@@ -94,7 +94,7 @@ When a task result is retrieved from ChatGPT history, preserve the actual messag
 
 The candidate PR CI must check out the PR's **head SHA**, verify it explicitly, and run without persisted checkout credentials. Default GitHub `pull_request` merge-ref CI is useful for compatibility, but is not proof that the *candidate HEAD itself* is what the reviewer checked. A separate trusted merge-gate remains the responsibility of repository governance when promotion is authorized.
 
-`WORK-0005` in draft PR #18 describes an earlier four-writer architecture and is **not** a valid launch requirement for this interactive-only V2. Before accepting work-level normative status, that proposal must be reconciled through the governed documentation PR; this code PR does not silently rewrite a proposed WORK in another branch.
+`WORK-0005` in draft PR #18 now describes the **single interactive GitHub writer and read-only scheduled reviewers**. It remains `PROPOSED`, so the review and acceptance of that documentation PR are still separate requirements; the superseded four-writer RFC does not authorize an additional writer.
 
 ## Controls added for recovered-batch provenance and public relay
 
@@ -118,7 +118,7 @@ Even after confidentiality review, `prepareInteractiveHandoff` now emits a **min
 
 ## Latest L2 remediation — 2026-10-11 (candidate, not Accepted)
 
-The read-only implementation now permits an honestly blocked L2 with `reviewed_paths: []` and stated limitations, while `APPROVE` still needs declared coverage. A research mission cannot be processed as an L2 review. For a directory-scoped L2 assignment, the foreground writer must provide a GitHub-observed enumeration of its files at the exact HEAD to `assessReview` using `coverage_manifest: {head_sha,verified_at_head:true,files:[...]}`; every enumerated file must be declared examined to avoid even *provisional* coverage. This is still a manual observation and never cryptographic evidence of reading.
+The read-only implementation now permits an honestly blocked L2 with `reviewed_paths: []` and stated limitations, while `APPROVE` still needs declared coverage. A research mission cannot be processed as an L2 review. For a directory-scoped L2 assignment, the foreground writer must provide a GitHub-observed enumeration of its files at the exact HEAD to `assessReview` using a complete `coverage_manifest` (`head_sha`, `verified_at_head:true`, `source_kind:'github_recursive_tree'`, `enumeration_complete:true`, `tree_sha`, `enumerated_count`, `files`); every enumerated file must be declared examined to avoid even *provisional* coverage. This is still a manual observation and never cryptographic evidence of reading.
 
 The L2 task prompt explicitly requests the six relevant Review Council hats and their evidence/limitations. Public relay screens both source and generated output, including source reference identifiers, and rejects prepared comments larger than 12 KiB; oversized reports remain in ChatGPT until the interactive writer prepares an appropriate manually reviewed summary. CI uses Node's native nonregression thresholds (99% lines, 93% branches, 100% functions) **only as an interim warning barrier against degradation**, not as a waiver of MONDE's stricter meaningful 100% line/branch target. Final acceptance still requires full DoD or a reviewed exception and a current SHA-separated L2.
 
@@ -129,7 +129,7 @@ The foreground writer passes an external, exact-HEAD `coverage_manifests` map in
 
 For cross-cohort history, use `prior_sources` with `assignment_id`, actual retrieved `context_id` and `message_ref`, plus `head_sha`, `mission_kind` and SHA-256 `response_sha256` of the *entire raw retrieved message*. An old three-field record is readable for historical context, but if its mission ID is reused it is **ambiguous**, not fresh review approval. A different SHA, mission type or message digest for the same ID is disqualified. Never reuse an assignment ID after a HEAD change: create a new mission instead.
 
-Manual relays to the public GitHub PR must be cleared by the foreground ChatGPT writer. Best-effort secret-pattern checks now include Slack, GitLab, npm, payment/API and bearer credentials, and the maximum generated relay is **12 KiB = 12,288 bytes**. The pattern scanner is a safety backstop, not confidentiality certification. The old four-writer RFC/WORK-0005 documentation in PR #18 remains an **unaccepted superseded proposal**, not the operating contract for the interactive one-writer V2.
+Manual relays to the public GitHub PR must be cleared by the foreground ChatGPT writer. Best-effort secret-pattern checks now include Slack, GitLab, npm, payment/API and bearer credentials, and the maximum generated relay is **12 KiB = 12,288 bytes**. The pattern scanner is a safety backstop, not confidentiality certification. The former four-writer RFC text in PR #18 is superseded. The revised `WORK-0005` now targets single-writer V2 but remains **PROPOSED**, not Accepted or sufficient for deployment.
 
 ## Triage interactif des constats récupérés
 
@@ -157,3 +157,9 @@ Directory-scoped `coverage_manifest` must now include the foreground-observed ex
 ## Stable closing pass — focused L2 findings
 
 The reviewer footer and provenance/coverage manifests remain **claims awaiting foreground qualification**, not host-signed proof. For speed, schedule L2 only once a coherent candidate is frozen; batch material F01–F04 fixes. A complete-looking directory tree manifest alone never upgrades a directory-scoped review to provisionally complete. Prefer **explicit file paths** in delegated review assignments; externally confirm the GitHub exact-SHA tree before accepting any broad-directory completeness claim. Research reports marked COMPLETED always require foreground inspection. Unqualified R1/R2 allegations, even in malformed reports, must stay visible in triage counters and block automatic readiness.
+
+## Simple-code implementation rules and ChatGPT L2 retrieval
+
+The interactive developer obeys the twelve implementation rules in `monde-dev-v2-interactive-prompt.md`: source invariants, minimal structure, linear control flow, fail-closed sensitive operations, clear responsibility, prudent reuse, root-cause corrections, and no speculative abstractions. Batch related changes and perform focused testing at a stable candidate HEAD; do not loop over old known failures without new evidence.
+
+L2 tasks run in distinct ChatGPT conversations and return their complete reports **in the conversation**, without any GitHub mutation. The foreground writer itself retrieves prior task conversations when accessible, preserves the reviewed SHA and reviews findings before modifying GitHub. Reports with unreadable research footers are retained in memory as a bounded excerpt for manual triage, never accepted as L2 evidence or automatic approval.

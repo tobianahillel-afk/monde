@@ -17,3 +17,22 @@ Contraintes : pas de Codex, pas de serveur local ou distant indépendant, pas de
 Référence de fonctionnement : `docs/12_RESEARCH/monde-dev-v2-single-writer-delegation.md`. Le protocole de mission/résultat peut être vérifié avec le module pur `.github/scripts/monde-dev/delegation.cjs` ; celui-ci ne publie rien et ne prouve pas à lui seul l'indépendance d'un contexte ChatGPT.
 
 Un résultat structuré `L2_REPORT_RECEIVED_PENDING_VALIDATION` atteste seulement d'un rapport dont le format et les identifiants correspondent. Il ne prouve ni l'indépendance factuelle du contexte, ni la qualité de la revue, ni une approbation GitHub. La conversation interactive qualifie manuellement les preuves avant acceptation.
+
+## Règles fondamentales d'implémentation (à appliquer à chaque demande)
+
+1. **Simplicité :** retenir la solution correcte la moins complexe.
+2. **Cause racine :** définir les invariants et réparer la cause plutôt qu'empiler des exceptions.
+3. **Sécurité :** refus par défaut et autorisations explicites pour toute opération sensible.
+4. **Flux clair :** code linéaire, conditions courtes et retours anticipés.
+5. **États cohérents :** empêcher les états invalides quand c'est raisonnablement simple.
+6. **Responsabilité claire :** une fonction ou un module par rôle concret, sans composants artificiels.
+7. **Pas de spéculation :** aucun mécanisme générique pour un besoin non établi.
+8. **Réutilisation raisonnée :** privilégier les primitives existantes, factoriser seulement les vrais points communs.
+9. **Erreurs explicites :** traiter l'échec au bon niveau, sans le masquer ni multiplier les fallbacks.
+10. **Correction définitive :** supprimer les contournements inutiles après correction de la cause.
+11. **Lisibilité :** choisir la formulation explicite plutôt que l'astuce ou l'abstraction.
+12. **Justification :** n'ajouter une condition que si elle sert un besoin démontré ; ne retirer aucune protection obligatoire pour simplifier.
+
+**Cadence :** corriger les constats L2 justifiés par lots cohérents, tester les risques modifiés et faire une CI au HEAD stabilisé, sans répéter les mêmes échecs ou requalifier chaque anomalie déjà établie. Préserver la gouvernance MONDE et la distinction entre tests verts et validation finale.
+
+**Récupération L2 :** le développeur interactif planifie les revues ponctuelles ChatGPT dans un contexte séparé, consulte lui-même les conversations de ces tâches et exploite leurs rapports au SHA concerné. Les réviseurs restent en lecture seule ; si la publication GitHub est indisponible, la réponse ChatGPT doit contenir le rapport intégral. Aucun compte rendu non retrouvé ne vaut approbation.

@@ -80,6 +80,8 @@ function buildReviewPrompt(input) {
     'Lis le code reel, les exigences acceptees et les preuves CI au SHA.',
     'Cherche activement les erreurs de securite, concurrence, logique,',
     'architecture, performance, tests et integration. Cite les preuves.',
+    'Revise aussi les invariants, la simplicite des flux et les causes racines;',
+    'evite les abstractions non justifiees et les protections superficielles.',
     'MATRICE REVIEW COUNCIL: traite explicitement les 6 hats suivants:',
     'SECURITY, ARCHITECTURE_REUSE, VERIFICATION_VALIDATION,',
     'PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY, RED_TEAM_SKEPTIC.',
@@ -125,6 +127,7 @@ function buildResearchPrompt(input) {
     'Objectif: '+a.objective,
     'Chemins: '+a.paths.join(', '),
     'Analyse en detail, compare les options et cite des preuves verifiables.',
+    'Privilegie les solutions minimales qui respectent les invariants.',
     'INTERDIT: commentaire GitHub, commit, fichier, PR, review native,',
     'fusion, parametre GitHub, nouvelle tache ou developpement autonome.',
     'Livre le RAPPORT COMPLET dans TA PROPRE REPONSE ChatGPT.',
@@ -149,6 +152,9 @@ function assessResearchReport({expected,response,current_head,source}) {
     return {...result('REPORT_NEEDS_MANUAL_REVIEW',reason),
       needs_attention:true,requires_manual_qualification:true,
       ...claims,
+       // Foreground-only source fragment when the machine footer is unreadable.
+       raw_report_excerpt:typeof response==='string'?response.slice(0,8192):null,
+       raw_report_excerpt_truncated:typeof response==='string'&&response.length>8192,
       raw_report_sha256:typeof response==='string'&&response.length<=1024*1024?
         createHash('sha256').update(response,'utf8').digest('hex'):null};
   };
@@ -198,8 +204,7 @@ function assessResearchReport({expected,response,current_head,source}) {
     'RESEARCH_REPORT_RECEIVED_PENDING_VALIDATION',
     mission_kind:a.mission_kind,requires_manual_qualification:true,
     findings:packet.findings.length,...alleged,
-    needs_attention:true,
-    requires_manual_qualification:true,native_github_approved:false,
+    needs_attention:true,native_github_approved:false,
     ready_for_merge:false};
 }
 
