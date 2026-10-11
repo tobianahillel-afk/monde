@@ -196,6 +196,11 @@ async function listComments(github,owner,repo,number){
 async function verifyActiveResultOrigins(github,owner,repo,comments,settings){
   if(!Number.isSafeInteger(settings?.trustedWorkflowId)||
      settings.trustedWorkflowId<1||
+     !Array.isArray(settings.trustedDeploymentShas)||
+     settings.trustedDeploymentShas.length===0||
+     settings.trustedDeploymentShas.length>64||
+     settings.trustedDeploymentShas.some(s=>typeof s!=='string'||!SHA.test(s))||
+     !Array.isArray(settings.allowedActors)||settings.allowedActors.length===0||
      typeof github?.rest?.actions?.getWorkflowRun!=='function')
     fail('UNVERIFIED_WORKFLOW_ORIGIN');
   const seen=new Map();
@@ -217,12 +222,15 @@ async function verifyActiveResultOrigins(github,owner,repo,comments,settings){
     }
     if(run.id!==result.workflow_run_id||
        run.workflow_id!==settings.trustedWorkflowId||
+       typeof run.head_sha!=='string'||!settings.trustedDeploymentShas.includes(run.head_sha)||
+       !settings.allowedActors.includes(run.actor?.login)||
+       !settings.allowedActors.includes(run.triggering_actor?.login)||
        run.event!=='issue_comment'||
        run.head_branch!=='main'||
        run.head_repository?.full_name!==owner+'/'+repo||
        !/^\.github\/workflows\/monde-dev-dispatch\.yml(?:@main)?$/.test(run.path||'')||
        !Number.isSafeInteger(run.run_attempt)||
-       run.run_attempt<result.workflow_run_attempt)
+       run.run_attempt!==result.workflow_run_attempt)
       fail('UNVERIFIED_WORKFLOW_ORIGIN');
   }
 }

@@ -623,7 +623,9 @@ function guardedApi(history,workSource,flags={}){
   base.rest.actions={getWorkflowRun:async({run_id})=>({
     data:{id:run_id,workflow_id:2345,event:'issue_comment',head_branch:'main',
       head_repository:{full_name:'tobianahillel-afk/monde'},
-      path:'.github/workflows/monde-dev-dispatch.yml@main',run_attempt:1}
+      path:'.github/workflows/monde-dev-dispatch.yml@main',run_attempt:1,
+       head_sha:SHA,actor:{login:'tobianahillel-afk'},
+       triggering_actor:{login:'tobianahillel-afk'}}
   })};
   base.rest.repos={
     getBranch:async()=>{branchReads++;return {data:{protected:flags.protected!==false,
@@ -641,7 +643,7 @@ function guardedApi(history,workSource,flags={}){
 }
 function activeSettings(){
   return {...settings(),mode:'ACTIVE_4',activeLaunchApproved:true,
-    trustedWorkflowId:2345};
+    trustedWorkflowId:2345,trustedDeploymentShas:[SHA]};
 }
 test('ACTIVE_4: guarded event produces a coordination-only lease from real WORK',async()=>{
   const r=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
@@ -1006,4 +1008,35 @@ test('normal fixture denial and STATUS response remain replayable',()=>{
   const comments=[...s.comments,cmd,response(13,cmd,out)];
   a.equal(c.replay(comments).grants.size,1);
   a.equal(c.replay(comments).decisions.size,3);
+});
+
+test('ACTIVE_4 receipts reject wrong reviewed deployment SHA',async()=>{
+  const cmd=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const ctx=event(cmd,40),hist=[ctx.payload.comment],gh=guardedApi(hist,REAL_READY_WORK);
+  const real=gh.rest.actions.getWorkflowRun;
+  gh.rest.actions.getWorkflowRun=async args=>{
+    const r=await real(args);r.data.head_sha='b'.repeat(40);return r;
+  };
+  await a.rejects(c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:activeSettings()}),e=>e.code==='UNVERIFIED_WORKFLOW_ORIGIN');
+});
+test('ACTIVE_4 receipts reject foreign actor on trusted run',async()=>{
+  const cmd=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const ctx=event(cmd,40),hist=[ctx.payload.comment],gh=guardedApi(hist,REAL_READY_WORK);
+  const real=gh.rest.actions.getWorkflowRun;
+  gh.rest.actions.getWorkflowRun=async args=>{
+    const r=await real(args);r.data.actor={login:'foreign'};return r;
+  };
+  await a.rejects(c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:activeSettings()}),e=>e.code==='UNVERIFIED_WORKFLOW_ORIGIN');
+});
+test('ACTIVE_4 receipts reject mismatched workflow run attempt',async()=>{
+  const cmd=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const ctx=event(cmd,40),hist=[ctx.payload.comment],gh=guardedApi(hist,REAL_READY_WORK);
+  const real=gh.rest.actions.getWorkflowRun;
+  gh.rest.actions.getWorkflowRun=async args=>{
+    const r=await real(args);r.data.run_attempt=2;return r;
+  };
+  await a.rejects(c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:activeSettings()}),e=>e.code==='UNVERIFIED_WORKFLOW_ORIGIN');
 });
