@@ -1419,3 +1419,35 @@ test('read-only reviewer task briefing explicitly checks HEAD at start and end',
   assert.match(d.buildReviewPrompt(H),/debut ET a la fin/);
   assert.match(d.buildResearchPrompt(RESEARCH),/debut et a la fin/);
 });
+
+test('unqualified relay preserves structured findings from contradictory approval footer',()=>{
+  const badPacket=data({verdict:'APPROVE'});
+  const response=message(badPacket);
+  const out=d.prepareUnqualifiedTriageHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.match(out.text,/F01 \[R1\]/);
+  assert.match(out.text,/Suggested correction: Refuse the stale operation/);
+  assert.equal(out.native_github_approved,false);
+  assert.equal(out.ready_for_merge,false);
+});
+test('unqualified relay rejects reports without an actionable redacted fragment',()=>{
+  const response='The review is incomplete but no detailed evidence was given\n'+
+    d.MARKER+'\n{broken';
+  const out=d.prepareUnqualifiedTriageHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}});
+  assert.equal(out.status,'NO_REVIEWED_ACTIONABLE_EXCERPTS');
+  assert.equal(out.text,null);
+});
+test('unqualified relay never tries to publish unsupported non-string reports',()=>{
+  const args={expected:H,response:123,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}};
+  assert.equal(d.assessReview(args).manual_source_required,true);
+  assert.equal(d.prepareUnqualifiedTriageHandoff(args).status,
+    'UNSUPPORTED_REPORT_SIZE');
+});
