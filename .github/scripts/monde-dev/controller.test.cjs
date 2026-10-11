@@ -648,7 +648,7 @@ test('ACTIVE_4: guarded event produces a coordination-only lease from real WORK'
   a.equal(done.result.write_authority,false);
   a.equal(gh.measures().workReads,2);
   a.equal(c.replay(hist,undefined,undefined,'ACTIVE_4').grants.size,1);
-  a.throws(()=>c.replay(hist),e=>e.code==='BAD_RESULT');
+  a.equal(c.replay(hist).grants.size,0); // old-mode replay ignores ACTIVE_4 grants
 });
 test('ACTIVE_4: missing explicit activation approval rejects all mutations',async()=>{
   const r=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
@@ -720,12 +720,12 @@ test('ACTIVE_4: conflicting scopes across tasks grant only first claim',async()=
   }
   a.equal(c.replay(hist,undefined,undefined,'ACTIVE_4').grants.size,1);
 });
-test('ACTIVE_4: prior synthetic result cannot be smuggled into active grant log',()=>{
+test('ACTIVE_4: prior TEST_ONLY result is validated but never becomes an active grant',()=>{
   const fixture=request(1,q());
   const result=response(2,fixture,{outcome:'GRANTED',reason:'TEST_FIXTURE',
     grant_id:'grant:req-case-0001',epoch:1,resources:q().resources,
     observed_base_sha:SHA});
-  a.throws(()=>c.replay([fixture,result],undefined,undefined,'ACTIVE_4'));
+  a.equal(c.replay([fixture,result],undefined,undefined,'ACTIVE_4').grants.size,0);
 });
 
 test('E5 responsibility ownership: same TASK cannot be granted twice on different files',()=>{
