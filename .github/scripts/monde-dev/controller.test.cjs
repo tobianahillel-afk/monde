@@ -304,3 +304,27 @@ test('E3: a matching request ID from a different journal event is not authorized
     e=>e.code==='TRIGGER_NOT_IN_HISTORY');
   a.equal(sends,0);
 });
+
+test('E4: 4-worker exhaustive resource interleavings never admit overlapping ownership',()=>{
+  const patterns=[
+    ['path:src/A'],
+    ['path:src/A/nested'],
+    ['path:src/B'],
+    ['contract:SharedWorld']
+  ];
+  let tested=0;
+  for(let i=0;i<4;i++)for(let j=0;j<4;j++)for(let k=0;k<4;k++)for(let l=0;l<4;l++){
+    const s=simulated();
+    for(const [idx,choice] of [i,j,k,l].entries()){
+      s.apply(q(idx+1,{resources:patterns[choice]}));
+      const owned=Array.from(s.state().grants.values());
+      for(let aIndex=0;aIndex<owned.length;aIndex++)
+        for(let bIndex=aIndex+1;bIndex<owned.length;bIndex++)
+          for(const ra of owned[aIndex].resources)
+            for(const rb of owned[bIndex].resources)
+              a.equal(c.overlaps(ra,rb),false);
+    }
+    tested++;
+  }
+  a.equal(tested,256);
+});
