@@ -287,14 +287,28 @@ function manualRecovery(response) {
   if(typeof response!=='string') return {raw_report_excerpt:null,
     raw_report_tail_excerpt:null,raw_report_excerpt_truncated:false,
     raw_blocker_snippets:[],manual_source_required:true,raw_report_sha256:null};
-  const n=response.length, snippets=[], seen=new Set();
+  const n=response.length, first=[], last=[], seen=new Set();
   const re=/\bR[12]\b|["']severity["']\s*:\s*["']R[12]["']/gi;
-  for(const match of response.matchAll(re)){
-    const sample=response.slice(Math.max(0,match.index-180),
-      Math.min(n,match.index+320));
-    if(!seen.has(sample)){seen.add(sample);snippets.push(sample);}
-    if(snippets.length===12)break;
+  // Keep both ends of the sequence: twelve early mentions of R2 must not
+  // hide a later R1 outside the fixed head/tail excerpts.
+  // Oversized input is never a qualifying report; inspect only bounded
+  // windows and leave the full original in its ChatGPT conversation.
+  const windows=n>1024*1024?[
+    {text:response.slice(0,8192),offset:0},
+    {text:response.slice(-8192),offset:n-8192}
+  ]:[{text:response,offset:0}];
+  for(const window of windows){
+    for(const match of window.text.matchAll(re)){
+      const offset=window.offset+match.index;
+      const sample=response.slice(Math.max(0,offset-180),
+        Math.min(n,offset+320));
+      if(seen.has(sample))continue;
+      seen.add(sample);
+      if(first.length<6)first.push(sample);
+      else {last.push(sample);if(last.length>6)last.shift();}
+    }
   }
+  const snippets=[...first,...last];
   return {raw_report_excerpt:response.slice(0,8192),
     raw_report_tail_excerpt:n>8192?response.slice(-8192):null,
     raw_report_excerpt_truncated:n>8192,raw_blocker_snippets:snippets,
@@ -593,7 +607,12 @@ function prepareInteractiveHandoff(args) {
   return {
     status: evaluation.status, can_publish: false,
     ready_for_manual_relay: true,
-    self_contained_for_remediation:metadata.findings.length>0&&
+    // A BLOCKED reviewer (or incomplete coverage) cannot supply a complete
+    // correction dossier merely because some finding details were approved.
+    self_contained_for_remediation:evaluation.status==='NEEDS_CORRECTION'&&
+      metadata.verdict==='CHANGES_REQUIRED'&&metadata.findings.length>0&&
+      evaluation.missing_reviewed_paths.length===0&&
+      evaluation.extraneous_reviewed_paths.length===0&&
       (detailedFindings||fullReport),
     requires_manual_qualification: true,
     native_github_approved: false, text: note

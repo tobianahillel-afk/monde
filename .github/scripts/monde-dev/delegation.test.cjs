@@ -1558,3 +1558,53 @@ test('generic sk-prefixed tokens are rejected in malformed GitHub relay',()=>{
   assert.equal(out.ready_for_manual_relay,false);
   assert.equal(out.text,null);
 });
+
+
+test('L2 regression: BLOCKED with one R2 never advertises a self-contained remediation',()=>{
+  const packet=data({verdict:'BLOCKED',findings:[{...data().findings[0],severity:'R2'}],
+    limitations:['Could not access the target file']});
+  const x=d.prepareInteractiveHandoff({expected:H,response:message(packet),
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}});
+  assert.equal(x.status,'BLOCKED');
+  assert.equal(x.ready_for_manual_relay,true);
+  assert.equal(x.self_contained_for_remediation,false);
+  assert.match(x.text,/Could not access the target file/);
+  assert.match(x.text,/Suggested correction:/);
+});
+test('L2 regression: partial reviewed-path coverage cannot claim complete remediation',()=>{
+  const packet=data({reviewed_paths:[],limitations:['Coverage of assigned file missing']});
+  const x=d.prepareInteractiveHandoff({expected:H,response:message(packet),
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}});
+  assert.equal(x.status,'NEEDS_CORRECTION');
+  assert.equal(x.self_contained_for_remediation,false);
+  assert.match(x.text,/Assigned paths not declared examined:/);
+});
+test('L2 regression: malformed mid-report R1 remains in bounded snippets beyond twelve early R2',()=>{
+  const prefix=Array.from({length:15},(_,i)=>
+    'R2: early known note '+i+' '.padEnd(370,'x')).join('\n');
+  const tail=Array.from({length:8},(_,i)=>
+    'R1: later severe logic flaw '+i+' must be triaged').join('\n');
+  const report=prefix+'\n'+('neutral padding '.repeat(680))+'\n'+tail+
+    '\n'+d.MARKER+'\n{invalid json';
+  const result=d.assessReview({expected:H,response:report,current_head:SHA,source});
+  assert.equal(result.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(result.raw_blocker_snippets.length,12);
+  assert.ok(result.raw_blocker_snippets.some(s=>
+    s.includes('later severe logic flaw 7')));
+  assert.equal(result.requires_manual_qualification,true);
+  assert.equal(result.native_github_approved,false);
+});
+test('L2 regression: overlong malformed text recovers tail R1 using bounded extraction',()=>{
+  const report='R2: first warning\n'+('z'.repeat(1024*1024+64))+
+    '\nR1: last severe finding must be preserved\n'+d.MARKER+'\n{broken';
+  const r=d.assessReview({expected:H,response:report,current_head:SHA,source});
+  assert.equal(r.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(r.raw_report_sha256,null);
+  assert.ok(r.raw_blocker_snippets.some(s=>
+    s.includes('last severe finding')));
+  assert.equal(r.reported_blocking_unknown,true);
+});
