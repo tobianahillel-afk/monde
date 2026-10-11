@@ -37,10 +37,11 @@ Beads, Gas Town, OpenHands, mini-SWE-agent and Temporal are **not installable as
 
 **Use this section as the next implementation PR's contract.** It freezes *author-side technical choices only*, not existing repository governance or launch permission. Build interactively when the user says to code. **Do not create or run any Scheduled task while building**; Scheduled ChatGPT W1–W4 are exclusively later controlled test subjects until the user separately approves launch. Nothing below authorizes changing `main`, bypassing WORK-0002/3 or marking this PR Accepted.
 
-**Exactly three new executable files for the prototype** (new scoped implementation WORK/PR, not this draft PR):
+**Exactly four proposed executable/configuration files for the prototype** (new scoped implementation WORK/PR, not this draft PR; one of these is read-only PR test CI):
 - `.github/workflows/monde-dev-dispatch.yml`: one serialized GitHub Actions event adapter, with `issue_comment: created` (non-PR designated command Issue) and `workflow_dispatch` for a manual reconciliation/fixture test. Constant `concurrency.group: monde-dev-dispatch`, `queue: max`, `cancel-in-progress: false`. Checkout **trusted default-branch source only**; pin reviewed immutable full action SHAs; `permissions` limited to `contents: read, issues: write, checks: read, actions: read, pull-requests: read` where actually required. Do not run PR-controlled commands, install from a PR, inject Issue text into shell or give `contents: write`.
 - `.github/scripts/monde-dev/controller.cjs`: a **single** CommonJS module loaded by `actions/github-script`, using its provided Octokit client. Export pure `parseRequest`, `normalizeResources`, `choose`, `reduceEvents`, `reconcile` plus a small `run` adapter. Keep GitHub API I/O at the boundary and logic deterministic; no external package, framework, database, worker daemon or second trust ledger.
 - `.github/scripts/monde-dev/controller.test.cjs`: Node's built-in `node:test` + `assert/strict` with synthetic REST fixtures, real four-way conflict cases and negative security/recovery cases.
+- `.github/workflows/monde-dev-ci.yml`: a **separate, unprivileged** `pull_request`/manual verification workflow for these implementation paths, doing JS syntax + `node --test`, and workflow security checks where available. `permissions: contents: read`; zero issue-write/secrets/privileged token in the PR test job. Its green badge is candidate evidence, not a replacement for approved merge-source checks. Reuse an already proven suitable trusted CI job instead and omit this file only after actual proof.
 
 **First-run constant configuration** is held in trusted workflow code (not user comments or candidate branches): allowlisted command Issue number **TBD_REAL_ISSUE_ID** (must be an actual new non-PR GitHub Issue), allowed authenticated GitHub actor(s) **TBD_REAL_ALLOWED_ACTOR** from verified live event, `MODE=TEST_ONLY`, expected default-branch repository identity, policy revision. These values are external observations, NOT architectural choices for the model to invent. Workflow refuses work until configured and reviewed.
 
@@ -77,6 +78,43 @@ Also accept `RELEASE` (`request_id,worker,work,task,grant_id,epoch,observed_head
 6. Every worker rereads the grant and target branch HEAD before mutation and after uncertain writes, works only in its owned branch/resource set, and freezes candidate HEAD during exact-head CI/review. No automatic merge, force push, native self-approval or direct `main` edit. **Cooperative collision prevention is not hard per-chat authentication** under one shared GitHub account.
 
 **Modes:** `TEST_ONLY` is the **deployed starting mode**. Synthetic claims/fixture conflicts may be recorded, but no task gets product branch-write authorization or integration from this controller. Transition to four real write-capable workers is a separate reviewed change after T0–T5, WORK-0002/3 host gates and user launch consent. Interactive authoring on isolated branches can continue through pre-existing authority independently of this test mode.
+
+## 1B. CODE-FIRST IMPLEMENTATION CHECKLIST + test oracle (freeze candidate)
+
+**Build on user requests in this conversation, in one separate scoped implementation branch.** No Scheduled task for routine coding, no code pushed to `main` outside the host approval process. The *future* four worker prompts are prepared but inactive. No UI, SQLite, Docker, Redis, workers SDK or paid AI model.
+
+**Implementation order / coherent commits:**
+1. **E0 — static pure functions + fixtures.** Implement strict schema parsing/normalization, resource overlap, canonical WORK eligibility, grant state reducer, request idempotence; unit-test with `node --test` before any webhook. Completion: four disjoint requests all granted; four claims on same resource at most one granted; unchanged duplicate returns prior result.
+2. **E1 — GitHub REST adapter (mocked).** One paginated Issue-comment reader, trusted result filter, controlled result writer with readback; no hidden network in pure core. Mock missed page, HTTP 403/429, timeout after write, duplicate events, wrong author/repo/issue. Completion: never publish conflicting grants or falsely report an ambiguous write as success.
+3. **E2 — read-only CI + trusted event workflow on isolated PR.** Run candidate JS tests on PR with no issue-write privilege, lint/action-security check as available. Review workflow trust boundaries before any production deployment; avoid `pull_request_target` execution of candidate code.
+4. **E3 — authorized default-branch test deployment.** Only through independent applicable review and GitHub host permissions; create the real command Issue/config. `MODE=TEST_ONLY` is mandatory. Verify actual `issue_comment` triggers Actions on default branch and bot result correlates to event.
+5. **E4 — four-worker concurrency tests.** Synthetic W1..W4 simultaneous nonconflicting and conflicting requests, delayed/absent/comment API response, stale attempt, manual reconciliation, review of scope handovers. Then *only after user approves the test schedule*, create/run four Scheduled ChatGPT tasks for a bounded test, not for V2 development.
+6. **E5 — promotion decision.** Review actual event delivery, user account permissions, source of checks, acceptance authority and WORK-0002/3 host settings. If any missing, stay `TEST_ONLY` / `BLOCKED`, document concrete GitHub evidence and let the interactive developer fix it. Full ACTIVE_4 use requires a later explicit decision.
+
+**Unit/adapter acceptance vectors** (all must be observable, not a green badge guessed by ChatGPT):
+
+| ID | Input/event | Must be true |
+|---|---|---|
+| AT-01 | Four different WORK/TASK and disjoint resources, same starting snapshot | Four distinct non-overlapping GRANTED results |
+| AT-02 | Four concurrent CLAIMs on same exclusive path or shared semantic contract | At most one current effective grant on any resource |
+| AT-03 | Same request ID delivered twice/out-of-order | Exactly one effective result; reread existing result, never double allocate |
+| AT-04 | Same request ID with different payload/actor | BLOCKED conflict, no trust in the replacement |
+| AT-05 | Wrong Issue, PR comment, unknown actor, forged worker W2 | No authorized mutation; worker label is not authentication |
+| AT-06 | Shell/markdown injection, path traversal, extra JSON keys, oversized command | Strict rejection; no user text evaluated as executable code |
+| AT-07 | WORK missing/unready, dependency not accepted, contract ownership uncertain | DENIED/BLOCKED; no grant based on comment's own claims |
+| AT-08 | API pages incomplete, transient 403/429, lost mutation ACK | UNKNOWN and readback/backoff; no blind replay or second grant |
+| AT-09 | Matching RELEASE vs mismatched epoch, grant ID, SHA or actor/worker | Only current matching grant released; stale attempt rejected |
+| AT-10 | One worker disappears; another starts; current grant unproven | Quarantine, no time-only automatic takeover or false merge eligibility |
+| AT-11 | CI still running, completed on old HEAD, skipped, untrusted source | Candidate remains pending/blocked; continue other eligible work |
+| AT-12 | CI complete on current HEAD, valid tests, review incomplete | No false acceptance; integration still blocked by review authority |
+| AT-13 | Existing REVIEW/TEST covers unchanged scope versus changed contract | Reuse analysis, inspect delta or full review as needed; stale formal approval never reused |
+| AT-14 | Four actual test workers request disjoint vs conflicting tasks | Successful readback/handover, no duplicate reservation; no unapproved code merge |
+| AT-15 | Bot response self-triggers new issue_comment event | Ignore as request; prevent recursive write/notification storm |
+| AT-16 | Repository `main` lacks branch protections or native non-author approval | No unattended integration, irrespective of ChatGPT reviewer opinion |
+
+**Definition of Done for an implementation PR:** real code + built-in tests; manual/CI results attached to exact SHA; all applicable existing governance/Review Council/authority gates; short developer handover, source/actor validation, four-way verified test evidence, no unexpected comment duplication, all trust incidents recoverable or fail-closed. **No experiment may silently promote `TEST_ONLY` into full write-capable mode.**
+
+**Review memory is not a second product:** existing `WORK.review_plan`, `REVIEW-*`, `TEST-*`, PR threads and exact HEAD own scoped coverage; preserve tested and untested surfaces plus invalidation conditions. Prior review knowledge may be reused, but formal current-head approval requires fresh evidence where the Accepted rules say so.
 
 ## 2. Five functional responsibilities (analysis lenses, **not five custom engines**) 
 
