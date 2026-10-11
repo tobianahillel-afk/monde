@@ -64,7 +64,7 @@ function buildReviewPrompt(input) {
   const example = {
     v: 1, assignment_id: a.assignment_id, repo: a.repo, pr: a.pr,
     head_sha: a.head_sha, reviewer_context_id: 'new-separate-context-id',
-    verdict: 'BLOCKED', findings: [],
+    verdict: 'BLOCKED', findings: [], reviewed_paths: a.paths,
     limitations: ['Exemple de format uniquement; remplacer par les constats et limites réellement observés']
   };
   return [
@@ -93,6 +93,8 @@ function buildReviewPrompt(input) {
     JSON.stringify(example),
     'Ne copie jamais les exemples de constats ou de verdict sans preuve.',
     'Les constats non nuls doivent inclure preuve et correction precise.',
+    'Remplis reviewed_paths avec les chemins reellement examines.',
+    'Ne declare aucun fichier examine sans l avoir reellement lu.',
     'CHANGES_REQUIRED exige au moins un constat. APPROVE est interdit',
     'avec des constats R1/R2 encore ouverts dans son propre rapport.',
     'Ne mets aucun texte ni bloc Markdown apres la derniere ligne JSON.',
@@ -179,8 +181,10 @@ function assessResearchReport({expected,response,current_head,source}) {
 }
 
 function validateReport(x) {
-  exactFields(x, ['v', 'assignment_id', 'repo', 'pr', 'head_sha',
-    'reviewer_context_id', 'verdict', 'findings', 'limitations']);
+  const baseFields=['v','assignment_id','repo','pr','head_sha',
+    'reviewer_context_id','verdict','findings','limitations'];
+  const hasCoverage=plain(x)&&Object.prototype.hasOwnProperty.call(x,'reviewed_paths');
+  exactFields(x,hasCoverage?baseFields.concat('reviewed_paths'):baseFields);
   if (x.v !== 1 || typeof x.assignment_id !== 'string' ||
       !ID.test(x.assignment_id) || typeof x.repo !== 'string' ||
       !REPO.test(x.repo) || !Number.isSafeInteger(x.pr) || x.pr < 1 ||
@@ -192,6 +196,11 @@ function validateReport(x) {
       !Array.isArray(x.limitations) || x.limitations.length > 30 ||
       x.limitations.some(v => !oneLine(v, 2000)))
     bad('INVALID_REPORT');
+  if(hasCoverage&&(!Array.isArray(x.reviewed_paths)||
+     x.reviewed_paths.length<1||x.reviewed_paths.length>24||
+     x.reviewed_paths.some(path=>!validPath(path,true))||
+     new Set(x.reviewed_paths).size!==x.reviewed_paths.length))
+    bad('INVALID_REVIEW_COVERAGE');
   const ids = new Set();
   for (const f of x.findings) {
     exactFields(f, ['id', 'severity', 'path', 'evidence', 'action']);
@@ -276,17 +285,25 @@ function assessReview({ expected, response, current_head, source }) {
   const outOfScope = metadata.findings
     .filter(f => !scopeMatches(f.path, a.paths))
     .map(f => f.id);
+  const examined=Array.isArray(metadata.reviewed_paths)?metadata.reviewed_paths:[];
+  // The inventory is a reviewer claim; actual file reading still needs
+  // independent qualification by the interactive foreground author.
+  const missingCoverage=a.paths.filter(path=>!examined.includes(path));
+  const extraneousCoverage=examined.filter(path=>!scopeMatches(path,a.paths));
   // Structural shape + a caller-supplied provenance observation are not an
   // independent substantive review nor a host-native reviewer approval.
   return {
     status: metadata.verdict === 'CHANGES_REQUIRED' ? 'NEEDS_CORRECTION' :
       metadata.verdict === 'BLOCKED' ? 'BLOCKED' :
         outOfScope.length ? 'L2_REPORT_SCOPE_EXPANSION' :
-          'L2_REPORT_RECEIVED_PENDING_VALIDATION',
+          missingCoverage.length||extraneousCoverage.length ?
+          'L2_SCOPE_NOT_EVIDENCED':'L2_REPORT_RECEIVED_PENDING_VALIDATION',
     requires_manual_qualification: true,
     native_github_approved: false,
     finding_count: metadata.findings.length,
     out_of_scope_findings: outOfScope,
+    missing_reviewed_paths: missingCoverage,
+    extraneous_reviewed_paths: extraneousCoverage,
     severity_r1: metadata.findings.filter(x => x.severity === 'R1').length,
     analysis_length: analysis.length,
     observed_message_ref: source.message_ref
@@ -296,7 +313,7 @@ function assessReview({ expected, response, current_head, source }) {
 function prepareInteractiveHandoff(args) {
   const evaluation = assessReview(args);
   if (!['NEEDS_CORRECTION', 'BLOCKED', 'L2_REPORT_SCOPE_EXPANSION',
-      'L2_REPORT_RECEIVED_PENDING_VALIDATION'].includes(evaluation.status))
+      'L2_REPORT_RECEIVED_PENDING_VALIDATION','L2_SCOPE_NOT_EVIDENCED'].includes(evaluation.status))
     return { status: evaluation.status, can_publish: false,
       ready_for_manual_relay: false,
       native_github_approved: false, text: null };
@@ -327,6 +344,10 @@ function prepareInteractiveHandoff(args) {
     'GitHub native approval: NONE (same connected GitHub principal)',
     'Findings outside assignment scope: ' +
       (evaluation.out_of_scope_findings.join(', ') || 'none'),
+    'Assigned paths not declared examined: ' +
+      (evaluation.missing_reviewed_paths.join(', ') || 'none'),
+    'Examination outside assignment scope: ' +
+      (evaluation.extraneous_reviewed_paths.join(', ') || 'none'),
     '',
     '### Retrieved review analysis (normalized text)',
     analysis,
