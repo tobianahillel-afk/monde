@@ -135,15 +135,17 @@ test('terminal dot segments and controls are rejected in scope and findings', ()
   assert.throws(()=>d.assignment({...H,objective:'bad\nextra'}));
 });
 
-test('single-writer GitHub workflow has no automatic comment trigger or write token', () => {
-  const workflow=require('node:fs').readFileSync(
-    require('node:path').join(__dirname,'../../workflows/monde-dev-dispatch.yml'),
-    'utf8');
-  assert.match(workflow,/^\s+workflow_dispatch:/m);
+test('single-writer V2 has no privileged dispatcher or candidate github-script', () => {
+  const fs=require('node:fs'),path=require('node:path');
+  const root=path.join(__dirname,'../../');
+  assert.equal(fs.existsSync(path.join(root,'workflows/monde-dev-dispatch.yml')),false);
+  assert.equal(fs.existsSync(path.join(__dirname,'controller.cjs')),false);
+  const workflow=fs.readFileSync(path.join(root,'workflows/monde-dev-ci.yml'),'utf8');
+  assert.match(workflow,/^permissions:\n  contents: read\n/m);
   assert.doesNotMatch(workflow,/^\s+issue_comment:/m);
   assert.doesNotMatch(workflow,/^\s+issues:\s*write\b/m);
-  assert.doesNotMatch(workflow,/createComment|merge_pull_request|createCommit/);
-  assert.match(workflow,/^\s+issues:\s*read\b/m);
+  assert.doesNotMatch(workflow,/actions\/github-script|createComment|merge_pull_request/);
+  assert.match(workflow,/persist-credentials: false/);
 });
 
 test('critical R1 or major R2 findings cannot be laundered as APPROVE', () => {
@@ -153,9 +155,12 @@ test('critical R1 or major R2 findings cannot be laundered as APPROVE', () => {
     }]});
     assert.throws(()=>d.validateReport(report),
       error=>error.code==='APPROVAL_WITH_BLOCKING_FINDINGS');
-    assert.throws(()=>d.assessReview({
+    const checked=d.assessReview({
       expected:H,response:message(report),current_head:SHA,source
-    }),error=>error.code==='APPROVAL_WITH_BLOCKING_FINDINGS');
+    });
+    assert.equal(checked.status,'REPORT_NEEDS_MANUAL_REVIEW');
+    assert.equal(checked.reason,'APPROVAL_WITH_BLOCKING_FINDINGS');
+    assert.equal(checked.native_github_approved,false);
   }
 });
 test('APPROVE may record non-blocking R3 recommendations without native authority', () => {
@@ -163,7 +168,8 @@ test('APPROVE may record non-blocking R3 recommendations without native authorit
     ...data().findings[0],severity:'R3'
   }]}));
   const result=d.assessReview({expected:H,response,current_head:SHA,source});
-  assert.equal(result.status,'TECHNICAL_L2_COMPLETE');
+  assert.equal(result.status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(result.requires_manual_qualification,true);
   assert.equal(result.native_github_approved,false);
   assert.equal(result.finding_count,1);
 });
