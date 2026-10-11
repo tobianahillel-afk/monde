@@ -1040,3 +1040,45 @@ test('ACTIVE_4 receipts reject mismatched workflow run attempt',async()=>{
   await a.rejects(c.run({github:gh,context:ctx,core:{warning:()=>{}},
     settings:activeSettings()}),e=>e.code==='UNVERIFIED_WORKFLOW_ORIGIN');
 });
+
+test('E3 manual inspector counts durable state without any GitHub mutation',async()=>{
+  const s=simulated();
+  s.apply(q(1));
+  const gh=api(s.comments);
+  gh.rest.issues.createComment=async()=>{throw Error('inspector must not write');};
+  const result=await c.inspect(gh,{
+    owner:'tobianahillel-afk',repo:'monde',issueNumber:20,
+    mode:'TEST_ONLY',allowedActors:['tobianahillel-afk']
+  });
+  a.equal(result.mode,'TEST_ONLY');
+  a.equal(result.write_authority,false);
+  a.equal(result.commentCount,2);
+  a.equal(result.requestCount,1);
+  a.equal(result.decisionCount,1);
+  a.equal(result.activeGrantCount,1);
+  a.equal(result.unansweredCount,0);
+});
+test('E3 manual inspector exposes pending commands without inventing grants',async()=>{
+  const command=request(1,q(1));
+  const result=await c.inspect(api([command]),{
+    owner:'tobianahillel-afk',repo:'monde',issueNumber:20,
+    mode:'TEST_ONLY',allowedActors:['tobianahillel-afk']
+  });
+  a.equal(result.unansweredCount,1);
+  a.equal(result.activeGrantCount,0);
+});
+test('E3 manual inspector cannot be configured as a production writer',async()=>{
+  await a.rejects(c.inspect(api([]),{
+    owner:'tobianahillel-afk',repo:'monde',issueNumber:20,
+    mode:'ACTIVE_4',allowedActors:['tobianahillel-afk']
+  }),e=>e.code==='UNTRUSTED_INSPECT_SETTINGS');
+});
+test('E3 manual inspector fails closed on inconsistent bot journal results',async()=>{
+  const command=request(1,q(1));
+  const bad={id:2,user:{login:'github-actions[bot]'},
+    body:c.RESULT+'\\n{"unexpected":"result"}'};
+  await a.rejects(c.inspect(api([command,bad]),{
+    owner:'tobianahillel-afk',repo:'monde',issueNumber:20,
+    mode:'TEST_ONLY',allowedActors:['tobianahillel-afk']
+  }));
+});

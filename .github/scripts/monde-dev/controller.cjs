@@ -235,6 +235,30 @@ async function verifyActiveResultOrigins(github,owner,repo,comments,settings){
   }
 }
 
+// Read-only default-branch inspection for operators. This is not a claim,
+// lease recovery, reviewer approval or permission-bearing GitHub action.
+async function inspect(github,settings){
+  if(!settings||settings.mode!=='TEST_ONLY'||
+     typeof settings.owner!=='string'||!settings.owner||
+     typeof settings.repo!=='string'||!settings.repo||
+     !Number.isSafeInteger(settings.issueNumber)||settings.issueNumber<1||
+     !Array.isArray(settings.allowedActors)||!settings.allowedActors.length)
+    fail('UNTRUSTED_INSPECT_SETTINGS');
+  const comments=await listComments(github,settings.owner,settings.repo,
+    settings.issueNumber);
+  const state=replay(comments,settings.botActor||'github-actions[bot]',
+    settings.allowedActors,'TEST_ONLY');
+  return {
+    mode:'TEST_ONLY',write_authority:false,
+    commentCount:comments.length,
+    requestCount:state.requests.size,
+    decisionCount:state.decisions.size,
+    unansweredCount:state.requests.size-state.decisions.size,
+    activeGrantCount:state.grants.size,
+    maxEpoch:state.epoch
+  };
+}
+
 async function run({github,context,core,settings}){
   if(context.eventName!=='issue_comment'||context.payload.action!=='created')return {ignored:true};
   const {owner,repo}=context.repo;
@@ -503,4 +527,4 @@ function chooseActive(state,req,source){
 module.exports={COMMAND,RESULT,Invalid,parseRequest,encodeRequest,parseResult,
   encodeResult,normalizeResources,overlaps,replay,choose,makeResult,listComments,run,checkEligibility,
   parseWorkGate,eligibleRealClaim,getWorkGate,trustedWorkContext,chooseActive,
-  verifyActiveResultOrigins};
+  verifyActiveResultOrigins,inspect};
