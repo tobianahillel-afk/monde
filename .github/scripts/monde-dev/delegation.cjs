@@ -29,7 +29,8 @@ function exactFields(value, names) {
 const BIDI_CONTROL=/(?:\p{Bidi_Control}|[\u206a-\u206f])/u;
 // Zero-width/default-ignorable formatting characters can conceal changes in
 // copied public GitHub review evidence even without changing text direction.
-const HIDDEN_FORMAT=/[\u00ad\u034f\u180e\u200b-\u200d\u2060\ufeff]/u;
+// Covers Hangul fillers, variation selectors and future invisible characters.
+const HIDDEN_FORMAT=/\p{Default_Ignorable_Code_Point}/u;
 function oneLine(value, max = 1000) {
   return typeof value === 'string' && value.length > 0 && value.length <= max &&
     !/[\u0000-\u001f\u007f\u2028\u2029]/.test(value) &&
@@ -657,6 +658,18 @@ function prepareInteractiveHandoff(args) {
 // Prevents duplicate missions and mismatched target revisions from being
 // delegated as though they were one exact-HEAD review packet.
 
+// Untrusted reviewer excerpts must render as literal Markdown code spans.
+// JSON serialization removes source newlines; a longer delimiter than any
+// internal backtick run prevents a malicious excerpt from ending the span.
+function quoteUntrustedExcerpt(value) {
+  const literal=JSON.stringify(value).replace(/[\u2028\u2029]/g,
+    c=>c==='\u2028'?'\\u2028':'\\u2029');
+  const runs=literal.match(/\x60+/g)||[];
+  const delimiter=String.fromCharCode(96).repeat(
+    Math.max(0,...runs.map(run=>run.length))+1);
+  return delimiter+' '+literal+' '+delimiter;
+}
+
 // Explicit, non-authoritative foreground triage for a malformed L2/research
 // response. This preserves relevant evidence without pretending that a broken
 // footer constitutes a completed review or permitting an unverified merge.
@@ -708,10 +721,11 @@ function prepareUnqualifiedTriageHandoff(args) {
     '### Suspected findings (NOT VERIFIED)',
     ...findings.flatMap(f=>[
       f.id+' ['+f.severity+'] '+f.path,
-      'Evidence: '+f.evidence,
-      'Suggested correction: '+f.action
+      'Evidence: '+quoteUntrustedExcerpt(f.evidence),
+      'Suggested correction: '+quoteUntrustedExcerpt(f.action)
     ]),
-    ...snippets.map((s,i)=>'Unqualified R1/R2 extract '+(i+1)+': '+s),
+    ...snippets.map((s,i)=>'Unqualified R1/R2 extract '+(i+1)+
+      ': '+quoteUntrustedExcerpt(s)),
     '',
     'The entire original ChatGPT conversation is required to confirm scope,',
     'context separation and all unresolved findings.',

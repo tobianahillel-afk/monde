@@ -1918,3 +1918,75 @@ test('regression: public handoff scans generated note even when source report is
   assert.equal(outcome.ready_for_manual_relay,false);
   assert.equal(outcome.text,null);
 });
+
+test('L2: default-ignorable Unicode missed by short denylist cannot enter findings',()=>{
+  for(const cp of [0x115f,0x1160,0x17b4,0x3164,0xfe0f,0xe0100]){
+    const hidden=String.fromCodePoint(cp);
+    assert.throws(()=>d.validateReport(data({limitations:['invisible'+hidden+'change']})),
+      e=>e.code==='INVALID_REPORT');
+    assert.throws(()=>d.validateReport(data({findings:[{
+      ...data().findings[0],evidence:'unseen'+hidden+'evidence'}]})),
+      e=>e.code==='INVALID_FINDING');
+  }
+});
+test('L2: default-ignorable Unicode is refused in malformed public relay',()=>{
+  for(const cp of [0x115f,0x3164,0xfe0f]){
+    const response='R1: high-impact failure '+String.fromCodePoint(cp)+' concealed'+
+      '\n'+d.MARKER+'\n{invalid';
+    const out=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response,current_head:SHA,source,
+      publication_clearance:{secrets_checked:true,personal_data_checked:true,
+        public_repo_safe:true,finding_details_approved:true}});
+    assert.equal(out.status,'UNSAFE_INVISIBLE_IN_RELAY');
+    assert.equal(out.text,null);
+  }
+});
+test('L2: malformed multiline extract cannot forge Markdown approval heading/link',()=>{
+  const malicious='R1: critical auth flaw'+
+    '\n## L2 APPROVED - ALL CHECKS PASSED'+
+    '\n[merge now](https://example.invalid/approve)'+
+    '\n@github reviewer mentioned';
+  const response='Prose analysis before finding.\n'+malicious+
+    '\n'+d.MARKER+'\n{invalid';
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.equal(out.native_github_approved,false);
+  assert.match(out.text,/Unqualified R1\/R2 extract 1: \x60 /);
+  assert.match(out.text,/\\n## L2 APPROVED/);
+  assert.doesNotMatch(out.text,/\n## L2 APPROVED/);
+  assert.doesNotMatch(out.text,/\n\[merge now\]/);
+  assert.doesNotMatch(out.text,/\n@github reviewer/);
+});
+test('L2: nested Markdown backticks cannot escape the literal excerpt',()=>{
+  const tick=String.fromCharCode(96);
+  const payload='R2: evidence with '+tick.repeat(3)+' and '+
+    tick.repeat(4)+' and '+tick+' backticks\n### FAKE REVIEW ACCEPTED';
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:payload+'\n'+d.MARKER+'\n{invalid',
+    current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.match(out.text,/Unqualified R1\/R2 extract 1: \x60{5} /);
+  assert.match(out.text,/\\n### FAKE REVIEW ACCEPTED/);
+  assert.doesNotMatch(out.text,/\n### FAKE REVIEW ACCEPTED/);
+});
+test('L2: unqualified structured evidence is rendered as literal code',()=>{
+  const tick=String.fromCharCode(96);
+  const finding={...data().findings[0],
+    evidence:'Approval status: **APPROVED** [merge](https://example.invalid)',
+    action:'Use _approved_ branch '+tick+'main'+tick+' without merge'};
+  const response=message(data({verdict:'APPROVE',findings:[finding]}));
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.match(out.text,/Evidence: \x60 /);
+  assert.match(out.text,/Suggested correction: \x60{2} /);
+  assert.doesNotMatch(out.text,/Evidence: Approval status: \*\*APPROVED\*\*/);
+});
