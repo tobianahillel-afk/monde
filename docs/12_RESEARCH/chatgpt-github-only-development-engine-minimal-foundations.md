@@ -48,6 +48,30 @@ Do **not** wait for the entire MONDE blueprint before writing one authorized com
 
 **Lean one-language pilot option:** `actions/github-script` documents loading a local JS module directly: https://github.com/actions/github-script . Prefer **one testable JS helper + Node built-in tests + one trusted workflow** if the T0 connector/event test confirms it, rather than an avoidable JS-to-Python runtime bridge. Reuse Python when actual MONDE governance compatibility/tests justify it; do not implement both arbitrators or require an npm dependency zoo. Immutable action SHAs and trusted default-branch checkout remain essential.
 
+## Seven **adaptive work situations** — NOT seven mandatory stages
+
+Use these names to explain what any W1–W4 worker may perform; they overlay existing A→E decision phases and do not introduce runtime roles/services:
+1. **DISCOVER** existing MONDE code, WORK/REQ/CAP contracts, previous reviews and tested technology.
+2. **RESEARCH** credible algorithms, libraries, scientific papers, costs/licensing and original user intent when retrievable.
+3. **DESIGN/DECIDE** evaluate alternatives, system-wide impacts, select and provisionally freeze the smallest supported choice.
+4. **SPECIFY** only missing relevant user behavior, interfaces, positive/negative cases, dependencies, reproducible acceptance evidence.
+5. **BUILD/REFACTOR** scoped real code, including reversing a bad foundational choice when measurements justify it.
+6. **TEST/BENCHMARK** targeted correctness, property, security, fault and performance checks as risk requires.
+7. **REVIEW/INTEGRATE** independent coverage-aware review, CI-exact-head check, legitimate native approval, handover and guarded merge.
+
+These are **situations, not required seven sequential passes**. A local fix may need just 1→5→6→7; a difficult new algorithm may use all and revisit 2/3 repeatedly. Never skip an applicable existing Accepted test/review. A previous independent audit with valid evidence reduces redundant investigation, but not a current exact-HEAD approval requirement. Historical "seven scenario" causal World Model features, if encountered, are **product capabilities** and not themselves these development situations.
+
+### Decisions to freeze BEFORE a one-day implementation sprint
+
+1. **Real task tool permission, first:** can one actual Scheduled ChatGPT task read the repo, create a permitted scoped Issue command, and later fetch its result without an interactive confirmation? Until proved, four autonomous writable tasks are not available.
+2. **GitHub host gate and reviewer:** who is authorized to configure `main` protection, deploy a default-branch `issue_comment` workflow, and supply a real eligible non-author GitHub approval when demanded? No prompt or controller can manufacture that actor.
+3. **Small trusted input protocol:** exactly one allowlisted Issue, `claim/release/reconcile`, worker label W1–W4, `request_id`, WORK/TASK, expected base SHA, file+semantic resource sets. A worker label on the same GitHub identity is **not authentication**.
+4. **Minimal JS/CI stack:** try one existing `actions/github-script` GitHub API entrypoint and one pure tested JS function/module rather than Python + JavaScript duplications; compare actual existing Python tooling after T0 if required. Reuse current host CI, never execute untrusted PR code with a privileged token.
+5. **Four-way completion test:** four disjoint grants succeed; overlapping claims cannot produce conflicting owners; crash/duplicate/stale attempts recover; one long pending CI resumes with exact HEAD; prior REVIEW/TEST coverage is reused appropriately.
+6. **Scope/release boundary:** ship one narrow controller and compact W1–W4 prompts, not dashboard, second review registry, global World Model documentation or extra autonomous reviewer service. Define immutable passing HEAD, test evidence and rollback.
+
+**Fastest feasible proof:** one human-reviewed permitted GitHub test of Scheduled → Issue → default-branch Actions → grant → Scheduled readback. Then build only the missing verified pieces and test four workers. A demo can be assembled within a day *if these external prerequisites already work*; a fully independently accepted four-writer trusted rollout cannot be guaranteed by tomorrow while host approvals, branch protection and WORK-0002/3 remain unsettled.
+
 ## 0. Six non-negotiable invariants (short enough for every worker)
 
 **I1. One authority per fact.** Accepted MONDE registers/ADRs on main own normative meaning, requirements and WORK lifecycle. GitHub refs/PR/Actions own current code, CI and review facts. One serialized GitHub Actions controller owns transient task grants. Issue labels/comments are *operational projections*, not competing WORK status machines.
