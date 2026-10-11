@@ -300,20 +300,46 @@ function parseWorkGate(text,id){
     fail('UNSUPPORTED_WORK_YAML');
   const tasks=[];
   if(body[1]==='  tasks:'){
+    const taskLines=[];
     for(const line of body.slice(2)){
       if(line.startsWith('  planned_runs:'))break;
-      if(!line.trim())continue;
-      if(!line.startsWith('    - {')||!line.endsWith('}'))
+      if(!line.trim()||line.trim().startsWith('#'))continue;
+      taskLines.push(line);
+    }
+    for(let i=0;i<taskLines.length;){
+      const first=taskLines[i];
+      let taskId,taskStatus,dep,files;
+      if(first.startsWith('    - {')&&first.endsWith('}')){
+        taskId=/^\s+- \{id: (T[1-9]\d*),/.exec(first)?.[1];
+        taskStatus=/,\sstatus: ([A-Z_]+)\}$/.exec(first)?.[1];
+        dep=/,\sdepends_on: (\[[^\]]*\])/.exec(first)?.[1];
+        files=/,\sexpected_files: (\[[^\]]*\])/.exec(first)?.[1];
+        i++;
+      }else{
+        taskId=/^    - id: (T[1-9]\d*)$/.exec(first)?.[1];
+        if(!taskId)fail('UNSUPPORTED_TASK_YAML');
+        i++;
+        const attrs={};
+        while(i<taskLines.length&&!taskLines[i].startsWith('    - ')){
+          const line=taskLines[i++];
+          if(!line.startsWith('      ')||line.startsWith('        '))
+            fail('UNSUPPORTED_TASK_YAML');
+          const match=/^      ([a-z_]+): (.*)$/.exec(line);
+          if(!match)fail('UNSUPPORTED_TASK_YAML');
+          if(['status','depends_on','expected_files'].includes(match[1])){
+            if(Object.prototype.hasOwnProperty.call(attrs,match[1]))
+              fail('DUPLICATE_TASK_FIELD');
+            attrs[match[1]]=match[2];
+          }
+        }
+        taskStatus=attrs.status;dep=attrs.depends_on;files=attrs.expected_files;
+      }
+      if(!taskId||!taskStatus||!/^[A-Z_]+$/.test(taskStatus)||!dep||!files)
         fail('UNSUPPORTED_TASK_YAML');
-      const taskId=/^\s+- \{id: (T[1-9]\d*),/.exec(line)?.[1];
-      const taskStatus=/,\sstatus: ([A-Z_]+)\}$/.exec(line)?.[1];
-      const dep=/,\sdepends_on: (\[[^\]]*\])/.exec(line)?.[1];
-      const files=/,\sexpected_files: (\[[^\]]*\])/.exec(line)?.[1];
-      if(!taskId||!taskStatus||!dep||!files)fail('UNSUPPORTED_TASK_YAML');
       const taskDeps=parseList(dep,/^T[1-9]\d*$/);
       const paths=parseList(files,/^[A-Za-z0-9_.\/-]+$/);
-      if(paths.some(s=>s.startsWith('/')||s.includes('//')||
-          s.split('/').some(part=>!part||part==='.'||part==='..')))
+      if(paths.some(p=>p.startsWith('/')||p.includes('//')||
+          p.split('/').some(segment=>!segment||segment==='.'||segment==='..')))
         fail('UNSUPPORTED_TASK_PATH');
       if(tasks.some(t=>t.id===taskId))fail('DUPLICATE_TASK');
       tasks.push({id:taskId,status:taskStatus,
