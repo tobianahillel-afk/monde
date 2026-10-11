@@ -32,6 +32,12 @@ GitHub can execute CI on its own hosted runners. The ChatGPT plugin provides Git
 8. Distinguish safe read-only/isolated single-worker research and test pilots from full production release: do not activate four agents against shared writable resources until actual same-snapshot race, claim fencing, trusted review, host protection and rollback tests pass.
 9. Stop expanding the engine after it safely supports useful accepted MONDE product slices.
 
+## Higher-output implementation without a larger engine (PROPOSED)
+
+**The engine must not prescribe a fixed LOC/day ceiling or enforce small commits per source file.** The GitHub connector already exposes `create_tree`, `create_commit` and `update_ref` for coherent multi-file source/test/doc changes on a scoped branch, subject to actual execution permission and safety checks. Prefer complete independent vertical feature slices with early targeted fast feedback, frozen exact-head **all required** CI and context-separated reviews, one legitimate host-approved merge, and next scoped slice. Existing `advanced-verification.md` risk-tiers still apply. Generated/vendored code is not the same as new validated product functionality.
+
+[Operating contract](../12_RESEARCH/chatgpt-github-only-engine-operating-contract.md) §5B and [critical-path audit](../12_RESEARCH/chatgpt-github-only-engine-critical-path-audit.md) §G5 define the accepted-product funnel, higher but **unmeasured** productivity arithmetic, source-use/evidence gates and API backoff. Faster incremental checks never bypass accepted non-author review and trusted final-check requirements. Do not turn the Development Engine into an AI framework just to increase lines typed per activation.
+
 ## Immediate productivity without an engine (PROPOSED)
 
 The [minimal foundations](../12_RESEARCH/chatgpt-github-only-development-engine-minimal-foundations.md) define **L0 (0-code read-only documentation/research)** → **L1 (one authorized scoped writer, no allocator)** → **L2 (only then one trusted Actions arbiter if a second writer needs exclusive grants)** → **L3 (four writers once all launch gates prove host enforcement)**. The four-agent software engine is **not a prerequisite** for WORK-0004 research or a narrow source-backed product documentation slice. A single-author accepted workflow under current permissions may be useful before a generalized controller exists.
