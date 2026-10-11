@@ -48,6 +48,12 @@ Do **not** wait for the entire MONDE blueprint before writing one authorized com
 
 **Lean one-language pilot option:** `actions/github-script` documents loading a local JS module directly: https://github.com/actions/github-script . Prefer **one testable JS helper + Node built-in tests + one trusted workflow** if the T0 connector/event test confirms it, rather than an avoidable JS-to-Python runtime bridge. Reuse Python when actual MONDE governance compatibility/tests justify it; do not implement both arbitrators or require an npm dependency zoo. Immutable action SHAs and trusted default-branch checkout remain essential.
 
+## Agreed development mode (2026-10-11) — INTERACTIVE AUTHORING
+
+**Current mode:** the user tells ChatGPT to develop v2 step by step in this GitHub-connected conversation. This chat performs GitHub edits on an authorized isolated implementation branch and waits for required review/CI/host authorization. **The four Scheduled tasks DO NOT build the engine**; they are reserved **exclusively for eventual integration/load/recovery tests**, created only at an explicit future test stage and user authorization. After tested v2 passes all gates, activating regular four-worker MONDE product development is a *separate* decision.
+
+**Single implementer read-before:** [RFC §§1A–1B](chatgpt-github-only-development-engine-v2-rfc.md) is the unique concrete coding contract (four allowed source/CI files, exact input/output format, strict resource conflicts, default TEST_ONLY, staged E0–E5, AT-01–16 acceptance). This foundation file explains intent, not another competing implementation schema. The lengthy operating contract is primarily a future worker behavior reference, not something the interactive implementer rereads in full for every edit.
+
 ## Seven **adaptive work situations** — NOT seven mandatory stages
 
 Use these names to explain what any W1–W4 worker may perform; they overlay existing A→E decision phases and do not introduce runtime roles/services:
