@@ -510,6 +510,41 @@ function planDelegations(inputs) {
 // Reports are supplied by the foreground chat *after* retrieving actual
 // conversations; a scheduler success cannot be substituted for the text.
 // A batch status does not confer GitHub approval, even if every report says APPROVE.
+
+/* Advisory exact-duplicate grouping for fast foreground remediation.
+   No finding is closed, approved, hidden or promoted by this operation. */
+function groupTriageFindings(items){
+  if(!Array.isArray(items)||items.length>200)bad('INVALID_TRIAGE_INPUT');
+  const rank={R1:0,R2:1,R3:2},groups=new Map();
+  for(const item of items){
+    if(!plain(item)||typeof item.assignment_id!=='string'||
+       !ID.test(item.assignment_id)||typeof item.id!=='string'||
+       !/^F[0-9]{2,4}$/.test(item.id)||!SEVERITIES.has(item.severity)||
+       !validPath(item.path)||!oneLine(item.evidence,3000)||
+       !oneLine(item.action,3000))bad('INVALID_TRIAGE_FINDING');
+    const norm=s=>s.replace(/\s+/g,' ').trim();
+    const id=createHash('sha256').update(JSON.stringify([
+      item.path,norm(item.evidence),norm(item.action)
+    ])).digest('hex');
+    let g=groups.get(id);
+    if(!g){
+      g={fingerprint:id,path:item.path,evidence:item.evidence,
+        action:item.action,highest_severity:item.severity,
+        occurrences:0,reporters:[],disposition:'UNVERIFIED_FOR_MANUAL_TRIAGE'};
+      groups.set(id,g);
+    }
+    if(rank[item.severity]<rank[g.highest_severity])g.highest_severity=item.severity;
+    g.occurrences++;
+    g.reporters.push({assignment_id:item.assignment_id,
+      finding_id:item.id,severity:item.severity,status:item.status});
+  }
+  const grouped=[...groups.values()].sort((a,b)=>
+    rank[a.highest_severity]-rank[b.highest_severity]||
+    a.path.localeCompare(b.path)||a.fingerprint.localeCompare(b.fingerprint));
+  return {groups:grouped,input_occurrences:items.length,
+    duplicate_occurrences:items.length-grouped.length,automatically_resolved:0};
+}
+
 function assessDelegationBatch({
   assignments, reports, sources, current_head, prior_sources=[], coverage_manifests={}
 }) {
@@ -641,8 +676,11 @@ function assessDelegationBatch({
     return details.map(f=>({assignment_id:outcome.assignment_id,
       status:outcome.status,qualification:'UNVERIFIED_REPORT_CLAIM',...f}));
   });
+  const grouped=groupTriageFindings(triage_findings);
   return {
     triage_findings,
+    actionable_finding_groups:grouped.groups,
+    repeated_finding_occurrences:grouped.duplicate_occurrences,
     unqualified_blocking_reports,unqualified_r1,unqualified_r2,
     needs_attention:results.some(r=>r.needs_attention===true||
       r.reported_blocking_findings===true||r.severity_r1>0||r.severity_r2>0||
@@ -660,5 +698,5 @@ module.exports = {
   MARKER, RESEARCH_MARKER, InvalidReport, assignment,
   buildReviewPrompt, buildResearchPrompt, assessResearchReport, validateReport,
   parseReviewResponse, assessReview, prepareInteractiveHandoff,
-  planDelegations, assessDelegationBatch
+  planDelegations, assessDelegationBatch, groupTriageFindings
 };

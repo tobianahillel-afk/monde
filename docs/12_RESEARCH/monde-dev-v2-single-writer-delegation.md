@@ -140,3 +140,7 @@ at most 8,192 characters of **untrusted text for foreground-only triage**, and
 reports its SHA-256. This is **not** L2 acceptance evidence, native GitHub approval,
 or permission for public publication. The main interactive writer may inspect
 and apply substantiated findings directly while preserving original provenance.
+
+## Dédoublonnage prudent des constats
+
+La fonction pure `groupTriageFindings` et la sortie `actionable_finding_groups` d’`assessDelegationBatch` regroupent uniquement les constats de même chemin, preuve normalisée et correction proposée. La gravité maximale et toutes les références d’origine sont conservées ; `triage_findings` demeure intégral. `repeated_finding_occurrences` indique les répétitions textuelles, **jamais les corrections réalisées**. Deux observations semblables mais matériellement différentes restent séparées. Aucun regroupement ne vaut fermeture, preuve L2, autorisation de fusion ou dispense de vérification de la correction au HEAD approprié.

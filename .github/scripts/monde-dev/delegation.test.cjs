@@ -991,3 +991,32 @@ test('a huge malformed L2 report is bounded and remains unqualified',()=>{
       secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
   assert.equal(attempt.ready_for_manual_relay,false);
 });
+
+test('repeated L2 discoveries are grouped but every source and severity remains available',()=>{
+  const a={assignment_id:'L2-MISSION-0001',id:'F01',severity:'R3',status:'NEEDS_CORRECTION',
+    path:'src/a.cjs',evidence:'Lost ACK  after retry',action:'Reconcile the journal'};
+  const b={...a,assignment_id:'L2-MISSION-0002',id:'F07',severity:'R1',
+    evidence:'Lost ACK after retry'};
+  const c={...a,assignment_id:'L2-MISSION-0003',id:'F08',severity:'R2',
+    action:'Fix caller retry'};
+  const result=d.groupTriageFindings([a,b,c]);
+  assert.equal(result.groups.length,2);
+  assert.equal(result.duplicate_occurrences,1);
+  assert.equal(result.groups[0].highest_severity,'R1');
+  assert.equal(result.groups[0].reporters.length,2);
+  assert.equal(result.automatically_resolved,0);
+});
+test('grouped findings cannot suppress different paths, fixes or material evidence',()=>{
+  const a={assignment_id:'L2-MISSION-0001',id:'F01',severity:'R2',
+    status:'BLOCKED',path:'src/a.cjs',evidence:'A',action:'B'};
+  assert.equal(d.groupTriageFindings([a,{...a,path:'src/b.cjs'},
+    {...a,action:'C'},{...a,evidence:'D'}]).groups.length,4);
+});
+test('grouping refuses malformed or excessive untrusted reports',()=>{
+  assert.throws(()=>d.groupTriageFindings(Array(201).fill(null)),
+    e=>e.code==='INVALID_TRIAGE_INPUT');
+  assert.throws(()=>d.groupTriageFindings([{assignment_id:'L2-MISSION-0001',
+    id:'F01',severity:'R8',path:'a.cjs',evidence:'A',action:'B'}]),
+    e=>e.code==='INVALID_TRIAGE_FINDING');
+  assert.deepEqual(d.groupTriageFindings([]).groups,[]);
+});
