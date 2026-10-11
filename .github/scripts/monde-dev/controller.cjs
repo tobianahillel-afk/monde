@@ -172,8 +172,8 @@ async function run({github,context,core,settings}){
      !settings.allowedActors.includes(context.actor))fail('UNTRUSTED_ACTOR');
   if(typeof event.body!=='string'||!event.body.startsWith(COMMAND+'\n'))return {ignored:true};
   const q=parseRequest(event.body);
-  const prior=replay(await listComments(github,owner,repo,settings.issueNumber),
-     settings.botActor||'github-actions[bot]',settings.allowedActors);
+  const before=await listComments(github,owner,repo,settings.issueNumber);
+  const prior=replay(before,settings.botActor||'github-actions[bot]',settings.allowedActors);
   // The triggering event must be visible in authoritative paginated history
   // before publishing a grant or status reply; otherwise fail closed.
   const observedRequest=prior.requests.get(q.request_id);
@@ -181,9 +181,8 @@ async function run({github,context,core,settings}){
     fail('TRIGGER_NOT_IN_HISTORY');
   // Either the original event or a byte-identical retried command must exist
   // in the authoritative paginated journal. A stale/foreign event is rejected.
-  const matching= (await listComments(github,owner,repo,settings.issueNumber))
-    .some(c=>c.id===event.id && c.user && c.user.login===context.actor &&
-      c.body===event.body);
+  const matching=before.some(c=>c.id===event.id && c.user &&
+    c.user.login===context.actor && c.body===event.body);
   if(!matching)fail('TRIGGER_NOT_IN_HISTORY');
   const chosen=choose(prior,q,{mode:'TEST_ONLY',baseSha:settings.baseSha});
   if(chosen.replayed)return {replayed:true,result:chosen};

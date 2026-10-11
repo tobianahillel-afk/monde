@@ -384,7 +384,7 @@ test('security: a different untrusted bot author cannot issue operational result
   const command=request(1,q()),grant={outcome:'GRANTED',reason:'TEST_FIXTURE',
     grant_id:'grant:req-case-0001',epoch:1,resources:q().resources,observed_base_sha:SHA};
   const fake=response(2,command,grant);
-  fake.user.login='random-bot';
+  fake.user={...fake.user,login:'random-bot'};
   a.equal(c.replay([command,fake]).grants.size,0);
 });
 
