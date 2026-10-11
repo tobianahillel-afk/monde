@@ -86,7 +86,7 @@ READ LIVE STATE → RECONCILE → CLAIM TASK-A
      ↳ RECHECK CI/REVIEW AFTER USEFUL WORK OR ACTUAL WAIT (never fake sleep)
   CI_TERMINAL → VALIDATE ACTUAL JOBS/HEAD/SOURCE → FIX/REVIEW/INTEGRATE IF AUTHORIZED
   if runtime exhausted/no eligible action: DURABLE CHECKPOINT → NEXT HOURLY RECONCILE
-``
+```
 Pending CI/review **alone does not justify terminating** a still-running invocation. Conversely, no prompt can guarantee that ChatGPT stays executing until an arbitrarily long GitHub job finishes. See the operating contract §7A.
 W2 independently picks L2 on TASK-A as soon as it becomes READY, including in the same hour if actually running. It need not wait a scheduled hour *by rule*, but no real-time wake-up is guaranteed. W1 cannot manufacture W2's fresh-context review inside W1's own uninterrupted chat.
 
@@ -102,25 +102,22 @@ Example initial separation:
 - D / WORK-0004 capability inventory research only where existing dependencies permit.
 Tasks A and C may overlap on `PROJECT_STATE.md` in their drafts; allocator must guard shared canonical documents and avoid integration conflict. Immutable review fields carry source/revision, not just human labels.
 
-## 5. Repository implementation layout (proposal, not created)
+## 5. Minimal repository implementation layout — preferred proposal, NOT CREATED
+
+**Do not implement the historical multiple-`engine/dev/` CAS services or two parallel "trusted/untrusted" workflow stacks from older sketches.** The first pilot is a small existing-GitHub-native addition and must use an authorized separate implementation WORK/PR, not this documentation PR:
+
+```text
+.github/workflows/monde-dev-dispatch.yml   # one default-branch Issue-comment arbiter, after accepted/reviewed deployment
+.github/scripts/monde-dev/choose.py         # pure task selection/conflict filtering, if needed
+.github/scripts/monde-dev/reconcile.py      # idempotent latest remote fact reconciliation, if needed
+.github/scripts/test_monde_dev.py           # synthetic collision, unknown reply and CI-future tests
+# optional: one ordinary PR CI workflow if existing WORK-0002/CI cannot provide verified required checks
 ```
-docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md  # this noncanonical RFC
-docs/11_ADR/ADR-0001-chatgpt-github-only-development-engine.md     # proposed decision
-registry/work-items/WORK-0005.yaml                              # proposal/spec owner
-engine/dev/allocator.py                                         # only after policy approval
-engine/dev/claims.py
-engine/dev/reconcile.py
-engine/dev/review_packets.py
-tests/dev/test_allocator.py
-tests/dev/test_claims_property.py
-tests/dev/test_reconcile.py
-.github/workflows/monde-dev-engine-validation.yml             # untrusted candidate tests
-.github/workflows/monde-dev-engine-trusted-gate.yml             # only once accepted on main
-```
-No full separate governance platform. Keep implementation code outside `.github/trusted` unless actual secure trust ownership requires otherwise.
+
+One command Issue, existing WORK/REQ/ADR registry, GitHub PR/CI/reviews and required GitHub Rulesets remain the platform. Exact files, language and action SHAs are finalized **only after T0/T1 connector/event proof**; this list is a small sketch, not a demand to implement every file. Protected promotion must rely on real GitHub host gates. No local server, model API or second status registry.
 
 ## 6. Reuse matrix
-**NOW**: GitHub Git refs/commits/PRs/Issues/Actions/Artifacts, current work registers, templates, Python unittest+coverage, CodeQL existing, dependency checks already configured.
+**NOW**: GitHub Git refs/commits/PRs/Issues/Actions/Artifacts, existing MONDE work registers/templates, Python unittest+coverage and a narrowly scoped bootstrap governance workflow. **CodeQL/Dependabot/dependency checks are optional future choices only if their availability and configuration are actually verified**; do not claim them installed.
 **SCOPED CI TEST**: actionlint + zizmor (workflow correctness/security), Ruff (Python lint), Hypothesis (concurrency property/model tests), Pyright optionally if benefits are demonstrated. Pin versions and use controlled permissions.
 **NOT REQUIRED**: Gas Town, Beads runtime/Dolt, Temporal, OpenHands, mini-SWE-agent, Docker, local caches, Redis, paid reviewer services, new dashboard.
 **OPTIONAL FUTURE**: GitHub Projects as human projection, broader static analysis when real product code appears, event-triggered ChatGPT tasks only if verified supported and consistent with four-task limit.
