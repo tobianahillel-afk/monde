@@ -1451,3 +1451,57 @@ test('unqualified relay never tries to publish unsupported non-string reports',(
   assert.equal(d.prepareUnqualifiedTriageHandoff(args).status,
     'UNSUPPORTED_REPORT_SIZE');
 });
+
+test('L2 F01 BLOCKED limitations do not qualify as complete remediation',()=>{
+  const r=data({verdict:'BLOCKED',findings:[],limitations:['Missing source access'],reviewed_paths:[]});
+  const out=d.prepareInteractiveHandoff({expected:H,response:message(r),current_head:SHA,
+    source,publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.status,'BLOCKED');
+  assert.equal(out.self_contained_for_remediation,false);
+  assert.match(out.text,/Missing source access/);
+});
+test('L2 F01 finding details include reviewer limitations in the same handoff',()=>{
+  const out=d.prepareInteractiveHandoff({expected:H,
+    response:message(data({limitations:['No live GitHub test']})),current_head:SHA,
+    source,publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.self_contained_for_remediation,true);
+  assert.match(out.text,/No live GitHub test/);
+  assert.match(out.text,/Evidence: At line X/);
+});
+test('L2 F03 dangerous bidi controls are rejected in structured evidence',()=>{
+  assert.throws(()=>d.validateReport(data({limitations:['masked\u202evalue']})),
+    e=>e.code==='INVALID_REPORT');
+  assert.throws(()=>d.validateReport(data({findings:[{
+    ...data().findings[0],evidence:'hidden\u2067text'}]})),
+    e=>e.code==='INVALID_FINDING');
+});
+test('L2 F04 exact historical observation is replay-labeled without new approval',()=>{
+  const response=message(data());
+  const prior={assignment_id:H.assignment_id,context_id:source.context_id,
+    message_ref:source.message_ref,head_sha:SHA,mission_kind:'L2_REVIEW',
+    response_sha256:require('node:crypto').createHash('sha256')
+      .update(response,'utf8').digest('hex')};
+  const x=(prior_source)=>d.assessDelegationBatch({assignments:[H],
+    reports:{[H.assignment_id]:response},sources:{[H.assignment_id]:source},
+    current_head:SHA,prior_sources:[prior_source]});
+  assert.equal(x(prior).results[0].previously_observed,true);
+  assert.equal(x(prior).previously_observed_count,1);
+  const changed=x({...prior,response_sha256:'0'.repeat(64)});
+  assert.equal(changed.results[0].previously_observed,undefined);
+  assert.equal(changed.independence_conflicts,1);
+  assert.equal(changed.ready_for_merge,false);
+});
+test('L2 F05 public context hashes require separate provenance clearance',()=>{
+  const input={expected:H,response:message(data()),current_head:SHA,
+    source,publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true}};
+  const safe=d.prepareInteractiveHandoff(input);
+  assert.equal(safe.ready_for_manual_relay,true);
+  assert.doesNotMatch(safe.text,/Context identity SHA-256/);
+  assert.doesNotMatch(safe.text,/Message reference SHA-256/);
+  const disclosed=d.prepareInteractiveHandoff({...input,publication_clearance:{
+    ...input.publication_clearance,provenance_hashes_approved:true}});
+  assert.match(disclosed.text,/Context identity SHA-256/);
+});

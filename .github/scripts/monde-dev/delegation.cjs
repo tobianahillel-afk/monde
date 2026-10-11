@@ -26,7 +26,7 @@ function exactFields(value, names) {
 }
 function oneLine(value, max = 1000) {
   return typeof value === 'string' && value.length > 0 && value.length <= max &&
-    !/[\u0000-\u001f\u007f\u2028\u2029]/.test(value);
+    !/[\u0000-\u001f\u007f\u2028\u2029\u202a-\u202e\u2066-\u2069]/.test(value);
 }
 function validPath(value, allowDirectory=false) {
   if (!oneLine(value, 180) || !PATH.test(value) ||
@@ -512,6 +512,8 @@ function prepareInteractiveHandoff(args) {
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
   const a = assignment(args.expected);
+  const detailedFindings=clearance.finding_details_approved===true;
+  const fullReport=clearance.full_report_approved===true;
   // This is a COPY-READY artifact for the foreground developer. No GitHub
   // mutation or independent-review attestation is possible from this module.
   const note = [
@@ -519,10 +521,12 @@ function prepareInteractiveHandoff(args) {
     'Assignment: ' + a.assignment_id,
     'Repository: ' + a.repo + '; PR #' + a.pr,
     'Reviewed SHA: ' + a.head_sha,
-    'Context identity SHA-256: ' +
-      createHash('sha256').update(args.source.context_id,'utf8').digest('hex'),
-    'Message reference SHA-256: ' +
-      createHash('sha256').update(args.source.message_ref,'utf8').digest('hex'),
+    ...(clearance.provenance_hashes_approved===true?[
+      'Context identity SHA-256: ' +
+        createHash('sha256').update(args.source.context_id,'utf8').digest('hex'),
+      'Message reference SHA-256: ' +
+        createHash('sha256').update(args.source.message_ref,'utf8').digest('hex')
+    ]:[]),
     'Retrieval: chat_history (caller-provided observation, verify manually)',
     'Original response SHA-256: ' +
       createHash('sha256').update(args.response,'utf8').digest('hex'),
@@ -543,7 +547,7 @@ function prepareInteractiveHandoff(args) {
     'Finding counts: ' + metadata.findings.length +
       '; IDs/severities: ' +
       (metadata.findings.map(f=>f.id+'('+f.severity+')').join(', ')||'none'),
-    ...(clearance.finding_details_approved===true?[
+    ...(detailedFindings?[
       '',
       '### Actionable findings (unverified reviewer claims)',
       ...metadata.findings.flatMap(f=>[
@@ -555,9 +559,14 @@ function prepareInteractiveHandoff(args) {
       'Detailed evidence and corrections are NOT included.',
       'The original reviewer report is necessary for remediation.'
     ]),
+    ...(detailedFindings&&metadata.limitations.length?[
+      '',
+      '### Reviewer limitations (unverified)',
+      ...metadata.limitations.map(x=>'- '+x)
+    ]:[]),
     'Full report retained in original ChatGPT reviewer conversation.',
     'A public relay is not a technical L2 acceptance decision.',
-    ...(clearance.full_report_approved===true?[
+    ...(fullReport?[
       '',
       '### Explicitly authorized full review text (normalized)',
       analysis,
@@ -567,6 +576,10 @@ function prepareInteractiveHandoff(args) {
       JSON.stringify(metadata)
     ]:[])
   ].join('\n');
+  if(/[\u202a-\u202e\u2066-\u2069]/.test(note))
+    return {status:'UNSAFE_BIDI_IN_RELAY',can_publish:false,
+      ready_for_manual_relay:false,requires_manual_qualification:true,
+      native_github_approved:false,text:null};
   // Scan exactly what could reach the public PR, not only the source text.
   if(CREDENTIAL_PATTERNS.some(pattern=>pattern.test(note)))
     return {status:'POTENTIAL_SECRET_IN_RELAY',can_publish:false,
@@ -579,8 +592,8 @@ function prepareInteractiveHandoff(args) {
   return {
     status: evaluation.status, can_publish: false,
     ready_for_manual_relay: true,
-    self_contained_for_remediation:clearance.finding_details_approved===true||
-      clearance.full_report_approved===true,
+    self_contained_for_remediation:metadata.findings.length>0&&
+      (detailedFindings||fullReport),
     requires_manual_qualification: true,
     native_github_approved: false, text: note
   };
@@ -783,7 +796,7 @@ function assessDelegationBatch({
       prior.push(key);colliders.set(slot,prior);
     }
   }
-  const conflicting=new Set();
+  const conflicting=new Set(),previouslyObserved=new Set();
   for(const ids of colliders.values())
     if(ids.length>1)for(const id of ids)conflicting.add(id);
   const older=new Map();
@@ -810,6 +823,7 @@ function assessDelegationBatch({
            earlier.context_id!==observation.context_id||
            earlier.message_ref!==observation.message_ref)
           conflicting.add(key);
+        else previouslyObserved.add(key);
       }
     for(const field of ['context_id','message_ref']){
       const prefix=field==='context_id'?'context:':'message:';
@@ -818,7 +832,9 @@ function assessDelegationBatch({
         conflicting.add(key);
     }
   }
-  for(const outcome of results)
+  for(const outcome of results){
+    if(previouslyObserved.has(outcome.assignment_id))
+      outcome.previously_observed=true;
     if(conflicting.has(outcome.assignment_id)){
       outcome.independence_unverified=true;
        outcome.needs_attention=true;
@@ -833,6 +849,7 @@ function assessDelegationBatch({
         outcome.status='INDEPENDENCE_UNVERIFIED';
       }
     }
+  }
   const counts = {};
   for (const result of results)
     counts[result.status] = (counts[result.status] || 0) + 1;
@@ -872,6 +889,7 @@ function assessDelegationBatch({
     total: plan.length, results, counts,
     independence_conflicts: conflicting.size,
     prior_observations_supplied: prior_sources.length,
+    previously_observed_count:results.filter(r=>r.previously_observed===true).length,
     native_github_approved: false, ready_for_merge: false
   };
 }
