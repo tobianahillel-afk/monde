@@ -1,3 +1,5 @@
+> **REVISED PROPOSED DECISION — 2026-10-11 (single-writer v2):** One user-triggered ChatGPT conversation is the sole GitHub writer. Optional 1–4 one-shot ChatGPT scheduled tasks are strictly READ-ONLY researchers/reviewers and return complete L2 reports in their own chat; the foreground writer conditionally retrieves and verifies provenance/SHA before corrections. The four Scheduled writers, central issue-comment dispatcher, and ACTIVE_4 coordinator discussed below are SUPERSEDED historical alternatives, not prerequisites or active instructions. See the proposed revised `WORK-0005` and code candidate [PR #19](https://github.com/tobianahillel-afk/monde/pull/19). No Accepted MONDE governance or GitHub reviewer authority is modified by this proposed revision.
+
 # ADR-0001 — ChatGPT Scheduled tasks + GitHub-only Development Engine
 
 Status: Proposed
