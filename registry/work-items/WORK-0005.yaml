@@ -34,6 +34,8 @@ scope:
     - document observable ChatGPT/GitHub tool retrieval pitfalls, staged read routing and non-calibrated slowdown estimates
     - prefer immediate zero-custom-runtime MONDE capability inventory and one-worker pilot before adding a concurrency controller
     - compare one-writer, premature four-writer, and 1+3 research/reviewer critical paths and budgets
+    - prioritize useful accepted MONDE output by batching coherent source/test/doc GitHub operations, freeze final candidate once and use risk-relevant rapid feedback before all mandatory trusted checks
+    - measure generated-vs-merged product LOC funnel and challenge conservative throughput assumptions with real executed Scheduled-task evidence
     - define proposed open-source technology families, public GitHub Actions free-tier assumptions and version pinning policy
     - specify same-invocation FRAME/RESEARCH/DECIDE/BUILD/VERIFY transitions, risk-based engineering gates, algorithm comparison and benchmark contracts
     - connect historical MONDE user intent retrieval and source provenance to existing WORK-0004 without cloning a capability registry
@@ -107,6 +109,12 @@ acceptance_criteria:
     status: NOT_STARTED
   - id: AC-19
     description: "One-writer vs four unconstrained vs one-writer-plus-independent-research/review scenarios explicitly quantify critical-path effort and limits, no fictitious four-times productivity claim."
+    status: NOT_STARTED
+  - id: AC-20
+    description: "Maximum-throughput engineering selects cohesive multi-file Git commits when safely supported, early targeted verification and all mandatory exact-head gates, without redundant CI/status-only updates or unbounded large unrelated PRs."
+    status: NOT_STARTED
+  - id: AC-21
+    description: "The accepted-product conversion funnel separates generated code, test code, authored product changes and merged net functional LOC; a higher 960/3600/9000 sensitivity model explicitly stays unmeasured and never relaxes review/host requirements."
     status: NOT_STARTED
 
 requirements: []
@@ -249,6 +257,7 @@ required_tests:
     - "self-approval, check spoof, late worker and prompt injection fail closed by design"
   performance:
     - "plan baseline accepted-merge throughput before 4-way deployment"
+    - "measure per-slice GitHub commit/check cycles, first-pass CI green, time-to-merge and separate gross/generated/test LOC from net accepted product LOC"
     - "measure useful work during genuine CI/review waits without faking timers, and avoid redundant API polling"
   real_system:
     - "GitHub branch protection and task connector feature availability discovery"
