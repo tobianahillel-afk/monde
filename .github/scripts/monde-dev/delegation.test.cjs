@@ -2182,3 +2182,28 @@ test('L2 grouping: whitespace in suggested fixes changes their fingerprint',()=>
   assert.equal(result.groups.length,2);
   assert.equal(result.duplicate_occurrences,0);
 });
+
+test('public full-report relay rejects hidden C0/C1-style text controls',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,full_report_approved:true};
+  for(const control of ['\u0000','\u0009','\u000d','\u001b','\u007f','\u2028','\u2029']){
+    const report=message(data()).replace('It explains the concrete',
+      'It explains'+control+' the concrete');
+    const result=d.prepareInteractiveHandoff({expected:H,response:report,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(result.status,'UNSAFE_CONTROL_IN_RELAY',
+      'control code '+control.codePointAt(0).toString(16));
+    assert.equal(result.ready_for_manual_relay,false);
+    assert.equal(result.text,null);
+  }
+});
+test('minimal public relay omits unsafe full prose until separate full-report opt-in',()=>{
+  const report=message(data()).replace('It explains the concrete',
+    'It explains\u001b[2J the concrete');
+  const result=d.prepareInteractiveHandoff({expected:H,response:report,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
+  assert.equal(result.ready_for_manual_relay,true);
+  assert.doesNotMatch(result.text,/\u001b/);
+  assert.equal(result.native_github_approved,false);
+});
