@@ -723,7 +723,11 @@ function claimedReviewerContext(response, marker) {
   const id=packet && packet.reviewer_context_id;
   // Privacy redaction must not require a valid *proof* identifier: malformed
   // reports can still carry a sensitive URI-like or longer conversation ID.
-  return typeof id==='string' && id.length>=8 && oneLine(id,160) ? id:null;
+  if(typeof id!=='string'||id.length<8)return null;
+  // A multiline, hidden-format or oversized claimed identifier cannot be
+  // reliably removed from JSON-escaped public excerpts. Fail closed rather
+  // than leak a variant of private conversation provenance.
+  return oneLine(id,160)?id:false;
 }
 
 function prepareUnqualifiedTriageHandoff(args) {
@@ -761,6 +765,14 @@ function prepareUnqualifiedTriageHandoff(args) {
   const suspected=analysis.reported_blocking_unknown===true||
     analysis.reported_claims_incomplete===true;
   const source=plain(args.source)?args.source:{};
+  // Malformed source references can survive literal redaction in quoted JSON
+  // snippets (e.g. a private ID containing CR/LF becomes "\\n").
+  if([source.context_id,source.message_ref].some(v=>
+      typeof v==='string'&&v.length>=8&&!oneLine(v,160)))
+    return refused('UNSAFE_SOURCE_PROVENANCE');
+  const claimedContext=claimedReviewerContext(args.response,
+    a.mission_kind==='L2_REVIEW'?MARKER:RESEARCH_MARKER);
+  if(claimedContext===false)return refused('UNSAFE_REVIEWER_PROVENANCE');
   let note=[
     '## Unqualified ChatGPT reviewer evidence — foreground relay only',
     'Repository: '+a.repo+'; PR #'+a.pr,
@@ -795,8 +807,7 @@ function prepareUnqualifiedTriageHandoff(args) {
   ].join('\n');
   note=redactPrivateProvenance(note,[
     a.author_context_id,source.context_id,source.message_ref,
-    claimedReviewerContext(args.response,
-      a.mission_kind==='L2_REVIEW'?MARKER:RESEARCH_MARKER)
+    claimedContext
   ]);
   if(BIDI_CONTROL.test(note))
     return refused('UNSAFE_BIDI_IN_RELAY');

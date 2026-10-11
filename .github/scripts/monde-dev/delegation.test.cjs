@@ -2444,3 +2444,54 @@ test('private reviewer redaction ignores trivial untrusted claimed IDs',()=>{
   assert.match(result.text,/R1/);
   assert.equal(result.native_github_approved,false);
 });
+
+
+test('unqualified relay blocks multiline private reviewer references rather than leaking JSON-escaped IDs',()=>{
+  const privateId='chat-private-reviewer\r\ncontext-20261011';
+  const report='Substantive L2 analysis reports R1 in the authentication branch.\n'+
+    d.MARKER+'\n'+JSON.stringify({...data({
+      reviewer_context_id:privateId,
+      findings:[{...data().findings[0],
+        evidence:'R1 in a private context '+privateId,
+        action:'Correct the input authorization branch'}]
+    }),unexpected_field:'forces_manual_recovery'});
+  const output=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(output.status,'UNSAFE_REVIEWER_PROVENANCE');
+  assert.equal(output.ready_for_manual_relay,false);
+  assert.equal(output.text,null);
+});
+test('unqualified relay blocks overlong claimed reviewer IDs instead of incomplete redaction',()=>{
+  const id='private-reviewer-'+('x'.repeat(180));
+  const report='Analysis identifies R2 in the control path.\n'+d.MARKER+'\n'+
+    JSON.stringify({...data({
+      reviewer_context_id:id,findings:[{...data().findings[0],
+        evidence:'Reviewer '+id+' observed a concrete branch',
+        action:'Correct the checked code'}]}),unexpected_field:true});
+  const output=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(output.status,'UNSAFE_REVIEWER_PROVENANCE');
+  assert.equal(output.text,null);
+});
+test('unqualified relay blocks malformed source provenance that cannot be redacted exactly',()=>{
+  for(const bad of ['private-message\r\nreference-abc123',
+    'private-message\u200breference-abc123']){
+    const report='Independent review: R1 requires manual correction on a branch '+
+      bad+'\n'+d.MARKER+'\n{broken-json';
+    const output=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:report,current_head:SHA,
+      source:{...source,message_ref:bad},
+      publication_clearance:{secrets_checked:true,personal_data_checked:true,
+        public_repo_safe:true,finding_details_approved:true}
+    });
+    assert.equal(output.status,'UNSAFE_SOURCE_PROVENANCE');
+    assert.equal(output.ready_for_manual_relay,false);
+    assert.equal(output.text,null);
+  }
+});
