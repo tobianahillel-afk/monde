@@ -869,3 +869,54 @@ test('public relay budget is 12 KiB not 12000 decimal bytes',()=>{
   const text=require('node:fs').readFileSync(__dirname+'/delegation.cjs','utf8');
   assert.match(text,/PUBLIC_RELAY_MAX_BYTES=12\*1024/);
 });
+
+test('L2 full actionable findings retained for foreground triage',()=>{
+  const out=d.assessReview({expected:H,response:message(data({findings:[
+    {...data().findings[0],severity:'R1'},
+    {...data().findings[0],id:'F02',severity:'R2',action:'Correct next phase'}
+  ]})),source,current_head:SHA});
+  assert.equal(out.status,'NEEDS_CORRECTION');
+  assert.equal(out.severity_r2,1);
+  assert.equal(out.findings_for_triage[1].action,'Correct next phase');
+  assert.equal(out.native_github_approved,false);
+});
+test('unverified L2 retains allegations without treating them as approval',()=>{
+  const x=d.assessReview({expected:H,response:message(data()),current_head:SHA,
+    source:{...source,retrieval_kind:'not-verified'}});
+  assert.equal(x.status,'INDEPENDENCE_UNVERIFIED');
+  assert.equal(x.reported_findings[0].severity,'R1');
+  assert.match(x.reported_findings[0].action,/Refuse/);
+});
+test('batch contains full findings but explicitly unverified status',()=>{
+  const o=d.assessDelegationBatch({assignments:[H],current_head:SHA,
+    reports:{[H.assignment_id]:message(data())},
+    sources:{[H.assignment_id]:{...source,retrieval_kind:'not-verified'}}});
+  assert.equal(o.triage_findings.length,1);
+  assert.equal(o.triage_findings[0].qualification,'UNVERIFIED_REPORT_CLAIM');
+  assert.equal(o.triage_findings[0].evidence,data().findings[0].evidence);
+  assert.equal(o.ready_for_merge,false);
+});
+test('research findings remain actionable even with unverified source',()=>{
+  const a={...H,assignment_id:'RESEARCH-20261011-001',mission_kind:'TECH_RESEARCH'};
+  const packet={v:1,assignment_id:a.assignment_id,repo:a.repo,pr:a.pr,
+    head_sha:a.head_sha,mission_kind:'TECH_RESEARCH',
+    reviewer_context_id:'new-different-chat-001',verdict:'CHANGES_REQUIRED',
+    findings:[{id:'F01',severity:'R2',path:H.paths[0],
+      evidence:'Bench comparison fails on X',action:'Use Y'}],limitations:[]};
+  const response='This is a complete researched analysis with evidence.\n'+
+    d.RESEARCH_MARKER+'\n'+JSON.stringify(packet);
+  const out=d.assessResearchReport({expected:a,response,current_head:SHA,source:null});
+  assert.equal(out.status,'INDEPENDENCE_UNVERIFIED');
+  assert.equal(out.reported_findings[0].action,'Use Y');
+  assert.equal(out.reported_severity_r2,1);
+});
+test('public relay rejects additional API key formats',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,public_repo_safe:true};
+  for(const key of ['sk-proj-abcdefghijklmnopqrstuvwxyz123456',
+    'AIzaABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcd','ASIAABCDEFGHIJKLMNOP']){
+    const out=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({limitations:['Sensitive '+key]})),
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
+  }
+});

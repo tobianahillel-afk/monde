@@ -168,21 +168,26 @@ function assessResearchReport({expected,response,current_head,source}) {
     validateReport(mapped);
   }catch(e){if(e instanceof InvalidReport)
     return result('REPORT_NEEDS_MANUAL_REVIEW',e.code);throw e;}
+  const alleged={reported_findings:packet.findings.map(f=>({...f})),
+    reported_limitations:packet.limitations.slice(),
+    reported_severity_r1:packet.findings.filter(f=>f.severity==='R1').length,
+    reported_severity_r2:packet.findings.filter(f=>f.severity==='R2').length};
   if(packet.assignment_id!==a.assignment_id||packet.repo!==a.repo||
     packet.pr!==a.pr||packet.head_sha!==a.head_sha||
-    packet.mission_kind!==a.mission_kind)return result('WRONG_ASSIGNMENT');
-  if(current_head!==a.head_sha)return result('STALE_SHA');
+    packet.mission_kind!==a.mission_kind)return {...result('WRONG_ASSIGNMENT'),...alleged};
+  if(current_head!==a.head_sha)return {...result('STALE_SHA'),...alleged};
   if(!plain(source)||source.retrieved_from_distinct_chat!==true||
     source.retrieval_kind!=='chat_history'||
     source.context_id!==packet.reviewer_context_id||
     source.context_id===a.author_context_id||
-    !oneLine(source.message_ref,160))return result('INDEPENDENCE_UNVERIFIED');
+    !oneLine(source.message_ref,160))return {...result('INDEPENDENCE_UNVERIFIED'),...alleged};
   const blocking=packet.findings.some(f=>f.severity==='R1'||f.severity==='R2');
   return {status:packet.verdict==='CHANGES_REQUIRED'||blocking?'NEEDS_CORRECTION':
     packet.verdict==='BLOCKED'?'BLOCKED':
     'RESEARCH_REPORT_RECEIVED_PENDING_VALIDATION',
     mission_kind:a.mission_kind,requires_manual_qualification:true,
-    findings:packet.findings.length,native_github_approved:false,
+    findings:packet.findings.length,...alleged,
+    requires_manual_qualification:true,native_github_approved:false,
     ready_for_merge:false};
 }
 
@@ -283,7 +288,9 @@ function assessReview({ expected, response, current_head, source, coverage_manif
     reported_severity_r1: metadata.findings.filter(x=>x.severity==='R1').length,
     reported_severity_r2: metadata.findings.filter(x=>x.severity==='R2').length,
     reported_blocking_findings: metadata.findings.some(x=>
-      x.severity==='R1'||x.severity==='R2')
+      x.severity==='R1'||x.severity==='R2'),
+    reported_findings:metadata.findings.map(f=>({...f})),
+    reported_limitations:metadata.limitations.slice()
   };
   if (typeof current_head !== 'string' || !SHA.test(current_head) ||
       current_head !== a.head_sha)
@@ -345,6 +352,10 @@ function assessReview({ expected, response, current_head, source, coverage_manif
     missing_reviewed_paths: missingCoverage,
     extraneous_reviewed_paths: extraneousCoverage,
     severity_r1: metadata.findings.filter(x => x.severity === 'R1').length,
+    severity_r2: metadata.findings.filter(x => x.severity === 'R2').length,
+    findings_for_triage:metadata.findings.map(f=>({...f})),
+    limitations_for_triage:metadata.limitations.slice(),
+    reviewed_paths_claimed:examined.slice(),
     analysis_length: analysis.length,
     observed_message_ref: source.message_ref
   };
@@ -360,6 +371,9 @@ const CREDENTIAL_PATTERNS=[
   /\bglpat-[A-Za-z0-9_-]{15,}\b/,
   /\bnpm_[A-Za-z0-9]{20,}\b/,
   /\bsk_(?:live|test)_[A-Za-z0-9]{12,}\b/,
+  /\bsk-(?:proj|org|svcacct)-[A-Za-z0-9_-]{12,}\b/,
+  /\bAIza[0-9A-Za-z_-]{30,}\b/,
+  /\bASIA[0-9A-Z]{16}\b/,
   /\bAuthorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}\b/i
 ];
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
@@ -605,7 +619,16 @@ function assessDelegationBatch({
   const unqualified_blocking_reports=unqualified.length;
   const unqualified_r1=unqualified.reduce((n,r)=>n+(r.reported_severity_r1||0),0);
   const unqualified_r2=unqualified.reduce((n,r)=>n+(r.reported_severity_r2||0),0);
+  // Triage is in memory only. Reports are untrusted, never approval evidence.
+  const triage_findings=results.flatMap(outcome=>{
+    const details=Array.isArray(outcome.findings_for_triage)?
+      outcome.findings_for_triage:
+      Array.isArray(outcome.reported_findings)?outcome.reported_findings:[];
+    return details.map(f=>({assignment_id:outcome.assignment_id,
+      status:outcome.status,qualification:'UNVERIFIED_REPORT_CLAIM',...f}));
+  });
   return {
+    triage_findings,
     unqualified_blocking_reports,unqualified_r1,unqualified_r2,
     needs_attention:results.some(r=>r.needs_attention===true||
       r.reported_blocking_findings===true||
