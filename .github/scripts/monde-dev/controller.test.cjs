@@ -761,3 +761,40 @@ test('E5 one worker cannot own multiple current independent tasks',()=>{
   a.equal(d.outcome,'DENIED');
   a.equal(d.reason,'TASK_ALREADY_OWNED');
 });
+
+test('ACTIVE_4 review: a ready L2 work review gets a review-only coordination grant',()=>{
+  const source=['id: WORK-0002','status: IN_REVIEW','depends_on: [WORK-0001]',
+    'implementation_plan:','  tasks:',
+    '    - {id: T3, description: "Done", depends_on: [], expected_files: [src/test.cjs], status: DONE}',
+    '    - {id: T12, description: "Fresh review", depends_on: [T3], expected_files: [], status: IN_REVIEW}',
+    '  planned_runs: []'].join('\n');
+  const gate=c.parseWorkGate(source,'WORK-0002');
+  const request=q(1,{work:'WORK-0002',task:'T12',
+    resources:['review:WORK-0002-T12']});
+  const d=c.eligibleRealClaim(request,gate,{'WORK-0001':'DONE'},SHA);
+  a.equal(d.eligible,true);
+  const grant=c.chooseActive(empty(),request,
+    {work:gate,dependencies:{'WORK-0001':'DONE'},baseSha:SHA});
+  a.equal(grant.outcome,'GRANTED');
+  a.equal(grant.reason,'COORDINATION_ONLY');
+});
+test('ACTIVE_4 review: no unreviewed file write or forged review of different task',()=>{
+  const gate={id:'WORK-0002',status:'IN_REVIEW',depends_on:[],
+    tasks:[{id:'T12',status:'IN_REVIEW',depends_on:[],expected_files:[]}]};
+  for(const resources of [['path:src/code.cjs'],['review:WORK-0002-T11'],
+    ['review:WORK-0002-T12','path:README.md']]){
+    const r=q(1,{work:'WORK-0002',task:'T12',resources});
+    a.equal(c.eligibleRealClaim(r,gate,{},SHA).reason,'REVIEW_SCOPE_ONLY');
+  }
+  a.equal(c.normalizeResources(['review:WORK-0002-T12'])[0],'review:WORK-0002-T12');
+});
+test('ACTIVE_4 review: do not claim a review before its prerequisite task is DONE',()=>{
+  const w={id:'WORK-0002',status:'IN_REVIEW',depends_on:[],
+    tasks:[
+      {id:'T3',status:'IN_REVIEW',depends_on:[],expected_files:[]},
+      {id:'T12',status:'IN_REVIEW',depends_on:['T3'],expected_files:[]}
+    ]};
+  const r=q(1,{work:'WORK-0002',task:'T12',
+    resources:['review:WORK-0002-T12']});
+  a.equal(c.eligibleRealClaim(r,w,{},SHA).reason,'TASK_DEPENDENCY_NOT_DONE');
+});
