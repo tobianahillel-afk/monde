@@ -524,7 +524,8 @@ const CREDENTIAL_PATTERNS=[
   /(?:^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{20,}/,
   /(?:^|[^A-Za-z0-9])AIza[0-9A-Za-z_-]{30,}/,
   /(?:^|[^A-Za-z0-9])ASIA[0-9A-Z]{16}/,
-  /\bAuthorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}\b/i
+  // Include underscore-prefixed log fields (file_Authorization, etc).
+  /(?:^|[^A-Za-z0-9])Authorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}/i
 ];
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
 function prepareInteractiveHandoff(args) {

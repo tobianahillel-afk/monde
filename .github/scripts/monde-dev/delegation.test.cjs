@@ -2084,3 +2084,27 @@ test('full L2 relay selects fence longer than embedded untrusted backticks',()=>
   assert.equal(chunk.split('\n')[0],tick.repeat(8));
   assert.equal(chunk.split('\n')[2],tick.repeat(8));
 });
+
+test('L2 public relay rejects underscore-prefixed Authorization bearer field',()=>{
+  const bearer='file_Authorization: Bearer '+'Y'.repeat(32);
+  const response=message(data({findings:[{...data().findings[0],
+    evidence:'Log field: '+bearer}]}));
+  const result=d.prepareInteractiveHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(result.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(result.ready_for_manual_relay,false);
+  assert.equal(result.text,null);
+});
+test('L2 malformed-report relay blocks underscore-prefixed bearer even with clearance',()=>{
+  const bearer='file_Authorization: Bearer '+'Y'.repeat(32);
+  const response='Review evidence R1: '+bearer+'\n'+d.MARKER+'\n{invalid';
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(result.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(result.ready_for_manual_relay,false);
+  assert.equal(result.text,null);
+});
