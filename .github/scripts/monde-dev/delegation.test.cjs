@@ -1276,3 +1276,38 @@ test('research malformed footer keeps excerpt bounded at 8192 characters',()=>{
   assert.equal(outcome.raw_report_excerpt_truncated,true);
   assert.equal(outcome.ready_for_merge,false);
 });
+
+
+test('unreadable research footer does not imply no critical findings',()=>{
+  const message='A full investigation documents important unresolved security bugs and '+
+    'missing code guards, but its final metadata footer is not available.';
+  const result=d.assessResearchReport({expected:RESEARCH,response:message,
+    current_head:SHA,source});
+  assert.equal(result.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(result.reported_blocking_unknown,true);
+  assert.equal(result.requires_manual_qualification,true);
+  assert.equal(result.ready_for_merge,false);
+});
+test('malformed research in batch retains unknown R1/R2 for attention',()=>{
+  const message='Technical analysis exposes real authorization and concurrency flaws, '+
+    'with full prose but no machine readable footer for the assistant.';
+  const batch=d.assessDelegationBatch({assignments:[RESEARCH],
+    reports:{[RESEARCH.assignment_id]:message},
+    sources:{[RESEARCH.assignment_id]:source},current_head:SHA});
+  assert.equal(batch.results[0].reported_blocking_unknown,true);
+  assert.equal(batch.unqualified_blocking_reports,1);
+  assert.equal(batch.unqualified_r1,0);
+  assert.equal(batch.needs_attention,true);
+  assert.equal(batch.ready_for_merge,false);
+});
+test('malformed L2 in batch retains uncertainty about blocking findings',()=>{
+  const message='Independent security review found potentially severe issues; '+
+    'the complete prose is available but final structured fields are not.';
+  const batch=d.assessDelegationBatch({assignments:[H],
+    reports:{[H.assignment_id]:message},
+    sources:{[H.assignment_id]:source},current_head:SHA});
+  assert.equal(batch.results[0].status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(batch.results[0].reported_blocking_unknown,true);
+  assert.equal(batch.unqualified_blocking_reports,1);
+  assert.equal(batch.native_github_approved,false);
+});

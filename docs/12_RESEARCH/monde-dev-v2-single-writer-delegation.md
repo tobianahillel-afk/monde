@@ -1,6 +1,10 @@
 # MONDE Development Engine V2 — single interactive writer
 
 Status: implementation candidate (not Accepted). Updated 2026-10-11.
+WORK-0005 remains PROPOSED on documentation PR #18, where its declared work
+dependency is WORK-0001 (DONE). The executable candidate is draft PR #19.
+This V2 requires neither WORK-0002 nor WORK-0003 as a runtime dependency,
+but integrations remain subject to Accepted MONDE governance and host rules.
 
 > **Implementation scope clarified 2026-10-11:** V2 implements one manually triggered GitHub writer plus 1–4 ephemeral ChatGPT read-only research/L2 reviewers. The obsolete issue-comment arbiter, `controller.cjs`, synthetic four-writer tests, and workflow dispatcher are **not included** in this implementation PR. No `ACTIVE_4` code runs in this release. The older RFC in PR #18 is a historical proposal, not authorization for a second GitHub writer.
 

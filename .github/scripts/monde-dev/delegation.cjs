@@ -149,9 +149,13 @@ function assessResearchReport({expected,response,current_head,source}) {
   // bounded claims for manual triage instead of silently dropping them.
   const manual=(reason)=>{
     const claims=recoverUnqualifiedClaims(response,RESEARCH_MARKER);
+    // Missing parseable claims cannot establish that prose contains no R1/R2.
+    const unknown=claims.reported_claims_total===undefined||
+      claims.reported_claims_incomplete===true||
+      claims.reported_blocking_unknown===true;
     return {...result('REPORT_NEEDS_MANUAL_REVIEW',reason),
       needs_attention:true,requires_manual_qualification:true,
-      ...claims,
+      ...claims,reported_blocking_unknown:unknown,
        // Foreground-only source fragment when the machine footer is unreadable.
        raw_report_excerpt:typeof response==='string'?response.slice(0,8192):null,
        raw_report_excerpt_truncated:typeof response==='string'&&response.length>8192,
@@ -335,12 +339,16 @@ function assessReview({ expected, response, current_head, source, coverage_manif
       // without the requested footer. Keep bounded untrusted text available
       // ONLY for foreground manual triage; never qualify it as L2 acceptance.
       const excerpt=typeof response==='string'?response.slice(0,8192):null;
+      const claims=recoverUnqualifiedClaims(response);
+      const unknown=claims.reported_claims_total===undefined||
+        claims.reported_claims_incomplete===true||
+        claims.reported_blocking_unknown===true;
       return {status:'REPORT_NEEDS_MANUAL_REVIEW',native_github_approved:false,
         ready_for_merge:false,requires_manual_qualification:true,
         needs_attention:true,reason:error.code,
         raw_report_excerpt:excerpt,
         raw_report_excerpt_truncated:typeof response==='string'&&response.length>8192,
-        ...recoverUnqualifiedClaims(response),
+        ...claims,reported_blocking_unknown:unknown,
         raw_report_sha256:typeof response==='string'?
           createHash('sha256').update(response,'utf8').digest('hex'):null};
     }
