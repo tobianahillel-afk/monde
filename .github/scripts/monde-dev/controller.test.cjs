@@ -965,3 +965,45 @@ test('real repository: WORK-0003 remains ineligible until canonical planning com
   a.equal(c.eligibleRealClaim(r,gate,{'WORK-0001':'DONE'},SHA).reason,
     'WORK_NOT_READY');
 });
+
+test('journal refuses grant IDs not deterministically bound to request_id',()=>{
+  const r=q(),cmd=request(1,r);
+  const forged={outcome:'GRANTED',reason:'TEST_FIXTURE',
+    grant_id:'grant:other-request-01',epoch:1,resources:r.resources,
+    observed_base_sha:SHA};
+  assertReject(()=>c.replay([cmd,response(2,cmd,forged)]),'INVALID_GRANT');
+});
+test('journal refuses non-grant responses carrying a ghost grant or resources',()=>{
+  const r=q(),cmd=request(1,r);
+  for(const change of [
+    {grant_id:'grant:req-case-0001'},
+    {epoch:1},
+    {resources:['path:src/unsafe.cjs']},
+    {observed_base_sha:SHA}
+  ]){
+    const forged={outcome:'DENIED',reason:'CONFLICT',grant_id:null,
+      epoch:null,resources:[],observed_base_sha:null,...change};
+    assertReject(()=>c.replay([cmd,response(2,cmd,forged)]),'INVALID_NON_GRANT');
+  }
+});
+test('journal checks every operation outcome against its original request',()=>{
+  const status={v:1,op:'STATUS',request_id:'req-status-shape-1',
+    worker:'W1',work:'WORK-0000',task:'T1'};
+  const sr=request(1,status);
+  const deny={outcome:'DENIED',reason:'CONFLICT',grant_id:null,
+    epoch:null,resources:[],observed_base_sha:null};
+  assertReject(()=>c.replay([sr,response(2,sr,deny)]),'INVALID_OUTCOME_OP');
+  const claimed=request(5,q());
+  assertReject(()=>c.replay([claimed,response(6,claimed,{...deny,
+    outcome:'RELEASED',grant_id:'grant:req-case-0001',epoch:1,
+    resources:q().resources,observed_base_sha:SHA})]),'INVALID_OUTCOME_OP');
+});
+test('normal fixture denial and STATUS response remain replayable',()=>{
+  const s=simulated();s.apply(q());s.apply(q(2,{resources:q().resources}));
+  const status={v:1,op:'STATUS',request_id:'req-status-shape-2',
+    worker:'W3',work:'WORK-0000',task:'T3'};
+  const cmd=request(12,status),out=select(s.state(),status);
+  const comments=[...s.comments,cmd,response(13,cmd,out)];
+  a.equal(c.replay(comments).grants.size,1);
+  a.equal(c.replay(comments).decisions.size,3);
+});

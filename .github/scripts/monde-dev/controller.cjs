@@ -106,14 +106,26 @@ function replay(comments,bot='github-actions[bot]',allowedActors=['tobianahillel
        source.q.work!==r.work||source.q.task!==r.task)fail('ORPHAN_RESULT');
     if(decisions.has(r.request_id))fail('DUPLICATE_RESULT');
     decisions.set(r.request_id,r);
-    if((r.outcome==='RELEASED'&&source.q.op!=='RELEASE')||
-       (r.outcome==='GRANTED'&&source.q.op!=='CLAIM'))fail('INVALID_OUTCOME_OP');
+    // Every result is attributable to exactly one kind of command.
+    const allowedOutcome={
+      CLAIM:['GRANTED','DENIED','BLOCKED','UNKNOWN'],
+      RELEASE:['RELEASED','BLOCKED','UNKNOWN'],
+      STATUS:['NO_CHANGE','BLOCKED','UNKNOWN']
+    };
+    if(!allowedOutcome[source.q.op]?.includes(r.outcome))
+      fail('INVALID_OUTCOME_OP');
+    // A denial or status reply must not carry a seemingly valid grant.
+    if(!['GRANTED','RELEASED'].includes(r.outcome)&&
+        (r.grant_id!==null||r.epoch!==null||
+         r.resources.length!==0||r.observed_base_sha!==null))
+      fail('INVALID_NON_GRANT');
     if(r.outcome==='GRANTED'){
       if(source.q.op!=='CLAIM'||
           (mode==='TEST_ONLY'&&(source.q.work!=='WORK-0000'||
             !['T1','T2','T3','T4'].includes(source.q.task)))||
           (mode==='ACTIVE_4'&&source.q.work==='WORK-0000')||
-          r.grant_id===null||grants.has(r.grant_id)||r.epoch===null||r.epoch<=epoch||
+          r.grant_id!=='grant:'+r.request_id||
+          grants.has(r.grant_id)||r.epoch===null||r.epoch<=epoch||
          r.observed_base_sha!==source.q.base_sha||
          JSON.stringify(r.resources)!==JSON.stringify(source.q.resources))fail('INVALID_GRANT');
       for(const g of grants.values()){
