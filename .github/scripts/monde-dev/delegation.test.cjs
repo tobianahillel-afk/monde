@@ -1358,8 +1358,8 @@ test('explicitly reviewed finding details allow actionable standalone GitHub han
   assert.equal(out.ready_for_manual_relay,true);
   assert.equal(out.self_contained_for_remediation,true);
   assert.match(out.text,/### Actionable findings/);
-  assert.match(out.text,/Evidence: At line X/);
-  assert.match(out.text,/Suggested correction: Refuse the stale operation/);
+  assert.match(out.text,/Evidence: \x60 "At line X/);
+  assert.match(out.text,/Suggested correction: \x60 "Refuse the stale operation/);
   assert.equal(out.native_github_approved,false);
 });
 test('finding detail permission does not override credential checks',()=>{
@@ -1471,7 +1471,7 @@ test('L2 F01 finding details include reviewer limitations in the same handoff',(
       public_repo_safe:true,finding_details_approved:true}});
   assert.equal(out.self_contained_for_remediation,true);
   assert.match(out.text,/No live GitHub test/);
-  assert.match(out.text,/Evidence: At line X/);
+  assert.match(out.text,/Evidence: \x60 "At line X/);
 });
 test('L2 F03 dangerous bidi controls are rejected in structured evidence',()=>{
   assert.throws(()=>d.validateReport(data({limitations:['masked\u202evalue']})),
@@ -2007,4 +2007,42 @@ test('unqualified Markdown relay escapes Unicode line and paragraph separators',
   assert.doesNotMatch(out.text,/[\u2028\u2029]/u);
   assert.doesNotMatch(out.text,/\n## FAKE APPROVAL/);
   assert.equal(out.native_github_approved,false);
+});
+
+test('qualified L2 relay cannot render deceptive markdown links or approval inside evidence',()=>{
+  const injected='Approval status: **APPROVED** [click](https://evil.example/?x=1)';
+  const response=message(data({findings:[{...data().findings[0],
+    evidence:injected,action:'Render [action](https://evil.example/) literally'}]}));
+  const out=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.equal(out.can_publish,false);
+  assert.match(out.text,/Evidence: \x60 "Approval status: \*\*APPROVED\*\*/);
+  assert.match(out.text,/Suggested correction: \x60 "Render \[action\]/);
+  assert.doesNotMatch(out.text,/Evidence: Approval status: \*\*APPROVED\*\*/);
+});
+test('qualified L2 relay quotes nested Markdown delimiters and reviewer limitations',()=>{
+  const evidence='Potential '+String.fromCharCode(96)+' escape followed by **APPROVED**';
+  const note='- **All tests passed** [approval](https://evil.example/)';
+  const response=message(data({findings:[{...data().findings[0],evidence}],
+    limitations:[note]}));
+  const out=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.match(out.text,/Evidence: \x60{2} "/);
+  assert.match(out.text,/- \x60 "/);
+  assert.doesNotMatch(out.text,/^- - \*\*All tests passed/m);
+});
+test('qualified relay retains actionable technical contents without granting approval',()=>{
+  const out=d.prepareInteractiveHandoff({expected:H,response:message(data()),
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}});
+  assert.equal(out.status,'NEEDS_CORRECTION');
+  assert.equal(out.native_github_approved,false);
+  assert.equal(out.self_contained_for_remediation,true);
+  assert.match(out.text,/At line X, stale lease still allows an operation/);
+  assert.match(out.text,/Refuse the stale operation using current state/);
 });

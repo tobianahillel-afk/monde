@@ -597,8 +597,8 @@ function prepareInteractiveHandoff(args) {
       '### Actionable findings (unverified reviewer claims)',
       ...metadata.findings.flatMap(f=>[
         f.id+' ['+f.severity+'] '+f.path,
-        'Evidence: '+f.evidence,
-        'Suggested correction: '+f.action
+        'Evidence: '+quoteUntrustedExcerpt(f.evidence),
+        'Suggested correction: '+quoteUntrustedExcerpt(f.action)
       ])
     ]:[
       'Detailed evidence and corrections are NOT included.',
@@ -607,7 +607,7 @@ function prepareInteractiveHandoff(args) {
     ...(detailedFindings&&metadata.limitations.length?[
       '',
       '### Reviewer limitations (unverified)',
-      ...metadata.limitations.map(x=>'- '+x)
+      ...metadata.limitations.map(x=>'- '+quoteUntrustedExcerpt(x))
     ]:[]),
     'Full report retained in original ChatGPT reviewer conversation.',
     'A public relay is not a technical L2 acceptance decision.',
