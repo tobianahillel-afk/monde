@@ -387,3 +387,10 @@ test('security: a different untrusted bot author cannot issue operational result
   fake.user.login='random-bot';
   a.equal(c.replay([command,fake]).grants.size,0);
 });
+
+test('security: inherited JavaScript object names cannot become operations',()=>{
+  for(const op of ['__proto__','constructor','toString','valueOf','hasOwnProperty']){
+    const bad={...q(),op};
+    assertReject(()=>c.parseRequest(c.COMMAND+'\n'+JSON.stringify(bad)),'UNKNOWN_OP');
+  }
+});
