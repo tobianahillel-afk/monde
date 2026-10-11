@@ -276,9 +276,18 @@ function assessReview({ expected, response, current_head, source, coverage_manif
       metadata.repo !== a.repo || metadata.pr !== a.pr ||
       metadata.head_sha !== a.head_sha)
     return { status: 'WRONG_ASSIGNMENT', native_github_approved: false };
+  // Preserve security diagnostics as unqualified allegations if provenance
+  // or freshness is missing; they cannot become acceptance evidence.
+  const reported = {
+    reported_finding_count: metadata.findings.length,
+    reported_severity_r1: metadata.findings.filter(x=>x.severity==='R1').length,
+    reported_severity_r2: metadata.findings.filter(x=>x.severity==='R2').length,
+    reported_blocking_findings: metadata.findings.some(x=>
+      x.severity==='R1'||x.severity==='R2')
+  };
   if (typeof current_head !== 'string' || !SHA.test(current_head) ||
       current_head !== a.head_sha)
-    return { status: 'STALE_SHA', native_github_approved: false };
+    return { status: 'STALE_SHA', native_github_approved: false, ...reported };
   // Source verification is an external observable fact, never inferred
   // from the report's self-asserted reviewer_context_id.
   if (!plain(source) || source.retrieved_from_distinct_chat !== true ||
@@ -287,7 +296,8 @@ function assessReview({ expected, response, current_head, source, coverage_manif
       source.context_id === a.author_context_id ||
       source.retrieval_kind !== 'chat_history' ||
       !oneLine(source.message_ref, 160))
-    return { status: 'INDEPENDENCE_UNVERIFIED', native_github_approved: false };
+    return { status: 'INDEPENDENCE_UNVERIFIED', native_github_approved: false,
+      ...reported };
   // Out-of-scope findings may uncover genuine cross-component defects. Keep
   // them actionable, but do not silently count a narrow review as a complete
   // review of those additional components.
@@ -537,6 +547,11 @@ function assessDelegationBatch({
     if(!Object.prototype.hasOwnProperty.call(reports,key)||
        typeof reports[key]!=='string'||!plain(sources[key]))continue;
     const observation=sources[key];
+    for(const earlier of prior_sources)
+      if(earlier.assignment_id===key &&
+         (earlier.context_id!==observation.context_id ||
+          earlier.message_ref!==observation.message_ref))
+        conflicting.add(key);
     for(const field of ['context_id','message_ref']){
       const prefix=field==='context_id'?'context:':'message:';
       const historical=older.get(prefix+observation[field]);
@@ -561,7 +576,11 @@ function assessDelegationBatch({
   const counts = {};
   for (const result of results)
     counts[result.status] = (counts[result.status] || 0) + 1;
+  const unqualified_blocking_reports=results.filter(result=>
+    result.reported_blocking_findings===true &&
+    ['STALE_SHA','INDEPENDENCE_UNVERIFIED'].includes(result.status)).length;
   return {
+    unqualified_blocking_reports,
     repo: plan[0].repo, pr: plan[0].pr, head_sha: plan[0].head_sha,
     total: plan.length, results, counts,
     independence_conflicts: conflicting.size,

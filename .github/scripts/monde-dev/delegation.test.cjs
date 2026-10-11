@@ -762,3 +762,43 @@ test('generated L2 prompt has all Review Council hats, not just a generic role',
     'PERFORMANCE_SRE','DOCUMENTATION_TRACEABILITY','RED_TEAM_SKEPTIC'])
     assert.ok(prompt.includes(role),role);
 });
+
+test('unverified L2 report still surfaces R1/R2 allegations for manual triage',()=>{
+  const report=message(data({findings:[
+    {...data().findings[0],id:'F01',severity:'R1'},
+    {...data().findings[0],id:'F02',severity:'R2'}
+  ]}));
+  const out=d.assessReview({expected:H,response:report,
+    current_head:SHA,source:{...source,retrieval_kind:'unverified'}});
+  assert.equal(out.status,'INDEPENDENCE_UNVERIFIED');
+  assert.equal(out.reported_finding_count,2);
+  assert.equal(out.reported_severity_r1,1);
+  assert.equal(out.reported_severity_r2,1);
+  assert.equal(out.reported_blocking_findings,true);
+  assert.equal(out.native_github_approved,false);
+});
+test('stale L2 retains claimed R1 diagnostics without accepting the report',()=>{
+  const out=d.assessReview({expected:H,response:message(data()),
+    current_head:'b'.repeat(40),source});
+  assert.equal(out.status,'STALE_SHA');
+  assert.equal(out.reported_severity_r1,1);
+  assert.equal(out.reported_blocking_findings,true);
+});
+test('batch counts critical unqualified L2 reports separately from trust states',()=>{
+  const out=d.assessDelegationBatch({assignments:[H],current_head:SHA,
+    reports:{[H.assignment_id]:message(data())},
+    sources:{[H.assignment_id]:{...source,context_id:'unobserved-chat-001'}}});
+  assert.equal(out.results[0].status,'INDEPENDENCE_UNVERIFIED');
+  assert.equal(out.unqualified_blocking_reports,1);
+  assert.equal(out.ready_for_merge,false);
+});
+test('cross-batch same assignment with changed source fails provenance qualification',()=>{
+  const out=d.assessDelegationBatch({assignments:[H],current_head:SHA,
+    reports:{[H.assignment_id]:message(data({verdict:'APPROVE',findings:[]}))},
+    sources:{[H.assignment_id]:source},
+    prior_sources:[{assignment_id:H.assignment_id,
+      context_id:source.context_id,message_ref:'other-message-ref-001'}]});
+  assert.equal(out.results[0].status,'INDEPENDENCE_UNVERIFIED');
+  assert.equal(out.independence_conflicts,1);
+  assert.equal(out.ready_for_merge,false);
+});
