@@ -635,14 +635,15 @@ test('cross-batch reused message_ref cannot qualify a clean L2',()=>{
   assert.equal(out.results[0].independence_unverified,true);
   assert.equal(out.independence_conflicts,1);
 });
-test('historical observation of same mission is not treated as another reviewer',()=>{
+test('legacy same-mission observation without HEAD/digest is ambiguous, findings remain',()=>{
   const out=d.assessDelegationBatch({assignments:[H],
     reports:{[H.assignment_id]:message(data())},
     sources:{[H.assignment_id]:source},current_head:SHA,
     prior_sources:[{assignment_id:H.assignment_id,
       context_id:source.context_id,message_ref:source.message_ref}]});
   assert.equal(out.results[0].status,'NEEDS_CORRECTION');
-  assert.equal(out.independence_conflicts,0);
+  assert.equal(out.results[0].independence_unverified,true);
+  assert.equal(out.independence_conflicts,1);
 });
 test('empty or malformed prior observation inventories reject ambiguous input',()=>{
   for(const prior_sources of [null,{},[{}],[
