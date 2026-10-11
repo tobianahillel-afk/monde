@@ -451,3 +451,24 @@ test('invalid task categories cannot become development permissions',()=>{
   assert.throws(()=>d.assignment({...RESEARCH,can_write:true}),
     error=>error.code==='INVALID_FIELDS');
 });
+
+
+test('critical evidence in completed research requires correction, never silent sign-off',()=>{
+  const report=researchData({verdict:'COMPLETED',findings:[{
+    id:'F01',severity:'R1',path:'.github/scripts/monde-dev/delegation.cjs',
+    evidence:'The report identifies a reproduced permission error.',
+    action:'Preserve least privilege and repair the permission flow.'
+  }]});
+  const result=d.assessResearchReport({expected:RESEARCH,
+    response:researchMessage(report),current_head:SHA,source});
+  assert.equal(result.status,'NEEDS_CORRECTION');
+  assert.equal(result.native_github_approved,false);
+});
+test('malformed finding collections stay reports needing manual review',()=>{
+  for(const wrong of [null,{},[null],['bad']]){
+    const out=d.assessResearchReport({expected:RESEARCH,
+      response:researchMessage(researchData({findings:wrong})),
+      current_head:SHA,source});
+    assert.equal(out.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  }
+});
