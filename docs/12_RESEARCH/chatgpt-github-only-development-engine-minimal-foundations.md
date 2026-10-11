@@ -28,6 +28,16 @@ Constraint: four ChatGPT Scheduled tasks + connected GitHub plugin + GitHub-host
 
 **Stop building the engine at L1/L2 temporarily** if capability inventory, docs, single-worker implementation or independent review is the critical path. A work process can be sufficiently useful before being fully automated. Don't make `ACTIVE_4` a prerequisite for MONDE's productive documentation.
 
+## Highest-ROI quick win: **Ready-to-Build**, not another runtime
+
+Before material code/review: confirm, using existing WORK/REQ/CAP and current GitHub facts, that (1) user-visible intent is sufficiently accepted, (2) interface/semantic/file scope and owner are clear, (3) negative and positive test oracles are independent, (4) candidate vs trusted-default-branch security boundary is explicit when relevant, (5) current YAML/reference/scope + relevant fast tests pass, (6) there is a real route to required independent GitHub approval, correct-source CI and guarded merge. If a meaningful answer is missing, fix it **before** a large implementation. For trivial authorized changes, this should take seconds with no extra record.
+
+Concrete diagnosis from PR #2, `2e2664c`: job `113560978657` in run `37849674798` failed on **four broken `REVIEW-0095` references**, causing downstream merge-gate failure. Catching absent referenced IDs earlier is cheaper than any extra code generation. The full existing governance validator is **candidate work on PR #2, not yet a trusted main capability**: use it only within authorized unprivileged proof scopes, never as a privileged validator.
+
+**Don't "pause" completed WORK-0001**: it is already DONE. WORK-0002 remains IN_REVIEW; its critical trust-root function and WORK-0003 admin protection/native independent approver cannot be silently waived or made safe by replacing them with four writer prompts. It is fine to prioritize minimal v2 *research or isolated non-integrating trials* while parking optional WORK-0002 expansion, but any normative priority/scope change and eventual V2 merge require the existing authority path.
+
+See [critical-path root-cause table](chatgpt-github-only-engine-critical-path-audit.md) §G6. Once this six-question gate is installed in future workers' short prompt, **stop adding engine functions** unless an observed failure demonstrates need.
+
 ## 0. Six non-negotiable invariants (short enough for every worker)
 
 **I1. One authority per fact.** Accepted MONDE registers/ADRs on main own normative meaning, requirements and WORK lifecycle. GitHub refs/PR/Actions own current code, CI and review facts. One serialized GitHub Actions controller owns transient task grants. Issue labels/comments are *operational projections*, not competing WORK status machines.
