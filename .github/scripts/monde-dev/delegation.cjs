@@ -187,7 +187,7 @@ function assessResearchReport({expected,response,current_head,source}) {
     'RESEARCH_REPORT_RECEIVED_PENDING_VALIDATION',
     mission_kind:a.mission_kind,requires_manual_qualification:true,
     findings:packet.findings.length,...alleged,
-    needs_attention:packet.verdict!=='COMPLETED'||blocking,
+    needs_attention:true,
     requires_manual_qualification:true,native_github_approved:false,
     ready_for_merge:false};
 }
@@ -272,22 +272,30 @@ function recoverUnqualifiedClaims(response) {
   let packet;
   try{packet=JSON.parse(lines[lines.length-1]);}catch{return {};}
   if(!plain(packet)||!Array.isArray(packet.findings))return {};
-  const limited=packet.findings.slice(0,50).filter(f=>
+  // First validate ALL bounded input, then prioritize R1/R2 over benign noise.
+  // Never truncate before filtering: 50 junk entries must not hide entry 51.
+  const recognized=packet.findings.filter(f=>
     plain(f)&&typeof f.severity==='string'&&SEVERITIES.has(f.severity)&&
     typeof f.id==='string'&&/^F[0-9]{2,4}$/.test(f.id)&&
     typeof f.path==='string'&&validPath(f.path)&&
     typeof f.evidence==='string'&&oneLine(f.evidence,3000)&&
-    typeof f.action==='string'&&oneLine(f.action,3000)
-  ).map(f=>({id:f.id,severity:f.severity,path:f.path,
-    evidence:f.evidence,action:f.action}));
+    typeof f.action==='string'&&oneLine(f.action,3000));
+  const rank={R1:0,R2:1,R3:2};
+  const limited=recognized.slice().sort((a,b)=>rank[a.severity]-rank[b.severity])
+    .slice(0,50).map(f=>({id:f.id,severity:f.severity,path:f.path,
+      evidence:f.evidence,action:f.action}));
   const limitations=Array.isArray(packet.limitations)?
     packet.limitations.slice(0,30).filter(l=>oneLine(l,2000)):[];
   return {
     reported_finding_count:limited.length,
+    reported_claims_total:packet.findings.length,
+    reported_claims_incomplete:packet.findings.length!==recognized.length||
+      recognized.length>limited.length,
+    reported_blocking_unknown:packet.findings.length!==recognized.length,
     reported_findings:limited,
     reported_limitations:limitations,
-    reported_severity_r1:limited.filter(f=>f.severity==='R1').length,
-    reported_severity_r2:limited.filter(f=>f.severity==='R2').length,
+    reported_severity_r1:recognized.filter(f=>f.severity==='R1').length,
+    reported_severity_r2:recognized.filter(f=>f.severity==='R2').length,
     reported_blocking_findings:limited.some(f=>
       f.severity==='R1'||f.severity==='R2'),
     claims_unqualified:true
@@ -394,7 +402,8 @@ function assessReview({ expected, response, current_head, source, coverage_manif
     status: metadata.verdict === 'CHANGES_REQUIRED' ? 'NEEDS_CORRECTION' :
       metadata.verdict === 'BLOCKED' ? 'BLOCKED' :
         outOfScope.length ? 'L2_REPORT_SCOPE_EXPANSION' :
-          missingCoverage.length||extraneousCoverage.length ?
+          missingCoverage.length||extraneousCoverage.length||
+          a.paths.some(path=>path.endsWith('/')) ?
           'L2_SCOPE_NOT_EVIDENCED':'L2_REPORT_RECEIVED_PENDING_VALIDATION',
     requires_manual_qualification: true,
     native_github_approved: false,
@@ -406,6 +415,8 @@ function assessReview({ expected, response, current_head, source, coverage_manif
     out_of_scope_findings: outOfScope,
     missing_reviewed_paths: missingCoverage,
     extraneous_reviewed_paths: extraneousCoverage,
+    directory_requires_external_verification:
+      a.paths.some(path=>path.endsWith('/')),
     severity_r1: metadata.findings.filter(x => x.severity === 'R1').length,
     severity_r2: metadata.findings.filter(x => x.severity === 'R2').length,
     findings_for_triage:metadata.findings.map(f=>({...f})),
@@ -705,7 +716,9 @@ function assessDelegationBatch({
   // All reported R1/R2 findings remain unqualified until manual review;
   // neither wrong mission nor provenance collision may suppress them.
   const unqualified=results.filter(r=>r.reported_blocking_findings===true||
-    (r.severity_r1||0)>0||(r.severity_r2||0)>0);
+    r.reported_blocking_unknown===true||
+    (r.reported_severity_r1??r.severity_r1??0)>0||
+    (r.reported_severity_r2??r.severity_r2??0)>0);
   const unqualified_blocking_reports=unqualified.length;
   const unqualified_r1=unqualified.reduce((n,r)=>n+(r.reported_severity_r1??r.severity_r1??0),0);
   const unqualified_r2=unqualified.reduce((n,r)=>n+(r.reported_severity_r2??r.severity_r2??0),0);
@@ -724,7 +737,12 @@ function assessDelegationBatch({
     repeated_finding_occurrences:grouped.duplicate_occurrences,
     unqualified_blocking_reports,unqualified_r1,unqualified_r2,
     needs_attention:results.some(r=>r.needs_attention===true||
-      r.reported_blocking_findings===true||r.severity_r1>0||r.severity_r2>0||
+      r.requires_manual_qualification===true||
+      r.reported_claims_incomplete===true||
+      r.reported_blocking_unknown===true||
+      r.reported_blocking_findings===true||
+      (r.reported_severity_r1??r.severity_r1??0)>0||
+      (r.reported_severity_r2??r.severity_r2??0)>0||
       !['L2_REPORT_RECEIVED_PENDING_VALIDATION',
         'RESEARCH_REPORT_RECEIVED_PENDING_VALIDATION'].includes(r.status)),
     repo: plan[0].repo, pr: plan[0].pr, head_sha: plan[0].head_sha,

@@ -723,7 +723,7 @@ test('directory review cannot be provisionally complete from folder declaration 
   const complete=d.assessReview({expected:assigned,current_head:SHA,source,
     coverage_manifest:manifest,response:message(data({verdict:'APPROVE',
       findings:[],reviewed_paths:['src/a.cjs','src/b.cjs']}))});
-  assert.equal(complete.status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(complete.status,'L2_SCOPE_NOT_EVIDENCED');
   assert.equal(complete.requires_manual_qualification,true);
   const stale=d.assessReview({expected:assigned,current_head:SHA,source,
     coverage_manifest:{...manifest,head_sha:'b'.repeat(40)},
@@ -817,7 +817,7 @@ test('directory coverage manifests propagate in a batch and stay exact-SHA',()=>
     tree_sha:SHA,enumerated_count:2,files:['src/a.cjs','src/b.cjs']};
   assert.equal(d.assessDelegationBatch({...base,
     coverage_manifests:{[assigned.assignment_id]:manifest}}).results[0].status,
-    'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+    'L2_SCOPE_NOT_EVIDENCED');
   assert.throws(()=>d.assessDelegationBatch({...base,coverage_manifests:{unknown:manifest}}),
     e=>e.code==='UNKNOWN_ASSIGNMENT_RESULT');
 });
@@ -1079,7 +1079,72 @@ test('L2 R2 regression: a partial or unverified directory tree cannot qualify co
     enumeration_complete:true,tree_sha:SHA,enumerated_count:2};
   const qualified=d.assessReview({expected:assign,response:payload,current_head:SHA,
     source,coverage_manifest:documented});
-  assert.equal(qualified.status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+  assert.equal(qualified.status,'L2_SCOPE_NOT_EVIDENCED');
   assert.equal(qualified.needs_attention,true);
   assert.equal(qualified.native_github_approved,false);
+});
+
+test('L2 F35 F01: every research kind keeps unqualified R1 in batch counts',()=>{
+  const finding={id:'F01',severity:'R1',path:'src/critical.cjs',
+    evidence:'A critical reproducible security issue exists in this source',
+    action:'Correct the affected security policy before promotion'};
+  for(const mission_kind of ['TECH_RESEARCH','ARCH_ANALYSIS',
+    'SECURITY_ANALYSIS','TEST_IDEATION']){
+    const target={...RESEARCH,mission_kind,assignment_id:'RESEARCH-'+mission_kind+'-2026'};
+    const response=researchMessage(researchData({mission_kind,
+      assignment_id:target.assignment_id,findings:[finding]}));
+    const batch=d.assessDelegationBatch({assignments:[target],
+      reports:{[target.assignment_id]:response},
+      sources:{[target.assignment_id]:source},current_head:SHA});
+    assert.equal(batch.unqualified_r1,1,mission_kind);
+    assert.equal(batch.unqualified_blocking_reports,1,mission_kind);
+    assert.equal(batch.needs_attention,true,mission_kind);
+    assert.equal(batch.ready_for_merge,false);
+  }
+});
+test('L2 F35 F02: clean research still needs foreground qualification',()=>{
+  const target=RESEARCH;
+  const report=researchMessage(researchData());
+  const result=d.assessResearchReport({expected:target,response:report,
+    current_head:SHA,source});
+  assert.equal(result.requires_manual_qualification,true);
+  assert.equal(result.needs_attention,true);
+  const batch=d.assessDelegationBatch({assignments:[target],
+    reports:{[target.assignment_id]:report},
+    sources:{[target.assignment_id]:source},current_head:SHA});
+  assert.equal(batch.needs_attention,true);
+});
+test('L2 F35 F03: malformed first fifty claims cannot hide the 51st R1',()=>{
+  const good={id:'F51',severity:'R1',path:'src/critical.cjs',
+    evidence:'The 51st entry documents an independently reported critical bug',
+    action:'Correct the relevant code after validating the reported bug'};
+  const badEntries=Array.from({length:50},(_,i)=>({id:'BAD-'+i}));
+  const contradict=message(data({verdict:'APPROVE',
+    findings:badEntries.concat(good)}));
+  const assessed=d.assessReview({expected:H,response:contradict,
+    current_head:SHA,source});
+  assert.equal(assessed.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(assessed.reported_severity_r1,1);
+  assert.equal(assessed.reported_findings[0].id,'F51');
+  assert.equal(assessed.reported_claims_incomplete,true);
+  const batch=d.assessDelegationBatch({assignments:[H],
+    reports:{[H.assignment_id]:contradict},
+    sources:{[H.assignment_id]:source},current_head:SHA});
+  assert.equal(batch.unqualified_r1,1);
+  assert.equal(batch.unqualified_blocking_reports,1);
+  assert.equal(batch.actionable_finding_groups.length,1);
+});
+test('L2 F35 F04: self-asserted directory tree cannot prove complete coverage',()=>{
+  const target={...H,paths:['src/']};
+  const files=['src/a.cjs','src/b.cjs'];
+  const packet=message(data({verdict:'APPROVE',findings:[],
+    reviewed_paths:files}));
+  const manifest={verified_at_head:true,source_kind:'github_recursive_tree',
+    enumeration_complete:true,head_sha:SHA,tree_sha:'b'.repeat(40),
+    enumerated_count:2,files};
+  const result=d.assessReview({expected:target,response:packet,
+    current_head:SHA,source,coverage_manifest:manifest});
+  assert.equal(result.status,'L2_SCOPE_NOT_EVIDENCED');
+  assert.equal(result.directory_requires_external_verification,true);
+  assert.equal(result.ready_for_merge,false);
 });
