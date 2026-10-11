@@ -1189,3 +1189,66 @@ test('P0 unknown, null and undefined mission kinds are never promoted to a defau
       e=>e.code==='INVALID_MISSION_KIND');
   }
 });
+
+test('malformed research retains R1 allegation beyond the first 50 R3 entries',()=>{
+  const noise=Array.from({length:50},(_,i)=>({
+    id:'F'+String(i+1).padStart(2,'0'),severity:'R3',
+    path:'docs/normal.md',evidence:'Minor documentation issue number '+i,
+    action:'Consider a wording improvement for this section'
+  }));
+  const critical={id:'F51',severity:'R1',path:'src/security.cjs',
+    evidence:'Observed insecure access decision in current code',
+    action:'Deny unauthorized access and verify a separate audit'};
+  const response=researchMessage(researchData({findings:[...noise,critical]}));
+  const result=d.assessResearchReport({expected:RESEARCH,
+    response,current_head:SHA,source});
+  assert.equal(result.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(result.reported_claims_total,51);
+  assert.equal(result.reported_claims_incomplete,true);
+  assert.equal(result.reported_severity_r1,1);
+  assert.equal(result.reported_blocking_findings,true);
+  assert.equal(result.reported_findings[0].id,'F51');
+  assert.equal(result.requires_manual_qualification,true);
+  assert.equal(result.ready_for_merge,false);
+});
+test('malformed research R2 evidence remains visible in batch triage',()=>{
+  const item={id:'F01',severity:'R2',path:'src/security.cjs',
+    evidence:'Conflicting authenticated user mapping',
+    action:'Validate author identity from trusted server state'};
+  const response=researchMessage(researchData({
+    verdict:'UNSUPPORTED',findings:[item]
+  }));
+  const batch=d.assessDelegationBatch({
+    assignments:[RESEARCH],
+    reports:{[RESEARCH.assignment_id]:response},
+    sources:{[RESEARCH.assignment_id]:source},current_head:SHA
+  });
+  assert.equal(batch.results[0].status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(batch.unqualified_r2,1);
+  assert.equal(batch.unqualified_blocking_reports,1);
+  assert.equal(batch.needs_attention,true);
+  assert.equal(batch.triage_findings[0].evidence,item.evidence);
+  assert.equal(batch.ready_for_merge,false);
+});
+test('research marker recovery never mistakes an L2 footer for research',()=>{
+  const response=message(data());
+  const out=d.assessResearchReport({expected:RESEARCH,
+    response,current_head:SHA,source});
+  assert.equal(out.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(out.reported_findings,undefined);
+  assert.equal(out.needs_attention,true);
+});
+test('malformed research report with invalid finding shape stays incomplete',()=>{
+  const response=researchMessage(researchData({findings:[
+    {id:'F01',severity:'R1',path:'src/a.cjs',evidence:'Missing scope guard',
+      action:'Add guard'},
+    {id:'F02',severity:'R2',path:'../bad',evidence:'Bad claim',
+      action:'Do not trust malformed path'}
+  ]}));
+  const outcome=d.assessResearchReport({expected:RESEARCH,
+    response,current_head:SHA,source});
+  assert.equal(outcome.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(outcome.reported_severity_r1,1);
+  assert.equal(outcome.reported_claims_incomplete,true);
+  assert.equal(outcome.reported_blocking_unknown,true);
+});

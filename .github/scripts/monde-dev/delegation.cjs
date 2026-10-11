@@ -142,17 +142,27 @@ function assessResearchReport({expected,response,current_head,source}) {
   if(a.mission_kind==='L2_REVIEW')bad('NOT_RESEARCH');
   const result=(status,reason)=>({status,
     ...(reason?{reason}:{}),native_github_approved:false,ready_for_merge:false});
+  // A malformed research footer may still contain a security finding. Keep
+  // bounded claims for manual triage instead of silently dropping them.
+  const manual=(reason)=>{
+    const claims=recoverUnqualifiedClaims(response,RESEARCH_MARKER);
+    return {...result('REPORT_NEEDS_MANUAL_REVIEW',reason),
+      needs_attention:true,requires_manual_qualification:true,
+      ...claims,
+      raw_report_sha256:typeof response==='string'&&response.length<=1024*1024?
+        createHash('sha256').update(response,'utf8').digest('hex'):null};
+  };
   if(response===null||response===undefined)return result('REPORT_UNAVAILABLE');
   if(typeof response!=='string'||response.length>1024*1024)
-    return result('REPORT_NEEDS_MANUAL_REVIEW','INVALID_RESPONSE');
+    return manual('INVALID_RESPONSE');
   const lines=response.replace(/\r\n/g,'\n').trimEnd().split('\n');
   if(lines.length<3||lines[lines.length-2]!==RESEARCH_MARKER||
     lines.slice(0,-2).join('\n').trim().length<40||
     lines.slice(0,-2).some(line=>line===RESEARCH_MARKER||line===MARKER))
-    return result('REPORT_NEEDS_MANUAL_REVIEW','INVALID_FOOTER');
+    return manual('INVALID_FOOTER');
   let packet;
   try{packet=JSON.parse(lines[lines.length-1]);}
-  catch{return result('REPORT_NEEDS_MANUAL_REVIEW','INVALID_JSON');}
+  catch{return manual('INVALID_JSON');}
   try{
     exactFields(packet,['v','assignment_id','repo','pr','head_sha',
       'mission_kind','reviewer_context_id','verdict','findings','limitations']);
@@ -168,7 +178,7 @@ function assessResearchReport({expected,response,current_head,source}) {
         'CHANGES_REQUIRED':'APPROVE'):packet.verdict;
     validateReport(mapped);
   }catch(e){if(e instanceof InvalidReport)
-    return result('REPORT_NEEDS_MANUAL_REVIEW',e.code);throw e;}
+    return manual(e.code);throw e;}
   const alleged={reported_findings:packet.findings.map(f=>({...f})),
     reported_limitations:packet.limitations.slice(),
     reported_severity_r1:packet.findings.filter(f=>f.severity==='R1').length,
@@ -266,10 +276,11 @@ function scopeMatches(path, paths) {
 // Untrusted structured allegations from a malformed L2 footer are useful for
 // manual correction, but can NEVER qualify the review or grant any authority.
 // In particular, APPROVE + R1/R2 is contradictory, not a clean review.
-function recoverUnqualifiedClaims(response) {
+function recoverUnqualifiedClaims(response,marker=MARKER) {
+  if(marker!==MARKER&&marker!==RESEARCH_MARKER)bad('INVALID_CLAIM_MARKER');
   if(typeof response!=='string'||response.length>1024*1024)return {};
   const lines=response.replace(/\r\n/g,'\n').trimEnd().split('\n');
-  if(lines.length<3||lines[lines.length-2]!==MARKER)return {};
+  if(lines.length<3||lines[lines.length-2]!==marker)return {};
   let packet;
   try{packet=JSON.parse(lines[lines.length-1]);}catch{return {};}
   if(!plain(packet)||!Array.isArray(packet.findings))return {};
