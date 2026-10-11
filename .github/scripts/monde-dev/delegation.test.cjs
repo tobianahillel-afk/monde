@@ -1359,7 +1359,7 @@ test('explicitly reviewed finding details allow actionable standalone GitHub han
   assert.equal(out.self_contained_for_remediation,true);
   assert.match(out.text,/### Actionable findings/);
   assert.match(out.text,/Evidence: At line X/);
-  assert.match(out.text,/Suggested correction: \x60 "Refuse the stale operation/);
+  assert.match(out.text,/Suggested correction: Refuse the stale operation/);
   assert.equal(out.native_github_approved,false);
 });
 test('finding detail permission does not override credential checks',()=>{
@@ -1432,7 +1432,7 @@ test('unqualified relay preserves structured findings from contradictory approva
       finding_details_approved:true}});
   assert.equal(out.ready_for_manual_relay,true);
   assert.match(out.text,/F01 \[R1\]/);
-  assert.match(out.text,/Suggested correction: Refuse the stale operation/);
+  assert.match(out.text,/Suggested correction: \x60 "Refuse the stale operation/);
   assert.equal(out.native_github_approved,false);
   assert.equal(out.ready_for_merge,false);
 });
