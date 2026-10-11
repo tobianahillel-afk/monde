@@ -95,7 +95,13 @@ function replay(comments,bot='github-actions[bot]',allowedActors=['tobianahillel
         actor:c.user.login,canonical:JSON.stringify(q)});
     }
     if(!c.body.startsWith(RESULT+'\n')||!c.user||c.user.login!==bot)continue;
-    const r=parseResult(c.body,mode),source=requests.get(r.request_id);
+    // A journal can contain earlier TEST_ONLY events when the operator later
+    // upgrades the *workflow*. Validate them but never mix their grants.
+    const envelope=unpack(c.body,RESULT);
+    if(!['TEST_ONLY','ACTIVE_4'].includes(envelope.mode))fail('BAD_RESULT_MODE');
+    const r=parseResult(c.body,envelope.mode);
+    if(r.mode!==mode)continue;
+    const source=requests.get(r.request_id);
     if(!source||source.comment_id!==r.event_comment_id||source.q.worker!==r.worker||
        source.q.work!==r.work||source.q.task!==r.task)fail('ORPHAN_RESULT');
     if(decisions.has(r.request_id))fail('DUPLICATE_RESULT');
@@ -211,6 +217,9 @@ async function run({github,context,core,settings}){
     const workSource=await trustedWorkContext(
       github,owner,repo,q,branch.data.commit.sha);
     chosen=chooseActive(prior,q,workSource);
+  }else if(settings.mode==='ACTIVE_4'){
+    // Releases must work even if the canonical WORK has meanwhile changed.
+    chosen=chooseActive(prior,q,null);
   }else{
     chosen=choose(prior,q,{mode:'TEST_ONLY',baseSha:settings.baseSha});
   }
@@ -401,11 +410,22 @@ async function trustedWorkContext(github,owner,repo,req,mainSha){
 function chooseActive(state,req,source){
   const block=(reason,outcome='BLOCKED')=>({outcome,reason,grant_id:null,
     epoch:null,resources:[],observed_base_sha:null});
-  if(!source||!source.work)return block('NO_TRUSTED_WORK');
-  const prior=state.requests.get(req.request_id);
-  if(prior&&prior.canonical!==JSON.stringify(req))fail('DUPLICATE_ID_CONFLICT');
   const existing=state.decisions.get(req.request_id);
+  const old=state.requests.get(req.request_id);
+  if(old&&old.canonical!==JSON.stringify(req))fail('DUPLICATE_ID_CONFLICT');
   if(existing)return {...existing,replayed:true};
+  if(req.op==='STATUS')return block('STATUS_ONLY','NO_CHANGE');
+  if(req.op==='RELEASE'){
+    const grant=state.grants.get(req.grant_id);
+    if(!grant||grant.epoch!==req.epoch||
+       grant.worker!==req.worker||grant.work!==req.work||
+       grant.task!==req.task||grant.observed_base_sha!==req.observed_head)
+      return block('STALE_RELEASE');
+    return {...block('MATCHED','RELEASED'),grant_id:grant.grant_id,
+      epoch:grant.epoch,resources:grant.resources,
+      observed_base_sha:grant.observed_base_sha};
+  }
+  if(!source||!source.work)return block('NO_TRUSTED_WORK');
   const verdict=eligibleRealClaim(req,source.work,source.dependencies,source.baseSha);
   if(!verdict.eligible)return block(verdict.reason);
   for(const grant of state.grants.values()){

@@ -823,3 +823,52 @@ test('WORK parser: malformed/ambiguous multiline task fields fail closed',()=>{
     MULTILINE_READY_WORK.replace('    - id: T2','     - id: T2')
   ])a.throws(()=>c.parseWorkGate(text,'WORK-0099'));
 });
+
+test('ACTIVE_4: release clears the current grant after work becomes unavailable',async()=>{
+  const req=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const first=event(req,10),hist=[first.payload.comment];
+  const gh=guardedApi(hist,REAL_READY_WORK);
+  const made=await c.run({github:gh,context:first,core:{warning:()=>{}},
+    settings:activeSettings()});
+  a.equal(made.result.outcome,'GRANTED');
+  const release={v:1,op:'RELEASE',request_id:'req-active-release-01',
+    worker:'W2',work:'WORK-0099',task:'T2',grant_id:made.result.grant_id,
+    epoch:made.result.epoch,observed_head:SHA};
+  const ctx=event(release,30);
+  hist.push(ctx.payload.comment);
+  // No repository API for the release: only the old exact grant is relevant.
+  gh.rest.repos.getContent=async()=>{throw Error('work changed, do not reread');};
+  const released=await c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:activeSettings()});
+  a.equal(released.result.outcome,'RELEASED');
+  a.equal(c.replay(hist,undefined,undefined,'ACTIVE_4').grants.size,0);
+});
+test('ACTIVE_4: an obsolete release does not modify current ownership',async()=>{
+  const req=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const first=event(req,10),hist=[first.payload.comment];
+  const gh=guardedApi(hist,REAL_READY_WORK);
+  const grant=(await c.run({github:gh,context:first,core:{warning:()=>{}},
+    settings:activeSettings()})).result;
+  const bad={v:1,op:'RELEASE',request_id:'req-stale-release-01',
+    worker:'W2',work:'WORK-0099',task:'T2',grant_id:grant.grant_id,
+    epoch:grant.epoch+1,observed_head:SHA};
+  const ctx=event(bad,30);hist.push(ctx.payload.comment);
+  const result=(await c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:activeSettings()})).result;
+  a.equal(result.outcome,'BLOCKED');
+  a.equal(c.replay(hist,undefined,undefined,'ACTIVE_4').grants.size,1);
+});
+test('ACTIVE_4: historical TEST_ONLY bot results cannot poison active replay',async()=>{
+  const fixture=request(1,q()),choice={
+    outcome:'GRANTED',reason:'TEST_FIXTURE',grant_id:'grant:req-case-0001',
+    epoch:1,resources:c.normalizeResources(q().resources),observed_base_sha:SHA
+  };
+  const hist=[fixture,response(2,fixture,choice)];
+  const work=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const ctx=event(work,10);hist.push(ctx.payload.comment);
+  const result=await c.run({github:guardedApi(hist,REAL_READY_WORK),context:ctx,
+    core:{warning:()=>{}},settings:activeSettings()});
+  a.equal(result.result.outcome,'GRANTED');
+  a.equal(c.replay(hist,undefined,undefined,'ACTIVE_4').grants.size,1);
+  a.equal(c.replay(hist).grants.size,1);
+});
