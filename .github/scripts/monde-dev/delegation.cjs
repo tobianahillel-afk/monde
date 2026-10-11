@@ -801,9 +801,10 @@ function groupTriageFindings(items){
        !/^F[0-9]{2,4}$/.test(item.id)||!SEVERITIES.has(item.severity)||
        !validPath(item.path)||!oneLine(item.evidence,3000)||
        !oneLine(item.action,3000))bad('INVALID_TRIAGE_FINDING');
-    const norm=s=>s.replace(/\s+/g,' ').trim();
+    // Review evidence can contain whitespace-sensitive source excerpts.
+    // Only byte-identical path/evidence/action triples are true duplicates.
     const id=createHash('sha256').update(JSON.stringify([
-      item.path,norm(item.evidence),norm(item.action)
+      item.path,item.evidence,item.action
     ])).digest('hex');
     let g=groups.get(id);
     if(!g){

@@ -2159,3 +2159,26 @@ test('unverified structured L2 report with bearer secret cannot be relayed',()=>
   assert.equal(result.ready_for_manual_relay,false);
   assert.equal(result.status,'POTENTIAL_SECRET_IN_REPORT');
 });
+
+test('L2 grouping: whitespace-sensitive code evidence must not be deduplicated',()=>{
+  const shared={assignment_id:'L2-PR19-EXACT-0001',id:'F01',
+    status:'NEEDS_CORRECTION',path:'src/important.js',severity:'R2',
+    action:'Correct the branch condition'};
+  const one={...shared,evidence:'if (ok) {\n  deny();\n}'};
+  const two={...shared,assignment_id:'L2-PR19-EXACT-0002',id:'F02',
+    evidence:'if (ok) {\n    deny();\n}'};
+  const result=d.groupTriageFindings([one,two,one]);
+  assert.equal(result.groups.length,2);
+  assert.equal(result.duplicate_occurrences,1);
+  assert.deepEqual(result.groups.map(g=>g.occurrences).sort(),[1,2]);
+});
+test('L2 grouping: whitespace in suggested fixes changes their fingerprint',()=>{
+  const base={assignment_id:'L2-PR19-EXACT-0003',id:'F03',
+    status:'NEEDS_CORRECTION',path:'src/important.js',severity:'R1',
+    evidence:'Same error message',action:'setTimeout(callback, 0)'};
+  const changed={...base,assignment_id:'L2-PR19-EXACT-0004',id:'F04',
+    action:'setTimeout (callback, 0)'};
+  const result=d.groupTriageFindings([base,changed]);
+  assert.equal(result.groups.length,2);
+  assert.equal(result.duplicate_occurrences,0);
+});
