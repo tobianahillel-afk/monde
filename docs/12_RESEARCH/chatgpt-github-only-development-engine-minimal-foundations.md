@@ -38,6 +38,16 @@ Concrete diagnosis from PR #2, `2e2664c`: job `113560978657` in run `37849674798
 
 See [critical-path root-cause table](chatgpt-github-only-engine-critical-path-audit.md) §G6. Once this six-question gate is installed in future workers' short prompt, **stop adding engine functions** unless an observed failure demonstrates need.
 
+## Explicit minimum deliverable: **FOUR functioning workers + MONDE spec/review reuse**
+
+L0/L1/L2 are **staged pilot states only**, not an alternative final product: the mini-engine is usable when **all four** independently scheduled W1–W4 pass the four-way no-overlap/grant/recovery tests, can select between specifications, algorithm research, code/tests and separate-chat L2 cold-read, and produce handovers from current GitHub truth. Two writers is a soft initial WIP target, **not a hard cap**: the controller must support four disjoint writes when the review/merge pipeline genuinely keeps up.
+
+Do **not** wait for the entire MONDE blueprint before writing one authorized component. For each slice consult **existing Accepted** `docs/13_QUALITY/definition-of-ready.md`, `specification-quality.md`, linked `CAP/REQ/WORK` and real tests. Reuse already available user goal, input/output/interface, negative cases, dependencies, provenance and test oracle; create only **missing applicable** requirements, contracts, research and reviews. Bigger/security/scientific changes get full risk-relevant specs and early independent critique. Historical feature gaps are routed through existing WORK-0004.
+
+**No second review or memory store.** Existing `registry/reviews/REVIEW-*.yaml`, `registry/tests/TEST-*.yaml`, `WORK.review_plan.completed_reviews` and GitHub review threads tell the next agent what was covered, at which exact artifact SHA and requirement digests, which issues were discovered, what remains untested and what changes invalidate the conclusions. Reuse unchanged investigation, targeted delta-review where allowed, full new review when risk/unknown scope demands; never reuse stale formal exact-head approval. Canonical policy: [Operating Contract §9B](chatgpt-github-only-engine-operating-contract.md).
+
+**Lean one-language pilot option:** `actions/github-script` documents loading a local JS module directly: https://github.com/actions/github-script . Prefer **one testable JS helper + Node built-in tests + one trusted workflow** if the T0 connector/event test confirms it, rather than an avoidable JS-to-Python runtime bridge. Reuse Python when actual MONDE governance compatibility/tests justify it; do not implement both arbitrators or require an npm dependency zoo. Immutable action SHAs and trusted default-branch checkout remain essential.
+
 ## 0. Six non-negotiable invariants (short enough for every worker)
 
 **I1. One authority per fact.** Accepted MONDE registers/ADRs on main own normative meaning, requirements and WORK lifecycle. GitHub refs/PR/Actions own current code, CI and review facts. One serialized GitHub Actions controller owns transient task grants. Issue labels/comments are *operational projections*, not competing WORK status machines.
