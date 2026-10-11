@@ -151,10 +151,11 @@ function assessResearchReport({expected,response,current_head,source}) {
       !KINDS.has(packet.mission_kind)||packet.mission_kind==='L2_REVIEW'||
       !['COMPLETED','CHANGES_REQUIRED','BLOCKED'].includes(packet.verdict))
       bad('INVALID_RESEARCH_PACKET');
+    if(!Array.isArray(packet.findings))bad('INVALID_RESEARCH_FINDINGS');
     const mapped={...packet};
     delete mapped.mission_kind;
     mapped.verdict=packet.verdict==='COMPLETED'?
-      (packet.findings?.some(f=>f.severity==='R1'||f.severity==='R2')?
+      (packet.findings.some(f=>f && (f.severity==='R1'||f.severity==='R2'))?
         'CHANGES_REQUIRED':'APPROVE'):packet.verdict;
     validateReport(mapped);
   }catch(e){if(e instanceof InvalidReport)
@@ -168,7 +169,8 @@ function assessResearchReport({expected,response,current_head,source}) {
     source.context_id!==packet.reviewer_context_id||
     source.context_id===a.author_context_id||
     !oneLine(source.message_ref,160))return result('INDEPENDENCE_UNVERIFIED');
-  return {status:packet.verdict==='CHANGES_REQUIRED'?'NEEDS_CORRECTION':
+  const blocking=packet.findings.some(f=>f.severity==='R1'||f.severity==='R2');
+  return {status:packet.verdict==='CHANGES_REQUIRED'||blocking?'NEEDS_CORRECTION':
     packet.verdict==='BLOCKED'?'BLOCKED':
     'RESEARCH_REPORT_RECEIVED_PENDING_VALIDATION',
     mission_kind:a.mission_kind,requires_manual_qualification:true,
