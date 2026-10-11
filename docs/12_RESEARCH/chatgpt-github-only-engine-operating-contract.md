@@ -324,6 +324,50 @@ Prefer **finish-before-start** and keep the initial WIP small (pilot target: at 
 
 **CI while active:** a worker can finish requirements analysis, prepare a separate granted patch, audit another author's review packet or draft a benchmark plan in the SAME session while GitHub jobs are pending, and return immediately upon a trusted terminal observation. Avoid preemptively switching to a low-value unrelated task just because a CI takes minutes. See §7A.
 
+## 5B. Higher-output engineering loop — fewer commits, more validated functionality
+
+**Primary KPI:** accepted useful MONDE capabilities/contract outcomes per week, then elapsed authoring→verified PR→merge time, defect/regression rate, finally non-generated net accepted product LOC. **Do not impose an arbitrary LOC cap or quota**: 50 genuinely useful lines, 2,000 lines across a completed subsystem or a deliberate reduction of 500 duplicated lines are all valid. Large blocks of unverified generated text do not count as accepted functionality.
+
+### Seven production accelerators that cost zero new engine services
+
+1. **Find acceptance before coding:** identify the exact `WORK/CAP/REQ/AC`, deterministic examples, API contract and downstream owner. If uncertain, a small research/ADR spike first. No speculative side quests, fake placeholders or code solely to raise line counts.
+2. **Reuse libraries and existing MONDE code:** adapters over rebuilding geometry, temporal storage, graph algorithms, authentication, parsers or ML models; check license, provenance, version, failure policy and testable upstream source. Prefer simple composable pieces to custom “world-class” frameworks.
+3. **Contract-first independent slices:** split per valuable subsystem/interface and semantic write set, not per individual source file or arbitrary 200-LOC limit. Separate parallel slices require a stable minimal contract and genuinely disjoint resources; no mega-PR merging several unrelated capabilities.
+4. **Batch related GitHub writes safely:** the connected GitHub app exposes `create_tree`, `create_commit` and `update_ref`; where **actually permitted and tested**, prepare several changed source/test/doc files in one Git tree/commit against the observed branch head, verify the exact resulting SHA and changed-file set. This can remove repetitive one-file-per-commit `update_file` cycles, tool calls and CI invalidations. Never use force-push or merge via a stale ref, never assume `update_ref` CAS semantics without proving the connector behavior. One coherent commit ≠ one giant unrelated diff. If the batch operation is not available inside a Scheduled task, use safe ordinary operations and recheck between writes.
+5. **Two speeds of feedback, one mandatory acceptance:** while developing, use narrow fast lint/unit/contract/smoke checks and minimal fixtures for rapid defect discovery; after freezing candidate HEAD run **all tests, assurance ladders and trusted check names actually mandated by Accepted policy**. A faster partial test is **not** a replacement for a required full trusted exact-HEAD gate. Risk-select advanced fuzz/property/backtest verification per existing Accepted `advanced-verification.md`.
+6. **Pipeline review and CI together:** once a candidate is substantially stable, freeze HEAD and start required CI; simultaneously prepare independent-context cold-read and review evidence when policy permits. During pending CI continue a separate valid grant/research rather than stop. Batch substantive corrections before re-freezing and re-running affected proof; avoid post-green status-only commit.
+7. **Use generators only for mechanical code:** schemas can legitimately yield typed clients, serialization bindings, data validation and test fixtures **when reproducible and reviewed**. Generated/vendored LOC is separately labeled and is NOT a productivity measure; preserve generator input, dependency license/lock, deterministic regenerate+diff and correctness checks. Do not substitute generated stubs for a real working MONDE feature.
+
+**Hot path, no additional orchestration service:** `read one scoped task → choose existing design → implement a cohesive batch → quick checks → freeze exact HEAD → required CI + eligible separate-context review → legitimate merge → next task`. If material research, technology freeze, architecture refactor or safety incident is required, dynamically include those steps **within the same invocation**. The engine should make this fast path easy and not force every local fix through a large research/design ceremony.
+
+### Stop the highest-cost observed failure loops
+
+- **Commit cascade:** 10 sequential unrelated single-file GitHub commits for one logical candidate can cause stale code/check/review evidence. Use coherent batched commits and complete documentation **before** candidate freeze (subject to existing WORK traceability duties). Avoid big unrelated PRs and stop re-freezing for status-only changes.
+- **Spec churn/accepted-digest invalidation:** resolve product acceptance semantics and affected data contracts before costly implementation; if later evidence invalidates them, use explicitly reviewed change, not silent patch.
+- **CI rerun storms:** inspect actual trigger/path filters and check expected names; failed/unknown ≠ green. Distinguish flaky infrastructure from failing assertion before rerun. Poll intelligently and respect rate limits.
+- **Unmergeable high-risk backlog:** prioritize qualified independent review/owner settings and host-protected gate setup; four additional authors cannot resolve a missing non-author GitHub actor by self-review.
+- **Parallel branch drift:** at most two independent writers until concurrency empirically works; contract boundaries and serial integration. Do not open four PRs against the same shared schema.
+- **Context reload:** rely on approved short task digest and exact linked read-before instead of 70 KB full operating contract each activation; preserve external GitHub facts.
+- **Overengineered validation:** small local low-risk changes use applicable fast tests; A3/A4 trust, source provenance and world semantics still require existing high-assurance proof. Never redefine assurance gates in a worker prompt.
+
+### Time/throughput hypothesis to verify, rather than promise
+
+There are 96 **nominal** hourly triggers/day for four workers, but some are absent, blocked or devoted to research/tests/reviews. On accepted, actually merged, independently functional product code, hypothetical sensitivity examples are:
+
+| Productive code-contributing activations/day | Avg eventual net accepted *product* LOC per such activation | Smoothed output/day over completed integration windows |
+|---|---:|---:|
+| 12 of 96 | 80 | **960** |
+| 24 of 96 | 150 | **3,600** |
+| 36 of 96 | 250 | **9,000** |
+
+These are **scenario arithmetic, not measured performance, promises, statistical bounds or a claim that daily merges always occur**. The averages are already conditional on contributions that survive real quality/review/merge gates; many scheduled activations produce no new code. If no legitimate reviewer/host approval, actually accepted LOC is **zero** regardless of how much code is typed. A single task writing 10,000–20,000 gross lines may be legitimate mechanical generation but carries no presumption that the lines are unique, necessary, correct or acceptable. There is no justified maximum based on one task's theoretical output.
+
+**Collect the conversion funnel** over actual 7/30 days: scheduled → really executed → GitHub tool enabled → useful work → scoped code diff pushed → candidate exact-head checks pass first attempt → qualified L2 and host review → merged → regression-free capability. Report generated LOC, human/agent-authored LOC, test LOC, accepted net runtime LOC and removed LOC separately. Track accepted capability and PR revision count, not only source-code volume. Recalibrate after the first 20 real runs and again after 100; don't claim forecasts from a fabricated 96-run day.
+
+**API backpressure:** four ChatGPT workers plus GitHub Actions share hosted API limits. Github documented secondary limits include restrictions on concurrent requests and content-generating writes; batch reasonable multi-file writes, do not burst hundreds of PR/comments/commits, honor `retry-after` on 403/429 and use bounded backoff. Infinite aggressive retry can worsen throughput or access. Source: https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api .
+
+**Fast CI setup optimization:** GitHub Actions job-level dependency caching and parallel jobs can reduce repeated boot/setup work, when actually supported, pinned and secured. Treat caches as untrusted (avoid cache poisoning via privileged untrusted `pull_request_target` scenarios), limit write access and reuse accepted TEST-* / WORK-0002 checks instead of creating parallel QA authority. Source: https://docs.github.com/en/actions/concepts/workflows-and-actions/dependency-caching .
+
 ## 6. Single task contract — everything an agent needs, little duplication
 
 Retain canonical `registry/work-items/WORK-XXXX.yaml` for lifecycle, dependencies, rights, risk, tests, requirements and canonical documentation. Each separate GitHub issue links the canonical `WORK-ID/TASK-ID`, read_before and acceptance conditions. It is a work surface, not a second WORK record.
