@@ -86,7 +86,11 @@ function replay(comments,bot='github-actions[bot]',allowedActors=['tobianahillel
       let q;try{q=parseRequest(c.body);}catch{continue;}
       const prev=requests.get(q.request_id);
       if(prev&&prev.canonical!==JSON.stringify(q))fail('DUPLICATE_ID_CONFLICT');
-      if(!prev)requests.set(q.request_id,{q,comment_id:c.id,canonical:JSON.stringify(q)});
+      // Same ID+payload may be retried after a lost webhook/API acknowledgement,
+      // but may never migrate to another authenticated GitHub actor.
+      if(prev&&prev.actor!==c.user.login)fail('DUPLICATE_ACTOR_CONFLICT');
+      if(!prev)requests.set(q.request_id,{q,comment_id:c.id,
+        actor:c.user.login,canonical:JSON.stringify(q)});
     }
     if(!c.body.startsWith(RESULT+'\n')||!c.user||c.user.login!==bot)continue;
     const r=parseResult(c.body),source=requests.get(r.request_id);
@@ -173,11 +177,20 @@ async function run({github,context,core,settings}){
   // The triggering event must be visible in authoritative paginated history
   // before publishing a grant or status reply; otherwise fail closed.
   const observedRequest=prior.requests.get(q.request_id);
-  if(!observedRequest||observedRequest.comment_id!==event.id)
+  if(!observedRequest||observedRequest.actor!==context.actor)
     fail('TRIGGER_NOT_IN_HISTORY');
+  // Either the original event or a byte-identical retried command must exist
+  // in the authoritative paginated journal. A stale/foreign event is rejected.
+  const matching= (await listComments(github,owner,repo,settings.issueNumber))
+    .some(c=>c.id===event.id && c.user && c.user.login===context.actor &&
+      c.body===event.body);
+  if(!matching)fail('TRIGGER_NOT_IN_HISTORY');
   const chosen=choose(prior,q,{mode:'TEST_ONLY',baseSha:settings.baseSha});
   if(chosen.replayed)return {replayed:true,result:chosen};
-  const result=makeResult(q,event,chosen,{runId:context.runId,runAttempt:context.runAttempt});
+  // Always bind the result to the *original* request comment ID; this permits
+  // an identical replay to recover a lost outcome without double granting.
+  const sourceEvent={...event,id:observedRequest.comment_id};
+  const result=makeResult(q,sourceEvent,chosen,{runId:context.runId,runAttempt:context.runAttempt});
   try{await github.rest.issues.createComment({owner,repo,issue_number:settings.issueNumber,body:encodeResult(result)});}
   catch(err){core.warning('UNKNOWN_WRITE '+(err.status||'API'));return {unknown:true};}
   const after=replay(await listComments(github,owner,repo,settings.issueNumber),

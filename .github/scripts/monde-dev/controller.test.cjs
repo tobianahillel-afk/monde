@@ -292,7 +292,7 @@ test('E3: never publish a response unless the triggering comment is in the autho
     e=>e.code==='TRIGGER_NOT_IN_HISTORY');
   a.equal(sends,0);
 });
-test('E3: a matching request ID from a different journal event is not authorized',async()=>{
+test('E3: an event absent from the authoritative journal cannot impersonate a retry',async()=>{
   const ctx=event(q(),44);
   const other=request(10,q());
   let sends=0;
@@ -393,4 +393,40 @@ test('security: inherited JavaScript object names cannot become operations',()=>
     const bad={...q(),op};
     assertReject(()=>c.parseRequest(c.COMMAND+'\n'+JSON.stringify(bad)),'UNKNOWN_OP');
   }
+});
+
+test('E3 idempotent retry: a missing original result is recovered by identical new command',async()=>{
+  const original=event(q(),10);
+  const retry=event(q(),12);
+  const history=[original.payload.comment,retry.payload.comment];
+  const out=await c.run({github:api(history),context:retry,core:{warning:()=>{}},
+    settings:settings()});
+  a.equal(out.result.outcome,'GRANTED');
+  a.equal(out.result.event_comment_id,10);
+  a.equal(c.replay(history).grants.size,1);
+  const again=await c.run({github:api(history),context:original,core:{warning:()=>{}},
+    settings:settings()});
+  a.equal(again.replayed,true);
+  a.equal(history.filter(x=>x.body.startsWith(c.RESULT)).length,1);
+});
+test('E3 retry: duplicate ID cannot change GitHub author identity',()=>{
+  const one=request(10,q(),'tobianahillel-afk');
+  const two=request(12,q(),'another-allowlisted-user');
+  assertReject(()=>c.replay([one,two],undefined,
+    ['tobianahillel-afk','another-allowlisted-user']),'DUPLICATE_ACTOR_CONFLICT');
+});
+test('E3 retry: different payload under same request_id is never a recovery',async()=>{
+  const orig=request(10,q()),retryCtx=event(q(1,{resources:['path:changed']}),12);
+  const history=[orig,retryCtx.payload.comment];
+  await a.rejects(c.run({github:api(history),context:retryCtx,
+    core:{warning:()=>{}},settings:settings()}),
+    e=>e.code==='DUPLICATE_ID_CONFLICT');
+});
+test('E3 retry: real audit history still requires trigger exact body',async()=>{
+  const ctx=event(q(),19);
+  const forged={...ctx.payload.comment,body:c.encodeRequest(q(1,{resources:['path:changed']}))};
+  const history=[request(10,q()),forged];
+  await a.rejects(c.run({github:api(history),context:ctx,core:{warning:()=>{}},
+    settings:settings()}),e=>e.code==='DUPLICATE_ID_CONFLICT'||
+      e.code==='TRIGGER_NOT_IN_HISTORY');
 });
