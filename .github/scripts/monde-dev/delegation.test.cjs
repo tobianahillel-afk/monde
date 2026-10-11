@@ -26,7 +26,9 @@ const message = meta => 'This is a complete independent technical code review an
   d.MARKER + '\n' + JSON.stringify(meta);
 const source = {
   retrieved_from_distinct_chat: true,
-  context_id: 'chat-l2-20261011-new'
+  context_id: 'chat-l2-20261011-new',
+  retrieval_kind: 'chat_history',
+  message_ref: 'history-msg-l2-20261011-001'
 };
 test('one assignment gives a bounded read-only review prompt', () => {
   const s=d.buildReviewPrompt(H);
@@ -224,7 +226,9 @@ test('interactive handoff copies the reviewer analysis without publishing',()=>{
   const reply=message(data());
   const packet=d.prepareInteractiveHandoff({expected:H,response:reply,
     current_head:SHA,source});
-  assert.equal(packet.can_publish,true);
+  assert.equal(packet.can_publish,false);
+  assert.equal(packet.ready_for_manual_relay,true);
+  assert.equal(packet.requires_manual_qualification,true);
   assert.equal(packet.status,'NEEDS_CORRECTION');
   assert.match(packet.text,/Review text \(verbatim\)/);
   assert.match(packet.text,/native approval: NONE/i);
@@ -238,6 +242,7 @@ test('handoff refuses source it cannot associate with distinct chat',()=>{
   const packet=d.prepareInteractiveHandoff({expected:H,response:message(data()),
     current_head:SHA,source:undefined});
   assert.equal(packet.can_publish,false);
+  assert.equal(packet.ready_for_manual_relay,false);
   assert.equal(packet.status,'INDEPENDENCE_UNVERIFIED');
   assert.equal(packet.text,null);
 });
@@ -257,4 +262,42 @@ test('directory scope is explicit, bounded and matches findings within it',()=>{
   assert.deepEqual(out.out_of_scope_findings,[]);
   for(const paths of [['/'],['src//'],['src/../'],['src/.'],['.']])
     assert.throws(()=>d.assignment({...H,paths}));
+});
+
+test('L2 prompt is neutral: never seeds a fake severe finding or a positive verdict',()=>{
+  const prompt=d.buildReviewPrompt(H);
+  assert.match(prompt,/"verdict":"BLOCKED","findings":\[\]/);
+  assert.doesNotMatch(prompt,/Precise location and reproducible failure/);
+  assert.match(prompt,/Ne copie jamais les exemples/);
+});
+test('L2 context provenance requires an observable message reference',()=>{
+  for(const missing of [
+    {...source,message_ref:undefined}, {...source,retrieval_kind:'reported_by_reviewer'},
+    {...source,message_ref:''}
+  ]){
+    const result=d.assessReview({expected:H,response:message(data()),
+      current_head:SHA,source:missing});
+    assert.equal(result.status,'INDEPENDENCE_UNVERIFIED');
+    assert.equal(result.native_github_approved,false);
+  }
+  const good=d.assessReview({expected:H,response:message(data()),
+    current_head:SHA,source});
+  assert.equal(good.observed_message_ref,source.message_ref);
+  assert.equal(good.requires_manual_qualification,true);
+});
+test('candidate CI checks the exact PR head and does not use merge-ref checkout',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const text=fs.readFileSync(path.join(__dirname,'../../workflows/monde-dev-ci.yml'),'utf8');
+  assert.match(text,/ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
+  assert.match(text,/git rev-parse HEAD/);
+  assert.match(text,/EXPECTED_PR_HEAD/);
+  assert.match(text,/persist-credentials: false/);
+});
+test('interactive relay is never interpreted as automatic publication approval',()=>{
+  const packet=d.prepareInteractiveHandoff({expected:H,response:message(data()),
+    current_head:SHA,source});
+  assert.equal(packet.can_publish,false);
+  assert.equal(packet.ready_for_manual_relay,true);
+  assert.match(packet.text,/Observed message reference: history-msg-l2-20261011-001/);
+  assert.match(packet.text,/verify manually/);
 });

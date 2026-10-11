@@ -57,11 +57,8 @@ function buildReviewPrompt(input) {
   const example = {
     v: 1, assignment_id: a.assignment_id, repo: a.repo, pr: a.pr,
     head_sha: a.head_sha, reviewer_context_id: 'new-separate-context-id',
-    verdict: 'CHANGES_REQUIRED', findings: [{
-      id: 'F01', severity: 'R1', path: a.paths[0],
-      evidence: 'Precise location and reproducible failure, if found',
-      action: 'Minimum correction required'
-    }], limitations: ['Identify unavailable data and untested paths']
+    verdict: 'BLOCKED', findings: [],
+    limitations: ['Exemple de format uniquement; remplacer par les constats et limites réellement observés']
   };
   return [
     'MONDE V2 — REVUE L2 TECHNIQUE EN CONTEXTE SEPARE (LECTURE SEULE)',
@@ -87,6 +84,7 @@ function buildReviewPrompt(input) {
     'AVANT-DERNIERE ligne: exactement ' + MARKER,
     'DERNIERE ligne: JSON COMPACT avec exactement ce schema:',
     JSON.stringify(example),
+    'Ne copie jamais les exemples de constats ou de verdict sans preuve.',
     'Les constats non nuls doivent inclure preuve et correction precise.',
     'CHANGES_REQUIRED exige au moins un constat. APPROVE est interdit',
     'avec des constats R1/R2 encore ouverts dans son propre rapport.',
@@ -182,7 +180,9 @@ function assessReview({ expected, response, current_head, source }) {
   if (!plain(source) || source.retrieved_from_distinct_chat !== true ||
       !oneLine(source.context_id, 96) || !ID.test(source.context_id) ||
       source.context_id !== metadata.reviewer_context_id ||
-      source.context_id === a.author_context_id)
+      source.context_id === a.author_context_id ||
+      source.retrieval_kind !== 'chat_history' ||
+      !oneLine(source.message_ref, 160))
     return { status: 'INDEPENDENCE_UNVERIFIED', native_github_approved: false };
   // Out-of-scope findings may uncover genuine cross-component defects. Keep
   // them actionable, but do not silently count a narrow review as a complete
@@ -202,7 +202,8 @@ function assessReview({ expected, response, current_head, source }) {
     finding_count: metadata.findings.length,
     out_of_scope_findings: outOfScope,
     severity_r1: metadata.findings.filter(x => x.severity === 'R1').length,
-    analysis_length: analysis.length
+    analysis_length: analysis.length,
+    observed_message_ref: source.message_ref
   };
 }
 
@@ -211,6 +212,7 @@ function prepareInteractiveHandoff(args) {
   if (!['NEEDS_CORRECTION', 'BLOCKED', 'L2_REPORT_SCOPE_EXPANSION',
       'L2_REPORT_RECEIVED_PENDING_VALIDATION'].includes(evaluation.status))
     return { status: evaluation.status, can_publish: false,
+      ready_for_manual_relay: false,
       native_github_approved: false, text: null };
   const { metadata, analysis } = parseReviewResponse(args.response);
   const a = assignment(args.expected);
@@ -222,6 +224,8 @@ function prepareInteractiveHandoff(args) {
     'Repository: ' + a.repo + '; PR #' + a.pr,
     'Reviewed SHA: ' + a.head_sha,
     'Observed separate context: ' + args.source.context_id,
+    'Observed message reference: ' + args.source.message_ref,
+    'Retrieval: chat_history (caller-provided observation, verify manually)',
     'Reviewer verdict: ' + metadata.verdict,
     'Qualification: ' + evaluation.status +
       '; independent accuracy and eligibility still require checking',
@@ -237,7 +241,9 @@ function prepareInteractiveHandoff(args) {
     JSON.stringify(metadata)
   ].join('\n');
   return {
-    status: evaluation.status, can_publish: true,
+    status: evaluation.status, can_publish: false,
+    ready_for_manual_relay: true,
+    requires_manual_qualification: true,
     native_github_approved: false, text: note
   };
 }

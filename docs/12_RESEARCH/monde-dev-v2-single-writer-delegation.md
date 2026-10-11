@@ -61,3 +61,11 @@ Out-of-scope findings are preserved as useful discoveries, but a narrow
 `APPROVE` with out-of-scope findings yields `L2_REPORT_SCOPE_EXPANSION` and
 requires manual qualification. A `BLOCKED` review without any limitation or
 finding is malformed. No machine footer is an assertion of native independence.
+
+## L2 findings from latest separate context (author-side response)
+
+When a task result is retrieved from ChatGPT history, preserve the actual message reference and reviewer-context marker, but treat both as **manually qualified observations**, not cryptographic signatures or a separate GitHub approver. The optional `prepareInteractiveHandoff` output uses `ready_for_manual_relay: true` when structure/assignment pass; its deprecated `can_publish` field remains **false**, since only the foreground conversation can decide to publish. Never claim the helper verified a human review or successful GitHub publication. The review prompt now gives a neutral BLOCKED example rather than inventing a critical finding.
+
+The candidate PR CI must check out the PR's **head SHA**, verify it explicitly, and run without persisted checkout credentials. Default GitHub `pull_request` merge-ref CI is useful for compatibility, but is not proof that the *candidate HEAD itself* is what the reviewer checked. A separate trusted merge-gate remains the responsibility of repository governance when promotion is authorized.
+
+`WORK-0005` in draft PR #18 describes an earlier four-writer architecture and is **not** a valid launch requirement for this interactive-only V2. Before accepting work-level normative status, that proposal must be reconciled through the governed documentation PR; this code PR does not silently rewrite a proposed WORK in another branch.
