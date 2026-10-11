@@ -727,3 +727,37 @@ test('ACTIVE_4: prior synthetic result cannot be smuggled into active grant log'
     observed_base_sha:SHA});
   a.throws(()=>c.replay([fixture,result],undefined,undefined,'ACTIVE_4'));
 });
+
+test('E5 responsibility ownership: same TASK cannot be granted twice on different files',()=>{
+  const work={id:'WORK-0099',status:'READY',depends_on:[],
+    tasks:[{id:'T1',status:'READY',depends_on:[],
+      expected_files:['src/a.cjs','src/b.cjs']}]};
+  const context={work,dependencies:{},baseSha:SHA};
+  const state=empty();
+  const first=q(1,{work:'WORK-0099',resources:['path:src/a.cjs']});
+  const d=c.chooseActive(state,first,context);
+  a.equal(d.outcome,'GRANTED');
+  state.grants.set(d.grant_id,{...d,work:'WORK-0099',task:'T1',worker:'W1'});
+  state.epoch=d.epoch;
+  const second=q(2,{work:'WORK-0099',task:'T1',
+    resources:['path:src/b.cjs']});
+  a.equal(c.chooseActive(state,second,context).reason,'TASK_ALREADY_OWNED');
+});
+test('E5 replay rejects two bots granting same WORK/TASK on disjoint files',()=>{
+  const r1=q(1,{resources:['path:src/a.cjs']});
+  const r2=q(2,{task:'T1',resources:['path:src/b.cjs']});
+  const request1=request(1,r1),request2=request(3,r2);
+  const d1={outcome:'GRANTED',reason:'TEST_FIXTURE',grant_id:'grant:req-case-0001',
+    epoch:1,resources:c.normalizeResources(r1.resources),observed_base_sha:SHA};
+  const d2={...d1,grant_id:'grant:req-case-0002',epoch:2,
+    resources:c.normalizeResources(r2.resources)};
+  assertReject(()=>c.replay([request1,response(2,request1,d1),request2,
+    response(4,request2,d2)]),'CONFLICTING_TASK_OWNERSHIP');
+});
+test('E5 one worker cannot own multiple current independent tasks',()=>{
+  const s=simulated();s.apply(q(1));
+  const request=q(2,{worker:'W1'});
+  const d=select(s.state(),request);
+  a.equal(d.outcome,'DENIED');
+  a.equal(d.reason,'TASK_ALREADY_OWNED');
+});
