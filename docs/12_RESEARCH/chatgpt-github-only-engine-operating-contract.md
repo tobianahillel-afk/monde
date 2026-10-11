@@ -9,6 +9,8 @@ Minimal first experiment: [minimal foundations](chatgpt-github-only-development-
 
 > This document is the **single concise candidate operating contract** for the four ChatGPT workers. It specifies reusable technology families, permissible autonomy, review boundaries, decision processes, documentary routing, restart, and one minimal CI/coordination path. Accepted constitutional/registry rules on `main` take precedence. It neither enables Scheduled tasks nor gives authorization to merge or change an Accepted control. If experiments falsify the proposal, change this draft by reviewed PR *before* accepting the ADR.
 
+**Immediate build policy (user direction 2026-10-11):** all Development Engine v2 implementation is **interactive on user request**, via the GitHub connector and a scoped PR. W1–W4 Scheduled ChatGPT tasks are **NOT used to write V2**: only future controlled connector/4-worker tests, after explicit user agreement. The common prompt below stays **INACTIVE** until later owner-governed launch. Code-authoring specifics are frozen for the next candidate in [RFC §§1A–1B](chatgpt-github-only-development-engine-v2-rfc.md), not repeated here.
+
 ## Worker quick routing — read this, not the entire document every hour
 
 **Current status: Proposed; not live authorization.** Runtime once approved must:
