@@ -547,9 +547,11 @@ function prepareInteractiveHandoff(args) {
         createHash('sha256').update(args.source.message_ref,'utf8').digest('hex')
     ]:[]),
     'Retrieval: chat_history (caller-provided observation, verify manually)',
-    'Original response SHA-256: ' +
-      createHash('sha256').update(args.response,'utf8').digest('hex'),
-    'Original response bytes: ' + Buffer.byteLength(args.response,'utf8'),
+    ...(clearance.provenance_hashes_approved===true?[
+      'Original response SHA-256: ' +
+        createHash('sha256').update(args.response,'utf8').digest('hex'),
+      'Original response bytes: ' + Buffer.byteLength(args.response,'utf8')
+    ]:[]),
     'Normalization: copied analysis may differ from original message bytes',
     'Reviewer verdict: ' + metadata.verdict,
     'Qualification: ' + evaluation.status +
@@ -663,7 +665,9 @@ function prepareUnqualifiedTriageHandoff(args) {
     'Repository: '+a.repo+'; PR #'+a.pr,
     'Assignment: '+a.assignment_id+'; mission: '+a.mission_kind,
     'Reviewed assignment SHA: '+a.head_sha,
-    'Original report SHA-256: '+analysis.raw_report_sha256,
+    ...(clear.provenance_hashes_approved===true&&analysis.raw_report_sha256?[
+      'Original report SHA-256: '+analysis.raw_report_sha256
+    ]:[]),
     'Source provenance: NOT INDEPENDENTLY VERIFIED',
     ...(clear.provenance_hashes_approved===true&&oneLine(source.message_ref,160)?[
       'Message ref fingerprint (consent-cleared SHA-256): '+

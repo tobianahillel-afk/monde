@@ -586,7 +586,8 @@ test('public relay includes immutable source digest, not a claim of byte identic
   const response=message(data());
   const relay=d.prepareInteractiveHandoff({expected:H,response,
     current_head:SHA,source,publication_clearance:{
-      secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      provenance_hashes_approved:true}});
   const crypto=require('node:crypto');
   const digest=crypto.createHash('sha256').update(response,'utf8').digest('hex');
   assert.equal(relay.ready_for_manual_relay,true);
@@ -1658,4 +1659,31 @@ test('L2: embedded sk- credentials are rejected in unqualified public relay',()=
       finding_details_approved:true}});
   assert.equal(result.status,'POTENTIAL_SECRET_IN_REPORT');
   assert.equal(result.ready_for_manual_relay,false);
+});
+
+test('privacy: public L2 relay omits original report fingerprint and size by default',()=>{
+  const response=message(data());
+  const out=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,
+    source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.doesNotMatch(out.text,/Original response SHA-256:/);
+  assert.doesNotMatch(out.text,/Original response bytes:/);
+  assert.doesNotMatch(out.text,/Message reference SHA-256:/);
+});
+test('privacy: malformed-report relay also omits report fingerprint without opt-in',()=>{
+  const incomplete='A substantive separate review that lacks its canonical JSON footer. R2 unresolved.';
+  const cfg={expected:H,response:incomplete,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}};
+  const withheld=d.prepareUnqualifiedTriageHandoff(cfg);
+  if(withheld.ready_for_manual_relay){
+    assert.doesNotMatch(withheld.text,/Original report SHA-256:/);
+    const approved=d.prepareUnqualifiedTriageHandoff({
+      ...cfg,publication_clearance:{...cfg.publication_clearance,
+        provenance_hashes_approved:true}});
+    assert.match(approved.text,/Original report SHA-256: [a-f0-9]{64}/);
+  }else{
+    assert.equal(withheld.ready_for_manual_relay,false);
+  }
 });
