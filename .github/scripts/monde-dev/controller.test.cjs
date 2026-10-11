@@ -616,3 +616,114 @@ test('real-work gate: fails closed if GitHub returns a directory or nonbase64 co
   await a.rejects(c.getWorkGate(api,'tobianahillel-afk','monde','WORK-0099',SHA),
     e=>e.code==='UNTRUSTED_WORK_BLOB');
 });
+
+function guardedApi(history,workSource,flags={}){
+  const base=api(history);
+  let branchReads=0,workReads=0;
+  base.rest.repos={
+    getBranch:async()=>{branchReads++;return {data:{protected:flags.protected!==false,
+      commit:{sha:flags.mainSha||SHA}}};},
+    getContent:async({path,ref})=>{
+      workReads++;
+      a.equal(ref,SHA);
+      const w=path.includes('WORK-0099')?workSource:
+        ['id: WORK-0001','status: DONE','depends_on: []',
+         'implementation_plan:','  tasks: []'].join('\n');
+      return {data:{type:'file',encoding:'base64',content:Buffer.from(w).toString('base64')}};
+    }
+  };
+  return {...base,measures:()=>({branchReads,workReads})};
+}
+function activeSettings(){
+  return {...settings(),mode:'ACTIVE_4',activeLaunchApproved:true};
+}
+test('ACTIVE_4: guarded event produces a coordination-only lease from real WORK',async()=>{
+  const r=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const ctx=event(r),hist=[ctx.payload.comment];
+  const gh=guardedApi(hist,REAL_READY_WORK);
+  const done=await c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:activeSettings()});
+  a.equal(done.result.outcome,'GRANTED');
+  a.equal(done.result.mode,'ACTIVE_4');
+  a.equal(done.result.write_authority,false);
+  a.equal(gh.measures().workReads,2);
+  a.equal(c.replay(hist,undefined,undefined,'ACTIVE_4').grants.size,1);
+  a.throws(()=>c.replay(hist),e=>e.code==='BAD_RESULT');
+});
+test('ACTIVE_4: missing explicit activation approval rejects all mutations',async()=>{
+  const r=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const ctx=event(r),hist=[ctx.payload.comment];
+  const gh=guardedApi(hist,REAL_READY_WORK);
+  await a.rejects(c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:{...activeSettings(),activeLaunchApproved:false}}),
+    e=>e.code==='UNTRUSTED_EVENT');
+  a.equal(hist.length,1);
+  a.equal(gh.measures().branchReads,0);
+});
+test('ACTIVE_4: unprotected main cannot issue even advisory product grant',async()=>{
+  const r=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const ctx=event(r),hist=[ctx.payload.comment];
+  const gh=guardedApi(hist,REAL_READY_WORK,{protected:false});
+  await a.rejects(c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:activeSettings()}),e=>e.code==='MAIN_NOT_PROTECTED');
+  a.equal(hist.length,1);
+});
+test('ACTIVE_4: GitHub trusted-work source blocks proposed WORK and undeclared files',async()=>{
+  for(const work of [
+    REAL_READY_WORK.replace('status: READY','status: PROPOSED'),
+    REAL_READY_WORK.replace('src/geo/b.js','src/geo/x.js')
+  ]){
+    const r=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+    const ctx=event(r),hist=[ctx.payload.comment];
+    const done=await c.run({github:guardedApi(hist,work),context:ctx,
+      core:{warning:()=>{}},settings:activeSettings()});
+    a.equal(done.result.outcome,'BLOCKED');
+    a.equal(c.replay(hist,undefined,undefined,'ACTIVE_4').grants.size,0);
+  }
+});
+test('ACTIVE_4: four independent live-style requests serialize to four grants',async()=>{
+  const lines=[
+    'id: WORK-0099','status: IN_PROGRESS','depends_on: []',
+    'implementation_plan:','  tasks:',
+    ...[1,2,3,4].map(i=>'    - {id: T'+i+
+      ', description: "Worker", depends_on: [], expected_files: [src/a'+i+'.cjs], status: IN_PROGRESS}'),
+    '  planned_runs: []','review_plan:'
+  ];
+  const hist=[];let commentID=1;
+  for(let i=1;i<=4;i++){
+    const req=q(i,{work:'WORK-0099',resources:['path:src/a'+i+'.cjs']});
+    const ctx=event(req,commentID++);
+    hist.push(ctx.payload.comment);
+    const gh=guardedApi(hist,lines.join('\n'));
+    const done=await c.run({github:gh,context:ctx,core:{warning:()=>{}},
+      settings:activeSettings()});
+    a.equal(done.result.outcome,'GRANTED');
+    commentID=hist[hist.length-1].id+1;
+  }
+  a.equal(c.replay(hist,undefined,undefined,'ACTIVE_4').grants.size,4);
+});
+test('ACTIVE_4: conflicting scopes across tasks grant only first claim',async()=>{
+  const source=['id: WORK-0099','status: READY','depends_on: []',
+    'implementation_plan:','  tasks:',
+    '    - {id: T1, description: "A", depends_on: [], expected_files: [src/common.cjs], status: READY}',
+    '    - {id: T2, description: "B", depends_on: [], expected_files: [src/common.cjs], status: READY}',
+    '  planned_runs: []'].join('\n');
+  const hist=[];let id=1;
+  for(let w=1;w<=2;w++){
+    const r=q(w,{work:'WORK-0099',resources:['path:src/common.cjs']});
+    const ctx=event(r,id++);
+    hist.push(ctx.payload.comment);
+    const done=await c.run({github:guardedApi(hist,source),context:ctx,
+      core:{warning:()=>{}},settings:activeSettings()});
+    a.equal(done.result.outcome,w===1?'GRANTED':'DENIED');
+    id=hist[hist.length-1].id+1;
+  }
+  a.equal(c.replay(hist,undefined,undefined,'ACTIVE_4').grants.size,1);
+});
+test('ACTIVE_4: prior synthetic result cannot be smuggled into active grant log',()=>{
+  const fixture=request(1,q());
+  const result=response(2,fixture,{outcome:'GRANTED',reason:'TEST_FIXTURE',
+    grant_id:'grant:req-case-0001',epoch:1,resources:q().resources,
+    observed_base_sha:SHA});
+  a.throws(()=>c.replay([fixture,result],undefined,undefined,'ACTIVE_4'));
+});
