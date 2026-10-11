@@ -620,6 +620,11 @@ test('real-work gate: fails closed if GitHub returns a directory or nonbase64 co
 function guardedApi(history,workSource,flags={}){
   const base=api(history);
   let branchReads=0,workReads=0;
+  base.rest.actions={getWorkflowRun:async({run_id})=>({
+    data:{id:run_id,workflow_id:2345,event:'issue_comment',head_branch:'main',
+      head_repository:{full_name:'tobianahillel-afk/monde'},
+      path:'.github/workflows/monde-dev-dispatch.yml@main',run_attempt:1}
+  })};
   base.rest.repos={
     getBranch:async()=>{branchReads++;return {data:{protected:flags.protected!==false,
       commit:{sha:flags.mainSha||SHA}}};},
@@ -635,7 +640,8 @@ function guardedApi(history,workSource,flags={}){
   return {...base,measures:()=>({branchReads,workReads})};
 }
 function activeSettings(){
-  return {...settings(),mode:'ACTIVE_4',activeLaunchApproved:true};
+  return {...settings(),mode:'ACTIVE_4',activeLaunchApproved:true,
+    trustedWorkflowId:2345};
 }
 test('ACTIVE_4: guarded event produces a coordination-only lease from real WORK',async()=>{
   const r=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
@@ -871,4 +877,53 @@ test('ACTIVE_4: historical TEST_ONLY bot results cannot poison active replay',as
   a.equal(result.result.outcome,'GRANTED');
   a.equal(c.replay(hist,undefined,undefined,'ACTIVE_4').grants.size,1);
   a.equal(c.replay(hist).grants.size,1);
+});
+
+test('ACTIVE_4: bot reply from another workflow cannot authorize resource grant',async()=>{
+  const req=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const command=request(1,req);
+  const result=response(2,command,{outcome:'GRANTED',reason:'COORDINATION_ONLY',
+    grant_id:'grant:'+req.request_id,epoch:1,resources:req.resources,
+    observed_base_sha:SHA});
+  // Earlier result is ACTIVE_4 and appears to have the correct bot login.
+  const body=c.parseResult(result.body);
+  body.mode='ACTIVE_4';
+  result.body=c.RESULT+'\n'+JSON.stringify(body);
+  const history=[command,result];
+  const gh=guardedApi(history,REAL_READY_WORK);
+  gh.rest.actions.getWorkflowRun=async({run_id})=>({data:{
+    id:run_id,workflow_id:999,event:'issue_comment',head_branch:'main',
+    head_repository:{full_name:'tobianahillel-afk/monde'},
+    path:'.github/workflows/untrusted.yml@main',run_attempt:1
+  }});
+  const ctx=event(q(3,{work:'WORK-0099',resources:['path:src/geo/c.js']}),10);
+  history.push(ctx.payload.comment);
+  await a.rejects(c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:activeSettings()}),e=>e.code==='UNVERIFIED_WORKFLOW_ORIGIN');
+});
+test('ACTIVE_4: verified default-branch workflow origin accepts actual grant history',async()=>{
+  const req=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const ctx=event(req,10),history=[ctx.payload.comment];
+  const gh=guardedApi(history,REAL_READY_WORK);
+  const first=await c.run({github:gh,context:ctx,core:{warning:()=>{}},
+    settings:activeSettings()});
+  a.equal(first.result.outcome,'GRANTED');
+  const status=event({v:1,op:'STATUS',request_id:'req-status-verify21',
+    worker:'W3',work:'WORK-0099',task:'T1'},30);
+  history.push(status.payload.comment);
+  const second=await c.run({github:gh,context:status,core:{warning:()=>{}},
+    settings:activeSettings()});
+  a.equal(second.result.outcome,'NO_CHANGE');
+});
+test('ACTIVE_4: no trusted workflow ID or Actions API blocks before result mutation',async()=>{
+  const request=q(2,{work:'WORK-0099',resources:['path:src/geo/b.js']});
+  const cmd=request(1,request);
+  const result=response(2,cmd,{outcome:'GRANTED',reason:'COORDINATION_ONLY',
+    grant_id:'grant:'+request.request_id,epoch:1,
+    resources:request.resources,observed_base_sha:SHA});
+  result.body=result.body.replace('"mode":"TEST_ONLY"','"mode":"ACTIVE_4"');
+  const gh=guardedApi([cmd,result],REAL_READY_WORK);
+  await a.rejects(c.verifyActiveResultOrigins(gh,'tobianahillel-afk','monde',
+    [cmd,result],{...activeSettings(),trustedWorkflowId:0}),
+    e=>e.code==='UNVERIFIED_WORKFLOW_ORIGIN');
 });

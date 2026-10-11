@@ -13,6 +13,8 @@ concurrency:
 permissions:
   contents: read
   issues: write
+  # Only used for independently verifying provenance of ACTIVE_4 receipts.
+  actions: read
 
 jobs:
   arbitrate:

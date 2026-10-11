@@ -179,6 +179,42 @@ async function listComments(github,owner,repo,number){
   if(!Array.isArray(a)||a.length>=10000)fail('INCOMPLETE_HISTORY');
   return a;
 }
+// External GitHub control-plane proof for ACTIVE_4 bot results. A bot login
+// alone can also appear in other workflows and is not adequate provenance.
+async function verifyActiveResultOrigins(github,owner,repo,comments,settings){
+  if(!Number.isSafeInteger(settings?.trustedWorkflowId)||
+     settings.trustedWorkflowId<1||
+     typeof github?.rest?.actions?.getWorkflowRun!=='function')
+    fail('UNVERIFIED_WORKFLOW_ORIGIN');
+  const seen=new Map();
+  for(const comment of comments){
+    if(typeof comment.body!=='string'||
+       !comment.body.startsWith(RESULT+'\n')||
+       comment.user?.login!==(settings.botActor||'github-actions[bot]'))continue;
+    const envelope=unpack(comment.body,RESULT);
+    if(envelope.mode!=='ACTIVE_4')continue;
+    const result=parseResult(comment.body,'ACTIVE_4');
+    let run=seen.get(result.workflow_run_id);
+    if(!run){
+      const response=await github.rest.actions.getWorkflowRun({
+        owner,repo,run_id:result.workflow_run_id
+      });
+      run=response?.data;
+      if(!run)fail('UNVERIFIED_WORKFLOW_ORIGIN');
+      seen.set(result.workflow_run_id,run);
+    }
+    if(run.id!==result.workflow_run_id||
+       run.workflow_id!==settings.trustedWorkflowId||
+       run.event!=='issue_comment'||
+       run.head_branch!=='main'||
+       run.head_repository?.full_name!==owner+'/'+repo||
+       !/^\.github\/workflows\/monde-dev-dispatch\.yml(?:@main)?$/.test(run.path||'')||
+       !Number.isSafeInteger(run.run_attempt)||
+       run.run_attempt<result.workflow_run_attempt)
+      fail('UNVERIFIED_WORKFLOW_ORIGIN');
+  }
+}
+
 async function run({github,context,core,settings}){
   if(context.eventName!=='issue_comment'||context.payload.action!=='created')return {ignored:true};
   const {owner,repo}=context.repo;
@@ -194,6 +230,8 @@ async function run({github,context,core,settings}){
   if(typeof event.body!=='string'||!event.body.startsWith(COMMAND+'\n'))return {ignored:true};
   const q=parseRequest(event.body);
   const before=await listComments(github,owner,repo,settings.issueNumber);
+  if(settings.mode==='ACTIVE_4')
+    await verifyActiveResultOrigins(github,owner,repo,before,settings);
   const prior=replay(before,settings.botActor||'github-actions[bot]',
      settings.allowedActors,settings.mode);
   // The triggering event must be visible in authoritative paginated history
@@ -231,8 +269,11 @@ async function run({github,context,core,settings}){
     runAttempt:context.runAttempt,mode:settings.mode});
   try{await github.rest.issues.createComment({owner,repo,issue_number:settings.issueNumber,body:encodeResult(result)});}
   catch(err){core.warning('UNKNOWN_WRITE '+(err.status||'API'));return {unknown:true};}
-  const after=replay(await listComments(github,owner,repo,settings.issueNumber),
-     settings.botActor||'github-actions[bot]',settings.allowedActors,settings.mode);
+  const history=await listComments(github,owner,repo,settings.issueNumber);
+  if(settings.mode==='ACTIVE_4')
+    await verifyActiveResultOrigins(github,owner,repo,history,settings);
+  const after=replay(history,settings.botActor||'github-actions[bot]',
+     settings.allowedActors,settings.mode);
   if(!after.decisions.has(q.request_id))fail('RESULT_NOT_OBSERVED');
   return {result:after.decisions.get(q.request_id)};
 }
@@ -441,4 +482,5 @@ function chooseActive(state,req,source){
 
 module.exports={COMMAND,RESULT,Invalid,parseRequest,encodeRequest,parseResult,
   encodeResult,normalizeResources,overlaps,replay,choose,makeResult,listComments,run,checkEligibility,
-  parseWorkGate,eligibleRealClaim,getWorkGate,trustedWorkContext,chooseActive};
+  parseWorkGate,eligibleRealClaim,getWorkGate,trustedWorkContext,chooseActive,
+  verifyActiveResultOrigins};
