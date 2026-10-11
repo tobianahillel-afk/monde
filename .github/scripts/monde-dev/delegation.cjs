@@ -170,7 +170,7 @@ function assessResearchReport({expected,response,current_head,source}) {
        ...manualRecovery(response)};
   };
   if(response===null||response===undefined)return result('REPORT_UNAVAILABLE');
-  if(typeof response!=='string'||response.length>1024*1024)
+  if(typeof response!=='string'||Buffer.byteLength(response,'utf8')>1024*1024)
     return manual('INVALID_RESPONSE');
   const lines=response.replace(/\r\n/g,'\n').trimEnd().split('\n');
   if(lines.length<3||lines[lines.length-2]!==RESEARCH_MARKER||
@@ -265,7 +265,7 @@ function validateReport(x) {
   return x;
 }
 function parseReviewResponse(text) {
-  if (typeof text !== 'string' || text.length > 1024*1024)
+  if (typeof text !== 'string' || Buffer.byteLength(text,'utf8') > 1024*1024)
     bad('INVALID_RESPONSE');
   // Keep the complete human-readable analysis. The machine footer is only
   // a consistency marker; it is not cryptographic proof of authorship.

@@ -1875,3 +1875,46 @@ test('unqualified evidence relay rejects invisible formatting in R1 excerpts',()
   assert.equal(result.ready_for_manual_relay,false);
   assert.equal(result.text,null);
 });
+
+
+test('regression: valid L2 report exceeding 1 MiB only in UTF-8 bytes is never qualified',()=>{
+  const large='é'.repeat(530000);
+  const report='Complete independent L2 review: '+large+'\n'+d.MARKER+'\n'+
+    JSON.stringify(data({verdict:'APPROVE',findings:[]}));
+  assert.ok(report.length<1024*1024,'the old character-count gate would allow this report');
+  assert.ok(Buffer.byteLength(report,'utf8')>1024*1024);
+  assert.throws(()=>d.parseReviewResponse(report),e=>e.code==='INVALID_RESPONSE');
+  const verdict=d.assessReview({expected:H,response:report,current_head:SHA,source});
+  assert.equal(verdict.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(verdict.reason,'INVALID_RESPONSE');
+  assert.equal(verdict.raw_report_sha256,null);
+  assert.equal(verdict.native_github_approved,false);
+});
+test('regression: valid research report over 1 MiB in UTF-8 bytes is unqualified',()=>{
+  const large='é'.repeat(530000);
+  const report='Independent technical research: '+large+'\n'+d.RESEARCH_MARKER+
+    '\n'+JSON.stringify(researchData());
+  assert.ok(report.length<1024*1024);
+  assert.ok(Buffer.byteLength(report,'utf8')>1024*1024);
+  const outcome=d.assessResearchReport({expected:RESEARCH,response:report,
+    current_head:SHA,source});
+  assert.equal(outcome.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(outcome.reason,'INVALID_RESPONSE');
+  assert.equal(outcome.raw_report_sha256,null);
+  assert.equal(outcome.native_github_approved,false);
+});
+test('regression: public handoff scans generated note even when source report is clean',()=>{
+  // An unexpected sensitive-looking scope comes from the assignment, not the
+  // reviewer response. Public relay must scan the FINAL constructed note.
+  const concealed='ghp_'+'Z'.repeat(36);
+  const scoped={...H,paths:[...H.paths,'docs/'+concealed]};
+  const report=message(data());
+  assert.doesNotMatch(report,/ghp_Z{36}/);
+  const outcome=d.prepareInteractiveHandoff({expected:scoped,response:report,
+    current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(outcome.status,'POTENTIAL_SECRET_IN_RELAY');
+  assert.equal(outcome.ready_for_manual_relay,false);
+  assert.equal(outcome.text,null);
+});
