@@ -38,9 +38,10 @@ function validPath(value, allowDirectory=false) {
 }
 function assignment(input) {
   const names=['assignment_id','repo','pr','head_sha','objective','paths','author_context_id'];
-  const typed=plain(input)&&Object.prototype.hasOwnProperty.call(input,'mission_kind');
-  exactFields(input,typed?names.concat('mission_kind'):names);
-  const kind=typed?input.mission_kind:'L2_REVIEW';
+  // Every mission must declare its authority boundary explicitly.
+  // In particular, missing mission_kind must NEVER become an L2 review.
+  exactFields(input,names.concat('mission_kind'));
+  const kind=input.mission_kind;
   if(!KINDS.has(kind))bad('INVALID_MISSION_KIND');
   if (!oneLine(input.assignment_id, 96) || !ID.test(input.assignment_id) ||
       typeof input.repo !== 'string' || !REPO.test(input.repo) ||
@@ -60,7 +61,7 @@ function assignment(input) {
 }
 function buildReviewPrompt(input) {
   const a = assignment(input);
-  if(a.mission_kind!=='L2_REVIEW')return buildResearchPrompt(a);
+  if(a.mission_kind!=='L2_REVIEW')bad('NOT_L2_MISSION');
   // The separate conversation must report back in ChatGPT, NOT write to GitHub.
   const example = {
     v: 1, assignment_id: a.assignment_id, repo: a.repo, pr: a.pr,
@@ -555,7 +556,8 @@ function planDelegations(inputs) {
     head_sha: item.head_sha,
     mission_kind: item.mission_kind,
     read_only: true,
-    prompt: buildReviewPrompt(item)
+    prompt: item.mission_kind==='L2_REVIEW'
+      ?buildReviewPrompt(item):buildResearchPrompt(item)
   }));
 }
 

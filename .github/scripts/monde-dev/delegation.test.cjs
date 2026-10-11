@@ -8,7 +8,8 @@ const H = {
   repo: 'tobianahillel-afk/monde', pr: 19,
   head_sha: SHA, objective: 'Review coordination security and recovery',
   paths: ['.github/scripts/monde-dev/controller.cjs'],
-  author_context_id: 'chat-foreground-20261011'
+  author_context_id: 'chat-foreground-20261011',
+  mission_kind: 'L2_REVIEW'
 };
 const data = (overrides={}) => ({
   v: 1, assignment_id: H.assignment_id, repo: H.repo, pr: H.pr,
@@ -391,7 +392,7 @@ const researchMessage=packet=>[
 test('four supported research kinds produce bounded read-only, non-L2 instructions',()=>{
   for(const mission_kind of ['TECH_RESEARCH','ARCH_ANALYSIS',
     'SECURITY_ANALYSIS','TEST_IDEATION']){
-    const prompt=d.buildReviewPrompt({...RESEARCH,mission_kind});
+    const prompt=d.buildResearchPrompt({...RESEARCH,mission_kind});
     assert.match(prompt,/LECTURE SEULE/);
     assert.match(prompt,/INTERDIT: commentaire GitHub/);
     assert.match(prompt,/RAPPORT COMPLET/);
@@ -1149,4 +1150,42 @@ test('L2 F35 F04: self-asserted directory tree cannot prove complete coverage',(
   assert.equal(result.status,'L2_SCOPE_NOT_EVIDENCED');
   assert.equal(result.directory_requires_external_verification,true);
   assert.equal(result.ready_for_merge,false);
+});
+
+test('P0 deny by default: mission_kind must be explicitly present, even on L2',()=>{
+  const {mission_kind, ...missing}=H;
+  assert.equal(mission_kind,'L2_REVIEW');
+  assert.throws(()=>d.assignment(missing),e=>e.code==='INVALID_FIELDS');
+  assert.throws(()=>d.buildReviewPrompt(missing),e=>e.code==='INVALID_FIELDS');
+  assert.throws(()=>d.planDelegations([missing]),e=>e.code==='INVALID_FIELDS');
+  assert.throws(()=>d.assessReview({expected:missing,response:message(data()),
+    current_head:SHA,source}),e=>e.code==='INVALID_FIELDS');
+});
+test('P0 dedicated L2 prompt cannot silently redirect to a research mission',()=>{
+  for(const kind of ['TECH_RESEARCH','ARCH_ANALYSIS','SECURITY_ANALYSIS','TEST_IDEATION']){
+    const mission={...RESEARCH,mission_kind:kind};
+    assert.throws(()=>d.buildReviewPrompt(mission),e=>e.code==='NOT_L2_MISSION');
+    assert.match(d.buildResearchPrompt(mission),new RegExp(d.RESEARCH_MARKER));
+  }
+});
+test('P0 explicit router binds every mixed batch mission to the correct marker',()=>{
+  const entries=[H,...['TECH_RESEARCH','ARCH_ANALYSIS','SECURITY_ANALYSIS']
+    .map((mission_kind,i)=>({...RESEARCH,mission_kind,
+      assignment_id:'RESEARCH-ROUTER-'+(i+1)+'-2026'}))];
+  const actual=d.planDelegations(entries);
+  assert.equal(actual.length,4);
+  assert.deepEqual(actual.map(a=>a.mission_kind),entries.map(a=>a.mission_kind));
+  assert.match(actual[0].prompt,new RegExp(d.MARKER));
+  assert.doesNotMatch(actual[0].prompt,new RegExp(d.RESEARCH_MARKER));
+  for(const a of actual.slice(1)){
+    assert.match(a.prompt,new RegExp(d.RESEARCH_MARKER));
+    assert.doesNotMatch(a.prompt,new RegExp(d.MARKER));
+    assert.equal(a.read_only,true);
+  }
+});
+test('P0 unknown, null and undefined mission kinds are never promoted to a default',()=>{
+  for(const mission_kind of [undefined,null,'','DEVELOPER','L2_REVIEW ']){
+    assert.throws(()=>d.assignment({...H,mission_kind}),
+      e=>e.code==='INVALID_MISSION_KIND');
+  }
 });

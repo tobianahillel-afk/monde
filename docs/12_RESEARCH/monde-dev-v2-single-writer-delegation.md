@@ -20,8 +20,11 @@ Each mission has an immutable assignment ID, PR, exact HEAD, scope and author
 context ID. A cohort of one to four missions may mix kinds only for the same
 repository, PR and SHA. Research missions are analytical work, **not L2**.
 
-The pure helper `planDelegations` accepts an optional `mission_kind`;
-omission means legacy `L2_REVIEW`. Research tasks receive the distinct
+The pure helper `planDelegations` **requires** a `mission_kind` for
+every mission; a missing, unknown or null kind is rejected (fail-closed).
+`buildReviewPrompt` accepts only `L2_REVIEW`; `buildResearchPrompt`
+accepts only the four research kinds; `planDelegations` explicitly routes
+to the matching prompt. Research tasks receive the distinct
 `MONDE_V2_RESEARCH_RESULT_V1` marker and may return `COMPLETED`,
 `CHANGES_REQUIRED` or `BLOCKED`. `COMPLETED` is *never* GitHub
 `APPROVED`. Verified R1/R2 findings in completed research remain
@@ -61,7 +64,7 @@ Persist checkpoint fields: repo, branch, candidate HEAD, assignment IDs, task ti
 
 The branch-local `.github/scripts/monde-dev/delegation.cjs` provides a **small optional, dependency-free** protocol for the interactive writer. It has no GitHub/network/filesystem or scheduling APIs. Do not introduce another database, queue, reviewer-service or runtime.
 
-- `assignment` checks a unique mission ID, exact PR SHA, intended scope and originating author context.
+- `assignment` checks a **mandatory explicit mission kind**, unique mission ID, exact PR SHA, intended scope and originating author context.
 - `buildReviewPrompt` assembles the read-only ChatGPT task instruction and demands the complete report in the separate conversation's response with a compact footer labelled `MONDE_V2_L2_RESULT_V1`.
 - `parseReviewResponse` validates the **actual retrieved response text**. It accepts UTF-8 French report content, flags evidence-bearing findings and rejects a missing, duplicate or noncanonical footer.
 - `planDelegations` builds a cohort of 1–4 read-only missions, enforcing unique mission IDs and one exact PR/SHA/author context; it does **not** create Scheduled tasks.
