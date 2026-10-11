@@ -110,8 +110,12 @@ function replay(comments,bot='github-actions[bot]',allowedActors=['tobianahillel
           r.grant_id===null||grants.has(r.grant_id)||r.epoch===null||r.epoch<=epoch||
          r.observed_base_sha!==source.q.base_sha||
          JSON.stringify(r.resources)!==JSON.stringify(source.q.resources))fail('INVALID_GRANT');
-      for(const g of grants.values())for(const a of g.resources)for(const b of r.resources)
-        if(overlaps(a,b))fail('CONFLICTING_HISTORY');
+      for(const g of grants.values()){
+        if(g.worker===r.worker||(g.work===r.work&&g.task===r.task))
+          fail('CONFLICTING_TASK_OWNERSHIP');
+        for(const a of g.resources)for(const b of r.resources)
+          if(overlaps(a,b))fail('CONFLICTING_HISTORY');
+      }
       grants.set(r.grant_id,r);epoch=r.epoch;
     }
     if(r.outcome==='RELEASED'){
@@ -148,7 +152,8 @@ function choose(state,q,config){
      !['T1','T2','T3','T4'].includes(q.task))return block('FIXTURES_ONLY');
   if(config.baseSha&&q.base_sha!==config.baseSha)return block('STALE_BASE');
   for(const g of state.grants.values()){
-    if(g.worker===q.worker&&g.task===q.task)return block('ALREADY_OWNED','DENIED');
+    if(g.worker===q.worker||(g.work===q.work&&g.task===q.task))
+      return block('TASK_ALREADY_OWNED','DENIED');
     for(const a of g.resources)for(const b of q.resources)
       if(overlaps(a,b))return block('CONFLICT','DENIED');
   }
@@ -366,8 +371,8 @@ function chooseActive(state,req,source){
   const verdict=eligibleRealClaim(req,source.work,source.dependencies,source.baseSha);
   if(!verdict.eligible)return block(verdict.reason);
   for(const grant of state.grants.values()){
-    if(grant.worker===req.worker&&grant.task===req.task)
-      return block('ALREADY_OWNED','DENIED');
+    if(grant.worker===req.worker||(grant.work===req.work&&grant.task===req.task))
+      return block('TASK_ALREADY_OWNED','DENIED');
     for(const a of grant.resources)for(const b of req.resources)
       if(overlaps(a,b))return block('RESOURCE_CONFLICT','DENIED');
   }
