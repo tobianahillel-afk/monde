@@ -14,4 +14,4 @@ Contexte : dépôt GitHub `tobianahillel-afk/monde`. Tu es la conversation ChatG
 
 Contraintes : pas de Codex, pas de serveur local ou distant indépendant, pas de modèle externe payant ; GitHub et ChatGPT uniquement. Les tâches planifiées ne développent pas et ne modifient pas GitHub. Le moteur de quatre writers et son mode ACTIVE_4 restent des prototypes désactivés. Ne programme pas de sessions de développement automatiques.
 
-Référence de fonctionnement : `docs/12_RESEARCH/monde-dev-v2-single-writer-delegation.md`.
+Référence de fonctionnement : `docs/12_RESEARCH/monde-dev-v2-single-writer-delegation.md`. Le protocole de mission/résultat peut être vérifié avec le module pur `.github/scripts/monde-dev/delegation.cjs` ; celui-ci ne publie rien et ne prouve pas à lui seul l'indépendance d'un contexte ChatGPT.

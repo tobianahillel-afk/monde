@@ -33,3 +33,17 @@ Delegate when separate research/review provides useful independent information; 
 ## Recovery
 
 Persist checkpoint fields: repo, branch, candidate HEAD, assignment IDs, task titles, execution status, observed report availability, findings, and next safe action. For an unavailable task output, mark UNKNOWN; for stale SHA, mark STALE; for an actual L2 finding, return to foreground coding and request a fresh context review only when material changes require it.
+
+## Executable pure-helper for report return (interactive-only)
+
+The branch-local `.github/scripts/monde-dev/delegation.cjs` provides a **small optional, dependency-free** protocol for the interactive writer. It has no GitHub/network/filesystem or scheduling APIs. Do not introduce another database, queue, reviewer-service or runtime.
+
+- `assignment` checks a unique mission ID, exact PR SHA, intended scope and originating author context.
+- `buildReviewPrompt` assembles the read-only ChatGPT task instruction and demands the complete report in the separate conversation's response with a compact footer labelled `MONDE_V2_L2_RESULT_V1`.
+- `parseReviewResponse` validates the **actual retrieved response text**. It accepts UTF-8 French report content, flags evidence-bearing findings and rejects a missing, duplicate or noncanonical footer.
+- `assessReview` distinguishes `REPORT_UNAVAILABLE`, `WRONG_ASSIGNMENT`, `STALE_SHA`, `INDEPENDENCE_UNVERIFIED`, `NEEDS_CORRECTION`, `BLOCKED` and `TECHNICAL_L2_COMPLETE`. It always returns `native_github_approved:false`.
+
+Independence **cannot be proved by a self-declared JSON field**. The caller must have actually retrieved and matched the separate ChatGPT conversation and its provenance before marking that external observation verified. A review that cannot be retrieved remains unavailable regardless of the automation run's success. The older L2 report at SHA `4e4234f8f73ebe6d22be0724907c127143ca166e` is usable to inform corrections, but does not approve the current PR HEAD.
+
+Use the module where it reduces manual transcription errors. The ChatGPT interactive session does **not** need to run JavaScript locally to honor the same protocol. A missing machine footer may still supply useful qualitative findings, but it must not automatically count as a qualified L2 approval. No scheduled task may write a GitHub comment, even to post the report.
+

@@ -111,3 +111,25 @@ test('BLOCKED verdict can contain limitations without fake findings', () => {
     verdict:'BLOCKED',findings:[] })),current_head:SHA,source});
   assert.equal(out.status,'BLOCKED');
 });
+
+test('French accented findings and objectives are accepted in real L2 reports', () => {
+  const fr={...H,objective:'Vérifier la sécurité, cohérence et intégration'};
+  assert.match(d.buildReviewPrompt(fr),/Vérifier/);
+  const text=message(data({findings:[{...data().findings[0],
+    evidence:'Échec reproductible : récupération après réponse perdue',
+    action:'Empêcher la réattribution sans preuve indépendante'
+  }],limitations:['La création des commentaires GitHub est indisponible']}));
+  const parsed=d.parseReviewResponse(text);
+  assert.equal(parsed.metadata.findings[0].severity,'R1');
+  assert.equal(d.assessReview({expected:H,response:text,current_head:SHA,source})
+    .status,'NEEDS_CORRECTION');
+});
+test('terminal dot segments and controls are rejected in scope and findings', () => {
+  for(const name of ['src/.','src/..','.','..','src//test','../repo']){
+    assert.throws(()=>d.assignment({...H,paths:[name]}));
+    assert.throws(()=>d.validateReport(data({findings:[{
+      ...data().findings[0],path:name
+    }]})));
+  }
+  assert.throws(()=>d.assignment({...H,objective:'bad\nextra'}));
+});

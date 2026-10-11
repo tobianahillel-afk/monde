@@ -6,7 +6,7 @@ const MARKER = 'MONDE_V2_L2_RESULT_V1';
 const SHA = /^[a-f0-9]{40}$/;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,95}$/;
 const REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
-const PATH = /^(?!\/)(?!.*\/\/)(?!.*(?:^|\/)\.\.?\/)[A-Za-z0-9_./-]+$/;
+const PATH = /^[A-Za-z0-9_./-]+$/;
 const VERDICTS = new Set(['APPROVE', 'CHANGES_REQUIRED', 'BLOCKED']);
 const SEVERITIES = new Set(['R1', 'R2', 'R3']);
 class InvalidReport extends Error {
@@ -22,7 +22,12 @@ function exactFields(value, names) {
 }
 function oneLine(value, max = 1000) {
   return typeof value === 'string' && value.length > 0 && value.length <= max &&
-    /^[\x20-\x7e]+$/.test(value);
+    !/[\u0000-\u001f\u007f\u2028\u2029]/.test(value);
+}
+function validPath(value) {
+  return oneLine(value, 180) && PATH.test(value) &&
+    !value.startsWith('/') &&
+    value.split('/').every(part => part && part !== '.' && part !== '..');
 }
 function assignment(input) {
   exactFields(input, ['assignment_id', 'repo', 'pr', 'head_sha',
@@ -36,7 +41,7 @@ function assignment(input) {
       !ID.test(input.author_context_id) ||
       !Array.isArray(input.paths) || input.paths.length < 1 ||
       input.paths.length > 24 ||
-      input.paths.some(path => !oneLine(path, 180) || !PATH.test(path)) ||
+      input.paths.some(path => !validPath(path)) ||
       new Set(input.paths).size !== input.paths.length) bad('INVALID_ASSIGNMENT');
   return {
     ...input,
@@ -103,7 +108,7 @@ function validateReport(x) {
     exactFields(f, ['id', 'severity', 'path', 'evidence', 'action']);
     if (!oneLine(f.id, 32) || !/^F[0-9]{2,4}$/.test(f.id) ||
         ids.has(f.id) || !SEVERITIES.has(f.severity) ||
-        !oneLine(f.path, 180) || !PATH.test(f.path) ||
+        !validPath(f.path) ||
         !oneLine(f.evidence, 3000) || !oneLine(f.action, 3000))
       bad('INVALID_FINDING');
     ids.add(f.id);
