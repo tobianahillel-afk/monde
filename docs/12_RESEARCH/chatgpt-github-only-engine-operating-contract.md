@@ -318,7 +318,7 @@ At every task handoff or after a CI result, choose **the most valuable permitted
 4. **Research/decide** a genuine unknown that unblocks such a slice; stop once sufficient evidence exists.
 5. **Maintain/document** only canonical truths materially changed by accepted behavior and concise recovery pointers; do not rewrite large PROJECT_STATE snapshots solely because a job is pending.
 
-Prefer **finish-before-start** and keep the initial WIP small (pilot target: at most two implementation branches actively written, one integration candidate, and remaining effort on eligible reviews/research). This is a throughput heuristic to test, **not** a bypass of existing WORK priority, ownership or review obligations. If every eligible task is blocked, record truthful blocker; don't manufacture work.
+Prefer **finish-before-start**. **Four fully operational W1–W4 are the mini-engine acceptance target**: initial soft WIP cap is two writing branches plus one integration candidate until four-way collision tests and review capacity are measured; **do not encode two as a controller limit**. When all four tasks are disjoint, validly granted and the acceptance pipeline can keep up, up to four writers may work on their own branches. If review is the bottleneck, workers dynamically switch to L2, testing or documentation. This is a throughput heuristic to test, **not** a bypass of existing WORK priority, ownership or review obligations. If every eligible task is blocked, record truthful blocker; don't manufacture work.
 
 **Anti-side-quest:** before starting adjacent work ask `which WORK/CAP/REQ and acceptance test does it unblock?`. If there is no direct traceable answer, file it as a separate proposed backlog idea without coding. Do not drift into WRE, unrelated experiments or speculative universal libraries. Code-lines metric counts only actual integrated non-generated, non-vendored **product** code on `main`, but optimize **accepted usable capability, correctness, quality, performance and time-to-merge**; a refactor that deletes 300 unnecessary lines may be more productive than adding 1,000 new lines.
 
@@ -630,6 +630,31 @@ complete existing mandatory contracts, tests, security and review checks.
 On each activation RECONCILE pending task/grant/PR/CI/unknown API effects first.
 Do not infer success from a response timeout, chat memory, a green-looking
 untrusted check, an expired lease, a stale branch or an Issue label.
+
+FOUR-WORKER + REVIEW REUSE: this target mini-engine must support W1..W4,
+not stop at a two-worker pilot. All four agents can perform nonconflicting
+research/specification, code/test and context-separated review, switching
+roles as needed; four concurrent branch writers are allowed only with real
+nonoverlapping grants and applicable host enforcement. A WIP cap of two
+writers is an adaptive pilot suggestion, NOT a hard architecture ceiling.
+
+BEFORE RESEARCH/REVIEW: inspect linked canonical WORK completed_reviews and
+open_findings, current REVIEW-* exact scope/actor/context/req digests, TEST-*
+and GitHub PR review threads plus actual HEAD. Reuse what was genuinely
+checked and is still valid; record what was covered and NOT covered, finding
+and evidence refs and remaining questions in existing canonical records.
+Perform a focused delta review for new information when allowed, or a FULL
+adversarial review if high-risk/unknown scope warrants it. Never copy stale
+APPROVED to a new HEAD or pretend previous COMMENTED is APPROVED. Never
+create a parallel review database.
+
+MINIMUM PRODUCT SPEC: for the selected MONDE slice, obtain the existing
+Definition of Ready and accepted REQ/CAP/WORK details for goal, I/O and
+interfaces, positive/negative behavior, dependencies, risks and test oracle.
+If already specified, write code; if materially unknown, document and obtain
+the required acceptance, then proceed only within authorized scope. Do not
+require complete WORLD/MONDE blueprint documentation before an already
+accepted independent slice can be implemented.
 
 PRODUCTION THROUGHOUT THIS INVOCATION: favor finish-before-start. When building,
 implement one coherent accepted-scope feature with real tests; use verified
