@@ -156,11 +156,7 @@ function assessResearchReport({expected,response,current_head,source}) {
     return {...result('REPORT_NEEDS_MANUAL_REVIEW',reason),
       needs_attention:true,requires_manual_qualification:true,
       ...claims,reported_blocking_unknown:unknown,
-       // Foreground-only source fragment when the machine footer is unreadable.
-       raw_report_excerpt:typeof response==='string'?response.slice(0,8192):null,
-       raw_report_excerpt_truncated:typeof response==='string'&&response.length>8192,
-      raw_report_sha256:typeof response==='string'&&response.length<=1024*1024?
-        createHash('sha256').update(response,'utf8').digest('hex'):null};
+       ...manualRecovery(response)};
   };
   if(response===null||response===undefined)return result('REPORT_UNAVAILABLE');
   if(typeof response!=='string'||response.length>1024*1024)
@@ -282,6 +278,27 @@ function scopeMatches(path, paths) {
     (scope.endsWith('/') && path.startsWith(scope)));
 }
 
+// Bounded foreground-only evidence for malformed reports. Not GitHub approval.
+function manualRecovery(response) {
+  if(typeof response!=='string') return {raw_report_excerpt:null,
+    raw_report_tail_excerpt:null,raw_report_excerpt_truncated:false,
+    raw_blocker_snippets:[],manual_source_required:true,raw_report_sha256:null};
+  const n=response.length, snippets=[], seen=new Set();
+  const re=/\bR[12]\b|["']severity["']\s*:\s*["']R[12]["']/gi;
+  for(const match of response.matchAll(re)){
+    const sample=response.slice(Math.max(0,match.index-180),
+      Math.min(n,match.index+320));
+    if(!seen.has(sample)){seen.add(sample);snippets.push(sample);}
+    if(snippets.length===12)break;
+  }
+  return {raw_report_excerpt:response.slice(0,8192),
+    raw_report_tail_excerpt:n>8192?response.slice(-8192):null,
+    raw_report_excerpt_truncated:n>8192,raw_blocker_snippets:snippets,
+    manual_source_required:true,
+    raw_report_sha256:n<=1024*1024?
+      createHash('sha256').update(response,'utf8').digest('hex'):null};
+}
+
 // Untrusted structured allegations from a malformed L2 footer are useful for
 // manual correction, but can NEVER qualify the review or grant any authority.
 // In particular, APPROVE + R1/R2 is contradictory, not a clean review.
@@ -338,7 +355,6 @@ function assessReview({ expected, response, current_head, source, coverage_manif
       // A separate ChatGPT reviewer may return a substantial prose analysis
       // without the requested footer. Keep bounded untrusted text available
       // ONLY for foreground manual triage; never qualify it as L2 acceptance.
-      const excerpt=typeof response==='string'?response.slice(0,8192):null;
       const claims=recoverUnqualifiedClaims(response);
       const unknown=claims.reported_claims_total===undefined||
         claims.reported_claims_incomplete===true||
@@ -346,11 +362,8 @@ function assessReview({ expected, response, current_head, source, coverage_manif
       return {status:'REPORT_NEEDS_MANUAL_REVIEW',native_github_approved:false,
         ready_for_merge:false,requires_manual_qualification:true,
         needs_attention:true,reason:error.code,
-        raw_report_excerpt:excerpt,
-        raw_report_excerpt_truncated:typeof response==='string'&&response.length>8192,
-        ...claims,reported_blocking_unknown:unknown,
-        raw_report_sha256:typeof response==='string'?
-          createHash('sha256').update(response,'utf8').digest('hex'):null};
+        ...manualRecovery(response),
+        ...claims,reported_blocking_unknown:unknown};
     }
     throw error;
   }
@@ -524,8 +537,20 @@ function prepareInteractiveHandoff(args) {
     '',
     '### Public relay (minimum necessary data)',
     'Finding counts: ' + metadata.findings.length +
-      '; IDs/severities only: ' +
+      '; IDs/severities: ' +
       (metadata.findings.map(f=>f.id+'('+f.severity+')').join(', ')||'none'),
+    ...(clearance.finding_details_approved===true?[
+      '',
+      '### Actionable findings (unverified reviewer claims)',
+      ...metadata.findings.flatMap(f=>[
+        f.id+' ['+f.severity+'] '+f.path,
+        'Evidence: '+f.evidence,
+        'Suggested correction: '+f.action
+      ])
+    ]:[
+      'Detailed evidence and corrections are NOT included.',
+      'The original reviewer report is necessary for remediation.'
+    ]),
     'Full report retained in original ChatGPT reviewer conversation.',
     'A public relay is not a technical L2 acceptance decision.',
     ...(clearance.full_report_approved===true?[
@@ -550,6 +575,8 @@ function prepareInteractiveHandoff(args) {
   return {
     status: evaluation.status, can_publish: false,
     ready_for_manual_relay: true,
+    self_contained_for_remediation:clearance.finding_details_approved===true||
+      clearance.full_report_approved===true,
     requires_manual_qualification: true,
     native_github_approved: false, text: note
   };
