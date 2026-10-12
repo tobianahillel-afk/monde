@@ -997,9 +997,13 @@ function assessDelegationBatch({
     if(!Object.prototype.hasOwnProperty.call(reports,key)||
        typeof reports[key]!=='string'||!plain(sources[key]))continue;
     const observation=sources[key];
+    // A single L2 response can have hundreds of prior observations.
+    // Hash it only once, even when many observations share its assignment.
+    let digest;
     for(const earlier of prior_sources)
       if(earlier.assignment_id===key){
-        const digest=createHash('sha256').update(reports[key],'utf8').digest('hex');
+        if(digest===undefined)
+          digest=createHash('sha256').update(reports[key],'utf8').digest('hex');
         if(!Object.prototype.hasOwnProperty.call(earlier,'head_sha')||
            earlier.head_sha!==target.head_sha||
            earlier.mission_kind!==target.mission_kind||

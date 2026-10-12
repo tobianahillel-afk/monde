@@ -3348,3 +3348,24 @@ test('natural work IDs: WORK-9999 precedes WORK-10000',()=>{
   assert.deepEqual(result.eligible.map(x=>x.work),['WORK-9999','WORK-10000']);
   assert.equal(result.recommended.work,'WORK-9999');
 });
+
+test('many matching prior L2 observations do not lose one conflicting prior',()=>{
+  const crypto=require('node:crypto');
+  const reply='Prior-review performance case. '.repeat(2000)+'\n'+
+    d.MARKER+'\n'+JSON.stringify(data({verdict:'APPROVE',findings:[]}));
+  const digest=crypto.createHash('sha256').update(reply,'utf8').digest('hex');
+  const matched={assignment_id:H.assignment_id,context_id:source.context_id,
+    message_ref:source.message_ref,head_sha:SHA,mission_kind:'L2_REVIEW',
+    response_sha256:digest};
+  // Repeated observations should be cheap; even one conflicting SHA must
+  // keep the entire batch unqualified and not "previously observed".
+  const prior=Array.from({length:500},()=>({...matched}));
+  prior.push({...matched,response_sha256:'b'.repeat(64)});
+  const result=d.assessDelegationBatch({assignments:[H],
+    reports:{[H.assignment_id]:reply},sources:{[H.assignment_id]:source},
+    current_head:SHA,prior_sources:prior});
+  assert.equal(result.independence_conflicts,1);
+  assert.equal(result.previously_observed_count,0);
+  assert.equal(result.results[0].status,'INDEPENDENCE_UNVERIFIED');
+  assert.equal(result.ready_for_merge,false);
+});
