@@ -3259,3 +3259,30 @@ test('healthy completed multi-hop task chain remains eligible',()=>{
   assert.equal(r.recommended.task,'T3');
   assert.deepEqual(r.blocked,[]);
 });
+
+test('resume: stale evidence from previous HEAD never reports SAME_REVISION',()=>{
+  const old='a'.repeat(40);
+  const packet=resumeBase({evidence_refs:[{kind:'CI',ref:'job-old',head_sha:old}]});
+  const observation=inspectResume(d.renderResumePacket(packet));
+  assert.equal(observation.status,'STALE_EVIDENCE');
+  assert.equal(observation.next_step,'REPLAN_FROM_LIVE_GITHUB');
+  assert.equal(observation.proofs_authoritative,false);
+  assert.equal(observation.checkpoint.evidence_refs[0].head_sha,old);
+});
+test('resume: matching head with multiple current proofs remains a continuation hint',()=>{
+  const packet=resumeBase({evidence_refs:[
+    {kind:'CI',ref:'job-111',head_sha:RS},
+    {kind:'REVIEW',ref:'REVIEW-0099',head_sha:RS}
+  ]});
+  const observation=inspectResume(d.renderResumePacket(packet));
+  assert.equal(observation.status,'SAME_REVISION');
+  assert.equal(observation.proofs_authoritative,false);
+});
+test('resume: HEAD drift takes precedence even when older evidence is also present',()=>{
+  const packet=resumeBase({evidence_refs:[
+    {kind:'TEST',ref:'TEST-0066',head_sha:'a'.repeat(40)}]});
+  const observation=inspectResume(d.renderResumePacket(packet),{
+    head_sha:'e'.repeat(40)});
+  assert.equal(observation.status,'STALE_HEAD');
+  assert.equal(observation.next_step,'REPLAN_FROM_LIVE_GITHUB');
+});

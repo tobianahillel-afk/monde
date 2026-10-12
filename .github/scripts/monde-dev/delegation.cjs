@@ -1474,7 +1474,9 @@ function inspectResumeFromPrBody(body,{repo,pr,head_sha,base_sha}){
   }catch{return untrusted('INVALID_CHECKPOINT');}
   if(packet.repo!==repo||packet.pr!==pr)return untrusted('WRONG_PR');
   const drift=packet.head_sha!==head_sha?'STALE_HEAD':
-    packet.base_sha!==base_sha?'STALE_BASE':null;
+    packet.base_sha!==base_sha?'STALE_BASE':
+    packet.evidence_refs.some(ref=>ref.head_sha!==packet.head_sha)?
+      'STALE_EVIDENCE':null;
   return {status:drift||'SAME_REVISION',checkpoint:packet,
     requires_work_recheck:true,proofs_authoritative:false,
     next_step:drift?'REPLAN_FROM_LIVE_GITHUB':packet.action_kind};
