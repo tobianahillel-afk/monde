@@ -554,6 +554,38 @@ const PRIVATE_CHAT_HOST=new RegExp(CHAT_DOMAIN,'i');
 const PRIVATE_CHAT_LINK=new RegExp(
   CHAT_DOMAIN+CHAT_SEP+'(?:c|share)'+CHAT_SEP+
   String.raw`[A-Za-z0-9_.~%?=&+:/\\#@!$;,-]+`,'gi');
+
+// Treat only a bounded public text field, never an arbitrary source document.
+// HTML numeric/named character references, Unicode dot lookalikes, percent
+// layers and JavaScript Unicode escapes can obscure the same private host.
+// We deny publication if the canonicalized representation still contains it.
+function containsPrivateChatHost(value) {
+  if(typeof value!=='string')return false;
+  if(value.length>131072)return true; // cannot safely classify an oversized relay
+  let text=value;
+  for(let pass=0;pass<6;pass++){
+    if(PRIVATE_CHAT_HOST.test(text))return true;
+    const decoded=text
+      .replace(/&(?:amp|period|sol|colon|bsol);/gi,entity=>({
+        '&amp;':'&','&period;':'.','&sol;':'/',
+        '&colon;':':','&bsol;':'\\'
+      })[entity.toLowerCase()])
+      .replace(/&#(?:x([0-9a-f]{1,6})|([0-9]{1,7}));?/gi,(whole,hex,dec)=>{
+        const point=parseInt(hex||dec,hex?16:10);
+        if(point<=0||point>0x10ffff||
+           (point>=0xd800&&point<=0xdfff))return whole;
+        return String.fromCodePoint(point);
+      })
+      .replace(/[\u3002\uff0e\uff61]/g,'.')
+      .replace(/%([0-9a-f]{2})/gi,(_,hex)=>String.fromCharCode(parseInt(hex,16)))
+      .replace(/\\+(?:u00(2e|2f|3a|5c)|x(2e|2f|3a|5c))/gi,
+        (_,long,short)=>String.fromCharCode(parseInt(long||short,16)));
+    if(decoded===text)break;
+    text=decoded;
+  }
+  return PRIVATE_CHAT_HOST.test(text);
+}
+
 // Full-report consent never includes raw ChatGPT provenance, including
 // short valid message references and JSON-escaped excerpts. Redact the final
 // public text at all serialization levels used by the two handoff paths.
@@ -721,7 +753,7 @@ function prepareInteractiveHandoff(args) {
       native_github_approved:false,text:null};
   // Redaction is best-effort, but publication MUST fail closed if a private
   // conversation hostname survives in an unrecognized encoding.
-  if(PRIVATE_CHAT_HOST.test(note))
+  if(containsPrivateChatHost(note))
     return {status:'UNREDACTED_CHAT_HOST',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
@@ -951,7 +983,7 @@ function prepareUnqualifiedTriageHandoff(args) {
   if(UNSAFE_CONTROL.test(note))
     return refused('UNSAFE_CONTROL_IN_RELAY');
   // Malformed L2 fallback must enforce the SAME privacy barrier as normal L2.
-  if(PRIVATE_CHAT_HOST.test(note))
+  if(containsPrivateChatHost(note))
     return refused('UNREDACTED_CHAT_HOST');
   if(CREDENTIAL_PATTERNS.some(re=>[args.response,note,source.message_ref]
       .some(s=>typeof s==='string'&&re.test(s))))
@@ -1648,7 +1680,7 @@ function resumePacket(input){
      !resumeActions.has(input.action_kind)||!oneLine(input.next_action,380)||
      /[<>\\]/.test(input.next_action)||
      CREDENTIAL_PATTERNS.some(re=>re.test(input.next_action))||
-      PRIVATE_CHAT_HOST.test(input.next_action)||
+      containsPrivateChatHost(input.next_action)||
      (input.work!==null&&(typeof input.work!=='string'||
        !/^WORK-\d{4,}$/.test(input.work)))||
      (input.task!==null&&(typeof input.task!=='string'||
@@ -1666,7 +1698,7 @@ function resumePacket(input){
     if(!['CI','REVIEW','WORK','TEST','PR'].includes(e.kind)||
        !oneLine(e.ref,180)||/[<>\\]/.test(e.ref)||
        CREDENTIAL_PATTERNS.some(re=>re.test(e.ref))||
-        PRIVATE_CHAT_HOST.test(e.ref)||
+        containsPrivateChatHost(e.ref)||
        typeof e.head_sha!=='string'||!SHA.test(e.head_sha)||
        ids.has(e.kind+':'+e.ref))
       bad('INVALID_RESUME_EVIDENCE');

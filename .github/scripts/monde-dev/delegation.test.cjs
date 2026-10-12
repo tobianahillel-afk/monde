@@ -4290,3 +4290,72 @@ test('privacy: standalone private ChatGPT host blocks malformed L2 fallback too'
   assert.equal(result.ready_for_manual_relay,false);
   assert.equal(result.text,null);
 });
+
+
+test('privacy: HTML numeric entities and Unicode dot hosts block public L2 relay',()=>{
+  const privateRefs=[
+    'chatgpt&#46;com/c/private-entity-01',
+    'chatgpt&#x2E;com/c/private-entity-02',
+    'chatgpt&#X2e;com/c/private-entity-03',
+    'chatgpt。com/c/private-unicode-04',
+    'chatgpt．com/c/private-unicode-05',
+    'chatgpt｡com/c/private-unicode-06',
+    'ch&#97;tgpt.com/c/private-letter-07',
+    'ch%61tgpt.com/c/private-percent-08',
+    'chatgpt%252ecom/c/private-double-percent-09',
+    'chatgpt&amp;#46;com/c/private-amp-10',
+    'chatgpt&period;com/c/private-named-11',
+    'chat&#46;openai&#46;com/share/private-multiple-12'
+  ];
+  for(const link of privateRefs){
+    const report=data({findings:[{id:'F01',severity:'R2',path:H.paths[0],
+      evidence:'Evidence URL '+link,action:'Check the GitHub source'}]});
+    const out=d.prepareInteractiveHandoff({
+      expected:H,response:message(report),current_head:SHA,source,
+      publication_clearance:{secrets_checked:true,personal_data_checked:true,
+        public_repo_safe:true,finding_details_approved:true}
+    });
+    assert.equal(out.status,'UNREDACTED_CHAT_HOST',link);
+    assert.equal(out.ready_for_manual_relay,false);
+    assert.equal(out.text,null);
+  }
+});
+test('privacy: HTML and Unicode private sources cannot leak through unqualified triage',()=>{
+  for(const link of ['chatgpt&#46;com/c/secret-note-01',
+    'chatgpt。com/c/secret-note-02','ch%61tgpt.com/c/secret-note-03']){
+    const response='L2 reviewer R1: issue in private source '+link+
+      ' requires correction and manual triage.\n'+d.MARKER+'\n{broken-footer';
+    const out=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response,current_head:SHA,source,
+      publication_clearance:{secrets_checked:true,
+        personal_data_checked:true,public_repo_safe:true,
+        finding_details_approved:true}
+    });
+    assert.equal(out.status,'UNREDACTED_CHAT_HOST',link);
+    assert.equal(out.text,null);
+  }
+});
+test('privacy: checkpoint rejects HTML entities, encoded letters and Unicode hosts',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    action_kind:'AWAIT_L2',next_action:'Review implementation',evidence_refs:[]};
+  for(const link of ['chatgpt&#46;com/c/secret',
+    'chatgpt&#x2e;com/c/secret','chatgpt。com/c/secret',
+    'ch%61tgpt.com/c/secret','chatgpt%252ecom/c/secret',
+    'chatgpt&amp;#46;com/c/secret']){
+    assert.throws(()=>d.createResumePacket({...base,
+      next_action:'Inspect '+link}),e=>e.code==='INVALID_RESUME_PACKET',link);
+    assert.throws(()=>d.createResumePacket({...base,
+      evidence_refs:[{kind:'REVIEW',ref:link,head_sha:SHA}]}),
+    e=>e.code==='INVALID_RESUME_EVIDENCE',link);
+  }
+});
+test('privacy: ordinary public issue/PR references remain valid',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    action_kind:'AWAIT_L2',
+    next_action:'Inspect https://github.com/tobianahillel-afk/monde/pull/19',
+    evidence_refs:[{kind:'PR',ref:'github-PR-19',head_sha:SHA}]};
+  const packet=d.createResumePacket(base);
+  assert.equal(d.inspectResumeFromPrBody(
+    d.updateResumeInPrBody('PR summary',packet),
+    {repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA}).status,'SAME_REVISION');
+});
