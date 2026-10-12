@@ -903,8 +903,7 @@ function prepareUnqualifiedTriageHandoff(args) {
     }
     // Equal-risk ties favor retaining machine-recognized findings.
     if(findingRank>snippetRank)selectedFindings.pop();
-    else if(snippetIndex>=0)selectedSnippets.splice(snippetIndex,1);
-    else selectedFindings.pop();
+    else selectedSnippets.splice(snippetIndex,1);
     note=render();
   }
   if(!selectedSnippets.length&&!selectedFindings.length)
