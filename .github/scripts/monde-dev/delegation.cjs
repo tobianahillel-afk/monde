@@ -568,14 +568,14 @@ const PRIVATE_CHAT_LINK=new RegExp(
 // HTML numeric/named character references, Unicode dot lookalikes, percent
 // layers and JavaScript Unicode escapes can obscure the same private host.
 // We deny publication if the canonicalized representation still contains it.
-function containsPrivateChatHost(value) {
+function publicTextMatches(value, predicate) {
   if(typeof value!=='string')return false;
   if(value.length>131072)return false; // public relay size guard rejects it below
   let text=value;
   // Bound CPU cost, not trust: an input still changing after this budget
   // must be rejected, never classified as safe private-link-free text.
   for(let pass=0;pass<16;pass++){
-    if(PRIVATE_CHAT_HOST.test(text))return true;
+    if(predicate(text))return true;
     const decoded=text
       .replace(/&(?:amp|period|sol|colon|bsol);/gi,entity=>({
         '&amp;':'&','&period;':'.','&sol;':'/',
@@ -610,6 +610,15 @@ function containsPrivateChatHost(value) {
   }
   // Deeply nested encoding remained ambiguous: fail closed.
   return true;
+}
+
+function containsPrivateChatHost(value) {
+  return publicTextMatches(value,text=>PRIVATE_CHAT_HOST.test(text));
+}
+// Use one bounded decoder for hostnames AND credential parameters.
+function containsEncodedCredential(value) {
+  return publicTextMatches(value,text=>
+    CREDENTIAL_PATTERNS.some(pattern=>pattern.test(text)));
 }
 
 // Full-report consent never includes raw ChatGPT provenance, including
@@ -788,7 +797,7 @@ function prepareInteractiveHandoff(args) {
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
   // Scan exactly what could reach the public PR, not only the source text.
-  if(CREDENTIAL_PATTERNS.some(pattern=>pattern.test(note)))
+  if(containsEncodedCredential(note))
     return {status:'POTENTIAL_SECRET_IN_RELAY',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
@@ -1011,8 +1020,9 @@ function prepareUnqualifiedTriageHandoff(args) {
   // Malformed L2 fallback must enforce the SAME privacy barrier as normal L2.
   if(containsPrivateChatHost(note))
     return refused('UNREDACTED_CHAT_HOST');
-  if(CREDENTIAL_PATTERNS.some(re=>[args.response,note,source.message_ref]
-      .some(s=>typeof s==='string'&&re.test(s))))
+  if(containsEncodedCredential(note)||
+      CREDENTIAL_PATTERNS.some(re=>[args.response,source.message_ref]
+        .some(s=>typeof s==='string'&&re.test(s))))
     return refused('POTENTIAL_SECRET_IN_REPORT');
   if(Buffer.byteLength(note,'utf8')>PUBLIC_RELAY_MAX_BYTES)
     return refused('PUBLIC_RELAY_TOO_LARGE');
@@ -1705,7 +1715,7 @@ function resumePacket(input){
      typeof input.base_sha!=='string'||!SHA.test(input.base_sha)||
      !resumeActions.has(input.action_kind)||!oneLine(input.next_action,380)||
      /[<>\\]/.test(input.next_action)||
-     CREDENTIAL_PATTERNS.some(re=>re.test(input.next_action))||
+     containsEncodedCredential(input.next_action)||
       containsPrivateChatHost(input.next_action)||
      (input.work!==null&&(typeof input.work!=='string'||
        !/^WORK-\d{4,}$/.test(input.work)))||
@@ -1723,7 +1733,7 @@ function resumePacket(input){
     exactFields(e,['kind','ref','head_sha']);
     if(!['CI','REVIEW','WORK','TEST','PR'].includes(e.kind)||
        !oneLine(e.ref,180)||/[<>\\]/.test(e.ref)||
-       CREDENTIAL_PATTERNS.some(re=>re.test(e.ref))||
+       containsEncodedCredential(e.ref)||
         containsPrivateChatHost(e.ref)||
        typeof e.head_sha!=='string'||!SHA.test(e.head_sha)||
        ids.has(e.kind+':'+e.ref))

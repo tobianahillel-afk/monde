@@ -4589,3 +4589,52 @@ test('privacy: deeply nested HTML-encoded private ChatGPT hosts never pass publi
     }),e=>e.code==='INVALID_RESUME_PACKET');
   }
 });
+
+test('privacy: encoded credential query keys are rejected in public bookmarks',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    action_kind:'AWAIT_L2',next_action:'Inspect code',evidence_refs:[]};
+  for(const leak of [
+    'https://public.example/r?%74oken=ExampleSecretToken1234',
+    'https://public.example/r?%2574oken=ExampleSecretToken1234',
+    'https://public.example/r?&#x74;oken=ExampleSecretToken1234',
+    'https://public.example/r?\\u0074oken=ExampleSecretToken1234',
+    'https://public.example/r?ｔｏｋｅｎ=ExampleSecretToken1234',
+    'https://public.example/r?access%5Ftoken=ExampleSecretToken1234'
+  ]){
+    assert.throws(()=>d.createResumePacket({...base,next_action:'Check '+leak}),
+      {code:'INVALID_RESUME_PACKET'},leak);
+    assert.throws(()=>d.createResumePacket({...base,evidence_refs:[
+      {kind:'REVIEW',ref:leak,head_sha:SHA}]}),
+      {code:'INVALID_RESUME_EVIDENCE'},leak);
+  }
+});
+test('privacy: encoded credential query keys block normal L2 public handoff',()=>{
+  for(const leak of [
+    'https://public.example/r?%74oken=ExampleSecretToken1234',
+    'https://public.example/r?%2574oken=ExampleSecretToken1234',
+    'https://public.example/r?\\u0074oken=ExampleSecretToken1234'
+  ]){
+    const finding={...data().findings[0],evidence:'Unsafe request '+leak};
+    const result=d.prepareInteractiveHandoff({
+      expected:H,response:message(data({findings:[finding]})),
+      current_head:SHA,source,
+      publication_clearance:{secrets_checked:true,personal_data_checked:true,
+        public_repo_safe:true,finding_details_approved:true}
+    });
+    assert.equal(result.ready_for_manual_relay,false,leak);
+    assert.equal(result.status,'POTENTIAL_SECRET_IN_RELAY',leak);
+  }
+});
+test('privacy: encoded credential query keys block malformed L2 fallback',()=>{
+  const leak='https://public.example/r?%74oken=ExampleSecretToken1234';
+  const response='Independent R1 in src/a.cjs: unsafe request '+leak+
+    '\nReview details are not for public export.\n'+d.MARKER+'\n{broken';
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.ready_for_manual_relay,false);
+  assert.equal(result.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(result.text,null);
+});
