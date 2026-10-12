@@ -1454,17 +1454,22 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
         related_dependency_findings:upstream.count};
       if(reasons.length){
         blocked.push(note);
-        // Reported defects are unverified. Suggest foreground correction,
-        // but never treat a reviewer claim as authority or accepted work.
-        if(reasons.every(reason=>[
-          'MATERIAL_FINDINGS_NEED_TRIAGE','DEPENDENCY_FINDINGS_NEED_TRIAGE'
-        ].includes(reason)))
+        // Preserve material triage even when the task is *also* blocked by
+        // governance, scope, or unfinished dependencies. Those blockers still
+        // forbid execution; finding triage is an independent read-only action.
+        if(material.count||upstream.count){
+          const triageReasons=new Set([
+            'MATERIAL_FINDINGS_NEED_TRIAGE','DEPENDENCY_FINDINGS_NEED_TRIAGE'
+          ]);
           remediation.push({...note,
             related_r1_findings:combinedR1,
             state:task.status,work_state:work.status,
+            execution_allowed:false,
+            execution_blockers:reasons.filter(reason=>!triageReasons.has(reason)),
             disposition:upstream.count?
               'TRIAGE_UPSTREAM_BEFORE_DEPENDENT_WORK':
               'VERIFY_AND_FIX_IN_FOREGROUND'});
+        }
       }else candidates.push({...note,state:task.status,work_state:work.status});
     }
   }

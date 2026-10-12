@@ -43,7 +43,7 @@ Un résultat structuré `L2_REPORT_RECEIVED_PENDING_VALIDATION` atteste seulemen
 
 Lorsqu'une tache rend un rapport sans pied JSON valide, utiliser la sortie de `assessDelegationBatch` pour conserver les constats bruts, puis `prepareUnqualifiedTriageHandoff` seulement apres verification humaine de confidentialite et de la securite de publication. Les fragments R1/R2 restent non qualifies, ne comptent jamais comme une revue L2 acceptee et ne peuvent autoriser une fusion. Le contexte reviewer et le HEAD exact doivent etre verifies independamment. Chaque tache doit reverifier HEAD au debut et a la fin.
 
-Le planificateur regroupe les allégations R1/R2 **strictement identiques** (même gravité, chemin et preuve), y compris si un même rapport est transféré plusieurs fois. Le nombre brut reste disponible dans `unqualified_material_findings`; les copies regroupées sont comptées dans `duplicate_material_allegations_collapsed`. Les preuves distinctes ne sont jamais fusionnées. Cela évite les répétitions, sans constituer une validation ni une clôture des constats.
+Le planificateur regroupe les allégations R1/R2 **strictement identiques** (même gravité, chemin, preuve **et correction proposée**), y compris si un même rapport est transféré plusieurs fois. Le nombre brut reste disponible dans `unqualified_material_findings`; les copies regroupées sont comptées dans `duplicate_material_allegations_collapsed`. Les preuves distinctes ne sont jamais fusionnées. Cela évite les répétitions, sans constituer une validation ni une clôture des constats.
 
 ## Cadence progressive — priorité au fonctionnel
 

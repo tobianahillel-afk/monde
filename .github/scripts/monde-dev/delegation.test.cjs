@@ -2942,12 +2942,19 @@ test('remediation ranks R1 before R2 while refusing to promote a finding',()=>{
   assert.deepEqual(result.remediation_candidates.map(x=>x.task),['T3','T2']);
   assert.equal(result.authorized_to_write,false);
 });
-test('remediation cannot recommend work blocked by unavailable scope',()=>{
+test('L2 F01: PROPOSED WORK cannot execute but an overlapping R1 remains in triage',()=>{
   const result=plan([completedWork,workPlan({status:'PROPOSED'})],[
     {severity:'R1',path:'src/b.js',evidence:'Review allegation'}
   ]);
-  assert.equal(result.recommended_remediation,null);
-  assert.deepEqual(result.remediation_candidates,[]);
+  assert.equal(result.recommended,null);
+  const item=result.remediation_candidates.find(x=>x.task==='T2');
+  assert.ok(item);
+  assert.equal(item.related_r1_findings,1);
+  assert.equal(item.execution_allowed,false);
+  assert.ok(item.execution_blockers.includes('WORK_NOT_READY'));
+  assert.equal(result.recommended_remediation.task,'T2');
+  assert.deepEqual(result.unmapped_material_findings,[]);
+  assert.equal(result.authorized_to_write,false);
 });
 test('remediation counts ancestor findings only once across multiple files',()=>{
   const work=workPlan({tasks:[
@@ -3782,4 +3789,44 @@ test('resume: replace rejects oversized final PR descriptions but retains valid 
   assert.ok(nearLimit.length<100000);
   assert.throws(()=>d.updateResumeInPrBody(nearLimit,wider),
     e=>e.code==='PR_BODY_TOO_LARGE');
+});
+
+
+test('L2 F01: blocked dependency plus R1 does not suppress correction queue',()=>{
+  const work=workPlan({tasks:[
+    {id:'T1',status:'READY',depends_on:[],expected_files:['src/a.js']},
+    {id:'T2',status:'READY',depends_on:['T1'],expected_files:['src/b.js']}
+  ]});
+  const result=plan([completedWork,work],[
+    {severity:'R1',path:'src/b.js',evidence:'Critical issue in blocked task'}
+  ]);
+  const blocked=result.blocked.find(x=>x.task==='T2');
+  assert.ok(blocked);
+  assert.ok(blocked.reasons.includes('TASK_DEPENDENCIES_PENDING'));
+  const triage=result.remediation_candidates.find(x=>x.task==='T2');
+  assert.ok(triage);
+  assert.equal(triage.related_r1_findings,1);
+  assert.equal(triage.execution_allowed,false);
+  assert.ok(triage.execution_blockers.includes('TASK_DEPENDENCIES_PENDING'));
+  assert.equal(triage.disposition,'VERIFY_AND_FIX_IN_FOREGROUND');
+  assert.equal(result.eligible.some(x=>x.task==='T2'),false);
+  assert.deepEqual(result.unmapped_material_findings,[]);
+});
+
+test('L2 F01: upstream R1 remains visible behind a missing dependency',()=>{
+  const work=workPlan({tasks:[
+    {id:'T1',status:'DONE',depends_on:[],expected_files:['src/a.js']},
+    {id:'T2',status:'READY',depends_on:['T1','T99'],
+      expected_files:['src/b.js']}
+  ]});
+  const result=plan([completedWork,work],[
+    {severity:'R1',path:'src/a.js',evidence:'Broken completed prerequisite'}
+  ]);
+  const triage=result.remediation_candidates.find(x=>x.task==='T2');
+  assert.ok(triage);
+  assert.equal(triage.execution_allowed,false);
+  assert.equal(triage.related_r1_findings,1);
+  assert.equal(triage.disposition,'TRIAGE_UPSTREAM_BEFORE_DEPENDENT_WORK');
+  assert.ok(triage.execution_blockers.includes('UNKNOWN_TASK_DEPENDENCY'));
+  assert.equal(result.eligible.some(x=>x.task==='T2'),false);
 });
