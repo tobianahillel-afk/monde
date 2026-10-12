@@ -1333,8 +1333,11 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
   // Numeric IDs are ordinal: T2 precedes T10, WORK-9999 precedes
   // WORK-10000. Compare digit lengths to avoid unsafe Number coercion.
   const numericIdOrder=(a,b,prefix)=>{
-    const x=a.slice(prefix.length),y=b.slice(prefix.length);
-    return x.length-y.length||x.localeCompare(y);
+    // Numeric IDs can have different padding widths, e.g. WORK-00010.
+    // Compare their significant digits without Number's precision limit.
+    const x=a.slice(prefix.length).replace(/^0+(?=\d)/,'');
+    const y=b.slice(prefix.length).replace(/^0+(?=\d)/,'');
+    return x.length-y.length||x.localeCompare(y)||a.localeCompare(b);
   };
   const order=(a,b)=>priority[a.state]-priority[b.state]||
     priority[a.work_state]-priority[b.work_state]||

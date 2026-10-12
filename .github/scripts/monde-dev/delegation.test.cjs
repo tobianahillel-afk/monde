@@ -3369,3 +3369,24 @@ test('many matching prior L2 observations do not lose one conflicting prior',()=
   assert.equal(result.results[0].status,'INDEPENDENCE_UNVERIFIED');
   assert.equal(result.ready_for_merge,false);
 });
+
+test('natural work order respects the numeric value despite variable zero padding',()=>{
+  const works=['WORK-9999','WORK-00010','WORK-0010','WORK-10000']
+    .map((id,i)=>({id,status:'READY',depends_on:[],tasks:[{
+      id:'T1',status:'READY',depends_on:[],expected_files:['src/part'+i+'.cjs']
+    }]}));
+  const plan=d.planNextIncrement({repo:'tobianahillel-afk/monde',head_sha:SHA,works});
+  assert.deepEqual(plan.eligible.map(x=>x.work),
+    ['WORK-00010','WORK-0010','WORK-9999','WORK-10000']);
+  assert.equal(plan.recommended.work,'WORK-00010');
+  assert.equal(plan.authorized_to_write,false);
+});
+test('natural work order compares arbitrarily long numeric IDs without precision loss',()=>{
+  const works=['WORK-9007199254740993','WORK-9007199254740992']
+    .map((id,i)=>({id,status:'READY',depends_on:[],tasks:[{
+      id:'T1',status:'READY',depends_on:[],expected_files:['src/large'+i+'.cjs']
+    }]}));
+  const plan=d.planNextIncrement({repo:'tobianahillel-afk/monde',head_sha:SHA,works});
+  assert.deepEqual(plan.eligible.map(x=>x.work),
+    ['WORK-9007199254740992','WORK-9007199254740993']);
+});
