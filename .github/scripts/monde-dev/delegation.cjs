@@ -1326,9 +1326,16 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
   // Do not let a cosmetic issue trump already started work. All suggestions
   // remain human/foreground-reviewed; paths are candidate scopes, not grants.
   const priority={IN_PROGRESS:0,PARTIAL:1,READY:2};
+  // Numeric IDs are ordinal: T2 precedes T10, WORK-9999 precedes
+  // WORK-10000. Compare digit lengths to avoid unsafe Number coercion.
+  const numericIdOrder=(a,b,prefix)=>{
+    const x=a.slice(prefix.length),y=b.slice(prefix.length);
+    return x.length-y.length||x.localeCompare(y);
+  };
   const order=(a,b)=>priority[a.state]-priority[b.state]||
     priority[a.work_state]-priority[b.work_state]||
-    a.work.localeCompare(b.work)||a.task.localeCompare(b.task);
+    numericIdOrder(a.work,b.work,'WORK-')||
+    numericIdOrder(a.task,b.task,'T');
   candidates.sort(order);
   remediation.sort((a,b)=>
     (b.related_r1_findings>0?1:0)-(a.related_r1_findings>0?1:0)||order(a,b));

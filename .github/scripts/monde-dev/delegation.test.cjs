@@ -3323,3 +3323,28 @@ test('old matching observation plus shared message with a different assignment r
   assert.equal(out.results[0].previously_observed,undefined);
   assert.equal(out.native_github_approved,false);
 });
+
+test('natural task IDs: T2 is scheduled before T10 and T11',()=>{
+  const works=[{id:'WORK-0042',status:'READY',depends_on:[],tasks:[
+    {id:'T10',status:'READY',depends_on:[],expected_files:['src/ten.cjs']},
+    {id:'T2',status:'READY',depends_on:[],expected_files:['src/two.cjs']},
+    {id:'T11',status:'READY',depends_on:[],expected_files:['src/eleven.cjs']}
+  ]}];
+  const result=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works});
+  assert.deepEqual(result.eligible.map(x=>x.task),['T2','T10','T11']);
+  assert.equal(result.recommended.task,'T2');
+  assert.deepEqual(result.recommended_batch.map(x=>x.task),['T2','T10','T11']);
+});
+test('natural work IDs: WORK-9999 precedes WORK-10000',()=>{
+  const works=['WORK-10000','WORK-9999'].map((id,i)=>({
+    id,status:'READY',depends_on:[],tasks:[{
+      id:'T1',status:'READY',depends_on:[],
+      expected_files:['src/part'+i+'.cjs']
+    }]
+  }));
+  const result=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works});
+  assert.deepEqual(result.eligible.map(x=>x.work),['WORK-9999','WORK-10000']);
+  assert.equal(result.recommended.work,'WORK-9999');
+});
