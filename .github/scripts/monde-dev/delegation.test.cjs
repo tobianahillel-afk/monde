@@ -4103,3 +4103,31 @@ test('privacy: relay redacts third-party percent-encoded ChatGPT references',()=
   assert.doesNotMatch(out.text,/private-evidence-1234/);
   assert.match(out.text,/REDACTED_CHAT_LINK/);
 });
+
+test('privacy: nested encoded ChatGPT links cannot escape public redaction',()=>{
+  const links=['chatgpt%25252ecom%25252fc%25252fprivate-triple-id',
+    'chat.openai%2525252ecom%2525252fshare%2525252fprivate-quad-id'];
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const link of links){
+    const finding={id:'F01',severity:'R1',path:H.paths[0],
+      evidence:'Review evidence at '+link,action:'Correct the actual repository code'};
+    const qualified=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[finding]})),current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(qualified.ready_for_manual_relay,true);
+    assert.match(qualified.text,/REDACTED_CHAT_LINK/);
+    assert.doesNotMatch(qualified.text,/private-(?:triple|quad)-id/);
+    const triage=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent reviewer R1: evidence at '+link+
+        ' requires a code fix.\n'+d.MARKER+'\n{invalid-json',
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(triage.ready_for_manual_relay,true);
+    assert.match(triage.text,/REDACTED_CHAT_LINK/);
+    assert.doesNotMatch(triage.text,/private-(?:triple|quad)-id/);
+    assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+      head_sha:SHA,base_sha:SHA,action_kind:'AWAIT_L2',
+      next_action:'Consult '+link,evidence_refs:[]}),
+      e=>e.code==='INVALID_RESUME_PACKET');
+  }
+});
