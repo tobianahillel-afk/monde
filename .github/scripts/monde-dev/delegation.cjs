@@ -1095,7 +1095,7 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
      !Array.isArray(works)||works.length<1||works.length>120||
      !Array.isArray(triage_findings)||triage_findings.length>200)
     bad('INVALID_WORK_PLAN');
-  const indexed=new Map(), candidates=[], deferred=[], blocked=[];
+  const indexed=new Map(), candidates=[], blocked=[], remediation=[];
   for(const work of works){
     if(!plain(work)||typeof work.id!=='string'||
        !/^WORK-[0-9]{4,}$/.test(work.id)||indexed.has(work.id)||
@@ -1136,7 +1136,8 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
   const materialCounts=new Map();
   for(const f of issues){
     if(f.severity==='R3')continue;
-    materialCounts.set(f.path,(materialCounts.get(f.path)||0)+1);
+    const prev=materialCounts.get(f.path)||{count:0,r1:0};
+    materialCounts.set(f.path,{count:prev.count+1,r1:prev.r1+(f.severity==='R1'?1:0)});
   }
   const materialPaths=Array.from(materialCounts.keys()).sort();
   const materialCountFor=paths=>{
@@ -1158,9 +1159,9 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
           materialPaths[j].startsWith(subtree);j++)
         matched.add(materialPaths[j]);
     }
-    let count=0;
-    for(const path of matched)count+=materialCounts.get(path);
-    return count;
+    let count=0,r1=0;
+    for(const path of matched){const e=materialCounts.get(path);count+=e.count;r1+=e.r1;}
+    return {count,r1};
   };
   for(const work of works){
     const tasks=new Map(work.tasks.map(t=>[t.id,t]));
@@ -1179,20 +1180,30 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
       else if(task.depends_on.some(dep=>tasks.get(dep)?.status!=='DONE'))
         reasons.push('TASK_DEPENDENCIES_PENDING');
       if(!task.expected_files.length)reasons.push('UNDECLARED_SCOPE');
-      const materialCount=materialCountFor(task.expected_files);
-      if(materialCount)reasons.push('MATERIAL_FINDINGS_NEED_TRIAGE');
+      const material=materialCountFor(task.expected_files);
+      if(material.count)reasons.push('MATERIAL_FINDINGS_NEED_TRIAGE');
       const note={work:work.id,task:task.id,expected_files:task.expected_files.slice(),
-        reasons,related_material_findings:materialCount};
-      if(reasons.length)blocked.push(note);
-      else candidates.push({...note,state:task.status,work_state:work.status});
+        reasons,related_material_findings:material.count};
+      if(reasons.length){
+        blocked.push(note);
+        // Reported defects are unverified. Suggest foreground correction,
+        // but never treat a reviewer claim as authority or accepted work.
+        if(reasons.length===1&&reasons[0]==='MATERIAL_FINDINGS_NEED_TRIAGE')
+          remediation.push({...note,related_r1_findings:material.r1,
+            state:task.status,work_state:work.status,
+            disposition:'VERIFY_AND_FIX_IN_FOREGROUND'});
+      }else candidates.push({...note,state:task.status,work_state:work.status});
     }
   }
   // Do not let a cosmetic issue trump already started work. All suggestions
   // remain human/foreground-reviewed; paths are candidate scopes, not grants.
   const priority={IN_PROGRESS:0,PARTIAL:1,READY:2};
-  candidates.sort((a,b)=>priority[a.state]-priority[b.state]||
+  const order=(a,b)=>priority[a.state]-priority[b.state]||
     priority[a.work_state]-priority[b.work_state]||
-    a.work.localeCompare(b.work)||a.task.localeCompare(b.task));
+    a.work.localeCompare(b.work)||a.task.localeCompare(b.task);
+  candidates.sort(order);
+  remediation.sort((a,b)=>
+    (b.related_r1_findings>0?1:0)-(a.related_r1_findings>0?1:0)||order(a,b));
   // A single interactive writer may handle independent tasks of one WORK.
   // This is a sequential suggestion, never four concurrent write grants.
   const recommendedBatch=[];
@@ -1211,6 +1222,8 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     automatically_accepted:0,
     recommended:candidates.length?candidates[0]:null,
     recommended_batch:recommendedBatch,
+     recommended_remediation:remediation.length?remediation[0]:null,
+     remediation_candidates:remediation,
     batch_execution:'SINGLE_INTERACTIVE_WRITER_SEQUENTIAL',
     eligible:candidates,blocked,unqualified_material_findings:
       issues.filter(f=>f.severity!=='R3').length,

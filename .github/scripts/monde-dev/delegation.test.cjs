@@ -2895,3 +2895,48 @@ test('indexed triage does not confuse component prefixes or ancestor paths',()=>
   assert.equal(result.eligible.length,1);
   assert.equal(result.eligible[0].related_material_findings,0);
 });
+
+test('remediation prioritizes an R1 while preserving independent development',()=>{
+  const result=plan(undefined,[{severity:'R1',path:'src/b.js',evidence:'Unverified critical claim'}]);
+  assert.equal(result.recommended.task,'T3');
+  assert.equal(result.recommended_remediation.task,'T2');
+  assert.equal(result.recommended_remediation.related_r1_findings,1);
+  assert.equal(result.recommended_remediation.disposition,'VERIFY_AND_FIX_IN_FOREGROUND');
+  assert.equal(result.authorized_to_write,false);
+  assert.equal(result.automatically_accepted,0);
+});
+test('remediation ranks R1 before R2 while refusing to promote a finding',()=>{
+  const result=plan(undefined,[
+    {severity:'R2',path:'src/b.js',evidence:'Reviewer R2 allegation'},
+    {severity:'R1',path:'src/c.js',evidence:'Reviewer R1 allegation'}
+  ]);
+  assert.equal(result.recommended,null);
+  assert.deepEqual(result.remediation_candidates.map(x=>x.task),['T3','T2']);
+  assert.equal(result.authorized_to_write,false);
+});
+test('remediation cannot recommend work blocked by unavailable scope',()=>{
+  const result=plan([completedWork,workPlan({status:'PROPOSED'})],[
+    {severity:'R1',path:'src/b.js',evidence:'Review allegation'}
+  ]);
+  assert.equal(result.recommended_remediation,null);
+  assert.deepEqual(result.remediation_candidates,[]);
+});
+test('remediation counts ancestor findings only once across multiple files',()=>{
+  const work=workPlan({tasks:[
+    {id:'T1',status:'DONE',depends_on:[],expected_files:['src/a.js']},
+    {id:'T2',status:'IN_PROGRESS',depends_on:['T1'],
+      expected_files:['src/map/a.js','src/map/b.js']}
+  ]});
+  const result=plan([completedWork,work],[
+    {severity:'R1',path:'src/map',evidence:'Ancestor R1'},
+    {severity:'R2',path:'src/map/a.js',evidence:'Specific R2'}
+  ]);
+  assert.equal(result.recommended_remediation.related_material_findings,2);
+  assert.equal(result.recommended_remediation.related_r1_findings,1);
+});
+test('cosmetic R3 does not enter correction queue',()=>{
+  const result=plan(undefined,[{severity:'R3',path:'src/b.js',evidence:'Minor style'}]);
+  assert.equal(result.recommended.task,'T2');
+  assert.equal(result.remediation_candidates.length,0);
+  assert.equal(result.deferred_r3_candidates,1);
+});
