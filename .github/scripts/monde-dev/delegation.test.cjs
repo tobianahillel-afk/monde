@@ -4452,7 +4452,7 @@ test('public L2 handoff refuses approved detail containing generic credentials',
         public_repo_safe:true,finding_details_approved:true}
     });
     assert.equal(out.ready_for_manual_relay,false);
-    assert.equal(out.status,'POTENTIAL_SECRET_IN_RELAY');
+    assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
     assert.equal(out.text,null);
   }
 });
