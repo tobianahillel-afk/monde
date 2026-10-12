@@ -1161,7 +1161,7 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     }
     let count=0,r1=0;
     for(const path of matched){const e=materialCounts.get(path);count+=e.count;r1+=e.r1;}
-    return {count,r1};
+    return {count,r1,matched};
   };
   // Unverified R1/R2 reports against an already-DONE prerequisite cannot
   // silently disappear when its dependent task is selected for new work.
@@ -1210,9 +1210,13 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
       const ancestors=upstreamPaths(work,task,tasks);
       const material=materialCountFor(task.expected_files);
       const upstream=materialCountFor(ancestors);
-      // A finding can concern both the task and one of its prerequisites.
-      // Count it once when ranking remediation; retain both blocking reasons.
-      const combined=materialCountFor([...task.expected_files,...ancestors]);
+      // A finding may occur in both scopes: subtract duplicate matches
+      // without repeating the full path-index lookup for a third time.
+      let combinedR1=material.r1;
+      for(const path of upstream.matched){
+        if(!material.matched.has(path))
+          combinedR1+=materialCounts.get(path).r1;
+      }
       if(material.count)reasons.push('MATERIAL_FINDINGS_NEED_TRIAGE');
       if(upstream.count)reasons.push('DEPENDENCY_FINDINGS_NEED_TRIAGE');
       const note={work:work.id,task:task.id,expected_files:task.expected_files.slice(),
@@ -1226,7 +1230,7 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
           'MATERIAL_FINDINGS_NEED_TRIAGE','DEPENDENCY_FINDINGS_NEED_TRIAGE'
         ].includes(reason)))
           remediation.push({...note,
-            related_r1_findings:combined.r1,
+            related_r1_findings:combinedR1,
             state:task.status,work_state:work.status,
             disposition:upstream.count?
               'TRIAGE_UPSTREAM_BEFORE_DEPENDENT_WORK':
