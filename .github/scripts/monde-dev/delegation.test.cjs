@@ -3996,3 +3996,52 @@ test('mixed-case URI redaction preserves useful security finding evidence',()=>{
   assert.match(out.text,/a condition rejects valid input/);
   assert.equal(out.text.includes('chat%2fprivate%3Fx%3D1%26y%3d2'),false);
 });
+
+test('privacy: public resume rejects private ChatGPT URLs in action and evidence',()=>{
+  const baseline={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    action_kind:'AWAIT_L2',next_action:'Read PR #19 from GitHub',
+    evidence_refs:[]};
+  for(const link of [
+    'https://chatgpt.com/c/private-context-1234',
+    'https://chat.openai.com/share/private-review-1234',
+    'chatgpt%2Ecom%2Fc%2Fprivate-encoded-1234',
+    'CHATGPT.COM/c/mixed-case-context'
+  ]){
+    assert.throws(()=>d.createResumePacket({...baseline,
+      next_action:'Find '+link}),e=>e.code==='INVALID_RESUME_PACKET');
+    assert.throws(()=>d.createResumePacket({...baseline,evidence_refs:[
+      {kind:'REVIEW',ref:link,head_sha:SHA}
+    ]}),e=>e.code==='INVALID_RESUME_EVIDENCE');
+  }
+  assert.equal(d.createResumePacket(baseline).action_kind,'AWAIT_L2');
+});
+test('privacy: relay redacts unrelated private ChatGPT URLs but keeps R1 detail',()=>{
+  const item={id:'F01',severity:'R1',path:H.paths[0],
+    evidence:'Reproduce via https://chatgpt.com/c/unrelated-private-context',
+    action:'Fix issue from https://chat.openai.com/share/private-review-source'};
+  const out=d.prepareInteractiveHandoff({
+    expected:H,response:message(data({findings:[item]})),
+    current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.doesNotMatch(out.text,/unrelated-private-context|private-review-source/);
+  assert.match(out.text,/REDACTED_CHAT_LINK/);
+  assert.match(out.text,/F01 \[R1\]/);
+  assert.equal(out.self_contained_for_remediation,false);
+});
+test('privacy: relay redacts third-party percent-encoded ChatGPT references',()=>{
+  const item={id:'F01',severity:'R1',path:H.paths[0],
+    evidence:'Details at chatgpt.com%2Fc%2Fprivate-evidence-1234',
+    action:'Investigate verified source code and fix the reported issue'};
+  const out=d.prepareInteractiveHandoff({
+    expected:H,response:message(data({findings:[item]})),
+    current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.doesNotMatch(out.text,/private-evidence-1234/);
+  assert.match(out.text,/REDACTED_CHAT_LINK/);
+});

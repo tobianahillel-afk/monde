@@ -542,10 +542,18 @@ const CREDENTIAL_PATTERNS=[
   /(?:^|[^A-Za-z0-9])Authorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}/i
 ];
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
+// Raw conversation URLs are private provenance, not necessary public evidence.
+// The continuation bookmark is itself published in a GitHub PR description.
+const PRIVATE_CHAT_HOST=/(?:chatgpt(?:\.|%2e)com|chat(?:\.|%2e)openai(?:\.|%2e)com)/i;
+const PRIVATE_CHAT_URL=/(?:https?:\/\/)?(?:chatgpt\.com|chat\.openai\.com)\/(?:c|share)\/[^\s<>"']+/gi;
+const PRIVATE_CHAT_ENCODED=/(?:chatgpt\.com|chat\.openai\.com)(?:%2f|%252f)(?:c|share)(?:%2f|%252f)[A-Za-z0-9._~%-]+/gi;
 // Full-report consent never includes raw ChatGPT provenance, including
 // short valid message references and JSON-escaped excerpts. Redact the final
 // public text at all serialization levels used by the two handoff paths.
 function redactPrivateProvenance(note, values) {
+  // Redact unrelated third-party private chat URLs as well as known IDs.
+  note=note.replace(PRIVATE_CHAT_URL,'[REDACTED_CHAT_LINK]')
+    .replace(PRIVATE_CHAT_ENCODED,'[REDACTED_CHAT_LINK]');
   const ids=[...new Set(values.filter(v=>typeof v==='string'&&
     oneLine(v,160)))].sort((a,b)=>b.length-a.length);
   for(const id of ids){
@@ -1617,6 +1625,7 @@ function resumePacket(input){
      !resumeActions.has(input.action_kind)||!oneLine(input.next_action,380)||
      /[<>]/.test(input.next_action)||
      CREDENTIAL_PATTERNS.some(re=>re.test(input.next_action))||
+      PRIVATE_CHAT_HOST.test(input.next_action)||
      (input.work!==null&&(typeof input.work!=='string'||
        !/^WORK-\d{4,}$/.test(input.work)))||
      (input.task!==null&&(typeof input.task!=='string'||
@@ -1634,6 +1643,7 @@ function resumePacket(input){
     if(!['CI','REVIEW','WORK','TEST','PR'].includes(e.kind)||
        !oneLine(e.ref,180)||/[<>]/.test(e.ref)||
        CREDENTIAL_PATTERNS.some(re=>re.test(e.ref))||
+        PRIVATE_CHAT_HOST.test(e.ref)||
        typeof e.head_sha!=='string'||!SHA.test(e.head_sha)||
        ids.has(e.kind+':'+e.ref))
       bad('INVALID_RESUME_EVIDENCE');
