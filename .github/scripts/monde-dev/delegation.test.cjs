@@ -4238,7 +4238,7 @@ test('prose-only malformed L2 reports never mislabel R1 excerpts as zero receive
       personal_data_checked:true,public_repo_safe:true,finding_details_approved:true}
   });
   assert.equal(out.status,'UNQUALIFIED_TRIAGE_READY');
-  assert.match(out.text,/Structured finding inventory: UNKNOWN/);
+  assert.match(out.text,/Source allegation inventory: UNKNOWN/);
   assert.match(out.text,/prose-only R1\/R2 excerpts/);
   assert.match(out.text,/R1: stale access decision/);
   assert.doesNotMatch(out.text,/inventory: 0 received/);
