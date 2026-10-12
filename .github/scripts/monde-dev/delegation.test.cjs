@@ -3470,3 +3470,58 @@ test('L2 scope permits similar siblings and disjoint directories',()=>{
     ['src/a.cjs','src/a.test.cjs']
   ])assert.deepEqual(d.assignment({...H,paths}).paths,paths.slice().sort());
 });
+
+test('L2 delta proposes only modified files and a distinct exact HEAD review',()=>{
+  const latest='b'.repeat(40),path=H.paths[0];
+  const result=d.planL2Delta({previous_assignment:H,current_head:latest,
+    compare:{base_sha:H.head_sha,head_sha:latest,complete:true,
+      files:[{path,status:'modified',previous_path:null}]},
+    new_assignment_id:'mission-delta-0001'});
+  assert.equal(result.status,'TARGETED_REVIEW_CANDIDATE');
+  assert.equal(result.proposed_assignment.head_sha,latest);
+  assert.deepEqual(result.proposed_assignment.paths,[path]);
+  assert.equal(result.previous_l2_approval_reusable,false);
+  assert.equal(result.ready_for_merge,false);
+});
+test('L2 delta does not silently omit out-of-scope changes',()=>{
+  const latest='b'.repeat(40),result=d.planL2Delta({
+    previous_assignment:H,current_head:latest,
+    compare:{base_sha:H.head_sha,head_sha:latest,complete:true,
+      files:[{path:'unrelated/security.cjs',status:'modified',previous_path:null}]},
+    new_assignment_id:'mission-delta-0002'});
+  assert.equal(result.status,'MANUAL_IMPACT_ANALYSIS_REQUIRED');
+  assert.equal(result.proposed_assignment,null);
+  assert.deepEqual(result.out_of_scope_changes,['unrelated/security.cjs']);
+});
+test('L2 delta treats deletion/rename as a broader impact assessment',()=>{
+  const latest='b'.repeat(40),path=H.paths[0];
+  for(const row of [
+    {path,status:'removed',previous_path:null},
+    {path,status:'renamed',previous_path:'lib/old.cjs'}]){
+    const result=d.planL2Delta({previous_assignment:H,current_head:latest,
+      compare:{base_sha:H.head_sha,head_sha:latest,complete:true,files:[row]},
+      new_assignment_id:'mission-delta-0003'});
+    assert.equal(result.status,'MANUAL_IMPACT_ANALYSIS_REQUIRED');
+    assert.equal(result.removed_or_renamed.length,1);
+  }
+});
+test('L2 delta refuses stale or incomplete GitHub comparison',()=>{
+  const latest='b'.repeat(40);
+  for(const compare of [
+    {base_sha:H.head_sha,head_sha:latest,complete:false,files:[]},
+    {base_sha:latest,head_sha:latest,complete:true,files:[]},
+    {base_sha:H.head_sha,head_sha:latest,complete:true,
+      files:[{path:'src/../bad.cjs',status:'modified',previous_path:null}]}
+  ])assert.throws(()=>d.planL2Delta({
+    previous_assignment:H,current_head:latest,compare,
+    new_assignment_id:'mission-delta-0004'}),d.InvalidReport);
+});
+test('L2 delta directory scope selects modified descendants and excludes sibling',()=>{
+  const old={...H,paths:['src/']},latest='b'.repeat(40);
+  const result=d.planL2Delta({previous_assignment:old,current_head:latest,
+    compare:{base_sha:old.head_sha,head_sha:latest,complete:true,files:[
+      {path:'src/b.cjs',status:'modified',previous_path:null},
+      {path:'src/a.cjs',status:'added',previous_path:null}
+    ]},new_assignment_id:'mission-delta-0005'});
+  assert.deepEqual(result.proposed_assignment.paths,['src/a.cjs','src/b.cjs']);
+});

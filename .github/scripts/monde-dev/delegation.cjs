@@ -1101,6 +1101,60 @@ function assessDelegationBatch({
 }
 
 
+// Review only changed files when safe to propose; never infer L2 acceptance.
+// GitHub compare inputs must be independently checked by the foreground author.
+function planL2Delta({previous_assignment,current_head,compare,new_assignment_id}){
+  const old=assignment(previous_assignment);
+  if(old.mission_kind!=='L2_REVIEW')bad('NOT_L2_MISSION');
+  if(typeof current_head!=='string'||!SHA.test(current_head)||
+     current_head===old.head_sha||!oneLine(new_assignment_id,96)||
+     !ID.test(new_assignment_id)||new_assignment_id===old.assignment_id)
+    bad('INVALID_DELTA_REVIEW');
+  if(!plain(compare)||Object.keys(compare).sort().join('|')!==
+     ['base_sha','head_sha','complete','files'].sort().join('|')||
+     compare.base_sha!==old.head_sha||
+     compare.head_sha!==current_head||
+     compare.complete!==true||
+     !Array.isArray(compare.files)||compare.files.length>300)
+    bad('UNTRUSTED_DELTA');
+  const touched=new Set(),outside=[],special=[],seen=new Set();
+  for(const row of compare.files){
+    if(!plain(row)||Object.keys(row).sort().join('|')!==
+       ['path','status','previous_path'].sort().join('|')||
+       !validPath(row.path)||
+       !['added','modified','removed','renamed'].includes(row.status)||
+       (row.previous_path!==null&&!validPath(row.previous_path))||
+       (row.status==='renamed'&&row.previous_path===null)||
+       (row.status!=='renamed'&&row.previous_path!==null)||
+       seen.has(row.path))bad('INVALID_DELTA_FILE');
+    seen.add(row.path);
+    const paths=[row.path,...(row.previous_path?[row.previous_path]:[])];
+    if(row.status==='renamed'||row.status==='removed')
+      special.push({status:row.status,path:row.path,previous_path:row.previous_path});
+    if(paths.some(path=>scopeMatches(path,old.paths))){
+      if(row.status==='added'||row.status==='modified')touched.add(row.path);
+    }else outside.push(row.path);
+  }
+  const changed=[...touched].sort();
+  // No deleted/renamed/outside paths may be silently declared covered.
+  const safeNarrow=changed.length>0&&changed.length<=24&&
+    outside.length===0&&special.length===0;
+  const next=safeNarrow?assignment({
+    ...old,assignment_id:new_assignment_id,head_sha:current_head,
+    paths:changed,objective:'Review changed files after '+old.head_sha+
+      '; verify adjacent contracts and relevant dependencies'
+  }):null;
+  return {
+    status:safeNarrow?'TARGETED_REVIEW_CANDIDATE':'MANUAL_IMPACT_ANALYSIS_REQUIRED',
+    previous_head_sha:old.head_sha,current_head_sha:current_head,
+    changed_scoped_files:changed,out_of_scope_changes:outside,
+    removed_or_renamed:special,proposed_assignment:next,
+    comparison_requires_host_verification:true,
+    previous_l2_approval_reusable:false,independent_l2_required:true,
+    native_github_approved:false,ready_for_merge:false
+  };
+}
+
 // Select an *advisory* next interactive task from verified WORK snapshots.
 // Never converts an in-progress candidate into Accepted work, starts a
 // scheduled task, or interprets a reported finding as a confirmed risk.
@@ -1551,6 +1605,6 @@ module.exports = {
   buildReviewPrompt, buildResearchPrompt, assessResearchReport, validateReport,
   parseReviewResponse, assessReview, prepareInteractiveHandoff,
   planDelegations, assessDelegationBatch, groupTriageFindings,
-  prepareUnqualifiedTriageHandoff, planNextIncrement,
+  prepareUnqualifiedTriageHandoff, planNextIncrement, planL2Delta,
   createResumePacket, renderResumePacket, updateResumeInPrBody, inspectResumeFromPrBody
 };
