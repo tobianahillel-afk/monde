@@ -527,13 +527,13 @@ function assessReview({ expected, response, current_head, source, coverage_manif
 const CREDENTIAL_PATTERNS=[
   // Public review handoffs and PR continuation hints must not carry generic
   // credentials just because the value has no provider-specific token prefix.
-  /(?:^|[^A-Za-z0-9])(?:api[_-]?key|access[_-]?token|client[_-]?secret|password|passwd|secret[_-]?key)\s*[:=]\s*["']?[A-Za-z0-9_%+./=-]{8,}/i,
+  /(?:^|[^A-Za-z0-9])(?:api[_-]?key|access[_-]?token|client[_-]?secret|password|passwd|secret[_-]?key)\s*[:=]\s*["']?[A-Za-z0-9_%+./=-]{4,}/i,
   // Basic-auth URLs leak credentials even when the URL uses a public host.
   /https?:\/\/[^\s/@:]+:[^\s/@]+@[^\s/]+/i,
   // Query-string bearer-like credentials are not limited to api_key/access_token.
   // A URL containing ?token= or &key= with a plausible value is not safe
   // to copy to public review evidence, even on an otherwise public domain.
-  /(?:\?|&(?:amp;)?)\s*(?:token|key|auth|session|signature|sig|secret|jwt)=[A-Za-z0-9._~+/%-]{12,}/i,
+  /(?:\?|&(?:amp;)?)\s*(?:token|key|auth|session|signature|sig|secret|jwt)=[A-Za-z0-9._~+/%-]{4,}/i,
   /-----BEGIN (?:[A-Z ]* )?PRIVATE KEY-----/,
   /(?:^|[^A-Za-z0-9])gh[pousr]_[A-Za-z0-9_]{20,}/,
   /(?:^|[^A-Za-z0-9])github_pat_[A-Za-z0-9_]{20,}/,
@@ -548,10 +548,10 @@ const CREDENTIAL_PATTERNS=[
   /(?:^|[^A-Za-z0-9])AIza[0-9A-Za-z_-]{30,}/,
   /(?:^|[^A-Za-z0-9])ASIA[0-9A-Z]{16}/,
   // Include underscore-prefixed log fields (file_Authorization, etc).
-  /(?:^|[^A-Za-z0-9])Authorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}/i,
+  /(?:^|[^A-Za-z0-9])Authorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{4,}/i,
   // Basic auth contains a base64-encoded username:password pair. A redacted
   // relay must reject it as credentials, including proxy/log field prefixes.
-  /(?:^|[^A-Za-z0-9])(?:Proxy-)?Authorization\s*:\s*Basic\s+[A-Za-z0-9+/]{12,}={0,2}(?![A-Za-z0-9+/=])/i
+  /(?:^|[^A-Za-z0-9])(?:Proxy-)?Authorization\s*:\s*Basic\s+[A-Za-z0-9+/]{4,}={0,2}(?![A-Za-z0-9+/=])/i
 ];
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
 // Raw conversation URLs are private provenance, not necessary public evidence.

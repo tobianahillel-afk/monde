@@ -4676,3 +4676,44 @@ test('privacy: public PR continuation rejects Basic auth but accepts safe CI IDs
     evidence_refs:[{kind:'CI',ref:'job:115022165985',head_sha:SHA}]
   }).evidence_refs.length,1);
 });
+
+test('privacy: short credential representations cannot leak into public PR checkpoints',()=>{
+  const checkpoint={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Inspect a review',evidence_refs:[]};
+  const secrets=[
+    'Authorization: Basic YTpi',
+    'Proxy-Authorization: Basic YTpi',
+    'Authorization: Bearer abcd1234',
+    'https://public.example/review?token=sword',
+    'api_key=short'
+  ];
+  for(const value of secrets){
+    assert.throws(()=>d.createResumePacket({...checkpoint,
+      next_action:'Look at '+value}),{code:'INVALID_RESUME_PACKET'},value);
+    assert.throws(()=>d.createResumePacket({...checkpoint,
+      evidence_refs:[{kind:'REVIEW',ref:value,head_sha:SHA}]}),
+    {code:'INVALID_RESUME_EVIDENCE'},value);
+  }
+  assert.equal(d.createResumePacket({...checkpoint,
+    next_action:'Read PR #19 and check job:115026068136'}).pr,H.pr);
+});
+test('privacy: short Basic and Bearer headers block both qualified and malformed L2 relay',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const secret of ['Authorization: Basic YTpi',
+    'file_Authorization: Bearer abcd1234','https://example.org/?token=sword']){
+    const finding={...data().findings[0],evidence:'Response contained '+secret};
+    const qualified=d.prepareInteractiveHandoff({
+      expected:H,response:message(data({findings:[finding]})),
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(qualified.status,'POTENTIAL_SECRET_IN_REPORT',secret);
+    assert.equal(qualified.text,null,secret);
+    const malformed=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:'Independent R1 observed '+secret+
+        '\nFollow-up requires removing exposed credentials.\n'+d.MARKER+'\n{invalid',
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(malformed.status,'POTENTIAL_SECRET_IN_REPORT',secret);
+    assert.equal(malformed.text,null,secret);
+  }
+});
