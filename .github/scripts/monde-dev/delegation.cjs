@@ -1291,7 +1291,10 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
       return completedWorkHealth.get(ancestor.id);
     const byId=new Map(ancestor.tasks.map(t=>[t.id,t]));
     const active=new Set(),checked=new Set();
-    const state={missing:false,pending:false,cycle:false};
+    // A terminal WORK with no task inventory offers no evidence that its
+    // internal work and dependency graph were actually completed. Do not
+    // unlock downstream implementation from the status label alone.
+    const state={missing:false,pending:ancestor.tasks.length===0,cycle:false};
     const scan=id=>{
       if(active.has(id)){state.cycle=true;return;}
       if(checked.has(id))return;
