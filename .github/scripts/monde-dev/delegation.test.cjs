@@ -2690,3 +2690,60 @@ test('resume: false planner authority and head mismatch are rejected',()=>{
       next_action:'Recheck',evidence_refs:[]
     }),{code:'INVALID_RESUME_PLAN'});
 });
+
+test('handoff: short valid message refs are never exposed in approved public relay',()=>{
+  const privateRef='msg-123';
+  const local={...source,message_ref:privateRef};
+  const response=message(data({findings:[{
+    ...data().findings[0],
+    evidence:'Sensitive short message reference '+privateRef+' recorded in a branch',
+    action:'Keep '+privateRef+' restricted to the ChatGPT conversation'
+  }]}));
+  const out=d.prepareInteractiveHandoff({
+    expected:H,response,current_head:SHA,source:local,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.equal(out.text.includes(privateRef),false);
+  assert.match(out.text,/REDACTED_CONTEXT_REFERENCE/);
+});
+test('handoff: JSON-escaped provenance and raw forms are redacted together',()=>{
+  const privateRef='msg"private-2026';
+  const local={...source,message_ref:privateRef};
+  const reviewer=source.context_id;
+  const response='Review evidence: '+privateRef+' and '+reviewer+
+    ' under controlled conditions\n'+d.MARKER+'\n'+JSON.stringify(data({
+      findings:[{...data().findings[0],
+        evidence:'Sensitive evidence '+privateRef+' quoted by reviewer',
+        action:'Keep reference '+privateRef+' only in source chat'}],
+      limitations:['Do not disclose '+privateRef]
+    }));
+  const out=d.prepareInteractiveHandoff({
+    expected:H,response,current_head:SHA,source:local,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true,
+      full_report_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,true);
+  for(const leaked of [
+    privateRef,JSON.stringify(privateRef).slice(1,-1),
+    JSON.stringify(JSON.stringify(privateRef).slice(1,-1)).slice(1,-1)
+  ])assert.equal(out.text.includes(leaked),false);
+  assert.match(out.text,/REDACTED_CONTEXT_REFERENCE/);
+});
+test('unqualified fallback: short and JSON-escaped source references stay private',()=>{
+  const privateRef='msg"7';
+  const local={...source,message_ref:privateRef};
+  const response='Independent L2 R1 finding on private '+privateRef+
+    ', which must not be published in public.\n'+d.MARKER+'\n{broken-json';
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source:local,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.equal(out.text.includes(privateRef),false);
+  assert.equal(out.text.includes(JSON.stringify(privateRef).slice(1,-1)),false);
+  assert.match(out.text,/REDACTED_CONTEXT_REFERENCE/);
+});

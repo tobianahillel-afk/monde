@@ -530,13 +530,20 @@ const CREDENTIAL_PATTERNS=[
   /(?:^|[^A-Za-z0-9])Authorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}/i
 ];
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
-// Full-report consent authorizes review text, not copying private ChatGPT
-// provenance identifiers embedded in prose, findings or limitations. Match
-// literal identifiers only; fingerprints are computed from untouched sources.
+// Full-report consent never includes raw ChatGPT provenance, including
+// short valid message references and JSON-escaped excerpts. Redact the final
+// public text at all serialization levels used by the two handoff paths.
 function redactPrivateProvenance(note, values) {
   const ids=[...new Set(values.filter(v=>typeof v==='string'&&
-    v.length>=8&&oneLine(v,160)))].sort((a,b)=>b.length-a.length);
-  for(const id of ids)note=note.split(id).join('[REDACTED_CONTEXT_REFERENCE]');
+    oneLine(v,160)))].sort((a,b)=>b.length-a.length);
+  for(const id of ids){
+    const json=JSON.stringify(id).slice(1,-1);
+    const doubleJson=JSON.stringify(json).slice(1,-1);
+    for(const variant of [...new Set([doubleJson,json,id])].sort(
+      (a,b)=>b.length-a.length)){
+      note=note.split(variant).join('[REDACTED_CONTEXT_REFERENCE]');
+    }
+  }
   return note;
 }
 function prepareInteractiveHandoff(args) {
