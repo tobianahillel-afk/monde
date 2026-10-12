@@ -1130,6 +1130,38 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     const x=a.replace(/\/$/,''),y=b.replace(/\/$/,'');
     return x===y||x.startsWith(y+'/')||y.startsWith(x+'/');
   };
+  // Index R1/R2 paths once. Exact component prefixes prevent accidental
+  // matches such as src/map vs src/mapper. A task with several overlapping
+  // declared files must count each finding only once.
+  const materialCounts=new Map();
+  for(const f of issues){
+    if(f.severity==='R3')continue;
+    materialCounts.set(f.path,(materialCounts.get(f.path)||0)+1);
+  }
+  const materialPaths=Array.from(materialCounts.keys()).sort();
+  const materialCountFor=paths=>{
+    const matched=new Set();
+    for(const path of paths){
+      let prefix='';
+      for(const part of path.split('/')){
+        prefix=prefix?prefix+'/'+part:part;
+        if(materialCounts.has(prefix))matched.add(prefix);
+      }
+      const subtree=path+'/';
+      let low=0,high=materialPaths.length;
+      while(low<high){
+        const mid=(low+high)>>1;
+        if(materialPaths[mid]<subtree)low=mid+1;
+        else high=mid;
+      }
+      for(let j=low;j<materialPaths.length&&
+          materialPaths[j].startsWith(subtree);j++)
+        matched.add(materialPaths[j]);
+    }
+    let count=0;
+    for(const path of matched)count+=materialCounts.get(path);
+    return count;
+  };
   for(const work of works){
     const tasks=new Map(work.tasks.map(t=>[t.id,t]));
     const unknown=work.depends_on.filter(id=>!indexed.has(id));
@@ -1147,11 +1179,10 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
       else if(task.depends_on.some(dep=>tasks.get(dep)?.status!=='DONE'))
         reasons.push('TASK_DEPENDENCIES_PENDING');
       if(!task.expected_files.length)reasons.push('UNDECLARED_SCOPE');
-      const material=issues.filter(f=>
-        f.severity!=='R3'&&task.expected_files.some(path=>isOverlapping(path,f.path)));
-      if(material.length)reasons.push('MATERIAL_FINDINGS_NEED_TRIAGE');
+      const materialCount=materialCountFor(task.expected_files);
+      if(materialCount)reasons.push('MATERIAL_FINDINGS_NEED_TRIAGE');
       const note={work:work.id,task:task.id,expected_files:task.expected_files.slice(),
-        reasons,related_material_findings:material.length};
+        reasons,related_material_findings:materialCount};
       if(reasons.length)blocked.push(note);
       else candidates.push({...note,state:task.status,work_state:work.status});
     }

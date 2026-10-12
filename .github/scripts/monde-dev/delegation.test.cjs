@@ -2830,3 +2830,68 @@ test('batch planner: no eligible task means no advisory batch',()=>{
   assert.deepEqual(p.recommended_batch,[]);
   assert.equal(p.authorized_to_write,false);
 });
+
+test('indexed material triage equals independent naive path-overlap oracle',()=>{
+  const oracle=(a,b)=>{
+    const x=a.split('/'),y=b.split('/');
+    return x.slice(0,Math.min(x.length,y.length))
+      .every((segment,i)=>segment===y[i]);
+  };
+  let seed=0x3cf0a1be;
+  const random=()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return seed>>>0;};
+  const words=['src','lib','docs','tests','map','mapper','a','b','c','module'];
+  for(let iteration=0;iteration<90;iteration++){
+    const makePath=()=>Array.from({length:1+random()%4},()=>words[random()%words.length]).join('/');
+    const findings=Array.from({length:2+random()%60},()=>({
+      severity:random()%3===0?'R3':random()%2===0?'R1':'R2',
+      path:makePath(),evidence:'Found issue at a valid source path'
+    }));
+    const files=Array.from(new Set(Array.from({length:1+random()%14},makePath)));
+    const work={
+      id:'WORK-0100',status:'READY',depends_on:[],
+      tasks:[{id:'T1',status:'READY',depends_on:[],expected_files:files}]
+    };
+    const result=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+      head_sha:SHA,works:[work],triage_findings:findings});
+    const expected=findings.filter(f=>f.severity!=='R3'&&
+      files.some(path=>oracle(path,f.path))).length;
+    const observed=(result.blocked[0]||result.eligible[0]).related_material_findings;
+    assert.equal(observed,expected,'iteration '+iteration);
+    assert.equal(result.blocked.some(x=>x.reasons.includes('MATERIAL_FINDINGS_NEED_TRIAGE')),
+      expected>0,'iteration '+iteration);
+  }
+});
+test('indexed triage counts repeated R1/R2 allegations but not duplicated file scope',()=>{
+  const work={
+    id:'WORK-0100',status:'READY',depends_on:[],
+    tasks:[{id:'T1',status:'READY',depends_on:[],
+      expected_files:['src','src/module','tests']}]
+  };
+  const findings=[
+    {severity:'R1',path:'src/module/deep.js',evidence:'Critical issue one'},
+    {severity:'R1',path:'src/module/deep.js',evidence:'Critical issue two'},
+    {severity:'R2',path:'src',evidence:'General source issue'},
+    {severity:'R3',path:'src',evidence:'Cosmetic observation'},
+    {severity:'R2',path:'src/mapper',evidence:'Sibling issue'},
+    {severity:'R1',path:'outside',evidence:'Unrelated issue'}
+  ];
+  const result=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works:[work],triage_findings:findings});
+  assert.equal(result.blocked.length,1);
+  assert.equal(result.blocked[0].related_material_findings,4);
+  assert.deepEqual(result.blocked[0].reasons,['MATERIAL_FINDINGS_NEED_TRIAGE']);
+  assert.equal(result.deferred_r3_candidates,1);
+});
+test('indexed triage does not confuse component prefixes or ancestor paths',()=>{
+  const work={
+    id:'WORK-0100',status:'READY',depends_on:[],
+    tasks:[{id:'T1',status:'READY',depends_on:[],
+      expected_files:['src/map/app.cjs']}]
+  };
+  const findings=[{severity:'R1',path:'src/mapper/app.cjs',
+    evidence:'Other component is not a dependency'}];
+  const result=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works:[work],triage_findings:findings});
+  assert.equal(result.eligible.length,1);
+  assert.equal(result.eligible[0].related_material_findings,0);
+});
