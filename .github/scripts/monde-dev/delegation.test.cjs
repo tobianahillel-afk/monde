@@ -4131,3 +4131,24 @@ test('privacy: nested encoded ChatGPT links cannot escape public redaction',()=>
       e=>e.code==='INVALID_RESUME_PACKET');
   }
 });
+
+test('privacy: resume refuses JSON-escaped private chat hostnames',()=>{
+  const baseline={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    action_kind:'AWAIT_L2',next_action:'Check candidate on GitHub',
+    evidence_refs:[]};
+  const bs=String.fromCharCode(92);
+  const cases=[
+    'chatgpt'+bs+'.com/c/private-review-1',
+    'chatgpt'+bs+bs+'.com/c/private-review-2',
+    'chat'+bs+'.openai'+bs+'.com/share/private-review-3'
+  ];
+  for(const privateReference of cases){
+    assert.throws(()=>d.createResumePacket({...baseline,
+      next_action:'Read '+privateReference}),
+      e=>e.code==='INVALID_RESUME_PACKET');
+    assert.throws(()=>d.createResumePacket({...baseline,evidence_refs:[
+      {kind:'REVIEW',ref:privateReference,head_sha:SHA}
+    ]}),e=>e.code==='INVALID_RESUME_EVIDENCE');
+  }
+  assert.equal(d.createResumePacket(baseline).action_kind,'AWAIT_L2');
+});

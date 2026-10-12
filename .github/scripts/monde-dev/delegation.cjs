@@ -1636,7 +1636,7 @@ function resumePacket(input){
      typeof input.head_sha!=='string'||!SHA.test(input.head_sha)||
      typeof input.base_sha!=='string'||!SHA.test(input.base_sha)||
      !resumeActions.has(input.action_kind)||!oneLine(input.next_action,380)||
-     /[<>]/.test(input.next_action)||
+     /[<>\\]/.test(input.next_action)||
      CREDENTIAL_PATTERNS.some(re=>re.test(input.next_action))||
       PRIVATE_CHAT_HOST.test(input.next_action)||
      (input.work!==null&&(typeof input.work!=='string'||
@@ -1654,7 +1654,7 @@ function resumePacket(input){
   for(const e of input.evidence_refs){
     exactFields(e,['kind','ref','head_sha']);
     if(!['CI','REVIEW','WORK','TEST','PR'].includes(e.kind)||
-       !oneLine(e.ref,180)||/[<>]/.test(e.ref)||
+       !oneLine(e.ref,180)||/[<>\\]/.test(e.ref)||
        CREDENTIAL_PATTERNS.some(re=>re.test(e.ref))||
         PRIVATE_CHAT_HOST.test(e.ref)||
        typeof e.head_sha!=='string'||!SHA.test(e.head_sha)||
