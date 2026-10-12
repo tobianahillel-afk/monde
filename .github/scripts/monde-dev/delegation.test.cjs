@@ -4186,3 +4186,44 @@ test('privacy: unqualified L2 handoff redacts private fragments even in raw pros
   assert.doesNotMatch(out.text,/private-fragment-raw-42/);
   assert.equal(out.native_github_approved,false);
 });
+
+test('privacy: qualified L2 relay masks JSON Unicode-escaped private links',()=>{
+  const links=[
+    String.raw`https://chatgpt\u002ecom\u002fc\u002fprivate-json-unicode-11`,
+    String.raw`https:\/\/chat\u002eopenai\u002ecom\/share\/private-mixed-escape-12`,
+    String.raw`chatgpt\\u002ecom\\u002fc\\u002fprivate-double-slash-13`
+  ];
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const link of links){
+    const report=data({findings:[{id:'F01',severity:'R1',path:H.paths[0],
+      evidence:'Private L2 source '+link,action:'Review the actual code'}]});
+    const out=d.prepareInteractiveHandoff({expected:H,response:message(report),
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(out.ready_for_manual_relay,true,link);
+    assert.match(out.text,/REDACTED_CHAT_LINK/);
+    assert.doesNotMatch(out.text,/private-(json-unicode|mixed-escape|double-slash)-/);
+  }
+});
+test('privacy: malformed L2 fallback masks JSON Unicode-escaped links',()=>{
+  const link=String.raw`chatgpt\u002ecom\u002fc\u002fprivate-unqualified-unicode-47`;
+  const response='Reviewer R1: source '+link+' identifies a bug.\\n'+
+    d.MARKER+'\\n{bad-json';
+  const out=d.prepareUnqualifiedTriageHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.match(out.text,/REDACTED_CHAT_LINK/);
+  assert.doesNotMatch(out.text,/private-unqualified-unicode-47/);
+});
+test('privacy: resume refuses Unicode-escaped ChatGPT host references',()=>{
+  const baseline={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    action_kind:'AWAIT_L2',next_action:'Review current code',evidence_refs:[]};
+  const ref=String.raw`chatgpt\u002ecom\u002fc\u002fprivate-resume-json-77`;
+  assert.throws(()=>d.createResumePacket({...baseline,
+    next_action:'Read '+ref}),e=>e.code==='INVALID_RESUME_PACKET');
+  assert.throws(()=>d.createResumePacket({...baseline,evidence_refs:[
+    {kind:'REVIEW',ref,head_sha:SHA}
+  ]}),e=>e.code==='INVALID_RESUME_EVIDENCE');
+});

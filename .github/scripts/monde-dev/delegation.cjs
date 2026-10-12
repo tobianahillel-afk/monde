@@ -544,14 +544,14 @@ const CREDENTIAL_PATTERNS=[
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
 // Raw conversation URLs are private provenance, not necessary public evidence.
 // The continuation bookmark is itself published in a GitHub PR description.
-const PRIVATE_CHAT_HOST=/(?:chatgpt(?:\.|%(?:25)*2e)com|chat(?:\.|%(?:25)*2e)openai(?:\.|%(?:25)*2e)com)/i;
-// Detect percent-encoded separators at any nested %25 depth, not only once\n// or twice: repeated serialization must not publish a private chat link.\n// A public review can contain literal links, JSON-escaped slashes, or URL
-// encoded domains/separators. Treat all as the same private conversation URL.
-const CHAT_DOMAIN=String.raw`(?:chatgpt(?:\.|%(?:25)*2e)com|chat(?:\.|%(?:25)*2e)openai(?:\.|%(?:25)*2e)com)`;
-const CHAT_SEP=String.raw`(?:\\*/|%(?:25)*2f)`;
+// Match raw, percent-encoded, JSON-escaped and multiply backslash-escaped
+// hostname dots and URL separators using the same parser for deny and relay.
+// Never infer that a self-reported L2 review is independently approved.
+const CHAT_DOT=String.raw`(?:\.|%(?:25)*2e|\\+u002e)`;
+const CHAT_DOMAIN=String.raw`(?:chatgpt`+CHAT_DOT+String.raw`com|chat`+CHAT_DOT+String.raw`openai`+CHAT_DOT+String.raw`com)`;
+const CHAT_SEP=String.raw`(?:\\*/|%(?:25)*2f|\\+u002f)`;
+const PRIVATE_CHAT_HOST=new RegExp(CHAT_DOMAIN,'i');
 const PRIVATE_CHAT_LINK=new RegExp(
-  // Consume fragments and URI subdelimiters too: never leave a private
-  // conversation fragment visible after replacing only its path.
   CHAT_DOMAIN+CHAT_SEP+'(?:c|share)'+CHAT_SEP+
   String.raw`[A-Za-z0-9_.~%?=&+:/\\#@!$;,-]+`,'gi');
 // Full-report consent never includes raw ChatGPT provenance, including
