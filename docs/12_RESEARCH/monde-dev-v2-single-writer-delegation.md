@@ -164,7 +164,7 @@ and apply substantiated findings directly while preserving original provenance.
 
 ## Dédoublonnage prudent des constats
 
-La fonction pure `groupTriageFindings` et la sortie `actionable_finding_groups` d’`assessDelegationBatch` regroupent uniquement les constats de même chemin, preuve normalisée et correction proposée. La gravité maximale et toutes les références d’origine sont conservées ; `triage_findings` demeure intégral. `repeated_finding_occurrences` indique les répétitions textuelles, **jamais les corrections réalisées**. Deux observations semblables mais matériellement différentes restent séparées. Aucun regroupement ne vaut fermeture, preuve L2, autorisation de fusion ou dispense de vérification de la correction au HEAD approprié.
+La fonction pure `groupTriageFindings` et la sortie `actionable_finding_groups` d’`assessDelegationBatch` regroupent uniquement les constats ayant exactement la même **gravité (R1/R2/R3), le même chemin, la même preuve et la même correction proposée**. Ces quatre champs forment l’identité du regroupement ; même sur un chemin et une preuve identiques, une qualification R1 et une qualification R3 restent deux constats distincts. Chaque groupe conserve toutes ses références d’origine ; `triage_findings` demeure intégral. `repeated_finding_occurrences` indique les répétitions textuelles, **jamais les corrections réalisées**. Deux observations semblables mais matériellement différentes restent séparées. Aucun regroupement ne vaut fermeture, preuve L2, autorisation de fusion ou dispense de vérification de la correction au HEAD approprié.
 
 ## L2 findings qualification and exact-tree coverage (2026-10-11)
 
@@ -195,3 +195,7 @@ The interactive developer prioritizes **usable, coherent increments** rather tha
 ### Remediation visibility when development is blocked
 
 A task with a reported R1/R2 concern must remain visible in `remediation_candidates` even when its WORK is `PROPOSED`, a prerequisite is pending, or another execution gate is not met. The suggested triage remains **read-only, unverified and non-executable**, with `execution_allowed:false` and `execution_blockers` showing why the task cannot advance. This is not a backdoor to `READY`, and it never changes a registry status. Report fingerprints used for deduplication include the **severity, path, evidence, and proposed corrective action**; claims with different correction text are not collapsed.
+
+## Interactive review relay size limits
+
+A malformed or provenance-unverified L2 report can produce an **unqualified**, read-only triage handoff via `prepareUnqualifiedTriageHandoff`. The resulting public-repo text is capped at 12 KiB. When the original report contains too many details, the helper orders validated allegations by **R1, then R2, then R3**, removes fallback excerpts before removing lower-severity structured findings, and explicitly reports the numbers of omitted details. The complete evidence remains in the originating ChatGPT conversation; the shortened relay is **not complete L2 evidence, a verified security finding, an independent GitHub approval or permission to merge**. The interactive writer must inspect confidentiality before publication.
