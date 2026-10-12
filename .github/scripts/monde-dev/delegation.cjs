@@ -64,6 +64,16 @@ function assignment(input) {
       input.paths.length > 24 ||
       input.paths.some(path => !validPath(path, true)) ||
       new Set(input.paths).size !== input.paths.length) bad('INVALID_ASSIGNMENT');
+  // Avoid ambiguous L2 coverage where a file and its parent directory
+  // are listed as distinct review scopes.
+  for(let i=0;i<input.paths.length;i++)for(let j=i+1;j<input.paths.length;j++){
+    const a=input.paths[i],b=input.paths[j];
+    const left=a.endsWith('/')?a.slice(0,-1):a;
+    const right=b.endsWith('/')?b.slice(0,-1):b;
+    if(left===right||(a.endsWith('/')&&b.startsWith(a))||
+       (b.endsWith('/')&&a.startsWith(b)))
+      bad('OVERLAPPING_ASSIGNMENT_SCOPE');
+  }
   return {
     ...input, mission_kind: kind,
     paths: input.paths.slice().sort()

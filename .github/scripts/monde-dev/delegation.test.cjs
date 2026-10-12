@@ -3452,3 +3452,21 @@ test('DONE-task triage sorts T2 before T10 with numeric WORK order',()=>{
   assert.deepEqual(plan.completed_scope_triage.map(x=>x.work+'/'+x.task),
     ['WORK-0010/T2','WORK-0010/T10','WORK-0011/T2','WORK-0011/T10']);
 });
+
+test('L2 scope rejects redundant parent directory and child file',()=>{
+  for(const paths of [
+    ['src/','src/a.cjs'],
+    ['src/a.cjs','src/'],
+    ['src/sub/','src/sub/a.cjs'],
+    ['src/a','src/a/']
+  ])assert.throws(()=>d.assignment({...H,paths}),
+    error=>error.code==='OVERLAPPING_ASSIGNMENT_SCOPE');
+});
+test('L2 scope permits similar siblings and disjoint directories',()=>{
+  for(const paths of [
+    ['src/map/','src/mapper/'],
+    ['src/map.cjs','src/mapper.cjs'],
+    ['src/a/','src/b/'],
+    ['src/a.cjs','src/a.test.cjs']
+  ])assert.deepEqual(d.assignment({...H,paths}).paths,paths.slice().sort());
+});
