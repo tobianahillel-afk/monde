@@ -4417,3 +4417,54 @@ test('privacy: escaped hostname letters are refused in a resume bookmark',()=>{
       e=>e.code==='INVALID_RESUME_EVIDENCE',link);
   }
 });
+
+test('public resume blocks generic credential assignments in either public field',()=>{
+  const baseline={repo:H.repo,pr:19,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Retrieve the latest L2 candidate',evidence_refs:[]};
+  for(const secret of [
+    'api_key=ExampleSensitiveValue123',
+    'access_token: ExampleSensitiveValue123',
+    'client_secret=ExampleSensitiveValue123',
+    'password=ExampleSensitiveValue123',
+    'https://reviewer:ExampleSecret123@public.example/review'
+  ]){
+    assert.throws(()=>d.createResumePacket({...baseline,
+      next_action:'Do not paste '+secret}),{code:'INVALID_RESUME_PACKET'});
+    assert.throws(()=>d.createResumePacket({...baseline,
+      evidence_refs:[{kind:'REVIEW',ref:secret,head_sha:SHA}]}),
+    {code:'INVALID_RESUME_EVIDENCE'});
+  }
+  const safe=d.createResumePacket({...baseline,
+    next_action:'Read WORK-0005 and PR #19',evidence_refs:[
+      {kind:'REVIEW',ref:'REVIEW-0101',head_sha:SHA}
+    ]});
+  assert.equal(safe.evidence_refs[0].ref,'REVIEW-0101');
+});
+test('public L2 handoff refuses approved detail containing generic credentials',()=>{
+  for(const leak of ['api_key=ExampleSensitiveValue123',
+    'https://user:ExampleSecret123@public.example/review']){
+    const finding={...data().findings[0],evidence:'Failure observed: '+leak};
+    const out=d.prepareInteractiveHandoff({
+      expected:H,response:message(data({findings:[finding]})),
+      current_head:SHA,source,
+      publication_clearance:{secrets_checked:true,personal_data_checked:true,
+        public_repo_safe:true,finding_details_approved:true}
+    });
+    assert.equal(out.ready_for_manual_relay,false);
+    assert.equal(out.status,'POTENTIAL_SECRET_IN_RELAY');
+    assert.equal(out.text,null);
+  }
+});
+test('malformed L2 recovery refuses generic credential disclosures',()=>{
+  const response='Independent R1 in src/a.cjs: access_token=ExampleSensitiveValue123\n'+
+    d.MARKER+'\n{malformed';
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,false);
+  assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(out.text,null);
+});

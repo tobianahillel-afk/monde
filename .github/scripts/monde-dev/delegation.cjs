@@ -525,6 +525,11 @@ function assessReview({ expected, response, current_head, source, coverage_manif
 // Token prefix boundaries must also match after '_' (a JS word character):
 // do not use \\b here or a public handoff may miss an embedded credential.
 const CREDENTIAL_PATTERNS=[
+  // Public review handoffs and PR continuation hints must not carry generic
+  // credentials just because the value has no provider-specific token prefix.
+  /(?:^|[^A-Za-z0-9])(?:api[_-]?key|access[_-]?token|client[_-]?secret|password|passwd|secret[_-]?key)\s*[:=]\s*["']?[A-Za-z0-9_%+./=-]{8,}/i,
+  // Basic-auth URLs leak credentials even when the URL uses a public host.
+  /https?:\/\/[^\s/@:]+:[^\s/@]+@[^\s/]+/i,
   /-----BEGIN (?:[A-Z ]* )?PRIVATE KEY-----/,
   /(?:^|[^A-Za-z0-9])gh[pousr]_[A-Za-z0-9_]{20,}/,
   /(?:^|[^A-Za-z0-9])github_pat_[A-Za-z0-9_]{20,}/,
