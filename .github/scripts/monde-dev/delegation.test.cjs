@@ -4561,3 +4561,17 @@ test('privacy: encoded UTF-8 private hosts fail closed in both L2 public relay p
     assert.equal(unqualified.text,null);
   }
 });
+
+test('privacy: malformed UTF-8 percent octets cannot disable ASCII private-host detection',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Read code safely',evidence_refs:[]};
+  for(const privateRef of [
+    'ch%61tgpt%2Ecom/c/private-invalid-octet%FF',
+    'ch%61tgpt%2Ecom%2Fc%2Fprivate-invalid-octet%FF',
+    'ch%61tgpt%EF%BC%8Ecom/c/private-invalid-octet%FF'
+  ]){
+    assert.throws(()=>d.createResumePacket({...base,
+      next_action:'Review '+privateRef}),{code:'INVALID_RESUME_PACKET'});
+  }
+});
