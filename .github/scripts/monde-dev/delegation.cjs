@@ -887,10 +887,13 @@ function prepareUnqualifiedTriageHandoff(args) {
       unverifiedSource?'NOT EXCLUDED':'UNKNOWN'),
     '',
     '### Suspected findings (NOT VERIFIED)',
-    'Source allegation inventory: '+totalClaims+' received; '+
-      recognizedClaims+' structurally recognized; '+
-      invalidClaims+' invalid or unrecognized; '+
-      preselectionOmissions+' omitted by the 50-item triage cap.',
+    'Structured finding inventory: '+
+      (Number.isSafeInteger(analysis.reported_claims_total)?
+        totalClaims+' submitted; '+recognizedClaims+' structurally recognized; '+
+        invalidClaims+' invalid or unrecognized; '+
+        preselectionOmissions+' omitted by the 50-item triage cap.' :
+        'UNKNOWN (no parseable finding collection); '+
+        'prose-only R1/R2 excerpts are not counted as structured findings.'),
     'Claimed high-severity inventory: '+
       (Number.isSafeInteger(analysis.reported_severity_r1)?
         analysis.reported_severity_r1:0)+' R1, '+

@@ -4227,3 +4227,21 @@ test('privacy: resume refuses Unicode-escaped ChatGPT host references',()=>{
     {kind:'REVIEW',ref,head_sha:SHA}
   ]}),e=>e.code==='INVALID_RESUME_EVIDENCE');
 });
+
+test('prose-only malformed L2 reports never mislabel R1 excerpts as zero received',()=>{
+  const response='Independent reviewer found R1: stale access decision in the '+
+    'authorization branch; reject the unsafe operation and add a guard.\n'+
+    d.MARKER+'\n{malformed-json';
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,
+      personal_data_checked:true,public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(out.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.match(out.text,/Structured finding inventory: UNKNOWN/);
+  assert.match(out.text,/prose-only R1\/R2 excerpts/);
+  assert.match(out.text,/R1: stale access decision/);
+  assert.doesNotMatch(out.text,/inventory: 0 received/);
+  assert.equal(out.native_github_approved,false);
+  assert.equal(out.ready_for_merge,false);
+});
