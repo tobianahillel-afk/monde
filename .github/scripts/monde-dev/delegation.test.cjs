@@ -1153,7 +1153,9 @@ test('L2 F35 F03: malformed first fifty claims cannot hide the 51st R1',()=>{
     sources:{[H.assignment_id]:source},current_head:SHA});
   assert.equal(batch.unqualified_r1,1);
   assert.equal(batch.unqualified_blocking_reports,1);
-  assert.equal(batch.actionable_finding_groups.length,1);
+  assert.equal(batch.actionable_finding_groups.length,2);
+  assert.deepEqual(batch.actionable_finding_groups.map(g=>g.highest_severity),
+    ['R1','R3']);
 });
 test('L2 F35 F04: self-asserted directory tree cannot prove complete coverage',()=>{
   const target={...H,paths:['src/']};
@@ -2536,7 +2538,7 @@ test('progress-first: R1 and R2 never become deferred backlog candidates',()=>{
   assert.equal(result.deferred_backlog_candidates.length,1);
   assert.equal(result.automatically_resolved,0);
 });
-test('progress-first: any duplicate escalated severity follows most severe finding',()=>{
+test('progress-first: an R1 remains prioritized without hiding a distinct R3',()=>{
   const basis={assignment_id:'L2-MISSION-9003',status:'NEEDS_CORRECTION',
     path:'src/a.cjs',evidence:'Repeated bug',action:'Repair'};
   const grouped=d.groupTriageFindings([
@@ -2544,9 +2546,11 @@ test('progress-first: any duplicate escalated severity follows most severe findi
     {...basis,assignment_id:'L2-MISSION-9004',id:'F02',severity:'R1'}
   ]);
   assert.equal(grouped.material_triage_candidates.length,1);
-  assert.equal(grouped.deferred_backlog_candidates.length,0);
-  assert.equal(grouped.groups[0].occurrences,2);
+  assert.equal(grouped.deferred_backlog_candidates.length,1);
+  assert.equal(grouped.groups.length,2);
+  assert.equal(grouped.groups[0].occurrences,1);
   assert.equal(grouped.groups[0].highest_severity,'R1');
+  assert.equal(grouped.progression_advice,'TRIAGE_MATERIAL_FINDINGS');
 });
 test('progress-first: empty triage recommends more eligible work, never marks merge-ready',()=>{
   const result=d.groupTriageFindings([]);
