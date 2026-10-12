@@ -3286,3 +3286,40 @@ test('resume: HEAD drift takes precedence even when older evidence is also prese
   assert.equal(observation.status,'STALE_HEAD');
   assert.equal(observation.next_step,'REPLAN_FROM_LIVE_GITHUB');
 });
+
+test('mixed matching and conflicting prior L2 observations cannot be marked previously observed',()=>{
+  const crypto=require('node:crypto');
+  const response=message(data({verdict:'APPROVE',findings:[]}));
+  const matching={assignment_id:H.assignment_id,
+    context_id:source.context_id,message_ref:source.message_ref,
+    head_sha:SHA,mission_kind:'L2_REVIEW',
+    response_sha256:crypto.createHash('sha256').update(response,'utf8').digest('hex')};
+  const out=d.assessDelegationBatch({assignments:[H],current_head:SHA,
+    reports:{[H.assignment_id]:response},
+    sources:{[H.assignment_id]:source},
+    prior_sources:[matching,{...matching,response_sha256:'b'.repeat(64)}]});
+  assert.equal(out.independence_conflicts,1);
+  assert.equal(out.results[0].status,'INDEPENDENCE_UNVERIFIED');
+  assert.equal(out.results[0].previously_observed,undefined);
+  assert.equal(out.previously_observed_count,0);
+  assert.equal(out.needs_attention,true);
+  assert.equal(out.ready_for_merge,false);
+});
+test('old matching observation plus shared message with a different assignment remains unverified',()=>{
+  const crypto=require('node:crypto'),response=message(data({
+    verdict:'APPROVE',findings:[]}));
+  const matching={assignment_id:H.assignment_id,
+    context_id:source.context_id,message_ref:source.message_ref,
+    head_sha:SHA,mission_kind:'L2_REVIEW',
+    response_sha256:crypto.createHash('sha256').update(response,'utf8').digest('hex')};
+  const out=d.assessDelegationBatch({assignments:[H],current_head:SHA,
+    reports:{[H.assignment_id]:response},
+    sources:{[H.assignment_id]:source},
+    prior_sources:[matching,{assignment_id:'L2-PR19-ANOTHER-ASSIGNMENT',
+      context_id:'chat-distinct-previous',
+      message_ref:source.message_ref}]});
+  assert.equal(out.independence_conflicts,1);
+  assert.equal(out.previously_observed_count,0);
+  assert.equal(out.results[0].previously_observed,undefined);
+  assert.equal(out.native_github_approved,false);
+});

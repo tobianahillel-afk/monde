@@ -1017,7 +1017,11 @@ function assessDelegationBatch({
     }
   }
   for(const outcome of results){
-    if(previouslyObserved.has(outcome.assignment_id))
+    // A conflicting prior observation overrides a matching duplicate.
+    // Otherwise a tampered or reused L2 source could be mislabeled
+    // "previously observed" just because one older entry also matched.
+    if(previouslyObserved.has(outcome.assignment_id)&&
+       !conflicting.has(outcome.assignment_id))
       outcome.previously_observed=true;
     if(conflicting.has(outcome.assignment_id)){
       outcome.independence_unverified=true;
