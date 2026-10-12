@@ -3073,10 +3073,11 @@ test('L2 planning: one critical path shared by task and DONE dependency is not c
     severity:'R1',path:'src/common.js',evidence:'One underlying critical concern'
   }]);
   const affected=p.blocked.find(x=>x.task==='T2');
-  assert.deepEqual(affected.reasons,[
-    'MATERIAL_FINDINGS_NEED_TRIAGE','DEPENDENCY_FINDINGS_NEED_TRIAGE']);
+  // One shared path means one distinct corrective action. It remains a
+  // material blocker but cannot generate a second upstream-only diagnosis.
+  assert.deepEqual(affected.reasons,['MATERIAL_FINDINGS_NEED_TRIAGE']);
   assert.equal(affected.related_material_findings,1);
-  assert.equal(affected.related_dependency_findings,1);
+  assert.equal(affected.related_dependency_findings,0);
   assert.equal(p.recommended_remediation.related_r1_findings,1);
   assert.equal(p.recommended,null);
   assert.equal(p.authorized_to_write,false);
