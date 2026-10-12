@@ -578,8 +578,14 @@ function containsPrivateChatHost(value) {
       })
       .replace(/[\u3002\uff0e\uff61]/g,'.')
       .replace(/%([0-9a-f]{2})/gi,(_,hex)=>String.fromCharCode(parseInt(hex,16)))
-      .replace(/\\+(?:u00(2e|2f|3a|5c)|x(2e|2f|3a|5c))/gi,
-        (_,long,short)=>String.fromCharCode(parseInt(long||short,16)));
+      // Escaped hostname letters need decoding as well as escaped punctuation.
+      .replace(/\\+(?:u00([0-7][0-9a-f])|x([0-7][0-9a-f])|u\{([0-9a-f]{1,6})\})/gi,
+        (whole,four,two,braced)=>{
+          const point=parseInt(four||two||braced,16);
+          return point<=127?String.fromCharCode(point):whole;
+        })
+      // Fullwidth/compatibility Latin letters may imitate the private host.
+      .normalize('NFKC');
     if(decoded===text)break;
     text=decoded;
   }

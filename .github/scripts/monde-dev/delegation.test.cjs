@@ -4367,3 +4367,54 @@ test('privacy: ordinary public issue/PR references remain valid',()=>{
     d.updateResumeInPrBody('PR summary',packet),
     {repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA}).status,'SAME_REVISION');
 });
+
+test('privacy: escaped hostname letters cannot enter a public L2 relay',()=>{
+  const hidden=[
+    '\\u0063hatgpt.com/c/private-js-unicode',
+    '\\x63hatgpt.com/c/private-js-hex',
+    '\\u{63}hatgpt.com/c/private-js-brace',
+    'chatgpt\\u002ecom/c/private-js-dot',
+    'ｃｈａｔｇｐｔ．ｃｏｍ/c/private-fullwidth'
+  ];
+  for(const link of hidden){
+    const report=data({findings:[{id:'F01',severity:'R2',path:H.paths[0],
+      evidence:'Check source '+link,action:'Investigate the implementation'}]});
+    const result=d.prepareInteractiveHandoff({
+      expected:H,response:message(report),current_head:SHA,source,
+      publication_clearance:{secrets_checked:true,personal_data_checked:true,
+        public_repo_safe:true,finding_details_approved:true}
+    });
+    assert.equal(result.status,'UNREDACTED_CHAT_HOST',link);
+    assert.equal(result.ready_for_manual_relay,false);
+    assert.equal(result.text,null);
+  }
+});
+test('privacy: escaped hostname letters cannot enter malformed L2 triage',()=>{
+  for(const link of ['\\u0063hatgpt.com/c/private-unicode',
+    '\\x63hatgpt.com/c/private-hex',
+    'ｃｈａｔｇｐｔ．ｃｏｍ/c/private-fullwidth']){
+    const response='The L2 reviewer reports R1 in '+link+
+      ' and recommends inspecting that branch.\n'+d.MARKER+'\n{broken-footer';
+    const result=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response,current_head:SHA,source,
+      publication_clearance:{secrets_checked:true,personal_data_checked:true,
+        public_repo_safe:true,finding_details_approved:true}
+    });
+    assert.equal(result.ready_for_manual_relay,false,link);
+    assert.equal(result.status,'UNREDACTED_CHAT_HOST',link);
+  }
+});
+test('privacy: escaped hostname letters are refused in a resume bookmark',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    action_kind:'AWAIT_L2',next_action:'Inspect code',evidence_refs:[]};
+  for(const link of ['\\u0063hatgpt.com/c/private-unicode',
+    '\\x63hatgpt.com/c/private-hex',
+    '\\u{63}hatgpt.com/c/private-brace',
+    'ｃｈａｔｇｐｔ．ｃｏｍ/c/private-fullwidth']){
+    assert.throws(()=>d.createResumePacket({...base,
+      next_action:'Inspect '+link}),e=>e.code==='INVALID_RESUME_PACKET',link);
+    assert.throws(()=>d.createResumePacket({...base,
+      evidence_refs:[{kind:'REVIEW',ref:link,head_sha:SHA}]}),
+      e=>e.code==='INVALID_RESUME_EVIDENCE',link);
+  }
+});
