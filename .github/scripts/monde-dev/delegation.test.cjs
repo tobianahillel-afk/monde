@@ -3152,3 +3152,61 @@ test('a complete transitive DONE chain preserves the existing recommendation',()
   const result=plan([grand,parent,workPlan()]);
   assert.equal(result.recommended.task,'T2');
 });
+
+test('transitive task prerequisite not DONE blocks a dependent of DONE task',()=>{
+  const work={id:'WORK-0400',status:'READY',depends_on:[],
+    tasks:[
+      {id:'T1',status:'IN_PROGRESS',depends_on:[],expected_files:['src/old.js']},
+      {id:'T2',status:'DONE',depends_on:['T1'],expected_files:['src/mid.js']},
+      {id:'T3',status:'READY',depends_on:['T2'],expected_files:['src/new.js']}
+    ]};
+  const r=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works:[work]});
+  assert.equal(r.recommended.task,'T1');
+  assert.ok(r.blocked.find(x=>x.task==='T3').reasons.includes('TASK_ANCESTOR_PENDING'));
+});
+test('missing task grandparent cannot hide behind DONE direct prerequisite',()=>{
+  const w={id:'WORK-0400',status:'READY',depends_on:[],tasks:[
+    {id:'T2',status:'DONE',depends_on:['T99'],expected_files:['src/old.js']},
+    {id:'T3',status:'READY',depends_on:['T2'],expected_files:['src/new.js']}
+  ]};
+  const r=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works:[w]});
+  assert.equal(r.recommended,null);
+  assert.ok(r.blocked[0].reasons.includes('TASK_ANCESTOR_UNAVAILABLE'));
+});
+test('cyclic DONE task ancestors cannot authorize an eligible descendant',()=>{
+  const w={id:'WORK-0400',status:'READY',depends_on:[],tasks:[
+    {id:'T1',status:'DONE',depends_on:['T2'],expected_files:['src/old.js']},
+    {id:'T2',status:'DONE',depends_on:['T1'],expected_files:['src/mid.js']},
+    {id:'T3',status:'READY',depends_on:['T2'],expected_files:['src/new.js']}
+  ]};
+  const r=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works:[w]});
+  assert.equal(r.recommended,null);
+  assert.ok(r.blocked[0].reasons.includes('TASK_DEPENDENCY_CYCLE'));
+});
+test('broken task ancestor does not stall unrelated eligible tasks',()=>{
+  const w={id:'WORK-0400',status:'READY',depends_on:[],tasks:[
+    {id:'T1',status:'DONE',depends_on:['T99'],expected_files:['src/old.js']},
+    {id:'T2',status:'READY',depends_on:['T1'],expected_files:['src/dependent.js']},
+    {id:'T3',status:'READY',depends_on:[],expected_files:['src/independent.js']}
+  ]};
+  const r=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works:[w]});
+  assert.equal(r.recommended.task,'T3');
+  assert.deepEqual(r.recommended_batch.map(x=>x.task),['T3']);
+  assert.ok(r.blocked.some(x=>x.task==='T2'&&
+    x.reasons.includes('TASK_ANCESTOR_UNAVAILABLE')));
+});
+test('healthy completed multi-hop task chain remains eligible',()=>{
+  const w={id:'WORK-0400',status:'READY',depends_on:[],tasks:[
+    {id:'T1',status:'DONE',depends_on:[],expected_files:['src/one.js']},
+    {id:'T2',status:'DONE',depends_on:['T1'],expected_files:['src/two.js']},
+    {id:'T3',status:'READY',depends_on:['T2'],expected_files:['src/three.js']}
+  ]};
+  const r=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works:[w]});
+  assert.equal(r.recommended.task,'T3');
+  assert.deepEqual(r.blocked,[]);
+});

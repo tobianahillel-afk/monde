@@ -1188,6 +1188,26 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     for(const id of work.depends_on)walk(id);
     return out;
   };
+  // A DONE direct prerequisite is insufficient when its own dependency chain
+  // is broken. Do not promote a candidate across a missing/cyclic/pending
+  // grandparent task; keep unrelated tasks eligible for sequential work.
+  const taskAncestorHealth=(task,tasks)=>{
+    const active=new Set([task.id]),visited=new Set();
+    const out={missing:false,pending:false,cycle:false};
+    const walk=id=>{
+      if(active.has(id)){out.cycle=true;return;}
+      if(visited.has(id))return;
+      visited.add(id);
+      const ancestor=tasks.get(id);
+      if(!ancestor){out.missing=true;return;}
+      active.add(id);
+      if(ancestor.status!=='DONE')out.pending=true;
+      for(const parent of ancestor.depends_on)walk(parent);
+      active.delete(id);
+    };
+    for(const id of task.depends_on)walk(id);
+    return out;
+  };
   const upstreamPaths=(work,task,tasks)=>{
     const paths=new Set(),seenTasks=new Set(),seenWorks=new Set();
     const visitTask=id=>{
@@ -1243,10 +1263,17 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
         reasons.push('WORK_ANCESTOR_UNAVAILABLE');
       if(workAncestorHealth.pending&&!workDeps.length)
         reasons.push('WORK_ANCESTOR_PENDING');
-      if(task.depends_on.some(dep=>!tasks.has(dep)))
-        reasons.push('UNKNOWN_TASK_DEPENDENCY');
-      else if(task.depends_on.some(dep=>tasks.get(dep)?.status!=='DONE'))
-        reasons.push('TASK_DEPENDENCIES_PENDING');
+      const taskHealth=taskAncestorHealth(task,tasks);
+      const missingDirectTask=task.depends_on.some(dep=>!tasks.has(dep));
+      const pendingDirectTask=task.depends_on.some(dep=>
+        tasks.get(dep)?.status!=='DONE');
+      if(missingDirectTask)reasons.push('UNKNOWN_TASK_DEPENDENCY');
+      else if(pendingDirectTask)reasons.push('TASK_DEPENDENCIES_PENDING');
+      if(taskHealth.cycle)reasons.push('TASK_DEPENDENCY_CYCLE');
+      if(taskHealth.missing&&!missingDirectTask)
+        reasons.push('TASK_ANCESTOR_UNAVAILABLE');
+      if(taskHealth.pending&&!pendingDirectTask&&!missingDirectTask)
+        reasons.push('TASK_ANCESTOR_PENDING');
       if(!task.expected_files.length)reasons.push('UNDECLARED_SCOPE');
       const ancestors=upstreamPaths(work,task,tasks);
       const material=materialCountFor(task.expected_files);
