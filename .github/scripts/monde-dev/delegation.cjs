@@ -1208,27 +1208,33 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     for(const id of task.depends_on)walk(id);
     return out;
   };
-  const upstreamPaths=(work,task,tasks)=>{
-    const paths=new Set(),seenTasks=new Set(),seenWorks=new Set();
-    const visitTask=id=>{
-      if(seenTasks.has(id))return;
-      seenTasks.add(id);
-      const ancestor=tasks.get(id);
-      if(!ancestor)return;
-      for(const path of ancestor.expected_files)paths.add(path);
-      for(const id of ancestor.depends_on)visitTask(id);
-    };
-    const visitWork=id=>{
-      if(seenWorks.has(id))return;
-      seenWorks.add(id);
+  // All tasks in a WORK share the same upstream WORK scopes. Resolve and
+  // match them once, not once per task (previously quadratic in large WORKs).
+  const upstreamWorkPaths=work=>{
+    const paths=new Set(),seen=new Set();
+    const visit=id=>{
+      if(seen.has(id))return;
+      seen.add(id);
       const ancestor=indexed.get(id);
       if(!ancestor)return;
       for(const t of ancestor.tasks)for(const path of t.expected_files)
         paths.add(path);
-      for(const id of ancestor.depends_on)visitWork(id);
+      for(const parent of ancestor.depends_on)visit(parent);
     };
-    for(const id of task.depends_on)visitTask(id);
-    for(const id of work.depends_on)visitWork(id);
+    for(const id of work.depends_on)visit(id);
+    return [...paths];
+  };
+  const upstreamTaskPaths=(task,tasks)=>{
+    const paths=new Set(),seen=new Set();
+    const visit=id=>{
+      if(seen.has(id))return;
+      seen.add(id);
+      const ancestor=tasks.get(id);
+      if(!ancestor)return;
+      for(const path of ancestor.expected_files)paths.add(path);
+      for(const parent of ancestor.depends_on)visit(parent);
+    };
+    for(const id of task.depends_on)visit(id);
     return [...paths];
   };
   for(const work of works){
@@ -1236,6 +1242,7 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     const unknown=work.depends_on.filter(id=>!indexed.has(id));
     const workDeps=work.depends_on.filter(id=>indexed.get(id)?.status!=='DONE');
     const workAncestorHealth=ancestorHealth(work);
+    let sharedAncestorMaterial=null;
     for(const task of work.tasks){
       if(FINISHED.has(task.status)){
         // Completion is historical. A later R1/R2 still needs human triage.
@@ -1275,17 +1282,22 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
       if(taskHealth.pending&&!pendingDirectTask&&!missingDirectTask)
         reasons.push('TASK_ANCESTOR_PENDING');
       if(!task.expected_files.length)reasons.push('UNDECLARED_SCOPE');
-      const ancestors=upstreamPaths(work,task,tasks);
       const material=materialCountFor(task.expected_files);
       for(const path of material.matched)mappedMaterialPaths.add(path);
-      const upstream=materialCountFor(ancestors);
-      // A finding may occur in both scopes: subtract duplicate matches
-      // without repeating the full path-index lookup for a third time.
-      let combinedR1=material.r1;
-      for(const path of upstream.matched){
-        if(!material.matched.has(path))
-          combinedR1+=materialCounts.get(path).r1;
+      if(!sharedAncestorMaterial)
+        sharedAncestorMaterial=materialCountFor(upstreamWorkPaths(work));
+      const taskUpstreamMaterial=materialCountFor(upstreamTaskPaths(task,tasks));
+      // Union the two independently matched ancestor scopes. A finding
+      // reached through several ancestors must still count exactly once.
+      const upstreamMatched=new Set([...sharedAncestorMaterial.matched,
+        ...taskUpstreamMaterial.matched]);
+      let upstreamCount=0,combinedR1=material.r1;
+      for(const path of upstreamMatched){
+        const count=materialCounts.get(path);
+        upstreamCount+=count.count;
+        if(!material.matched.has(path))combinedR1+=count.r1;
       }
+      const upstream={count:upstreamCount,matched:upstreamMatched};
       if(material.count)reasons.push('MATERIAL_FINDINGS_NEED_TRIAGE');
       if(upstream.count)reasons.push('DEPENDENCY_FINDINGS_NEED_TRIAGE');
       const note={work:work.id,task:task.id,expected_files:task.expected_files.slice(),

@@ -3199,6 +3199,55 @@ test('broken task ancestor does not stall unrelated eligible tasks',()=>{
   assert.ok(r.blocked.some(x=>x.task==='T2'&&
     x.reasons.includes('TASK_ANCESTOR_UNAVAILABLE')));
 });
+
+test('shared WORK ancestry is counted once across many child tasks',()=>{
+  const upstream={id:'WORK-0440',status:'DONE',depends_on:[],tasks:[
+    {id:'T1',status:'DONE',depends_on:[],expected_files:['src/common/']},
+    {id:'T2',status:'DONE',depends_on:['T1'],expected_files:['src/common/a.js']}
+  ]};
+  const current={id:'WORK-0441',status:'READY',
+    depends_on:['WORK-0440'],tasks:[
+      {id:'T1',status:'DONE',depends_on:[],expected_files:['src/common/a.js']},
+      {id:'T2',status:'READY',depends_on:['T1'],expected_files:['src/current/two.js']},
+      {id:'T3',status:'READY',depends_on:['T1'],expected_files:['src/current/three.js']}
+    ]};
+  const r=d.planNextIncrement({repo:'tobianahillel-afk/monde',head_sha:SHA,
+    works:[upstream,current],triage_findings:[
+      {severity:'R1',path:'src/common/a.js',evidence:'unverified upstream issue'},
+      {severity:'R2',path:'src/common/a.js',evidence:'second distinct report'}
+    ]});
+  for(const task of ['T2','T3']){
+    const item=r.blocked.find(x=>x.work==='WORK-0441'&&x.task===task);
+    assert.ok(item);
+    assert.equal(item.related_dependency_findings,2);
+    assert.ok(item.reasons.includes('DEPENDENCY_FINDINGS_NEED_TRIAGE'));
+    const remedy=r.remediation_candidates.find(x=>
+      x.work==='WORK-0441'&&x.task===task);
+    assert.ok(remedy);
+    assert.equal(remedy.related_r1_findings,1);
+  }
+});
+test('sequential planner still permits unrelated work beside heavy upstream scope',()=>{
+  const finished={id:'WORK-0450',status:'DONE',depends_on:[],
+    tasks:[{id:'T1',status:'DONE',depends_on:[],
+      expected_files:['src/upstream/component.js']}]};
+  const dependent={id:'WORK-0451',status:'READY',
+    depends_on:['WORK-0450'],tasks:[
+      {id:'T1',status:'READY',depends_on:[],expected_files:['src/downstream/a.js']},
+      {id:'T2',status:'READY',depends_on:[],expected_files:['src/downstream/b.js']}
+    ]};
+  const unrelated={id:'WORK-0452',status:'READY',depends_on:[],
+    tasks:[{id:'T1',status:'READY',depends_on:[],expected_files:['src/other.js']}]};
+  const r=d.planNextIncrement({repo:'tobianahillel-afk/monde',head_sha:SHA,
+    works:[finished,dependent,unrelated],triage_findings:[
+      {severity:'R1',path:'src/upstream/component.js',evidence:'prior R1'}
+    ]});
+  assert.equal(r.recommended.work,'WORK-0452');
+  assert.deepEqual(r.blocked.filter(x=>x.work==='WORK-0451')
+    .map(x=>x.related_dependency_findings),[1,1]);
+  assert.equal(r.recommended_remediation.work,'WORK-0451');
+});
+
 test('healthy completed multi-hop task chain remains eligible',()=>{
   const w={id:'WORK-0400',status:'READY',depends_on:[],tasks:[
     {id:'T1',status:'DONE',depends_on:[],expected_files:['src/one.js']},
