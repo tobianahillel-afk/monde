@@ -4069,6 +4069,26 @@ test('privacy: full authorized relay applies the same private URL redaction',()=
   assert.match(out.text,/REDACTED_CHAT_LINK/);
 });
 
+test('privacy: unqualified triage also redacts escaped and encoded chat links',()=>{
+  for(const link of [
+    'chatgpt%2Ecom%2Fc%2Fprivate-unqualified-1',
+    'chat.openai%252ecom%252fshare%252fprivate-unqualified-2',
+    String.raw`https:\/\/chatgpt.com\/c\/private-unqualified-3`
+  ]){
+    const response='Independent reviewer R1: evidence at '+link+
+      ' needs a code correction.\n'+d.MARKER+'\n{not-valid-json';
+    const out=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response,current_head:SHA,source,
+      publication_clearance:{secrets_checked:true,personal_data_checked:true,
+        public_repo_safe:true,finding_details_approved:true}
+    });
+    assert.equal(out.ready_for_manual_relay,true,link);
+    assert.doesNotMatch(out.text,/private-unqualified-/);
+    assert.match(out.text,/REDACTED_CHAT_LINK/);
+    assert.equal(out.native_github_approved,false);
+  }
+});
+
 test('privacy: relay redacts third-party percent-encoded ChatGPT references',()=>{
   const item={id:'F01',severity:'R1',path:H.paths[0],
     evidence:'Details at chatgpt.com%2Fc%2Fprivate-evidence-1234',
