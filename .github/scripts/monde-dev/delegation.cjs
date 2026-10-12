@@ -923,9 +923,10 @@ function groupTriageFindings(items){
        !validPath(item.path)||!oneLine(item.evidence,3000)||
        !oneLine(item.action,3000))bad('INVALID_TRIAGE_FINDING');
     // Review evidence can contain whitespace-sensitive source excerpts.
-    // Only byte-identical path/evidence/action triples are true duplicates.
+    // Severity is part of the allegation: an R1 and an R3 with identical
+    // excerpts are distinct assessments, not duplicate review evidence.
     const id=createHash('sha256').update(JSON.stringify([
-      item.path,item.evidence,item.action
+      item.severity,item.path,item.evidence,item.action
     ])).digest('hex');
     let g=groups.get(id);
     if(!g){

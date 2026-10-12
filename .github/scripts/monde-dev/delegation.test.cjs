@@ -1009,11 +1009,26 @@ test('repeated L2 discoveries are grouped but every source and severity remains 
   const c={...a,assignment_id:'L2-MISSION-0003',id:'F08',severity:'R2',
     action:'Fix caller retry'};
   const result=d.groupTriageFindings([a,b,c]);
-  assert.equal(result.groups.length,2);
-  assert.equal(result.duplicate_occurrences,1);
+  assert.equal(result.groups.length,3);
+  assert.equal(result.duplicate_occurrences,0);
   assert.equal(result.groups[0].highest_severity,'R1');
-  assert.equal(result.groups[0].reporters.length,2);
+  assert.equal(result.groups[0].reporters.length,1);
   assert.equal(result.automatically_resolved,0);
+});
+test('L2 triage preserves a distinct R1 when an R3 has identical proof and fix',()=>{
+  const r3={assignment_id:'L2-SEVERITY-0001',id:'F01',severity:'R3',
+    status:'BLOCKED',path:'src/c.cjs',evidence:'Same exact evidence',
+    action:'Same exact action'};
+  const r1={...r3,assignment_id:'L2-SEVERITY-0002',
+    id:'F02',severity:'R1'};
+  const repeated={...r1,assignment_id:'L2-SEVERITY-0003',id:'F03'};
+  const out=d.groupTriageFindings([r3,r1,repeated]);
+  assert.equal(out.groups.length,2);
+  assert.equal(out.duplicate_occurrences,1);
+  assert.equal(out.material_triage_candidates.length,1);
+  assert.equal(out.deferred_backlog_candidates.length,1);
+  assert.equal(out.material_triage_candidates[0].occurrences,2);
+  assert.equal(out.deferred_backlog_candidates[0].occurrences,1);
 });
 test('grouped findings cannot suppress different paths, fixes or material evidence',()=>{
   const a={assignment_id:'L2-MISSION-0001',id:'F01',severity:'R2',
