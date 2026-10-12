@@ -3525,3 +3525,40 @@ test('L2 delta directory scope selects modified descendants and excludes sibling
     ]},new_assignment_id:'mission-delta-0005'});
   assert.deepEqual(result.proposed_assignment.paths,['src/a.cjs','src/b.cjs']);
 });
+
+test('identical R1 claims count once but independent evidence stays actionable',()=>{
+  const scope={id:'WORK-0600',status:'READY',depends_on:[],
+    tasks:[{id:'T1',status:'READY',depends_on:[],
+      expected_files:['src/module.js']}]};
+  const claims=[
+    {severity:'R1',path:'src/module.js',evidence:'Same reproducible concern'},
+    {severity:'R1',path:'src/module.js',evidence:'Same reproducible concern'},
+    {severity:'R1',path:'src/module.js',evidence:'Distinct impact concern'},
+    {severity:'R2',path:'src/module.js',evidence:'Same reproducible concern'}
+  ];
+  const observed=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works:[scope],triage_findings:claims});
+  assert.equal(observed.blocked[0].related_material_findings,3);
+  assert.equal(observed.recommended_remediation.related_r1_findings,2);
+  assert.equal(observed.unqualified_material_findings,4);
+  assert.equal(observed.duplicate_material_allegations_collapsed,1);
+  assert.equal(observed.recommended,null);
+  assert.equal(observed.authorized_to_write,false);
+});
+test('duplicated upstream findings do not multiply downstream triage',()=>{
+  const ancestor={id:'WORK-0601',status:'DONE',depends_on:[],
+    tasks:[{id:'T1',status:'DONE',depends_on:[],
+      expected_files:['src/shared.js']}]};
+  const child={id:'WORK-0602',status:'READY',depends_on:['WORK-0601'],
+    tasks:[{id:'T1',status:'READY',depends_on:[],
+      expected_files:['src/child.js']}]};
+  const claim={severity:'R1',path:'src/shared.js',
+    evidence:'Single underlying upstream defect'};
+  const out=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works:[ancestor,child],triage_findings:[claim,claim,claim]});
+  assert.equal(out.unqualified_material_findings,3);
+  assert.equal(out.duplicate_material_allegations_collapsed,2);
+  assert.equal(out.completed_scope_triage[0].related_r1_findings,1);
+  assert.equal(out.blocked.find(x=>x.work==='WORK-0602').related_dependency_findings,1);
+  assert.equal(out.recommended_remediation.related_r1_findings,1);
+});

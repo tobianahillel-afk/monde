@@ -1212,9 +1212,15 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
   // Index R1/R2 paths once. Exact component prefixes prevent accidental
   // matches such as src/map vs src/mapper. A task with several overlapping
   // declared files must count each finding only once.
-  const materialCounts=new Map();
+  // Keep raw allegation counts but do not re-triage byte-identical claims.
+  // Distinct severities or supporting evidence always remain distinct.
+  const materialCounts=new Map(),seenMaterial=new Set();
+  let duplicatedMaterial=0;
   for(const f of issues){
     if(f.severity==='R3')continue;
+    const key=JSON.stringify([f.severity,f.path,f.evidence]);
+    if(seenMaterial.has(key)){duplicatedMaterial++;continue;}
+    seenMaterial.add(key);
     const prev=materialCounts.get(f.path)||{count:0,r1:0};
     materialCounts.set(f.path,{count:prev.count+1,r1:prev.r1+(f.severity==='R1'?1:0)});
   }
@@ -1481,7 +1487,9 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     completed_scope_triage:completedScopeTriage,
     unmapped_material_findings:unmappedMaterialFindings,
     batch_execution:'SINGLE_INTERACTIVE_WRITER_SEQUENTIAL',
-    eligible:candidates,blocked,unqualified_material_findings:
+    eligible:candidates,blocked,
+    duplicate_material_allegations_collapsed:duplicatedMaterial,
+    unqualified_material_findings:
       issues.filter(f=>f.severity!=='R3').length,
     deferred_r3_candidates:minor.length,
     continuation:'RECHECK_REPO_AND_SCOPE_BEFORE_WRITE'};
