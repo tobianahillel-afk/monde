@@ -55,6 +55,17 @@ conversation, and can never mark a PR eligible for merge on their own.
 8. The foreground chat alone applies corrections and records verified evidence in GitHub. If publishing a report is permitted, attribute it to the task's separate conversation without claiming a distinct GitHub reviewer identity.
 9. A L2 report is technical independent analysis, not a native GitHub non-author APPROVED review. Keep these two authorities separate.
 
+## Incremental L2 delta safeguard
+
+`planL2Delta` now requires the foreground operator to supply a positive
+`previous_review` observation bound to the old SHA, a distinct reviewer context,
+qualified coverage and zero open R1/R2 findings before suggesting a
+changed-file-only L2 mission. Without that observation, a GitHub diff alone
+returns `MANUAL_IMPACT_ANALYSIS_REQUIRED` (no targeted assignment).
+These booleans are **not host-verified inside the pure helper**; the foreground
+operator must verify their sources independently. Even a targeted candidate
+is never a reusable approval, a qualified L2 report or a merge authorization.
+
 ## Safe speed
 
 Use one focused implementation cycle and risk-appropriate local/synthetic tests while editing. Batch coherent changes, then require the authoritative exact-HEAD CI/review checks **once at the real promotion boundary**; do not re-run the full historical validation suite just to reconsider already diagnosed unchanged findings. No reduction of required protections or fabrication of quality evidence.

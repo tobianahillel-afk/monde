@@ -3512,7 +3512,9 @@ test('L2 delta proposes only modified files and a distinct exact HEAD review',()
   const result=d.planL2Delta({previous_assignment:H,current_head:latest,
     compare:{base_sha:H.head_sha,head_sha:latest,complete:true,
       files:[{path,status:'modified',previous_path:null}]},
-    new_assignment_id:'mission-delta-0001'});
+    new_assignment_id:'mission-delta-0001',
+    previous_review:{head_sha:H.head_sha,context_separated:true,
+      coverage_qualified:true,open_material_findings:0}});
   assert.equal(result.status,'TARGETED_REVIEW_CANDIDATE');
   assert.equal(result.proposed_assignment.head_sha,latest);
   assert.deepEqual(result.proposed_assignment.paths,[path]);
@@ -3558,7 +3560,9 @@ test('L2 delta directory scope selects modified descendants and excludes sibling
     compare:{base_sha:old.head_sha,head_sha:latest,complete:true,files:[
       {path:'src/b.cjs',status:'modified',previous_path:null},
       {path:'src/a.cjs',status:'added',previous_path:null}
-    ]},new_assignment_id:'mission-delta-0005'});
+    ]},new_assignment_id:'mission-delta-0005',
+    previous_review:{head_sha:old.head_sha,context_separated:true,
+      coverage_qualified:true,open_material_findings:0}});
   assert.deepEqual(result.proposed_assignment.paths,['src/a.cjs','src/b.cjs']);
 });
 
@@ -4748,4 +4752,38 @@ test('public Markdown formatting around credentials is not a privacy bypass',()=
       current_head:SHA,source,publication_clearance:cleared});
     assert.equal(malformed.status,'POTENTIAL_SECRET_IN_REPORT',credential);
   }
+});
+
+test('L2 delta never shortcuts a first or unqualified prior review',()=>{
+  const latest='b'.repeat(40);
+  const args={previous_assignment:H,current_head:latest,
+    compare:{base_sha:H.head_sha,head_sha:latest,complete:true,
+      files:[{path:H.paths[0],status:'modified',previous_path:null}]},
+    new_assignment_id:'mission-delta-guard-01'};
+  const noPrior=d.planL2Delta(args);
+  assert.equal(noPrior.status,'MANUAL_IMPACT_ANALYSIS_REQUIRED');
+  assert.equal(noPrior.proposed_assignment,null);
+  assert.equal(noPrior.prior_review_observation_qualified_for_delta,false);
+  for(const previous_review of [
+    {head_sha:H.head_sha,context_separated:false,coverage_qualified:true,
+      open_material_findings:0},
+    {head_sha:'c'.repeat(40),context_separated:true,coverage_qualified:true,
+      open_material_findings:0},
+    {head_sha:H.head_sha,context_separated:true,coverage_qualified:false,
+      open_material_findings:0},
+    {head_sha:H.head_sha,context_separated:true,coverage_qualified:true,
+      open_material_findings:1},
+    {head_sha:H.head_sha,context_separated:true,coverage_qualified:true,
+      open_material_findings:0,untrusted_override:true}
+  ]){
+    const res=d.planL2Delta({...args,previous_review});
+    assert.equal(res.proposed_assignment,null);
+    assert.equal(res.status,'MANUAL_IMPACT_ANALYSIS_REQUIRED');
+  }
+  const qualified=d.planL2Delta({...args,previous_review:{
+    head_sha:H.head_sha,context_separated:true,coverage_qualified:true,
+    open_material_findings:0}});
+  assert.equal(qualified.status,'TARGETED_REVIEW_CANDIDATE');
+  assert.equal(qualified.native_github_approved,false);
+  assert.equal(qualified.previous_l2_approval_reusable,false);
 });

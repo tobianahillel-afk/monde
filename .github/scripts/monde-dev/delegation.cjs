@@ -1285,7 +1285,8 @@ function assessDelegationBatch({
 
 // Review only changed files when safe to propose; never infer L2 acceptance.
 // GitHub compare inputs must be independently checked by the foreground author.
-function planL2Delta({previous_assignment,current_head,compare,new_assignment_id}){
+function planL2Delta({previous_assignment,current_head,compare,
+  new_assignment_id,previous_review=null}){
   const old=assignment(previous_assignment);
   if(old.mission_kind!=='L2_REVIEW')bad('NOT_L2_MISSION');
   if(typeof current_head!=='string'||!SHA.test(current_head)||
@@ -1299,6 +1300,17 @@ function planL2Delta({previous_assignment,current_head,compare,new_assignment_id
      compare.complete!==true||
      !Array.isArray(compare.files)||compare.files.length>300)
     bad('UNTRUSTED_DELTA');
+  // A diff alone cannot establish that *unchanged* files received the
+  // required prior review. This is an operator-supplied observation and
+  // remains advisory; native GitHub approval is never inferred.
+  const priorVerified=plain(previous_review)&&
+    Object.keys(previous_review).sort().join('|')===
+      ['head_sha','context_separated','coverage_qualified',
+        'open_material_findings'].sort().join('|')&&
+    previous_review.head_sha===old.head_sha&&
+    previous_review.context_separated===true&&
+    previous_review.coverage_qualified===true&&
+    previous_review.open_material_findings===0;
   const touched=new Set(),outside=[],special=[],seen=new Set();
   for(const row of compare.files){
     if(!plain(row)||Object.keys(row).sort().join('|')!==
@@ -1319,7 +1331,7 @@ function planL2Delta({previous_assignment,current_head,compare,new_assignment_id
   }
   const changed=[...touched].sort();
   // No deleted/renamed/outside paths may be silently declared covered.
-  const safeNarrow=changed.length>0&&changed.length<=24&&
+  const safeNarrow=priorVerified&&changed.length>0&&changed.length<=24&&
     outside.length===0&&special.length===0;
   const next=safeNarrow?assignment({
     ...old,assignment_id:new_assignment_id,head_sha:current_head,
@@ -1332,6 +1344,7 @@ function planL2Delta({previous_assignment,current_head,compare,new_assignment_id
     changed_scoped_files:changed,out_of_scope_changes:outside,
     removed_or_renamed:special,proposed_assignment:next,
     comparison_requires_host_verification:true,
+    prior_review_observation_qualified_for_delta:priorVerified,
     previous_l2_approval_reusable:false,independent_l2_required:true,
     native_github_approved:false,ready_for_merge:false
   };
