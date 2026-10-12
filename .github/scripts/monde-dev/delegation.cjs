@@ -1163,6 +1163,33 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     for(const path of matched){const e=materialCounts.get(path);count+=e.count;r1+=e.r1;}
     return {count,r1};
   };
+  // Unverified R1/R2 reports against an already-DONE prerequisite cannot
+  // silently disappear when its dependent task is selected for new work.
+  // Examine direct and transitive task/WORK ancestors, counting shared
+  // paths once even if reached through several dependency chains.
+  const upstreamPaths=(work,task,tasks)=>{
+    const paths=new Set(),seenTasks=new Set(),seenWorks=new Set();
+    const visitTask=id=>{
+      if(seenTasks.has(id))return;
+      seenTasks.add(id);
+      const ancestor=tasks.get(id);
+      if(!ancestor)return;
+      for(const path of ancestor.expected_files)paths.add(path);
+      for(const id of ancestor.depends_on)visitTask(id);
+    };
+    const visitWork=id=>{
+      if(seenWorks.has(id))return;
+      seenWorks.add(id);
+      const ancestor=indexed.get(id);
+      if(!ancestor)return;
+      for(const t of ancestor.tasks)for(const path of t.expected_files)
+        paths.add(path);
+      for(const id of ancestor.depends_on)visitWork(id);
+    };
+    for(const id of task.depends_on)visitTask(id);
+    for(const id of work.depends_on)visitWork(id);
+    return [...paths];
+  };
   for(const work of works){
     const tasks=new Map(work.tasks.map(t=>[t.id,t]));
     const unknown=work.depends_on.filter(id=>!indexed.has(id));
@@ -1181,17 +1208,25 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
         reasons.push('TASK_DEPENDENCIES_PENDING');
       if(!task.expected_files.length)reasons.push('UNDECLARED_SCOPE');
       const material=materialCountFor(task.expected_files);
+      const upstream=materialCountFor(upstreamPaths(work,task,tasks));
       if(material.count)reasons.push('MATERIAL_FINDINGS_NEED_TRIAGE');
+      if(upstream.count)reasons.push('DEPENDENCY_FINDINGS_NEED_TRIAGE');
       const note={work:work.id,task:task.id,expected_files:task.expected_files.slice(),
-        reasons,related_material_findings:material.count};
+        reasons,related_material_findings:material.count,
+        related_dependency_findings:upstream.count};
       if(reasons.length){
         blocked.push(note);
         // Reported defects are unverified. Suggest foreground correction,
         // but never treat a reviewer claim as authority or accepted work.
-        if(reasons.length===1&&reasons[0]==='MATERIAL_FINDINGS_NEED_TRIAGE')
-          remediation.push({...note,related_r1_findings:material.r1,
+        if(reasons.every(reason=>[
+          'MATERIAL_FINDINGS_NEED_TRIAGE','DEPENDENCY_FINDINGS_NEED_TRIAGE'
+        ].includes(reason)))
+          remediation.push({...note,
+            related_r1_findings:material.r1+upstream.r1,
             state:task.status,work_state:work.status,
-            disposition:'VERIFY_AND_FIX_IN_FOREGROUND'});
+            disposition:upstream.count?
+              'TRIAGE_UPSTREAM_BEFORE_DEPENDENT_WORK':
+              'VERIFY_AND_FIX_IN_FOREGROUND'});
       }else candidates.push({...note,state:task.status,work_state:work.status});
     }
   }

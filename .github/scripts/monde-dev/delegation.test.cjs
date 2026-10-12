@@ -2970,3 +2970,59 @@ test('public PR resume still accepts normal GitHub check references',()=>{
     repo:'tobianahillel-afk/monde',pr:19,head_sha:SHA,base_sha:SHA
   }).status,'SAME_REVISION');
 });
+
+test('L2 regression: findings in DONE task dependencies block downstream tasks',()=>{
+  const p=plan(undefined,[{
+    severity:'R1',path:'src/a.js',evidence:'DONE prerequisite is unsafe'
+  }]);
+  assert.equal(p.recommended,null);
+  assert.equal(p.blocked.filter(item=>item.reasons.includes(
+    'DEPENDENCY_FINDINGS_NEED_TRIAGE')).length,2);
+  assert.equal(p.recommended_remediation.related_r1_findings,1);
+  assert.equal(p.recommended_remediation.disposition,
+    'TRIAGE_UPSTREAM_BEFORE_DEPENDENT_WORK');
+  assert.equal(p.authorized_to_write,false);
+});
+test('L2 regression: findings in DONE WORK dependencies block only descendants',()=>{
+  const upstream={id:'WORK-0001',status:'DONE',depends_on:[],
+    tasks:[{id:'T1',status:'DONE',depends_on:[],
+      expected_files:['lib/old-contract.js']}]};
+  const unrelated={id:'WORK-0200',status:'READY',depends_on:[],
+    tasks:[{id:'T1',status:'READY',depends_on:[],
+      expected_files:['lib/independent.js']}]};
+  const p=plan([upstream,workPlan(),unrelated],[{
+    severity:'R2',path:'lib/old-contract.js',
+    evidence:'Incompatible public contract'}]);
+  assert.equal(p.recommended.work,'WORK-0200');
+  assert.equal(p.blocked.filter(t=>t.work==='WORK-0123'&&t.reasons.includes(
+    'DEPENDENCY_FINDINGS_NEED_TRIAGE')).length,2);
+  assert.equal(p.recommended_remediation.work,'WORK-0123');
+});
+test('L2 regression: material findings propagate across transitive WORK parents',()=>{
+  const root={id:'WORK-0001',status:'DONE',depends_on:[],
+    tasks:[{id:'T1',status:'DONE',depends_on:[],
+      expected_files:['registry/base.yaml']}]};
+  const mid={id:'WORK-0002',status:'DONE',depends_on:['WORK-0001'],
+    tasks:[{id:'T1',status:'DONE',depends_on:[],
+      expected_files:['registry/middle.yaml']}]};
+  const child=workPlan({depends_on:['WORK-0002']});
+  const p=plan([root,mid,child],[{
+    severity:'R1',path:'registry/base.yaml',evidence:'Root schema issue'
+  }]);
+  assert.equal(p.recommended,null);
+  assert.equal(p.blocked.filter(t=>t.work==='WORK-0123'&&
+    t.related_dependency_findings===1).length,2);
+});
+test('L2 regression: repeated shared upstream paths counted once across dependencies',()=>{
+  const parent=workPlan({tasks:[
+    {id:'T1',status:'DONE',depends_on:[],expected_files:['src/base.js']},
+    {id:'T2',status:'DONE',depends_on:['T1'],expected_files:['src/base.js']},
+    {id:'T3',status:'READY',depends_on:['T1','T2'],expected_files:['src/new.js']}
+  ]});
+  const p=plan([completedWork,parent],[{
+    severity:'R2',path:'src/base.js',evidence:'Shared ancestor bug'
+  }]);
+  assert.equal(p.blocked.find(t=>t.task==='T3').related_dependency_findings,1);
+  assert.equal(p.recommended_remediation.related_r1_findings,0);
+  assert.equal(p.recommended,null);
+});
