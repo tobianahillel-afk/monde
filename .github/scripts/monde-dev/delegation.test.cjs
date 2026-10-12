@@ -3653,44 +3653,43 @@ test('interactive planner rejects malformed optional correction action',()=>{
 });
 
 
-test('DONE work without recorded tasks cannot release downstream development',()=>{
+
+test('taskless DONE records are flagged for external evidence, not silently certified',()=>{
   const ancestor={id:'WORK-0601',status:'DONE',depends_on:[],tasks:[]};
-  const child={id:'WORK-0602',status:'READY',depends_on:['WORK-0601'],
-    tasks:[{id:'T1',status:'READY',depends_on:[],
-      expected_files:['src/child.js']}]};
-  const standalone={id:'WORK-0603',status:'READY',depends_on:[],
-    tasks:[{id:'T1',status:'READY',depends_on:[],
-      expected_files:['src/standalone.js']}]};
-  const plan=d.planNextIncrement({repo:H.repo,head_sha:SHA,
-    works:[ancestor,child,standalone]});
-  assert.equal(plan.recommended.work,'WORK-0603');
-  assert.ok(plan.blocked.find(x=>x.work===child.id).reasons
-    .includes('WORK_ANCESTOR_PENDING'));
-  assert.equal(plan.authorized_to_write,false);
-});
-test('DONE grandparent without task inventory blocks transitive successor',()=>{
-  const grandparent={id:'WORK-0601',status:'DONE',depends_on:[],tasks:[]};
-  const parent={id:'WORK-0602',status:'DONE',depends_on:['WORK-0601'],
-    tasks:[{id:'T1',status:'DONE',depends_on:[],
-      expected_files:['src/parent.js']}]};
-  const child={id:'WORK-0603',status:'READY',depends_on:['WORK-0602'],
-    tasks:[{id:'T1',status:'READY',depends_on:[],
-      expected_files:['src/child.js']}]};
-  const plan=d.planNextIncrement({repo:H.repo,head_sha:SHA,
-    works:[grandparent,parent,child]});
-  assert.equal(plan.recommended,null);
-  assert.ok(plan.blocked.find(x=>x.work===child.id).reasons
-    .includes('WORK_ANCESTOR_PENDING'));
-});
-test('nonempty completed WORK with DONE tasks still unblocks declared successor',()=>{
-  const ancestor={id:'WORK-0601',status:'DONE',depends_on:[],
-    tasks:[{id:'T1',status:'DONE',depends_on:[],
-      expected_files:['src/parent.js']}]};
   const child={id:'WORK-0602',status:'READY',depends_on:['WORK-0601'],
     tasks:[{id:'T1',status:'READY',depends_on:[],
       expected_files:['src/child.js']}]};
   const plan=d.planNextIncrement({repo:H.repo,head_sha:SHA,
     works:[ancestor,child]});
-  assert.equal(plan.recommended.work,child.id);
-  assert.equal(plan.blocked.length,0);
+  assert.deepEqual(plan.taskless_done_works_requiring_external_evidence,
+    ['WORK-0601']);
+  assert.equal(plan.recommended.work,'WORK-0602');
+  assert.equal(plan.advisory_only,true);
+  assert.equal(plan.authorized_to_write,false);
+});
+test('taskless DONE detection extends to ancestors of ancestors',()=>{
+  const works=[
+    {id:'WORK-0601',status:'DONE',depends_on:[],tasks:[]},
+    {id:'WORK-0602',status:'DONE',depends_on:['WORK-0601'],
+      tasks:[{id:'T1',status:'DONE',depends_on:[],
+        expected_files:['src/a.js']}]},
+    {id:'WORK-0603',status:'READY',depends_on:['WORK-0602'],
+      tasks:[{id:'T1',status:'READY',depends_on:[],
+        expected_files:['src/b.js']}]}
+  ];
+  const plan=d.planNextIncrement({repo:H.repo,head_sha:SHA,works});
+  assert.deepEqual(plan.taskless_done_works_requiring_external_evidence,
+    ['WORK-0601']);
+  assert.equal(plan.authorized_to_write,false);
+});
+test('work with complete explicit DONE task inventory has no gap marker',()=>{
+  const works=[{id:'WORK-0601',status:'DONE',depends_on:[],
+    tasks:[{id:'T1',status:'DONE',depends_on:[],
+      expected_files:['src/done.js']}]},
+    {id:'WORK-0602',status:'READY',depends_on:['WORK-0601'],
+      tasks:[{id:'T1',status:'READY',depends_on:[],
+        expected_files:['src/child.js']}]}];
+  const plan=d.planNextIncrement({repo:H.repo,head_sha:SHA,works});
+  assert.deepEqual(plan.taskless_done_works_requiring_external_evidence,[]);
+  assert.equal(plan.recommended.work,'WORK-0602');
 });

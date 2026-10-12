@@ -1291,10 +1291,10 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
       return completedWorkHealth.get(ancestor.id);
     const byId=new Map(ancestor.tasks.map(t=>[t.id,t]));
     const active=new Set(),checked=new Set();
-    // A terminal WORK with no task inventory offers no evidence that its
-    // internal work and dependency graph were actually completed. Do not
-    // unlock downstream implementation from the status label alone.
-    const state={missing:false,pending:ancestor.tasks.length===0,cycle:false};
+    // The canonical DONE state is authoritative for taskless administrative
+    // WORK records. Surface incomplete inventories as a separate advisory
+    // warning instead of silently treating them as execution-task evidence.
+    const state={missing:false,pending:false,cycle:false};
     const scan=id=>{
       if(active.has(id)){state.cycle=true;return;}
       if(checked.has(id))return;
@@ -1509,7 +1509,12 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
   unmappedMaterialFindings.sort((a,b)=>
     (b.r1_occurrences>0?1:0)-(a.r1_occurrences>0?1:0)||
     a.path.localeCompare(b.path));
+  const tasklessDoneWorks=works.filter(w=>w.status==='DONE'&&w.tasks.length===0)
+    .map(w=>w.id);
   return {repo,head_sha,advisory_only:true,authorized_to_write:false,
+    // DONE is a canonical status, but no task-inventory verification exists
+    // for these WORKs. Host acceptance still needs external evidence.
+    taskless_done_works_requiring_external_evidence:tasklessDoneWorks,
     automatically_accepted:0,
     recommended:candidates.length?candidates[0]:null,
     recommended_batch:recommendedBatch,
