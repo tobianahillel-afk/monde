@@ -2853,8 +2853,17 @@ test('indexed material triage equals independent naive path-overlap oracle',()=>
     };
     const result=d.planNextIncrement({repo:'tobianahillel-afk/monde',
       head_sha:SHA,works:[work],triage_findings:findings});
-    const expected=findings.filter(f=>f.severity!=='R3'&&
-      files.some(path=>oracle(path,f.path))).length;
+    // The independent oracle counts unique severity/path/evidence triples,
+    // preserving distinct allegations while collapsing retransmissions.
+    const seen=new Set();
+    const expected=findings.filter(f=>{
+      if(f.severity==='R3'||!files.some(path=>oracle(path,f.path)))
+        return false;
+      const key=JSON.stringify([f.severity,f.path,f.evidence]);
+      if(seen.has(key))return false;
+      seen.add(key);
+      return true;
+    }).length;
     const observed=(result.blocked[0]||result.eligible[0]).related_material_findings;
     assert.equal(observed,expected,'iteration '+iteration);
     assert.equal(result.blocked.some(x=>x.reasons.includes('MATERIAL_FINDINGS_NEED_TRIAGE')),
