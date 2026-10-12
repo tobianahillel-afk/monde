@@ -1215,7 +1215,7 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     const tasks=new Map(work.tasks.map(t=>[t.id,t]));
     const unknown=work.depends_on.filter(id=>!indexed.has(id));
     const workDeps=work.depends_on.filter(id=>indexed.get(id)?.status!=='DONE');
-    const ancestors=ancestorHealth(work);
+    const workAncestorHealth=ancestorHealth(work);
     for(const task of work.tasks){
       if(FINISHED.has(task.status)){
         // Completion is historical. A later R1/R2 still needs human triage.
@@ -1238,10 +1238,10 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
       if(!TASK_EXECUTABLE.has(task.status))reasons.push('TASK_NOT_READY');
       if(unknown.length)reasons.push('WORK_DEPENDENCIES_UNAVAILABLE');
       else if(workDeps.length)reasons.push('WORK_DEPENDENCIES_PENDING');
-      if(ancestors.cycle)reasons.push('WORK_DEPENDENCY_CYCLE');
-      if(ancestors.missing&&!unknown.length)
+      if(workAncestorHealth.cycle)reasons.push('WORK_DEPENDENCY_CYCLE');
+      if(workAncestorHealth.missing&&!unknown.length)
         reasons.push('WORK_ANCESTOR_UNAVAILABLE');
-      if(ancestors.pending&&!workDeps.length)
+      if(workAncestorHealth.pending&&!workDeps.length)
         reasons.push('WORK_ANCESTOR_PENDING');
       if(task.depends_on.some(dep=>!tasks.has(dep)))
         reasons.push('UNKNOWN_TASK_DEPENDENCY');
