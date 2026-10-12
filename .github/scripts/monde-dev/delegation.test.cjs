@@ -2790,3 +2790,43 @@ test('unqualified relay redacts percent-encoded private references',()=>{
   assert.equal(out.text.includes(lower),false);
   assert.match(out.text,/REDACTED_CONTEXT_REFERENCE/);
 });
+
+test('batch planner: groups eligible independent tasks within one interactive WORK',()=>{
+  const p=plan();
+  assert.deepEqual(p.recommended_batch.map(x=>x.task),['T2','T3']);
+  assert.equal(p.batch_execution,'SINGLE_INTERACTIVE_WRITER_SEQUENTIAL');
+  assert.equal(p.authorized_to_write,false);
+  assert.equal(p.automatically_accepted,0);
+});
+test('batch planner: rejects overlapping file scopes within the same batch',()=>{
+  const work=workPlan({tasks:[
+    {id:'T1',status:'DONE',depends_on:[],expected_files:['src/base.js']},
+    {id:'T2',status:'IN_PROGRESS',depends_on:['T1'],expected_files:['src/shared']},
+    {id:'T3',status:'READY',depends_on:['T1'],expected_files:['src/shared/sub.js']},
+    {id:'T4',status:'READY',depends_on:['T1'],expected_files:['src/other.js']}
+  ]});
+  const p=plan([completedWork,work]);
+  assert.equal(p.eligible.length,3);
+  assert.deepEqual(p.recommended_batch.map(x=>x.task),['T2','T4']);
+});
+test('batch planner: bounded to four tasks of one WORK, stable sort',()=>{
+  const many=workPlan({tasks:Array.from({length:9},(_,i)=>({
+    id:'T'+(i+1),status:'READY',depends_on:[],expected_files:['src/file'+i+'.js']
+  }))});
+  const another={id:'WORK-0124',status:'READY',depends_on:['WORK-0001'],
+    tasks:[{id:'T1',status:'READY',depends_on:[],expected_files:['docs/readme.md']}]};
+  const p=plan([completedWork,many,another]);
+  assert.deepEqual(p.recommended_batch.map(x=>x.task),['T1','T2','T3','T4']);
+  assert.equal(new Set(p.recommended_batch.map(x=>x.work)).size,1);
+});
+test('batch planner: critical reviewer finding excludes affected task only',()=>{
+  const p=plan(undefined,[{severity:'R1',path:'src/b.js',evidence:'Unresolved defect'}]);
+  assert.deepEqual(p.recommended_batch.map(x=>x.task),['T3']);
+  assert.ok(p.blocked.some(x=>x.task==='T2'));
+});
+test('batch planner: no eligible task means no advisory batch',()=>{
+  const p=plan([completedWork,workPlan({status:'PROPOSED'})]);
+  assert.equal(p.recommended,null);
+  assert.deepEqual(p.recommended_batch,[]);
+  assert.equal(p.authorized_to_write,false);
+});

@@ -1162,10 +1162,25 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
   candidates.sort((a,b)=>priority[a.state]-priority[b.state]||
     priority[a.work_state]-priority[b.work_state]||
     a.work.localeCompare(b.work)||a.task.localeCompare(b.task));
+  // A single interactive writer may handle independent tasks of one WORK.
+  // This is a sequential suggestion, never four concurrent write grants.
+  const recommendedBatch=[];
+  if(candidates.length){
+    const workId=candidates[0].work;
+    for(const item of candidates){
+      if(item.work!==workId)continue;
+      if(recommendedBatch.some(selected=>selected.expected_files.some(a=>
+          item.expected_files.some(b=>isOverlapping(a,b)))))continue;
+      recommendedBatch.push(item);
+      if(recommendedBatch.length===4)break;
+    }
+  }
   const minor=issues.filter(f=>f.severity==='R3');
   return {repo,head_sha,advisory_only:true,authorized_to_write:false,
     automatically_accepted:0,
     recommended:candidates.length?candidates[0]:null,
+    recommended_batch:recommendedBatch,
+    batch_execution:'SINGLE_INTERACTIVE_WRITER_SEQUENTIAL',
     eligible:candidates,blocked,unqualified_material_findings:
       issues.filter(f=>f.severity!=='R3').length,
     deferred_r3_candidates:minor.length,
