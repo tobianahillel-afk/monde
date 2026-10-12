@@ -4468,3 +4468,45 @@ test('malformed L2 recovery refuses generic credential disclosures',()=>{
   assert.equal(out.status,'POTENTIAL_SECRET_IN_REPORT');
   assert.equal(out.text,null);
 });
+
+
+test('public resume rejects bearer-like URL query credentials, not normal links',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    action_kind:'AWAIT_L2',next_action:'Inspect code',evidence_refs:[]};
+  const leaks=[
+    'https://public.example/review?token=ExampleSecretToken1234',
+    'https://public.example/review?page=2&key=ExampleSensitiveKey1234',
+    'https://public.example/review?page=2&amp;session=ExampleSensitiveSession1234'
+  ];
+  for(const leak of leaks){
+    assert.throws(()=>d.createResumePacket({...base,next_action:'Inspect '+leak}),
+      {code:'INVALID_RESUME_PACKET'});
+    assert.throws(()=>d.createResumePacket({...base,
+      evidence_refs:[{kind:'REVIEW',ref:leak,head_sha:SHA}]}),
+      {code:'INVALID_RESUME_EVIDENCE'});
+  }
+  const ok=d.createResumePacket({...base,
+    next_action:'Inspect https://github.com/tobianahillel-afk/monde/pull/19?page=2'});
+  assert.equal(ok.action_kind,'AWAIT_L2');
+});
+test('qualified and malformed L2 relays refuse URL query credentials',()=>{
+  const leak='https://public.example/review?token=ExampleSecretToken1234';
+  const report=data({findings:[{...data().findings[0],
+    evidence:'The failing request was '+leak}]});
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const qualified=d.prepareInteractiveHandoff({
+    expected:H,response:message(report),current_head:SHA,source,
+    publication_clearance:clearance});
+  assert.equal(qualified.ready_for_manual_relay,false);
+  assert.equal(qualified.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(qualified.text,null);
+  const raw='Independent R1: public endpoint exposed '+leak+
+    '\\nFix credential transport and review access.\\n'+d.MARKER+'\\n{broken';
+  const malformed=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:raw,current_head:SHA,source,
+    publication_clearance:clearance});
+  assert.equal(malformed.ready_for_manual_relay,false);
+  assert.equal(malformed.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(malformed.text,null);
+});
