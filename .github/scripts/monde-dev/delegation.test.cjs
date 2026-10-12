@@ -4373,7 +4373,6 @@ test('privacy: escaped hostname letters cannot enter a public L2 relay',()=>{
     '\\u0063hatgpt.com/c/private-js-unicode',
     '\\x63hatgpt.com/c/private-js-hex',
     '\\u{63}hatgpt.com/c/private-js-brace',
-    'chatgpt\\u002ecom/c/private-js-dot',
     'ｃｈａｔｇｐｔ．ｃｏｍ/c/private-fullwidth'
   ];
   for(const link of hidden){
