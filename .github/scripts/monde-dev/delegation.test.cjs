@@ -3957,3 +3957,42 @@ test('unqualified byte cap preserves an urgent free-text R1 before bulky R3 clai
   assert.equal(result.ready_for_merge,false);
   assert.ok(Buffer.byteLength(result.text,'utf8')<=12*1024);
 });
+
+test('public unqualified L2 handoff redacts mixed-case encoded private references',()=>{
+  const privateId='chat/private?x=1&y=2';
+  for(const encoded of [
+    'chat%2fprivate%3Fx%3D1%26y%3d2',
+    'chat%252fprivate%253Fx%253D1%2526y%253d2'
+  ]){
+    const report='Independent R1 report: trace '+encoded+
+      ' was observed in validation logic.\n'+d.MARKER+'\n{broken-json';
+    const out=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:report,current_head:SHA,
+      source:{...source,context_id:privateId},
+      publication_clearance:{
+        secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+        finding_details_approved:true
+      }
+    });
+    assert.equal(out.status,'UNQUALIFIED_TRIAGE_READY');
+    assert.equal(out.ready_for_manual_relay,true);
+    assert.equal(out.text.includes(encoded),false);
+    assert.match(out.text,/REDACTED_CONTEXT_REFERENCE/);
+    assert.equal(out.native_github_approved,false);
+  }
+});
+test('mixed-case URI redaction preserves useful security finding evidence',()=>{
+  const privateId='chat/private?x=1&y=2';
+  const report='Independent R1 finding in src/security.js: '+
+    'a condition rejects valid input. Reference chat%2fprivate%3Fx%3D1%26y%3d2\n'+
+    d.MARKER+'\n{broken-json';
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,
+    source:{...source,context_id:privateId},
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.match(out.text,/a condition rejects valid input/);
+  assert.equal(out.text.includes('chat%2fprivate%3Fx%3D1%26y%3d2'),false);
+});
