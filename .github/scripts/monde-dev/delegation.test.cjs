@@ -3867,3 +3867,26 @@ test('planner retains distinct ancestor R1 alongside direct R2',()=>{
   assert.equal(item.related_r1_findings,1);
   assert.equal(item.disposition,'TRIAGE_UPSTREAM_BEFORE_DEPENDENT_WORK');
 });
+
+test('bounded unqualified handoff preserves late R1 and truncation counts',()=>{
+  const findings=Array.from({length:50},(_,i)=>({
+    id:'F'+String(i+1).padStart(2,'0'),
+    severity:i===49?'R1':'R2',path:'src/triage/file'+i+'.js',
+    evidence:'Synthetic failure '+i+' '+('e'.repeat(1100)),
+    action:'Fix synthetic failure '+i+' '+('a'.repeat(1100))
+  }));
+  const report=message(data({verdict:'APPROVE',findings}));
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.equal(result.ready_for_manual_relay,true);
+  assert.equal(result.ready_for_merge,false);
+  assert.equal(result.native_github_approved,false);
+  assert.ok(Buffer.byteLength(result.text,'utf8')<=12*1024);
+  assert.ok(result.text.includes('F50 [R1]'));
+  assert.ok(result.text.includes('Omitted for public relay size: '));
+  assert.ok(!result.text.includes('0 structured findings and 0 excerpts'));
+});

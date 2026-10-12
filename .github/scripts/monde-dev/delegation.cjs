@@ -812,7 +812,11 @@ function prepareUnqualifiedTriageHandoff(args) {
   // manualRecovery retains at most thirteen: first six, first distinct R1,
   // and last six. Do not silently discard the final distinct observation.
   const snippets=(analysis.raw_blocker_snippets||[]).slice(0,13);
-  const findings=(analysis.reported_findings||[]).slice(0,50);
+  // The relay is not an approval: preserve high-severity allegations first,
+  // and clearly count anything omitted under the public comment byte cap.
+  const severityRank={R1:0,R2:1,R3:2};
+  const findings=(analysis.reported_findings||[]).slice(0,50)
+    .sort((a,b)=>severityRank[a.severity]-severityRank[b.severity]);
   if(!snippets.length&&!findings.length)
     return refused('NO_REVIEWED_ACTIONABLE_EXCERPTS');
   const suspected=analysis.reported_blocking_unknown===true||
@@ -826,7 +830,8 @@ function prepareUnqualifiedTriageHandoff(args) {
   const claimedContext=claimedReviewerContext(args.response,
     a.mission_kind==='L2_REVIEW'?MARKER:RESEARCH_MARKER);
   if(claimedContext===false)return refused('UNSAFE_REVIEWER_PROVENANCE');
-  let note=[
+  const selectedFindings=findings.slice(),selectedSnippets=snippets.slice();
+  const render=()=>[
     '## Unqualified ChatGPT reviewer evidence — foreground relay only',
     'Repository: '+a.repo+'; PR #'+a.pr,
     'Assignment: '+a.assignment_id+'; mission: '+a.mission_kind,
@@ -846,18 +851,32 @@ function prepareUnqualifiedTriageHandoff(args) {
       unverifiedSource?'NOT EXCLUDED':'UNKNOWN'),
     '',
     '### Suspected findings (NOT VERIFIED)',
-    ...findings.flatMap(f=>[
+    ...selectedFindings.flatMap(f=>[
       f.id+' ['+f.severity+'] '+f.path,
       'Evidence: '+quoteUntrustedExcerpt(f.evidence),
       'Suggested correction: '+quoteUntrustedExcerpt(f.action)
     ]),
-    ...snippets.map((s,i)=>'Unqualified R1/R2 extract '+(i+1)+
+    ...selectedSnippets.map((s,i)=>'Unqualified R1/R2 extract '+(i+1)+
       ': '+quoteUntrustedExcerpt(s)),
     '',
+    'Omitted for public relay size: '+
+      (findings.length-selectedFindings.length)+' structured findings and '+
+      (snippets.length-selectedSnippets.length)+' excerpts; inspect original report.',
     'The entire original ChatGPT conversation is required to confirm scope,',
     'context separation and all unresolved findings.',
     'This text MUST NOT be used as an APPROVE decision or merge authorization.'
   ].join('\n');
+  // Try a smaller, explicit summary rather than discarding all the findings
+  // when a verbose report would exceed GitHub's relay safety budget.
+  let note=render();
+  while(Buffer.byteLength(note,'utf8')>PUBLIC_RELAY_MAX_BYTES-512 &&
+      (selectedSnippets.length||selectedFindings.length)){
+    if(selectedSnippets.length)selectedSnippets.pop();
+    else selectedFindings.pop(); // discard lowest severity first
+    note=render();
+  }
+  if(!selectedSnippets.length&&!selectedFindings.length)
+    return refused('PUBLIC_RELAY_TOO_LARGE');
   note=redactPrivateProvenance(note,[
     a.author_context_id,source.context_id,source.message_ref,
     claimedContext
