@@ -3713,3 +3713,44 @@ test('redacted L2 evidence does not claim a self-contained correction dossier',(
   assert.equal(output.text.includes(privateId),false);
   assert.equal(output.native_github_approved,false);
 });
+
+
+test('resume: producer rejects a syntactically valid but unreadably large bookmark',()=>{
+  const longFiles=Array.from({length:30},(_,i)=>
+    'src/'+String(i).padStart(4,'0')+'/'+'x'.repeat(165));
+  const references=Array.from({length:12},(_,i)=>({
+    kind:'CI',ref:'check'+i+'_'+'x'.repeat(161),head_sha:SHA
+  }));
+  assert.throws(()=>d.createResumePacket({
+    repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:'WORK-0005',task:'T1',expected_files:longFiles,
+    action_kind:'RECHECK_WORK',next_action:'X'.repeat(380),
+    evidence_refs:references
+  }),e=>e.code==='RESUME_TOO_LARGE');
+});
+test('resume: append rejects PR descriptions that would exceed the reader limit',()=>{
+  const packet=d.createResumePacket({
+    repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],
+    action_kind:'RECHECK_WORK',next_action:'Check original WORK',
+    evidence_refs:[]
+  });
+  assert.throws(()=>d.updateResumeInPrBody('A'.repeat(99950),packet),
+    e=>e.code==='PR_BODY_TOO_LARGE');
+});
+test('resume: replace rejects oversized final PR descriptions but retains valid ones',()=>{
+  const packet=d.createResumePacket({
+    repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],
+    action_kind:'RECHECK_WORK',next_action:'Check original WORK',
+    evidence_refs:[]
+  });
+  const before=d.updateResumeInPrBody('Initial body',packet);
+  const a=d.updateResumeInPrBody(before,packet);
+  assert.equal(d.inspectResumeFromPrBody(a,{
+    repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA
+  }).status,'SAME_REVISION');
+  const enormous='A'.repeat(99500)+'\n'+before;
+  assert.throws(()=>d.updateResumeInPrBody(enormous,packet),
+    e=>e.code==='PR_BODY_TOO_LARGE');
+});

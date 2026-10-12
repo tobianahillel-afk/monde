@@ -1574,8 +1574,13 @@ function resumePacket(input){
       bad('INVALID_RESUME_EVIDENCE');
     ids.add(e.kind+':'+e.ref);
   }
-  return {...input,expected_files:input.expected_files.slice(),
+  const result={...input,expected_files:input.expected_files.slice(),
     evidence_refs:input.evidence_refs.map(x=>({...x}))};
+  // The producer must never generate a bookmark that the reader rejects.
+  // Bound UTF-8 bytes too: multi-byte text may be short in JS code units.
+  if(Buffer.byteLength(JSON.stringify(result),'utf8')>6000)
+    bad('RESUME_TOO_LARGE');
+  return result;
 }
 function createResumePacket({repo,pr,head_sha,base_sha,plan=null,
   work=null,task=null,expected_files=[],action_kind,next_action,
@@ -1605,14 +1610,20 @@ function updateResumeInPrBody(body,packet){
   const found=body.split('<!-- '+RESUME).length-1;
   if(found>1)bad('DUPLICATE_RESUME_MARKER');
   const fragment=renderResumePacket(packet);
-  if(!found)return body+(body.endsWith('\n')?'':'\n')+'\n'+fragment+'\n';
+  if(!found){
+    const result=body+(body.endsWith('\n')?'':'\n')+'\n'+fragment+'\n';
+    if(result.length>100000)bad('PR_BODY_TOO_LARGE');
+    return result;
+  }
   const a=body.indexOf(resumeOpen);
   if(a<0)bad('MALFORMED_RESUME_MARKER');
   const b=body.indexOf(resumeClose,a+resumeOpen.length);
   if(b<0||b-a-resumeOpen.length>6000||
      body.slice(a+resumeOpen.length,b).includes('\n'))
     bad('MALFORMED_RESUME_MARKER');
-  return body.slice(0,a)+fragment+body.slice(b+resumeClose.length);
+  const result=body.slice(0,a)+fragment+body.slice(b+resumeClose.length);
+  if(result.length>100000)bad('PR_BODY_TOO_LARGE');
+  return result;
 }
 function inspectResumeFromPrBody(body,{repo,pr,head_sha,base_sha}){
   if(typeof body!=='string'||body.length>100000||
