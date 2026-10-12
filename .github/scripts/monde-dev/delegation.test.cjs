@@ -4787,3 +4787,24 @@ test('L2 delta never shortcuts a first or unqualified prior review',()=>{
   assert.equal(qualified.native_github_approved,false);
   assert.equal(qualified.previous_l2_approval_reusable,false);
 });
+
+test('oversized L2 cannot reuse prior provenance fingerprint to imply observed validation',()=>{
+  const crypto=require('node:crypto');
+  const oversized='L2 reviewer findings R1 on a malformed report.\n'+
+    'X'.repeat(1024*1024);
+  const prior={assignment_id:H.assignment_id,context_id:source.context_id,
+    message_ref:source.message_ref,head_sha:SHA,mission_kind:'L2_REVIEW',
+    response_sha256:crypto.createHash('sha256').update(oversized,'utf8').digest('hex')};
+  const result=d.assessDelegationBatch({
+    assignments:[H],current_head:SHA,
+    reports:{[H.assignment_id]:oversized},
+    sources:{[H.assignment_id]:source},
+    prior_sources:[prior]
+  });
+  assert.equal(result.previously_observed_count,0);
+  assert.equal(result.independence_conflicts,1);
+  assert.equal(result.results[0].independence_unverified,true);
+  assert.equal(result.results[0].needs_attention,true);
+  assert.equal(result.results[0].requires_manual_qualification,true);
+  assert.equal(result.ready_for_merge,false);
+});

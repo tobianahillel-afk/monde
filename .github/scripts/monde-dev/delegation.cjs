@@ -1191,12 +1191,18 @@ function assessDelegationBatch({
     const observation=sources[key];
     // A single L2 response can have hundreds of prior observations.
     // Hash it only once, even when many observations share its assignment.
-    let digest;
+    let digest, digestChecked=false;
     for(const earlier of prior_sources)
       if(earlier.assignment_id===key){
-        if(digest===undefined)
-          digest=createHash('sha256').update(reports[key],'utf8').digest('hex');
-        if(!Object.prototype.hasOwnProperty.call(earlier,'head_sha')||
+        if(!digestChecked){
+          digestChecked=true;
+          // Oversized reports are never qualified by assessReview or research
+          // assessment. Do not hash them merely to match an old observation.
+          if(Buffer.byteLength(reports[key],'utf8')<=1024*1024)
+            digest=createHash('sha256').update(reports[key],'utf8').digest('hex');
+        }
+        if(digest===undefined||
+           !Object.prototype.hasOwnProperty.call(earlier,'head_sha')||
            earlier.head_sha!==target.head_sha||
            earlier.mission_kind!==target.mission_kind||
            earlier.response_sha256!==digest||
