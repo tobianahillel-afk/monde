@@ -3936,3 +3936,24 @@ test('unqualified relay distinguishes invalid claims from retained/omitted ones'
   assert.match(result.text,/F55 \[R1\]/);
   assert.equal(result.native_github_approved,false);
 });
+
+test('unqualified byte cap preserves an urgent free-text R1 before bulky R3 claims',()=>{
+  const findings=Array.from({length:48},(_,i)=>({
+    id:'F'+String(i+1).padStart(2,'0'),severity:'R3',
+    path:'src/low'+i+'.js',
+    evidence:'Low priority observation '+i+' '+('x'.repeat(550)),
+    action:'Deferred low priority change '+i+' '+('y'.repeat(550))
+  }));
+  const report='Important independent observation: R1 urgent review issue in a critical path.\\n'+
+    message(data({verdict:'APPROVE',findings,extra_unrecognized_field:true}));
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.ok(result.text.includes('R1 urgent review issue'));
+  assert.match(result.text,/Omitted for public relay size: [1-9][0-9]* structured findings and 0 excerpts/);
+  assert.equal(result.ready_for_merge,false);
+  assert.ok(Buffer.byteLength(result.text,'utf8')<=12*1024);
+});

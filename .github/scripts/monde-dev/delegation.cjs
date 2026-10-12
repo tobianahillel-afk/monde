@@ -888,10 +888,23 @@ function prepareUnqualifiedTriageHandoff(args) {
   // Try a smaller, explicit summary rather than discarding all the findings
   // when a verbose report would exceed GitHub's relay safety budget.
   let note=render();
+  // Truncate by *risk*, not by report format: a free-text R1 must not be
+  // discarded before a structured R3 solely because snippets came second.
+  // Conservative R1 detection: an excerpt mentioning R1 may be material.
+  const excerptRank=s=>/\bR1\b/i.test(s)?0:/\bR2\b/i.test(s)?1:2;
   while(Buffer.byteLength(note,'utf8')>PUBLIC_RELAY_MAX_BYTES-512 &&
       (selectedSnippets.length||selectedFindings.length)){
-    if(selectedSnippets.length)selectedSnippets.pop();
-    else selectedFindings.pop(); // discard lowest severity first
+    const findingRank=selectedFindings.length?
+      severityRank[selectedFindings[selectedFindings.length-1].severity]:-1;
+    let snippetIndex=-1,snippetRank=-1;
+    for(let i=0;i<selectedSnippets.length;i++){
+      const rank=excerptRank(selectedSnippets[i]);
+      if(rank>=snippetRank){snippetRank=rank;snippetIndex=i;}
+    }
+    // Equal-risk ties favor retaining machine-recognized findings.
+    if(findingRank>snippetRank)selectedFindings.pop();
+    else if(snippetIndex>=0)selectedSnippets.splice(snippetIndex,1);
+    else selectedFindings.pop();
     note=render();
   }
   if(!selectedSnippets.length&&!selectedFindings.length)
