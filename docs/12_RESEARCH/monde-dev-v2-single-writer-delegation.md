@@ -22,7 +22,10 @@ The foreground developer may delegate `L2_REVIEW`, `TECH_RESEARCH`,
 `ARCH_ANALYSIS`, `SECURITY_ANALYSIS`, or `TEST_IDEATION`.
 Each mission has an immutable assignment ID, PR, exact HEAD, scope and author
 context ID. A cohort of one to four missions may mix kinds only for the same
-repository, PR and SHA. Research missions are analytical work, **not L2**.
+repository, PR and SHA.
+L2 review assignments reject nested directory/file scopes to keep coverage
+unambiguous. Read-only research may intentionally include nested scope paths;
+this never grants L2 coverage or approval. Research missions are analytical work, **not L2**.
 
 The pure helper `planDelegations` **requires** a `mission_kind` for
 every mission; a missing, unknown or null kind is rejected (fail-closed).

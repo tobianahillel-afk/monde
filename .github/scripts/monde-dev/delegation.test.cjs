@@ -3571,3 +3571,29 @@ test('duplicated upstream findings do not multiply downstream triage',()=>{
   assert.equal(out.blocked.find(x=>x.work==='WORK-0602').related_dependency_findings,1);
   assert.equal(out.recommended_remediation.related_r1_findings,1);
 });
+
+test('L2 rejects nested directories at multiple depths, in both orders',()=>{
+  for(const paths of [
+    ['src/','src/geo/'],['src/geo/','src/'],
+    ['src/geo/','src/geo/tiles/'],['src/geo/tiles/','src/geo/']
+  ])assert.throws(()=>d.assignment({...H,paths}),
+    error=>error.code==='OVERLAPPING_ASSIGNMENT_SCOPE');
+});
+test('read-only research can compare a directory and its nested files',()=>{
+  for(const mission_kind of [
+    'TECH_RESEARCH','ARCH_ANALYSIS','SECURITY_ANALYSIS','TEST_IDEATION']){
+    const input={...H,mission_kind,
+      paths:['src/geo/','src/geo/tiles/','src/geo/tiles/model.cjs']};
+    assert.deepEqual(d.assignment(input).paths,input.paths);
+    assert.match(d.buildResearchPrompt(input),/LECTURE SEULE/);
+    assert.throws(()=>d.buildReviewPrompt(input),
+      error=>error.code==='NOT_L2_MISSION');
+  }
+});
+test('read-only research still forbids exact duplicate or unsafe path',()=>{
+  const research={...H,mission_kind:'TECH_RESEARCH'};
+  assert.throws(()=>d.assignment({...research,paths:['src/','src/']}),
+    error=>error.code==='INVALID_ASSIGNMENT');
+  assert.throws(()=>d.assignment({...research,paths:['src/','src/../secret']}),
+    error=>error.code==='INVALID_ASSIGNMENT');
+});
