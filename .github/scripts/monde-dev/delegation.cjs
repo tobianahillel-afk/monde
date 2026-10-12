@@ -562,13 +562,9 @@ function redactPrivateProvenance(note, values) {
     for(const variant of [...new Set(variants)].sort(
       (a,b)=>b.length-a.length)){
       note=note.split(variant).join('[REDACTED_CONTEXT_REFERENCE]');
-      // Percent-encoded private IDs may use mixed upper/lower-case hex pairs
-      // within the same value. Literal variants alone miss those combinations.
+      // Percent-encoded private IDs may mix upper and lower hex case.
       if(variant.includes('%')){
-        const escaped=variant.replace(/[\[\]{}()*+?.\\^$|]/g,'\\    for(const variant of [...new Set(variants)].sort(
-      (a,b)=>b.length-a.length)){
-      note=note.split(variant).join('[REDACTED_CONTEXT_REFERENCE]');
-    }');
+        const escaped=variant.replace(/[\[\]{}()*+?.\\^$|]/g,'\\$&');
         note=note.replace(new RegExp(escaped,'gi'),
           '[REDACTED_CONTEXT_REFERENCE]');
       }
