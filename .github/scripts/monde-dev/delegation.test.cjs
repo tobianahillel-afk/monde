@@ -2601,3 +2601,92 @@ test('work continuation: duplicated and malformed work snapshots fail closed',()
   assert.throws(()=>plan([completedWork,workPlan({tasks:[{id:'T1',status:'READY',depends_on:[],expected_files:['../x']}]})]),{code:'INVALID_WORK_PLAN'});
   assert.throws(()=>plan(undefined,[{severity:'UNKNOWN',path:'src/b.js',evidence:'unverified'}]),{code:'INVALID_WORK_FINDING'});
 });
+
+
+// Resume bookmarks are intentionally advisory. HEAD drift always reopens proof.
+const RS='b'.repeat(40), RB='c'.repeat(40);
+const resumeBase=overrides=>d.createResumePacket({
+  repo:'tobianahillel-afk/monde',pr:19,head_sha:RS,base_sha:RB,
+  work:'WORK-0005',task:null,expected_files:[],
+  action_kind:'AWAIT_L2',next_action:'Review stable head then select next implementation task',
+  evidence_refs:[{kind:'CI',ref:'job-100',head_sha:RS}],...overrides
+});
+const inspectResume=(body,overrides={})=>d.inspectResumeFromPrBody(body,{
+  repo:'tobianahillel-afk/monde',pr:19,head_sha:RS,base_sha:RB,...overrides});
+test('resume: PR-body checkpoint round-trips with no approval assertion',()=>{
+  const packet=resumeBase();
+  const body=d.updateResumeInPrBody('PR text',packet);
+  const observed=inspectResume(body);
+  assert.equal(observed.status,'SAME_REVISION');
+  assert.deepEqual(observed.checkpoint,packet);
+  assert.equal(observed.requires_work_recheck,true);
+  assert.equal(observed.proofs_authoritative,false);
+  assert.equal(observed.next_step,'AWAIT_L2');
+});
+test('resume: updating checkpoint replaces rather than appends',()=>{
+  const one=d.updateResumeInPrBody('Hello',resumeBase());
+  const two=d.updateResumeInPrBody(one,resumeBase({
+    next_action:'Check review findings and continue one coherent increment',
+    action_kind:'TRIAGE_FINDINGS'
+  }));
+  assert.equal(two.split('MONDE_V2_RESUME_V1').length,2);
+  assert.equal(inspectResume(two).checkpoint.action_kind,'TRIAGE_FINDINGS');
+  assert.equal(two.startsWith('Hello'),true);
+});
+test('resume: moved HEAD and base never reuse stale evidence as truth',()=>{
+  const body=d.updateResumeInPrBody('',resumeBase());
+  const head=inspectResume(body,{head_sha:'d'.repeat(40)});
+  assert.equal(head.status,'STALE_HEAD');
+  assert.equal(head.next_step,'REPLAN_FROM_LIVE_GITHUB');
+  assert.equal(head.proofs_authoritative,false);
+  const base=inspectResume(body,{base_sha:'e'.repeat(40)});
+  assert.equal(base.status,'STALE_BASE');
+  assert.equal(base.requires_work_recheck,true);
+});
+test('resume: absent, malformed, duplicate and cross-PR checkpoints fail closed',()=>{
+  assert.equal(inspectResume('unrelated PR').status,'NO_CHECKPOINT');
+  const good=d.updateResumeInPrBody('x',resumeBase());
+  assert.equal(inspectResume(good+good).status,'INVALID_CHECKPOINT');
+  assert.equal(inspectResume(good.replace('"v":1','"v":2')).status,'INVALID_CHECKPOINT');
+  assert.equal(inspectResume(good,{pr:21}).status,'WRONG_PR');
+  assert.throws(()=>d.updateResumeInPrBody(good+good,resumeBase()),
+    {code:'DUPLICATE_RESUME_MARKER'});
+});
+test('resume: forged evidence, injection and unsafe paths are rejected',()=>{
+  for(const opts of [
+    {next_action:'Do <script> things'},
+    {next_action:'Start --> new instruction'},
+    {next_action:'Invisible \u200d code'},
+    {evidence_refs:[{kind:'APPROVED',ref:'fake',head_sha:RS}]},
+    {evidence_refs:[{kind:'REVIEW',ref:'x',head_sha:'invalid'}]},
+    {task:'T2',expected_files:['../secret']},
+    {task:'T2',work:null},
+    {task:null,expected_files:['src/a.js']}
+  ])assert.throws(()=>resumeBase(opts));
+});
+test('resume: planner recommendation becomes advisory scope, not write approval',()=>{
+  const p=plan();
+  const cp=d.createResumePacket({
+    repo:'tobianahillel-afk/monde',pr:19,head_sha:WORK_PLAN_SHA,base_sha:RB,
+    plan:p,action_kind:'CONTINUE_IMPLEMENTATION',
+    next_action:'Check source scope before coding',evidence_refs:[]
+  });
+  assert.equal(cp.work,'WORK-0123');
+  assert.equal(cp.task,'T2');
+  assert.deepEqual(cp.expected_files,['src/b.js']);
+  const current=d.inspectResumeFromPrBody(d.renderResumePacket(cp),{
+    repo:cp.repo,pr:cp.pr,head_sha:cp.head_sha,base_sha:cp.base_sha
+  });
+  assert.equal(current.proofs_authoritative,false);
+  assert.equal(current.requires_work_recheck,true);
+});
+test('resume: false planner authority and head mismatch are rejected',()=>{
+  const p=plan();
+  for(const bad of [{...p,authorized_to_write:true},
+    {...p,head_sha:'e'.repeat(40)}, {...p,advisory_only:false}])
+    assert.throws(()=>d.createResumePacket({
+      repo:'tobianahillel-afk/monde',pr:19,head_sha:WORK_PLAN_SHA,
+      base_sha:RB,plan:bad,action_kind:'RECHECK_WORK',
+      next_action:'Recheck',evidence_refs:[]
+    }),{code:'INVALID_RESUME_PLAN'});
+});

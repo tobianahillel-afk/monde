@@ -1157,10 +1157,120 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     continuation:'RECHECK_REPO_AND_SCOPE_BEFORE_WRITE'};
 }
 
+
+// PR description is the sole continuation bookmark. A bookmark never
+// constitutes a grant, independent approval, or independently verified CI.
+const RESUME='MONDE_V2_RESUME_V1';
+const resumeOpen='<!-- '+RESUME+'\n', resumeClose='\n-->';
+const resumeActions=new Set(['CONTINUE_IMPLEMENTATION','RECHECK_WORK',
+  'TRIAGE_FINDINGS','AWAIT_L2','PREPARE_ACCEPTANCE']);
+function resumePacket(input){
+  exactFields(input,['v','repo','pr','head_sha','base_sha','work','task',
+    'expected_files','action_kind','next_action','evidence_refs']);
+  if(input.v!==1||typeof input.repo!=='string'||!REPO.test(input.repo)||
+     !Number.isSafeInteger(input.pr)||input.pr<1||
+     typeof input.head_sha!=='string'||!SHA.test(input.head_sha)||
+     typeof input.base_sha!=='string'||!SHA.test(input.base_sha)||
+     !resumeActions.has(input.action_kind)||!oneLine(input.next_action,380)||
+     /[<>]/.test(input.next_action)||
+     (input.work!==null&&(typeof input.work!=='string'||
+       !/^WORK-\d{4,}$/.test(input.work)))||
+     (input.task!==null&&(typeof input.task!=='string'||
+       !/^T[1-9]\d*$/.test(input.task)))||
+     (input.task!==null&&input.work===null)||
+     !Array.isArray(input.expected_files)||input.expected_files.length>30||
+     (input.task===null&&input.expected_files.length>0)||
+     input.expected_files.some(p=>!validPath(p,true))||
+     new Set(input.expected_files).size!==input.expected_files.length||
+     !Array.isArray(input.evidence_refs)||input.evidence_refs.length>12)
+    bad('INVALID_RESUME_PACKET');
+  const ids=new Set();
+  for(const e of input.evidence_refs){
+    exactFields(e,['kind','ref','head_sha']);
+    if(!['CI','REVIEW','WORK','TEST','PR'].includes(e.kind)||
+       !oneLine(e.ref,180)||/[<>]/.test(e.ref)||
+       typeof e.head_sha!=='string'||!SHA.test(e.head_sha)||
+       ids.has(e.kind+':'+e.ref))
+      bad('INVALID_RESUME_EVIDENCE');
+    ids.add(e.kind+':'+e.ref);
+  }
+  return {...input,expected_files:input.expected_files.slice(),
+    evidence_refs:input.evidence_refs.map(x=>({...x}))};
+}
+function createResumePacket({repo,pr,head_sha,base_sha,plan=null,
+  work=null,task=null,expected_files=[],action_kind,next_action,
+  evidence_refs=[]}){
+  if(plan!==null){
+    if(!plain(plan)||plan.repo!==repo||plan.head_sha!==head_sha||
+       plan.advisory_only!==true||plan.authorized_to_write!==false||
+       !Object.prototype.hasOwnProperty.call(plan,'recommended'))
+      bad('INVALID_RESUME_PLAN');
+    if(plan.recommended!==null){
+      const selected=plan.recommended;
+      if(!plain(selected)||!Array.isArray(selected.expected_files)||
+         work!==null||task!==null||expected_files.length)
+        bad('INVALID_RESUME_PLAN');
+      work=selected.work;task=selected.task;
+      expected_files=selected.expected_files;
+    }
+  }
+  return resumePacket({v:1,repo,pr,head_sha,base_sha,work,task,
+    expected_files,action_kind,next_action,evidence_refs});
+}
+function renderResumePacket(packet){
+  return resumeOpen+JSON.stringify(resumePacket(packet))+resumeClose;
+}
+function updateResumeInPrBody(body,packet){
+  if(typeof body!=='string'||body.length>100000)bad('INVALID_PR_BODY');
+  const found=body.split('<!-- '+RESUME).length-1;
+  if(found>1)bad('DUPLICATE_RESUME_MARKER');
+  const fragment=renderResumePacket(packet);
+  if(!found)return body+(body.endsWith('\n')?'':'\n')+'\n'+fragment+'\n';
+  const a=body.indexOf(resumeOpen);
+  if(a<0)bad('MALFORMED_RESUME_MARKER');
+  const b=body.indexOf(resumeClose,a+resumeOpen.length);
+  if(b<0||b-a-resumeOpen.length>6000||
+     body.slice(a+resumeOpen.length,b).includes('\n'))
+    bad('MALFORMED_RESUME_MARKER');
+  return body.slice(0,a)+fragment+body.slice(b+resumeClose.length);
+}
+function inspectResumeFromPrBody(body,{repo,pr,head_sha,base_sha}){
+  if(typeof body!=='string'||body.length>100000||
+     typeof repo!=='string'||!REPO.test(repo)||
+     !Number.isSafeInteger(pr)||pr<1||
+     typeof head_sha!=='string'||!SHA.test(head_sha)||
+     typeof base_sha!=='string'||!SHA.test(base_sha))
+    bad('INVALID_RESUME_OBSERVATION');
+  const found=body.split('<!-- '+RESUME).length-1;
+  const untrusted=status=>({status,checkpoint:null,
+    requires_work_recheck:true,proofs_authoritative:false});
+  if(!found)return untrusted('NO_CHECKPOINT');
+  if(found!==1)return untrusted('INVALID_CHECKPOINT');
+  const a=body.indexOf(resumeOpen);
+  if(a<0)return untrusted('INVALID_CHECKPOINT');
+  const b=body.indexOf(resumeClose,a+resumeOpen.length);
+  if(b<0||b-a-resumeOpen.length>6000||
+     body.slice(a+resumeOpen.length,b).includes('\n'))
+    return untrusted('INVALID_CHECKPOINT');
+  let packet;
+  try{
+    const raw=body.slice(a+resumeOpen.length,b);
+    packet=resumePacket(JSON.parse(raw));
+    if(JSON.stringify(packet)!==raw)bad('NONCANONICAL_RESUME');
+  }catch{return untrusted('INVALID_CHECKPOINT');}
+  if(packet.repo!==repo||packet.pr!==pr)return untrusted('WRONG_PR');
+  const drift=packet.head_sha!==head_sha?'STALE_HEAD':
+    packet.base_sha!==base_sha?'STALE_BASE':null;
+  return {status:drift||'SAME_REVISION',checkpoint:packet,
+    requires_work_recheck:true,proofs_authoritative:false,
+    next_step:drift?'REPLAN_FROM_LIVE_GITHUB':packet.action_kind};
+}
+
 module.exports = {
   MARKER, RESEARCH_MARKER, InvalidReport, assignment,
   buildReviewPrompt, buildResearchPrompt, assessResearchReport, validateReport,
   parseReviewResponse, assessReview, prepareInteractiveHandoff,
   planDelegations, assessDelegationBatch, groupTriageFindings,
-  prepareUnqualifiedTriageHandoff, planNextIncrement
+  prepareUnqualifiedTriageHandoff, planNextIncrement,
+  createResumePacket, renderResumePacket, updateResumeInPrBody, inspectResumeFromPrBody
 };
