@@ -1442,9 +1442,12 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
         ...taskUpstreamMaterial.matched]);
       let upstreamCount=0,combinedR1=material.r1;
       for(const path of upstreamMatched){
+        // One R1/R2 claim overlapping direct and ancestor scopes is one
+        // correction, not both a local and a second upstream blocker.
+        if(material.matched.has(path))continue;
         const count=materialCounts.get(path);
         upstreamCount+=count.count;
-        if(!material.matched.has(path))combinedR1+=count.r1;
+        combinedR1+=count.r1;
       }
       const upstream={count:upstreamCount,matched:upstreamMatched};
       if(material.count)reasons.push('MATERIAL_FINDINGS_NEED_TRIAGE');

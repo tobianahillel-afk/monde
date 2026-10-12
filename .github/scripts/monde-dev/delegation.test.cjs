@@ -3830,3 +3830,39 @@ test('L2 F01: upstream R1 remains visible behind a missing dependency',()=>{
   assert.ok(triage.execution_blockers.includes('UNKNOWN_TASK_DEPENDENCY'));
   assert.equal(result.eligible.some(x=>x.task==='T2'),false);
 });
+
+test('planner does not double-count one shared R1 as direct and upstream',()=>{
+  const w={id:'WORK-0910',status:'READY',depends_on:[],
+    tasks:[
+      {id:'T1',status:'DONE',depends_on:[],expected_files:['src/shared.js']},
+      {id:'T2',status:'READY',depends_on:['T1'],expected_files:['src/shared.js']}
+    ]};
+  const out=d.planNextIncrement({repo:H.repo,head_sha:SHA,works:[w],
+    triage_findings:[{severity:'R1',path:'src/shared.js',
+      evidence:'One defect shared by task and upstream scope'}]});
+  const item=out.remediation_candidates.find(x=>x.task==='T2');
+  assert.ok(item);
+  assert.equal(item.related_material_findings,1);
+  assert.equal(item.related_dependency_findings,0);
+  assert.equal(item.related_r1_findings,1);
+  assert.equal(item.disposition,'VERIFY_AND_FIX_IN_FOREGROUND');
+  assert.ok(!item.reasons.includes('DEPENDENCY_FINDINGS_NEED_TRIAGE'));
+  assert.equal(item.execution_allowed,false);
+});
+test('planner retains distinct ancestor R1 alongside direct R2',()=>{
+  const done={id:'WORK-0911',status:'DONE',depends_on:[],tasks:[
+    {id:'T1',status:'DONE',depends_on:[],expected_files:['src/base.js']}]};
+  const next={id:'WORK-0912',status:'READY',depends_on:['WORK-0911'],
+    tasks:[{id:'T1',status:'READY',depends_on:[],expected_files:['src/current.js']}]};
+  const out=d.planNextIncrement({repo:H.repo,head_sha:SHA,works:[done,next],
+    triage_findings:[
+      {severity:'R1',path:'src/base.js',evidence:'Upstream regression'},
+      {severity:'R2',path:'src/current.js',evidence:'Separate local defect'}
+    ]});
+  const item=out.remediation_candidates.find(x=>x.work==='WORK-0912');
+  assert.ok(item);
+  assert.equal(item.related_material_findings,1);
+  assert.equal(item.related_dependency_findings,1);
+  assert.equal(item.related_r1_findings,1);
+  assert.equal(item.disposition,'TRIAGE_UPSTREAM_BEFORE_DEPENDENT_WORK');
+});
