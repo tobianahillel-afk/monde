@@ -2750,7 +2750,7 @@ test('unqualified fallback: short and JSON-escaped source references stay privat
 
 test('qualified handoff redacts URL-encoded context and message references',()=>{
   const privateRef='msg/l2:private-review-2026';
-  const privateContext='chat/l2:private-context-2026';
+  const privateContext='chat:l2-private-context-2026';
   const local={...source,context_id:privateContext,message_ref:privateRef};
   const metadata=data({reviewer_context_id:privateContext,
     findings:[{...data().findings[0],
