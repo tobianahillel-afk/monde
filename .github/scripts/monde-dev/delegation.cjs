@@ -550,8 +550,10 @@ const PRIVATE_CHAT_HOST=/(?:chatgpt(?:\.|%(?:25)*2e)com|chat(?:\.|%(?:25)*2e)ope
 const CHAT_DOMAIN=String.raw`(?:chatgpt(?:\.|%(?:25)*2e)com|chat(?:\.|%(?:25)*2e)openai(?:\.|%(?:25)*2e)com)`;
 const CHAT_SEP=String.raw`(?:\\*/|%(?:25)*2f)`;
 const PRIVATE_CHAT_LINK=new RegExp(
+  // Consume fragments and URI subdelimiters too: never leave a private
+  // conversation fragment visible after replacing only its path.
   CHAT_DOMAIN+CHAT_SEP+'(?:c|share)'+CHAT_SEP+
-  String.raw`[A-Za-z0-9_.~%?=&+:/\\-]+`,'gi');
+  String.raw`[A-Za-z0-9_.~%?=&+:/\\#@!$;,-]+`,'gi');
 // Full-report consent never includes raw ChatGPT provenance, including
 // short valid message references and JSON-escaped excerpts. Redact the final
 // public text at all serialization levels used by the two handoff paths.

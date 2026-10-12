@@ -4152,3 +4152,37 @@ test('privacy: resume refuses JSON-escaped private chat hostnames',()=>{
   }
   assert.equal(d.createResumePacket(baseline).action_kind,'AWAIT_L2');
 });
+
+
+test('privacy: qualified L2 relay redacts ChatGPT URL fragments in findings',()=>{
+  const privateLink='https://chatgpt.com/c/public-prefix#private-fragment-L2-2026';
+  const finding={id:'F01',severity:'R1',path:H.paths[0],
+    evidence:'Inspect '+privateLink,action:'Review source code'};
+  const out=d.prepareInteractiveHandoff({
+    expected:H,response:message(data({findings:[finding]})),
+    current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,
+      personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.match(out.text,/REDACTED_CHAT_LINK/);
+  assert.doesNotMatch(out.text,/private-fragment-L2-2026/);
+  assert.equal(out.native_github_approved,false);
+});
+
+test('privacy: unqualified L2 handoff redacts private fragments even in raw prose',()=>{
+  const privateLink='https://chat.openai.com/share/summary#private-fragment-raw-42';
+  const response='Independent reviewer R1: see '+privateLink+
+    ' for a security finding. Correct the code.\\n'+d.MARKER+'\\n{bad-json';
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,
+      personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.match(out.text,/REDACTED_CHAT_LINK/);
+  assert.doesNotMatch(out.text,/private-fragment-raw-42/);
+  assert.equal(out.native_github_approved,false);
+});
