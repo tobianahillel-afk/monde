@@ -1570,8 +1570,13 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     const y=b.slice(prefix.length).replace(/^0+(?=\d)/,'');
     return x.length-y.length||x.localeCompare(y)||a.localeCompare(b);
   };
-  const order=(a,b)=>priority[a.state]-priority[b.state]||
-    priority[a.work_state]-priority[b.work_state]||
+  // Material allegations also arise in PLANNED/BLOCKED/PROPOSED work.
+  // Those states have no execution rank: NaN must never disable numeric
+  // WORK/TASK tie-breakers or make triage depend on input enumeration order.
+  const priorityOf=state=>Object.prototype.hasOwnProperty.call(priority,state)?
+    priority[state]:3;
+  const order=(a,b)=>priorityOf(a.state)-priorityOf(b.state)||
+    priorityOf(a.work_state)-priorityOf(b.work_state)||
     numericIdOrder(a.work,b.work,'WORK-')||
     numericIdOrder(a.task,b.task,'T');
   candidates.sort(order);

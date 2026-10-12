@@ -4245,3 +4245,48 @@ test('prose-only malformed L2 reports never mislabel R1 excerpts as zero receive
   assert.equal(out.native_github_approved,false);
   assert.equal(out.ready_for_merge,false);
 });
+
+
+test('blocked R2 remediation is numerically deterministic for non-executable statuses',()=>{
+  const work=(id,path)=>({id,status:'PLANNED',depends_on:[],
+    tasks:[{id:'T1',status:'PLANNED',depends_on:[],expected_files:[path]}]});
+  const input=[work('WORK-0010','src/ten.js'),work('WORK-0002','src/two.js')];
+  const result=d.planNextIncrement({repo:H.repo,head_sha:SHA,works:input,
+    triage_findings:[
+      {severity:'R2',path:'src/ten.js',evidence:'Unverified regression claim in ten'},
+      {severity:'R2',path:'src/two.js',evidence:'Unverified regression claim in two'}
+    ]});
+  assert.equal(result.recommended,null);
+  assert.deepEqual(result.remediation_candidates.map(x=>x.work),
+    ['WORK-0002','WORK-0010']);
+  assert.equal(result.recommended_remediation.work,'WORK-0002');
+  assert.ok(result.remediation_candidates.every(x=>x.execution_allowed===false));
+});
+
+test('privacy: standalone private ChatGPT host blocks qualified public L2 relay',()=>{
+  const report=data({findings:[{id:'F01',severity:'R1',path:H.paths[0],
+    evidence:'Internal discussion mentioned bare chatgpt.com without a conversation path',
+    action:'Inspect implementation without disclosing private conversation details'}]});
+  const result=d.prepareInteractiveHandoff({
+    expected:H,response:message(report),current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.status,'UNREDACTED_CHAT_HOST');
+  assert.equal(result.ready_for_manual_relay,false);
+  assert.equal(result.text,null);
+});
+
+test('privacy: standalone private ChatGPT host blocks malformed L2 fallback too',()=>{
+  const raw='A reviewer found R1 in an access-control branch; bare chat.openai.com '+
+    'is private provenance and must not enter public GitHub. Investigate it.\\n'+
+    d.MARKER+'\\n{broken-footer';
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:raw,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.status,'UNREDACTED_CHAT_HOST');
+  assert.equal(result.ready_for_manual_relay,false);
+  assert.equal(result.text,null);
+});
