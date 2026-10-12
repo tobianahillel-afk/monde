@@ -1225,7 +1225,8 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
   const issues=[];
   for(const finding of triage_findings){
     if(!plain(finding)||!['R1','R2','R3'].includes(finding.severity)||
-       !validPath(finding.path)||!oneLine(finding.evidence,3000))
+       !validPath(finding.path)||!oneLine(finding.evidence,3000)||
+        (Object.hasOwn(finding,'action')&&!oneLine(finding.action,3000)))
       bad('INVALID_WORK_FINDING');
     issues.push(finding);
   }
@@ -1242,7 +1243,10 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
   let duplicatedMaterial=0;
   for(const f of issues){
     if(f.severity==='R3')continue;
-    const key=JSON.stringify([f.severity,f.path,f.evidence]);
+    // Distinct corrective actions must remain separate in developer triage.
+    // Older reports without an action are still accepted as allegations.
+    const key=JSON.stringify([f.severity,f.path,f.evidence,
+      Object.hasOwn(f,'action')?f.action:null]);
     if(seenMaterial.has(key)){duplicatedMaterial++;continue;}
     seenMaterial.add(key);
     const prev=materialCounts.get(f.path)||{count:0,r1:0};

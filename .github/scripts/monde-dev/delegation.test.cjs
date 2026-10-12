@@ -3621,3 +3621,33 @@ test('public L2 relay preserves late R1 and explicitly accounts for omitted deta
   assert.equal(outcome.self_contained_for_remediation,false);
   assert.ok(Buffer.byteLength(outcome.text,'utf8')<=12*1024);
 });
+
+test('interactive planner keeps distinct corrective actions on the same R1 evidence',()=>{
+  const work={id:'WORK-0901',status:'READY',depends_on:[],
+    tasks:[{id:'T1',status:'READY',depends_on:[],
+      expected_files:['src/core.js']}]};
+  const finding={severity:'R1',path:'src/core.js',
+    evidence:'The retry path loses the original result'};
+  const plan=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works:[work],triage_findings:[
+      {...finding,action:'Reconcile the durable result'},
+      {...finding,action:'Add an idempotency key'},
+      {...finding,action:'Reconcile the durable result'}
+    ]});
+  assert.equal(plan.unqualified_material_findings,3);
+  assert.equal(plan.duplicate_material_allegations_collapsed,1);
+  assert.equal(plan.blocked[0].related_material_findings,2);
+  assert.equal(plan.recommended,null);
+  assert.equal(plan.authorized_to_write,false);
+});
+test('interactive planner rejects malformed optional correction action',()=>{
+  const work={id:'WORK-0901',status:'READY',depends_on:[],
+    tasks:[{id:'T1',status:'READY',depends_on:[],
+      expected_files:['src/core.js']}]};
+  const basis={severity:'R1',path:'src/core.js',evidence:'Missing result'};
+  for(const action of ['',null,'evil\nother line',5]){
+    assert.throws(()=>d.planNextIncrement({repo:'tobianahillel-afk/monde',
+      head_sha:SHA,works:[work],triage_findings:[{...basis,action}]}),
+      err=>err.code==='INVALID_WORK_FINDING');
+  }
+});
