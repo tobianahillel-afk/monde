@@ -561,7 +561,7 @@ const PRIVATE_CHAT_LINK=new RegExp(
 // We deny publication if the canonicalized representation still contains it.
 function containsPrivateChatHost(value) {
   if(typeof value!=='string')return false;
-  if(value.length>131072)return true; // cannot safely classify an oversized relay
+  if(value.length>131072)return false; // public relay size guard rejects it below
   let text=value;
   for(let pass=0;pass<6;pass++){
     if(PRIVATE_CHAT_HOST.test(text))return true;

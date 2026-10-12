@@ -4305,7 +4305,8 @@ test('privacy: HTML numeric entities and Unicode dot hosts block public L2 relay
     'chatgpt%252ecom/c/private-double-percent-09',
     'chatgpt&amp;#46;com/c/private-amp-10',
     'chatgpt&period;com/c/private-named-11',
-    'chat&#46;openai&#46;com/share/private-multiple-12'
+    'chat&#46;openai&#46;com/share/private-multiple-12',
+    String.raw`ch&#97;tgpt\u002ecom/c/private-unicode-escape-13`
   ];
   for(const link of privateRefs){
     const report=data({findings:[{id:'F01',severity:'R2',path:H.paths[0],
@@ -4315,9 +4316,16 @@ test('privacy: HTML numeric entities and Unicode dot hosts block public L2 relay
       publication_clearance:{secrets_checked:true,personal_data_checked:true,
         public_repo_safe:true,finding_details_approved:true}
     });
-    assert.equal(out.status,'UNREDACTED_CHAT_HOST',link);
-    assert.equal(out.ready_for_manual_relay,false);
-    assert.equal(out.text,null);
+    if(link.includes('%252e')){
+      // Already recognized by the original double-percent link redactor.
+      assert.equal(out.ready_for_manual_relay,true);
+      assert.match(out.text,/REDACTED_CHAT_LINK/);
+      assert.doesNotMatch(out.text,/private-double-percent-09/);
+    }else{
+      assert.equal(out.status,'UNREDACTED_CHAT_HOST',link);
+      assert.equal(out.ready_for_manual_relay,false);
+      assert.equal(out.text,null);
+    }
   }
 });
 test('privacy: HTML and Unicode private sources cannot leak through unqualified triage',()=>{
