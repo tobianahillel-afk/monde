@@ -3371,13 +3371,13 @@ test('many matching prior L2 observations do not lose one conflicting prior',()=
 });
 
 test('natural work order respects the numeric value despite variable zero padding',()=>{
-  const works=['WORK-9999','WORK-00010','WORK-0010','WORK-10000']
+  const works=['WORK-9999','WORK-00010','WORK-0011','WORK-10000']
     .map((id,i)=>({id,status:'READY',depends_on:[],tasks:[{
       id:'T1',status:'READY',depends_on:[],expected_files:['src/part'+i+'.cjs']
     }]}));
   const plan=d.planNextIncrement({repo:'tobianahillel-afk/monde',head_sha:SHA,works});
   assert.deepEqual(plan.eligible.map(x=>x.work),
-    ['WORK-00010','WORK-0010','WORK-9999','WORK-10000']);
+    ['WORK-00010','WORK-0011','WORK-9999','WORK-10000']);
   assert.equal(plan.recommended.work,'WORK-00010');
   assert.equal(plan.authorized_to_write,false);
 });
@@ -3389,4 +3389,66 @@ test('natural work order compares arbitrarily long numeric IDs without precision
   const plan=d.planNextIncrement({repo:'tobianahillel-afk/monde',head_sha:SHA,works});
   assert.deepEqual(plan.eligible.map(x=>x.work),
     ['WORK-9007199254740992','WORK-9007199254740993']);
+});
+
+test('two spellings of the same WORK number cannot both be planned',()=>{
+  const works=['WORK-0010','WORK-00010'].map((id,i)=>({
+    id,status:'READY',depends_on:[],tasks:[{id:'T1',
+      status:'READY',depends_on:[],expected_files:['src/a'+i+'.cjs']}]
+  }));
+  assert.throws(()=>d.planNextIncrement({repo:H.repo,head_sha:SHA,works}),
+    e=>e.code==='AMBIGUOUS_WORK_ID');
+});
+test('a misspelled numeric dependency cannot alias an existing WORK',()=>{
+  const works=[
+    {id:'WORK-0010',status:'DONE',depends_on:[],tasks:[]},
+    {id:'WORK-0009',status:'READY',depends_on:['WORK-00010'],
+      tasks:[{id:'T1',status:'READY',depends_on:[],
+        expected_files:['src/next.cjs']}]}];
+  const plan=d.planNextIncrement({repo:H.repo,head_sha:SHA,works});
+  assert.equal(plan.recommended,null);
+  assert.ok(plan.blocked[0].reasons.includes('WORK_DEPENDENCIES_UNAVAILABLE'));
+});
+test('completed WORK with unfinished internal tasks blocks only descendants',()=>{
+  const works=[
+    {id:'WORK-0001',status:'DONE',depends_on:[],tasks:[
+      {id:'T1',status:'DONE',depends_on:[],expected_files:['src/a.cjs']},
+      {id:'T2',status:'READY',depends_on:['T1'],expected_files:['src/b.cjs']}]},
+    {id:'WORK-0002',status:'READY',depends_on:['WORK-0001'],
+      tasks:[{id:'T1',status:'READY',depends_on:[],
+        expected_files:['src/dependent.cjs']}]},
+    {id:'WORK-0003',status:'READY',depends_on:[],
+      tasks:[{id:'T1',status:'READY',depends_on:[],
+        expected_files:['src/independent.cjs']}]}];
+  const result=d.planNextIncrement({repo:H.repo,head_sha:SHA,works});
+  assert.equal(result.recommended.work,'WORK-0003');
+  assert.ok(result.blocked.find(x=>x.work==='WORK-0002')
+    .reasons.includes('WORK_ANCESTOR_PENDING'));
+});
+test('completed WORK with missing or cyclic task dependencies blocks descendants',()=>{
+  for(const defs of [
+    [{id:'T1',status:'DONE',depends_on:['T9'],expected_files:['src/a.cjs']}],
+    [{id:'T1',status:'DONE',depends_on:['T2'],expected_files:['src/a.cjs']},
+      {id:'T2',status:'DONE',depends_on:['T1'],expected_files:['src/b.cjs']}]
+  ]){
+    const works=[
+      {id:'WORK-0001',status:'DONE',depends_on:[],tasks:defs},
+      {id:'WORK-0002',status:'READY',depends_on:['WORK-0001'],
+        tasks:[{id:'T1',status:'READY',depends_on:[],
+          expected_files:['src/next.cjs']}]}];
+    const plan=d.planNextIncrement({repo:H.repo,head_sha:SHA,works});
+    assert.equal(plan.recommended,null);
+    assert.ok(plan.blocked[0].reasons.some(x=>[
+      'WORK_ANCESTOR_UNAVAILABLE','WORK_DEPENDENCY_CYCLE'].includes(x)));
+  }
+});
+test('DONE-task triage sorts T2 before T10 with numeric WORK order',()=>{
+  const works=['WORK-0011','WORK-0010'].map(id=>({
+    id,status:'DONE',depends_on:[],tasks:['T10','T2'].map(task=>({
+      id:task,status:'DONE',depends_on:[],expected_files:['src/shared.cjs']}))
+  }));
+  const plan=d.planNextIncrement({repo:H.repo,head_sha:SHA,works,
+    triage_findings:[{severity:'R2',path:'src/shared.cjs',evidence:'finding'}]});
+  assert.deepEqual(plan.completed_scope_triage.map(x=>x.work+'/'+x.task),
+    ['WORK-0010/T2','WORK-0010/T10','WORK-0011/T2','WORK-0011/T10']);
 });

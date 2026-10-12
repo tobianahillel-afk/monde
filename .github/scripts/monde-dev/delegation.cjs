@@ -1104,6 +1104,8 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
      !Array.isArray(triage_findings)||triage_findings.length>200)
     bad('INVALID_WORK_PLAN');
   const indexed=new Map(), candidates=[], blocked=[], remediation=[];
+  const workNumbers=new Map();
+  const workNumber=id=>id.slice(5).replace(/^0+(?=\d)/,'');
   const completedScopeTriage=[],mappedMaterialPaths=new Set();
   for(const work of works){
     if(!plain(work)||typeof work.id!=='string'||
@@ -1113,6 +1115,10 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
        work.depends_on.some(id=>typeof id!=='string'||!/^WORK-[0-9]{4,}$/.test(id))||
        new Set(work.depends_on).size!==work.depends_on.length||
        work.depends_on.includes(work.id))bad('INVALID_WORK_PLAN');
+    const ordinal=workNumber(work.id);
+    if(workNumbers.has(ordinal)&&workNumbers.get(ordinal)!==work.id)
+      bad('AMBIGUOUS_WORK_ID');
+    workNumbers.set(ordinal,work.id);
     indexed.set(work.id,work);
     const tasks=new Set();
     for(const task of work.tasks){
@@ -1179,6 +1185,29 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
   // Verify transitive WORK dependencies too: a DONE parent whose own
   // prerequisite is missing, pending or cyclic cannot justify new work.
   // This is advisory and does not change canonical registry state.
+  // An upstream DONE work is usable only if its own internal tasks are
+  // all DONE and its internal task dependency DAG is complete and acyclic.
+  const completedWorkHealth=new Map();
+  const inspectCompletedWork=ancestor=>{
+    if(completedWorkHealth.has(ancestor.id))
+      return completedWorkHealth.get(ancestor.id);
+    const byId=new Map(ancestor.tasks.map(t=>[t.id,t]));
+    const active=new Set(),checked=new Set();
+    const state={missing:false,pending:false,cycle:false};
+    const scan=id=>{
+      if(active.has(id)){state.cycle=true;return;}
+      if(checked.has(id))return;
+      const t=byId.get(id);
+      if(!t){state.missing=true;return;}
+      active.add(id);
+      if(t.status!=='DONE')state.pending=true;
+      for(const dep of t.depends_on)scan(dep);
+      active.delete(id);checked.add(id);
+    };
+    for(const task of ancestor.tasks)scan(task.id);
+    completedWorkHealth.set(ancestor.id,state);
+    return state;
+  };
   const ancestorHealth=(work)=>{
     const active=new Set([work.id]),visited=new Set();
     const out={missing:false,pending:false,cycle:false};
@@ -1190,6 +1219,12 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
       if(!ancestor){out.missing=true;return;}
       active.add(id);
       if(ancestor.status!=='DONE')out.pending=true;
+      else {
+        const internal=inspectCompletedWork(ancestor);
+        if(internal.pending)out.pending=true;
+        if(internal.missing)out.missing=true;
+        if(internal.cycle)out.cycle=true;
+      }
       for(const parent of ancestor.depends_on)walk(parent);
       active.delete(id);
     };
@@ -1368,7 +1403,8 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     }));
   completedScopeTriage.sort((a,b)=>
     (b.related_r1_findings>0?1:0)-(a.related_r1_findings>0?1:0)||
-    a.work.localeCompare(b.work)||a.task.localeCompare(b.task));
+    numericIdOrder(a.work,b.work,'WORK-')||
+    numericIdOrder(a.task,b.task,'T'));
   unmappedMaterialFindings.sort((a,b)=>
     (b.r1_occurrences>0?1:0)-(a.r1_occurrences>0?1:0)||
     a.path.localeCompare(b.path));
