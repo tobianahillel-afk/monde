@@ -3750,7 +3750,17 @@ test('resume: replace rejects oversized final PR descriptions but retains valid 
   assert.equal(d.inspectResumeFromPrBody(a,{
     repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA
   }).status,'SAME_REVISION');
-  const enormous='A'.repeat(99500)+'\n'+before;
-  assert.throws(()=>d.updateResumeInPrBody(enormous,packet),
+  const wider=d.createResumePacket({
+    repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:'WORK-0005',task:'T1',
+    expected_files:Array.from({length:15},(_,i)=>
+      'src/'+String(i).padStart(4,'0')+'/'+'x'.repeat(160)),
+    action_kind:'RECHECK_WORK',next_action:'Recheck original WORK',
+    evidence_refs:[]
+  });
+  // The old body itself is valid; replacement with a larger packet is not.
+  const nearLimit='A'.repeat(100000-before.length-5)+'\n'+before;
+  assert.ok(nearLimit.length<100000);
+  assert.throws(()=>d.updateResumeInPrBody(nearLimit,wider),
     e=>e.code==='PR_BODY_TOO_LARGE');
 });
