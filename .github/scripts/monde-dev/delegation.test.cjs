@@ -2747,3 +2747,46 @@ test('unqualified fallback: short and JSON-escaped source references stay privat
   assert.equal(out.text.includes(JSON.stringify(privateRef).slice(1,-1)),false);
   assert.match(out.text,/REDACTED_CONTEXT_REFERENCE/);
 });
+
+test('qualified handoff redacts URL-encoded context and message references',()=>{
+  const privateRef='msg/l2:private-review-2026';
+  const privateContext='chat/l2:private-context-2026';
+  const local={...source,context_id:privateContext,message_ref:privateRef};
+  const metadata=data({reviewer_context_id:privateContext,
+    findings:[{...data().findings[0],
+      evidence:'Private message '+encodeURIComponent(privateRef)+
+        ' and reviewer '+encodeURIComponent(privateContext),
+      action:'Never publish double-URL-encoded '+encodeURIComponent(
+        encodeURIComponent(privateRef))}]});
+  const response='Full report with URL references '+encodeURIComponent(privateRef)+
+    ' and '+encodeURIComponent(privateContext)+' plus explanation.\n'+
+    d.MARKER+'\n'+JSON.stringify(metadata);
+  const out=d.prepareInteractiveHandoff({
+    expected:H,response,current_head:SHA,source:local,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true,
+      full_report_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,true);
+  for(const secret of [privateRef,privateContext,
+    encodeURIComponent(privateRef),encodeURIComponent(privateContext),
+    encodeURIComponent(encodeURIComponent(privateRef))])
+    assert.equal(out.text.includes(secret),false,secret);
+});
+test('unqualified relay redacts percent-encoded private references',()=>{
+  const privateRef='msg/l2:private-reference-2026';
+  const local={...source,message_ref:privateRef};
+  const lower=encodeURIComponent(privateRef)
+    .replace(/%[0-9A-F]{2}/g,m=>m.toLowerCase());
+  const response='Independent review R1: '+lower+
+    ' should never appear in public after relay.\n'+d.MARKER+
+    '\n{not-valid-json';
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source:local,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.equal(out.text.includes(lower),false);
+  assert.match(out.text,/REDACTED_CONTEXT_REFERENCE/);
+});

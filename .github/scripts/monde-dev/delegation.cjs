@@ -539,7 +539,15 @@ function redactPrivateProvenance(note, values) {
   for(const id of ids){
     const json=JSON.stringify(id).slice(1,-1);
     const doubleJson=JSON.stringify(json).slice(1,-1);
-    for(const variant of [...new Set([doubleJson,json,id])].sort(
+    // Context references copied from private conversations can be embedded
+    // inside URL query values or route segments in public evidence.
+    const urlForms=[encodeURI(id),encodeURIComponent(id)];
+    const variants=[doubleJson,json,id,...urlForms];
+    for(const url of urlForms){
+      variants.push(url.replace(/%[0-9A-F]{2}/g,part=>part.toLowerCase()));
+      variants.push(encodeURIComponent(url));
+    }
+    for(const variant of [...new Set(variants)].sort(
       (a,b)=>b.length-a.length)){
       note=note.split(variant).join('[REDACTED_CONTEXT_REFERENCE]');
     }
