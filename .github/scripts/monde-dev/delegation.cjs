@@ -545,15 +545,19 @@ const PUBLIC_RELAY_MAX_BYTES=12*1024;
 // Raw conversation URLs are private provenance, not necessary public evidence.
 // The continuation bookmark is itself published in a GitHub PR description.
 const PRIVATE_CHAT_HOST=/(?:chatgpt(?:\.|%2e)com|chat(?:\.|%2e)openai(?:\.|%2e)com)/i;
-const PRIVATE_CHAT_URL=/(?:https?:\/\/)?(?:chatgpt\.com|chat\.openai\.com)\/(?:c|share)\/[^\s<>"']+/gi;
-const PRIVATE_CHAT_ENCODED=/(?:chatgpt\.com|chat\.openai\.com)(?:%2f|%252f)(?:c|share)(?:%2f|%252f)[A-Za-z0-9._~%-]+/gi;
+// A public review can contain literal links, JSON-escaped slashes, or URL
+// encoded domains/separators. Treat all as the same private conversation URL.
+const CHAT_DOMAIN=String.raw`(?:chatgpt(?:\.|%2e|%252e)com|chat(?:\.|%2e|%252e)openai(?:\.|%2e|%252e)com)`;
+const CHAT_SEP=String.raw`(?:/|\\\/|%2f|%252f)`;
+const PRIVATE_CHAT_LINK=new RegExp(
+  CHAT_DOMAIN+CHAT_SEP+'(?:c|share)'+CHAT_SEP+
+  String.raw`[A-Za-z0-9_.~%?=&+:/\\-]+`,'gi');
 // Full-report consent never includes raw ChatGPT provenance, including
 // short valid message references and JSON-escaped excerpts. Redact the final
 // public text at all serialization levels used by the two handoff paths.
 function redactPrivateProvenance(note, values) {
   // Redact unrelated third-party private chat URLs as well as known IDs.
-  note=note.replace(PRIVATE_CHAT_URL,'[REDACTED_CHAT_LINK]')
-    .replace(PRIVATE_CHAT_ENCODED,'[REDACTED_CHAT_LINK]');
+  note=note.replace(PRIVATE_CHAT_LINK,'[REDACTED_CHAT_LINK]');
   const ids=[...new Set(values.filter(v=>typeof v==='string'&&
     oneLine(v,160)))].sort((a,b)=>b.length-a.length);
   for(const id of ids){
@@ -711,6 +715,12 @@ function prepareInteractiveHandoff(args) {
       native_github_approved:false,text:null};
   if(HIDDEN_FORMAT.test(note))
     return {status:'UNSAFE_INVISIBLE_IN_RELAY',can_publish:false,
+      ready_for_manual_relay:false,requires_manual_qualification:true,
+      native_github_approved:false,text:null};
+  // Redaction is best-effort, but publication MUST fail closed if a private
+  // conversation hostname survives in an unrecognized encoding.
+  if(PRIVATE_CHAT_HOST.test(note)||/%252ecom/i.test(note))
+    return {status:'UNREDACTED_CHAT_HOST',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
   if(UNSAFE_CONTROL.test(note))

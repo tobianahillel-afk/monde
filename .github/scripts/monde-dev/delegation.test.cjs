@@ -4031,6 +4031,44 @@ test('privacy: relay redacts unrelated private ChatGPT URLs but keeps R1 detail'
   assert.match(out.text,/F01 \[R1\]/);
   assert.equal(out.self_contained_for_remediation,false);
 });
+test('privacy: L2 relay redacts mixed encoded domain and slash forms',()=>{
+  for(const privateLink of [
+    'chatgpt%2Ecom%2Fc%2Fprivate-encoded-name-1',
+    'chatgpt%252ecom%252fc%252fprivate-double-encoded-name-2',
+    String.raw`https:\/\/chatgpt.com\/c\/private-json-slash-name-3`,
+    String.raw`chat.openai.com\/share\/private-legacy-slash-name-4`
+  ]){
+    const item={id:'F01',severity:'R1',path:H.paths[0],
+      evidence:'Details at '+privateLink,action:'Review actual repository code'};
+    const out=d.prepareInteractiveHandoff({
+      expected:H,response:message(data({findings:[item]})),current_head:SHA,
+      source,publication_clearance:{secrets_checked:true,
+        personal_data_checked:true,public_repo_safe:true,
+        finding_details_approved:true}
+    });
+    assert.equal(out.ready_for_manual_relay,true,privateLink);
+    assert.match(out.text,/REDACTED_CHAT_LINK/);
+    assert.doesNotMatch(out.text,/private-(?:encoded|double|json|legacy)/);
+    assert.equal(out.self_contained_for_remediation,false);
+  }
+});
+test('privacy: full authorized relay applies the same private URL redaction',()=>{
+  const privateLink=String.raw`https:\/\/chatgpt.com\/share\/private-json-report-42`;
+  const item={id:'F01',severity:'R1',path:H.paths[0],
+    evidence:'Private evidence at '+privateLink,action:'Fix root cause'};
+  const response='Review source '+privateLink+'\n'+
+    d.MARKER+'\n'+JSON.stringify(data({findings:[item]}));
+  const out=d.prepareInteractiveHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true,
+      full_report_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,true);
+  assert.doesNotMatch(out.text,/private-json-report-42/);
+  assert.match(out.text,/REDACTED_CHAT_LINK/);
+});
+
 test('privacy: relay redacts third-party percent-encoded ChatGPT references',()=>{
   const item={id:'F01',severity:'R1',path:H.paths[0],
     evidence:'Details at chatgpt.com%2Fc%2Fprivate-evidence-1234',
