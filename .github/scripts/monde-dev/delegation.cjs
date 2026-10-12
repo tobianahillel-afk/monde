@@ -527,7 +527,7 @@ function assessReview({ expected, response, current_head, source, coverage_manif
 const CREDENTIAL_PATTERNS=[
   // Public review handoffs and PR continuation hints must not carry generic
   // credentials just because the value has no provider-specific token prefix.
-  /(?:^|[^A-Za-z0-9])(?:api[_-]?key|access[_-]?token|client[_-]?secret|password|passwd|secret[_-]?key)\s*[:=]\s*["']?[A-Za-z0-9_%+./=-]{4,}/i,
+  /(?:^|[^A-Za-z0-9])(?:api[_-]?key|access[_-]?token|client[_-]?secret|password|passwd|secret[_-]?key)\s*[:=]\s*["'\x60*_]{0,3}\s*[A-Za-z0-9_%+./=-]{4,}/i,
   // Basic-auth URLs leak credentials even when the URL uses a public host.
   /https?:\/\/[^\s/@:]+:[^\s/@]+@[^\s/]+/i,
   // Query-string bearer-like credentials are not limited to api_key/access_token.

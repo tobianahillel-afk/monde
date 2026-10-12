@@ -4717,3 +4717,35 @@ test('privacy: short Basic and Bearer headers block both qualified and malformed
     assert.equal(malformed.text,null,secret);
   }
 });
+
+test('public Markdown formatting around credentials is not a privacy bypass',()=>{
+  const secretForms=[
+    'password: ' + String.fromCharCode(96) + 'ExampleSensitive1234' + String.fromCharCode(96),
+    'api_key: **ExampleSensitive1234**',
+    'access_token: _ExampleSensitive1234_',
+    'client_secret = "ExampleSensitive1234"'
+  ];
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Review the files',evidence_refs:[]};
+  const cleared={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const credential of secretForms){
+    assert.throws(()=>d.createResumePacket({...base,
+      next_action:'Investigate '+credential}),{code:'INVALID_RESUME_PACKET'});
+    assert.throws(()=>d.createResumePacket({...base,
+      evidence_refs:[{kind:'REVIEW',ref:credential,head_sha:SHA}]}),
+    {code:'INVALID_RESUME_EVIDENCE'});
+    const finding={...data().findings[0],evidence:'Observed '+credential};
+    const report=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[finding]})),
+      current_head:SHA,source,publication_clearance:cleared});
+    assert.equal(report.status,'POTENTIAL_SECRET_IN_REPORT',credential);
+    assert.equal(report.text,null,credential);
+    const malformed=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent finding R1: '+credential+
+        '\nFix credentials transport with matching unit regression.\n'+d.MARKER+'\n{invalid',
+      current_head:SHA,source,publication_clearance:cleared});
+    assert.equal(malformed.status,'POTENTIAL_SECRET_IN_REPORT',credential);
+  }
+});
