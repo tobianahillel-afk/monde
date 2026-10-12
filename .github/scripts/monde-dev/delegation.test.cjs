@@ -3202,7 +3202,7 @@ test('broken task ancestor does not stall unrelated eligible tasks',()=>{
 
 test('shared WORK ancestry is counted once across many child tasks',()=>{
   const upstream={id:'WORK-0440',status:'DONE',depends_on:[],tasks:[
-    {id:'T1',status:'DONE',depends_on:[],expected_files:['src/common/']},
+    {id:'T1',status:'DONE',depends_on:[],expected_files:['src/common/root.js']},
     {id:'T2',status:'DONE',depends_on:['T1'],expected_files:['src/common/a.js']}
   ]};
   const current={id:'WORK-0441',status:'READY',
