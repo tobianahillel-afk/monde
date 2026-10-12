@@ -548,7 +548,7 @@ const PRIVATE_CHAT_HOST=/(?:chatgpt(?:\.|%2e)com|chat(?:\.|%2e)openai(?:\.|%2e)c
 // A public review can contain literal links, JSON-escaped slashes, or URL
 // encoded domains/separators. Treat all as the same private conversation URL.
 const CHAT_DOMAIN=String.raw`(?:chatgpt(?:\.|%2e|%252e)com|chat(?:\.|%2e|%252e)openai(?:\.|%2e|%252e)com)`;
-const CHAT_SEP=String.raw`(?:/|\\\/|%2f|%252f)`;
+const CHAT_SEP=String.raw`(?:\\*/|%2f|%252f)`;
 const PRIVATE_CHAT_LINK=new RegExp(
   CHAT_DOMAIN+CHAT_SEP+'(?:c|share)'+CHAT_SEP+
   String.raw`[A-Za-z0-9_.~%?=&+:/\\-]+`,'gi');
