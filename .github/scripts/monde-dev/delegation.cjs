@@ -594,6 +594,28 @@ function prepareInteractiveHandoff(args) {
   const a = assignment(args.expected);
   const detailedFindings=clearance.finding_details_approved===true;
   const fullReport=clearance.full_report_approved===true;
+  // Prioritize material findings when authorized detail exceeds public limits.
+  // Omitted evidence stays in the original ChatGPT conversation, never
+  // converted into an implicit L2 acceptance.
+  const relayRank={R1:0,R2:1,R3:2};
+  const relayOrder=fullReport?metadata.findings:
+    metadata.findings.slice().sort((x,y)=>relayRank[x.severity]-relayRank[y.severity]);
+  const relayDetails=[];
+  let relayBytes=6000;
+  if(detailedFindings){
+    for(const f of relayOrder){
+      const lines=[f.id+' ['+f.severity+'] '+f.path,
+        'Evidence: '+quoteUntrustedExcerpt(f.evidence),
+        'Suggested correction: '+quoteUntrustedExcerpt(f.action)];
+      const bytes=Buffer.byteLength(lines.join('\n'),'utf8')+3;
+      if(fullReport||bytes<=relayBytes){
+        relayDetails.push(...lines);
+        relayBytes-=bytes;
+      }
+    }
+  }
+  const omittedDetails=detailedFindings?
+    metadata.findings.length-relayDetails.length/3:0;
   // This is a COPY-READY artifact for the foreground developer. No GitHub
   // mutation or independent-review attestation is possible from this module.
   let note = [
@@ -632,11 +654,11 @@ function prepareInteractiveHandoff(args) {
     ...(detailedFindings?[
       '',
       '### Actionable findings (unverified reviewer claims)',
-      ...metadata.findings.flatMap(f=>[
-        f.id+' ['+f.severity+'] '+f.path,
-        'Evidence: '+quoteUntrustedExcerpt(f.evidence),
-        'Suggested correction: '+quoteUntrustedExcerpt(f.action)
-      ])
+      ...relayDetails,
+      ...(omittedDetails?[
+        'Detailed findings omitted for relay size: '+omittedDetails+
+          '; inspect the original independent ChatGPT report for their evidence.'
+      ]:[])
     ]:[
       'Detailed evidence and corrections are NOT included.',
       'The original reviewer report is necessary for remediation.'
@@ -695,6 +717,7 @@ function prepareInteractiveHandoff(args) {
       metadata.verdict==='CHANGES_REQUIRED'&&metadata.findings.length>0&&
       evaluation.missing_reviewed_paths.length===0&&
       evaluation.extraneous_reviewed_paths.length===0&&
+      omittedDetails===0&&
       (detailedFindings||fullReport),
     requires_manual_qualification: true,
     native_github_approved: false, text: note

@@ -3597,3 +3597,27 @@ test('read-only research still forbids exact duplicate or unsafe path',()=>{
   assert.throws(()=>d.assignment({...research,paths:['src/','src/../secret']}),
     error=>error.code==='INVALID_ASSIGNMENT');
 });
+
+
+test('public L2 relay preserves late R1 and explicitly accounts for omitted detail',()=>{
+  const many=Array.from({length:50},(_,i)=>({
+    id:'F'+String(i+1).padStart(2,'0'),severity:i===49?'R1':'R2',
+    path:'.github/scripts/monde-dev/delegation.cjs',
+    evidence:'Concrete independently observed security finding '+('detail '.repeat(80)),
+    action:'Correction proposed by L2 reviewer '+('repair '.repeat(55))
+  }));
+  const response=message(data({findings:many,verdict:'CHANGES_REQUIRED'}));
+  const outcome=d.prepareInteractiveHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(outcome.status,'NEEDS_CORRECTION');
+  assert.equal(outcome.ready_for_manual_relay,true);
+  assert.equal(outcome.native_github_approved,false);
+  assert.match(outcome.text,/F50 \[R1\]/);
+  assert.match(outcome.text,/Finding counts: 50/);
+  assert.match(outcome.text,/Detailed findings omitted for relay size:/);
+  assert.equal(outcome.self_contained_for_remediation,false);
+  assert.ok(Buffer.byteLength(outcome.text,'utf8')<=12*1024);
+});
