@@ -548,7 +548,10 @@ const CREDENTIAL_PATTERNS=[
   /(?:^|[^A-Za-z0-9])AIza[0-9A-Za-z_-]{30,}/,
   /(?:^|[^A-Za-z0-9])ASIA[0-9A-Z]{16}/,
   // Include underscore-prefixed log fields (file_Authorization, etc).
-  /(?:^|[^A-Za-z0-9])Authorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}/i
+  /(?:^|[^A-Za-z0-9])Authorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{16,}/i,
+  // Basic auth contains a base64-encoded username:password pair. A redacted
+  // relay must reject it as credentials, including proxy/log field prefixes.
+  /(?:^|[^A-Za-z0-9])(?:Proxy-)?Authorization\s*:\s*Basic\s+[A-Za-z0-9+/]{12,}={0,2}(?![A-Za-z0-9+/=])/i
 ];
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
 // Raw conversation URLs are private provenance, not necessary public evidence.

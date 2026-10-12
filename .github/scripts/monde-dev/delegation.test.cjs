@@ -4638,3 +4638,41 @@ test('privacy: encoded credential query keys block malformed L2 fallback',()=>{
   assert.equal(result.status,'POTENTIAL_SECRET_IN_REPORT');
   assert.equal(result.text,null);
 });
+
+test('privacy: HTTP Basic auth never leaves reviewer text for public GitHub relay',()=>{
+  const encoded='dXNlcjpleGFtcGxlU2VjcmV0MTIz';
+  for(const prefix of ['Authorization: Basic ', 'Proxy-Authorization: Basic ',
+      'file_Authorization: Basic ']){
+    const leak=prefix+encoded;
+    const finding={...data().findings[0],evidence:'Request header '+leak};
+    const ordinary=d.prepareInteractiveHandoff({
+      expected:H,response:message(data({findings:[finding]})),
+      current_head:SHA,source,
+      publication_clearance:{secrets_checked:true,personal_data_checked:true,
+        public_repo_safe:true,finding_details_approved:true}});
+    assert.equal(ordinary.status,'POTENTIAL_SECRET_IN_REPORT',prefix);
+    assert.equal(ordinary.text,null,prefix);
+    const malformed=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:'Independent R1: '+leak+
+        '\nEvidence requires confidential review.\n'+d.MARKER+'\n{invalid',
+      current_head:SHA,source,
+      publication_clearance:{secrets_checked:true,personal_data_checked:true,
+        public_repo_safe:true,finding_details_approved:true}});
+    assert.equal(malformed.status,'POTENTIAL_SECRET_IN_REPORT',prefix);
+    assert.equal(malformed.text,null,prefix);
+  }
+});
+test('privacy: public PR continuation rejects Basic auth but accepts safe CI IDs',()=>{
+  const fields={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Review latest CI',evidence_refs:[]};
+  const basic='Authorization: Basic dXNlcjpleGFtcGxlU2VjcmV0MTIz';
+  assert.throws(()=>d.createResumePacket({...fields,
+    next_action:'Inspect '+basic}),{code:'INVALID_RESUME_PACKET'});
+  assert.throws(()=>d.createResumePacket({...fields,
+    evidence_refs:[{kind:'CI',ref:basic,head_sha:SHA}]}),
+    {code:'INVALID_RESUME_EVIDENCE'});
+  assert.equal(d.createResumePacket({...fields,
+    evidence_refs:[{kind:'CI',ref:'job:115022165985',head_sha:SHA}]
+  }).evidence_refs.length,1);
+});
