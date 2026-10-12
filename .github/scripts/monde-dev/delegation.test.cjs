@@ -4569,6 +4569,7 @@ test('privacy: malformed UTF-8 percent octets cannot disable ASCII private-host 
   for(const privateRef of [
     'ch%61tgpt%2Ecom/c/private-invalid-octet%FF',
     'ch%61tgpt%2Ecom%2Fc%2Fprivate-invalid-octet%FF',
+    'ch%61tgpt%2Ecom/c/private-invalid-octet%FF%61',
     'ch%61tgpt%EF%BC%8Ecom/c/private-invalid-octet%FF'
   ]){
     assert.throws(()=>d.createResumePacket({...base,
