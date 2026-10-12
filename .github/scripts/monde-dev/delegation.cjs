@@ -586,7 +586,15 @@ function containsPrivateChatHost(value) {
         return String.fromCodePoint(point);
       })
       .replace(/[\u3002\uff0e\uff61]/g,'.')
-      .replace(/%([0-9a-f]{2})/gi,(_,hex)=>String.fromCharCode(parseInt(hex,16)))
+      // Decode contiguous percent-encoded octets as UTF-8, not Latin-1:
+      // %EF%BC%8E (fullwidth dot) and %E3%80%82 (ideographic dot) must
+      // canonicalize before the private-host check. Malformed sequences
+      // retain their bytes; ASCII tokens can still normalize safely.
+      .replace(/(?:%[0-9a-f]{2})+/gi,encoded=>{
+        try{return decodeURIComponent(encoded);}
+        catch{return encoded.replace(/%([0-7][0-9a-f])/gi,
+          (_,hex)=>String.fromCharCode(parseInt(hex,16)));}
+      })
       // Escaped hostname letters need decoding as well as escaped punctuation.
       .replace(/\\+(?:u00([0-7][0-9a-f])|x([0-7][0-9a-f])|u\{([0-9a-f]{1,6})\})/gi,
         (whole,four,two,braced)=>{

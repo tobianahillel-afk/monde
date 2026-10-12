@@ -4510,3 +4510,54 @@ test('qualified and malformed L2 relays refuse URL query credentials',()=>{
   assert.equal(malformed.status,'POTENTIAL_SECRET_IN_REPORT');
   assert.equal(malformed.text,null);
 });
+
+
+test('privacy: UTF-8 percent-encoded Unicode dots cannot enter public resume bookmarks',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Read PR for next L2',evidence_refs:[]};
+  for(const privateRef of [
+    'chatgpt%EF%BC%8Ecom/c/private-utf8-01',
+    'chatgpt%E3%80%82com/c/private-utf8-02',
+    'chatgpt%EF%BC%8Ecom%2Fc%2Fprivate-utf8-03',
+    'chatgpt%25EF%25BC%258Ecom/c/private-utf8-04',
+    'chat%EF%BC%8Eopenai%EF%BC%8Ecom/share/private-utf8-05'
+  ]){
+    assert.throws(()=>d.createResumePacket({...base,
+      next_action:'Inspect '+privateRef}),{code:'INVALID_RESUME_PACKET'});
+    assert.throws(()=>d.createResumePacket({...base,evidence_refs:[
+      {kind:'REVIEW',ref:privateRef,head_sha:SHA}
+    ]}),{code:'INVALID_RESUME_EVIDENCE'});
+  }
+  assert.equal(d.createResumePacket({...base,
+    next_action:'Review https://github.com/tobianahillel-afk/monde/pull/19'})
+    .action_kind,'AWAIT_L2');
+});
+test('privacy: encoded UTF-8 private hosts fail closed in both L2 public relay paths',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const privateRef of [
+    'chatgpt%EF%BC%8Ecom/c/private-utf8-relay',
+    'chatgpt%E3%80%82com/c/private-utf8-relay',
+    'chatgpt%25EF%25BC%258Ecom/c/private-utf8-relay'
+  ]){
+    const finding={...data().findings[0],
+      evidence:'A private reviewer link was printed: '+privateRef};
+    const qualified=d.prepareInteractiveHandoff({
+      expected:H,response:message(data({findings:[finding]})),
+      current_head:SHA,source,publication_clearance:clearance
+    });
+    assert.equal(qualified.ready_for_manual_relay,false,
+      'qualified relay may not expose '+privateRef);
+    assert.equal(qualified.text,null);
+    const malformed='Independent R1: private link '+privateRef+
+      '\\n'+d.MARKER+'\\n{malformed';
+    const unqualified=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:malformed,current_head:SHA,
+      source,publication_clearance:clearance
+    });
+    assert.equal(unqualified.ready_for_manual_relay,false,
+      'unqualified relay may not expose '+privateRef);
+    assert.equal(unqualified.text,null);
+  }
+});
