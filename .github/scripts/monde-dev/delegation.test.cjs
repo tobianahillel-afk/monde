@@ -4576,3 +4576,16 @@ test('privacy: malformed UTF-8 percent octets cannot disable ASCII private-host 
       next_action:'Review '+privateRef}),{code:'INVALID_RESUME_PACKET'});
   }
 });
+
+test('privacy: deeply nested HTML-encoded private ChatGPT hosts never pass public bookmarks',()=>{
+  for(const layers of [7,12,17,24]){
+    let disguised='chatgpt&#46;com/c/opaque-conversation-id';
+    for(let i=0;i<layers;i++)disguised=disguised.replaceAll('&','&amp;');
+    assert.throws(()=>d.createResumePacket({
+      repo:'tobianahillel-afk/monde',pr:19,
+      head_sha:'d'.repeat(40),base_sha:'b'.repeat(40),
+      work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+      next_action:'Review '+disguised,evidence_refs:[]
+    }),e=>e.code==='INVALID_RESUME_PACKET');
+  }
+});

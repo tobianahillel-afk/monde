@@ -572,7 +572,9 @@ function containsPrivateChatHost(value) {
   if(typeof value!=='string')return false;
   if(value.length>131072)return false; // public relay size guard rejects it below
   let text=value;
-  for(let pass=0;pass<6;pass++){
+  // Bound CPU cost, not trust: an input still changing after this budget
+  // must be rejected, never classified as safe private-link-free text.
+  for(let pass=0;pass<16;pass++){
     if(PRIVATE_CHAT_HOST.test(text))return true;
     const decoded=text
       .replace(/&(?:amp|period|sol|colon|bsol);/gi,entity=>({
@@ -603,10 +605,11 @@ function containsPrivateChatHost(value) {
         })
       // Fullwidth/compatibility Latin letters may imitate the private host.
       .normalize('NFKC');
-    if(decoded===text)break;
+    if(decoded===text)return false; // stable; checked at loop entry
     text=decoded;
   }
-  return PRIVATE_CHAT_HOST.test(text);
+  // Deeply nested encoding remained ambiguous: fail closed.
+  return true;
 }
 
 // Full-report consent never includes raw ChatGPT provenance, including
