@@ -1247,6 +1247,7 @@ function resumePacket(input){
      typeof input.base_sha!=='string'||!SHA.test(input.base_sha)||
      !resumeActions.has(input.action_kind)||!oneLine(input.next_action,380)||
      /[<>]/.test(input.next_action)||
+     CREDENTIAL_PATTERNS.some(re=>re.test(input.next_action))||
      (input.work!==null&&(typeof input.work!=='string'||
        !/^WORK-\d{4,}$/.test(input.work)))||
      (input.task!==null&&(typeof input.task!=='string'||
@@ -1263,6 +1264,7 @@ function resumePacket(input){
     exactFields(e,['kind','ref','head_sha']);
     if(!['CI','REVIEW','WORK','TEST','PR'].includes(e.kind)||
        !oneLine(e.ref,180)||/[<>]/.test(e.ref)||
+       CREDENTIAL_PATTERNS.some(re=>re.test(e.ref))||
        typeof e.head_sha!=='string'||!SHA.test(e.head_sha)||
        ids.has(e.kind+':'+e.ref))
       bad('INVALID_RESUME_EVIDENCE');

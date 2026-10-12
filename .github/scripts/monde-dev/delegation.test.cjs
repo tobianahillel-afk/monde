@@ -2940,3 +2940,33 @@ test('cosmetic R3 does not enter correction queue',()=>{
   assert.equal(result.remediation_candidates.length,0);
   assert.equal(result.deferred_r3_candidates,1);
 });
+
+test('public PR resume refuses recognizable GitHub tokens in next_action',()=>{
+  assert.throws(()=>d.createResumePacket({
+    repo:'tobianahillel-afk/monde',pr:19,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'RECHECK_WORK',
+    next_action:'Never publish ghp_'+ 'A'.repeat(26),evidence_refs:[]
+  }),{code:'INVALID_RESUME_PACKET'});
+});
+test('public PR resume refuses bearer secrets in evidence references',()=>{
+  assert.throws(()=>d.createResumePacket({
+    repo:'tobianahillel-afk/monde',pr:19,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'RECHECK_WORK',
+    next_action:'Inspect present work',evidence_refs:[{
+      kind:'CI',ref:'Authorization: Bearer '+ 'B'.repeat(28),head_sha:SHA
+    }]
+  }),{code:'INVALID_RESUME_EVIDENCE'});
+});
+test('public PR resume still accepts normal GitHub check references',()=>{
+  const packet=d.createResumePacket({
+    repo:'tobianahillel-afk/monde',pr:19,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'RECHECK_WORK',
+    next_action:'Inspect CI and resume on unchanged HEAD',evidence_refs:[{
+      kind:'CI',ref:'job:114702602466',head_sha:SHA
+    }]
+  });
+  const body=d.updateResumeInPrBody('Notes',packet);
+  assert.equal(d.inspectResumeFromPrBody(body,{
+    repo:'tobianahillel-afk/monde',pr:19,head_sha:SHA,base_sha:SHA
+  }).status,'SAME_REVISION');
+});
