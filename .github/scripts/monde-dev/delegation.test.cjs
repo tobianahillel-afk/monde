@@ -3114,3 +3114,41 @@ test('DONE triage deduplicates overlapping declarations and preserves unrelated 
   assert.equal(p.recommended.work,'WORK-0211');
   assert.equal(p.authorized_to_write,false);
 });
+
+test('transitive WORK prerequisite not DONE blocks dependent even if direct parent DONE',()=>{
+  const grand={id:'WORK-0010',status:'IN_PROGRESS',depends_on:[],tasks:[]};
+  const parent={id:'WORK-0001',status:'DONE',depends_on:['WORK-0010'],tasks:[]};
+  const result=plan([grand,parent,workPlan()]);
+  assert.equal(result.recommended,null);
+  assert.ok(result.blocked.filter(x=>x.work==='WORK-0123')
+    .every(x=>x.reasons.includes('WORK_ANCESTOR_PENDING')));
+});
+test('missing grandparent WORK cannot be hidden behind a DONE direct prerequisite',()=>{
+  const parent={...completedWork,depends_on:['WORK-0099']};
+  const result=plan([parent,workPlan()]);
+  assert.equal(result.recommended,null);
+  assert.ok(result.blocked.some(x=>x.work==='WORK-0123'&&
+    x.reasons.includes('WORK_ANCESTOR_UNAVAILABLE')));
+});
+test('cyclic completed-looking WORK dependency chain is never recommended',()=>{
+  const parent={...completedWork,depends_on:['WORK-0123']};
+  const result=plan([parent,workPlan()]);
+  assert.equal(result.recommended,null);
+  assert.ok(result.blocked.some(x=>x.work==='WORK-0123'&&
+    x.reasons.includes('WORK_DEPENDENCY_CYCLE')));
+});
+test('unrelated eligible work continues despite a broken transitive WORK DAG',()=>{
+  const parent={...completedWork,depends_on:['WORK-0099']};
+  const unrelated={id:'WORK-0101',status:'READY',depends_on:[],
+    tasks:[{id:'T1',status:'READY',depends_on:[],
+      expected_files:['src/unrelated.js']}]};
+  const result=plan([parent,workPlan(),unrelated]);
+  assert.equal(result.recommended.work,'WORK-0101');
+  assert.equal(result.recommended.task,'T1');
+});
+test('a complete transitive DONE chain preserves the existing recommendation',()=>{
+  const grand={id:'WORK-0010',status:'DONE',depends_on:[],tasks:[]};
+  const parent={...completedWork,depends_on:['WORK-0010']};
+  const result=plan([grand,parent,workPlan()]);
+  assert.equal(result.recommended.task,'T2');
+});

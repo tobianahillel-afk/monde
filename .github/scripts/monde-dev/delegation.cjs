@@ -1168,6 +1168,26 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
   // silently disappear when its dependent task is selected for new work.
   // Examine direct and transitive task/WORK ancestors, counting shared
   // paths once even if reached through several dependency chains.
+  // Verify transitive WORK dependencies too: a DONE parent whose own
+  // prerequisite is missing, pending or cyclic cannot justify new work.
+  // This is advisory and does not change canonical registry state.
+  const ancestorHealth=(work)=>{
+    const active=new Set([work.id]),visited=new Set();
+    const out={missing:false,pending:false,cycle:false};
+    const walk=(id)=>{
+      if(active.has(id)){out.cycle=true;return;}
+      if(visited.has(id))return;
+      visited.add(id);
+      const ancestor=indexed.get(id);
+      if(!ancestor){out.missing=true;return;}
+      active.add(id);
+      if(ancestor.status!=='DONE')out.pending=true;
+      for(const parent of ancestor.depends_on)walk(parent);
+      active.delete(id);
+    };
+    for(const id of work.depends_on)walk(id);
+    return out;
+  };
   const upstreamPaths=(work,task,tasks)=>{
     const paths=new Set(),seenTasks=new Set(),seenWorks=new Set();
     const visitTask=id=>{
@@ -1195,6 +1215,7 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     const tasks=new Map(work.tasks.map(t=>[t.id,t]));
     const unknown=work.depends_on.filter(id=>!indexed.has(id));
     const workDeps=work.depends_on.filter(id=>indexed.get(id)?.status!=='DONE');
+    const ancestors=ancestorHealth(work);
     for(const task of work.tasks){
       if(FINISHED.has(task.status)){
         // Completion is historical. A later R1/R2 still needs human triage.
@@ -1217,6 +1238,11 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
       if(!TASK_EXECUTABLE.has(task.status))reasons.push('TASK_NOT_READY');
       if(unknown.length)reasons.push('WORK_DEPENDENCIES_UNAVAILABLE');
       else if(workDeps.length)reasons.push('WORK_DEPENDENCIES_PENDING');
+      if(ancestors.cycle)reasons.push('WORK_DEPENDENCY_CYCLE');
+      if(ancestors.missing&&!unknown.length)
+        reasons.push('WORK_ANCESTOR_UNAVAILABLE');
+      if(ancestors.pending&&!workDeps.length)
+        reasons.push('WORK_ANCESTOR_PENDING');
       if(task.depends_on.some(dep=>!tasks.has(dep)))
         reasons.push('UNKNOWN_TASK_DEPENDENCY');
       else if(task.depends_on.some(dep=>tasks.get(dep)?.status!=='DONE'))
