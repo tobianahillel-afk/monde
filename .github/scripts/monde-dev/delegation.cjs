@@ -384,6 +384,7 @@ function recoverUnqualifiedClaims(response,marker=MARKER) {
   return {
     reported_finding_count:limited.length,
     reported_claims_total:packet.findings.length,
+    reported_claims_recognized:recognizedCount,
     reported_claims_incomplete:packet.findings.length!==recognizedCount||
       recognizedCount>limited.length,
     reported_blocking_unknown:packet.findings.length!==recognizedCount,
@@ -831,6 +832,15 @@ function prepareUnqualifiedTriageHandoff(args) {
     a.mission_kind==='L2_REVIEW'?MARKER:RESEARCH_MARKER);
   if(claimedContext===false)return refused('UNSAFE_REVIEWER_PROVENANCE');
   const selectedFindings=findings.slice(),selectedSnippets=snippets.slice();
+  // Keep separate accounting for parsing/retention and final public size.
+  // Otherwise a 500-claim source can misleadingly say "0 omitted" when
+  // only 50 candidates reached this bounded relay.
+  const totalClaims=Number.isSafeInteger(analysis.reported_claims_total)?
+    analysis.reported_claims_total:findings.length;
+  const recognizedClaims=Number.isSafeInteger(analysis.reported_claims_recognized)?
+    analysis.reported_claims_recognized:findings.length;
+  const invalidClaims=Math.max(0,totalClaims-recognizedClaims);
+  const preselectionOmissions=Math.max(0,recognizedClaims-findings.length);
   const render=()=>[
     '## Unqualified ChatGPT reviewer evidence — foreground relay only',
     'Repository: '+a.repo+'; PR #'+a.pr,
@@ -851,6 +861,15 @@ function prepareUnqualifiedTriageHandoff(args) {
       unverifiedSource?'NOT EXCLUDED':'UNKNOWN'),
     '',
     '### Suspected findings (NOT VERIFIED)',
+    'Source allegation inventory: '+totalClaims+' received; '+
+      recognizedClaims+' structurally recognized; '+
+      invalidClaims+' invalid or unrecognized; '+
+      preselectionOmissions+' omitted by the 50-item triage cap.',
+    'Claimed high-severity inventory: '+
+      (Number.isSafeInteger(analysis.reported_severity_r1)?
+        analysis.reported_severity_r1:0)+' R1, '+
+      (Number.isSafeInteger(analysis.reported_severity_r2)?
+        analysis.reported_severity_r2:0)+' R2; claims NOT VERIFIED.',
     ...selectedFindings.flatMap(f=>[
       f.id+' ['+f.severity+'] '+f.path,
       'Evidence: '+quoteUntrustedExcerpt(f.evidence),

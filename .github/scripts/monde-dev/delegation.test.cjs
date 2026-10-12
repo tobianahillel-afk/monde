@@ -3890,3 +3890,49 @@ test('bounded unqualified handoff preserves late R1 and truncation counts',()=>{
   assert.ok(result.text.includes('Omitted for public relay size: '));
   assert.ok(!result.text.includes('0 structured findings and 0 excerpts'));
 });
+
+
+test('unqualified relay discloses 50-item internal truncation, not only byte truncation',()=>{
+  const many=Array.from({length:73},(_,i)=>({
+    id:'F'+String(i+1).padStart(2,'0'),
+    severity:i===72?'R1':'R2',path:'src/file'+i+'.js',
+    evidence:'Synthetic observable symptom '+i,
+    action:'Investigate and correct synthetic fault '+i
+  }));
+  const report=message(data({verdict:'APPROVE',findings:many}));
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.match(result.text,
+    /73 received; 73 structurally recognized; 0 invalid or unrecognized; 23 omitted by the 50-item triage cap/);
+  assert.match(result.text,/Claimed high-severity inventory: 1 R1, 72 R2/);
+  assert.match(result.text,/F73 \[R1\]/);
+  assert.match(result.text,/Omitted for public relay size:/);
+  assert.equal(result.ready_for_merge,false);
+  assert.ok(Buffer.byteLength(result.text,'utf8')<=12*1024);
+});
+test('unqualified relay distinguishes invalid claims from retained/omitted ones',()=>{
+  const many=Array.from({length:55},(_,i)=>({
+    id:'F'+String(i+1).padStart(2,'0'),
+    severity:i===54?'R1':'R2',path:'src/file'+i+'.js',
+    evidence:'Observable synthetic evidence '+i,
+    action:'Fix synthetic defect '+i
+  }));
+  many.splice(4,0,{id:'NOT_A_FINDING',severity:'R1',path:'src/bad.js',
+    evidence:'Invalid identifier',action:'Must not count as valid structured finding'});
+  const report=message(data({verdict:'CHANGES_REQUIRED',findings:many}));
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.match(result.text,
+    /56 received; 55 structurally recognized; 1 invalid or unrecognized; 5 omitted by the 50-item triage cap/);
+  assert.match(result.text,/Claimed high-severity inventory: 1 R1, 54 R2/);
+  assert.match(result.text,/F55 \[R1\]/);
+  assert.equal(result.native_github_approved,false);
+});
