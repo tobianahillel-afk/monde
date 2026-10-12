@@ -3060,3 +3060,57 @@ test('L2 planning: distinct task and ancestor R1 allegations retain both priorit
   assert.equal(p.blocked.find(x=>x.task==='T2').related_material_findings,1);
   assert.equal(p.blocked.find(x=>x.task==='T2').related_dependency_findings,1);
 });
+
+
+test('DONE leaf R1 remains actionable triage without automatically reopening work',()=>{
+  const done={id:'WORK-0201',status:'DONE',depends_on:[],
+    tasks:[{id:'T1',status:'DONE',depends_on:[],
+      expected_files:['src/legacy/auth.js']}]};
+  const p=plan([done],[{severity:'R1',path:'src/legacy/auth.js',
+    evidence:'Critical reviewer allegation discovered after completion'}]);
+  assert.equal(p.recommended,null);
+  assert.equal(p.recommended_remediation,null);
+  assert.deepEqual(p.completed_scope_triage.map(x=>[x.work,x.task,x.related_r1_findings]),
+    [['WORK-0201','T1',1]]);
+  assert.equal(p.completed_scope_triage[0].disposition,'VERIFY_DONE_SCOPE_WITHOUT_AUTO_REOPEN');
+  assert.deepEqual(p.unmapped_material_findings,[]);
+  assert.equal(p.authorized_to_write,false);
+});
+test('unmapped material findings retain path and priority without blocking unrelated work',()=>{
+  const p=plan(undefined,[
+    {severity:'R2',path:'unowned/readme.md',evidence:'Unmapped R2'},
+    {severity:'R1',path:'unowned/secret.js',evidence:'Unmapped R1'},
+    {severity:'R1',path:'unowned/secret.js',evidence:'Independent R1'},
+    {severity:'R3',path:'other/cosmetic.txt',evidence:'Minor'}
+  ]);
+  assert.equal(p.recommended.task,'T2');
+  assert.deepEqual(p.unmapped_material_findings.map(x=>x.path),
+    ['unowned/secret.js','unowned/readme.md']);
+  assert.equal(p.unmapped_material_findings[0].occurrences,2);
+  assert.equal(p.unmapped_material_findings[0].r1_occurrences,2);
+  assert.equal(p.deferred_r3_candidates,1);
+});
+test('DONE ancestor R1 is still mapped when it blocks a downstream task',()=>{
+  const p=plan(undefined,[{severity:'R1',path:'src/a.js',
+    evidence:'A completed dependency has a new issue'}]);
+  assert.equal(p.completed_scope_triage.length,1);
+  assert.equal(p.completed_scope_triage[0].task,'T1');
+  assert.deepEqual(p.unmapped_material_findings,[]);
+  assert.equal(p.blocked.filter(x=>x.reasons.includes(
+    'DEPENDENCY_FINDINGS_NEED_TRIAGE')).length,2);
+});
+test('DONE triage deduplicates overlapping declarations and preserves unrelated work',()=>{
+  const done={id:'WORK-0210',status:'DONE',depends_on:[],
+    tasks:[{id:'T1',status:'DONE',depends_on:[],
+      expected_files:['src','src/sub']}]};
+  const unrelated={id:'WORK-0211',status:'READY',depends_on:[],
+    tasks:[{id:'T1',status:'READY',depends_on:[],
+      expected_files:['lib/independent.js']}]};
+  const p=plan([done,unrelated],[{
+    severity:'R1',path:'src/sub/x.js',evidence:'Old component issue'
+  }]);
+  assert.equal(p.completed_scope_triage.length,1);
+  assert.equal(p.completed_scope_triage[0].related_material_findings,1);
+  assert.equal(p.recommended.work,'WORK-0211');
+  assert.equal(p.authorized_to_write,false);
+});

@@ -1096,6 +1096,7 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
      !Array.isArray(triage_findings)||triage_findings.length>200)
     bad('INVALID_WORK_PLAN');
   const indexed=new Map(), candidates=[], blocked=[], remediation=[];
+  const completedScopeTriage=[],mappedMaterialPaths=new Set();
   for(const work of works){
     if(!plain(work)||typeof work.id!=='string'||
        !/^WORK-[0-9]{4,}$/.test(work.id)||indexed.has(work.id)||
@@ -1195,7 +1196,21 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     const unknown=work.depends_on.filter(id=>!indexed.has(id));
     const workDeps=work.depends_on.filter(id=>indexed.get(id)?.status!=='DONE');
     for(const task of work.tasks){
-      if(FINISHED.has(task.status))continue;
+      if(FINISHED.has(task.status)){
+        // Completion is historical. A later R1/R2 still needs human triage.
+        if(materialPaths.length){
+          const direct=materialCountFor(task.expected_files);
+          for(const path of direct.matched)mappedMaterialPaths.add(path);
+          if(direct.count)completedScopeTriage.push({
+            work:work.id,task:task.id,state:task.status,
+            expected_files:task.expected_files.slice(),
+            related_material_findings:direct.count,
+            related_r1_findings:direct.r1,
+            disposition:'VERIFY_DONE_SCOPE_WITHOUT_AUTO_REOPEN'
+          });
+        }
+        continue;
+      }
       const id=work.id+'/'+task.id;
       const reasons=[];
       if(!WORK_EXECUTABLE.has(work.status))reasons.push('WORK_NOT_READY');
@@ -1209,6 +1224,7 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
       if(!task.expected_files.length)reasons.push('UNDECLARED_SCOPE');
       const ancestors=upstreamPaths(work,task,tasks);
       const material=materialCountFor(task.expected_files);
+      for(const path of material.matched)mappedMaterialPaths.add(path);
       const upstream=materialCountFor(ancestors);
       // A finding may occur in both scopes: subtract duplicate matches
       // without repeating the full path-index lookup for a third time.
@@ -1261,12 +1277,26 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     }
   }
   const minor=issues.filter(f=>f.severity==='R3');
+  const unmappedMaterialFindings=materialPaths.filter(path=>
+    !mappedMaterialPaths.has(path)).map(path=>({
+      path,occurrences:materialCounts.get(path).count,
+      r1_occurrences:materialCounts.get(path).r1,
+      disposition:'VERIFY_OWNER_AND_SCOPE_IN_FOREGROUND'
+    }));
+  completedScopeTriage.sort((a,b)=>
+    (b.related_r1_findings>0?1:0)-(a.related_r1_findings>0?1:0)||
+    a.work.localeCompare(b.work)||a.task.localeCompare(b.task));
+  unmappedMaterialFindings.sort((a,b)=>
+    (b.r1_occurrences>0?1:0)-(a.r1_occurrences>0?1:0)||
+    a.path.localeCompare(b.path));
   return {repo,head_sha,advisory_only:true,authorized_to_write:false,
     automatically_accepted:0,
     recommended:candidates.length?candidates[0]:null,
     recommended_batch:recommendedBatch,
      recommended_remediation:remediation.length?remediation[0]:null,
      remediation_candidates:remediation,
+    completed_scope_triage:completedScopeTriage,
+    unmapped_material_findings:unmappedMaterialFindings,
     batch_execution:'SINGLE_INTERACTIVE_WRITER_SEQUENTIAL',
     eligible:candidates,blocked,unqualified_material_findings:
       issues.filter(f=>f.severity!=='R3').length,
