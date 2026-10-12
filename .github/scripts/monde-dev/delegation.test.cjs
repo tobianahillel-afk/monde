@@ -3693,3 +3693,23 @@ test('work with complete explicit DONE task inventory has no gap marker',()=>{
   assert.deepEqual(plan.taskless_done_works_requiring_external_evidence,[]);
   assert.equal(plan.recommended.work,'WORK-0602');
 });
+
+test('redacted L2 evidence does not claim a self-contained correction dossier',()=>{
+  const privateId=source.context_id;
+  const response=message(data({findings:[{
+    ...data().findings[0],
+    evidence:'The reproduced defect requires source context '+privateId,
+    action:'Inspect the private report before applying the change'
+  }]}));
+  const output=d.prepareInteractiveHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(output.status,'NEEDS_CORRECTION');
+  assert.equal(output.ready_for_manual_relay,true);
+  assert.equal(output.self_contained_for_remediation,false);
+  assert.match(output.text,/REDACTED_CONTEXT_REFERENCE/);
+  assert.equal(output.text.includes(privateId),false);
+  assert.equal(output.native_github_approved,false);
+});

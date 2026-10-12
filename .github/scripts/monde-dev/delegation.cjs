@@ -683,10 +683,13 @@ function prepareInteractiveHandoff(args) {
       }))
     ]:[])
   ].join('\n');
+  const noteBeforeRedaction=note;
   note=redactPrivateProvenance(note,[
     metadata.reviewer_context_id, a.author_context_id,
     args.source?.context_id,args.source?.message_ref
   ]);
+  // Redacted evidence cannot be a complete standalone remediation dossier.
+  const detailsRedacted=note!==noteBeforeRedaction;
   if(BIDI_CONTROL.test(note))
     return {status:'UNSAFE_BIDI_IN_RELAY',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
@@ -718,6 +721,7 @@ function prepareInteractiveHandoff(args) {
       evaluation.missing_reviewed_paths.length===0&&
       evaluation.extraneous_reviewed_paths.length===0&&
       omittedDetails===0&&
+      !detailsRedacted&&
       (detailedFindings||fullReport),
     requires_manual_qualification: true,
     native_github_approved: false, text: note
