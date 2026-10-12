@@ -3026,3 +3026,37 @@ test('L2 regression: repeated shared upstream paths counted once across dependen
   assert.equal(p.recommended_remediation.related_r1_findings,0);
   assert.equal(p.recommended,null);
 });
+
+
+test('L2 planning: one critical path shared by task and DONE dependency is not counted twice',()=>{
+  const work=workPlan({tasks:[
+    {id:'T1',status:'DONE',depends_on:[],expected_files:['src/common.js']},
+    {id:'T2',status:'IN_PROGRESS',depends_on:['T1'],
+      expected_files:['src/common.js','src/new.js']}
+  ]});
+  const p=plan([completedWork,work],[{
+    severity:'R1',path:'src/common.js',evidence:'One underlying critical concern'
+  }]);
+  const affected=p.blocked.find(x=>x.task==='T2');
+  assert.deepEqual(affected.reasons,[
+    'MATERIAL_FINDINGS_NEED_TRIAGE','DEPENDENCY_FINDINGS_NEED_TRIAGE']);
+  assert.equal(affected.related_material_findings,1);
+  assert.equal(affected.related_dependency_findings,1);
+  assert.equal(p.recommended_remediation.related_r1_findings,1);
+  assert.equal(p.recommended,null);
+  assert.equal(p.authorized_to_write,false);
+});
+test('L2 planning: distinct task and ancestor R1 allegations retain both priorities',()=>{
+  const work=workPlan({tasks:[
+    {id:'T1',status:'DONE',depends_on:[],expected_files:['src/base.js']},
+    {id:'T2',status:'IN_PROGRESS',depends_on:['T1'],
+      expected_files:['src/new.js']}
+  ]});
+  const p=plan([completedWork,work],[
+    {severity:'R1',path:'src/base.js',evidence:'Ancestor concern'},
+    {severity:'R1',path:'src/new.js',evidence:'Independent direct concern'}
+  ]);
+  assert.equal(p.recommended_remediation.related_r1_findings,2);
+  assert.equal(p.blocked.find(x=>x.task==='T2').related_material_findings,1);
+  assert.equal(p.blocked.find(x=>x.task==='T2').related_dependency_findings,1);
+});

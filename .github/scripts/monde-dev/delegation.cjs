@@ -1207,8 +1207,12 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
       else if(task.depends_on.some(dep=>tasks.get(dep)?.status!=='DONE'))
         reasons.push('TASK_DEPENDENCIES_PENDING');
       if(!task.expected_files.length)reasons.push('UNDECLARED_SCOPE');
+      const ancestors=upstreamPaths(work,task,tasks);
       const material=materialCountFor(task.expected_files);
-      const upstream=materialCountFor(upstreamPaths(work,task,tasks));
+      const upstream=materialCountFor(ancestors);
+      // A finding can concern both the task and one of its prerequisites.
+      // Count it once when ranking remediation; retain both blocking reasons.
+      const combined=materialCountFor([...task.expected_files,...ancestors]);
       if(material.count)reasons.push('MATERIAL_FINDINGS_NEED_TRIAGE');
       if(upstream.count)reasons.push('DEPENDENCY_FINDINGS_NEED_TRIAGE');
       const note={work:work.id,task:task.id,expected_files:task.expected_files.slice(),
@@ -1222,7 +1226,7 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
           'MATERIAL_FINDINGS_NEED_TRIAGE','DEPENDENCY_FINDINGS_NEED_TRIAGE'
         ].includes(reason)))
           remediation.push({...note,
-            related_r1_findings:material.r1+upstream.r1,
+            related_r1_findings:combined.r1,
             state:task.status,work_state:work.status,
             disposition:upstream.count?
               'TRIAGE_UPSTREAM_BEFORE_DEPENDENT_WORK':
