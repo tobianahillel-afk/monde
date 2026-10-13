@@ -38,11 +38,12 @@ function oneLine(value, max = 1000) {
     !/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(value) &&
     !BIDI_CONTROL.test(value) && !HIDDEN_FORMAT.test(value);
 }
-// A one-to-seven character alphanumeric message reference can match ordinary
-// prose; global provenance redaction would corrupt unrelated public text.
+// Short references that resemble punctuation, paths or natural-language
+// fragments can redact unrelated code/review text (e.g. "/", ".", "a.b").
+// Preserve existing distinctive "msg-123" / 'msg"7' source references only.
 function ambiguousShortReference(value) {
   return typeof value==='string' && value.length<8 &&
-    /^[A-Za-z0-9]+$/.test(value);
+    !/^msg[-"'\/][A-Za-z0-9]+$/.test(value);
 }
 function validPath(value, allowDirectory=false) {
   if (!oneLine(value, 180) || !PATH.test(value) ||
@@ -629,6 +630,16 @@ function containsEncodedCredential(value) {
   return publicTextMatches(value,text=>
     CREDENTIAL_PATTERNS.some(pattern=>pattern.test(text)));
 }
+// A known private context/message ID might be HTML-entity or percent encoded
+// without containing a chatgpt.com hostname. Compare the canonicalized final
+// public text against known opaque IDs AFTER best-effort literal redaction;
+// if any survived, refuse the public handoff rather than corrupt its evidence.
+function containsEncodedPrivateReference(value, references) {
+  const ids=references.filter(id=>typeof id==='string'&&id.length>0)
+    .map(id=>id.normalize('NFKC'));
+  return ids.length>0 && publicTextMatches(value,text=>
+    ids.some(id=>text.includes(id)));
+}
 
 // Full-report consent never includes raw ChatGPT provenance, including
 // short valid message references and JSON-escaped excerpts. Redact the final
@@ -780,11 +791,16 @@ function prepareInteractiveHandoff(args) {
       }))
     ]:[])
   ].join('\n');
-  const noteBeforeRedaction=note;
-  note=redactPrivateProvenance(note,[
+  const privateReferences=[
     metadata.reviewer_context_id, a.author_context_id,
     args.source?.context_id,args.source?.message_ref
-  ]);
+  ];
+  const noteBeforeRedaction=note;
+  note=redactPrivateProvenance(note,privateReferences);
+  if(containsEncodedPrivateReference(note,privateReferences))
+    return {status:'UNREDACTED_CONTEXT_REFERENCE',can_publish:false,
+      ready_for_manual_relay:false,requires_manual_qualification:true,
+      native_github_approved:false,text:null};
   // Redacted evidence cannot be a complete standalone remediation dossier.
   const detailsRedacted=note!==noteBeforeRedaction;
   if(BIDI_CONTROL.test(note))
@@ -1013,10 +1029,13 @@ function prepareUnqualifiedTriageHandoff(args) {
   }
   if(!selectedSnippets.length&&!selectedFindings.length)
     return refused('PUBLIC_RELAY_TOO_LARGE');
-  note=redactPrivateProvenance(note,[
+  const privateReferences=[
     a.author_context_id,source.context_id,source.message_ref,
     claimedContext
-  ]);
+  ];
+  note=redactPrivateProvenance(note,privateReferences);
+  if(containsEncodedPrivateReference(note,privateReferences))
+    return refused('UNREDACTED_CONTEXT_REFERENCE');
   if(BIDI_CONTROL.test(note))
     return refused('UNSAFE_BIDI_IN_RELAY');
   if(HIDDEN_FORMAT.test(note))

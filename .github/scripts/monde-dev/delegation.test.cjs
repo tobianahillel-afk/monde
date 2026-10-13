@@ -4838,3 +4838,64 @@ test('unqualified triage refuses one-letter message references rather than mangl
   assert.equal(relay.status,'UNSAFE_SOURCE_PROVENANCE');
   assert.equal(relay.text,null);
 });
+
+test('L2 privacy: punctuation-only and short path-like provenance cannot corrupt public review',()=>{
+  for(const ref of ['/', '.', 'a.b', 'src/', 'a:b', 'ab.cd']){
+    const local={...source,message_ref:ref};
+    const qualified=d.prepareInteractiveHandoff({
+      expected:H,response:message(data({findings:[]})),current_head:SHA,
+      source:local,publication_clearance:{
+        secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+        finding_details_approved:true}
+    });
+    assert.equal(qualified.ready_for_manual_relay,false,ref);
+    assert.equal(qualified.text,null,ref);
+    const broken='Detailed independent R1 review demonstrates a code defect near '+ref+
+      ' in a source file. '+d.MARKER+'\n{broken-json';
+    const unqualified=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:broken,current_head:SHA,source:local,
+      publication_clearance:{
+        secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+        finding_details_approved:true}
+    });
+    assert.equal(unqualified.ready_for_manual_relay,false,ref);
+    assert.equal(unqualified.status,'UNSAFE_SOURCE_PROVENANCE',ref);
+    assert.equal(unqualified.text,null,ref);
+  }
+});
+test('L2 privacy: entity-encoded opaque message identifiers block qualified public relay',()=>{
+  const ref='private-message-reference-2026';
+  const encoded=ref.replace('message','m&#101;ssage');
+  const report=message(data({findings:[{
+    ...data().findings[0],
+    evidence:'R2 incident identifier '+encoded+' in repository review',
+    action:'Do not expose original chat evidence'}
+  ]}));
+  const output=d.prepareInteractiveHandoff({
+    expected:H,response:report,current_head:SHA,
+    source:{...source,message_ref:ref},
+    publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}
+  });
+  assert.equal(output.status,'UNREDACTED_CONTEXT_REFERENCE');
+  assert.equal(output.ready_for_manual_relay,false);
+  assert.equal(output.text,null);
+});
+test('L2 privacy: entity-encoded reviewer provenance blocks malformed triage relay',()=>{
+  const ref='reviewer-private-context-2026';
+  const encoded=ref.replace('reviewer','r&#101;viewer');
+  const malformed='Independent R1 privacy finding: leaked '+encoded+
+    ' despite other redactions.\n'+d.MARKER+'\n'+JSON.stringify({
+      ...data({reviewer_context_id:ref}),extra:'forces-unqualified'
+    });
+  const output=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:malformed,current_head:SHA,source,
+    publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true}
+  });
+  assert.equal(output.status,'UNREDACTED_CONTEXT_REFERENCE');
+  assert.equal(output.ready_for_manual_relay,false);
+  assert.equal(output.text,null);
+});
