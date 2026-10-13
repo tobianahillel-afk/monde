@@ -3308,7 +3308,7 @@ test('resume: stale evidence from previous HEAD never reports SAME_REVISION',()=
 test('resume: matching head with multiple current proofs remains a continuation hint',()=>{
   const packet=resumeBase({evidence_refs:[
     {kind:'CI',ref:'job-111',head_sha:RS},
-    {kind:'REVIEW',ref:'REVIEW-0099',head_sha:RS}
+    {kind:'REVIEW',ref:'registry/reviews/REVIEW-0099.yaml',head_sha:RS}
   ]});
   const observation=inspectResume(d.renderResumePacket(packet));
   assert.equal(observation.status,'SAME_REVISION');
@@ -4441,9 +4441,9 @@ test('public resume blocks generic credential assignments in either public field
   }
   const safe=d.createResumePacket({...baseline,
     next_action:'Read WORK-0005 and PR #19',evidence_refs:[
-      {kind:'REVIEW',ref:'REVIEW-0101',head_sha:SHA}
+      {kind:'REVIEW',ref:'registry/reviews/REVIEW-0101.yaml',head_sha:SHA}
     ]});
-  assert.equal(safe.evidence_refs[0].ref,'REVIEW-0101');
+  assert.equal(safe.evidence_refs[0].ref,'registry/reviews/REVIEW-0101.yaml');
 });
 test('public L2 handoff refuses approved detail containing generic credentials',()=>{
   for(const leak of ['api_key=ExampleSensitiveValue123',
@@ -5075,4 +5075,50 @@ test('privacy: OAuth refresh tokens are rejected by both public L2 relay modes',
   });
   assert.equal(malformed.ready_for_manual_relay,false);
   assert.equal(malformed.status,'POTENTIAL_SECRET_IN_REPORT');
+});
+
+test('L2 F01: quoted OAuth and HTML-quoted session tokens fail closed in public PR resume and relay',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,work:null,task:null,
+    expected_files:[],action_kind:'AWAIT_L2',next_action:'Check public review',evidence_refs:[]};
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const value of [
+    'refresh_token: "ExampleCredential1234"',
+    "session_id: 'ExampleCredential1234'",
+    '&quot;refresh_token&quot;:&quot;ExampleCredential1234&quot;',
+    '&apos;session_id&apos;:&apos;ExampleCredential1234&apos;']){
+    assert.throws(()=>d.createResumePacket({...base,next_action:'Inspect '+value}),
+      {code:'INVALID_RESUME_PACKET'},value);
+    const found=d.prepareInteractiveHandoff({expected:H,current_head:SHA,source,
+      response:message(data({findings:[{...data().findings[0],
+        evidence:'Captured '+value}]})),publication_clearance:clear});
+    assert.equal(found.ready_for_manual_relay,false,value);
+    assert.match(found.status,/POTENTIAL_SECRET/,value);
+  }
+});
+test('L2 F02: private conversation identifiers cannot become public REVIEW evidence',()=>{
+  const base={repo:H.repo,pr:19,head_sha:SHA,base_sha:SHA,work:null,task:null,
+    expected_files:[],action_kind:'AWAIT_L2',next_action:'Check public review',evidence_refs:[]};
+  for(const ref of ['REVIEW-0099','msg-private-reviewer-conversation-2026',
+    'chat-context-reviewer-2026']){
+    assert.throws(()=>d.createResumePacket({...base,
+      evidence_refs:[{kind:'REVIEW',ref,head_sha:SHA}]}),
+      {code:'INVALID_RESUME_EVIDENCE'},ref);
+    assert.throws(()=>d.createResumePacket({...base,next_action:'Check '+ref}),
+      {code:'INVALID_RESUME_PACKET'},ref);
+  }
+  const path='registry/reviews/REVIEW-0099.yaml';
+  const packet=d.createResumePacket({...base,evidence_refs:[{kind:'REVIEW',ref:path,head_sha:SHA}]});
+  assert.equal(packet.evidence_refs[0].ref,path);
+});
+test('L2 F03: malformed Unicode source ID fails closed without URIError',()=>{
+  const bad='history-msg-\ud800';
+  const report='R1: potential defect in delegated reviewer analysis.\n'+d.MARKER+'\n{broken';
+  const result=d.prepareUnqualifiedTriageHandoff({expected:H,response:report,
+    current_head:SHA,source:{...source,message_ref:bad},publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true
+    }});
+  assert.equal(result.status,'UNSAFE_SOURCE_PROVENANCE');
+  assert.equal(result.ready_for_manual_relay,false);
 });

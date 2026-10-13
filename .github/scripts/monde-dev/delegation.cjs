@@ -36,7 +36,9 @@ const UNSAFE_CONTROL=/[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u2028\u2029]/u;
 function oneLine(value, max = 1000) {
   return typeof value === 'string' && value.length > 0 && value.length <= max &&
     !/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(value) &&
-    !BIDI_CONTROL.test(value) && !HIDDEN_FORMAT.test(value);
+    !BIDI_CONTROL.test(value) && !HIDDEN_FORMAT.test(value) &&
+    // encodeURI throws on isolated surrogates; reject at the boundary.
+    ![...value].some(ch=>{const cp=ch.codePointAt(0);return cp>=0xd800&&cp<=0xdfff;});
 }
 // Message references are provenance identifiers, not arbitrary file paths.
 // A path/file-shaped "ID" can globally redact source evidence (README.md),
@@ -553,7 +555,7 @@ const CREDENTIAL_PATTERNS=[
   /(?:\?|&(?:amp;)?)\s*(?:token|key|auth|session|signature|sig|secret|jwt)=[A-Za-z0-9._~+/%-]{4,}/i,
   // OAuth refresh/ID tokens and session IDs often occur under compound keys.
   // Reject them from public resumes and reviewed-report excerpts.
-  /(?:^|[^A-Za-z0-9])(?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token))\s*[:=]\s*[A-Za-z0-9_%+./=-]{4,}/i,
+  /(?:^|[^A-Za-z0-9])(?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token))\s*[:=]\s*(?:\\*["'\x60])?\s*[A-Za-z0-9_%+./=-]{4,}/i,
   // Machine-generated JSON uses a closing quote before the colon.
   /["'](?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token)|access[_-]?token|api[_-]?key)["']\s*:\s*["'][^"'\s]{4,}/i,
   /-----BEGIN (?:[A-Z ]* )?PRIVATE KEY-----/,
@@ -602,12 +604,13 @@ function publicTextMatches(value, predicate) {
   for(let pass=0;pass<16;pass++){
     if(predicate(text))return true;
     const decoded=text
-      .replace(/&(?:amp|period|sol|colon|bsol|lowbar|underbar|hyphen|dash|equals|quest|commat|num);/gi,entity=>({
+      .replace(/&(?:amp|period|sol|colon|bsol|lowbar|underbar|hyphen|dash|equals|quest|commat|num|quot|apos);/gi,entity=>({
         '&amp;':'&','&period;':'.','&sol;':'/',
         '&colon;':':','&bsol;':'\\',
         '&lowbar;':'_','&underbar;':'_',
         '&hyphen;':'-','&dash;':'-',
-        '&equals;':'=','&quest;':'?','&commat;':'@','&num;':'#'
+        '&equals;':'=','&quest;':'?','&commat;':'@','&num;':'#',
+         '&quot;':'"','&apos;':"'"
       })[entity.toLowerCase()])
       .replace(/&#(?:x([0-9a-f]{1,6})|([0-9]{1,7}));?/gi,(whole,hex,dec)=>{
         const point=parseInt(hex||dec,hex?16:10);
@@ -1765,6 +1768,17 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
 }
 
 
+// Public resume references must identify repository artifacts, not raw
+// reviewer-message IDs. This is a format check, never proof of acceptance.
+function privateResumeId(text) {
+  return typeof text==='string' &&
+    /(?:^|[^A-Za-z0-9])(?:msg-(?:private|reviewer|conversation)[A-Za-z0-9_-]*|chat-(?:context|conversation|reviewer)[A-Za-z0-9_-]*|REVIEW-[0-9]{4,}(?!\.yaml)(?![A-Za-z0-9]))/i.test(text);
+}
+function publicResumeEvidence(kind,ref) {
+  if(privateResumeId(ref))return false;
+  return kind!=='REVIEW'||/^registry\/reviews\/REVIEW-[0-9]{4,}\.yaml$/.test(ref);
+}
+
 // PR description is the sole continuation bookmark. A bookmark never
 // constitutes a grant, independent approval, or independently verified CI.
 const RESUME='MONDE_V2_RESUME_V1';
@@ -1782,6 +1796,7 @@ function resumePacket(input){
      /[<>\\]/.test(input.next_action)||
      containsEncodedCredential(input.next_action)||
       containsPrivateChatHost(input.next_action)||
+      privateResumeId(input.next_action)||
      (input.work!==null&&(typeof input.work!=='string'||
        !/^WORK-\d{4,}$/.test(input.work)))||
      (input.task!==null&&(typeof input.task!=='string'||
@@ -1800,6 +1815,7 @@ function resumePacket(input){
        !oneLine(e.ref,180)||/[<>\\]/.test(e.ref)||
        containsEncodedCredential(e.ref)||
         containsPrivateChatHost(e.ref)||
+       !publicResumeEvidence(e.kind,e.ref)||
        typeof e.head_sha!=='string'||!SHA.test(e.head_sha)||
        ids.has(e.kind+':'+e.ref))
       bad('INVALID_RESUME_EVIDENCE');
