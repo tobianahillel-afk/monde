@@ -4808,3 +4808,33 @@ test('oversized L2 cannot reuse prior provenance fingerprint to imply observed v
   assert.equal(result.results[0].requires_manual_qualification,true);
   assert.equal(result.ready_for_merge,false);
 });
+
+
+test('short reviewer message refs do not qualify L2 or corrupt public relay prose', () => {
+  const tinySource = {...source, message_ref: 'a'};
+  const reviewed = d.assessReview({expected:H, response:message(data({
+    verdict:'APPROVE', findings:[]
+  })), current_head:SHA, source:tinySource});
+  assert.equal(reviewed.status,'INDEPENDENCE_UNVERIFIED');
+  const relay = d.prepareInteractiveHandoff({expected:H, response:message(data({
+    verdict:'APPROVE', findings:[]
+  })), current_head:SHA, source:tinySource, publication_clearance:{
+    secrets_checked:true, personal_data_checked:true, public_repo_safe:true
+  }});
+  assert.equal(relay.ready_for_manual_relay,false);
+  assert.equal(relay.text,null);
+});
+test('unqualified triage refuses one-letter message references rather than mangling words', () => {
+  const malformed=message(data()).replace(d.MARKER+'\n','');
+  const relay=d.prepareUnqualifiedTriageHandoff({
+    expected:H, response:malformed, current_head:SHA,
+    source:{...source,message_ref:'a'},
+    publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+      finding_details_approved:true
+    }
+  });
+  assert.equal(relay.ready_for_manual_relay,false);
+  assert.equal(relay.status,'UNSAFE_SOURCE_PROVENANCE');
+  assert.equal(relay.text,null);
+});

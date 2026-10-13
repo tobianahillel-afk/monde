@@ -222,7 +222,7 @@ function assessResearchReport({expected,response,current_head,source}) {
     source.retrieval_kind!=='chat_history'||
     source.context_id!==packet.reviewer_context_id||
     source.context_id===a.author_context_id||
-    !oneLine(source.message_ref,160))return {...result('INDEPENDENCE_UNVERIFIED'),needs_attention:true,...alleged};
+    (!oneLine(source.message_ref,160)||source.message_ref.length<8))return {...result('INDEPENDENCE_UNVERIFIED'),needs_attention:true,...alleged};
   const blocking=packet.findings.some(f=>f.severity==='R1'||f.severity==='R2');
   return {status:packet.verdict==='CHANGES_REQUIRED'||blocking?'NEEDS_CORRECTION':
     packet.verdict==='BLOCKED'?'BLOCKED':
@@ -451,7 +451,7 @@ function assessReview({ expected, response, current_head, source, coverage_manif
       source.context_id !== metadata.reviewer_context_id ||
       source.context_id === a.author_context_id ||
       source.retrieval_kind !== 'chat_history' ||
-      !oneLine(source.message_ref, 160))
+      (!oneLine(source.message_ref, 160)||source.message_ref.length<8))
     return {status:'INDEPENDENCE_UNVERIFIED',native_github_approved:false,
       needs_attention:true,...reported};
   // Out-of-scope findings may uncover genuine cross-component defects. Keep
@@ -631,7 +631,7 @@ function redactPrivateProvenance(note, values) {
   // Redact unrelated third-party private chat URLs as well as known IDs.
   note=note.replace(PRIVATE_CHAT_LINK,'[REDACTED_CHAT_LINK]');
   const ids=[...new Set(values.filter(v=>typeof v==='string'&&
-    oneLine(v,160)))].sort((a,b)=>b.length-a.length);
+    oneLine(v,160)&&v.length>=8))].sort((a,b)=>b.length-a.length);
   for(const id of ids){
     const json=JSON.stringify(id).slice(1,-1);
     const doubleJson=JSON.stringify(json).slice(1,-1);
@@ -922,7 +922,7 @@ function prepareUnqualifiedTriageHandoff(args) {
   // Malformed source references can survive literal redaction in quoted JSON
   // snippets (e.g. a private ID containing CR/LF becomes "\\n").
   if([source.context_id,source.message_ref].some(v=>
-      typeof v==='string'&&v.length>=8&&!oneLine(v,160)))
+      typeof v==='string'&&(v.length<8||!oneLine(v,160))))
     return refused('UNSAFE_SOURCE_PROVENANCE');
   const claimedContext=claimedReviewerContext(args.response,
     a.mission_kind==='L2_REVIEW'?MARKER:RESEARCH_MARKER);
@@ -1124,7 +1124,7 @@ function assessDelegationBatch({
       ['assignment_id','context_id','message_ref']);
     if(typeof item.assignment_id!=='string'||!ID.test(item.assignment_id)||
        !oneLine(item.context_id,160)||!ID.test(item.context_id)||
-       !oneLine(item.message_ref,160)||
+       (!oneLine(item.message_ref,160)||item.message_ref.length<8)||
        (bound&&(!SHA.test(item.head_sha)||!KINDS.has(item.mission_kind)||
          typeof item.response_sha256!=='string'||
          !/^[a-f0-9]{64}$/.test(item.response_sha256))))
