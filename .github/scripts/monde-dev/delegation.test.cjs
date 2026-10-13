@@ -5308,3 +5308,47 @@ test('resume: forged text-only CI evidence in PR footer stays unusable',()=>{
   assert.equal(checked.status,'INVALID_CHECKPOINT');
   assert.equal(checked.proofs_authoritative,false);
 });
+
+test('resume: CONTINUE_IMPLEMENTATION must carry WORK, TASK, and declared files',()=>{
+  const base={repo:H.repo,pr:19,head_sha:SHA,base_sha:SHA,
+    action_kind:'CONTINUE_IMPLEMENTATION',
+    next_action:'Continue scoped implementation after verifying WORK',
+    evidence_refs:[]};
+  for(const invalid of [
+    {work:null,task:null,expected_files:[]},
+    {work:'WORK-0005',task:null,expected_files:[]},
+    {work:'WORK-0005',task:'T1',expected_files:[]}
+  ]){
+    assert.throws(()=>d.createResumePacket({...base,...invalid}),
+      e=>e.code==='INCOMPLETE_IMPLEMENTATION_CHECKPOINT');
+  }
+  const valid=d.createResumePacket({...base,work:'WORK-0005',task:'T1',
+    expected_files:['src/work.js']});
+  assert.equal(valid.expected_files[0],'src/work.js');
+});
+test('resume: PREPARE_ACCEPTANCE identifies a WORK; L2 read-only can be taskless',()=>{
+  const base={repo:H.repo,pr:19,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],
+    next_action:'Verify host requirements and review evidence',
+    evidence_refs:[]};
+  assert.throws(()=>d.createResumePacket({...base,
+    action_kind:'PREPARE_ACCEPTANCE'}),
+    e=>e.code==='INCOMPLETE_ACCEPTANCE_CHECKPOINT');
+  assert.equal(d.createResumePacket({...base,work:'WORK-0005',
+    action_kind:'PREPARE_ACCEPTANCE'}).work,'WORK-0005');
+  assert.equal(d.createResumePacket({...base,
+    action_kind:'AWAIT_L2'}).action_kind,'AWAIT_L2');
+});
+test('resume: malformed executable checkpoint remains untrusted on restore',()=>{
+  const packet={v:1,repo:H.repo,pr:19,head_sha:SHA,base_sha:SHA,
+    work:'WORK-0005',task:null,expected_files:[],
+    action_kind:'CONTINUE_IMPLEMENTATION',
+    next_action:'Continue without an executable task',
+    evidence_refs:[]};
+  const body='Candidate\n\n<!-- MONDE_V2_RESUME_V1\n'+
+    JSON.stringify(packet)+'\n-->';
+  const restored=d.inspectResumeFromPrBody(body,{repo:H.repo,pr:19,
+    head_sha:SHA,base_sha:SHA});
+  assert.equal(restored.status,'INVALID_CHECKPOINT');
+  assert.equal(restored.checkpoint,null);
+});

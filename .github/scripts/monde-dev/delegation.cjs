@@ -1848,6 +1848,13 @@ function resumePacket(input){
      new Set(input.expected_files).size!==input.expected_files.length||
      !Array.isArray(input.evidence_refs)||input.evidence_refs.length>12)
     bad('INVALID_RESUME_PACKET');
+  // Bookmarks can never grant execution; require an identifiable task and
+  // declared file scope before even suggesting CONTINUE_IMPLEMENTATION.
+  if(input.action_kind==='CONTINUE_IMPLEMENTATION'&&
+     (input.work===null||input.task===null||input.expected_files.length===0))
+    bad('INCOMPLETE_IMPLEMENTATION_CHECKPOINT');
+  if(input.action_kind==='PREPARE_ACCEPTANCE'&&input.work===null)
+    bad('INCOMPLETE_ACCEPTANCE_CHECKPOINT');
   const ids=new Set();
   for(const e of input.evidence_refs){
     exactFields(e,['kind','ref','head_sha']);
