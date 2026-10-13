@@ -5425,3 +5425,39 @@ test('same-looking objective does not collapse different reviewed files',()=>{
   assert.equal(plan[1].schedule_recommended,true);
   assert.equal(plan[1].equivalent_mission_of,null);
 });
+
+test('delegation planner treats Unicode white-space composition as a single harmless separator',()=>{
+  const first={...H,assignment_id:'L2-PR19-UNICODE-SPACE-A',
+    objective:'Review security boundaries and log replay'};
+  for(const sep of ['\u00a0','\u202f','\u2009','\u2003','\u3000']){
+    const second={...H,assignment_id:'L2-PR19-UNICODE-SPACE-B',
+      objective:'Review'+sep+'security boundaries'+sep+'and log replay'};
+    const plan=d.planDelegations([first,second]);
+    assert.equal(plan[1].schedule_recommended,false,
+      'duplicated mission for separator '+sep.codePointAt(0).toString(16));
+    assert.equal(plan[1].equivalent_mission_of,first.assignment_id);
+  }
+});
+test('delegation planner keeps a substantive change even with Unicode whitespace',()=>{
+  const first={...H,assignment_id:'L2-PR19-UNICODE-REAL-A',
+    objective:'Review source code'};
+  const material={...H,assignment_id:'L2-PR19-UNICODE-REAL-B',
+    objective:'Review\u00a0source\u202fcode and dependencies'};
+  assert.deepEqual(d.planDelegations([first,material])
+    .map(item=>item.schedule_recommended),[true,true]);
+});
+test('delegation rejects Unicode whitespace-only objectives before scheduling',()=>{
+  for(const blank of [' ','\u00a0','\u202f','\u3000','\u00a0 \u202f']){
+    assert.throws(()=>d.planDelegations([
+      {...H,assignment_id:'L2-PR19-BLANK-UNIQUE',objective:blank}
+    ]),error=>error.code==='INVALID_ASSIGNMENT');
+  }
+});
+test('delegation still rejects bidi/default-ignorable characters as unsafe objectives',()=>{
+  for(const hidden of ['\u200b','\u202e','\u2066']){
+    assert.throws(()=>d.planDelegations([
+      {...H,assignment_id:'L2-PR19-HIDDEN-UNIQUE',
+        objective:'Review'+hidden+'risk'}
+    ]),error=>error.code==='INVALID_ASSIGNMENT');
+  }
+});

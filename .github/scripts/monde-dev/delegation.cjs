@@ -76,7 +76,7 @@ function assignment(input) {
       typeof input.repo !== 'string' || !REPO.test(input.repo) ||
       !Number.isSafeInteger(input.pr) || input.pr < 1 ||
       typeof input.head_sha !== 'string' || !SHA.test(input.head_sha) ||
-      !oneLine(input.objective, 800) ||
+      (!oneLine(input.objective, 800) || !input.objective.trim()) ||
       !oneLine(input.author_context_id, 96) ||
       !ID.test(input.author_context_id) ||
       !Array.isArray(input.paths) || input.paths.length < 1 ||
@@ -1098,7 +1098,8 @@ function planDelegations(inputs) {
     // Identical prose with harmless spacing or Unicode composition variants
     // should not spend a second scheduled-task slot. This is advisory ONLY:
     // never merge different kinds, targets, files, or reviewer contexts.
-    const normalizedObjective=item.objective.trim().replace(/ +/g,' ').normalize('NFC');
+    const normalizedObjective=item.objective.trim().normalize('NFC')
+      .replace(/\p{White_Space}+/gu,' ');
     const fingerprint=JSON.stringify([
       item.mission_kind,normalizedObjective,item.paths
     ]);
