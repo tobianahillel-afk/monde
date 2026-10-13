@@ -3513,7 +3513,9 @@ test('L2 delta proposes only modified files and a distinct exact HEAD review',()
     compare:{base_sha:H.head_sha,head_sha:latest,complete:true,
       files:[{path,status:'modified',previous_path:null}]},
     new_assignment_id:'mission-delta-0001',
-    previous_review:{head_sha:H.head_sha,context_separated:true,
+    previous_review:{assignment_id:H.assignment_id,head_sha:H.head_sha,
+      scope_paths:H.paths.slice().sort(),reviewer_context_id:'chat-l2-review-verified',
+      review_verdict:'APPROVE',context_separated:true,
       coverage_qualified:true,open_material_findings:0}});
   assert.equal(result.status,'TARGETED_REVIEW_CANDIDATE');
   assert.equal(result.proposed_assignment.head_sha,latest);
@@ -3561,7 +3563,9 @@ test('L2 delta directory scope selects modified descendants and excludes sibling
       {path:'src/b.cjs',status:'modified',previous_path:null},
       {path:'src/a.cjs',status:'added',previous_path:null}
     ]},new_assignment_id:'mission-delta-0005',
-    previous_review:{head_sha:old.head_sha,context_separated:true,
+    previous_review:{assignment_id:old.assignment_id,head_sha:old.head_sha,
+      scope_paths:old.paths.slice().sort(),reviewer_context_id:'chat-l2-review-verified',
+      review_verdict:'APPROVE',context_separated:true,
       coverage_qualified:true,open_material_findings:0}});
   assert.deepEqual(result.proposed_assignment.paths,['src/a.cjs','src/b.cjs']);
 });
@@ -4781,8 +4785,9 @@ test('L2 delta never shortcuts a first or unqualified prior review',()=>{
     assert.equal(res.status,'MANUAL_IMPACT_ANALYSIS_REQUIRED');
   }
   const qualified=d.planL2Delta({...args,previous_review:{
-    head_sha:H.head_sha,context_separated:true,coverage_qualified:true,
-    open_material_findings:0}});
+    assignment_id:H.assignment_id,head_sha:H.head_sha,scope_paths:H.paths.slice().sort(),
+    reviewer_context_id:'chat-l2-review-verified',review_verdict:'APPROVE',
+    context_separated:true,coverage_qualified:true,open_material_findings:0}});
   assert.equal(qualified.status,'TARGETED_REVIEW_CANDIDATE');
   assert.equal(qualified.native_github_approved,false);
   assert.equal(qualified.previous_l2_approval_reusable,false);
@@ -5121,4 +5126,32 @@ test('L2 F03: malformed Unicode source ID fails closed without URIError',()=>{
     }});
   assert.equal(result.status,'UNSAFE_SOURCE_PROVENANCE');
   assert.equal(result.ready_for_manual_relay,false);
+});
+
+test('L2 delta cannot borrow previous approval for another mission, scope or reviewer',()=>{
+  const latest='b'.repeat(40);
+  const args={previous_assignment:H,current_head:latest,
+    compare:{base_sha:H.head_sha,head_sha:latest,complete:true,
+      files:[{path:H.paths[0],status:'modified',previous_path:null}]},
+    new_assignment_id:'mission-bound-0001'};
+  const genuine={assignment_id:H.assignment_id,head_sha:H.head_sha,
+    scope_paths:H.paths.slice().sort(),reviewer_context_id:'chat-l2-review-verified',
+    review_verdict:'APPROVE',context_separated:true,
+    coverage_qualified:true,open_material_findings:0};
+  assert.equal(d.planL2Delta({...args,previous_review:genuine}).status,
+    'TARGETED_REVIEW_CANDIDATE');
+  for(const impostor of [
+    {...genuine,assignment_id:'mission-other-0001'},
+    {...genuine,scope_paths:['src/unrelated.js']},
+    {...genuine,reviewer_context_id:H.author_context_id},
+    {...genuine,reviewer_context_id:'unknown'},
+    {...genuine,review_verdict:'CHANGES_REQUIRED'},
+    {...genuine,review_verdict:'BLOCKED'},
+    {...genuine,open_material_findings:1}
+  ]){
+    const outcome=d.planL2Delta({...args,previous_review:impostor});
+    assert.equal(outcome.status,'MANUAL_IMPACT_ANALYSIS_REQUIRED');
+    assert.equal(outcome.proposed_assignment,null);
+    assert.equal(outcome.previous_l2_approval_reusable,false);
+  }
 });

@@ -1355,11 +1355,23 @@ function planL2Delta({previous_assignment,current_head,compare,
   // A diff alone cannot establish that *unchanged* files received the
   // required prior review. This is an operator-supplied observation and
   // remains advisory; native GitHub approval is never inferred.
+  // A qualified prior report must be bound to THIS exact mission and scope.
+  // A review of another assignment on the same commit cannot justify a
+  // narrower follow-up; a self-review or report with unresolved R1/R2 cannot.
   const priorVerified=plain(previous_review)&&
     Object.keys(previous_review).sort().join('|')===
-      ['head_sha','context_separated','coverage_qualified',
+      ['assignment_id','head_sha','scope_paths','reviewer_context_id',
+        'review_verdict','context_separated','coverage_qualified',
         'open_material_findings'].sort().join('|')&&
+    previous_review.assignment_id===old.assignment_id&&
     previous_review.head_sha===old.head_sha&&
+    Array.isArray(previous_review.scope_paths)&&
+    previous_review.scope_paths.length===old.paths.length&&
+    previous_review.scope_paths.every((path,i)=>path===old.paths[i])&&
+    typeof previous_review.reviewer_context_id==='string'&&
+    ID.test(previous_review.reviewer_context_id)&&
+    previous_review.reviewer_context_id!==old.author_context_id&&
+    previous_review.review_verdict==='APPROVE'&&
     previous_review.context_separated===true&&
     previous_review.coverage_qualified===true&&
     previous_review.open_material_findings===0;

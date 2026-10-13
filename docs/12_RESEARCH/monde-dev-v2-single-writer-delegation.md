@@ -58,9 +58,10 @@ conversation, and can never mark a PR eligible for merge on their own.
 ## Incremental L2 delta safeguard
 
 `planL2Delta` now requires the foreground operator to supply a positive
-`previous_review` observation bound to the old SHA, a distinct reviewer context,
-qualified coverage and zero open R1/R2 findings before suggesting a
-changed-file-only L2 mission. Without that observation, a GitHub diff alone
+`previous_review` observation bound to the old SHA **and the exact prior
+assignment ID and sorted scope paths**, with an explicitly different reviewer
+context, `review_verdict: APPROVE`, qualified coverage and zero open R1/R2
+findings before suggesting a changed-file-only L2 mission. Without that observation, a GitHub diff alone
 returns `MANUAL_IMPACT_ANALYSIS_REQUIRED` (no targeted assignment).
 These booleans are **not host-verified inside the pure helper**; the foreground
 operator must verify their sources independently. Even a targeted candidate
