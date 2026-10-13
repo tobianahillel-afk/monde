@@ -1095,8 +1095,12 @@ function planDelegations(inputs) {
       bad('MIXED_BATCH_TARGET');
     // Distinct IDs do not necessarily mean distinct work. This is a pure
     // scheduling hint: never prohibit a deliberately independent second L2.
+    // Identical prose with harmless spacing or Unicode composition variants
+    // should not spend a second scheduled-task slot. This is advisory ONLY:
+    // never merge different kinds, targets, files, or reviewer contexts.
+    const normalizedObjective=item.objective.trim().replace(/ +/g,' ').normalize('NFC');
     const fingerprint=JSON.stringify([
-      item.mission_kind,item.objective.trim(),item.paths
+      item.mission_kind,normalizedObjective,item.paths
     ]);
     const equivalentTo=equivalentMissions.get(fingerprint)||null;
     if(!equivalentTo)equivalentMissions.set(fingerprint,item.assignment_id);

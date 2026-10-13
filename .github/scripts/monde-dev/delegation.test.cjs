@@ -5403,3 +5403,25 @@ test('L2 grouping rejects untrusted status objects and noncanonical status text'
   const legacy={...f};delete legacy.status;
   assert.equal(d.groupTriageFindings([legacy]).groups.length,1);
 });
+
+test('delegation planner deduplicates harmless whitespace and NFC variants without suppressing material variants',()=>{
+  const first={...H,assignment_id:'L2-PR19-SPACE-0001',
+    objective:'Review  unicode caf\u00e9 and  security'};
+  const equivalent={...H,assignment_id:'L2-PR19-SPACE-0002',
+    objective:'  Review unicode cafe\u0301 and security  '};
+  const changed={...H,assignment_id:'L2-PR19-SPACE-0003',
+    objective:'Review unicode caf\u00e9 and security plus deployment'};
+  const report=d.planDelegations([first,equivalent,changed]);
+  assert.deepEqual(report.map(r=>r.schedule_recommended),[true,false,true]);
+  assert.equal(report[1].equivalent_mission_of,first.assignment_id);
+  assert.equal(report[2].equivalent_mission_of,null);
+  assert.equal(report.every(r=>r.read_only===true),true);
+});
+test('same-looking objective does not collapse different reviewed files',()=>{
+  const first={...H,assignment_id:'L2-PR19-SCOPE-0001',objective:'Review  security'};
+  const other={...H,assignment_id:'L2-PR19-SCOPE-0002',
+    objective:'Review security',paths:['.github/scripts/monde-dev/delegation.test.cjs']};
+  const plan=d.planDelegations([first,other]);
+  assert.equal(plan[1].schedule_recommended,true);
+  assert.equal(plan[1].equivalent_mission_of,null);
+});
