@@ -38,12 +38,16 @@ function oneLine(value, max = 1000) {
     !/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(value) &&
     !BIDI_CONTROL.test(value) && !HIDDEN_FORMAT.test(value);
 }
-// Short references that resemble punctuation, paths or natural-language
-// fragments can redact unrelated code/review text (e.g. "/", ".", "a.b").
-// Preserve existing distinctive "msg-123" / 'msg"7' source references only.
+// Message references are provenance identifiers, not arbitrary file paths.
+// A path/file-shaped "ID" can globally redact source evidence (README.md),
+// even when it is long enough to clear the short-reference length guard.
 function ambiguousShortReference(value) {
-  return typeof value==='string' && value.length<8 &&
-    !/^msg[-"'\/][A-Za-z0-9]+$/.test(value);
+  if(typeof value!=='string')return false;
+  if(/^msg[-"'\/][A-Za-z0-9]+$/.test(value))return false;
+  if(value.length<8)return true;
+  return /^(?:[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]*$/.test(value) ||
+    /^[A-Za-z0-9_.-]+\.[A-Za-z0-9]{1,12}$/.test(value) ||
+    /^(?:README|LICENSE|CHANGELOG|AGENTS|Dockerfile|Makefile)$/i.test(value);
 }
 function validPath(value, allowDirectory=false) {
   if (!oneLine(value, 180) || !PATH.test(value) ||
@@ -587,9 +591,11 @@ function publicTextMatches(value, predicate) {
   for(let pass=0;pass<16;pass++){
     if(predicate(text))return true;
     const decoded=text
-      .replace(/&(?:amp|period|sol|colon|bsol);/gi,entity=>({
+      .replace(/&(?:amp|period|sol|colon|bsol|lowbar|underbar|hyphen|dash);/gi,entity=>({
         '&amp;':'&','&period;':'.','&sol;':'/',
-        '&colon;':':','&bsol;':'\\'
+        '&colon;':':','&bsol;':'\\',
+        '&lowbar;':'_','&underbar;':'_',
+        '&hyphen;':'-','&dash;':'-'
       })[entity.toLowerCase()])
       .replace(/&#(?:x([0-9a-f]{1,6})|([0-9]{1,7}));?/gi,(whole,hex,dec)=>{
         const point=parseInt(hex||dec,hex?16:10);

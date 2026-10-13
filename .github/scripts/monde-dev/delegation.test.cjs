@@ -4899,3 +4899,88 @@ test('L2 privacy: entity-encoded reviewer provenance blocks malformed triage rel
   assert.equal(output.ready_for_manual_relay,false);
   assert.equal(output.text,null);
 });
+
+
+test('L2 provenance: long path-like message IDs never qualify or redact source files',()=>{
+  for(const ref of ['README.md','src/file.js','docs/12_RESEARCH/',
+    'AGENTS.md','package.json','LICENSE']){
+    const altered={...source,message_ref:ref};
+    const review=d.assessReview({
+      expected:H,response:message(data()),current_head:SHA,source:altered
+    });
+    assert.equal(review.status,'INDEPENDENCE_UNVERIFIED',ref);
+    const qualified=d.prepareInteractiveHandoff({
+      expected:H,response:message(data()),current_head:SHA,source:altered,
+      publication_clearance:{secrets_checked:true,personal_data_checked:true,
+        public_repo_safe:true,finding_details_approved:true}
+    });
+    assert.equal(qualified.ready_for_manual_relay,false,ref);
+    assert.equal(qualified.text,null,ref);
+    const malformed=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:'Independent R2: '+ref+' in code review\n'+
+        d.MARKER+'\n{broken',current_head:SHA,source:altered,
+      publication_clearance:{secrets_checked:true,personal_data_checked:true,
+        public_repo_safe:true,finding_details_approved:true}
+    });
+    assert.equal(malformed.status,'UNSAFE_SOURCE_PROVENANCE',ref);
+    assert.equal(malformed.ready_for_manual_relay,false,ref);
+  }
+});
+test('L2 privacy: named HTML underscores in private refs block both public relay modes',()=>{
+  const ref='private_message_ref_2026';
+  const encoded='private&lowbar;message&UnderBar;ref&lowbar;2026';
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const findings=[{...data().findings[0],
+    evidence:'Privacy concern: '+encoded,action:'Avoid exposing private provenance'}];
+  const report=d.prepareInteractiveHandoff({
+    expected:H,response:message(data({findings})),current_head:SHA,
+    source:{...source,message_ref:ref},publication_clearance:clear
+  });
+  assert.equal(report.ready_for_manual_relay,false);
+  assert.equal(report.status,'UNREDACTED_CONTEXT_REFERENCE');
+  assert.equal(report.text,null);
+  const triage=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:'Independent R2 observed '+encoded+
+      ' in a reviewer report.\n'+d.MARKER+'\n{broken',
+    current_head:SHA,source:{...source,message_ref:ref},
+    publication_clearance:clear
+  });
+  assert.equal(triage.ready_for_manual_relay,false);
+  assert.equal(triage.status,'UNREDACTED_CONTEXT_REFERENCE');
+  assert.equal(triage.text,null);
+});
+test('L2 privacy: named HTML underscore in access_token rejects public resume fields',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Review the current SHA',evidence_refs:[]};
+  for(const token of ['access&lowbar;token=ExampleSecret1234',
+    'access&UnderBar;token=ExampleSecret1234',
+    'api&lowbar;key=ExampleSecret1234']){
+    assert.throws(()=>d.createResumePacket({...base,
+      next_action:'Handle '+token}),{code:'INVALID_RESUME_PACKET'});
+    assert.throws(()=>d.createResumePacket({...base,
+      evidence_refs:[{kind:'REVIEW',ref:token,head_sha:SHA}]}),
+    {code:'INVALID_RESUME_EVIDENCE'});
+  }
+});
+test('L2 privacy: named HTML underscore in credentials cannot reach manual handoff',()=>{
+  const credential='access&lowbar;token=ExampleSecret1234';
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const findings=[{...data().findings[0],
+    evidence:'Accidentally included '+credential,action:'Remove the secret'}];
+  const qualified=d.prepareInteractiveHandoff({
+    expected:H,response:message(data({findings})),current_head:SHA,
+    source,publication_clearance:clearance
+  });
+  assert.equal(qualified.ready_for_manual_relay,false);
+  assert.equal(qualified.text,null);
+  const triage=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:'Independent R2 finding: '+credential+
+      '\n'+d.MARKER+'\n{broken',current_head:SHA,source,
+    publication_clearance:clearance
+  });
+  assert.equal(triage.ready_for_manual_relay,false);
+  assert.equal(triage.text,null);
+});
