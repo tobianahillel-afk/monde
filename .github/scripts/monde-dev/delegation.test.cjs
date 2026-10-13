@@ -3310,7 +3310,7 @@ test('healthy completed multi-hop task chain remains eligible',()=>{
 
 test('resume: stale evidence from previous HEAD never reports SAME_REVISION',()=>{
   const old='a'.repeat(40);
-  const packet=resumeBase({evidence_refs:[{kind:'CI',ref:'job-old',head_sha:old}]});
+  const packet=resumeBase({evidence_refs:[{kind:'CI',ref:'job-101',head_sha:old}]});
   const observation=inspectResume(d.renderResumePacket(packet));
   assert.equal(observation.status,'STALE_EVIDENCE');
   assert.equal(observation.next_step,'REPLAN_FROM_LIVE_GITHUB');
@@ -5272,4 +5272,39 @@ test('resume rejects stale HEAD hints inside Markdown code, quotes and square br
   assert.throws(()=>d.createResumePacket({...base,
     next_action:'Review HEAD '+tick+good.slice(0,12)+tick}),
     {code:'INVALID_RESUME_PACKET'});
+});
+
+
+test('resume: evidence refs use canonical host or registry object IDs only',()=>{
+  const valid={
+    CI:['job-115331656856','job:114702602466','run-38325226864','check:100'],
+    REVIEW:['registry/reviews/REVIEW-0099.yaml'],
+    WORK:['WORK-0005','registry/work-items/WORK-0005.yaml'],
+    TEST:['TEST-0066','registry/tests/TEST-0066.yaml'],
+    PR:['PR-19','github-PR-19']
+  };
+  for(const [kind,refs] of Object.entries(valid)){
+    for(const ref of refs){
+      assert.equal(resumeBase({evidence_refs:[{kind,ref,head_sha:RS}]})
+        .evidence_refs[0].ref,ref,kind+' '+ref);
+    }
+  }
+  for(const kind of Object.keys(valid)){
+    for(const ref of ['history-msg-l2-20261011-001','chat-context-l2',
+      'local-reviewer-message-001','../../private','job-old',
+      'PR-0','job-0','job-12;ghp_example']){
+      assert.throws(()=>resumeBase({evidence_refs:[{kind,ref,head_sha:RS}]}),
+        {code:'INVALID_RESUME_EVIDENCE'},kind+' '+ref);
+    }
+  }
+});
+test('resume: forged text-only CI evidence in PR footer stays unusable',()=>{
+  const packet=resumeBase();
+  const forged={...packet,evidence_refs:[{
+    kind:'CI',ref:'history-msg-l2-20261011-001',head_sha:packet.head_sha
+  }]};
+  const body='<!-- MONDE_V2_RESUME_V1\n'+JSON.stringify(forged)+'\n-->';
+  const checked=inspectResume(body);
+  assert.equal(checked.status,'INVALID_CHECKPOINT');
+  assert.equal(checked.proofs_authoritative,false);
 });

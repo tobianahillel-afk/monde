@@ -1788,9 +1788,27 @@ function privateResumeId(text) {
   return publicTextMatches(text,decoded=>
     /(?:^|[^A-Za-z0-9])(?:msg-(?:private|reviewer|conversation)[A-Za-z0-9_-]*|chat-(?:context|conversation|reviewer)[A-Za-z0-9_-]*|REVIEW-[0-9]{4,}(?!\.yaml)(?![A-Za-z0-9]))/i.test(decoded));
 }
+// Only host-addressable CI runs/jobs and canonical MONDE registry/PR IDs
+// belong in a public PR bookmark. Arbitrary "evidence" strings can contain
+// private ChatGPT message refs even when they evade a secret blacklist.
 function publicResumeEvidence(kind,ref) {
-  if(privateResumeId(ref))return false;
-  return kind!=='REVIEW'||/^registry\/reviews\/REVIEW-[0-9]{4,}\.yaml$/.test(ref);
+  if(typeof ref!=='string'||privateResumeId(ref))return false;
+  switch(kind){
+    case 'CI':
+      return /^(?:job|run|check)[-:][1-9][0-9]{0,17}$/.test(ref);
+    case 'REVIEW':
+      return /^registry\/reviews\/REVIEW-[0-9]{4,}\.yaml$/.test(ref);
+    case 'WORK':
+      return /^WORK-[0-9]{4,}$/.test(ref)||
+        /^registry\/work-items\/WORK-[0-9]{4,}\.yaml$/.test(ref);
+    case 'TEST':
+      return /^TEST-[0-9]{4,}$/.test(ref)||
+        /^registry\/tests\/TEST-[0-9]{4,}\.yaml$/.test(ref);
+    case 'PR':
+      return /^(?:github-)?PR-[1-9][0-9]*$/.test(ref);
+    default:
+      return false;
+  }
 }
 
 // PR description is the sole continuation bookmark. A bookmark never
