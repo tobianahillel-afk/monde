@@ -557,7 +557,7 @@ const CREDENTIAL_PATTERNS=[
   // Reject them from public resumes and reviewed-report excerpts.
   /(?:^|[^A-Za-z0-9])(?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token))\s*[:=]\s*(?:\\*["'\x60])?\s*[A-Za-z0-9_%+./=-]{4,}/i,
   // Machine-generated JSON uses a closing quote before the colon.
-  /["'](?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token)|access[_-]?token|api[_-]?key|client[_-]?secret|password|passwd|secret[_-]?key)["']\s*:\s*["'][^"'\s]{4,}/i,
+  /(?:\\*)["'](?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token)|access[_-]?token|api[_-]?key|client[_-]?secret|password|passwd|secret[_-]?key)(?:\\*)["']\s*:\s*(?:\\*)["'][^"'\\\s]{4,}/i,
   /-----BEGIN (?:[A-Z ]* )?PRIVATE KEY-----/,
   /(?:^|[^A-Za-z0-9])gh[pousr]_[A-Za-z0-9_]{20,}/,
   /(?:^|[^A-Za-z0-9])github_pat_[A-Za-z0-9_]{20,}/,
