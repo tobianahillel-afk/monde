@@ -5067,7 +5067,7 @@ test('privacy: OAuth refresh tokens are rejected by both public L2 relay modes',
     source,publication_clearance:clearance
   });
   assert.equal(normal.ready_for_manual_relay,false);
-  assert.equal(normal.status,'POTENTIAL_SECRET_IN_RELAY');
+  assert.equal(normal.status,'POTENTIAL_SECRET_IN_REPORT');
   const malformed=d.prepareUnqualifiedTriageHandoff({
     expected:H,response:'R1: Found '+credential+
       '\nRemove from public comments.\n'+d.MARKER+'\n{broken',
