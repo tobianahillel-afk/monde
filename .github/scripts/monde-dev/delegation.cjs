@@ -551,6 +551,11 @@ const CREDENTIAL_PATTERNS=[
   // A URL containing ?token= or &key= with a plausible value is not safe
   // to copy to public review evidence, even on an otherwise public domain.
   /(?:\?|&(?:amp;)?)\s*(?:token|key|auth|session|signature|sig|secret|jwt)=[A-Za-z0-9._~+/%-]{4,}/i,
+  // OAuth refresh/ID tokens and session IDs often occur under compound keys.
+  // Reject them from public resumes and reviewed-report excerpts.
+  /(?:^|[^A-Za-z0-9])(?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token))\s*[:=]\s*[A-Za-z0-9_%+./=-]{4,}/i,
+  // Machine-generated JSON uses a closing quote before the colon.
+  /["'](?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token)|access[_-]?token|api[_-]?key)["']\s*:\s*["'][^"'\s]{4,}/i,
   /-----BEGIN (?:[A-Z ]* )?PRIVATE KEY-----/,
   /(?:^|[^A-Za-z0-9])gh[pousr]_[A-Za-z0-9_]{20,}/,
   /(?:^|[^A-Za-z0-9])github_pat_[A-Za-z0-9_]{20,}/,

@@ -5032,3 +5032,47 @@ test('privacy: named entity decode does not prohibit harmless public identifiers
     next_action:'Inspect docs in PR &num;19 and issue &num;20',evidence_refs:[]};
   assert.equal(d.createResumePacket(base).pr,19);
 });
+
+test('privacy: OAuth refresh/id tokens and session credentials cannot enter PR resume',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Review current PR',evidence_refs:[]};
+  const credentials=[
+    'https://public.example/?refresh_token=ExampleCredential123',
+    'oauth_token=ExampleCredential123',
+    'id_token=ExampleCredential123',
+    'session_id=ExampleCredential123',
+    '{"refresh_token":"ExampleCredential123"}',
+    '{"access_token":"ExampleCredential123"}',
+    'refresh&lowbar;token&equals;ExampleCredential123'
+  ];
+  for(const credential of credentials){
+    assert.throws(()=>d.createResumePacket({...base,
+      next_action:'Investigate '+credential}),{code:'INVALID_RESUME_PACKET'},credential);
+    assert.throws(()=>d.createResumePacket({...base,
+      evidence_refs:[{kind:'REVIEW',ref:credential,head_sha:SHA}]}),
+    {code:'INVALID_RESUME_EVIDENCE'},credential);
+  }
+  assert.equal(d.createResumePacket({...base,
+    next_action:'Compare public PR #19 and issue #20'}).pr,19);
+});
+test('privacy: OAuth refresh tokens are rejected by both public L2 relay modes',()=>{
+  const credential='https://public.example/?refresh_token=ExampleCredential123';
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const findings=[{...data().findings[0],evidence:'Review exposed '+credential,
+    action:'Remove the credential from report'}];
+  const normal=d.prepareInteractiveHandoff({
+    expected:H,response:message(data({findings})),current_head:SHA,
+    source,publication_clearance:clearance
+  });
+  assert.equal(normal.ready_for_manual_relay,false);
+  assert.equal(normal.status,'POTENTIAL_SECRET_IN_RELAY');
+  const malformed=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:'R1: Found '+credential+
+      '\nRemove from public comments.\n'+d.MARKER+'\n{broken',
+    current_head:SHA,source,publication_clearance:clearance
+  });
+  assert.equal(malformed.ready_for_manual_relay,false);
+  assert.equal(malformed.status,'POTENTIAL_SECRET_IN_REPORT');
+});
