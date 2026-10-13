@@ -42,12 +42,18 @@ function oneLine(value, max = 1000) {
 // A path/file-shaped "ID" can globally redact source evidence (README.md),
 // even when it is long enough to clear the short-reference length guard.
 function ambiguousShortReference(value) {
-  if(typeof value!=='string')return false;
-  if(/^msg[-"'\/][A-Za-z0-9]+$/.test(value))return false;
-  if(value.length<8)return true;
-  return /^(?:[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]*$/.test(value) ||
-    /^[A-Za-z0-9_.-]+\.[A-Za-z0-9]{1,12}$/.test(value) ||
-    /^(?:README|LICENSE|CHANGELOG|AGENTS|Dockerfile|Makefile)$/i.test(value);
+  return typeof value==='string' && value.length<8 &&
+    !/^msg[-"'\/][A-Za-z0-9]+$/.test(value);
+}
+// Source message IDs must be distinctive, but a reviewer-context URI may
+// legitimately be path-shaped and still MUST be redacted from public output.
+function ambiguousSourceReference(value) {
+  return ambiguousShortReference(value) ||
+    (typeof value==='string' && (
+      /^(?:[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]*$/.test(value) ||
+      /^[A-Za-z0-9_.-]+\.[A-Za-z0-9]{1,12}$/.test(value) ||
+      /^(?:README|LICENSE|CHANGELOG|AGENTS|Dockerfile|Makefile)$/i.test(value)
+    ));
 }
 function validPath(value, allowDirectory=false) {
   if (!oneLine(value, 180) || !PATH.test(value) ||
@@ -233,7 +239,7 @@ function assessResearchReport({expected,response,current_head,source}) {
     source.retrieval_kind!=='chat_history'||
     source.context_id!==packet.reviewer_context_id||
     source.context_id===a.author_context_id||
-    (!oneLine(source.message_ref,160)||ambiguousShortReference(source.message_ref)))return {...result('INDEPENDENCE_UNVERIFIED'),needs_attention:true,...alleged};
+    (!oneLine(source.message_ref,160)||ambiguousSourceReference(source.message_ref)))return {...result('INDEPENDENCE_UNVERIFIED'),needs_attention:true,...alleged};
   const blocking=packet.findings.some(f=>f.severity==='R1'||f.severity==='R2');
   return {status:packet.verdict==='CHANGES_REQUIRED'||blocking?'NEEDS_CORRECTION':
     packet.verdict==='BLOCKED'?'BLOCKED':
@@ -462,7 +468,7 @@ function assessReview({ expected, response, current_head, source, coverage_manif
       source.context_id !== metadata.reviewer_context_id ||
       source.context_id === a.author_context_id ||
       source.retrieval_kind !== 'chat_history' ||
-      (!oneLine(source.message_ref, 160)||ambiguousShortReference(source.message_ref)))
+      (!oneLine(source.message_ref, 160)||ambiguousSourceReference(source.message_ref)))
     return {status:'INDEPENDENCE_UNVERIFIED',native_github_approved:false,
       needs_attention:true,...reported};
   // Out-of-scope findings may uncover genuine cross-component defects. Keep
@@ -950,7 +956,7 @@ function prepareUnqualifiedTriageHandoff(args) {
   // Malformed source references can survive literal redaction in quoted JSON
   // snippets (e.g. a private ID containing CR/LF becomes "\\n").
   if([source.context_id,source.message_ref].some(v=>
-      typeof v==='string'&&(ambiguousShortReference(v)||!oneLine(v,160))))
+      typeof v==='string'&&(ambiguousSourceReference(v)||!oneLine(v,160))))
     return refused('UNSAFE_SOURCE_PROVENANCE');
   const claimedContext=claimedReviewerContext(args.response,
     a.mission_kind==='L2_REVIEW'?MARKER:RESEARCH_MARKER);
@@ -1155,7 +1161,7 @@ function assessDelegationBatch({
       ['assignment_id','context_id','message_ref']);
     if(typeof item.assignment_id!=='string'||!ID.test(item.assignment_id)||
        !oneLine(item.context_id,160)||!ID.test(item.context_id)||
-       (!oneLine(item.message_ref,160)||ambiguousShortReference(item.message_ref))||
+       (!oneLine(item.message_ref,160)||ambiguousSourceReference(item.message_ref))||
        (bound&&(!SHA.test(item.head_sha)||!KINDS.has(item.mission_kind)||
          typeof item.response_sha256!=='string'||
          !/^[a-f0-9]{64}$/.test(item.response_sha256))))
