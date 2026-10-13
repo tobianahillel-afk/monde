@@ -2645,8 +2645,10 @@ test('resume: PR-body checkpoint round-trips with no approval assertion',()=>{
 test('resume: exact-HEAD hint must match packet HEAD even when SHA field is correct',()=>{
   assert.throws(()=>resumeBase({next_action:'Request L2 on exact HEAD 84316f59; check CI'}),
     {code:'INVALID_RESUME_PACKET'});
-  const good=resumeBase({next_action:'Request L2 on exact HEAD '+RS.slice(0,12)});
+  const good=resumeBase({next_action:'Request L2 on the structured current HEAD'});
   assert.equal(inspectResume(d.updateResumeInPrBody('',good)).status,'SAME_REVISION');
+  assert.throws(()=>resumeBase({next_action:'Request L2 on exact HEAD '+RS.slice(0,12)}),
+    {code:'INVALID_RESUME_PACKET'});
   const tampered=JSON.parse(JSON.stringify(good));
   tampered.next_action='Review exact HEAD 84316f59';
   const raw='<!-- MONDE_V2_RESUME_V1\n'+JSON.stringify(tampered)+'\n-->';
@@ -4714,7 +4716,7 @@ test('privacy: short credential representations cannot leak into public PR check
     {code:'INVALID_RESUME_EVIDENCE'},value);
   }
   assert.equal(d.createResumePacket({...checkpoint,
-    next_action:'Read PR #19 and check job:115026068136'}).pr,H.pr);
+    next_action:'Read PR #19 and verify the CI evidence reference'}).pr,H.pr);
 });
 test('privacy: short Basic and Bearer headers block both qualified and malformed L2 relay',()=>{
   const clearance={secrets_checked:true,personal_data_checked:true,
