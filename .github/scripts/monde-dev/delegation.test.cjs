@@ -4984,3 +4984,51 @@ test('L2 privacy: named HTML underscore in credentials cannot reach manual hando
   assert.equal(triage.ready_for_manual_relay,false);
   assert.equal(triage.text,null);
 });
+
+test('privacy: named HTML equals and question entities never disclose credentials in bookmarks',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Review exact head',evidence_refs:[]};
+  const disguised=[
+    'access_token&equals;ExampleSecret1234',
+    'api&lowbar;key&equals;ExampleSecret1234',
+    'https://public.example/r&quest;token&equals;ExampleSecret1234',
+    'https://public.example/r&quest;sig&equals;ExampleSecret1234',
+    'https://public.example/r&quest;token&equals;ExampleSecret1234'
+      .replaceAll('&','&amp;')
+  ];
+  for(const hidden of disguised){
+    assert.throws(()=>d.createResumePacket({...base,
+      next_action:'Investigate '+hidden}),{code:'INVALID_RESUME_PACKET'},hidden);
+    assert.throws(()=>d.createResumePacket({...base,
+      evidence_refs:[{kind:'REVIEW',ref:hidden,head_sha:SHA}]}),
+    {code:'INVALID_RESUME_EVIDENCE'},hidden);
+  }
+});
+test('privacy: named HTML equals cannot pass the normal or fallback L2 relay',()=>{
+  const credential='access&lowbar;token&equals;ExampleSecret1234';
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const findings=[{...data().findings[0],
+    evidence:'Credential in review: '+credential,
+    action:'Do not publish the credential'}];
+  const normal=d.prepareInteractiveHandoff({
+    expected:H,response:message(data({findings})),current_head:SHA,
+    source,publication_clearance:clearance
+  });
+  assert.equal(normal.ready_for_manual_relay,false);
+  assert.equal(normal.status,'POTENTIAL_SECRET_IN_RELAY');
+  const fallback=d.prepareUnqualifiedTriageHandoff({
+    expected:H,
+    response:'R2 review found credential '+credential+'\n'+d.MARKER+'\n{broken',
+    current_head:SHA,source,publication_clearance:clearance
+  });
+  assert.equal(fallback.ready_for_manual_relay,false);
+  assert.equal(fallback.status,'POTENTIAL_SECRET_IN_REPORT');
+});
+test('privacy: named entity decode does not prohibit harmless public identifiers',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Inspect docs in PR &num;19 and issue &num;20',evidence_refs:[]};
+  assert.equal(d.createResumePacket(base).pr,19);
+});

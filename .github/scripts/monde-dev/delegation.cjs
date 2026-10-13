@@ -597,11 +597,12 @@ function publicTextMatches(value, predicate) {
   for(let pass=0;pass<16;pass++){
     if(predicate(text))return true;
     const decoded=text
-      .replace(/&(?:amp|period|sol|colon|bsol|lowbar|underbar|hyphen|dash);/gi,entity=>({
+      .replace(/&(?:amp|period|sol|colon|bsol|lowbar|underbar|hyphen|dash|equals|quest|commat|num);/gi,entity=>({
         '&amp;':'&','&period;':'.','&sol;':'/',
         '&colon;':':','&bsol;':'\\',
         '&lowbar;':'_','&underbar;':'_',
-        '&hyphen;':'-','&dash;':'-'
+        '&hyphen;':'-','&dash;':'-',
+        '&equals;':'=','&quest;':'?','&commat;':'@','&num;':'#'
       })[entity.toLowerCase()])
       .replace(/&#(?:x([0-9a-f]{1,6})|([0-9]{1,7}));?/gi,(whole,hex,dec)=>{
         const point=parseInt(hex||dec,hex?16:10);
