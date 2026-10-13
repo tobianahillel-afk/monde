@@ -1802,7 +1802,7 @@ const resumeActions=new Set(['CONTINUE_IMPLEMENTATION','RECHECK_WORK',
 // A bookmark must never direct a fresh reviewer to the wrong HEAD.
 // Check explicit abbreviated SHA hints; ordinary non-SHA prose is allowed.
 function mismatchedNextHeadHint(action, headSha) {
-  const pattern=/\b(?:HEAD(?:[\s:_-]*SHA)?)\s*(?:[:=]\s*|\(\s*|\s+)([a-f0-9]{8,40})(?![a-f0-9])/gi;
+  const pattern=/\b(?:HEAD(?:[\s:_-]*SHA)?)\s*(?:[:=]\s*|\(\s*|\[\s*|\s+)(?:[\x60'\"]|\[|\()?\s*([a-f0-9]{8,40})(?![a-f0-9])/gi;
   let match;
   while ((match=pattern.exec(action))!==null)
     if (!headSha.startsWith(match[1].toLowerCase())) return true;

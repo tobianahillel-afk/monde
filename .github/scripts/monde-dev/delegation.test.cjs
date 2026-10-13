@@ -5264,3 +5264,21 @@ test('resume: benign prose mentioning HEAD without a SHA is still valid',()=>{
   };
   assert.equal(d.createResumePacket(packet).action_kind,'RECHECK_WORK');
 });
+
+test('resume rejects stale HEAD hints inside Markdown code, quotes and square brackets',()=>{
+  const good='a'.repeat(40),old='b'.repeat(40);
+  const base={repo:'tobianahillel-afk/monde',pr:19,head_sha:good,base_sha:good,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',evidence_refs:[]};
+  for(const prefix of ['HEAD ', 'HEAD: ', 'HEAD_SHA=', 'HEAD [', 'HEAD (']){
+    for(const surround of [['\\x60','\\x60'],['\\"','\\"'],["'","'"],['[',']']]){
+      const left=surround[0]==='\\x60'?String.fromCharCode(96):surround[0];
+      const right=surround[1]==='\\x60'?String.fromCharCode(96):surround[1];
+      const hint='Review '+prefix+left+old.slice(0,12)+right;
+      assert.throws(()=>d.createResumePacket({...base,next_action:hint}),
+        {code:'INVALID_RESUME_PACKET'},hint);
+    }
+  }
+  const tick=String.fromCharCode(96);
+  assert.equal(d.createResumePacket({...base,
+    next_action:'Review HEAD '+tick+good.slice(0,12)+tick}).head_sha,good);
+});
