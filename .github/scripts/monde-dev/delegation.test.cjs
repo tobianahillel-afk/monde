@@ -5461,3 +5461,57 @@ test('delegation still rejects bidi/default-ignorable characters as unsafe objec
     ]),error=>error.code==='INVALID_ASSIGNMENT');
   }
 });
+
+
+test('public L2 review relay refuses HTTP Cookie and Set-Cookie session values',()=>{
+  for(const evidence of [
+    'Trace Cookie: sid=EXAMPLE_COOKIE_123; HttpOnly',
+    'Trace Set-Cookie: __Host-session=EXAMPLE_COOKIE_123; Secure',
+    'Serialized header "Set-Cookie": "sid=EXAMPLE_COOKIE_123"',
+    'Trace Cookie: sid="EXAMPLE_COOKIE_123"',
+    'Trace Set-Cookie: sid=Z'
+  ]){
+    const item={...data().findings[0],evidence};
+    const response=message(data({findings:[item]}));
+    const got=d.prepareInteractiveHandoff({expected:H,response,
+      current_head:SHA,source,publication_clearance:{
+        secrets_checked:true,personal_data_checked:true,public_repo_safe:true,
+        finding_details_approved:true}});
+    assert.equal(got.ready_for_manual_relay,false,evidence);
+    assert.equal(got.text,null,evidence);
+    assert.equal(got.status,'POTENTIAL_SECRET_IN_REPORT',evidence);
+  }
+});
+test('HTTP cookie secrets never enter public checkpoint free-text',()=>{
+  const base={repo:H.repo,pr:19,head_sha:SHA,base_sha:SHA,work:null,
+    task:null,expected_files:[],action_kind:'AWAIT_L2',evidence_refs:[]};
+  for(const secret of [
+    'Cookie: sid=EXAMPLE_COOKIE_123',
+    'Set-Cookie: __Host-session=EXAMPLE_COOKIE_123',
+    '"Set-Cookie": "sid=EXAMPLE_COOKIE_123"',
+    'Cookie&colon; sid&equals;EXAMPLE_COOKIE_123',
+    'Set-Cookie%3A%20sid%3DEXAMPLE_COOKIE_123'
+  ]){
+    assert.throws(()=>d.createResumePacket({...base,
+      next_action:'Inspect trace '+secret+' and decide next step'}),
+      e=>e.code==='INVALID_RESUME_PACKET',secret);
+  }
+  const ordinary=d.createResumePacket({...base,
+    next_action:'Review cookie-related security controls in public code'});
+  assert.equal(ordinary.action_kind,'AWAIT_L2');
+});
+test('unqualified review triage never publishes session cookies',()=>{
+  const badReport=[
+    'Potential R2 finding: Trace Cookie: sid=EXAMPLE_COOKIE_123.',
+    'This reviewer report is malformed and requires manual triage.',
+    d.MARKER,
+    '{not-valid-json}'
+  ].join('\n');
+  const got=d.prepareUnqualifiedTriageHandoff({expected:H,response:badReport,
+    current_head:SHA,source,publication_clearance:{
+      secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(got.ready_for_manual_relay,false);
+  assert.equal(got.text,null);
+  assert.equal(got.status,'POTENTIAL_SECRET_IN_REPORT');
+});

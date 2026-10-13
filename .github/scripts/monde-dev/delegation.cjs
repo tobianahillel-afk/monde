@@ -575,7 +575,14 @@ const CREDENTIAL_PATTERNS=[
   /(?:^|[^A-Za-z0-9])Authorization\s*:\s*Bearer\s+[A-Za-z0-9._~+/-]{4,}/i,
   // Basic auth contains a base64-encoded username:password pair. A redacted
   // relay must reject it as credentials, including proxy/log field prefixes.
-  /(?:^|[^A-Za-z0-9])(?:Proxy-)?Authorization\s*:\s*Basic\s+[A-Za-z0-9+/]{4,}={0,2}(?![A-Za-z0-9+/=])/i
+  /(?:^|[^A-Za-z0-9])(?:Proxy-)?Authorization\s*:\s*Basic\s+[A-Za-z0-9+/]{4,}={0,2}(?![A-Za-z0-9+/=])/i,
+  // GitHub review snippets can contain session cookies from HTTP traces.
+  // Even short cookie values are confidential in a PUBLIC PR. Avoid a blanket
+  // "cookie" word filter: require a header name plus a concrete key/value.
+  /(?:^|[^A-Za-z0-9])(?:Set-Cookie|Cookie)\s*:\s*(?:\\*["'\x60])?\s*[A-Za-z0-9_.!#$%&*+\-^|~]{1,128}\s*=\s*(?:\\*["'\x60])?\s*[^\s;,"'\\]{1,512}/i,
+  // Normalized JSON/log records often insert quotes around the header key
+  // and value: {"Set-Cookie":"sid=..."} must be rejected as well.
+  /(?:\\*)["'](?:Set-Cookie|Cookie)(?:\\*)["']\s*:\s*(?:\\*)["'][A-Za-z0-9_.!#$%&*+\-^|~]{1,128}=[^"'\\;\s]{1,512}/i
 ];
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
 // Raw conversation URLs are private provenance, not necessary public evidence.
