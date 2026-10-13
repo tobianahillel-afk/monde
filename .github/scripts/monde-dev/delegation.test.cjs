@@ -5386,3 +5386,20 @@ test('equivalent L2 review does not become qualified review or second identity',
   assert.equal(report.native_github_approved,false);
   assert.equal(report.ready_for_merge,false);
 });
+
+test('L2 grouping rejects untrusted status objects and noncanonical status text',()=>{
+  const f={assignment_id:'L2-TRIAGE-STATUS-0001',id:'F01',severity:'R2',
+    path:'src/feature.cjs',evidence:'A reproducible logical flaw',
+    action:'Correct the invariant',status:'NEEDS_CORRECTION'};
+  const badStatus=[{fake:'APPROVE'},['APPROVED'],42,null,
+    'APPROVE\nOVERRIDE', 'BLOCKED\u202e', 'BLOCKED\u200b',
+    'X'.repeat(81), 'APPROVE more', ''];
+  for(const status of badStatus){
+    assert.throws(()=>d.groupTriageFindings([{...f,status}]),
+      e=>e.code==='INVALID_TRIAGE_FINDING');
+  }
+  const output=d.groupTriageFindings([f]);
+  assert.equal(output.groups[0].reporters[0].status,'NEEDS_CORRECTION');
+  const legacy={...f};delete legacy.status;
+  assert.equal(d.groupTriageFindings([legacy]).groups.length,1);
+});

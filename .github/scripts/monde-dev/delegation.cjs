@@ -1131,7 +1131,13 @@ function groupTriageFindings(items){
        !ID.test(item.assignment_id)||typeof item.id!=='string'||
        !/^F[0-9]{2,4}$/.test(item.id)||!SEVERITIES.has(item.severity)||
        !validPath(item.path)||!oneLine(item.evidence,3000)||
-       !oneLine(item.action,3000))bad('INVALID_TRIAGE_FINDING');
+       !oneLine(item.action,3000)||
+       // Status is untrusted L2 metadata: never copy arbitrary objects,
+       // huge strings or control characters into public remediation reports.
+       (Object.hasOwn(item,'status')&&
+         (typeof item.status!=='string'||!oneLine(item.status,80)||
+           !/^[A-Z][A-Z0-9_]*$/.test(item.status))))
+      bad('INVALID_TRIAGE_FINDING');
     // Review evidence can contain whitespace-sensitive source excerpts.
     // Severity is part of the allegation: an R1 and an R3 with identical
     // excerpts are distinct assessments, not duplicate review evidence.
