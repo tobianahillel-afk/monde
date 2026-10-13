@@ -1799,6 +1799,15 @@ const RESUME='MONDE_V2_RESUME_V1';
 const resumeOpen='<!-- '+RESUME+'\n', resumeClose='\n-->';
 const resumeActions=new Set(['CONTINUE_IMPLEMENTATION','RECHECK_WORK',
   'TRIAGE_FINDINGS','AWAIT_L2','PREPARE_ACCEPTANCE']);
+// A bookmark must never direct a fresh reviewer to the wrong HEAD.
+// Check explicit abbreviated SHA hints; ordinary non-SHA prose is allowed.
+function mismatchedNextHeadHint(action, headSha) {
+  const pattern=/\bHEAD\s+([a-f0-9]{8,40})(?![a-f0-9])/gi;
+  let match;
+  while ((match=pattern.exec(action))!==null)
+    if (!headSha.startsWith(match[1].toLowerCase())) return true;
+  return false;
+}
 function resumePacket(input){
   exactFields(input,['v','repo','pr','head_sha','base_sha','work','task',
     'expected_files','action_kind','next_action','evidence_refs']);
@@ -1807,6 +1816,7 @@ function resumePacket(input){
      typeof input.head_sha!=='string'||!SHA.test(input.head_sha)||
      typeof input.base_sha!=='string'||!SHA.test(input.base_sha)||
      !resumeActions.has(input.action_kind)||!oneLine(input.next_action,380)||
+      mismatchedNextHeadHint(input.next_action,input.head_sha)||
      /[<>\\]/.test(input.next_action)||
      containsEncodedCredential(input.next_action)||
       containsPrivateChatHost(input.next_action)||

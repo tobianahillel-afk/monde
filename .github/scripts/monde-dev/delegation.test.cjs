@@ -2642,6 +2642,16 @@ test('resume: PR-body checkpoint round-trips with no approval assertion',()=>{
   assert.equal(observed.proofs_authoritative,false);
   assert.equal(observed.next_step,'AWAIT_L2');
 });
+test('resume: exact-HEAD hint must match packet HEAD even when SHA field is correct',()=>{
+  assert.throws(()=>resumeBase({next_action:'Request L2 on exact HEAD 84316f59; check CI'}),
+    {code:'INVALID_RESUME_PACKET'});
+  const good=resumeBase({next_action:'Request L2 on exact HEAD '+RS.slice(0,12)});
+  assert.equal(inspectResume(d.updateResumeInPrBody('',good)).status,'SAME_REVISION');
+  const tampered=JSON.parse(JSON.stringify(good));
+  tampered.next_action='Review exact HEAD 84316f59';
+  const raw='<!-- MONDE_V2_RESUME_V1\n'+JSON.stringify(tampered)+'\n-->';
+  assert.equal(inspectResume(raw).status,'INVALID_CHECKPOINT');
+});
 test('resume: updating checkpoint replaces rather than appends',()=>{
   const one=d.updateResumeInPrBody('Hello',resumeBase());
   const two=d.updateResumeInPrBody(one,resumeBase({
