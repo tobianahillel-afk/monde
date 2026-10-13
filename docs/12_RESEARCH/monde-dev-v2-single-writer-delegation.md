@@ -14,6 +14,8 @@ The user initiates the main development conversation manually. This foreground C
 
 The foreground agent may create 1–4 **one-shot scheduled ChatGPT tasks** when independent information will materially improve a current work item. Tasks have no development authority. Their permitted work is GitHub read-only research, architecture comparison, test ideation, and independent context-separated L2 code review. They must never attempt source or comment writes, merge PRs, configure the repository, create additional tasks, or request an external paid AI runtime.
 
+When using `planDelegations`, inspect `schedule_recommended` and `equivalent_mission_of`: two assignments with the same mission kind, normalized scope and objective are potential redundant ChatGPT tasks. By default schedule only the first; a second context-separated L2 review may deliberately be requested when materially useful. This hint never creates, cancels, approves or classifies a report, and it does not prove independence.
+
 These tasks are not four development writers. The older four-writer allocator remains only in the previous Git commit history; its source and dispatcher are removed from this V2 candidate to avoid deploying unnecessary privileged coordination code. ChatGPT alone decides what to write in a manually initiated conversation; the pure delegation helper produces read-only briefings and validates the format of retrieved reports, not their independent accuracy.
 
 ## Distinct read-only mission kinds

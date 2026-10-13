@@ -1084,26 +1084,37 @@ function planDelegations(inputs) {
   if (!Array.isArray(inputs) || inputs.length < 1 || inputs.length > 4)
     bad('INVALID_BATCH_SIZE');
   const work = inputs.map(assignment);
-  const seen = new Set();
+  const seen = new Set(), equivalentMissions = new Map();
   const anchor = work[0];
-  for (const item of work) {
+  return work.map(item => {
     if (seen.has(item.assignment_id)) bad('DUPLICATE_ASSIGNMENT');
     seen.add(item.assignment_id);
     if (item.repo !== anchor.repo || item.pr !== anchor.pr ||
         item.head_sha !== anchor.head_sha ||
         item.author_context_id !== anchor.author_context_id)
       bad('MIXED_BATCH_TARGET');
-  }
-  return work.map(item => ({
-    assignment_id: item.assignment_id,
-    repo: item.repo,
-    pr: item.pr,
-    head_sha: item.head_sha,
-    mission_kind: item.mission_kind,
-    read_only: true,
-    prompt: item.mission_kind==='L2_REVIEW'
-      ?buildReviewPrompt(item):buildResearchPrompt(item)
-  }));
+    // Distinct IDs do not necessarily mean distinct work. This is a pure
+    // scheduling hint: never prohibit a deliberately independent second L2.
+    const fingerprint=JSON.stringify([
+      item.mission_kind,item.objective.trim(),item.paths
+    ]);
+    const equivalentTo=equivalentMissions.get(fingerprint)||null;
+    if(!equivalentTo)equivalentMissions.set(fingerprint,item.assignment_id);
+    return {
+      assignment_id: item.assignment_id,
+      repo: item.repo,
+      pr: item.pr,
+      head_sha: item.head_sha,
+      mission_kind: item.mission_kind,
+      read_only: true,
+      // A foreground developer may still deliberately request another
+      // independent L2 context; no automatic deduplication erases evidence.
+      schedule_recommended: equivalentTo===null,
+      equivalent_mission_of: equivalentTo,
+      prompt: item.mission_kind==='L2_REVIEW'
+        ?buildReviewPrompt(item):buildResearchPrompt(item)
+    };
+  });
 }
 
 // Reports are supplied by the foreground chat *after* retrieving actual

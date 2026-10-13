@@ -5352,3 +5352,37 @@ test('resume: malformed executable checkpoint remains untrusted on restore',()=>
   assert.equal(restored.status,'INVALID_CHECKPOINT');
   assert.equal(restored.checkpoint,null);
 });
+
+test('delegation planner flags duplicate scope/objective instead of wasting task slots',()=>{
+  const first={...H,assignment_id:'L2-PR19-REUSE-0001'};
+  const duplicate={...H,assignment_id:'L2-PR19-REUSE-0002',paths:H.paths.slice().reverse()};
+  const plan=d.planDelegations([first,duplicate]);
+  assert.equal(plan.length,2);
+  assert.equal(plan[0].schedule_recommended,true);
+  assert.equal(plan[0].equivalent_mission_of,null);
+  assert.equal(plan[1].schedule_recommended,false);
+  assert.equal(plan[1].equivalent_mission_of,first.assignment_id);
+  assert.equal(plan[1].read_only,true);
+  assert.match(plan[1].prompt,/MONDE_V2_L2_RESULT_V1/);
+});
+test('different objective or mission kind remains an independent scheduled candidate',()=>{
+  const first={...H,assignment_id:'L2-PR19-REUSE-0003'};
+  const changed={...H,assignment_id:'L2-PR19-REUSE-0004',
+    objective:H.objective+' plus external contract validation'};
+  const research={...RESEARCH,assignment_id:'RESEARCH-REUSE-0005',
+    objective:H.objective,paths:H.paths.slice()};
+  const plan=d.planDelegations([first,changed,research]);
+  assert.deepEqual(plan.map(x=>x.schedule_recommended),[true,true,true]);
+  assert.ok(plan.every(x=>x.equivalent_mission_of===null));
+});
+test('equivalent L2 review does not become qualified review or second identity',()=>{
+  const first={...H,assignment_id:'L2-PR19-REUSE-0006'};
+  const second={...H,assignment_id:'L2-PR19-REUSE-0007'};
+  const plan=d.planDelegations([first,second]);
+  assert.equal(plan[1].schedule_recommended,false);
+  const report=d.assessDelegationBatch({assignments:[first,second],
+    reports:{},sources:{},current_head:SHA});
+  assert.equal(report.counts.REPORT_UNAVAILABLE,2);
+  assert.equal(report.native_github_approved,false);
+  assert.equal(report.ready_for_merge,false);
+});
