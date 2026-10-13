@@ -3766,7 +3766,7 @@ test('resume: producer rejects a syntactically valid but unreadably large bookma
   const longFiles=Array.from({length:30},(_,i)=>
     'src/'+String(i).padStart(4,'0')+'/'+'x'.repeat(165));
   const references=Array.from({length:12},(_,i)=>({
-    kind:'CI',ref:'check'+i+'_'+'x'.repeat(161),head_sha:SHA
+    kind:'CI',ref:'job-'+String(115331656856+i),head_sha:SHA
   }));
   assert.throws(()=>d.createResumePacket({
     repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
