@@ -5224,3 +5224,43 @@ test('privacy: encoded reviewer conversation IDs never enter the public PR resum
   ]});
   assert.equal(valid.evidence_refs.length,2);
 });
+
+test('resume: HEAD colon/equal/brackets and head_sha hints must match the current SHA',()=>{
+  const expected='a'.repeat(40),stale='b'.repeat(40);
+  const packet={
+    repo:'tobianahillel-afk/monde',pr:19,head_sha:expected,base_sha:expected,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Review HEAD '+expected.slice(0,12),evidence_refs:[]
+  };
+  for(const hint of [
+    'HEAD: '+stale.slice(0,12),
+    'HEAD='+stale.slice(0,12),
+    'HEAD ('+stale.slice(0,12)+')',
+    'head_sha='+stale.slice(0,12),
+    'HEAD SHA: '+stale.slice(0,12),
+    'HEAD_SHA '+stale.slice(0,12)
+  ]){
+    assert.throws(()=>d.createResumePacket({...packet,
+      next_action:'Review '+hint}),{code:'INVALID_RESUME_PACKET'},hint);
+  }
+  for(const hint of [
+    'HEAD: '+expected.slice(0,12),
+    'HEAD='+expected.slice(0,12),
+    'HEAD ('+expected.slice(0,12)+')',
+    'head_sha='+expected.slice(0,12),
+    'HEAD SHA: '+expected.slice(0,12)
+  ]){
+    assert.equal(d.createResumePacket({...packet,
+      next_action:'Review '+hint}).head_sha,expected,hint);
+  }
+});
+test('resume: benign prose mentioning HEAD without a SHA is still valid',()=>{
+  const sha='a'.repeat(40);
+  const packet={
+    repo:'tobianahillel-afk/monde',pr:19,head_sha:sha,base_sha:sha,
+    work:null,task:null,expected_files:[],action_kind:'RECHECK_WORK',
+    next_action:'Review current HEAD in GitHub, then inspect changed files',
+    evidence_refs:[]
+  };
+  assert.equal(d.createResumePacket(packet).action_kind,'RECHECK_WORK');
+});
