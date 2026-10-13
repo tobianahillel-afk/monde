@@ -1799,14 +1799,12 @@ const RESUME='MONDE_V2_RESUME_V1';
 const resumeOpen='<!-- '+RESUME+'\n', resumeClose='\n-->';
 const resumeActions=new Set(['CONTINUE_IMPLEMENTATION','RECHECK_WORK',
   'TRIAGE_FINDINGS','AWAIT_L2','PREPARE_ACCEPTANCE']);
-// A bookmark must never direct a fresh reviewer to the wrong HEAD.
-// Check explicit abbreviated SHA hints; ordinary non-SHA prose is allowed.
-function mismatchedNextHeadHint(action, headSha) {
-  const pattern=/\b(?:HEAD(?:[\s:_-]*SHA)?)\s*(?:[:=]\s*|\(\s*|\[\s*|\s+)(?:[\x60'\"]|\[|\()?\s*([a-f0-9]{8,40})(?![a-f0-9])/gi;
-  let match;
-  while ((match=pattern.exec(action))!==null)
-    if (!headSha.startsWith(match[1].toLowerCase())) return true;
-  return false;
+// The structured head_sha is the sole revision authority. Free-form advice
+// must not include *any* abbreviated/full commit ID, even a matching one:
+// after a HEAD change such advice becomes misleading and cannot be rebased
+// safely. This replaces an endless collection of syntax-specific HEAD matchers.
+function containsFreeTextCommitRef(action) {
+  return /(^|[^A-Za-z0-9])[a-f0-9]{8,40}(?![A-Za-z0-9])/i.test(action);
 }
 function resumePacket(input){
   exactFields(input,['v','repo','pr','head_sha','base_sha','work','task',
@@ -1816,7 +1814,7 @@ function resumePacket(input){
      typeof input.head_sha!=='string'||!SHA.test(input.head_sha)||
      typeof input.base_sha!=='string'||!SHA.test(input.base_sha)||
      !resumeActions.has(input.action_kind)||!oneLine(input.next_action,380)||
-      mismatchedNextHeadHint(input.next_action,input.head_sha)||
+      containsFreeTextCommitRef(input.next_action)||
      /[<>\\]/.test(input.next_action)||
      containsEncodedCredential(input.next_action)||
       containsPrivateChatHost(input.next_action)||

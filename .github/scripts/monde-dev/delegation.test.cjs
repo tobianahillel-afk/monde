@@ -5225,34 +5225,22 @@ test('privacy: encoded reviewer conversation IDs never enter the public PR resum
   assert.equal(valid.evidence_refs.length,2);
 });
 
-test('resume: HEAD colon/equal/brackets and head_sha hints must match the current SHA',()=>{
-  const expected='a'.repeat(40),stale='b'.repeat(40);
-  const packet={
-    repo:'tobianahillel-afk/monde',pr:19,head_sha:expected,base_sha:expected,
+test('resume: human next_action cannot state any hex revision (structured head_sha only)',()=>{
+  const good='a'.repeat(40),stale='b'.repeat(40);
+  const base={repo:'tobianahillel-afk/monde',pr:19,head_sha:good,base_sha:good,
     work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
-    next_action:'Review HEAD '+expected.slice(0,12),evidence_refs:[]
-  };
-  for(const hint of [
-    'HEAD: '+stale.slice(0,12),
-    'HEAD='+stale.slice(0,12),
-    'HEAD ('+stale.slice(0,12)+')',
-    'head_sha='+stale.slice(0,12),
-    'HEAD SHA: '+stale.slice(0,12),
-    'HEAD_SHA '+stale.slice(0,12)
-  ]){
-    assert.throws(()=>d.createResumePacket({...packet,
-      next_action:'Review '+hint}),{code:'INVALID_RESUME_PACKET'},hint);
+    next_action:'Review the current PR HEAD',evidence_refs:[]};
+  for(const sha of [good.slice(0,8),good.slice(0,12),stale.slice(0,12),stale]){
+    for(const hint of [
+      'HEAD: '+sha,'HEAD='+sha,'HEAD_SHA '+sha,
+      'Review commit '+sha,'Revision ('+sha+')','Compare '+sha+' against main',
+      'Check ['+sha+']','Inspect '+String.fromCharCode(96)+sha+String.fromCharCode(96)
+    ]){
+      assert.throws(()=>d.createResumePacket({...base,next_action:hint}),
+        {code:'INVALID_RESUME_PACKET'},hint);
+    }
   }
-  for(const hint of [
-    'HEAD: '+expected.slice(0,12),
-    'HEAD='+expected.slice(0,12),
-    'HEAD ('+expected.slice(0,12)+')',
-    'head_sha='+expected.slice(0,12),
-    'HEAD SHA: '+expected.slice(0,12)
-  ]){
-    assert.equal(d.createResumePacket({...packet,
-      next_action:'Review '+hint}).head_sha,expected,hint);
-  }
+  assert.equal(d.createResumePacket(base).head_sha,good);
 });
 test('resume: benign prose mentioning HEAD without a SHA is still valid',()=>{
   const sha='a'.repeat(40);
@@ -5279,6 +5267,7 @@ test('resume rejects stale HEAD hints inside Markdown code, quotes and square br
     }
   }
   const tick=String.fromCharCode(96);
-  assert.equal(d.createResumePacket({...base,
-    next_action:'Review HEAD '+tick+good.slice(0,12)+tick}).head_sha,good);
+  assert.throws(()=>d.createResumePacket({...base,
+    next_action:'Review HEAD '+tick+good.slice(0,12)+tick}),
+    {code:'INVALID_RESUME_PACKET'});
 });
