@@ -1783,8 +1783,10 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
 // Public resume references must identify repository artifacts, not raw
 // reviewer-message IDs. This is a format check, never proof of acceptance.
 function privateResumeId(text) {
-  return typeof text==='string' &&
-    /(?:^|[^A-Za-z0-9])(?:msg-(?:private|reviewer|conversation)[A-Za-z0-9_-]*|chat-(?:context|conversation|reviewer)[A-Za-z0-9_-]*|REVIEW-[0-9]{4,}(?!\.yaml)(?![A-Za-z0-9]))/i.test(text);
+  // Encoded private reviewer/context IDs belong outside a public bookmark.
+  // Use the same bounded canonicalization as the private hostname guard.
+  return publicTextMatches(text,decoded=>
+    /(?:^|[^A-Za-z0-9])(?:msg-(?:private|reviewer|conversation)[A-Za-z0-9_-]*|chat-(?:context|conversation|reviewer)[A-Za-z0-9_-]*|REVIEW-[0-9]{4,}(?!\.yaml)(?![A-Za-z0-9]))/i.test(decoded));
 }
 function publicResumeEvidence(kind,ref) {
   if(privateResumeId(ref))return false;

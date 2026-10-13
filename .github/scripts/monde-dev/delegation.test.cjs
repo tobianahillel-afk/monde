@@ -5187,3 +5187,30 @@ test('privacy: JSON-quoted password and client secrets never enter public review
     assert.match(malformed.status,/POTENTIAL_SECRET/,secret);
   }
 });
+
+test('privacy: encoded reviewer conversation IDs never enter the public PR resume',()=>{
+  const base={repo:H.repo,pr:19,head_sha:SHA,base_sha:SHA,work:null,task:null,
+    expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Review the public PR at the exact HEAD',evidence_refs:[]};
+  const references=[
+    '%6dsg-private-reviewer-2026',
+    'msg%2dprivate%2dsource-2026',
+    '%63hat%2dcontext%2dl2-2026',
+    'chat&#45;conversation&#45;l2-2026',
+    '\\u006dsg-private-reviewer-2026',
+    '%52EVIEW-0099',
+    'REVIEW%2d0099',
+    'msg%252dprivate%252dsource-2026'
+  ];
+  for(const ref of references){
+    assert.throws(()=>d.createResumePacket({...base,next_action:'Check '+ref}),
+      {code:'INVALID_RESUME_PACKET'},ref);
+    assert.throws(()=>d.createResumePacket({...base,evidence_refs:[
+      {kind:'CI',ref,head_sha:SHA}]}),{code:'INVALID_RESUME_EVIDENCE'},ref);
+  }
+  const valid=d.createResumePacket({...base,evidence_refs:[
+    {kind:'REVIEW',ref:'registry/reviews/REVIEW-0099.yaml',head_sha:SHA},
+    {kind:'CI',ref:'job-115285892060',head_sha:SHA}
+  ]});
+  assert.equal(valid.evidence_refs.length,2);
+});
