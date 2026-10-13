@@ -5155,3 +5155,35 @@ test('L2 delta cannot borrow previous approval for another mission, scope or rev
     assert.equal(outcome.previous_l2_approval_reusable,false);
   }
 });
+
+test('privacy: JSON-quoted password and client secrets never enter public review relay or PR resume',()=>{
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Check review safely',evidence_refs:[]};
+  for(const secret of [
+    '{"password":"ExampleSecret1234"}',
+    "{'passwd':'ExampleSecret1234'}",
+    '{"client_secret":"ExampleSecret1234"}',
+    '{"secret_key":"ExampleSecret1234"}',
+    '&quot;password&quot;:&quot;ExampleSecret1234&quot;',
+    '%22client_secret%22%3A%22ExampleSecret1234%22'
+  ]){
+    assert.throws(()=>d.createResumePacket({...base,next_action:'Inspect '+secret}),
+      {code:'INVALID_RESUME_PACKET'},secret);
+    const findings=[{...data().findings[0],evidence:'Review exposed '+secret,
+      action:'Remove confidential value'}];
+    const normal=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings})),current_head:SHA,source,
+      publication_clearance:clear});
+    assert.equal(normal.ready_for_manual_relay,false,secret);
+    assert.match(normal.status,/POTENTIAL_SECRET/,secret);
+    const malformed=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'R2: Review exposed '+secret+
+        '\nDo not publish this value.\n'+d.MARKER+'\n{broken',
+      current_head:SHA,source,publication_clearance:clear});
+    assert.equal(malformed.ready_for_manual_relay,false,secret);
+    assert.match(malformed.status,/POTENTIAL_SECRET/,secret);
+  }
+});
