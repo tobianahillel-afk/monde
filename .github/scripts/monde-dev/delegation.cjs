@@ -578,6 +578,10 @@ const CREDENTIAL_PATTERNS=[
   // Public review handoffs and PR continuation hints must not carry generic
   // credentials just because the value has no provider-specific token prefix.
   /(?:^|[^A-Za-z0-9])(?:api[_-]?key|access[_-]?token|client[_-]?secret|password|passwd|secret[_-]?key)\s*[:=]\s*(?:\\*["'\x60*_]){0,3}\s*[A-Za-z0-9_%+./=-]{4,}/i,
+  // Generic JSON/log credential keys can carry live session or bearer
+  // values even when no provider-specific prefix appears. Match JSON strings
+  // through successive backslash-escaped renderings in a public review note.
+  /(?:\\*)["'](?:token|session|authorization|auth|secret|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)(?:\\*)["']\s*:\s*(?:\\*)["'](?:Bearer\s+)?[A-Za-z0-9_~+./=%-]{6,}(?=(?:\\*)["'])/i,
   // Basic-auth URLs leak credentials even when the URL uses a public host.
   /https?:\/\/[^\s/@:]+:[^\s/@]+@[^\s/]+/i,
   // Query-string bearer-like credentials are not limited to api_key/access_token.

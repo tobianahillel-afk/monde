@@ -5871,3 +5871,38 @@ test('malformed L2 recovery does not lose valid limitations behind blank padding
     ['Cannot confirm the exact CI provenance for this reviewed commit']);
   assert.equal(result.ready_for_merge,false);
 });
+
+test('privacy: generic JSON token/session/authorization values cannot be relayed to public PR',()=>{
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const examples=[
+    '{"token":"NONREAL_PRIVATE_EXAMPLE_XYZZY"}',
+    '{"session":"NONREAL_PRIVATE_EXAMPLE_XYZZY"}',
+    '{"authorization":"Bearer NONREAL_EXAMPLE_BEARER_ABC"}',
+    '%22token%22%3A%22NONREAL_PRIVATE_EXAMPLE_XYZZY%22',
+    '&quot;token&quot;:&quot;NONREAL_PRIVATE_EXAMPLE_XYZZY&quot;',
+    '{"token": "NONREAL_PRIVATE_EXAMPLE_XYZZY"}'
+  ];
+  for(const secret of examples){
+    const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+      action_kind:'AWAIT_L2',next_action:'Inspect '+secret};
+    assert.throws(()=>d.createResumePacket(base),
+      e=>e.code==='INVALID_RESUME_PACKET',secret);
+    const finding={...data().findings[0],evidence:'Extract '+secret,
+      action:'Do not relay the token'};
+    const normal=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[finding]})),current_head:SHA,
+      source,publication_clearance:clear});
+    assert.equal(normal.ready_for_manual_relay,false,secret);
+    assert.match(normal.status,/POTENTIAL_SECRET/,secret);
+    const malformed=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent R2: '+secret+' should not be published.\n'+
+        d.MARKER+'\n{broken',current_head:SHA,source,
+      publication_clearance:clear});
+    assert.equal(malformed.ready_for_manual_relay,false,secret);
+    assert.match(malformed.status,/POTENTIAL_SECRET/,secret);
+  }
+  const harmless={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    action_kind:'AWAIT_L2',next_action:'Review {"event":"safe_example"}'};
+  assert.equal(d.createResumePacket(harmless).next_action,harmless.next_action);
+});
