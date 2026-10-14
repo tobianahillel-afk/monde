@@ -217,3 +217,7 @@ A malformed or provenance-unverified L2 report can produce an **unqualified**, r
 ### Public evidence references in PR checkpoints
 
 The `MONDE_V2_RESUME_V1` bookmark accepts only GitHub CI job/run/check numeric IDs (`job-115331656856`, `run-38325226864`, or equivalent colon separators), canonical `registry/reviews/REVIEW-*.yaml`, `WORK-*` / `TEST-*` registry IDs or paths, and numbered `PR-*` references. Do not insert ChatGPT conversation/message identifiers, arbitrary text, or report content in `evidence_refs`. These fields are navigation hints only: the writer must independently verify all claims and the exact HEAD from GitHub. Existing malformed checkpoint references are treated as invalid and rebuilt, not silently trusted.
+
+### Fenced ChatGPT footer recovery (2026-10-14)
+
+If a scheduled ChatGPT reviewer wraps the final JSON in a simple Markdown code fence, `recoverUnqualifiedClaims` may recover the **structured R1/R2 allegations for foreground correction** instead of losing their actions. This is a deliberately narrow import-only compatibility feature: `parseReviewResponse` still rejects fenced footers and the report stays `REPORT_NEEDS_MANUAL_REVIEW`, with no L2 qualification, no GitHub approval and no permission to merge. Unsupported/incomplete fences leave the blocking evidence unknown and require manual examination of the original ChatGPT response. Do not schedule duplicate reviews merely to fix formatting.

@@ -374,9 +374,23 @@ function recoverUnqualifiedClaims(response,marker=MARKER) {
   if(marker!==MARKER&&marker!==RESEARCH_MARKER)bad('INVALID_CLAIM_MARKER');
   if(typeof response!=='string'||Buffer.byteLength(response,'utf8')>1024*1024)return {};
   const lines=response.replace(/\r\n/g,'\n').trimEnd().split('\n');
-  if(lines.length<3||lines[lines.length-2]!==marker)return {};
+  // Scheduled reviewers occasionally wrap their final JSON in Markdown.
+  // Recover allegations ONLY: the strict report parser still rejects this
+  // footer, so no fenced response can qualify L2 or native GitHub approval.
+  let raw;
+  if(lines.length>=3&&lines[lines.length-2]===marker)
+    raw=lines[lines.length-1];
+  else if(lines.length>=5&&lines[lines.length-1]==='\x60\x60\x60'&&
+      lines[lines.length-4]===marker&&
+      /^\x60\x60\x60(?:json)?$/.test(lines[lines.length-3]))
+    raw=lines[lines.length-2];
+  else if(lines.length>=5&&lines[lines.length-1]==='\x60\x60\x60'&&
+      lines[lines.length-3]===marker&&
+      /^\x60\x60\x60(?:json|text)?$/.test(lines[lines.length-4]))
+    raw=lines[lines.length-2];
+  if(raw===undefined)return {};
   let packet;
-  try{packet=JSON.parse(lines[lines.length-1]);}catch{return {};}
+  try{packet=JSON.parse(raw);}catch{return {};}
   if(!plain(packet)||!Array.isArray(packet.findings))return {};
   // Scan all parsed claims but retain at most 50 entries. Unlike a full
   // filter+sort, this never holds an additional copy of every finding.

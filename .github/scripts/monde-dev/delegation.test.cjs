@@ -5722,3 +5722,47 @@ test('L2 Oct-14 F01: ordinary malformed R2 without context provenance stays tria
   assert.match(result.text,/two incompatible task scopes/);
   assert.equal(result.ready_for_merge,false);
 });
+
+test('fenced scheduled L2 footer preserves R1 findings but cannot qualify the review',()=>{
+  const r=data();
+  const json=JSON.stringify(r);
+  const prose='Independent technical review with concrete findings and remediation details.';
+  for(const report of [
+    prose+'\n'+d.MARKER+'\n'+String.fromCharCode(96).repeat(3)+'json\n'+json+'\n'+String.fromCharCode(96).repeat(3),
+    prose+'\n'+String.fromCharCode(96).repeat(3)+'json\n'+d.MARKER+'\n'+json+'\n'+String.fromCharCode(96).repeat(3)
+  ]){
+    assert.throws(()=>d.parseReviewResponse(report));
+    const result=d.assessReview({expected:H,response:report,current_head:SHA,source});
+    assert.equal(result.status,'REPORT_NEEDS_MANUAL_REVIEW');
+    assert.equal(result.reported_severity_r1,1);
+    assert.equal(result.reported_findings[0].action,r.findings[0].action);
+    assert.equal(result.requires_manual_qualification,true);
+    assert.equal(result.native_github_approved,false);
+    assert.equal(result.ready_for_merge,false);
+  }
+});
+test('fenced footer cannot launder a clean APPROVE into L2 acceptance',()=>{
+  const json=JSON.stringify(data({verdict:'APPROVE',findings:[]}));
+  const report='Independent reviewer prose describing the limited sources actually inspected.'+
+    '\n'+d.MARKER+'\n'+String.fromCharCode(96).repeat(3)+'json\n'+json+
+    '\n'+String.fromCharCode(96).repeat(3);
+  const result=d.assessReview({expected:H,response:report,current_head:SHA,source});
+  assert.equal(result.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(result.native_github_approved,false);
+  assert.equal(result.reported_blocking_unknown,false);
+});
+test('unclosed or unrelated code fences never become structured review evidence',()=>{
+  const json=JSON.stringify(data());
+  for(const report of [
+    'Substantial reviewer analysis of the issue and suggested corrections.'+
+      '\n'+d.MARKER+'\n'+String.fromCharCode(96).repeat(3)+'json\n'+json,
+    'Substantial reviewer analysis of the issue and suggested corrections.'+
+      '\n'+d.MARKER+'\n'+String.fromCharCode(96).repeat(3)+'javascript\n'+json+
+      '\n'+String.fromCharCode(96).repeat(3)
+  ]){
+    const result=d.assessReview({expected:H,response:report,current_head:SHA,source});
+    assert.equal(result.status,'REPORT_NEEDS_MANUAL_REVIEW');
+    assert.equal(result.reported_blocking_unknown,true);
+    assert.equal(result.native_github_approved,false);
+  }
+});
