@@ -929,7 +929,8 @@ function claimedReviewerContext(response, marker) {
   const id=packet && packet.reviewer_context_id;
   // Privacy redaction must not require a valid *proof* identifier: malformed
   // reports can still carry a sensitive URI-like or longer conversation ID.
-  if(typeof id!=='string'||id.length<8)return null;
+  if(typeof id!=='string')return null;
+  if(id.length<8)return ''; // parsed but not an opaque identifier
   // A multiline, hidden-format or oversized claimed identifier cannot be
   // reliably removed from JSON-escaped public excerpts. Fail closed rather
   // than leak a variant of private conversation provenance.
