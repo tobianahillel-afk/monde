@@ -5609,14 +5609,13 @@ test('confirmed previous scheduled task prevents unnecessary same-HEAD recreatio
   assert.equal(planned[0].equivalent_to_prior_confirmed_mission,true);
   assert.equal(planned[0].read_only,true);
 });
-test('prior task cannot suppress a new HEAD, scope, kind, or author context',()=>{
+test('prior task cannot suppress a new HEAD, scope, kind, or PR',()=>{
   const old={...H,assignment_id:'L2-PR19-PRIOR-FOR-REPLAY'};
   const next={...H,assignment_id:'L2-PR19-CURRENT-NEW'};
   for(const mutation of [
     {head_sha:'b'.repeat(40)},
     {paths:['README.md']},
     {mission_kind:'TECH_RESEARCH'},
-    {author_context_id:'chat-other-author-context'},
     {pr:20}
   ]){
     const prior={...old,...mutation};
@@ -5626,6 +5625,22 @@ test('prior task cannot suppress a new HEAD, scope, kind, or author context',()=
     assert.equal(planned[0].equivalent_mission_of,null);
   }
 });
+test('confirmed read-only mission is recognized across foreground author-chat restarts',()=>{
+  const old={...H,assignment_id:'L2-PR19-CONFIRMED-OLD',
+    author_context_id:'chat-foreground-old',objective:'Review security and replay'};
+  const current={...old,assignment_id:'L2-PR19-CURRENT-NEW',
+    author_context_id:'chat-foreground-new'};
+  const result=d.planDelegations([current],{prior_confirmed_assignments:[old]});
+  assert.equal(result[0].schedule_recommended,false);
+  assert.equal(result[0].equivalent_mission_of,old.assignment_id);
+  assert.equal(result[0].equivalent_to_prior_confirmed_mission,true);
+  assert.equal(result[0].read_only,true);
+  assert.equal(result[0].native_github_approved,undefined);
+  // The new mission prompt, if intentionally scheduled anyway, still binds
+  // to its *new* author context: independent review is not fabricated.
+  assert.match(result[0].prompt,/chat-foreground-new/);
+});
+
 test('unverified, malformed, repeated or excessive prior mission evidence fails closed',()=>{
   assert.throws(()=>d.planDelegations([H],{
     prior_confirmed_assignments:[{...H,paths:['../bad']}]

@@ -1115,9 +1115,13 @@ function planDelegations(inputs,{prior_confirmed_assignments=[]}={}) {
     if(priorIds.has(past.assignment_id))
       bad('DUPLICATE_PRIOR_MISSION');
     priorIds.add(past.assignment_id);
+    // The author may resume in another foreground chat without modifying
+    // the reviewed commit. Author-context IDs are provenance, not part of the
+    // mission's identity: requiring equality would reschedule identical
+    // read-only work after every interactive conversation switch.
+    // This remains an advisory scheduling hint, never L2 approval.
     if(past.repo!==anchor.repo||past.pr!==anchor.pr||
-       past.head_sha!==anchor.head_sha||
-       past.author_context_id!==anchor.author_context_id)continue;
+       past.head_sha!==anchor.head_sha)continue;
     const key=fingerprintFor(past);
     if(!equivalentMissions.has(key))
       equivalentMissions.set(key,past.assignment_id);
