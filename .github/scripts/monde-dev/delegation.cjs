@@ -1074,7 +1074,8 @@ function prepareUnqualifiedTriageHandoff(args) {
   // If a quoted allegation contains that provenance field, neither source
   // metadata nor the broken footer can prove its value was redacted.
   // Refuse this optional public relay; retain the full report in ChatGPT.
-  if(publicTextMatches(note,value=>/reviewer[_-]?context[_-]?id/i.test(value)))
+  if(claimedContext===null&&publicTextMatches(note,
+      value=>/reviewer[_-]?context[_-]?id/i.test(value)))
     return refused('UNVERIFIED_REVIEWER_CONTEXT_CLAIM');
   if(BIDI_CONTROL.test(note))
     return refused('UNSAFE_BIDI_IN_RELAY');
