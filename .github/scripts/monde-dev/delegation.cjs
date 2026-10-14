@@ -1401,8 +1401,13 @@ function planL2Delta({previous_assignment,current_head,compare,
     previous_review.assignment_id===old.assignment_id&&
     previous_review.head_sha===old.head_sha&&
     Array.isArray(previous_review.scope_paths)&&
+    // File inventories describe a set, not an ordering. Do not force an
+    // unnecessary full L2 when a reviewer reports the same files in a
+    // different order. Duplicates or extra paths still fail closed.
     previous_review.scope_paths.length===old.paths.length&&
-    previous_review.scope_paths.every((path,i)=>path===old.paths[i])&&
+    previous_review.scope_paths.every(path=>validPath(path,true))&&
+    new Set(previous_review.scope_paths).size===old.paths.length&&
+    old.paths.every(path=>previous_review.scope_paths.includes(path))&&
     typeof previous_review.reviewer_context_id==='string'&&
     ID.test(previous_review.reviewer_context_id)&&
     previous_review.reviewer_context_id!==old.author_context_id&&

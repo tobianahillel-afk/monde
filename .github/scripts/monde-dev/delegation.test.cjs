@@ -5549,3 +5549,31 @@ test('field checking rejects extra own keys without rejecting valid report paylo
   assert.throws(() => d.assignment({...H, rogue_field:'hidden'}),
     error => error.code === 'INVALID_FIELDS');
 });
+
+test('L2 delta accepts identical previously reviewed scopes in a different order',()=>{
+  const paths=[H.paths[0],'docs/12_RESEARCH/monde-dev-v2-single-writer-delegation.md'];
+  const previous_assignment={...H,paths},current_head='b'.repeat(40);
+  const compare={base_sha:H.head_sha,head_sha:current_head,complete:true,
+    files:[{path:paths[0],status:'modified',previous_path:null}]};
+  const previous_review={assignment_id:H.assignment_id,head_sha:H.head_sha,
+    scope_paths:paths.slice().reverse(),
+    reviewer_context_id:'chat-l2-confirmed-distinct',
+    review_verdict:'APPROVE',context_separated:true,
+    coverage_qualified:true,open_material_findings:0};
+  const args={previous_assignment,current_head,compare,
+    new_assignment_id:'mission-delta-ordered-set-001',previous_review};
+  const candidate=d.planL2Delta(args);
+  assert.equal(candidate.status,'TARGETED_REVIEW_CANDIDATE');
+  assert.deepEqual(candidate.proposed_assignment.paths,[paths[0]]);
+  assert.equal(candidate.previous_l2_approval_reusable,false);
+  for(const scope_paths of [
+    [paths[0],paths[0]],
+    [paths[0],'unreviewed-file.cjs'],
+    [paths[0],paths[1],paths[1]]
+  ]){
+    const rejected=d.planL2Delta({...args,previous_review:
+      {...previous_review,scope_paths}});
+    assert.equal(rejected.status,'MANUAL_IMPACT_ANALYSIS_REQUIRED');
+    assert.equal(rejected.proposed_assignment,null);
+  }
+});
