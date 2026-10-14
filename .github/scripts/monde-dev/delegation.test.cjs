@@ -5950,3 +5950,42 @@ test('L2 Oct-14 exact-HEAD: JSON Basic, spaced keys, punctuation and numeric sec
     head_sha:SHA,base_sha:SHA,action_kind:'AWAIT_L2',
     next_action:'Inspect {"status":"pending","count":123456}'}).pr,H.pr);
 });
+
+
+test('privacy: standalone JWT evidence cannot be copied to a public L2 PR',()=>{
+  // Synthetic, non-functional example: recognizable JWT shape only.
+  const jwt='eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.'+
+    'FAKEsignature0123456789ABCDEFGHIJKLMN';
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const finding={...data().findings[0],
+    evidence:'A response log exposed '+jwt};
+  const qualified=d.prepareInteractiveHandoff({
+    expected:H,response:message(data({findings:[finding]})),
+    current_head:SHA,source,publication_clearance:clearance});
+  assert.equal(qualified.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(qualified.text,null);
+
+  const broken=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:'Independent R1: logged '+jwt+
+      '\\nThe credential needs removal.\\n'+d.MARKER+'\\n{invalid',
+    current_head:SHA,source,publication_clearance:clearance});
+  assert.equal(broken.status,'POTENTIAL_SECRET_IN_REPORT');
+  assert.equal(broken.text,null);
+
+  const hidden=jwt.replace(/\./g,'%2E');
+  const encodedFinding={...finding,evidence:'The log encoded '+hidden};
+  const encoded=d.prepareInteractiveHandoff({
+    expected:H,response:message(data({findings:[encodedFinding]})),
+    current_head:SHA,source,publication_clearance:clearance});
+  assert.equal(encoded.status,'POTENTIAL_SECRET_IN_RELAY');
+  assert.equal(encoded.text,null);
+});
+test('privacy: standalone JWT is not allowed inside a public PR resume bookmark',()=>{
+  const jwt='eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.'+
+    'FAKEsignature0123456789ABCDEFGHIJKLMN';
+  assert.throws(()=>d.createResumePacket({
+    repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+    action_kind:'AWAIT_L2',next_action:'Investigate '+jwt
+  }),e=>e.code==='INVALID_RESUME_PACKET');
+});

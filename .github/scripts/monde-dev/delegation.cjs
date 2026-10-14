@@ -588,6 +588,10 @@ const CREDENTIAL_PATTERNS=[
   /(?:\\*)["'](?:token|session|(?:proxy[ _-]*)?authorization|auth(?:[ _-]*token)?|secret|api[ _-]*key|access[ _-]*token|refresh[ _-]*token|client[ _-]*secret|password|passwd|secret[ _-]*key)(?:\\*)["']\s*:\s*(?:\\*)["'](?=[^"'\r\n]{4,256}(?:\\*)["'])[^"'\r\n]{4,256}(?=(?:\\*)["'])/i,
   // Numeric JSON secrets are also values, not harmless metadata.
   /(?:\\*)["'](?:token|session|(?:proxy[ _-]*)?authorization|auth(?:[ _-]*token)?|secret|api[ _-]*key|access[ _-]*token|client[ _-]*secret|password|passwd)(?:\\*)["']\s*:\s*[0-9]{6,}(?=\s*[,}\]])/i,
+  // An unlabelled JWT pasted from a trace can disclose a live bearer token.
+  // A conservative three-part base64url signature avoids generic dot-separated
+  // version strings; do not require an Authorization: prefix to flag it.
+  /(?:^|[^A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{7,}\.eyJ[A-Za-z0-9_-]{7,}\.[A-Za-z0-9_-]{8,}(?![A-Za-z0-9_-])/,
   // Basic-auth URLs leak credentials even when the URL uses a public host.
   /https?:\/\/[^\s/@:]+:[^\s/@]+@[^\s/]+/i,
   // Query-string bearer-like credentials are not limited to api_key/access_token.
