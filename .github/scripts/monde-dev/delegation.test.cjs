@@ -5688,3 +5688,37 @@ test('same confirmed mission ID survives author-chat restarts without rescheduli
   assert.equal(entry.equivalent_to_prior_confirmed_mission,true);
   assert.match(entry.prompt,/chat-new-foreground-session/);
 });
+
+test('L2 Oct-14 F01: malformed reviewer_context_id cannot leak via unqualified public relay',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const detail of [
+    'reviewer_context_id: opaque-private-conversation-20261014',
+    'reviewer%5Fcontext%5Fid%3Dopaque-private-conversation-20261014',
+    'reviewer&lowbar;context&lowbar;id&colon; opaque-private-conversation-20261014'
+  ]){
+    const response='Concrete R2 reviewer triage: '+detail+
+      '. This is not confirmed by a complete footer.\n'+d.MARKER+
+      '\n{broken-footer';
+    const result=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response,current_head:SHA,source,
+      publication_clearance:clearance
+    });
+    assert.equal(result.ready_for_manual_relay,false,detail);
+    assert.equal(result.text,null,detail);
+    assert.equal(result.status,'UNVERIFIED_REVIEWER_CONTEXT_CLAIM',detail);
+  }
+});
+test('L2 Oct-14 F01: ordinary malformed R2 without context provenance stays triageable',()=>{
+  const response='Concrete R2 evidence: two incompatible task scopes on the same file.'+
+    '\n'+d.MARKER+'\n{broken-footer';
+  const result=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(result.status,'UNQUALIFIED_TRIAGE_READY');
+  assert.equal(result.ready_for_manual_relay,true);
+  assert.match(result.text,/two incompatible task scopes/);
+  assert.equal(result.ready_for_merge,false);
+});
