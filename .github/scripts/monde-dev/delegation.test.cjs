@@ -6040,7 +6040,7 @@ test('L2 Oct-14: personal contact text cannot enter public PR checkpoints',()=>{
     e=>e.code==='INVALID_RESUME_PACKET',contact);
   for(const safe of [
     'Inspect WORK-0005 and PR #19',
-    'Review check 115941412767 from GitHub Actions',
+    'Review the latest GitHub Actions check',
     'Verify release candidate on 2026-10-14'
   ]) assert.equal(d.createResumePacket({...base,next_action:safe}).next_action,safe);
 });
