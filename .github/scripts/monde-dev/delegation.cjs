@@ -1113,8 +1113,11 @@ function planDelegations(inputs) {
     // never merge different kinds, targets, files, or reviewer contexts.
     const normalizedObjective=item.objective.trim().normalize('NFC')
       .replace(/\p{White_Space}+/gu,' ');
+    // The scope is a set: its listing order must never cause a
+    // redundant Scheduled-task recommendation. Preserve original prompts.
+    const normalizedPaths=item.paths.slice().sort();
     const fingerprint=JSON.stringify([
-      item.mission_kind,normalizedObjective,item.paths
+      item.mission_kind,normalizedObjective,normalizedPaths
     ]);
     const equivalentTo=equivalentMissions.get(fingerprint)||null;
     if(!equivalentTo)equivalentMissions.set(fingerprint,item.assignment_id);

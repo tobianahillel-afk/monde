@@ -5577,3 +5577,19 @@ test('L2 delta accepts identical previously reviewed scopes in a different order
     assert.equal(rejected.proposed_assignment,null);
   }
 });
+
+
+test('L2 scheduler recognizes equivalent multi-file scopes independent of order',()=>{
+  const code='.github/scripts/monde-dev/delegation.cjs';
+  const doc='docs/12_RESEARCH/monde-dev-v2-single-writer-delegation.md';
+  const first={...H,assignment_id:'L2-PR19-MULTIFILE-01',paths:[code,doc]};
+  const second={...H,assignment_id:'L2-PR19-MULTIFILE-02',paths:[doc,code]};
+  const third={...H,assignment_id:'L2-PR19-MULTIFILE-03',
+    paths:[code,'docs/12_RESEARCH/monde-dev-v2-interactive-prompt.md']};
+  const result=d.planDelegations([first,second,third]);
+  assert.deepEqual(result.map(x=>x.schedule_recommended),[true,false,true]);
+  assert.equal(result[1].equivalent_mission_of,first.assignment_id);
+  assert.deepEqual(first.paths,[code,doc]);
+  assert.deepEqual(second.paths,[doc,code]);
+  assert.match(result[1].prompt,/LECTURE SEULE/);
+});
