@@ -21,8 +21,14 @@ function plain(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 function exactFields(value, names) {
-  if (!plain(value) || Object.keys(value).sort().join('|') !==
-      names.slice().sort().join('|')) bad('INVALID_FIELDS');
+  // Delimiter-joined key lists are not an exact field-set comparison:
+  // {"a|b": value} can serialize to the same signature as keys a and b.
+  if (!plain(value)) bad('INVALID_FIELDS');
+  const keys = Object.keys(value);
+  if (keys.length !== names.length) bad('INVALID_FIELDS');
+  const expected = new Set(names);
+  if (expected.size !== names.length ||
+      keys.some(key => !expected.has(key))) bad('INVALID_FIELDS');
 }
 // Unicode Bidi_Control covers invisible LRM/RLM/ALM, isolates, embeddings
 // and formatting controls. Centralize this filter for every public handoff.

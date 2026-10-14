@@ -5515,3 +5515,37 @@ test('unqualified review triage never publishes session cookies',()=>{
   assert.equal(got.text,null);
   assert.equal(got.status,'POTENTIAL_SECRET_IN_REPORT');
 });
+
+
+test('object field validation does not confuse pipe-delimited key names', () => {
+  const replacedAssignment = {...H};
+  delete replacedAssignment.author_context_id;
+  delete replacedAssignment.head_sha;
+  replacedAssignment['author_context_id|head_sha'] = SHA;
+  assert.throws(() => d.assignment(replacedAssignment),
+    error => error.code === 'INVALID_FIELDS');
+
+  const replacedReport = data();
+  delete replacedReport.assignment_id;
+  delete replacedReport.findings;
+  replacedReport['assignment_id|findings'] = [];
+  assert.throws(() => d.validateReport(replacedReport),
+    error => error.code === 'INVALID_FIELDS');
+
+  const validResume = d.createResumePacket({
+    repo:H.repo,pr:19,head_sha:SHA,base_sha:'b'.repeat(40),
+    action_kind:'AWAIT_L2',next_action:'Review current candidate',
+    evidence_refs:[]
+  });
+  delete validResume.base_sha;
+  delete validResume.evidence_refs;
+  validResume['base_sha|evidence_refs'] = 'b'.repeat(40);
+  assert.throws(() => d.renderResumePacket(validResume),
+    error => error.code === 'INVALID_FIELDS');
+});
+test('field checking rejects extra own keys without rejecting valid report payloads', () => {
+  assert.equal(d.validateReport(data()).assignment_id,H.assignment_id);
+  assert.equal(d.assignment(H).mission_kind,'L2_REVIEW');
+  assert.throws(() => d.assignment({...H, rogue_field:'hidden'}),
+    error => error.code === 'INVALID_FIELDS');
+});
