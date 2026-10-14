@@ -5837,3 +5837,37 @@ test('invalid whitespace-only R1 cannot obstruct interactive WORK selection',()=
   assert.equal(d.planNextIncrement({repo:H.repo,head_sha:SHA,works})
     .recommended.task,'T1');
 });
+
+test('malformed L2 recovery does not let blank R1 allegations evict real R1',()=>{
+  const blank=Array.from({length:70},(_,i)=>({
+    id:'F'+String(i).padStart(3,'0'),severity:'R1',
+    path:'src/blank.js',evidence:'\u2003 \u2009',action:'  '
+  }));
+  const real={id:'F999',severity:'R1',path:'src/real.js',
+    evidence:'Specific line permits a stale read',
+    action:'Reject the stale read on the precise state boundary'};
+  const packet={...data(),findings:[...blank,real]};
+  const prose='Separate context observed a concrete stale read in the real path.';
+  const report=prose+'\n'+d.MARKER+'\n'+JSON.stringify(packet);
+  const result=d.assessReview({expected:H,response:report,current_head:SHA,source});
+  assert.equal(result.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.equal(result.reported_findings.length,1);
+  assert.equal(result.reported_findings[0].path,'src/real.js');
+  assert.equal(result.reported_severity_r1,1);
+  assert.equal(result.reported_claims_incomplete,true);
+  assert.equal(result.reported_blocking_unknown,true);
+  assert.equal(result.native_github_approved,false);
+});
+test('malformed L2 recovery does not lose valid limitations behind blank padding',()=>{
+  const packet={...data(),limitations:[
+    ...Array.from({length:35},()=>'\u2003 '),
+    'Cannot confirm the exact CI provenance for this reviewed commit'
+  ]};
+  const report='Independent reviewer limitations require manual qualification.'+
+    '\n'+d.MARKER+'\n'+JSON.stringify(packet);
+  const result=d.assessReview({expected:H,response:report,current_head:SHA,source});
+  assert.equal(result.status,'REPORT_NEEDS_MANUAL_REVIEW');
+  assert.deepEqual(result.reported_limitations,
+    ['Cannot confirm the exact CI provenance for this reviewed commit']);
+  assert.equal(result.ready_for_merge,false);
+});

@@ -403,8 +403,8 @@ function recoverUnqualifiedClaims(response,marker=MARKER) {
     if(!plain(f)||typeof f.severity!=='string'||!SEVERITIES.has(f.severity)||
        typeof f.id!=='string'||!/^F[0-9]{2,4}$/.test(f.id)||
        typeof f.path!=='string'||!validPath(f.path)||
-       typeof f.evidence!=='string'||!oneLine(f.evidence,3000)||
-       typeof f.action!=='string'||!oneLine(f.action,3000))continue;
+       typeof f.evidence!=='string'||!meaningfulLine(f.evidence,3000)||
+       typeof f.action!=='string'||!meaningfulLine(f.action,3000))continue;
     recognizedCount++;
     if(f.severity==='R1')r1Count++;
     if(f.severity==='R2')r2Count++;
@@ -421,8 +421,16 @@ function recoverUnqualifiedClaims(response,marker=MARKER) {
     }
   }
   limited.sort((a,b)=>rank[a.severity]-rank[b.severity]);
-  const limitations=Array.isArray(packet.limitations)?
-    packet.limitations.slice(0,30).filter(l=>oneLine(l,2000)):[];
+  // Preserve the first 30 substantive limitations, not the first 30 raw
+  // entries: blank padding must not hide a later real L2 limitation.
+  const limitations=[];
+  if(Array.isArray(packet.limitations)){
+    for(const item of packet.limitations){
+      if(!meaningfulLine(item,2000))continue;
+      limitations.push(item);
+      if(limitations.length===30)break;
+    }
+  }
   return {
     reported_finding_count:limited.length,
     reported_claims_total:packet.findings.length,
