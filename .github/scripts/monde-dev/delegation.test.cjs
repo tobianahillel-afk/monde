@@ -5800,3 +5800,40 @@ test('unqualified relay rejects spaced reviewer context id when footer is invali
   assert.equal(out.status,'UNVERIFIED_REVIEWER_CONTEXT_CLAIM');
   assert.equal(out.text,null);
 });
+
+test('L2 reports require substantive evidence, corrections and limitations',()=>{
+  const f={id:'F01',severity:'R1',path:'src/a.js',
+    evidence:'Code returns stale data',action:'Correct the stale lookup'};
+  for(const blank of ['   ','\t\t','\u2003\u2009']){
+    for(const field of ['evidence','action'])
+      assert.throws(()=>d.validateReport(data({findings:[{...f,[field]:blank}]})),
+        {code:'INVALID_FINDING'});
+    assert.throws(()=>d.validateReport(data({findings:[f],limitations:[blank]})),
+      {code:'INVALID_REPORT'});
+  }
+  assert.doesNotThrow(()=>d.validateReport(data({findings:[f]})));
+});
+test('L2 grouped allegations must include substantive evidence and action',()=>{
+  const finding={assignment_id:H.assignment_id,id:'F01',severity:'R1',
+    path:'src/a.js',evidence:'Proof',action:'Fix it'};
+  for(const blank of ['     ','\u2003']){
+    for(const field of ['evidence','action'])
+      assert.throws(()=>d.groupTriageFindings([{...finding,[field]:blank}]),
+        {code:'INVALID_TRIAGE_FINDING'});
+  }
+});
+test('invalid whitespace-only R1 cannot obstruct interactive WORK selection',()=>{
+  const works=[{id:'WORK-0099',status:'READY',depends_on:[],tasks:[
+    {id:'T1',status:'READY',depends_on:[],expected_files:['src/a.js']}
+  ]}];
+  for(const blank of ['  ','\u2009\u2003']){
+    for(const field of ['evidence','action']){
+      const allegation={severity:'R1',path:'src/a.js',evidence:'Actual evidence',
+        action:'Actual repair',[field]:blank};
+      assert.throws(()=>d.planNextIncrement({repo:H.repo,head_sha:SHA,works,
+        triage_findings:[allegation]}),{code:'INVALID_WORK_FINDING'});
+    }
+  }
+  assert.equal(d.planNextIncrement({repo:H.repo,head_sha:SHA,works})
+    .recommended.task,'T1');
+});

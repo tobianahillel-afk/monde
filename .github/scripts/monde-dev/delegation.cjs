@@ -49,6 +49,9 @@ function oneLine(value, max = 1000) {
 // Message references are provenance identifiers, not arbitrary file paths.
 // A path/file-shaped "ID" can globally redact source evidence (README.md),
 // even when it is long enough to clear the short-reference length guard.
+function meaningfulLine(value, max = 1000) {
+  return oneLine(value, max) && /[^\p{White_Space}]/u.test(value);
+}
 function ambiguousShortReference(value) {
   return typeof value==='string' && value.length<8 &&
     !/^msg[-"'\/][A-Za-z0-9]+$/.test(value);
@@ -272,7 +275,7 @@ function validateReport(x) {
       !VERDICTS.has(x.verdict) ||
       !Array.isArray(x.findings) || x.findings.length > 50 ||
       !Array.isArray(x.limitations) || x.limitations.length > 30 ||
-      x.limitations.some(v => !oneLine(v, 2000)))
+      x.limitations.some(v => !meaningfulLine(v, 2000)))
     bad('INVALID_REPORT');
   if(hasCoverage&&(!Array.isArray(x.reviewed_paths)||
      (x.reviewed_paths.length===0&&x.verdict!=='BLOCKED')||
@@ -286,7 +289,7 @@ function validateReport(x) {
     if (!oneLine(f.id, 32) || !/^F[0-9]{2,4}$/.test(f.id) ||
         ids.has(f.id) || !SEVERITIES.has(f.severity) ||
         !validPath(f.path) ||
-        !oneLine(f.evidence, 3000) || !oneLine(f.action, 3000))
+        !meaningfulLine(f.evidence, 3000) || !meaningfulLine(f.action, 3000))
       bad('INVALID_FINDING');
     ids.add(f.id);
   }
@@ -1214,8 +1217,8 @@ function groupTriageFindings(items){
     if(!plain(item)||typeof item.assignment_id!=='string'||
        !ID.test(item.assignment_id)||typeof item.id!=='string'||
        !/^F[0-9]{2,4}$/.test(item.id)||!SEVERITIES.has(item.severity)||
-       !validPath(item.path)||!oneLine(item.evidence,3000)||
-       !oneLine(item.action,3000)||
+       !validPath(item.path)||!meaningfulLine(item.evidence,3000)||
+       !meaningfulLine(item.action,3000)||
        // Status is untrusted L2 metadata: never copy arbitrary objects,
        // huge strings or control characters into public remediation reports.
        (Object.hasOwn(item,'status')&&
@@ -1566,8 +1569,8 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
   const issues=[];
   for(const finding of triage_findings){
     if(!plain(finding)||!['R1','R2','R3'].includes(finding.severity)||
-       !validPath(finding.path)||!oneLine(finding.evidence,3000)||
-        (Object.hasOwn(finding,'action')&&!oneLine(finding.action,3000)))
+       !validPath(finding.path)||!meaningfulLine(finding.evidence,3000)||
+        (Object.hasOwn(finding,'action')&&!meaningfulLine(finding.action,3000)))
       bad('INVALID_WORK_FINDING');
     issues.push(finding);
   }
