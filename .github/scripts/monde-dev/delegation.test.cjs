@@ -5989,3 +5989,58 @@ test('privacy: standalone JWT is not allowed inside a public PR resume bookmark'
     action_kind:'AWAIT_L2',next_action:'Investigate '+jwt
   }),e=>e.code==='INVALID_RESUME_PACKET');
 });
+
+
+test('L2 Oct-14: credentials in fragment, x-* headers, long JSON and JWT remain private',()=>{
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const secret of [
+    'https://public.example/#token=FAKEPRIVATEVALUE123456',
+    'https://public.example/page#authorization=FAKEPRIVATEVALUE123456',
+    'https://public.example/#x-api-key=FAKEPRIVATEVALUE123456',
+    'X-Api-Key: FAKEPRIVATEVALUE123456',
+    'X-Auth-Token: FAKEPRIVATEVALUE123456',
+    '{"x-api-key":"FAKEPRIVATEVALUE123456"}',
+    '{"X-Auth-Token":"FAKEPRIVATEVALUE123456"}',
+    '{"token":"'+('S'.repeat(300))+'"}',
+    'eyJhbGciOiJIUzI1NiJ9.e30.FAKEsignature0123456789ABCDE',
+    'eyJhbGciOiJIUzI1NiJ9 . e30 . FAKEsignature0123456789ABCDE',
+    'https://public.example/#%74oken=FAKEPRIVATEVALUE123456'
+  ]){
+    assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+      head_sha:SHA,base_sha:SHA,action_kind:'AWAIT_L2',
+      next_action:'Investigate '+secret}),e=>e.code==='INVALID_RESUME_PACKET',secret);
+    const finding={...data().findings[0],evidence:'Copied log '+secret,
+      action:'Redact before publication'};
+    const normal=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[finding]})),current_head:SHA,
+      source,publication_clearance:clear});
+    assert.equal(normal.ready_for_manual_relay,false,secret);
+    assert.equal(normal.text,null,secret);
+    const malformed=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent R1: '+secret+'\nNever copy credentials.\n'+
+      d.MARKER+'\n{broken',current_head:SHA,source,publication_clearance:clear});
+    assert.equal(malformed.ready_for_manual_relay,false,secret);
+    assert.equal(malformed.text,null,secret);
+  }
+  const safe=d.createResumePacket({repo:H.repo,pr:H.pr,head_sha:SHA,
+    base_sha:SHA,action_kind:'AWAIT_L2',
+    next_action:'Inspect public PR #19 for regressions'});
+  assert.equal(safe.pr,H.pr);
+});
+test('L2 Oct-14: personal contact text cannot enter public PR checkpoints',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,
+    base_sha:SHA,action_kind:'AWAIT_L2'};
+  for(const contact of [
+    'first.last@example.com','first.last%40example.com',
+    '+33 6 12 34 56 78','06 12 34 56 78','(415) 555-0123',
+    '0033 6 12 34 56 78'
+  ]) assert.throws(()=>d.createResumePacket({...base,
+    next_action:'Contact '+contact+' about PR evidence'}),
+    e=>e.code==='INVALID_RESUME_PACKET',contact);
+  for(const safe of [
+    'Inspect WORK-0005 and PR #19',
+    'Review check 115941412767 from GitHub Actions',
+    'Verify release candidate on 2026-10-14'
+  ]) assert.equal(d.createResumePacket({...base,next_action:safe}).next_action,safe);
+});

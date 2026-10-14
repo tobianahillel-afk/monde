@@ -577,7 +577,7 @@ function assessReview({ expected, response, current_head, source, coverage_manif
 const CREDENTIAL_PATTERNS=[
   // Public review handoffs and PR continuation hints must not carry generic
   // credentials just because the value has no provider-specific token prefix.
-  /(?:^|[^A-Za-z0-9])(?:api[_-]?key|access[_-]?token|client[_-]?secret|password|passwd|secret[_-]?key)\s*[:=]\s*(?:\\*["'\x60*_]){0,3}\s*[A-Za-z0-9_%+./=-]{4,}/i,
+  /(?:^|[^A-Za-z0-9])(?:(?:x[_-]?)?api[_-]?key|(?:x[_-]?)?auth[_-]?token|access[_-]?token|client[_-]?secret|(?:proxy[_-]?)?authorization|token|password|passwd|secret[_-]?key)\s*[:=]\s*(?:\\*["'\x60*_]){0,3}\s*[A-Za-z0-9_%+./=-]{4,}/i,
   // Generic JSON/log credential keys can carry live session or bearer
   // values even when no provider-specific prefix appears. Match JSON strings
   // through successive backslash-escaped renderings in a public review note.
@@ -585,19 +585,19 @@ const CREDENTIAL_PATTERNS=[
   // contain colons, spaces and digits (including HTTP Basic/Bearer headers).
   // Reject the whole field conservatively rather than trying to recognize
   // only token alphabets; this is a PUBLIC GitHub evidence safety backstop.
-  /(?:\\*)["'](?:token|session|(?:proxy[ _-]*)?authorization|auth(?:[ _-]*token)?|secret|api[ _-]*key|access[ _-]*token|refresh[ _-]*token|client[ _-]*secret|password|passwd|secret[ _-]*key)(?:\\*)["']\s*:\s*(?:\\*)["'](?=[^"'\r\n]{4,256}(?:\\*)["'])[^"'\r\n]{4,256}(?=(?:\\*)["'])/i,
+  /(?:\\*)["'](?:token|session|(?:proxy[ _-]*)?authorization|(?:x[ _-]*)?auth(?:[ _-]*token)?|secret|(?:x[ _-]*)?api[ _-]*key|access[ _-]*token|refresh[ _-]*token|client[ _-]*secret|password|passwd|secret[ _-]*key)(?:\\*)["']\s*:\s*(?:\\*)["'][^"'\r\n]{4,}/i,
   // Numeric JSON secrets are also values, not harmless metadata.
   /(?:\\*)["'](?:token|session|(?:proxy[ _-]*)?authorization|auth(?:[ _-]*token)?|secret|api[ _-]*key|access[ _-]*token|client[ _-]*secret|password|passwd)(?:\\*)["']\s*:\s*[0-9]{6,}(?=\s*[,}\]])/i,
   // An unlabelled JWT pasted from a trace can disclose a live bearer token.
   // A conservative three-part base64url signature avoids generic dot-separated
   // version strings; do not require an Authorization: prefix to flag it.
-  /(?:^|[^A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{7,}\.eyJ[A-Za-z0-9_-]{7,}\.[A-Za-z0-9_-]{8,}(?![A-Za-z0-9_-])/,
+  /(?:^|[^A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{7,}\s*\.\s*(?:eyJ[A-Za-z0-9_-]{3,}|e30)\s*\.\s*[A-Za-z0-9_-]{8,}(?![A-Za-z0-9_-])/,
   // Basic-auth URLs leak credentials even when the URL uses a public host.
   /https?:\/\/[^\s/@:]+:[^\s/@]+@[^\s/]+/i,
   // Query-string bearer-like credentials are not limited to api_key/access_token.
   // A URL containing ?token= or &key= with a plausible value is not safe
   // to copy to public review evidence, even on an otherwise public domain.
-  /(?:\?|&(?:amp;)?)\s*(?:token|key|auth|session|signature|sig|secret|jwt)=[A-Za-z0-9._~+/%-]{4,}/i,
+  /(?:\?|#|&(?:amp;)?)\s*(?:token|key|auth|authorization|session|signature|sig|secret|jwt|(?:x[_-]?)?api[_-]?key|(?:x[_-]?)?auth[_-]?token)=[A-Za-z0-9._~+/%-]{4,}/i,
   // OAuth refresh/ID tokens and session IDs often occur under compound keys.
   // Reject them from public resumes and reviewed-report excerpts.
   /(?:^|[^A-Za-z0-9])(?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token))\s*[:=]\s*(?:\\*["'\x60])?\s*[A-Za-z0-9_%+./=-]{4,}/i,
@@ -630,6 +630,13 @@ const CREDENTIAL_PATTERNS=[
   /(?:\\*)["'](?:Set-Cookie|Cookie)(?:\\*)["']\s*:\s*(?:\\*)["'][A-Za-z0-9_.!#$%&*+\-^|~]{1,128}=[^"'\\;\s]{1,512}/i
 ];
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
+// Public resumptions contain work metadata, never personal contact information.
+const PUBLIC_CONTACT_PATTERNS=[
+  /(?:^|[^\w.+-])[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?![A-Za-z])/,
+  /(?:^|[^\w])(?:\+|00)[1-9]\d{0,2}(?:[\s().-]*\d){9,12}(?!\d)/,
+  /(?:^|[^\w])0[1-9](?:[\s.-]*\d{2}){4}(?!\d)/,
+  /(?:^|[^\w])(?:\([2-9]\d{2}\)|[2-9]\d{2}[-. ])[2-9]\d{2}[-. ]\d{4}(?!\d)/
+];
 // Raw conversation URLs are private provenance, not necessary public evidence.
 // The continuation bookmark is itself published in a GitHub PR description.
 // Match raw, percent-encoded, JSON-escaped and multiply backslash-escaped
@@ -702,6 +709,10 @@ function containsPrivateChatHost(value) {
 function containsEncodedCredential(value) {
   return publicTextMatches(value,text=>
     CREDENTIAL_PATTERNS.some(pattern=>pattern.test(text)));
+}
+function containsEncodedContact(value) {
+  return publicTextMatches(value,text=>
+    PUBLIC_CONTACT_PATTERNS.some(pattern=>pattern.test(text)));
 }
 // A known private context/message ID might be HTML-entity or percent encoded
 // without containing a chatgpt.com hostname. Compare the canonicalized final
@@ -1966,6 +1977,7 @@ function resumePacket(input){
       containsFreeTextCommitRef(input.next_action)||
      /[<>\\]/.test(input.next_action)||
      containsEncodedCredential(input.next_action)||
+      containsEncodedContact(input.next_action)||
       containsPrivateChatHost(input.next_action)||
       privateResumeId(input.next_action)||
      (input.work!==null&&(typeof input.work!=='string'||
