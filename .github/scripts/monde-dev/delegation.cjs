@@ -944,7 +944,9 @@ function claimedReviewerContext(response, marker) {
   // Privacy redaction must not require a valid *proof* identifier: malformed
   // reports can still carry a sensitive URI-like or longer conversation ID.
   if(typeof id!=='string')return null;
-  if(id.length<8)return ''; // parsed but not an opaque identifier
+  // A short, parseable claimed context may still be private. Treat it as
+  // unverifiable rather than allowing the unredacted identifier into prose.
+  if(id.length<8)return false;
   // A multiline, hidden-format or oversized claimed identifier cannot be
   // reliably removed from JSON-escaped public excerpts. Fail closed rather
   // than leak a variant of private conversation provenance.
@@ -1090,7 +1092,7 @@ function prepareUnqualifiedTriageHandoff(args) {
   // metadata nor the broken footer can prove its value was redacted.
   // Refuse this optional public relay; retain the full report in ChatGPT.
   if(claimedContext===null&&publicTextMatches(note,
-      value=>/reviewer[_-]?context[_-]?id/i.test(value)))
+      value=>/reviewer[\s_-]*context[\s_-]*id/i.test(value)))
     return refused('UNVERIFIED_REVIEWER_CONTEXT_CLAIM');
   if(BIDI_CONTROL.test(note))
     return refused('UNSAFE_BIDI_IN_RELAY');

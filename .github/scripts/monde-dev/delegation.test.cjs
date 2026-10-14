@@ -5766,3 +5766,37 @@ test('unclosed or unrelated code fences never become structured review evidence'
     assert.equal(result.native_github_approved,false);
   }
 });
+
+test('unqualified relay refuses a short claimed reviewer context in malformed footer',()=>{
+  const shortPrivate='cx731aa';
+  const packet={...data({reviewer_context_id:shortPrivate,
+    findings:[{...data().findings[0],
+      evidence:'R1: the reviewer context value '+shortPrivate+
+        ' appeared in a diagnostic',
+      action:'Review contextual provenance without public disclosure'}]}),
+    unexpected_field:'invalid_footer'};
+  const response='Separate ChatGPT reviewer identified a potential R1 defect.'+
+    '\n'+d.MARKER+'\n'+JSON.stringify(packet);
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,false);
+  assert.equal(out.status,'UNSAFE_REVIEWER_PROVENANCE');
+  assert.equal(out.text,null);
+});
+test('unqualified relay rejects spaced reviewer context id when footer is invalid',()=>{
+  const secretContext='private-reviewer-context-7e2a';
+  const response='Separate L2 review found an R1 issue. '+
+    'reviewer context id: '+secretContext+'; needs remediation.'+
+    '\n'+d.MARKER+'\n{not-valid-json';
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response,current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}
+  });
+  assert.equal(out.ready_for_manual_relay,false);
+  assert.equal(out.status,'UNVERIFIED_REVIEWER_CONTEXT_CLAIM');
+  assert.equal(out.text,null);
+});
