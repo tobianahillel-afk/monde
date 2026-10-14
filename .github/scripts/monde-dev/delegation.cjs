@@ -946,7 +946,11 @@ function claimedReviewerContext(response, marker) {
   if(typeof id!=='string')return null;
   // A short, parseable claimed context may still be private. Treat it as
   // unverifiable rather than allowing the unredacted identifier into prose.
-  if(id.length<8)return false;
+  if(id.length<8){
+    // Severity labels are public tokens, never private conversation IDs.
+    if(/^(?:R1|R2|R3)$/.test(id))return '';
+    return false;
+  }
   // A multiline, hidden-format or oversized claimed identifier cannot be
   // reliably removed from JSON-escaped public excerpts. Fail closed rather
   // than leak a variant of private conversation provenance.
