@@ -1109,12 +1109,13 @@ function planDelegations(inputs,{prior_confirmed_assignments=[]}={}) {
   ]);
   // Only the interactive caller can verify a previous Scheduled task really
   // exists. These snapshots are explicit *hints*, never L2 or CI evidence.
-  const priorIds = new Set();
+  const priorIds = new Set(), priorById = new Map();
   for(const input of prior_confirmed_assignments){
     const past=assignment(input);
     if(priorIds.has(past.assignment_id))
       bad('DUPLICATE_PRIOR_MISSION');
     priorIds.add(past.assignment_id);
+    priorById.set(past.assignment_id,past);
     // The author may resume in another foreground chat without modifying
     // the reviewed commit. Author-context IDs are provenance, not part of the
     // mission's identity: requiring equality would reschedule identical
@@ -1129,6 +1130,16 @@ function planDelegations(inputs,{prior_confirmed_assignments=[]}={}) {
   return work.map(item => {
     if (seen.has(item.assignment_id)) bad('DUPLICATE_ASSIGNMENT');
     seen.add(item.assignment_id);
+    // A confirmed task ID is immutable. Reusing it for another PR, HEAD,
+    // scope, kind or objective makes a later L2 report impossible to attribute.
+    // Only the foreground author context may change after a chat restart.
+    const previousWithId=priorById.get(item.assignment_id);
+    if(previousWithId&&(
+      previousWithId.repo!==item.repo||
+      previousWithId.pr!==item.pr||
+      previousWithId.head_sha!==item.head_sha||
+      fingerprintFor(previousWithId)!==fingerprintFor(item)))
+      bad('REUSED_ASSIGNMENT_ID_CONFLICT');
     if (item.repo !== anchor.repo || item.pr !== anchor.pr ||
         item.head_sha !== anchor.head_sha ||
         item.author_context_id !== anchor.author_context_id)

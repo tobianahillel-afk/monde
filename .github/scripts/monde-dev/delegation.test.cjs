@@ -5663,3 +5663,28 @@ test('same-context prior L2 redundancy remains an advisory, not an approval',()=
   assert.match(plan[0].prompt,/LECTURE SEULE/);
   assert.equal(plan[0].native_github_approved,undefined);
 });
+
+test('previously scheduled mission ID cannot be silently reused for a different target',()=>{
+  const prior={...H,assignment_id:'L2-PR19-IMMUTABLE-ID'};
+  for(const mutation of [
+    {head_sha:'b'.repeat(40)},
+    {pr:21},
+    {paths:['README.md']},
+    {mission_kind:'TECH_RESEARCH'},
+    {objective:'Review a materially different work packet'}
+  ]){
+    assert.throws(()=>d.planDelegations([{...prior,...mutation}],{
+      prior_confirmed_assignments:[prior]
+    }),e=>e.code==='REUSED_ASSIGNMENT_ID_CONFLICT',
+    'reused mission identifier with mutation '+Object.keys(mutation)[0]);
+  }
+});
+test('same confirmed mission ID survives author-chat restarts without rescheduling',()=>{
+  const old={...H,assignment_id:'L2-PR19-CONTEXT-CHANGE'};
+  const again={...old,author_context_id:'chat-new-foreground-session'};
+  const [entry]=d.planDelegations([again],{prior_confirmed_assignments:[old]});
+  assert.equal(entry.schedule_recommended,false);
+  assert.equal(entry.equivalent_mission_of,old.assignment_id);
+  assert.equal(entry.equivalent_to_prior_confirmed_mission,true);
+  assert.match(entry.prompt,/chat-new-foreground-session/);
+});
