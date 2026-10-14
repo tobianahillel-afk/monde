@@ -635,7 +635,7 @@ const PUBLIC_CONTACT_PATTERNS=[
   /(?:^|[^\w.+-])[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?![A-Za-z])/,
   /(?:^|[^\w])(?:\+|00)[1-9]\d{0,2}(?:[\s().-]*\d){9,12}(?!\d)/,
   /(?:^|[^\w])0[1-9](?:[\s.-]*\d{2}){4}(?!\d)/,
-  /(?:^|[^\w])(?:\([2-9]\d{2}\)|[2-9]\d{2}[-. ])[2-9]\d{2}[-. ]\d{4}(?!\d)/
+  /(?:^|[^\w])(?:\([2-9]\d{2}\)\s*|[2-9]\d{2}[-. ])[2-9]\d{2}[-. ]\d{4}(?!\d)/
 ];
 // Raw conversation URLs are private provenance, not necessary public evidence.
 // The continuation bookmark is itself published in a GitHub PR description.
