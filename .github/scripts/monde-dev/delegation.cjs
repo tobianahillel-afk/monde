@@ -581,7 +581,13 @@ const CREDENTIAL_PATTERNS=[
   // Generic JSON/log credential keys can carry live session or bearer
   // values even when no provider-specific prefix appears. Match JSON strings
   // through successive backslash-escaped renderings in a public review note.
-  /(?:\\*)["'](?:token|session|authorization|auth|secret|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)(?:\\*)["']\s*:\s*(?:\\*)["'](?:Bearer\s+)?[A-Za-z0-9_~+./=%-]{6,}(?=(?:\\*)["'])/i,
+  // JSON keys may use spaces, hyphens or underscores, while values can
+  // contain colons, spaces and digits (including HTTP Basic/Bearer headers).
+  // Reject the whole field conservatively rather than trying to recognize
+  // only token alphabets; this is a PUBLIC GitHub evidence safety backstop.
+  /(?:\\*)["'](?:token|session|(?:proxy[ _-]*)?authorization|auth(?:[ _-]*token)?|secret|api[ _-]*key|access[ _-]*token|refresh[ _-]*token|client[ _-]*secret|password|passwd|secret[ _-]*key)(?:\\*)["']\s*:\s*(?:\\*)["'](?=[^"'\r\n]{4,256}(?:\\*)["'])[^"'\r\n]{4,256}(?=(?:\\*)["'])/i,
+  // Numeric JSON secrets are also values, not harmless metadata.
+  /(?:\\*)["'](?:token|session|(?:proxy[ _-]*)?authorization|auth(?:[ _-]*token)?|secret|api[ _-]*key|access[ _-]*token|client[ _-]*secret|password|passwd)(?:\\*)["']\s*:\s*[0-9]{6,}(?=\s*[,}\]])/i,
   // Basic-auth URLs leak credentials even when the URL uses a public host.
   /https?:\/\/[^\s/@:]+:[^\s/@]+@[^\s/]+/i,
   // Query-string bearer-like credentials are not limited to api_key/access_token.

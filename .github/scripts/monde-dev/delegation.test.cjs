@@ -5906,3 +5906,47 @@ test('privacy: generic JSON token/session/authorization values cannot be relayed
     action_kind:'AWAIT_L2',next_action:'Review {"event":"safe_example"}'};
   assert.equal(d.createResumePacket(harmless).next_action,harmless.next_action);
 });
+
+test('L2 Oct-14 exact-HEAD: JSON Basic, spaced keys, punctuation and numeric secrets never go public',()=>{
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const examples=[
+    '{"Authorization":"Basic dXNlcjpleGFtcGxlOnBhc3M="}',
+    '{"Proxy-Authorization":"Basic dXNlcjpleGFtcGxlOnBhc3M="}',
+    '{"headers":{"Authorization":"Bearer example.token:123 456"}}',
+    '{"authorization":"Basic YTpi"}',
+    '{"api key":"alpha: beta 1234"}',
+    '{"API Key":"alpha-1234 example"}',
+    '{"Access Token":"word: another 012345"}',
+    '{"Client Secret":"not-a-real-secret: 123"}',
+    '{"auth_token":"part.one: 23 45"}',
+    '{"session":123456789}',
+    '{"token":987654321}',
+    '{\\"authorization\\":\\"Basic YTpi\\"}',
+    '%7B%22authorization%22%3A%22Basic%20YTpi%22%7D',
+    '&quot;Access Token&quot;:&quot;sample: 123 456&quot;'
+  ];
+  for(const secret of examples){
+    const bookmark={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:SHA,
+      action_kind:'AWAIT_L2',next_action:'Review '+secret};
+    assert.throws(()=>d.createResumePacket(bookmark),
+      e=>e.code==='INVALID_RESUME_PACKET',secret);
+    const finding={...data().findings[0],
+      evidence:'L2 found unsafe copied log '+secret,
+      action:'Redact the suspicious field before publication'};
+    const qualified=d.prepareInteractiveHandoff({
+      expected:H,response:message(data({findings:[finding]})),
+      current_head:SHA,source,publication_clearance:clear});
+    assert.equal(qualified.ready_for_manual_relay,false,secret);
+    assert.equal(qualified.text,null,secret);
+    const malformed=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:'Independent R1: '+secret+
+        ' was copied from a log; suppress it.\n'+d.MARKER+'\n{invalid',
+      current_head:SHA,source,publication_clearance:clear});
+    assert.equal(malformed.ready_for_manual_relay,false,secret);
+    assert.equal(malformed.text,null,secret);
+  }
+  assert.equal(d.createResumePacket({repo:H.repo,pr:H.pr,
+    head_sha:SHA,base_sha:SHA,action_kind:'AWAIT_L2',
+    next_action:'Inspect {"status":"pending","count":123456}'}).pr,H.pr);
+});
