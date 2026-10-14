@@ -1093,12 +1093,35 @@ function prepareUnqualifiedTriageHandoff(args) {
     native_github_approved:false,ready_for_merge:false,text:note};
 }
 
-function planDelegations(inputs) {
+function planDelegations(inputs,{prior_confirmed_assignments=[]}={}) {
   if (!Array.isArray(inputs) || inputs.length < 1 || inputs.length > 4)
     bad('INVALID_BATCH_SIZE');
+  if(!Array.isArray(prior_confirmed_assignments) ||
+     prior_confirmed_assignments.length>100)
+    bad('INVALID_PRIOR_MISSIONS');
   const work = inputs.map(assignment);
   const seen = new Set(), equivalentMissions = new Map();
   const anchor = work[0];
+  const fingerprintFor=item=>JSON.stringify([
+    item.mission_kind,
+    item.objective.trim().normalize('NFC').replace(/\p{White_Space}+/gu,' '),
+    item.paths.slice().sort()
+  ]);
+  // Only the interactive caller can verify a previous Scheduled task really
+  // exists. These snapshots are explicit *hints*, never L2 or CI evidence.
+  const priorIds = new Set();
+  for(const input of prior_confirmed_assignments){
+    const past=assignment(input);
+    if(priorIds.has(past.assignment_id))
+      bad('DUPLICATE_PRIOR_MISSION');
+    priorIds.add(past.assignment_id);
+    if(past.repo!==anchor.repo||past.pr!==anchor.pr||
+       past.head_sha!==anchor.head_sha||
+       past.author_context_id!==anchor.author_context_id)continue;
+    const key=fingerprintFor(past);
+    if(!equivalentMissions.has(key))
+      equivalentMissions.set(key,past.assignment_id);
+  }
   return work.map(item => {
     if (seen.has(item.assignment_id)) bad('DUPLICATE_ASSIGNMENT');
     seen.add(item.assignment_id);
@@ -1111,14 +1134,9 @@ function planDelegations(inputs) {
     // Identical prose with harmless spacing or Unicode composition variants
     // should not spend a second scheduled-task slot. This is advisory ONLY:
     // never merge different kinds, targets, files, or reviewer contexts.
-    const normalizedObjective=item.objective.trim().normalize('NFC')
-      .replace(/\p{White_Space}+/gu,' ');
-    // The scope is a set: its listing order must never cause a
-    // redundant Scheduled-task recommendation. Preserve original prompts.
-    const normalizedPaths=item.paths.slice().sort();
-    const fingerprint=JSON.stringify([
-      item.mission_kind,normalizedObjective,normalizedPaths
-    ]);
+    // Scope order and harmless objective whitespace/Unicode composition are
+    // immaterial both within a cohort and across previously confirmed tasks.
+    const fingerprint=fingerprintFor(item);
     const equivalentTo=equivalentMissions.get(fingerprint)||null;
     if(!equivalentTo)equivalentMissions.set(fingerprint,item.assignment_id);
     return {
@@ -1132,6 +1150,8 @@ function planDelegations(inputs) {
       // independent L2 context; no automatic deduplication erases evidence.
       schedule_recommended: equivalentTo===null,
       equivalent_mission_of: equivalentTo,
+      equivalent_to_prior_confirmed_mission:
+        equivalentTo!==null&&priorIds.has(equivalentTo),
       prompt: item.mission_kind==='L2_REVIEW'
         ?buildReviewPrompt(item):buildResearchPrompt(item)
     };

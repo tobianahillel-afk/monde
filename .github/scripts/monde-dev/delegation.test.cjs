@@ -5593,3 +5593,58 @@ test('L2 scheduler recognizes equivalent multi-file scopes independent of order'
   assert.deepEqual(second.paths,[doc,code]);
   assert.match(result[1].prompt,/LECTURE SEULE/);
 });
+
+
+test('confirmed previous scheduled task prevents unnecessary same-HEAD recreation',()=>{
+  const past={...H,assignment_id:'L2-PR19-PRIOR-CONFIRMED',
+    paths:['docs/12_RESEARCH/','README.md'],
+    objective:'Review  coordination  and safety'};
+  const next={...past,assignment_id:'L2-PR19-NEW-ASSIGN',
+    paths:['README.md','docs/12_RESEARCH/'],
+    objective:'Review coordination and safety'};
+  const planned=d.planDelegations([next],{prior_confirmed_assignments:[past]});
+  assert.equal(planned.length,1);
+  assert.equal(planned[0].schedule_recommended,false);
+  assert.equal(planned[0].equivalent_mission_of,past.assignment_id);
+  assert.equal(planned[0].equivalent_to_prior_confirmed_mission,true);
+  assert.equal(planned[0].read_only,true);
+});
+test('prior task cannot suppress a new HEAD, scope, kind, or author context',()=>{
+  const old={...H,assignment_id:'L2-PR19-PRIOR-FOR-REPLAY'};
+  const next={...H,assignment_id:'L2-PR19-CURRENT-NEW'};
+  for(const mutation of [
+    {head_sha:'b'.repeat(40)},
+    {paths:['README.md']},
+    {mission_kind:'TECH_RESEARCH'},
+    {author_context_id:'chat-other-author-context'},
+    {pr:20}
+  ]){
+    const prior={...old,...mutation};
+    const planned=d.planDelegations([next],{prior_confirmed_assignments:[prior]});
+    assert.equal(planned[0].schedule_recommended,true,
+      'prior task must not suppress new work: '+Object.keys(mutation)[0]);
+    assert.equal(planned[0].equivalent_mission_of,null);
+  }
+});
+test('unverified, malformed, repeated or excessive prior mission evidence fails closed',()=>{
+  assert.throws(()=>d.planDelegations([H],{
+    prior_confirmed_assignments:[{...H,paths:['../bad']}]
+  }),e=>e.code==='INVALID_ASSIGNMENT');
+  assert.throws(()=>d.planDelegations([H],{
+    prior_confirmed_assignments:[H,H]
+  }),e=>e.code==='DUPLICATE_PRIOR_MISSION');
+  assert.throws(()=>d.planDelegations([H],{
+    prior_confirmed_assignments:Array.from({length:101},(_,i)=>({
+      ...H,assignment_id:'L2-PR19-PRIOR-'+i
+    }))
+  }),e=>e.code==='INVALID_PRIOR_MISSIONS');
+});
+test('same-context prior L2 redundancy remains an advisory, not an approval',()=>{
+  const past={...H,assignment_id:'L2-PR19-PRIOR-L2'};
+  const next={...H,assignment_id:'L2-PR19-SECOND-L2'};
+  const plan=d.planDelegations([next],{prior_confirmed_assignments:[past]});
+  assert.equal(plan[0].schedule_recommended,false);
+  assert.doesNotMatch(plan[0].prompt,/autorisation de publier/);
+  assert.match(plan[0].prompt,/LECTURE SEULE/);
+  assert.equal(plan[0].native_github_approved,undefined);
+});
