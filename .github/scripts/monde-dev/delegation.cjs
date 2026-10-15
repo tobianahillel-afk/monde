@@ -2095,6 +2095,15 @@ const NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH =
   /(?:^|[^A-Za-z0-9_./-])(?:file:\/+[^\s"'\x60<>]+|\/(?:home|Users|root|private|mnt|tmp|var|etc|workspace|opt|srv|data)\/[^\s"'\x60<>]*|[A-Za-z]:[\\/][^\s"'\x60<>]*|\\\\[^\\\s]+\\[^\\\s]+[^\s"'\x60<>]*)/iu;
 const NONPUBLIC_WINDOWS_COMPONENT =
   /(?:^|[^A-Za-z0-9_.\\/-])(?:[A-Za-z0-9_.-]+\\)*(?:clients?|customers?|patients?|private|confidential|secrets?|personal|internal)\\[A-Za-z0-9_.-]+/iu;
+// A path under an otherwise unknown root is private when the report itself
+// explicitly identifies it as a local, filesystem, cwd or absolute path.
+// A bare HTTP route is *not* a local filesystem disclosure.
+const NONPUBLIC_EXPLICIT_LOCAL_PATH =
+  /(?:^|[^A-Za-z0-9_])(?:path\s*[:=]\s*|(?:local(?:\s+(?:file|path|directory|artifact))?|filesystem|cwd|workspace(?:_dir)?|absolute\s+path)\s+(?:at\s+)?)\/[A-Za-z0-9_.\/-]+/iu;
+// HTTP verb followed by a public endpoint under /data or /users is not a
+// machine-local directory. This narrow masking does not clear file: or path=.
+const PUBLIC_HTTP_ROUTE =
+  /\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/(?:data|users)\/[A-Za-z0-9_./?=&%-]*/giu;
 function containsNonpublicScopeDisclosure(value) {
   return publicTextMatches(value,text=>{
     // Quoted evidence (JSON/Markdown) doubles Windows backslashes. Check both
@@ -2104,7 +2113,9 @@ function containsNonpublicScopeDisclosure(value) {
     return [text,flattened].some(candidate=>
       NONPUBLIC_PATH_COMPONENT.test(candidate)||
       NONPUBLIC_DIRECTORY_LEAF.test(candidate)||
-      NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH.test(candidate)||
+      NONPUBLIC_EXPLICIT_LOCAL_PATH.test(candidate)||
+      NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH.test(
+        candidate.replace(PUBLIC_HTTP_ROUTE,'[PUBLIC_HTTP_ROUTE]'))||
       NONPUBLIC_WINDOWS_COMPONENT.test(candidate));
   });
 }

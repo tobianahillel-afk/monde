@@ -6867,3 +6867,46 @@ test('Oct-15 regression: punctuation cannot camouflage local filesystem referenc
     assert.equal(packet.next_action,next_action);
   }
 });
+
+test('Oct-15 L2: contextual POSIX paths are private while public HTTP routes remain usable',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const bookmark={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  for(const location of [
+    'path=/project/customer-a/config.yml',
+    'local file at /build/runner/operator.log',
+    'cwd /app/operator/session.txt',
+    'absolute path /deploy/operator/config.yml'
+  ]){
+    const response=message(data({findings:[{...data().findings[0],
+      evidence:'The review found '+location}]}));
+    const normal=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(normal.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+    const raw=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent R2 evidence: '+location+' must remain private.',
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(raw.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+    assert.throws(()=>d.createResumePacket({...bookmark,
+      next_action:'Inspect '+location+' before continuing'}),
+      e=>e.code==='INVALID_RESUME_PACKET',location);
+  }
+  for(const publicRoute of [
+    'GET /data/stats','GET /users/profile',
+    'POST /data/aggregate','GET /api/v1/status'
+  ]){
+    const packet=d.createResumePacket({...bookmark,
+      next_action:'Verify '+publicRoute+' with src/public.js'});
+    assert.match(packet.next_action,/src\/public\.js/);
+    const response=message(data({findings:[{...data().findings[0],
+      evidence:'Inspect public endpoint '+publicRoute+' and src/public.js'}]}));
+    const normal=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(normal.ready_for_manual_relay,true,publicRoute);
+  }
+  assert.throws(()=>d.createResumePacket({...bookmark,
+    next_action:'Verify path=/data/private/records.csv before proceeding'}),
+    e=>e.code==='INVALID_RESUME_PACKET');
+});
