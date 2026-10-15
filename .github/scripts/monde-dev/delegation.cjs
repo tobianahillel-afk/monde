@@ -1137,8 +1137,7 @@ function prepareUnqualifiedTriageHandoff(args) {
   // clearance. Reject explicitly labeled nonpublic file scopes even when
   // the writer has checked the confidentiality boxes.
   if(a.paths.some(potentiallyNonpublicResumeText)||
-     findings.some(f=>potentiallyNonpublicResumeText(f.path))||
-     snippets.some(potentiallyNonpublicResumeText))
+     findings.some(f=>potentiallyNonpublicResumeText(f.path)))
     return refused('NONPUBLIC_SCOPE_IN_RELAY');
   if(!snippets.length&&!findings.length)
     return refused('NO_REVIEWED_ACTIONABLE_EXCERPTS');
@@ -1265,6 +1264,14 @@ function prepareUnqualifiedTriageHandoff(args) {
     return refused('POTENTIAL_SECRET_IN_REPORT');
   if(containsEncodedContact(note))
     return refused('PERSONAL_DATA_IN_RELAY');
+  // Preserve the more specific secret/chat/contact diagnostics above.
+  // Only file-path-like segments in unqualified free text trigger this
+  // additional nonpublic-scope restriction, not words such as "internal"
+  // used in harmless technical discussion.
+  const snippetPaths=snippets.flatMap(value=>
+    value.match(/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+){1,12}/g)||[]);
+  if(snippetPaths.some(potentiallyNonpublicResumeText))
+    return refused('NONPUBLIC_SCOPE_IN_RELAY');
   if(Buffer.byteLength(note,'utf8')>PUBLIC_RELAY_MAX_BYTES)
     return refused('PUBLIC_RELAY_TOO_LARGE');
   return {status:'UNQUALIFIED_TRIAGE_READY',ready_for_manual_relay:true,
