@@ -6192,3 +6192,24 @@ test('privacy: symmetric provenance normalization keeps ordinary public L2 findi
   assert.equal(result.ready_for_manual_relay,true);
   assert.match(result.text,/public parser rejects malformed payload length/);
 });
+
+
+test('resume: Actions numeric identifiers do not masquerade as abbreviated SHAs',()=>{
+  for(const ref of ['job-116441995536','run:116441995536','check-114458735409']){
+    const packet=d.createResumePacket({repo:H.repo,pr:H.pr,
+      head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+      next_action:'Inspect '+ref+' on current PR',
+      evidence_refs:[{kind:'CI',ref,head_sha:SHA}]});
+    assert.match(packet.next_action,/Inspect/);
+    assert.equal(packet.evidence_refs[0].ref,ref);
+  }
+});
+test('resume: still rejects untyped commit-like values and disguised CI tokens',()=>{
+  for(const hint of ['Inspect commit 116441995536','Inspect abcdef12',
+    'Inspect job-12345678deadbeef','Inspect job-116441995536abc',
+    'Inspect check:deadbeef']){
+    assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+      head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+      next_action:hint}),e=>e.code==='INVALID_RESUME_PACKET',hint);
+  }
+});
