@@ -6435,3 +6435,77 @@ test('public resume refuses private or personal-data file paths',()=>{
   }
   assert.deepEqual(d.createResumePacket(safe).expected_files,['docs/README.md']);
 });
+
+
+test('exact-head L2: standalone Bearer and Basic opaque values are never published',()=>{
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const samples=[
+    'Bearer ZZzzYYyyXXxxQQqqRRrrTTttUUuu',
+    'Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==',
+    'Bearer test_1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  ];
+  for(const opaque of samples){
+    assert.throws(()=>d.createResumePacket({
+      repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+      action_kind:'AWAIT_L2',next_action:'Inspect '+opaque
+    }),e=>e.code==='INVALID_RESUME_PACKET',opaque);
+    const report=message(data({findings:[{...data().findings[0],
+      evidence:'Debug trace contains '+opaque}]}));
+    const qualified=d.prepareInteractiveHandoff({
+      expected:H,response:report,current_head:SHA,source,
+      publication_clearance:clear
+    });
+    assert.equal(qualified.ready_for_manual_relay,false,opaque);
+    assert.equal(qualified.text,null,opaque);
+    const triage=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:'Independent R2: opaque token '+opaque+
+        ' must not be published.',current_head:SHA,source,
+      publication_clearance:clear
+    });
+    assert.equal(triage.ready_for_manual_relay,false,opaque);
+    assert.equal(triage.text,null,opaque);
+  }
+  for(const harmless of ['Bearer authentication is documented',
+    'Basic authentication is available','Inspect the Bearer token scheme']){
+    const packet=d.createResumePacket({
+      repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+      action_kind:'AWAIT_L2',next_action:harmless
+    });
+    assert.equal(packet.next_action,harmless);
+  }
+});
+test('exact-head L2: empty-ciphertext JWE and detached JWS are confidential',()=>{
+  const encode=value=>Buffer.from(JSON.stringify(value)).toString('base64url');
+  const jwe=encode({alg:'dir',enc:'A256GCM'})+'..'+
+    Buffer.from('twelve-byte-test','utf8').toString('base64url')+'..'+
+    Buffer.from('synthetic-tag-value','utf8').toString('base64url');
+  const jws=encode({alg:'HS256',typ:'JWT'})+'..'+
+    Buffer.from('synthetic-signature','utf8').toString('base64url');
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const opaque of [jwe,jws]){
+    assert.throws(()=>d.createResumePacket({
+      repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+      action_kind:'AWAIT_L2',next_action:'Inspect '+opaque
+    }),e=>e.code==='INVALID_RESUME_PACKET');
+    const qualified=d.prepareInteractiveHandoff({
+      expected:H,response:message(data({findings:[{...data().findings[0],
+        evidence:'Synthetic JOSE trace '+opaque}]})),
+      current_head:SHA,source,publication_clearance:clear
+    });
+    assert.equal(qualified.ready_for_manual_relay,false,opaque);
+    assert.equal(qualified.text,null,opaque);
+    const triage=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:'Independent R2 issue: JOSE trace '+opaque+
+        ' must be redacted.',current_head:SHA,source,
+      publication_clearance:clear
+    });
+    assert.equal(triage.ready_for_manual_relay,false,opaque);
+    assert.equal(triage.text,null,opaque);
+  }
+  const safe=d.createResumePacket({repo:H.repo,pr:H.pr,
+    head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+    next_action:'Inspect public release 1.2.3'});
+  assert.equal(safe.next_action,'Inspect public release 1.2.3');
+});

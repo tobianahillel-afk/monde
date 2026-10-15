@@ -575,6 +575,10 @@ function assessReview({ expected, response, current_head, source, coverage_manif
 // Token prefix boundaries must also match after '_' (a JS word character):
 // do not use \\b here or a public handoff may miss an embedded credential.
 const CREDENTIAL_PATTERNS=[
+  // Standalone HTTP authorization credentials can appear without the literal
+  // "Authorization:" header (traces, copy-pasted values, PR notes). Require
+  // a single opaque token, not prose such as "Bearer authentication is used".
+  /(?:^|[^A-Za-z0-9])(?:Bearer|Basic)[ \t]+[A-Za-z0-9._~+/-]{20,}={0,2}(?![A-Za-z0-9._~+/-])/i,
   // Public review handoffs and PR continuation hints must not carry generic
   // credentials just because the value has no provider-specific token prefix.
   /(?:^|[^A-Za-z0-9])(?:(?:x[_-]?)?api[_-]?key|(?:x[_-]?)?auth[_-]?token|access[_-]?token|client[_-]?secret|(?:proxy[_-]?)?authorization|token|password|passwd|secret[_-]?key)\s*[:=]\s*(?:\\*["'\x60*_]){0,3}\s*[A-Za-z0-9_%+./=-]{4,}/i,
@@ -640,8 +644,8 @@ const CREDENTIAL_PATTERNS=[
 // JOSE compact serialization permits optional "=" base64url padding
 // on each nonempty segment. Require a decodable JOSE protected header
 // before classifying, to avoid mistaking dotted versions for bearer tokens.
-const JWT_CANDIDATE=/(?:^|[^A-Za-z0-9_=-])([A-Za-z0-9_-]{8,}={0,2})[ \t]*\.[ \t]*([A-Za-z0-9_-]{2,}={0,2})[ \t]*\.[ \t]*([A-Za-z0-9_-]*={0,2})(?![A-Za-z0-9_=-])/g;
-const JWE_CANDIDATE=/(?:^|[^A-Za-z0-9_=-])([A-Za-z0-9_-]{8,}={0,2})\.([A-Za-z0-9_-]*={0,2})\.([A-Za-z0-9_-]{8,}={0,2})\.([A-Za-z0-9_-]{1,}={0,2})\.([A-Za-z0-9_-]{8,}={0,2})(?![A-Za-z0-9_=-])/g;
+const JWT_CANDIDATE=/(?:^|[^A-Za-z0-9_=-])([A-Za-z0-9_-]{8,}={0,2})[ \t]*\.[ \t]*([A-Za-z0-9_-]*={0,2})[ \t]*\.[ \t]*([A-Za-z0-9_-]*={0,2})(?![A-Za-z0-9_=-])/g;
+const JWE_CANDIDATE=/(?:^|[^A-Za-z0-9_=-])([A-Za-z0-9_-]{8,}={0,2})\.([A-Za-z0-9_-]*={0,2})\.([A-Za-z0-9_-]{8,}={0,2})\.([A-Za-z0-9_-]*={0,2})\.([A-Za-z0-9_-]{8,}={0,2})(?![A-Za-z0-9_=-])/g;
 function containsStructuredJWT(text) {
   for(const match of text.matchAll(JWE_CANDIDATE)){
     try{
