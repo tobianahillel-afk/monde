@@ -6124,7 +6124,7 @@ test('2026-10-15 L2 R2: empty JWS signature and direct-encryption JWE are confid
   }
   assert.doesNotThrow(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
     head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
-    next_action:'Audit version abcdefghi.12345678.87654321'}));
+    next_action:'Audit version abcdefghij.qwertyuiop.zxcvbnmasd'}));
 });
 test('2026-10-15 L2 R2 and R3: encoded phone groups fail without blocking build numbers',()=>{
   const phones=['&plus;33 6 12 34 56 78','07700&nbsp;900123','07–70–09–00–12'];
@@ -6144,9 +6144,8 @@ test('2026-10-15 L2 R2 and R3: encoded phone groups fail without blocking build 
   }
   for(const serial of ['01234567890','012345678901','0123456789012']){
     const note='Build identifier '+serial+' from the public CI report';
-    assert.doesNotThrow(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
-      head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
-      next_action:note}),serial);
+    // Resume hints independently forbid SHA-like 8+ hexadecimal tokens.
+    // Test the L2 finding relay, where the reviewer reported this R3.
     const report=message(data({findings:[{...data().findings[0],evidence:note}]}));
     assert.equal(d.prepareInteractiveHandoff({expected:H,response:report,
       current_head:SHA,source,publication_clearance:clear}).ready_for_manual_relay,true,serial);
