@@ -6910,3 +6910,56 @@ test('Oct-15 L2: contextual POSIX paths are private while public HTTP routes rem
     next_action:'Verify path=/data/private/records.csv before proceeding'}),
     e=>e.code==='INVALID_RESUME_PACKET');
 });
+
+test('Oct-16 L2 delta: nonstandard absolute build/runtime/install roots stay private in all public outputs',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const packet={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  for(const privatePath of [
+    '/builds/runner-a/report.txt',
+    '/build/ci/operator.log',
+    '/run/user/1000/session.json',
+    '/usr/local/share/team/build.env',
+    '/usr/share/tenant/config.yaml',
+    '/app/tenant-a/runtime.env',
+    '/project/tenant-a/debug.log',
+    '/deploy/team-a/install.yml',
+    '/run%2Fuser%2F1000%2Fsession.json'
+  ]){
+    assert.throws(()=>d.createResumePacket({...packet,
+      next_action:'Inspect '+privatePath+' before continuing'}),
+      e=>e.code==='INVALID_RESUME_PACKET',privatePath);
+    const response=message(data({findings:[{...data().findings[0],
+      evidence:'The reviewer inspected '+privatePath}]}));
+    const qualified=d.prepareInteractiveHandoff({expected:H,response,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(qualified.ready_for_manual_relay,false,privatePath);
+    assert.equal(qualified.status,'NONPUBLIC_SCOPE_IN_RELAY',privatePath);
+    const unqualified=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:'L2 R2: inspected '+privatePath,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(unqualified.ready_for_manual_relay,false,privatePath);
+    assert.equal(unqualified.status,'NONPUBLIC_SCOPE_IN_RELAY',privatePath);
+  }
+});
+test('Oct-16 L2 delta: ordinary public HTTP routes under runtime-like names remain shareable',()=>{
+  const packet={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const route of ['GET /run/status','POST /app/v1/status',
+    'GET /builds/jobs','GET /project/status','GET /deploy/status',
+    'GET /data/stats','GET /users/profile','GET /api/v1/status']){
+    const p=d.createResumePacket({...packet,
+      next_action:'Verify public route '+route+' with src/public.js'});
+    assert.match(p.next_action,/src\/public\.js/,route);
+    const response=message(data({findings:[{...data().findings[0],
+      evidence:'The public route '+route+' is exposed by src/public.js'}]}));
+    const handoff=d.prepareInteractiveHandoff({expected:H,response,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(handoff.ready_for_manual_relay,true,route);
+  }
+});
