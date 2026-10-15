@@ -2092,7 +2092,7 @@ const NONPUBLIC_DIRECTORY_LEAF=/(?:^|[^A-Za-z0-9_./-])(?:(?:[A-Za-z0-9_.-]+\/)+(
 // Absolute local filesystem paths may disclose profile and customer names.
 // Require a filesystem-root signature rather than blocking public /api routes.
 const NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH =
-  /(?:^|[\s"'\x60(])(?:\/(?:home|Users|root|private|mnt|tmp|var|etc|workspace)\/[^\s"'\x60<>]*|[A-Za-z]:[\\/][^\s"'\x60<>]*|\\\\[^\\\s]+\\[^\\\s]+[^\s"'\x60<>]*)/iu;
+  /(?:^|[\s"'\x60(])(?:file:\/\/(?:localhost)?\/+(?:home|Users|root|private|mnt|tmp|var|etc|workspace)\/[^\s"'\x60<>]*|\/(?:home|Users|root|private|mnt|tmp|var|etc|workspace)\/[^\s"'\x60<>]*|[A-Za-z]:[\\/][^\s"'\x60<>]*|\\\\[^\\\s]+\\[^\\\s]+[^\s"'\x60<>]*)/iu;
 const NONPUBLIC_WINDOWS_COMPONENT =
   /(?:^|[^A-Za-z0-9_.\\/-])(?:[A-Za-z0-9_.-]+\\)*(?:clients?|customers?|patients?|private|confidential|secrets?|personal|internal)\\[A-Za-z0-9_.-]+/iu;
 function containsNonpublicScopeDisclosure(value) {
@@ -2143,6 +2143,7 @@ function resumePacket(input){
      containsEncodedCredential(input.next_action)||
       containsEncodedContact(input.next_action)||
       containsPrivateChatHost(input.next_action)||
+      containsNonpublicScopeDisclosure(input.next_action)||
       potentiallyNonpublicResumeText(input.next_action)||
       privateResumeId(input.next_action)||
      (input.work!==null&&(typeof input.work!=='string'||

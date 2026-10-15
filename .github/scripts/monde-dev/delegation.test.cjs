@@ -6750,3 +6750,42 @@ test('Oct-15 L2 F02: malformed prose R1 requires triage, not automatic progressi
   assert.equal(result.progression_advice,'TRIAGE_UNQUALIFIED_MATERIAL_FINDINGS');
   assert.equal(result.ready_for_merge,false);
 });
+
+test('Oct-15 public safety: file URI absolute local paths cannot escape reviewed handoffs',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const location of [
+    'file:///home/example/data.csv',
+    'file:///Users/example/contacts.csv',
+    'file:///tmp/project/session.txt',
+    'file://localhost/home/example/settings.yaml',
+    'file%3A%2F%2F%2Fhome%2Fexample%2Fsecrets.txt'
+  ]){
+    const response=message(data({findings:[{...data().findings[0],
+      evidence:'Read the local evidence at '+location}]}));
+    const qualified=d.prepareInteractiveHandoff({expected:H,response,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(qualified.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+    assert.equal(qualified.ready_for_manual_relay,false,location);
+    const malformed=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent reviewer R1: local evidence '+location+
+        ' must remain private.',current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(malformed.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+  }
+});
+test('Oct-15 public safety: resume next_action cannot contain local file URIs',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  for(const next_action of [
+    'Read file:///home/example/hidden.txt before implementation',
+    'Inspect file://localhost/Users/example/notes.txt before implementation',
+    'Read file%3A%2F%2F%2Ftmp%2Fexample%2Fsecret.txt'
+  ]){
+    assert.throws(()=>d.createResumePacket({...base,next_action}),
+      e=>e.code==='INVALID_RESUME_PACKET',next_action);
+  }
+  const safe=d.createResumePacket({...base,
+    next_action:'Review the public route /api/v1/status and fix src/public.js'});
+  assert.equal(safe.action_kind,'CONTINUE_IMPLEMENTATION');
+});
