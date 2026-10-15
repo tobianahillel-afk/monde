@@ -6268,3 +6268,63 @@ test('L2 newest: JSON escaped slash and Unicode host do not disclose chat proven
     current_head:SHA,source:observed,publication_clearance:clear})
     .ready_for_manual_relay,false);
 });
+
+test('2026-10-15 L2: combining-mark IDN emails are confidential across public outputs',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const email of ['alice@किताब.भारत','alice@उदाहरण.भारत','alice@مِثال.مِصر']){
+    assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+      head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+      next_action:'Inspect '+email}),e=>e.code==='INVALID_RESUME_PACKET',email);
+    const report=message(data({findings:[{...data().findings[0],
+      evidence:'Sensitive contact '+email}]}));
+    const normal=d.prepareInteractiveHandoff({expected:H,response:report,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(normal.status,'PERSONAL_DATA_IN_RELAY',email);
+    assert.equal(normal.text,null,email);
+    const triage=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent R2: confidential personal contact '+email+
+        ' exposed, please correct.',current_head:SHA,source,
+      publication_clearance:clearance});
+    assert.equal(triage.status,'PERSONAL_DATA_IN_RELAY',email);
+    assert.equal(triage.text,null,email);
+  }
+});
+test('2026-10-15 L2: short OAuth codes blocked with concrete rejection reasons',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const secrets=['code=a','code=ab','{"code":"a"}','{"code":"ab"}',
+    'OAuth callback code=OK','OAuth callback {"code":"200"}'];
+  for(const code of secrets){
+    assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+      head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+      next_action:'Inspect '+code}),e=>e.code==='INVALID_RESUME_PACKET',code);
+    const normal=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[{...data().findings[0],
+        evidence:'Sensitive OAuth trace '+code}]})),current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.match(normal.status,/POTENTIAL_SECRET/,code);
+    assert.equal(normal.text,null,code);
+    const triage=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent R2: OAuth callback exposed '+code+
+        ', please correct.',current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(triage.status,'POTENTIAL_SECRET_IN_REPORT',code);
+    assert.equal(triage.text,null,code);
+  }
+});
+test('2026-10-15 L2: harmless technical status codes do not block public handoff',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const status of ['code=200','{"code":"ERR"}','code=OK']){
+    const packet=d.createResumePacket({repo:H.repo,pr:H.pr,head_sha:SHA,
+      base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+      next_action:'Inspect technical status '+status});
+    assert.match(packet.next_action,/technical status/);
+    const normal=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[{...data().findings[0],
+        evidence:'Public build log status '+status}]})),current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(normal.ready_for_manual_relay,true,status);
+    assert.match(normal.text,/Public build log status/);
+  }
+});

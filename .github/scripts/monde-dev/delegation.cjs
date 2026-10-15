@@ -600,9 +600,8 @@ const CREDENTIAL_PATTERNS=[
   /(?:\?|#|&(?:amp;)?)\s*(?:token|key|auth|authorization|session|signature|sig|secret|jwt|(?:x[_-]?)?api[_-]?key|(?:x[_-]?)?auth[_-]?token)=[A-Za-z0-9._~+/%-]{4,}/i,
   // Even a three-character OAuth query code must never reach public relay.
   /(?:\?|#|&(?:amp;)?)\s*code=[A-Za-z0-9._~+/%-]{1,}/i,
-  // OAuth callbacks are also copied as bare assignments and JSON fields.
-  /(?:^|[^A-Za-z0-9])code\s*=\s*["']?[A-Za-z0-9._~+/%-]{3,}/i,
-  /(?:\\*)["']code(?:\\*)["']\s*:\s*(?:\\*)["'][^"'\\\s]{3,}/i,
+  // Context-aware bare/JSON OAuth codes are checked below, not by
+  // an unconditional rule that rejects unrelated build/status codes.
   // OAuth refresh/ID tokens and session IDs often occur under compound keys.
   // Reject them from public resumes and reviewed-report excerpts.
   /(?:^|[^A-Za-z0-9])(?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token))\s*[:=]\s*(?:\\*["'\x60])?\s*[A-Za-z0-9_%+./=-]{4,}/i,
@@ -661,7 +660,8 @@ function containsStructuredJWT(text) {
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
 // Public resumptions contain work metadata, never personal contact information.
 const PUBLIC_CONTACT_PATTERNS=[
-  /(?:^|[^\p{L}\p{N}.+_-])[\p{L}\p{N}][\p{L}\p{N}._%+-]{0,63}@(?:[\p{L}\p{N}-]+\.)+[\p{L}\p{N}-]{2,63}(?![\p{L}\p{N}-])|(?:^|[^\w.+-])[A-Za-z0-9._%+-]+@localhost\b/iu,
+  // Unicode combining marks are part of ordinary IDN labels.
+  /(?:^|[^\p{L}\p{N}\p{M}.+_-])[\p{L}\p{N}][\p{L}\p{N}\p{M}._%+-]{0,63}@(?:[\p{L}\p{N}][\p{L}\p{N}\p{M}-]*\.)+[\p{L}\p{N}][\p{L}\p{N}\p{M}-]{1,62}(?![\p{L}\p{N}\p{M}-])|(?:^|[^\w.+-])[A-Za-z0-9._%+-]+@localhost\b/iu,
   /(?:^|[^\w])(?:\+|00)[1-9]\d{0,2}(?:[\s().+-]*\d){8,12}(?!\d)/,
   /(?:^|[^\w])0[1-9](?:[\s().+-]*\d){8}(?!\d)/,
   // Bare 11–13-digit build IDs must not be mistaken for local phones.
@@ -751,10 +751,24 @@ function containsPrivateChatHost(value) {
   return publicTextMatches(value,text=>PRIVATE_CHAT_HOST.test(text));
 }
 // Use one bounded decoder for hostnames AND credential parameters.
+// A callback code may be one character. Only a clearly standalone
+// HTTP/diagnostic status is exempt; OAuth context never gets that exemption.
+function containsOAuthCode(text) {
+  const oauthContext=/(?:oauth|oidc|pkce|callback|redirect_uri|authorization|authorize|login|auth[\s_-]*(?:code|flow))/i.test(text);
+  const bare=/(?:^|[^A-Za-z0-9])code\s*=\s*["']?([A-Za-z0-9._~+/%-]{1,})/gi;
+  const json=/(?:\\*)["']code(?:\\*)["']\s*:\s*(?:\\*)["']([^"'\\\s]{1,})/gi;
+  for(const pattern of [bare,json]){
+    for(const match of text.matchAll(pattern)){
+      if(oauthContext||!/^(?:[1-5]\d{2}|ERR|OK)$/i.test(match[1]))
+        return true;
+    }
+  }
+  return false;
+}
 function containsEncodedCredential(value) {
   return publicTextMatches(value,text=>
     CREDENTIAL_PATTERNS.some(pattern=>pattern.test(text))||
-    containsStructuredJWT(text));
+    containsOAuthCode(text)||containsStructuredJWT(text));
 }
 function containsEncodedContact(value) {
   return publicTextMatches(value,text=>
@@ -836,9 +850,10 @@ function prepareInteractiveHandoff(args) {
   // A clearance checkbox does not justify relaying unmistakable credential
   // material into a PUBLIC GitHub comment. This is a conservative backstop,
   // never a substitute for the foreground developer's manual inspection.
-  if (CREDENTIAL_PATTERNS.some(pattern=>[
-    args.response,args.source?.message_ref,args.source?.context_id
-  ].some(value=>typeof value==='string'&&pattern.test(value))))
+  if ([args.response,args.source?.message_ref,args.source?.context_id]
+    .some(value=>typeof value==='string'&&
+      (CREDENTIAL_PATTERNS.some(pattern=>pattern.test(value))||
+       containsOAuthCode(value))))
     return {status:'POTENTIAL_SECRET_IN_REPORT',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
@@ -1210,8 +1225,8 @@ function prepareUnqualifiedTriageHandoff(args) {
   if(containsPrivateChatHost(note))
     return refused('UNREDACTED_CHAT_HOST');
   if(containsEncodedCredential(note)||
-      CREDENTIAL_PATTERNS.some(re=>[args.response,source.message_ref]
-        .some(s=>typeof s==='string'&&re.test(s))))
+      [args.response,source.message_ref].some(s=>typeof s==='string'&&
+        (CREDENTIAL_PATTERNS.some(re=>re.test(s))||containsOAuthCode(s))))
     return refused('POTENTIAL_SECRET_IN_REPORT');
   if(containsEncodedContact(note))
     return refused('PERSONAL_DATA_IN_RELAY');
