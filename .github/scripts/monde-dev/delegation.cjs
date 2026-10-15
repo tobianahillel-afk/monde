@@ -2082,8 +2082,12 @@ function publicResumeEvidence(kind,ref) {
 const NONPUBLIC_SCOPE_LABEL=/(?:^|[^A-Za-z0-9])(?:clients?|customers?|patients?|confidenti(?:al|el|elle|els|elles)|private|priv[eé]e?|personn(?:el|elle)|personal|secrets?|classified|non[_ -]?public|intern(?:al|e)|proprietary|sensitive|sensible)(?=$|[^A-Za-z0-9])/iu;
 // Directory-component-aware confidentiality filter for public GitHub prose.
 const NONPUBLIC_PATH_COMPONENT=/(?:^|[^A-Za-z0-9_./-])(?:(?:[A-Za-z0-9_.-]+\/)*(?:clients?|customers?|patients?|private|confidenti(?:al|el|elle|els|elles)|secrets?|classified|proprietary|personal|non[-_]?public)\/[A-Za-z0-9_.-]+|(?:src|docs|assets|data|config)\/(?:internal|private|confidential|sensitive)\/[A-Za-z0-9_.-]+)/iu;
+// Scope can name a sensitive directory without any child filename. Check the
+// complete directory segment without matching benign siblings or prose.
+const NONPUBLIC_DIRECTORY_LEAF=/(?:^|[^A-Za-z0-9_./-])(?:(?:[A-Za-z0-9_.-]+\/)+(?:clients?|customers?|patients?|private|confidenti(?:al|el|elle|els|elles)|secrets?|classified|proprietary|personal|non[-_]?public|internal|confidential|sensitive)|(?:clients?|customers?|patients?|private|confidenti(?:al|el|elle|els|elles)|secrets?|classified|proprietary|personal|non[-_]?public|internal|confidential|sensitive)\/)\/?(?=$|[^A-Za-z0-9_./-])/iu;
 function containsNonpublicScopeDisclosure(value) {
-  return publicTextMatches(value,text=>NONPUBLIC_PATH_COMPONENT.test(text));
+  return publicTextMatches(value,text=>
+    NONPUBLIC_PATH_COMPONENT.test(text)||NONPUBLIC_DIRECTORY_LEAF.test(text));
 }
 function potentiallyNonpublicResumeText(value) {
   return publicTextMatches(value,text=>NONPUBLIC_SCOPE_LABEL.test(text));

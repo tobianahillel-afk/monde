@@ -6655,3 +6655,47 @@ test('L2 Oct-15: benign public technical internal-api paths remain usable',()=>{
       public_repo_safe:true,finding_details_approved:true}});
   assert.equal(out.ready_for_manual_relay,true);
 });
+
+test('sensitive directory leaves are not public work-resume scope',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:[],
+    action_kind:'CONTINUE_IMPLEMENTATION',
+    next_action:'Continue the authorized source change',evidence_refs:[]};
+  for(const path of ['docs/patient/','docs/patient','src/private','src/private/',
+    'src/internal/','docs/customer/','private/','docs%2Fpatient%2F']){
+    assert.throws(()=>d.createResumePacket({
+      ...base,expected_files:[path]
+    }),e=>e.code==='INVALID_RESUME_PACKET',path);
+  }
+  for(const path of ['src/internal-api.js','docs/private-notes.md',
+    'docs/diagnostic/','docs/public/index.md']){
+    assert.deepEqual(d.createResumePacket({
+      ...base,expected_files:[path]}).expected_files,[path]);
+  }
+});
+test('reviewer L2 cannot relay an explicitly sensitive directory scope',()=>{
+  for(const path of ['docs/patient/','src/private/','src/internal/']){
+    const expected={...H,paths:[path]};
+    const report=data({reviewed_paths:[path]});
+    const result=d.prepareInteractiveHandoff({expected,
+      response:message(report),current_head:SHA,source,
+      publication_clearance:{secrets_checked:true,
+        personal_data_checked:true,public_repo_safe:true}});
+    assert.equal(result.status,'NONPUBLIC_SCOPE_IN_RELAY',path);
+    assert.equal(result.ready_for_manual_relay,false);
+    assert.equal(result.text,null);
+  }
+});
+test('benign technical siblings remain copy-ready L2 evidence',()=>{
+  const path='src/internal-api.js';
+  const expected={...H,paths:[path]};
+  const report=data({reviewed_paths:[path],findings:[
+    {...data().findings[0],path}
+  ]});
+  const result=d.prepareInteractiveHandoff({expected,
+    response:message(report),current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,
+      personal_data_checked:true,public_repo_safe:true}});
+  assert.equal(result.ready_for_manual_relay,true);
+  assert.equal(result.status,'NEEDS_CORRECTION');
+});
