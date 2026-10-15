@@ -6538,3 +6538,49 @@ test('public bookmark rejects declared confidential, client and personal scope',
     repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40)
   }).status,'SAME_REVISION');
 });
+
+
+test('2026-10-15 L2: a public handoff cannot disclose labeled confidential project paths',()=>{
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true,full_report_approved:true};
+  const names=[
+    'clients/projet-confidentiel-zebra/documents.md',
+    'src/internal/customer-records.json',
+    'docs/patient/record.md',
+    'private/project-omega/spec.md'
+  ];
+  for(const name of names){
+    const meta=data({findings:[{...data().findings[0],path:name}],
+      reviewed_paths:H.paths});
+    const out=d.prepareInteractiveHandoff({expected:H,response:message(meta),
+      current_head:SHA,source,publication_clearance:clear});
+    assert.equal(out.status,'NONPUBLIC_SCOPE_IN_RELAY',name);
+    assert.equal(out.ready_for_manual_relay,false,name);
+    assert.equal(out.text,null,name);
+  }
+  // A confidential path is also forbidden if it is an assigned review scope,
+  // even when a reviewer claims the file was examined and clearance is ticked.
+  const confidential={...H,paths:[names[0]]};
+  const meta=data({findings:[{...data().findings[0],path:names[0]}],
+    reviewed_paths:[names[0]]});
+  const blocked=d.prepareInteractiveHandoff({expected:confidential,
+    response:message(meta),current_head:SHA,source,publication_clearance:clear});
+  assert.equal(blocked.status,'NONPUBLIC_SCOPE_IN_RELAY');
+  assert.equal(blocked.text,null);
+});
+
+test('2026-10-15 L2: malformed R2 relay cannot disclose nonpublic paths',()=>{
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const response='Independent reviewer R2: clients/projet-confidentiel-zebra/documents.md contains a flaw. Do not disclose the confidential file.';
+  const blocked=d.prepareUnqualifiedTriageHandoff({expected:H,response,
+    current_head:SHA,source,publication_clearance:clear});
+  assert.equal(blocked.status,'NONPUBLIC_SCOPE_IN_RELAY');
+  assert.equal(blocked.ready_for_manual_relay,false);
+  assert.equal(blocked.text,null);
+  // A normal review of public source must still produce its usual compact
+  // handoff; the new check is confined to scope disclosures.
+  const allowed=d.prepareInteractiveHandoff({expected:H,
+    response:message(data()),current_head:SHA,source,publication_clearance:clear});
+  assert.equal(allowed.ready_for_manual_relay,true);
+});
