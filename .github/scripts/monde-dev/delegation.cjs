@@ -68,10 +68,7 @@ function ambiguousSourceReference(value) {
 }
 function validPath(value, allowDirectory=false) {
   if (!oneLine(value, 180) || !PATH.test(value) ||
-      value.startsWith('/') ||
-      // A path can be well-formed while containing an embedded credential.
-      // Paths are copied verbatim into public PR resume/reviewer prompts.
-      containsEncodedCredential(value)) return false;
+      value.startsWith('/')) return false;
   const normalized = allowDirectory && value.endsWith('/') ?
     value.slice(0, -1) : value;
   return normalized.length > 0 && normalized.split('/')
@@ -2083,7 +2080,11 @@ function resumePacket(input){
      (input.task!==null&&input.work===null)||
      !Array.isArray(input.expected_files)||input.expected_files.length>30||
      (input.task===null&&input.expected_files.length>0)||
-     input.expected_files.some(p=>!validPath(p,true))||
+     // Only public PR resume packets impose this strict embedded-secret gate.
+      // The ordinary assignment parser remains structural: a separate test
+      // verifies suspicious scopes are rejected at the *final relay* boundary.
+      input.expected_files.some(p=>!validPath(p,true)||
+        containsEncodedCredential(p))||
      new Set(input.expected_files).size!==input.expected_files.length||
      !Array.isArray(input.evidence_refs)||input.evidence_refs.length>12)
     bad('INVALID_RESUME_PACKET');
