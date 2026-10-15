@@ -1266,7 +1266,7 @@ function prepareUnqualifiedTriageHandoff(args) {
   // Only file-path-like segments in unqualified free text trigger this
   // additional nonpublic-scope restriction, not words such as "internal"
   // used in harmless technical discussion.
-  const disclosedScope=/(?:^|[\\s"'(:])(?:clients?|customers?|patients?)\\/[A-Za-z0-9_.\\/-]+|(?:^|[\\s"'(:])(?:src|assets|docs)\\/(?:internal|private|confidential)\\/[A-Za-z0-9_.\\/-]+/i;
+  const disclosedScope=/(?:^|[\s"'(:])(?:clients?|customers?|patients?)\/[A-Za-z0-9_.\/-]+|(?:^|[\s"'(:])(?:src|assets|docs)\/(?:internal|private|confidential)\/[A-Za-z0-9_.\/-]+/i;
   if(snippets.some(v=>disclosedScope.test(v)))
     return refused('NONPUBLIC_SCOPE_IN_RELAY');
   if(Buffer.byteLength(note,'utf8')>PUBLIC_RELAY_MAX_BYTES)
