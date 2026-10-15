@@ -2089,10 +2089,12 @@ const NONPUBLIC_PATH_COMPONENT=/(?:^|[^A-Za-z0-9_./-])(?:(?:[A-Za-z0-9_.-]+\/)*(
 // Scope can name a sensitive directory without any child filename. Check the
 // complete directory segment without matching benign siblings or prose.
 const NONPUBLIC_DIRECTORY_LEAF=/(?:^|[^A-Za-z0-9_./-])(?:(?:[A-Za-z0-9_.-]+\/)+(?:clients?|customers?|patients?|private|confidenti(?:al|el|elle|els|elles)|secrets?|classified|proprietary|personal|non[-_]?public|internal|confidential|sensitive)|(?:clients?|customers?|patients?|private|confidenti(?:al|el|elle|els|elles)|secrets?|classified|proprietary|personal|non[-_]?public|internal|confidential|sensitive)\/)\/?(?=$|[^A-Za-z0-9_./-])/iu;
+// Recognize high-signal OS roots (including /usr/bin, /proc, /dev and
+// macOS /System) without rejecting arbitrary public application routes.
 // Absolute local filesystem paths may disclose profile and customer names.
 // Require a filesystem-root signature rather than blocking public /api routes.
 const NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH =
-  /(?:^|[^A-Za-z0-9_./-])(?:file:\/+[^\s"'\x60<>]+|\/(?:home|Users|root|private|mnt|tmp|var|etc|workspace|opt|srv|data|builds?|run|usr\/local|usr\/share|app|project|deploy)\/[^\s"'\x60<>]*|[A-Za-z]:[\\/][^\s"'\x60<>]*|\\\\[^\\\s]+\\[^\\\s]+[^\s"'\x60<>]*)/iu;
+  /(?:^|[^A-Za-z0-9_./-])(?:file:\/+[^\s"'\x60<>]+|\/(?:home|Users|root|private|mnt|tmp|var|etc|workspace|opt|srv|data|builds?|run|usr\/(?:local|share|bin|sbin|lib|lib64)|bin|sbin|lib|lib64|dev|proc|sys|System|Applications|Volumes|app|project|deploy)\/[^\s"'\x60<>]*|[A-Za-z]:[\\/][^\s"'\x60<>]*|\\\\[^\\\s]+\\[^\\\s]+[^\s"'\x60<>]*)/iu;
 const NONPUBLIC_WINDOWS_COMPONENT =
   /(?:^|[^A-Za-z0-9_.\\/-])(?:[A-Za-z0-9_.-]+\\)*(?:clients?|customers?|patients?|private|confidential|secrets?|personal|internal)\\[A-Za-z0-9_.-]+/iu;
 // A path under an otherwise unknown root is private when the report itself
@@ -2103,7 +2105,7 @@ const NONPUBLIC_EXPLICIT_LOCAL_PATH =
 // HTTP verb followed by a public endpoint under /data or /users is not a
 // machine-local directory. This narrow masking does not clear file: or path=.
 const PUBLIC_HTTP_ROUTE =
-  /\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/(?:data|users|run|app|builds?|project|deploy)\/[A-Za-z0-9_./?=&%-]*/giu;
+  /\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/(?:data|users|run|app|builds?|project|deploy|usr\/(?:bin|sbin|lib|lib64)|bin|sbin|lib|lib64|dev|proc|sys|System|Applications|Volumes)\/[A-Za-z0-9_./?=&%-]*/giu;
 function containsNonpublicScopeDisclosure(value) {
   return publicTextMatches(value,text=>{
     // Quoted evidence (JSON/Markdown) doubles Windows backslashes. Check both

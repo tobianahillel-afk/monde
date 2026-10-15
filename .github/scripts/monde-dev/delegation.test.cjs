@@ -6963,3 +6963,47 @@ test('Oct-16 L2 delta: ordinary public HTTP routes under runtime-like names rema
     assert.equal(handoff.ready_for_manual_relay,true,route);
   }
 });
+
+
+test('Oct-16 OS-root privacy: common Linux/macOS absolute paths are private, public routes remain usable',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const bookmark={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  const locations=[
+    '/usr/bin/secret-helper','/usr/sbin/backup-agent','/usr/lib/project.env',
+    '/usr/lib64/runtime.log','/bin/credential-helper','/sbin/agent',
+    '/lib/config-private','/lib64/token.env','/dev/shm/worker.log',
+    '/proc/self/environ','/sys/kernel/debug/trace','/System/Volumes/Data/team.env',
+    '/Applications/PrivateApp.app/Contents/debug.txt',
+    '/Volumes/BackupDrive/team/report.txt',
+    '/usr%2Fbin%2Fsecret-helper'
+  ];
+  for(const location of locations){
+    const response=message(data({findings:[{...data().findings[0],
+      evidence:'Reviewer inspected local evidence '+location}]}));
+    const qualified=d.prepareInteractiveHandoff({expected:H,response,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(qualified.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+    assert.equal(qualified.ready_for_manual_relay,false,location);
+    const unqualified=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'R2 observed local file '+location+' while testing.',
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(unqualified.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+    assert.throws(()=>d.createResumePacket({...bookmark,
+      next_action:'Inspect '+location+' before proceeding'}),
+      e=>e.code==='INVALID_RESUME_PACKET',location);
+  }
+  for(const route of ['GET /proc/status','GET /sys/status',
+    'GET /usr/bin/status','GET /System/status','POST /dev/status']){
+    const p=d.createResumePacket({...bookmark,
+      next_action:'Review '+route+' in src/public.js'});
+    assert.match(p.next_action,/src\/public\.js/);
+    const report=message(data({findings:[{...data().findings[0],
+      evidence:'The public route '+route+' is documented in src/public.js'}]}));
+    const handoff=d.prepareInteractiveHandoff({expected:H,response:report,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(handoff.ready_for_manual_relay,true,route);
+  }
+});
