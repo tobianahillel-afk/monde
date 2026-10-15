@@ -870,6 +870,22 @@ function prepareInteractiveHandoff(args) {
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
   const a = assignment(args.expected);
+  // A reviewer can accurately flag a file and still accidentally reveal the
+  // name of a confidential project in the proposed PUBLIC PR handoff. Human
+  // clearance must not override an explicitly marked nonpublic path.
+  const disclosedPaths=[
+    ...a.paths,...metadata.reviewed_paths,
+    ...metadata.findings.map(f=>f.path),
+    ...evaluation.out_of_scope_findings,
+    ...evaluation.missing_reviewed_paths,
+    ...evaluation.extraneous_reviewed_paths
+  ];
+  if(disclosedPaths.some(potentiallyNonpublicResumeText)||
+     (clearance.full_report_approved===true&&
+       potentiallyNonpublicResumeText(analysis)))
+    return {status:'NONPUBLIC_SCOPE_IN_RELAY',can_publish:false,
+      ready_for_manual_relay:false,requires_manual_qualification:true,
+      native_github_approved:false,text:null};
   const detailedFindings=clearance.finding_details_approved===true;
   const fullReport=clearance.full_report_approved===true;
   // Prioritize material findings when authorized detail exceeds public limits.
@@ -1117,6 +1133,13 @@ function prepareUnqualifiedTriageHandoff(args) {
   const severityRank={R1:0,R2:1,R3:2};
   const findings=(analysis.reported_findings||[]).slice(0,50)
     .sort((a,b)=>severityRank[a.severity]-severityRank[b.severity]);
+  // Malformed L2 excerpts also travel to a public PR only after manual
+  // clearance. Reject explicitly labeled nonpublic file scopes even when
+  // the writer has checked the confidentiality boxes.
+  if(a.paths.some(potentiallyNonpublicResumeText)||
+     findings.some(f=>potentiallyNonpublicResumeText(f.path))||
+     snippets.some(potentiallyNonpublicResumeText))
+    return refused('NONPUBLIC_SCOPE_IN_RELAY');
   if(!snippets.length&&!findings.length)
     return refused('NO_REVIEWED_ACTIONABLE_EXCERPTS');
   const suspected=analysis.reported_blocking_unknown===true||
