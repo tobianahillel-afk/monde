@@ -6789,3 +6789,44 @@ test('Oct-15 public safety: resume next_action cannot contain local file URIs',(
     next_action:'Review the public route /api/v1/status and fix src/public.js'});
   assert.equal(safe.action_kind,'CONTINUE_IMPLEMENTATION');
 });
+
+test('Oct-15 L2: non-home file URIs and local service paths cannot leak',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const confidential=[
+    'file:///opt/tenant/acme.env',
+    'file:///srv/clients/alpha.yaml',
+    'file:///data/patient/archive.txt',
+    'file://fileserver/share/client-db.csv',
+    'file:///C:/Users/operator/work/report.txt',
+    'file%3A%2F%2F%2Fopt%2Ftenant%2Fhidden.txt',
+    '/opt/tenant/private.env',
+    '/srv/customers/client-a.json',
+    '/data/patients/records.csv',
+    'path=/srv/tenant/secret.env'
+  ];
+  for(const location of confidential){
+    const response=message(data({findings:[{...data().findings[0],
+      evidence:'Inspect the local artifact '+location}]}));
+    const qualified=d.prepareInteractiveHandoff({
+      expected:H,response,current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(qualified.ready_for_manual_relay,false,location);
+    assert.equal(qualified.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+    const malformed=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:'Separate L2 R2: '+location+' was observed locally.',
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(malformed.ready_for_manual_relay,false,location);
+    assert.equal(malformed.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+    assert.throws(()=>d.createResumePacket({
+      repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+      work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+      action_kind:'CONTINUE_IMPLEMENTATION',
+      next_action:'Inspect '+location+' before implementing',evidence_refs:[]
+    }),e=>e.code==='INVALID_RESUME_PACKET',location);
+  }
+  const publicRoute=d.prepareInteractiveHandoff({
+    expected:H,response:message(data({findings:[{...data().findings[0],
+      evidence:'GET /api/v1/status uses src/internal-api.js and https://example.com/data/stats'}]})),
+    current_head:SHA,source,publication_clearance:clearance});
+  assert.equal(publicRoute.ready_for_manual_relay,true);
+});
