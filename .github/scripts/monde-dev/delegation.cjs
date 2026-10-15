@@ -646,7 +646,7 @@ function containsStructuredJWT(text) {
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
 // Public resumptions contain work metadata, never personal contact information.
 const PUBLIC_CONTACT_PATTERNS=[
-  /(?:^|[^\w.+-])[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}@[A-Za-z0-9][A-Za-z0-9.-]{0,100}(?![A-Za-z0-9.-])/,
+  /(?:^|[^\w.+-])[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}@(?:[A-Za-z0-9.-]+\.[A-Za-z]{2,}|localhost)(?![A-Za-z0-9.-])/i,
   /(?:^|[^\w])(?:\+|00)[1-9]\d{0,2}(?:[\s().+-]*\d){8,12}(?!\d)/,
   /(?:^|[^\w])0[1-9](?:[\s().+-]*\d){8,11}(?!\d)/,
   /(?:^|[^\w])(?:\([2-9]\d{2}\)\s*|[2-9]\d{2}[-. ])[2-9]\d{2}[-. ]\d{4}(?!\d)/
