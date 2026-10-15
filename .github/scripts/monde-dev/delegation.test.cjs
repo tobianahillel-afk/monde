@@ -6077,3 +6077,78 @@ test('L2 Oct-15 exact-HEAD: OAuth code, whitespace JWT payload and contacts stay
     base_sha:SHA,action_kind:'AWAIT_L2',next_action:'Inspect public PR #19'});
   assert.equal(safe.pr,19);
 });
+
+test('2026-10-15 L2 R2: short URL, bare and structured OAuth codes never reach public handoffs',()=>{
+  const values=['?code=abc','https://example.org/callback?code=abc',
+    'code=FAKE-OAUTH-CODE-001','{"code":"FAKE-OAUTH-CODE-001"}'];
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const value of values){
+    assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,head_sha:SHA,
+      base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+      next_action:'Audit '+value}),e=>e.code==='INVALID_RESUME_PACKET');
+    const report=message(data({findings:[{...data().findings[0],
+      evidence:'OAuth trace '+value}]}));
+    assert.equal(d.prepareInteractiveHandoff({expected:H,response:report,
+      current_head:SHA,source,publication_clearance:clear}).ready_for_manual_relay,false,value);
+    const prose='Independent security assessment. R2 leak of '+value+
+      ' should not be copied into a public pull request.';
+    assert.equal(d.prepareUnqualifiedTriageHandoff({expected:H,response:prose,
+      current_head:SHA,source,publication_clearance:clear}).ready_for_manual_relay,false,value);
+  }
+  assert.doesNotThrow(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+    head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+    next_action:'Audit callback code safely'}));
+});
+test('2026-10-15 L2 R2: empty JWS signature and direct-encryption JWE are confidential',()=>{
+  const b64=x=>Buffer.from(JSON.stringify(x)).toString('base64url');
+  const tokens=[
+    b64({alg:'none',typ:'JWT'})+'.'+b64({sub:'test-subject'})+'.',
+    b64({alg:'dir',enc:'A256GCM'})+'..'+'abcdefghi123456.'+
+      'abcdefghi123456.'+'abcdefghi123456'
+  ];
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const value of tokens){
+    assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+      head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+      next_action:'Audit '+value}),e=>e.code==='INVALID_RESUME_PACKET');
+    const report=message(data({findings:[{...data().findings[0],
+      evidence:'JOSE trace '+value}]}));
+    assert.equal(d.prepareInteractiveHandoff({expected:H,response:report,
+      current_head:SHA,source,publication_clearance:clear}).ready_for_manual_relay,false,value);
+    const prose='Independent security analysis. R2 token '+value+
+      ' leaked into the reviewer report.';
+    assert.equal(d.prepareUnqualifiedTriageHandoff({expected:H,response:prose,
+      current_head:SHA,source,publication_clearance:clear}).ready_for_manual_relay,false,value);
+  }
+  assert.doesNotThrow(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+    head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+    next_action:'Audit version abcdefghi.12345678.87654321'}));
+});
+test('2026-10-15 L2 R2 and R3: encoded phone groups fail without blocking build numbers',()=>{
+  const phones=['&plus;33 6 12 34 56 78','07700&nbsp;900123','07–70–09–00–12'];
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const value of phones){
+    assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+      head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+      next_action:'Check contact '+value}),e=>e.code==='INVALID_RESUME_PACKET');
+    const report=message(data({findings:[{...data().findings[0],
+      evidence:'Sensitive contact '+value}]}));
+    assert.equal(d.prepareInteractiveHandoff({expected:H,response:report,
+      current_head:SHA,source,publication_clearance:clear}).ready_for_manual_relay,false,value);
+    const prose='Independent privacy review. R2 leaked contact '+value;
+    assert.equal(d.prepareUnqualifiedTriageHandoff({expected:H,response:prose,
+      current_head:SHA,source,publication_clearance:clear}).ready_for_manual_relay,false,value);
+  }
+  for(const serial of ['01234567890','012345678901','0123456789012']){
+    const note='Build identifier '+serial+' from the public CI report';
+    assert.doesNotThrow(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+      head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+      next_action:note}),serial);
+    const report=message(data({findings:[{...data().findings[0],evidence:note}]}));
+    assert.equal(d.prepareInteractiveHandoff({expected:H,response:report,
+      current_head:SHA,source,publication_clearance:clear}).ready_for_manual_relay,true,serial);
+  }
+});
