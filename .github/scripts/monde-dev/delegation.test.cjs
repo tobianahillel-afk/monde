@@ -6416,3 +6416,22 @@ test('2026-10-15 L2 F02: padded base64url JOSE is rejected by all public channel
     next_action:'Inspect ordinary release 1.2.3',evidence_refs:[]
   }).next_action,'Inspect ordinary release 1.2.3');
 });
+
+test('public resume refuses private or personal-data file paths',()=>{
+  const safe={
+    repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',action_kind:'CONTINUE_IMPLEMENTATION',
+    next_action:'Continue eligible task after checking current scope',
+    expected_files:['docs/README.md'],evidence_refs:[]
+  };
+  for(const path of [
+    'assets/customer/0612345678/schema.json',
+    'docs/chat-context-reviewer-opaque-note.txt',
+    'docs/chatgpt.com/private/review.txt'
+  ]){
+    assert.throws(()=>d.createResumePacket({...safe,expected_files:[path]}),
+      e=>e.code==='INVALID_RESUME_PACKET',
+      'unsafe resume path: '+path);
+  }
+  assert.deepEqual(d.createResumePacket(safe).expected_files,['docs/README.md']);
+});

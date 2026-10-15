@@ -2084,7 +2084,8 @@ function resumePacket(input){
       // The ordinary assignment parser remains structural: a separate test
       // verifies suspicious scopes are rejected at the *final relay* boundary.
       input.expected_files.some(p=>!validPath(p,true)||
-        containsEncodedCredential(p))||
+        containsEncodedCredential(p)||containsEncodedContact(p)||
+        containsPrivateChatHost(p)||privateResumeId(p))||
      new Set(input.expected_files).size!==input.expected_files.length||
      !Array.isArray(input.evidence_refs)||input.evidence_refs.length>12)
     bad('INVALID_RESUME_PACKET');
