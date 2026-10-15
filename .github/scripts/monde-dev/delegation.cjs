@@ -597,7 +597,7 @@ const CREDENTIAL_PATTERNS=[
   // Query-string bearer-like credentials are not limited to api_key/access_token.
   // A URL containing ?token= or &key= with a plausible value is not safe
   // to copy to public review evidence, even on an otherwise public domain.
-  /(?:\?|#|&(?:amp;)?)\s*(?:token|key|auth|authorization|session|signature|sig|secret|jwt|(?:x[_-]?)?api[_-]?key|(?:x[_-]?)?auth[_-]?token)=[A-Za-z0-9._~+/%-]{4,}/i,
+  /(?:\?|#|&(?:amp;)?)\s*(?:token|key|auth|authorization|session|signature|sig|secret|jwt|code|(?:x[_-]?)?api[_-]?key|(?:x[_-]?)?auth[_-]?token)=[A-Za-z0-9._~+/%-]{4,}/i,
   // OAuth refresh/ID tokens and session IDs often occur under compound keys.
   // Reject them from public resumes and reviewed-report excerpts.
   /(?:^|[^A-Za-z0-9])(?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token))\s*[:=]\s*(?:\\*["'\x60])?\s*[A-Za-z0-9_%+./=-]{4,}/i,
@@ -629,12 +629,26 @@ const CREDENTIAL_PATTERNS=[
   // and value: {"Set-Cookie":"sid=..."} must be rejected as well.
   /(?:\\*)["'](?:Set-Cookie|Cookie)(?:\\*)["']\s*:\s*(?:\\*)["'][A-Za-z0-9_.!#$%&*+\-^|~]{1,128}=[^"'\\;\s]{1,512}/i
 ];
+// JWT payloads need not start with eyJ: leading JSON whitespace changes
+// the base64url prefix. Inspect the decoded header, not the payload prefix.
+const JWT_CANDIDATE=/(?:^|[^A-Za-z0-9_-])([A-Za-z0-9_-]{8,})[ \t]*\.[ \t]*([A-Za-z0-9_-]{2,})[ \t]*\.[ \t]*([A-Za-z0-9_-]{8,})(?![A-Za-z0-9_-])/g;
+function containsStructuredJWT(text) {
+  for(const match of text.matchAll(JWT_CANDIDATE)){
+    try{
+      const header=JSON.parse(Buffer.from(match[1],'base64url').toString('utf8'));
+      if(plain(header)&&
+         (typeof header.alg==='string'||header.typ==='JWT'||header.typ==='JOSE'))
+        return true;
+    }catch{ /* Ordinary dotted text is not a JWT header. */ }
+  }
+  return false;
+}
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
 // Public resumptions contain work metadata, never personal contact information.
 const PUBLIC_CONTACT_PATTERNS=[
-  /(?:^|[^\w.+-])[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?![A-Za-z])/,
-  /(?:^|[^\w])(?:\+|00)[1-9]\d{0,2}(?:[\s().-]*\d){9,12}(?!\d)/,
-  /(?:^|[^\w])0[1-9](?:[\s.-]*\d{2}){4}(?!\d)/,
+  /(?:^|[^\w.+-])[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}@[A-Za-z0-9][A-Za-z0-9.-]{0,100}(?![A-Za-z0-9.-])/,
+  /(?:^|[^\w])(?:\+|00)[1-9]\d{0,2}(?:[\s().+-]*\d){8,12}(?!\d)/,
+  /(?:^|[^\w])0[1-9](?:[\s().+-]*\d){8,11}(?!\d)/,
   /(?:^|[^\w])(?:\([2-9]\d{2}\)\s*|[2-9]\d{2}[-. ])[2-9]\d{2}[-. ]\d{4}(?!\d)/
 ];
 // Raw conversation URLs are private provenance, not necessary public evidence.
@@ -708,7 +722,8 @@ function containsPrivateChatHost(value) {
 // Use one bounded decoder for hostnames AND credential parameters.
 function containsEncodedCredential(value) {
   return publicTextMatches(value,text=>
-    CREDENTIAL_PATTERNS.some(pattern=>pattern.test(text)));
+    CREDENTIAL_PATTERNS.some(pattern=>pattern.test(text))||
+    containsStructuredJWT(text));
 }
 function containsEncodedContact(value) {
   return publicTextMatches(value,text=>
@@ -908,6 +923,10 @@ function prepareInteractiveHandoff(args) {
   // Scan exactly what could reach the public PR, not only the source text.
   if(containsEncodedCredential(note))
     return {status:'POTENTIAL_SECRET_IN_RELAY',can_publish:false,
+      ready_for_manual_relay:false,requires_manual_qualification:true,
+      native_github_approved:false,text:null};
+  if(containsEncodedContact(note))
+    return {status:'PERSONAL_DATA_IN_RELAY',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
   if(Buffer.byteLength(note,'utf8')>PUBLIC_RELAY_MAX_BYTES)
@@ -1150,6 +1169,8 @@ function prepareUnqualifiedTriageHandoff(args) {
       CREDENTIAL_PATTERNS.some(re=>[args.response,source.message_ref]
         .some(s=>typeof s==='string'&&re.test(s))))
     return refused('POTENTIAL_SECRET_IN_REPORT');
+  if(containsEncodedContact(note))
+    return refused('PERSONAL_DATA_IN_RELAY');
   if(Buffer.byteLength(note,'utf8')>PUBLIC_RELAY_MAX_BYTES)
     return refused('PUBLIC_RELAY_TOO_LARGE');
   return {status:'UNQUALIFIED_TRIAGE_READY',ready_for_manual_relay:true,

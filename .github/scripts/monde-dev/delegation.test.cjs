@@ -6044,3 +6044,36 @@ test('L2 Oct-14: personal contact text cannot enter public PR checkpoints',()=>{
     'Verify release candidate on 2026-10-14'
   ]) assert.equal(d.createResumePacket({...base,next_action:safe}).next_action,safe);
 });
+
+test('L2 Oct-15 exact-HEAD: OAuth code, whitespace JWT payload and contacts stay private',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const header=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url');
+  const payload=Buffer.from(' \n{"sub":"example"}').toString('base64url');
+  const jwt=header+'.'+payload+'.FAKEsignature0123456789ABCDE';
+  const examples=[
+    'https://public.example/callback?code=FAKE-OAUTH-CODE-001',
+    'https://public.example/callback?%63ode=FAKE-OAUTH-CODE-002',
+    jwt, 'alice@localhost', '07700 900123', '%2B33+6+12+34+56+78'
+  ];
+  for(const value of examples){
+    assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+      head_sha:SHA,base_sha:SHA,action_kind:'AWAIT_L2',
+      next_action:'Inspect '+value}),e=>e.code==='INVALID_RESUME_PACKET',value);
+    const finding={...data().findings[0],evidence:'Synthetic log '+value};
+    const qualified=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[finding]})),
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(qualified.ready_for_manual_relay,false,value);
+    assert.equal(qualified.text,null,value);
+    const malformed=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent R1: synthetic log '+value+
+        '\nThis requires remediation.\n'+d.MARKER+'\n{broken',
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(malformed.ready_for_manual_relay,false,value);
+    assert.equal(malformed.text,null,value);
+  }
+  const safe=d.createResumePacket({repo:H.repo,pr:H.pr,head_sha:SHA,
+    base_sha:SHA,action_kind:'AWAIT_L2',next_action:'Inspect public PR #19'});
+  assert.equal(safe.pr,19);
+});
