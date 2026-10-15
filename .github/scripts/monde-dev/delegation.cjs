@@ -597,7 +597,12 @@ const CREDENTIAL_PATTERNS=[
   // Query-string bearer-like credentials are not limited to api_key/access_token.
   // A URL containing ?token= or &key= with a plausible value is not safe
   // to copy to public review evidence, even on an otherwise public domain.
-  /(?:\?|#|&(?:amp;)?)\s*(?:token|key|auth|authorization|session|signature|sig|secret|jwt|code|(?:x[_-]?)?api[_-]?key|(?:x[_-]?)?auth[_-]?token)=[A-Za-z0-9._~+/%-]{4,}/i,
+  /(?:\?|#|&(?:amp;)?)\s*(?:token|key|auth|authorization|session|signature|sig|secret|jwt|(?:x[_-]?)?api[_-]?key|(?:x[_-]?)?auth[_-]?token)=[A-Za-z0-9._~+/%-]{4,}/i,
+  // Even a three-character OAuth query code must never reach public relay.
+  /(?:\?|#|&(?:amp;)?)\s*code=[A-Za-z0-9._~+/%-]{1,}/i,
+  // OAuth callbacks are also copied as bare assignments and JSON fields.
+  /(?:^|[^A-Za-z0-9])code\s*=\s*["']?[A-Za-z0-9._~+/%-]{6,}/i,
+  /(?:\\*)["']code(?:\\*)["']\s*:\s*(?:\\*)["'][^"'\\\s]{4,}/i,
   // OAuth refresh/ID tokens and session IDs often occur under compound keys.
   // Reject them from public resumes and reviewed-report excerpts.
   /(?:^|[^A-Za-z0-9])(?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token))\s*[:=]\s*(?:\\*["'\x60])?\s*[A-Za-z0-9_%+./=-]{4,}/i,
@@ -631,8 +636,18 @@ const CREDENTIAL_PATTERNS=[
 ];
 // JWT payloads need not start with eyJ: leading JSON whitespace changes
 // the base64url prefix. Inspect the decoded header, not the payload prefix.
-const JWT_CANDIDATE=/(?:^|[^A-Za-z0-9_-])([A-Za-z0-9_-]{8,})[ \t]*\.[ \t]*([A-Za-z0-9_-]{2,})[ \t]*\.[ \t]*([A-Za-z0-9_-]{8,})(?![A-Za-z0-9_-])/g;
+// JWS may have an empty signature (alg:none); JWE has five segments
+// and may have an empty encrypted key (alg:dir). Decode the header.
+const JWT_CANDIDATE=/(?:^|[^A-Za-z0-9_-])([A-Za-z0-9_-]{8,})[ \t]*\.[ \t]*([A-Za-z0-9_-]{2,})[ \t]*\.[ \t]*([A-Za-z0-9_-]*)(?![A-Za-z0-9_-])/g;
+const JWE_CANDIDATE=/(?:^|[^A-Za-z0-9_-])([A-Za-z0-9_-]{8,})\.([A-Za-z0-9_-]*)\.([A-Za-z0-9_-]{8,})\.([A-Za-z0-9_-]{8,})\.([A-Za-z0-9_-]{8,})(?![A-Za-z0-9_-])/g;
 function containsStructuredJWT(text) {
+  for(const match of text.matchAll(JWE_CANDIDATE)){
+    try{
+      const header=JSON.parse(Buffer.from(match[1],'base64url').toString('utf8'));
+      if(plain(header)&&typeof header.alg==='string'&&
+         typeof header.enc==='string')return true;
+    }catch{ /* Not a JOSE protected header. */ }
+  }
   for(const match of text.matchAll(JWT_CANDIDATE)){
     try{
       const header=JSON.parse(Buffer.from(match[1],'base64url').toString('utf8'));
@@ -648,9 +663,17 @@ const PUBLIC_RELAY_MAX_BYTES=12*1024;
 const PUBLIC_CONTACT_PATTERNS=[
   /(?:^|[^\w.+-])[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}@(?:[A-Za-z0-9.-]+\.[A-Za-z]{2,}|localhost)(?![A-Za-z0-9.-])/i,
   /(?:^|[^\w])(?:\+|00)[1-9]\d{0,2}(?:[\s().+-]*\d){8,12}(?!\d)/,
-  /(?:^|[^\w])0[1-9](?:[\s().+-]*\d){8,11}(?!\d)/,
+  /(?:^|[^\w])0[1-9](?:[\s().+-]*\d){8}(?!\d)/,
+  // Bare 11–13-digit build IDs must not be mistaken for local phones.
   /(?:^|[^\w])(?:\([2-9]\d{2}\)\s*|[2-9]\d{2}[-. ])[2-9]\d{2}[-. ]\d{4}(?!\d)/
 ];
+// Longer local phones must contain separators between digits.
+const SEPARATED_LONG_PHONE=/(?:^|[^\w])(0[1-9](?:[\s().+-]*\d){9,11})(?!\d)/g;
+function containsSeparatedLongPhone(text) {
+  for(const match of text.matchAll(SEPARATED_LONG_PHONE))
+    if(/[\s().+-]/.test(match[1]))return true;
+  return false;
+}
 // Raw conversation URLs are private provenance, not necessary public evidence.
 // The continuation bookmark is itself published in a GitHub PR description.
 // Match raw, percent-encoded, JSON-escaped and multiply backslash-escaped
@@ -677,13 +700,14 @@ function publicTextMatches(value, predicate) {
   for(let pass=0;pass<16;pass++){
     if(predicate(text))return true;
     const decoded=text
-      .replace(/&(?:amp|period|sol|colon|bsol|lowbar|underbar|hyphen|dash|equals|quest|commat|num|quot|apos);/gi,entity=>({
+      .replace(/&(?:amp|period|sol|colon|bsol|lowbar|underbar|hyphen|dash|equals|quest|commat|num|quot|apos|plus|nbsp|thinsp|ensp|emsp);/gi,entity=>({
         '&amp;':'&','&period;':'.','&sol;':'/',
         '&colon;':':','&bsol;':'\\',
         '&lowbar;':'_','&underbar;':'_',
         '&hyphen;':'-','&dash;':'-',
         '&equals;':'=','&quest;':'?','&commat;':'@','&num;':'#',
-         '&quot;':'"','&apos;':"'"
+         '&quot;':'"','&apos;':"'",'&plus;':'+','&nbsp;':' ',
+         '&thinsp;':' ','&ensp;':' ','&emsp;':' '
       })[entity.toLowerCase()])
       .replace(/&#(?:x([0-9a-f]{1,6})|([0-9]{1,7}));?/gi,(whole,hex,dec)=>{
         const point=parseInt(hex||dec,hex?16:10);
@@ -692,6 +716,8 @@ function publicTextMatches(value, predicate) {
         return String.fromCodePoint(point);
       })
       .replace(/[\u3002\uff0e\uff61]/g,'.')
+       .replace(/[\u2010-\u2015\u2212\u2043\ufe58\ufe63\uff0d]/g,'-')
+       .replace(/[\u00a0\u2007\u202f]/g,' ')
       // Decode contiguous percent-encoded octets as UTF-8, not Latin-1:
       // %EF%BC%8E (fullwidth dot) and %E3%80%82 (ideographic dot) must
       // canonicalize before the private-host check. Malformed sequences
@@ -727,7 +753,8 @@ function containsEncodedCredential(value) {
 }
 function containsEncodedContact(value) {
   return publicTextMatches(value,text=>
-    PUBLIC_CONTACT_PATTERNS.some(pattern=>pattern.test(text)));
+    PUBLIC_CONTACT_PATTERNS.some(pattern=>pattern.test(text))||
+     containsSeparatedLongPhone(text));
 }
 // A known private context/message ID might be HTML-entity or percent encoded
 // without containing a chatgpt.com hostname. Compare the canonicalized final
