@@ -6151,3 +6151,44 @@ test('2026-10-15 L2 R2 and R3: encoded phone groups fail without blocking build 
       current_head:SHA,source,publication_clearance:clear}).ready_for_manual_relay,true,serial);
   }
 });
+
+
+test('privacy: encoded source provenance cannot leak when report quotes its decoded form',()=>{
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const identifiers=[
+    ['msg%2Dprivate%2Didentifier123456','msg-private-identifier123456'],
+    ['msg%252Dprivate%252Didentifier123456','msg-private-identifier123456'],
+    ['msg&#45;private&#45;identifier123456','msg-private-identifier123456'],
+    ['msg%2dprivate%2didentifier123456','msg-private-identifier123456']
+  ];
+  for(const [encoded,decoded] of identifiers){
+    const s={...source,message_ref:encoded};
+    const finding={...data().findings[0],
+      evidence:'R2 incident reference '+decoded+' must remain confidential'};
+    const valid=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[finding]})),current_head:SHA,
+      source:s,publication_clearance:clear});
+    assert.equal(valid.ready_for_manual_relay,false,encoded);
+    assert.equal(valid.status,'UNREDACTED_CONTEXT_REFERENCE',encoded);
+    assert.equal(valid.text,null,encoded);
+    const malformed=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent R2 incident reference '+decoded+
+        ' appears in the report; correction needed.\n'+d.MARKER+'\n{broken',
+      current_head:SHA,source:s,publication_clearance:clear});
+    assert.equal(malformed.ready_for_manual_relay,false,encoded);
+    assert.equal(malformed.status,'UNREDACTED_CONTEXT_REFERENCE',encoded);
+    assert.equal(malformed.text,null,encoded);
+  }
+});
+test('privacy: symmetric provenance normalization keeps ordinary public L2 findings relayable',()=>{
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const finding={...data().findings[0],
+    evidence:'The public parser rejects malformed payload length'};
+  const result=d.prepareInteractiveHandoff({expected:H,
+    response:message(data({findings:[finding]})),current_head:SHA,
+    source,publication_clearance:clear});
+  assert.equal(result.ready_for_manual_relay,true);
+  assert.match(result.text,/public parser rejects malformed payload length/);
+});

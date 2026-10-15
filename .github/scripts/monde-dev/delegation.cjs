@@ -761,10 +761,22 @@ function containsEncodedContact(value) {
 // public text against known opaque IDs AFTER best-effort literal redaction;
 // if any survived, refuse the public handoff rather than corrupt its evidence.
 function containsEncodedPrivateReference(value, references) {
-  const ids=references.filter(id=>typeof id==='string'&&id.length>0)
-    .map(id=>id.normalize('NFKC'));
-  return ids.length>0 && publicTextMatches(value,text=>
-    ids.some(id=>text.includes(id)));
+  // Canonicalize *both* sides. A source may give its private reference as
+  // msg%2Dopaque while a reviewer quotes msg-opaque, or vice versa.
+  // Canonicalizing only the public text misses the first direction.
+  const ids=new Set();
+  for(const id of references) {
+    if(typeof id!=='string'||id.length===0)continue;
+    const ambiguous=publicTextMatches(id,variant=>{
+      ids.add(variant);
+      return false; // collect every supported decoding stage
+    });
+    // If a reference cannot be normalized within the bounded pass budget,
+    // the public relay cannot establish that it was safely redacted.
+    if(ambiguous)return true;
+  }
+  return ids.size>0 && publicTextMatches(value,text=>
+    [...ids].some(id=>text.includes(id)));
 }
 
 // Full-report consent never includes raw ChatGPT provenance, including
