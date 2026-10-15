@@ -2092,7 +2092,7 @@ const NONPUBLIC_DIRECTORY_LEAF=/(?:^|[^A-Za-z0-9_./-])(?:(?:[A-Za-z0-9_.-]+\/)+(
 // Absolute local filesystem paths may disclose profile and customer names.
 // Require a filesystem-root signature rather than blocking public /api routes.
 const NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH =
-  /(?:^|[\s"'\x60(=:])(?:file:\/+[^\s"'\x60<>]+|\/(?:home|Users|root|private|mnt|tmp|var|etc|workspace|opt|srv|data)\/[^\s"'\x60<>]*|[A-Za-z]:[\\/][^\s"'\x60<>]*|\\\\[^\\\s]+\\[^\\\s]+[^\s"'\x60<>]*)/iu;
+  /(?:^|[^A-Za-z0-9_./-])(?:file:\/+[^\s"'\x60<>]+|\/(?:home|Users|root|private|mnt|tmp|var|etc|workspace|opt|srv|data)\/[^\s"'\x60<>]*|[A-Za-z]:[\\/][^\s"'\x60<>]*|\\\\[^\\\s]+\\[^\\\s]+[^\s"'\x60<>]*)/iu;
 const NONPUBLIC_WINDOWS_COMPONENT =
   /(?:^|[^A-Za-z0-9_.\\/-])(?:[A-Za-z0-9_.-]+\\)*(?:clients?|customers?|patients?|private|confidential|secrets?|personal|internal)\\[A-Za-z0-9_.-]+/iu;
 function containsNonpublicScopeDisclosure(value) {

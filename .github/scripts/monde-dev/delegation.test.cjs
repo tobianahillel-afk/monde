@@ -6830,3 +6830,40 @@ test('Oct-15 L2: non-home file URIs and local service paths cannot leak',()=>{
     current_head:SHA,source,publication_clearance:clearance});
   assert.equal(publicRoute.ready_for_manual_relay,true);
 });
+
+test('Oct-15 regression: punctuation cannot camouflage local filesystem references',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  for(const location of [
+    'Check;/home/example/keys.txt',
+    'Inspect;file:///srv/tenant/secret.env',
+    'Read,/data/customers/records.csv',
+    'See [/opt/tenant/config.yml]',
+    'Review;file%3A%2F%2F%2Ftmp%2Fexample%2Fprivate.txt'
+  ]){
+    const response=message(data({findings:[{...data().findings[0],
+      evidence:'The reviewer observed: '+location}]}));
+    const qualified=d.prepareInteractiveHandoff({expected:H,response,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(qualified.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+    assert.equal(qualified.ready_for_manual_relay,false,location);
+    const malformed=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent L2 R1: '+location+' must remain private.',
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(malformed.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+    assert.throws(()=>d.createResumePacket({...base,
+      next_action:'Inspect: '+location+' before implementation'}),
+      e=>e.code==='INVALID_RESUME_PACKET',location);
+  }
+  for(const next_action of [
+    'Review GET /api/v1/status and fix src/public.js',
+    'Check https://example.com/home/public/docs then fix src/public.js',
+    'Inspect src/home/public.js for a public code correction'
+  ]){
+    const packet=d.createResumePacket({...base,next_action});
+    assert.equal(packet.next_action,next_action);
+  }
+});
