@@ -6699,3 +6699,52 @@ test('benign technical siblings remain copy-ready L2 evidence',()=>{
   assert.equal(result.ready_for_manual_relay,true);
   assert.equal(result.status,'NEEDS_CORRECTION');
 });
+
+test('Oct-15 L2 F01: local POSIX and Windows paths never leave public handoffs',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const paths=[
+    '/home/private/client-list.csv',
+    '/Users/alice/private/contacts.csv',
+    'C:\\Users\\alice\\private\\contacts.csv',
+    'C:/Users/alice/private/contacts.csv',
+    '\\\\server\\share\\private\\contacts.csv',
+    'private\\contacts.csv'
+  ];
+  for(const location of paths){
+    const response=message(data({findings:[{...data().findings[0],
+      evidence:'Inspect the local file '+location+' for the observed issue'}]}));
+    const qualified=d.prepareInteractiveHandoff({
+      expected:H,response,current_head:SHA,source,
+      publication_clearance:clearance});
+    assert.equal(qualified.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+    assert.equal(qualified.ready_for_manual_relay,false,location);
+    const malformed=d.prepareUnqualifiedTriageHandoff({
+      expected:H,response:'Separate reviewer R1 evidence: '+location+
+      ' should not be copied to a public repository.',
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(malformed.ready_for_manual_relay,false,location);
+    assert.equal(malformed.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+  }
+});
+test('Oct-15 L2 F01: public API endpoints and benign sibling filenames remain available',()=>{
+  const normal=d.prepareInteractiveHandoff({expected:H,
+    response:message(data({findings:[{...data().findings[0],
+      evidence:'GET /api/v1/status is routed by src/internal-api.js'}]})),
+    current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(normal.ready_for_manual_relay,true);
+});
+test('Oct-15 L2 F02: malformed prose R1 requires triage, not automatic progression',()=>{
+  const result=d.assessDelegationBatch({
+    assignments:[H],
+    reports:{[H.assignment_id]:
+      'Independent reviewer R1: an authorization defect requires triage.'},
+    sources:{[H.assignment_id]:source},
+    current_head:SHA
+  });
+  assert.equal(result.needs_attention,true);
+  assert.equal(result.progression_advice,'TRIAGE_UNQUALIFIED_MATERIAL_FINDINGS');
+  assert.equal(result.ready_for_merge,false);
+});

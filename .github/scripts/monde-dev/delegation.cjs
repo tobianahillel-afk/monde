@@ -1573,7 +1573,11 @@ function assessDelegationBatch({
     actionable_finding_groups:grouped.groups,
     material_triage_candidates:grouped.material_triage_candidates,
     deferred_backlog_candidates:grouped.deferred_backlog_candidates,
-    progression_advice:grouped.progression_advice,
+    // A malformed R1/R2 warning can lack a parseable finding. It still
+    // needs foreground triage before any ordinary advancement advice.
+    // This is advisory, not a lock on unrelated safe tasks.
+    progression_advice:unqualified_blocking_reports>0?
+      'TRIAGE_UNQUALIFIED_MATERIAL_FINDINGS':grouped.progression_advice,
     triage_is_advisory:true,
     repeated_finding_occurrences:grouped.duplicate_occurrences,
     unqualified_blocking_reports,unqualified_r1,unqualified_r2,
@@ -2085,9 +2089,18 @@ const NONPUBLIC_PATH_COMPONENT=/(?:^|[^A-Za-z0-9_./-])(?:(?:[A-Za-z0-9_.-]+\/)*(
 // Scope can name a sensitive directory without any child filename. Check the
 // complete directory segment without matching benign siblings or prose.
 const NONPUBLIC_DIRECTORY_LEAF=/(?:^|[^A-Za-z0-9_./-])(?:(?:[A-Za-z0-9_.-]+\/)+(?:clients?|customers?|patients?|private|confidenti(?:al|el|elle|els|elles)|secrets?|classified|proprietary|personal|non[-_]?public|internal|confidential|sensitive)|(?:clients?|customers?|patients?|private|confidenti(?:al|el|elle|els|elles)|secrets?|classified|proprietary|personal|non[-_]?public|internal|confidential|sensitive)\/)\/?(?=$|[^A-Za-z0-9_./-])/iu;
+// Absolute local filesystem paths may disclose profile and customer names.
+// Require a filesystem-root signature rather than blocking public /api routes.
+const NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH =
+  /(?:^|[\s"'\x60(])(?:\/(?:home|Users|root|private|mnt|tmp)\/[^\s"'\x60<>]*|[A-Za-z]:[\\/](?:Users|Documents and Settings|ProgramData)[\\/][^\s"'\x60<>]*|\\\\[^\\\s]+\\[^\\\s]+[^\s"'\x60<>]*)/iu;
+const NONPUBLIC_WINDOWS_COMPONENT =
+  /(?:^|[^A-Za-z0-9_.\\/-])(?:[A-Za-z0-9_.-]+\\)*(?:clients?|customers?|patients?|private|confidential|secrets?|personal|internal)\\[A-Za-z0-9_.-]+/iu;
 function containsNonpublicScopeDisclosure(value) {
   return publicTextMatches(value,text=>
-    NONPUBLIC_PATH_COMPONENT.test(text)||NONPUBLIC_DIRECTORY_LEAF.test(text));
+    NONPUBLIC_PATH_COMPONENT.test(text)||
+    NONPUBLIC_DIRECTORY_LEAF.test(text)||
+    NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH.test(text)||
+    NONPUBLIC_WINDOWS_COMPONENT.test(text));
 }
 function potentiallyNonpublicResumeText(value) {
   return publicTextMatches(value,text=>NONPUBLIC_SCOPE_LABEL.test(text));
