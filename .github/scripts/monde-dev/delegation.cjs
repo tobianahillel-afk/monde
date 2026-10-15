@@ -2095,6 +2095,10 @@ const NONPUBLIC_DIRECTORY_LEAF=/(?:^|[^A-Za-z0-9_./-])(?:(?:[A-Za-z0-9_.-]+\/)+(
 // Require a filesystem-root signature rather than blocking public /api routes.
 const NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH =
   /(?:^|[^A-Za-z0-9_./-])(?:file:\/+[^\s"'\x60<>]+|\/(?:home|Users|root|private|mnt|tmp|var|etc|workspace|opt|srv|data|builds?|run|usr\/(?:local|share|bin|sbin|lib|lib64)|bin|sbin|lib|lib64|dev|proc|sys|System|Applications|Volumes|app|project|deploy)\/[^\s"'\x60<>]*|[A-Za-z]:[\\/][^\s"'\x60<>]*|\\\\[^\\\s]+\\[^\\\s]+[^\s"'\x60<>]*)/iu;
+// A POSIX pathname may start with multiple slashes. Match such local roots
+// only at a token boundary, not the // following https: or inside a URL.
+const NONPUBLIC_DOUBLE_SLASH_FILESYSTEM_PATH =
+  /(?:^|[\s"'(=])\/{2,}(?:home|Users|root|private|mnt|tmp|var|etc|workspace|opt|srv|data|builds?|run|usr\/(?:local|share|bin|sbin|lib|lib64)|bin|sbin|lib|lib64|dev|proc|sys|System|Applications|Volumes|app|project|deploy)(?:\/|$)/iu;
 const NONPUBLIC_WINDOWS_COMPONENT =
   /(?:^|[^A-Za-z0-9_.\\/-])(?:[A-Za-z0-9_.-]+\\)*(?:clients?|customers?|patients?|private|confidential|secrets?|personal|internal)\\[A-Za-z0-9_.-]+/iu;
 // A path under an otherwise unknown root is private when the report itself
@@ -2115,6 +2119,7 @@ function containsNonpublicScopeDisclosure(value) {
     return [text,flattened].some(candidate=>
       NONPUBLIC_PATH_COMPONENT.test(candidate)||
       NONPUBLIC_DIRECTORY_LEAF.test(candidate)||
+      NONPUBLIC_DOUBLE_SLASH_FILESYSTEM_PATH.test(candidate)||
       NONPUBLIC_EXPLICIT_LOCAL_PATH.test(candidate)||
       NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH.test(
         candidate.replace(PUBLIC_HTTP_ROUTE,'[PUBLIC_HTTP_ROUTE]'))||

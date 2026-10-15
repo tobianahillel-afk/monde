@@ -7007,3 +7007,33 @@ test('Oct-16 OS-root privacy: common Linux/macOS absolute paths are private, pub
     assert.equal(handoff.ready_for_manual_relay,true,route);
   }
 });
+
+test('Oct-16 privacy: POSIX double-slash roots never escape the three public handoffs',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const packet={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  for(const path of ['//home/example/credentials.txt','//etc/shadow',
+    '///Users/example/notes.txt','//usr/bin/helper',
+    '%2F%2Fhome%2Fexample%2Fsecrets','path=//var/log/report.txt']){
+    assert.throws(()=>d.createResumePacket({...packet,
+      next_action:'Inspect '+path+' before continuing'}),
+      e=>e.code==='INVALID_RESUME_PACKET',path);
+    const response=message(data({findings:[{...data().findings[0],
+      evidence:'Reviewer found local path '+path}]}));
+    const out=d.prepareInteractiveHandoff({expected:H,response,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(out.status,'NONPUBLIC_SCOPE_IN_RELAY',path);
+    const raw=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'L2 R2 local path '+path,current_head:SHA,source,
+      publication_clearance:clearance});
+    assert.equal(raw.status,'NONPUBLIC_SCOPE_IN_RELAY',path);
+  }
+  for(const url of ['https://home.example.org/docs',
+    'https://example.org//etc/public','https://usr.example.org/bin/guide']){
+    const bookmark=d.createResumePacket({...packet,
+      next_action:'Inspect '+url+' then update src/public.js'});
+    assert.equal(bookmark.action_kind,'CONTINUE_IMPLEMENTATION',url);
+  }
+});
