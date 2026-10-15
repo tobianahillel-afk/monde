@@ -68,7 +68,10 @@ function ambiguousSourceReference(value) {
 }
 function validPath(value, allowDirectory=false) {
   if (!oneLine(value, 180) || !PATH.test(value) ||
-      value.startsWith('/')) return false;
+      value.startsWith('/') ||
+      // A path can be well-formed while containing an embedded credential.
+      // Paths are copied verbatim into public PR resume/reviewer prompts.
+      containsEncodedCredential(value)) return false;
   const normalized = allowDirectory && value.endsWith('/') ?
     value.slice(0, -1) : value;
   return normalized.length > 0 && normalized.split('/')
@@ -637,8 +640,11 @@ const CREDENTIAL_PATTERNS=[
 // the base64url prefix. Inspect the decoded header, not the payload prefix.
 // JWS may have an empty signature (alg:none); JWE has five segments
 // and may have an empty encrypted key (alg:dir). Decode the header.
-const JWT_CANDIDATE=/(?:^|[^A-Za-z0-9_-])([A-Za-z0-9_-]{8,})[ \t]*\.[ \t]*([A-Za-z0-9_-]{2,})[ \t]*\.[ \t]*([A-Za-z0-9_-]*)(?![A-Za-z0-9_-])/g;
-const JWE_CANDIDATE=/(?:^|[^A-Za-z0-9_-])([A-Za-z0-9_-]{8,})\.([A-Za-z0-9_-]*)\.([A-Za-z0-9_-]{8,})\.([A-Za-z0-9_-]{8,})\.([A-Za-z0-9_-]{8,})(?![A-Za-z0-9_-])/g;
+// JOSE compact serialization permits optional "=" base64url padding
+// on each nonempty segment. Require a decodable JOSE protected header
+// before classifying, to avoid mistaking dotted versions for bearer tokens.
+const JWT_CANDIDATE=/(?:^|[^A-Za-z0-9_=-])([A-Za-z0-9_-]{8,}={0,2})[ \t]*\.[ \t]*([A-Za-z0-9_-]{2,}={0,2})[ \t]*\.[ \t]*([A-Za-z0-9_-]*={0,2})(?![A-Za-z0-9_=-])/g;
+const JWE_CANDIDATE=/(?:^|[^A-Za-z0-9_=-])([A-Za-z0-9_-]{8,}={0,2})\.([A-Za-z0-9_-]*={0,2})\.([A-Za-z0-9_-]{8,}={0,2})\.([A-Za-z0-9_-]{1,}={0,2})\.([A-Za-z0-9_-]{8,}={0,2})(?![A-Za-z0-9_=-])/g;
 function containsStructuredJWT(text) {
   for(const match of text.matchAll(JWE_CANDIDATE)){
     try{

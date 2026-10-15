@@ -6356,3 +6356,62 @@ test('OAuth URL query codes resembling status values cannot enter public outputs
     assert.equal(triage.text,null,sample);
   }
 });
+
+
+test('2026-10-15 L2 F01: secret-shaped expected_files and review paths never enter public output',()=>{
+  // Synthetic placeholder only: no real token is used in this test.
+  const embedded='src/ghp_'+'A'.repeat(26)+'.cjs';
+  assert.throws(()=>d.createResumePacket({
+    repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:[embedded],
+    action_kind:'CONTINUE_IMPLEMENTATION',
+    next_action:'Continue the approved work scope',evidence_refs:[]
+  }),e=>e.code==='INVALID_RESUME_PACKET');
+  assert.throws(()=>d.assignment({...H,paths:[embedded]}),
+    e=>e.code==='INVALID_ASSIGNMENT');
+  // Real but harmless path names containing "token" remain valid.
+  assert.equal(d.createResumePacket({
+    repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/token-parser.cjs'],
+    action_kind:'CONTINUE_IMPLEMENTATION',
+    next_action:'Continue the approved work scope',evidence_refs:[]
+  }).expected_files[0],'src/token-parser.cjs');
+});
+
+test('2026-10-15 L2 F02: padded base64url JOSE is rejected by all public channels',()=>{
+  const pad=x=>x+'='.repeat((4-x.length%4)%4);
+  const encoded=x=>pad(Buffer.from(JSON.stringify(x)).toString('base64url'));
+  const jws=encoded({alg:'HS256',typ:'JWT'})+'.'+
+    encoded({sub:'test-subject'})+'.'+pad(Buffer.from('example-sig').toString('base64url'));
+  const jwe=encoded({alg:'dir',enc:'A256GCM'})+'..'+
+    pad(Buffer.from('12-byte-test').toString('base64url'))+'.'+
+    pad(Buffer.from('ciphertext').toString('base64url'))+'.'+
+    pad(Buffer.from('example-auth-tag').toString('base64url'));
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const [kind,sample] of [['JWS',jws],['JWE',jwe]]){
+    const trace='Opaque '+kind+' '+sample;
+    assert.throws(()=>d.createResumePacket({
+      repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+      work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+      next_action:'Examine '+trace,evidence_refs:[]
+    }),e=>e.code==='INVALID_RESUME_PACKET',kind);
+    const normal=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[{...data().findings[0],
+        evidence:trace}]})),current_head:SHA,source,
+      publication_clearance:clearance});
+    assert.equal(normal.ready_for_manual_relay,false,kind);
+    assert.equal(normal.text,null,kind);
+    const triage=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent R2 issue in '+trace,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(triage.status,'POTENTIAL_SECRET_IN_REPORT',kind);
+    assert.equal(triage.text,null,kind);
+  }
+  // Ordinary dotted code/version strings must remain usable.
+  assert.equal(d.createResumePacket({
+    repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:null,task:null,expected_files:[],action_kind:'AWAIT_L2',
+    next_action:'Inspect ordinary release 1.2.3',evidence_refs:[]
+  }).next_action,'Inspect ordinary release 1.2.3');
+});
