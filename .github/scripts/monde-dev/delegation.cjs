@@ -880,9 +880,7 @@ function prepareInteractiveHandoff(args) {
     ...evaluation.missing_reviewed_paths,
     ...evaluation.extraneous_reviewed_paths
   ];
-  if(disclosedPaths.some(potentiallyNonpublicResumeText)||
-     (clearance.full_report_approved===true&&
-       potentiallyNonpublicResumeText(analysis)))
+  if(disclosedPaths.some(potentiallyNonpublicResumeText))
     return {status:'NONPUBLIC_SCOPE_IN_RELAY',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
@@ -1268,9 +1266,8 @@ function prepareUnqualifiedTriageHandoff(args) {
   // Only file-path-like segments in unqualified free text trigger this
   // additional nonpublic-scope restriction, not words such as "internal"
   // used in harmless technical discussion.
-  const snippetPaths=snippets.flatMap(value=>
-    value.match(/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+){1,12}/g)||[]);
-  if(snippetPaths.some(potentiallyNonpublicResumeText))
+  const disclosedScope=/(?:^|[\\s"'(:])(?:clients?|customers?|patients?)\\/[A-Za-z0-9_.\\/-]+|(?:^|[\\s"'(:])(?:src|assets|docs)\\/(?:internal|private|confidential)\\/[A-Za-z0-9_.\\/-]+/i;
+  if(snippets.some(v=>disclosedScope.test(v)))
     return refused('NONPUBLIC_SCOPE_IN_RELAY');
   if(Buffer.byteLength(note,'utf8')>PUBLIC_RELAY_MAX_BYTES)
     return refused('PUBLIC_RELAY_TOO_LARGE');
