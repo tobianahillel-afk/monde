@@ -2099,7 +2099,8 @@ function containsNonpublicScopeDisclosure(value) {
   return publicTextMatches(value,text=>{
     // Quoted evidence (JSON/Markdown) doubles Windows backslashes. Check both
     // representations so output formatting cannot make a local path public.
-    const flattened=text.replace(/\\{2,}/g,'\\');
+    const flattened=text.replace(/\\{2,}/g,
+      run=>'\\'.repeat(Math.max(1,Math.ceil(run.length/2))));
     return [text,flattened].some(candidate=>
       NONPUBLIC_PATH_COMPONENT.test(candidate)||
       NONPUBLIC_DIRECTORY_LEAF.test(candidate)||
