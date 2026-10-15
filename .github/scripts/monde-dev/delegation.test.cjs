@@ -6603,3 +6603,54 @@ test('valid legacy L2 without reviewed_paths is relayed as incomplete scope, not
   assert.match(relay.text,/The original reviewer report is necessary|Full report retained/);
   assert.equal(relay.native_github_approved,false);
 });
+
+test('L2 Oct-15: confidential paths in qualified evidence and malformed Markdown are never relayed',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const path of ['private/research/plan.md','docs/patient/notes.md',
+    'src/internal/customer/notes.json','clients/project-zeta/contract.md']){
+    const finding={...data().findings[0],
+      evidence:'Found private scope \x60'+path+'\x60; investigate the issue'};
+    const normal=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[finding]})),
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(normal.ready_for_manual_relay,false,path);
+    assert.equal(normal.status,'NONPUBLIC_SCOPE_IN_RELAY',path);
+    const malformed=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent reviewer R2: confidential path \x60'+path+
+        '\x60 found; do not publish the original report.',
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(malformed.ready_for_manual_relay,false,path);
+    assert.equal(malformed.status,'NONPUBLIC_SCOPE_IN_RELAY',path);
+  }
+});
+test('L2 Oct-15: unqualified structured finding evidence is checked for private paths',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const finding={...data().findings[0],
+    evidence:'Incident: docs/patient/care-plan.json must not be published'};
+  const report='Independent reviewer identified an actionable confidentiality issue.\n'+
+    d.MARKER+'\n'+JSON.stringify(data({findings:[finding]}));
+  const out=d.prepareUnqualifiedTriageHandoff({
+    expected:H,response:report,current_head:SHA,
+    source:{...source,retrieved_from_distinct_chat:false},
+    publication_clearance:clearance});
+  assert.equal(out.ready_for_manual_relay,false);
+  assert.equal(out.status,'NONPUBLIC_SCOPE_IN_RELAY');
+});
+test('L2 Oct-15: benign public technical internal-api paths remain usable',()=>{
+  const path='src/internal-api.js';
+  const packet=d.createResumePacket({repo:H.repo,pr:H.pr,
+    head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:[path],
+    action_kind:'CONTINUE_IMPLEMENTATION',
+    next_action:'Continue eligible task',evidence_refs:[]});
+  assert.deepEqual(packet.expected_files,[path]);
+  const out=d.prepareInteractiveHandoff({expected:H,
+    response:message(data({findings:[{...data().findings[0],
+      evidence:'Inspect implementation in src/internal-api.js'}]})),
+    current_head:SHA,source,
+    publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(out.ready_for_manual_relay,true);
+});

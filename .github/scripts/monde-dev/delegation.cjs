@@ -880,7 +880,7 @@ function prepareInteractiveHandoff(args) {
     ...evaluation.missing_reviewed_paths,
     ...evaluation.extraneous_reviewed_paths
   ];
-  if(disclosedPaths.some(potentiallyNonpublicResumeText))
+  if(disclosedPaths.some(containsNonpublicScopeDisclosure))
     return {status:'NONPUBLIC_SCOPE_IN_RELAY',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
@@ -1014,6 +1014,10 @@ function prepareInteractiveHandoff(args) {
     return {status:'PERSONAL_DATA_IN_RELAY',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
       native_github_approved:false,text:null};
+  if(containsNonpublicScopeDisclosure(note))
+    return {status:'NONPUBLIC_SCOPE_IN_RELAY',can_publish:false,
+      ready_for_manual_relay:false,requires_manual_qualification:true,
+      native_github_approved:false,text:null};
   if(Buffer.byteLength(note,'utf8')>PUBLIC_RELAY_MAX_BYTES)
     return {status:'PUBLIC_RELAY_TOO_LARGE',can_publish:false,
       ready_for_manual_relay:false,requires_manual_qualification:true,
@@ -1134,8 +1138,8 @@ function prepareUnqualifiedTriageHandoff(args) {
   // Malformed L2 excerpts also travel to a public PR only after manual
   // clearance. Reject explicitly labeled nonpublic file scopes even when
   // the writer has checked the confidentiality boxes.
-  if(a.paths.some(potentiallyNonpublicResumeText)||
-     findings.some(f=>potentiallyNonpublicResumeText(f.path)))
+  if(a.paths.some(containsNonpublicScopeDisclosure)||
+     findings.some(f=>containsNonpublicScopeDisclosure(f.path)))
     return refused('NONPUBLIC_SCOPE_IN_RELAY');
   if(!snippets.length&&!findings.length)
     return refused('NO_REVIEWED_ACTIONABLE_EXCERPTS');
@@ -1266,8 +1270,9 @@ function prepareUnqualifiedTriageHandoff(args) {
   // Only file-path-like segments in unqualified free text trigger this
   // additional nonpublic-scope restriction, not words such as "internal"
   // used in harmless technical discussion.
-  const disclosedScope=/(?:^|[\s"'(:])(?:clients?|customers?|patients?)\/[A-Za-z0-9_.\/-]+|(?:^|[\s"'(:])(?:src|assets|docs)\/(?:internal|private|confidential)\/[A-Za-z0-9_.\/-]+/i;
-  if(snippets.some(v=>disclosedScope.test(v)))
+  // Inspect both structured findings and Markdown-quoted prose in the
+  // *rendered* relay, not just the fallback snippets.
+  if(containsNonpublicScopeDisclosure(note))
     return refused('NONPUBLIC_SCOPE_IN_RELAY');
   if(Buffer.byteLength(note,'utf8')>PUBLIC_RELAY_MAX_BYTES)
     return refused('PUBLIC_RELAY_TOO_LARGE');
@@ -2075,6 +2080,11 @@ function publicResumeEvidence(kind,ref) {
 // The PR body is public and cannot carry explicitly marked confidential,
 // customer or personal project scope. This is a guard, not proof of publicity.
 const NONPUBLIC_SCOPE_LABEL=/(?:^|[^A-Za-z0-9])(?:clients?|customers?|patients?|confidenti(?:al|el|elle|els|elles)|private|priv[eé]e?|personn(?:el|elle)|personal|secrets?|classified|non[_ -]?public|intern(?:al|e)|proprietary|sensitive|sensible)(?=$|[^A-Za-z0-9])/iu;
+// Directory-component-aware confidentiality filter for public GitHub prose.
+const NONPUBLIC_PATH_COMPONENT=/(?:^|[^A-Za-z0-9_./-])(?:(?:[A-Za-z0-9_.-]+\/)*(?:clients?|customers?|patients?|private|confidenti(?:al|el|elle|els|elles)|secrets?|classified|proprietary|personal|non[-_]?public)\/[A-Za-z0-9_.-]+|(?:src|docs|assets|data|config)\/(?:internal|private|confidential|sensitive)\/[A-Za-z0-9_.-]+)/iu;
+function containsNonpublicScopeDisclosure(value) {
+  return publicTextMatches(value,text=>NONPUBLIC_PATH_COMPONENT.test(text));
+}
 function potentiallyNonpublicResumeText(value) {
   return publicTextMatches(value,text=>NONPUBLIC_SCOPE_LABEL.test(text));
 }
@@ -2123,6 +2133,7 @@ function resumePacket(input){
       // The ordinary assignment parser remains structural: a separate test
       // verifies suspicious scopes are rejected at the *final relay* boundary.
       input.expected_files.some(p=>!validPath(p,true)||
+        containsNonpublicScopeDisclosure(p)||
         containsEncodedCredential(p)||containsEncodedContact(p)||
         containsPrivateChatHost(p)||privateResumeId(p)||
         potentiallyNonpublicResumeText(p))||
