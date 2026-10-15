@@ -2430,7 +2430,7 @@ test('malformed but parseable footer does not leak a separate claimed reviewer I
   assert.equal(result.native_github_approved,false);
 });
 
-test('unqualified L2 relay redacts a claimed URI-style context with CRLF footer',()=>{
+test('unqualified L2 relay refuses truncated private context with CRLF footer',()=>{
   const privateRef='conversation/private/context/20261011-abcdef012345';
   const response=message(data({
     reviewer_context_id:privateRef,
@@ -2443,11 +2443,12 @@ test('unqualified L2 relay redacts a claimed URI-style context with CRLF footer'
     publication_clearance:{secrets_checked:true,personal_data_checked:true,
       public_repo_safe:true,finding_details_approved:true}
   });
-  assert.equal(result.status,'UNQUALIFIED_TRIAGE_READY');
-  assert.equal(result.ready_for_manual_relay,true);
-  assert.equal(result.text.includes(privateRef),false);
-  assert.match(result.text,/REDACTED_CONTEXT_REFERENCE/);
-  assert.equal(result.native_github_approved,false);
+  // A bounded R2 snippet may begin halfway through the private URI:
+  // exact-ID redaction cannot prove that all fragments were removed.
+  // Withhold this optional PUBLIC relay instead of publishing a partial URI.
+  assert.equal(result.status,'NONPUBLIC_SCOPE_IN_RELAY');
+  assert.equal(result.ready_for_manual_relay,false);
+  assert.equal(result.text,null);
 });
 test('private reviewer redaction ignores trivial untrusted claimed IDs',()=>{
   const packet={...data(),reviewer_context_id:'R2'};
