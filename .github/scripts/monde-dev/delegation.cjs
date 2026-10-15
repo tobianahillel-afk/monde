@@ -2096,11 +2096,16 @@ const NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH =
 const NONPUBLIC_WINDOWS_COMPONENT =
   /(?:^|[^A-Za-z0-9_.\\/-])(?:[A-Za-z0-9_.-]+\\)*(?:clients?|customers?|patients?|private|confidential|secrets?|personal|internal)\\[A-Za-z0-9_.-]+/iu;
 function containsNonpublicScopeDisclosure(value) {
-  return publicTextMatches(value,text=>
-    NONPUBLIC_PATH_COMPONENT.test(text)||
-    NONPUBLIC_DIRECTORY_LEAF.test(text)||
-    NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH.test(text)||
-    NONPUBLIC_WINDOWS_COMPONENT.test(text));
+  return publicTextMatches(value,text=>{
+    // Quoted evidence (JSON/Markdown) doubles Windows backslashes. Check both
+    // representations so output formatting cannot make a local path public.
+    const flattened=text.replace(/\\{2,}/g,'\\');
+    return [text,flattened].some(candidate=>
+      NONPUBLIC_PATH_COMPONENT.test(candidate)||
+      NONPUBLIC_DIRECTORY_LEAF.test(candidate)||
+      NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH.test(candidate)||
+      NONPUBLIC_WINDOWS_COMPONENT.test(candidate));
+  });
 }
 function potentiallyNonpublicResumeText(value) {
   return publicTextMatches(value,text=>NONPUBLIC_SCOPE_LABEL.test(text));
