@@ -6708,6 +6708,8 @@ test('Oct-15 L2 F01: local POSIX and Windows paths never leave public handoffs',
     '/Users/alice/private/contacts.csv',
     'C:\\Users\\alice\\private\\contacts.csv',
     'C:/Users/alice/private/contacts.csv',
+    'D:\\code\\client\\contracts.csv',
+    '/var/private/profiles.db',
     '\\\\server\\share\\private\\contacts.csv',
     'private\\contacts.csv'
   ];
