@@ -6509,3 +6509,32 @@ test('exact-head L2: empty-ciphertext JWE and detached JWS are confidential',()=
     next_action:'Inspect public release 1.2.3'});
   assert.equal(safe.next_action,'Inspect public release 1.2.3');
 });
+
+test('public bookmark rejects declared confidential, client and personal scope',()=>{
+  const args={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',action_kind:'CONTINUE_IMPLEMENTATION',
+    next_action:'Continue task after checking WORK status',
+    expected_files:['docs/README.md'],evidence_refs:[]};
+  for(const name of [
+    'clients/projet-confidentiel-zebra/documents.md',
+    'customers/ProjectZeta/contract.md',
+    'src/internal/client-files.json',
+    'docs/patient/record.md',
+    'assets/private/project-omega.json'
+  ])assert.throws(()=>d.createResumePacket({...args,expected_files:[name]}),
+    e=>e.code==='INVALID_RESUME_PACKET',name);
+  for(const action of [
+    'Resume confidential client Zeta files',
+    'Continue clients/ProjectZeta contract processing',
+    'Inspect internal customer archive',
+    'Review projet-confidentiel-zebra',
+    'Investigate non%2Dpublic release notes'
+  ])assert.throws(()=>d.createResumePacket({...args,next_action:action}),
+    e=>e.code==='INVALID_RESUME_PACKET',action);
+  const packet=d.createResumePacket(args);
+  assert.deepEqual(packet.expected_files,['docs/README.md']);
+  const body=d.updateResumeInPrBody('## Current PR',packet);
+  assert.equal(d.inspectResumeFromPrBody(body,{
+    repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40)
+  }).status,'SAME_REVISION');
+});

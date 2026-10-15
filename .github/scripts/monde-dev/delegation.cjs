@@ -2045,6 +2045,13 @@ function publicResumeEvidence(kind,ref) {
   }
 }
 
+// The PR body is public and cannot carry explicitly marked confidential,
+// customer or personal project scope. This is a guard, not proof of publicity.
+const NONPUBLIC_SCOPE_LABEL=/(?:^|[^A-Za-z0-9])(?:clients?|customers?|patients?|confidenti(?:al|el|elle|els|elles)|private|priv[eé]e?|personn(?:el|elle)|personal|secrets?|classified|non[_ -]?public|intern(?:al|e)|proprietary|sensitive|sensible)(?=$|[^A-Za-z0-9])/iu;
+function potentiallyNonpublicResumeText(value) {
+  return publicTextMatches(value,text=>NONPUBLIC_SCOPE_LABEL.test(text));
+}
+
 // PR description is the sole continuation bookmark. A bookmark never
 // constitutes a grant, independent approval, or independently verified CI.
 const RESUME='MONDE_V2_RESUME_V1';
@@ -2076,6 +2083,7 @@ function resumePacket(input){
      containsEncodedCredential(input.next_action)||
       containsEncodedContact(input.next_action)||
       containsPrivateChatHost(input.next_action)||
+      potentiallyNonpublicResumeText(input.next_action)||
       privateResumeId(input.next_action)||
      (input.work!==null&&(typeof input.work!=='string'||
        !/^WORK-\d{4,}$/.test(input.work)))||
@@ -2089,7 +2097,8 @@ function resumePacket(input){
       // verifies suspicious scopes are rejected at the *final relay* boundary.
       input.expected_files.some(p=>!validPath(p,true)||
         containsEncodedCredential(p)||containsEncodedContact(p)||
-        containsPrivateChatHost(p)||privateResumeId(p))||
+        containsPrivateChatHost(p)||privateResumeId(p)||
+        potentiallyNonpublicResumeText(p))||
      new Set(input.expected_files).size!==input.expected_files.length||
      !Array.isArray(input.evidence_refs)||input.evidence_refs.length>12)
     bad('INVALID_RESUME_PACKET');
