@@ -754,6 +754,11 @@ function containsPrivateChatHost(value) {
 // A callback code may be one character. Only a clearly standalone
 // HTTP/diagnostic status is exempt; OAuth context never gets that exemption.
 function containsOAuthCode(text) {
+  // A URL query parameter is an authorization-code candidate even if its
+  // value looks like an HTTP status (e.g. ?code=200 or &code=OK).
+  // Bare build-log fields such as "code=200" keep their diagnostic exemption.
+  if (/[?&]\s*code\s*=\s*["']?[A-Za-z0-9._~+/%-]+/i.test(text))
+    return true;
   const oauthContext=/(?:oauth|oidc|pkce|callback|redirect_uri|authorization|authorize|login|auth[\s_-]*(?:code|flow))/i.test(text);
   const bare=/(?:^|[^A-Za-z0-9])code\s*=\s*["']?([A-Za-z0-9._~+/%-]{1,})/gi;
   const json=/(?:\\*)["']code(?:\\*)["']\s*:\s*(?:\\*)["']([^"'\\\s]{1,})/gi;

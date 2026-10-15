@@ -6328,3 +6328,31 @@ test('2026-10-15 L2: harmless technical status codes do not block public handoff
     assert.match(normal.text,/Public build log status/);
   }
 });
+
+test('OAuth URL query codes resembling status values cannot enter public outputs',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const samples=[
+    'https://example.org/return?code=200',
+    'https://example.org/return?a=1&code=OK',
+    'https://example.org/return?%63ode=ERR',
+    'https://example.org/return?a=1&amp;code=302'
+  ];
+  for(const sample of samples){
+    assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+      head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+      next_action:'Inspect '+sample,evidence_refs:[]}),
+      e=>e.code==='INVALID_RESUME_PACKET',sample);
+    const normal=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[{...data().findings[0],
+        evidence:'Public callback trace '+sample}]})),current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(normal.ready_for_manual_relay,false,sample);
+    assert.equal(normal.text,null,sample);
+    const triage=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'R2: callback parameter '+sample+' in log',
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(triage.status,'POTENTIAL_SECRET_IN_REPORT',sample);
+    assert.equal(triage.text,null,sample);
+  }
+});
