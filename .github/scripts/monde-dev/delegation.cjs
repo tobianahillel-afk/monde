@@ -601,8 +601,8 @@ const CREDENTIAL_PATTERNS=[
   // Even a three-character OAuth query code must never reach public relay.
   /(?:\?|#|&(?:amp;)?)\s*code=[A-Za-z0-9._~+/%-]{1,}/i,
   // OAuth callbacks are also copied as bare assignments and JSON fields.
-  /(?:^|[^A-Za-z0-9])code\s*=\s*["']?[A-Za-z0-9._~+/%-]{6,}/i,
-  /(?:\\*)["']code(?:\\*)["']\s*:\s*(?:\\*)["'][^"'\\\s]{4,}/i,
+  /(?:^|[^A-Za-z0-9])code\s*=\s*["']?[A-Za-z0-9._~+/%-]{3,}/i,
+  /(?:\\*)["']code(?:\\*)["']\s*:\s*(?:\\*)["'][^"'\\\s]{3,}/i,
   // OAuth refresh/ID tokens and session IDs often occur under compound keys.
   // Reject them from public resumes and reviewed-report excerpts.
   /(?:^|[^A-Za-z0-9])(?:refresh[_-]?token|oauth[_-]?token|id[_-]?token|session[_-]?(?:id|token))\s*[:=]\s*(?:\\*["'\x60])?\s*[A-Za-z0-9_%+./=-]{4,}/i,
@@ -661,7 +661,7 @@ function containsStructuredJWT(text) {
 const PUBLIC_RELAY_MAX_BYTES=12*1024;
 // Public resumptions contain work metadata, never personal contact information.
 const PUBLIC_CONTACT_PATTERNS=[
-  /(?:^|[^\w.+-])[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}@(?:[A-Za-z0-9.-]+\.[A-Za-z]{2,}|localhost)(?![A-Za-z0-9.-])/i,
+  /(?:^|[^\p{L}\p{N}.+_-])[\p{L}\p{N}][\p{L}\p{N}._%+-]{0,63}@(?:[\p{L}\p{N}-]+\.)+[\p{L}\p{N}-]{2,63}(?![\p{L}\p{N}-])|(?:^|[^\w.+-])[A-Za-z0-9._%+-]+@localhost\b/iu,
   /(?:^|[^\w])(?:\+|00)[1-9]\d{0,2}(?:[\s().+-]*\d){8,12}(?!\d)/,
   /(?:^|[^\w])0[1-9](?:[\s().+-]*\d){8}(?!\d)/,
   // Bare 11–13-digit build IDs must not be mistaken for local phones.
@@ -728,11 +728,16 @@ function publicTextMatches(value, predicate) {
           (_,hex)=>String.fromCharCode(parseInt(hex,16)));}
       })
       // Escaped hostname letters need decoding as well as escaped punctuation.
-      .replace(/\\+(?:u00([0-7][0-9a-f])|x([0-7][0-9a-f])|u\{([0-9a-f]{1,6})\})/gi,
+      // Decode JavaScript Unicode escapes beyond ASCII before NFKC.
+      // Escaped slashes also occur in JSON-serialized private context IDs.
+      .replace(/\\+(?:u([0-9a-f]{4})|x([0-7][0-9a-f])|u\{([0-9a-f]{1,6})\})/gi,
         (whole,four,two,braced)=>{
           const point=parseInt(four||two||braced,16);
-          return point<=127?String.fromCharCode(point):whole;
+          return point>=0&&point<=0x10ffff&&
+            !(point>=0xd800&&point<=0xdfff)
+            ?String.fromCodePoint(point):whole;
         })
+      .replace(/\\+\//g,'/')
       // Fullwidth/compatibility Latin letters may imitate the private host.
       .normalize('NFKC');
     if(decoded===text)return false; // stable; checked at loop entry

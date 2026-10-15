@@ -6213,3 +6213,58 @@ test('resume: still rejects untyped commit-like values and disguised CI tokens',
       next_action:hint}),e=>e.code==='INVALID_RESUME_PACKET',hint);
   }
 });
+
+test('L2 newest: OAuth three-character code is blocked across all public outputs',()=>{
+  const items=['code=abc','{"code":"abc"}'];
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const item of items){
+    assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,head_sha:SHA,
+      base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+      next_action:'Review '+item}),e=>e.code==='INVALID_RESUME_PACKET');
+    const report=message(data({findings:[{...data().findings[0],
+      evidence:'OAuth callback '+item}]}));
+    assert.equal(d.prepareInteractiveHandoff({expected:H,response:report,
+      current_head:SHA,source,publication_clearance:clear}).ready_for_manual_relay,false,item);
+    assert.equal(d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'Independent R2: confidential callback '+item+
+        ' appears in trace and requires correction.',
+      current_head:SHA,source,publication_clearance:clear}).ready_for_manual_relay,false,item);
+  }
+});
+test('L2 newest: internationalized and punycode email stay out of public PR',()=>{
+  const items=['alice@пример.рф','alice@xn--e1afmkfd.xn--p1ai',
+    'alice\\uFF20пример\\uFF0Eрф',
+    'alice%40xn--e1afmkfd.xn--p1ai'];
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  for(const item of items){
+    assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,head_sha:SHA,
+      base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+      next_action:'Contact '+item}),e=>e.code==='INVALID_RESUME_PACKET',item);
+    const report=message(data({findings:[{...data().findings[0],
+      evidence:'Sensitive personal contact '+item}]}));
+    assert.equal(d.prepareInteractiveHandoff({expected:H,response:report,
+      current_head:SHA,source,publication_clearance:clear}).ready_for_manual_relay,false,item);
+  }
+});
+test('L2 newest: JSON escaped slash and Unicode host do not disclose chat provenance',()=>{
+  const clear={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const host='https://chatgpt\\uFF0Ecom/c/sensitive-1234';
+  assert.throws(()=>d.createResumePacket({repo:H.repo,pr:H.pr,
+    head_sha:SHA,base_sha:'b'.repeat(40),action_kind:'AWAIT_L2',
+    next_action:'Inspect '+host}),e=>e.code==='INVALID_RESUME_PACKET');
+  const escaped='history-msg:l2\\/secret-123456789';
+  const observed={...source,message_ref:'history-msg:l2/secret-123456789'};
+  const report=message(data({findings:[{...data().findings[0],
+    evidence:'Contains opaque context '+escaped}]}));
+  assert.equal(d.prepareInteractiveHandoff({expected:H,response:report,
+    current_head:SHA,source:observed,publication_clearance:clear})
+    .ready_for_manual_relay,false);
+  assert.equal(d.prepareUnqualifiedTriageHandoff({expected:H,
+    response:'Independent R2 discovered leaked context '+escaped+
+      ' and requests a targeted correction.',
+    current_head:SHA,source:observed,publication_clearance:clear})
+    .ready_for_manual_relay,false);
+});
