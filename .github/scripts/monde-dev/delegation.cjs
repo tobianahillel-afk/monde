@@ -874,7 +874,7 @@ function prepareInteractiveHandoff(args) {
   // name of a confidential project in the proposed PUBLIC PR handoff. Human
   // clearance must not override an explicitly marked nonpublic path.
   const disclosedPaths=[
-    ...a.paths,...metadata.reviewed_paths,
+    ...a.paths,...(metadata.reviewed_paths||[]),
     ...metadata.findings.map(f=>f.path),
     ...evaluation.out_of_scope_findings,
     ...evaluation.missing_reviewed_paths,

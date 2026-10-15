@@ -6584,3 +6584,22 @@ test('2026-10-15 L2: malformed R2 relay cannot disclose nonpublic paths',()=>{
     response:message(data()),current_head:SHA,source,publication_clearance:clear});
   assert.equal(allowed.ready_for_manual_relay,true);
 });
+
+
+test('valid legacy L2 without reviewed_paths is relayed as incomplete scope, not a crash',()=>{
+  const metadata=data();
+  delete metadata.reviewed_paths;
+  const response=message(metadata);
+  const observed=d.assessReview({expected:H,response,current_head:SHA,source});
+  assert.equal(observed.status,'NEEDS_CORRECTION');
+  assert.deepEqual(observed.missing_reviewed_paths,H.paths);
+  const relay=d.prepareInteractiveHandoff({expected:H,response,current_head:SHA,
+    source,publication_clearance:{secrets_checked:true,personal_data_checked:true,
+      public_repo_safe:true,finding_details_approved:true}});
+  assert.equal(relay.status,'NEEDS_CORRECTION');
+  assert.equal(relay.ready_for_manual_relay,true);
+  assert.equal(relay.self_contained_for_remediation,false);
+  assert.match(relay.text,/Assigned paths not declared examined:/);
+  assert.match(relay.text,/The original reviewer report is necessary|Full report retained/);
+  assert.equal(relay.native_github_approved,false);
+});
