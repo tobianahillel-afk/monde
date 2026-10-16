@@ -738,6 +738,52 @@ function assessFreshL2Waves({
       }
     }
   }
+  // Independence is a *global* property of the full review cohort. The
+  // per-wave reducer detects reuse within its own wave and against earlier
+  // sources, but cannot retroactively flag the first mission when a later
+  // wave reuses its context/message. Qualify both ends of every collision.
+  const evidenceOwners=new Map(),crossWaveConflicts=new Set();
+  for(const mission of missions){
+    const id=mission.assignment_id,source=sources[id];
+    if(typeof reports[id]!=='string'||!source ||
+       typeof source.context_id!=='string' ||
+       !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,95}$/.test(source.context_id) ||
+       typeof source.message_ref!=='string' ||
+       !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(source.message_ref))
+      continue;
+    for(const key of ['context:'+source.context_id,
+      'message:'+source.message_ref]){
+      const first=evidenceOwners.get(key);
+      if(first && first!==id){
+        crossWaveConflicts.add(first);
+        crossWaveConflicts.add(id);
+      }else if(!first)evidenceOwners.set(key,id);
+    }
+  }
+  if(crossWaveConflicts.size){
+    for(const outcome of results){
+      if(!crossWaveConflicts.has(outcome.assignment_id))continue;
+      outcome.independence_unverified=true;
+      outcome.needs_attention=true;
+      outcome.requires_manual_qualification=true;
+      outcome.independence_reason='REUSED_CHAT_CONTEXT_OR_MESSAGE';
+      if(!['NEEDS_CORRECTION','BLOCKED','REPORT_UNAVAILABLE',
+            'WRONG_ASSIGNMENT','STALE_SHA','REPORT_NEEDS_MANUAL_REVIEW',
+            'INDEPENDENCE_UNVERIFIED'].includes(outcome.status)){
+        outcome.original_status=outcome.status;
+        outcome.status='INDEPENDENCE_UNVERIFIED';
+      }
+    }
+    // The wave summaries deliberately share the result objects above. Keep
+    // their aggregate flags coherent with the updated per-mission findings.
+    for(const wave of summary){
+      if(wave.results.some(r=>crossWaveConflicts.has(r.assignment_id)))
+        wave.needs_attention=true;
+    }
+  }
+  const allIndependenceConflicts=new Set(results
+    .filter(r=>r.independence_reason==='REUSED_CHAT_CONTEXT_OR_MESSAGE')
+    .map(r=>r.assignment_id));
   // Preserve material findings across *all* waves: a caller must not
   // manually parse five separate reports to find the next safe correction.
   // The source claims remain unverified and never confer merge authority.
@@ -751,7 +797,7 @@ function assessFreshL2Waves({
     status:missing.length?'MISSING_L2_REPORTS':'L2_WAVES_ASSESSED_PENDING_MANUAL_QUALIFICATION',
     observed_pr_head_sha:current_head,assessed_missions:results.length,
     wave_count:summary.length,waves:summary,missing_assignment_ids:missing,
-    independence_conflicts:summary.reduce((s,w)=>s+w.independence_conflicts,0),
+    independence_conflicts:allIndependenceConflicts.size,
     needs_attention:missing.length>0||unqualified.length>0,
     triage_findings:allFindings,
     actionable_finding_groups:grouped.groups,

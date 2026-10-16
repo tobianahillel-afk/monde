@@ -1286,6 +1286,8 @@ test('review waves: reused reviewer chat across different waves remains unqualif
   assert.equal(result.ready_for_merge,false);
   assert.ok(result.independence_conflicts>=1);
   assert.equal(result.waves[1].results[0].independence_unverified,true);
+  assert.equal(result.waves[0].results[0].independence_unverified,true);
+  assert.equal(result.independence_conflicts,5);
 });
 
 
@@ -1665,4 +1667,36 @@ test('L2 foreground bridge requires immutable compare and pagination APIs',async
       expected_head_sha:plan.observed_pr_head_sha
     }),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
   }
+});
+
+test('review waves: cross-wave context reuse flags BOTH distinct missions',()=>{
+  const plan=wavesFixture(),reports={},sources={};
+  const {MARKER}=require('./delegation.cjs');
+  for(let i=0;i<5;i++){
+    const mission=plan.batches[i].assignment,id=mission.assignment_id;
+    const collision=i===4?0:i;
+    const context='reviewer-l2-context-'+String(collision).padStart(3,'0');
+    reports[id]='Independent review of immutable changed file.\n'+MARKER+'\n'+
+      JSON.stringify({v:1,assignment_id:id,repo:mission.repo,pr:mission.pr,
+        head_sha:mission.head_sha,reviewer_context_id:context,
+        verdict:'CHANGES_REQUIRED',findings:[{id:'F01',severity:'R2',
+          path:mission.paths[0],evidence:'Insufficient explicit trust check',
+          action:'Validate immutable GitHub evidence'}],
+        reviewed_paths:mission.paths,limitations:['No production deployment']});
+    sources[id]={retrieved_from_distinct_chat:true,context_id:context,
+      retrieval_kind:'chat_history',
+      message_ref:'unique-l2-message-'+String(i).padStart(3,'0')};
+  }
+  const result=assessWithObservedPr({plan,reports,sources,
+    current_head:plan.observed_pr_head_sha});
+  assert.equal(result.independence_conflicts,2);
+  assert.equal(result.waves[0].results[0].independence_unverified,true);
+  assert.equal(result.waves[1].results[0].independence_unverified,true);
+  assert.equal(result.waves[0].needs_attention,true);
+  assert.equal(result.waves[1].needs_attention,true);
+  for(let i=1;i<4;i++)
+    assert.notEqual(result.waves[0].results[i].independence_reason,
+      'REUSED_CHAT_CONTEXT_OR_MESSAGE');
+  assert.equal(result.ready_for_merge,false);
+  assert.equal(result.review_acceptance_granted,false);
 });
