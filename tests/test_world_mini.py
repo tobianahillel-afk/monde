@@ -289,6 +289,110 @@ class WorldMiniTest(unittest.TestCase):
                                  check=False)
         self.assertNotEqual(invalid.returncode, 0)
 
+    def test_timeline_source_reports_across_world_time_without_claiming_truth(self):
+        self.model.add_evidence({
+            "id": "e-survey", "source_id": "survey",
+            "locator": "fixture://survey/2026-jan", "captured_at": "2026-01-09T00:00:00Z",
+            "source_event_at": "2026-01-03T00:00:00Z",
+        })
+        self.model.add_assertion({
+            "id": "a-height", "entity": "building-001", "attribute": "height",
+            "value": 12, "evidence_id": "e-survey", "kind": "OBSERVATION",
+            "known_at": "2026-01-09T00:00:00Z",
+            "valid_from": "2026-01-03T00:00:00Z",
+            "valid_to": "2026-01-06T00:00:00Z", "supersedes": None,
+        })
+        timeline = self.model.timeline(
+            "building-001", "height", "2026-01-01T00:00:00Z",
+            "2026-01-10T00:00:00Z", "2026-01-10T00:00:00Z")
+        self.assertEqual(timeline["comparison"], "WORLD_TIME_REPORTS_ONLY")
+        self.assertEqual([s["status"] for s in timeline["segments"]],
+                         ["UNKNOWN", "REPORTED", "UNKNOWN"])
+        self.assertEqual([(s["valid_from"], s["valid_to"]) for s in timeline["segments"]],
+                         [("2026-01-01T00:00:00Z", "2026-01-03T00:00:00Z"),
+                          ("2026-01-03T00:00:00Z", "2026-01-06T00:00:00Z"),
+                          ("2026-01-06T00:00:00Z", "2026-01-10T00:00:00Z")])
+        report = timeline["segments"][1]["reports"][0]
+        self.assertEqual((report["value"], report["source_id"], report["evidence_id"]),
+                         (12, "survey", "e-survey"))
+        self.assertEqual(timeline["world"], "OBSERVED")
+        self.assertEqual(self.model.timeline(
+            "building-001", "height", "2026-01-01T00:00:00Z",
+            "2026-01-10T00:00:00Z", "2026-01-08T00:00:00Z")["status"], "UNKNOWN")
+
+    def test_timeline_preserves_conflicting_sources_and_corrected_knowledge(self):
+        early = self.model.timeline(
+            "building-001", "floors", "2026-01-01T00:00:00Z",
+            "2026-02-01T00:00:00Z", "2026-01-05T00:00:00Z")
+        late = self.model.timeline(
+            "building-001", "floors", "2026-01-01T00:00:00Z",
+            "2026-02-01T00:00:00Z", LATE)
+        self.assertEqual(len(early["segments"]), 1)
+        self.assertEqual([r["value"] for r in early["segments"][0]["reports"]], [5, 6])
+        self.assertEqual([r["value"] for r in late["segments"][0]["reports"]], [6, 7])
+        self.assertEqual(late["segments"][0]["reports"][1]["supersedes"], "a-city-initial")
+
+    def test_timeline_knowledge_cutoff_does_not_leak_future_validity_boundaries(self):
+        self.model.add_evidence({
+            "id": "e-late-b", "source_id": "s", "locator": "fixture://later",
+            "captured_at": "2026-01-20T00:00:00Z", "source_event_at": None,
+        })
+        self.model.add_assertion({
+            "id": "a-late-height", "entity": "building-001", "attribute": "height",
+            "value": 12, "evidence_id": "e-late-b", "kind": "CLAIM",
+            "known_at": "2026-01-20T00:00:00Z",
+            "valid_from": "2026-01-05T00:00:00Z",
+            "valid_to": "2026-01-08T00:00:00Z", "supersedes": None,
+        })
+        unknown = self.model.timeline(
+            "building-001", "height", "2026-01-01T00:00:00Z",
+            "2026-01-12T00:00:00Z", LATE)
+        self.assertEqual(unknown["status"], "UNKNOWN")
+        self.assertEqual(len(unknown["segments"]), 1)
+        later = self.model.timeline(
+            "building-001", "height", "2026-01-01T00:00:00Z",
+            "2026-01-12T00:00:00Z", "2026-01-21T00:00:00Z")
+        self.assertEqual([s["status"] for s in later["segments"]],
+                         ["UNKNOWN", "REPORTED", "UNKNOWN"])
+
+    def test_timeline_offsets_half_open_boundaries_and_defensive_output(self):
+        exported = self.model.export()
+        res = self.model.timeline(
+            "building-001", "floors", "2026-01-01T01:00:00+01:00",
+            "2026-01-02T01:00:00+01:00", LATE)
+        self.assertEqual(len(res["segments"]), 1)
+        self.assertEqual(res["segments"][0]["valid_from"], "2026-01-01T00:00:00Z")
+        self.assertEqual(res["segments"][0]["valid_to"], "2026-01-02T00:00:00Z")
+        res["segments"][0]["reports"][0]["value"] = -1
+        self.assertEqual(self.model.export(), exported)
+
+    def test_timeline_rejects_backward_identical_and_timezone_naive_windows(self):
+        for start, end in [
+            ("2026-01-02T00:00:00Z", "2026-01-02T00:00:00Z"),
+            ("2026-02-01T00:00:00Z", "2026-01-01T00:00:00Z"),
+            ("2026-01-01T00:00:00", "2026-01-02T00:00:00Z"),
+        ]:
+            with self.assertRaises(ValueError):
+                self.model.timeline("building-001", "floors", start, end, LATE)
+
+    def test_timeline_cli_real_subprocess_and_invalid_combinations(self):
+        env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+        args = [sys.executable, "-m", "monde.world", "--fixture",
+                str(ROOT / "examples/monde-mini.json"), "--entity", "building-001",
+                "--attribute", "floors", "--timeline-from", "2026-01-01T00:00:00Z",
+                "--timeline-to", "2026-01-03T00:00:00Z", "--known-at", LATE]
+        result = subprocess.run(args, capture_output=True, text=True, env=env,
+                                check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        output = json.loads(result.stdout)
+        self.assertEqual(output["comparison"], "WORLD_TIME_REPORTS_ONLY")
+        self.assertEqual([r["value"] for r in output["segments"][0]["reports"]], [6, 7])
+        for invalid in [args + ["--at", AT], args + ["--compare-known-at", AT],
+                        args[:-2], args + ["--all-attributes"]]:
+            rejected = subprocess.run(invalid, capture_output=True, text=True,
+                                      env=env, check=False)
+            self.assertNotEqual(rejected.returncode, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
