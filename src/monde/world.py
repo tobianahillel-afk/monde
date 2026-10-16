@@ -291,6 +291,52 @@ class WorldMini:
                 "status": "MATCHES" if matches else "NO_MATCHES",
                 "matches": matches}
 
+
+    def search_geo_bbox(self, bounds, at: str, known_at: str) -> dict:
+        """Find current source-reported WGS84 Points in a geographic rectangle.
+
+        Keep outside reports for a matching entity, preserving contradictory
+        source locations instead of inventing reconciled physical truth.
+        """
+        import math
+        from .geojson import _point
+
+        if not isinstance(bounds, (tuple, list)) or len(bounds) != 4 or any(
+                type(v) not in (float, int) or not math.isfinite(v)
+                for v in bounds):
+            raise ValueError("bbox requires four finite longitude/latitude numbers")
+        west, south, east, north = bounds
+        if not (-180 <= west <= 180 and -180 <= east <= 180 and
+                -90 <= south <= north <= 90):
+            raise ValueError("bbox is outside WGS84 ranges or has inverted latitude")
+        _time(at)
+        _time(known_at)
+
+        def contains(point):
+            lon, lat = point["coordinates"]
+            inside_lon = (west <= lon <= east if west <= east
+                          else lon >= west or lon <= east)
+            return inside_lon and south <= lat <= north
+
+        matches = []
+        entities = sorted({a["entity"] for a in self._assertions.values()
+                           if a["attribute"] == "geo_point"})
+        for entity in entities:
+            reports = self.query(entity, "geo_point", at, known_at)["reports"]
+            matched, outside = [], []
+            for report in reports:
+                point = _point(report["value"])
+                (matched if contains(point) else outside).append(report)
+            if matched:
+                matches.append({"entity": entity, "status": "REPORTED",
+                                "matched_reports": matched,
+                                "other_reports": outside})
+        return {"world": "OBSERVED", "query": "SOURCE_REPORTED_POINT_BBOX_ONLY",
+                "bbox": list(bounds), "valid_at": at,
+                "knowledge_cutoff": known_at,
+                "status": "MATCHES" if matches else "NO_MATCHES",
+                "matches": matches}
+
     def source_disagreements(self, at: str, known_at: str,
                              attribute: str | None = None) -> dict:
         """Different current values reported by distinct source IDs (not truth)."""
@@ -636,6 +682,8 @@ def main(argv=None) -> int:
     selection.add_argument("--attribute")
     selection.add_argument("--all-attributes", action="store_true")
     selection.add_argument("--search-attribute")
+    selection.add_argument("--search-geo-bbox", metavar="W,S,E,N",
+                           help="source-reported Point search by world and knowledge time")
     selection.add_argument("--source-disagreements", action="store_true")
     selection.add_argument("--source-history", metavar="SOURCE_ID")
     selection.add_argument("--knowledge-updates", action="store_true")
@@ -767,6 +815,21 @@ def main(argv=None) -> int:
                     args.equals_json is not None):
                 parser.error("disagreements require --at without entity/timeline/compare")
             result = world.source_disagreements(args.at, args.known_at)
+        elif args.search_geo_bbox is not None:
+            if (args.entity is not None or args.at is None or
+                    args.source_attribute is not None or args.equals_json is not None or
+                    args.timeline_from is not None or args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None or
+                    args.compare_known_at is not None or args.compare_at is not None):
+                parser.error("bbox search requires --at and --known-at without other flags")
+            parts = args.search_geo_bbox.split(",")
+            if len(parts) != 4:
+                raise ValueError("bbox must be WEST,SOUTH,EAST,NORTH")
+            try:
+                bounds = [float(x.strip()) for x in parts]
+            except ValueError as exc:
+                raise ValueError("bbox must contain numeric coordinates") from exc
+            result = world.search_geo_bbox(bounds, args.at, args.known_at)
         elif args.search_attribute is not None:
             if args.source_attribute is not None:
                 parser.error("--source-attribute requires --source-history")
