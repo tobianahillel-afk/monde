@@ -239,5 +239,113 @@ class KMLSourceTests(unittest.TestCase):
             self.assertEqual(len([f for f in feature_set
                                   if "kml_trace" in f["properties"]]), 2)
 
+
+    def test_original_polygon_outer_ring_retains_closed_vertex_evidence(self):
+        poly = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                '<Placemark id="block"><name>Source-declared boundary</name>'
+                '<Polygon><outerBoundaryIs><LinearRing><coordinates>'
+                '2.35,48.85 2.36,48.85 2.36,48.86 2.35,48.85'
+                '</coordinates></LinearRing></outerBoundaryIs></Polygon>'
+                '</Placemark></Document></kml>')
+        with tempfile.TemporaryDirectory() as directory:
+            path = self.fixture(directory, poly)
+            geo = to_geojson(path)
+            self.assertEqual(geo, to_geojson(path))
+            features = geo["features"]
+            self.assertEqual(len(features), 4)
+            self.assertEqual(len({f["id"] for f in features}), 4)
+            self.assertEqual(features[-1]["geometry"]["coordinates"],
+                             features[0]["geometry"]["coordinates"])
+            self.assertTrue(features[-1]["id"].endswith("-repeat-2"))
+            self.assertEqual([f["properties"]["kml_trace"]["order"]
+                              for f in features], [0, 1, 2, 3])
+            self.assertTrue(all(f["properties"]["kml_trace"]["kind"] == "Polygon"
+                                for f in features))
+            doc = to_document(geo, source_id="claimed-block",
+                              locator="dataset://unverified-boundary.kml",
+                              captured_at=CAPTURED,
+                              valid_from="2026-01-01T00:00:00Z")
+            observed = WorldMini.from_document(doc).export_geojson_bbox(
+                [-180, -90, 180, 90], AT, CAPTURED)["features"]
+            self.assertEqual(len(observed), 4)
+            self.assertEqual(len({f["properties"]["evidence_id"] for f in observed}), 4)
+            self.assertTrue(all(f["properties"]["source_id"] == "claimed-block"
+                                and f["properties"]["monde_kml_trace"]["kind"] == "Polygon"
+                                and f["properties"]["monde_status"] == "SOURCE_REPORTED_ONLY"
+                                for f in observed))
+
+    def test_source_polygon_to_offline_map_without_network_or_saved_state(self):
+        source = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                  '<Placemark id="claimed-area"><name>Reported border only</name>'
+                  '<Polygon><outerBoundaryIs><LinearRing><coordinates>'
+                  '2.35,48.85 2.36,48.85 2.36,48.86 2.35,48.85'
+                  '</coordinates></LinearRing></outerBoundaryIs></Polygon>'
+                  '</Placemark></Document></kml>')
+        with tempfile.TemporaryDirectory() as directory:
+            path = self.fixture(directory, source)
+            output = Path(directory) / "boundary.html"
+            result = self.cli(*self.flags(path), "--at", AT,
+                              "--known-at", CAPTURED, "--output", output)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            page = output.read_text(encoding="utf-8")
+            for expected in ('"total_source_features":4',
+                             'KML_2_2_POLYGON_RING_POINT',
+                             'data-monde-kml-boundary-segments',
+                             'data-kml-boundary', 'claimed-area',
+                             'Reported border only'):
+                self.assertIn(expected, page)
+            self.assertNotIn('https://tile.', page)
+
+    def test_polygon_rejects_holes_open_rings_three_dimensions_and_multiple_shapes(self):
+        open_boundary = (
+            '<Polygon><outerBoundaryIs><LinearRing><coordinates>'
+            '2.35,48.85 2.36,48.85 2.36,48.86 2.35,48.85'
+            '</coordinates></LinearRing></outerBoundaryIs></Polygon>')
+        samples = [
+            open_boundary.replace('2.35,48.85</coordinates>',
+                                  '2.36,48.87</coordinates>'),
+            open_boundary.replace('2.36,48.86', '2.36,48.86,12'),
+            open_boundary.replace('2.36,48.86', '2.35,48.85'),
+            open_boundary.replace('</Polygon>', '<innerBoundaryIs/>'
+                                  '</Polygon>'),
+            open_boundary.replace('</Polygon>', '<altitudeMode>absolute'
+                                  '</altitudeMode></Polygon>'),
+            open_boundary.replace('outerBoundaryIs', 'innerBoundaryIs'),
+            open_boundary.replace('<LinearRing>', '<LinearRing id="x">'),
+            open_boundary + open_boundary,
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            for i, geometry in enumerate(samples):
+                xml = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                       '<Placemark id="boundary">' + geometry +
+                       '</Placemark></Document></kml>')
+                path = self.fixture(directory, xml, str(i) + ".kml")
+                with self.subTest(index=i):
+                    with self.assertRaises(ValueError):
+                        to_geojson(path)
+                    target = Path(directory) / ("unexpected-%d.html" % i)
+                    outcome = self.cli(*self.flags(path), "--at", AT,
+                                       "--known-at", CAPTURED, "--output", target)
+                    self.assertNotEqual(outcome.returncode, 0)
+                    self.assertFalse(target.exists())
+
+    def test_polygon_and_line_use_separate_source_ids_with_no_inferred_fill(self):
+        polygon = ('<Polygon><outerBoundaryIs><LinearRing><coordinates>'
+                   '2.35,48.85 2.36,48.85 2.36,48.86 2.35,48.85'
+                   '</coordinates></LinearRing></outerBoundaryIs></Polygon>')
+        line = ('<LineString><coordinates>2.35,48.85 2.36,48.85'
+                '</coordinates></LineString>')
+        xml = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+               '<Placemark id="area">' + polygon + '</Placemark>'
+               '<Placemark id="line">' + line + '</Placemark>'
+               '</Document></kml>')
+        with tempfile.TemporaryDirectory() as directory:
+            result = to_geojson(self.fixture(directory, xml))
+            self.assertEqual(len(result["features"]), 6)
+            ids = [f["id"] for f in result["features"]]
+            self.assertEqual(len(set(ids)), 6)
+            self.assertEqual(sum("kml-boundary-" in x for x in ids), 4)
+            self.assertEqual(sum("kml-line-" in x for x in ids), 2)
+
 if __name__ == "__main__":
     unittest.main()
