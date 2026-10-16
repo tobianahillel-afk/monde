@@ -2556,6 +2556,12 @@ function renderResumePacket(packet){
 }
 function updateResumeInPrBody(body,packet){
   if(typeof body!=='string'||body.length>100000)bad('INVALID_PR_BODY');
+  // Publication must not generate a checkpoint that the reader already
+  // labels STALE_EVIDENCE. Keep the reader able to diagnose older/forged
+  // checkpoints without using outdated CI or L2 proof to suggest progress.
+  const checked=resumePacket(packet);
+  if(checked.evidence_refs.some(ref=>ref.head_sha!==checked.head_sha))
+    bad('STALE_RESUME_EVIDENCE');
   const found=body.split('<!-- '+RESUME).length-1;
   if(found>1)bad('DUPLICATE_RESUME_MARKER');
   const fragment=renderResumePacket(packet);

@@ -7994,3 +7994,18 @@ test('L2 rename diagnostics preserve every path outside former review scope',()=
     assert.equal(result.previous_l2_approval_reusable,false);
   }
 });
+
+test('resume publication refuses an already stale evidence revision',()=>{
+  const current=resumeBase();
+  const stale=resumeBase({evidence_refs:[
+    {kind:'CI',ref:'job-101',head_sha:'a'.repeat(40)}
+  ]});
+  const original=d.updateResumeInPrBody('Existing PR notes',current);
+  assert.throws(()=>d.updateResumeInPrBody(original,stale),
+    {code:'STALE_RESUME_EVIDENCE'});
+  assert.throws(()=>d.updateResumeInPrBody('',stale),
+    {code:'STALE_RESUME_EVIDENCE'});
+  // The reader must still diagnose an old or tampered historical bookmark.
+  assert.equal(inspectResume(d.renderResumePacket(stale)).status,'STALE_EVIDENCE');
+  assert.equal(inspectResume(original).status,'SAME_REVISION');
+});
