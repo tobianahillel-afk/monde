@@ -185,3 +185,29 @@ The synthetic fixture yields conflicting claims of six and seven floors with
 both evidence IDs. This is source-report comparison, not physical-world truth,
 causal inference, confidence calibration or source reputation. Empty results
 do not prove agreement or missingness; cutoff limits are explicit.
+
+## Source-oriented correction history (T9)
+
+Use `WorldMini.source_history(source_id, known_at, entity=None, attribute=None)`
+to inspect **all assertions a specific source had supplied by knowledge cutoff K**,
+including assertions later corrected by that same source. Each report retains
+its original source, evidence locator, event/capture time, validity interval,
+knowledge time, and `supersedes` / `superseded_by` lineage. A correction is
+marked `current_at_cutoff` only after its own knowledge time; this field
+does **not** mean that the statement is valid now or that the world state is
+true. There is no world-time `--at` filter: reported validity remains explicit
+per report. Empty results mean **NO_REPORTS**, not physical absence.
+
+```sh
+PYTHONPATH=src python3 -m monde.world \\
+  --fixture examples/monde-mini.json \\
+  --source-history city-registry \\
+  --known-at 2026-01-07T00:00:00Z
+```
+
+Optional `--entity building-001` and `--source-attribute floors` narrow the
+source audit. The example reports the city's original 5-floor claim and its
+7-floor correction, linked to their original captured evidence. At an earlier
+knowledge cutoff, the correction remains invisible and the 5-floor statement
+is still marked current *as a source assertion*. No source consensus,
+reputation scoring, inferred events or new dependency is introduced.
