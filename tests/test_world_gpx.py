@@ -17,6 +17,21 @@ GPX = ('<?xml version="1.0"?><gpx xmlns="http://www.topografix.com/GPX/1/1" '
        '<desc>Claim A</desc><time>2026-01-09T00:00:00Z</time></wpt>'
        '<wpt lat="40.7484" lon="-73.9857"><name>site-beta</name></wpt>'
        '</gpx>')
+
+TRACE_GPX = ('<?xml version="1.0"?>'
+    '<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="survey">'
+    '<rte><name>survey-route</name><desc>Only source-reported samples</desc>'
+    '<rtept lat="48.850" lon="2.350"><name>point-a</name></rtept>'
+    '<rtept lat="48.860" lon="2.360"><name>point-b</name></rtept>'
+    '<rtept lat="48.865" lon="2.365"><name>point-c</name></rtept></rte>'
+    '<trk><name>survey-track</name><trkseg>'
+    '<trkpt lat="40.70" lon="-73.99"><time>2026-01-01T09:00:00Z</time></trkpt>'
+    '<trkpt lat="40.71" lon="-73.98"><time>2026-01-01T09:01:00Z</time></trkpt>'
+    '</trkseg><trkseg>'
+    '<trkpt lat="40.72" lon="-73.97"><time>2026-01-01T10:00:00Z</time></trkpt>'
+    '<trkpt lat="40.73" lon="-73.96"><time>2026-01-01T10:01:00Z</time></trkpt>'
+    '</trkseg></trk></gpx>')
+
 CAPTURED = "2026-01-10T10:00:00Z"
 VALID = "2026-01-01T00:00:00Z"
 AT = "2026-01-02T00:00:00Z"
@@ -143,6 +158,103 @@ class OriginalGPXTests(unittest.TestCase):
                                          "--known-at", CAPTURED, "--output",
                                          out).returncode, 0)
             self.assertFalse(out.exists())
+
+
+    def test_original_route_and_track_points_are_stable_source_samples(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = self.source(directory, TRACE_GPX)
+            doc = to_geojson(source)
+            self.assertEqual(len(doc["features"]), 7)
+            trace = [f for f in doc["features"]
+                     if "gpx_trace" in f["properties"]]
+            self.assertEqual(len(trace), 7)
+            self.assertEqual([f["properties"]["gpx_trace"]["segment"] for f in trace],
+                             [0, 0, 0, 0, 0, 1, 1])
+            self.assertEqual([f["properties"]["gpx_trace"]["order"] for f in trace],
+                             [0, 1, 2, 0, 1, 0, 1])
+            self.assertEqual([f["id"] for f in trace],
+                             [f["id"] for f in to_geojson(source)["features"]])
+            self.assertEqual(len({f["id"] for f in trace}), 7)
+            self.assertEqual(trace[3]["properties"]["waypoint_time"],
+                             "2026-01-01T09:00:00Z")
+
+    def test_bitemporal_source_trace_metadata_is_not_cross_source_merged(self):
+        with tempfile.TemporaryDirectory() as directory:
+            samples = to_geojson(self.source(directory, TRACE_GPX))
+            world = WorldMini.from_document(to_document(
+                samples, source_id="survey-original", locator="dataset://survey/trace",
+                captured_at=CAPTURED, valid_from=VALID))
+            mapped = world.export_geojson_bbox(
+                [-180, -90, 180, 90], AT, CAPTURED)
+            self.assertEqual(len(mapped["features"]), 7)
+            for feature in mapped["features"]:
+                self.assertEqual(feature["properties"]["source_id"], "survey-original")
+                self.assertEqual(feature["properties"]["monde_gpx_trace"]["format"],
+                                 "GPX_1_1_TRACE_POINT")
+                self.assertEqual(feature["properties"]["monde_status"],
+                                 "SOURCE_REPORTED_ONLY")
+            early = world.export_geojson_bbox(
+                [-180, -90, 180, 90], AT, "2026-01-09T00:00:00Z")
+            self.assertEqual(early["features"], [])
+
+    def test_one_command_original_traces_generate_offline_connected_map(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = self.source(directory, TRACE_GPX)
+            output = Path(directory) / "trace.html"
+            run = self.cli(*self.flags(source), "--at", AT,
+                           "--known-at", CAPTURED, "--output", output)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            page = output.read_text(encoding="utf-8")
+            for value in ('"total_source_features":7', 'survey-route',
+                          'survey-track', 'dataset://survey/gpx',
+                          'data-monde-gpx-segments', 'id="source-traces"'):
+                self.assertIn(value, page)
+            self.assertNotIn("https://", page)
+
+    def test_invalid_and_ambiguous_traces_do_not_create_outputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for bad in [
+                TRACE_GPX.replace("<name>survey-route</name>", ""),
+                TRACE_GPX.replace("<name>survey-route</name>", "<name>survey-track</name>")
+                    .replace("<trk><name>survey-track</name>",
+                             "<trk><name>survey-track</name>"),
+                TRACE_GPX.replace("</rte>", "<rtept lat='48.850' lon='2.350'>"
+                    "<name>point-a</name></rtept></rte>"),
+                TRACE_GPX.replace("<trkseg>", "<trkseg><extensions/>", 1),
+                TRACE_GPX.replace("</trk>", "<extensions/></trk>"),
+                TRACE_GPX.replace('lon="2.350"', 'lon="181"'),
+                TRACE_GPX.replace("<rtept lat=", "<rtept ele='50' lat=", 1),
+                TRACE_GPX.replace("</rte>", "</rte><rte><name>survey-route</name>"
+                    "<rtept lat='50' lon='2'/></rte>")
+            ]:
+                with self.subTest(original=bad[-90:]):
+                    source = self.source(directory, bad)
+                    with self.assertRaises(ValueError):
+                        to_geojson(source)
+                    output = Path(directory) / "refuse.html"
+                    run = self.cli(*self.flags(source), "--at", AT,
+                                   "--known-at", CAPTURED, "--output", output)
+                    self.assertNotEqual(run.returncode, 0)
+                    self.assertFalse(output.exists())
+
+    def test_source_trace_layers_never_invent_missing_segments(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = self.source(directory, TRACE_GPX)
+            doc = to_geojson(source)
+            self.assertEqual(doc["features"][3]["properties"]["gpx_trace"]["order"], 0)
+            self.assertEqual(doc["features"][5]["properties"]["gpx_trace"]["segment"], 1)
+            self.assertNotEqual(doc["features"][3]["properties"]["gpx_trace"]["trace_id"],
+                                doc["features"][0]["properties"]["gpx_trace"]["trace_id"])
+
+    def test_gpxtype_rejects_remote_links_and_entities(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for text in [TRACE_GPX.replace("</gpx>", "<extensions/></gpx>"),
+                         '<!DOCTYPE gpx [<!ENTITY name SYSTEM "file:///etc/passwd">]>' + TRACE_GPX,
+                         TRACE_GPX.replace("</gpx>", "<trk><name>x</name>"
+                             "<trkseg/></trk></gpx>")]:
+                with self.subTest(text=text[:65]):
+                    with self.assertRaises(ValueError):
+                        to_geojson(self.source(directory, text))
 
 
 if __name__ == "__main__":

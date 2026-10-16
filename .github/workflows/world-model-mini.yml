@@ -71,6 +71,39 @@ jobs:
           grep -q 'original-gpx' /tmp/monde-gpx-dom.html
           grep -q 'site-original' /tmp/monde-gpx-dom.html
           grep -q '<circle' /tmp/monde-gpx-dom.html
+      - name: Render GPX route/track source samples in real offline Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          cat > /tmp/monde-trace.gpx <<'GPX'
+          <?xml version="1.0"?>
+          <gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="survey">
+          <rte><name>field-survey</name>
+          <rtept lat="48.850" lon="2.350"/>
+          <rtept lat="48.860" lon="2.360"/>
+          <rtept lat="48.865" lon="2.365"/></rte>
+          <trk><name>survey-track</name><trkseg>
+          <trkpt lat="40.70" lon="-73.99"/><trkpt lat="40.71" lon="-73.98"/>
+          </trkseg><trkseg>
+          <trkpt lat="40.72" lon="-73.97"/><trkpt lat="40.73" lon="-73.96"/>
+          </trkseg></trk></gpx>
+          GPX
+          python3 -m monde.map_view --gpx /tmp/monde-trace.gpx \
+            --source-id original-gpx-track --source-locator dataset://gpx-track \
+            --captured-at 2026-01-10T10:00:00Z \
+            --valid-from 2026-01-01T00:00:00Z \
+            --at 2026-01-02T00:00:00Z \
+            --known-at 2026-01-10T10:00:00Z \
+            --output /tmp/monde-gpx-track.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --timeout=15000 --dump-dom file:///tmp/monde-gpx-track.html \
+            >/tmp/monde-gpx-track-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-gpx-track-dom.html
+          grep -q 'data-monde-gpx-segments="4"' /tmp/monde-gpx-track-dom.html
+          grep -q 'data-gpx-trace=' /tmp/monde-gpx-track-dom.html
+          grep -q 'field-survey' /tmp/monde-gpx-track-dom.html
       - name: Generate standalone HTML map from actual source Point fixture
         env:
           PYTHONPATH: src

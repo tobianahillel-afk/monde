@@ -359,3 +359,37 @@ Input files and existing output files are never overwritten. Routes, tracks,
 elevation, waypoint extensions and unsupported fields are explicitly rejected.
 File-level GPX metadata is not mapped into claims; provide source identity and
 original locator separately. No network calls or external map services are used.
+
+
+## GPX 1.1 source-reported routes and tracks (experimental WORK-0025)
+
+The original `--gpx` and mixed-source manifest paths now accept local GPX 1.1
+routes (`rte/rtept`) and tracks (`trk/trkseg/trkpt`) alongside waypoints.
+Each trace requires a unique source-provided `name`, all geometry must be
+finite 2D WGS84, and points are retained as individual source-assertion
+records with evidence, capture, valid-world and known-at timestamps. Source
+sample order and track segment numbers are retained as `gpx_trace` claims.
+A track/route sample ID is deterministic from source-reported coordinates,
+trace label and optional time/name: it is **not** a persistent physical entity
+identity. Duplicate indistinguishable samples are rejected. The offline map
+draws cyan dashed edges only between **consecutive currently visible** points
+of the same source, trace and segment. It never connects missing samples,
+separate segments, or across the antimeridian, and does not establish verified
+travel or an observed road. Its browser still makes **no network requests**.
+
+For example:
+
+```sh
+PYTHONPATH=src python3 -m monde.map_view \\
+  --gpx original-route.gpx --source-id source-survey-1 \\
+  --source-locator dataset://survey/route.gpx \\
+  --captured-at 2026-01-10T10:00:00Z \\
+  --valid-from 2026-01-01T00:00:00Z \\
+  --at 2026-01-02T00:00:00Z \\
+  --known-at 2026-01-10T10:00:00Z \\
+  --output trace-evidence.html
+```
+
+Unsupported extensions, altitude, DTD/entities, remote geometry and ambiguous
+source identities fail closed. The source label and sample grouping come from
+the original GPX, not from inferred geographic truth.
