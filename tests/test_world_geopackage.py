@@ -28,7 +28,7 @@ def point(lon, lat, *, srid=4326, envelope=False, little=True):
 
 def build(path):
     with sqlite3.connect(path) as db:
-        db.execute("PRAGMA application_id=1196437808")
+        db.execute("PRAGMA application_id=1196444487")
         db.executescript("""
         CREATE TABLE gpkg_spatial_ref_sys (
           srs_name TEXT, srs_id INTEGER PRIMARY KEY,
