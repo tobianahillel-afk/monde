@@ -296,7 +296,7 @@ test('live PR delta requires a valid, explicitly prior-reviewed base SHA',async(
 
 test('invalid fresh L2 assignment IDs fail before any GitHub compare',async()=>{
   for(const new_assignment_id of [
-    '',null,undefined,123,'too-short','invalid name with spaces',
+    '',null,undefined,123,'short','invalid name with spaces',
     assignment.assignment_id,'A'.repeat(97)
   ]){
     const calls=[];
