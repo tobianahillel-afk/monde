@@ -1684,6 +1684,125 @@ function planL2Delta({previous_assignment,current_head,compare,
   };
 }
 
+// Turn pinned GitHub WORK YAML snapshots into advisory planner input.
+// This reads only the accepted canonical subset: reject an unfamiliar YAML
+// shape rather than silently infer approval or task readiness.
+const WORK_STATES=new Set(['PROPOSED','PLANNED','READY','IN_PROGRESS',
+  'PARTIAL','BLOCKED','IN_REVIEW','DONE','DEPRECATED','CANCELLED']);
+function readSimpleWorkList(value,regex) {
+  if(value==='[]')return [];
+  if(typeof value!=='string'||!value.startsWith('[')||!value.endsWith(']'))
+    bad('UNSUPPORTED_WORK_LIST');
+  const middle=value.slice(1,-1);
+  if(!middle.trim())bad('UNSUPPORTED_WORK_LIST');
+  const elements=middle.split(',').map(x=>x.trim());
+  if(elements.some(x=>!regex.test(x))||
+     new Set(elements).size!==elements.length)
+    bad('UNSUPPORTED_WORK_LIST');
+  return elements;
+}
+function parseWorkPlanningSnapshot(text,id) {
+  if(typeof text!=='string'||Buffer.byteLength(text,'utf8')>262144||
+     typeof id!=='string'||!/^WORK-[0-9]{4,}$/.test(id))
+    bad('INVALID_WORK_SNAPSHOT');
+  const rows=text.replace(/\r\n/g,'\n').split('\n');
+  const top=field=>rows.filter(row=>row.startsWith(field+':'));
+  for(const field of ['id','status','depends_on','implementation_plan'])
+    if(top(field).length!==1)bad('AMBIGUOUS_WORK_SNAPSHOT');
+  if(top('id')[0]!=='id: '+id)bad('WORK_ID_MISMATCH');
+  const status=top('status')[0].slice(8).trim();
+  if(!WORK_STATES.has(status))bad('UNKNOWN_WORK_STATUS');
+  const depends_on=readSimpleWorkList(top('depends_on')[0].slice(11).trim(),
+    /^WORK-[0-9]{4,}$/);
+  if(depends_on.includes(id))bad('WORK_SELF_DEPENDENCY');
+  const begin=rows.indexOf('implementation_plan:');
+  let finish=rows.findIndex((row,index)=>index>begin&&row.trim()!==''&&
+    !row.startsWith(' ')&&!row.startsWith('#'));
+  if(finish<0)finish=rows.length;
+  const plan=rows.slice(begin+1,finish);
+  if(!['  tasks:','  tasks: []'].includes(plan[0]))
+    bad('UNSUPPORTED_TASK_BLOCK');
+  const tasks=[];
+  if(plan[0]==='  tasks:'){
+    const block=[];
+    for(const row of plan.slice(1)){
+      if(row.startsWith('  planned_runs:'))break;
+      if(row.trim()===''||row.trim().startsWith('#'))continue;
+      block.push(row);
+    }
+    for(let i=0;i<block.length;){
+      const first=block[i++];
+      let idValue,taskStatus,deps,files;
+      if(first.startsWith('    - {')&&first.endsWith('}')){
+        idValue=/^    - \{id: (T[1-9][0-9]*),/.exec(first)?.[1];
+        taskStatus=/,\sstatus: ([A-Z_]+)\}$/.exec(first)?.[1];
+        deps=/,\sdepends_on: (\[[^\]]*\])/.exec(first)?.[1];
+        files=/,\sexpected_files: (\[[^\]]*\])/.exec(first)?.[1];
+      }else{
+        idValue=/^    - id: (T[1-9][0-9]*)$/.exec(first)?.[1];
+        if(!idValue)bad('UNSUPPORTED_TASK_BLOCK');
+        const attrs={};
+        while(i<block.length&&!block[i].startsWith('    - ')){
+          const row=block[i++];
+          const match=/^      ([a-z_]+): (.*)$/.exec(row);
+          if(!match)bad('UNSUPPORTED_TASK_BLOCK');
+          if(['status','depends_on','expected_files'].includes(match[1])){
+            if(Object.hasOwn(attrs,match[1]))bad('DUPLICATE_TASK_FIELD');
+            attrs[match[1]]=match[2];
+          }
+        }
+        taskStatus=attrs.status;deps=attrs.depends_on;files=attrs.expected_files;
+      }
+      if(!idValue||!WORK_STATES.has(taskStatus)||!deps||!files)
+        bad('UNSUPPORTED_TASK_FIELDS');
+      const depends=readSimpleWorkList(deps,/^T[1-9][0-9]*$/);
+      const expected=readSimpleWorkList(files,/^[A-Za-z0-9_.\/-]+$/);
+      if(depends.includes(idValue)||tasks.some(t=>t.id===idValue)||
+        expected.some(file=>!validPath(file)))
+        bad('INVALID_WORK_TASK');
+      tasks.push({id:idValue,status:taskStatus,depends_on:depends,
+        expected_files:expected});
+    }
+  }
+  return {id,status,depends_on,tasks};
+}
+async function loadWorkPlanFromGitHub({github,repo,head_sha,work_ids}) {
+  if(!plain(github)||!plain(github.rest)||!plain(github.rest.repos)||
+     typeof github.rest.repos.getContent!=='function'||
+     typeof repo!=='string'||!REPO.test(repo)||
+     typeof head_sha!=='string'||!SHA.test(head_sha)||
+     !Array.isArray(work_ids)||!work_ids.length||work_ids.length>40||
+     work_ids.some(id=>typeof id!=='string'||!/^WORK-[0-9]{4,}$/.test(id))||
+     new Set(work_ids).size!==work_ids.length)bad('INVALID_WORK_FETCH');
+  const [owner,name]=repo.split('/');
+  const works=[];
+  for(const id of work_ids){
+    const path='registry/work-items/'+id+'.yaml';
+    const result=await github.rest.repos.getContent({
+      owner,repo:name,path,ref:head_sha});
+    const data=result?.data;
+    if(!plain(data)||data.type!=='file'||data.encoding!=='base64'||
+       typeof data.content!=='string'||data.size>262144)
+      bad('UNTRUSTED_WORK_RESPONSE');
+    const encoded=data.content.replace(/\s/g,'');
+    if(encoded.length>360000||!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded))
+      bad('UNTRUSTED_WORK_RESPONSE');
+    const bytes=Buffer.from(encoded,'base64');
+    if(bytes.length>262144||bytes.toString('base64')!==encoded)
+      bad('UNTRUSTED_WORK_RESPONSE');
+    works.push(parseWorkPlanningSnapshot(bytes.toString('utf8'),id));
+  }
+  return {repo,head_sha,works,verified_repo_snapshot:false,
+    requires_host_head_verification:true,advisory_only:true,
+    authorized_to_write:false};
+}
+async function planNextIncrementFromGitHub(input){
+  const snapshot=await loadWorkPlanFromGitHub(input);
+  return planNextIncrement({
+    repo:snapshot.repo,head_sha:snapshot.head_sha,
+    works:snapshot.works,triage_findings:input.triage_findings||[]});
+}
+
 // Select an *advisory* next interactive task from verified WORK snapshots.
 // Never converts an in-progress candidate into Accepted work, starts a
 // scheduled task, or interprets a reported finding as a confirmed risk.
@@ -2343,5 +2462,6 @@ module.exports = {
   parseReviewResponse, assessReview, prepareInteractiveHandoff,
   planDelegations, assessDelegationBatch, groupTriageFindings,
   prepareUnqualifiedTriageHandoff, planNextIncrement, planL2Delta,
+  parseWorkPlanningSnapshot, loadWorkPlanFromGitHub, planNextIncrementFromGitHub,
   createResumePacket, renderResumePacket, updateResumeInPrBody, inspectResumeFromPrBody
 };
