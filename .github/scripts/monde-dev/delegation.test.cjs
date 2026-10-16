@@ -7933,3 +7933,40 @@ test('WORK planner accepts standard Windows CRLF but rejects lone carriage retur
   assert.throws(()=>d.parseWorkPlanningSnapshot(mixed,'WORK-0007'),
     e=>e.code==='AMBIGUOUS_WORK_LINE_BREAK');
 });
+
+test('WORK parser blocks YAML-tagged or anchored top-level status shadowing',()=>{
+  const impostors=[
+    '!!str status: DONE',
+    '!<tag:yaml.org,2002:str> status: BLOCKED',
+    '&shadow status: DONE',
+    '*shadow: DONE'
+  ];
+  for(const entry of impostors){
+    const poisoned=WORK_FIXTURE_ACTIVE+'\n'+entry;
+    assert.throws(()=>d.parseWorkPlanningSnapshot(poisoned,'WORK-0007'),
+      e=>e.code==='AMBIGUOUS_WORK_KEY_DECORATOR',entry);
+  }
+});
+test('WORK parser rejects decorated nested task and plan keys but keeps normal values',()=>{
+  for(const entry of [
+    '  !!str tasks: []',
+    '  &override planned_runs: []',
+    '  !<tag:yaml.org,2002:str> tasks: []'
+  ]){
+    const poisoned=WORK_FIXTURE_ACTIVE.replace('  planned_runs: []',
+      '  planned_runs: []\n'+entry);
+    assert.throws(()=>d.parseWorkPlanningSnapshot(poisoned,'WORK-0007'),
+      e=>e.code==='AMBIGUOUS_WORK_KEY_DECORATOR',entry);
+  }
+  for(const entry of ['      !!str status: DONE',
+    '      &task status: DONE']){
+    const poisoned=WORK_FIXTURE_ACTIVE.replace('      status: READY',
+      '      status: READY\n'+entry);
+    assert.throws(()=>d.parseWorkPlanningSnapshot(poisoned,'WORK-0007'),
+      e=>e.code==='AMBIGUOUS_WORK_KEY_DECORATOR',entry);
+  }
+  assert.equal(d.parseWorkPlanningSnapshot(WORK_FIXTURE_ACTIVE,'WORK-0007').tasks[0].status,'READY');
+  const quotedValue=WORK_FIXTURE_DONE.replace('title: "Bootstrap repository"',
+    'title: "YAML tags !!str and &anchors are ordinary prose here"');
+  assert.equal(d.parseWorkPlanningSnapshot(quotedValue,'WORK-0001').status,'DONE');
+});

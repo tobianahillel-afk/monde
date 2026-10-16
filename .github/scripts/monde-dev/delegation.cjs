@@ -1755,6 +1755,14 @@ function parseWorkPlanningSnapshot(text,id) {
   if(/\r(?!\n)|[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u2028\u2029]/u.test(text))
     bad('AMBIGUOUS_WORK_LINE_BREAK');
   const rows=text.replace(/\r\n/g,'\n').split('\n');
+  // Explicit YAML tags and anchors can decorate mapping keys while the
+  // canonical lexer sees only a literal "status:" or "tasks:" spelling.
+  // Reject such keys at WORK root, plan section and task-field indentation,
+  // rather than accepting a stale status from another YAML interpretation.
+  const decoratedMappingKey=/^(?:| {2}| {6})(?:!+(?:<[^>\n]+>|[A-Za-z][A-Za-z0-9_-]*)|&[A-Za-z][A-Za-z0-9_-]*|\*[A-Za-z][A-Za-z0-9_-]*)(?:[ \t]+[^:\n]+)?[ \t]*:/;
+  if(rows.some(row=>decoratedMappingKey.test(row)))
+    bad('AMBIGUOUS_WORK_KEY_DECORATOR');
+
   // A WORK is one canonical YAML document. A document boundary or directive
   // outside the supported subset can change the parsed value in other YAML
   // readers. Never plan from only the first document while ignoring its tail.
