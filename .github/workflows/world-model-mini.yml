@@ -214,7 +214,11 @@ jobs:
           "$browser" --headless --no-sandbox --disable-gpu \
             --disable-dev-shm-usage --virtual-time-budget=2000 --timeout=15000 --dump-dom \
             file:///tmp/monde-compare-smoke.html > /tmp/monde-compare-dom.html
-          grep -q 'data-monde-compare="pass"' /tmp/monde-compare-dom.html
+          if ! grep -q 'data-monde-compare="pass"' /tmp/monde-compare-dom.html; then
+            grep -o 'data-monde-compare="[^"]*"' /tmp/monde-compare-dom.html || true
+            echo 'Offline entity comparison browser behavior did not pass'
+            exit 1
+          fi
       - name: Verify filtered GeoJSON export in a real offline browser
         run: |
           python3 - <<'PY'
