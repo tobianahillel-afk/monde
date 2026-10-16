@@ -348,7 +348,29 @@ class WorldMini:
 
         result = self.search_geo_bbox(bounds, at, known_at)
         features = []
+        trace_reports = {}
+        sample_time_reports = {}
+        elevation_reports = {}
         for match in result["matches"]:
+            # Trace grouping is another source assertion, never a inferred path.
+            # Match its *original evidence id* to the Point before displaying.
+            if any(a["entity"] == match["entity"] and
+                   a["attribute"] == "gpx_trace" for a in self._assertions.values()):
+                trace_reports[match["entity"]] = {
+                    report["evidence_id"]: report["value"]
+                    for report in self.query(match["entity"], "gpx_trace",
+                                             at, known_at)["reports"]
+                }
+                sample_time_reports[match["entity"]] = {
+                    r["evidence_id"]: r["value"]
+                    for r in self.query(match["entity"], "waypoint_time",
+                                        at, known_at)["reports"]
+                }
+                elevation_reports[match["entity"]] = {
+                    r["evidence_id"]: r["value"]
+                    for r in self.query(match["entity"], "elevation_m",
+                                        at, known_at)["reports"]
+                }
             for inside, reports in ((True, match["matched_reports"]),
                                     (False, match["other_reports"])):
                 for report in reports:
@@ -362,6 +384,20 @@ class WorldMini:
                     }
                     properties.update({key: _clone(value) for key, value in report.items()
                                        if key != "value"})
+                    source_trace = trace_reports.get(match["entity"], {}).get(
+                        report["evidence_id"])
+                    if source_trace is not None:
+                        properties["monde_gpx_trace"] = _clone(source_trace)
+                        # Source-clock assertion must share the original Point's evidence.
+                        clock = sample_time_reports.get(match["entity"], {}).get(
+                            report["evidence_id"])
+                        if isinstance(clock, str):
+                            properties["monde_gpx_sample_time"] = clock
+                        # Only same-evidence GPX elevation, never verified terrain.
+                        elevation = elevation_reports.get(match["entity"], {}).get(
+                            report["evidence_id"])
+                        if type(elevation) in (int, float):
+                            properties["monde_gpx_sample_elevation_m"] = elevation
                     features.append({
                         "type": "Feature", "id": report["assertion_id"],
                         "geometry": _point(report["value"]), "properties": properties,

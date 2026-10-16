@@ -1,0 +1,55 @@
+id: WORK-0025
+title: "Inspect original GPX 1.1 routes and tracks with source provenance"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence and offline map"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+purpose: |
+  Turn real local GPX route/track source sequences into explorable,
+  bitemporal source-reported Point evidence without inferred movement.
+scope:
+  in:
+    - original GPX 1.1 rte/rtept/trk/trkseg/trkpt with names and strict bounds
+    - source identity, sample order, trace segments and offline map display
+    - unit/CLI and real Chromium source-to-map tests
+  out:
+    - inferred movement or verified trajectories
+    - third-party APIs, persistent worker host or map tile providers
+acceptance_criteria:
+  - id: AC-1
+    description: "Named GPX routes and tracks yield stable per-source sample IDs and evidence-linked point reports."
+    status: NOT_STARTED
+  - id: AC-2
+    description: "Offline map renders only adjacent source samples in the same segment after filtering."
+    status: NOT_STARTED
+  - id: AC-3
+    description: "Invalid or ambiguous GPX cannot silently lose records or create partial output."
+    status: NOT_STARTED
+  - id: AC-4
+    description: "Selected source trace segments expose an exportable filtered sample and adjacent-coordinate-separation profile without claiming physical travel."
+    status: NOT_STARTED
+  - id: AC-5
+    description: "Selected GPX segments export same-evidence source elevations and adjacent source-only elevation differences, never inferred altitude or movement."
+    status: NOT_STARTED
+  - id: AC-6
+    description: "Offline GPX source sample UTC-day filters preserve source/evidence IDs, original ordering gaps and derivative provenance separately from capture date."
+    status: NOT_STARTED
+depends_on: [WORK-0024]
+reuses:
+  - "MONDE Mini bitemporal claim parser and GeoJSON Point ingestion"
+  - "offline map and existing Chromium GitHub Actions"
+review_plan:
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, ARCHITECTURE_REUSE]
+  completed_reviews: []
+validation:
+  executed: []
+  evidence: []
+  known_gaps:
+    - "Dependent staged PRs WORK-0006..0024 remain unmerged on main"
+    - "L2 at stable HEAD pending"
+rollback:
+  strategy: "Close this dependent PR; no main or persistent state mutation"

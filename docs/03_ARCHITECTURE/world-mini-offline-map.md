@@ -342,8 +342,9 @@ Original local GPX 1.1 waypoints are accepted as source-reported 2D WGS84 Points
 Each waypoint name must be unique, identifier-safe and verified stable by the
 source owner: GPX does not guarantee identity stability. Neither position nor
 timestamp is promoted to physical truth. Waypoint description, comment, symbol,
-type and source time are preserved as properties; source capture/validity and
-knowledge time always come from the explicit CLI or manifest flags.
+type, source time and finite source-reported elevation (`ele`, metres) are
+preserved as properties; elevation is not a verified 3D position. Source
+capture/validity and knowledge time come from explicit CLI or manifest flags.
 
 Example (with an original GPX containing waypoint names):
 
@@ -356,6 +357,68 @@ Example (with an original GPX containing waypoint names):
 The existing source-manifest format accepts a gpx input field alongside CSV,
 GeoJSON and KML, preserving original per-source evidence across mixed datasets.
 Input files and existing output files are never overwritten. Routes, tracks,
-elevation, waypoint extensions and unsupported fields are explicitly rejected.
+non-finite elevation, waypoint extensions and unsupported fields are explicitly rejected.
 File-level GPX metadata is not mapped into claims; provide source identity and
 original locator separately. No network calls or external map services are used.
+
+
+## GPX 1.1 source-reported routes and tracks (experimental WORK-0025)
+
+The original `--gpx` and mixed-source manifest paths now accept local GPX 1.1
+routes (`rte/rtept`) and tracks (`trk/trkseg/trkpt`) alongside waypoints.
+Each trace requires a unique source-provided `name`, all geometry must be
+finite 2D WGS84, and points are retained as individual source-assertion
+records with evidence, capture, valid-world and known-at timestamps. Source
+sample order and track segment numbers are retained as `gpx_trace` claims.
+A track/route sample ID is deterministic from source-reported coordinates,
+trace label and optional time/name: it is **not** a persistent physical entity
+identity. Repeated identical GPS readings (including stationary samples) are
+retained with stable occurrence-suffixed IDs; original segment and sample
+order are never collapsed. Optional finite GPX `ele` is retained as a separate
+source-reported altitude property, not verified vertical position. The offline map
+draws cyan dashed edges only between **consecutive currently visible** points
+of the same source, trace and segment. It never connects missing samples,
+separate segments, or across the antimeridian, and does not establish verified
+travel or an observed road. Its browser still makes **no network requests**.
+
+For example:
+
+```sh
+PYTHONPATH=src python3 -m monde.map_view \\
+  --gpx original-route.gpx --source-id source-survey-1 \\
+  --source-locator dataset://survey/route.gpx \\
+  --captured-at 2026-01-10T10:00:00Z \\
+  --valid-from 2026-01-01T00:00:00Z \\
+  --at 2026-01-02T00:00:00Z \\
+  --known-at 2026-01-10T10:00:00Z \\
+  --output trace-evidence.html
+```
+
+Unsupported extensions, invalid/non-finite altitude, DTD/entities, remote
+geometry and ambiguous source identities fail closed. The source label and sample grouping come from
+the original GPX, not from inferred geographic truth.
+
+
+### Explore one original GPX source trace segment
+
+When a GPX route or track appears, the GPX source trace / segment selector offers one option per original source, trace and segment. Selecting it filters the displayed reports and the existing GeoJSON/CSV export to source-attributed samples, with original and currently visible sample counts. The All traces button restores all source claims. Segments never imply observed physical travel, nor are points missing from a filtered view connected into a fabricated path.
+
+
+## GPX source segment profile (WORK-0025)
+
+Select a **GPX source trace / segment** in the standalone map and click **Export source segment profile**. The downloadable JSON retains each currently visible original Point report and its source/evidence identifiers, the unchanged bitemporal map query, filters, original segment identity and original sample count. It counts only originally consecutive sample pairs that both survive all active filters. The summed approximate great-circle **coordinate separations** in kilometers are not the surveyed route length, physical distance traveled, verified motion, inferred speed, or complete geometry. Missing or hidden samples are never bridged; clearing the selection disables the export. Everything works offline without additional dependencies.
+
+## Original GPX sample UTC-day filter (WORK-0025)
+
+In the offline source evidence map, GPX source sample from / through (UTC day) uses the original GPX route/track sample timestamps, independently of captured_at, world validity or knowledge time. The inclusive filter only retains timestamped original source trace samples while active; untimed readings, standalone waypoints and unrelated formats are excluded. Report lists, visible map links, source trace profiles and GeoJSON exports share the filter. The exported derivative records both bounds and the original source-clock basis, preserving source/evidence/assertion IDs. Filtered sample-order gaps are never connected. These timestamps do not establish verified travel, speed or physical events.
+
+
+## Inspect one original GPX sample at a time (WORK-0025)
+
+After selecting an original route or track segment, **Next source sample** and
+**Previous source sample** inspect currently matching Point assertions in their
+original GPX order, centering each reported coordinate and exposing its source,
+assertion and evidence IDs. Navigation stops at visible segment bounds and
+respects the existing filters. Hidden samples are skipped rather than interpolated;
+no path, verified movement or physical location is inferred. The original offline
+source snapshot and GeoJSON/CSV export semantics remain unchanged.

@@ -71,6 +71,170 @@ jobs:
           grep -q 'original-gpx' /tmp/monde-gpx-dom.html
           grep -q 'site-original' /tmp/monde-gpx-dom.html
           grep -q '<circle' /tmp/monde-gpx-dom.html
+      - name: Render GPX route/track source samples in real offline Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          cat > /tmp/monde-trace.gpx <<'GPX'
+          <?xml version="1.0"?>
+          <gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="survey">
+          <rte><name>field-survey</name>
+          <rtept lat="48.850" lon="2.350"><ele>12.5</ele><time>2026-01-01T09:00:00Z</time></rtept>
+          <rtept lat="48.860" lon="2.360"><ele>18</ele><time>2026-01-01T09:01:00Z</time></rtept>
+          <rtept lat="48.865" lon="2.365"><ele>11.5</ele><time>2026-01-01T08:59:00Z</time></rtept></rte>
+          <trk><name>survey-track</name><trkseg>
+          <trkpt lat="40.70" lon="-73.99"/><trkpt lat="40.71" lon="-73.98"/>
+          </trkseg><trkseg>
+          <trkpt lat="40.72" lon="-73.97"/><trkpt lat="40.73" lon="-73.96"/>
+          </trkseg></trk></gpx>
+          GPX
+          python3 -m monde.map_view --gpx /tmp/monde-trace.gpx \
+            --source-id original-gpx-track --source-locator dataset://gpx-track \
+            --captured-at 2026-01-10T10:00:00Z \
+            --valid-from 2026-01-01T00:00:00Z \
+            --at 2026-01-02T00:00:00Z \
+            --known-at 2026-01-10T10:00:00Z \
+            --output /tmp/monde-gpx-track.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --timeout=15000 --dump-dom file:///tmp/monde-gpx-track.html \
+            >/tmp/monde-gpx-track-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-gpx-track-dom.html
+          grep -q 'data-monde-gpx-segments="4"' /tmp/monde-gpx-track-dom.html
+          grep -q 'data-gpx-trace=' /tmp/monde-gpx-track-dom.html
+          grep -q 'field-survey' /tmp/monde-gpx-track-dom.html
+      - name: Filter source-reported GPX sample UTC days in real offline Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path('/tmp/monde-trace.gpx').read_text(encoding='utf-8')
+          text = text.replace('2026-01-01T08:59:00Z', '2026-01-02T08:59:00Z')
+          text = text.replace('<rte><name>field-survey</name>',
+              '<wpt lat="48.840" lon="2.340"><name>untimed-waypoint</name></wpt>'
+              '<rte><name>field-survey</name>')
+          Path('/tmp/monde-source-days.gpx').write_text(text, encoding='utf-8')
+          PY
+          python3 -m monde.map_view --gpx /tmp/monde-source-days.gpx \
+            --source-id clock-gpx --source-locator dataset://gpx-clock \
+            --captured-at 2026-01-10T10:00:00Z \
+            --valid-from 2026-01-01T00:00:00Z \
+            --at 2026-01-02T00:00:00Z \
+            --known-at 2026-01-10T10:00:00Z \
+            --output /tmp/monde-gpx-source-days.html
+          python3 - <<'PY'
+          from pathlib import Path
+          html = Path('/tmp/monde-gpx-source-days.html').read_text(encoding='utf-8')
+          check = """<script>
+          (async function(){
+            try{
+              var original=document.getElementById('monde-data').textContent;
+              var from=document.getElementById('gpx-clock-from');
+              var through=document.getElementById('gpx-clock-through');
+              var clear=document.getElementById('clear-gpx-clock');
+              var list=()=>document.querySelectorAll('#report-list button').length;
+              var links=()=>document.querySelectorAll('#source-traces line').length;
+              if(document.getElementById('gpx-clock-filter-control').hidden ||
+                 list()!==8)throw Error('missing original GPX clock test evidence');
+              from.value='2026-01-01';through.value='2026-01-01';
+              from.dispatchEvent(new Event('change'));
+              if(list()!==2 || links()!==1 || clear.disabled)
+                throw Error('inclusive UTC day filter failed or bridged source gap');
+              var resultBlob=null;
+              URL.createObjectURL=function(v){resultBlob=v;return 'blob:gpx-days';};
+              HTMLAnchorElement.prototype.click=function(){};
+              document.getElementById('export-visible').click();
+              var result=JSON.parse(await resultBlob.text());
+              if(result.features.length!==2 ||
+                 result.monde_visible_export.original_feature_count!==8 ||
+                 result.monde_visible_export.filters.gpx_source_sample_from_utc_day!=='2026-01-01' ||
+                 result.monde_visible_export.filters.gpx_source_sample_through_utc_day!=='2026-01-01' ||
+                 !result.monde_visible_export.filters.gpx_source_sample_time_basis ||
+                 result.features.some(f=>!f.properties.evidence_id ||
+                   !f.properties.source_id || !f.properties.monde_gpx_sample_time))
+                throw Error('filtered original source export lost evidence lineage');
+              from.value='2026-01-02';through.value='2026-01-02';
+              from.dispatchEvent(new Event('change'));
+              if(list()!==1 || links()!==0)
+                throw Error('day 2 source sample must not bridge filtered gap');
+              clear.click();
+              if(list()!==8 || !clear.disabled ||
+                 document.getElementById('monde-data').textContent!==original)
+                throw Error('source clocks filter did not restore immutable evidence');
+              document.body.setAttribute('data-monde-gpx-clock-filter','pass');
+            }catch(e){document.body.setAttribute('data-monde-gpx-clock-filter','fail:'+e.message);}
+          }()).catch(e=>document.body.setAttribute('data-monde-gpx-clock-filter','fail:'+e.message));
+          </script>"""
+          Path('/tmp/monde-gpx-clock-probe.html').write_text(
+              html.replace('</body>',check+'</body>'),encoding='utf-8')
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=2500 --timeout=15000 --dump-dom \
+            file:///tmp/monde-gpx-clock-probe.html > /tmp/monde-gpx-clock-dom.html
+          if ! grep -q 'data-monde-gpx-clock-filter="pass"' /tmp/monde-gpx-clock-dom.html; then
+            grep -o 'data-monde-gpx-clock-filter="[^"]*"' /tmp/monde-gpx-clock-dom.html || true
+            exit 1
+          fi
+      - name: Filter original GPX segments in an actual offline Chromium browser
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path("/tmp/monde-gpx-track.html").read_text(encoding="utf-8")
+          probe = """<script>
+          (async function(){
+            try{
+              var selector=document.getElementById('trace-filter');
+              var clear=document.getElementById('clear-trace-filter');
+              var reports=document.getElementById('report-list');
+              if(selector.options.length!==4||
+                  reports.querySelectorAll('button').length!==7)
+                throw Error('missing three source segments or seven samples');
+              selector.selectedIndex=1;
+              selector.dispatchEvent(new Event('change'));
+              if(reports.querySelectorAll('button').length!==3||
+                 document.querySelectorAll('#source-traces line').length!==2||
+                 clear.disabled)throw Error('route selection lost original samples');
+              var blob=null,originalURL=URL.createObjectURL;
+              var originalClick=HTMLAnchorElement.prototype.click;
+              URL.createObjectURL=function(b){blob=b;return 'blob:offline-segment';};
+              HTMLAnchorElement.prototype.click=function(){};
+              document.getElementById('export-visible').click();
+              var exported=JSON.parse(await blob.text());
+              var choice=exported.monde_visible_export.filters.gpx_source_trace;
+              if(exported.features.length!==3||!choice||
+                 choice.name!=='field-survey'||choice.segment!==0)
+                throw Error('source-identified trace filtering missing from export');
+              selector.selectedIndex=3;
+              selector.dispatchEvent(new Event('change'));
+              if(reports.querySelectorAll('button').length!==2||
+                 document.querySelectorAll('#source-traces line').length!==1)
+                throw Error('separate track segment not independently selectable');
+              clear.click();
+              if(reports.querySelectorAll('button').length!==7||
+                 document.querySelectorAll('#source-traces line').length!==4||
+                 !clear.disabled)throw Error('trace clearing lost original evidence');
+              URL.createObjectURL=originalURL;
+              HTMLAnchorElement.prototype.click=originalClick;
+              document.body.setAttribute('data-monde-gpx-filter','pass');
+            }catch(e){document.body.setAttribute('data-monde-gpx-filter','fail:'+e.message);}
+          }()).catch(e=>document.body.setAttribute('data-monde-gpx-filter','fail:'+e.message));
+          </script>"""
+          Path("/tmp/monde-gpx-trace-filter.html").write_text(
+              src.replace("</body>", probe+"</body>"), encoding="utf-8")
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=2000 --timeout=15000 --dump-dom \
+            file:///tmp/monde-gpx-trace-filter.html >/tmp/monde-gpx-filter-dom.html
+          if ! grep -q 'data-monde-gpx-filter="pass"' /tmp/monde-gpx-filter-dom.html; then
+            grep -o 'data-monde-gpx-filter="[^"]*"' /tmp/monde-gpx-filter-dom.html || true
+            exit 1
+          fi
       - name: Generate standalone HTML map from actual source Point fixture
         env:
           PYTHONPATH: src
@@ -685,6 +849,112 @@ jobs:
             file:///tmp/monde-capture-timeline-smoke.html > /tmp/monde-capture-timeline-dom.html
           if ! grep -q 'data-monde-capture-timeline="pass"' /tmp/monde-capture-timeline-dom.html; then
             grep -o 'data-monde-capture-timeline="[^"]*"' /tmp/monde-capture-timeline-dom.html || true
+            exit 1
+          fi
+      - name: Export selected original GPX source segment profile in actual Chromium
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          html = Path('/tmp/monde-gpx-track.html').read_text(encoding='utf-8')
+          check = """<script>
+          (async function(){
+            try{
+              var raw=document.getElementById('monde-data').textContent;
+              var selector=document.getElementById('trace-filter');
+              var exportButton=document.getElementById('export-trace-profile');
+              if(!exportButton.disabled || selector.options.length!==4)
+                throw Error('profile should require an original segment selection');
+              selector.selectedIndex=1;
+              selector.dispatchEvent(new Event('change'));
+              if(exportButton.disabled)throw Error('selected source segment not exportable');
+              var prev=document.getElementById('previous-gpx-sample');
+              var next=document.getElementById('next-gpx-sample');
+              var position=document.getElementById('gpx-sample-position');
+              if(!prev.disabled || next.disabled)throw Error('wrong initial source navigation');
+              next.click();
+              if(!position.textContent.includes('sample 1 of 3') ||
+                 !prev.disabled || next.disabled)
+                throw Error('first original source sample not selected');
+              var evidenceFirst=document.getElementById('details').textContent;
+              next.click();
+              if(!position.textContent.includes('sample 2 of 3') || prev.disabled)
+                throw Error('second original source sample not selected');
+              var evidenceSecond=document.getElementById('details').textContent;
+              if(evidenceFirst===evidenceSecond)throw Error('duplicate source selection');
+              next.click();
+              if(!position.textContent.includes('sample 3 of 3') ||
+                 !next.disabled || prev.disabled)
+                throw Error('third original source sample not selected');
+              prev.click();
+              if(!position.textContent.includes('sample 2 of 3') ||
+                 document.getElementById('details').textContent!==evidenceSecond)
+                throw Error('reverse navigation did not restore exact evidence');
+              var blob=null,filename=null;
+              URL.createObjectURL=function(value){blob=value;return 'blob:gpx-profile';};
+              HTMLAnchorElement.prototype.click=function(){filename=this.download;};
+              exportButton.click();
+              if(!blob || filename!=='monde-source-segment-profile.json')
+                throw Error('missing offline source segment export');
+              var result=JSON.parse(await blob.text());
+              if(result.format!=='MONDE_MINI_GPX_SOURCE_SEGMENT_PROFILE_V1' ||
+                  result.visible_sample_count!==3 ||
+                  result.adjacent_pair_count!==2 ||
+                  result.approximate_adjacent_separation_km<1.5 ||
+                  result.approximate_adjacent_separation_km>3.5 ||
+                  result.source_trace.original_sample_count!==3 ||
+                  result.source_timestamp_pair_count!==2 ||
+                  result.reversed_source_timestamp_pair_count!==1 ||
+                  result.missing_source_timestamp_pair_count!==0 ||
+                  result.nonnegative_source_timestamp_delta_seconds!==60 ||
+                  result.source_timestamp_pairs[0].source_reported_delta_seconds!==60 ||
+                  result.source_timestamp_pairs[1].source_reported_delta_seconds!==-120 ||
+                  result.source_elevation_sample_count!==3 ||
+                  result.source_elevation_pair_count!==2 ||
+                  result.missing_source_elevation_pair_count!==0 ||
+                  result.source_elevation_samples[0].source_reported_elevation_m!==12.5 ||
+                  result.source_elevation_pairs[0].source_reported_elevation_delta_m!==5.5 ||
+                  result.source_elevation_pairs[1].source_reported_elevation_delta_m!==-6.5 ||
+                  result.source_elevation_pairs[0].from_assertion_id!==result.original_reports[0].id ||
+                  result.source_elevation_pairs[1].to_assertion_id!==result.original_reports[2].id ||
+                  result.original_reports.some(f=>!f.properties.monde_gpx_sample_time) ||
+                  result.original_reports.length!==3 ||
+                  result.original_reports.some(f=>!f.id || !f.properties.evidence_id ||
+                    !f.properties.source_id) ||
+                  !result.applied_filters.gpx_source_trace ||
+                  !result.source_query)
+                throw Error('invalid profile: '+JSON.stringify({samples:result.visible_sample_count,
+                  pairs:result.adjacent_pair_count,
+                  km:result.approximate_adjacent_separation_km,
+                  original:result.source_trace.original_sample_count,
+                  exported:result.original_reports.length,
+                  filters:!!result.applied_filters.gpx_source_trace,
+                  query:!!result.source_query}));
+              document.getElementById('report-search').value='not-a-source-record';
+              document.getElementById('report-search').dispatchEvent(new Event('input'));
+              if(!exportButton.disabled)throw Error('empty profile remained exportable');
+              if(!prev.disabled || !next.disabled ||
+                 !position.textContent.includes('No original source samples'))
+                throw Error('source navigator ignored active filters');
+              document.getElementById('report-search').value='';
+              document.getElementById('report-search').dispatchEvent(new Event('input'));
+              document.getElementById('clear-trace-filter').click();
+              if(!exportButton.disabled || !prev.disabled || !next.disabled ||
+                  document.getElementById('monde-data').textContent!==raw)
+                throw Error('clear selection changed immutable evidence');
+              document.body.setAttribute('data-monde-gpx-profile','pass');
+            }catch(e){document.body.setAttribute('data-monde-gpx-profile','fail:'+e.message);}
+          }()).catch(e=>document.body.setAttribute('data-monde-gpx-profile','fail:'+e.message));
+          </script>"""
+          Path('/tmp/monde-gpx-profile-smoke.html').write_text(
+              html.replace('</body>',check+'</body>'),encoding='utf-8')
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=2500 --timeout=15000 --dump-dom \
+            file:///tmp/monde-gpx-profile-smoke.html >/tmp/monde-gpx-profile-dom.html
+          if ! grep -q 'data-monde-gpx-profile="pass"' /tmp/monde-gpx-profile-dom.html; then
+            grep -o 'data-monde-gpx-profile="[^"]*"' /tmp/monde-gpx-profile-dom.html || true
             exit 1
           fi
       - name: Attach actual offline HTML map for product preview

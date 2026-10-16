@@ -35,6 +35,7 @@ main{display:grid;grid-template-columns:minmax(0,2fr) minmax(290px,1fr);gap:16px
 section,aside{border:1px solid #314154;border-radius:12px;background:#182436;padding:14px;min-width:0}
 #map{width:100%;height:auto;max-height:65vh;background:#102b3b;border:1px solid #38526a;border-radius:8px;touch-action:none}
 #disagreement-links line{stroke:#f0a0e3;stroke-width:2.5;stroke-dasharray:7 5;opacity:.85;pointer-events:none}
+#source-traces line{stroke:#58e1dd;stroke-width:2.8;stroke-dasharray:3 2;opacity:.8;pointer-events:none}
 #points circle{cursor:pointer;stroke-width:2.4;outline:none}
 #points circle:focus{stroke:#fff;stroke-width:5}
 #points circle.inside{fill:#51d6ba;stroke:#093b39}
@@ -89,7 +90,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 </div>
 <svg id="map" role="img" tabindex="0" aria-label="Offline geographic context with separate source-reported evidence Points; drag or use arrow keys to pan" viewBox="0 0 1200 600">
 <rect width="1200" height="600" fill="#123044"></rect>
-<g id="land" aria-hidden="true"></g><g id="graticule"></g><g id="viewport"></g><g id="disagreement-links" aria-hidden="true"></g><g id="points"></g>
+<g id="land" aria-hidden="true"></g><g id="graticule"></g><g id="viewport"></g><g id="disagreement-links" aria-hidden="true"></g><g id="source-traces" aria-hidden="true"></g><g id="points"></g>
 </svg>
 <p class="subtle">Natural Earth 1:110m public-domain land outlines provide approximate geographic orientation only. They are not source evidence or verified entity positions. Drag to pan or use arrow keys, and fit matching reports to revisit source claims outside the display window. No online tiles or requests.</p>
 <p id="metrics"></p>
@@ -104,6 +105,22 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <button id="export-visible-csv" type="button" disabled>Export visible CSV</button>
 <button id="export-dossier" type="button" disabled>Export entity evidence dossier</button></div>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
+<div class="controls" id="trace-filter-control" hidden>
+<label for="trace-filter">GPX source trace / segment</label>
+<select id="trace-filter" aria-label="Select original GPX source trace and segment"><option value="">All source reports</option></select>
+<button id="clear-trace-filter" type="button" disabled>All traces</button><button id="export-trace-profile" type="button" disabled>Export source segment profile</button></div>
+<p id="trace-filter-summary" class="subtle" role="status" aria-live="polite" hidden></p>
+<div class="controls" id="gpx-sample-navigation" hidden>
+<button id="previous-gpx-sample" type="button" disabled>Previous source sample</button>
+<button id="next-gpx-sample" type="button" disabled>Next source sample</button></div>
+<p id="gpx-sample-position" class="subtle" role="status" aria-live="polite" hidden></p>
+<div class="controls" id="gpx-clock-filter-control" hidden>
+<label for="gpx-clock-from">GPX source sample from (UTC day)</label>
+<input id="gpx-clock-from" type="date" aria-label="GPX source sample from UTC day">
+<label for="gpx-clock-through">GPX source sample through (UTC day)</label>
+<input id="gpx-clock-through" type="date" aria-label="GPX source sample through UTC day">
+<button id="clear-gpx-clock" type="button" disabled>All GPX sample days</button></div>
+<p class="subtle" id="gpx-clock-summary" hidden>Original source clocks only, not capture time, valid time or observed movement; filtering never bridges missing samples.</p>
 <div class="controls"><label for="entities">Entity</label><select id="entities"><option value="">All entities</option></select></div>
 <div class="controls"><label for="captured-from">Captured from (UTC day)</label><input id="captured-from" type="date" aria-label="Captured from UTC day">
 <label for="captured-through">Captured through (UTC day)</label><input id="captured-through" type="date" aria-label="Captured through UTC day"></div>
@@ -118,7 +135,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <p id="radius-summary" class="subtle">Select an original source report to choose a proximity center. Distances are approximate, between reported coordinates only.</p>
 <div class="controls"><label><input id="disagreements-only" type="checkbox"> Different-source position claims only</label></div>
 <div class="controls"><label><input id="show-disagreement-links" type="checkbox" checked> Show source-position disagreement links</label></div>
-<p class="subtle">Dashed disagreement links are not routes, movements, uncertainty estimates or verified physical locations.</p>
+<p class="subtle">Pink dashed disagreement links are not routes, movements, uncertainty estimates or verified locations. Cyan dashed GPX sample connections, when present, show original source order only — not a verified physical path or continuous movement.</p>
 <div class="controls" id="change-filter-control" hidden><label for="change-filter">Reported change</label>
 <select id="change-filter"><option value="">All changes</option><option value="NEWLY_CURRENT">Newly current</option><option value="NO_LONGER_CURRENT">No longer current</option></select></div>
 <ul id="report-list" aria-label="Reported points"></ul>
@@ -156,10 +173,22 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var grid = document.getElementById("graticule");
   var layer = document.getElementById("points");
   var linkLayer = document.getElementById("disagreement-links");
+  var traceLayer = document.getElementById("source-traces");
   var showLinks = document.getElementById("show-disagreement-links");
   var list = document.getElementById("report-list");
   var details = document.getElementById("details");
   var sources = document.getElementById("sources");
+  var traceFilter = document.getElementById("trace-filter");
+  var traceClear = document.getElementById("clear-trace-filter");
+  var traceSummary = document.getElementById("trace-filter-summary");
+  var tracePrevious = document.getElementById("previous-gpx-sample");
+  var traceNext = document.getElementById("next-gpx-sample");
+  var tracePosition = document.getElementById("gpx-sample-position");
+  var gpxClockFrom = document.getElementById("gpx-clock-from");
+  var gpxClockThrough = document.getElementById("gpx-clock-through");
+  var gpxClockClear = document.getElementById("clear-gpx-clock");
+  var gpxClockSummary = document.getElementById("gpx-clock-summary");
+  var exportTraceProfile = document.getElementById("export-trace-profile");
   var entities = document.getElementById("entities");
   var capturedFrom = document.getElementById("captured-from");
   var capturedThrough = document.getElementById("captured-through");
@@ -249,6 +278,38 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     var mid=y1+(y2-y1)*(edge-x1)/(x2-x1);
     segment(x1,y1,edge,mid);
     segment(edge===0?1200:0,mid,x2<0?x2+1200:x2-1200,y2);
+  }
+  function renderSourceTraces(reports) {
+    traceLayer.replaceChildren();
+    var grouped = new Map();
+    reports.forEach(function(feature) {
+      var trace=feature.properties.monde_gpx_trace;
+      if(!trace)return;
+      var key=JSON.stringify([feature.properties.source_id,trace.trace_id,
+                              trace.segment]);
+      if(!grouped.has(key))grouped.set(key,[]);
+      grouped.get(key).push(feature);
+    });
+    grouped.forEach(function(samples) {
+      samples.sort(function(a,b){
+        return a.properties.monde_gpx_trace.order -
+          b.properties.monde_gpx_trace.order;
+      });
+      for(var i=1;i<samples.length;i++){
+        var from=samples[i-1],to=samples[i];
+        var first=from.properties.monde_gpx_trace;
+        var next=to.properties.monde_gpx_trace;
+        if(next.order!==first.order+1)continue; // No invented missing edges.
+        var a=from.geometry.coordinates,b=to.geometry.coordinates;
+        // The simple offline world projection never implies a path crossing
+        // the antimeridian: omit that segment instead of drawing across Earth.
+        if(Math.abs(a[0]-b[0])>180)continue;
+        el("line",{x1:x(a[0]),y1:y(a[1]),x2:x(b[0]),y2:y(b[1]),
+          "data-gpx-trace":first.trace_id},traceLayer);
+      }
+    });
+    document.body.setAttribute("data-monde-gpx-segments",
+      String(traceLayer.childElementCount));
   }
   function renderDisagreementLinks(reports) {
     linkLayer.replaceChildren();
@@ -374,6 +435,165 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   identities.forEach(function(id) {
     var option = document.createElement("option");
     option.value = id; label(option,id); sources.appendChild(option);
+  });
+  // Group only original source-reported samples. This does not imply movement.
+  function traceKey(feature) {
+    var p=feature.properties, trace=p.monde_gpx_trace;
+    return trace ? JSON.stringify([p.source_id,trace.trace_id,trace.segment]) : null;
+  }
+  var availableTraces=new Map();
+  features.forEach(function(f){
+    var key=traceKey(f);
+    if(key===null)return;
+    var meta=f.properties.monde_gpx_trace;
+    if(!availableTraces.has(key))availableTraces.set(key,{
+      source:f.properties.source_id,name:meta.name,kind:meta.kind,
+      segment:meta.segment,count:0
+    });
+    availableTraces.get(key).count++;
+  });
+  if(availableTraces.size){
+    document.getElementById("trace-filter-control").hidden=false;
+    traceSummary.hidden=false;
+    document.getElementById("gpx-sample-navigation").hidden=false;
+    tracePosition.hidden=false;
+    document.getElementById("gpx-clock-filter-control").hidden=false;
+    gpxClockSummary.hidden=false;
+    var options=Array.from(availableTraces.entries());
+    options.sort(function(a,b){
+      var aa=a[1],bb=b[1];
+      return aa.source.localeCompare(bb.source)||aa.name.localeCompare(bb.name)||
+        aa.kind.localeCompare(bb.kind)||aa.segment-bb.segment;
+    });
+    options.forEach(function(entry){
+      var item=entry[1],option=document.createElement("option");
+      option.value=entry[0];
+      label(option,item.source+" · "+item.kind+" "+item.name+
+        " · segment "+String(item.segment+1)+" · "+String(item.count)+" samples");
+      traceFilter.appendChild(option);
+    });
+  }
+  // Navigate filtered source claims in original segment order, never missing
+  // samples or inferred positions. The embedded evidence remains immutable.
+  function navigableTraceSamples() {
+    if(!traceFilter.value)return [];
+    return visibleFeatures.filter(function(f){
+      return traceKey(f)===traceFilter.value;
+    }).slice().sort(function(a,b){
+      return a.properties.monde_gpx_trace.order -
+        b.properties.monde_gpx_trace.order;
+    });
+  }
+  function updateTraceNavigation() {
+    var samples=navigableTraceSamples();
+    var index=samples.findIndex(function(f){return f.id===selectedId;});
+    tracePrevious.disabled=index<=0;
+    traceNext.disabled=!samples.length||index===samples.length-1;
+    tracePosition.textContent=!traceFilter.value ?
+      "Select an original GPX segment to inspect its source samples in order." :
+      !samples.length ?
+        "No original source samples match the current filters; nothing is inferred." :
+      index<0 ?
+        String(samples.length)+" filtered original source samples. Choose Next to inspect the first." :
+        "Visible source sample "+String(index+1)+" of "+String(samples.length)+
+        " · original order "+String(samples[index].properties.monde_gpx_trace.order+1)+
+        ". These are reported coordinates, not verified movement or a journey.";
+  }
+  function moveTraceSelection(step) {
+    var samples=navigableTraceSamples();
+    var index=samples.findIndex(function(f){return f.id===selectedId;});
+    var next=index+step;
+    if(step>0&&index<0)next=0;
+    if(next>=0&&next<samples.length)inspect(samples[next]);
+  }
+  tracePrevious.addEventListener("click",function(){moveTraceSelection(-1);});
+  traceNext.addEventListener("click",function(){moveTraceSelection(1);});
+  // This is a profile of original *source claims*, not a measured journey.
+  // A pair is counted only when both reports survive every active filter and
+  // the original sample orders are adjacent within one source/trace/segment.
+  function sourceTraceProfile() {
+    if(!traceFilter.value || !availableTraces.has(traceFilter.value))return null;
+    var identity=availableTraces.get(traceFilter.value);
+    var samples=visibleFeatures.filter(function(f){
+      return traceKey(f)===traceFilter.value;
+    }).slice().sort(function(a,b){
+      return a.properties.monde_gpx_trace.order -
+        b.properties.monde_gpx_trace.order;
+    });
+    if(!samples.length)return null;
+    var count=0,km=0,missingTimes=0,reversedTimes=0,forwardSeconds=0;
+    var sourceTimestampPairs=[],sourceElevationPairs=[],missingElevations=0;
+    var sourceElevationSamples=samples.filter(function(f){
+      return typeof f.properties.monde_gpx_sample_elevation_m==="number" &&
+        Number.isFinite(f.properties.monde_gpx_sample_elevation_m);
+    }).map(function(f){
+      return {assertion_id:f.id,evidence_id:f.properties.evidence_id,
+        source_id:f.properties.source_id,
+        original_sample_order:f.properties.monde_gpx_trace.order,
+        source_reported_elevation_m:f.properties.monde_gpx_sample_elevation_m};
+    });
+    for(var i=1;i<samples.length;i++){
+      var from=samples[i-1],to=samples[i];
+      if(to.properties.monde_gpx_trace.order !==
+          from.properties.monde_gpx_trace.order+1)continue;
+      km+=approximateDistanceKm(from.geometry.coordinates,to.geometry.coordinates);
+      count++;
+      var fromElev=from.properties.monde_gpx_sample_elevation_m;
+      var toElev=to.properties.monde_gpx_sample_elevation_m;
+      if(typeof fromElev!=="number" || !Number.isFinite(fromElev) ||
+          typeof toElev!=="number" || !Number.isFinite(toElev)){
+        missingElevations++;
+      }else{
+        sourceElevationPairs.push({from_assertion_id:from.id,
+          to_assertion_id:to.id,from_source_reported_elevation_m:fromElev,
+          to_source_reported_elevation_m:toElev,
+          source_reported_elevation_delta_m:toElev-fromElev});
+      }
+      var fromText=from.properties.monde_gpx_sample_time;
+      var toText=to.properties.monde_gpx_sample_time;
+      var fromTime=typeof fromText==="string"?Date.parse(fromText):NaN;
+      var toTime=typeof toText==="string"?Date.parse(toText):NaN;
+      if(!Number.isFinite(fromTime)||!Number.isFinite(toTime)){
+        missingTimes++;continue;
+      }
+      var delta=(toTime-fromTime)/1000;
+      if(delta<0)reversedTimes++;else forwardSeconds+=delta;
+      sourceTimestampPairs.push({from_assertion_id:from.id,
+        to_assertion_id:to.id,from_source_time:fromText,
+        to_source_time:toText,source_reported_delta_seconds:delta});
+    }
+    return {
+      format:"MONDE_MINI_GPX_SOURCE_SEGMENT_PROFILE_V1",
+      scope:"FILTERED_ORIGINAL_SOURCE_REPORTED_SAMPLES",
+      source_query:query,
+      applied_filters:appliedFilters(),
+      source_trace:{source_id:identity.source,kind:identity.kind,
+        name:identity.name,segment:identity.segment,
+        original_sample_count:identity.count},
+      visible_sample_count:samples.length,
+      adjacent_pair_count:count,
+      approximate_adjacent_separation_km:Math.round(km*1000)/1000,
+      source_timestamp_pair_count:sourceTimestampPairs.length,
+      missing_source_timestamp_pair_count:missingTimes,
+      reversed_source_timestamp_pair_count:reversedTimes,
+      nonnegative_source_timestamp_delta_seconds:forwardSeconds,
+      source_timestamp_pairs:sourceTimestampPairs,
+      source_elevation_sample_count:sourceElevationSamples.length,
+      source_elevation_pair_count:sourceElevationPairs.length,
+      missing_source_elevation_pair_count:missingElevations,
+      source_elevation_samples:sourceElevationSamples,
+      source_elevation_pairs:sourceElevationPairs,
+      source_elevation_interpretation:"Original GPX source-reported elevations only. Adjacent signed differences do not prove terrain altitude, ascent, descent, slope, travel or complete sampling; filtered gaps are never bridged.",
+      source_time_interpretation:"Original GPX source clock only. Pairwise differences do not prove elapsed physical travel, speed or complete coverage; filtered gaps are never bridged.",
+      distance_method:"SUM_OF_SHORTEST_GREAT_CIRCLE_SEPARATIONS_BETWEEN_VISIBLE_CONSECUTIVE_SOURCE_SAMPLES",
+      completeness:"Filtered derivative. Hidden or non-adjacent samples are never bridged.",
+      interpretation:"Approximate separation of source-reported coordinates only; no verified movement, actual traveled distance, path continuity, speed, or source authority.",
+      original_reports:samples
+    };
+  }
+  exportTraceProfile.addEventListener("click",function(){
+    var profile=sourceTraceProfile();
+    if(profile)saveEvidence(profile,"monde-source-segment-profile.json","application/json");
   });
   // A disagreement is *different sources reporting different coordinates* for
   // the same entity. This is not a confidence/physical-location judgement.
@@ -502,11 +722,19 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   // Apply exactly the same filters for display and for fitting. Only the
   // current map window is ignored for fitting, so off-screen matches recover.
+  function originalGpxSourceDay(f) {
+    var p=f.properties;
+    if(!p.monde_gpx_trace || typeof p.monde_gpx_sample_time!=="string")return null;
+    var clock=Date.parse(p.monde_gpx_sample_time);
+    return Number.isFinite(clock) ? new Date(clock).toISOString().slice(0,10) : null;
+  }
   function matchesFilters(f, ignoreDisplayedWindow, ignoreEntity, ignoreCaptureDays) {
     var p = f.properties;
     var instant = Date.parse(p.captured_at);
     var capturedDay = Number.isFinite(instant) ?
       new Date(instant).toISOString().slice(0,10) : null;
+    var sampleDay=(gpxClockFrom.value || gpxClockThrough.value) ?
+      originalGpxSourceDay(f) : null;
     var words = search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     var indexed = [f.id,p.entity,p.source_id,p.evidence_id,p.locator]
       .join(" ").toLocaleLowerCase();
@@ -515,11 +743,16 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       (!insideOnly.checked || p.monde_inside_bbox) &&
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
+      (!traceFilter.value || traceKey(f) === traceFilter.value) &&
       ((ignoreEntity === true) || !entities.value || p.entity === entities.value) &&
       (ignoreCaptureDays || !capturedFrom.value ||
         (capturedDay !== null && capturedDay >= capturedFrom.value)) &&
       (ignoreCaptureDays || !capturedThrough.value ||
         (capturedDay !== null && capturedDay <= capturedThrough.value)) &&
+      (!gpxClockFrom.value || (sampleDay !== null &&
+        sampleDay >= gpxClockFrom.value)) &&
+      (!gpxClockThrough.value || (sampleDay !== null &&
+        sampleDay <= gpxClockThrough.value)) &&
       (!differentOnly.checked || disputedEntities.has(p.entity)) &&
       (!comparing || !changeFilter.value ||
        p.monde_change === changeFilter.value);
@@ -664,6 +897,37 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     renderConflictNavigator();
     renderCaptureTimeline();
     visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
+    gpxClockClear.disabled=!gpxClockFrom.value&&!gpxClockThrough.value;
+    if(availableTraces.size)gpxClockSummary.textContent=gpxClockClear.disabled ?
+      "Original source sample UTC days; not evidence capture or physical travel." :
+      String(visibleFeatures.length)+" timestamped GPX source samples; untimed and unrelated reports excluded. Original gaps retained.";
+    traceClear.disabled=!traceFilter.value;
+    var traceProfile=sourceTraceProfile();
+    exportTraceProfile.disabled=!traceProfile;
+    if(availableTraces.size){
+      if(traceFilter.value){
+        var selectedTrace=availableTraces.get(traceFilter.value);
+        traceSummary.textContent=selectedTrace ?
+          String(visibleFeatures.length)+" visible original sample reports of "+
+            String(selectedTrace.count)+" in "+selectedTrace.source+" / "+
+            selectedTrace.kind+" "+selectedTrace.name+" / segment "+
+            String(selectedTrace.segment+1)+
+            (traceProfile ? ". "+String(traceProfile.adjacent_pair_count)+
+              " visible consecutive source pairs · approx. "+
+              String(traceProfile.approximate_adjacent_separation_km)+
+              " km of coordinate separation · "+
+              String(traceProfile.source_timestamp_pair_count)+" source-clock pairs ("+
+              String(traceProfile.reversed_source_timestamp_pair_count)+
+              " reversed)." : ". No matching samples.")+
+            " No verified movement, speed, traveled distance or continuity." :
+          "This original trace is not available in the current evidence snapshot.";
+      }else{
+        traceSummary.textContent=String(availableTraces.size)+
+          " original source trace segments. Select one to inspect its separately "+
+          "attributed samples; no verified route or physical movement.";
+      }
+    }
+    updateTraceNavigation();
     fitButton.disabled = matchingReports().length === 0;
     updateMeasurement();
     radiusSummary.textContent = !radiusCenter ?
@@ -674,6 +938,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       " · assertion "+radiusCenter.assertion_id+" from "+radiusCenter.source_id+
       ". Source-reported coordinates only; not a verified position or ground truth.";
     renderDisagreementLinks(visibleFeatures);
+    renderSourceTraces(visibleFeatures);
     visibleFeatures.forEach(function(f) {
       var p = f.properties, coords = f.geometry.coordinates;
       var circle = el("circle", {cx:x(coords[0]),cy:y(coords[1]),
@@ -740,6 +1005,13 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     return {
       search: search.value.trim(),
       source_id: sources.value,
+      gpx_source_trace: traceFilter.value ? {
+        source_id: availableTraces.get(traceFilter.value).source,
+        kind: availableTraces.get(traceFilter.value).kind,
+        name: availableTraces.get(traceFilter.value).name,
+        segment: availableTraces.get(traceFilter.value).segment,
+        filter_key: traceFilter.value
+      } : null,
       entity: entities.value,
       source_radius_center: radiusCenter ? {
         assertion_id:radiusCenter.assertion_id,entity:radiusCenter.entity,
@@ -751,6 +1023,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         "APPROXIMATE_GREAT_CIRCLE_BETWEEN_SOURCE_REPORTED_POINTS" : null,
       captured_from_utc_day: capturedFrom.value,
       captured_through_utc_day: capturedThrough.value,
+      gpx_source_sample_from_utc_day: gpxClockFrom.value,
+      gpx_source_sample_through_utc_day: gpxClockThrough.value,
+      gpx_source_sample_time_basis: (gpxClockFrom.value || gpxClockThrough.value) ?
+        "ORIGINAL_GPX_SOURCE_REPORTED_CLOCK_NOT_VALIDITY_OR_CAPTURE" : null,
       different_source_positions_only: differentOnly.checked,
       inside_viewport_only: insideOnly.checked,
       displayed_map_window_only: currentViewOnly.checked,
@@ -862,6 +1138,13 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     if (dossier) saveEvidence(dossier,"monde-entity-evidence-dossier.json","application/json");
   });
   sources.addEventListener("change",render);
+  traceFilter.addEventListener("change",render);
+  traceClear.addEventListener("click",function(){traceFilter.value="";render();});
+  gpxClockFrom.addEventListener("change",render);
+  gpxClockThrough.addEventListener("change",render);
+  gpxClockClear.addEventListener("click",function(){
+    gpxClockFrom.value="";gpxClockThrough.value="";render();
+  });
   entities.addEventListener("change",render);
   capturedFrom.addEventListener("change",render);
   capturedThrough.addEventListener("change",render);
@@ -958,6 +1241,31 @@ def render_map(document: dict) -> str:
                 or not -90 <= lat <= 90):
             raise ValueError("invalid source Point")
         props = feature["properties"]
+        trace = props.get("monde_gpx_trace")
+        if "monde_gpx_sample_time" in props and (
+                trace is None or not isinstance(props["monde_gpx_sample_time"], str)):
+            raise ValueError("invalid GPX source clock evidence")
+        if "monde_gpx_sample_elevation_m" in props and (
+                trace is None or
+                type(props["monde_gpx_sample_elevation_m"]) not in (int, float) or
+                not math.isfinite(props["monde_gpx_sample_elevation_m"])):
+            raise ValueError("invalid GPX source elevation evidence")
+        if trace is not None:
+            if (not isinstance(trace, dict) or set(trace) !=
+                    {"format", "kind", "name", "trace_id", "segment", "order"}
+                    or trace["format"] != "GPX_1_1_TRACE_POINT"
+                    or trace["kind"] not in ("trk", "rte")
+                    or not isinstance(trace["name"], str)
+                    or not trace["name"]
+                    or not isinstance(trace["trace_id"], str)
+                    or len(trace["trace_id"]) != 24
+                    or any(ch not in "0123456789abcdef"
+                           for ch in trace["trace_id"])
+                    or type(trace["segment"]) is not int
+                    or not 0 <= trace["segment"] < MAX_FEATURES
+                    or type(trace["order"]) is not int
+                    or not 0 <= trace["order"] < 50_000):
+                raise ValueError("invalid source-reported GPX topology")
         if (any(not isinstance(props.get(k), str)
                 for k in ("entity", "source_id", "evidence_id", "locator",
                           "captured_at")) or type(props.get("monde_inside_bbox")) is not bool):
