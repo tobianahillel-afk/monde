@@ -63,3 +63,30 @@ positions, with `monde_inside_bbox` for each time snapshot. Features are
 labelled `NEWLY_CURRENT` or `NO_LONGER_CURRENT`, never inferred motion;
 `monde_change_basis` is `REPORTED_VALIDITY_NOT_VERIFIED_MOTION`. Unchanged
 reports are omitted. This experimental comparison is unindexed.
+
+
+## XYZ Web Mercator tile addressing (multi-zoom)
+
+Use the same provenance-preserving bbox map export for a requested XYZ tile,
+without introducing an HTTP tile server or a separate GIS index:
+
+~~~sh
+PYTHONPATH=src python3 -m monde.world --fixture saved.json \
+  --export-geojson-tile '2,2,1' \
+  --at 2026-01-02T00:00:00Z --known-at 2026-01-10T10:00:00Z
+~~~
+
+The library call WorldMini.export_geojson_tile(zoom, x, y, at, known_at) accepts
+integer zoom 0..22 with x/y from zero through 2**zoom - 1. It converts
+Web Mercator XYZ bounds to a WGS84 bbox, then reuses search_geo_bbox via
+export_geojson_bbox. The GeoJSON includes monde_tile_query metadata
+(scheme, zoom/x/y, bbox, query basis and status), as well as the original
+monde_bbox_query and per-feature evidence, temporal provenance and
+monde_inside_bbox fields.
+
+XYZ covers latitudes only up to approximately 85.0511 degrees north/south;
+polar source reports may be absent even at zoom 0. Geographic boundaries
+are inclusive: a report exactly on a shared tile edge may appear twice
+in adjacent tiles. A matching entity retains *all* its competing source
+locations (including positions outside this tile), which are marked
+monde_inside_bbox = false. No reported location is promoted to physical truth.

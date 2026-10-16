@@ -314,5 +314,84 @@ class ViewportWorldTimeTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0, bad)
 
 
+
+class TileXYZTest(unittest.TestCase):
+    def test_tile_reuses_bbox_and_preserves_conflicting_source_provenance(self):
+        world = model()
+        add_report(world, [5, 45])
+        original = world.export()
+        tile = world.export_geojson_tile(2, 2, 1, AT, K)
+        bbox = tile["monde_tile_query"]["bbox_wgs84"]
+        self.assertEqual(tile["features"], world.export_geojson_bbox(bbox, AT, K)["features"])
+        self.assertEqual(tile["monde_tile_query"]["scheme"], "XYZ_WEB_MERCATOR")
+        self.assertEqual((bbox[0], bbox[2]), (0.0, 90.0))
+        self.assertEqual(len(tile["features"]), 2)
+        self.assertEqual({f["properties"]["source_id"] for f in tile["features"]},
+                         {"bbox-primary", "bbox-other"})
+        self.assertTrue(all(f["properties"]["evidence_id"] for f in tile["features"]))
+        self.assertEqual(world.export(), original)
+
+    def test_zoom_zero_and_empty_tile(self):
+        world = model()
+        whole = world.export_geojson_tile(0, 0, 0, AT, K)
+        self.assertEqual(whole["monde_tile_query"]["bbox_wgs84"][::2], [-180, 180])
+        self.assertTrue(whole["features"])
+        outside = world.export_geojson_tile(4, 0, 0, AT, K)
+        self.assertEqual(outside["monde_tile_query"]["status"], "NO_MATCHES")
+        self.assertEqual(outside["features"], [])
+
+    def test_antimeridian_and_extreme_zoom(self):
+        world = WorldMini()
+        source = WorldMini.load_document(str(POINTS))
+        source["features"] = source["features"][:1]
+        source["features"][0]["geometry"]["coordinates"] = [179.9, 0]
+        world.append_document(to_document(
+            source, source_id="tile-dateline", locator="fixture://tile-dateline",
+            captured_at=K, valid_from="2026-01-01T00:00:00Z"))
+        west = world.export_geojson_tile(2, 0, 1, AT, K)
+        east = world.export_geojson_tile(2, 3, 1, AT, K)
+        self.assertEqual(west["features"], [])
+        self.assertEqual(len(east["features"]), 1)
+        self.assertEqual(east["features"][0]["properties"]["source_id"], "tile-dateline")
+        self.assertEqual(world.export_geojson_tile(22, 0, 0, AT, K)["type"],
+                         "FeatureCollection")
+
+    def test_rejects_invalid_index_types_and_out_of_range(self):
+        world = model()
+        for indexes in [(-1, 0, 0), (23, 0, 0), (0, 1, 0),
+                        (1, -1, 0), (1, 0, 2), (2, 4, 0),
+                        (True, 0, 0), (0, 0.0, 0), (0, 0, "0")]:
+            with self.subTest(indexes=indexes), self.assertRaises(ValueError):
+                world.export_geojson_tile(*indexes, AT, K)
+
+    def test_saved_state_cli_and_incompatible_flags(self):
+        world = model()
+        add_report(world, [5, 45])
+        with tempfile.TemporaryDirectory() as directory:
+            saved = Path(directory) / "world.json"
+            world.save(saved)
+            unchanged = saved.read_bytes()
+            env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+            command = (sys.executable, "-m", "monde.world", "--fixture", str(saved))
+            flags = ("--export-geojson-tile", "2,2,1", "--at", AT, "--known-at", K)
+            ok = subprocess.run(command + flags, cwd=ROOT, env=env,
+                                text=True, capture_output=True, check=False)
+            self.assertEqual(ok.returncode, 0, ok.stderr)
+            result = json.loads(ok.stdout)
+            self.assertEqual(result["monde_tile_query"]["x"], 2)
+            self.assertEqual(len(result["features"]), 2)
+            self.assertEqual(saved.read_bytes(), unchanged)
+            for invalid in [
+                ("--export-geojson-tile", "2,4,1", "--at", AT, "--known-at", K),
+                ("--export-geojson-tile", "2,2", "--at", AT, "--known-at", K),
+                ("--export-geojson-tile", "2,2,1.5", "--at", AT, "--known-at", K),
+                ("--export-geojson-tile", "2,2,1", "--at", AT),
+                flags + ("--compare-known-at", K),
+            ]:
+                failure = subprocess.run(command + invalid, cwd=ROOT, env=env,
+                                         text=True, capture_output=True, check=False)
+                self.assertNotEqual(failure.returncode, 0, invalid)
+
+
 if __name__ == "__main__":
     unittest.main()

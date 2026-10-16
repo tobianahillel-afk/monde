@@ -380,6 +380,38 @@ class WorldMini:
             },
         }
 
+    def export_geojson_tile(self, zoom: int, x: int, y: int,
+                            at: str, known_at: str) -> dict:
+        """Export source-attributed GeoJSON for a Web Mercator XYZ tile.
+
+        This addresses a viewport; it is not a source of physical truth,
+        spatial interpolation or a server-side raster tile cache.
+        """
+        import math
+
+        if (type(zoom) is not int or type(x) is not int or type(y) is not int
+                or not 0 <= zoom <= 22):
+            raise ValueError("XYZ requires integer zoom in [0, 22] and x/y")
+        side = 1 << zoom
+        if not (0 <= x < side and 0 <= y < side):
+            raise ValueError("XYZ tile x/y outside zoom range")
+        west = x / side * 360.0 - 180.0
+        east = (x + 1) / side * 360.0 - 180.0
+
+        def latitude(row):
+            return math.degrees(math.atan(math.sinh(
+                math.pi * (1.0 - 2.0 * row / side))))
+
+        north, south = latitude(y), latitude(y + 1)
+        result = self.export_geojson_bbox([west, south, east, north], at, known_at)
+        result["monde_tile_query"] = {
+            "scheme": "XYZ_WEB_MERCATOR", "zoom": zoom, "x": x, "y": y,
+            "bbox_wgs84": [west, south, east, north],
+            "basis": "SOURCE_REPORTED_POINT_BBOX_ONLY",
+            "status": result["monde_bbox_query"]["status"],
+        }
+        return result
+
     def export_geojson_bbox_knowledge_changes(
             self, bounds, at: str, from_known_at: str, to_known_at: str) -> dict:
         """Map source Point changes touching a viewport at either knowledge cutoff.
@@ -1085,6 +1117,8 @@ def main(argv=None) -> int:
                            help="GeoJSON map of source Points within a radius")
     selection.add_argument("--export-geojson-bbox", metavar="W,S,E,N",
                            help="GeoJSON viewport entities with competing source positions")
+    selection.add_argument("--export-geojson-tile", metavar="Z,X,Y",
+                           help="source-attributed GeoJSON for Web Mercator XYZ tile")
     selection.add_argument("--export-geojson-bbox-changes", metavar="W,S,E,N",
                            help="knowledge-change map retaining source Points crossing a viewport")
     selection.add_argument("--export-geojson-bbox-world-changes", metavar="W,S,E,N",
@@ -1268,6 +1302,23 @@ def main(argv=None) -> int:
                 raise ValueError("bbox must contain numeric coordinates") from exc
             result = world.export_geojson_bbox_knowledge_changes(
                 bounds, args.at, args.compare_known_at, args.known_at)
+        elif args.export_geojson_tile is not None:
+            if (args.entity is not None or args.at is None or
+                    args.known_at is None or args.source_attribute is not None or
+                    args.equals_json is not None or args.timeline_from is not None
+                    or args.timeline_to is not None
+                    or args.knowledge_timeline_from is not None
+                    or args.compare_known_at is not None or args.compare_at is not None
+                    or args.updates_from is not None):
+                parser.error("GeoJSON tile export requires --at and --known-at")
+            parts = args.export_geojson_tile.split(",")
+            if len(parts) != 3:
+                raise ValueError("XYZ tile must be Z,X,Y")
+            try:
+                zoom, x, y = (int(part.strip()) for part in parts)
+            except ValueError as exc:
+                raise ValueError("XYZ tile requires integer Z,X,Y") from exc
+            result = world.export_geojson_tile(zoom, x, y, args.at, args.known_at)
         elif args.export_geojson_bbox is not None:
             if (args.entity is not None or args.at is None or
                     args.known_at is None or args.source_attribute is not None or
