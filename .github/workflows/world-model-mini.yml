@@ -19,3 +19,39 @@ jobs:
         env:
           PYTHONPATH: src
         run: python3 -m unittest discover -s tests -p 'test_world*.py' -v
+      - name: Generate standalone HTML map from actual source Point fixture
+        env:
+          PYTHONPATH: src
+        run: |
+          python3 - <<'PY'
+          from monde.world import WorldMini
+          from monde.geojson import to_document
+          w = WorldMini.read("examples/monde-mini.json")
+          points = WorldMini.load_document("examples/monde-mini-points.geojson")
+          w.append_document(to_document(points, source_id="map-demo",
+              locator="fixture://map-demo", captured_at="2026-01-10T10:00:00Z",
+              valid_from="2026-01-01T00:00:00Z"))
+          w.save("/tmp/monde-map-state.json")
+          PY
+          python3 -m monde.map_view \
+            --state /tmp/monde-map-state.json \
+            --bbox '2.34,48.84,2.36,48.87' \
+            --at '2026-01-02T00:00:00Z' \
+            --known-at '2026-01-10T10:00:00Z' \
+            --output /tmp/monde-evidence-map.html
+      - name: Verify real headless browser renders interactive markers
+        run: |
+          set -euo pipefail
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu \
+            --disable-dev-shm-usage --timeout=15000 --dump-dom \
+            file:///tmp/monde-evidence-map.html > /tmp/monde-rendered-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-rendered-dom.html
+          grep -q '<circle' /tmp/monde-rendered-dom.html
+          grep -q 'map-demo' /tmp/monde-rendered-dom.html
+      - name: Attach actual offline HTML map for product preview
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: monde-mini-offline-evidence-map
+          path: /tmp/monde-evidence-map.html
+          retention-days: 7
