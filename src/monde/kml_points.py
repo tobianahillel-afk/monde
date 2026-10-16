@@ -147,7 +147,9 @@ def to_geojson(path):
                                else "KML_2_2_LINESTRING_POINT"),
                     "kind": ("Polygon" if geometry.tag == tag("Polygon")
                              else "LineString"), "name": attrs.get("name", ident),
-                    "trace_id": trace_id, "segment": 0, "order": order}},
+                    "trace_id": trace_id, "segment": 0, "order": order,
+                    **({"placemark_id": ident} if geometry.tag == tag("Polygon")
+                       else {})}},
                 "geometry": {"type": "Point", "coordinates": point}})
     if not features:
         raise ValueError("KML contains no supported Point, LineString or Polygon Placemark")

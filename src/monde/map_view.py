@@ -666,6 +666,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       ...(p.monde_kml_trace ? [
         "KML source " + (p.monde_kml_trace.kind==="Polygon"?
           "boundary: ":"line: ") + p.monde_kml_trace.name,
+        ...(p.monde_kml_trace.kind==="Polygon" ?
+          ["Original KML Placemark id: "+p.monde_kml_trace.placemark_id] : []),
         "KML original sample order: " + String(p.monde_kml_trace.order+1),
         "Interpretation: ORIGINAL_KML_SAMPLES_NOT_VERIFIED_MOTION"
       ] : [])
@@ -1266,12 +1268,18 @@ def render_map(document: dict) -> str:
         if kml_trace is not None:
             if (trace is not None or not isinstance(kml_trace, dict)
                     or set(kml_trace) !=
-                    {"format", "kind", "name", "trace_id", "segment", "order"}
+                    ({"format", "kind", "name", "trace_id", "segment", "order"} |
+                     ({"placemark_id"} if kml_trace.get("kind") == "Polygon"
+                      else set()))
                     or (kml_trace["format"], kml_trace["kind"]) not in (
                         ("KML_2_2_LINESTRING_POINT", "LineString"),
                         ("KML_2_2_POLYGON_RING_POINT", "Polygon"))
                     or not isinstance(kml_trace["name"], str)
                     or not kml_trace["name"]
+                    or (kml_trace["kind"] == "Polygon" and (
+                        not isinstance(kml_trace["placemark_id"], str)
+                        or not kml_trace["placemark_id"]
+                        or len(kml_trace["placemark_id"]) > 1000))
                     or not isinstance(kml_trace["trace_id"], str)
                     or len(kml_trace["trace_id"]) != 24
                     or any(ch not in "0123456789abcdef"
