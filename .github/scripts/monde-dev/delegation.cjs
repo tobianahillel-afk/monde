@@ -1762,6 +1762,17 @@ function parseWorkPlanningSnapshot(text,id) {
     !row.startsWith(' ')&&!row.startsWith('#'));
   if(finish<0)finish=rows.length;
   const plan=rows.slice(begin+1,finish);
+  // All YAML spellings of these keys are semantic duplicates, including
+  // sections appearing after planned_runs (the task reader stops there).
+  // Never treat an earlier READY task list as authoritative when a later
+  // YAML key might override it.
+  const taskSections=plan.filter(row=>
+    /^  (?:"tasks"|'tasks'|tasks):/.test(row));
+  const runSections=plan.filter(row=>
+    /^  (?:"planned_runs"|'planned_runs'|planned_runs):/.test(row));
+  if(taskSections.length!==1||taskSections[0]!==plan[0]||
+     runSections.length>1)
+    bad('AMBIGUOUS_IMPLEMENTATION_SECTIONS');
   if(!['  tasks:','  tasks: []'].includes(plan[0]))
     bad('UNSUPPORTED_TASK_BLOCK');
   const tasks=[];

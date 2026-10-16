@@ -7657,3 +7657,35 @@ test('WORK adapter rejects duplicate indented metadata keys',()=>{
   assert.throws(()=>d.parseWorkPlanningSnapshot(sample,'WORK-0007'),
     /DUPLICATE_TASK_FIELD/);
 });
+
+
+test('WORK planner rejects duplicate task sections after planned runs',()=>{
+  // A YAML parser may apply the last duplicate key. The narrow planner must
+  // never select a READY task from the earlier key in that situation.
+  for(const second of [
+    '  tasks: []',
+    '  tasks:',
+    '  "tasks": []',
+    "  'tasks': []"
+  ]){
+    const poisoned=WORK_FIXTURE_ACTIVE.replace(
+      '  planned_runs: []',
+      '  planned_runs: []\n'+second
+    );
+    assert.throws(()=>d.parseWorkPlanningSnapshot(poisoned,'WORK-0007'),
+      e=>e.code==='AMBIGUOUS_IMPLEMENTATION_SECTIONS',
+      'should reject '+JSON.stringify(second));
+  }
+});
+test('WORK planner rejects duplicate planned-runs keys, including quoted aliases',()=>{
+  for(const second of [
+    '  planned_runs: []','  "planned_runs": []',
+    "  'planned_runs': []"
+  ]){
+    const poisoned=WORK_FIXTURE_DONE.replace(
+      'review_plan:',second+'\nreview_plan:');
+    assert.throws(()=>d.parseWorkPlanningSnapshot(poisoned,'WORK-0001'),
+      e=>e.code==='AMBIGUOUS_IMPLEMENTATION_SECTIONS',
+      'should reject '+JSON.stringify(second));
+  }
+});
