@@ -369,6 +369,34 @@ class WorldMini:
                       (feature["properties"]["entity"], feature["id"]))
         return {"type": "FeatureCollection", "features": features}
 
+    def export_geojson_disagreements(self, at: str, known_at: str,
+                                     bounds=None) -> dict:
+        """Map contradictory source-reported Point positions, not physical truth.
+
+        Compute conflicts globally before clipping to a geographic viewport:
+        an off-screen conflicting source must not hide a visible disagreement.
+        """
+        disagreements = self.source_disagreements(at, known_at, "geo_point")
+        competing = {
+            entry["entity"]: sorted({
+                report["source_id"]
+                for group in entry["value_groups"]
+                for report in group["reports"]
+            })
+            for entry in disagreements["disagreements"]
+        }
+        features = []
+        for feature in self.export_geojson(at, known_at, bounds)["features"]:
+            source_ids = competing.get(feature["properties"]["entity"])
+            if source_ids is None:
+                continue
+            feature["properties"].update({
+                "monde_disagreement_basis": "DISTINCT_SOURCE_REPORTS_NOT_PHYSICAL_TRUTH",
+                "monde_conflicting_source_ids": source_ids,
+            })
+            features.append(feature)
+        return {"type": "FeatureCollection", "features": features}
+
     def export_geojson_knowledge_changes(self, at: str, from_known_at: str,
                                          to_known_at: str, bounds=None) -> dict:
         """Source Point reports entering/leaving knowledge, NOT physical movement.
@@ -817,6 +845,8 @@ def main(argv=None) -> int:
                            help="GeoJSON source Point FeatureCollection at world/knowledge T/K")
     selection.add_argument("--export-geojson-changes", action="store_true",
                             help="GeoJSON Point changes between two knowledge cutoffs")
+    selection.add_argument("--export-geojson-disagreements", action="store_true",
+                            help="GeoJSON map of conflicting current source-reported Points")
     selection.add_argument("--source-disagreements", action="store_true")
     selection.add_argument("--source-history", metavar="SOURCE_ID")
     selection.add_argument("--knowledge-updates", action="store_true")
@@ -855,7 +885,8 @@ def main(argv=None) -> int:
         parser.error("--search-geo-radius and --radius-km must be supplied together")
     if (args.search_geo_nearest is None) != (args.nearest_limit is None):
         parser.error("--search-geo-nearest and --nearest-limit must be supplied together")
-    if args.export_bbox is not None and not (args.export_geojson or args.export_geojson_changes):
+    if args.export_bbox is not None and not (args.export_geojson or args.export_geojson_changes
+                                             or args.export_geojson_disagreements):
         parser.error("--export-bbox requires a GeoJSON export mode")
     try:
         geo_metadata = (args.source_id, args.source_locator, args.captured_at,
@@ -959,6 +990,24 @@ def main(argv=None) -> int:
                     args.equals_json is not None):
                 parser.error("disagreements require --at without entity/timeline/compare")
             result = world.source_disagreements(args.at, args.known_at)
+        elif args.export_geojson_disagreements:
+            if (args.entity is not None or args.at is None or
+                    args.source_attribute is not None or args.equals_json is not None or
+                    args.timeline_from is not None or args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None or
+                    args.compare_known_at is not None or args.compare_at is not None or
+                    args.updates_from is not None):
+                parser.error("GeoJSON disagreement export requires --at and --known-at")
+            bounds = None
+            if args.export_bbox is not None:
+                parts = args.export_bbox.split(",")
+                if len(parts) != 4:
+                    raise ValueError("export bbox must be WEST,SOUTH,EAST,NORTH")
+                try:
+                    bounds = [float(part.strip()) for part in parts]
+                except ValueError as exc:
+                    raise ValueError("export bbox must contain numeric coordinates") from exc
+            result = world.export_geojson_disagreements(args.at, args.known_at, bounds)
         elif args.export_geojson_changes:
             if (args.entity is not None or args.at is None or
                     args.compare_known_at is None or args.compare_at is not None or
