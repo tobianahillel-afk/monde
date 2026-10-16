@@ -1689,6 +1689,8 @@ function planL2Delta({previous_assignment,current_head,compare,
 // shape rather than silently infer approval or task readiness.
 const WORK_STATES=new Set(['PROPOSED','PLANNED','READY','IN_PROGRESS',
   'PARTIAL','BLOCKED','IN_REVIEW','DONE','DEPRECATED','CANCELLED']);
+// Task lifecycle permits NOT_STARTED even when WORK status does not.
+const TASK_STATES=new Set([...WORK_STATES,'NOT_STARTED']);
 function readSimpleWorkList(value,regex) {
   if(value==='[]')return [];
   if(typeof value!=='string'||!value.startsWith('[')||!value.endsWith(']'))
@@ -1811,7 +1813,7 @@ function parseWorkPlanningSnapshot(text,id) {
         }
         taskStatus=attrs.status;deps=attrs.depends_on;files=attrs.expected_files;
       }
-      if(!idValue||!WORK_STATES.has(taskStatus)||!deps||!files)
+      if(!idValue||!TASK_STATES.has(taskStatus)||!deps||!files)
         bad('UNSUPPORTED_TASK_FIELDS');
       const depends=readSimpleWorkList(deps,/^T[1-9][0-9]*$/);
       const expected=readSimpleWorkList(files,/^[A-Za-z0-9_.\/-]+$/);

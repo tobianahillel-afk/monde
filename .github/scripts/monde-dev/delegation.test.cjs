@@ -7722,3 +7722,33 @@ test('WORK planner rejects spaced-colon planned-run aliases',()=>{
       e=>e.code==='AMBIGUOUS_IMPLEMENTATION_SECTIONS');
   }
 });
+
+test('WORK-0005 parser accepts NOT_STARTED tasks, but never schedules them',()=>{
+  const yaml=[
+    'id: WORK-0005','status: PROPOSED','depends_on: [WORK-0001]',
+    'implementation_plan:','  tasks:',
+    '    - id: T1','      description: "Analysis"',
+    '      depends_on: []','      expected_files: [docs/12_RESEARCH/scope.md]',
+    '      status: NOT_STARTED',
+    '    - id: T2','      description: "Implementation"',
+    '      depends_on: [T1]',
+    '      expected_files: [.github/scripts/monde-dev/delegation.cjs]',
+    '      status: NOT_STARTED','  planned_runs: []'
+  ].join('\n');
+  const parsed=d.parseWorkPlanningSnapshot(yaml,'WORK-0005');
+  assert.deepEqual(parsed.tasks.map(t=>t.status),['NOT_STARTED','NOT_STARTED']);
+  const plan=d.planNextIncrement({repo:'tobianahillel-afk/monde',
+    head_sha:SHA,works:[
+      {id:'WORK-0001',status:'DONE',depends_on:[],tasks:[]},parsed
+    ]});
+  assert.equal(plan.recommended,null);
+  assert.equal(plan.authorized_to_write,false);
+  assert.equal(plan.automatically_accepted,0);
+});
+test('WORK top-level status still rejects task-only NOT_STARTED',()=>{
+  const invalid=[
+    'id: WORK-0005','status: NOT_STARTED','depends_on: []',
+    'implementation_plan:','  tasks: []'
+  ].join('\n');
+  assert.throws(()=>d.parseWorkPlanningSnapshot(invalid,'WORK-0005'));
+});
