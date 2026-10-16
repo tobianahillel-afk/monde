@@ -209,6 +209,33 @@ jobs:
                result.monde_visible_export.filters.entity!==entity||
                result.monde_visible_export.filters.different_source_positions_only!==true)
               throw Error('comparison metadata/evidence missing from GeoJSON');
+            // Center a source report then zoom until competing source position
+            // leaves the displayed window; original evidence remains intact.
+            document.getElementById('reset').click();
+            document.querySelector('#report-list button').click();
+            for(var z=0;z<4;z++)document.getElementById('zoom-in').click();
+            var displayed=document.getElementById('current-view-only');
+            displayed.checked=true;
+            displayed.dispatchEvent(new Event('change'));
+            if(document.querySelectorAll('#points circle').length!==1)
+              throw Error('map window did not filter competing source reports');
+            blob=null;
+            document.getElementById('export-visible').click();
+            var filtered=JSON.parse(await blob.text());
+            if(filtered.features.length!==1||
+               filtered.monde_visible_export.filters.displayed_map_window_only!==true||
+               filtered.monde_visible_export.filters.displayed_map_window_bbox_wgs84?.length!==4||
+               payload.features.length!==2)
+              throw Error('map-window export lost evidence lineage or filter');
+            document.getElementById('reset').click();
+            if(document.querySelectorAll('#points circle').length!==2)
+              throw Error('whole-world reset failed to restore source reports');
+            document.getElementById('zoom-in').click();
+            var map=document.getElementById('map');
+            var previousX=Number(map.getAttribute('viewBox').split(' ')[0]);
+            map.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+            if(Number(map.getAttribute('viewBox').split(' ')[0])<=previousX)
+              throw Error('keyboard pan failed to navigate the map');
             var search=document.getElementById('report-search');
             search.value='no-such-source-assertion';
             search.dispatchEvent(new Event('input'));
