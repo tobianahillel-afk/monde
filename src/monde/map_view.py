@@ -972,7 +972,8 @@ def main(argv=None) -> int:
         description="Generate a standalone offline source-evidence map (no API)")
     inputs = parser.add_mutually_exclusive_group(required=True)
     inputs.add_argument("--state", help="saved MONDE Mini JSON state")
-    inputs.add_argument("--csv-manifest", help="source-attributed local CSV manifest; no intermediate state")
+    inputs.add_argument("--csv-manifest", "--source-manifest", dest="csv_manifest",
+                        help="source-attributed CSV/GeoJSON manifest; no intermediate state")
     inputs.add_argument("--geojson", help="local GeoJSON FeatureCollection of source-reported Points; no intermediate state")
     parser.add_argument("--source-id", help="explicit source identifier for --geojson")
     parser.add_argument("--source-locator", help="original data locator for --geojson")
