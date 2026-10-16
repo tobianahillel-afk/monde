@@ -312,7 +312,7 @@ class VisibleGeoJSONExportTest(unittest.TestCase):
         self.assertIn('original_feature_count: features.length', html)
         self.assertIn('exported_feature_count: visibleFeatures.length', html)
         self.assertIn('monde-visible-source-evidence.geojson', html)
-        self.assertIn('knowledge_change: comparing ? changeFilter.value : ""', html)
+        self.assertIn('knowledge_change: knowledgeComparing ? changeFilter.value : ""', html)
         self.assertIn("exportButton.disabled = visibleFeatures.length === 0", html)
         self.assertIn("connect-src 'none'", html)
 
@@ -322,6 +322,86 @@ class VisibleGeoJSONExportTest(unittest.TestCase):
             BBOX, VALID, KNOWN, LATE)
         html = render_map(exported)
         self.assertIn('id="export-visible"', html)
-        self.assertIn('knowledge_change: comparing ? changeFilter.value : ""', html)
+        self.assertIn('knowledge_change: knowledgeComparing ? changeFilter.value : ""', html)
         self.assertIn('features: visibleFeatures.slice()', html)
         self.assertEqual(extract(html)[1], exported)
+
+
+class OfflineWorldTimeComparisonTest(unittest.TestCase):
+    def world_with_validity_changes(self):
+        world = with_points()
+        geo = WorldMini.load_document(str(ROOT / "examples/monde-mini-points.geojson"))
+        earlier = copy.deepcopy(geo)
+        earlier["features"] = earlier["features"][:1]
+        world.append_document(to_document(
+            earlier, source_id="historic-map", locator="fixture://historic",
+            captured_at=KNOWN, valid_from="2025-12-01T00:00:00Z",
+            valid_to="2026-01-01T00:00:00Z"))
+        return world
+
+    def test_world_time_deltas_keep_old_and_new_source_evidence(self):
+        world = self.world_with_validity_changes()
+        saved = world.export()
+        delta = world.export_geojson_bbox_world_changes(
+            BBOX, "2025-12-31T00:00:00Z", VALID, KNOWN)
+        self.assertEqual({f["properties"]["monde_change"] for f in delta["features"]},
+                         {"NEWLY_CURRENT", "NO_LONGER_CURRENT"})
+        self.assertTrue(all(
+            f["properties"]["monde_change_basis"] ==
+            "REPORTED_VALIDITY_NOT_VERIFIED_MOTION" for f in delta["features"]))
+        page = render_map(delta)
+        self.assertEqual(extract(page)[1], delta)
+        self.assertIn("Source-reported world-time validity changes", page)
+        self.assertIn("world_time_change: worldComparing ? changeFilter.value", page)
+        self.assertEqual(world.export(), saved)
+
+    def test_invalid_world_time_basis_and_provenance_rejected(self):
+        w = self.world_with_validity_changes()
+        base = w.export_geojson_bbox_world_changes(
+            BBOX, "2025-12-31T00:00:00Z", VALID, KNOWN)
+        for case in ("basis", "cutoff", "change", "mixed"):
+            data = copy.deepcopy(base)
+            if case == "basis":
+                data["monde_bbox_world_changes_query"]["basis"] = "TRUE_MOTION"
+            elif case == "cutoff":
+                data["features"][0]["properties"]["from_at"] = VALID
+            elif case == "change":
+                data["features"][0]["properties"]["monde_change"] = "MOVED"
+            else:
+                data["monde_bbox_changes_query"] = {}
+            with self.subTest(case=case), self.assertRaises(ValueError):
+                render_map(data)
+
+    def test_world_time_cli_and_no_overwrite(self):
+        world = self.world_with_validity_changes()
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory) / "state.json"
+            output = Path(directory) / "world.html"
+            world.save(str(state))
+            original = state.read_bytes()
+            cmd = [sys.executable, "-m", "monde.map_view",
+                   "--state", str(state), "--bbox", "2.34,48.84,2.36,48.87",
+                   "--compare-at", "2025-12-31T00:00:00Z", "--at", VALID,
+                   "--known-at", KNOWN, "--output", str(output)]
+            env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+            result = subprocess.run(cmd, capture_output=True, text=True, env=env, cwd=ROOT)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("monde_bbox_world_changes_query",
+                          extract(output.read_text(encoding="utf-8"))[1])
+            self.assertEqual(state.read_bytes(), original)
+            self.assertNotEqual(subprocess.run(cmd, capture_output=True, env=env).returncode, 0)
+            self.assertNotEqual(subprocess.run(
+                cmd + ["--compare-known-at", KNOWN], capture_output=True, env=env).returncode, 0)
+            self.assertEqual(state.read_bytes(), original)
+
+    def test_reversed_world_times_do_not_create_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out = Path(directory) / "invalid.html"
+            cmd = [sys.executable, "-m", "monde.map_view",
+                   "--state", str(ROOT / "examples/monde-mini.json"),
+                   "--bbox", "2.34,48.84,2.36,48.87", "--compare-at", VALID,
+                   "--at", "2025-12-31T00:00:00Z", "--known-at", KNOWN,
+                   "--output", str(out)]
+            self.assertNotEqual(subprocess.run(cmd, capture_output=True,
+                 env=dict(os.environ, PYTHONPATH=str(ROOT / "src"))).returncode, 0)
+            self.assertFalse(out.exists())
