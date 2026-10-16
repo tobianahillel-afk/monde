@@ -776,4 +776,67 @@ function assessFreshL2Waves({
   };
 }
 
-module.exports = { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub, prepareFreshL2AutoFromCurrentGitHub, assessFreshL2Waves };
+
+// Read-only foreground bridge: the caller supplies a planned L2 dossier,
+// but cannot self-attest the live HEAD/base/source facts that qualify it.
+// Two GitHub observations straddle aggregation so an edited/rebased/retargeted
+// PR never returns a plausibly qualified stale review packet.
+async function assessFreshL2WavesFromCurrentGitHub(input) {
+  if(!input || typeof input!=='object' || Array.isArray(input))incomplete();
+  const {github,repo,pr,expected_head_sha,plan,reports={},sources={},
+    coverage_manifests={},prior_sources=[]}=input;
+  if(typeof repo!=='string' ||
+     !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo) ||
+     !Number.isSafeInteger(pr)||pr<1 ||
+     typeof expected_head_sha!=='string' ||
+     !/^[a-f0-9]{40}$/.test(expected_head_sha) ||
+     !plan || !Array.isArray(plan.batches)||!plan.batches.length ||
+     plan.batches[0]?.assignment?.repo!==repo ||
+     plan.batches[0]?.assignment?.pr!==pr ||
+     plan.observed_pr_head_sha!==expected_head_sha ||
+     !github?.rest?.pulls ||
+     typeof github.rest.pulls.get!=='function')incomplete();
+  const [owner,name]=repo.split('/');
+  const observe=async()=>{
+    const response=await github.rest.pulls.get({
+      owner,repo:name,pull_number:pr
+    });
+    const data=response?.data;
+    if(!data||data.number!==pr||data.state!=='open'||
+       data.base?.ref!=='main'||data.base?.repo?.full_name!==repo||
+       typeof data.base.sha!=='string' ||
+       !/^[a-f0-9]{40}$/.test(data.base.sha) ||
+       typeof data.head?.sha!=='string' ||
+       data.head.sha!==expected_head_sha ||
+       typeof data.head.repo?.full_name!=='string' ||
+       !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(data.head.repo.full_name) ||
+       typeof data.head.ref!=='string' ||
+       !/^[A-Za-z0-9._/-]+$/.test(data.head.ref) ||
+       data.head.ref.split('/').some(x=>!x||x==='.'||x==='..') ||
+       !Number.isSafeInteger(data.changed_files) ||
+       data.changed_files!==plan.changed_files)incomplete();
+    return {head_sha:data.head.sha,base_sha:data.base.sha,
+      source_repo:data.head.repo.full_name,source_ref:data.head.ref,
+      changed_files:data.changed_files};
+  };
+  const before=await observe();
+  const outcome=assessFreshL2Waves({
+    plan,reports,sources,coverage_manifests,prior_sources,
+    current_head:before.head_sha,current_base_sha:before.base_sha,
+    current_source_repo:before.source_repo,
+    current_source_ref:before.source_ref
+  });
+  const after=await observe();
+  if(Object.keys(before).some(key=>before[key]!==after[key]))incomplete();
+  return {...outcome,live_pr_observed_before_and_after:true,
+    live_pr_source_verified_during_assessment:true,
+    current_pr_snapshot:after,
+    // This bridge only checks GitHub PR metadata. The ChatGPT context and
+    // content of reviewer reports remain separately qualified/unauthenticated.
+    reviewer_context_independently_authenticated:false,
+    live_pr_head_still_requires_verification:true,
+    native_github_approved:false,ready_for_merge:false,
+    authorized_to_write:false};
+}
+
+module.exports = { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub, prepareFreshL2AutoFromCurrentGitHub, assessFreshL2Waves, assessFreshL2WavesFromCurrentGitHub };

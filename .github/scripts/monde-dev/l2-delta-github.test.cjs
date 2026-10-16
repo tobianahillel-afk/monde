@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub, prepareFreshL2AutoFromCurrentGitHub, assessFreshL2Waves } = require('./l2-delta-github.cjs');
+const { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub, prepareFreshL2AutoFromCurrentGitHub, assessFreshL2Waves, assessFreshL2WavesFromCurrentGitHub } = require('./l2-delta-github.cjs');
 const WAVE_BASE='d'.repeat(40), WAVE_SOURCE_REPO='tobianahillel-afk/monde';
 const WAVE_SOURCE_REF='feature/monde-v2';
 const assessWithObservedPr=(args)=>assessFreshL2Waves({
@@ -1512,4 +1512,93 @@ test('L2 waves require matching independently observed live PR base and source i
       plan:{...plan,...mutation}}),
       e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
   }
+});
+
+
+function liveWaveAssessmentFixture(options={}) {
+  const plan=wavesFixture(),calls=[];
+  const mk=()=>({
+    number:19,state:'open',changed_files:5,
+    head:{sha:plan.observed_pr_head_sha,
+      repo:{full_name:WAVE_SOURCE_REPO},ref:WAVE_SOURCE_REF},
+    base:{sha:WAVE_BASE,ref:'main',repo:{full_name:WAVE_SOURCE_REPO}}
+  });
+  const github={rest:{pulls:{get:async args=>{
+    calls.push(args);
+    if(options.refused)throw Object.assign(new Error('GitHub denied'),{status:403});
+    const data=mk();
+    if(options.drift && calls.length===2)data.head.ref='changed-ref';
+    if(options.changedHead)data.head.sha='b'.repeat(40);
+    if(options.changedBase)data.base.sha='f'.repeat(40);
+    if(options.changedRepo)data.head.repo.full_name='imposter/monde';
+    if(options.changedFileCount)data.changed_files=4;
+    if(options.wrongPr)data.number=20;
+    return {data};
+  }}}};
+  return {plan,github,calls};
+}
+test('L2 foreground bridge: current GitHub PR is checked twice before returning advisory result',async()=>{
+  const {plan,github,calls}=liveWaveAssessmentFixture();
+  const result=await assessFreshL2WavesFromCurrentGitHub({
+    github,plan,repo:WAVE_SOURCE_REPO,pr:19,
+    expected_head_sha:plan.observed_pr_head_sha
+  });
+  assert.equal(result.status,'MISSING_L2_REPORTS');
+  assert.equal(result.missing_assignment_ids.length,5);
+  assert.equal(result.live_pr_observed_before_and_after,true);
+  assert.equal(result.live_pr_source_verified_during_assessment,true);
+  assert.equal(result.native_github_approved,false);
+  assert.equal(result.ready_for_merge,false);
+  assert.equal(result.authorized_to_write,false);
+  assert.equal(result.reviewer_context_independently_authenticated,false);
+  assert.equal(calls.length,2);
+  for(const args of calls)assert.deepEqual(args,
+    {owner:'tobianahillel-afk',repo:'monde',pull_number:19});
+});
+test('L2 foreground bridge rejects a drifting or retargeted live PR',async()=>{
+  for(const variant of [
+    {drift:true},{changedHead:true},{changedBase:true},
+    {changedRepo:true},{changedFileCount:true},{wrongPr:true}
+  ]){
+    const {plan,github}=liveWaveAssessmentFixture(variant);
+    await assert.rejects(assessFreshL2WavesFromCurrentGitHub({
+      github,plan,repo:WAVE_SOURCE_REPO,pr:19,
+      expected_head_sha:plan.observed_pr_head_sha
+    }),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+});
+test('L2 foreground bridge refuses a fabricated plan identity before any GitHub request',async()=>{
+  const mutations=[
+    p=>{p.batches[0].assignment.repo='other-owner/monde';},
+    p=>{p.batches[0].assignment.pr=50;},
+    p=>{p.observed_pr_head_sha='b'.repeat(40);}
+  ];
+  for(const mutate of mutations){
+    const {plan,github,calls}=liveWaveAssessmentFixture();
+    mutate(plan);
+    await assert.rejects(assessFreshL2WavesFromCurrentGitHub({
+      github,plan,repo:WAVE_SOURCE_REPO,pr:19,
+      expected_head_sha:'a'.repeat(40)
+    }),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(calls.length,0);
+  }
+});
+test('L2 foreground bridge requires operator-pinned exact HEAD, never makes up identity',async()=>{
+  for(const changes of [{pr:0},{repo:'wrong'},{expected_head_sha:undefined},
+    {expected_head_sha:'b'.repeat(40)}]){
+    const {plan,github,calls}=liveWaveAssessmentFixture();
+    await assert.rejects(assessFreshL2WavesFromCurrentGitHub({
+      github,plan,repo:WAVE_SOURCE_REPO,pr:19,
+      expected_head_sha:plan.observed_pr_head_sha,...changes
+    }),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(calls.length,0);
+  }
+});
+test('L2 foreground bridge propagates GitHub permission failure; no result is invented',async()=>{
+  const {plan,github,calls}=liveWaveAssessmentFixture({refused:true});
+  await assert.rejects(assessFreshL2WavesFromCurrentGitHub({
+    github,plan,repo:WAVE_SOURCE_REPO,pr:19,
+    expected_head_sha:plan.observed_pr_head_sha
+  }),e=>e.status===403);
+  assert.equal(calls.length,1);
 });
