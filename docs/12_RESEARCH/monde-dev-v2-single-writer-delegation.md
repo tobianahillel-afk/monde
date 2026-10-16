@@ -277,6 +277,17 @@ reste une **proposition** ; il ne prouve pas que le HEAD courant de la PR soit
 toujours identique, ni l'indépendance du réviseur, ni une approbation native.
 Aucune écriture GitHub, tâche autonome ou approbation n'est effectuée.
 
+Pour l'adaptateur plus strict `planL2DeltaFromCurrentGitHub`, transmettre
+`previous_reviewed_pr_base_sha` : le SHA de `main` **consigné et vérifié
+dans la preuve de la revue L2 précédente**, pas un SHA deviné ou simplement
+copié du HEAD courant. L'adaptateur relit la PR avant et après la comparaison
+et bloque le plan ciblé si sa base n'est plus celle de la revue précédente.
+Sans preuve de cette base historique, privilégier une nouvelle analyse d'impact
+complète : une comparaison des HEAD seule ne prouve pas que l'environnement
+d'intégration est inchangé. Ce contrôle reste un garde-fou sur une preuve
+fournie par l'appelant et ne transforme pas une assertion non vérifiée
+en approbation L2.
+
 Exemple en contexte GitHub/Octokit existant :
 
 ```js
