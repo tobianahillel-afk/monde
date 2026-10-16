@@ -258,3 +258,26 @@ GeoJSON claims are **not verified physical positions**, and distinct source
 reports must never be collapsed into one location. Input files and pre-existing
 output files are not overwritten. Repeated corrections require the separate
 append-only state workflow with explicit evidence/supersession.
+
+## Multiple original GeoJSON and mixed source datasets (WORK-0022)
+
+Create an offline evidence map directly from multiple original GeoJSON FeatureCollections of source-reported 2D Points. The same manifest can combine original CSV files and GeoJSON files; each retains separate source attribution and valid/knowledge timestamps. No intermediate persisted WorldMini state is needed.
+
+Save a local sources.json manifest (file paths are relative to the manifest):
+
+```json
+{"datasets":[
+  {"geojson":"survey-a.geojson","source_id":"survey-a","locator":"dataset://a","captured_at":"2026-01-10T10:00:00Z","valid_from":"2026-01-01T00:00:00Z"},
+  {"geojson":"survey-b.geojson","source_id":"survey-b","locator":"dataset://b","captured_at":"2026-01-10T10:00:00Z","valid_from":"2026-01-01T00:00:00Z"}
+]}
+```
+
+Then run:
+
+```sh
+PYTHONPATH=src python3 -m monde.map_view --source-manifest sources.json --at 2026-01-02T00:00:00Z --known-at 2026-01-10T10:00:00Z --output evidence.html
+```
+
+Each dataset requires exactly one csv or geojson input plus source_id, locator, captured_at and valid_from, with optional valid_to and source_event_at. CSV-specific column overrides do not apply to GeoJSON. The existing --csv-manifest CLI name remains an alias for compatibility. The original source claims remain contradictory where they disagree: this feature does not reconcile physical positions or infer a true location, observation time or event time.
+
+All inputs are read-only; one invalid dataset aborts before output, and existing outputs or source files are not overwritten. Existing source-count limits, auto geographic bounds, bitemporal filters, derivative exports, and offline/no-network rendering are reused.
