@@ -76,6 +76,9 @@ test('Reject compare responses that cannot prove full exact comparison',async()=
   const variants=[
     {...base,status:'diverged'}, {...base,behind_by:1},
     {...base,total_commits:101}, {...base,total_commits:2},
+    {...base,ahead_by:0}, {...base,ahead_by:2},
+    {...base,ahead_by:'1'}, {...base,commits:[null]},
+    {...base,commits:[{sha:'invalid'}]}, {...base,commits:[{sha:OLD}]},
     {...base,commits:[{sha:OLD}]},
     {...base,base_commit:{sha:HEAD}},
     {...base,merge_base_commit:{sha:HEAD}},
@@ -120,7 +123,21 @@ test('GitHub API refusal propagates without invented comparison',async()=>{
 });
 test('A complete 100-commit GitHub comparison is allowed; 101 is refused',async()=>{
   const commits=Array.from({length:100},(_,i)=>({sha:i===99?HEAD:(i+1).toString(16).padStart(40,'0')}));
-  const valid={...base,total_commits:100,commits};
+  const valid={...base,total_commits:100,ahead_by:100,commits};
   const result=await planL2DeltaFromGitHub(args({github:client(valid)}));
   assert.equal(result.status,'TARGETED_REVIEW_CANDIDATE');
+});
+
+test('Reject a duplicated or malformed middle commit even with correct count and tip',async()=>{
+  const first='c'.repeat(40);
+  const variants=[
+    [{sha:first},{sha:first},{sha:HEAD}],
+    [{sha:first},null,{sha:HEAD}],
+    [{sha:first},{sha:'not-a-sha'},{sha:HEAD}],
+    [{sha:first},{sha:OLD},{sha:HEAD}]
+  ];
+  for(const commits of variants)
+    await assert.rejects(planL2DeltaFromGitHub(args({
+      github:client({...base,total_commits:3,ahead_by:3,commits})
+    })),err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
 });

@@ -33,8 +33,14 @@ async function planL2DeltaFromGitHub({
   if (!data || data.status !== 'ahead' || data.behind_by !== 0 ||
       !Number.isSafeInteger(data.total_commits) ||
       data.total_commits < 1 || data.total_commits > 100 ||
+      !Number.isSafeInteger(data.ahead_by) ||
+      data.ahead_by !== data.total_commits ||
       !Array.isArray(data.commits) ||
       data.commits.length !== data.total_commits ||
+      data.commits.some(commit => !commit ||
+        typeof commit.sha !== 'string' || !/^[a-f0-9]{40}$/.test(commit.sha) ||
+        commit.sha === old.head_sha) ||
+      new Set(data.commits.map(commit => commit.sha)).size !== data.total_commits ||
       data.commits.at(-1)?.sha !== current_head ||
       data.base_commit?.sha !== old.head_sha ||
       data.merge_base_commit?.sha !== old.head_sha ||

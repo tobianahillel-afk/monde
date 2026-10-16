@@ -268,7 +268,8 @@ The adapter and plan return advisory results only:
 L'adaptateur `.github/scripts/monde-dev/l2-delta-github.cjs` réutilise
 `planL2Delta` et lit directement le comparatif GitHub entre **deux SHA** via
 `github.rest.repos.compareCommitsWithBasehead`. Il exige un historique linéaire
-(`ahead`), une base commune exacte, un dernier commit exact, **au plus 100
+(`ahead`), une base commune exacte, un dernier commit exact, des commits
+intermédiaires au SHA valide et sans doublons, `ahead_by = total_commits`, **au plus 100
 commits** et **moins de 300 fichiers** pour éviter les comparaisons tronquées.
 Une suppression, un renommage, un changement hors périmètre ou l'absence de
 revue antérieure qualifiée impose une analyse d'impact plus large. Le résultat
