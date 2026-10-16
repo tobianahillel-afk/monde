@@ -1707,3 +1707,40 @@ test('review waves: cross-wave context reuse flags BOTH distinct missions',()=>{
   assert.equal(result.ready_for_merge,false);
   assert.equal(result.review_acceptance_granted,false);
 });
+
+test('review waves: a reused context invalidates earlier clean APPROVE-shaped packets',()=>{
+  const plan=wavesFixture(),reports={},sources={};
+  const {MARKER}=require('./delegation.cjs');
+  for(let i=0;i<plan.batches.length;i++){
+    const mission=plan.batches[i].assignment;
+    const id=mission.assignment_id;
+    // Only the final wave reuses the first wave's context. The other
+    // three missions are distinct, so the counter must identify both ends.
+    const context='independent-l2-context-'+String(i===4?0:i).padStart(3,'0');
+    reports[id]='Independent L2 audit of current immutable GitHub source files. '+
+      'No native GitHub reviewer approval or deployment authority is granted.\n'+
+      MARKER+'\n'+JSON.stringify({
+        v:1,assignment_id:id,repo:mission.repo,pr:mission.pr,
+        head_sha:mission.head_sha,reviewer_context_id:context,
+        verdict:'APPROVE',findings:[],reviewed_paths:mission.paths,
+        limitations:['Reviewer identity still requires operator validation']
+      });
+    sources[id]={retrieved_from_distinct_chat:true,context_id:context,
+      retrieval_kind:'chat_history',
+      message_ref:'unique-reviewed-message-'+String(i).padStart(3,'0')};
+  }
+  const result=assessWithObservedPr({plan,reports,sources,
+    current_head:plan.observed_pr_head_sha});
+  assert.equal(result.independence_conflicts,2);
+  assert.deepEqual(result.waves.map(w=>w.independence_conflicts),[1,1]);
+  for(const item of [result.waves[0].results[0],result.waves[1].results[0]]){
+    assert.equal(item.original_status,'L2_REPORT_RECEIVED_PENDING_VALIDATION');
+    assert.equal(item.status,'INDEPENDENCE_UNVERIFIED');
+    assert.equal(item.independence_unverified,true);
+    assert.equal(item.requires_manual_qualification,true);
+  }
+  assert.equal(result.ready_for_merge,false);
+  assert.equal(result.review_acceptance_granted,false);
+  assert.equal(result.native_github_approved,false);
+  assert.equal(result.progression_advice,'MANUALLY_QUALIFY_L2');
+});
