@@ -62,6 +62,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 #report-list button,#entity-comparison-list button{width:100%;text-align:left;overflow-wrap:anywhere}
 #entity-comparison-list{list-style:none;padding:0;margin:0 0 12px;max-height:225px;overflow:auto}
 #entity-comparison-list li{margin:0 0 6px}
+#capture-timeline{display:flex;flex-wrap:wrap;gap:6px;max-height:145px;overflow:auto}
+#capture-timeline button[aria-pressed="true"]{border-color:#59d8bb;background:#155248}
 #conflict-list{list-style:none;padding:0;margin:0 0 12px;max-height:240px;overflow:auto}
 #conflict-list li{margin:0 0 6px}
 #conflict-list button{width:100%;text-align:left;overflow-wrap:anywhere}
@@ -106,6 +108,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <div class="controls"><label for="captured-from">Captured from (UTC day)</label><input id="captured-from" type="date" aria-label="Captured from UTC day">
 <label for="captured-through">Captured through (UTC day)</label><input id="captured-through" type="date" aria-label="Captured through UTC day"></div>
 <p class="subtle">Capture dates filter source evidence metadata, not when a claim was valid or known. Date bounds are inclusive UTC days.</p>
+<h2>Source capture days</h2>
+<p id="capture-timeline-summary" class="subtle" role="status">Original report capture dates only, not physical events or claim validity.</p>
+<div id="capture-timeline" aria-label="Filter source reports by capture day"></div>
+<div class="controls"><button id="clear-capture-days" type="button" disabled>All capture days</button></div>
 <div class="controls"><label for="radius-km">Near a reported Point (km)</label><input id="radius-km" type="number" min="0" max="20040" step="any" value="50" aria-label="Approximate radius in kilometers">
 <button id="set-radius-center" type="button" disabled>Use selected report as center</button>
 <button id="clear-radius-center" type="button" disabled>Clear radius</button></div>
@@ -157,6 +163,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var entities = document.getElementById("entities");
   var capturedFrom = document.getElementById("captured-from");
   var capturedThrough = document.getElementById("captured-through");
+  var timeline = document.getElementById("capture-timeline");
+  var timelineSummary = document.getElementById("capture-timeline-summary");
+  var clearCaptureDays = document.getElementById("clear-capture-days");
   var differentOnly = document.getElementById("disagreements-only");
   var comparisonSummary = document.getElementById("entity-comparison-summary");
   var comparisonList = document.getElementById("entity-comparison-list");
@@ -493,7 +502,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   // Apply exactly the same filters for display and for fitting. Only the
   // current map window is ignored for fitting, so off-screen matches recover.
-  function matchesFilters(f, ignoreDisplayedWindow, ignoreEntity) {
+  function matchesFilters(f, ignoreDisplayedWindow, ignoreEntity, ignoreCaptureDays) {
     var p = f.properties;
     var instant = Date.parse(p.captured_at);
     var capturedDay = Number.isFinite(instant) ?
@@ -507,9 +516,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
       ((ignoreEntity === true) || !entities.value || p.entity === entities.value) &&
-      (!capturedFrom.value ||
+      (ignoreCaptureDays || !capturedFrom.value ||
         (capturedDay !== null && capturedDay >= capturedFrom.value)) &&
-      (!capturedThrough.value ||
+      (ignoreCaptureDays || !capturedThrough.value ||
         (capturedDay !== null && capturedDay <= capturedThrough.value)) &&
       (!differentOnly.checked || disputedEntities.has(p.entity)) &&
       (!comparing || !changeFilter.value ||
@@ -615,9 +624,45 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       conflictList.appendChild(li);
     });
   }
+  function renderCaptureTimeline() {
+    // Capture date metadata only. Preserve other user filters but exclude the
+    // date filter itself, so selecting one day never hides the alternatives.
+    var counts=new Map();
+    features.filter(function(f){return matchesFilters(f,false,false,true);})
+      .forEach(function(f){
+        var millis=Date.parse(f.properties.captured_at);
+        if(!Number.isFinite(millis))return;
+        var day=new Date(millis).toISOString().slice(0,10);
+        counts.set(day,(counts.get(day)||0)+1);
+      });
+    var days=Array.from(counts.keys()).sort();
+    var shown=days.slice(-24);
+    timeline.replaceChildren();
+    shown.forEach(function(day){
+      var button=document.createElement("button");
+      button.type="button";
+      button.setAttribute("aria-pressed",String(capturedFrom.value===day&&
+        capturedThrough.value===day));
+      label(button,day+" · "+String(counts.get(day))+" reports");
+      button.addEventListener("click",function(){
+        capturedFrom.value=day;capturedThrough.value=day;render();
+      });
+      timeline.appendChild(button);
+    });
+    clearCaptureDays.disabled=!capturedFrom.value&&!capturedThrough.value;
+    timelineSummary.textContent=days.length ?
+      String(days.length)+" UTC capture days in current non-date filters; "+
+        String(shown.length)+" most recent shown. Choose one day to filter "+
+        "original source reports, not actual world events or validity." :
+      "No source capture days match the other filters; no physical absence inferred.";
+  }
+  clearCaptureDays.addEventListener("click",function(){
+    capturedFrom.value="";capturedThrough.value="";render();
+  });
   function render() {
     layer.replaceChildren(); list.replaceChildren(); comparisonList.replaceChildren();
     renderConflictNavigator();
+    renderCaptureTimeline();
     visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
     fitButton.disabled = matchingReports().length === 0;
     updateMeasurement();

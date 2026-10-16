@@ -299,3 +299,7 @@ entity observations nor MONDE evidence. Their coarse scale is unsuitable
 for precise local boundaries or disputes. No source data is transmitted
 externally; the renderer only reads the versioned local asset.
 
+
+## UTC source-capture timeline (WORK-0022/T6)
+
+The offline evidence map shows a clickable histogram-like list of capture days from original source-report metadata (UTC). Its counts apply the current search, source, entity, viewport, distance, disagreement, and comparison filters, **excluding the capture-date range itself** so alternative days remain discoverable. Up to the 24 most recent days are shown; the total number of matching distinct days is reported. Clicking a day sets both inclusive capture-day bounds, and **All capture days** clears them. The visible map, list, and existing GeoJSON/CSV exports remain aligned with the selected bounds; no original source report, ID, timestamp, or temporal query is modified. A capture date is neither a world-state timestamp nor proof that a physical event occurred.

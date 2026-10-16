@@ -21,6 +21,7 @@ acceptance_criteria:
   - {id: AC-4, description: "No overwrites; actual headless browser renders source Points", status: IN_PROGRESS}
   - {id: AC-5, description: "Render multiple original GeoJSON and mixed CSV/GeoJSON datasets with per-source provenance and atomic failure", status: IN_PROGRESS}
   - {id: AC-6, description: "Offline land context is bundled and visually separate from source evidence, with actual Chromium render proof", status: IN_PROGRESS}
+  - {id: AC-7, description: "Offline capture-day timeline filters original source reports without treating capture dates as world events", status: IN_PROGRESS}
 requirements: []
 assumptions: ["Input is original GeoJSON WGS84 Point claims, not independently verified coordinates"]
 risks: ["Source data mistaken for reconciled state", "Embedding untrusted source strings in offline HTML"]
@@ -42,6 +43,7 @@ implementation_plan:
     - {id: T3, description: "Document one-command analyst workflow", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_PROGRESS}
     - {id: T4, description: "Multi-source GeoJSON/mixed-source offline evidence map", depends_on: [T1], expected_files: [src/monde/csv_points.py, src/monde/map_view.py, tests/test_world_map_geojson_direct.py], status: IN_PROGRESS}
     - {id: T5, description: "Embed public-domain offline land reference beneath source evidence", depends_on: [T1], expected_files: [src/monde/data/ne_110m_land.json, src/monde/map_view.py, tests/test_world_map_geojson_direct.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+    - {id: T6, description: "Filter source evidence through an interactive UTC capture-day timeline", depends_on: [T1], expected_files: [src/monde/map_view.py, tests/test_world_map_geojson_direct.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
   planned_runs:
     - {id: RUN-1, objective: "Deliver reusable direct GeoJSON offline map candidate", tasks: [T1, T2, T3, T4], exit_condition: "Exact-head product CI and proportionate read-only L2", status: IN_PROGRESS}
 review_plan:

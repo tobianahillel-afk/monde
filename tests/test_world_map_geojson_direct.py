@@ -249,6 +249,21 @@ class DirectGeoJSONMapTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertFalse(output.exists())
 
+    def test_offline_capture_day_timeline_embedded_without_network(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source = self.fixture(folder)
+            output = Path(folder) / "capture.html"
+            result = self.run_map(*self.flags(source), "--at", AT,
+                                  "--known-at", KNOWN, "--output", output)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = output.read_text(encoding="utf-8")
+            self.assertIn('id="capture-timeline"', html)
+            self.assertIn('id="clear-capture-days"', html)
+            self.assertIn("function renderCaptureTimeline()", html)
+            self.assertIn("matchesFilters(f,false,false,true)", html)
+            self.assertIn("not actual world events or validity", html)
+            self.assertIn("connect-src 'none'", html)
+
     def test_offline_land_reference_is_bundled_and_separate_from_evidence(self):
         with tempfile.TemporaryDirectory() as folder:
             source = self.fixture(folder)
