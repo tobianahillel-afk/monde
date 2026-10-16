@@ -422,6 +422,9 @@ test('fresh L2: pins full live PR scope and produces read-only separate-context 
   assert.deepEqual(calls.files[0],{
     owner:'tobianahillel-afk',repo:'monde',pull_number:19,per_page:100
   });
+  assert.equal(calls.compares.length,1);
+  assert.equal(calls.compares[0].per_page,1);
+  assert.equal(calls.compares[0].page,1);
 });
 test('fresh L2: no API calls for malformed mission or missing read-only adapter',async()=>{
   for(const mutation of [
@@ -924,4 +927,21 @@ test('fresh L2: equal GitHub blob identity and line counts permit reordered page
     const result=await prepare({github:api,...FRESH_MISSION});
     assert.equal(result.changed_files,2);
   }
+});
+
+test('fresh L2: 346-commit PR reads one compare commit and retains full file coverage',async()=>{
+  const {api,calls}=freshClient();
+  const original=api.rest.repos.compareCommitsWithBasehead;
+  api.rest.repos.compareCommitsWithBasehead=async args=>{
+    const result=await original(args);
+    result.data.total_commits=346;
+    result.data.commits=[{sha:'1'.repeat(40)}]; // GitHub page 1, not all commits
+    return result;
+  };
+  const result=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
+  assert.equal(result.assignment.paths.length,2);
+  assert.equal(result.observed_pr_head_sha,HEAD);
+  assert.deepEqual(calls.compares.map(x=>({page:x.page,per_page:x.per_page})),
+    [{page:1,per_page:1}]);
+  assert.equal(result.native_github_approved,false);
 });

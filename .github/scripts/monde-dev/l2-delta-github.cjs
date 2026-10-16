@@ -104,7 +104,11 @@ async function readMergeBase(github,owner,repo,snapshot) {
     incomplete();
   const response=await github.rest.repos.compareCommitsWithBasehead({
     owner,repo,basehead:snapshot.base_sha+'...'+snapshot.head_sha,
-    page:1,per_page:100
+    // GitHub returns the complete changed-file manifest on page 1. Request
+    // only one commit: a large PR need not transfer its entire commit history
+    // just to prepare a *fresh* independent L2 review. The separate delta
+    // verifier intentionally retains per_page:100 for full-chain checking.
+    page:1,per_page:1
   });
   const result=response?.data;
   const base=result?.base_commit?.sha;
