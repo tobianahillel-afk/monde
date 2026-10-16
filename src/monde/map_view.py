@@ -98,6 +98,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <input id="report-search" type="search" placeholder="Entity, assertion, source, evidence or locator" autocomplete="off" aria-label="Search source evidence">
 <button id="clear-search" type="button">Clear</button>
 <button id="export-visible" type="button" disabled>Export visible GeoJSON</button>
+<button id="export-visible-csv" type="button" disabled>Export visible CSV</button>
 <button id="export-dossier" type="button" disabled>Export entity evidence dossier</button></div>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
 <div class="controls"><label for="entities">Entity</label><select id="entities"><option value="">All entities</option></select></div>
@@ -168,6 +169,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var focusButton = document.getElementById("focus-selected");
   var fitButton = document.getElementById("fit-reports");
   var exportButton = document.getElementById("export-visible");
+  var exportCsvButton = document.getElementById("export-visible-csv");
   var dossierButton = document.getElementById("export-dossier");
   var radiusInput = document.getElementById("radius-km");
   var setRadiusButton = document.getElementById("set-radius-center");
@@ -659,6 +661,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       String(visibleFeatures.length)+" displayed source reports / "+String(features.length)+
       (comparing ? " changed source reports · " : " known reports · ") +query.status;
     exportButton.disabled = visibleFeatures.length === 0;
+    exportCsvButton.disabled = visibleFeatures.length === 0;
     var dossierEntity = entities.value || (selectedFeature ? selectedFeature.properties.entity : "");
     dossierButton.disabled = !dossierEntity || !visibleFeatures.some(function(f) {
       return f.properties.entity === dossierEntity;
@@ -692,8 +695,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       world_time_change: worldComparing ? changeFilter.value : ""
     };
   }
-  function saveEvidence(doc, filename, mime) {
-    var blob = new Blob([JSON.stringify(doc, null, 2) + "\n"], {type:mime});
+  function saveDownload(content, filename, mime) {
+    var blob = new Blob([content], {type:mime});
     var url = URL.createObjectURL(blob);
     var link = document.createElement("a");
     link.href = url;
@@ -703,6 +706,40 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     link.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   }
+  function saveEvidence(doc, filename, mime) {
+    saveDownload(JSON.stringify(doc, null, 2) + "\n", filename, mime);
+  }
+  // Browser-only derivative from the *same* filtered reports as visible GeoJSON.
+  // Text fields are quoted and formula-escaped; coordinates stay numeric.
+  function visibleCsv() {
+    var columns = ["entity","longitude","latitude","assertion_id",
+      "source_id","evidence_id","locator","captured_at","source_event_at",
+      "kind","known_at","valid_from","valid_to","valid_at",
+      "knowledge_cutoff","monde_status","monde_inside_bbox","monde_change",
+      "export_scope"];
+    function cell(value, number) {
+      if(value === null || value === undefined)return '""';
+      var v = String(value);
+      if(!number && /^\s*[=+\-@]/.test(v))v = "'" + v;
+      return '"' + v.replace(/"/g,'""') + '"';
+    }
+    var rows = visibleFeatures.map(function(f){
+      var p = f.properties, pos = f.geometry.coordinates;
+      var values = [p.entity,pos[0],pos[1],f.id,p.source_id,p.evidence_id,
+        p.locator,p.captured_at,p.source_event_at,p.kind,p.known_at,
+        p.valid_from,p.valid_to,p.valid_at,p.knowledge_cutoff,p.monde_status,
+        String(!!p.monde_inside_bbox),p.monde_change,
+        "FILTERED_VISIBLE_SOURCE_REPORTS_ONLY"];
+      return values.map(function(v,i){return cell(v,i===1||i===2);}).join(",");
+    });
+    return "\uFEFF" + columns.join(",") + "\r\n" +
+      rows.join("\r\n") + "\r\n";
+  }
+  exportCsvButton.addEventListener("click",function(){
+    if(!visibleFeatures.length)return;
+    saveDownload(visibleCsv(),"monde-visible-source-evidence.csv",
+      "text/csv;charset=utf-8");
+  });
   exportConflictsButton.addEventListener("click",function(){
     var report=createConflictInventory();
     if(report)saveEvidence(report,"monde-source-conflict-inventory.json","application/json");

@@ -23,6 +23,18 @@ and `monde_status=SOURCE_REPORTED_ONLY`. Null event/end times are empty
 cells (unknown), not invented values.
 
 Untrusted text fields beginning with spreadsheet-formula characters are
-escaped with an apostrophe. This CSV is an **analysis/report export**; it is
+escaped with an apostrophe.
+
+The **offline source map** also offers **Export visible CSV** alongside its
+filtered GeoJSON export. The download contains exactly the source assertions
+currently shown after entity, source, capture-date, conflict, search, radius,
+viewport, temporal-change and displayed-window filters. It adds
+`monde_inside_bbox`, `monde_change`, and
+`export_scope=FILTERED_VISIBLE_SOURCE_REPORTS_ONLY` to distinguish this
+filtered derivative from the complete source snapshot. One row is generated
+per original assertion, preserving independent and disagreeing sources;
+no consensus location is calculated. Empty matching selections disable export.
+UTF-8/BOM, quoted fields and apostrophe-escaping for untrusted formula-like
+text enable offline spreadsheet inspection without a new server or dependency. This CSV is an **analysis/report export**; it is
 not a replacement for the multi-source CSV ingest manifest or a ground truth
 database. Only Python's standard library and existing WorldMini methods are used.
