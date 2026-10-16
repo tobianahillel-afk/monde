@@ -215,9 +215,8 @@ class OriginalGPXTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             for bad in [
                 TRACE_GPX.replace("<name>survey-route</name>", ""),
-                TRACE_GPX.replace("<name>survey-route</name>", "<name>survey-track</name>")
-                    .replace("<trk><name>survey-track</name>",
-                             "<trk><name>survey-track</name>"),
+                TRACE_GPX.replace("<name>survey-route</name>",
+                                  "<name>survey-route</name><name>survey-route</name>"),
                 TRACE_GPX.replace("</rte>", "<rtept lat='48.850' lon='2.350'>"
                     "<name>point-a</name></rtept></rte>"),
                 TRACE_GPX.replace("<trkseg>", "<trkseg><extensions/>", 1),

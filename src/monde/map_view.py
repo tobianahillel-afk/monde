@@ -119,7 +119,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <p id="radius-summary" class="subtle">Select an original source report to choose a proximity center. Distances are approximate, between reported coordinates only.</p>
 <div class="controls"><label><input id="disagreements-only" type="checkbox"> Different-source position claims only</label></div>
 <div class="controls"><label><input id="show-disagreement-links" type="checkbox" checked> Show source-position disagreement links</label></div>
-<p class="subtle">Pink dashed disagreement links are not routes or movements. Cyan dashed GPX sample connections, when present, show original source order only — not a verified physical path or continuous movement.</p>
+<p class="subtle">Pink dashed disagreement links are not routes, movements, uncertainty estimates or verified locations. Cyan dashed GPX sample connections, when present, show original source order only — not a verified physical path or continuous movement.</p>
 <div class="controls" id="change-filter-control" hidden><label for="change-filter">Reported change</label>
 <select id="change-filter"><option value="">All changes</option><option value="NEWLY_CURRENT">Newly current</option><option value="NO_LONGER_CURRENT">No longer current</option></select></div>
 <ul id="report-list" aria-label="Reported points"></ul>
