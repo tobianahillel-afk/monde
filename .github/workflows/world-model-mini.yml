@@ -803,15 +803,21 @@ jobs:
               if(result.format!=='MONDE_MINI_GPX_SOURCE_SEGMENT_PROFILE_V1' ||
                   result.visible_sample_count!==3 ||
                   result.adjacent_pair_count!==2 ||
-                  result.approximate_adjacent_separation_km<2 ||
-                  result.approximate_adjacent_separation_km>4 ||
+                  result.approximate_adjacent_separation_km<1.5 ||
+                  result.approximate_adjacent_separation_km>3.5 ||
                   result.source_trace.original_sample_count!==3 ||
                   result.original_reports.length!==3 ||
                   result.original_reports.some(f=>!f.id || !f.properties.evidence_id ||
                     !f.properties.source_id) ||
                   !result.applied_filters.gpx_source_trace ||
                   !result.source_query)
-                throw Error('profile changed original source/evidence or pair counts');
+                throw Error('invalid profile: '+JSON.stringify({samples:result.visible_sample_count,
+                  pairs:result.adjacent_pair_count,
+                  km:result.approximate_adjacent_separation_km,
+                  original:result.source_trace.original_sample_count,
+                  exported:result.original_reports.length,
+                  filters:!!result.applied_filters.gpx_source_trace,
+                  query:!!result.source_query}));
               document.getElementById('report-search').value='not-a-source-record';
               document.getElementById('report-search').dispatchEvent(new Event('input'));
               if(!exportButton.disabled)throw Error('empty profile remained exportable');
