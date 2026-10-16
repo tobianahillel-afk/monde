@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub, prepareFreshL2AutoFromCurrentGitHub } = require('./l2-delta-github.cjs');
+const { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub, prepareFreshL2AutoFromCurrentGitHub, assessFreshL2Waves } = require('./l2-delta-github.cjs');
 
 const OLD = 'a'.repeat(40), HEAD = 'b'.repeat(40);
 const PATH = '.github/scripts/monde-dev/delegation.cjs';
@@ -1186,4 +1186,82 @@ test('fresh L2 review waves: maximum 200-file scope remains wholly addressable',
   assert.deepEqual(plan.review_waves.map(w=>w.assignment_ids.length),[4,4,1]);
   assert.equal(plan.batches.flatMap(b=>b.assignment.paths).length,200);
   assert.equal(new Set(plan.review_waves.flatMap(w=>w.assignment_ids)).size,9);
+});
+
+function wavesFixture(){
+  const sha='a'.repeat(40);
+  const batches=Array.from({length:5},(_,i)=>({
+    status:'FRESH_L2_BATCH_READY',batch_number:i+1,batch_count:5,
+    assignment:{mission_kind:'L2_REVIEW',
+      assignment_id:'L2-PR19-WAVE-'+String(i+1).padStart(3,'0'),
+      repo:'tobianahillel-afk/monde',pr:19,head_sha:sha,
+      author_context_id:'chat-author-wave-001',
+      objective:'Independent security review of wave '+(i+1),
+      paths:['src/wave'+(i+1)+'.cjs']}
+  }));
+  return {
+    status:'FRESH_L2_BATCHES_READY',full_scope_partition_verified:true,
+    observed_pr_head_sha:sha,reviewed_path_units:5,
+    batch_count:5,batches,wave_count:2,
+    review_waves:[{wave_number:1,
+      assignment_ids:batches.slice(0,4).map(x=>x.assignment.assignment_id)},
+      {wave_number:2,assignment_ids:[batches[4].assignment.assignment_id]}]
+  };
+}
+test('review waves: five assignments span two waves; missing result never means approval',()=>{
+  const fixture=wavesFixture();
+  const outcome=assessFreshL2Waves({plan:fixture,
+    current_head:fixture.observed_pr_head_sha});
+  assert.equal(outcome.wave_count,2);
+  assert.equal(outcome.assessed_missions,5);
+  assert.equal(outcome.missing_assignment_ids.length,5);
+  assert.equal(outcome.status,'MISSING_L2_REPORTS');
+  assert.equal(outcome.review_acceptance_granted,false);
+  assert.equal(outcome.native_github_approved,false);
+  assert.equal(outcome.ready_for_merge,false);
+});
+test('review waves: forged wave order or uncovered path fails closed',()=>{
+  const original=wavesFixture();
+  const reordered=structuredClone(original);
+  reordered.review_waves[0].assignment_ids.reverse();
+  assert.throws(()=>assessFreshL2Waves({plan:reordered,current_head:OLD}),
+    e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  const uncovered=structuredClone(original);
+  uncovered.reviewed_path_units=4;
+  assert.throws(()=>assessFreshL2Waves({plan:uncovered,current_head:OLD}),
+    e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+});
+test('review waves: foreign report and stale head cannot be accepted',()=>{
+  const plan=wavesFixture();
+  assert.throws(()=>assessFreshL2Waves({plan,current_head:HEAD}),
+    e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  assert.throws(()=>assessFreshL2Waves({plan,current_head:OLD,
+    reports:{'L2-PR19-FOREIGN-001':'some content'}}),
+    e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+});
+test('review waves: reused reviewer chat across different waves remains unqualified',()=>{
+  const plan=wavesFixture(),reports={},sources={};
+  const {MARKER}=require('./delegation.cjs');
+  for(let i=0;i<5;i++){
+    const mission=plan.batches[i].assignment;
+    const id=mission.assignment_id;
+    reports[id]='Independent technical review with concrete evidence.\n'+
+      'No live runtime acceptance is granted.\n'+MARKER+'\n'+
+      JSON.stringify({v:1,assignment_id:id,repo:mission.repo,pr:mission.pr,
+        head_sha:mission.head_sha,reviewer_context_id:'chat-l2-shared-001',
+        verdict:'CHANGES_REQUIRED',findings:[{id:'F01',severity:'R2',
+          path:mission.paths[0],evidence:'The observed contract is incomplete',
+          action:'Constrain the contract before production'}],
+        reviewed_paths:mission.paths,limitations:['No live production test']});
+    sources[id]={retrieved_from_distinct_chat:true,
+      context_id:'chat-l2-shared-001',retrieval_kind:'chat_history',
+      message_ref:'history-l2-shared-001'};
+  }
+  const result=assessFreshL2Waves({plan,reports,sources,current_head:OLD});
+  assert.equal(result.missing_assignment_ids.length,0);
+  assert.equal(result.wave_count,2);
+  assert.equal(result.review_acceptance_granted,false);
+  assert.equal(result.ready_for_merge,false);
+  assert.ok(result.independence_conflicts>=1);
+  assert.equal(result.waves[1].results[0].independence_unverified,true);
 });

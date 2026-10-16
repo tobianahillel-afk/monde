@@ -2,7 +2,7 @@
 
 // Read-only GitHub comparison adapter. Native reviews and context-separated
 // acceptance are NEVER inferred from the API diff or the returned proposal.
-const { assignment, planL2Delta } = require('./delegation.cjs');
+const { assignment, planL2Delta, assessDelegationBatch } = require('./delegation.cjs');
 
 function incomplete() {
   const error = new Error('INCOMPLETE_GITHUB_COMPARE');
@@ -592,4 +592,102 @@ async function prepareFreshL2AutoFromCurrentGitHub(input) {
   };
 }
 
-module.exports = { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub, prepareFreshL2AutoFromCurrentGitHub };
+
+// Aggregate *all* bounded L2 review waves without treating any ChatGPT report
+// as native approval. Previously each 1-4-mission batch could be assessed
+// independently, but cross-wave provenance collisions and missing assignments
+// were not reconciled in one complete coverage report.
+function assessFreshL2Waves({
+  plan, reports={}, sources={}, coverage_manifests={}, current_head,
+  prior_sources=[]
+}) {
+  if(!plan || plan.status!=='FRESH_L2_BATCHES_READY' ||
+     plan.full_scope_partition_verified!==true ||
+     !Array.isArray(plan.batches) || plan.batches.length<1 ||
+     plan.batches.length>20 || plan.batch_count!==plan.batches.length ||
+     !Array.isArray(plan.review_waves) ||
+     plan.review_waves.length!==Math.ceil(plan.batches.length/4) ||
+     plan.wave_count!==plan.review_waves.length ||
+     typeof current_head!=='string' ||
+     !/^[a-f0-9]{40}$/.test(current_head) ||
+     plan.observed_pr_head_sha!==current_head ||
+     !reports || typeof reports!=='object' || Array.isArray(reports) ||
+     !sources || typeof sources!=='object' || Array.isArray(sources) ||
+     !coverage_manifests || typeof coverage_manifests!=='object' ||
+     Array.isArray(coverage_manifests) ||
+     !Array.isArray(prior_sources))incomplete();
+  const missions=[],seen=new Set(),paths=new Set();
+  for(let i=0;i<plan.batches.length;i++){
+    const row=plan.batches[i];
+    if(!row||!row.assignment || row.batch_number!==i+1 ||
+       row.batch_count!==plan.batches.length)incomplete();
+    let mission;
+    try{mission=assignment(row.assignment);}catch{incomplete();}
+    if(mission.mission_kind!=='L2_REVIEW'||
+       mission.head_sha!==current_head||
+       mission.repo!==plan.batches[0].assignment.repo||
+       mission.pr!==plan.batches[0].assignment.pr||
+       seen.has(mission.assignment_id))incomplete();
+    seen.add(mission.assignment_id);missions.push(mission);
+    for(const path of mission.paths){
+      if(paths.has(path))incomplete();
+      paths.add(path);
+    }
+  }
+  if(plan.reviewed_path_units!==paths.size ||
+     [reports,sources,coverage_manifests].some(map=>
+       Object.keys(map).some(id=>!seen.has(id))))incomplete();
+  const summary=[],results=[],missing=[],prior=prior_sources.slice();
+  for(let i=0;i<plan.review_waves.length;i++){
+    const wave=plan.review_waves[i];
+    const selected=missions.slice(i*4,i*4+4);
+    const ids=selected.map(m=>m.assignment_id);
+    if(!wave||wave.wave_number!==i+1 ||
+       !Array.isArray(wave.assignment_ids) ||
+       wave.assignment_ids.length!==ids.length ||
+       wave.assignment_ids.some((id,j)=>id!==ids[j]))incomplete();
+    const mapFor=map=>Object.fromEntries(ids.filter(id=>
+      Object.prototype.hasOwnProperty.call(map,id)).map(id=>[id,map[id]]));
+    const batch=assessDelegationBatch({
+      assignments:selected,reports:mapFor(reports),sources:mapFor(sources),
+      coverage_manifests:mapFor(coverage_manifests),current_head,
+      prior_sources:prior
+    });
+    results.push(...batch.results);
+    missing.push(...ids.filter(id=>!Object.prototype.hasOwnProperty.call(reports,id)));
+    summary.push({wave_number:i+1,assignment_ids:ids,
+      reports_received:ids.length-ids.filter(id=>
+        !Object.prototype.hasOwnProperty.call(reports,id)).length,
+      independence_conflicts:batch.independence_conflicts,
+      needs_attention:batch.needs_attention,
+      results:batch.results});
+    // Cross-wave ChatGPT context/message reuse cannot silently become
+    // independent review evidence. Only structurally valid observations
+    // are forwarded to the existing cross-batch provenance checker.
+    for(const id of ids){
+      const source=sources[id];
+      if(typeof reports[id]==='string' && source &&
+         typeof source.context_id==='string' &&
+         /^[A-Za-z0-9][A-Za-z0-9._:-]{7,95}$/.test(source.context_id) &&
+         typeof source.message_ref==='string' &&
+         /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(source.message_ref)){
+        prior.push({assignment_id:id,context_id:source.context_id,
+          message_ref:source.message_ref});
+      }
+    }
+  }
+  const unqualified=results.filter(r=>r.needs_attention ||
+    r.requires_manual_qualification ||
+    !['L2_REPORT_RECEIVED_PENDING_VALIDATION'].includes(r.status));
+  return {
+    status:missing.length?'MISSING_L2_REPORTS':'L2_WAVES_ASSESSED_PENDING_MANUAL_QUALIFICATION',
+    observed_pr_head_sha:current_head,assessed_missions:results.length,
+    wave_count:summary.length,waves:summary,missing_assignment_ids:missing,
+    independence_conflicts:summary.reduce((s,w)=>s+w.independence_conflicts,0),
+    needs_attention:missing.length>0||unqualified.length>0,
+    native_github_approved:false,review_acceptance_granted:false,
+    ready_for_merge:false,authorized_to_write:false
+  };
+}
+
+module.exports = { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub, prepareFreshL2AutoFromCurrentGitHub, assessFreshL2Waves };
