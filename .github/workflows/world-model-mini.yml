@@ -104,6 +104,81 @@ jobs:
           grep -q 'data-monde-gpx-segments="4"' /tmp/monde-gpx-track-dom.html
           grep -q 'data-gpx-trace=' /tmp/monde-gpx-track-dom.html
           grep -q 'field-survey' /tmp/monde-gpx-track-dom.html
+      - name: Filter source-reported GPX sample UTC days in real offline Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path('/tmp/monde-trace.gpx').read_text(encoding='utf-8')
+          text = text.replace('2026-01-01T08:59:00Z', '2026-01-02T08:59:00Z')
+          text = text.replace('<rte><name>field-survey</name>',
+              '<wpt lat="48.840" lon="2.340"><name>untimed-waypoint</name></wpt>'
+              '<rte><name>field-survey</name>')
+          Path('/tmp/monde-source-days.gpx').write_text(text, encoding='utf-8')
+          PY
+          python3 -m monde.map_view --gpx /tmp/monde-source-days.gpx \
+            --source-id clock-gpx --source-locator dataset://gpx-clock \
+            --captured-at 2026-01-10T10:00:00Z \
+            --valid-from 2026-01-01T00:00:00Z \
+            --at 2026-01-02T00:00:00Z \
+            --known-at 2026-01-10T10:00:00Z \
+            --output /tmp/monde-gpx-source-days.html
+          python3 - <<'PY'
+          from pathlib import Path
+          html = Path('/tmp/monde-gpx-source-days.html').read_text(encoding='utf-8')
+          check = """<script>
+          (async function(){
+            try{
+              var original=document.getElementById('monde-data').textContent;
+              var from=document.getElementById('gpx-clock-from');
+              var through=document.getElementById('gpx-clock-through');
+              var clear=document.getElementById('clear-gpx-clock');
+              var list=()=>document.querySelectorAll('#report-list button').length;
+              var links=()=>document.querySelectorAll('#source-traces line').length;
+              if(document.getElementById('gpx-clock-filter-control').hidden ||
+                 list()!==8)throw Error('missing original GPX clock test evidence');
+              from.value='2026-01-01';through.value='2026-01-01';
+              from.dispatchEvent(new Event('change'));
+              if(list()!==2 || links()!==1 || clear.disabled)
+                throw Error('inclusive UTC day filter failed or bridged source gap');
+              var resultBlob=null;
+              URL.createObjectURL=function(v){resultBlob=v;return 'blob:gpx-days';};
+              HTMLAnchorElement.prototype.click=function(){};
+              document.getElementById('export-visible').click();
+              var result=JSON.parse(await resultBlob.text());
+              if(result.features.length!==2 ||
+                 result.monde_visible_export.original_feature_count!==8 ||
+                 result.monde_visible_export.filters.gpx_source_sample_from_utc_day!=='2026-01-01' ||
+                 result.monde_visible_export.filters.gpx_source_sample_through_utc_day!=='2026-01-01' ||
+                 !result.monde_visible_export.filters.gpx_source_sample_time_basis ||
+                 result.features.some(f=>!f.properties.evidence_id ||
+                   !f.properties.source_id || !f.properties.monde_gpx_sample_time))
+                throw Error('filtered original source export lost evidence lineage');
+              from.value='2026-01-02';through.value='2026-01-02';
+              from.dispatchEvent(new Event('change'));
+              if(list()!==1 || links()!==0)
+                throw Error('day 2 source sample must not bridge filtered gap');
+              clear.click();
+              if(list()!==8 || !clear.disabled ||
+                 document.getElementById('monde-data').textContent!==original)
+                throw Error('source clocks filter did not restore immutable evidence');
+              document.body.setAttribute('data-monde-gpx-clock-filter','pass');
+            }catch(e){document.body.setAttribute('data-monde-gpx-clock-filter','fail:'+e.message);}
+          }()).catch(e=>document.body.setAttribute('data-monde-gpx-clock-filter','fail:'+e.message));
+          </script>"""
+          Path('/tmp/monde-gpx-clock-probe.html').write_text(
+              html.replace('</body>',check+'</body>'),encoding='utf-8')
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=2500 --timeout=15000 --dump-dom \
+            file:///tmp/monde-gpx-clock-probe.html > /tmp/monde-gpx-clock-dom.html
+          if ! grep -q 'data-monde-gpx-clock-filter="pass"' /tmp/monde-gpx-clock-dom.html; then
+            grep -o 'data-monde-gpx-clock-filter="[^"]*"' /tmp/monde-gpx-clock-dom.html || true
+            exit 1
+          fi
       - name: Filter original GPX segments in an actual offline Chromium browser
         run: |
           set -euo pipefail
