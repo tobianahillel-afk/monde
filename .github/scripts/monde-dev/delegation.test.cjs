@@ -8249,13 +8249,13 @@ test('Oct-16 L2: custom session key values must never leak through public review
     const handoff=d.prepareInteractiveHandoff({expected:H,response:review,
       current_head:SHA,source,publication_clearance:clearance});
     assert.equal(handoff.ready_for_manual_relay,false,exposure);
-    assert.equal(handoff.status,'CREDENTIAL_IN_RELAY',exposure);
+    assert.equal(handoff.status,'POTENTIAL_SECRET_IN_REPORT',exposure);
     assert.equal(handoff.text,null,exposure);
     const unqualified=d.prepareUnqualifiedTriageHandoff({expected:H,
       response:'R2 diagnostic, sample: '+exposure,current_head:SHA,
       source,publication_clearance:clearance});
     assert.equal(unqualified.ready_for_manual_relay,false,exposure);
-    assert.equal(unqualified.status,'CREDENTIAL_IN_RELAY',exposure);
+    assert.equal(unqualified.status,'POTENTIAL_SECRET_IN_REPORT',exposure);
     assert.equal(unqualified.text,null,exposure);
     assert.throws(()=>d.createResumePacket({...bookmark,
       next_action:'Investigate '+exposure}), e=>e.code==='INVALID_RESUME_PACKET',exposure);
