@@ -44,3 +44,22 @@ source/evidence IDs, timestamps and locators. Per-feature `monde_change` is
 report geometry at that cutoff. These describe changed **knowledge**,
 never verified physical movement. Unchanged reports are omitted; an empty
 result does not imply a physically empty region. This experiment is unindexed.
+
+## World-time changes at fixed knowledge
+
+Compare two instants of reported validity in a viewport without changing the
+knowledge cutoff:
+
+```sh
+PYTHONPATH=src python3 -m monde.world --fixture saved.json \\
+  --export-geojson-bbox-world-changes '2,48,3,49' \\
+  --compare-at 2026-01-02T00:00:00Z --at 2026-01-04T00:00:00Z \\
+  --known-at 2026-01-10T10:00:00Z
+```
+
+Entities intersecting the viewport at **either** instant qualify. Changed
+source reports retain all evidence, timestamps and off-viewport competing
+positions, with `monde_inside_bbox` for each time snapshot. Features are
+labelled `NEWLY_CURRENT` or `NO_LONGER_CURRENT`, never inferred motion;
+`monde_change_basis` is `REPORTED_VALIDITY_NOT_VERIFIED_MOTION`. Unchanged
+reports are omitted. This experimental comparison is unindexed.

@@ -215,6 +215,104 @@ class ViewportChangeTest(unittest.TestCase):
                                      text=True, capture_output=True, check=False)
                 self.assertNotEqual(bad.returncode, 0, options)
 
+TIME2 = "2026-01-04T00:00:00Z"
+CUT = "2026-01-03T00:00:00Z"
+
+
+def reports_at_two_times():
+    world = WorldMini()
+    points = WorldMini.load_document(str(POINTS))
+    first = copy.deepcopy(points)
+    first["features"] = first["features"][:1]
+    second = copy.deepcopy(first)
+    second["features"][0]["geometry"]["coordinates"] = [5, 45]
+    world.append_document(to_document(
+        first, source_id="viewport-first", locator="fixture://first",
+        captured_at=K, valid_from="2026-01-01T00:00:00Z", valid_to=CUT))
+    world.append_document(to_document(
+        second, source_id="viewport-second", locator="fixture://second",
+        captured_at=K, valid_from=CUT))
+    return world
+
+
+class ViewportWorldTimeTests(unittest.TestCase):
+    def test_entering_leaving_reports_not_physical_trajectory(self):
+        world = reports_at_two_times()
+        snapshot = world.export()
+        result = world.export_geojson_bbox_world_changes(
+            [2.34, 48.84, 2.36, 48.87], AT, TIME2, K)
+        self.assertEqual(result["monde_bbox_world_changes_query"]["total_matching_entities"], 1)
+        self.assertEqual(len(result["features"]), 2)
+        features = {f["properties"]["source_id"]: f for f in result["features"]}
+        self.assertEqual(features["viewport-first"]["properties"]["monde_change"], "NO_LONGER_CURRENT")
+        self.assertEqual(features["viewport-second"]["properties"]["monde_change"], "NEWLY_CURRENT")
+        self.assertTrue(features["viewport-first"]["properties"]["monde_inside_bbox"])
+        self.assertFalse(features["viewport-second"]["properties"]["monde_inside_bbox"])
+        self.assertEqual(features["viewport-second"]["geometry"]["coordinates"], [5, 45])
+        for f in features.values():
+            p = f["properties"]
+            self.assertEqual(p["monde_change_basis"], "REPORTED_VALIDITY_NOT_VERIFIED_MOTION")
+            self.assertTrue(p["evidence_id"])
+            self.assertTrue(p["locator"])
+            self.assertEqual(p["knowledge_cutoff"], K)
+        self.assertEqual(world.export(), snapshot)
+
+    def test_no_changes_unknowns_antimeridian_and_validation(self):
+        world = reports_at_two_times()
+        bbox = [2.34, 48.84, 2.36, 48.87]
+        self.assertEqual(world.export_geojson_bbox_world_changes(
+            bbox, "2026-01-01T10:00:00Z", AT, K)["features"], [])
+        self.assertEqual(world.export_geojson_bbox_world_changes(
+            bbox, AT, TIME2, "2026-01-10T09:59:59Z")["features"], [])
+        self.assertEqual(world.export_geojson_bbox_world_changes(
+            [10, 48, 11, 49], AT, TIME2, K)["features"], [])
+        dateline = WorldMini()
+        points = WorldMini.load_document(str(POINTS))
+        points["features"] = points["features"][:1]
+        points["features"][0]["geometry"]["coordinates"] = [179.9, 0]
+        dateline.append_document(to_document(
+            points, source_id="dateline", locator="fixture://dateline",
+            captured_at=K, valid_from="2026-01-01T00:00:00Z", valid_to=CUT))
+        result = dateline.export_geojson_bbox_world_changes(
+            [179.8, -1, -179.8, 1], AT, TIME2, K)
+        self.assertEqual(len(result["features"]), 1)
+        for bounds, earlier, later in [
+            ([181, 0, -179, 1], AT, TIME2),
+            ([0, 3, 1, 2], AT, TIME2),
+            (bbox, TIME2, AT), (bbox, AT, AT),
+            ([float("nan"), 48, 3, 49], AT, TIME2),
+        ]:
+            with self.subTest(bounds=bounds, earlier=earlier):
+                with self.assertRaises(ValueError):
+                    world.export_geojson_bbox_world_changes(bounds, earlier, later, K)
+
+    def test_real_saved_state_cli(self):
+        world = reports_at_two_times()
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory) / "world.json"
+            world.save(state)
+            unchanged = state.read_bytes()
+            env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+            cmd = (sys.executable, "-m", "monde.world", "--fixture", str(state))
+            flags = ("--export-geojson-bbox-world-changes", "2.34,48.84,2.36,48.87",
+                     "--compare-at", AT, "--at", TIME2, "--known-at", K)
+            ok = subprocess.run(cmd + flags, cwd=ROOT, env=env,
+                                text=True, capture_output=True, check=False)
+            self.assertEqual(ok.returncode, 0, ok.stderr)
+            self.assertEqual(len(json.loads(ok.stdout)["features"]), 2)
+            self.assertEqual(unchanged, state.read_bytes())
+            for bad in [
+                ("--export-geojson-bbox-world-changes", "2,48,3", "--compare-at", AT,
+                 "--at", TIME2, "--known-at", K),
+                ("--export-geojson-bbox-world-changes", "2,48,3,49", "--at", TIME2,
+                 "--known-at", K),
+                flags + ("--compare-known-at", AT),
+                flags + ("--radius-km", "3"),
+            ]:
+                result = subprocess.run(cmd + bad, cwd=ROOT, env=env,
+                                        text=True, capture_output=True, check=False)
+                self.assertNotEqual(result.returncode, 0, bad)
+
 
 if __name__ == "__main__":
     unittest.main()

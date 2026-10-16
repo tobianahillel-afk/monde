@@ -18,6 +18,7 @@ acceptance_criteria:
   - {id: AC-2, description: "Feature evidence and world/knowledge times remain explicit", status: NOT_STARTED}
   - {id: AC-3, description: "CLI and antimeridian viewport with invalid-input rejection work", status: NOT_STARTED}
   - {id: AC-4, description: "Viewport knowledge changes retain entering and departing source positions without implying physical movement", status: NOT_STARTED}
+  - {id: AC-5, description: "World-time source Point viewport changes preserve evidence and do not assert motion", status: NOT_STARTED}
 requirements: []
 assumptions: ["2D WGS84 Points", "Source report not verified physical location"]
 risks: ["Misinterpreting outside-source positions as true location"]
@@ -37,6 +38,7 @@ implementation_plan:
     - {id: T1, description: "Export viewport map and CLI", depends_on: [], expected_files: [src/monde/world.py], status: IN_PROGRESS}
     - {id: T2, description: "Behavioral tests and documentation", depends_on: [T1], expected_files: [tests/test_world_geojson_bbox.py, docs/03_ARCHITECTURE/world-mini-geojson-bbox.md], status: IN_PROGRESS}
     - {id: T3, description: "Viewport knowledge-change map with retained offscreen corrections", depends_on: [T1], expected_files: [src/monde/world.py, tests/test_world_geojson_bbox.py], status: IN_PROGRESS}
+    - {id: T4, description: "Viewport world-time difference at fixed knowledge", depends_on: [T1], expected_files: [src/monde/world.py, tests/test_world_geojson_bbox.py, docs/03_ARCHITECTURE/world-mini-geojson-bbox.md], status: IN_PROGRESS}
   planned_runs:
     - {id: RUN-1, objective: "Viewport GeoJSON increment", tasks: [T1, T2], exit_condition: "Product CI and scoped L2", status: IN_PROGRESS}
 review_plan:
