@@ -2145,7 +2145,7 @@ function containsNonpublicScopeDisclosure(value){
       // Do not classify https:// or other URL authority as a machine path.
       const candidate=httpSlashes.replace(
         /(^|[\s"'(=])([A-Za-z][A-Za-z0-9_-]{0,40}):(?=\/+)/g,
-        (all,boundary,label)=>/^(?:https?|ftps?|wss?)$/i.test(label)?
+        (all,boundary,label)=>/^(?:https?|ftps?|wss?|file)$/i.test(label)?
           all:boundary+label+'=');
       const traverses=PUBLIC_HTTP_TRAVERSAL.test(candidate);
       // A public route containing traversal is never exempt; query values
