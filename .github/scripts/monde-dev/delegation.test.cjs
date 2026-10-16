@@ -7689,3 +7689,36 @@ test('WORK planner rejects duplicate planned-runs keys, including quoted aliases
       'should reject '+JSON.stringify(second));
   }
 });
+
+test('WORK planner rejects duplicate top-level YAML keys with spaced or quoted spellings',()=>{
+  for(const extra of [
+    'status : DONE','"status" : DONE',"'status' : DONE",
+    'id : WORK-0007','"depends_on" : []',
+    "'implementation_plan' : []"
+  ]){
+    const poisoned=WORK_FIXTURE_ACTIVE+'\n'+extra;
+    assert.throws(()=>d.parseWorkPlanningSnapshot(poisoned,'WORK-0007'),
+      e=>e.code==='AMBIGUOUS_WORK_SNAPSHOT',
+      'reject duplicate YAML key '+extra);
+  }
+});
+test('WORK planner rejects spaced-colon task aliases after canonical tasks',()=>{
+  for(const alias of [
+    '  tasks : []','  "tasks" : []',"  'tasks' : []"
+  ]){
+    const poisoned=WORK_FIXTURE_ACTIVE.replace(
+      '  planned_runs: []','  planned_runs: []\n'+alias
+    );
+    assert.throws(()=>d.parseWorkPlanningSnapshot(poisoned,'WORK-0007'),
+      e=>e.code==='AMBIGUOUS_IMPLEMENTATION_SECTIONS');
+  }
+});
+test('WORK planner rejects spaced-colon planned-run aliases',()=>{
+  for(const alias of [
+    '  planned_runs : []','  "planned_runs" : []',"  'planned_runs' : []"
+  ]){
+    const poisoned=WORK_FIXTURE_DONE.replace('review_plan:',alias+'\nreview_plan:');
+    assert.throws(()=>d.parseWorkPlanningSnapshot(poisoned,'WORK-0001'),
+      e=>e.code==='AMBIGUOUS_IMPLEMENTATION_SECTIONS');
+  }
+});

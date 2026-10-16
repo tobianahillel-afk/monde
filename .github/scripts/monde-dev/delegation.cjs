@@ -1749,8 +1749,16 @@ function parseWorkPlanningSnapshot(text,id) {
     bad('INVALID_WORK_SNAPSHOT');
   const rows=text.replace(/\r\n/g,'\n').split('\n');
   const top=field=>rows.filter(row=>row.startsWith(field+':'));
-  for(const field of ['id','status','depends_on','implementation_plan'])
-    if(top(field).length!==1)bad('AMBIGUOUS_WORK_SNAPSHOT');
+  // YAML permits spaces before the colon and quoted mapping keys.
+  // Detect aliases even when this conservative planner cannot interpret them,
+  // so an alternate spelling cannot silently override an earlier WORK field.
+  const keyPattern=(field,indent)=>new RegExp(
+    '^'+' '.repeat(indent)+'(?:'+field+'|"'+field+'"|\\x27'+field+'\\x27)[ \\t]*:');
+  for(const field of ['id','status','depends_on','implementation_plan']){
+    if(top(field).length!==1||
+       rows.filter(row=>keyPattern(field,0).test(row)).length!==1)
+      bad('AMBIGUOUS_WORK_SNAPSHOT');
+  }
   if(top('id')[0]!=='id: '+id)bad('WORK_ID_MISMATCH');
   const status=top('status')[0].slice(8).trim();
   if(!WORK_STATES.has(status))bad('UNKNOWN_WORK_STATUS');
@@ -1766,10 +1774,8 @@ function parseWorkPlanningSnapshot(text,id) {
   // sections appearing after planned_runs (the task reader stops there).
   // Never treat an earlier READY task list as authoritative when a later
   // YAML key might override it.
-  const taskSections=plan.filter(row=>
-    /^  (?:"tasks"|'tasks'|tasks):/.test(row));
-  const runSections=plan.filter(row=>
-    /^  (?:"planned_runs"|'planned_runs'|planned_runs):/.test(row));
+  const taskSections=plan.filter(row=>keyPattern('tasks',2).test(row));
+  const runSections=plan.filter(row=>keyPattern('planned_runs',2).test(row));
   if(taskSections.length!==1||taskSections[0]!==plan[0]||
      runSections.length>1)
     bad('AMBIGUOUS_IMPLEMENTATION_SECTIONS');
