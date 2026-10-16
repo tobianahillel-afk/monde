@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "evidence": [
+    {
+      "id": "e-news-2",
+      "source_id": "local-news",
+      "locator": "fixture://local-news/correction-2026-01-08",
+      "captured_at": "2026-01-08T10:00:00Z",
+      "source_event_at": "2026-01-08T09:00:00Z"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-news-revised",
+      "entity": "building-001",
+      "attribute": "floors",
+      "value": 8,
+      "evidence_id": "e-news-2",
+      "kind": "CLAIM",
+      "known_at": "2026-01-08T10:00:00Z",
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_to": null,
+      "supersedes": "a-news"
+    }
+  ]
+}

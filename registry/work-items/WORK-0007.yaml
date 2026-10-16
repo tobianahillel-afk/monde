@@ -1,0 +1,74 @@
+id: WORK-0007
+title: "Experiment: durable batch ingestion for MONDE Mini World Model"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.2
+owner: "World Model experimental foundations"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+purpose: |
+  Extend the experimental source-attributed Mini World Model with atomic
+  validated batch appends and re-openable single-writer JSON snapshots.
+scope:
+  in: ["local evidence/claim batch", "atomic snapshot save", "CLI round-trip"]
+  out: ["live ingestion", "production persistence", "multi-writer DB", "reconciliation", "permissions"]
+acceptance_criteria:
+  - {id: AC-1, description: "Reject invalid batches without partial mutation and preserve prior knowledge-time history", status: NOT_STARTED}
+  - {id: AC-2, description: "Create and reopen a complete validated snapshot via two separate Python CLI invocations", status: NOT_STARTED}
+  - {id: AC-3, description: "Existing snapshot overwrite requires an explicit opt-in and concurrent writers are documented as unsupported", status: NOT_STARTED}
+  - {id: AC-4, description: "Unit, error and real CLI tests run on GitHub Actions at the candidate HEAD", status: NOT_STARTED}
+requirements: []
+assumptions: ["Single-writer filesystem; atomic link/replace, no concurrent CAS"]
+risks: ["Explicit concurrent replacement can lose updates", "File-based snapshots do not scale to full MONDE"]
+assurance: {level: A3, rationale: "History and provenance integrity are foundational"}
+read_before:
+  - AGENTS.md
+  - docs/09_GOVERNANCE/constitution.md
+  - docs/03_ARCHITECTURE/world-model-mini.md
+  - registry/work-items/WORK-0006.yaml
+depends_on: [WORK-0001, WORK-0006]
+blocks: []
+reuses: ["WorldMini.read/from_document/export", "Python stdlib", "world-model-mini GitHub Actions"]
+affected_capabilities: []
+affected_engines: ["MONDE Mini experimental World Model"]
+affected_schemas: ["examples/monde-mini-update.json"]
+affected_docs: ["docs/03_ARCHITECTURE/world-model-mini.md"]
+contracts: ["experimental JSON schema version 1 unchanged"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Atomic validated batch append and safe file publication", depends_on: [], expected_files: [src/monde/world.py, tests/test_world_mini.py], status: IN_PROGRESS}
+    - {id: T2, description: "Real CLI ingestion and second-process historical replay", depends_on: [T1], expected_files: [src/monde/world.py, tests/test_world_mini.py, examples/monde-mini-update.json, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Deliver one coherent experimental durable-data slice", tasks: [T1, T2], exit_condition: "GitHub Actions CI green plus independent L2 on stable candidate", status: IN_PROGRESS}
+review_plan:
+  artifact_class: HIGH_RISK_CAPABILITY
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, EPISTEMIC_DATA]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["atomic batch rollback", "source correction idempotence", "file replace opt-in"]
+  property: ["old reported knowledge unchanged"]
+  integration: ["separate-process CLI save/reopen"]
+  contract: ["strict JSON fixture schema v1"]
+  e2e: ["evidence batch -> saved state -> bitemporal CLI query"]
+  regression: ["cross-source contradictions retained"]
+  security: ["invalid batch cannot generate partial output"]
+  performance: []
+  real_system: ["GitHub Actions Python runner"]
+  epistemic: ["reported source evidence is not automatically physical truth"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["experimental only", "separate L2 pending", "no concurrent-writer isolation"]
+risk: {security: LOW, data: MEDIUM, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Close stacked PR; no production state affected."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_ready_checked: false, definition_of_done_checked: false, review_complete: false, docs_updated: true, registries_updated: false, project_state_updated: false}
