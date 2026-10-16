@@ -469,3 +469,42 @@ test('fresh L2: read failure propagates and cannot masquerade as review success'
     github:api,...FRESH_MISSION
   }),err=>err.status===403);
 });
+
+test('fresh L2: immutable file references point to each actual revision',async()=>{
+  const {api}=freshClient();
+  const v=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
+  assert.equal(v.immutable_file_refs.length,2);
+  assert.deepEqual(v.immutable_file_refs[0],{
+    path:PATH,status:'modified',previous_path:null,
+    base_url:'https://github.com/tobianahillel-afk/monde/blob/'+'c'.repeat(40)+'/'+PATH,
+    head_url:'https://github.com/tobianahillel-afk/monde/blob/'+HEAD+'/'+PATH
+  });
+  assert.equal(v.immutable_file_refs[1].base_url,null);
+  assert.match(v.prompt,/immutable_file_refs|base_url/);
+  assert.equal(v.review_acceptance_granted,false);
+});
+test('fresh L2: rename uses old base path, new head path; deletion has no head file',async()=>{
+  const changes=[
+    {status:'renamed',filename:'src/new.cjs',previous_filename:'src/old.cjs'},
+    {status:'removed',filename:'docs/old.md'}
+  ];
+  const {api}=freshClient({files:changes});
+  const v=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
+  assert.equal(v.immutable_file_refs[0].base_url,
+    'https://github.com/tobianahillel-afk/monde/blob/'+'c'.repeat(40)+'/src/old.cjs');
+  assert.equal(v.immutable_file_refs[0].head_url,
+    'https://github.com/tobianahillel-afk/monde/blob/'+HEAD+'/src/new.cjs');
+  assert.equal(v.immutable_file_refs[1].head_url,null);
+  assert.equal(v.immutable_file_refs[1].base_url,
+    'https://github.com/tobianahillel-afk/monde/blob/'+'c'.repeat(40)+'/docs/old.md');
+});
+test('fresh L2: fork PR links use original base and actual fork head repository',async()=>{
+  const {api}=freshClient({headRepo:'other-owner/monde-copy'});
+  const v=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
+  assert.equal(v.immutable_file_refs[0].base_url,
+    'https://github.com/tobianahillel-afk/monde/blob/'+'c'.repeat(40)+'/'+PATH);
+  assert.equal(v.immutable_file_refs[0].head_url,
+    'https://github.com/other-owner/monde-copy/blob/'+HEAD+'/'+PATH);
+  assert.match(v.prompt,/other-owner\/monde-copy/);
+  assert.equal(v.native_github_approved,false);
+});

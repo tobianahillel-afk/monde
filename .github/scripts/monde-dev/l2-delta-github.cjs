@@ -240,7 +240,20 @@ async function prepareFreshL2FromCurrentGitHub(input) {
   // Show the immutable base/head and every GitHub change kind so an L2 worker
   // can examine both sides of a deletion or rename rather than silently omit it.
   // All paths have already passed the strict assignment scope parser.
-  const changeManifest = changes.map(change => JSON.stringify(change)).join('\n');
+  // Immutable base and head links prevent a reviewer from accidentally
+  // inspecting mutable branch files. For fork PRs each side has its own repo.
+  // Deleted files exist at base; added files exist at head; renamed files
+  // require the old base path and the new head path.
+  const fileEvidence = changes.map(change => ({
+    path:change.path,status:change.status,previous_path:change.previous_path,
+    base_url:change.status==='added'?null:
+      'https://github.com/'+seed.repo+'/blob/'+before.base_sha+'/' +
+      (change.previous_path ?? change.path),
+    head_url:change.status==='removed'?null:
+      'https://github.com/'+before.head_repo+'/blob/'+before.head_sha+'/' +
+      change.path
+  }));
+  const changeManifest = fileEvidence.map(change=>JSON.stringify(change)).join('\n');
   const prompt = buildReviewPrompt(mission) +
     '\n\nCONTEXTE DU DIFF GITHUB (lecture seule ; ne prouve aucune revue) :' +
     '\nBase PR : ' + before.base_sha + '; HEAD PR : ' + before.head_sha +
@@ -254,6 +267,7 @@ async function prepareFreshL2FromCurrentGitHub(input) {
   return {
     status:'FRESH_L2_ASSIGNMENT_READY',assignment:mission,
     prompt,changed_file_statuses:changes,
+    immutable_file_refs:fileEvidence,
     observed_pr_base_sha:before.base_sha,
     observed_pr_head_sha:before.head_sha,
     observed_pr_source_repo:before.head_repo,
