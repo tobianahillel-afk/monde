@@ -1,0 +1,63 @@
+id: WORK-0014
+title: "Map nearest bitemporal source Point reports as GeoJSON"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.7
+owner: "MONDE Mini proximity cartography"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+purpose: |
+  Convert existing nearest source-attributed Point discovery into map-ready
+  GeoJSON, retaining competing source geometries and temporal provenance.
+scope:
+  in: ["Nearest GeoJSON", "CLI", "Temporal cutoffs", "Per-source evidence"]
+  out: ["Routing", "Ground truth", "Tiles", "New GIS engine"]
+acceptance_criteria:
+  - {id: AC-1, description: "Nearest entity map preserves all source Points", status: NOT_STARTED}
+  - {id: AC-2, description: "Bitemporal evidence and rank preserved", status: NOT_STARTED}
+  - {id: AC-3, description: "Persisted CLI emits valid GeoJSON", status: NOT_STARTED}
+requirements: []
+assumptions: ["2D WGS84 Points", "Spherical distances are approximate"]
+risks: ["Misinterpretation of source reports as truth"]
+assurance: {level: A3, rationale: "Geographic evidence and time fidelity"}
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-proximity.md]
+depends_on: [WORK-0001, WORK-0006, WORK-0007, WORK-0008, WORK-0009, WORK-0010, WORK-0011, WORK-0012, WORK-0013]
+blocks: []
+reuses: ["WorldMini.search_geo_nearest", "existing _point", "existing CLI"]
+affected_capabilities: []
+affected_engines: ["World Mini geography"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-geojson-nearest.md]
+contracts: ["GeoJSON FeatureCollection, nearest does not mean physical truth"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Implement export and CLI", depends_on: [], expected_files: [src/monde/world.py], status: IN_PROGRESS}
+    - {id: T2, description: "Verify and document", depends_on: [T1], expected_files: [tests/test_world_geojson_nearest.py, docs/03_ARCHITECTURE/world-mini-geojson-nearest.md], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Nearest-map increment", tasks: [T1, T2], exit_condition: "Product CI and scoped independent L2", status: IN_PROGRESS}
+review_plan:
+  artifact_class: HIGH_RISK_CAPABILITY
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, EPISTEMIC_DATA, ARCHITECTURE_REUSE]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["Ranking", "Conflicting reports", "Invalid inputs"]
+  integration: ["Evidence and bitemporal identity"]
+  e2e: ["Persisted-state CLI"]
+  security: ["CLI incompatible flags"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Experimental", "L2 pending", "Unindexed", "Stacked PR not merged"]
+risk: {security: LOW, data: MEDIUM, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Close stacked PR without modifying predecessors or main."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_ready_checked: false, definition_of_done_checked: false, review_complete: false, docs_updated: true, registries_updated: false, project_state_updated: false}
