@@ -112,12 +112,14 @@ async function readMergeBase(github,owner,repo,snapshot) {
   if (base!==snapshot.base_sha ||
       typeof merge!=='string' || !/^[a-f0-9]{40}$/.test(merge) ||
       !['ahead','diverged'].includes(result.status) ||
-      // In an ahead-only comparison the target base itself is necessarily
-      // the merge-base. For diverged histories it necessarily is not.
-      // Reject contradictory GitHub evidence instead of pinning a bogus
-      // reviewer preimage and silently accepting a false review scope.
-      (result.status==='ahead' && merge!==snapshot.base_sha) ||
-      (result.status==='diverged' && merge===snapshot.base_sha))
+      !Number.isSafeInteger(result.ahead_by) || result.ahead_by<1 ||
+      !Number.isSafeInteger(result.behind_by) || result.behind_by<0 ||
+      // For ahead, no commit is behind the target base. For diverged,
+      // both sides must contain commits and merge-base must precede base.
+      (result.status==='ahead' &&
+        (merge!==snapshot.base_sha || result.behind_by!==0)) ||
+      (result.status==='diverged' &&
+        (merge===snapshot.base_sha || result.behind_by<1)))
     incomplete();
   return merge;
 }

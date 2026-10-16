@@ -349,6 +349,9 @@ function freshClient(options={}) {
       if(options.compareError)throw Object.assign(new Error('Forbidden'),{status:403});
       return {data:{
         status:options.compareStatus||'ahead',
+        ahead_by:options.aheadBy===undefined?1:options.aheadBy,
+        behind_by:options.behindBy===undefined?
+          (options.compareStatus==='diverged'?1:0):options.behindBy,
         base_commit:{sha:options.compareBase||options.base||'c'.repeat(40)},
         merge_base_commit:{sha:options.mergeBase||options.base||'c'.repeat(40)}
       }};
@@ -782,7 +785,14 @@ test('fresh L2 rejects contradictory GitHub merge-base evidence',async()=>{
     {compareBase:'f'.repeat(40)},{mergeBase:'bad-sha'},
     {compareStatus:'unrelated'},{compareStatus:'behind'},
     {mergeBase:'d'.repeat(40),compareStatus:'ahead'},
-    {mergeBase:'c'.repeat(40),compareStatus:'diverged'}
+    {mergeBase:'c'.repeat(40),compareStatus:'diverged'},
+    {compareStatus:'ahead',aheadBy:0},
+    {compareStatus:'ahead',behindBy:1},
+    {compareStatus:'ahead',aheadBy:'1'},
+    {compareStatus:'ahead',behindBy:-1},
+    {compareStatus:'diverged',mergeBase:'d'.repeat(40),behindBy:0},
+    {compareStatus:'diverged',mergeBase:'d'.repeat(40),aheadBy:0},
+    {compareStatus:'diverged',mergeBase:'d'.repeat(40),behindBy:'1'}
   ]){
     const {api}=freshClient(cfg);
     await assert.rejects(
