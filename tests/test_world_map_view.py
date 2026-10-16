@@ -451,7 +451,7 @@ class OfflineMapWindowTest(unittest.TestCase):
         self.assertIn('svg.addEventListener("pointerdown"', page)
         self.assertIn('svg.addEventListener("keydown"', page)
         self.assertIn('displayed_map_window_bbox_wgs84', page)
-        self.assertIn('(!currentViewOnly.checked || insideDisplayedWindow(f))', page)
+        self.assertIn('(ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f))', page)
         self.assertIn("connect-src 'none'", page)
 
     def test_map_window_available_in_both_temporal_comparison_modes(self):
