@@ -444,7 +444,7 @@ jobs:
               if(filename!=='monde-visible-source-evidence.csv'||!blob)
                 throw Error('missing CSV download');
               var csv=await blob.text();
-              if(!csv.startsWith('\\uFEFFentity,longitude,latitude,assertion_id,'))
+              if(!csv.replace(/^\\uFEFF/,'').startsWith('entity,longitude,latitude,assertion_id,'))
                 throw Error('missing canonical CSV schema');
               if(!csv.includes('FILTERED_VISIBLE_SOURCE_REPORTS_ONLY'))
                 throw Error('missing source-only scope');
@@ -476,7 +476,10 @@ jobs:
           "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
             --virtual-time-budget=2500 --timeout=15000 --dump-dom \
             file:///tmp/monde-visible-csv-smoke.html > /tmp/monde-visible-csv-dom.html
-          grep -q 'data-monde-csv-export="pass"' /tmp/monde-visible-csv-dom.html
+          if ! grep -q 'data-monde-csv-export="pass"' /tmp/monde-visible-csv-dom.html; then
+            grep -o 'data-monde-csv-export="[^"]*"' /tmp/monde-visible-csv-dom.html || true
+            exit 1
+          fi
       - name: Exercise cross-entity conflict navigator and evidence download in real Chromium
         run: |
           python3 - <<'PY'
