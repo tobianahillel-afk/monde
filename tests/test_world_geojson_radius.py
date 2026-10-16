@@ -32,11 +32,11 @@ class GeoJsonRadiusTest(unittest.TestCase):
     def test_nearby_entity_and_lineage(self):
         model = world()
         initial = model.export()
-        result = model.export_geojson_radius(CENTER, 5, AT, K)
+        result = model.export_geojson_radius(CENTER, 1, AT, K)
         self.assertEqual(result["type"], "FeatureCollection")
         self.assertEqual(result["monde_radius_query"]["basis"],
                          "SOURCE_REPORTED_POINT_RADIUS_ONLY")
-        self.assertEqual(result["monde_radius_query"]["radius_km"], 5)
+        self.assertEqual(result["monde_radius_query"]["radius_km"], 1)
         self.assertEqual(result["monde_radius_query"]["total_matching_entities"], 1)
         self.assertEqual(len(result["features"]), 1)
         marker = result["features"][0]
@@ -120,7 +120,7 @@ class GeoJsonRadiusTest(unittest.TestCase):
                          "--state-out", str(saved))
             self.assertEqual(ingest.returncode, 0, ingest.stderr)
             query = ("--fixture", str(saved), "--export-geojson-radius",
-                     "2.3522,48.8566", "--radius-km", "5",
+                     "2.3522,48.8566", "--radius-km", "1",
                      "--at", AT, "--known-at", K)
             command = run(*query)
             self.assertEqual(command.returncode, 0, command.stderr)
