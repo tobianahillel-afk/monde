@@ -1132,6 +1132,10 @@ def main(argv=None) -> int:
                            help="append one or more ordered source batches atomically; repeat flag")
     selection.add_argument("--ingest-geojson", metavar="POINTS_GEOJSON",
                            help="import source-attributed 2D GeoJSON points")
+    selection.add_argument("--ingest-csv", metavar="POINTS_CSV",
+                           help="import explicitly attributed local WGS84 CSV Points")
+    selection.add_argument("--ingest-csv-manifest", metavar="DATASETS_JSON",
+                           help="atomically import independently attributed CSV datasets")
     parser.add_argument("--state-out", help="destination JSON snapshot for ingestion")
     parser.add_argument("--source-id", help="source identity for GeoJSON assertions")
     parser.add_argument("--source-locator", help="original dataset locator for GeoJSON provenance")
@@ -1139,6 +1143,9 @@ def main(argv=None) -> int:
     parser.add_argument("--valid-from", help="explicit GeoJSON reported world-time start")
     parser.add_argument("--valid-to", help="optional exclusive GeoJSON validity end")
     parser.add_argument("--source-event-at", help="optional time of original source report")
+    parser.add_argument("--csv-id-column", help="CSV ID column (default: id)")
+    parser.add_argument("--csv-lon-column", help="CSV longitude column (default: longitude)")
+    parser.add_argument("--csv-lat-column", help="CSV latitude column (default: latitude)")
     parser.add_argument("--replace-state", action="store_true",
                         help="explicitly overwrite --state-out (single writer only)")
     parser.add_argument("--equals-json", help="exact JSON value used by cross-entity search")
@@ -1169,7 +1176,33 @@ def main(argv=None) -> int:
     try:
         geo_metadata = (args.source_id, args.source_locator, args.captured_at,
                         args.valid_from, args.valid_to, args.source_event_at)
-        if args.ingest_geojson:
+        if args.ingest_csv_manifest:
+            if (not args.state_out or any(v is not None for v in geo_metadata)
+                    or any(v is not None for v in
+                           (args.csv_id_column, args.csv_lon_column, args.csv_lat_column))
+                    or args.entity is not None or args.known_at is not None
+                    or args.at is not None or args.timeline_from is not None
+                    or args.timeline_to is not None
+                    or args.knowledge_timeline_from is not None
+                    or args.compare_known_at is not None or args.compare_at is not None
+                    or args.updates_from is not None or args.equals_json is not None
+                    or args.source_attribute is not None):
+                parser.error("CSV manifest requires --state-out and no query/source flags")
+            from .csv_points import documents_from_manifest
+            batches, features = documents_from_manifest(
+                args.ingest_csv_manifest, output_path=args.state_out)
+            world = WorldMini.read(args.fixture)
+            changes = world.append_documents(batches)
+            world.save(args.state_out, replace=args.replace_state)
+            print(json.dumps({"operation": "IMPORT_CSV_DATASETS",
+                              "world": "OBSERVED", "status": "SAVED",
+                              "features": features, **changes}, sort_keys=True))
+            return 0
+        if args.ingest_geojson or args.ingest_csv:
+            if args.ingest_geojson and any(value is not None for value in
+                                           (args.csv_id_column, args.csv_lon_column,
+                                            args.csv_lat_column)):
+                parser.error("CSV column settings require --ingest-csv")
             if (not args.state_out or any(value is None for value in geo_metadata[:4])
                     or args.entity is not None or args.known_at is not None
                     or args.at is not None or args.timeline_from is not None
@@ -1180,21 +1213,33 @@ def main(argv=None) -> int:
                     or args.equals_json is not None or args.source_attribute is not None):
                 parser.error("GeoJSON import requires source metadata, --state-out and no query flags")
             from .geojson import to_document
+            if args.ingest_csv:
+                from .csv_points import to_geojson
+                if os.path.abspath(args.ingest_csv) == os.path.abspath(args.state_out):
+                    parser.error("output cannot overwrite CSV input")
+                points = to_geojson(args.ingest_csv,
+                    id_column=args.csv_id_column or "id",
+                    lon_column=args.csv_lon_column or "longitude",
+                    lat_column=args.csv_lat_column or "latitude")
+            else:
+                points = WorldMini.load_document(args.ingest_geojson)
             world = WorldMini.read(args.fixture)
             converted = to_document(
-                WorldMini.load_document(args.ingest_geojson),
-                source_id=args.source_id, locator=args.source_locator,
+                points, source_id=args.source_id, locator=args.source_locator,
                 captured_at=args.captured_at, valid_from=args.valid_from,
                 valid_to=args.valid_to, source_event_at=args.source_event_at)
             changes = world.append_document(converted)
             world.save(args.state_out, replace=args.replace_state)
-            print(json.dumps({"operation": "IMPORT_GEOJSON_POINTS",
+            print(json.dumps({"operation": "IMPORT_CSV_POINTS" if args.ingest_csv
+                              else "IMPORT_GEOJSON_POINTS",
                               "world": "OBSERVED", "status": "SAVED",
                               "features": len(converted["evidence"]), **changes},
                              sort_keys=True))
             return 0
-        if any(value is not None for value in geo_metadata):
-            parser.error("GeoJSON source metadata requires --ingest-geojson")
+        if (any(value is not None for value in geo_metadata) or
+                any(value is not None for value in
+                    (args.csv_id_column, args.csv_lon_column, args.csv_lat_column))):
+            parser.error("GeoJSON/CSV source metadata requires --ingest-geojson or --ingest-csv")
         if args.ingest_document:
             if (not args.state_out or args.entity is not None or
                     args.known_at is not None or args.at is not None or
