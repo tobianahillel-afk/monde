@@ -12,13 +12,14 @@ purpose: |
   map with one command, preserving original source and bitemporal provenance
   without an intermediate persisted WorldMini state.
 scope:
-  in: ["Direct GeoJSON to offline HTML CLI", "Explicit source and timestamps", "No-clobber errors", "Real offline browser test"]
+  in: ["Direct GeoJSON to offline HTML CLI", "Multiple original GeoJSON or mixed CSV/GeoJSON manifest datasets", "Explicit source and timestamps", "No-clobber errors", "Real offline browser test"]
   out: ["New parser or viewer engine", "Reconciliation or inferred positions", "Server or paid API"]
 acceptance_criteria:
   - {id: AC-1, description: "One command renders source-attributed GeoJSON Points offline", status: IN_PROGRESS}
   - {id: AC-2, description: "World and knowledge time query and auto bbox reuse existing behavior", status: IN_PROGRESS}
   - {id: AC-3, description: "Invalid source or missing provenance produces no output", status: IN_PROGRESS}
   - {id: AC-4, description: "No overwrites; actual headless browser renders source Points", status: IN_PROGRESS}
+  - {id: AC-5, description: "Render multiple original GeoJSON and mixed CSV/GeoJSON datasets with per-source provenance and atomic failure", status: IN_PROGRESS}
 requirements: []
 assumptions: ["Input is original GeoJSON WGS84 Point claims, not independently verified coordinates"]
 risks: ["Source data mistaken for reconciled state", "Embedding untrusted source strings in offline HTML"]
@@ -38,8 +39,9 @@ implementation_plan:
     - {id: T1, description: "Reuse GeoJSON claim adapter from map CLI", depends_on: [], expected_files: [src/monde/map_view.py], status: IN_PROGRESS}
     - {id: T2, description: "End-to-end direct GeoJSON and browser test", depends_on: [T1], expected_files: [tests/test_world_map_geojson_direct.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
     - {id: T3, description: "Document one-command analyst workflow", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_PROGRESS}
+    - {id: T4, description: "Multi-source GeoJSON/mixed-source offline evidence map", depends_on: [T1], expected_files: [src/monde/csv_points.py, src/monde/map_view.py, tests/test_world_map_geojson_direct.py], status: IN_PROGRESS}
   planned_runs:
-    - {id: RUN-1, objective: "Deliver reusable direct GeoJSON offline map candidate", tasks: [T1, T2, T3], exit_condition: "Exact-head product CI and proportionate read-only L2", status: IN_PROGRESS}
+    - {id: RUN-1, objective: "Deliver reusable direct GeoJSON offline map candidate", tasks: [T1, T2, T3, T4], exit_condition: "Exact-head product CI and proportionate read-only L2", status: IN_PROGRESS}
 review_plan:
   artifact_class: DATA_SOURCE_CONNECTOR
   independence_level: L2_TARGET
