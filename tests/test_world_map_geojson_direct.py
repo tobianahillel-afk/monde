@@ -154,5 +154,101 @@ class DirectGeoJSONMapTests(unittest.TestCase):
             self.assertIn("\\u003c/script\\u003e", page)
 
 
+
+    def sources(self, root, mixed=False):
+        folder = Path(root)
+        def point(lon, lat):
+            return {"type": "FeatureCollection", "features": [{
+                "type": "Feature", "id": "shared", "properties": {},
+                "geometry": {"type": "Point", "coordinates": [lon, lat]}}]}
+        (folder / "a.geojson").write_text(
+            json.dumps(point(2.35, 48.86)), encoding="utf-8")
+        if mixed:
+            (folder / "b.csv").write_text(
+                "id,longitude,latitude\nshared,5.4,45.6\n", encoding="utf-8")
+        else:
+            (folder / "b.geojson").write_text(
+                json.dumps(point(5.4, 45.6)), encoding="utf-8")
+        entries = [
+            {"geojson": "a.geojson", "source_id": "original-a",
+             "locator": "dataset://a", "captured_at": KNOWN,
+             "valid_from": "2026-01-01T00:00:00Z"},
+            {("csv" if mixed else "geojson"): ("b.csv" if mixed else "b.geojson"),
+             "source_id": "original-b", "locator": "dataset://b",
+             "captured_at": KNOWN, "valid_from": "2026-01-01T00:00:00Z"}]
+        manifest = folder / "sources.json"
+        manifest.write_text(json.dumps({"datasets": entries}), encoding="utf-8")
+        return manifest
+
+    def test_multi_geojson_manifest_renders_competing_sources_without_state(self):
+        with tempfile.TemporaryDirectory() as root:
+            manifest = self.sources(root)
+            output = Path(root) / "map.html"
+            result = self.run_map("--source-manifest", manifest,
+                                  "--at", AT, "--known-at", KNOWN, "--output", output)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            page = output.read_text(encoding="utf-8")
+            for term in ('"total_source_features":2', "original-a",
+                         "original-b", "dataset://a", "dataset://b", "shared"):
+                self.assertIn(term, page)
+            self.assertFalse((Path(root) / "state.json").exists())
+
+    def test_mixed_csv_and_geojson_sources_share_one_map(self):
+        with tempfile.TemporaryDirectory() as root:
+            manifest = self.sources(root, mixed=True)
+            output = Path(root) / "mixed.html"
+            result = self.run_map("--source-manifest", manifest,
+                                  "--at", AT, "--known-at", KNOWN, "--output", output)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            page = output.read_text(encoding="utf-8")
+            self.assertIn('"total_source_features":2', page)
+            self.assertIn("original-a", page)
+            self.assertIn("original-b", page)
+
+    def test_invalid_second_geojson_does_not_produce_partial_output(self):
+        with tempfile.TemporaryDirectory() as root:
+            manifest = self.sources(root)
+            (Path(root) / "b.geojson").write_text(
+                '{"type":"FeatureCollection","features":[{"type":"Feature",'
+                '"id":"shared","geometry":{"type":"LineString",'
+                '"coordinates":[[1,2],[3,4]]},"properties":{}}]}',
+                encoding="utf-8")
+            output = Path(root) / "absent.html"
+            result = self.run_map("--source-manifest", manifest,
+                                  "--at", AT, "--known-at", KNOWN, "--output", output)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(output.exists())
+
+    def test_manifests_preserve_inputs_and_reject_ambiguous_format(self):
+        with tempfile.TemporaryDirectory() as root:
+            manifest = self.sources(root)
+            before = manifest.read_bytes()
+            input_file = Path(root) / "a.geojson"
+            input_before = input_file.read_bytes()
+            flags = ("--source-manifest", manifest, "--at", AT, "--known-at", KNOWN)
+            self.assertNotEqual(self.run_map(*flags, "--output", manifest).returncode, 0)
+            self.assertNotEqual(self.run_map(*flags, "--output", input_file).returncode, 0)
+            self.assertEqual(manifest.read_bytes(), before)
+            self.assertEqual(input_file.read_bytes(), input_before)
+            data = json.loads(before)
+            data["datasets"][1]["csv"] = "b.csv"
+            manifest.write_text(json.dumps(data), encoding="utf-8")
+            output = Path(root) / "no.html"
+            self.assertNotEqual(self.run_map(*flags, "--output", output).returncode, 0)
+            self.assertFalse(output.exists())
+
+    def test_each_geojson_source_requires_explicit_provenance(self):
+        with tempfile.TemporaryDirectory() as root:
+            manifest = self.sources(root)
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            data["datasets"][1].pop("locator")
+            manifest.write_text(json.dumps(data), encoding="utf-8")
+            output = Path(root) / "no.html"
+            result = self.run_map("--source-manifest", manifest,
+                                  "--at", AT, "--known-at", KNOWN, "--output", output)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(output.exists())
+
+
 if __name__ == "__main__":
     unittest.main()
