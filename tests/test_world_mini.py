@@ -1141,7 +1141,7 @@ class WorldMiniTest(unittest.TestCase):
                 "id": "a-city-update", "value": 10,
                 "evidence_id": "e-city-update",
                 "known_at": "2026-01-09T12:00:00Z",
-                "supersedes": "a-city-revised",
+                "supersedes": "a-city-revision",
             }],
         }
         with tempfile.TemporaryDirectory() as directory:
