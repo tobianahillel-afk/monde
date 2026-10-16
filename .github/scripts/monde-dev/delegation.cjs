@@ -1983,7 +1983,7 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
   if(typeof repo!=='string'||!REPO.test(repo)||
      typeof head_sha!=='string'||!SHA.test(head_sha)||
      !Array.isArray(works)||works.length<1||works.length>120||
-     !Array.isArray(triage_findings)||triage_findings.length>200)
+     !Array.isArray(triage_findings)||triage_findings.length>1000)
     bad('INVALID_WORK_PLAN');
   const indexed=new Map(), candidates=[], blocked=[], remediation=[];
   const workNumbers=new Map();

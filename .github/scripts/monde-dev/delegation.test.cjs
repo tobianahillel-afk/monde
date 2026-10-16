@@ -8198,3 +8198,35 @@ test('triage grouping: preserve single-wave cap and explicitly bounded five-wave
   assert.throws(()=>d.groupTriageFindings(findings,1001),
     e=>e.code==='INVALID_TRIAGE_INPUT');
 });
+
+
+test('multi-wave L2 handoff: 250 distinct R2 claims reach the actual WORK planner',()=>{
+  const allegations=Array.from({length:250},(_,i)=>({
+    severity:'R2',path:'src/b.js',
+    evidence:'Independent wave finding '+String(i).padStart(3,'0'),
+    action:'Inspect invariant '+String(i).padStart(3,'0')
+  }));
+  const out=plan(undefined,allegations);
+  assert.equal(out.unqualified_material_findings,250);
+  assert.equal(out.duplicate_material_allegations_collapsed,0);
+  const blocked=out.blocked.find(task=>task.task==='T2');
+  assert.equal(blocked.related_material_findings,250);
+  assert.ok(blocked.reasons.includes('MATERIAL_FINDINGS_NEED_TRIAGE'));
+  assert.equal(out.recommended.task,'T3');
+  assert.equal(out.authorized_to_write,false);
+  assert.equal(out.advisory_only,true);
+});
+
+test('multi-wave L2 handoff: accepts exactly 1000 bounded allegations, rejects 1001',()=>{
+  const allegations=Array.from({length:1000},(_,i)=>({
+    severity:'R3',path:'docs/l2/review-'+String(i).padStart(4,'0')+'.md',
+    evidence:'Read-only review note '+i
+  }));
+  const out=plan(undefined,allegations);
+  assert.equal(out.deferred_r3_candidates,1000);
+  assert.equal(out.deferred_r3_backlog.length,1000);
+  assert.equal(out.unqualified_material_findings,0);
+  assert.equal(out.recommended.task,'T2');
+  assert.throws(()=>plan(undefined,[...allegations,allegations[0]]),
+    {code:'INVALID_WORK_PLAN'});
+});
