@@ -89,7 +89,7 @@ class KMLSourceTests(unittest.TestCase):
                 KML.replace('2.3522,48.8566','2.3522,48.8566,35'),
                 KML.replace('2.3522,48.8566','181,48.8566'),
                 KML.replace('<Point><coordinates>2.3522,48.8566</coordinates></Point>',
-                            '<LineString><coordinates>2,48 3,49</coordinates></LineString>'),
+                            '<Polygon><coordinates>2,48 3,49</coordinates></Polygon>'),
                 KML.replace('</Document>','<NetworkLink><name>remote</name></NetworkLink></Document>'),
                 KML.replace('<name>Alpha</name>','<ExtendedData/><name>Alpha</name>'),
                 '<!DOCTYPE kml [<!ENTITY xx "boom">]><kml/>'
