@@ -36,6 +36,7 @@ section,aside{border:1px solid #314154;border-radius:12px;background:#182436;pad
 #map{width:100%;height:auto;max-height:65vh;background:#102b3b;border:1px solid #38526a;border-radius:8px;touch-action:none}
 #disagreement-links line{stroke:#f0a0e3;stroke-width:2.5;stroke-dasharray:7 5;opacity:.85;pointer-events:none}
 #source-traces line{stroke:#58e1dd;stroke-width:2.8;stroke-dasharray:3 2;opacity:.8;pointer-events:none}
+#source-traces line[data-kml-boundary]{stroke:#f4b56c;stroke-dasharray:6 3}
 #points circle{cursor:pointer;stroke-width:2.4;outline:none}
 #points circle:focus{stroke:#fff;stroke-width:5}
 #points circle.inside{fill:#51d6ba;stroke:#093b39}
@@ -135,7 +136,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <p id="radius-summary" class="subtle">Select an original source report to choose a proximity center. Distances are approximate, between reported coordinates only.</p>
 <div class="controls"><label><input id="disagreements-only" type="checkbox"> Different-source position claims only</label></div>
 <div class="controls"><label><input id="show-disagreement-links" type="checkbox" checked> Show source-position disagreement links</label></div>
-<p class="subtle">Pink dashed disagreement links are not routes, movements, uncertainty estimates or verified locations. Cyan dashed GPX sample connections, when present, show original source order only — not a verified physical path or continuous movement.</p>
+<p class="subtle">Pink dashed disagreement links are not routes, movements, uncertainty estimates or verified locations. Cyan dashed source-sample connections and amber dashed KML Polygon boundary edges, when present, reproduce reported order only — not verified paths, ownership, land cover or ground-truth areas.</p>
 <div class="controls" id="change-filter-control" hidden><label for="change-filter">Reported change</label>
 <select id="change-filter"><option value="">All changes</option><option value="NEWLY_CURRENT">Newly current</option><option value="NO_LONGER_CURRENT">No longer current</option></select></div>
 <ul id="report-list" aria-label="Reported points"></ul>
@@ -281,7 +282,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   function renderSourceTraces(reports) {
     traceLayer.replaceChildren();
-    var grouped = new Map(), gpxCount=0, kmlCount=0;
+    var grouped = new Map(), gpxCount=0, kmlCount=0, boundaryCount=0;
     reports.forEach(function(feature) {
       var trace=feature.properties.monde_gpx_trace ||
         feature.properties.monde_kml_trace;
@@ -310,15 +311,19 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         if(Math.abs(a[0]-b[0])>180)continue;
         var isGpx=first.format==="GPX_1_1_TRACE_POINT";
         var attrs={x1:x(a[0]),y1:y(a[1]),x2:x(b[0]),y2:y(b[1])};
-        attrs[isGpx?"data-gpx-trace":"data-kml-trace"]=first.trace_id;
+        var isBoundary=first.format==="KML_2_2_POLYGON_RING_POINT";
+        attrs[isGpx?"data-gpx-trace":
+              (isBoundary?"data-kml-boundary":"data-kml-trace")]=first.trace_id;
         el("line",attrs,traceLayer);
-        if(isGpx)gpxCount++;else kmlCount++;
+        if(isGpx)gpxCount++;else if(isBoundary)boundaryCount++;else kmlCount++;
       }
     });
     document.body.setAttribute("data-monde-gpx-segments",
       String(gpxCount));
     document.body.setAttribute("data-monde-kml-segments",
       String(kmlCount));
+    document.body.setAttribute("data-monde-kml-boundary-segments",
+      String(boundaryCount));
   }
   function renderDisagreementLinks(reports) {
     linkLayer.replaceChildren();
@@ -659,7 +664,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       "Valid at: " + (worldComparing ? query.from_at + " → " + query.to_at : query.valid_at),
       "Claim status: SOURCE_REPORTED_ONLY",
       ...(p.monde_kml_trace ? [
-        "KML source line: " + p.monde_kml_trace.name,
+        "KML source " + (p.monde_kml_trace.kind==="Polygon"?
+          "boundary: ":"line: ") + p.monde_kml_trace.name,
         "KML original sample order: " + String(p.monde_kml_trace.order+1),
         "Interpretation: ORIGINAL_KML_SAMPLES_NOT_VERIFIED_MOTION"
       ] : [])

@@ -1,6 +1,6 @@
-"""Ingest bounded KML Points and source-ordered LineString samples.
+"""Ingest bounded KML Points, LineStrings, and single-ring Polygon vertices.
 
-Coordinates remain claims attributed to original source, not verified routes.
+Coordinates remain original source claims, not verified routes or areas.
 """
 import os
 import math
@@ -35,8 +35,27 @@ def _points(text):
     return points
 
 
+def _polygon_points(geometry, tag):
+    """Accept only one closed, planar outer KML LinearRing; no holes inferred."""
+    if geometry.attrib or len(geometry) != 1 or geometry[0].tag != tag("outerBoundaryIs"):
+        raise ValueError("KML Polygon requires one outer boundary without holes")
+    outer = geometry[0]
+    if outer.attrib or len(outer) != 1 or outer[0].tag != tag("LinearRing"):
+        raise ValueError("unsupported KML Polygon boundary")
+    ring = outer[0]
+    if ring.attrib or len(ring) != 1 or ring[0].tag != tag("coordinates"):
+        raise ValueError("unsupported KML Polygon LinearRing")
+    coords = ring[0]
+    if coords.attrib or len(coords):
+        raise ValueError("unsupported KML Polygon coordinates")
+    points = _points(coords.text)
+    if len(points) < 4 or points[0] != points[-1] or len({tuple(p) for p in points[:-1]}) < 3:
+        raise ValueError("KML Polygon must have a closed ring of at least three vertices")
+    return points
+
+
 def to_geojson(path):
-    """Convert an original KML document to existing GeoJSON Point claims.
+    """Convert bounded original KML geometry to source-ordered GeoJSON Point claims.
 
     A Placemark must carry a stable XML id. No ID, timestamp, or true location
     is inferred from name, row order, file name, or coordinates.
@@ -76,14 +95,17 @@ def to_geojson(path):
         geometries = [node for node in placemark
                       if node.tag in geometry_types]
         if len(geometries) != 1 or geometries[0].tag not in (
-                tag("Point"), tag("LineString")):
-            raise ValueError("only one KML Point or LineString is supported")
+                tag("Point"), tag("LineString"), tag("Polygon")):
+            raise ValueError("only one supported KML geometry per Placemark")
         geometry = geometries[0]
-        if geometry.attrib or len(geometry) != 1 or (
-                geometry[0].tag != tag("coordinates")
-                or geometry[0].attrib or len(geometry[0])):
-            raise ValueError("unsupported or ambiguous KML geometry")
-        points = _points(geometry[0].text)
+        if geometry.tag == tag("Polygon"):
+            points = _polygon_points(geometry, tag)
+        else:
+            if geometry.attrib or len(geometry) != 1 or (
+                    geometry[0].tag != tag("coordinates")
+                    or geometry[0].attrib or len(geometry[0])):
+                raise ValueError("unsupported or ambiguous KML geometry")
+            points = _points(geometry[0].text)
         if geometry.tag == tag("Point") and len(points) != 1:
             raise ValueError("KML Point must contain one coordinate")
         if geometry.tag == tag("LineString") and len(points) < 2:
@@ -113,17 +135,20 @@ def to_geojson(path):
             digest = hashlib.sha256(json.dumps(
                 [ident, point], separators=(",", ":")).encode("utf-8")
                 ).hexdigest()[:32]
-            base = "kml-line-" + digest
+            base = ("kml-boundary-" if geometry.tag == tag("Polygon") else
+                    "kml-line-") + digest
             repeats[base] = repeats.get(base, 0) + 1
             sample_id = base if repeats[base] == 1 else (
                 base + "-repeat-" + str(repeats[base]))
             features.append({
                 "type": "Feature", "id": sample_id,
                 "properties": {**attrs, "kml_trace": {
-                    "format": "KML_2_2_LINESTRING_POINT",
-                    "kind": "LineString", "name": attrs.get("name", ident),
+                    "format": ("KML_2_2_POLYGON_RING_POINT" if geometry.tag == tag("Polygon")
+                               else "KML_2_2_LINESTRING_POINT"),
+                    "kind": ("Polygon" if geometry.tag == tag("Polygon")
+                             else "LineString"), "name": attrs.get("name", ident),
                     "trace_id": trace_id, "segment": 0, "order": order}},
                 "geometry": {"type": "Point", "coordinates": point}})
     if not features:
-        raise ValueError("KML contains no supported Point or LineString Placemark")
+        raise ValueError("KML contains no supported Point, LineString or Polygon Placemark")
     return {"type": "FeatureCollection", "features": features}

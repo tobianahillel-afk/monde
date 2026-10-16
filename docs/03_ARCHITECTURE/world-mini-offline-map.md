@@ -441,3 +441,18 @@ are source-reported geometry, not a verified journey, transport route or
 physical trajectory. No server, basemap downloads or external API is used.
 Unsupported geometries, altitude coordinates, network-linked KML, ambiguous
 IDs and malformed XML fail before creating the output file.
+
+## Source-reported KML Polygon boundaries (WORK-0027)
+
+A local KML 2.2 `Polygon` with one explicit closed `outerBoundaryIs / LinearRing`
+(no inner rings or 3D coordinates) can be inspected with the same `--kml` /
+`--source-manifest` workflows as KML Points and LineStrings. The converter
+retains every original vertex, including the repeated closing coordinate, as a
+distinct source-evidence Point with stable ID and original ring order. The map
+draws amber dashed adjacent source-reported ring edges only when both endpoints
+remain visible under filters and the segment does not cross the antimeridian.
+It never fills, reconstructs, repairs or validates an enclosed area. Source
+geometry is **not** proof of a legal boundary, territorial ownership, land use,
+traversability, presence or measured surface. Self-intersecting rings remain
+source claims; missing closure, holes, altitude and unsupported geometry fail
+without partial output.
