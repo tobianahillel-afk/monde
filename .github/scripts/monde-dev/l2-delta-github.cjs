@@ -245,12 +245,13 @@ async function prepareFreshL2FromCurrentGitHub(input) {
   const changes=[];
   for (const row of rows) {
     if (!row || !['added','modified','removed','renamed'].includes(row.status) ||
-        typeof row.filename !== 'string') incomplete();
+        typeof row.filename !== 'string' || row.filename.endsWith('/')) incomplete();
     // GitHub's previous_filename is meaningful ONLY for an actual rename.
     // Other change kinds carrying old-path metadata are contradictory and
     // must not be silently narrowed out of the independent L2 scope.
     if (row.status === 'renamed' ?
         typeof row.previous_filename !== 'string' ||
+          row.previous_filename.endsWith('/') ||
           row.previous_filename === row.filename :
         row.previous_filename !== undefined &&
           row.previous_filename !== null) incomplete();
@@ -376,10 +377,11 @@ async function prepareFreshL2BatchesFromCurrentGitHub(input) {
   let current=[],count=0;
   for(const row of rows){
     if(!row || !['added','modified','removed','renamed'].includes(row.status) ||
-       typeof row.filename!=='string') incomplete();
+       typeof row.filename!=='string'||row.filename.endsWith('/')) incomplete();
     const previous=row.status==='renamed'?row.previous_filename:null;
     if (row.status === 'renamed' ?
-        typeof previous !== 'string' || previous === row.filename :
+        typeof previous !== 'string' || previous.endsWith('/') ||
+         previous === row.filename :
         row.previous_filename !== undefined &&
           row.previous_filename !== null) incomplete();
     const paths=[row.filename,...(previous===null?[]:[previous])];

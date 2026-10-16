@@ -694,3 +694,45 @@ test('fresh L2 accepts empty old-path metadata on non-renamed files',async()=>{
     assert.equal(batched.batches[0].changed_file_statuses[0].previous_path,null);
   }
 });
+
+
+test('fresh L2 GitHub file inventory rejects directory-shaped filenames',async()=>{
+  // A research mission may cover a directory, but GitHub PR file rows MUST
+  // name files. Otherwise the full-scope manifest may imply code review of
+  // a nonexistent directory-shaped diff entry.
+  for(const status of ['modified','added','removed']){
+    const files=[{status,filename:'src/module/'}];
+    for(const prepare of [prepareFreshL2FromCurrentGitHub,
+      prepareFreshL2BatchesFromCurrentGitHub]){
+      const {api}=freshClient({files});
+      await assert.rejects(prepare({github:api,...FRESH_MISSION}),
+        e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+    }
+  }
+});
+test('fresh L2 GitHub rename metadata rejects directory-shaped old or new file',async()=>{
+  const rows=[
+    {status:'renamed',filename:'src/new.cjs',previous_filename:'src/old/'},
+    {status:'renamed',filename:'src/new/',previous_filename:'src/old.cjs'}
+  ];
+  for(const row of rows)for(const prepare of [
+    prepareFreshL2FromCurrentGitHub,prepareFreshL2BatchesFromCurrentGitHub]){
+    const {api}=freshClient({files:[row]});
+    await assert.rejects(prepare({github:api,...FRESH_MISSION}),
+      e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+});
+test('research directory scopes remain supported independently of GitHub file rows',async()=>{
+  const {assignment}=require('./delegation.cjs');
+  const mission=assignment({
+    assignment_id:'L2-path-guard-20261016',repo:FRESH_MISSION.repo,
+    pr:FRESH_MISSION.pr,head_sha:HEAD,
+    author_context_id:FRESH_MISSION.author_context_id,
+    objective:'Confirm scoped research may include a directory',
+    paths:['src/module/'],mission_kind:'TECH_RESEARCH'
+  });
+  assert.deepEqual(mission.paths,['src/module/']);
+  const {api}=freshClient({files:[{status:'modified',filename:PATH}]});
+  const result=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
+  assert.equal(result.status,'FRESH_L2_ASSIGNMENT_READY');
+});
