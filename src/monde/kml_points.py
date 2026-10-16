@@ -1,15 +1,38 @@
-"""Import locally supplied KML 2.2 Point reports, retaining explicit source IDs.
+"""Ingest bounded KML Points and source-ordered LineString samples.
 
-KML location is a *source claim*, never a verified place or MONDE consensus.
-Only local, bounded Point Placemarks with stable IDs are supported.
+Coordinates remain claims attributed to original source, not verified routes.
 """
 import os
 import math
+import hashlib
+import json
 import xml.etree.ElementTree as ET
 
 MAX_KML_BYTES = 10_000_000
 MAX_POINTS = 50_000
 KML_NAMESPACE = "http://www.opengis.net/kml/2.2"
+
+
+def _points(text):
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("KML coordinates missing")
+    tokens = text.split()
+    if len(tokens) > MAX_POINTS:
+        raise ValueError("KML point count limit exceeded")
+    points = []
+    for token in tokens:
+        pair = token.split(",")
+        if len(pair) != 2 or any(not part.strip() for part in pair):
+            raise ValueError("KML coordinates must be 2D longitude,latitude")
+        try:
+            lon, lat = (float(part.strip()) for part in pair)
+        except ValueError as exc:
+            raise ValueError("non-numeric KML coordinates") from exc
+        if not math.isfinite(lon) or not math.isfinite(lat) or not (
+                -180 <= lon <= 180 and -90 <= lat <= 90):
+            raise ValueError("KML coordinates outside WGS84 bounds")
+        points.append([lon, lat])
+    return points
 
 
 def to_geojson(path):
@@ -52,22 +75,19 @@ def to_geojson(path):
         seen.add(ident)
         geometries = [node for node in placemark
                       if node.tag in geometry_types]
-        if len(geometries) != 1 or geometries[0].tag != tag("Point"):
-            raise ValueError("only one 2D Point per KML Placemark is supported")
+        if len(geometries) != 1 or geometries[0].tag not in (
+                tag("Point"), tag("LineString")):
+            raise ValueError("only one KML Point or LineString is supported")
         geometry = geometries[0]
-        coordinates = geometry.findall(tag("coordinates"))
-        if len(coordinates) != 1 or not coordinates[0].text:
-            raise ValueError("KML Point requires longitude,latitude")
-        raw_point = coordinates[0].text.strip().split(",")
-        if len(raw_point) != 2 or any(not part.strip() for part in raw_point):
-            raise ValueError("KML Point must be 2D lon,lat without altitude")
-        try:
-            lon, lat = (float(v.strip()) for v in raw_point)
-        except ValueError as exc:
-            raise ValueError("KML Point requires numeric WGS84 coordinates") from exc
-        if not math.isfinite(lon) or not math.isfinite(lat) or not (
-                -180 <= lon <= 180 and -90 <= lat <= 90):
-            raise ValueError("KML Point is outside finite WGS84 bounds")
+        if geometry.attrib or len(geometry) != 1 or (
+                geometry[0].tag != tag("coordinates")
+                or geometry[0].attrib or len(geometry[0])):
+            raise ValueError("unsupported or ambiguous KML geometry")
+        points = _points(geometry[0].text)
+        if geometry.tag == tag("Point") and len(points) != 1:
+            raise ValueError("KML Point must contain one coordinate")
+        if geometry.tag == tag("LineString") and len(points) < 2:
+            raise ValueError("KML LineString must have at least two samples")
         attrs = {}
         name = placemark.find(tag("name"))
         if name is not None and name.text is not None:
@@ -81,8 +101,29 @@ def to_geojson(path):
             attrs["description"] = description.text
         if placemark.find(tag("ExtendedData")) is not None:
             raise ValueError("KML ExtendedData is not yet supported; no silent loss")
-        features.append({"type": "Feature", "id": ident, "properties": attrs,
-                         "geometry": {"type": "Point", "coordinates": [lon, lat]}})
+        if len(features) + len(points) > MAX_POINTS:
+            raise ValueError("KML source sample count limit exceeded")
+        if geometry.tag == tag("Point"):
+            features.append({"type": "Feature", "id": ident, "properties": attrs,
+                             "geometry": {"type": "Point", "coordinates": points[0]}})
+            continue
+        trace_id = hashlib.sha256(ident.encode("utf-8")).hexdigest()[:24]
+        repeats = {}
+        for order, point in enumerate(points):
+            digest = hashlib.sha256(json.dumps(
+                [ident, point], separators=(",", ":")).encode("utf-8")
+                ).hexdigest()[:32]
+            base = "kml-line-" + digest
+            repeats[base] = repeats.get(base, 0) + 1
+            sample_id = base if repeats[base] == 1 else (
+                base + "-repeat-" + str(repeats[base]))
+            features.append({
+                "type": "Feature", "id": sample_id,
+                "properties": {**attrs, "kml_trace": {
+                    "format": "KML_2_2_LINESTRING_POINT",
+                    "kind": "LineString", "name": attrs.get("name", ident),
+                    "trace_id": trace_id, "segment": 0, "order": order}},
+                "geometry": {"type": "Point", "coordinates": point}})
     if not features:
-        raise ValueError("KML contains no supported Point Placemark")
+        raise ValueError("KML contains no supported Point or LineString Placemark")
     return {"type": "FeatureCollection", "features": features}
