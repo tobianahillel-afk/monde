@@ -7513,3 +7513,105 @@ test('GitHub WORK adapter rejects invalid discovery flag without API calls',asyn
     github:gh,repo:H.repo,head_sha:SHA,work_ids:['WORK-0001'],
     include_dependencies:'true'}),{code:'INVALID_WORK_FETCH'});
 });
+
+test('live-main plan: stable verified SHA returns a read-only task',async()=>{
+  const sha='b'.repeat(40);
+  const workText=[
+    'id: WORK-0901','status: IN_PROGRESS','depends_on: []',
+    'implementation_plan:','  tasks:',
+    '    - {id: T1, description: "Change", depends_on: [], expected_files: [src/live.cjs], status: READY}',
+    '  planned_runs: []','review_plan:','  completed_reviews: []'
+  ].join('\n');
+  const calls={branch:0,content:0};
+  const github={rest:{repos:{
+    getBranch:async args=>{
+      assert.deepEqual(args,{owner:'tobianahillel-afk',repo:'monde',branch:'main'});
+      calls.branch++;return {data:{name:'main',commit:{sha}}};
+    },
+    getContent:async args=>{
+      assert.equal(args.ref,sha);calls.content++;
+      return {data:{type:'file',encoding:'base64',size:Buffer.byteLength(workText),
+        content:Buffer.from(workText).toString('base64')}};
+    }
+  }}};
+  const got=await d.planNextIncrementFromCurrentGitHub({
+    github,repo:'tobianahillel-afk/monde',head_sha:sha,
+    work_ids:['WORK-0901']
+  });
+  assert.deepEqual(calls,{branch:2,content:1});
+  assert.equal(got.recommended.work,'WORK-0901');
+  assert.equal(got.recommended.task,'T1');
+  assert.equal(got.consistent_main_observed,true);
+  assert.equal(got.observed_main_head_sha,sha);
+  assert.equal(got.must_recheck_before_write,true);
+  assert.equal(got.authorized_to_write,false);
+  assert.equal(got.advisory_only,true);
+});
+test('live-main plan: stale input HEAD refuses before reading work',async()=>{
+  let reads=0;const github={rest:{repos:{
+    getBranch:async()=>({data:{name:'main',commit:{sha:'a'.repeat(40)}}}),
+    getContent:async()=>{reads++;throw Error('must not read');}
+  }}};
+  await assert.rejects(d.planNextIncrementFromCurrentGitHub({
+    github,repo:'tobianahillel-afk/monde',head_sha:'b'.repeat(40),
+    work_ids:['WORK-0901']
+  }),e=>e.code==='STALE_MAIN_HEAD');
+  assert.equal(reads,0);
+});
+test('live-main plan: concurrent main advance during work fetch refuses',async()=>{
+  const sha='b'.repeat(40),workText=[
+    'id: WORK-0901','status: READY','depends_on: []',
+    'implementation_plan:','  tasks: []','  planned_runs: []'
+  ].join('\n');
+  let calls=0;const github={rest:{repos:{
+    getBranch:async()=>({data:{name:'main',commit:{sha:++calls===1?sha:'a'.repeat(40)}}}),
+    getContent:async()=>({data:{type:'file',encoding:'base64',
+      size:Buffer.byteLength(workText),content:Buffer.from(workText).toString('base64')}})
+  }}};
+  await assert.rejects(d.planNextIncrementFromCurrentGitHub({
+    github,repo:'tobianahillel-afk/monde',head_sha:sha,work_ids:['WORK-0901']
+  }),e=>e.code==='MAIN_CHANGED_DURING_READ');
+  assert.equal(calls,2);
+});
+test('live-main plan: unknown branch payload cannot be trusted',async()=>{
+  for(const returned of [
+    null,{data:{}},{data:{name:'develop',commit:{sha:'b'.repeat(40)}}},
+    {data:{name:'main',commit:{sha:'untrusted'}}},
+    {data:{name:'main',commit:null}}
+  ]){
+    const github={rest:{repos:{
+      getBranch:async()=>returned,getContent:async()=>{throw Error('no read');}
+    }}};
+    await assert.rejects(d.planNextIncrementFromCurrentGitHub({
+      github,repo:'tobianahillel-afk/monde',
+      head_sha:'b'.repeat(40),work_ids:['WORK-0901']
+    }),e=>e.code==='UNTRUSTED_MAIN_SNAPSHOT');
+  }
+});
+test('live-main plan: invalid inputs make zero host requests',async()=>{
+  let calls=0;const github={rest:{repos:{
+    getBranch:async()=>{calls++;},getContent:async()=>{calls++;}
+  }}};
+  for(const change of [
+    {repo:'../../evil'},{head_sha:'main'},
+    {github:{rest:{repos:{}}}},{work_ids:[]},
+    {work_ids:['WORK-0001','WORK-0001']},
+    {include_dependencies:'yes'}
+  ]){
+    await assert.rejects(d.planNextIncrementFromCurrentGitHub({
+      github,repo:'tobianahillel-afk/monde',
+      head_sha:'b'.repeat(40),work_ids:['WORK-0901'],...change
+    }),e=>e.code==='INVALID_LIVE_WORK_REQUEST');
+  }
+  assert.equal(calls,0);
+});
+test('live-main plan: repository rate limit is not hidden or retried',async()=>{
+  const github={rest:{repos:{
+    getBranch:async()=>{const e=new Error('rate limit');e.status=429;throw e;},
+    getContent:async()=>{throw Error('no read');}
+  }}};
+  await assert.rejects(d.planNextIncrementFromCurrentGitHub({
+    github,repo:'tobianahillel-afk/monde',
+    head_sha:'b'.repeat(40),work_ids:['WORK-0901']
+  }),e=>e.status===429);
+});

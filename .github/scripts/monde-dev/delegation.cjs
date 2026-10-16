@@ -1812,6 +1812,43 @@ async function planNextIncrementFromGitHub(input){
     works:snapshot.works,triage_findings:input.triage_findings||[]});
 }
 
+// Optional live-main bridge. Both observations are GitHub-host facts;
+// a planner result is never a credential or a product-write authorization.
+async function planNextIncrementFromCurrentGitHub(input) {
+  if(!plain(input)||typeof input.repo!=='string'||!REPO.test(input.repo)||
+     typeof input.head_sha!=='string'||!SHA.test(input.head_sha)||
+     !plain(input.github)||!plain(input.github.rest)||
+     !plain(input.github.rest.repos)||
+     typeof input.github.rest.repos.getBranch!=='function'||
+     typeof input.github.rest.repos.getContent!=='function'||
+     !Array.isArray(input.work_ids)||input.work_ids.length<1||
+     input.work_ids.length>40||
+     input.work_ids.some(id=>typeof id!=='string'||
+       !/^WORK-[0-9]{4,}$/.test(id))||
+     new Set(input.work_ids).size!==input.work_ids.length||
+     (input.include_dependencies!==undefined&&
+       typeof input.include_dependencies!=='boolean'))
+    bad('INVALID_LIVE_WORK_REQUEST');
+  const [owner,name]=input.repo.split('/');
+  const liveHead=async()=>{
+    const response=await input.github.rest.repos.getBranch({
+      owner,repo:name,branch:'main'
+    });
+    const branch=response?.data;
+    if(!plain(branch)||branch.name!=='main'||!plain(branch.commit)||
+       typeof branch.commit.sha!=='string'||!SHA.test(branch.commit.sha))
+      bad('UNTRUSTED_MAIN_SNAPSHOT');
+    return branch.commit.sha;
+  };
+  if(await liveHead()!==input.head_sha)bad('STALE_MAIN_HEAD');
+  const plan=await planNextIncrementFromGitHub(input);
+  if(await liveHead()!==input.head_sha)bad('MAIN_CHANGED_DURING_READ');
+  return {...plan,consistent_main_observed:true,
+    observed_main_head_sha:input.head_sha,
+    must_recheck_before_write:true,advisory_only:true,
+    authorized_to_write:false};
+}
+
 // Select an *advisory* next interactive task from verified WORK snapshots.
 // Never converts an in-progress candidate into Accepted work, starts a
 // scheduled task, or interprets a reported finding as a confirmed risk.
@@ -2472,5 +2509,6 @@ module.exports = {
   planDelegations, assessDelegationBatch, groupTriageFindings,
   prepareUnqualifiedTriageHandoff, planNextIncrement, planL2Delta,
   parseWorkPlanningSnapshot, loadWorkPlanFromGitHub, planNextIncrementFromGitHub,
+  planNextIncrementFromCurrentGitHub,
   createResumePacket, renderResumePacket, updateResumeInPrBody, inspectResumeFromPrBody
 };
