@@ -337,6 +337,52 @@ class WorldMini:
                 "status": "MATCHES" if matches else "NO_MATCHES",
                 "matches": matches}
 
+    def search_geo_radius(self, center, radius_km, at: str, known_at: str) -> dict:
+        """Find source-reported Points near a coordinate at world/knowledge T,K.
+
+        Approximate spherical distance is a *derived search measurement*, not
+        observed positional accuracy, physical truth, or inferred location.
+        """
+        import math
+        from .geojson import _point
+
+        _point({"type": "Point", "coordinates": center})
+        if type(radius_km) not in (int, float) or not math.isfinite(radius_km) or radius_km < 0:
+            raise ValueError("radius must be a nonnegative finite distance in km")
+        _time(at)
+        _time(known_at)
+        lon0, lat0 = center
+        lat0_r = math.radians(lat0)
+        matches = []
+        for entity in sorted({a["entity"] for a in self._assertions.values()
+                              if a["attribute"] == "geo_point"}):
+            current = self.query(entity, "geo_point", at, known_at)["reports"]
+            nearby, outside = [], []
+            for report in current:
+                lon, lat = _point(report["value"])["coordinates"]
+                latitude = math.radians(lat)
+                hav = (math.sin(math.radians(lat - lat0) / 2) ** 2 +
+                       math.cos(lat0_r) * math.cos(latitude) *
+                       math.sin(math.radians(lon - lon0) / 2) ** 2)
+                distance_km = 6371.0088 * 2 * math.asin(math.sqrt(min(1.0, max(0.0, hav))))
+                if distance_km <= radius_km:
+                    nearby.append({**report, "distance_km": distance_km})
+                else:
+                    outside.append(report)
+            if nearby:
+                nearest = min(r["distance_km"] for r in nearby)
+                matches.append({"entity": entity, "status": "REPORTED",
+                                "nearest_reported_km": nearest,
+                                "matched_reports": nearby,
+                                "other_reports": outside})
+        matches.sort(key=lambda item: (item["nearest_reported_km"], item["entity"]))
+        return {"world": "OBSERVED", "query": "SOURCE_REPORTED_POINT_RADIUS_ONLY",
+                "distance_method": "SPHERICAL_HAVERSINE_APPROX",
+                "center": list(center), "radius_km": radius_km,
+                "valid_at": at, "knowledge_cutoff": known_at,
+                "status": "MATCHES" if matches else "NO_MATCHES",
+                "matches": matches}
+
     def source_disagreements(self, at: str, known_at: str,
                              attribute: str | None = None) -> dict:
         """Different current values reported by distinct source IDs (not truth)."""
@@ -684,6 +730,8 @@ def main(argv=None) -> int:
     selection.add_argument("--search-attribute")
     selection.add_argument("--search-geo-bbox", metavar="W,S,E,N",
                            help="source-reported Point search by world and knowledge time")
+    selection.add_argument("--search-geo-radius", metavar="LON,LAT",
+                           help="source-reported Point proximity at world and knowledge time")
     selection.add_argument("--source-disagreements", action="store_true")
     selection.add_argument("--source-history", metavar="SOURCE_ID")
     selection.add_argument("--knowledge-updates", action="store_true")
@@ -704,6 +752,7 @@ def main(argv=None) -> int:
                         help="explicitly overwrite --state-out (single writer only)")
     parser.add_argument("--equals-json", help="exact JSON value used by cross-entity search")
     parser.add_argument("--source-attribute", help="optional property filter for source history")
+    parser.add_argument("--radius-km", type=float, help="nonnegative radius for --search-geo-radius")
     parser.add_argument("--at", help="one world-time instant; omit when selecting a timeline")
     parser.add_argument("--timeline-from", help="start of valid-world-time interval")
     parser.add_argument("--timeline-to", help="exclusive end of valid-world-time interval")
@@ -713,6 +762,8 @@ def main(argv=None) -> int:
     parser.add_argument("--compare-known-at", help="earlier knowledge cutoff; requires --all-attributes")
     parser.add_argument("--compare-at", help="earlier valid-world-time; requires --all-attributes and --at")
     args = parser.parse_args(argv)
+    if (args.search_geo_radius is None) != (args.radius_km is None):
+        parser.error("--search-geo-radius and --radius-km must be supplied together")
     try:
         geo_metadata = (args.source_id, args.source_locator, args.captured_at,
                         args.valid_from, args.valid_to, args.source_event_at)
@@ -815,6 +866,21 @@ def main(argv=None) -> int:
                     args.equals_json is not None):
                 parser.error("disagreements require --at without entity/timeline/compare")
             result = world.source_disagreements(args.at, args.known_at)
+        elif args.search_geo_radius is not None:
+            if (args.entity is not None or args.at is None or
+                    args.source_attribute is not None or args.equals_json is not None or
+                    args.timeline_from is not None or args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None or
+                    args.compare_known_at is not None or args.compare_at is not None):
+                parser.error("radius search requires --at and --known-at without other query flags")
+            parts = args.search_geo_radius.split(",")
+            if len(parts) != 2:
+                raise ValueError("center must be LON,LAT")
+            try:
+                center = [float(part.strip()) for part in parts]
+            except ValueError as exc:
+                raise ValueError("center must contain numeric coordinates") from exc
+            result = world.search_geo_radius(center, args.radius_km, args.at, args.known_at)
         elif args.search_geo_bbox is not None:
             if (args.entity is not None or args.at is None or
                     args.source_attribute is not None or args.equals_json is not None or
