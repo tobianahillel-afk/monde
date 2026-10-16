@@ -88,7 +88,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <button id="clear-search" type="button">Clear</button>
 <button id="export-visible" type="button" disabled>Export visible GeoJSON</button></div>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
-<div class="controls" id="change-filter-control" hidden><label for="change-filter">Knowledge change</label>
+<div class="controls" id="change-filter-control" hidden><label for="change-filter">Reported change</label>
 <select id="change-filter"><option value="">All changes</option><option value="NEWLY_CURRENT">Newly current</option><option value="NO_LONGER_CURRENT">No longer current</option></select></div>
 <ul id="report-list" aria-label="Reported points"></ul>
 <h2>Selected evidence</h2><div id="details" role="status" aria-live="polite">Select a source report to inspect its original evidence.</div>
@@ -99,8 +99,11 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 (function () {
   "use strict";
   var data = JSON.parse(document.getElementById("monde-data").textContent);
-  var features = data.features, comparing = !!data.monde_bbox_changes_query;
-  var query = comparing ? data.monde_bbox_changes_query : data.monde_bbox_query;
+  var features = data.features, knowledgeComparing = !!data.monde_bbox_changes_query;
+  var worldComparing = !!data.monde_bbox_world_changes_query;
+  var comparing = knowledgeComparing || worldComparing;
+  var query = knowledgeComparing ? data.monde_bbox_changes_query :
+    (worldComparing ? data.monde_bbox_world_changes_query : data.monde_bbox_query);
   var NS = "http://www.w3.org/2000/svg";
   var svg = document.getElementById("map");
   var view = document.getElementById("viewport");
@@ -117,8 +120,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var visibleFeatures = [];
   document.getElementById("change-filter-control").hidden = !comparing;
   if (comparing) {
-    document.getElementById("source-notice").textContent =
-      "Source knowledge changes, NOT verified physical movement. Old and new claims retain separate evidence.";
+    document.getElementById("source-notice").textContent = knowledgeComparing ?
+      "Source knowledge changes, NOT verified physical movement. Old and new claims retain separate evidence." :
+      "Source-reported world-time validity changes, NOT verified physical movement. Old and new claims retain separate evidence.";
   }
   var x0 = 0, y0 = 0, width = 1200, height = 600;
   var selectedId = null;
@@ -165,9 +169,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   if (bbox[0] <= bbox[2]) rectangle(bbox[0],bbox[2]);
   else { rectangle(bbox[0],180); rectangle(-180,bbox[2]); }
   document.getElementById("cutoffs").textContent =
-    "World " + query.valid_at + (comparing ?
-      "  ·  Knowledge " + query.from_known_at + " → " + query.to_known_at :
-      "  ·  Known " + query.knowledge_cutoff);
+    worldComparing ?
+      "Reported world time " + query.from_at + " → " + query.to_at +
+        "  ·  Known " + query.knowledge_cutoff :
+      "World " + query.valid_at + (knowledgeComparing ?
+        "  ·  Knowledge " + query.from_known_at + " → " + query.to_known_at :
+        "  ·  Known " + query.knowledge_cutoff);
   var identities = Array.from(new Set(features.map(function(f) {
     return f.properties.source_id;
   }))).sort();
@@ -194,16 +201,19 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       "Assertion: " + feature.id,
       "Coordinates: " + feature.geometry.coordinates.join(", "),
       "Within requested viewport: " + (p.monde_inside_bbox ? "yes" : "no — contrary source location"),
-      ...(comparing ? ["Knowledge change: " + p.monde_change,
+      ...(knowledgeComparing ? ["Knowledge change: " + p.monde_change,
         "Knowledge interval: " + query.from_known_at + " → " + query.to_known_at,
         "Change basis: KNOWLEDGE_NOT_PHYSICAL (not verified motion)"] : []),
+      ...(worldComparing ? ["Reported world-time change: " + p.monde_change,
+        "Reported validity comparison: " + query.from_at + " → " + query.to_at,
+        "Change basis: REPORTED_VALIDITY_NOT_VERIFIED_MOTION"] : []),
       "Source: " + p.source_id,
       "Evidence: " + p.evidence_id,
       "Locator: " + p.locator,
       "Captured: " + p.captured_at,
       "Source event: " + (p.source_event_at || "not supplied"),
-      "Known cutoff: " + (comparing ? p.knowledge_cutoff : query.knowledge_cutoff),
-      "Valid at: " + query.valid_at,
+      "Known cutoff: " + query.knowledge_cutoff,
+      "Valid at: " + (worldComparing ? query.from_at + " → " + query.to_at : query.valid_at),
       "Claim status: SOURCE_REPORTED_ONLY"
     ].join("\n");
     render();
@@ -267,7 +277,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
           search: search.value.trim(),
           source_id: sources.value,
           inside_viewport_only: insideOnly.checked,
-          knowledge_change: comparing ? changeFilter.value : ""
+          knowledge_change: knowledgeComparing ? changeFilter.value : "",
+          world_time_change: worldComparing ? changeFilter.value : ""
         }
       }
     });
