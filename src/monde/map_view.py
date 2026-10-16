@@ -922,11 +922,58 @@ def render_map(document: dict) -> str:
     return _TEMPLATE.replace("__MONDE_EMBEDDED_GEOJSON__", encoded)
 
 
+
+def automatic_source_bbox(world: WorldMini, at: str, known_at: str,
+                          *, compare_at=None, compare_known_at=None) -> list[float]:
+    """Fit source reports visible at either time cutoff, not an inferred place.
+
+    Find the shortest longitude arc by excluding the largest circular gap.
+    This handles reports on both sides of the antimeridian without mapping
+    nearly the entire world; latitudes use a clamped, padded interval.
+    """
+    snapshots = [(at, known_at)]
+    if compare_at is not None:
+        snapshots.append((compare_at, known_at))
+    if compare_known_at is not None:
+        snapshots.append((at, compare_known_at))
+    points = [feature["geometry"]["coordinates"]
+              for instant, cutoff in snapshots
+              for feature in world.export_geojson(instant, cutoff)["features"]]
+    if not points:
+        raise ValueError("no known source Points at these time cutoffs; "
+                         "provide an explicit --bbox to show an empty viewport")
+    angles = sorted({(lon + 180.0) % 360.0 for lon, _ in points})
+    if len(angles) == 1:
+        start = end = angles[0]
+    else:
+        largest_gap = max(
+            range(len(angles)),
+            key=lambda i: (angles[(i + 1) % len(angles)] - angles[i]) % 360.0)
+        start = angles[(largest_gap + 1) % len(angles)]
+        end = angles[largest_gap]
+        if end < start:
+            end += 360.0
+    span = end - start
+    padding = max(0.005, span * 0.05)
+    if span + 2 * padding >= 360.0:
+        west, east = -180.0, 180.0
+    else:
+        west = ((start - padding) % 360.0) - 180.0
+        east = ((end + padding) % 360.0) - 180.0
+    low = min(lat for _, lat in points)
+    high = max(lat for _, lat in points)
+    lat_padding = max(0.005, (high - low) * 0.05)
+    return [west, max(-90.0, low - lat_padding),
+            east, min(90.0, high + lat_padding)]
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Generate a standalone offline source-evidence map (no API)")
-    parser.add_argument("--state", required=True, help="saved MONDE Mini JSON state")
-    parser.add_argument("--bbox", required=True, help="W,S,E,N WGS84 viewport")
+    inputs = parser.add_mutually_exclusive_group(required=True)
+    inputs.add_argument("--state", help="saved MONDE Mini JSON state")
+    inputs.add_argument("--csv-manifest", help="source-attributed local CSV manifest; no intermediate state")
+    parser.add_argument("--bbox", default="auto", help="W,S,E,N WGS84 viewport; default auto-fits source reports at requested times")
     parser.add_argument("--at", required=True, help="valid-world-time instant")
     parser.add_argument("--known-at", required=True, help="knowledge-time cutoff")
     comparison = parser.add_mutually_exclusive_group()
@@ -935,11 +982,24 @@ def main(argv=None) -> int:
     parser.add_argument("--output", required=True, help="new output HTML path; no overwrite")
     args = parser.parse_args(argv)
     try:
-        parts = args.bbox.split(",")
-        if len(parts) != 4:
-            raise ValueError("bbox must have four numbers W,S,E,N")
-        bounds = [float(p.strip()) for p in parts]
-        world = WorldMini.read(args.state)
+        if args.csv_manifest:
+            from .csv_points import documents_from_manifest
+            documents, _ = documents_from_manifest(
+                args.csv_manifest, output_path=args.output)
+            world = WorldMini()
+            world.append_documents(documents)
+        else:
+            world = WorldMini.read(args.state)
+        if args.bbox == "auto":
+            bounds = automatic_source_bbox(
+                world, args.at, args.known_at,
+                compare_at=args.compare_at,
+                compare_known_at=args.compare_known_at)
+        else:
+            parts = args.bbox.split(",")
+            if len(parts) != 4:
+                raise ValueError("bbox must have four numbers W,S,E,N")
+            bounds = [float(part.strip()) for part in parts]
         geojson = (world.export_geojson_bbox_world_changes(
             bounds, args.compare_at, args.at, args.known_at)
             if args.compare_at else world.export_geojson_bbox_knowledge_changes(
