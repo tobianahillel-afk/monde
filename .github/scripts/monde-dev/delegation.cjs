@@ -1659,9 +1659,16 @@ function planL2Delta({previous_assignment,current_head,compare,
     const paths=[row.path,...(row.previous_path?[row.previous_path]:[])];
     if(row.status==='renamed'||row.status==='removed')
       special.push({status:row.status,path:row.path,previous_path:row.previous_path});
+    // Report *every* uncovered side of a rename. A move from an unreviewed
+    // old path into a reviewed new path (or vice versa) must not hide the
+    // side outside the previous review's scope.
+    for(const path of paths){
+      if(!scopeMatches(path,old.paths)&&!outside.includes(path))
+        outside.push(path);
+    }
     if(paths.some(path=>scopeMatches(path,old.paths))){
       if(row.status==='added'||row.status==='modified')touched.add(row.path);
-    }else outside.push(row.path);
+    }
   }
   const changed=[...touched].sort();
   // No deleted/renamed/outside paths may be silently declared covered.

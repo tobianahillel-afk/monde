@@ -7970,3 +7970,27 @@ test('WORK parser rejects decorated nested task and plan keys but keeps normal v
     'title: "YAML tags !!str and &anchors are ordinary prose here"');
   assert.equal(d.parseWorkPlanningSnapshot(quotedValue,'WORK-0001').status,'DONE');
 });
+
+test('L2 rename diagnostics preserve every path outside former review scope',()=>{
+  const original=H.paths[0],head='b'.repeat(40);
+  for(const scenario of [
+    {row:{path:original,status:'renamed',previous_path:'private/old.cjs'},
+      outside:['private/old.cjs']},
+    {row:{path:'external/new.cjs',status:'renamed',previous_path:original},
+      outside:['external/new.cjs']},
+    {row:{path:'external/new.cjs',status:'renamed',previous_path:'private/old.cjs'},
+      outside:['external/new.cjs','private/old.cjs']}
+  ]){
+    const result=d.planL2Delta({
+      previous_assignment:H,current_head:head,
+      compare:{base_sha:H.head_sha,head_sha:head,complete:true,
+        files:[scenario.row]},
+      new_assignment_id:'mission-rename-scope-0001'
+    });
+    assert.equal(result.status,'MANUAL_IMPACT_ANALYSIS_REQUIRED');
+    assert.deepEqual(result.out_of_scope_changes,scenario.outside);
+    assert.equal(result.removed_or_renamed.length,1);
+    assert.equal(result.proposed_assignment,null);
+    assert.equal(result.previous_l2_approval_reusable,false);
+  }
+});
