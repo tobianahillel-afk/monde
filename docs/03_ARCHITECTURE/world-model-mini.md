@@ -116,3 +116,25 @@ This is an experimental LOT-2 reporting primitive: in-memory data and strict
 source-reported validity only. It neither detects real-world events nor resolves
 contradictions. The existing one-instant and knowledge-delta CLI modes remain
 unchanged.
+
+
+## Search across source reports without erasing disagreements
+
+WorldMini.search_reports(attribute, value, at, known_at) finds entities for
+which some source reported an exact JSON value at world-time T and knowledge
+cutoff K. Results retain matched_reports plus other_reports, each with original
+source and evidence lineage. It never asserts a reconciled real-world truth.
+NO_MATCHES describes missing matching reports, not physical absence. JSON
+booleans and numbers are distinct; objects compare by canonical JSON keys.
+
+    PYTHONPATH=src python3 -m monde.world \
+      --fixture examples/monde-mini.json \
+      --search-attribute floors --equals-json 7 \
+      --at 2026-01-02T00:00:00Z \
+      --known-at 2026-01-07T00:00:00Z
+
+The bundled fixture returns building-001 with a corrected seven-floor city
+report and retains the competing six-floor local-news report. A subprocess
+regression covers two buildings. Existing snapshot, timeline and knowledge
+comparison modes stay separate. This is an in-memory discovery scan without
+external services, source ranking or production data ingestion.
