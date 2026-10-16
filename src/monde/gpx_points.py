@@ -1,4 +1,11 @@
-"""Offline GPX 1.1 Waypoints as explicit, source-reported WGS84 Point claims."""
+"""Bounded local GPX 1.1 Point claims, including source-ordered GPS traces.
+
+GPX traces are preserved as a sequence of source-reported sample positions,
+not as verified movement, a road, a physically continuous path, or a durable
+identity for a real object. Each sample has a deterministic content-based ID.
+"""
+import hashlib
+import json
 import math
 import os
 import xml.etree.ElementTree as ET
@@ -10,8 +17,72 @@ MAX_POINTS = 50_000
 NAMESPACE = "{http://www.topografix.com/GPX/1/1}"
 
 
+def _tag(name):
+    return NAMESPACE + name
+
+
+def _text(node, field, *, required=False):
+    values = node.findall(_tag(field))
+    if len(values) > 1:
+        raise ValueError("duplicate GPX " + field)
+    if not values:
+        if required:
+            raise ValueError("GPX requires " + field)
+        return None
+    child = values[0]
+    if child.attrib or len(child):
+        raise ValueError("nested or attributed GPX " + field)
+    value = child.text or ""
+    if not value or len(value) > 4000:
+        raise ValueError("missing or oversized GPX " + field)
+    return value
+
+
+def _point(node, kind):
+    if set(node.attrib) != {"lat", "lon"}:
+        raise ValueError("GPX " + kind + " requires only lon/lat")
+    try:
+        lat, lon = float(node.get("lat")), float(node.get("lon"))
+    except ValueError as exc:
+        raise ValueError("non-numeric GPX coordinates") from exc
+    if not math.isfinite(lat) or not math.isfinite(lon) or not (
+            -90 <= lat <= 90 and -180 <= lon <= 180):
+        raise ValueError("GPX coordinate is outside WGS84")
+    fields = {"name": "name", "desc": "description", "cmt": "comment",
+              "time": "waypoint_time", "sym": "symbol", "type": "waypoint_type"}
+    attrs = {}
+    seen = set()
+    for child in node:
+        field = child.tag[len(NAMESPACE):] if child.tag.startswith(NAMESPACE) else ""
+        if field not in fields or field in seen or child.attrib or len(child):
+            raise ValueError("unsupported or ambiguous GPX " + kind + " field")
+        seen.add(field)
+        value = child.text or ""
+        if len(value) > 4000:
+            raise ValueError("GPX property too long")
+        if field == "time" and value.strip():
+            _time(value.strip())  # Timestamp from source, not physical validity.
+        if value:
+            attrs[fields[field]] = value
+    return [lon, lat], attrs
+
+
+def _sample_id(kind, trace, coordinates, attrs):
+    # This ID represents one source-file sample, NEVER the identity of a real
+    # entity. Repeated identical samples are rejected, not silently merged.
+    stable = json.dumps([kind, trace, coordinates,
+                         attrs.get("waypoint_time"), attrs.get("name")],
+                        ensure_ascii=False, separators=(",", ":"))
+    return "gpx-sample-" + hashlib.sha256(stable.encode("utf-8")).hexdigest()[:32]
+
+
 def to_geojson(path):
-    """Waypoint <name> must be a unique, caller-verified stable dataset ID."""
+    """Convert local GPX waypoints, routes and tracks to reported Point samples.
+
+    Routes/tracks require unique source-provided names. Topology is carried in
+    gpx_trace properties and visualized only between consecutive samples of
+    the same source trace and segment; no implied observed physical motion.
+    """
     if os.path.getsize(path) > MAX_BYTES:
         raise ValueError("GPX exceeds 10 MB limit")
     with open(path, "rb") as file:
@@ -24,53 +95,72 @@ def to_geojson(path):
         root = ET.fromstring(raw)
     except ET.ParseError as exc:
         raise ValueError("invalid GPX XML") from exc
-    if root.tag != NAMESPACE + "gpx" or root.get("version") != "1.1":
+    if root.tag != _tag("gpx") or root.get("version") != "1.1":
         raise ValueError("expected standard GPX 1.1")
-    if any(child.tag not in (NAMESPACE + "metadata", NAMESPACE + "wpt")
-           for child in root):
-        raise ValueError("GPX tracks/routes and extensions are unsupported")
-    allowed = {"name", "desc", "cmt", "time", "sym", "type"}
-    props = {"desc": "description", "cmt": "comment",
-             "time": "waypoint_time", "sym": "symbol", "type": "waypoint_type"}
-    features, seen = [], set()
-    for wpt in root.findall(NAMESPACE + "wpt"):
+    if any(child.tag not in {_tag("metadata"), _tag("wpt"),
+                            _tag("rte"), _tag("trk")} for child in root):
+        raise ValueError("unsupported GPX root element")
+    features, seen, traces = [], set(), set()
+
+    def append(ident, coords, properties):
         if len(features) >= MAX_POINTS:
             raise ValueError("GPX point limit exceeded")
-        if set(wpt.attrib) != {"lat", "lon"}:
-            raise ValueError("GPX waypoint requires only lon/lat")
-        try:
-            lat, lon = float(wpt.get("lat")), float(wpt.get("lon"))
-        except ValueError as exc:
-            raise ValueError("non-numeric GPX coordinates") from exc
-        if not math.isfinite(lat) or not math.isfinite(lon) or not (
-                -90 <= lat <= 90 and -180 <= lon <= 180):
-            raise ValueError("GPX coordinate is outside WGS84")
-        attributes, observed = {}, set()
-        for child in wpt:
-            if not child.tag.startswith(NAMESPACE):
-                raise ValueError("unsupported GPX waypoint namespace")
-            field = child.tag[len(NAMESPACE):]
-            if field not in allowed or field in observed or child.attrib or len(child):
-                raise ValueError("unsupported or ambiguous GPX waypoint field")
-            observed.add(field)
-            value = child.text or ""
-            if len(value) > 4000:
-                raise ValueError("GPX property too long")
-            if field == "time" and value.strip():
-                _time(value.strip())  # Source-reported time, not inferred world-validity.
-            if field in props and value:
-                attributes[props[field]] = value
-        name = wpt.find(NAMESPACE + "name")
-        if name is None or not name.text or name.text != name.text.strip():
+        _id(ident)
+        if ident in seen:
+            raise ValueError("ambiguous duplicate GPX sample identity")
+        seen.add(ident)
+        features.append({"type": "Feature", "id": ident,
+                         "properties": properties,
+                         "geometry": {"type": "Point", "coordinates": coords}})
+
+    for waypoint in root.findall(_tag("wpt")):
+        coords, properties = _point(waypoint, "waypoint")
+        ident = properties.get("name")
+        if ident is None or ident != ident.strip():
             raise ValueError("GPX waypoint needs source-supplied stable name")
-        _id(name.text)
-        if name.text in seen:
-            raise ValueError("duplicate GPX waypoint name")
-        seen.add(name.text)
-        attributes["name"] = name.text
-        features.append({"type": "Feature", "id": name.text,
-                         "properties": attributes,
-                         "geometry": {"type": "Point", "coordinates": [lon, lat]}})
+        append(ident, coords, properties)
+
+    for kind in ("rte", "trk"):
+        for trace in root.findall(_tag(kind)):
+            if trace.attrib:
+                raise ValueError("unsupported GPX trace attributes")
+            name = _text(trace, "name", required=True)
+            # Source-supplied name is a dataset-local trace label, not identity
+            # of a verified physical route. No row-order-generated trace ID.
+            if name != name.strip() or not name.strip():
+                raise ValueError("ambiguous GPX trace name")
+            if (kind, name) in traces:
+                raise ValueError("duplicate GPX trace name")
+            traces.add((kind, name))
+            trace_id = hashlib.sha256(json.dumps(
+                [kind, name], ensure_ascii=False).encode("utf-8")).hexdigest()[:24]
+            if any(child.tag not in ({_tag("name"), _tag("desc"), _tag("rtept")}
+                                     if kind == "rte" else
+                                     {_tag("name"), _tag("desc"), _tag("trkseg")})
+                   for child in trace):
+                raise ValueError("unsupported GPX route/track content")
+            description = _text(trace, "desc")
+            if kind == "rte":
+                segments = [list(trace.findall(_tag("rtept")))]
+            else:
+                segments = []
+                for segment in trace.findall(_tag("trkseg")):
+                    if segment.attrib or any(p.tag != _tag("trkpt") for p in segment):
+                        raise ValueError("unsupported GPX track segment content")
+                    segments.append(list(segment))
+            if not segments or any(not segment for segment in segments):
+                raise ValueError("empty GPX route/track segment")
+            for segment_index, samples in enumerate(segments):
+                for sample_index, sample in enumerate(samples):
+                    coords, attrs = _point(sample, "trace point")
+                    ident = _sample_id(kind, name, coords, attrs)
+                    attrs["gpx_trace"] = {
+                        "format": "GPX_1_1_TRACE_POINT", "kind": kind,
+                        "name": name, "trace_id": trace_id,
+                        "segment": segment_index, "order": sample_index}
+                    if description is not None:
+                        attrs["trace_description"] = description
+                    append(ident, coords, attrs)
     if not features:
-        raise ValueError("GPX has no supported waypoints")
+        raise ValueError("GPX has no supported source Points")
     return {"type": "FeatureCollection", "features": features}
