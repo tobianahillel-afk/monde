@@ -1267,8 +1267,9 @@ def render_map(document: dict) -> str:
             if (trace is not None or not isinstance(kml_trace, dict)
                     or set(kml_trace) !=
                     {"format", "kind", "name", "trace_id", "segment", "order"}
-                    or kml_trace["format"] != "KML_2_2_LINESTRING_POINT"
-                    or kml_trace["kind"] != "LineString"
+                    or (kml_trace["format"], kml_trace["kind"]) not in (
+                        ("KML_2_2_LINESTRING_POINT", "LineString"),
+                        ("KML_2_2_POLYGON_RING_POINT", "Polygon"))
                     or not isinstance(kml_trace["name"], str)
                     or not kml_trace["name"]
                     or not isinstance(kml_trace["trace_id"], str)
