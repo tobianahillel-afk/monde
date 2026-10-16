@@ -45,6 +45,30 @@ contract remain distinct and backwards compatible. Both kinds preserve
 read-only task permissions, require full output in the task's ChatGPT
 conversation, and can never mark a PR eligible for merge on their own.
 
+## Fresh L2 mission from a live GitHub PR (read-only)
+
+The candidate `.github/scripts/monde-dev/l2-delta-github.cjs` exports
+`prepareFreshL2FromCurrentGitHub` for **first-time L2 preparation**, when
+no qualified earlier review exists. It uses the existing pure
+`assignment` and `buildReviewPrompt` contracts rather than another
+scheduler or source of truth.
+
+The interactive writer supplies `repo`, `pr`, a unique `assignment_id`,
+`author_context_id`, an objective and an **unprivileged read-only Octokit
+client** (`pulls.get`, `pulls.listFiles` and `paginate`). The helper
+reads the open PR before and after the complete changed-file listing,
+requires a stable exact HEAD/base/source ref and a `main` target, and
+includes both old/new paths of renamed files. It fails closed for an
+incomplete/ambiguous listing or more than 24 scoped paths: partitioning
+and scope selection then need a deliberate human/interactive decision.
+
+Output is only a proposed **separate-conversation L2 prompt**; it never
+starts a ChatGPT task, claims an independent reviewer, posts a GitHub
+comment, determines current CI/merge eligibility or authorizes a write.
+The reviewer must independently verify the live HEAD and actually read
+the code. A changed HEAD requires a fresh assignment, or a bounded delta
+plan based on separately qualified earlier review evidence.
+
 ## Delegation protocol
 
 1. The foreground developer verifies the current repository, exact PR HEAD, and relevant accepted rules.
