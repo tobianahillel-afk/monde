@@ -1853,7 +1853,12 @@ async function loadWorkPlanFromGitHub({github,repo,head_sha,work_ids,include_dep
     const bytes=Buffer.from(encoded,'base64');
     if(bytes.length>262144||bytes.toString('base64')!==encoded)
       bad('UNTRUSTED_WORK_RESPONSE');
-    const work=parseWorkPlanningSnapshot(bytes.toString('utf8'),id);
+    // Buffer.toString silently replaces malformed UTF-8 with U+FFFD.
+    // Repository governance snapshots must be decoded losslessly.
+    let decoded;
+    try { decoded=new TextDecoder('utf-8',{fatal:true}).decode(bytes); }
+    catch { bad('UNTRUSTED_WORK_RESPONSE'); }
+    const work=parseWorkPlanningSnapshot(decoded,id);
     works.push(work);
     if(include_dependencies)for(const dep of work.depends_on){
       if(seen.has(dep))continue;

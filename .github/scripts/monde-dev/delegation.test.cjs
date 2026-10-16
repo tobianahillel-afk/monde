@@ -7752,3 +7752,32 @@ test('WORK top-level status still rejects task-only NOT_STARTED',()=>{
   ].join('\n');
   assert.throws(()=>d.parseWorkPlanningSnapshot(invalid,'WORK-0005'));
 });
+
+test('WORK adapter rejects malformed UTF-8 even when Base64 is canonical',async()=>{
+  const base=Buffer.from(WORK_FIXTURE_DONE,'utf8');
+  // Invalid standalone continuation octet appended after a parseable YAML
+  // document must never be converted into a replacement character.
+  const malformed=Buffer.concat([base,Buffer.from([0x80])]);
+  let fetches=0;
+  const github={rest:{repos:{getContent:async()=>{
+    fetches++;
+    return {data:{type:'file',encoding:'base64',size:malformed.length,
+      content:malformed.toString('base64')}};
+  }}}};
+  await assert.rejects(d.loadWorkPlanFromGitHub({
+    github,repo:H.repo,head_sha:SHA,work_ids:['WORK-0001']
+  }),{code:'UNTRUSTED_WORK_RESPONSE'});
+  assert.equal(fetches,1);
+});
+test('WORK adapter decodes valid non-ASCII comments without changing canonical task state',async()=>{
+  const doc=WORK_FIXTURE_DONE+'\n# Étude, fiabilité et vérification\n';
+  const github={rest:{repos:{getContent:async()=>({data:{
+    type:'file',encoding:'base64',size:Buffer.byteLength(doc,'utf8'),
+    content:Buffer.from(doc,'utf8').toString('base64')
+  }})}}};
+  const out=await d.loadWorkPlanFromGitHub({
+    github,repo:H.repo,head_sha:SHA,work_ids:['WORK-0001']
+  });
+  assert.equal(out.works[0].id,'WORK-0001');
+  assert.equal(out.works[0].status,'DONE');
+});
