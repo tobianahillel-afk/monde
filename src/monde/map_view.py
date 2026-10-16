@@ -134,12 +134,11 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 </aside>
 </main>
 <script type="application/json" id="monde-data">__MONDE_EMBEDDED_GEOJSON__</script>
-<script type="application/json" id="monde-reference-land">__MONDE_EMBEDDED_REFERENCE_LAND__</script>
 <script>
 (function () {
   "use strict";
   var data = JSON.parse(document.getElementById("monde-data").textContent);
-  var landReference = JSON.parse(document.getElementById("monde-reference-land").textContent);
+  var landReference = __MONDE_EMBEDDED_REFERENCE_LAND__;
   var features = data.features, knowledgeComparing = !!data.monde_bbox_changes_query;
   var worldComparing = !!data.monde_bbox_world_changes_query;
   var comparing = knowledgeComparing || worldComparing;

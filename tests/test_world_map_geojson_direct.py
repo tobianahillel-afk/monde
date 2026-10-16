@@ -257,7 +257,7 @@ class DirectGeoJSONMapTests(unittest.TestCase):
                                   "--known-at", KNOWN, "--output", output)
             self.assertEqual(result.returncode, 0, result.stderr)
             page = output.read_text(encoding="utf-8")
-            self.assertIn('id="monde-reference-land"', page)
+            self.assertIn('var landReference = {"kind":"NATURAL_EARTH_110M_LAND_CONTEXT_V1"', page)
             self.assertIn('"kind":"NATURAL_EARTH_110M_LAND_CONTEXT_V1"', page)
             self.assertIn('id="land"', page)
             self.assertIn('"total_source_features":2', page)
