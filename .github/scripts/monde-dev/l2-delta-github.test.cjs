@@ -1197,11 +1197,15 @@ function wavesFixture(){
       repo:'tobianahillel-afk/monde',pr:19,head_sha:sha,
       author_context_id:'chat-author-wave-001',
       objective:'Independent security review of wave '+(i+1),
-      paths:['src/wave'+(i+1)+'.cjs']}
+      paths:['src/wave'+(i+1)+'.cjs']},
+    changed_file_statuses:[{path:'src/wave'+(i+1)+'.cjs',
+      status:'modified',previous_path:null}],
+    immutable_file_refs:[{path:'src/wave'+(i+1)+'.cjs',
+      status:'modified',previous_path:null}]
   }));
   return {
     status:'FRESH_L2_BATCHES_READY',full_scope_partition_verified:true,
-    observed_pr_head_sha:sha,reviewed_path_units:5,
+    observed_pr_head_sha:sha,reviewed_path_units:5,changed_files:5,
     batch_count:5,batches,wave_count:2,
     review_waves:[{wave_number:1,
       assignment_ids:batches.slice(0,4).map(x=>x.assignment.assignment_id)},
@@ -1314,4 +1318,30 @@ test('review waves: no reports yields empty triage, not fabricated findings',()=
   assert.equal(out.unqualified_r2,0);
   assert.equal(out.status,'MISSING_L2_REPORTS');
   assert.equal(out.ready_for_merge,false);
+});
+
+test('review waves: plausible but narrowed assignment cannot omit a GitHub changed file',()=>{
+  const plan=wavesFixture();
+  plan.batches[0].assignment.paths=['src/unrelated.cjs'];
+  assert.throws(()=>assessFreshL2Waves({plan,current_head:plan.observed_pr_head_sha}),
+    e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+});
+test('review waves: dropping a manifest row with rewritten counter never passes',()=>{
+  const plan=wavesFixture();
+  plan.batches[4].changed_file_statuses=[];
+  plan.batches[4].immutable_file_refs=[];
+  plan.changed_files=4;
+  assert.throws(()=>assessFreshL2Waves({plan,current_head:plan.observed_pr_head_sha}),
+    e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+});
+test('review waves: a fabricated immutable file path invalidates coverage',()=>{
+  const plan=wavesFixture();
+  plan.batches[2].immutable_file_refs[0].path='src/fake.cjs';
+  assert.throws(()=>assessFreshL2Waves({plan,current_head:plan.observed_pr_head_sha}),
+    e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+});
+test('review waves: changed file count must equal concrete manifest rows',()=>{
+  const plan=wavesFixture();plan.changed_files=4;
+  assert.throws(()=>assessFreshL2Waves({plan,current_head:plan.observed_pr_head_sha}),
+    e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
 });

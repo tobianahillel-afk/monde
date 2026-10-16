@@ -608,6 +608,8 @@ function assessFreshL2Waves({
      !Array.isArray(plan.review_waves) ||
      plan.review_waves.length!==Math.ceil(plan.batches.length/4) ||
      plan.wave_count!==plan.review_waves.length ||
+     !Number.isSafeInteger(plan.changed_files) ||
+     plan.changed_files<1 || plan.changed_files>200 ||
      typeof current_head!=='string' ||
      !/^[a-f0-9]{40}$/.test(current_head) ||
      plan.observed_pr_head_sha!==current_head ||
@@ -616,7 +618,7 @@ function assessFreshL2Waves({
      !coverage_manifests || typeof coverage_manifests!=='object' ||
      Array.isArray(coverage_manifests) ||
      !Array.isArray(prior_sources))incomplete();
-  const missions=[],seen=new Set(),paths=new Set();
+  const missions=[],seen=new Set(),paths=new Set(),changedFiles=new Set();
   for(let i=0;i<plan.batches.length;i++){
     const row=plan.batches[i];
     if(!row||!row.assignment || row.batch_number!==i+1 ||
@@ -628,13 +630,40 @@ function assessFreshL2Waves({
        mission.repo!==plan.batches[0].assignment.repo||
        mission.pr!==plan.batches[0].assignment.pr||
        seen.has(mission.assignment_id))incomplete();
+    // Reconcile the submitted scope with GitHub's saved immutable file
+    // manifest; assignment path counters alone can conceal omissions.
+    const changes=row.changed_file_statuses,refs=row.immutable_file_refs;
+    if(!Array.isArray(changes)||!changes.length||
+       !Array.isArray(refs)||refs.length!==changes.length)incomplete();
+    const declared=new Set();
+    for(let j=0;j<changes.length;j++){
+      const item=changes[j],ref=refs[j];
+      if(!item||typeof item.path!=='string'||
+         !['added','modified','removed','renamed'].includes(item.status)||
+         (item.status==='renamed'?
+           typeof item.previous_path!=='string'||
+             item.previous_path===item.path:
+           item.previous_path!==null)||
+         !ref||ref.path!==item.path||ref.status!==item.status||
+         ref.previous_path!==item.previous_path||
+         changedFiles.has(item.path))incomplete();
+      changedFiles.add(item.path);
+      for(const path of [item.path,
+        ...(item.status==='renamed'?[item.previous_path]:[])]){
+        if(declared.has(path))incomplete();
+        declared.add(path);
+      }
+    }
+    if(declared.size!==mission.paths.length||
+       mission.paths.some(path=>!declared.has(path)))incomplete();
     seen.add(mission.assignment_id);missions.push(mission);
     for(const path of mission.paths){
       if(paths.has(path))incomplete();
       paths.add(path);
     }
   }
-  if(plan.reviewed_path_units!==paths.size ||
+  if(plan.changed_files!==changedFiles.size||
+     plan.reviewed_path_units!==paths.size ||
      [reports,sources,coverage_manifests].some(map=>
        Object.keys(map).some(id=>!seen.has(id))))incomplete();
   const summary=[],results=[],missing=[],allFindings=[],prior=prior_sources.slice();
