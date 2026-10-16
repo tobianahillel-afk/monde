@@ -1063,3 +1063,36 @@ jobs:
           grep -q 'data-monde-kml-boundary-segments="6"' /tmp/monde-kml-multi-dom.html
           grep -q 'data-monde-kml-inner-segments="3"' /tmp/monde-kml-multi-dom.html
           grep -q 'Mixed original source' /tmp/monde-kml-multi-dom.html
+
+      - name: Read original KMZ and render source evidence in offline Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from zipfile import ZipFile, ZIP_DEFLATED
+          kml = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                 '<Placemark id="source-multi"><name>KMZ evidence</name><MultiGeometry>'
+                 '<Point><coordinates>2.35,48.85</coordinates></Point>'
+                 '<LineString><coordinates>2.35,48.85 2.36,48.86</coordinates>'
+                 '</LineString></MultiGeometry></Placemark></Document></kml>')
+          with ZipFile('/tmp/monde-original.kmz', 'w', ZIP_DEFLATED) as z:
+              z.writestr('doc.kml', kml)
+              z.writestr('files/asset.txt', 'not extracted')
+          PY
+          python3 -m monde.map_view --kmz /tmp/monde-original.kmz \
+            --source-id original-kmz --source-locator dataset://source.kmz \
+            --captured-at 2026-01-10T10:00:00Z \
+            --valid-from 2026-01-01T00:00:00Z \
+            --at 2026-01-02T00:00:00Z \
+            --known-at 2026-01-10T10:00:00Z \
+            --output /tmp/monde-kmz-evidence.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --timeout=15000 --dump-dom file:///tmp/monde-kmz-evidence.html \
+            >/tmp/monde-kmz-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-kmz-dom.html
+          grep -q 'data-monde-kml-segments="1"' /tmp/monde-kmz-dom.html
+          grep -q 'KMZ evidence' /tmp/monde-kmz-dom.html
+          grep -q 'original-kmz' /tmp/monde-kmz-dom.html
+          grep -q 'data-kml-trace=' /tmp/monde-kmz-dom.html
