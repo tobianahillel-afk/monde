@@ -369,6 +369,36 @@ class WorldMini:
                       (feature["properties"]["entity"], feature["id"]))
         return {"type": "FeatureCollection", "features": features}
 
+    def export_geojson_knowledge_changes(self, at: str, from_known_at: str,
+                                         to_known_at: str, bounds=None) -> dict:
+        """Source Point reports entering/leaving knowledge, NOT physical movement.
+
+        Retain separate source geometries/evidence by comparing existing,
+        immutable assertion IDs from two bitemporal GeoJSON exports.
+        """
+        _time(at)
+        if _time(from_known_at) >= _time(to_known_at):
+            raise ValueError("knowledge change export requires increasing cutoffs")
+        before = self.export_geojson(at, from_known_at, bounds)
+        after = self.export_geojson(at, to_known_at, bounds)
+        old = {f["id"]: f for f in before["features"]}
+        new = {f["id"]: f for f in after["features"]}
+        features = []
+        for ids, kind, view in (
+                (old.keys() - new.keys(), "NO_LONGER_CURRENT", old),
+                (new.keys() - old.keys(), "NEWLY_CURRENT", new)):
+            for assertion_id in ids:
+                feature = _clone(view[assertion_id])
+                feature["properties"].update({
+                    "monde_change": kind,
+                    "monde_change_basis": "KNOWLEDGE_NOT_PHYSICAL",
+                    "from_known_at": from_known_at,
+                    "to_known_at": to_known_at,
+                })
+                features.append(feature)
+        features.sort(key=lambda f: (f["properties"]["entity"], f["id"]))
+        return {"type": "FeatureCollection", "features": features}
+
     def search_geo_radius(self, center, radius_km, at: str, known_at: str) -> dict:
         """Find source-reported Points near a coordinate at world/knowledge T,K.
 
@@ -785,6 +815,8 @@ def main(argv=None) -> int:
                             help="nearest N source-reported Point entities at T and K")
     selection.add_argument("--export-geojson", action="store_true",
                            help="GeoJSON source Point FeatureCollection at world/knowledge T/K")
+    selection.add_argument("--export-geojson-changes", action="store_true",
+                            help="GeoJSON Point changes between two knowledge cutoffs")
     selection.add_argument("--source-disagreements", action="store_true")
     selection.add_argument("--source-history", metavar="SOURCE_ID")
     selection.add_argument("--knowledge-updates", action="store_true")
@@ -823,8 +855,8 @@ def main(argv=None) -> int:
         parser.error("--search-geo-radius and --radius-km must be supplied together")
     if (args.search_geo_nearest is None) != (args.nearest_limit is None):
         parser.error("--search-geo-nearest and --nearest-limit must be supplied together")
-    if args.export_bbox is not None and not args.export_geojson:
-        parser.error("--export-bbox requires --export-geojson")
+    if args.export_bbox is not None and not (args.export_geojson or args.export_geojson_changes):
+        parser.error("--export-bbox requires a GeoJSON export mode")
     try:
         geo_metadata = (args.source_id, args.source_locator, args.captured_at,
                         args.valid_from, args.valid_to, args.source_event_at)
@@ -927,6 +959,24 @@ def main(argv=None) -> int:
                     args.equals_json is not None):
                 parser.error("disagreements require --at without entity/timeline/compare")
             result = world.source_disagreements(args.at, args.known_at)
+        elif args.export_geojson_changes:
+            if (args.entity is not None or args.at is None or
+                    args.compare_known_at is None or args.compare_at is not None or
+                    args.source_attribute is not None or args.equals_json is not None or
+                    args.timeline_from is not None or args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None or args.updates_from is not None):
+                parser.error("GeoJSON changes require --at, --compare-known-at, --known-at")
+            bounds = None
+            if args.export_bbox is not None:
+                parts = args.export_bbox.split(",")
+                if len(parts) != 4:
+                    raise ValueError("export bbox must be WEST,SOUTH,EAST,NORTH")
+                try:
+                    bounds = [float(part.strip()) for part in parts]
+                except ValueError as exc:
+                    raise ValueError("export bbox must contain numeric coordinates") from exc
+            result = world.export_geojson_knowledge_changes(
+                args.at, args.compare_known_at, args.known_at, bounds)
         elif args.export_geojson:
             if (args.entity is not None or args.at is None or
                     args.source_attribute is not None or args.equals_json is not None or
