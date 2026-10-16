@@ -663,8 +663,10 @@ class OfflineRadiusExplorerTest(unittest.TestCase):
         document = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
         page = render_map(document)
         start = page.index("  function approximateDistanceKm(a,b) {")
-        end = page.index("  // Apply exactly the same filters", start)
-        functions = page[start:end]
+        measure = page.index("  // Measurement endpoints retain", start)
+        radius = page.index("  function radiusKmValue()", measure)
+        end = page.index("  // Apply exactly the same filters", radius)
+        functions = page[start:measure] + page[radius:end]
         script = (
             'const assert=require("node:assert/strict");\n'
             'var radiusInput={value:"50"};\n'
