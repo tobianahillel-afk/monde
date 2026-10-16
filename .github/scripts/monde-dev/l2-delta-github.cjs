@@ -41,6 +41,13 @@ async function planL2DeltaFromGitHub({
         typeof commit.sha !== 'string' || !/^[a-f0-9]{40}$/.test(commit.sha) ||
         commit.sha === old.head_sha) ||
       new Set(data.commits.map(commit => commit.sha)).size !== data.total_commits ||
+      // A clean GitHub compare can still contain merge commits or non-linear
+      // ancestry. Only a verified single-parent chain may narrow an L2 review.
+      data.commits.some((commit, index) =>
+        !Array.isArray(commit.parents) || commit.parents.length !== 1 ||
+        !commit.parents[0] ||
+        commit.parents[0].sha !== (index === 0 ?
+          old.head_sha : data.commits[index - 1].sha)) ||
       data.commits.at(-1)?.sha !== current_head ||
       data.base_commit?.sha !== old.head_sha ||
       data.merge_base_commit?.sha !== old.head_sha ||

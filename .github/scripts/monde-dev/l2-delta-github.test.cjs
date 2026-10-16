@@ -20,7 +20,7 @@ const previous_review = {
 };
 const base = {
   status: 'ahead', ahead_by: 1, behind_by: 0,
-  total_commits: 1, commits: [{sha: HEAD}],
+  total_commits: 1, commits: [{sha: HEAD, parents:[{sha:OLD}]}],
   base_commit: {sha: OLD}, merge_base_commit: {sha: OLD},
   files: [{filename: PATH, status: 'modified'}]
 };
@@ -122,7 +122,10 @@ test('GitHub API refusal propagates without invented comparison',async()=>{
     err=>err.status===403);
 });
 test('A complete 100-commit GitHub comparison is allowed; 101 is refused',async()=>{
-  const commits=Array.from({length:100},(_,i)=>({sha:i===99?HEAD:(i+1).toString(16).padStart(40,'0')}));
+  const commits=Array.from({length:100},(_,i)=>({
+    sha:i===99?HEAD:(i+1).toString(16).padStart(40,'0'),
+    parents:[{sha:i===0?OLD:i.toString(16).padStart(40,'0')}]
+  }));
   const valid={...base,total_commits:100,ahead_by:100,commits};
   const result=await planL2DeltaFromGitHub(args({github:client(valid)}));
   assert.equal(result.status,'TARGETED_REVIEW_CANDIDATE');
@@ -140,4 +143,36 @@ test('Reject a duplicated or malformed middle commit even with correct count and
     await assert.rejects(planL2DeltaFromGitHub(args({
       github:client({...base,total_commits:3,ahead_by:3,commits})
     })),err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+});
+
+
+test('GitHub compare must prove each intermediate commit has the prior SHA as sole parent',async()=>{
+  const MIDDLE='c'.repeat(40);
+  const chain={
+    ...base,total_commits:2,ahead_by:2,
+    commits:[
+      {sha:MIDDLE,parents:[{sha:OLD}]},
+      {sha:HEAD,parents:[{sha:MIDDLE}]}
+    ]
+  };
+  const accepted=await planL2DeltaFromGitHub(args({github:client(chain)}));
+  assert.equal(accepted.status,'TARGETED_REVIEW_CANDIDATE');
+  for(const changed of [
+    {...chain,commits:[{sha:MIDDLE,parents:[{sha:'d'.repeat(40)}]},chain.commits[1]]},
+    {...chain,commits:[chain.commits[0],{sha:HEAD,parents:[{sha:OLD}]}]},
+    {...chain,commits:[chain.commits[0],{sha:HEAD,parents:[{sha:MIDDLE},{sha:OLD}]}]},
+    {...chain,commits:[chain.commits[0],{sha:HEAD,parents:[]}]},
+    {...chain,commits:[chain.commits[0],{sha:HEAD,parents:null}]},
+    {...chain,commits:[chain.commits[0],{sha:HEAD,parents:[{}]}]},
+    {...chain,commits:[{sha:MIDDLE},chain.commits[1]]}
+  ]){
+    await assert.rejects(planL2DeltaFromGitHub(args({github:client(changed)})),
+      err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+});
+test('Single comparison with merge commit is not a linear L2 delta',async()=>{
+  await assert.rejects(
+    planL2DeltaFromGitHub(args({github:client({
+      ...base,commits:[{sha:HEAD,parents:[{sha:OLD},{sha:'c'.repeat(40)}]}]
+    })})),err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
 });
