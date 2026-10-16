@@ -317,15 +317,24 @@ def render_map(document: dict) -> str:
     if not isinstance(document, dict) or document.get("type") != "FeatureCollection":
         raise ValueError("expected a GeoJSON FeatureCollection")
     features = document.get("features")
-    comparing = "monde_bbox_changes_query" in document
-    query = document.get("monde_bbox_changes_query" if comparing else "monde_bbox_query")
+    knowledge_comparing = "monde_bbox_changes_query" in document
+    world_comparing = "monde_bbox_world_changes_query" in document
+    if knowledge_comparing and world_comparing:
+        raise ValueError("only one comparison basis allowed")
+    comparing = knowledge_comparing or world_comparing
+    query = document.get("monde_bbox_changes_query" if knowledge_comparing else
+                         "monde_bbox_world_changes_query" if world_comparing else
+                         "monde_bbox_query")
     if not isinstance(features, list) or not isinstance(query, dict):
         raise ValueError("viewport GeoJSON and query metadata required")
     if len(features) > MAX_FEATURES:
         raise ValueError("too many reports for an offline standalone map")
     expected = ({"basis", "bbox", "valid_at", "from_known_at", "to_known_at",
                  "total_matching_entities", "total_changed_features", "status"}
-                if comparing else
+                if knowledge_comparing else
+                {"basis", "bbox", "from_at", "to_at", "knowledge_cutoff",
+                 "total_matching_entities", "total_changed_features", "status"}
+                if world_comparing else
                 {"basis", "bbox", "valid_at", "knowledge_cutoff",
                  "total_matching_entities", "total_source_features", "status"})
     if set(query) != expected:
@@ -336,19 +345,27 @@ def render_map(document: dict) -> str:
             or not -180 <= bounds[0] <= 180 or not -180 <= bounds[2] <= 180
             or not -90 <= bounds[1] <= bounds[3] <= 90):
         raise ValueError("invalid WGS84 viewport")
-    if (query["basis"] != ("SOURCE_REPORTED_VIEWPORT_KNOWLEDGE_CHANGES_ONLY"
-                              if comparing else "SOURCE_REPORTED_POINT_BBOX_ONLY")
-            or query["total_changed_features" if comparing else "total_source_features"] != len(features)
+    expected_basis = ("SOURCE_REPORTED_VIEWPORT_KNOWLEDGE_CHANGES_ONLY"
+                      if knowledge_comparing else
+                      "SOURCE_REPORTED_VIEWPORT_WORLD_TIME_CHANGES_ONLY"
+                      if world_comparing else "SOURCE_REPORTED_POINT_BBOX_ONLY")
+    count_key = "total_changed_features" if comparing else "total_source_features"
+    time_keys = (("valid_at", "from_known_at", "to_known_at")
+                 if knowledge_comparing else
+                 ("from_at", "to_at", "knowledge_cutoff") if world_comparing else
+                 ("valid_at", "knowledge_cutoff"))
+    if (query["basis"] != expected_basis or query[count_key] != len(features)
             or type(query["total_matching_entities"]) is not int
             or query["total_matching_entities"] < 0
             or query["status"] not in (("CHANGES", "NO_CHANGES") if comparing
                                       else ("MATCHES", "NO_MATCHES"))
             or not all(isinstance(query[key], str) and query[key]
-                       for key in (("valid_at", "from_known_at", "to_known_at")
-                                   if comparing else ("valid_at", "knowledge_cutoff")))):
+                       for key in time_keys)):
         raise ValueError("inconsistent source viewport metadata")
-    if comparing and query["from_known_at"] >= query["to_known_at"]:
+    if knowledge_comparing and query["from_known_at"] >= query["to_known_at"]:
         raise ValueError("comparison requires increasing knowledge cutoffs")
+    if world_comparing and query["from_at"] >= query["to_at"]:
+        raise ValueError("comparison requires increasing world-time instants")
     for feature in features:
         if (not isinstance(feature, dict)
                 or set(feature) != {"type", "id", "geometry", "properties"}
@@ -371,12 +388,19 @@ def render_map(document: dict) -> str:
                 for k in ("entity", "source_id", "evidence_id", "locator",
                           "captured_at")) or type(props.get("monde_inside_bbox")) is not bool):
             raise ValueError("source identity and evidence are required")
-        if comparing and (props.get("monde_change") not in
-                          ("NEWLY_CURRENT", "NO_LONGER_CURRENT")
-                          or props.get("monde_change_basis") != "KNOWLEDGE_NOT_PHYSICAL"
-                          or props.get("from_known_at") != query["from_known_at"]
-                          or props.get("to_known_at") != query["to_known_at"]):
+        if knowledge_comparing and (props.get("monde_change") not in
+                                   ("NEWLY_CURRENT", "NO_LONGER_CURRENT")
+                                   or props.get("monde_change_basis") != "KNOWLEDGE_NOT_PHYSICAL"
+                                   or props.get("from_known_at") != query["from_known_at"]
+                                   or props.get("to_known_at") != query["to_known_at"]):
             raise ValueError("inconsistent source knowledge change")
+        if world_comparing and (props.get("monde_change") not in
+                               ("NEWLY_CURRENT", "NO_LONGER_CURRENT")
+                               or props.get("monde_change_basis") != "REPORTED_VALIDITY_NOT_VERIFIED_MOTION"
+                               or props.get("from_at") != query["from_at"]
+                               or props.get("to_at") != query["to_at"]
+                               or props.get("knowledge_cutoff") != query["knowledge_cutoff"]):
+            raise ValueError("inconsistent reported world-time change")
     compact = json.dumps(document, ensure_ascii=False, allow_nan=False,
                          sort_keys=True, separators=(",", ":"))
     if len(compact.encode("utf-8")) > MAX_JSON_BYTES:
@@ -395,7 +419,9 @@ def main(argv=None) -> int:
     parser.add_argument("--bbox", required=True, help="W,S,E,N WGS84 viewport")
     parser.add_argument("--at", required=True, help="valid-world-time instant")
     parser.add_argument("--known-at", required=True, help="knowledge-time cutoff")
-    parser.add_argument("--compare-known-at", help="earlier knowledge cutoff for source-report changes")
+    comparison = parser.add_mutually_exclusive_group()
+    comparison.add_argument("--compare-known-at", help="earlier knowledge cutoff for source-report changes")
+    comparison.add_argument("--compare-at", help="earlier world-time instant at fixed knowledge")
     parser.add_argument("--output", required=True, help="new output HTML path; no overwrite")
     args = parser.parse_args(argv)
     try:
@@ -404,8 +430,10 @@ def main(argv=None) -> int:
             raise ValueError("bbox must have four numbers W,S,E,N")
         bounds = [float(p.strip()) for p in parts]
         world = WorldMini.read(args.state)
-        geojson = (world.export_geojson_bbox_knowledge_changes(
-            bounds, args.at, args.compare_known_at, args.known_at)
+        geojson = (world.export_geojson_bbox_world_changes(
+            bounds, args.compare_at, args.at, args.known_at)
+            if args.compare_at else world.export_geojson_bbox_knowledge_changes(
+                bounds, args.at, args.compare_known_at, args.known_at)
             if args.compare_known_at else
             world.export_geojson_bbox(bounds, args.at, args.known_at))
         page = render_map(geojson)
