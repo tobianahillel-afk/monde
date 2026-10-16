@@ -1265,3 +1265,47 @@ test('review waves: reused reviewer chat across different waves remains unqualif
   assert.ok(result.independence_conflicts>=1);
   assert.equal(result.waves[1].results[0].independence_unverified,true);
 });
+
+
+test('review waves: L2 correction findings are consolidated across all waves',()=>{
+  const plan=wavesFixture(),reports={},sources={};
+  const {MARKER}=require('./delegation.cjs');
+  for(let i=0;i<5;i++){
+    const mission=plan.batches[i].assignment,id=mission.assignment_id;
+    reports[id]='Independent evidence with specific correction.\n'+MARKER+'\n'+
+      JSON.stringify({v:1,assignment_id:id,repo:mission.repo,pr:mission.pr,
+        head_sha:mission.head_sha,
+        reviewer_context_id:'fresh-l2-context-'+String(i).padStart(3,'0'),
+        verdict:'CHANGES_REQUIRED',findings:[{id:'F01',severity:'R2',
+          path:mission.paths[0],evidence:'Contract is inconsistent with state',
+          action:'Validate and repair the current transition'}],
+        reviewed_paths:mission.paths,limitations:['Not a live production execution']});
+    sources[id]={retrieved_from_distinct_chat:true,
+      context_id:'fresh-l2-context-'+String(i).padStart(3,'0'),
+      retrieval_kind:'chat_history',
+      message_ref:'fresh-l2-message-'+String(i).padStart(3,'0')};
+  }
+  const out=assessFreshL2Waves({plan,reports,sources,
+    current_head:plan.observed_pr_head_sha});
+  assert.equal(out.assessed_missions,5);
+  assert.equal(out.missing_assignment_ids.length,0);
+  assert.equal(out.triage_findings.length,5);
+  assert.equal(out.actionable_finding_groups.length,5);
+  assert.equal(out.material_triage_candidates.length,5);
+  assert.equal(out.deferred_backlog_candidates.length,0);
+  assert.equal(out.progression_advice,'TRIAGE_UNQUALIFIED_MATERIAL_FINDINGS');
+  assert.equal(out.review_acceptance_granted,false);
+  assert.equal(out.native_github_approved,false);
+  assert.equal(out.authorized_to_write,false);
+});
+test('review waves: no reports yields empty triage, not fabricated findings',()=>{
+  const plan=wavesFixture();
+  const out=assessFreshL2Waves({plan,
+    current_head:plan.observed_pr_head_sha});
+  assert.deepEqual(out.triage_findings,[]);
+  assert.deepEqual(out.actionable_finding_groups,[]);
+  assert.deepEqual(out.material_triage_candidates,[]);
+  assert.equal(out.progression_advice,'TRIAGE_UNQUALIFIED_MATERIAL_FINDINGS');
+  assert.equal(out.status,'MISSING_L2_REPORTS');
+  assert.equal(out.ready_for_merge,false);
+});

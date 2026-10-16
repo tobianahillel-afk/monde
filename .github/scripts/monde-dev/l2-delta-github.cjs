@@ -637,7 +637,7 @@ function assessFreshL2Waves({
   if(plan.reviewed_path_units!==paths.size ||
      [reports,sources,coverage_manifests].some(map=>
        Object.keys(map).some(id=>!seen.has(id))))incomplete();
-  const summary=[],results=[],missing=[],prior=prior_sources.slice();
+  const summary=[],results=[],missing=[],allFindings=[],prior=prior_sources.slice();
   for(let i=0;i<plan.review_waves.length;i++){
     const wave=plan.review_waves[i];
     const selected=missions.slice(i*4,i*4+4);
@@ -654,6 +654,7 @@ function assessFreshL2Waves({
       prior_sources:prior
     });
     results.push(...batch.results);
+    allFindings.push(...batch.triage_findings);
     missing.push(...ids.filter(id=>!Object.prototype.hasOwnProperty.call(reports,id)));
     summary.push({wave_number:i+1,assignment_ids:ids,
       reports_received:ids.length-ids.filter(id=>
@@ -676,6 +677,10 @@ function assessFreshL2Waves({
       }
     }
   }
+  // Preserve material findings across *all* waves: a caller must not
+  // manually parse five separate reports to find the next safe correction.
+  // The source claims remain unverified and never confer merge authority.
+  const grouped=require('./delegation.cjs').groupTriageFindings(allFindings);
   const unqualified=results.filter(r=>r.needs_attention ||
     r.requires_manual_qualification ||
     !['L2_REPORT_RECEIVED_PENDING_VALIDATION'].includes(r.status));
@@ -685,6 +690,16 @@ function assessFreshL2Waves({
     wave_count:summary.length,waves:summary,missing_assignment_ids:missing,
     independence_conflicts:summary.reduce((s,w)=>s+w.independence_conflicts,0),
     needs_attention:missing.length>0||unqualified.length>0,
+    triage_findings:allFindings,
+    actionable_finding_groups:grouped.groups,
+    material_triage_candidates:grouped.material_triage_candidates,
+    deferred_backlog_candidates:grouped.deferred_backlog_candidates,
+    repeated_finding_occurrences:grouped.duplicate_occurrences,
+    progression_advice:missing.length || unqualified.length ||
+      grouped.material_triage_candidates.length?
+      'TRIAGE_UNQUALIFIED_MATERIAL_FINDINGS':
+      'CONTINUE_NEXT_ELIGIBLE_INCREMENT',
+    triage_is_advisory:true,
     native_github_approved:false,review_acceptance_granted:false,
     ready_for_merge:false,authorized_to_write:false
   };
