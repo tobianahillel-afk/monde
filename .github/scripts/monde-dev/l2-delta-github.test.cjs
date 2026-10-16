@@ -1028,3 +1028,52 @@ test('fresh L2 rejects invalid operator HEAD before invoking GitHub',async()=>{
     }
   }
 });
+
+test('fresh L2 expected base SHA pins the operator-selected review preimage',async()=>{
+  const BASE='c'.repeat(40);
+  for(const prepare of [prepareFreshL2FromCurrentGitHub,
+    prepareFreshL2BatchesFromCurrentGitHub,
+    prepareFreshL2AutoFromCurrentGitHub]){
+    const correct=freshClient();
+    const result=await prepare({github:correct.api,...FRESH_MISSION,
+      expected_head_sha:HEAD,expected_base_sha:BASE});
+    assert.equal(result.observed_pr_base_sha,BASE);
+    assert.equal(correct.calls.get.length,2);
+    assert.equal(correct.calls.compares.length,1);
+    assert.equal(correct.calls.files.length,1);
+    const stale=freshClient();
+    await assert.rejects(prepare({github:stale.api,...FRESH_MISSION,
+      expected_head_sha:HEAD,expected_base_sha:OLD}),
+      e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(stale.calls.get.length,1);
+    assert.equal(stale.calls.compares.length,0);
+    assert.equal(stale.calls.files.length,0);
+    const moved=freshClient();
+    const original=moved.api.rest.pulls.get;
+    let seen=0;
+    moved.api.rest.pulls.get=async args=>{
+      const response=await original(args);
+      if(++seen===2)response.data.base.sha=OLD;
+      return response;
+    };
+    await assert.rejects(prepare({github:moved.api,...FRESH_MISSION,
+      expected_head_sha:HEAD,expected_base_sha:BASE}),
+      e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(moved.calls.get.length,2);
+  }
+});
+test('fresh L2 invalid expected base SHA is rejected before GitHub reads',async()=>{
+  for(const prepare of [prepareFreshL2FromCurrentGitHub,
+    prepareFreshL2BatchesFromCurrentGitHub,
+    prepareFreshL2AutoFromCurrentGitHub]){
+    for(const expected_base_sha of [null,'',false,23,{},'A'.repeat(40),
+      'a'.repeat(39),'g'.repeat(40)]){
+      const fake=freshClient();
+      await assert.rejects(prepare({github:fake.api,...FRESH_MISSION,
+        expected_base_sha}),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+      assert.equal(fake.calls.get.length,0);
+      assert.equal(fake.calls.compares.length,0);
+      assert.equal(fake.calls.files.length,0);
+    }
+  }
+});

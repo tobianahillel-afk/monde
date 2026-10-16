@@ -264,12 +264,15 @@ async function prepareFreshL2FromCurrentGitHub(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input))
     incomplete();
   const { github, repo, pr, assignment_id, author_context_id, objective,
-    expected_head_sha } = input;
+    expected_head_sha, expected_base_sha } = input;
   // Pin the operator's chosen PR revision before any compare/file listing.
   // The two existing PR observations also enforce the pin against drift.
   if (expected_head_sha !== undefined &&
       (typeof expected_head_sha !== 'string' ||
        !/^[a-f0-9]{40}$/.test(expected_head_sha))) incomplete();
+  if (expected_base_sha !== undefined &&
+      (typeof expected_base_sha !== 'string' ||
+       !/^[a-f0-9]{40}$/.test(expected_base_sha))) incomplete();
   // Validate user-authored mission identity before any network request. Using
   // the canonical pure assignment parser keeps prompt injection out of fields.
   let seed;
@@ -296,6 +299,8 @@ async function prepareFreshL2FromCurrentGitHub(input) {
         prData.base?.ref !== 'main' ||
         typeof prData.base.sha !== 'string' ||
         !/^[a-f0-9]{40}$/.test(prData.base.sha) ||
+        (expected_base_sha !== undefined &&
+         prData.base.sha !== expected_base_sha) ||
         typeof prData.head?.sha !== 'string' ||
         !/^[a-f0-9]{40}$/.test(prData.head.sha) ||
         (expected_head_sha !== undefined &&
@@ -413,10 +418,13 @@ async function prepareFreshL2FromCurrentGitHub(input) {
 async function prepareFreshL2BatchesFromCurrentGitHub(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) incomplete();
   const {github,repo,pr,assignment_id,author_context_id,objective,
-    expected_head_sha}=input;
+    expected_head_sha, expected_base_sha}=input;
   if(expected_head_sha!==undefined &&
      (typeof expected_head_sha!=='string' ||
       !/^[a-f0-9]{40}$/.test(expected_head_sha)))incomplete();
+  if(expected_base_sha!==undefined &&
+     (typeof expected_base_sha!=='string' ||
+      !/^[a-f0-9]{40}$/.test(expected_base_sha)))incomplete();
   // Batch IDs append "-B01".."B20". Validate the caller's ID before any
   // string concatenation, otherwise null/undefined become plausible IDs
   // ("null-B01"/"undefined-B01") and falsify reviewer provenance.
@@ -442,6 +450,7 @@ async function prepareFreshL2BatchesFromCurrentGitHub(input) {
     if(!data || data.number!==seed.pr || data.state!=='open' ||
        data.base?.repo?.full_name!==seed.repo || data.base?.ref!=='main' ||
        typeof data.base.sha!=='string' || !/^[a-f0-9]{40}$/.test(data.base.sha) ||
+       (expected_base_sha!==undefined && data.base.sha!==expected_base_sha) ||
        typeof data.head?.sha!=='string' || !/^[a-f0-9]{40}$/.test(data.head.sha) ||
        (expected_head_sha!==undefined && data.head.sha!==expected_head_sha) ||
        typeof data.head.repo?.full_name!=='string' ||
