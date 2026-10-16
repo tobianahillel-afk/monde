@@ -178,7 +178,9 @@ test('Single comparison with merge commit is not a linear L2 delta',async()=>{
 });
 
 function liveClient({head=HEAD,baseSha='c'.repeat(40),changeAfter=false,
-                    state='open',baseRef='main',wrongRepo=false}={}) {
+                    state='open',baseRef='main',wrongRepo=false,
+                    headRepo='tobianahillel-afk/monde',sourceRef='feature',
+                    changeSourceAfter=false,changeSourceRefAfter=false}={}) {
   const calls={pulls:[],compares:[]};
   let n=0;
   const github=client(base,calls.compares);
@@ -188,7 +190,8 @@ function liveClient({head=HEAD,baseSha='c'.repeat(40),changeAfter=false,
       n++;
       return {data:{number:19,state,
         head:{sha:changeAfter&&n===2?OLD:head,
-          repo:{full_name:'tobianahillel-afk/monde'}},
+          ref:changeSourceRefAfter&&n===2?'attacker-rebased':sourceRef,
+          repo:{full_name:changeSourceAfter&&n===2?'other-owner/other-repo':headRepo}},
         base:{sha:changeAfter&&n===2?'d'.repeat(40):baseSha,
           ref:baseRef,repo:{full_name:wrongRepo?'attacker/other':'tobianahillel-afk/monde'}}
       }};
@@ -245,4 +248,28 @@ test('live PR bridge propagates missing PR API permission without fake success',
   await assert.rejects(planL2DeltaFromCurrentGitHub(args({github:live.github})),
     err=>err.status===403);
   assert.equal(live.calls.compares.length,0);
+});
+
+test('live PR bridge rejects a changed source repository with an unchanged commit SHA',async()=>{
+  const live=liveClient({changeSourceAfter:true});
+  await assert.rejects(planL2DeltaFromCurrentGitHub(args({github:live.github})),
+    err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+  assert.equal(live.calls.pulls.length,2);
+  assert.equal(live.calls.compares.length,1);
+});
+test('live PR bridge rejects a changed source ref even with identical head/base SHAs',async()=>{
+  const live=liveClient({changeSourceRefAfter:true});
+  await assert.rejects(planL2DeltaFromCurrentGitHub(args({github:live.github})),
+    err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+  assert.equal(live.calls.pulls.length,2);
+  assert.equal(live.calls.compares.length,1);
+});
+test('live PR bridge rejects invalid source identity before GitHub compare',async()=>{
+  for(const config of [{headRepo:'bad repo'}, {headRepo:''},
+    {sourceRef:'../unsafe'}, {sourceRef:''}]){
+    const live=liveClient(config);
+    await assert.rejects(planL2DeltaFromCurrentGitHub(args({github:live.github})),
+      err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(live.calls.compares.length,0);
+  }
 });

@@ -110,19 +110,27 @@ async function planL2DeltaFromCurrentGitHub(input) {
     if (!data || data.number !== old.pr || data.state !== 'open' ||
         !head || !base || !head.repo || !base.repo ||
         typeof head.sha !== 'string' || head.sha !== current_head ||
+        typeof head.repo.full_name !== 'string' ||
+        !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(head.repo.full_name) ||
+        typeof head.ref !== 'string' || !/^[A-Za-z0-9._\/-]+$/.test(head.ref) ||
+        head.ref.split('/').some(part => !part || part === '.' || part === '..') ||
         base.repo.full_name !== old.repo || base.ref !== 'main' ||
         typeof base.sha !== 'string' || !/^[a-f0-9]{40}$/.test(base.sha))
       incomplete();
-    return base.sha;
+    // The SHA alone is not the entire PR source identity. A same-SHA ref
+    // re-targeting during the comparison must not qualify a narrow L2 plan.
+    return {baseSha: base.sha, headRepo: head.repo.full_name, headRef: head.ref};
   };
-  const beforeBase = await observe();
+  const before = await observe();
   const plan = await planL2DeltaFromGitHub(input);
-  const afterBase = await observe();
-  if (beforeBase !== afterBase) incomplete();
+  const after = await observe();
+  if (before.baseSha !== after.baseSha ||
+      before.headRepo !== after.headRepo ||
+      before.headRef !== after.headRef) incomplete();
   return {
     ...plan,
     observed_pr_head_consistent_during_read: true,
-    observed_pr_base_sha: beforeBase,
+    observed_pr_base_sha: before.baseSha,
     // A live GitHub ref can change immediately after the second observation.
     live_pr_head_still_requires_verification: true,
     must_recheck_before_review: true,
