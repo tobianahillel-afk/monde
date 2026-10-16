@@ -1415,6 +1415,8 @@ def main(argv=None) -> int:
     inputs.add_argument("--kml", help="original local KML 2.2 Placemarks")
     inputs.add_argument("--kmz", help="bounded local KMZ with root doc.kml; no extraction")
     inputs.add_argument("--gpx", help="original local GPX 1.1 waypoints; no saved intermediate state")
+    inputs.add_argument("--gpkg", help="original local GeoPackage WGS84 Point source")
+    parser.add_argument("--gpkg-layer", help="exact original GeoPackage feature-table name")
     parser.add_argument("--source-id", help="explicit source identifier for --geojson")
     parser.add_argument("--source-locator", help="original data locator for --geojson")
     parser.add_argument("--captured-at", help="source capture time with timezone for --geojson")
@@ -1432,17 +1434,22 @@ def main(argv=None) -> int:
     try:
         source_args = ("source_id", "source_locator", "captured_at",
                        "valid_from", "valid_to", "source_event_at")
-        if args.geojson or args.kml or args.kmz or args.gpx:
+        if bool(args.gpkg) != bool(args.gpkg_layer):
+            raise ValueError("--gpkg and --gpkg-layer are required together")
+        if args.geojson or args.kml or args.kmz or args.gpx or args.gpkg:
             if any(not getattr(args, name) for name in source_args[:4]):
-                raise ValueError("--geojson/--kml/--kmz/--gpx requires --source-id, --source-locator, "
+                raise ValueError("--geojson/--kml/--kmz/--gpx/--gpkg requires --source-id, --source-locator, "
                                  "--captured-at and --valid-from")
-            source_file = args.geojson or args.kml or args.kmz or args.gpx
+            source_file = args.geojson or args.kml or args.kmz or args.gpx or args.gpkg
             if Path(source_file).resolve() == Path(args.output).resolve():
                 raise ValueError("output cannot overwrite the original source file")
             from .geojson import to_document
             if args.kml or args.kmz:
                 from .kml_points import to_geojson as kml_to_geojson
                 original = kml_to_geojson(args.kml or args.kmz, kmz=bool(args.kmz))
+            elif args.gpkg:
+                from .geopackage_points import to_geojson as gpkg_to_geojson
+                original = gpkg_to_geojson(args.gpkg, layer=args.gpkg_layer)
             elif args.gpx:
                 from .gpx_points import to_geojson as gpx_to_geojson
                 original = gpx_to_geojson(args.gpx)
@@ -1453,7 +1460,7 @@ def main(argv=None) -> int:
                 captured_at=args.captured_at, valid_from=args.valid_from,
                 valid_to=args.valid_to, source_event_at=args.source_event_at))
         elif any(getattr(args, name) is not None for name in source_args):
-            raise ValueError("source provenance flags require --geojson, --kml, --kmz or --gpx")
+            raise ValueError("source provenance flags require --geojson, --kml, --kmz, --gpx or --gpkg")
         elif args.csv_manifest:
             from .csv_points import documents_from_manifest
             documents, _ = documents_from_manifest(

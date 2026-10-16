@@ -68,17 +68,21 @@ def documents_from_manifest(path, *, output_path):
     if not isinstance(datasets, list) or not 1 <= len(datasets) <= MAX_DATASETS:
         raise ValueError("CSV manifest requires 1 to 16 datasets")
     required = {"source_id", "locator", "captured_at", "valid_from"}
-    optional = {"csv", "geojson", "kml", "kmz", "gpx", "valid_to", "source_event_at",
+    optional = {"csv", "geojson", "kml", "kmz", "gpx", "gpkg", "gpkg_layer", "valid_to", "source_event_at",
                 "id_column", "lon_column", "lat_column"}
     documents, features = [], 0
     for entry in datasets:
         if (not isinstance(entry, dict) or not required <= set(entry)
                 or set(entry) - required - optional):
             raise ValueError("CSV dataset has missing or unexpected fields")
-        formats = [name for name in ("csv", "geojson", "kml", "kmz", "gpx") if name in entry]
+        formats = [name for name in ("csv", "geojson", "kml", "kmz", "gpx", "gpkg") if name in entry]
         if len(formats) != 1:
-            raise ValueError("each dataset requires exactly one csv, geojson, kml, kmz or gpx input")
+            raise ValueError("each dataset requires exactly one csv, geojson, kml, kmz, gpx or gpkg input")
         kind = formats[0]
+        if (kind != "gpkg" and "gpkg_layer" in entry) or (
+                kind == "gpkg" and (not isinstance(entry.get("gpkg_layer"), str)
+                                    or not entry["gpkg_layer"])):
+            raise ValueError("gpkg_layer is required only for gpkg datasets")
         if kind != "csv" and {"id_column", "lon_column", "lat_column"} & entry.keys():
             raise ValueError("CSV column options are invalid for GeoJSON/KML/GPX")
         source_path = entry[kind]
@@ -96,6 +100,9 @@ def documents_from_manifest(path, *, output_path):
         elif kind in ("kml", "kmz"):
             from .kml_points import to_geojson as kml_to_geojson
             geojson = kml_to_geojson(source_file, kmz=(kind == "kmz"))
+        elif kind == "gpkg":
+            from .geopackage_points import to_geojson as gpkg_to_geojson
+            geojson = gpkg_to_geojson(source_file, layer=entry["gpkg_layer"])
         elif kind == "gpx":
             from .gpx_points import to_geojson as gpx_to_geojson
             geojson = gpx_to_geojson(source_file)
