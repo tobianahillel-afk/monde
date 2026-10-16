@@ -45,6 +45,20 @@ contract remain distinct and backwards compatible. Both kinds preserve
 read-only task permissions, require full output in the task's ChatGPT
 conversation, and can never mark a PR eligible for merge on their own.
 
+## Bounded waves for large L2 reviews
+
+A GitHub PR can require more than four 24-path L2 missions. The fresh
+GitHub planner returns `review_waves`, `wave_count` and
+`max_missions_per_wave: 4`; each wave lists immutable assignment IDs from
+`batches`. Process each wave through the existing
+`planDelegations` / `assessDelegationBatch` four-mission limit.
+The foreground writer must account for **all** waves before claiming
+whole-PR coverage, and verify the actual PR HEAD **and base SHA** again
+before considering any result. A missed or stale wave is not an approval.
+
+The waves do not schedule ChatGPT tasks, write to GitHub, or create a
+four-writer engine. They are grouping metadata for independent read-only L2.
+
 ## Fresh L2 mission from a live GitHub PR (read-only)
 
 The candidate `.github/scripts/monde-dev/l2-delta-github.cjs` exports

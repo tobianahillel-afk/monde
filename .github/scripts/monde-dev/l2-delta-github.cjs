@@ -551,12 +551,22 @@ async function prepareFreshL2BatchesFromCurrentGitHub(input) {
   if(batches.flatMap(x=>x.assignment.paths).length!==unique.size ||
       new Set(batches.flatMap(x=>x.assignment.paths)).size!==unique.size)
     incomplete();
+  // Existing L2 assessment handles only four missions per call. Keep large
+  // PRs covered with deterministic foreground-managed waves; no scheduling.
+  const review_waves=[];
+  for(let i=0;i<batches.length;i+=4){
+    review_waves.push({
+      wave_number:review_waves.length+1,
+      assignment_ids:batches.slice(i,i+4).map(b=>b.assignment.assignment_id)
+    });
+  }
   return {status:'FRESH_L2_BATCHES_READY',
     observed_pr_base_sha:before.base_sha,observed_pr_merge_base_sha:mergeBase,
     observed_pr_head_sha:before.head_sha,
     observed_pr_source_repo:before.head_repo,observed_pr_source_ref:before.head_ref,
     changed_files:before.changed_files,reviewed_path_units:unique.size,
     batch_count:batches.length,batches,
+    max_missions_per_wave:4,wave_count:review_waves.length,review_waves,
     full_scope_partition_verified:true,requires_separate_chat:true,
     scheduled_tasks_created:false,live_pr_head_still_requires_verification:true,
     native_github_approved:false,review_acceptance_granted:false,

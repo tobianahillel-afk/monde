@@ -1143,3 +1143,47 @@ test('single fresh L2 is stable for reversed equivalent GitHub file ordering',as
   assert.equal(refs[0].previous_path,'src/original.cjs');
   assert.equal(new Set(left.assignment.paths).size,5);
 });
+
+
+test('fresh L2 review waves: >4 assignments are grouped into <=4 compatible units',async()=>{
+  const files=Array.from({length:97},(_,i)=>({
+    status:'modified',filename:'src/large/f'+String(i).padStart(3,'0')+'.cjs'
+  }));
+  const {api,calls}=freshClient({files});
+  const result=await prepareFreshL2AutoFromCurrentGitHub({
+    github:api,...FRESH_MISSION,expected_head_sha:HEAD,
+    expected_base_sha:'c'.repeat(40)
+  });
+  assert.equal(result.batch_count,5);
+  assert.equal(result.wave_count,2);
+  assert.equal(result.max_missions_per_wave,4);
+  assert.deepEqual(result.review_waves.map(w=>w.assignment_ids.length),[4,1]);
+  const ids=result.review_waves.flatMap(w=>w.assignment_ids);
+  assert.deepEqual(ids,result.batches.map(b=>b.assignment.assignment_id));
+  assert.equal(new Set(ids).size,5);
+  const {planDelegations}=require('./delegation.cjs');
+  for(const wave of result.review_waves){
+    const missions=wave.assignment_ids.map(id=>
+      result.batches.find(b=>b.assignment.assignment_id===id).assignment);
+    assert.equal(planDelegations(missions).length,missions.length);
+  }
+  assert.equal(result.scheduled_tasks_created,false);
+  assert.equal(result.authorized_to_write,false);
+  assert.equal(calls.get.length,2);
+  assert.equal(calls.compares.length,1);
+  assert.equal(calls.files.length,1);
+});
+
+test('fresh L2 review waves: maximum 200-file scope remains wholly addressable',async()=>{
+  const files=Array.from({length:200},(_,i)=>({
+    status:'modified',filename:'src/cap/f'+String(i).padStart(3,'0')+'.cjs'
+  }));
+  const plan=await prepareFreshL2BatchesFromCurrentGitHub({
+    github:freshClient({files}).api,...FRESH_MISSION
+  });
+  assert.equal(plan.batch_count,9);
+  assert.equal(plan.wave_count,3);
+  assert.deepEqual(plan.review_waves.map(w=>w.assignment_ids.length),[4,4,1]);
+  assert.equal(plan.batches.flatMap(b=>b.assignment.paths).length,200);
+  assert.equal(new Set(plan.review_waves.flatMap(w=>w.assignment_ids)).size,9);
+});
