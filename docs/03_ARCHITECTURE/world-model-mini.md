@@ -138,3 +138,30 @@ report and retains the competing six-floor local-news report. A subprocess
 regression covers two buildings. Existing snapshot, timeline and knowledge
 comparison modes stay separate. This is an in-memory discovery scan without
 external services, source ranking or production data ingestion.
+
+
+## Compare source-reported validity across world times
+
+The new `WorldMini.compare_world_time(entity, from_at, to_at, known_at)`
+compares **two valid-world instants using one fixed knowledge cutoff**.
+It is the complement of `compare_knowledge`: the latter compares what
+was known at K1 vs K2 at a single T. The output marker
+`WORLD_TIME_REPORTS_ONLY` prevents a source's reported validity change
+from being mistaken for a confirmed physical event. Newly active,
+no-longer-active and still-current reports retain provenance; UNKNOWN is not
+zero, and unchanged contradictory reports do not disappear.
+
+```sh
+PYTHONPATH=src python3 -m monde.world \
+  --fixture examples/monde-mini.json \
+  --entity building-001 --all-attributes \
+  --compare-at 2025-12-31T00:00:00Z \
+  --at 2026-01-02T00:00:00Z \
+  --known-at 2026-01-07T00:00:00Z
+```
+
+The synthetic fixture transitions from no source report to competing floor
+reports 6 and 7. This means **source-reported coverage at different T**, not
+verified construction or demolition. Times must be offset-aware and ordered
+strictly; the knowledge cutoff is held constant, and no real data ingestion
+or persistent World Ledger is implied.

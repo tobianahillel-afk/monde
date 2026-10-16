@@ -278,6 +278,45 @@ class WorldMini:
         }
 
 
+    def compare_world_time(self, entity: str, from_at: str,
+                           to_at: str, known_at: str) -> dict:
+        """Compare *reported* validity at T1/T2 with the same knowledge K.
+
+        Differences express source assertions about validity, never a
+        verified event, estimated physical change or causal explanation.
+        """
+        _id(entity)
+        _time(known_at)
+        if _time(from_at) >= _time(to_at):
+            raise ValueError("world-time comparison requires increasing instants")
+        before = self.entity_snapshot(entity, from_at, known_at)
+        after = self.entity_snapshot(entity, to_at, known_at)
+        changes = {}
+        for attribute in sorted(set(before["attributes"]) | set(after["attributes"])):
+            old = before["attributes"].get(attribute, {}).get("reports", [])
+            new = after["attributes"].get(attribute, {}).get("reports", [])
+            old_ids = {report["assertion_id"] for report in old}
+            new_ids = {report["assertion_id"] for report in new}
+            appeared = [report for report in new if report["assertion_id"] not in old_ids]
+            ceased = [report for report in old if report["assertion_id"] not in new_ids]
+            if appeared or ceased:
+                changes[attribute] = {
+                    "before_status": "REPORTED" if old else "UNKNOWN",
+                    "after_status": "REPORTED" if new else "UNKNOWN",
+                    "newly_current": appeared,
+                    "no_longer_current": ceased,
+                    "still_current_count": len(old_ids & new_ids),
+                }
+        return {
+            "entity": entity, "world": "OBSERVED",
+            "comparison": "WORLD_TIME_REPORTS_ONLY",
+            "from_at": from_at, "to_at": to_at,
+            "knowledge_cutoff": known_at,
+            "status": "CHANGED" if changes else "UNCHANGED",
+            "changes": changes,
+        }
+
+
     def compare_knowledge(self, entity: str, at: str,
                           from_known_at: str, to_known_at: str) -> dict:
         """Compare source reports known at K1 and K2 for the same world time.
@@ -329,13 +368,15 @@ def main(argv=None) -> int:
     parser.add_argument("--timeline-to", help="exclusive end of valid-world-time interval")
     parser.add_argument("--known-at", required=True)
     parser.add_argument("--compare-known-at", help="earlier knowledge cutoff; requires --all-attributes")
+    parser.add_argument("--compare-at", help="earlier valid-world-time; requires --all-attributes and --at")
     args = parser.parse_args(argv)
     try:
         world = WorldMini.read(args.fixture)
         if args.search_attribute is not None:
             if (args.entity is not None or args.at is None or
                     args.timeline_from is not None or args.timeline_to is not None or
-                    args.compare_known_at is not None or args.equals_json is None):
+                    args.compare_known_at is not None or args.compare_at is not None or
+                    args.equals_json is None):
                 parser.error("search requires --at and --equals-json without --entity/timeline/compare")
             value = json.loads(args.equals_json, object_pairs_hook=_object_no_duplicates,
                                parse_constant=lambda _: (_ for _ in ()).throw(
@@ -347,8 +388,8 @@ def main(argv=None) -> int:
                 parser.error("timeline requires --entity without --equals-json")
             if (args.timeline_from is None or args.timeline_to is None or
                     args.at is not None or args.all_attributes or
-                    args.compare_known_at is not None):
-                parser.error("timeline requires both bounds, --attribute, and no --at/--compare-known-at")
+                    args.compare_known_at is not None or args.compare_at is not None):
+                parser.error("timeline requires both bounds, --attribute, and no --at/compare flags")
             result = world.timeline(args.entity, args.attribute,
                                     args.timeline_from, args.timeline_to, args.known_at)
         else:
@@ -356,7 +397,14 @@ def main(argv=None) -> int:
                 parser.error("--entity required; --equals-json only used for search")
             if args.at is None:
                 parser.error("--at required unless selecting a timeline")
-            if args.compare_known_at is not None:
+            if args.compare_known_at is not None and args.compare_at is not None:
+                parser.error("choose --compare-at OR --compare-known-at")
+            if args.compare_at is not None:
+                if not args.all_attributes:
+                    parser.error("--compare-at requires --all-attributes")
+                result = world.compare_world_time(args.entity, args.compare_at,
+                                                  args.at, args.known_at)
+            elif args.compare_known_at is not None:
                 if not args.all_attributes:
                     parser.error("--compare-known-at requires --all-attributes")
                 result = world.compare_knowledge(args.entity, args.at,

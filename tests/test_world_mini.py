@@ -505,5 +505,103 @@ class WorldMiniTest(unittest.TestCase):
         self.assertNotEqual(denied.returncode, 0)
 
 
+
+    def test_world_time_compare_reports_validity_changes_not_physical_events(self):
+        self.model.add_evidence({
+            "id": "e-occupancy", "source_id": "survey",
+            "locator": "fixture://survey/occupancy",
+            "captured_at": "2026-01-08T00:00:00Z", "source_event_at": None,
+        })
+        for assertion_id, value, start, end in [
+            ("a-occupied", "vacant", "2026-01-01T00:00:00Z", "2026-01-05T00:00:00Z"),
+            ("a-occupied-later", "occupied", "2026-01-05T00:00:00Z", None),
+        ]:
+            self.model.add_assertion({
+                "id": assertion_id, "entity": "building-001",
+                "attribute": "occupancy", "value": value, "evidence_id": "e-occupancy",
+                "kind": "CLAIM", "known_at": "2026-01-08T00:00:00Z",
+                "valid_from": start, "valid_to": end, "supersedes": None,
+            })
+        result = self.model.compare_world_time(
+            "building-001", AT, "2026-01-05T00:00:00Z",
+            "2026-01-09T00:00:00Z")
+        self.assertEqual(result["comparison"], "WORLD_TIME_REPORTS_ONLY")
+        self.assertEqual(result["status"], "CHANGED")
+        occupancy = result["changes"]["occupancy"]
+        self.assertEqual(occupancy["before_status"], "REPORTED")
+        self.assertEqual(occupancy["after_status"], "REPORTED")
+        self.assertEqual([r["value"] for r in occupancy["no_longer_current"]], ["vacant"])
+        self.assertEqual([r["value"] for r in occupancy["newly_current"]], ["occupied"])
+        self.assertEqual(occupancy["newly_current"][0]["source_id"], "survey")
+        self.assertEqual(occupancy["newly_current"][0]["evidence_id"], "e-occupancy")
+        self.assertNotIn("floors", result["changes"])  # unchanged conflicting sources stay intact
+
+    def test_world_time_compare_unknown_to_reported_at_fixed_knowledge(self):
+        changed = self.model.compare_world_time(
+            "building-001", "2025-12-31T00:00:00Z", AT, LATE)
+        self.assertEqual(changed["status"], "CHANGED")
+        floors = changed["changes"]["floors"]
+        self.assertEqual(floors["before_status"], "UNKNOWN")
+        self.assertEqual(floors["after_status"], "REPORTED")
+        self.assertEqual([r["value"] for r in floors["newly_current"]], [6, 7])
+        self.assertEqual(floors["no_longer_current"], [])
+
+    def test_world_time_compare_known_at_prevents_future_knowledge_leak(self):
+        earlier = self.model.compare_world_time(
+            "building-001", "2025-12-31T00:00:00Z", AT,
+            "2026-01-02T00:00:00Z")
+        self.assertEqual(earlier["status"], "UNCHANGED")
+        self.assertEqual(earlier["changes"], {})
+        middle = self.model.compare_world_time(
+            "building-001", "2025-12-31T00:00:00Z", AT,
+            "2026-01-05T00:00:00Z")
+        self.assertEqual([r["value"] for r in
+                          middle["changes"]["floors"]["newly_current"]], [5, 6])
+
+    def test_world_time_compare_rejects_invalid_and_non_increasing_instants(self):
+        for earlier, later, known in [
+            (AT, AT, LATE),
+            ("2026-01-03T00:00:00Z", AT, LATE),
+            ("2026-01-01T00:00:00", AT, LATE),
+            (AT, "not-a-date", LATE),
+            (AT, "2026-01-05T00:00:00Z", "2026-01-07"),
+        ]:
+            with self.assertRaises(ValueError):
+                self.model.compare_world_time("building-001", earlier, later, known)
+        with self.assertRaises(ValueError):
+            self.model.compare_world_time("bad entity", AT, LATE, LATE)
+
+    def test_world_time_compare_does_not_mutate_evidence_or_outputs(self):
+        frozen = self.model.export()
+        delta = self.model.compare_world_time(
+            "building-001", "2025-12-31T00:00:00Z", AT, LATE)
+        delta["changes"]["floors"]["newly_current"][0]["value"] = 999
+        self.assertEqual(self.model.export(), frozen)
+        self.assertEqual([r["value"] for r in self.model.query(
+            "building-001", "floors", AT, LATE)["reports"]], [6, 7])
+
+    def test_real_cli_world_time_compare_and_mode_rejections(self):
+        env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+        base = [sys.executable, "-m", "monde.world", "--fixture",
+                str(ROOT / "examples/monde-mini.json"), "--entity", "building-001",
+                "--all-attributes", "--at", AT, "--known-at", LATE,
+                "--compare-at", "2025-12-31T00:00:00Z"]
+        out = subprocess.run(base, capture_output=True, text=True, env=env)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        result = json.loads(out.stdout)
+        self.assertEqual(result["comparison"], "WORLD_TIME_REPORTS_ONLY")
+        self.assertEqual([r["value"] for r in
+                          result["changes"]["floors"]["newly_current"]], [6, 7])
+        for bad in [
+            base + ["--compare-known-at", "2026-01-05T00:00:00Z"],
+            [arg for arg in base if arg != "--all-attributes"],
+            base[:-1] + [AT],
+            base + ["--timeline-from", AT, "--timeline-to", LATE],
+            [*base[:base.index("--all-attributes")], "--attribute", "floors",
+             *base[base.index("--all-attributes")+1:]],
+        ]:
+            run = subprocess.run(bad, capture_output=True, text=True, env=env)
+            self.assertNotEqual(run.returncode, 0)
+
 if __name__ == "__main__":
     unittest.main()
