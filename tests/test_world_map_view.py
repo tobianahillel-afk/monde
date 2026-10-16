@@ -545,3 +545,37 @@ class OfflineFitReportsTest(unittest.TestCase):
                 html = render_map(document)
                 self.assertEqual(extract(html)[1], document)
                 self.assertIn('id="fit-reports"', html)
+
+
+class OfflineEntityDossierExportTest(unittest.TestCase):
+    def test_entity_dossier_export_retains_claims_filters_and_provenance(self):
+        source = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        original = copy.deepcopy(source)
+        page = render_map(source)
+        self.assertEqual(extract(page)[1], original)
+        self.assertEqual(source, original)
+        for expected in ('id="export-dossier" type="button" disabled',
+                         'function createEntityDossier()',
+                         'dossierButton.addEventListener("click"',
+                         'reports: reports.slice()',
+                         'filters: appliedFilters()',
+                         'source_snapshot_report_count: features.length',
+                         'entity_reports_in_source_snapshot: features.filter',
+                         'a.properties.source_id !== b.properties.source_id',
+                         'FILTERED_VISIBLE_SOURCE_REPORTS_ONLY',
+                         'monde-entity-evidence-dossier.json',
+                         "connect-src 'none'"):
+            self.assertIn(expected, page)
+
+    def test_dossier_available_in_both_time_comparison_modes(self):
+        world, _ = corrected_points()
+        docs = (world.export_geojson_bbox_knowledge_changes(BBOX, VALID, KNOWN, LATE),
+                world.export_geojson_bbox_world_changes(
+                    BBOX, "2025-12-31T00:00:00Z", VALID, LATE))
+        for source in docs:
+            with self.subTest(basis=list(source)):
+                page = render_map(source)
+                self.assertEqual(extract(page)[1], source)
+                self.assertIn('id="export-dossier"', page)
+                self.assertIn('KNOWLEDGE_CHANGE', page)
+                self.assertIn('REPORTED_WORLD_TIME_CHANGE', page)

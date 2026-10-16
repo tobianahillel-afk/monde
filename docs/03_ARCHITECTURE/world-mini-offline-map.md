@@ -152,3 +152,17 @@ Locations near opposite sides of the international dateline may require a
 nearly global view rather than an invented geographic route. The button is
 disabled for zero matching reports. All source assertions, IDs, provenance,
 original temporal query and saved state remain unchanged.
+
+## Offline entity evidence dossier (T12)
+
+After selecting a report or choosing an Entity, **Export entity evidence dossier**
+downloads a standalone JSON file containing that entity's currently filtered
+source-reported Points, original assertions, evidence identifiers, source
+locators, capture timestamps, original time-query cutoffs and filter provenance.
+It reports how many source claims were present before filtering, how many were
+included, and whether different sources reported different coordinates.
+
+The dossier is a **filtered derivative, not a complete history or location
+consensus**. Omitted reports prove no physical absence, and reported changes
+do not prove movement. Works offline for normal, knowledge-change and
+world-time-change maps, with no added API, server or package.

@@ -87,6 +87,7 @@ jobs:
           grep -q 'data-monde-ready="true"' /tmp/monde-rendered-dom.html
           grep -q '<circle' /tmp/monde-rendered-dom.html
           grep -q 'map-demo' /tmp/monde-rendered-dom.html
+          grep -q 'id="export-dossier"' /tmp/monde-rendered-dom.html
           "$browser" --headless --no-sandbox --disable-gpu \
             --disable-dev-shm-usage --timeout=15000 --dump-dom \
             file:///tmp/monde-knowledge-changes-map.html > /tmp/monde-knowledge-rendered.html

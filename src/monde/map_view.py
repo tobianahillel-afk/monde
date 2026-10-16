@@ -92,7 +92,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <div class="controls"><label for="report-search">Find evidence</label>
 <input id="report-search" type="search" placeholder="Entity, assertion, source, evidence or locator" autocomplete="off" aria-label="Search source evidence">
 <button id="clear-search" type="button">Clear</button>
-<button id="export-visible" type="button" disabled>Export visible GeoJSON</button></div>
+<button id="export-visible" type="button" disabled>Export visible GeoJSON</button>
+<button id="export-dossier" type="button" disabled>Export entity evidence dossier</button></div>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
 <div class="controls"><label for="entities">Entity</label><select id="entities"><option value="">All entities</option></select></div>
 <div class="controls"><label for="captured-from">Captured from (UTC day)</label><input id="captured-from" type="date" aria-label="Captured from UTC day">
@@ -143,6 +144,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var focusButton = document.getElementById("focus-selected");
   var fitButton = document.getElementById("fit-reports");
   var exportButton = document.getElementById("export-visible");
+  var dossierButton = document.getElementById("export-dossier");
   var visibleFeatures = [];
   document.getElementById("change-filter-control").hidden = !comparing;
   if (comparing) {
@@ -458,48 +460,93 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       String(visibleFeatures.length)+" displayed source reports / "+String(features.length)+
       (comparing ? " changed source reports · " : " known reports · ") +query.status;
     exportButton.disabled = visibleFeatures.length === 0;
+    var dossierEntity = entities.value || (selectedFeature ? selectedFeature.properties.entity : "");
+    dossierButton.disabled = !dossierEntity || !visibleFeatures.some(function(f) {
+      return f.properties.entity === dossierEntity;
+    });
     if (!visibleFeatures.length) {
       var li = document.createElement("li");
       label(li,"No source reports match this view. This does not establish physical absence.");
       list.appendChild(li);
     }
   }
+  function appliedFilters() {
+    return {
+      search: search.value.trim(),
+      source_id: sources.value,
+      entity: entities.value,
+      captured_from_utc_day: capturedFrom.value,
+      captured_through_utc_day: capturedThrough.value,
+      different_source_positions_only: differentOnly.checked,
+      inside_viewport_only: insideOnly.checked,
+      displayed_map_window_only: currentViewOnly.checked,
+      displayed_map_window_bbox_wgs84: currentViewOnly.checked ? displayedBounds() : null,
+      knowledge_change: knowledgeComparing ? changeFilter.value : "",
+      world_time_change: worldComparing ? changeFilter.value : ""
+    };
+  }
+  function saveEvidence(doc, filename, mime) {
+    var blob = new Blob([JSON.stringify(doc, null, 2) + "\n"], {type:mime});
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  }
   exportButton.addEventListener("click",function(){
     if (!visibleFeatures.length) return;
-    // Preserve the complete, unchanged source query and every original evidence
-    // field. The explicit visible-only scope distinguishes this derivative export
-    // from the unfiltered source-reported snapshot, including map contradictions.
-    var exported = Object.assign({}, data, {
+    saveEvidence(Object.assign({}, data, {
       features: visibleFeatures.slice(),
       monde_visible_export: {
         scope: "VISIBLE_SOURCE_REPORTS_ONLY",
         original_feature_count: features.length,
         exported_feature_count: visibleFeatures.length,
-        filters: {
-          search: search.value.trim(),
-          source_id: sources.value,
-          entity: entities.value,
-          captured_from_utc_day: capturedFrom.value,
-          captured_through_utc_day: capturedThrough.value,
-          different_source_positions_only: differentOnly.checked,
-          inside_viewport_only: insideOnly.checked,
-           displayed_map_window_only: currentViewOnly.checked,
-           displayed_map_window_bbox_wgs84: currentViewOnly.checked ? displayedBounds() : null,
-          knowledge_change: knowledgeComparing ? changeFilter.value : "",
-          world_time_change: worldComparing ? changeFilter.value : ""
-        }
+        filters: appliedFilters()
       }
+    }),"monde-visible-source-evidence.geojson","application/geo+json");
+  });
+  function createEntityDossier() {
+    var entity = entities.value || (selectedFeature ? selectedFeature.properties.entity : "");
+    if (!entity) return null;
+    var reports = visibleFeatures.filter(function(f) { return f.properties.entity === entity; });
+    if (!reports.length) return null;
+    var sourcesFound = new Set(reports.map(function(f) { return f.properties.source_id; }));
+    var positionsFound = new Set(reports.map(positionKey));
+    var contradictory = reports.some(function(a,i) {
+      return reports.slice(i+1).some(function(b) {
+        return a.properties.source_id !== b.properties.source_id &&
+          positionKey(a) !== positionKey(b);
+      });
     });
-    var blob = new Blob([JSON.stringify(exported, null, 2) + "\n"],
-      {type:"application/geo+json"});
-    var url = URL.createObjectURL(blob);
-    var link = document.createElement("a");
-    link.href = url;
-    link.download = "monde-visible-source-evidence.geojson";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    return {
+      format: "MONDE_MINI_ENTITY_EVIDENCE_DOSSIER_V1",
+      scope: "FILTERED_VISIBLE_SOURCE_REPORTS_ONLY",
+      entity: entity,
+      original_query: query,
+      comparison_basis: knowledgeComparing ? "KNOWLEDGE_CHANGE" :
+        (worldComparing ? "REPORTED_WORLD_TIME_CHANGE" : "SOURCE_POINT_SNAPSHOT"),
+      selected_assertion_id: selectedFeature &&
+        selectedFeature.properties.entity === entity ? selectedFeature.id : null,
+      filters: appliedFilters(),
+      source_snapshot_report_count: features.length,
+      entity_reports_in_source_snapshot: features.filter(function(f) {
+        return f.properties.entity === entity;
+      }).length,
+      included_report_count: reports.length,
+      distinct_source_count: sourcesFound.size,
+      distinct_reported_position_count: positionsFound.size,
+      different_source_positions_reported: contradictory,
+      interpretation: "Source-reported positions and evidence only; no location consensus, verified movement, confidence estimate or proof of physical absence.",
+      completeness: "Filtered derivative; missing reports are not evidence of absence.",
+      reports: reports.slice()
+    };
+  }
+  dossierButton.addEventListener("click",function(){
+    var dossier = createEntityDossier();
+    if (dossier) saveEvidence(dossier,"monde-entity-evidence-dossier.json","application/json");
   });
   sources.addEventListener("change",render);
   entities.addEventListener("change",render);
