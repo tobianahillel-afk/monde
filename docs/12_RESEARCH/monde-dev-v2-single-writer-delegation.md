@@ -238,16 +238,19 @@ const plan = await planNextIncrementFromGitHub({
   github,
   repo: 'tobianahillel-afk/monde',
   head_sha: verifiedMainSha,
-  work_ids: ['WORK-0001', 'WORK-0002', 'WORK-0003'],
+  work_ids: ['WORK-0002'] // dependencies auto-loaded at the same SHA,
   triage_findings: []
 });
 console.log(plan.recommended, plan.blocked);
 ```
 
 The foreground caller must independently verify `verifiedMainSha` against
-GitHub, include relevant predecessor WORKs, inspect related contracts and
-findings, and recheck actual PR/CI/review/branch state before any mutation.
-A missing predecessor prevents its dependent task being recommended.
+GitHub, inspect related contracts and findings, and recheck actual PR/CI/
+review/branch state before any mutation. The adapter automatically loads
+transitive predecessor WORKs at the **same pinned SHA**, with a maximum of
+40 distinct records. A missing or unreadable predecessor aborts the call.
+Use `include_dependencies:false` to inspect only explicitly requested WORKs;
+an incomplete dependency snapshot does not authorize execution.
 
 Each read is limited to the canonical WORK subset (inline or block task
 entries), 40 WORK records and 256 KiB per record. Ambiguous YAML, unexpected

@@ -7420,7 +7420,7 @@ test('WORK adapter cannot promote a task if canonical prerequisite is missing',a
       content:Buffer.from(WORK_FIXTURE_ACTIVE).toString('base64')}};
   }}}};
   const plan=await d.planNextIncrementFromGitHub({github:gh,repo:H.repo,
-    head_sha:SHA,work_ids:['WORK-0007']});
+    head_sha:SHA,work_ids:['WORK-0007'],include_dependencies:false});
   assert.equal(plan.recommended,null);
   assert.equal(plan.blocked[0].reasons.includes('WORK_DEPENDENCIES_UNAVAILABLE'),true);
 });
@@ -7442,4 +7442,74 @@ test('WORK adapter rejects invalid GitHub scope and repeated WORK identifiers',a
     await assert.rejects(d.loadWorkPlanFromGitHub({github:gh,repo:H.repo,
       head_sha:SHA,work_ids:ids}),{code:'INVALID_WORK_FETCH'});
   }
+});
+
+test('GitHub WORK adapter resolves transitive prerequisite at pinned SHA',async()=>{
+  const docs={'WORK-0001':WORK_FIXTURE_DONE,'WORK-0007':WORK_FIXTURE_ACTIVE};
+  const calls=[];
+  const gh={rest:{repos:{getContent:async args=>{
+    calls.push(args);
+    const id=/WORK-[0-9]+/.exec(args.path)[0];
+    if(!docs[id])throw Error('missing');
+    return {data:{type:'file',encoding:'base64',
+      content:Buffer.from(docs[id]).toString('base64')}};
+  }}}};
+  const plan=await d.planNextIncrementFromGitHub({
+    github:gh,repo:H.repo,head_sha:SHA,work_ids:['WORK-0007']});
+  assert.equal(plan.recommended.work,'WORK-0007');
+  assert.equal(plan.recommended.task,'T1');
+  assert.deepEqual(calls.map(x=>x.path),[
+    'registry/work-items/WORK-0007.yaml','registry/work-items/WORK-0001.yaml']);
+  assert.equal(calls.every(x=>x.ref===SHA),true);
+  assert.equal(plan.authorized_to_write,false);
+});
+test('GitHub WORK adapter fetches shared ancestor once',async()=>{
+  const mk=(id,deps)=>['id: '+id,'status: DONE',
+    'depends_on: ['+deps.join(', ')+']','implementation_plan:','  tasks: []'].join('\n');
+  const docs={'WORK-0007':mk('WORK-0007',['WORK-0001','WORK-0008']),
+    'WORK-0008':mk('WORK-0008',['WORK-0001']),'WORK-0001':mk('WORK-0001',[])};
+  const seen=[];
+  const gh={rest:{repos:{getContent:async({path,ref})=>{
+    assert.equal(ref,SHA);
+    const id=/WORK-[0-9]+/.exec(path)[0];seen.push(id);
+    return {data:{type:'file',encoding:'base64',
+      content:Buffer.from(docs[id]).toString('base64')}};
+  }}}};
+  const out=await d.loadWorkPlanFromGitHub({
+    github:gh,repo:H.repo,head_sha:SHA,work_ids:['WORK-0007']});
+  assert.deepEqual(out.works.map(w=>w.id),['WORK-0007','WORK-0001','WORK-0008']);
+  assert.equal(seen.filter(id=>id==='WORK-0001').length,1);
+});
+test('GitHub WORK adapter does not return a plan if predecessor API fails',async()=>{
+  const gh={rest:{repos:{getContent:async({path})=>{
+    if(path.includes('WORK-0001'))throw Error('missing predecessor');
+    return {data:{type:'file',encoding:'base64',
+      content:Buffer.from(WORK_FIXTURE_ACTIVE).toString('base64')}};
+  }}}};
+  await assert.rejects(d.planNextIncrementFromGitHub({
+    github:gh,repo:H.repo,head_sha:SHA,work_ids:['WORK-0007']}),
+    /missing predecessor/);
+});
+test('GitHub WORK adapter stops at forty unique prerequisite WORKs',async()=>{
+  let calls=0;
+  const gh={rest:{repos:{getContent:async({path})=>{
+    calls++;
+    const id=Number(/WORK-(\d+)/.exec(path)[1]);
+    const name='WORK-'+String(id).padStart(4,'0');
+    const next='WORK-'+String(id+1).padStart(4,'0');
+    const doc=['id: '+name,'status: DONE','depends_on: ['+next+']',
+      'implementation_plan:','  tasks: []'].join('\n');
+    return {data:{type:'file',encoding:'base64',
+      content:Buffer.from(doc).toString('base64')}};
+  }}}};
+  await assert.rejects(d.loadWorkPlanFromGitHub({
+    github:gh,repo:H.repo,head_sha:SHA,work_ids:['WORK-0001']}),
+    {code:'WORK_DEPENDENCY_LIMIT'});
+  assert.equal(calls,40);
+});
+test('GitHub WORK adapter rejects invalid discovery flag without API calls',async()=>{
+  const gh={rest:{repos:{getContent:async()=>{throw Error('no API call expected');}}}};
+  await assert.rejects(d.loadWorkPlanFromGitHub({
+    github:gh,repo:H.repo,head_sha:SHA,work_ids:['WORK-0001'],
+    include_dependencies:'true'}),{code:'INVALID_WORK_FETCH'});
 });

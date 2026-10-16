@@ -1766,17 +1766,20 @@ function parseWorkPlanningSnapshot(text,id) {
   }
   return {id,status,depends_on,tasks};
 }
-async function loadWorkPlanFromGitHub({github,repo,head_sha,work_ids}) {
+async function loadWorkPlanFromGitHub({github,repo,head_sha,work_ids,include_dependencies=true}) {
   if(!plain(github)||!plain(github.rest)||!plain(github.rest.repos)||
      typeof github.rest.repos.getContent!=='function'||
      typeof repo!=='string'||!REPO.test(repo)||
      typeof head_sha!=='string'||!SHA.test(head_sha)||
      !Array.isArray(work_ids)||!work_ids.length||work_ids.length>40||
      work_ids.some(id=>typeof id!=='string'||!/^WORK-[0-9]{4,}$/.test(id))||
-     new Set(work_ids).size!==work_ids.length)bad('INVALID_WORK_FETCH');
+     new Set(work_ids).size!==work_ids.length||
+     typeof include_dependencies!=='boolean')bad('INVALID_WORK_FETCH');
   const [owner,name]=repo.split('/');
-  const works=[];
-  for(const id of work_ids){
+  const works=[],queue=work_ids.slice(),seen=new Set(work_ids);
+  // Resolve the predecessor closure at one exact SHA, never partial-accept.
+  for(let i=0;i<queue.length;i++){
+    const id=queue[i];
     const path='registry/work-items/'+id+'.yaml';
     const result=await github.rest.repos.getContent({
       owner,repo:name,path,ref:head_sha});
@@ -1790,7 +1793,13 @@ async function loadWorkPlanFromGitHub({github,repo,head_sha,work_ids}) {
     const bytes=Buffer.from(encoded,'base64');
     if(bytes.length>262144||bytes.toString('base64')!==encoded)
       bad('UNTRUSTED_WORK_RESPONSE');
-    works.push(parseWorkPlanningSnapshot(bytes.toString('utf8'),id));
+    const work=parseWorkPlanningSnapshot(bytes.toString('utf8'),id);
+    works.push(work);
+    if(include_dependencies)for(const dep of work.depends_on){
+      if(seen.has(dep))continue;
+      if(seen.size>=40)bad('WORK_DEPENDENCY_LIMIT');
+      seen.add(dep);queue.push(dep);
+    }
   }
   return {repo,head_sha,works,verified_repo_snapshot:false,
     requires_host_head_verification:true,advisory_only:true,
