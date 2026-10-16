@@ -2133,7 +2133,7 @@ function canonicalLocalPathView(value){
 const PUBLIC_HTTP_TRAVERSAL=/\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/[A-Za-z0-9_.\/%-]*(?:\/|^)\.{1,2}(?:\/|$|\?)/iu;
 // The bare root is sensitive even after slash/dot normalization. A full
 // path guard requiring an additional child cannot recognize /usr/local alone.
-const BARE_LOCAL_FILESYSTEM_ROOT=/(?:^|[^A-Za-z0-9_./-])\/(?:Library|Network\/Servers|usr\/local|home|Users|root|private|etc|tmp|Volumes)(?=$|[\s"'(),;?])/iu;
+const BARE_LOCAL_FILESYSTEM_ROOT=/(?:^|[^A-Za-z0-9_./-])\/(?:Library|Network\/Servers|usr\/local|home|Users|root|private|etc|tmp|Volumes)(?=$|[\s"'(),;:?])/iu;
 function containsNonpublicScopeDisclosure(value){
   return publicTextMatches(value,text=>{
     const flattened=text.replace(/\\{2,}/g,

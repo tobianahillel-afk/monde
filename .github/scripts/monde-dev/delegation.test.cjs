@@ -7221,3 +7221,32 @@ test('L2 Oct-16: exact-route HTTP masking never hides local query or traversal',
       error=>error.code==='INVALID_RESUME_PACKET',route);
   }
 });
+
+test('L2 Oct-16: colon-terminated machine-local roots cannot enter public relay',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const packet={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  for(const loc of ['/usr/local:', '/Library:', '/Network/Servers:',
+    '/home:', '/Users:', '/root:']){
+    const evidence='Log entry '+loc+' permission denied';
+    assert.throws(()=>d.createResumePacket({...packet,
+      next_action:'Inspect '+evidence}),
+    e=>e.code==='INVALID_RESUME_PACKET',loc);
+    const reviewed=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[{...data().findings[0],
+        evidence}]})),current_head:SHA,source,
+      publication_clearance:clearance});
+    assert.equal(reviewed.status,'NONPUBLIC_SCOPE_IN_RELAY',loc);
+    const unqualified=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'R2 '+evidence,current_head:SHA,source,
+      publication_clearance:clearance});
+    assert.equal(unqualified.status,'NONPUBLIC_SCOPE_IN_RELAY',loc);
+  }
+  for(const route of ['GET /usr/local?view=public',
+    'GET /Library?view=public','GET /Network/Servers?view=public']){
+    const packetSafe=d.createResumePacket({...packet,next_action:'Inspect '+route});
+    assert.equal(packetSafe.action_kind,'CONTINUE_IMPLEMENTATION',route);
+  }
+});
