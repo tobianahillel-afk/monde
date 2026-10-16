@@ -1,0 +1,60 @@
+id: WORK-0030
+title: "Import original local KMZ sources into MONDE Mini offline maps"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence map"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Display source-reported KML evidence stored in local KMZ archives without
+  manual extraction or additional dependencies, using the existing map flow.
+scope:
+  in: ["bounded local KMZ doc.kml", "CLI and manifest", "original-source provenance", "atomic rejection"]
+  out: ["remote data", "multiple KML documents", "geographic truth inference", "extraction of assets"]
+acceptance_criteria:
+  - {id: AC-1, description: "KMZ preserves original KML sample IDs, source attribution and temporal provenance.", status: NOT_STARTED}
+  - {id: AC-2, description: "Direct CLI and manifest yield offline maps from actual archives.", status: NOT_STARTED}
+  - {id: AC-3, description: "Unsafe and ambiguous archives fail without partial output.", status: NOT_STARTED}
+requirements: []
+assumptions: ["A KMZ declares one root doc.kml; sidecar assets are never used."]
+risks: ["Zip bomb", "Silent additional KML", "Lost source identity"]
+assurance:
+  level: A2
+  rationale: "Bounded original-source adapter on existing WorldMini ingestion."
+  escalation_triggers: ["Archive decompression without bounds", "Remote data access"]
+depends_on: [WORK-0029]
+reuses: ["src/monde/kml_points.py", "src/monde/csv_points.py", "src/monde/map_view.py"]
+read_before: [AGENTS.md, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+blocks: []
+affected_capabilities: []
+affected_engines: ["MONDE Mini map"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["original evidence preservation", "atomic offline export"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Bounded KMZ reader reusing KML parser.", depends_on: [], expected_files: [src/monde/kml_points.py], status: IN_PROGRESS}
+    - {id: T2, description: "Direct CLI and manifest source input.", depends_on: [T1], expected_files: [src/monde/map_view.py, src/monde/csv_points.py], status: IN_PROGRESS}
+    - {id: T3, description: "Real archive integration and invalid cases.", depends_on: [T2], expected_files: [tests/test_world_kmz.py], status: IN_PROGRESS}
+review_plan:
+  artifact_class: DATA_SOURCE_CONNECTOR
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY, OPERATIONS]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["Plain KML equivalence"]
+  integration: ["KMZ -> GeoJSON -> WorldMini -> offline HTML"]
+  e2e: ["End-to-end CLI on actual KMZ"]
+  regression: ["Legacy KML and multi-source manifest"]
+  security: ["Bounded ZIP, unsafe names, multiple KML, invalid XML and remote content"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Upstream draft PRs #23–#53 not integrated.", "L2 independent review pending."]
+rollback:
+  strategy: "Close child draft PR without modifying main or original sources."
