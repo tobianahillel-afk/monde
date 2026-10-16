@@ -39,7 +39,34 @@ jobs:
             --at '2026-01-02T00:00:00Z' \
             --known-at '2026-01-10T10:00:00Z' \
             --output /tmp/monde-evidence-map.html
-      - name: Verify real headless browser renders interactive markers
+      - name: Generate real corrected-source knowledge-change HTML map
+        env:
+          PYTHONPATH: src
+        run: |
+          python3 - <<'PY'
+          from monde.world import WorldMini
+          w = WorldMini.read("/tmp/monde-map-state.json")
+          source = {e["id"]: e["source_id"] for e in w.export()["evidence"]}
+          prior = next(a for a in w.export()["assertions"]
+              if a["attribute"] == "geo_point" and source[a["evidence_id"]] == "map-demo")
+          w.add_evidence({"id": "demo-map-revision-evidence", "source_id": "map-demo",
+              "locator": "fixture://map-demo/revision",
+              "captured_at": "2026-01-11T10:00:00Z", "source_event_at": None})
+          w.add_assertion({**prior, "id": "demo-map-revision-assertion",
+              "known_at": "2026-01-11T10:00:00Z",
+              "evidence_id": "demo-map-revision-evidence",
+              "supersedes": prior["id"],
+              "value": {"type": "Point", "coordinates": [5.0, 45.0]}})
+          w.save("/tmp/monde-map-revised-state.json")
+          PY
+          python3 -m monde.map_view \
+            --state /tmp/monde-map-revised-state.json \
+            --bbox '2.34,48.84,2.36,48.87' \
+            --at '2026-01-02T00:00:00Z' \
+            --compare-known-at '2026-01-10T10:00:00Z' \
+            --known-at '2026-01-11T10:00:00Z' \
+            --output /tmp/monde-knowledge-changes-map.html
+      - name: Verify real headless browser renders both map modes
         run: |
           set -euo pipefail
           browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
@@ -49,9 +76,18 @@ jobs:
           grep -q 'data-monde-ready="true"' /tmp/monde-rendered-dom.html
           grep -q '<circle' /tmp/monde-rendered-dom.html
           grep -q 'map-demo' /tmp/monde-rendered-dom.html
+          "$browser" --headless --no-sandbox --disable-gpu \
+            --disable-dev-shm-usage --timeout=15000 --dump-dom \
+            file:///tmp/monde-knowledge-changes-map.html > /tmp/monde-knowledge-rendered.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-knowledge-rendered.html
+          grep -q 'demo-map-revision-assertion' /tmp/monde-knowledge-rendered.html
+          grep -q 'NEWLY_CURRENT' /tmp/monde-knowledge-rendered.html
+          grep -q 'NOT verified physical movement' /tmp/monde-knowledge-rendered.html
       - name: Attach actual offline HTML map for product preview
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: monde-mini-offline-evidence-map
-          path: /tmp/monde-evidence-map.html
+          path: |
+            /tmp/monde-evidence-map.html
+            /tmp/monde-knowledge-changes-map.html
           retention-days: 7
