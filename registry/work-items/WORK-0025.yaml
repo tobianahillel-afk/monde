@@ -34,6 +34,9 @@ acceptance_criteria:
   - id: AC-5
     description: "Selected GPX segments export same-evidence source elevations and adjacent source-only elevation differences, never inferred altitude or movement."
     status: NOT_STARTED
+  - id: AC-6
+    description: "Offline GPX source sample UTC-day filters preserve source/evidence IDs, original ordering gaps and derivative provenance separately from capture date."
+    status: NOT_STARTED
 depends_on: [WORK-0024]
 reuses:
   - "MONDE Mini bitemporal claim parser and GeoJSON Point ingestion"

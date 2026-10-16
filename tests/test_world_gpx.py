@@ -411,6 +411,19 @@ class OriginalGPXTests(unittest.TestCase):
             self.assertIn("original source trace segments", page)
             self.assertIn("gpx_source_trace: traceFilter.value", page)
 
+    def test_gpx_source_clock_day_controls_and_export_provenance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "source-days.html"
+            done = self.cli(*self.flags(self.source(directory, TRACE_GPX)),
+                            "--at", AT, "--known-at", CAPTURED, "--output", output)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            page = output.read_text(encoding="utf-8")
+            for token in ('id="gpx-clock-from"', 'id="gpx-clock-through"',
+                          'id="clear-gpx-clock"', "originalGpxSourceDay",
+                          "gpx_source_sample_from_utc_day",
+                          "gpx_source_sample_time_basis"):
+                self.assertIn(token, page)
+
     def test_source_elevation_profile_is_offline_and_source_only(self):
         with tempfile.TemporaryDirectory() as directory:
             elevated = TRACE_GPX.replace(

@@ -110,6 +110,13 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <select id="trace-filter" aria-label="Select original GPX source trace and segment"><option value="">All source reports</option></select>
 <button id="clear-trace-filter" type="button" disabled>All traces</button><button id="export-trace-profile" type="button" disabled>Export source segment profile</button></div>
 <p id="trace-filter-summary" class="subtle" role="status" aria-live="polite" hidden></p>
+<div class="controls" id="gpx-clock-filter-control" hidden>
+<label for="gpx-clock-from">GPX source sample from (UTC day)</label>
+<input id="gpx-clock-from" type="date" aria-label="GPX source sample from UTC day">
+<label for="gpx-clock-through">GPX source sample through (UTC day)</label>
+<input id="gpx-clock-through" type="date" aria-label="GPX source sample through UTC day">
+<button id="clear-gpx-clock" type="button" disabled>All GPX sample days</button></div>
+<p class="subtle" id="gpx-clock-summary" hidden>Original source clocks only, not capture time, valid time or observed movement; filtering never bridges missing samples.</p>
 <div class="controls"><label for="entities">Entity</label><select id="entities"><option value="">All entities</option></select></div>
 <div class="controls"><label for="captured-from">Captured from (UTC day)</label><input id="captured-from" type="date" aria-label="Captured from UTC day">
 <label for="captured-through">Captured through (UTC day)</label><input id="captured-through" type="date" aria-label="Captured through UTC day"></div>
@@ -170,6 +177,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var traceFilter = document.getElementById("trace-filter");
   var traceClear = document.getElementById("clear-trace-filter");
   var traceSummary = document.getElementById("trace-filter-summary");
+  var gpxClockFrom = document.getElementById("gpx-clock-from");
+  var gpxClockThrough = document.getElementById("gpx-clock-through");
+  var gpxClockClear = document.getElementById("clear-gpx-clock");
+  var gpxClockSummary = document.getElementById("gpx-clock-summary");
   var exportTraceProfile = document.getElementById("export-trace-profile");
   var entities = document.getElementById("entities");
   var capturedFrom = document.getElementById("captured-from");
@@ -437,6 +448,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   if(availableTraces.size){
     document.getElementById("trace-filter-control").hidden=false;
     traceSummary.hidden=false;
+    document.getElementById("gpx-clock-filter-control").hidden=false;
+    gpxClockSummary.hidden=false;
     var options=Array.from(availableTraces.entries());
     options.sort(function(a,b){
       var aa=a[1],bb=b[1];
@@ -665,11 +678,19 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   // Apply exactly the same filters for display and for fitting. Only the
   // current map window is ignored for fitting, so off-screen matches recover.
+  function originalGpxSourceDay(f) {
+    var p=f.properties;
+    if(!p.monde_gpx_trace || typeof p.monde_gpx_sample_time!=="string")return null;
+    var clock=Date.parse(p.monde_gpx_sample_time);
+    return Number.isFinite(clock) ? new Date(clock).toISOString().slice(0,10) : null;
+  }
   function matchesFilters(f, ignoreDisplayedWindow, ignoreEntity, ignoreCaptureDays) {
     var p = f.properties;
     var instant = Date.parse(p.captured_at);
     var capturedDay = Number.isFinite(instant) ?
       new Date(instant).toISOString().slice(0,10) : null;
+    var sampleDay=(gpxClockFrom.value || gpxClockThrough.value) ?
+      originalGpxSourceDay(f) : null;
     var words = search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     var indexed = [f.id,p.entity,p.source_id,p.evidence_id,p.locator]
       .join(" ").toLocaleLowerCase();
@@ -684,6 +705,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         (capturedDay !== null && capturedDay >= capturedFrom.value)) &&
       (ignoreCaptureDays || !capturedThrough.value ||
         (capturedDay !== null && capturedDay <= capturedThrough.value)) &&
+      (!gpxClockFrom.value || (sampleDay !== null &&
+        sampleDay >= gpxClockFrom.value)) &&
+      (!gpxClockThrough.value || (sampleDay !== null &&
+        sampleDay <= gpxClockThrough.value)) &&
       (!differentOnly.checked || disputedEntities.has(p.entity)) &&
       (!comparing || !changeFilter.value ||
        p.monde_change === changeFilter.value);
@@ -828,6 +853,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     renderConflictNavigator();
     renderCaptureTimeline();
     visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
+    gpxClockClear.disabled=!gpxClockFrom.value&&!gpxClockThrough.value;
+    if(availableTraces.size)gpxClockSummary.textContent=gpxClockClear.disabled ?
+      "Original source sample UTC days; not evidence capture or physical travel." :
+      String(visibleFeatures.length)+" timestamped GPX source samples; untimed and unrelated reports excluded. Original gaps retained.";
     traceClear.disabled=!traceFilter.value;
     var traceProfile=sourceTraceProfile();
     exportTraceProfile.disabled=!traceProfile;
@@ -949,6 +978,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         "APPROXIMATE_GREAT_CIRCLE_BETWEEN_SOURCE_REPORTED_POINTS" : null,
       captured_from_utc_day: capturedFrom.value,
       captured_through_utc_day: capturedThrough.value,
+      gpx_source_sample_from_utc_day: gpxClockFrom.value,
+      gpx_source_sample_through_utc_day: gpxClockThrough.value,
+      gpx_source_sample_time_basis: (gpxClockFrom.value || gpxClockThrough.value) ?
+        "ORIGINAL_GPX_SOURCE_REPORTED_CLOCK_NOT_VALIDITY_OR_CAPTURE" : null,
       different_source_positions_only: differentOnly.checked,
       inside_viewport_only: insideOnly.checked,
       displayed_map_window_only: currentViewOnly.checked,
@@ -1062,6 +1095,11 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   sources.addEventListener("change",render);
   traceFilter.addEventListener("change",render);
   traceClear.addEventListener("click",function(){traceFilter.value="";render();});
+  gpxClockFrom.addEventListener("change",render);
+  gpxClockThrough.addEventListener("change",render);
+  gpxClockClear.addEventListener("click",function(){
+    gpxClockFrom.value="";gpxClockThrough.value="";render();
+  });
   entities.addEventListener("change",render);
   capturedFrom.addEventListener("change",render);
   capturedThrough.addEventListener("change",render);
