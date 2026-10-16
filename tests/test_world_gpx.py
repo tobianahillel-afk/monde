@@ -444,5 +444,18 @@ class OriginalGPXTests(unittest.TestCase):
             self.assertIn("source_elevation_pairs", page)
             self.assertIn("do not prove terrain altitude", page)
 
+    def test_gpx_source_segment_sample_navigation_is_in_offline_html(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "source-navigation.html"
+            result = self.cli(*self.flags(self.source(directory, TRACE_GPX)),
+                              "--at", AT, "--known-at", CAPTURED, "--output", target)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            page = target.read_text(encoding="utf-8")
+            for marker in ('id="previous-gpx-sample"', 'id="next-gpx-sample"',
+                           'id="gpx-sample-position"', 'navigableTraceSamples()',
+                           'updateTraceNavigation()', 'moveTraceSelection(step)'):
+                self.assertIn(marker, page)
+            self.assertIn('"total_source_features":7', page)
+
 if __name__ == "__main__":
     unittest.main()

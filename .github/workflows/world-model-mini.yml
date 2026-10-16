@@ -868,6 +868,28 @@ jobs:
               selector.selectedIndex=1;
               selector.dispatchEvent(new Event('change'));
               if(exportButton.disabled)throw Error('selected source segment not exportable');
+              var prev=document.getElementById('previous-gpx-sample');
+              var next=document.getElementById('next-gpx-sample');
+              var position=document.getElementById('gpx-sample-position');
+              if(!prev.disabled || next.disabled)throw Error('wrong initial source navigation');
+              next.click();
+              if(!position.textContent.includes('sample 1 of 3') ||
+                 !prev.disabled || next.disabled)
+                throw Error('first original source sample not selected');
+              var evidenceFirst=document.getElementById('details').textContent;
+              next.click();
+              if(!position.textContent.includes('sample 2 of 3') || prev.disabled)
+                throw Error('second original source sample not selected');
+              var evidenceSecond=document.getElementById('details').textContent;
+              if(evidenceFirst===evidenceSecond)throw Error('duplicate source selection');
+              next.click();
+              if(!position.textContent.includes('sample 3 of 3') ||
+                 !next.disabled || prev.disabled)
+                throw Error('third original source sample not selected');
+              prev.click();
+              if(!position.textContent.includes('sample 2 of 3') ||
+                 document.getElementById('details').textContent!==evidenceSecond)
+                throw Error('reverse navigation did not restore exact evidence');
               var blob=null,filename=null;
               URL.createObjectURL=function(value){blob=value;return 'blob:gpx-profile';};
               HTMLAnchorElement.prototype.click=function(){filename=this.download;};
@@ -911,10 +933,13 @@ jobs:
               document.getElementById('report-search').value='not-a-source-record';
               document.getElementById('report-search').dispatchEvent(new Event('input'));
               if(!exportButton.disabled)throw Error('empty profile remained exportable');
+              if(!prev.disabled || !next.disabled ||
+                 !position.textContent.includes('No original source samples'))
+                throw Error('source navigator ignored active filters');
               document.getElementById('report-search').value='';
               document.getElementById('report-search').dispatchEvent(new Event('input'));
               document.getElementById('clear-trace-filter').click();
-              if(!exportButton.disabled ||
+              if(!exportButton.disabled || !prev.disabled || !next.disabled ||
                   document.getElementById('monde-data').textContent!==raw)
                 throw Error('clear selection changed immutable evidence');
               document.body.setAttribute('data-monde-gpx-profile','pass');

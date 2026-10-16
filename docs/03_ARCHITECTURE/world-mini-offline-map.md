@@ -411,3 +411,14 @@ Select a **GPX source trace / segment** in the standalone map and click **Export
 ## Original GPX sample UTC-day filter (WORK-0025)
 
 In the offline source evidence map, GPX source sample from / through (UTC day) uses the original GPX route/track sample timestamps, independently of captured_at, world validity or knowledge time. The inclusive filter only retains timestamped original source trace samples while active; untimed readings, standalone waypoints and unrelated formats are excluded. Report lists, visible map links, source trace profiles and GeoJSON exports share the filter. The exported derivative records both bounds and the original source-clock basis, preserving source/evidence/assertion IDs. Filtered sample-order gaps are never connected. These timestamps do not establish verified travel, speed or physical events.
+
+
+## Inspect one original GPX sample at a time (WORK-0025)
+
+After selecting an original route or track segment, **Next source sample** and
+**Previous source sample** inspect currently matching Point assertions in their
+original GPX order, centering each reported coordinate and exposing its source,
+assertion and evidence IDs. Navigation stops at visible segment bounds and
+respects the existing filters. Hidden samples are skipped rather than interpolated;
+no path, verified movement or physical location is inferred. The original offline
+source snapshot and GeoJSON/CSV export semantics remain unchanged.

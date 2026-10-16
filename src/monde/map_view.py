@@ -110,6 +110,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <select id="trace-filter" aria-label="Select original GPX source trace and segment"><option value="">All source reports</option></select>
 <button id="clear-trace-filter" type="button" disabled>All traces</button><button id="export-trace-profile" type="button" disabled>Export source segment profile</button></div>
 <p id="trace-filter-summary" class="subtle" role="status" aria-live="polite" hidden></p>
+<div class="controls" id="gpx-sample-navigation" hidden>
+<button id="previous-gpx-sample" type="button" disabled>Previous source sample</button>
+<button id="next-gpx-sample" type="button" disabled>Next source sample</button></div>
+<p id="gpx-sample-position" class="subtle" role="status" aria-live="polite" hidden></p>
 <div class="controls" id="gpx-clock-filter-control" hidden>
 <label for="gpx-clock-from">GPX source sample from (UTC day)</label>
 <input id="gpx-clock-from" type="date" aria-label="GPX source sample from UTC day">
@@ -177,6 +181,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var traceFilter = document.getElementById("trace-filter");
   var traceClear = document.getElementById("clear-trace-filter");
   var traceSummary = document.getElementById("trace-filter-summary");
+  var tracePrevious = document.getElementById("previous-gpx-sample");
+  var traceNext = document.getElementById("next-gpx-sample");
+  var tracePosition = document.getElementById("gpx-sample-position");
   var gpxClockFrom = document.getElementById("gpx-clock-from");
   var gpxClockThrough = document.getElementById("gpx-clock-through");
   var gpxClockClear = document.getElementById("clear-gpx-clock");
@@ -448,6 +455,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   if(availableTraces.size){
     document.getElementById("trace-filter-control").hidden=false;
     traceSummary.hidden=false;
+    document.getElementById("gpx-sample-navigation").hidden=false;
+    tracePosition.hidden=false;
     document.getElementById("gpx-clock-filter-control").hidden=false;
     gpxClockSummary.hidden=false;
     var options=Array.from(availableTraces.entries());
@@ -464,6 +473,41 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       traceFilter.appendChild(option);
     });
   }
+  // Navigate filtered source claims in original segment order, never missing
+  // samples or inferred positions. The embedded evidence remains immutable.
+  function navigableTraceSamples() {
+    if(!traceFilter.value)return [];
+    return visibleFeatures.filter(function(f){
+      return traceKey(f)===traceFilter.value;
+    }).slice().sort(function(a,b){
+      return a.properties.monde_gpx_trace.order -
+        b.properties.monde_gpx_trace.order;
+    });
+  }
+  function updateTraceNavigation() {
+    var samples=navigableTraceSamples();
+    var index=samples.findIndex(function(f){return f.id===selectedId;});
+    tracePrevious.disabled=index<=0;
+    traceNext.disabled=!samples.length||index===samples.length-1;
+    tracePosition.textContent=!traceFilter.value ?
+      "Select an original GPX segment to inspect its source samples in order." :
+      !samples.length ?
+        "No original source samples match the current filters; nothing is inferred." :
+      index<0 ?
+        String(samples.length)+" filtered original source samples. Choose Next to inspect the first." :
+        "Visible source sample "+String(index+1)+" of "+String(samples.length)+
+        " · original order "+String(samples[index].properties.monde_gpx_trace.order+1)+
+        ". These are reported coordinates, not verified movement or a journey.";
+  }
+  function moveTraceSelection(step) {
+    var samples=navigableTraceSamples();
+    var index=samples.findIndex(function(f){return f.id===selectedId;});
+    var next=index+step;
+    if(step>0&&index<0)next=0;
+    if(next>=0&&next<samples.length)inspect(samples[next]);
+  }
+  tracePrevious.addEventListener("click",function(){moveTraceSelection(-1);});
+  traceNext.addEventListener("click",function(){moveTraceSelection(1);});
   // This is a profile of original *source claims*, not a measured journey.
   // A pair is counted only when both reports survive every active filter and
   // the original sample orders are adjacent within one source/trace/segment.
@@ -883,6 +927,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
           "attributed samples; no verified route or physical movement.";
       }
     }
+    updateTraceNavigation();
     fitButton.disabled = matchingReports().length === 0;
     updateMeasurement();
     radiusSummary.textContent = !radiusCenter ?
