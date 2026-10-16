@@ -40,7 +40,7 @@ class ViewportTest(unittest.TestCase):
         world = model()
         add_report(world, [5, 45])
         original = world.export()
-        data = world.export_geojson_bbox([2, 48, 3, 49], AT, K)
+        data = world.export_geojson_bbox([2.34, 48.84, 2.36, 48.87], AT, K)
         self.assertEqual(data["type"], "FeatureCollection")
         self.assertEqual(data["monde_bbox_query"]["total_matching_entities"], 1)
         self.assertEqual(data["monde_bbox_query"]["total_source_features"], 2)
@@ -90,7 +90,7 @@ class ViewportTest(unittest.TestCase):
             original = saved.read_bytes()
             env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
             command = (sys.executable, "-m", "monde.world", "--fixture", str(saved))
-            flags = ("--export-geojson-bbox", "2,48,3,49", "--at", AT, "--known-at", K)
+            flags = ("--export-geojson-bbox", "2.34,48.84,2.36,48.87", "--at", AT, "--known-at", K)
             proc = subprocess.run(command + flags, cwd=ROOT, env=env,
                                   text=True, capture_output=True, check=False)
             self.assertEqual(proc.returncode, 0, proc.stderr)
