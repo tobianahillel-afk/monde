@@ -105,6 +105,11 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <button id="export-visible-csv" type="button" disabled>Export visible CSV</button>
 <button id="export-dossier" type="button" disabled>Export entity evidence dossier</button></div>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
+<div class="controls" id="trace-filter-control" hidden>
+<label for="trace-filter">GPX source trace / segment</label>
+<select id="trace-filter" aria-label="Select original GPX source trace and segment"><option value="">All source reports</option></select>
+<button id="clear-trace-filter" type="button" disabled>All traces</button></div>
+<p id="trace-filter-summary" class="subtle" role="status" aria-live="polite" hidden></p>
 <div class="controls"><label for="entities">Entity</label><select id="entities"><option value="">All entities</option></select></div>
 <div class="controls"><label for="captured-from">Captured from (UTC day)</label><input id="captured-from" type="date" aria-label="Captured from UTC day">
 <label for="captured-through">Captured through (UTC day)</label><input id="captured-through" type="date" aria-label="Captured through UTC day"></div>
@@ -162,6 +167,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var list = document.getElementById("report-list");
   var details = document.getElementById("details");
   var sources = document.getElementById("sources");
+  var traceFilter = document.getElementById("trace-filter");
+  var traceClear = document.getElementById("clear-trace-filter");
+  var traceSummary = document.getElementById("trace-filter-summary");
   var entities = document.getElementById("entities");
   var capturedFrom = document.getElementById("captured-from");
   var capturedThrough = document.getElementById("captured-through");
@@ -409,6 +417,39 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     var option = document.createElement("option");
     option.value = id; label(option,id); sources.appendChild(option);
   });
+  // Group only original source-reported samples. This does not imply movement.
+  function traceKey(feature) {
+    var p=feature.properties, trace=p.monde_gpx_trace;
+    return trace ? JSON.stringify([p.source_id,trace.trace_id,trace.segment]) : null;
+  }
+  var availableTraces=new Map();
+  features.forEach(function(f){
+    var key=traceKey(f);
+    if(key===null)return;
+    var meta=f.properties.monde_gpx_trace;
+    if(!availableTraces.has(key))availableTraces.set(key,{
+      source:f.properties.source_id,name:meta.name,kind:meta.kind,
+      segment:meta.segment,count:0
+    });
+    availableTraces.get(key).count++;
+  });
+  if(availableTraces.size){
+    document.getElementById("trace-filter-control").hidden=false;
+    traceSummary.hidden=false;
+    var options=Array.from(availableTraces.entries());
+    options.sort(function(a,b){
+      var aa=a[1],bb=b[1];
+      return aa.source.localeCompare(bb.source)||aa.name.localeCompare(bb.name)||
+        aa.kind.localeCompare(bb.kind)||aa.segment-bb.segment;
+    });
+    options.forEach(function(entry){
+      var item=entry[1],option=document.createElement("option");
+      option.value=entry[0];
+      label(option,item.source+" · "+item.kind+" "+item.name+
+        " · segment "+String(item.segment+1)+" · "+String(item.count)+" samples");
+      traceFilter.appendChild(option);
+    });
+  }
   // A disagreement is *different sources reporting different coordinates* for
   // the same entity. This is not a confidence/physical-location judgement.
   var entityReports = new Map();
@@ -549,6 +590,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       (!insideOnly.checked || p.monde_inside_bbox) &&
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
+      (!traceFilter.value || traceKey(f) === traceFilter.value) &&
       ((ignoreEntity === true) || !entities.value || p.entity === entities.value) &&
       (ignoreCaptureDays || !capturedFrom.value ||
         (capturedDay !== null && capturedDay >= capturedFrom.value)) &&
@@ -698,6 +740,23 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     renderConflictNavigator();
     renderCaptureTimeline();
     visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
+    traceClear.disabled=!traceFilter.value;
+    if(availableTraces.size){
+      if(traceFilter.value){
+        var selectedTrace=availableTraces.get(traceFilter.value);
+        traceSummary.textContent=selectedTrace ?
+          String(visibleFeatures.length)+" visible original sample reports of "+
+            String(selectedTrace.count)+" in "+selectedTrace.source+" / "+
+            selectedTrace.kind+" "+selectedTrace.name+" / segment "+
+            String(selectedTrace.segment+1)+
+            ". Filtered source evidence only, not verified travel or continuity." :
+          "This original trace is not available in the current evidence snapshot.";
+      }else{
+        traceSummary.textContent=String(availableTraces.size)+
+          " original source trace segments. Select one to inspect its separately "+
+          "attributed samples; no verified route or physical movement.";
+      }
+    }
     fitButton.disabled = matchingReports().length === 0;
     updateMeasurement();
     radiusSummary.textContent = !radiusCenter ?
@@ -775,6 +834,13 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     return {
       search: search.value.trim(),
       source_id: sources.value,
+      gpx_source_trace: traceFilter.value ? {
+        source_id: availableTraces.get(traceFilter.value).source,
+        kind: availableTraces.get(traceFilter.value).kind,
+        name: availableTraces.get(traceFilter.value).name,
+        segment: availableTraces.get(traceFilter.value).segment,
+        filter_key: traceFilter.value
+      } : null,
       entity: entities.value,
       source_radius_center: radiusCenter ? {
         assertion_id:radiusCenter.assertion_id,entity:radiusCenter.entity,
@@ -897,6 +963,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     if (dossier) saveEvidence(dossier,"monde-entity-evidence-dossier.json","application/json");
   });
   sources.addEventListener("change",render);
+  traceFilter.addEventListener("change",render);
+  traceClear.addEventListener("click",function(){traceFilter.value="";render();});
   entities.addEventListener("change",render);
   capturedFrom.addEventListener("change",render);
   capturedThrough.addEventListener("change",render);

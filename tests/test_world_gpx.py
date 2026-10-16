@@ -340,3 +340,16 @@ class OriginalGPXTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_trace_filter_is_available_in_original_offline_page(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = self.source(directory, TRACE_GPX)
+            output = Path(directory) / "trace-inspector.html"
+            run = self.cli(*self.flags(source), "--at", AT,
+                           "--known-at", CAPTURED, "--output", output)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            page = output.read_text(encoding="utf-8")
+            self.assertIn('id="trace-filter"', page)
+            self.assertIn('id="trace-filter-summary"', page)
+            self.assertIn("original source trace segments", page)
+            self.assertIn("gpx_source_trace: traceFilter.value", page)

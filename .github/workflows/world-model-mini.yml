@@ -104,6 +104,62 @@ jobs:
           grep -q 'data-monde-gpx-segments="4"' /tmp/monde-gpx-track-dom.html
           grep -q 'data-gpx-trace=' /tmp/monde-gpx-track-dom.html
           grep -q 'field-survey' /tmp/monde-gpx-track-dom.html
+      - name: Filter original GPX segments in an actual offline Chromium browser
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          src = Path("/tmp/monde-gpx-track.html").read_text(encoding="utf-8")
+          probe = """<script>
+          (async function(){
+            try{
+              var selector=document.getElementById('trace-filter');
+              var clear=document.getElementById('clear-trace-filter');
+              var reports=document.getElementById('report-list');
+              if(selector.options.length!==4||
+                  reports.querySelectorAll('button').length!==7)
+                throw Error('missing three source segments or seven samples');
+              selector.selectedIndex=1;
+              selector.dispatchEvent(new Event('change'));
+              if(reports.querySelectorAll('button').length!==3||
+                 document.querySelectorAll('#source-traces line').length!==2||
+                 clear.disabled)throw Error('route selection lost original samples');
+              var blob=null,originalURL=URL.createObjectURL;
+              var originalClick=HTMLAnchorElement.prototype.click;
+              URL.createObjectURL=function(b){blob=b;return 'blob:offline-segment';};
+              HTMLAnchorElement.prototype.click=function(){};
+              document.getElementById('export-visible').click();
+              var exported=JSON.parse(await blob.text());
+              var choice=exported.monde_visible_export.filters.gpx_source_trace;
+              if(exported.features.length!==3||!choice||
+                 choice.name!=='field-survey'||choice.segment!==0)
+                throw Error('source-identified trace filtering missing from export');
+              selector.selectedIndex=3;
+              selector.dispatchEvent(new Event('change'));
+              if(reports.querySelectorAll('button').length!==2||
+                 document.querySelectorAll('#source-traces line').length!==1)
+                throw Error('separate track segment not independently selectable');
+              clear.click();
+              if(reports.querySelectorAll('button').length!==7||
+                 document.querySelectorAll('#source-traces line').length!==4||
+                 !clear.disabled)throw Error('trace clearing lost original evidence');
+              URL.createObjectURL=originalURL;
+              HTMLAnchorElement.prototype.click=originalClick;
+              document.body.setAttribute('data-monde-gpx-filter','pass');
+            }catch(e){document.body.setAttribute('data-monde-gpx-filter','fail:'+e.message);}
+          }()).catch(e=>document.body.setAttribute('data-monde-gpx-filter','fail:'+e.message));
+          </script>"""
+          Path("/tmp/monde-gpx-trace-filter.html").write_text(
+              src.replace("</body>", probe+"</body>"), encoding="utf-8")
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=2000 --timeout=15000 --dump-dom \
+            file:///tmp/monde-gpx-trace-filter.html >/tmp/monde-gpx-filter-dom.html
+          if ! grep -q 'data-monde-gpx-filter="pass"' /tmp/monde-gpx-filter-dom.html; then
+            grep -o 'data-monde-gpx-filter="[^"]*"' /tmp/monde-gpx-filter-dom.html || true
+            exit 1
+          fi
       - name: Generate standalone HTML map from actual source Point fixture
         env:
           PYTHONPATH: src

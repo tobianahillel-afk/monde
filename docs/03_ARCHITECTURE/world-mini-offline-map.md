@@ -397,3 +397,8 @@ PYTHONPATH=src python3 -m monde.map_view \\
 Unsupported extensions, invalid/non-finite altitude, DTD/entities, remote
 geometry and ambiguous source identities fail closed. The source label and sample grouping come from
 the original GPX, not from inferred geographic truth.
+
+
+### Explore one original GPX source trace segment
+
+When a GPX route or track appears, the GPX source trace / segment selector offers one option per original source, trace and segment. Selecting it filters the displayed reports and the existing GeoJSON/CSV export to source-attributed samples, with original and currently visible sample counts. The All traces button restores all source claims. Segments never imply observed physical travel, nor are points missing from a filtered view connected into a fabricated path.
