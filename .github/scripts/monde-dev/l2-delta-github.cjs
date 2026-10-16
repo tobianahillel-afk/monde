@@ -328,9 +328,17 @@ async function prepareFreshL2FromCurrentGitHub(input) {
   if (!Array.isArray(rows) || rows.length !== before.changed_files)
     incomplete();
   verifyImmutableFileManifest(rows,mergeProof.files);
+  // Same immutable GitHub file set must produce byte-identical missions.
+  // listFiles pagination may arrive in an arbitrary order; normalize it
+  // before both assignment.paths and the review evidence manifest.
+  const orderedRows=rows.slice().sort((left,right)=>{
+    const a=typeof left?.filename==='string'?left.filename:'';
+    const b=typeof right?.filename==='string'?right.filename:'';
+    return a<b?-1:a>b?1:0;
+  });
   const paths=[];
   const changes=[];
-  for (const row of rows) {
+  for (const row of orderedRows) {
     if (!row || !['added','modified','removed','renamed'].includes(row.status) ||
         typeof row.filename !== 'string' || row.filename.endsWith('/')) incomplete();
     // GitHub's previous_filename is meaningful ONLY for an actual rename.

@@ -403,9 +403,9 @@ test('fresh L2: pins full live PR scope and produces read-only separate-context 
   assert.equal(result.assignment.mission_kind,'L2_REVIEW');
   assert.equal(result.assignment.paths.length,2);
   assert.deepEqual(result.changed_file_statuses,[
-    {path:PATH,status:'modified',previous_path:null},
     {path:'.github/scripts/monde-dev/l2-delta-github.cjs',
-      status:'added',previous_path:null}
+      status:'added',previous_path:null},
+    {path:PATH,status:'modified',previous_path:null}
   ]);
   assert.match(result.prompt,/CONTEXTE DU DIFF GITHUB/);
   assert.equal(result.observed_pr_base_sha,'c'.repeat(40));
@@ -508,12 +508,12 @@ test('fresh L2: immutable file references point to each actual revision',async()
   const {api}=freshClient();
   const v=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
   assert.equal(v.immutable_file_refs.length,2);
-  assert.deepEqual(v.immutable_file_refs[0],{
+  assert.deepEqual(v.immutable_file_refs.find(x=>x.path===PATH),{
     path:PATH,status:'modified',previous_path:null,
     base_url:'https://github.com/tobianahillel-afk/monde/blob/'+'c'.repeat(40)+'/'+PATH,
     head_url:'https://github.com/tobianahillel-afk/monde/blob/'+HEAD+'/'+PATH
   });
-  assert.equal(v.immutable_file_refs[1].base_url,null);
+  assert.equal(v.immutable_file_refs.find(x=>x.status==='added').base_url,null);
   assert.match(v.prompt,/immutable_file_refs|base_url/);
   assert.equal(v.review_acceptance_granted,false);
 });
@@ -524,20 +524,20 @@ test('fresh L2: rename uses old base path, new head path; deletion has no head f
   ];
   const {api}=freshClient({files:changes});
   const v=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
-  assert.equal(v.immutable_file_refs[0].base_url,
+  assert.equal(v.immutable_file_refs.find(x=>x.path==='src/new.cjs').base_url,
     'https://github.com/tobianahillel-afk/monde/blob/'+'c'.repeat(40)+'/src/old.cjs');
-  assert.equal(v.immutable_file_refs[0].head_url,
+  assert.equal(v.immutable_file_refs.find(x=>x.path==='src/new.cjs').head_url,
     'https://github.com/tobianahillel-afk/monde/blob/'+HEAD+'/src/new.cjs');
-  assert.equal(v.immutable_file_refs[1].head_url,null);
-  assert.equal(v.immutable_file_refs[1].base_url,
+  assert.equal(v.immutable_file_refs.find(x=>x.path==='docs/old.md').head_url,null);
+  assert.equal(v.immutable_file_refs.find(x=>x.path==='docs/old.md').base_url,
     'https://github.com/tobianahillel-afk/monde/blob/'+'c'.repeat(40)+'/docs/old.md');
 });
 test('fresh L2: fork PR links use original base and actual fork head repository',async()=>{
   const {api}=freshClient({headRepo:'other-owner/monde-copy'});
   const v=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
-  assert.equal(v.immutable_file_refs[0].base_url,
+  assert.equal(v.immutable_file_refs.find(x=>x.path===PATH).base_url,
     'https://github.com/tobianahillel-afk/monde/blob/'+'c'.repeat(40)+'/'+PATH);
-  assert.equal(v.immutable_file_refs[0].head_url,
+  assert.equal(v.immutable_file_refs.find(x=>x.path===PATH).head_url,
     'https://github.com/other-owner/monde-copy/blob/'+HEAD+'/'+PATH);
   assert.match(v.prompt,/other-owner\/monde-copy/);
   assert.equal(v.native_github_approved,false);
@@ -780,7 +780,7 @@ test('fresh L2 preimage from diverged PR uses merge-base, not newer main',async(
   const out=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
   assert.equal(out.observed_pr_merge_base_sha,mergeBase);
   assert.equal(out.observed_pr_base_sha,'c'.repeat(40));
-  assert.equal(out.immutable_file_refs[0].base_url,
+  assert.equal(out.immutable_file_refs.find(x=>x.path===PATH).base_url,
     'https://github.com/tobianahillel-afk/monde/blob/'+mergeBase+'/'+PATH);
   assert.equal(calls.compares.length,1);
   assert.deepEqual(calls.compares[0],{
@@ -1117,4 +1117,29 @@ test('fresh L2 batches are stable for equivalent GitHub file-pagination order',a
   assert.equal(renameBatches.length,1);
   assert.equal(renameBatches[0].assignment.paths.includes('src/moved.cjs'),true);
   assert.equal(renameBatches[0].assignment.paths.includes('src/original.cjs'),true);
+});
+
+test('single fresh L2 is stable for reversed equivalent GitHub file ordering',async()=>{
+  const files=[
+    {status:'modified',filename:'src/zeta.cjs'},
+    {status:'renamed',filename:'src/moved.cjs',previous_filename:'src/original.cjs'},
+    {status:'removed',filename:'docs/retired.md'},
+    {status:'added',filename:'src/alpha.cjs'}
+  ];
+  const mission={...FRESH_MISSION,expected_head_sha:HEAD,
+    expected_base_sha:'c'.repeat(40)};
+  const left=await prepareFreshL2FromCurrentGitHub({
+    github:freshClient({files}).api,...mission
+  });
+  const right=await prepareFreshL2FromCurrentGitHub({
+    github:freshClient({files:files.slice().reverse()}).api,...mission
+  });
+  assert.deepEqual(left.assignment.paths,right.assignment.paths);
+  assert.deepEqual(left.changed_file_statuses,right.changed_file_statuses);
+  assert.deepEqual(left.immutable_file_refs,right.immutable_file_refs);
+  assert.equal(left.prompt,right.prompt);
+  const refs=left.immutable_file_refs.filter(x=>x.status==='renamed');
+  assert.equal(refs.length,1);
+  assert.equal(refs[0].previous_path,'src/original.cjs');
+  assert.equal(new Set(left.assignment.paths).size,5);
 });
