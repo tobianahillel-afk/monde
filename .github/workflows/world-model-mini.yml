@@ -19,6 +19,32 @@ jobs:
         env:
           PYTHONPATH: src
         run: python3 -m unittest discover -s tests -p 'test_world*.py' -v
+      - name: Actual KML source to offline map in Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          cat > /tmp/monde-original.kml <<'KML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+          <Placemark id="site-alpha"><name>Original survey</name><Point><coordinates>2.3522,48.8566</coordinates></Point></Placemark>
+          </Document></kml>
+          KML
+          python3 -m monde.map_view --kml /tmp/monde-original.kml \
+            --source-id original-kml --source-locator dataset://kml-point \
+            --captured-at 2026-01-10T10:00:00Z \
+            --valid-from 2026-01-01T00:00:00Z \
+            --at 2026-01-02T00:00:00Z \
+            --known-at 2026-01-10T10:00:00Z \
+            --output /tmp/monde-kml-evidence.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --timeout=15000 --dump-dom file:///tmp/monde-kml-evidence.html \
+            >/tmp/monde-kml-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-kml-dom.html
+          grep -q 'original-kml' /tmp/monde-kml-dom.html
+          grep -q 'site-alpha' /tmp/monde-kml-dom.html
+          grep -q '<circle' /tmp/monde-kml-dom.html
       - name: Generate standalone HTML map from actual source Point fixture
         env:
           PYTHONPATH: src

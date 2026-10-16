@@ -303,3 +303,35 @@ externally; the renderer only reads the versioned local asset.
 ## UTC source-capture timeline (WORK-0022/T6)
 
 The offline evidence map shows a clickable histogram-like list of capture days from original source-report metadata (UTC). Its counts apply the current search, source, entity, viewport, distance, disagreement, and comparison filters, **excluding the capture-date range itself** so alternative days remain discoverable. Up to the 24 most recent days are shown; the total number of matching distinct days is reported. Clicking a day sets both inclusive capture-day bounds, and **All capture days** clears them. The visible map, list, and existing GeoJSON/CSV exports remain aligned with the selected bounds; no original source report, ID, timestamp, or temporal query is modified. A capture date is neither a world-state timestamp nor proof that a physical event occurred.
+
+## Original KML Point evidence (WORK-0023)
+
+Local **KML 2.2 Point Placemarks** can now be mapped offline using the same
+WorldMini evidence engine as original GeoJSON and CSV. Each Placemark must carry
+a distinct, stable XML `id` attribute. Original `name` and `description` are
+retained as source-reported properties; no identity, capture time, world-validity
+date, reconciled location or source authority is inferred.
+
+```sh
+PYTHONPATH=src python3 -m monde.map_view \
+  --kml survey.kml --source-id survey-kml \
+  --source-locator dataset://survey/original-kml \
+  --captured-at 2026-01-10T10:00:00Z \
+  --valid-from 2026-01-01T00:00:00Z \
+  --at 2026-01-02T00:00:00Z \
+  --known-at 2026-01-10T10:00:00Z \
+  --output original-kml-map.html
+```
+
+The existing `--source-manifest` accepts a dataset with `"kml":"survey.kml"`
+in place of `"geojson"` or `"csv"`; all three formats may be combined. Each
+dataset still requires its own explicit `source_id`, `locator`, `captured_at`,
+and `valid_from`. Conflicting reported Point positions remain independent
+source assertions. Inputs are read-only and a failed source does not create a
+partial HTML output.
+
+Only original 2D WGS84 Point coordinates are supported; altitude,
+LineString/Polygon/MultiGeometry, network links, ExtendedData, XML DTD/entities,
+absent or duplicated stable IDs and invalid coordinates are rejected rather
+than silently interpreted or discarded. 10 MB per KML and 50,000 Point cap.
+The output is source *evidence*, never independently verified physical truth.
