@@ -469,6 +469,10 @@ class KMLSourceTests(unittest.TestCase):
             features = geo["features"]
             self.assertEqual(len(features), 12)
             self.assertEqual(len({f["id"] for f in features}), 12)
+            self.assertEqual([f["properties"]["kml_component_index"]
+                              for f in features], [0] + [1]*3 + [2]*8)
+            self.assertTrue(all(f["properties"]["kml_placemark_id"] ==
+                                "compound" for f in features))
             self.assertTrue(features[0]["id"].startswith("kml-point-"))
             self.assertNotIn("kml_trace", features[0]["properties"])
             traces = [f["properties"]["kml_trace"] for f in features[1:]]
@@ -482,7 +486,13 @@ class KMLSourceTests(unittest.TestCase):
                               locator="dataset://compound.kml",
                               captured_at=CAPTURED,
                               valid_from="2026-01-01T00:00:00Z")
-            visible = WorldMini.from_document(doc).export_geojson_bbox(
+            world = WorldMini.from_document(doc)
+            self.assertEqual(world.query(features[0]["id"], "kml_placemark_id",
+                                         AT, CAPTURED)["reports"][0]["value"],
+                             "compound")
+            self.assertEqual(world.query(features[1]["id"], "kml_component_index",
+                                         AT, CAPTURED)["reports"][0]["value"], 1)
+            visible = world.export_geojson_bbox(
                 [-180, -90, 180, 90], AT, CAPTURED)["features"]
             self.assertEqual(len(visible), 12)
             self.assertEqual(len({f["properties"]["evidence_id"]

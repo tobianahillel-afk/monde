@@ -479,8 +479,10 @@ direct \`Point\`, \`LineString\` and \`Polygon\` children. Run the same offline
 into independently evidenced source Point samples and displayed on the same map.
 No extra conversion tool, dependency, network request or map engine is needed.
 
-Every component receives distinct deterministic source sample IDs; LineString
-and Polygon traces use distinct per-component trace IDs, so neither two shapes
+Every component receives distinct deterministic source sample IDs and retains
+its original `kml_placemark_id` and `kml_component_index` as source-attributed
+WorldMini assertions; LineString and Polygon traces use distinct per-component
+trace IDs, so neither two shapes
 nor adjacent rings are joined by a fabricated edge. Existing single geometry
 Placemarks retain their current IDs and semantics. Malformed, nested, remote,
 3D or over-budget input is rejected before producing output.

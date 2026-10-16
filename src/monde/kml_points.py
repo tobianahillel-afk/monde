@@ -131,6 +131,11 @@ def to_geojson(path):
         if placemark.find(tag("ExtendedData")) is not None:
             raise ValueError("KML ExtendedData is not yet supported; no silent loss")
         for component_index, geometry in enumerate(components):
+            # Preserve the original Placemarks' source grouping separately
+            # from deterministic per-component Point/trace identities.
+            component_attrs = {**attrs, **({
+                "kml_placemark_id": ident, "kml_component_index": component_index
+            } if multi else {})}
             is_polygon = geometry.tag == tag("Polygon")
             if is_polygon:
                 rings = _polygon_points(geometry, tag)
@@ -158,7 +163,7 @@ def to_geojson(path):
                         payload.encode("utf-8")).hexdigest()[:32])
                 features.append({
                     "type": "Feature", "id": ident_for_point,
-                    "properties": attrs,
+                    "properties": component_attrs,
                     "geometry": {"type": "Point", "coordinates": points[0]}})
                 continue
             # A MultiGeometry component has its own trace. The existing viewer
@@ -187,7 +192,7 @@ def to_geojson(path):
                     base + "-repeat-" + str(repeats[base]))
                 features.append({
                     "type": "Feature", "id": sample_id,
-                    "properties": {**attrs, "kml_trace": {
+                    "properties": {**component_attrs, "kml_trace": {
                         "format": ("KML_2_2_POLYGON_RING_POINT" if is_polygon
                                    else "KML_2_2_LINESTRING_POINT"),
                         "kind": ("Polygon" if is_polygon else "LineString"),
