@@ -648,6 +648,11 @@ function assessFreshL2Waves({
        mission.head_sha!==current_head||
        mission.repo!==plan.batches[0].assignment.repo||
        mission.pr!==plan.batches[0].assignment.pr||
+       // The one L2 campaign must retain the same authoring context in
+       // every batch. Otherwise a forged per-batch "author" can bypass
+       // same-context independence checks for selected changed files.
+       mission.author_context_id!==
+         plan.batches[0].assignment.author_context_id||
        seen.has(mission.assignment_id))incomplete();
     // Reconcile the submitted scope with GitHub's saved immutable file
     // manifest; assignment path counters alone can conceal omissions.

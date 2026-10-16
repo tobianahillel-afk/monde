@@ -1253,6 +1253,19 @@ test('review waves: forged wave order or uncovered path fails closed',()=>{
   assert.throws(()=>assessWithObservedPr({plan:uncovered,current_head:OLD}),
     e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
 });
+test('review waves: reject a mixed author context within or across waves',()=>{
+  for(const index of [1,4]){
+    const plan=wavesFixture();
+    plan.batches[index].assignment.author_context_id=
+      'chat-other-author-campaign';
+    assert.throws(()=>assessWithObservedPr({plan,
+      current_head:plan.observed_pr_head_sha}),
+      e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+  const plan=wavesFixture();
+  assert.equal(assessWithObservedPr({plan,
+    current_head:plan.observed_pr_head_sha}).status,'MISSING_L2_REPORTS');
+});
 test('review waves: foreign report and stale head cannot be accepted',()=>{
   const plan=wavesFixture();
   assert.throws(()=>assessWithObservedPr({plan,current_head:HEAD}),
