@@ -95,6 +95,27 @@ async function planL2DeltaFromGitHub({
 }
 
 
+
+// Preimage references must use the immutable PR merge-base, not the latest
+// target branch tip. A diverged main branch may otherwise show an unrelated
+// revision and mislead an independent L2 reviewer.
+async function readMergeBase(github,owner,repo,snapshot) {
+  if (typeof github.rest?.repos?.compareCommitsWithBasehead!=='function')
+    incomplete();
+  const response=await github.rest.repos.compareCommitsWithBasehead({
+    owner,repo,basehead:snapshot.base_sha+'...'+snapshot.head_sha,
+    page:1,per_page:1
+  });
+  const result=response?.data;
+  const base=result?.base_commit?.sha;
+  const merge=result?.merge_base_commit?.sha;
+  if (base!==snapshot.base_sha ||
+      typeof merge!=='string' || !/^[a-f0-9]{40}$/.test(merge) ||
+      !['ahead','diverged'].includes(result.status))
+    incomplete();
+  return merge;
+}
+
 // Observe the live PR on both sides of the exact-SHA comparison. The existing
 // adapter only proves ancestry between two caller-supplied SHAs; it does not
 // establish that the requested target is still the PR HEAD. This wrapper
@@ -236,6 +257,7 @@ async function prepareFreshL2FromCurrentGitHub(input) {
     };
   };
   const before = await observe();
+  const mergeBase = await readMergeBase(github,owner,name,before);
   const rows = await github.paginate(github.rest.pulls.listFiles,{
     owner,repo:name,pull_number:seed.pr,per_page:100
   });
@@ -288,7 +310,7 @@ async function prepareFreshL2FromCurrentGitHub(input) {
   const fileEvidence = changes.map(change => ({
     path:change.path,status:change.status,previous_path:change.previous_path,
     base_url:change.status==='added'?null:
-      'https://github.com/'+seed.repo+'/blob/'+before.base_sha+'/' +
+      'https://github.com/'+seed.repo+'/blob/'+mergeBase+'/' +
       (change.previous_path ?? change.path),
     head_url:change.status==='removed'?null:
       'https://github.com/'+before.head_repo+'/blob/'+before.head_sha+'/' +
@@ -310,6 +332,7 @@ async function prepareFreshL2FromCurrentGitHub(input) {
     prompt,changed_file_statuses:changes,
     immutable_file_refs:fileEvidence,
     observed_pr_base_sha:before.base_sha,
+    observed_pr_merge_base_sha:mergeBase,
     observed_pr_head_sha:before.head_sha,
     observed_pr_source_repo:before.head_repo,
     observed_pr_source_ref:before.head_ref,
@@ -369,6 +392,7 @@ async function prepareFreshL2BatchesFromCurrentGitHub(input) {
     };
   };
   const before=await observe();
+  const mergeBase=await readMergeBase(github,owner,name,before);
   const rows=await github.paginate(github.rest.pulls.listFiles,{
     owner,repo:name,pull_number:seed.pr,per_page:100
   });
@@ -412,7 +436,7 @@ async function prepareFreshL2BatchesFromCurrentGitHub(input) {
     const refs=changes.map(c=>({
       path:c.path,status:c.status,previous_path:c.previous_path,
       base_url:c.status==='added'?null:
-        'https://github.com/'+seed.repo+'/blob/'+before.base_sha+'/'+
+        'https://github.com/'+seed.repo+'/blob/'+mergeBase+'/'+
         (c.previous_path||c.path),
       head_url:c.status==='removed'?null:
         'https://github.com/'+before.head_repo+'/blob/'+before.head_sha+'/'+c.path
@@ -435,7 +459,8 @@ async function prepareFreshL2BatchesFromCurrentGitHub(input) {
       new Set(batches.flatMap(x=>x.assignment.paths)).size!==unique.size)
     incomplete();
   return {status:'FRESH_L2_BATCHES_READY',
-    observed_pr_base_sha:before.base_sha,observed_pr_head_sha:before.head_sha,
+    observed_pr_base_sha:before.base_sha,observed_pr_merge_base_sha:mergeBase,
+    observed_pr_head_sha:before.head_sha,
     observed_pr_source_repo:before.head_repo,observed_pr_source_ref:before.head_ref,
     changed_files:before.changed_files,reviewed_path_units:unique.size,
     batch_count:batches.length,batches,

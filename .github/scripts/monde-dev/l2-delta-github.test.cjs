@@ -337,14 +337,22 @@ const FRESH_MISSION = {
   objective:'Independently review the real current code and tests in PR 19'
 };
 function freshClient(options={}) {
-  const calls={get:[],files:[]};
+  const calls={get:[],files:[],compares:[]};
   let observations=0;
   const origFiles=options.files||[
     {status:'modified',filename:PATH},
     {status:'added',filename:'.github/scripts/monde-dev/l2-delta-github.cjs'}
   ];
   const api={
-    rest:{pulls:{
+    rest:{repos:{compareCommitsWithBasehead:async args=>{
+      calls.compares.push(args);
+      if(options.compareError)throw Object.assign(new Error('Forbidden'),{status:403});
+      return {data:{
+        status:options.compareStatus||'ahead',
+        base_commit:{sha:options.compareBase||options.base||'c'.repeat(40)},
+        merge_base_commit:{sha:options.mergeBase||options.base||'c'.repeat(40)}
+      }};
+    }},pulls:{
       get:async args=>{
         calls.get.push(args);observations++;
         const drift=options.drift&&observations===2;
@@ -735,4 +743,65 @@ test('research directory scopes remain supported independently of GitHub file ro
   const {api}=freshClient({files:[{status:'modified',filename:PATH}]});
   const result=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
   assert.equal(result.status,'FRESH_L2_ASSIGNMENT_READY');
+});
+
+test('fresh L2 preimage from diverged PR uses merge-base, not newer main',async()=>{
+  const mergeBase='d'.repeat(40);
+  const {api,calls}=freshClient({mergeBase});
+  const out=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
+  assert.equal(out.observed_pr_merge_base_sha,mergeBase);
+  assert.equal(out.observed_pr_base_sha,'c'.repeat(40));
+  assert.equal(out.immutable_file_refs[0].base_url,
+    'https://github.com/tobianahillel-afk/monde/blob/'+mergeBase+'/'+PATH);
+  assert.equal(calls.compares.length,1);
+  assert.deepEqual(calls.compares[0],{
+    owner:'tobianahillel-afk',repo:'monde',
+    basehead:'c'.repeat(40)+'...'+HEAD,page:1,per_page:1
+  });
+});
+test('batched fresh L2 uses merge-base for rename and deletion preimages',async()=>{
+  const files=[
+    {status:'renamed',filename:'src/new.cjs',previous_filename:'src/old.cjs'},
+    {status:'removed',filename:'docs/old.md'}
+  ];
+  const mergeBase='d'.repeat(40);
+  const {api}=freshClient({files,mergeBase});
+  const out=await prepareFreshL2BatchesFromCurrentGitHub({
+    github:api,...FRESH_MISSION});
+  assert.equal(out.observed_pr_merge_base_sha,mergeBase);
+  const refs=out.batches[0].immutable_file_refs;
+  assert.equal(refs[0].base_url,
+    'https://github.com/tobianahillel-afk/monde/blob/'+mergeBase+'/src/old.cjs');
+  assert.equal(refs[1].base_url,
+    'https://github.com/tobianahillel-afk/monde/blob/'+mergeBase+'/docs/old.md');
+  assert.equal(refs[0].head_url,
+    'https://github.com/tobianahillel-afk/monde/blob/'+HEAD+'/src/new.cjs');
+});
+test('fresh L2 rejects contradictory GitHub merge-base evidence',async()=>{
+  for(const cfg of [
+    {compareBase:'f'.repeat(40)},{mergeBase:'bad-sha'},
+    {compareStatus:'unrelated'},{compareStatus:'behind'}
+  ]){
+    const {api}=freshClient(cfg);
+    await assert.rejects(
+      prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION}),
+      e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+    await assert.rejects(
+      prepareFreshL2BatchesFromCurrentGitHub({github:api,...FRESH_MISSION}),
+      e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+  const noAPI=freshClient().api;
+  delete noAPI.rest.repos;
+  await assert.rejects(
+    prepareFreshL2FromCurrentGitHub({github:noAPI,...FRESH_MISSION}),
+    e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+});
+test('fresh L2 propagates compare 403 without invented evidence',async()=>{
+  const {api,calls}=freshClient({compareError:true});
+  await assert.rejects(
+    prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION}),
+    e=>e.status===403);
+  assert.equal(calls.get.length,1);
+  assert.equal(calls.compares.length,1);
+  assert.equal(calls.files.length,0);
 });
