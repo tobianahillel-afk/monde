@@ -75,12 +75,14 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <button id="zoom-out" type="button" aria-label="Zoom out">Zoom −</button>
 <button id="reset" type="button">Whole world</button>
 <button id="focus-selected" type="button" disabled>Center selected report</button>
-<label><input id="inside-only" type="checkbox"> Inside viewport only</label>
+<label><input id="inside-only" type="checkbox"> Inside requested viewport only</label>
+<label><input id="current-view-only" type="checkbox"> Inside displayed map window only</label>
 </div>
-<svg id="map" role="img" aria-label="Schematic longitude-latitude evidence map, not a geographic basemap" viewBox="0 0 1200 600">
+<svg id="map" role="img" tabindex="0" aria-label="Schematic longitude-latitude evidence map. Drag or use arrow keys to pan; not a geographic basemap" viewBox="0 0 1200 600">
 <rect width="1200" height="600" fill="#123044"></rect>
 <g id="graticule"></g><g id="viewport"></g><g id="disagreement-links" aria-hidden="true"></g><g id="points"></g>
 </svg>
+<p class="subtle">Drag to pan, or use arrow keys when the schematic map has focus. The window filter changes only displayed/exported reports, not the original source query.</p>
 <p id="metrics"></p>
 <p id="source-notice" class="notice">Source assertions only. Contradictory locations are retained. This schematic is not a basemap, physical position estimate, confidence score or proof of absence.</p>
 </section>
@@ -129,6 +131,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var comparisonSummary = document.getElementById("entity-comparison-summary");
   var comparisonList = document.getElementById("entity-comparison-list");
   var insideOnly = document.getElementById("inside-only");
+  var currentViewOnly = document.getElementById("current-view-only");
   var changeFilter = document.getElementById("change-filter");
   var search = document.getElementById("report-search");
   var focusButton = document.getElementById("focus-selected");
@@ -201,7 +204,55 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     });
   }
 
+  function displayedBounds() {
+    return [x0/1200*360-180, 90-(y0+height)/600*180,
+      (x0+width)/1200*360-180, 90-y0/600*180];
+  }
+  function insideDisplayedWindow(f) {
+    var pos=f.geometry.coordinates,px=x(pos[0]),py=y(pos[1]);
+    return px>=x0-1e-8&&px<=x0+width+1e-8&&
+      py>=y0-1e-8&&py<=y0+height+1e-8;
+  }
   function refreshView() { svg.setAttribute("viewBox", [x0, y0, width, height].join(" ")); }
+  function panBy(dx,dy) {
+    x0=Math.max(0,Math.min(1200-width,x0+dx));
+    y0=Math.max(0,Math.min(600-height,y0+dy));
+    refreshView();
+    if(currentViewOnly.checked)render();
+  }
+  var drag=null;
+  svg.addEventListener("pointerdown",function(e){
+    if(e.button!==0||e.target.closest("circle"))return;
+    drag={id:e.pointerId,clientX:e.clientX,clientY:e.clientY};
+    svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener("pointermove",function(e){
+    if(!drag||e.pointerId!==drag.id)return;
+    var scale=svg.getScreenCTM()?.a;
+    if(!scale||!Number.isFinite(scale))return;
+    x0=Math.max(0,Math.min(1200-width,x0-(e.clientX-drag.clientX)/scale));
+    y0=Math.max(0,Math.min(600-height,y0-(e.clientY-drag.clientY)/scale));
+    drag.clientX=e.clientX;drag.clientY=e.clientY;
+    refreshView();
+  });
+  function finishDrag(e){
+    if(!drag||e.pointerId!==drag.id)return;
+    drag=null;
+    if(svg.hasPointerCapture(e.pointerId))svg.releasePointerCapture(e.pointerId);
+    if(currentViewOnly.checked)render();
+  }
+  svg.addEventListener("pointerup",finishDrag);
+  svg.addEventListener("pointercancel",finishDrag);
+  svg.addEventListener("keydown",function(e){
+    if(e.target!==svg)return;
+    var dx=0,dy=0;
+    if(e.key==="ArrowLeft")dx=-width/5;
+    else if(e.key==="ArrowRight")dx=width/5;
+    else if(e.key==="ArrowUp")dy=-height/5;
+    else if(e.key==="ArrowDown")dy=height/5;
+    else return;
+    e.preventDefault();panBy(dx,dy);
+  });
   function changeZoom(factor) {
     var next = Math.max(32, Math.min(1200, width * factor));
     var ratio = next / width;
@@ -210,11 +261,13 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     x0 = Math.max(0, Math.min(1200 - width, x0));
     y0 = Math.max(0, Math.min(600 - height, y0));
     refreshView();
+    if(currentViewOnly.checked)render();
   }
   document.getElementById("zoom-in").addEventListener("click", function () { changeZoom(.6); });
   document.getElementById("zoom-out").addEventListener("click", function () { changeZoom(1.65); });
   document.getElementById("reset").addEventListener("click", function () {
     x0 = 0; y0 = 0; width = 1200; height = 600; refreshView();
+    if(currentViewOnly.checked)render();
   });
   for (var longitude = -180; longitude <= 180; longitude += 30) {
     el("line", {x1:x(longitude),y1:0,x2:x(longitude),y2:600}, grid);
@@ -310,6 +363,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         .join(" ").toLocaleLowerCase();
       return words.every(function(word) { return indexed.includes(word); }) &&
         (!insideOnly.checked || f.properties.monde_inside_bbox) &&
+        (!currentViewOnly.checked || insideDisplayedWindow(f)) &&
         (!sources.value || f.properties.source_id === sources.value) &&
         (!entities.value || f.properties.entity === entities.value) &&
         (!differentOnly.checked || disputedEntities.has(f.properties.entity)) &&
@@ -389,6 +443,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
           entity: entities.value,
           different_source_positions_only: differentOnly.checked,
           inside_viewport_only: insideOnly.checked,
+           displayed_map_window_only: currentViewOnly.checked,
+           displayed_map_window_bbox_wgs84: currentViewOnly.checked ? displayedBounds() : null,
           knowledge_change: knowledgeComparing ? changeFilter.value : "",
           world_time_change: worldComparing ? changeFilter.value : ""
         }
@@ -410,13 +466,14 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   differentOnly.addEventListener("change",render);
   showLinks.addEventListener("change",render);
   insideOnly.addEventListener("change",render);
+  currentViewOnly.addEventListener("change",render);
   changeFilter.addEventListener("change",render);
   search.addEventListener("input",render);
   document.getElementById("clear-search").addEventListener("click",function(){
     search.value = ""; render(); search.focus();
   });
   focusButton.addEventListener("click",function(){
-    if(selectedFeature)centerOn(selectedFeature);
+    if(selectedFeature){centerOn(selectedFeature);if(currentViewOnly.checked)render();}
   });
   render();
   document.body.setAttribute("data-monde-ready","true");

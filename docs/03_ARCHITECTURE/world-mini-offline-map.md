@@ -96,6 +96,19 @@ observed physical truth. Filtered GeoJSON exports include entity and
 position-disagreement filter metadata, while preserving original assertions
 and the complete original time query.
 
+## Navigate and export the displayed map window (T9)
+
+Use drag-to-pan or keyboard arrow keys (while the SVG map has focus).
+**Inside displayed map window only** filters rendered original source reports,
+evidence comparisons, disagreement links and the GeoJSON download to the
+currently shown schematic WGS84 window. Zoom, center and reset recompute it.
+The original requested bbox remains **unchanged**, as do assertion IDs,
+source IDs, evidence and temporal lineage. The exported derivative records
+`displayed_map_window_only` and `displayed_map_window_bbox_wgs84` under
+`monde_visible_export.filters`; the bbox is null if disabled. The window
+describes a schematic display, not an observed or verified physical location,
+movement or absence. No network, tile service or dependency is introduced.
+
 ## Visual links between source-reported positions
 
 Enable **Show source-position disagreement links** to compare different-source

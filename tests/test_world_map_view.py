@@ -440,6 +440,34 @@ class OfflineEntityComparisonTest(unittest.TestCase):
                 self.assertIn('id="entity-comparison-list"', page)
                 self.assertEqual(extract(page)[1], source)
 
+class OfflineMapWindowTest(unittest.TestCase):
+    def test_map_window_navigation_preserves_embedded_source_reports(self):
+        original = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        before = copy.deepcopy(original)
+        page = render_map(original)
+        self.assertEqual(extract(page)[1], before)
+        self.assertEqual(original, before)
+        self.assertIn('id="current-view-only"', page)
+        self.assertIn('svg.addEventListener("pointerdown"', page)
+        self.assertIn('svg.addEventListener("keydown"', page)
+        self.assertIn('displayed_map_window_bbox_wgs84', page)
+        self.assertIn('(!currentViewOnly.checked || insideDisplayedWindow(f))', page)
+        self.assertIn("connect-src 'none'", page)
+
+    def test_map_window_available_in_both_temporal_comparison_modes(self):
+        world, _ = corrected_points()
+        cases = (
+            world.export_geojson_bbox_knowledge_changes(BBOX, VALID, KNOWN, LATE),
+            world.export_geojson_bbox_world_changes(
+                BBOX, "2025-12-31T00:00:00Z", VALID, LATE),
+        )
+        for document in cases:
+            with self.subTest(mode=list(document)):
+                page = render_map(document)
+                self.assertEqual(extract(page)[1], document)
+                self.assertIn('id="current-view-only"', page)
+
+
 class OfflineDisagreementLinksTest(unittest.TestCase):
     def test_links_toggle_and_original_source_provenance_unchanged(self):
         source = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
