@@ -4,6 +4,7 @@ import os
 import re
 import sqlite3
 import struct
+from contextlib import closing
 from urllib.parse import quote
 
 MAX_BYTES = 100_000_000
@@ -55,7 +56,7 @@ def to_geojson(path, *, layer):
         raise ValueError("GeoPackage requires a local file at most 100 MB")
     uri = "file:" + quote(source, safe="/") + "?mode=ro&immutable=1"
     try:
-        with sqlite3.connect(uri, uri=True) as db:
+        with closing(sqlite3.connect(uri, uri=True)) as db:
             db.execute("PRAGMA query_only=ON")
             db.execute("PRAGMA trusted_schema=OFF")
             if db.execute("PRAGMA application_id").fetchone()[0] != 0x47504B47:
