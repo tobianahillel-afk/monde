@@ -2294,17 +2294,22 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     const count=deferredByPath.get(finding.path)||0;
     deferredByPath.set(finding.path,count+1);
   }
+  // Sort once, before applying the bounded R3 owner preview. Previously the
+  // first 16 came from caller enumeration order, so reordered equivalent
+  // WORK snapshots could silently show different R3 owners.
+  const canonicalTaskScopes=works.flatMap(work=>work.tasks.map(task=>({
+    work:work.id,task:task.id,expected_files:task.expected_files
+  }))).sort((a,b)=>numericIdOrder(a.work,b.work,'WORK-')||
+    numericIdOrder(a.task,b.task,'T'));
   const deferredR3Backlog=[...deferredByPath].sort(([a],[b])=>
     a.localeCompare(b)).map(([path,occurrences])=>{
     const related=[];
     let relatedTotal=0;
-    for(const work of works)for(const task of work.tasks){
+    for(const task of canonicalTaskScopes){
       if(!task.expected_files.some(file=>isOverlapping(file,path)))continue;
       relatedTotal++;
-      if(related.length<16)related.push({work:work.id,task:task.id});
+      if(related.length<16)related.push({work:task.work,task:task.task});
     }
-    related.sort((a,b)=>a.work.localeCompare(b.work)||
-      a.task.localeCompare(b.task));
     return {
       path,occurrences,
       related_tasks:related,related_tasks_total:relatedTotal,

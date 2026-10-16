@@ -8072,3 +8072,30 @@ test('material R1 still blocks affected task while R3 remains in advisory backlo
   assert.equal(result.deferred_r3_backlog.length,1);
   assert.equal(result.deferred_r3_backlog[0].execution_blocking,false);
 });
+
+test('R3 backlog chooses a canonical numeric top 16 independent of WORK/TASK order',()=>{
+  const make=(id,count)=>({
+    id,status:'READY',depends_on:[],tasks:Array.from({length:count},(_,i)=>({
+      id:'T'+(i+1),status:'READY',depends_on:[],
+      expected_files:['src/r3-owner/file'+i+'.js']
+    }))
+  });
+  const small=make('WORK-0010',19),large=make('WORK-0100',19);
+  const input=works=>d.planNextIncrement({
+    repo:'tobianahillel-afk/monde',head_sha:SHA,works,
+    triage_findings:[{severity:'R3',path:'src/r3-owner',
+      evidence:'Minor observation; do not publish review excerpts'}]
+  }).deferred_r3_backlog[0];
+  const first=input([large,small]);
+  const reordered=input([
+    {...small,tasks:small.tasks.slice().reverse()},
+    {...large,tasks:large.tasks.slice().reverse()}
+  ]);
+  assert.deepEqual(first,reordered);
+  assert.equal(first.related_tasks_total,38);
+  assert.equal(first.related_tasks_truncated,true);
+  assert.deepEqual(first.related_tasks,
+    Array.from({length:16},(_,i)=>({work:'WORK-0010',task:'T'+(i+1)})));
+  assert.equal(first.qualification_required,true);
+  assert.equal(first.execution_blocking,false);
+});
