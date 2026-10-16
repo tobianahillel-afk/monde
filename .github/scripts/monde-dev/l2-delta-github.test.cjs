@@ -989,3 +989,42 @@ test('auto L2 preparation: live HEAD drift aborts without partial delegated miss
     github:api,...FRESH_MISSION
   }),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
 });
+
+test('fresh L2 expected HEAD refuses drift, with no extra compare or pagination',async()=>{
+  for(const prepare of [prepareFreshL2FromCurrentGitHub,
+    prepareFreshL2BatchesFromCurrentGitHub,
+    prepareFreshL2AutoFromCurrentGitHub]){
+    const good=freshClient();
+    const result=await prepare({github:good.api,...FRESH_MISSION,
+      expected_head_sha:HEAD});
+    assert.equal(result.observed_pr_head_sha,HEAD);
+    assert.equal(good.calls.get.length,2);
+    assert.equal(good.calls.compares.length,1);
+    assert.equal(good.calls.files.length,1);
+    const stale=freshClient();
+    await assert.rejects(prepare({github:stale.api,...FRESH_MISSION,
+      expected_head_sha:OLD}),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(stale.calls.get.length,1);
+    assert.equal(stale.calls.compares.length,0);
+    assert.equal(stale.calls.files.length,0);
+    const drift=freshClient({drift:true});
+    await assert.rejects(prepare({github:drift.api,...FRESH_MISSION,
+      expected_head_sha:HEAD}),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(drift.calls.get.length,2);
+  }
+});
+test('fresh L2 rejects invalid operator HEAD before invoking GitHub',async()=>{
+  for(const prepare of [prepareFreshL2FromCurrentGitHub,
+    prepareFreshL2BatchesFromCurrentGitHub,
+    prepareFreshL2AutoFromCurrentGitHub]){
+    for(const expected_head_sha of [null,'',23,'A'.repeat(40),
+      'a'.repeat(39),'g'.repeat(40)]){
+      const fake=freshClient();
+      await assert.rejects(prepare({github:fake.api,...FRESH_MISSION,
+        expected_head_sha}),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+      assert.equal(fake.calls.get.length,0);
+      assert.equal(fake.calls.compares.length,0);
+      assert.equal(fake.calls.files.length,0);
+    }
+  }
+});
