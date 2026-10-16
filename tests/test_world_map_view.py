@@ -492,3 +492,31 @@ class OfflineDisagreementLinksTest(unittest.TestCase):
                 page = render_map(source)
                 self.assertIn('id="disagreement-links"', page)
                 self.assertEqual(extract(page)[1], source)
+
+class OfflineCaptureDateFilterTest(unittest.TestCase):
+    def test_capture_utc_range_preserves_original_bitemporal_source_evidence(self):
+        source = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        original = copy.deepcopy(source)
+        html = render_map(source)
+        self.assertEqual(extract(html)[1], original)
+        self.assertEqual(source, original)
+        self.assertIn('id="captured-from" type="date"', html)
+        self.assertIn('id="captured-through" type="date"', html)
+        self.assertIn('new Date(instant).toISOString().slice(0,10)', html)
+        self.assertIn('captured_from_utc_day: capturedFrom.value', html)
+        self.assertIn('captured_through_utc_day: capturedThrough.value', html)
+        self.assertIn('Capture dates filter source evidence metadata', html)
+        self.assertIn("connect-src 'none'", html)
+
+    def test_capture_filter_is_available_in_both_temporal_change_modes(self):
+        world, _ = corrected_points()
+        for document in (
+            world.export_geojson_bbox_knowledge_changes(BBOX, VALID, KNOWN, LATE),
+            world.export_geojson_bbox_world_changes(
+                BBOX, "2025-12-31T00:00:00Z", VALID, LATE),
+        ):
+            with self.subTest(mode=list(document)):
+                html = render_map(document)
+                self.assertEqual(extract(html)[1], document)
+                self.assertIn('capturedThrough.addEventListener("change",render)', html)
+                self.assertIn('capturedFrom.addEventListener("change",render)', html)

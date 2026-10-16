@@ -26,6 +26,7 @@ acceptance_criteria:
   - {id: AC-9, description: "Filter by entity and compare distinct source-reported positions alongside original assertions and evidence without inferring geographic truth", status: NOT_STARTED}
   - {id: AC-10, description: "Toggle derived visual links between competing source coordinates with dateline handling and source provenance preserved", status: NOT_STARTED}
   - {id: AC-11, description: "Pan schematic map and export source-evidence filtered to displayed window without changing original query", status: NOT_STARTED}
+  - {id: AC-12, description: "Filter original source evidence by inclusive UTC capture dates while preserving world and knowledge times", status: NOT_STARTED}
 requirements: []
 assumptions: ["Standalone schematic WGS84 projection; not a basemap or physical truth"]
 risks: ["Misinterpretation of geographic claim as truth", "Embedded metadata injection"]
@@ -51,6 +52,7 @@ implementation_plan:
     - {id: T7, description: "Compare source-reported entity locations and original evidence interactively, without ranking source truth", depends_on: [T1, T4], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
     - {id: T8, description: "Draw optional offline links between different-source reported coordinates without inferring motion", depends_on: [T7], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
     - {id: T9, description: "Navigate schematic map and export evidence in current display window", depends_on: [T4, T5], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+    - {id: T10, description: "Explore original source capture dates independently from world and knowledge cutoffs", depends_on: [T5], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
   planned_runs:
     - {id: RUN-1, objective: "Product map and bounded verification", tasks: [T1, T2], exit_condition: "HTML saved-state use and green CI", status: IN_PROGRESS}
 review_plan:

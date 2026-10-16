@@ -118,3 +118,22 @@ search, viewport and temporal-change filters apply. Connections use the shortest
 antimeridian wrap and do not describe a route, physical movement, verified
 location, confidence score or uncertainty distance. Links are screen-only; a
 filtered GeoJSON download retains the original source evidence unchanged.
+
+## Filter source reports by evidence capture date (T10)
+
+The offline evidence explorer includes **Captured from (UTC day)** and
+**Captured through (UTC day)** controls. They select original source reports
+whose `captured_at` timestamp falls on inclusive UTC calendar days, and
+compose with existing source, entity, text, requested/displayed viewport and
+world/knowledge-change filters.
+
+Capture time is **source-evidence metadata**, not the world-validity time,
+knowledge-time cutoff, a trusted observation time, or the physical event time.
+An empty date selection imposes no date constraint; unknown or invalid capture
+timestamps cannot pass an active date filter. Timezone offsets in valid capture
+times are normalized to UTC, irrespective of browser locale.
+
+The filtered GeoJSON includes `captured_from_utc_day` and
+`captured_through_utc_day` in derivative filter metadata and preserves the
+original bitemporal query, source assertion IDs, evidence, and coordinates.
+Filtering never mutates the saved World Model or implies physical absence.

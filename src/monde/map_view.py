@@ -47,11 +47,11 @@ section,aside{border:1px solid #314154;border-radius:12px;background:#182436;pad
 #graticule line{stroke:#34536b;stroke-width:1}
 #graticule text{fill:#a0b9ce;font-size:15px}
 .controls{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:12px 0}
-button,select,input[type=search]{background:#253c50;border:1px solid #48677e;border-radius:7px;color:#fff;padding:8px 10px;font:inherit}
+button,select,input[type=search],input[type=date]{background:#253c50;border:1px solid #48677e;border-radius:7px;color:#fff;padding:8px 10px;font:inherit}
 button,select{cursor:pointer}
 input[type=search]{min-width:170px;flex:1;max-width:360px}
 input[type=search]::placeholder{color:#b6c4d6}
-button:hover,button:focus,select:focus,input[type=search]:focus{border-color:#59d8bb}
+button:hover,button:focus,select:focus,input[type=search]:focus,input[type=date]:focus{border-color:#59d8bb}
 button:disabled{opacity:.5;cursor:default}
 label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 #report-list{list-style:none;padding:0;margin:0;max-height:235px;overflow:auto}
@@ -94,6 +94,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <button id="export-visible" type="button" disabled>Export visible GeoJSON</button></div>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
 <div class="controls"><label for="entities">Entity</label><select id="entities"><option value="">All entities</option></select></div>
+<div class="controls"><label for="captured-from">Captured from (UTC day)</label><input id="captured-from" type="date" aria-label="Captured from UTC day">
+<label for="captured-through">Captured through (UTC day)</label><input id="captured-through" type="date" aria-label="Captured through UTC day"></div>
+<p class="subtle">Capture dates filter source evidence metadata, not when a claim was valid or known. Date bounds are inclusive UTC days.</p>
 <div class="controls"><label><input id="disagreements-only" type="checkbox"> Different-source position claims only</label></div>
 <div class="controls"><label><input id="show-disagreement-links" type="checkbox" checked> Show source-position disagreement links</label></div>
 <p class="subtle">Dashed disagreement links are not routes, movements, uncertainty estimates or verified physical locations.</p>
@@ -127,6 +130,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var details = document.getElementById("details");
   var sources = document.getElementById("sources");
   var entities = document.getElementById("entities");
+  var capturedFrom = document.getElementById("captured-from");
+  var capturedThrough = document.getElementById("captured-through");
   var differentOnly = document.getElementById("disagreements-only");
   var comparisonSummary = document.getElementById("entity-comparison-summary");
   var comparisonList = document.getElementById("entity-comparison-list");
@@ -359,6 +364,11 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     var words = search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     visibleFeatures = features.filter(function(f) {
       var p = f.properties;
+      // Compare calendar days in UTC, never the viewer's local timezone.
+      // Unknown source capture time cannot satisfy an active date filter.
+      var instant = Date.parse(p.captured_at);
+      var capturedDay = Number.isFinite(instant) ?
+        new Date(instant).toISOString().slice(0,10) : null;
       var indexed = [f.id,p.entity,p.source_id,p.evidence_id,p.locator]
         .join(" ").toLocaleLowerCase();
       return words.every(function(word) { return indexed.includes(word); }) &&
@@ -366,6 +376,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         (!currentViewOnly.checked || insideDisplayedWindow(f)) &&
         (!sources.value || f.properties.source_id === sources.value) &&
         (!entities.value || f.properties.entity === entities.value) &&
+        (!capturedFrom.value ||
+          (capturedDay !== null && capturedDay >= capturedFrom.value)) &&
+        (!capturedThrough.value ||
+          (capturedDay !== null && capturedDay <= capturedThrough.value)) &&
         (!differentOnly.checked || disputedEntities.has(f.properties.entity)) &&
         (!comparing || !changeFilter.value ||
          f.properties.monde_change === changeFilter.value);
@@ -441,6 +455,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
           search: search.value.trim(),
           source_id: sources.value,
           entity: entities.value,
+          captured_from_utc_day: capturedFrom.value,
+          captured_through_utc_day: capturedThrough.value,
           different_source_positions_only: differentOnly.checked,
           inside_viewport_only: insideOnly.checked,
            displayed_map_window_only: currentViewOnly.checked,
@@ -463,6 +479,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   });
   sources.addEventListener("change",render);
   entities.addEventListener("change",render);
+  capturedFrom.addEventListener("change",render);
+  capturedThrough.addEventListener("change",render);
   differentOnly.addEventListener("change",render);
   showLinks.addEventListener("change",render);
   insideOnly.addEventListener("change",render);

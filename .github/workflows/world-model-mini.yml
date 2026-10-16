@@ -282,6 +282,34 @@ jobs:
                 var originalCreate=URL.createObjectURL;
                 URL.createObjectURL=function(blob){payload=blob;return 'blob:monde-test';};
                 HTMLAnchorElement.prototype.click=function(){download=this.download;};
+                var captureFrom=document.getElementById('captured-from');
+                var captureThrough=document.getElementById('captured-through');
+                var days=data.features.map(f=>
+                  new Date(Date.parse(f.properties.captured_at)).toISOString().slice(0,10)).sort();
+                if(!days.length)throw Error('no capture timestamp fixture');
+                captureThrough.value=days[0];
+                captureThrough.dispatchEvent(new Event('change'));
+                var firstDay=data.features.filter(f=>
+                  new Date(Date.parse(f.properties.captured_at)).toISOString().slice(0,10)<=days[0]);
+                if(document.querySelectorAll('#points circle').length!==firstDay.length)
+                  throw Error('inclusive capture end filter mismatch');
+                captureThrough.value='1900-01-01';
+                captureThrough.dispatchEvent(new Event('change'));
+                if(document.querySelectorAll('#points circle').length!==0||
+                   !exportButton.disabled)
+                  throw Error('capture filter did not exclude reports');
+                captureThrough.value='';
+                captureThrough.dispatchEvent(new Event('change'));
+                captureFrom.value=days[days.length-1];
+                captureFrom.dispatchEvent(new Event('change'));
+                var lastDay=data.features.filter(f=>
+                  new Date(Date.parse(f.properties.captured_at)).toISOString().slice(0,10)>=days[days.length-1]);
+                if(document.querySelectorAll('#points circle').length!==lastDay.length)
+                  throw Error('inclusive capture start filter mismatch');
+                captureFrom.value='';
+                captureFrom.dispatchEvent(new Event('change'));
+                if(document.querySelectorAll('#points circle').length!==data.features.length)
+                  throw Error('capture filter reset lost source reports');
                 var srcName=data.features[0]?.properties.source_id;
                 if(!srcName)throw Error('no fixture reports');
                 document.getElementById('sources').value=srcName;
@@ -296,7 +324,9 @@ jobs:
                    JSON.stringify(result.features)!==JSON.stringify(expected)||
                    result.monde_visible_export.exported_feature_count!==expected.length||
                    result.monde_visible_export.original_feature_count!==data.features.length||
-                   result.monde_visible_export.scope!=='VISIBLE_SOURCE_REPORTS_ONLY')
+                   result.monde_visible_export.scope!=='VISIBLE_SOURCE_REPORTS_ONLY'||
+                   result.monde_visible_export.filters.captured_from_utc_day!==''||
+                   result.monde_visible_export.filters.captured_through_utc_day!=='')
                   throw Error('lost filtered source evidence');
                 if(JSON.stringify(data.features).includes('monde_visible_export'))
                   throw Error('source snapshot mutated');
