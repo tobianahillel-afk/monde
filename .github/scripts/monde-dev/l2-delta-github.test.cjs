@@ -339,10 +339,19 @@ const FRESH_MISSION = {
 function freshClient(options={}) {
   const calls={get:[],files:[],compares:[]};
   let observations=0;
-  const origFiles=options.files||[
+  const rawFiles=options.files||[
     {status:'modified',filename:PATH},
     {status:'added',filename:'.github/scripts/monde-dev/l2-delta-github.cjs'}
   ];
+  // Reflect actual GitHub DiffEntry metadata; preserve explicit overrides.
+  const withMetadata=files=>files.map(file=>{
+    if(!file||typeof file!=='object')return file;
+    const added=file.status==='removed'?0:1;
+    const deleted=file.status==='added'?0:1;
+    return {sha:'e'.repeat(40),additions:added,deletions:deleted,
+      changes:added+deleted,...file};
+  });
+  const origFiles=withMetadata(rawFiles);
   const api={
     rest:{repos:{compareCommitsWithBasehead:async args=>{
       calls.compares.push(args);
@@ -354,7 +363,7 @@ function freshClient(options={}) {
           (options.compareStatus==='diverged'?1:0):options.behindBy,
         base_commit:{sha:options.compareBase||options.base||'c'.repeat(40)},
         merge_base_commit:{sha:options.mergeBase||options.base||'c'.repeat(40)},
-        files:options.immutableFiles||origFiles
+        files:options.immutableFiles?withMetadata(options.immutableFiles):origFiles
       }};
     }},pulls:{
       get:async args=>{
@@ -873,4 +882,46 @@ test('fresh L2 allows different ordering of exact immutable file records',async(
   const result=await prepareFreshL2BatchesFromCurrentGitHub({
     github:batch.api,...FRESH_MISSION});
   assert.equal(result.changed_files,original.length);
+});
+
+
+test('fresh L2: identical filenames and operations do not conceal changed blob SHA',async()=>{
+  const paths=[{filename:PATH,status:'modified',sha:'a'.repeat(40)}];
+  const immutable=[{filename:PATH,status:'modified',sha:'b'.repeat(40)}];
+  for(const prepare of [prepareFreshL2FromCurrentGitHub,
+    prepareFreshL2BatchesFromCurrentGitHub]){
+    const {api}=freshClient({files:paths,immutableFiles:immutable});
+    await assert.rejects(prepare({github:api,...FRESH_MISSION}),
+      e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+});
+test('fresh L2: inconsistent immutable line counts or missing blob identity fail closed',async()=>{
+  const stable=[{filename:PATH,status:'modified'}];
+  for(const mutation of [
+    {sha:undefined},{sha:'not-a-sha'},
+    {additions:2},{deletions:3},{changes:99},
+    {additions:-1},{deletions:1.25},{changes:undefined}
+  ]){
+    for(const prepare of [prepareFreshL2FromCurrentGitHub,
+      prepareFreshL2BatchesFromCurrentGitHub]){
+      const {api}=freshClient({files:stable,
+        immutableFiles:[{...stable[0],...mutation}]});
+      await assert.rejects(prepare({github:api,...FRESH_MISSION}),
+        e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+    }
+  }
+});
+test('fresh L2: equal GitHub blob identity and line counts permit reordered pages',async()=>{
+  const original=[
+    {filename:PATH,status:'modified',sha:'a'.repeat(40),
+      additions:1,deletions:2,changes:3},
+    {filename:'src/changed.cjs',status:'added',sha:'b'.repeat(40),
+      additions:8,deletions:0,changes:8}
+  ];
+  for(const prepare of [prepareFreshL2FromCurrentGitHub,
+    prepareFreshL2BatchesFromCurrentGitHub]){
+    const {api}=freshClient({files:original,immutableFiles:original.slice().reverse()});
+    const result=await prepare({github:api,...FRESH_MISSION});
+    assert.equal(result.changed_files,2);
+  }
 });

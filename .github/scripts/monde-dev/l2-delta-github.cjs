@@ -136,15 +136,25 @@ function verifyImmutableFileManifest(rows,immutableFiles) {
   const encode=files=>{
     const paths=new Set();
     const keys=files.map(f=>{
+      // Matching path/status is not enough to establish the same file bytes.
+      // Compare the blob and delta counts returned independently by GitHub
+      // immutable compare and paginated PR endpoints.
       if(!f||typeof f.filename!=='string'||
          !['added','modified','removed','renamed'].includes(f.status) ||
+         typeof f.sha!=='string'||!/^[a-f0-9]{40}$/.test(f.sha) ||
+         !Number.isSafeInteger(f.additions)||f.additions<0 ||
+         !Number.isSafeInteger(f.deletions)||f.deletions<0 ||
+         !Number.isSafeInteger(f.changes) ||
+         f.changes!==f.additions+f.deletions ||
          paths.has(f.filename))incomplete();
       paths.add(f.filename);
       const old=f.previous_filename;
       if(f.status==='renamed'?
          typeof old!=='string' || old===f.filename :
          old!==undefined && old!==null)incomplete();
-      return JSON.stringify([f.filename,f.status,f.status==='renamed'?old:null]);
+      return JSON.stringify([f.filename,f.status,
+        f.status==='renamed'?old:null,f.sha,
+        f.additions,f.deletions,f.changes]);
     });
     return keys.sort();
   };
