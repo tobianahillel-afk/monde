@@ -5,7 +5,7 @@ phase: PHASE-0
 lot: LOT-0
 sublot: SUBLOT-0.3
 created_at: "2026-09-10"
-updated_at: "2026-09-10"
+updated_at: "2026-10-16"
 
 purpose: |
   Configure GitHub repository-level protections so process rules are enforced at the hosting layer as well as documented in the repository.
@@ -74,10 +74,17 @@ required_tests:
   real_system: ["actual GitHub repository settings"]
 
 validation:
-  executed: []
-  evidence: []
+  executed:
+    - "2026-10-16: read-only GitHub REST inspection of main branch and repository ruleset 24877820; no write/delete/force-push probe performed."
+  evidence:
+    - "https://github.com/tobianahillel-afk/monde/rules/24877820 (active, targets default branch and refs/heads/main; deletion and non-fast-forward blocked; pull request required; 0 native approvals; empty bypass list)."
+    - "https://api.github.com/repos/tobianahillel-afk/monde/branches/main (protected=true at 2026-10-16 observation)."
   coverage: {line: NOT_APPLICABLE, branch: NOT_APPLICABLE}
-  known_gaps: []
+  known_gaps:
+    - "No required status checks in active ruleset: the MONDE trust-root / required-check policy has not been verified or installed for this work item."
+    - "0 native GitHub approvals required: separate-context ChatGPT technical L2 is not native non-author GitHub approval."
+    - "Repository visibility, dependency/code/secret scanning settings and representative merge enforcement remain to be independently verified."
+    - "No destructive test of force-push/deletion; ruleset readback proves configured rules, not all enforcement paths."
 
 risk:
   security: MEDIUM
@@ -91,7 +98,8 @@ rollback:
 
 run_log: []
 discoveries: []
-blockers: []
+blockers:
+  - "Remaining WORK-0003 AC-1..AC-3 and actual hosted merge/test gates require their own verified evidence and review; protection readback is only partial progress."
 follow_up_work_items: []
 completion:
   definition_of_done_checked: false
