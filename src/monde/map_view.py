@@ -108,7 +108,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <div class="controls" id="trace-filter-control" hidden>
 <label for="trace-filter">GPX source trace / segment</label>
 <select id="trace-filter" aria-label="Select original GPX source trace and segment"><option value="">All source reports</option></select>
-<button id="clear-trace-filter" type="button" disabled>All traces</button></div>
+<button id="clear-trace-filter" type="button" disabled>All traces</button><button id="export-trace-profile" type="button" disabled>Export source segment profile</button></div>
 <p id="trace-filter-summary" class="subtle" role="status" aria-live="polite" hidden></p>
 <div class="controls"><label for="entities">Entity</label><select id="entities"><option value="">All entities</option></select></div>
 <div class="controls"><label for="captured-from">Captured from (UTC day)</label><input id="captured-from" type="date" aria-label="Captured from UTC day">
@@ -170,6 +170,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var traceFilter = document.getElementById("trace-filter");
   var traceClear = document.getElementById("clear-trace-filter");
   var traceSummary = document.getElementById("trace-filter-summary");
+  var exportTraceProfile = document.getElementById("export-trace-profile");
   var entities = document.getElementById("entities");
   var capturedFrom = document.getElementById("captured-from");
   var capturedThrough = document.getElementById("captured-through");
@@ -450,6 +451,48 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       traceFilter.appendChild(option);
     });
   }
+  // This is a profile of original *source claims*, not a measured journey.
+  // A pair is counted only when both reports survive every active filter and
+  // the original sample orders are adjacent within one source/trace/segment.
+  function sourceTraceProfile() {
+    if(!traceFilter.value || !availableTraces.has(traceFilter.value))return null;
+    var identity=availableTraces.get(traceFilter.value);
+    var samples=visibleFeatures.filter(function(f){
+      return traceKey(f)===traceFilter.value;
+    }).slice().sort(function(a,b){
+      return a.properties.monde_gpx_trace.order -
+        b.properties.monde_gpx_trace.order;
+    });
+    if(!samples.length)return null;
+    var count=0,km=0;
+    for(var i=1;i<samples.length;i++){
+      if(samples[i].properties.monde_gpx_trace.order !==
+          samples[i-1].properties.monde_gpx_trace.order+1)continue;
+      km+=approximateDistanceKm(samples[i-1].geometry.coordinates,
+        samples[i].geometry.coordinates);
+      count++;
+    }
+    return {
+      format:"MONDE_MINI_GPX_SOURCE_SEGMENT_PROFILE_V1",
+      scope:"FILTERED_ORIGINAL_SOURCE_REPORTED_SAMPLES",
+      source_query:query,
+      applied_filters:appliedFilters(),
+      source_trace:{source_id:identity.source,kind:identity.kind,
+        name:identity.name,segment:identity.segment,
+        original_sample_count:identity.count},
+      visible_sample_count:samples.length,
+      adjacent_pair_count:count,
+      approximate_adjacent_separation_km:Math.round(km*1000)/1000,
+      distance_method:"SUM_OF_SHORTEST_GREAT_CIRCLE_SEPARATIONS_BETWEEN_VISIBLE_CONSECUTIVE_SOURCE_SAMPLES",
+      completeness:"Filtered derivative. Hidden or non-adjacent samples are never bridged.",
+      interpretation:"Approximate separation of source-reported coordinates only; no verified movement, actual traveled distance, path continuity, speed, or source authority.",
+      original_reports:samples
+    };
+  }
+  exportTraceProfile.addEventListener("click",function(){
+    var profile=sourceTraceProfile();
+    if(profile)saveEvidence(profile,"monde-source-segment-profile.json","application/json");
+  });
   // A disagreement is *different sources reporting different coordinates* for
   // the same entity. This is not a confidence/physical-location judgement.
   var entityReports = new Map();
@@ -741,6 +784,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     renderCaptureTimeline();
     visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
     traceClear.disabled=!traceFilter.value;
+    var traceProfile=sourceTraceProfile();
+    exportTraceProfile.disabled=!traceProfile;
     if(availableTraces.size){
       if(traceFilter.value){
         var selectedTrace=availableTraces.get(traceFilter.value);
@@ -749,7 +794,11 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
             String(selectedTrace.count)+" in "+selectedTrace.source+" / "+
             selectedTrace.kind+" "+selectedTrace.name+" / segment "+
             String(selectedTrace.segment+1)+
-            ". Filtered source evidence only, not verified travel or continuity." :
+            (traceProfile ? ". "+String(traceProfile.adjacent_pair_count)+
+              " visible consecutive source pairs · approx. "+
+              String(traceProfile.approximate_adjacent_separation_km)+
+              " km of coordinate separation." : ". No matching samples.")+
+            " No verified movement, traveled distance or continuity." :
           "This original trace is not available in the current evidence snapshot.";
       }else{
         traceSummary.textContent=String(availableTraces.size)+

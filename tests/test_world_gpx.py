@@ -163,6 +163,19 @@ class OriginalGPXTests(unittest.TestCase):
             self.assertFalse(out.exists())
 
 
+    def test_trace_segment_profile_control_is_emitted_for_real_gpx(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = self.source(directory, TRACE_GPX)
+            output = Path(directory) / "source-traces.html"
+            done = self.cli(*self.flags(source), "--at", AT,
+                            "--known-at", CAPTURED, "--output", output)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            html = output.read_text(encoding="utf-8")
+            self.assertIn('id="export-trace-profile"', html)
+            self.assertIn("MONDE_MINI_GPX_SOURCE_SEGMENT_PROFILE_V1", html)
+            self.assertIn("adjacent_pair_count", html)
+            self.assertIn("original_reports:samples", html)
+
     def test_original_route_and_track_points_are_stable_source_samples(self):
         with tempfile.TemporaryDirectory() as directory:
             source = self.source(directory, TRACE_GPX)

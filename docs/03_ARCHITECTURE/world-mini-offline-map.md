@@ -402,3 +402,8 @@ the original GPX, not from inferred geographic truth.
 ### Explore one original GPX source trace segment
 
 When a GPX route or track appears, the GPX source trace / segment selector offers one option per original source, trace and segment. Selecting it filters the displayed reports and the existing GeoJSON/CSV export to source-attributed samples, with original and currently visible sample counts. The All traces button restores all source claims. Segments never imply observed physical travel, nor are points missing from a filtered view connected into a fabricated path.
+
+
+## GPX source segment profile (WORK-0025)
+
+Select a **GPX source trace / segment** in the standalone map and click **Export source segment profile**. The downloadable JSON retains each currently visible original Point report and its source/evidence identifiers, the unchanged bitemporal map query, filters, original segment identity and original sample count. It counts only originally consecutive sample pairs that both survive all active filters. The summed approximate great-circle **coordinate separations** in kilometers are not the surveyed route length, physical distance traveled, verified motion, inferred speed, or complete geometry. Missing or hidden samples are never bridged; clearing the selection disables the export. Everything works offline without additional dependencies.

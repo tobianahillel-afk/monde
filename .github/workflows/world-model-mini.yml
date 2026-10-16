@@ -776,6 +776,66 @@ jobs:
             grep -o 'data-monde-capture-timeline="[^"]*"' /tmp/monde-capture-timeline-dom.html || true
             exit 1
           fi
+      - name: Export selected original GPX source segment profile in actual Chromium
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          html = Path('/tmp/monde-gpx-track.html').read_text(encoding='utf-8')
+          check = """<script>
+          (async function(){
+            try{
+              var raw=document.getElementById('monde-data').textContent;
+              var selector=document.getElementById('trace-filter');
+              var exportButton=document.getElementById('export-trace-profile');
+              if(!exportButton.disabled || selector.options.length!==4)
+                throw Error('profile should require an original segment selection');
+              selector.selectedIndex=1;
+              selector.dispatchEvent(new Event('change'));
+              if(exportButton.disabled)throw Error('selected source segment not exportable');
+              var blob=null,filename=null;
+              URL.createObjectURL=function(value){blob=value;return 'blob:gpx-profile';};
+              HTMLAnchorElement.prototype.click=function(){filename=this.download;};
+              exportButton.click();
+              if(!blob || filename!=='monde-source-segment-profile.json')
+                throw Error('missing offline source segment export');
+              var result=JSON.parse(await blob.text());
+              if(result.format!=='MONDE_MINI_GPX_SOURCE_SEGMENT_PROFILE_V1' ||
+                  result.visible_sample_count!==3 ||
+                  result.adjacent_pair_count!==2 ||
+                  result.approximate_adjacent_separation_km<2 ||
+                  result.approximate_adjacent_separation_km>4 ||
+                  result.source_trace.original_sample_count!==3 ||
+                  result.original_reports.length!==3 ||
+                  result.original_reports.some(f=>!f.id || !f.properties.evidence_id ||
+                    !f.properties.source_id) ||
+                  !result.applied_filters.gpx_source_trace ||
+                  !result.source_query)
+                throw Error('profile changed original source/evidence or pair counts');
+              document.getElementById('report-search').value='not-a-source-record';
+              document.getElementById('report-search').dispatchEvent(new Event('input'));
+              if(!exportButton.disabled)throw Error('empty profile remained exportable');
+              document.getElementById('report-search').value='';
+              document.getElementById('report-search').dispatchEvent(new Event('input'));
+              document.getElementById('clear-trace-filter').click();
+              if(!exportButton.disabled ||
+                  document.getElementById('monde-data').textContent!==raw)
+                throw Error('clear selection changed immutable evidence');
+              document.body.setAttribute('data-monde-gpx-profile','pass');
+            }catch(e){document.body.setAttribute('data-monde-gpx-profile','fail:'+e.message);}
+          }()).catch(e=>document.body.setAttribute('data-monde-gpx-profile','fail:'+e.message));
+          </script>"""
+          Path('/tmp/monde-gpx-profile-smoke.html').write_text(
+              html.replace('</body>',check+'</body>'),encoding='utf-8')
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=2500 --timeout=15000 --dump-dom \
+            file:///tmp/monde-gpx-profile-smoke.html >/tmp/monde-gpx-profile-dom.html
+          if ! grep -q 'data-monde-gpx-profile="pass"' /tmp/monde-gpx-profile-dom.html; then
+            grep -o 'data-monde-gpx-profile="[^"]*"' /tmp/monde-gpx-profile-dom.html || true
+            exit 1
+          fi
       - name: Attach actual offline HTML map for product preview
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
