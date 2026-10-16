@@ -1,0 +1,21 @@
+name: MONDE Mini product CI
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  world-mini:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          persist-credentials: false
+      - name: Compile Python
+        run: python3 -m compileall -q src/monde tests/test_world_mini.py
+      - name: Run behavioral and end-to-end tests
+        env:
+          PYTHONPATH: src
+        run: python3 -m unittest discover -s tests -p 'test_world_mini.py' -v

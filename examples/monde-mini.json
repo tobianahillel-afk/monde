@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "evidence": [
+    {
+      "id": "e-city-reg-1",
+      "source_id": "city-registry",
+      "locator": "fixture://city-registry/2026-01",
+      "captured_at": "2026-01-03T10:00:00Z",
+      "source_event_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "id": "e-news-1",
+      "source_id": "local-news",
+      "locator": "fixture://local-news/2026-01",
+      "captured_at": "2026-01-04T09:00:00Z",
+      "source_event_at": "2026-01-02T00:00:00Z"
+    },
+    {
+      "id": "e-city-reg-2",
+      "source_id": "city-registry",
+      "locator": "fixture://city-registry/correction",
+      "captured_at": "2026-01-06T11:00:00Z",
+      "source_event_at": "2026-01-05T00:00:00Z"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-city-initial",
+      "entity": "building-001",
+      "attribute": "floors",
+      "value": 5,
+      "evidence_id": "e-city-reg-1",
+      "kind": "CLAIM",
+      "known_at": "2026-01-03T10:00:00Z",
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_to": null,
+      "supersedes": null
+    },
+    {
+      "id": "a-news",
+      "entity": "building-001",
+      "attribute": "floors",
+      "value": 6,
+      "evidence_id": "e-news-1",
+      "kind": "CLAIM",
+      "known_at": "2026-01-04T09:00:00Z",
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_to": null,
+      "supersedes": null
+    },
+    {
+      "id": "a-city-revision",
+      "entity": "building-001",
+      "attribute": "floors",
+      "value": 7,
+      "evidence_id": "e-city-reg-2",
+      "kind": "CLAIM",
+      "known_at": "2026-01-06T11:00:00Z",
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_to": null,
+      "supersedes": "a-city-initial"
+    }
+  ]
+}

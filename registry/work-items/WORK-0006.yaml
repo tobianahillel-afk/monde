@@ -1,0 +1,94 @@
+id: WORK-0006
+title: "Experiment: MONDE Mini bitemporal evidence query"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "World Model experimental foundations"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+
+purpose: |
+  Bounded discovery spike: implement the first runnable evidence-backed
+  source-claim and dual-time query, without accepting unspecified LOT-2 semantics.
+
+scope:
+  in: ["evidence records", "append-only source claims", "as-valid-at and as-known-at queries", "synthetic MONDE Mini fixture", "Python CLI and real GitHub Actions tests"]
+  out: ["normative World Ledger", "production persistence or ingestion", "entity resolution", "forecasting", "confidence calibration", "simulations", "GIS", "user permissions"]
+acceptance_criteria:
+  - {id: AC-1, description: "Return separate as-world-time and as-knowledge-time source reports with evidence lineage", status: NOT_STARTED}
+  - {id: AC-2, description: "Preserve contradictory sources and earlier snapshots across append-only corrections", status: NOT_STARTED}
+  - {id: AC-3, description: "Execute a real CLI/fixture path and security/temporal regressions on GitHub Actions", status: NOT_STARTED}
+  - {id: AC-4, description: "Query an entity-wide observed snapshot across multiple properties without erasing source contradictions or unknowns", status: NOT_STARTED}
+  - {id: AC-5, description: "Compare what sources reported at two knowledge cutoffs for the same world-time while preserving evidence lineage", status: NOT_STARTED}
+
+requirements: []
+assumptions: ["Exact offset-aware ISO-8601 time for this bounded prototype; uncertain dates remain an unapproved LOT-2 design question."]
+risks: ["Confusing source report with truth", "In-memory prototype offers no durable multi-writer ledger"]
+progress_justifications:
+  scientific_validation: "No probabilistic scientific inference or forecast in this slice."
+assurance:
+  level: A3
+  rationale: "Temporal and provenance semantics are foundational."
+  escalation_triggers: ["Accepting a canonical World Model schema", "Deploying real-world ingestion"]
+read_before:
+  - README.md
+  - AGENTS.md
+  - docs/00_START_HERE.md
+  - docs/09_GOVERNANCE/constitution.md
+  - docs/10_ROADMAP/phase-0.md
+  - docs/13_QUALITY/definition-of-ready.md
+  - docs/13_QUALITY/testing-strategy.md
+depends_on: [WORK-0001]
+blocks: []
+reuses: ["Accepted Constitution", "MONDE Mini golden-world test strategy", "Python standard library"]
+affected_capabilities: []
+affected_engines: ["World Model experimental foundation"]
+affected_schemas: ["examples/monde-mini.json"]
+affected_docs: ["docs/03_ARCHITECTURE/world-model-mini.md"]
+contracts: ["Experimental fixture version 1; non-normative"]
+adrs: []
+impact_analysis:
+  blast_radius: LOCAL
+  upstream: [WORK-0001]
+  downstream: ["Future LOT-2 schema and persistence decisions"]
+  migrations_or_reprocessing: []
+  compatibility_notes: "Replace or migrate this experiment after a reviewed normative schema."
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Build source-evidence bitemporal query core", depends_on: [], expected_files: [src/monde/world.py, src/monde/__init__.py], status: IN_PROGRESS}
+    - {id: T2, description: "Build synthetic end-to-end fixture and Python CI", depends_on: [T1], expected_files: [examples/monde-mini.json, tests/test_world_mini.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+    - {id: T3, description: "Expose entity-wide source-attributed as-of snapshot and CLI", depends_on: [T1], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
+    - {id: T4, description: "Explain source-report changes across two knowledge-time cutoffs for one fixed world-time", depends_on: [T3], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Deliver reproducible experimental product slice", tasks: [T1, T2], exit_condition: "GH CI succeeds on published candidate HEAD and independent L2 performed", status: IN_PROGRESS}
+review_plan:
+  artifact_class: HIGH_RISK_CAPABILITY
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, EPISTEMIC_DATA]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["bitemporal and correction behavior"]
+  property: ["idempotency and immutable history"]
+  integration: ["actual Python module subprocess CLI", "entity snapshot CLI across properties", "CLI comparison of two knowledge cutoffs"]
+  contract: ["JSON schema version and strict input"]
+  e2e: ["synthetic source evidence to two-time query"]
+  regression: ["contradiction and revision replay"]
+  security: ["no unsourced claim; no inferred truth conversion"]
+  performance: []
+  real_system: ["Python on GitHub Actions"]
+  epistemic: ["source/knowledge/validity and unknown semantics", "knowledge changes never imply world changes"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["PROPOSED discovery only", "No production-grade LOT-2 contracts", "L2 pending"]
+risk: {security: LOW, data: MEDIUM, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Close/revert isolated PR; no production state affected."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_ready_checked: false, definition_of_done_checked: false, review_complete: false, docs_updated: true, registries_updated: false, project_state_updated: false}
