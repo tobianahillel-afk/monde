@@ -852,5 +852,148 @@ class WorldMiniTest(unittest.TestCase):
             bad = subprocess.run(base + extra, capture_output=True, text=True, env=env)
             self.assertNotEqual(bad.returncode, 0)
 
+
+    def test_updates_source_arrivals_and_corrections(self):
+        result = self.model.knowledge_updates("2026-01-03T10:00:00Z", LATE)
+        self.assertEqual(result["comparison"], "NEW_SOURCE_REPORTS_ONLY")
+        self.assertEqual([r["assertion_id"] for r in result["reports"]],
+                         ["a-news", "a-city-revision"])
+        self.assertEqual([r["value"] for r in result["reports"]], [6, 7])
+        self.assertEqual(result["reports"][1]["supersedes"], "a-city-initial")
+        self.assertEqual(result["reports"][1]["source_id"], "city-registry")
+        self.assertTrue(all(r["evidence_id"] and r["locator"]
+                            for r in result["reports"]))
+
+    def test_updates_exclusive_start_inclusive_end_timezone(self):
+        x = self.model.knowledge_updates("2026-01-03T10:00:00Z",
+                                         "2026-01-04T09:00:00Z")
+        self.assertEqual([r["assertion_id"] for r in x["reports"]], ["a-news"])
+        y = self.model.knowledge_updates("2026-01-03T11:00:00+01:00",
+                                         "2026-01-04T10:00:00+01:00")
+        self.assertEqual(x["reports"], y["reports"])
+        self.assertEqual(self.model.knowledge_updates(LATE, "2026-01-08T00:00:00Z")["status"],
+                         "NO_NEW_REPORTS")
+
+    def test_updates_filters_all_entities_and_exact_json_values(self):
+        self.model.add_evidence({
+            "id": "e-other", "source_id": "other", "locator": "fixture://other",
+            "captured_at": "2026-01-08T00:00:00Z", "source_event_at": None})
+        self.model.add_assertion({
+            "id": "a-other", "entity": "building-002", "attribute": "floors",
+            "value": 0, "evidence_id": "e-other", "kind": "OBSERVATION",
+            "known_at": "2026-01-08T00:00:00Z",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_to": None, "supersedes": None})
+        all_updates = self.model.knowledge_updates("2026-01-06T11:00:00Z",
+                                                    "2026-01-09T00:00:00Z")
+        self.assertEqual([r["entity"] for r in all_updates["reports"]], ["building-002"])
+        self.assertEqual(all_updates["reports"][0]["value"], 0)
+        self.assertEqual(self.model.knowledge_updates("2026-01-06T11:00:00Z",
+                         "2026-01-09T00:00:00Z", entity="building-001")["count"], 0)
+        self.assertEqual(self.model.knowledge_updates(AT, "2026-01-09T00:00:00Z",
+                         attribute="floors")["count"], 4)
+
+    def test_updates_never_mutate_data_or_assert_truth(self):
+        original = self.model.export()
+        result = self.model.knowledge_updates(AT, LATE)
+        self.assertEqual(result["world"], "OBSERVED")
+        result["reports"][0]["value"] = "tampered"
+        self.assertEqual(self.model.export(), original)
+        self.assertEqual([r["value"] for r in self.query()["reports"]], [6, 7])
+
+    def test_updates_reject_bad_cutoffs_or_entity(self):
+        for start, end in [(AT, AT), (LATE, AT),
+                           ("2026-01-01T00:00:00", LATE), (AT, "bad")]:
+            with self.assertRaises(ValueError):
+                self.model.knowledge_updates(start, end)
+        with self.assertRaises(ValueError):
+            self.model.knowledge_updates(AT, LATE, entity="invalid name")
+
+    def test_world_knowledge_changes_aggregates_multiple_entities(self):
+        self.model.add_assertion({
+            "id": "a-building-002", "entity": "building-002",
+            "attribute": "floors", "value": 3, "evidence_id": "e-city-reg-2",
+            "kind": "CLAIM", "known_at": "2026-01-06T12:00:00Z",
+            "valid_from": "2026-01-01T00:00:00Z", "valid_to": None,
+            "supersedes": None,
+        })
+        result = self.model.world_knowledge_changes(
+            AT, "2026-01-03T00:00:00Z", LATE)
+        self.assertEqual(result["world"], "OBSERVED")
+        self.assertEqual(result["comparison"],
+                         "CROSS_ENTITY_KNOWLEDGE_REPORTS_ONLY")
+        self.assertEqual([item["entity"] for item in result["entities"]],
+                         ["building-001", "building-002"])
+        self.assertEqual(result["entity_count"], 2)
+        report = result["entities"][1]["changes"]["floors"]["newly_current"][0]
+        self.assertEqual(report["value"], 3)
+        self.assertEqual(report["evidence_id"], "e-city-reg-2")
+        self.assertEqual(report["source_id"], "city-registry")
+        early = self.model.world_knowledge_changes(
+            AT, "2026-01-03T00:00:00Z", "2026-01-04T00:00:00Z")
+        self.assertEqual([x["entity"] for x in early["entities"]],
+                         ["building-001"])
+
+    def test_world_knowledge_changes_corrections_unknown_and_immutability(self):
+        before = self.model.export()
+        result = self.model.world_knowledge_changes(
+            AT, "2026-01-04T12:00:00Z", LATE)
+        delta = result["entities"][0]["changes"]["floors"]
+        self.assertEqual([x["value"] for x in delta["no_longer_current"]], [5])
+        self.assertEqual([x["value"] for x in delta["newly_current"]], [7])
+        self.assertEqual(delta["still_current_count"], 1)
+        result["entities"][0]["changes"]["floors"]["newly_current"][0]["value"] = 999
+        self.assertEqual(self.model.export(), before)
+        unchanged = self.model.world_knowledge_changes(
+            AT, LATE, "2026-01-08T00:00:00Z")
+        self.assertEqual(unchanged["status"], "UNCHANGED")
+        self.assertEqual(unchanged["entities"], [])
+        for old, new in [(AT, AT), (LATE, AT),
+                         ("2026-01-03T00:00:00", LATE)]:
+            with self.assertRaises(ValueError):
+                self.model.world_knowledge_changes(AT, old, new)
+
+    def test_world_knowledge_changes_cli_end_to_end(self):
+        cmd = [sys.executable, "-m", "monde.world", "--fixture",
+               str(ROOT / "examples/monde-mini.json"),
+               "--world-knowledge-changes", "--at", AT,
+               "--compare-known-at", "2026-01-03T00:00:00Z",
+               "--known-at", LATE]
+        env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+        run = subprocess.run(cmd, cwd=ROOT, env=env, text=True,
+                             capture_output=True, check=False)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        data = json.loads(run.stdout)
+        self.assertEqual(data["entity_count"], 1)
+        self.assertEqual(data["entities"][0]["entity"], "building-001")
+        self.assertTrue(data["entities"][0]["changes"]["floors"]["newly_current"])
+        for extra in [["--entity", "building-001"],
+                      ["--equals-json", "5"], ["--compare-at", AT],
+                      ["--timeline-from", AT]]:
+            bad = subprocess.run(cmd + extra, cwd=ROOT, env=env,
+                                 text=True, capture_output=True, check=False)
+            self.assertNotEqual(bad.returncode, 0)
+
+    def test_updates_actual_cli_and_disallow_mode_mix(self):
+        env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+        argv = [sys.executable, "-m", "monde.world",
+                "--fixture", str(ROOT / "examples/monde-mini.json"),
+                "--knowledge-updates", "--updates-from",
+                "2026-01-03T10:00:00Z", "--known-at", LATE]
+        result = subprocess.run(argv, capture_output=True, text=True, env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["count"], 2)
+        for extra in [["--at", AT], ["--compare-at", AT],
+                      ["--source-history", "city-registry"],
+                      ["--timeline-from", AT], ["--equals-json", "5"],
+                      ["--knowledge-timeline-from", AT]]:
+            bad = subprocess.run(argv + extra, capture_output=True, text=True, env=env)
+            self.assertNotEqual(bad.returncode, 0)
+        missing = subprocess.run([sys.executable, "-m", "monde.world",
+                                  "--fixture", str(ROOT / "examples/monde-mini.json"),
+                                  "--knowledge-updates", "--known-at", LATE],
+                                 capture_output=True, text=True, env=env)
+        self.assertNotEqual(missing.returncode, 0)
+
 if __name__ == "__main__":
     unittest.main()

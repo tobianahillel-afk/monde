@@ -27,6 +27,8 @@ acceptance_criteria:
   - {id: AC-9, description: "Detect differing current reports from distinct source IDs across entities with full provenance and both temporal cutoffs", status: NOT_STARTED}
   - {id: AC-10, description: "Audit one source's reported and superseded assertion history by knowledge cutoff with original evidence lineage and CLI", status: NOT_STARTED}
   - {id: AC-11, description: "Inspect how source reports become known at fixed world-time, preserving UNKNOWN gaps, corrections, provenance and half-open knowledge intervals", status: NOT_STARTED}
+  - {id: AC-12, description: "Audit cross-entity source-report arrivals and corrections over explicit knowledge cutoffs with evidence lineage", status: NOT_STARTED}
+  - {id: AC-13, description: "Compare cross-entity changes in source reports at a fixed world instant and two knowledge cutoffs", status: NOT_STARTED}
 
 requirements: []
 assumptions: ["Exact offset-aware ISO-8601 time for this bounded prototype; uncertain dates remain an unapproved LOT-2 design question."]
@@ -72,6 +74,8 @@ implementation_plan:
     - {id: T8, description: "Discover cross-source reported-value disagreements preserving dual-time evidence", depends_on: [T3, T6], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
     - {id: T9, description: "Inspect source-attributed assertion and same-source correction history at a knowledge cutoff", depends_on: [T1, T4], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
     - {id: T10, description: "Expose source-reported knowledge-time history at a fixed valid-world instant", depends_on: [T4, T9], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
+    - {id: T11, description: "Expose cross-entity knowledge arrivals with correction provenance", depends_on: [T1, T9], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
+    - {id: T12, description: "Cross-entity knowledge state comparison at fixed world instant", depends_on: [T4, T11], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
   planned_runs:
     - {id: RUN-1, objective: "Deliver reproducible experimental product slice", tasks: [T1, T2], exit_condition: "GH CI succeeds on published candidate HEAD and independent L2 performed", status: IN_PROGRESS}
 review_plan:
@@ -83,7 +87,7 @@ review_plan:
 required_tests:
   unit: ["bitemporal and correction behavior"]
   property: ["idempotency and immutable history"]
-  integration: ["knowledge-timeline source arrivals and corrections via real CLI", "source-history subprocess CLI and source correction lineage", "actual Python module subprocess CLI", "entity snapshot CLI across properties", "CLI comparison of two knowledge cutoffs", "world-time timeline CLI at a fixed knowledge cutoff", "cross-entity search CLI with valid and knowledge cutoffs", "CLI comparison of two world times at fixed knowledge"]
+  integration: ["cross-entity knowledge arrival CLI", "knowledge-timeline source arrivals and corrections via real CLI", "source-history subprocess CLI and source correction lineage", "actual Python module subprocess CLI", "entity snapshot CLI across properties", "CLI comparison of two knowledge cutoffs", "world-time timeline CLI at a fixed knowledge cutoff", "cross-entity search CLI with valid and knowledge cutoffs", "CLI comparison of two world times at fixed knowledge"]
   contract: ["JSON schema version and strict input"]
   e2e: ["synthetic source evidence to two-time query"]
   regression: ["contradiction and revision replay"]
