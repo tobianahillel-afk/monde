@@ -39,3 +39,57 @@ def to_geojson(path, *, id_column="id", lon_column="longitude",
     if not features:
         raise ValueError("CSV has no Point reports")
     return {"type": "FeatureCollection", "features": features}
+
+
+MAX_MANIFEST_BYTES = 256_000
+MAX_DATASETS = 16
+
+
+def documents_from_manifest(path, *, output_path):
+    """Convert source-specific local CSVs for one atomic WorldMini transaction."""
+    import json
+    import os
+    from .geojson import to_document
+    from .world import _object_no_duplicates
+
+    manifest = os.path.realpath(os.fspath(path))
+    output = os.path.realpath(os.fspath(output_path))
+    if manifest == output:
+        raise ValueError("output cannot overwrite CSV manifest")
+    if os.path.getsize(manifest) > MAX_MANIFEST_BYTES:
+        raise ValueError("CSV manifest exceeds size limit")
+    with open(manifest, encoding="utf-8") as stream:
+        payload = json.load(stream, object_pairs_hook=_object_no_duplicates,
+                            parse_constant=lambda _: (_ for _ in ()).throw(
+                                ValueError("invalid non-finite manifest value")))
+    if not isinstance(payload, dict) or set(payload) != {"datasets"}:
+        raise ValueError("CSV manifest requires datasets")
+    datasets = payload["datasets"]
+    if not isinstance(datasets, list) or not 1 <= len(datasets) <= MAX_DATASETS:
+        raise ValueError("CSV manifest requires 1 to 16 datasets")
+    required = {"csv", "source_id", "locator", "captured_at", "valid_from"}
+    optional = {"valid_to", "source_event_at", "id_column", "lon_column", "lat_column"}
+    documents, features = [], 0
+    for entry in datasets:
+        if (not isinstance(entry, dict) or not required <= set(entry)
+                or set(entry) - required - optional):
+            raise ValueError("CSV dataset has missing or unexpected fields")
+        csv_path = entry["csv"]
+        if not isinstance(csv_path, str) or not csv_path or csv_path != csv_path.strip():
+            raise ValueError("CSV dataset path required")
+        source_file = os.path.realpath(os.path.join(os.path.dirname(manifest), csv_path))
+        if source_file == output:
+            raise ValueError("output cannot overwrite CSV dataset")
+        geojson = to_geojson(
+            source_file, id_column=entry.get("id_column", "id"),
+            lon_column=entry.get("lon_column", "longitude"),
+            lat_column=entry.get("lat_column", "latitude"))
+        features += len(geojson["features"])
+        if features > MAX_ROWS:
+            raise ValueError("CSV manifest total Point limit exceeded (50000)")
+        documents.append(to_document(
+            geojson, source_id=entry["source_id"], locator=entry["locator"],
+            captured_at=entry["captured_at"], valid_from=entry["valid_from"],
+            valid_to=entry.get("valid_to"),
+            source_event_at=entry.get("source_event_at")))
+    return documents, features

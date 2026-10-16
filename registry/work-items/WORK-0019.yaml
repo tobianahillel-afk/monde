@@ -17,6 +17,7 @@ acceptance_criteria:
   - {id: AC-1, description: "Preserve explicit source identifiers and temporal provenance", status: NOT_STARTED}
   - {id: AC-2, description: "Reject malformed/ambiguous rows with no partial snapshot", status: NOT_STARTED}
   - {id: AC-3, description: "Query and render imported evidence with existing offline map", status: NOT_STARTED}
+  - {id: AC-4, description: "Atomically import multiple independently attributed CSV datasets", status: NOT_STARTED}
 requirements: []
 assumptions: ["User explicitly specifies WGS84 and capture/valid timestamps"]
 risks: ["Unreconciled source locations may be mistaken for ground truth"]
@@ -35,6 +36,7 @@ implementation_plan:
   tasks:
     - {id: T1, description: "Parse safe source CSV and connect to existing importer", depends_on: [], expected_files: [src/monde/csv_points.py, src/monde/world.py], status: IN_PROGRESS}
     - {id: T2, description: "Validate CSV to stored World Model to offline map", depends_on: [T1], expected_files: [tests/test_world_csv.py, docs/03_ARCHITECTURE/world-mini-csv-import.md], status: IN_PROGRESS}
+    - {id: T3, description: "Import multiple CSV datasets with independent provenance atomically", depends_on: [T1], expected_files: [src/monde/csv_points.py, src/monde/world.py, tests/test_world_csv.py, docs/03_ARCHITECTURE/world-mini-csv-import.md], status: IN_PROGRESS}
   planned_runs:
     - {id: RUN-1, objective: "Usable CSV data to MONDE Mini map", tasks: [T1, T2], exit_condition: "Product CI and independent L2 if applicable", status: IN_PROGRESS}
 review_plan:

@@ -159,3 +159,92 @@ class CsvPointTests(unittest.TestCase):
                 "--entity", "place-001", "--attribute", "geo_point",
                 "--at", AT, "--known-at", CAPTURE,
                 "--csv-id-column", "id").returncode, 0)
+
+
+    def test_manifest_imports_distinct_source_times_to_query_and_html(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a = Path(tmp) / "source-a.csv"
+            b = Path(tmp) / "source-b.csv"
+            a.write_text("id,longitude,latitude\nshared,2.3522,48.8566\n", encoding="utf-8")
+            b.write_text("uid,lon,lat\nshared,2.4000,48.8600\n", encoding="utf-8")
+            later = "2026-01-11T10:00:00Z"
+            manifest = Path(tmp) / "sources.json"
+            manifest.write_text(json.dumps({"datasets": [
+                {"csv": "source-a.csv", "source_id": "survey-a",
+                 "locator": "dataset://survey-a", "captured_at": CAPTURE,
+                 "valid_from": VALID},
+                {"csv": "source-b.csv", "source_id": "survey-b",
+                 "locator": "dataset://survey-b", "captured_at": later,
+                 "valid_from": VALID, "id_column": "uid",
+                 "lon_column": "lon", "lat_column": "lat"}
+            ]}), encoding="utf-8")
+            output = Path(tmp) / "world.json"
+            cmd = ("--fixture", str(FIXTURE), "--ingest-csv-manifest",
+                   str(manifest), "--state-out", str(output))
+            run = self.cli(*cmd)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            stats = json.loads(run.stdout)
+            self.assertEqual((stats["batches"], stats["features"]), (2, 2))
+            for known_at, expected in [(CAPTURE, {"survey-a"}),
+                                       (later, {"survey-a", "survey-b"})]:
+                query = self.cli("--fixture", str(output), "--entity", "shared",
+                                 "--attribute", "geo_point", "--at", AT,
+                                 "--known-at", known_at)
+                self.assertEqual(query.returncode, 0, query.stderr)
+                self.assertEqual({r["source_id"] for r in
+                                  json.loads(query.stdout)["reports"]}, expected)
+            html = Path(tmp) / "map.html"
+            displayed = subprocess.run(
+                [sys.executable, "-m", "monde.map_view", "--state", str(output),
+                 "--bbox", "2.3,48.8,2.5,48.9", "--at", AT,
+                 "--known-at", later, "--output", str(html)],
+                env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
+                capture_output=True, text=True)
+            self.assertEqual(displayed.returncode, 0, displayed.stderr)
+            self.assertIn("survey-a", html.read_text(encoding="utf-8"))
+            self.assertIn("survey-b", html.read_text(encoding="utf-8"))
+            self.assertNotEqual(self.cli(*cmd).returncode, 0)
+
+    def test_manifest_rejects_invalid_later_dataset_without_overwriting_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "good.csv").write_text(
+                "id,longitude,latitude\np1,2,3\n", encoding="utf-8")
+            (Path(tmp) / "bad.csv").write_text(
+                "id,longitude,latitude\np2,181,3\n", encoding="utf-8")
+            good = {"csv": "good.csv", "source_id": "a", "locator": "dataset://a",
+                    "captured_at": CAPTURE, "valid_from": VALID}
+            manifest = Path(tmp) / "sources.json"
+            manifest.write_text(json.dumps({"datasets": [
+                good, {**good, "csv": "bad.csv", "source_id": "b",
+                       "locator": "dataset://b"}]}), encoding="utf-8")
+            out = Path(tmp) / "world.json"
+            out.write_text("original\n", encoding="utf-8")
+            args = ("--fixture", str(FIXTURE), "--ingest-csv-manifest",
+                    str(manifest), "--state-out", str(out), "--replace-state")
+            self.assertNotEqual(self.cli(*args).returncode, 0)
+            self.assertEqual(out.read_text(encoding="utf-8"), "original\n")
+            for file in [manifest, Path(tmp) / "good.csv"]:
+                alias = ("--fixture", str(FIXTURE), "--ingest-csv-manifest",
+                         str(manifest), "--state-out", str(file), "--replace-state")
+                self.assertNotEqual(self.cli(*alias).returncode, 0)
+            self.assertEqual((Path(tmp) / "good.csv").read_text(encoding="utf-8"),
+                             "id,longitude,latitude\np1,2,3\n")
+
+    def test_manifest_schema_and_source_metadata_are_explicit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "a.csv").write_text(
+                "id,longitude,latitude\np1,2,3\n", encoding="utf-8")
+            manifest = Path(tmp) / "manifest.json"
+            args = ("--fixture", str(FIXTURE), "--ingest-csv-manifest",
+                    str(manifest), "--state-out", str(Path(tmp) / "out.json"))
+            for obj in [{"datasets": []},
+                        {"datasets": [{"csv": "a.csv"}]},
+                        {"datasets": [{"csv": "a.csv", "source_id": "a",
+                                       "locator": "dataset://a", "captured_at": CAPTURE,
+                                       "valid_from": VALID, "unknown": "no"}]}]:
+                manifest.write_text(json.dumps(obj), encoding="utf-8")
+                self.assertNotEqual(self.cli(*args).returncode, 0)
+            manifest.write_text('{"datasets":[],"datasets":[]}', encoding="utf-8")
+            self.assertNotEqual(self.cli(*args).returncode, 0)
+            self.assertNotEqual(self.cli(*args, "--source-id", "extra").returncode, 0)
+            self.assertNotEqual(self.cli(*args, "--csv-id-column", "uid").returncode, 0)

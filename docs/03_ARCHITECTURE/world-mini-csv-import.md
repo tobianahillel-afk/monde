@@ -34,3 +34,19 @@ its input by default. This prototype accepts up to 50,000 CSV rows per batch.
 Reported coordinates are not verified positions. A corrected source must supply
 new evidence and explicit supersession using MONDE's existing update behavior;
 it must never overwrite an old reported position as independent physical truth.
+
+## Batch import: multiple original CSV datasets
+
+Pass a UTF-8 JSON manifest to `--ingest-csv-manifest sources.json` with `--fixture examples/monde-mini.json --state-out combined.json`. The manifest has exactly one `datasets` array containing 1–16 entries. Every entry declares `csv`, `source_id`, `locator`, `captured_at`, `valid_from`; optionally `valid_to`, `source_event_at`, `id_column`, `lon_column`, `lat_column`. Paths are relative to the manifest.
+
+Example:
+
+    {"datasets":[
+      {"csv":"city-a.csv","source_id":"city-a","locator":"dataset://a",
+       "captured_at":"2026-01-10T10:00:00Z","valid_from":"2026-01-01T00:00:00Z"},
+      {"csv":"city-b.csv","source_id":"city-b","locator":"dataset://b",
+       "captured_at":"2026-01-11T10:00:00Z","valid_from":"2026-01-01T00:00:00Z",
+       "id_column":"uid","lon_column":"lon","lat_column":"lat"}
+    ]}
+
+The existing source-to-GeoJSON adapter and atomic `append_documents` commit preserve each source report independently. An invalid later source rejects the entire batch without writing the output state. The manifest permits at most 50,000 Points across all datasets; it never geocodes, reconciles physical positions or infers event times.
