@@ -765,5 +765,92 @@ class WorldMiniTest(unittest.TestCase):
             self.assertNotEqual(rejected.returncode, 0)
 
 
+    def test_knowledge_timeline_unknown_arrivals_and_source_correction(self):
+        history = self.model.knowledge_timeline(
+            "building-001", "floors", AT,
+            "2026-01-01T00:00:00Z", "2026-01-08T00:00:00Z")
+        self.assertEqual(history["comparison"], "KNOWLEDGE_TIME_REPORTS_ONLY")
+        segments = history["segments"]
+        self.assertEqual(len(segments), 4)
+        self.assertEqual([s["status"] for s in segments],
+                         ["UNKNOWN", "REPORTED", "REPORTED", "REPORTED"])
+        self.assertEqual([[r["value"] for r in s["reports"]] for s in segments],
+                         [[], [5], [5, 6], [6, 7]])
+        self.assertEqual([s["known_from"] for s in segments], [
+            "2026-01-01T00:00:00Z", "2026-01-03T10:00:00Z",
+            "2026-01-04T09:00:00Z", "2026-01-06T11:00:00Z"])
+        self.assertEqual(segments[-1]["known_to"], "2026-01-08T00:00:00Z")
+        self.assertEqual(segments[-1]["reports"][-1]["evidence_id"], "e-city-reg-2")
+        self.assertEqual(segments[-1]["reports"][-1]["supersedes"], "a-city-initial")
+
+    def test_knowledge_timeline_cutoff_never_leaks_future_correction(self):
+        history = self.model.knowledge_timeline(
+            "building-001", "floors", AT,
+            "2026-01-03T00:00:00Z", "2026-01-05T00:00:00Z")
+        self.assertEqual([[r["value"] for r in s["reports"]]
+                          for s in history["segments"]], [[], [5], [5, 6]])
+        self.assertTrue(all(r["assertion_id"] != "a-city-revision"
+                            for s in history["segments"] for r in s["reports"]))
+        boundary = self.model.knowledge_timeline(
+            "building-001", "floors", AT,
+            "2026-01-04T09:00:00Z", "2026-01-06T11:00:00Z")
+        self.assertEqual(len(boundary["segments"]), 1)
+        self.assertEqual([r["value"] for r in boundary["segments"][0]["reports"]],
+                         [5, 6])
+
+    def test_knowledge_timeline_unknown_and_out_of_validity_events(self):
+        unknown = self.model.knowledge_timeline(
+            "building-001", "height", AT,
+            "2026-01-01T00:00:00Z", LATE)
+        self.assertEqual(unknown["status"], "UNKNOWN")
+        self.assertEqual(len(unknown["segments"]), 1)
+        self.assertEqual(unknown["segments"][0]["reports"], [])
+        outside = self.model.knowledge_timeline(
+            "building-001", "floors", "2025-01-01T00:00:00Z",
+            "2026-01-01T00:00:00Z", LATE)
+        self.assertEqual(len(outside["segments"]), 1)
+        self.assertEqual(outside["status"], "UNKNOWN")
+
+    def test_knowledge_timeline_offsets_half_open_and_defensive_results(self):
+        before = self.model.export()
+        result = self.model.knowledge_timeline(
+            "building-001", "floors", AT,
+            "2026-01-01T01:00:00+01:00", "2026-01-08T01:00:00+01:00")
+        self.assertEqual(result["segments"][0]["known_from"], "2026-01-01T00:00:00Z")
+        result["segments"][-1]["reports"][-1]["value"] = "tampered"
+        self.assertEqual(self.model.export(), before)
+        self.assertEqual([r["value"] for r in self.query()["reports"]], [6, 7])
+
+    def test_knowledge_timeline_rejects_invalid_bounds_and_identifiers(self):
+        for start, end in [(LATE, AT), (AT, AT),
+                           ("2026-01-01T00:00:00", LATE),
+                           (AT, "2026-01-07")]:
+            with self.assertRaises(ValueError):
+                self.model.knowledge_timeline("building-001", "floors", AT, start, end)
+        with self.assertRaises(ValueError):
+            self.model.knowledge_timeline("bad entity", "floors", AT, AT, LATE)
+        with self.assertRaises(ValueError):
+            self.model.knowledge_timeline("building-001", "bad attribute", AT, AT, LATE)
+
+    def test_knowledge_timeline_cli_real_process_and_exclusive_modes(self):
+        env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+        base = [sys.executable, "-m", "monde.world",
+                "--fixture", str(ROOT / "examples/monde-mini.json"),
+                "--entity", "building-001", "--attribute", "floors",
+                "--at", AT, "--knowledge-timeline-from", "2026-01-01T00:00:00Z",
+                "--known-at", LATE]
+        done = subprocess.run(base, capture_output=True, text=True, env=env)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        got = json.loads(done.stdout)
+        self.assertEqual(got["comparison"], "KNOWLEDGE_TIME_REPORTS_ONLY")
+        self.assertEqual([[x["value"] for x in s["reports"]]
+                          for s in got["segments"]], [[], [5], [5, 6], [6, 7]])
+        for extra in [["--compare-known-at", AT], ["--timeline-from", AT],
+                      ["--source-history", "city-registry"], ["--all-attributes"],
+                      ["--search-attribute", "floors"], ["--equals-json", "5"],
+                      ["--source-disagreements"]]:
+            bad = subprocess.run(base + extra, capture_output=True, text=True, env=env)
+            self.assertNotEqual(bad.returncode, 0)
+
 if __name__ == "__main__":
     unittest.main()
