@@ -6205,6 +6205,30 @@ test('resume: Actions numeric identifiers do not masquerade as abbreviated SHAs'
     assert.equal(packet.evidence_refs[0].ref,ref);
   }
 });
+test('resume: reject seven-character Git commit hints and encoded SHA aliases',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    action_kind:'AWAIT_L2',next_action:'Review the latest work'};
+  for(const hint of [
+    'Inspect commit deadbee before review',
+    'Recheck HEAD:deadbee then continue',
+    'Inspect sha=deadbee before proceeding',
+    'Inspect revision deadbee',
+    'Inspect commit de%61dbee',
+    'Inspect commit %64eadbee',
+    'Inspect commit \\u0064eadbee',
+    'Inspect commit ｄｅａｄｂｅｅ',
+    'Inspect %61bcdef12 after the fix',
+    'Inspect \\u0061bcdef12 before merging'
+  ])assert.throws(()=>d.createResumePacket({...base,next_action:hint}),
+    e=>e.code==='INVALID_RESUME_PACKET',hint);
+  for(const safe of [
+    'Review job-116441995536 before proceeding',
+    'Check run:116441995536 for test results',
+    'Review code in src/abcdefg.cjs',
+    'Investigate public behavior of src/decafed.cjs'
+  ])assert.equal(d.createResumePacket({...base,next_action:safe}).next_action,
+    safe);
+});
 test('resume: still rejects untyped commit-like values and disguised CI tokens',()=>{
   for(const hint of ['Inspect commit 116441995536','Inspect abcdef12',
     'Inspect job-12345678deadbeef','Inspect job-116441995536abc',

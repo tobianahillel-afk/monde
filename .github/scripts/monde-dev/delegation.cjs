@@ -2183,12 +2183,19 @@ const resumeActions=new Set(['CONTINUE_IMPLEMENTATION','RECHECK_WORK',
 // after a HEAD change such advice becomes misleading and cannot be rebased
 // safely. This replaces an endless collection of syntax-specific HEAD matchers.
 function containsFreeTextCommitRef(action) {
-  // Typed numeric GitHub Actions identifiers are not abbreviated commits.
-  // Remove only whole CI tokens before rejecting untyped commit-like values.
-  const withoutCiIds=action.replace(
-    /(^|[^A-Za-z0-9_])(?:job|run|check)[-:][1-9][0-9]{0,17}(?![A-Za-z0-9_])/gi,
-    '$1[CI_ID]');
-  return /(^|[^A-Za-z0-9])[a-f0-9]{8,40}(?![A-Za-z0-9])/i.test(withoutCiIds);
+  // Decode bounded public text before checking abbreviated SHA hints: an
+  // encoded/free-text commit must not survive a HEAD change as an instruction.
+  // Keep GitHub Actions numeric IDs valid, even after canonicalization.
+  return publicTextMatches(action,text=>{
+    const withoutCiIds=text.replace(
+      /(^|[^A-Za-z0-9_])(?:job|run|check)[-:][1-9][0-9]{0,17}(?![A-Za-z0-9_])/gi,
+      '$1[CI_ID]');
+    if (/(^|[^A-Za-z0-9])[a-f0-9]{8,40}(?![A-Za-z0-9])/i.test(withoutCiIds))
+      return true;
+    // Seven hex characters are ambiguous in ordinary prose, but unsafe when
+    // expressly introduced as a commit/HEAD/SHA/revision reference.
+    return /(?:^|[^A-Za-z0-9])(?:commit(?:\s+(?:id|sha|hash))?|HEAD|SHA|revision|rev)\s*(?:[:=#-]\s*)?[a-f0-9]{7}(?![A-Za-z0-9])/i.test(withoutCiIds);
+  });
 }
 function resumePacket(input){
   exactFields(input,['v','repo','pr','head_sha','base_sha','work','task',
