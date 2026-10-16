@@ -197,11 +197,12 @@ jobs:
                result.monde_visible_export.filters.entity!==entity||
                result.monde_visible_export.filters.different_source_positions_only!==true)
               throw Error('comparison metadata/evidence missing from GeoJSON');
-            entities.value='no-such-entity';
-            entities.dispatchEvent(new Event('change'));
+            var search=document.getElementById('report-search');
+            search.value='no-such-source-assertion';
+            search.dispatchEvent(new Event('input'));
             if(document.querySelectorAll('#points circle').length!==0||
                !document.getElementById('export-visible').disabled)
-              throw Error('unmatched entity did not empty view');
+              throw Error('entity comparison and search filters did not compose');
             URL.createObjectURL=oldCreate;
             HTMLAnchorElement.prototype.click=oldClick;
             document.body.setAttribute('data-monde-compare','pass');
