@@ -1288,6 +1288,10 @@ test('review waves: reused reviewer chat across different waves remains unqualif
   assert.equal(result.waves[1].results[0].independence_unverified,true);
   assert.equal(result.waves[0].results[0].independence_unverified,true);
   assert.equal(result.independence_conflicts,5);
+  assert.equal(result.waves[0].independence_conflicts,4);
+  assert.equal(result.waves[1].independence_conflicts,1);
+  assert.equal(result.waves.reduce((n,w)=>n+w.independence_conflicts,0),
+    result.independence_conflicts);
 });
 
 
@@ -1694,6 +1698,9 @@ test('review waves: cross-wave context reuse flags BOTH distinct missions',()=>{
   assert.equal(result.waves[1].results[0].independence_unverified,true);
   assert.equal(result.waves[0].needs_attention,true);
   assert.equal(result.waves[1].needs_attention,true);
+  assert.equal(result.waves[0].independence_conflicts,1);
+  assert.equal(result.waves[1].independence_conflicts,1);
+  assert.equal(result.waves.reduce((n,w)=>n+w.independence_conflicts,0),2);
   for(let i=1;i<4;i++)
     assert.notEqual(result.waves[0].results[i].independence_reason,
       'REUSED_CHAT_CONTEXT_OR_MESSAGE');

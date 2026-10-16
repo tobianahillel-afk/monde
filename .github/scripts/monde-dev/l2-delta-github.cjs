@@ -781,6 +781,13 @@ function assessFreshL2Waves({
         wave.needs_attention=true;
     }
   }
+  // Each wave is a public handoff summary of its final results, not a
+  // snapshot from before cross-wave reconciliation. A late reviewer-context
+  // collision must update the first wave's counter as well as its flags.
+  for(const wave of summary){
+    wave.independence_conflicts=wave.results.filter(
+      r=>r.independence_reason==='REUSED_CHAT_CONTEXT_OR_MESSAGE').length;
+  }
   const allIndependenceConflicts=new Set(results
     .filter(r=>r.independence_reason==='REUSED_CHAT_CONTEXT_OR_MESSAGE')
     .map(r=>r.assignment_id));
