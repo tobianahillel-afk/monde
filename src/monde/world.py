@@ -349,6 +349,7 @@ class WorldMini:
         result = self.search_geo_bbox(bounds, at, known_at)
         features = []
         trace_reports = {}
+        kml_reports = {}
         sample_time_reports = {}
         elevation_reports = {}
         for match in result["matches"]:
@@ -369,6 +370,13 @@ class WorldMini:
                 elevation_reports[match["entity"]] = {
                     r["evidence_id"]: r["value"]
                     for r in self.query(match["entity"], "elevation_m",
+                                        at, known_at)["reports"]
+                }
+            if any(a["entity"] == match["entity"] and
+                   a["attribute"] == "kml_trace" for a in self._assertions.values()):
+                kml_reports[match["entity"]] = {
+                    r["evidence_id"]: r["value"]
+                    for r in self.query(match["entity"], "kml_trace",
                                         at, known_at)["reports"]
                 }
             for inside, reports in ((True, match["matched_reports"]),
@@ -398,6 +406,10 @@ class WorldMini:
                             report["evidence_id"])
                         if type(elevation) in (int, float):
                             properties["monde_gpx_sample_elevation_m"] = elevation
+                    kml_trace = kml_reports.get(match["entity"], {}).get(
+                        report["evidence_id"])
+                    if kml_trace is not None:
+                        properties["monde_kml_trace"] = _clone(kml_trace)
                     features.append({
                         "type": "Feature", "id": report["assertion_id"],
                         "geometry": _point(report["value"]), "properties": properties,
