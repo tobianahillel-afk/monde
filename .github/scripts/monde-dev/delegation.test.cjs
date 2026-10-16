@@ -7298,3 +7298,27 @@ test('resume: prevent conversational seven-char HEAD aliases in persistent next_
   ])assert.equal(d.createResumePacket({...base,next_action}).next_action,
     next_action);
 });
+
+
+test('resume: explicit 4-6 character Git abbreviated SHA references are stale-sensitive',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    action_kind:'AWAIT_L2',next_action:'Review the exact current HEAD'};
+  for(const hint of [
+    'Compare HEAD is ab1f before accepting',
+    'Review commit 4c0de against main',
+    'Verify SHA: a123bc on the prior branch',
+    'Recheck revision=dead before merge',
+    'Confirm rev was b0abc',
+    'Compare HEAD at %61b1f against the CI run',
+    'Inspect commit \\u0064ead before proceeding'
+  ])assert.throws(()=>d.createResumePacket({...base,next_action:hint}),
+    e=>e.code==='INVALID_RESUME_PACKET',hint);
+  // Do not mistake numeric GitHub check IDs, task names or normal prose
+  // for a labeled Git abbreviated object reference.
+  for(const hint of [
+    'Inspect job-116791901307 and current HEAD',
+    'Check TASK T1234 and WORK-0005 progress',
+    'Summarize a 2026 release in the L2 review',
+    'Review the code at src/dead.cjs'
+  ])assert.equal(d.createResumePacket({...base,next_action:hint}).next_action,hint);
+});

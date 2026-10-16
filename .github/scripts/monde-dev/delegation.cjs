@@ -2192,9 +2192,11 @@ function containsFreeTextCommitRef(action) {
       '$1[CI_ID]');
     if (/(^|[^A-Za-z0-9])[a-f0-9]{8,40}(?![A-Za-z0-9])/i.test(withoutCiIds))
       return true;
-    // Seven hex characters are ambiguous in ordinary prose, but unsafe when
-    // expressly introduced as a commit/HEAD/SHA/revision reference.
-    return /(?:^|[^A-Za-z0-9])(?:commit(?:\s+(?:id|sha|hash))?|HEAD|SHA|revision|rev)\s*(?:(?:is|at|of|was)\s+)?(?:[:=#-]\s*)?[("'\x60]{0,2}[a-f0-9]{7}(?![A-Za-z0-9])/i.test(withoutCiIds);
+    // Git accepts unique abbreviated object names as short as four hex
+    // characters. In ordinary prose such values are ambiguous, so only
+    // reject 4–7 hex chars when explicitly labeled HEAD/commit/SHA/rev.
+    // Longer (8–40) unlabelled hex references remain prohibited above.
+    return /(?:^|[^A-Za-z0-9])(?:commit(?:\s+(?:id|sha|hash))?|HEAD|SHA|revision|rev)\s*(?:(?:is|at|of|was)\s+)?(?:[:=#-]\s*)?[("'\x60]{0,2}[a-f0-9]{4,7}(?![A-Za-z0-9])/i.test(withoutCiIds);
   });
 }
 function resumePacket(input){
