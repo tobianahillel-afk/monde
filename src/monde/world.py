@@ -337,6 +337,38 @@ class WorldMini:
                 "status": "MATCHES" if matches else "NO_MATCHES",
                 "matches": matches}
 
+
+    def export_geojson(self, at: str, known_at: str, bounds=None) -> dict:
+        """GeoJSON view: one Feature per current source Point assertion at T/K.
+
+        No false reconciled location is produced from disagreeing sources.
+        """
+        from .geojson import _point
+
+        selected = self.search_geo_bbox(
+            [-180, -90, 180, 90] if bounds is None else bounds, at, known_at)
+        features = []
+        for match in selected["matches"]:
+            for report in match["matched_reports"]:
+                properties = {
+                    "entity": match["entity"],
+                    "monde_world": "OBSERVED",
+                    "monde_status": "SOURCE_REPORTED_ONLY",
+                    "valid_at": at,
+                    "knowledge_cutoff": known_at,
+                }
+                properties.update({key: _clone(value) for key, value in report.items()
+                                   if key != "value"})
+                features.append({
+                    "type": "Feature",
+                    "id": report["assertion_id"],
+                    "geometry": _point(report["value"]),
+                    "properties": properties,
+                })
+        features.sort(key=lambda feature:
+                      (feature["properties"]["entity"], feature["id"]))
+        return {"type": "FeatureCollection", "features": features}
+
     def search_geo_radius(self, center, radius_km, at: str, known_at: str) -> dict:
         """Find source-reported Points near a coordinate at world/knowledge T,K.
 
@@ -751,6 +783,8 @@ def main(argv=None) -> int:
                            help="source-reported Point proximity at world and knowledge time")
     selection.add_argument("--search-geo-nearest", metavar="LON,LAT",
                             help="nearest N source-reported Point entities at T and K")
+    selection.add_argument("--export-geojson", action="store_true",
+                           help="GeoJSON source Point FeatureCollection at world/knowledge T/K")
     selection.add_argument("--source-disagreements", action="store_true")
     selection.add_argument("--source-history", metavar="SOURCE_ID")
     selection.add_argument("--knowledge-updates", action="store_true")
@@ -774,6 +808,8 @@ def main(argv=None) -> int:
     parser.add_argument("--radius-km", type=float, help="nonnegative radius for --search-geo-radius")
     parser.add_argument("--nearest-limit", type=int,
                         help="nearest entity count (1 to 1000)")
+    parser.add_argument("--export-bbox", metavar="W,S,E,N",
+                        help="optional viewport; requires --export-geojson")
     parser.add_argument("--at", help="one world-time instant; omit when selecting a timeline")
     parser.add_argument("--timeline-from", help="start of valid-world-time interval")
     parser.add_argument("--timeline-to", help="exclusive end of valid-world-time interval")
@@ -787,6 +823,8 @@ def main(argv=None) -> int:
         parser.error("--search-geo-radius and --radius-km must be supplied together")
     if (args.search_geo_nearest is None) != (args.nearest_limit is None):
         parser.error("--search-geo-nearest and --nearest-limit must be supplied together")
+    if args.export_bbox is not None and not args.export_geojson:
+        parser.error("--export-bbox requires --export-geojson")
     try:
         geo_metadata = (args.source_id, args.source_locator, args.captured_at,
                         args.valid_from, args.valid_to, args.source_event_at)
@@ -889,6 +927,24 @@ def main(argv=None) -> int:
                     args.equals_json is not None):
                 parser.error("disagreements require --at without entity/timeline/compare")
             result = world.source_disagreements(args.at, args.known_at)
+        elif args.export_geojson:
+            if (args.entity is not None or args.at is None or
+                    args.source_attribute is not None or args.equals_json is not None or
+                    args.timeline_from is not None or args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None or
+                    args.compare_known_at is not None or args.compare_at is not None or
+                    args.updates_from is not None):
+                parser.error("GeoJSON export requires --at and --known-at without other query flags")
+            bounds = None
+            if args.export_bbox is not None:
+                parts = args.export_bbox.split(",")
+                if len(parts) != 4:
+                    raise ValueError("export bbox must be WEST,SOUTH,EAST,NORTH")
+                try:
+                    bounds = [float(part.strip()) for part in parts]
+                except ValueError as exc:
+                    raise ValueError("export bbox must contain numeric coordinates") from exc
+            result = world.export_geojson(args.at, args.known_at, bounds)
         elif args.search_geo_nearest is not None:
             if (args.entity is not None or args.at is None or
                     args.source_attribute is not None or args.equals_json is not None or
