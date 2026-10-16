@@ -1107,6 +1107,8 @@ def main(argv=None) -> int:
                             help="nearest N source-reported Point entities at T and K")
     selection.add_argument("--export-geojson", action="store_true",
                            help="GeoJSON source Point FeatureCollection at world/knowledge T/K")
+    selection.add_argument("--export-csv", action="store_true",
+                           help="source Point evidence CSV at world/knowledge T/K")
     selection.add_argument("--export-geojson-changes", action="store_true",
                             help="GeoJSON Point changes between two knowledge cutoffs")
     selection.add_argument("--export-geojson-disagreements", action="store_true",
@@ -1170,7 +1172,7 @@ def main(argv=None) -> int:
     if ((args.search_geo_nearest is None and args.export_geojson_nearest is None)
             != (args.nearest_limit is None)):
         parser.error("nearest search or GeoJSON nearest export requires --nearest-limit")
-    if args.export_bbox is not None and not (args.export_geojson or args.export_geojson_changes
+    if args.export_bbox is not None and not (args.export_geojson or args.export_csv or args.export_geojson_changes
                                              or args.export_geojson_disagreements):
         parser.error("--export-bbox requires a GeoJSON export mode")
     try:
@@ -1451,7 +1453,7 @@ def main(argv=None) -> int:
                     raise ValueError("export bbox must contain numeric coordinates") from exc
             result = world.export_geojson_knowledge_changes(
                 args.at, args.compare_known_at, args.known_at, bounds)
-        elif args.export_geojson:
+        elif args.export_geojson or args.export_csv:
             if (args.entity is not None or args.at is None or
                     args.source_attribute is not None or args.equals_json is not None or
                     args.timeline_from is not None or args.timeline_to is not None or
@@ -1469,6 +1471,10 @@ def main(argv=None) -> int:
                 except ValueError as exc:
                     raise ValueError("export bbox must contain numeric coordinates") from exc
             result = world.export_geojson(args.at, args.known_at, bounds)
+            if args.export_csv:
+                from .csv_points import to_source_csv
+                print(to_source_csv(result), end="")
+                return 0
         elif args.search_geo_nearest is not None:
             if (args.entity is not None or args.at is None or
                     args.source_attribute is not None or args.equals_json is not None or

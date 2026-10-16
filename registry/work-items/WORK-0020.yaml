@@ -1,0 +1,67 @@
+id: WORK-0020
+title: "Export bitemporal source Point evidence as analyst-readable CSV"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-5
+sublot: SUBLOT-5.4
+owner: "MONDE Mini tabular source evidence"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+purpose: |
+  Export geographic source assertions with dual-time evidence lineage for
+  spreadsheet analysis without deriving a consensus physical location.
+scope:
+  in: ["CSV export", "World/knowledge time", "Optional WGS84 viewport", "Spreadsheet-safe text"]
+  out: ["Physical truth reconciliation", "New storage engine", "Network service"]
+acceptance_criteria:
+  - {id: AC-1, description: "One row per current source assertion with evidence and temporal lineage", status: NOT_STARTED}
+  - {id: AC-2, description: "Retain contradictory sources and filter by bitemporal cutoff and optional bbox", status: NOT_STARTED}
+  - {id: AC-3, description: "Escape potentially executable spreadsheet text without changing coordinate numbers", status: NOT_STARTED}
+requirements: []
+assumptions: ["Existing GeoJSON export preserves source-claim timing"]
+risks: ["Source-reported positions misinterpreted as truth", "Spreadsheet formula injection"]
+assurance: {level: A3, rationale: "Evidence and CSV trust boundary"}
+read_before: [AGENTS.md, docs/03_ARCHITECTURE/world-mini-csv-import.md]
+depends_on: [WORK-0001, WORK-0019]
+blocks: []
+reuses: ["WorldMini.export_geojson", "csv.writer", "existing CLI"]
+affected_capabilities: []
+affected_engines: ["MONDE Mini"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-csv-export.md]
+contracts: ["Attribution and bitemporal source-only evidence"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add source-preserving report export", depends_on: [], expected_files: [src/monde/world.py, src/monde/csv_points.py], status: IN_PROGRESS}
+    - {id: T2, description: "Test CLI and document analyst CSV", depends_on: [T1], expected_files: [tests/test_world_csv_export.py, docs/03_ARCHITECTURE/world-mini-csv-export.md], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Working source evidence CSV", tasks: [T1, T2], exit_condition: "Product CI and proportional L2", status: IN_PROGRESS}
+review_plan:
+  artifact_class: DATA_SOURCE_CONNECTOR
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY, OPERATIONS]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: [tests/test_world_csv_export.py]
+  integration: ["Source CSV to WorldMini to report CSV"]
+  contract: ["No consensus, retained evidence and dual-time"]
+  e2e: ["Python CLI"]
+  regression: ["Existing WorldMini suites"]
+  security: ["Formula-safe text", "Invalid time and bbox"]
+  performance: []
+  real_system: ["GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Report CSV is a derivative, not the ingest manifest"]
+risk: {security: MEDIUM, data: LOW, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Revert this isolated stacked PR; no persisted schema changes."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_done_checked: false, review_complete: false, docs_updated: false, registries_updated: false, project_state_updated: false}
