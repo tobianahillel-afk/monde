@@ -228,3 +228,33 @@ bitemporal source query, every included original GeoJSON Feature, assertion IDs,
 source IDs, evidence IDs, and the filters used. Its scope explicitly excludes
 the selected-entity filter so the inventory can compare multiple entities.
 No network calls, external map libraries or saved-state mutation are required.
+
+
+## Direct GeoJSON-to-offline-map workflow (WORK-0022)
+
+You can also generate the same standalone offline evidence map from an original
+GeoJSON `FeatureCollection` of WGS84 `Point` features, without first saving a
+MONDE state file. Each feature needs its own `id`, `geometry` and `properties`.
+The source identity and both time dimensions must be supplied explicitly:
+
+```sh
+PYTHONPATH=src python3 -m monde.map_view \
+  --geojson examples/monde-mini-points.geojson \
+  --source-id original-survey \
+  --source-locator dataset://original-survey/points.geojson \
+  --captured-at 2026-01-10T10:00:00Z \
+  --valid-from 2026-01-01T00:00:00Z \
+  --at 2026-01-02T00:00:00Z \
+  --known-at 2026-01-10T10:00:00Z \
+  --output source-map.html
+```
+
+`--valid-to` and `--source-event-at` are optional only when the original
+source does not provide those facts; they are never inferred. The map uses the
+same automatic source-point bounding box, bitemporal comparison options,
+source/evidence identifiers and offline browser view as saved states and CSV
+manifests. `--state`, `--csv-manifest` and `--geojson` are mutually exclusive.
+GeoJSON claims are **not verified physical positions**, and distinct source
+reports must never be collapsed into one location. Input files and pre-existing
+output files are not overwritten. Repeated corrections require the separate
+append-only state workflow with explicit evidence/supersession.

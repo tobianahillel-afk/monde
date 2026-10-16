@@ -973,6 +973,13 @@ def main(argv=None) -> int:
     inputs = parser.add_mutually_exclusive_group(required=True)
     inputs.add_argument("--state", help="saved MONDE Mini JSON state")
     inputs.add_argument("--csv-manifest", help="source-attributed local CSV manifest; no intermediate state")
+    inputs.add_argument("--geojson", help="local GeoJSON FeatureCollection of source-reported Points; no intermediate state")
+    parser.add_argument("--source-id", help="explicit source identifier for --geojson")
+    parser.add_argument("--source-locator", help="original data locator for --geojson")
+    parser.add_argument("--captured-at", help="source capture time with timezone for --geojson")
+    parser.add_argument("--valid-from", help="claim validity start with timezone for --geojson")
+    parser.add_argument("--valid-to", help="optional claim validity end for --geojson")
+    parser.add_argument("--source-event-at", help="optional source event timestamp for --geojson")
     parser.add_argument("--bbox", default="auto", help="W,S,E,N WGS84 viewport; default auto-fits source reports at requested times")
     parser.add_argument("--at", required=True, help="valid-world-time instant")
     parser.add_argument("--known-at", required=True, help="knowledge-time cutoff")
@@ -982,7 +989,23 @@ def main(argv=None) -> int:
     parser.add_argument("--output", required=True, help="new output HTML path; no overwrite")
     args = parser.parse_args(argv)
     try:
-        if args.csv_manifest:
+        source_args = ("source_id", "source_locator", "captured_at",
+                       "valid_from", "valid_to", "source_event_at")
+        if args.geojson:
+            if any(not getattr(args, name) for name in source_args[:4]):
+                raise ValueError("--geojson requires --source-id, --source-locator, "
+                                 "--captured-at and --valid-from")
+            if Path(args.geojson).resolve() == Path(args.output).resolve():
+                raise ValueError("output cannot overwrite the source GeoJSON")
+            from .geojson import to_document
+            original = WorldMini.load_document(args.geojson)
+            world = WorldMini.from_document(to_document(
+                original, source_id=args.source_id, locator=args.source_locator,
+                captured_at=args.captured_at, valid_from=args.valid_from,
+                valid_to=args.valid_to, source_event_at=args.source_event_at))
+        elif any(getattr(args, name) is not None for name in source_args):
+            raise ValueError("source provenance flags require --geojson")
+        elif args.csv_manifest:
             from .csv_points import documents_from_manifest
             documents, _ = documents_from_manifest(
                 args.csv_manifest, output_path=args.output)
