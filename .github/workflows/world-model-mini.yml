@@ -172,6 +172,18 @@ jobs:
             var checks=document.getElementById('disagreements-only');
             if(payload.features.length!==2||entities.options.length!==2)
               throw Error('missing competing source reports');
+             var linkLayer=document.getElementById('disagreement-links');
+             var toggle=document.getElementById('show-disagreement-links');
+             if(linkLayer.querySelectorAll('line').length!==1)
+               throw Error('expected one cross-source disagreement link');
+             toggle.checked=false;
+             toggle.dispatchEvent(new Event('change'));
+             if(linkLayer.querySelectorAll('line').length!==0)
+               throw Error('disagreement link was not hidden');
+             toggle.checked=true;
+             toggle.dispatchEvent(new Event('change'));
+             if(linkLayer.querySelectorAll('line').length!==1)
+               throw Error('disagreement link was not restored');
             var entity=payload.features[0].properties.entity;
             entities.value=entity;
             entities.dispatchEvent(new Event('change'));
@@ -200,7 +212,9 @@ jobs:
             var search=document.getElementById('report-search');
             search.value='no-such-source-assertion';
             search.dispatchEvent(new Event('input'));
-            if(document.querySelectorAll('#points circle').length!==0||
+            if(linkLayer.querySelectorAll('line').length!==0)
+               throw Error('filtered evidence still has disagreement links');
+             if(document.querySelectorAll('#points circle').length!==0||
                !document.getElementById('export-visible').disabled)
               throw Error('entity comparison and search filters did not compose');
             URL.createObjectURL=oldCreate;
