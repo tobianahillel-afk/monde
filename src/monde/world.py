@@ -338,6 +338,176 @@ class WorldMini:
                 "matches": matches}
 
 
+    def export_geojson_bbox(self, bounds, at: str, known_at: str) -> dict:
+        """Map source Point entities in a viewport, retaining contrary positions.
+
+        Include *every* current source Point of a qualifying entity, even
+        positions outside the viewport. No position is reconciled into truth.
+        """
+        from .geojson import _point
+
+        result = self.search_geo_bbox(bounds, at, known_at)
+        features = []
+        for match in result["matches"]:
+            for inside, reports in ((True, match["matched_reports"]),
+                                    (False, match["other_reports"])):
+                for report in reports:
+                    properties = {
+                        "entity": match["entity"],
+                        "monde_world": "OBSERVED",
+                        "monde_status": "SOURCE_REPORTED_ONLY",
+                        "valid_at": at,
+                        "knowledge_cutoff": known_at,
+                        "monde_inside_bbox": inside,
+                    }
+                    properties.update({key: _clone(value) for key, value in report.items()
+                                       if key != "value"})
+                    features.append({
+                        "type": "Feature", "id": report["assertion_id"],
+                        "geometry": _point(report["value"]), "properties": properties,
+                    })
+        features.sort(key=lambda f: (f["properties"]["entity"],
+                                     not f["properties"]["monde_inside_bbox"], f["id"]))
+        return {
+            "type": "FeatureCollection", "features": features,
+            "monde_bbox_query": {
+                "basis": result["query"], "bbox": result["bbox"],
+                "valid_at": result["valid_at"],
+                "knowledge_cutoff": result["knowledge_cutoff"],
+                "total_matching_entities": len(result["matches"]),
+                "total_source_features": len(features),
+                "status": result["status"],
+            },
+        }
+
+    def export_geojson_tile(self, zoom: int, x: int, y: int,
+                            at: str, known_at: str) -> dict:
+        """Export source-attributed GeoJSON for a Web Mercator XYZ tile.
+
+        This addresses a viewport; it is not a source of physical truth,
+        spatial interpolation or a server-side raster tile cache.
+        """
+        import math
+
+        if (type(zoom) is not int or type(x) is not int or type(y) is not int
+                or not 0 <= zoom <= 22):
+            raise ValueError("XYZ requires integer zoom in [0, 22] and x/y")
+        side = 1 << zoom
+        if not (0 <= x < side and 0 <= y < side):
+            raise ValueError("XYZ tile x/y outside zoom range")
+        west = x / side * 360.0 - 180.0
+        east = (x + 1) / side * 360.0 - 180.0
+
+        def latitude(row):
+            return math.degrees(math.atan(math.sinh(
+                math.pi * (1.0 - 2.0 * row / side))))
+
+        north, south = latitude(y), latitude(y + 1)
+        result = self.export_geojson_bbox([west, south, east, north], at, known_at)
+        result["monde_tile_query"] = {
+            "scheme": "XYZ_WEB_MERCATOR", "zoom": zoom, "x": x, "y": y,
+            "bbox_wgs84": [west, south, east, north],
+            "basis": "SOURCE_REPORTED_POINT_BBOX_ONLY",
+            "status": result["monde_bbox_query"]["status"],
+        }
+        return result
+
+    def export_geojson_bbox_knowledge_changes(
+            self, bounds, at: str, from_known_at: str, to_known_at: str) -> dict:
+        """Map source Point changes touching a viewport at either knowledge cutoff.
+
+        Entities qualify if reported within bounds at K1 or K2. Include all
+        their changed source positions, even positions outside the viewport.
+        Differences in knowledge are never interpreted as physical movement.
+        """
+        _time(at)
+        if _time(from_known_at) >= _time(to_known_at):
+            raise ValueError("viewport history requires increasing knowledge cutoffs")
+        prior = self.search_geo_bbox(bounds, at, from_known_at)
+        current = self.search_geo_bbox(bounds, at, to_known_at)
+        entities = {m["entity"] for m in prior["matches"] + current["matches"]}
+        old_inside = {r["assertion_id"] for m in prior["matches"]
+                      for r in m["matched_reports"]}
+        new_inside = {r["assertion_id"] for m in current["matches"]
+                      for r in m["matched_reports"]}
+        before = {f["id"]: f for f in self.export_geojson(at, from_known_at)["features"]
+                  if f["properties"]["entity"] in entities}
+        after = {f["id"]: f for f in self.export_geojson(at, to_known_at)["features"]
+                 if f["properties"]["entity"] in entities}
+        features = []
+        for view, changed, label, inside in (
+                (before, before.keys() - after.keys(), "NO_LONGER_CURRENT", old_inside),
+                (after, after.keys() - before.keys(), "NEWLY_CURRENT", new_inside)):
+            for assertion_id in sorted(changed):
+                feature = _clone(view[assertion_id])
+                feature["properties"].update({
+                    "monde_change": label,
+                    "monde_change_basis": "KNOWLEDGE_NOT_PHYSICAL",
+                    "monde_inside_bbox": assertion_id in inside,
+                    "from_known_at": from_known_at,
+                    "to_known_at": to_known_at,
+                })
+                features.append(feature)
+        features.sort(key=lambda f: (f["properties"]["entity"],
+                                     f["properties"]["monde_change"], f["id"]))
+        return {"type": "FeatureCollection", "features": features,
+                "monde_bbox_changes_query": {
+                    "basis": "SOURCE_REPORTED_VIEWPORT_KNOWLEDGE_CHANGES_ONLY",
+                    "bbox": prior["bbox"], "valid_at": at,
+                    "from_known_at": from_known_at, "to_known_at": to_known_at,
+                    "total_matching_entities": len(entities),
+                    "total_changed_features": len(features),
+                    "status": "CHANGES" if features else "NO_CHANGES",
+                }}
+
+    def export_geojson_bbox_world_changes(
+            self, bounds, from_at: str, to_at: str, known_at: str) -> dict:
+        """Map reported Point validity changes touching a viewport at either world time.
+
+        Entities qualify if reported within bounds at T1 or T2. Include all
+        their changed source positions, even positions outside the viewport.
+        Changes in reported validity are never interpreted as verified movement.
+        """
+        _time(known_at)
+        if _time(from_at) >= _time(to_at):
+            raise ValueError("viewport world comparison requires increasing instants")
+        prior = self.search_geo_bbox(bounds, from_at, known_at)
+        current = self.search_geo_bbox(bounds, to_at, known_at)
+        entities = {m["entity"] for m in prior["matches"] + current["matches"]}
+        old_inside = {r["assertion_id"] for m in prior["matches"]
+                      for r in m["matched_reports"]}
+        new_inside = {r["assertion_id"] for m in current["matches"]
+                      for r in m["matched_reports"]}
+        before = {f["id"]: f for f in self.export_geojson(from_at, known_at)["features"]
+                  if f["properties"]["entity"] in entities}
+        after = {f["id"]: f for f in self.export_geojson(to_at, known_at)["features"]
+                 if f["properties"]["entity"] in entities}
+        features = []
+        for view, changed, label, inside in (
+                (before, before.keys() - after.keys(), "NO_LONGER_CURRENT", old_inside),
+                (after, after.keys() - before.keys(), "NEWLY_CURRENT", new_inside)):
+            for assertion_id in sorted(changed):
+                feature = _clone(view[assertion_id])
+                feature["properties"].update({
+                    "monde_change": label,
+                    "monde_change_basis": "REPORTED_VALIDITY_NOT_VERIFIED_MOTION",
+                    "monde_inside_bbox": assertion_id in inside,
+                    "from_at": from_at,
+                    "to_at": to_at, "knowledge_cutoff": known_at,
+                })
+                features.append(feature)
+        features.sort(key=lambda f: (f["properties"]["entity"],
+                                     f["properties"]["monde_change"], f["id"]))
+        return {"type": "FeatureCollection", "features": features,
+                "monde_bbox_world_changes_query": {
+                    "basis": "SOURCE_REPORTED_VIEWPORT_WORLD_TIME_CHANGES_ONLY",
+                    "bbox": prior["bbox"], "knowledge_cutoff": known_at,
+                    "from_at": from_at, "to_at": to_at,
+                    "total_matching_entities": len(entities),
+                    "total_changed_features": len(features),
+                    "status": "CHANGES" if features else "NO_CHANGES",
+                }}
+
     def export_geojson(self, at: str, known_at: str, bounds=None) -> dict:
         """GeoJSON view: one Feature per current source Point assertion at T/K.
 
@@ -945,6 +1115,14 @@ def main(argv=None) -> int:
                            help="GeoJSON map of nearest source-reported Point entities")
     selection.add_argument("--export-geojson-radius", metavar="LON,LAT",
                            help="GeoJSON map of source Points within a radius")
+    selection.add_argument("--export-geojson-bbox", metavar="W,S,E,N",
+                           help="GeoJSON viewport entities with competing source positions")
+    selection.add_argument("--export-geojson-tile", metavar="Z,X,Y",
+                           help="source-attributed GeoJSON for Web Mercator XYZ tile")
+    selection.add_argument("--export-geojson-bbox-changes", metavar="W,S,E,N",
+                           help="knowledge-change map retaining source Points crossing a viewport")
+    selection.add_argument("--export-geojson-bbox-world-changes", metavar="W,S,E,N",
+                            help="viewport reported Point changes across world time")
     selection.add_argument("--source-disagreements", action="store_true")
     selection.add_argument("--source-history", metavar="SOURCE_ID")
     selection.add_argument("--knowledge-updates", action="store_true")
@@ -1090,6 +1268,74 @@ def main(argv=None) -> int:
                     args.equals_json is not None):
                 parser.error("disagreements require --at without entity/timeline/compare")
             result = world.source_disagreements(args.at, args.known_at)
+        elif args.export_geojson_bbox_world_changes is not None:
+            if (args.entity is not None or args.at is None or args.compare_at is None
+                    or args.compare_known_at is not None or args.source_attribute is not None
+                    or args.equals_json is not None or args.timeline_from is not None
+                    or args.timeline_to is not None
+                    or args.knowledge_timeline_from is not None
+                    or args.updates_from is not None):
+                parser.error("viewport world changes require --compare-at, --at and --known-at")
+            parts = args.export_geojson_bbox_world_changes.split(",")
+            if len(parts) != 4:
+                raise ValueError("bbox must be WEST,SOUTH,EAST,NORTH")
+            try:
+                bounds = [float(part.strip()) for part in parts]
+            except ValueError as exc:
+                raise ValueError("bbox must contain numeric coordinates") from exc
+            result = world.export_geojson_bbox_world_changes(
+                bounds, args.compare_at, args.at, args.known_at)
+        elif args.export_geojson_bbox_changes is not None:
+            if (args.entity is not None or args.at is None or
+                    args.compare_known_at is None or args.source_attribute is not None or
+                    args.equals_json is not None or args.timeline_from is not None or
+                    args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None or
+                    args.compare_at is not None or args.updates_from is not None):
+                parser.error("viewport history requires --at, --compare-known-at and --known-at")
+            parts = args.export_geojson_bbox_changes.split(",")
+            if len(parts) != 4:
+                raise ValueError("bbox must be WEST,SOUTH,EAST,NORTH")
+            try:
+                bounds = [float(part.strip()) for part in parts]
+            except ValueError as exc:
+                raise ValueError("bbox must contain numeric coordinates") from exc
+            result = world.export_geojson_bbox_knowledge_changes(
+                bounds, args.at, args.compare_known_at, args.known_at)
+        elif args.export_geojson_tile is not None:
+            if (args.entity is not None or args.at is None or
+                    args.known_at is None or args.source_attribute is not None or
+                    args.equals_json is not None or args.timeline_from is not None
+                    or args.timeline_to is not None
+                    or args.knowledge_timeline_from is not None
+                    or args.compare_known_at is not None or args.compare_at is not None
+                    or args.updates_from is not None):
+                parser.error("GeoJSON tile export requires --at and --known-at")
+            parts = args.export_geojson_tile.split(",")
+            if len(parts) != 3:
+                raise ValueError("XYZ tile must be Z,X,Y")
+            try:
+                zoom, x, y = (int(part.strip()) for part in parts)
+            except ValueError as exc:
+                raise ValueError("XYZ tile requires integer Z,X,Y") from exc
+            result = world.export_geojson_tile(zoom, x, y, args.at, args.known_at)
+        elif args.export_geojson_bbox is not None:
+            if (args.entity is not None or args.at is None or
+                    args.known_at is None or args.source_attribute is not None or
+                    args.equals_json is not None or args.timeline_from is not None or
+                    args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None or
+                    args.compare_known_at is not None or args.compare_at is not None or
+                    args.updates_from is not None):
+                parser.error("GeoJSON bbox export requires --at and --known-at")
+            parts = args.export_geojson_bbox.split(",")
+            if len(parts) != 4:
+                raise ValueError("bbox must be WEST,SOUTH,EAST,NORTH")
+            try:
+                bounds = [float(part.strip()) for part in parts]
+            except ValueError as exc:
+                raise ValueError("bbox must contain numeric coordinates") from exc
+            result = world.export_geojson_bbox(bounds, args.at, args.known_at)
         elif args.export_geojson_radius is not None:
             if (args.entity is not None or args.at is None or
                     args.source_attribute is not None or args.equals_json is not None or
