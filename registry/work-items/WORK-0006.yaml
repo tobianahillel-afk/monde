@@ -23,6 +23,7 @@ acceptance_criteria:
   - {id: AC-5, description: "Compare what sources reported at two knowledge cutoffs for the same world-time while preserving evidence lineage", status: NOT_STARTED}
   - {id: AC-6, description: "Inspect source-reported valid-world-time intervals at one fixed knowledge cutoff, preserving UNKNOWN gaps, conflict and provenance", status: NOT_STARTED}
   - {id: AC-7, description: "Find source-reported matching JSON values across entities at valid and knowledge cutoffs, retaining competing reports and provenance", status: NOT_STARTED}
+  - {id: AC-8, description: "Compare source-reported validity across two world times at one fixed knowledge cutoff, without treating report differences as physical events", status: NOT_STARTED}
 
 requirements: []
 assumptions: ["Exact offset-aware ISO-8601 time for this bounded prototype; uncertain dates remain an unapproved LOT-2 design question."]
@@ -64,6 +65,7 @@ implementation_plan:
     - {id: T4, description: "Explain source-report changes across two knowledge-time cutoffs for one fixed world-time", depends_on: [T3], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
     - {id: T5, description: "Expose source-reported world-time chronology with explicit unknown periods and a real CLI", depends_on: [T1], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
     - {id: T6, description: "Search source reports across entities with temporal cutoffs and preserved disagreement", depends_on: [T1, T3], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
+    - {id: T7, description: "Compare source-reported validity at two world times under one knowledge cutoff", depends_on: [T3], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
   planned_runs:
     - {id: RUN-1, objective: "Deliver reproducible experimental product slice", tasks: [T1, T2], exit_condition: "GH CI succeeds on published candidate HEAD and independent L2 performed", status: IN_PROGRESS}
 review_plan:
@@ -75,7 +77,7 @@ review_plan:
 required_tests:
   unit: ["bitemporal and correction behavior"]
   property: ["idempotency and immutable history"]
-  integration: ["actual Python module subprocess CLI", "entity snapshot CLI across properties", "CLI comparison of two knowledge cutoffs", "world-time timeline CLI at a fixed knowledge cutoff", "cross-entity search CLI with valid and knowledge cutoffs"]
+  integration: ["actual Python module subprocess CLI", "entity snapshot CLI across properties", "CLI comparison of two knowledge cutoffs", "world-time timeline CLI at a fixed knowledge cutoff", "cross-entity search CLI with valid and knowledge cutoffs", "CLI comparison of two world times at fixed knowledge"]
   contract: ["JSON schema version and strict input"]
   e2e: ["synthetic source evidence to two-time query"]
   regression: ["contradiction and revision replay"]
