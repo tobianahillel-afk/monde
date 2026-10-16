@@ -275,3 +275,26 @@ class OfflineKnowledgeChangeMapTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class EvidenceSearchNavigationTest(unittest.TestCase):
+    def test_search_and_focus_are_present_in_generated_offline_map(self):
+        page = render_map(with_points().export_geojson_bbox(BBOX, VALID, KNOWN))
+        self.assertIn('id="report-search"', page)
+        self.assertIn('id="focus-selected"', page)
+        self.assertIn('id="clear-search"', page)
+        self.assertIn('search.addEventListener("input",render)', page)
+        self.assertIn('centerOn(feature)', page)
+        self.assertIn('p.evidence_id,p.locator', page)
+        self.assertIn("toLocaleLowerCase()", page)
+        self.assertIn("words.every(", page)
+        self.assertNotIn("<script src=", page)
+        self.assertIn("connect-src 'none'", page)
+
+    def test_search_widgets_do_not_change_embedded_source_assertions(self):
+        source = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        before = copy.deepcopy(source)
+        page = render_map(source)
+        _, parsed = extract(page)
+        self.assertEqual(source, before)
+        self.assertEqual(parsed, before)
+        self.assertIn('Source assertions only.', page)

@@ -46,8 +46,11 @@ section,aside{border:1px solid #314154;border-radius:12px;background:#182436;pad
 #graticule line{stroke:#34536b;stroke-width:1}
 #graticule text{fill:#a0b9ce;font-size:15px}
 .controls{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:12px 0}
-button,select{background:#253c50;border:1px solid #48677e;border-radius:7px;color:#fff;padding:8px 10px;font:inherit;cursor:pointer}
-button:hover,button:focus,select:focus{border-color:#59d8bb}
+button,select,input[type=search]{background:#253c50;border:1px solid #48677e;border-radius:7px;color:#fff;padding:8px 10px;font:inherit}
+button,select{cursor:pointer}
+input[type=search]{min-width:170px;flex:1;max-width:360px}
+input[type=search]::placeholder{color:#b6c4d6}
+button:hover,button:focus,select:focus,input[type=search]:focus{border-color:#59d8bb}
 button:disabled{opacity:.5;cursor:default}
 label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 #report-list{list-style:none;padding:0;margin:0;max-height:235px;overflow:auto}
@@ -68,6 +71,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <button id="zoom-in" type="button" aria-label="Zoom in">Zoom +</button>
 <button id="zoom-out" type="button" aria-label="Zoom out">Zoom −</button>
 <button id="reset" type="button">Whole world</button>
+<button id="focus-selected" type="button" disabled>Center selected report</button>
 <label><input id="inside-only" type="checkbox"> Inside viewport only</label>
 </div>
 <svg id="map" role="img" aria-label="Schematic longitude-latitude evidence map, not a geographic basemap" viewBox="0 0 1200 600">
@@ -79,6 +83,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 </section>
 <aside aria-label="Evidence explorer">
 <h2>Source evidence</h2>
+<div class="controls"><label for="report-search">Find evidence</label>
+<input id="report-search" type="search" placeholder="Entity, assertion, source, evidence or locator" autocomplete="off" aria-label="Search source evidence">
+<button id="clear-search" type="button">Clear</button></div>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
 <div class="controls" id="change-filter-control" hidden><label for="change-filter">Knowledge change</label>
 <select id="change-filter"><option value="">All changes</option><option value="NEWLY_CURRENT">Newly current</option><option value="NO_LONGER_CURRENT">No longer current</option></select></div>
@@ -103,6 +110,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var sources = document.getElementById("sources");
   var insideOnly = document.getElementById("inside-only");
   var changeFilter = document.getElementById("change-filter");
+  var search = document.getElementById("report-search");
+  var focusButton = document.getElementById("focus-selected");
   document.getElementById("change-filter-control").hidden = !comparing;
   if (comparing) {
     document.getElementById("source-notice").textContent =
@@ -110,6 +119,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   var x0 = 0, y0 = 0, width = 1200, height = 600;
   var selectedId = null;
+  var selectedFeature = null;
   function el(type, attrs, parent) {
     var element = document.createElementNS(NS, type);
     Object.keys(attrs).forEach(function (key) { element.setAttribute(key, String(attrs[key])); });
@@ -162,8 +172,19 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     var option = document.createElement("option");
     option.value = id; label(option,id); sources.appendChild(option);
   });
+  function centerOn(feature) {
+    // Navigate to this *reported* coordinate, not an inferred true location.
+    var coords = feature.geometry.coordinates;
+    width = Math.min(width, 240); height = width / 2;
+    x0 = Math.max(0, Math.min(1200 - width, x(coords[0]) - width / 2));
+    y0 = Math.max(0, Math.min(600 - height, y(coords[1]) - height / 2));
+    refreshView();
+  }
   function inspect(feature) {
     selectedId = feature.id;
+    selectedFeature = feature;
+    focusButton.disabled = false;
+    centerOn(feature);
     var p = feature.properties;
     details.textContent = [
       "Entity: " + p.entity,
@@ -186,8 +207,13 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   function render() {
     layer.replaceChildren(); list.replaceChildren();
+    var words = search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     var shown = features.filter(function(f) {
-      return (!insideOnly.checked || f.properties.monde_inside_bbox) &&
+      var p = f.properties;
+      var indexed = [f.id,p.entity,p.source_id,p.evidence_id,p.locator]
+        .join(" ").toLocaleLowerCase();
+      return words.every(function(word) { return indexed.includes(word); }) &&
+        (!insideOnly.checked || f.properties.monde_inside_bbox) &&
         (!sources.value || f.properties.source_id === sources.value) &&
         (!comparing || !changeFilter.value ||
          f.properties.monde_change === changeFilter.value);
@@ -225,6 +251,13 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   sources.addEventListener("change",render);
   insideOnly.addEventListener("change",render);
   changeFilter.addEventListener("change",render);
+  search.addEventListener("input",render);
+  document.getElementById("clear-search").addEventListener("click",function(){
+    search.value = ""; render(); search.focus();
+  });
+  focusButton.addEventListener("click",function(){
+    if(selectedFeature)centerOn(selectedFeature);
+  });
   render();
   document.body.setAttribute("data-monde-ready","true");
 }());

@@ -83,6 +83,42 @@ jobs:
           grep -q 'demo-map-revision-assertion' /tmp/monde-knowledge-rendered.html
           grep -q 'NEWLY_CURRENT' /tmp/monde-knowledge-rendered.html
           grep -q 'NOT verified physical movement' /tmp/monde-knowledge-rendered.html
+      - name: Exercise evidence search and focus in a real headless browser
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('/tmp/monde-evidence-map.html')
+          page = path.read_text(encoding='utf-8')
+          probe = """<script>
+          (function(){
+            var field = document.getElementById('report-search');
+            field.value = 'source-that-does-not-exist';
+            field.dispatchEvent(new Event('input'));
+            if(document.querySelectorAll('#points circle').length !== 0)
+              throw Error('search did not filter all points');
+            field.value = 'map-demo';
+            field.dispatchEvent(new Event('input'));
+            if(document.querySelectorAll('#points circle').length < 1)
+              throw Error('source search did not restore points');
+            document.querySelector('#report-list button').click();
+            var box = document.getElementById('map').getAttribute('viewBox');
+            if(box === '0 0 1200 600' ||
+               document.getElementById('focus-selected').disabled)
+              throw Error('selected evidence failed to center');
+            document.getElementById('clear-search').click();
+            if(field.value !== '')throw Error('clear search failed');
+            document.body.setAttribute('data-monde-evidence-search','pass');
+          }());
+          </script>"""
+          path = Path('/tmp/monde-evidence-map-search-test.html')
+          path.write_text(page.replace('</body>', probe + '</body>'),
+                          encoding='utf-8')
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu \
+            --disable-dev-shm-usage --timeout=15000 --dump-dom \
+            file:///tmp/monde-evidence-map-search-test.html > /tmp/monde-search-dom.html
+          grep -q 'data-monde-evidence-search="pass"' /tmp/monde-search-dom.html
       - name: Attach actual offline HTML map for product preview
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

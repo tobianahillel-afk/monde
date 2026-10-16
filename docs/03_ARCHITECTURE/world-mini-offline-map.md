@@ -16,6 +16,13 @@ PYTHONPATH=src python3 -m monde.map_view \
 Open `evidence-map.html` in a browser. The self-contained page requires no server,
 API key, JavaScript library, remote tiles, external images or internet access.
 
+Use **Find evidence** to search locally by entity, assertion ID, source ID,
+evidence ID or original locator (case-insensitive, multiple words); combine the
+search with the source, change and inside-viewport filters. Select a report to
+center the schematic map on its source-reported coordinates, or use **Center
+selected report** to return to it after zooming. All queries run entirely
+inside the saved HTML: no network requests and no new data or truth claims.
+
 Use **Zoom +/-** and **Whole world** for a schematic longitude/latitude
 world grid, filter the source list, and select any point or report to inspect
 its assertion ID, source ID, original locator, evidence ID, capture time and
