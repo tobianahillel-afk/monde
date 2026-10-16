@@ -769,3 +769,82 @@ class OfflinePairwiseSeparationTest(unittest.TestCase):
         result = subprocess.run([node, "-e", script], cwd=ROOT,
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class OfflineCrossEntityConflictInventoryTest(unittest.TestCase):
+    def test_inventory_has_offline_controls_and_preserves_source_snapshot(self):
+        document = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        original = copy.deepcopy(document)
+        page = render_map(document)
+        self.assertEqual(extract(page)[1], original)
+        self.assertEqual(document, original)
+        for marker in (
+            'id="conflict-list"', 'id="conflict-summary"',
+            'id="export-conflicts"', 'function sourceConflicts(reports)',
+            'function createConflictInventory()', 'function renderConflictNavigator()',
+            'matchesFilters(f,false,true)', 'FILTERED_SOURCE_REPORTS_EXCLUDING_ENTITY_SELECTION',
+            'MONDE_MINI_SOURCE_POSITION_CONFLICT_INVENTORY_V1',
+            'connect-src \\'none\\'',
+        ):
+            self.assertIn(marker, page)
+
+    def test_conflicts_available_in_both_bitemporal_comparison_modes(self):
+        world, _ = corrected_points()
+        for doc in (
+            world.export_geojson_bbox_knowledge_changes(BBOX, VALID, KNOWN, LATE),
+            world.export_geojson_bbox_world_changes(
+                BBOX, "2025-12-31T00:00:00Z", VALID, LATE),
+        ):
+            html = render_map(doc)
+            self.assertEqual(extract(html)[1], doc)
+            self.assertIn('id="export-conflicts"', html)
+
+    def test_real_js_conflict_inventory_uses_original_reports_and_filter_scope(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node.js required for offline source conflict inventory")
+        page = render_map(with_points().export_geojson_bbox(BBOX, VALID, KNOWN))
+        start = page.index("  function sourceConflicts(reports) {")
+        end = page.index("  function renderConflictNavigator() {", start)
+        logic = page[start:end]
+        script = (
+            'const assert=require("node:assert/strict");\n'
+            'var query={bbox:[-180,-90,180,90],valid_at:"2026-01-02T00:00:00Z"};\n'
+            'var entities={value:"entity-selected"};\n'
+            'var appliedFilters=()=>({search:"",entity:entities.value,source_id:""});\n'
+            'var positionKey=f=>JSON.stringify([f.geometry.coordinates[0]===180?'
+            '-180:f.geometry.coordinates[0],f.geometry.coordinates[1]]);\n'
+            'const make=(id,entity,source,lon,lat)=>({type:"Feature",id,'
+            'geometry:{type:"Point",coordinates:[lon,lat]},'
+            'properties:{entity,source_id:source,evidence_id:"ev-"+id}});\n'
+            'var features=[make("a","disputed","s1",179.8,1),'
+            'make("b","disputed","s2",-179.8,1),'
+            'make("c","matched","s1",20,0),'
+            'make("d","matched","s2",20,0),'
+            'make("e","only-one-source","s1",0,0),'
+            'make("f","only-one-source","s1",1,0)];\n'
+            'var visibleConflicts=sourceConflicts(features);\n'
+            +logic+
+            'assert.equal(visibleConflicts.length,1);\n'
+            'assert.equal(visibleConflicts[0].entity,"disputed");\n'
+            'assert.equal(visibleConflicts[0].source_count,2);\n'
+            'assert.equal(visibleConflicts[0].position_count,2);\n'
+            'const original=JSON.stringify(features);\n'
+            'const inventory=createConflictInventory();\n'
+            'assert.equal(inventory.conflicting_entity_count,1);\n'
+            'assert.equal(inventory.source_conflicts[0].reports[0],features[0]);\n'
+            'assert.equal(inventory.source_conflicts[0].reports[1],features[1]);\n'
+            'assert.equal(inventory.applied_filters.entity,"");\n'
+            'assert.equal(inventory.selected_entity_filter,"entity-selected");\n'
+            'assert.deepEqual(inventory.source_query,query);\n'
+            'assert.equal(JSON.stringify(features),original);\n'
+            'visibleConflicts=sourceConflicts(features.slice(2));\n'
+            'assert.equal(visibleConflicts.length,0);\n'
+            'assert.equal(createConflictInventory(),null);\n'
+            'visibleConflicts=sourceConflicts([make("g","antimeridian","s1",180,2),'
+            'make("h","antimeridian","s2",-180,2)]);\n'
+            'assert.equal(visibleConflicts.length,0);\n'
+        )
+        result = subprocess.run([node, "-e", script], cwd=ROOT,
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)

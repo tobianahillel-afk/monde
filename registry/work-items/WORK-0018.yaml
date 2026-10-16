@@ -1,0 +1,68 @@
+id: WORK-0018
+title: "Browse and export cross-entity source-position disagreements in the offline map"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-5
+sublot: SUBLOT-5.2
+owner: "MONDE Mini source-evidence explorer"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+purpose: |
+  Identify competing location claims across multiple entities in one offline
+  map snapshot, and export source-attributed conflict evidence without
+  promoting any coordinate to verified physical truth.
+scope:
+  in: ["Filtered cross-entity conflict navigation", "Evidence-preserving offline inventory export"]
+  out: ["Consensus estimation", "Geocoding", "External services", "Physical motion inference"]
+acceptance_criteria:
+  - {id: AC-1, description: "Explore entities with filtered different-source coordinate disagreements", status: NOT_STARTED}
+  - {id: AC-2, description: "Export full original feature lineage and original bitemporal query", status: NOT_STARTED}
+  - {id: AC-3, description: "Remain offline, preserve saved state and refuse truth promotion", status: NOT_STARTED}
+requirements: []
+assumptions: ["Source-reported WGS84 Point geometry, no verified coordinate"]
+risks: ["Partial filtered evidence mistaken for complete world truth"]
+assurance: {level: A3, rationale: "Evidence provenance and no-truth-promotion boundary"}
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+depends_on: [WORK-0001, WORK-0017]
+blocks: []
+reuses: ["Existing standalone offline HTML map", "Existing filtered GeoJSON and Python/Node/browser tests"]
+affected_capabilities: []
+affected_engines: ["MONDE Mini offline evidence explorer"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["Filtered evidence is not geographic ground truth"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Group and navigate conflicting source positions", depends_on: [], expected_files: [src/monde/map_view.py], status: IN_PROGRESS}
+    - {id: T2, description: "Export original features and validate offline interactions", depends_on: [T1], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Deliver visible offline cross-entity evidence comparison", tasks: [T1, T2], exit_condition: "Green source-evidence map CI and independent review when applicable", status: IN_PROGRESS}
+review_plan:
+  artifact_class: HIGH_RISK_CAPABILITY
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, DOCUMENTATION_TRACEABILITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: [tests/test_world_map_view.py]
+  integration: ["Filtered GeoJSON to offline conflict report"]
+  contract: ["Original source assertions and evidence are preserved"]
+  e2e: ["Real standalone HTML browser smoke"]
+  regression: ["Existing MONDE Mini product tests"]
+  security: ["HTML uses only textContent for untrusted entity names; offline CSP"]
+  performance: ["Bounded feature snapshot and linear grouping"]
+  real_system: ["GitHub Actions Python, Node and Chrome"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Experimental source-evidence visualization only"]
+risk: {security: MEDIUM, data: LOW, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Revert this scoped stacked PR; preserve all previous World Model commits."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_done_checked: false, review_complete: false, docs_updated: false, registries_updated: false, project_state_updated: false}

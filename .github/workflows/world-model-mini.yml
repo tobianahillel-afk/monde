@@ -419,6 +419,61 @@ jobs:
               "file:///tmp/monde-$page.html" > "/tmp/monde-$page-dom.html"
             grep -q 'data-monde-export="pass"' "/tmp/monde-$page-dom.html"
           done
+      - name: Exercise cross-entity conflict navigator and evidence download in real Chromium
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path('/tmp/monde-evidence-map.html').read_text(encoding='utf-8')
+          check = """<script>
+          (async function(){
+            var data=JSON.parse(document.getElementById('monde-data').textContent);
+            var groups=new Map();
+            data.features.forEach(f=>{
+              var entity=f.properties.entity;
+              if(!groups.has(entity))groups.set(entity,[]);
+              groups.get(entity).push(f);
+            });
+            var conflict=Array.from(groups).find(([entity,reports])=>
+              new Set(reports.map(f=>f.properties.source_id)).size>1 &&
+              new Set(reports.map(f=>JSON.stringify(f.geometry.coordinates))).size>1);
+            if(!conflict)throw Error('missing conflict fixture');
+            var buttons=document.querySelectorAll('#conflict-list button');
+            if(!buttons.length)throw Error('conflict navigator empty');
+            var original=JSON.stringify(data.features);
+            buttons[0].click();
+            if(!document.getElementById('entities').value)
+              throw Error('conflict selection did not update entity');
+            var download=null,blob=null;
+            URL.createObjectURL=function(b){blob=b;return 'blob:conflicts';};
+            HTMLAnchorElement.prototype.click=function(){download=this.download;};
+            var exp=document.getElementById('export-conflicts');
+            if(exp.disabled)throw Error('conflict export disabled despite conflicting evidence');
+            exp.click();
+            if(!blob||download!=='monde-source-conflict-inventory.json')
+              throw Error('missing conflict inventory download');
+            var result=JSON.parse(await blob.text());
+            if(result.format!=='MONDE_MINI_SOURCE_POSITION_CONFLICT_INVENTORY_V1' ||
+               result.conflicting_entity_count<1 ||
+               !result.source_conflicts.some(g=>g.entity===conflict[0]) ||
+               result.applied_filters.entity!=='' ||
+               result.source_snapshot_report_count!==data.features.length)
+              throw Error('invalid conflict inventory structure');
+            var exported=result.source_conflicts.flatMap(g=>g.reports);
+            if(exported.some(f=>!f.id||!f.properties.source_id||!f.properties.evidence_id))
+              throw Error('source/evidence identity lost');
+            if(JSON.stringify(data.features)!==original)
+              throw Error('embedded source evidence mutated');
+            document.body.setAttribute('data-monde-conflicts','pass');
+          }()).catch(e=>document.body.setAttribute('data-monde-conflicts','fail:'+e.message));
+          </script>"""
+          Path('/tmp/monde-conflicts-smoke.html').write_text(
+              source.replace('</body>', check+'</body>'),encoding='utf-8')
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=2200 --timeout=15000 --dump-dom \
+            "file:///tmp/monde-conflicts-smoke.html" > /tmp/monde-conflicts-dom.html
+          grep -q 'data-monde-conflicts="pass"' /tmp/monde-conflicts-dom.html
       - name: Attach actual offline HTML map for product preview
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

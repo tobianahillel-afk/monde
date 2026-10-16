@@ -61,6 +61,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 #report-list button,#entity-comparison-list button{width:100%;text-align:left;overflow-wrap:anywhere}
 #entity-comparison-list{list-style:none;padding:0;margin:0 0 12px;max-height:225px;overflow:auto}
 #entity-comparison-list li{margin:0 0 6px}
+#conflict-list{list-style:none;padding:0;margin:0 0 12px;max-height:240px;overflow:auto}
+#conflict-list li{margin:0 0 6px}
+#conflict-list button{width:100%;text-align:left;overflow-wrap:anywhere}
 #details{white-space:pre-wrap;overflow-wrap:anywhere;background:#102033;border-radius:7px;padding:12px;font-size:.84rem;max-height:280px;overflow:auto;min-height:70px}
 .notice{padding:10px 12px;background:#273b49;border-left:3px solid #ffc873;border-radius:4px;margin:14px 0}
 #metrics{font-size:.9rem;color:#bbd0df}
@@ -111,6 +114,11 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <div class="controls" id="change-filter-control" hidden><label for="change-filter">Reported change</label>
 <select id="change-filter"><option value="">All changes</option><option value="NEWLY_CURRENT">Newly current</option><option value="NO_LONGER_CURRENT">No longer current</option></select></div>
 <ul id="report-list" aria-label="Reported points"></ul>
+<h2>Cross-entity source disagreements</h2>
+<p class="subtle">Conflicts between distinct source-reported coordinates across entities, within the currently applied filters (excluding the selected entity). No evidence is ranked as true.</p>
+<div class="controls"><button id="export-conflicts" type="button" disabled>Export disagreement inventory</button></div>
+<p id="conflict-summary" class="subtle" role="status" aria-live="polite">No disagreements in the current filtered evidence.</p>
+<ul id="conflict-list" aria-label="Entities with conflicting source coordinates"></ul>
 <h2>Compare reported positions</h2>
 <p id="entity-comparison-summary" class="subtle">Select an entity to compare its visible source claims, without inferring a true position.</p>
 <ul id="entity-comparison-list" aria-label="Side-by-side source assertions"></ul>
@@ -149,6 +157,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var differentOnly = document.getElementById("disagreements-only");
   var comparisonSummary = document.getElementById("entity-comparison-summary");
   var comparisonList = document.getElementById("entity-comparison-list");
+  var conflictList = document.getElementById("conflict-list");
+  var conflictSummary = document.getElementById("conflict-summary");
+  var exportConflictsButton = document.getElementById("export-conflicts");
+  var visibleConflicts = [];
   var insideOnly = document.getElementById("inside-only");
   var currentViewOnly = document.getElementById("current-view-only");
   var changeFilter = document.getElementById("change-filter");
@@ -460,7 +472,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   // Apply exactly the same filters for display and for fitting. Only the
   // current map window is ignored for fitting, so off-screen matches recover.
-  function matchesFilters(f, ignoreDisplayedWindow) {
+  function matchesFilters(f, ignoreDisplayedWindow, ignoreEntity) {
     var p = f.properties;
     var instant = Date.parse(p.captured_at);
     var capturedDay = Number.isFinite(instant) ?
@@ -473,7 +485,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       (!insideOnly.checked || p.monde_inside_bbox) &&
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
-      (!entities.value || p.entity === entities.value) &&
+      ((ignoreEntity === true) || !entities.value || p.entity === entities.value) &&
       (!capturedFrom.value ||
         (capturedDay !== null && capturedDay >= capturedFrom.value)) &&
       (!capturedThrough.value ||
@@ -517,8 +529,74 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     render();
   });
   radiusInput.addEventListener("input",render);
+  // Filter-aware cross-entity inventory; preserve every source assertion and
+  // never choose a winning coordinate or infer a verified position.
+  function sourceConflicts(reports) {
+    var groups=new Map();
+    reports.forEach(function(f) {
+      var id=f.properties.entity;
+      if(!groups.has(id))groups.set(id,[]);
+      groups.get(id).push(f);
+    });
+    var found=[];
+    groups.forEach(function(items,entity) {
+      var sourcesFound=new Set(items.map(function(f){return f.properties.source_id;}));
+      var positionsFound=new Set(items.map(positionKey));
+      if(sourcesFound.size>1 && positionsFound.size>1) {
+        found.push({entity:entity,source_count:sourcesFound.size,
+          position_count:positionsFound.size,report_count:items.length,
+          reports:items.slice()});
+      }
+    });
+    found.sort(function(a,b){return a.entity<b.entity?-1:a.entity>b.entity?1:0;});
+    return found;
+  }
+  function createConflictInventory() {
+    if(!visibleConflicts.length)return null;
+    return {
+      format:"MONDE_MINI_SOURCE_POSITION_CONFLICT_INVENTORY_V1",
+      scope:"FILTERED_SOURCE_REPORTS_EXCLUDING_ENTITY_SELECTION",
+      source_query:query,
+      applied_filters:Object.assign({},appliedFilters(),{entity:""}),
+      selected_entity_filter:entities.value,
+      source_snapshot_report_count:features.length,
+      conflicting_entity_count:visibleConflicts.length,
+      source_conflicts:visibleConflicts.map(function(group) {
+        return {entity:group.entity,source_count:group.source_count,
+          position_count:group.position_count,report_count:group.report_count,
+          reports:group.reports.slice()};
+      }),
+      interpretation:"Distinct source-reported coordinates only. No verified location, authoritative source, confidence estimate, movement, or physical absence."
+    };
+  }
+  function renderConflictNavigator() {
+    // Honor all current filters except the selected entity, allowing the user
+    // to navigate among conflicting entities without first clearing selection.
+    visibleConflicts=sourceConflicts(features.filter(function(f) {
+      return matchesFilters(f,false,true);
+    }));
+    conflictList.replaceChildren();
+    exportConflictsButton.disabled=visibleConflicts.length===0;
+    conflictSummary.textContent=visibleConflicts.length ?
+      String(visibleConflicts.length)+" entities with different-source coordinate claims in this filtered evidence." :
+      "No cross-source coordinate disagreements in the filtered reports; this is not proof of physical agreement or absence.";
+    visibleConflicts.forEach(function(group) {
+      var li=document.createElement("li");
+      var button=document.createElement("button");
+      button.type="button";
+      label(button,group.entity+" · "+group.source_count+" sources · "+
+        group.position_count+" reported positions · "+group.report_count+" assertions");
+      button.addEventListener("click",function() {
+        entities.value=group.entity;
+        fitReports();
+      });
+      li.appendChild(button);
+      conflictList.appendChild(li);
+    });
+  }
   function render() {
     layer.replaceChildren(); list.replaceChildren(); comparisonList.replaceChildren();
+    renderConflictNavigator();
     visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
     fitButton.disabled = matchingReports().length === 0;
     updateMeasurement();
@@ -625,6 +703,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     link.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   }
+  exportConflictsButton.addEventListener("click",function(){
+    var report=createConflictInventory();
+    if(report)saveEvidence(report,"monde-source-conflict-inventory.json","application/json");
+  });
   exportButton.addEventListener("click",function(){
     if (!visibleFeatures.length) return;
     saveEvidence(Object.assign({}, data, {

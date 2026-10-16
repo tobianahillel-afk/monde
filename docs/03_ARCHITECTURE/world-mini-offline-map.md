@@ -204,3 +204,27 @@ temporal-change maps. No remote map, geocoding, inference engine or new package.
 A result is **not** a route, verified movement, true entity location,
 location consensus or a confidence estimate. A zero distance means the two
 reported coordinates coincide, not that either is physically correct.
+
+
+## Cross-entity source-position disagreement inventory (WORK-0018)
+
+The offline evidence explorer provides a **Cross-entity source disagreements**
+navigator and **Export disagreement inventory**. It groups the original
+source-reported Points by entity under the current filters (including the
+displayed map window, capture-day bounds, source, search, temporal-change,
+proximity and viewport filters), **except the currently selected entity**. Each
+entry gives counts of source reports, distinct source IDs and distinct reported
+coordinate pairs, and can be selected to inspect its original claims on the map.
+It intentionally does not rank sources, infer a true location, or infer motion.
+
+A conflict exists only when at least two distinct source IDs and at least two
+distinct reported coordinate pairs are present **within the filtered subset**.
+The report is empty and the export button disabled if there is no such group;
+absence of reported conflict is not evidence of physical agreement or absence.
+Longitudes +180 and -180 represent the same meridian for this classification.
+
+The downloaded `monde-source-conflict-inventory.json` preserves the original
+bitemporal source query, every included original GeoJSON Feature, assertion IDs,
+source IDs, evidence IDs, and the filters used. Its scope explicitly excludes
+the selected-entity filter so the inventory can compare multiple entities.
+No network calls, external map libraries or saved-state mutation are required.
