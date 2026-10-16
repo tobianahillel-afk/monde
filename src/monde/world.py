@@ -268,6 +268,54 @@ class WorldMini:
             "disagreements": disagreements,
         }
 
+    def source_history(self, source_id: str, known_at: str,
+                       entity: str | None = None,
+                       attribute: str | None = None) -> dict:
+        """Audit what one source reported and corrected up to knowledge K.
+
+        This includes historical/retracted assertions, not just reports valid
+        at a world-time instant. Source statements are not verified world truth.
+        """
+        _id(source_id)
+        cutoff = _time(known_at)
+        if entity is not None:
+            _id(entity)
+        if attribute is not None:
+            _id(attribute)
+        visible = [
+            a for a in self._assertions.values()
+            if self._evidence[a["evidence_id"]]["source_id"] == source_id
+            and _time(a["known_at"]) <= cutoff
+            and (entity is None or a["entity"] == entity)
+            and (attribute is None or a["attribute"] == attribute)
+        ]
+        # A correction only retires its predecessor once *known* at cutoff K.
+        replaced_by = {a["supersedes"]: a["id"] for a in visible
+                       if a["supersedes"] is not None}
+        reports = []
+        for a in sorted(visible, key=lambda record:
+                        (_time(record["known_at"]), record["id"])):
+            ev = self._evidence[a["evidence_id"]]
+            reports.append({
+                "assertion_id": a["id"], "entity": a["entity"],
+                "attribute": a["attribute"], "kind": a["kind"],
+                "value": _clone(a["value"]),
+                "known_at": a["known_at"], "valid_from": a["valid_from"],
+                "valid_to": a["valid_to"], "supersedes": a["supersedes"],
+                "superseded_by": replaced_by.get(a["id"]),
+                "current_at_cutoff": a["id"] not in replaced_by,
+                "evidence_id": ev["id"], "source_id": ev["source_id"],
+                "locator": ev["locator"], "captured_at": ev["captured_at"],
+                "source_event_at": ev["source_event_at"],
+            })
+        return {
+            "world": "OBSERVED", "view": "SOURCE_ASSERTION_HISTORY_ONLY",
+            "source_id": source_id, "knowledge_cutoff": known_at,
+            "entity": entity, "attribute": attribute,
+            "status": "HISTORY_FOUND" if reports else "NO_REPORTS",
+            "reports": reports,
+        }
+
     def timeline(self, entity: str, attribute: str, from_at: str,
                  to_at: str, known_at: str) -> dict:
         """Source-reported world-time intervals at one fixed knowledge cutoff.
@@ -406,7 +454,9 @@ def main(argv=None) -> int:
     selection.add_argument("--all-attributes", action="store_true")
     selection.add_argument("--search-attribute")
     selection.add_argument("--source-disagreements", action="store_true")
+    selection.add_argument("--source-history", metavar="SOURCE_ID")
     parser.add_argument("--equals-json", help="exact JSON value used by cross-entity search")
+    parser.add_argument("--source-attribute", help="optional property filter for source history")
     parser.add_argument("--at", help="one world-time instant; omit when selecting a timeline")
     parser.add_argument("--timeline-from", help="start of valid-world-time interval")
     parser.add_argument("--timeline-to", help="exclusive end of valid-world-time interval")
@@ -416,7 +466,16 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         world = WorldMini.read(args.fixture)
-        if args.source_disagreements:
+        if args.source_history is not None:
+            if (args.at is not None or args.timeline_from is not None or
+                    args.timeline_to is not None or args.compare_at is not None or
+                    args.compare_known_at is not None or args.equals_json is not None):
+                parser.error("source history uses --known-at, not world-time/search/compare")
+            result = world.source_history(args.source_history, args.known_at,
+                                          args.entity, args.source_attribute)
+        elif args.source_disagreements:
+            if args.source_attribute is not None:
+                parser.error("--source-attribute requires --source-history")
             if (args.entity is not None or args.at is None or
                     args.timeline_from is not None or args.timeline_to is not None or
                     args.compare_known_at is not None or args.compare_at is not None or
@@ -424,6 +483,8 @@ def main(argv=None) -> int:
                 parser.error("disagreements require --at without entity/timeline/compare")
             result = world.source_disagreements(args.at, args.known_at)
         elif args.search_attribute is not None:
+            if args.source_attribute is not None:
+                parser.error("--source-attribute requires --source-history")
             if (args.entity is not None or args.at is None or
                     args.timeline_from is not None or args.timeline_to is not None or
                     args.compare_known_at is not None or args.compare_at is not None or
@@ -435,6 +496,8 @@ def main(argv=None) -> int:
             result = world.search_reports(args.search_attribute, value,
                                           args.at, args.known_at)
         elif args.timeline_from is not None or args.timeline_to is not None:
+            if args.source_attribute is not None:
+                parser.error("--source-attribute requires --source-history")
             if args.entity is None or args.equals_json is not None:
                 parser.error("timeline requires --entity without --equals-json")
             if (args.timeline_from is None or args.timeline_to is None or
@@ -444,6 +507,8 @@ def main(argv=None) -> int:
             result = world.timeline(args.entity, args.attribute,
                                     args.timeline_from, args.timeline_to, args.known_at)
         else:
+            if args.source_attribute is not None:
+                parser.error("--source-attribute requires --source-history")
             if args.entity is None or args.equals_json is not None:
                 parser.error("--entity required; --equals-json only used for search")
             if args.at is None:

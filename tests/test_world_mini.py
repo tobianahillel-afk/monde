@@ -672,3 +672,97 @@ class WorldMiniTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_source_history_preserves_corrections_and_capture_lineage(self):
+        result = self.model.source_history("city-registry", LATE)
+        self.assertEqual(result["view"], "SOURCE_ASSERTION_HISTORY_ONLY")
+        self.assertEqual(result["status"], "HISTORY_FOUND")
+        reports = result["reports"]
+        self.assertEqual([r["value"] for r in reports], [5, 7])
+        self.assertEqual([r["current_at_cutoff"] for r in reports], [False, True])
+        self.assertEqual(reports[0]["superseded_by"], "a-city-revision")
+        self.assertEqual(reports[1]["supersedes"], "a-city-initial")
+        self.assertEqual([r["evidence_id"] for r in reports],
+                         ["e-city-reg-1", "e-city-reg-2"])
+        self.assertEqual(reports[0]["source_event_at"], "2026-01-01T00:00:00Z")
+        self.assertEqual(reports[1]["captured_at"], "2026-01-06T11:00:00Z")
+        self.assertEqual(self.model.source_history("local-news", LATE)["reports"][0]["value"], 6)
+
+    def test_source_history_cannot_see_future_correction(self):
+        early = self.model.source_history("city-registry", "2026-01-05T00:00:00Z")
+        self.assertEqual([r["assertion_id"] for r in early["reports"]], ["a-city-initial"])
+        self.assertTrue(early["reports"][0]["current_at_cutoff"])
+        self.assertIsNone(early["reports"][0]["superseded_by"])
+        self.assertEqual(self.model.source_history(
+            "city-registry", "2026-01-03T09:59:59Z")["status"], "NO_REPORTS")
+
+    def test_source_history_filters_multiple_entities_and_properties(self):
+        self.model.add_evidence({
+            "id": "e-new-building", "source_id": "city-registry",
+            "locator": "fixture://city-registry/second",
+            "captured_at": "2026-01-08T00:00:00Z", "source_event_at": None,
+        })
+        self.model.add_assertion({
+            "id": "a-new-building", "entity": "building-002",
+            "attribute": "height", "value": 0,
+            "evidence_id": "e-new-building", "kind": "OBSERVATION",
+            "known_at": "2026-01-08T00:00:00Z",
+            "valid_from": "2026-01-01T00:00:00Z", "valid_to": None,
+            "supersedes": None,
+        })
+        result = self.model.source_history("city-registry", "2026-01-09T00:00:00Z")
+        self.assertEqual([r["entity"] for r in result["reports"]],
+                         ["building-001", "building-001", "building-002"])
+        self.assertEqual(self.model.source_history(
+            "city-registry", "2026-01-09T00:00:00Z",
+            entity="building-002")["reports"][0]["value"], 0)
+        self.assertEqual(self.model.source_history(
+            "city-registry", "2026-01-09T00:00:00Z",
+            attribute="height")["reports"][0]["entity"], "building-002")
+        self.assertEqual(self.model.source_history(
+            "city-registry", "2026-01-09T00:00:00Z",
+            entity="building-001", attribute="height")["status"], "NO_REPORTS")
+
+    def test_source_history_is_read_only_and_rejects_invalid_queries(self):
+        old = self.model.export()
+        history = self.model.source_history("city-registry", LATE)
+        history["reports"][1]["value"] = "tampered"
+        self.assertEqual(self.model.export(), old)
+        self.assertEqual(self.model.source_history(
+            "city-registry", LATE)["reports"][1]["value"], 7)
+        for params in [
+            ("not a source", LATE, None, None),
+            ("city-registry", "2026-01-03", None, None),
+            ("city-registry", LATE, "bad entity", None),
+            ("city-registry", LATE, None, "bad attribute"),
+        ]:
+            with self.assertRaises(ValueError):
+                self.model.source_history(*params)
+
+    def test_source_history_cli_real_process_and_incompatible_modes(self):
+        env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+        base = [sys.executable, "-m", "monde.world", "--fixture",
+                str(ROOT / "examples/monde-mini.json"), "--source-history",
+                "city-registry", "--known-at", LATE]
+        done = subprocess.run(base, capture_output=True, text=True, env=env)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        reports = json.loads(done.stdout)["reports"]
+        self.assertEqual([r["value"] for r in reports], [5, 7])
+        filtered = subprocess.run(
+            base + ["--entity", "building-001", "--source-attribute", "floors"],
+            capture_output=True, text=True, env=env)
+        self.assertEqual(filtered.returncode, 0, filtered.stderr)
+        self.assertEqual(len(json.loads(filtered.stdout)["reports"]), 2)
+        for args in [
+            base + ["--at", AT],
+            base + ["--compare-at", AT],
+            base + ["--equals-json", "7"],
+            base + ["--timeline-from", AT, "--timeline-to", LATE],
+            [sys.executable, "-m", "monde.world", "--fixture",
+             str(ROOT / "examples/monde-mini.json"),
+             "--source-disagreements", "--at", AT, "--known-at", LATE,
+             "--source-attribute", "floors"],
+        ]:
+            rejected = subprocess.run(args, capture_output=True, text=True, env=env)
+            self.assertNotEqual(rejected.returncode, 0)
