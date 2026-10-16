@@ -252,3 +252,18 @@ class DirectGeoJSONMapTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_offline_land_reference_is_bundled_and_separate_from_evidence(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source = self.fixture(folder)
+            output = Path(folder) / "land.html"
+            result = self.run_map(*self.flags(source), "--at", AT,
+                                  "--known-at", KNOWN, "--output", output)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            page = output.read_text(encoding="utf-8")
+            self.assertIn('id="monde-reference-land"', page)
+            self.assertIn('"kind":"NATURAL_EARTH_110M_LAND_CONTEXT_V1"', page)
+            self.assertIn('id="land"', page)
+            self.assertIn('"total_source_features":2', page)
+            self.assertNotIn("__MONDE_EMBEDDED_REFERENCE_LAND__", page)
+            self.assertNotIn('https://tile.', page)

@@ -46,6 +46,7 @@ section,aside{border:1px solid #314154;border-radius:12px;background:#182436;pad
 #points circle.retired{fill:#ffb871;stroke:#8e5318}
 [hidden]{display:none!important}
 #viewport rect{fill:#6caed0;fill-opacity:.08;stroke:#85bdd9;stroke-width:2;stroke-dasharray:8 6;pointer-events:none}
+#land path{fill:#2a5362;stroke:#588693;stroke-width:.65;fill-rule:evenodd;pointer-events:none}
 #graticule line{stroke:#34536b;stroke-width:1}
 #graticule text{fill:#a0b9ce;font-size:15px}
 .controls{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:12px 0}
@@ -84,13 +85,13 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <label><input id="inside-only" type="checkbox"> Inside requested viewport only</label>
 <label><input id="current-view-only" type="checkbox"> Inside displayed map window only</label>
 </div>
-<svg id="map" role="img" tabindex="0" aria-label="Schematic longitude-latitude evidence map. Drag or use arrow keys to pan; not a geographic basemap" viewBox="0 0 1200 600">
+<svg id="map" role="img" tabindex="0" aria-label="Offline geographic context with separate source-reported evidence Points; drag or use arrow keys to pan" viewBox="0 0 1200 600">
 <rect width="1200" height="600" fill="#123044"></rect>
-<g id="graticule"></g><g id="viewport"></g><g id="disagreement-links" aria-hidden="true"></g><g id="points"></g>
+<g id="land" aria-hidden="true"></g><g id="graticule"></g><g id="viewport"></g><g id="disagreement-links" aria-hidden="true"></g><g id="points"></g>
 </svg>
-<p class="subtle">Drag to pan, or use arrow keys when the schematic map has focus. Fit matching reports includes source claims outside the current display window so you can find them again. This is not an estimated physical location. The window filter changes only displayed/exported reports, not the original source query.</p>
+<p class="subtle">Natural Earth 1:110m public-domain land outlines provide approximate geographic orientation only. They are not source evidence or verified entity positions. Drag to pan or use arrow keys, and fit matching reports to revisit source claims outside the display window. No online tiles or requests.</p>
 <p id="metrics"></p>
-<p id="source-notice" class="notice">Source assertions only. Contradictory locations are retained. This schematic is not a basemap, physical position estimate, confidence score or proof of absence.</p>
+<p id="source-notice" class="notice">Source assertions only. Contradictory locations are retained. The static Natural Earth background is not source evidence, a physical position estimate, a confidence score or proof of absence.</p>
 </section>
 <aside aria-label="Evidence explorer">
 <h2>Source evidence</h2>
@@ -133,10 +134,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 </aside>
 </main>
 <script type="application/json" id="monde-data">__MONDE_EMBEDDED_GEOJSON__</script>
+<script type="application/json" id="monde-reference-land">__MONDE_EMBEDDED_REFERENCE_LAND__</script>
 <script>
 (function () {
   "use strict";
   var data = JSON.parse(document.getElementById("monde-data").textContent);
+  var landReference = JSON.parse(document.getElementById("monde-reference-land").textContent);
   var features = data.features, knowledgeComparing = !!data.monde_bbox_changes_query;
   var worldComparing = !!data.monde_bbox_world_changes_query;
   var comparing = knowledgeComparing || worldComparing;
@@ -202,6 +205,23 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   function label(node, value) { node.textContent = String(value); }
   function x(lon) { return (lon + 180) / 360 * 1200; }
   function y(lat) { return (90 - lat) / 180 * 600; }
+  // Separate immutable reference cartography from MONDE's evidence layer.
+  // Each Natural Earth ring becomes one SVG subpath, preserving inland holes.
+  if (landReference.kind !== "NATURAL_EARTH_110M_LAND_CONTEXT_V1" ||
+      !Array.isArray(landReference.polygons)) throw Error("invalid land reference");
+  var landGroup = document.getElementById("land");
+  landReference.polygons.forEach(function(polygon) {
+    var commands = [];
+    polygon.forEach(function(ring) {
+      ring.forEach(function(point, index) {
+        commands.push((index === 0 ? "M" : "L") +
+          x(point[0]).toFixed(2) + "," + y(point[1]).toFixed(2));
+      });
+      commands.push("Z");
+    });
+    el("path", {d:commands.join(" ")}, landGroup);
+  });
+  document.body.setAttribute("data-monde-land-count", String(landGroup.childElementCount));
   function positionKey(feature) {
     var coords=feature.geometry.coordinates;
     // Longitude +180 and -180 are the same meridian.
@@ -919,7 +939,13 @@ def render_map(document: dict) -> str:
     encoded = (compact.replace("&", "\\u0026").replace("<", "\\u003c")
                .replace(">", "\\u003e").replace("\u2028", "\\u2028")
                .replace("\u2029", "\\u2029"))
-    return _TEMPLATE.replace("__MONDE_EMBEDDED_GEOJSON__", encoded)
+    # A bundled, public-domain geographic guide; no network or inferred data.
+    reference = (Path(__file__).resolve().parent / "data" /
+                 "ne_110m_land.json").read_text(encoding="utf-8")
+    if not reference.startswith('{"kind":"NATURAL_EARTH_110M_LAND_CONTEXT_V1","polygons":['):
+        raise ValueError("invalid bundled Natural Earth reference")
+    return (_TEMPLATE.replace("__MONDE_EMBEDDED_GEOJSON__", encoded)
+            .replace("__MONDE_EMBEDDED_REFERENCE_LAND__", reference))
 
 
 

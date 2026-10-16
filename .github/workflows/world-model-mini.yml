@@ -60,6 +60,9 @@ jobs:
           grep -q 'data-monde-ready="true"' /tmp/monde-direct-geojson-dom.html
           grep -q 'original-map-source' /tmp/monde-direct-geojson-dom.html
           grep -q '<circle' /tmp/monde-direct-geojson-dom.html
+          # Confirm real Chromium executed the offline Natural Earth SVG renderer.
+          grep -q 'data-monde-land-count="127"' /tmp/monde-direct-geojson-dom.html
+          grep -q 'id="land"' /tmp/monde-direct-geojson-dom.html
       - name: Generate real corrected-source knowledge-change HTML map
         env:
           PYTHONPATH: src

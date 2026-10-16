@@ -281,3 +281,21 @@ PYTHONPATH=src python3 -m monde.map_view --source-manifest sources.json --at 202
 Each dataset requires exactly one csv or geojson input plus source_id, locator, captured_at and valid_from, with optional valid_to and source_event_at. CSV-specific column overrides do not apply to GeoJSON. The existing --csv-manifest CLI name remains an alias for compatibility. The original source claims remain contradictory where they disagree: this feature does not reconcile physical positions or infer a true location, observation time or event time.
 
 All inputs are read-only; one invalid dataset aborts before output, and existing outputs or source files are not overwritten. Existing source-count limits, auto geographic bounds, bitemporal filters, derivative exports, and offline/no-network rendering are reused.
+
+## Offline reference geography (WORK-0022/T5)
+
+The standalone source-evidence HTML now embeds **Natural Earth 1:110m land
+polygons** as a muted SVG base layer. The reference coastlines help an analyst
+recognize continents without opening an online map, installing a mapping SDK,
+requesting tiles, or requiring any API. Points, source disagreement links,
+source evidence, selection, exports and bitemporal queries retain their own
+separate foreground layer and original provenance.
+
+**Source:** [Natural Earth public-domain 1:110m land](https://github.com/nvkelso/natural-earth-vector);
+GeoJSON conversion: [martynafford/natural-earth-geojson](https://github.com/martynafford/natural-earth-geojson/blob/0b9a6ceb0a7032713abd9460ac1e995a9c60cd1e/110m/physical/ne_110m_land.json),
+pinned upstream revision `0b9a6ceb0a7032713abd9460ac1e995a9c60cd1e`.
+The simplified land shapes are **cartographic context**, neither physical
+entity observations nor MONDE evidence. Their coarse scale is unsuitable
+for precise local boundaries or disputes. No source data is transmitted
+externally; the renderer only reads the versioned local asset.
+
