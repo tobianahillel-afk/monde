@@ -111,7 +111,13 @@ async function readMergeBase(github,owner,repo,snapshot) {
   const merge=result?.merge_base_commit?.sha;
   if (base!==snapshot.base_sha ||
       typeof merge!=='string' || !/^[a-f0-9]{40}$/.test(merge) ||
-      !['ahead','diverged'].includes(result.status))
+      !['ahead','diverged'].includes(result.status) ||
+      // In an ahead-only comparison the target base itself is necessarily
+      // the merge-base. For diverged histories it necessarily is not.
+      // Reject contradictory GitHub evidence instead of pinning a bogus
+      // reviewer preimage and silently accepting a false review scope.
+      (result.status==='ahead' && merge!==snapshot.base_sha) ||
+      (result.status==='diverged' && merge===snapshot.base_sha))
     incomplete();
   return merge;
 }

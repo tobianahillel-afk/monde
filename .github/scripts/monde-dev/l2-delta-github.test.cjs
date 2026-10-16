@@ -747,7 +747,7 @@ test('research directory scopes remain supported independently of GitHub file ro
 
 test('fresh L2 preimage from diverged PR uses merge-base, not newer main',async()=>{
   const mergeBase='d'.repeat(40);
-  const {api,calls}=freshClient({mergeBase});
+  const {api,calls}=freshClient({mergeBase,compareStatus:'diverged'});
   const out=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
   assert.equal(out.observed_pr_merge_base_sha,mergeBase);
   assert.equal(out.observed_pr_base_sha,'c'.repeat(40));
@@ -765,7 +765,7 @@ test('batched fresh L2 uses merge-base for rename and deletion preimages',async(
     {status:'removed',filename:'docs/old.md'}
   ];
   const mergeBase='d'.repeat(40);
-  const {api}=freshClient({files,mergeBase});
+  const {api}=freshClient({files,mergeBase,compareStatus:'diverged'});
   const out=await prepareFreshL2BatchesFromCurrentGitHub({
     github:api,...FRESH_MISSION});
   assert.equal(out.observed_pr_merge_base_sha,mergeBase);
@@ -780,7 +780,9 @@ test('batched fresh L2 uses merge-base for rename and deletion preimages',async(
 test('fresh L2 rejects contradictory GitHub merge-base evidence',async()=>{
   for(const cfg of [
     {compareBase:'f'.repeat(40)},{mergeBase:'bad-sha'},
-    {compareStatus:'unrelated'},{compareStatus:'behind'}
+    {compareStatus:'unrelated'},{compareStatus:'behind'},
+    {mergeBase:'d'.repeat(40),compareStatus:'ahead'},
+    {mergeBase:'c'.repeat(40),compareStatus:'diverged'}
   ]){
     const {api}=freshClient(cfg);
     await assert.rejects(
@@ -804,4 +806,23 @@ test('fresh L2 propagates compare 403 without invented evidence',async()=>{
   assert.equal(calls.get.length,1);
   assert.equal(calls.compares.length,1);
   assert.equal(calls.files.length,0);
+});
+
+test('merge-base consistency holds for both fresh L2 paths on ahead and diverged PRs',async()=>{
+  for(const options of [{compareStatus:'ahead'},{
+    compareStatus:'diverged',mergeBase:'d'.repeat(40)
+  }]){
+    const one=freshClient(options);
+    const out=await prepareFreshL2FromCurrentGitHub({
+      github:one.api,...FRESH_MISSION
+    });
+    assert.equal(out.observed_pr_merge_base_sha,
+      options.mergeBase||'c'.repeat(40));
+    const multiple=freshClient(options);
+    const batch=await prepareFreshL2BatchesFromCurrentGitHub({
+      github:multiple.api,...FRESH_MISSION
+    });
+    assert.equal(batch.observed_pr_merge_base_sha,
+      options.mergeBase||'c'.repeat(40));
+  }
 });
