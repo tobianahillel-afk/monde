@@ -1027,3 +1027,39 @@ jobs:
             /tmp/monde-knowledge-changes-map.html
             /tmp/monde-world-changes-map.html
           retention-days: 7
+
+      - name: Original KML MultiGeometry Point LineString and Polygon in Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          cat > /tmp/monde-original-multi.kml <<'KML'
+          <kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+          <Placemark id="multi-survey"><name>Mixed original source</name>
+          <MultiGeometry>
+          <Point><coordinates>2.35,48.85</coordinates></Point>
+          <LineString><coordinates>2.35,48.85 2.36,48.86 2.37,48.87</coordinates></LineString>
+          <Polygon><outerBoundaryIs><LinearRing><coordinates>
+          2.35,48.85 2.37,48.85 2.37,48.87 2.35,48.85
+          </coordinates></LinearRing></outerBoundaryIs>
+          <innerBoundaryIs><LinearRing><coordinates>
+          2.353,48.853 2.356,48.853 2.356,48.856 2.353,48.853
+          </coordinates></LinearRing></innerBoundaryIs></Polygon>
+          </MultiGeometry></Placemark></Document></kml>
+          KML
+          python3 -m monde.map_view --kml /tmp/monde-original-multi.kml \
+            --source-id original-multi --source-locator dataset://original-multi.kml \
+            --captured-at 2026-01-10T10:00:00Z \
+            --valid-from 2026-01-01T00:00:00Z \
+            --at 2026-01-02T00:00:00Z \
+            --known-at 2026-01-10T10:00:00Z \
+            --output /tmp/monde-kml-multi.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --timeout=15000 --dump-dom file:///tmp/monde-kml-multi.html \
+            >/tmp/monde-kml-multi-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-kml-multi-dom.html
+          grep -q 'data-monde-kml-segments="2"' /tmp/monde-kml-multi-dom.html
+          grep -q 'data-monde-kml-boundary-segments="6"' /tmp/monde-kml-multi-dom.html
+          grep -q 'data-monde-kml-inner-segments="3"' /tmp/monde-kml-multi-dom.html
+          grep -q 'Mixed original source' /tmp/monde-kml-multi-dom.html
