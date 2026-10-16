@@ -638,6 +638,7 @@ function assessFreshL2Waves({
      [reports,sources,coverage_manifests].some(map=>
        Object.keys(map).some(id=>!seen.has(id))))incomplete();
   const summary=[],results=[],missing=[],allFindings=[],prior=prior_sources.slice();
+  let blockingReports=0,reportedR1=0,reportedR2=0;
   for(let i=0;i<plan.review_waves.length;i++){
     const wave=plan.review_waves[i];
     const selected=missions.slice(i*4,i*4+4);
@@ -655,6 +656,9 @@ function assessFreshL2Waves({
     });
     results.push(...batch.results);
     allFindings.push(...batch.triage_findings);
+    blockingReports+=batch.unqualified_blocking_reports;
+    reportedR1+=batch.unqualified_r1;
+    reportedR2+=batch.unqualified_r2;
     missing.push(...ids.filter(id=>!Object.prototype.hasOwnProperty.call(reports,id)));
     summary.push({wave_number:i+1,assignment_ids:ids,
       reports_received:ids.length-ids.filter(id=>
@@ -695,9 +699,17 @@ function assessFreshL2Waves({
     material_triage_candidates:grouped.material_triage_candidates,
     deferred_backlog_candidates:grouped.deferred_backlog_candidates,
     repeated_finding_occurrences:grouped.duplicate_occurrences,
-    progression_advice:missing.length || unqualified.length ||
-      grouped.material_triage_candidates.length?
+    // Malformed or unqualified R1/R2 reports may lack parseable finding
+    // details. Preserve their risk counts instead of exposing an empty
+    // candidate list that looks like a clean review.
+    unqualified_blocking_reports:blockingReports,
+    unqualified_r1:reportedR1,
+    unqualified_r2:reportedR2,
+    progression_advice:blockingReports>0 ||
+      grouped.material_triage_candidates.length>0?
       'TRIAGE_UNQUALIFIED_MATERIAL_FINDINGS':
+      missing.length>0?'COLLECT_MISSING_L2_REPORTS':
+      unqualified.length>0?'MANUALLY_QUALIFY_L2':
       'CONTINUE_NEXT_ELIGIBLE_INCREMENT',
     triage_is_advisory:true,
     native_github_approved:false,review_acceptance_granted:false,

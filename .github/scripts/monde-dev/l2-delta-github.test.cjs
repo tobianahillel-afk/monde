@@ -1293,6 +1293,9 @@ test('review waves: L2 correction findings are consolidated across all waves',()
   assert.equal(out.actionable_finding_groups.length,5);
   assert.equal(out.material_triage_candidates.length,5);
   assert.equal(out.deferred_backlog_candidates.length,0);
+  assert.equal(out.unqualified_blocking_reports,5);
+  assert.equal(out.unqualified_r1,0);
+  assert.equal(out.unqualified_r2,5);
   assert.equal(out.progression_advice,'TRIAGE_UNQUALIFIED_MATERIAL_FINDINGS');
   assert.equal(out.review_acceptance_granted,false);
   assert.equal(out.native_github_approved,false);
@@ -1305,7 +1308,10 @@ test('review waves: no reports yields empty triage, not fabricated findings',()=
   assert.deepEqual(out.triage_findings,[]);
   assert.deepEqual(out.actionable_finding_groups,[]);
   assert.deepEqual(out.material_triage_candidates,[]);
-  assert.equal(out.progression_advice,'TRIAGE_UNQUALIFIED_MATERIAL_FINDINGS');
+  assert.equal(out.progression_advice,'COLLECT_MISSING_L2_REPORTS');
+  assert.equal(out.unqualified_blocking_reports,0);
+  assert.equal(out.unqualified_r1,0);
+  assert.equal(out.unqualified_r2,0);
   assert.equal(out.status,'MISSING_L2_REPORTS');
   assert.equal(out.ready_for_merge,false);
 });
