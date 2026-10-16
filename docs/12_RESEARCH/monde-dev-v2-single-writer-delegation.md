@@ -321,3 +321,7 @@ const delta = await planL2DeltaFromGitHub({
   new_assignment_id: 'L2-MISSION-NEW', previous_review
 });
 ```
+
+
+**Progress-first R3 advisory backlog (implementation candidate, 2026-10-16).**
+The read-only work planner now returns `deferred_r3_backlog`: bounded, deduplicated reported R3 paths, counts, related WORK/TASK identifiers, and the next triage action. This does **not** validate severity or approve deferral: an interactive reviewer must qualify an R3 as nonblocking before deferring it. It never copies raw report evidence into the backlog, grants permission, modifies canonical WORK state or suppresses R1/R2 remediation. Records remain in existing GitHub/WORK/REVIEW channels; there is no second tracker.

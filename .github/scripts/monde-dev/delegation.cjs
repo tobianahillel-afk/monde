@@ -2285,6 +2285,38 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     }
   }
   const minor=issues.filter(f=>f.severity==='R3');
+  // Progress-first R3 tracking. These are unqualified reviewer claims, not
+  // automatically verified low-risk defects; preserve scope and a next action
+  // without copying report evidence or instructions into public summaries.
+  // Group duplicates by path so repeated reports cannot flood the backlog.
+  const deferredByPath=new Map();
+  for(const finding of minor){
+    const count=deferredByPath.get(finding.path)||0;
+    deferredByPath.set(finding.path,count+1);
+  }
+  const deferredR3Backlog=[...deferredByPath].sort(([a],[b])=>
+    a.localeCompare(b)).map(([path,occurrences])=>{
+    const related=[];
+    let relatedTotal=0;
+    for(const work of works)for(const task of work.tasks){
+      if(!task.expected_files.some(file=>isOverlapping(file,path)))continue;
+      relatedTotal++;
+      if(related.length<16)related.push({work:work.id,task:task.id});
+    }
+    related.sort((a,b)=>a.work.localeCompare(b.work)||
+      a.task.localeCompare(b.task));
+    return {
+      path,occurrences,
+      related_tasks:related,related_tasks_total:relatedTotal,
+      related_tasks_truncated:relatedTotal>related.length,
+      // Review and rank before scheduling; R3 labels are not verification.
+      disposition:'TRIAGE_AND_DEFER_IF_NONBLOCKING',
+      suggested_followup:relatedTotal?
+        'REVISIT_WITH_RELATED_WORK':'FIND_OWNER_IN_FOREGROUND',
+      reviewer_evidence_not_copied:true,
+      qualification_required:true,execution_blocking:false
+    };
+  });
   const unmappedMaterialFindings=materialPaths.filter(path=>
     !mappedMaterialPaths.has(path)).map(path=>({
       path,occurrences:materialCounts.get(path).count,
@@ -2317,6 +2349,7 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     unqualified_material_findings:
       issues.filter(f=>f.severity!=='R3').length,
     deferred_r3_candidates:minor.length,
+    deferred_r3_backlog:deferredR3Backlog,
     continuation:'RECHECK_REPO_AND_SCOPE_BEFORE_WRITE'};
 }
 

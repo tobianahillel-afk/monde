@@ -8009,3 +8009,66 @@ test('resume publication refuses an already stale evidence revision',()=>{
   assert.equal(inspectResume(d.renderResumePacket(stale)).status,'STALE_EVIDENCE');
   assert.equal(inspectResume(original).status,'SAME_REVISION');
 });
+
+
+test('progress-first R3 backlog retains actionable owner and duplicate counts without halting work',()=>{
+  const findings=[
+    {severity:'R3',path:'src/b.js',evidence:'Cosmetic improvement A'},
+    {severity:'R3',path:'src/b.js',evidence:'Cosmetic improvement B'},
+    {severity:'R3',path:'unassigned/unknown.js',evidence:'Consider later'}
+  ];
+  const result=plan(undefined,findings);
+  assert.equal(result.recommended.task,'T2');
+  assert.equal(result.remediation_candidates.length,0);
+  assert.equal(result.deferred_r3_candidates,3);
+  assert.equal(result.deferred_r3_backlog.length,2);
+  const matched=result.deferred_r3_backlog.find(item=>item.path==='src/b.js');
+  assert.equal(matched.occurrences,2);
+  assert.ok(matched.related_tasks.some(x=>x.task==='T2'));
+  assert.equal(matched.suggested_followup,'REVISIT_WITH_RELATED_WORK');
+  assert.equal(matched.qualification_required,true);
+  assert.equal(matched.execution_blocking,false);
+  const orphan=result.deferred_r3_backlog.find(item=>item.path==='unassigned/unknown.js');
+  assert.equal(orphan.related_tasks_total,0);
+  assert.equal(orphan.suggested_followup,'FIND_OWNER_IN_FOREGROUND');
+  assert.equal(JSON.stringify(result.deferred_r3_backlog).includes('Cosmetic improvement A'),false);
+});
+test('progress-first R3 backlog mapping honors path segment boundaries',()=>{
+  const w={id:'WORK-0099',status:'READY',depends_on:[],tasks:[
+    {id:'T1',status:'READY',depends_on:[],expected_files:['src/map']},
+    {id:'T2',status:'READY',depends_on:[],expected_files:['src/mapper']}
+  ]};
+  const input={repo:'tobianahillel-afk/monde',head_sha:SHA,works:[w],
+    triage_findings:[{severity:'R3',path:'src/mapper/gui.cjs',
+      evidence:'Check UI label'}]};
+  const result=d.planNextIncrement(input);
+  assert.deepEqual(result.deferred_r3_backlog[0].related_tasks,
+    [{work:'WORK-0099',task:'T2'}]);
+});
+test('progress-first R3 backlog stays bounded for wide work inventories',()=>{
+  const w={id:'WORK-0099',status:'READY',depends_on:[],
+    tasks:Array.from({length:30},(_,i)=>({
+      id:'T'+(i+1),status:'READY',depends_on:[],
+      expected_files:['src/common/file'+i+'.js']
+    }))};
+  const result=d.planNextIncrement({
+    repo:'tobianahillel-afk/monde',head_sha:SHA,works:[w],
+    triage_findings:[{severity:'R3',path:'src/common',
+      evidence:'Review formatting later'}]
+  });
+  assert.equal(result.deferred_r3_backlog[0].related_tasks_total,30);
+  assert.equal(result.deferred_r3_backlog[0].related_tasks.length,16);
+  assert.equal(result.deferred_r3_backlog[0].related_tasks_truncated,true);
+  assert.equal(result.remediation_candidates.length,0);
+});
+test('material R1 still blocks affected task while R3 remains in advisory backlog',()=>{
+  const result=plan(undefined,[
+    {severity:'R1',path:'src/b.js',evidence:'Unexpected privilege change'},
+    {severity:'R3',path:'src/c.js',evidence:'Cosmetic naming'}
+  ]);
+  assert.equal(result.recommended.task,'T3');
+  assert.ok(result.blocked.some(x=>x.task==='T2'&&
+    x.reasons.includes('MATERIAL_FINDINGS_NEED_TRIAGE')));
+  assert.equal(result.deferred_r3_backlog.length,1);
+  assert.equal(result.deferred_r3_backlog[0].execution_blocking,false);
+});
