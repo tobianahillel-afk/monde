@@ -1547,6 +1547,9 @@ test('L2 foreground bridge: current GitHub PR is checked twice before returning 
   assert.equal(result.missing_assignment_ids.length,5);
   assert.equal(result.live_pr_observed_before_and_after,true);
   assert.equal(result.live_pr_source_verified_during_assessment,true);
+  assert.equal(result.live_pr_file_scope_verified,true);
+  assert.equal(result.live_pr_verified_file_count,5);
+  assert.equal(result.live_pr_verified_merge_base_sha,'c'.repeat(40));
   assert.equal(result.native_github_approved,false);
   assert.equal(result.ready_for_merge,false);
   assert.equal(result.authorized_to_write,false);
@@ -1601,4 +1604,40 @@ test('L2 foreground bridge propagates GitHub permission failure; no result is in
     expected_head_sha:plan.observed_pr_head_sha
   }),e=>e.status===403);
   assert.equal(calls.length,1);
+});
+
+test('L2 foreground bridge rejects a fabricated or truncated live file scope',async()=>{
+  for(const variant of [
+    {missingFile:true},{forgedFile:true},
+    {mismatchedImmutable:true},{wrongMergeBase:true}
+  ]){
+    const {plan,github}=liveWaveAssessmentFixture(variant);
+    await assert.rejects(assessFreshL2WavesFromCurrentGitHub({
+      github,plan,repo:WAVE_SOURCE_REPO,pr:19,
+      expected_head_sha:plan.observed_pr_head_sha
+    }),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+});
+test('L2 foreground bridge cannot certify a caller-edited manifest path',async()=>{
+  const {plan,github}=liveWaveAssessmentFixture();
+  plan.batches[0].changed_file_statuses[0].path='src/unreviewed.cjs';
+  // Keep the fake packet internally coherent: only independent GitHub files
+  // can reveal the falsified scope.
+  plan.batches[0].assignment.paths=['src/unreviewed.cjs'];
+  plan.batches[0].immutable_file_refs[0].path='src/unreviewed.cjs';
+  await assert.rejects(assessFreshL2WavesFromCurrentGitHub({
+    github,plan,repo:WAVE_SOURCE_REPO,pr:19,
+    expected_head_sha:plan.observed_pr_head_sha
+  }),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+});
+test('L2 foreground bridge requires immutable compare and pagination APIs',async()=>{
+  for(const property of ['paginate','compare']){
+    const {plan,github}=liveWaveAssessmentFixture();
+    if(property==='paginate')delete github.paginate;
+    else delete github.rest.repos.compareCommitsWithBasehead;
+    await assert.rejects(assessFreshL2WavesFromCurrentGitHub({
+      github,plan,repo:WAVE_SOURCE_REPO,pr:19,
+      expected_head_sha:plan.observed_pr_head_sha
+    }),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
 });

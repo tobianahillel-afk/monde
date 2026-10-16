@@ -777,6 +777,42 @@ function assessFreshL2Waves({
 }
 
 
+
+// An L2 wave packet is caller-controlled data. Re-check its complete changed
+// file scope against two independently fetched GitHub representations before
+// reporting that the live PR was verified. No write rights are used.
+async function verifyCurrentWaveManifest(github,owner,repo,snapshot,plan,pr){
+  if(typeof github?.paginate!=='function' ||
+     typeof github.rest?.pulls?.listFiles!=='function' ||
+     typeof github.rest?.repos?.compareCommitsWithBasehead!=='function')
+    incomplete();
+  const immutable=await readMergeBase(github,owner,repo,{
+    base_sha:snapshot.base_sha,head_sha:snapshot.head_sha,
+    changed_files:snapshot.changed_files
+  });
+  if(immutable.sha!==plan.observed_pr_merge_base_sha)incomplete();
+  const rows=await github.paginate(github.rest.pulls.listFiles,{
+    owner,repo,pull_number:pr,per_page:100
+  });
+  if(!Array.isArray(rows)||rows.length!==snapshot.changed_files)incomplete();
+  verifyImmutableFileManifest(rows,immutable.files);
+  const actual=new Map(rows.map(f=>[f.filename,f]));
+  const claimed=new Set();
+  for(const batch of plan.batches){
+    if(!batch||!Array.isArray(batch.changed_file_statuses))incomplete();
+    for(const item of batch.changed_file_statuses){
+      const file=actual.get(item?.path);
+      if(!file||claimed.has(item.path)||
+         item.status!==file.status||
+         item.previous_path!==(file.status==='renamed'?file.previous_filename:null))
+        incomplete();
+      claimed.add(item.path);
+    }
+  }
+  if(claimed.size!==actual.size)incomplete();
+  return {validated_files:claimed.size,merge_base_sha:immutable.sha};
+}
+
 // Read-only foreground bridge: the caller supplies a planned L2 dossier,
 // but cannot self-attest the live HEAD/base/source facts that qualify it.
 // Two GitHub observations straddle aggregation so an edited/rebased/retargeted
@@ -820,6 +856,10 @@ async function assessFreshL2WavesFromCurrentGitHub(input) {
       changed_files:data.changed_files};
   };
   const before=await observe();
+  const manifest=await verifyCurrentWaveManifest(github,owner,name,{
+    head_sha:before.head_sha,base_sha:before.base_sha,
+    changed_files:before.changed_files
+  },plan,pr);
   const outcome=assessFreshL2Waves({
     plan,reports,sources,coverage_manifests,prior_sources,
     current_head:before.head_sha,current_base_sha:before.base_sha,
@@ -830,6 +870,9 @@ async function assessFreshL2WavesFromCurrentGitHub(input) {
   if(Object.keys(before).some(key=>before[key]!==after[key]))incomplete();
   return {...outcome,live_pr_observed_before_and_after:true,
     live_pr_source_verified_during_assessment:true,
+    live_pr_file_scope_verified:true,
+    live_pr_verified_file_count:manifest.validated_files,
+    live_pr_verified_merge_base_sha:manifest.merge_base_sha,
     current_pr_snapshot:after,
     // This bridge only checks GitHub PR metadata. The ChatGPT context and
     // content of reviewer reports remain separately qualified/unauthenticated.
