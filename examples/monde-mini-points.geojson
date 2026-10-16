@@ -1,0 +1,35 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "place-001",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          2.3522,
+          48.8566
+        ]
+      },
+      "properties": {
+        "name": "Example Place A",
+        "category": "public-site"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "place-002",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          2.295,
+          48.8738
+        ]
+      },
+      "properties": {
+        "name": "Example Place B",
+        "category": "landmark"
+      }
+    }
+  ]
+}

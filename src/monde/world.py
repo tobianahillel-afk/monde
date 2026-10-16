@@ -643,7 +643,15 @@ def main(argv=None) -> int:
     selection.add_argument("--ingest-document", metavar="UPDATES_JSON",
                            action="append",
                            help="append one or more ordered source batches atomically; repeat flag")
+    selection.add_argument("--ingest-geojson", metavar="POINTS_GEOJSON",
+                           help="import source-attributed 2D GeoJSON points")
     parser.add_argument("--state-out", help="destination JSON snapshot for ingestion")
+    parser.add_argument("--source-id", help="source identity for GeoJSON assertions")
+    parser.add_argument("--source-locator", help="original dataset locator for GeoJSON provenance")
+    parser.add_argument("--captured-at", help="explicit GeoJSON evidence capture timestamp")
+    parser.add_argument("--valid-from", help="explicit GeoJSON reported world-time start")
+    parser.add_argument("--valid-to", help="optional exclusive GeoJSON validity end")
+    parser.add_argument("--source-event-at", help="optional time of original source report")
     parser.add_argument("--replace-state", action="store_true",
                         help="explicitly overwrite --state-out (single writer only)")
     parser.add_argument("--equals-json", help="exact JSON value used by cross-entity search")
@@ -658,6 +666,34 @@ def main(argv=None) -> int:
     parser.add_argument("--compare-at", help="earlier valid-world-time; requires --all-attributes and --at")
     args = parser.parse_args(argv)
     try:
+        geo_metadata = (args.source_id, args.source_locator, args.captured_at,
+                        args.valid_from, args.valid_to, args.source_event_at)
+        if args.ingest_geojson:
+            if (not args.state_out or any(value is None for value in geo_metadata[:4])
+                    or args.entity is not None or args.known_at is not None
+                    or args.at is not None or args.timeline_from is not None
+                    or args.timeline_to is not None
+                    or args.knowledge_timeline_from is not None
+                    or args.compare_known_at is not None
+                    or args.compare_at is not None or args.updates_from is not None
+                    or args.equals_json is not None or args.source_attribute is not None):
+                parser.error("GeoJSON import requires source metadata, --state-out and no query flags")
+            from .geojson import to_document
+            world = WorldMini.read(args.fixture)
+            converted = to_document(
+                WorldMini.load_document(args.ingest_geojson),
+                source_id=args.source_id, locator=args.source_locator,
+                captured_at=args.captured_at, valid_from=args.valid_from,
+                valid_to=args.valid_to, source_event_at=args.source_event_at)
+            changes = world.append_document(converted)
+            world.save(args.state_out, replace=args.replace_state)
+            print(json.dumps({"operation": "IMPORT_GEOJSON_POINTS",
+                              "world": "OBSERVED", "status": "SAVED",
+                              "features": len(converted["evidence"]), **changes},
+                             sort_keys=True))
+            return 0
+        if any(value is not None for value in geo_metadata):
+            parser.error("GeoJSON source metadata requires --ingest-geojson")
         if args.ingest_document:
             if (not args.state_out or args.entity is not None or
                     args.known_at is not None or args.at is not None or

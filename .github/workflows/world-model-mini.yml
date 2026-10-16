@@ -18,4 +18,4 @@ jobs:
       - name: Run behavioral and end-to-end tests
         env:
           PYTHONPATH: src
-        run: python3 -m unittest discover -s tests -p 'test_world_mini.py' -v
+        run: python3 -m unittest discover -s tests -p 'test_world*.py' -v
