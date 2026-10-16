@@ -80,9 +80,9 @@ jobs:
           <?xml version="1.0"?>
           <gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="survey">
           <rte><name>field-survey</name>
-          <rtept lat="48.850" lon="2.350"/>
-          <rtept lat="48.860" lon="2.360"/>
-          <rtept lat="48.865" lon="2.365"/></rte>
+          <rtept lat="48.850" lon="2.350"><time>2026-01-01T09:00:00Z</time></rtept>
+          <rtept lat="48.860" lon="2.360"><time>2026-01-01T09:01:00Z</time></rtept>
+          <rtept lat="48.865" lon="2.365"><time>2026-01-01T08:59:00Z</time></rtept></rte>
           <trk><name>survey-track</name><trkseg>
           <trkpt lat="40.70" lon="-73.99"/><trkpt lat="40.71" lon="-73.98"/>
           </trkseg><trkseg>
@@ -806,6 +806,13 @@ jobs:
                   result.approximate_adjacent_separation_km<1.5 ||
                   result.approximate_adjacent_separation_km>3.5 ||
                   result.source_trace.original_sample_count!==3 ||
+                  result.source_timestamp_pair_count!==2 ||
+                  result.reversed_source_timestamp_pair_count!==1 ||
+                  result.missing_source_timestamp_pair_count!==0 ||
+                  result.nonnegative_source_timestamp_delta_seconds!==60 ||
+                  result.source_timestamp_pairs[0].source_reported_delta_seconds!==60 ||
+                  result.source_timestamp_pairs[1].source_reported_delta_seconds!==-120 ||
+                  result.original_reports.some(f=>!f.properties.monde_gpx_sample_time) ||
                   result.original_reports.length!==3 ||
                   result.original_reports.some(f=>!f.id || !f.properties.evidence_id ||
                     !f.properties.source_id) ||

@@ -349,6 +349,7 @@ class WorldMini:
         result = self.search_geo_bbox(bounds, at, known_at)
         features = []
         trace_reports = {}
+        sample_time_reports = {}
         for match in result["matches"]:
             # Trace grouping is another source assertion, never a inferred path.
             # Match its *original evidence id* to the Point before displaying.
@@ -358,6 +359,11 @@ class WorldMini:
                     report["evidence_id"]: report["value"]
                     for report in self.query(match["entity"], "gpx_trace",
                                              at, known_at)["reports"]
+                }
+                sample_time_reports[match["entity"]] = {
+                    r["evidence_id"]: r["value"]
+                    for r in self.query(match["entity"], "waypoint_time",
+                                        at, known_at)["reports"]
                 }
             for inside, reports in ((True, match["matched_reports"]),
                                     (False, match["other_reports"])):
@@ -376,6 +382,11 @@ class WorldMini:
                         report["evidence_id"])
                     if source_trace is not None:
                         properties["monde_gpx_trace"] = _clone(source_trace)
+                        # Source-clock assertion must share the original Point's evidence.
+                        clock = sample_time_reports.get(match["entity"], {}).get(
+                            report["evidence_id"])
+                        if isinstance(clock, str):
+                            properties["monde_gpx_sample_time"] = clock
                     features.append({
                         "type": "Feature", "id": report["assertion_id"],
                         "geometry": _point(report["value"]), "properties": properties,

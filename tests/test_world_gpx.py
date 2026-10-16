@@ -163,6 +163,39 @@ class OriginalGPXTests(unittest.TestCase):
             self.assertFalse(out.exists())
 
 
+
+    def test_source_clock_retains_exact_evidence_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = self.source(directory, TRACE_GPX)
+            original = to_geojson(source)
+            world = WorldMini.from_document(to_document(original,
+                source_id="clock", locator="dataset://clock",
+                captured_at=CAPTURED, valid_from=VALID))
+            features = world.export_geojson_bbox([-180, -90, 180, 90],
+                                                 AT, CAPTURED)["features"]
+            original_props = {f["id"]: f["properties"] for f in original["features"]}
+            timed = [f for f in features if "monde_gpx_sample_time" in f["properties"]]
+            self.assertEqual(len(timed), 4)
+            for f in timed:
+                p = f["properties"]
+                self.assertEqual(p["monde_gpx_sample_time"],
+                                 original_props[p["entity"]]["waypoint_time"])
+                self.assertEqual(p["source_id"], "clock")
+                self.assertIn("monde_gpx_trace", p)
+
+    def test_source_clock_profile_present_in_offline_html(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = self.source(directory, TRACE_GPX)
+            output = Path(directory) / "trace-clock.html"
+            done = self.cli(*self.flags(source), "--at", AT,
+                            "--known-at", CAPTURED, "--output", output)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            page = output.read_text(encoding="utf-8")
+            self.assertIn("monde_gpx_sample_time", page)
+            self.assertIn("source_timestamp_pairs", page)
+            self.assertIn("reversed_source_timestamp_pair_count", page)
+            self.assertIn("do not prove elapsed physical travel", page)
+
     def test_trace_segment_profile_control_is_emitted_for_real_gpx(self):
         with tempfile.TemporaryDirectory() as directory:
             source = self.source(directory, TRACE_GPX)

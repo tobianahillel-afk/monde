@@ -464,13 +464,26 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         b.properties.monde_gpx_trace.order;
     });
     if(!samples.length)return null;
-    var count=0,km=0;
+    var count=0,km=0,missingTimes=0,reversedTimes=0,forwardSeconds=0;
+    var sourceTimestampPairs=[];
     for(var i=1;i<samples.length;i++){
-      if(samples[i].properties.monde_gpx_trace.order !==
-          samples[i-1].properties.monde_gpx_trace.order+1)continue;
-      km+=approximateDistanceKm(samples[i-1].geometry.coordinates,
-        samples[i].geometry.coordinates);
+      var from=samples[i-1],to=samples[i];
+      if(to.properties.monde_gpx_trace.order !==
+          from.properties.monde_gpx_trace.order+1)continue;
+      km+=approximateDistanceKm(from.geometry.coordinates,to.geometry.coordinates);
       count++;
+      var fromText=from.properties.monde_gpx_sample_time;
+      var toText=to.properties.monde_gpx_sample_time;
+      var fromTime=typeof fromText==="string"?Date.parse(fromText):NaN;
+      var toTime=typeof toText==="string"?Date.parse(toText):NaN;
+      if(!Number.isFinite(fromTime)||!Number.isFinite(toTime)){
+        missingTimes++;continue;
+      }
+      var delta=(toTime-fromTime)/1000;
+      if(delta<0)reversedTimes++;else forwardSeconds+=delta;
+      sourceTimestampPairs.push({from_assertion_id:from.id,
+        to_assertion_id:to.id,from_source_time:fromText,
+        to_source_time:toText,source_reported_delta_seconds:delta});
     }
     return {
       format:"MONDE_MINI_GPX_SOURCE_SEGMENT_PROFILE_V1",
@@ -483,6 +496,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       visible_sample_count:samples.length,
       adjacent_pair_count:count,
       approximate_adjacent_separation_km:Math.round(km*1000)/1000,
+      source_timestamp_pair_count:sourceTimestampPairs.length,
+      missing_source_timestamp_pair_count:missingTimes,
+      reversed_source_timestamp_pair_count:reversedTimes,
+      nonnegative_source_timestamp_delta_seconds:forwardSeconds,
+      source_timestamp_pairs:sourceTimestampPairs,
+      source_time_interpretation:"Original GPX source clock only. Pairwise differences do not prove elapsed physical travel, speed or complete coverage; filtered gaps are never bridged.",
       distance_method:"SUM_OF_SHORTEST_GREAT_CIRCLE_SEPARATIONS_BETWEEN_VISIBLE_CONSECUTIVE_SOURCE_SAMPLES",
       completeness:"Filtered derivative. Hidden or non-adjacent samples are never bridged.",
       interpretation:"Approximate separation of source-reported coordinates only; no verified movement, actual traveled distance, path continuity, speed, or source authority.",
@@ -797,8 +816,11 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
             (traceProfile ? ". "+String(traceProfile.adjacent_pair_count)+
               " visible consecutive source pairs · approx. "+
               String(traceProfile.approximate_adjacent_separation_km)+
-              " km of coordinate separation." : ". No matching samples.")+
-            " No verified movement, traveled distance or continuity." :
+              " km of coordinate separation · "+
+              String(traceProfile.source_timestamp_pair_count)+" source-clock pairs ("+
+              String(traceProfile.reversed_source_timestamp_pair_count)+
+              " reversed)." : ". No matching samples.")+
+            " No verified movement, speed, traveled distance or continuity." :
           "This original trace is not available in the current evidence snapshot.";
       }else{
         traceSummary.textContent=String(availableTraces.size)+
@@ -1111,6 +1133,9 @@ def render_map(document: dict) -> str:
             raise ValueError("invalid source Point")
         props = feature["properties"]
         trace = props.get("monde_gpx_trace")
+        if "monde_gpx_sample_time" in props and (
+                trace is None or not isinstance(props["monde_gpx_sample_time"], str)):
+            raise ValueError("invalid GPX source clock evidence")
         if trace is not None:
             if (not isinstance(trace, dict) or set(trace) !=
                     {"format", "kind", "name", "trace_id", "segment", "order"}
