@@ -93,3 +93,35 @@ def documents_from_manifest(path, *, output_path):
             valid_to=entry.get("valid_to"),
             source_event_at=entry.get("source_event_at")))
     return documents, features
+
+
+def to_source_csv(collection):
+    """Export one source assertion per row; never reconcile geographic positions."""
+    import io
+
+    fields = ("entity", "longitude", "latitude", "assertion_id", "source_id",
+              "evidence_id", "locator", "captured_at", "source_event_at",
+              "kind", "known_at", "valid_from", "valid_to", "valid_at",
+              "knowledge_cutoff", "monde_status")
+    stream = io.StringIO(newline="")
+    writer = csv.writer(stream, lineterminator="\n")
+    writer.writerow(fields)
+    for feature in collection["features"]:
+        props = feature["properties"]
+        lon, lat = feature["geometry"]["coordinates"]
+
+        def text(name):
+            value = props.get(name)
+            if value is None:
+                return ""
+            value = str(value)
+            # Original locators may be untrusted; prevent spreadsheet formulas.
+            return "'" + value if value.lstrip().startswith(("=", "+", "-", "@")) else value
+
+        writer.writerow([text("entity"), lon, lat, text("assertion_id"),
+                         text("source_id"), text("evidence_id"), text("locator"),
+                         text("captured_at"), text("source_event_at"), text("kind"),
+                         text("known_at"), text("valid_from"), text("valid_to"),
+                         text("valid_at"), text("knowledge_cutoff"),
+                         text("monde_status")])
+    return stream.getvalue()

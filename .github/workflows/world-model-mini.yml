@@ -419,6 +419,83 @@ jobs:
               "file:///tmp/monde-$page.html" > "/tmp/monde-$page-dom.html"
             grep -q 'data-monde-export="pass"' "/tmp/monde-$page-dom.html"
           done
+      - name: Export filtered spreadsheet-safe source CSV in real offline Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+          from monde.map_view import render_map
+          original = Path("/tmp/monde-compare-claims.html").read_text(encoding="utf-8")
+          match = re.search(r'id="monde-data">(.*?)</script>', original, re.S)
+          if match is None:
+              raise ValueError("missing source GeoJSON")
+          data = json.loads(match.group(1))
+          data["features"][0]["properties"]["locator"] = "=SUM(1,2)"
+          src = render_map(data)
+          script = """
+          <script>
+          (async function(){
+            try {
+              var raw=JSON.parse(document.getElementById('monde-data').textContent);
+              if(raw.features.length<2)throw Error('requires independent sources');
+              var selected=raw.features[0].properties.source_id;
+              var chooser=document.getElementById('sources');
+              chooser.value=selected;
+              chooser.dispatchEvent(new Event('change'));
+              var btn=document.getElementById('export-visible-csv');
+              if(btn.disabled)throw Error('button disabled for source reports');
+              var originalClick=HTMLAnchorElement.prototype.click;
+              var oldCreate=URL.createObjectURL,blob=null,filename=null;
+              URL.createObjectURL=function(value){blob=value;return 'blob:offline-csv';};
+              HTMLAnchorElement.prototype.click=function(){filename=this.download;};
+              btn.click();
+              if(filename!=='monde-visible-source-evidence.csv'||!blob)
+                throw Error('missing CSV download');
+              var csv=await blob.text();
+              if(!csv.replace(/^\\uFEFF/,'').startsWith('entity,longitude,latitude,assertion_id,'))
+                throw Error('missing canonical CSV schema');
+              if(!csv.includes('FILTERED_VISIBLE_SOURCE_REPORTS_ONLY'))
+                throw Error('missing source-only scope');
+              if(!csv.includes(String.fromCharCode(39)+'=SUM(1,2)'))
+                throw Error('spreadsheet-formula text was not escaped');
+              var loc=raw.features[0].geometry.coordinates;
+              if(!csv.includes(',"'+String(loc[0])+'","'+String(loc[1])+'",'))
+                throw Error('numeric WGS84 coordinates unexpectedly modified');
+              var count=raw.features.filter(f=>f.properties.source_id===selected).length;
+              if(csv.trimEnd().split('\\r\\n').length!==count+1)
+                throw Error('filtered report count mismatch');
+              var others=raw.features.filter(f=>f.properties.source_id!==selected);
+              if(others.some(f=>csv.includes('"'+f.id+'"')))
+                throw Error('source selection leaked another assertion');
+              chooser.value='';chooser.dispatchEvent(new Event('change'));
+              raw=JSON.parse(document.getElementById('monde-data').textContent);
+              btn.click();
+              if(!blob||btn.disabled)throw Error('export failed');
+              var search=document.getElementById('report-search');
+              search.value='unlikely-no-monde-match-zz';
+              search.dispatchEvent(new Event('input'));
+              if(!btn.disabled)throw Error('empty set did not disable export');
+              URL.createObjectURL=oldCreate;
+              HTMLAnchorElement.prototype.click=originalClick;
+              document.body.setAttribute('data-monde-csv-export','pass');
+            }catch(e){document.body.setAttribute('data-monde-csv-export','fail:'+e.message);}
+          })();
+          </script>
+          """
+          Path("/tmp/monde-visible-csv-smoke.html").write_text(
+              src.replace("</body>",script+"</body>"),encoding="utf-8")
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=2500 --timeout=15000 --dump-dom \
+            file:///tmp/monde-visible-csv-smoke.html > /tmp/monde-visible-csv-dom.html
+          if ! grep -q 'data-monde-csv-export="pass"' /tmp/monde-visible-csv-dom.html; then
+            grep -o 'data-monde-csv-export="[^"]*"' /tmp/monde-visible-csv-dom.html || true
+            exit 1
+          fi
       - name: Exercise cross-entity conflict navigator and evidence download in real Chromium
         run: |
           python3 - <<'PY'

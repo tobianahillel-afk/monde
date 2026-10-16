@@ -848,3 +848,23 @@ class OfflineCrossEntityConflictInventoryTest(unittest.TestCase):
         result = subprocess.run([node, "-e", script], cwd=ROOT,
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class OfflineVisibleCsvExportTest(unittest.TestCase):
+    def test_csv_download_is_in_offline_map_without_changing_source(self):
+        original = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        copy = json.loads(json.dumps(original))
+        html = render_map(original)
+        self.assertIn('id="export-visible-csv"', html)
+        self.assertIn('"FILTERED_VISIBLE_SOURCE_REPORTS_ONLY"', html)
+        self.assertIn('exportCsvButton.disabled = visibleFeatures.length === 0', html)
+        self.assertIn('monde_inside_bbox', html)
+        self.assertEqual(original, copy)
+
+    def test_csv_download_also_exists_in_temporal_comparison(self):
+        world = with_points()
+        source = world.export_geojson_bbox_knowledge_changes(
+            BBOX, VALID, KNOWN, LATE)
+        html = render_map(source)
+        self.assertIn('id="export-visible-csv"', html)
+        self.assertIn('monde_change', html)
