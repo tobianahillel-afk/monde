@@ -1215,7 +1215,7 @@ def main(argv=None) -> int:
         if (any(value is not None for value in geo_metadata) or
                 any(value is not None for value in
                     (args.csv_id_column, args.csv_lon_column, args.csv_lat_column))):
-            parser.error("source metadata requires an ingestion mode")
+            parser.error("GeoJSON/CSV source metadata requires --ingest-geojson or --ingest-csv")
         if args.ingest_document:
             if (not args.state_out or args.entity is not None or
                     args.known_at is not None or args.at is not None or
