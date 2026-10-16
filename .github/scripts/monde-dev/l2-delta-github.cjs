@@ -152,4 +152,101 @@ async function planL2DeltaFromCurrentGitHub(input) {
   };
 }
 
-module.exports = { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub };
+
+// Prepare a *fresh* independent L2 assignment from actual GitHub PR facts,
+// without an earlier reviewer or a delta/compare. Produces a prompt for a
+// separate ChatGPT conversation; never creates a task, review or repository
+// mutation. The PR source identity is read twice around full file pagination.
+async function prepareFreshL2FromCurrentGitHub(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input))
+    incomplete();
+  const { github, repo, pr, assignment_id, author_context_id, objective } = input;
+  // Validate user-authored mission identity before any network request. Using
+  // the canonical pure assignment parser keeps prompt injection out of fields.
+  let seed;
+  try {
+    seed = assignment({
+      mission_kind:'L2_REVIEW',assignment_id,repo,pr,
+      author_context_id,objective,head_sha:'0'.repeat(40),
+      paths:['.github/monde-dev-review-placeholder.cjs']
+    });
+  } catch { incomplete(); }
+  if (!github || typeof github.paginate !== 'function' ||
+      !github.rest || !github.rest.pulls ||
+      typeof github.rest.pulls.get !== 'function' ||
+      typeof github.rest.pulls.listFiles !== 'function') incomplete();
+
+  const [owner, name] = seed.repo.split('/');
+  const observe = async () => {
+    const raw = await github.rest.pulls.get({
+      owner, repo:name, pull_number:seed.pr
+    });
+    const prData = raw && raw.data;
+    if (!prData || prData.number !== seed.pr || prData.state !== 'open' ||
+        prData.base?.repo?.full_name !== seed.repo ||
+        prData.base?.ref !== 'main' ||
+        typeof prData.base.sha !== 'string' ||
+        !/^[a-f0-9]{40}$/.test(prData.base.sha) ||
+        typeof prData.head?.sha !== 'string' ||
+        !/^[a-f0-9]{40}$/.test(prData.head.sha) ||
+        typeof prData.head.repo?.full_name !== 'string' ||
+        !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(prData.head.repo.full_name) ||
+        typeof prData.head.ref !== 'string' ||
+        !/^[A-Za-z0-9._/-]+$/.test(prData.head.ref) ||
+        prData.head.ref.split('/').some(s=>!s||s==='.'||s==='..') ||
+        !Number.isSafeInteger(prData.changed_files) ||
+        prData.changed_files < 1 || prData.changed_files > 24)
+      incomplete();
+    return {
+      base_sha:prData.base.sha,head_sha:prData.head.sha,
+      head_repo:prData.head.repo.full_name,head_ref:prData.head.ref,
+      changed_files:prData.changed_files
+    };
+  };
+  const before = await observe();
+  const rows = await github.paginate(github.rest.pulls.listFiles,{
+    owner,repo:name,pull_number:seed.pr,per_page:100
+  });
+  if (!Array.isArray(rows) || rows.length !== before.changed_files)
+    incomplete();
+  const paths=[];
+  for (const row of rows) {
+    if (!row || !['added','modified','removed','renamed'].includes(row.status) ||
+        typeof row.filename !== 'string') incomplete();
+    paths.push(row.filename);
+    if (row.status === 'renamed') {
+      if (typeof row.previous_filename !== 'string') incomplete();
+      paths.push(row.previous_filename);
+    }
+  }
+  if (new Set(paths).size !== paths.length || paths.length > 24)
+    incomplete();
+  let mission;
+  try {
+    mission=assignment({
+      ...seed,head_sha:before.head_sha,paths
+    });
+  } catch { incomplete(); }
+  const after = await observe();
+  if (Object.keys(before).some(key=>before[key]!==after[key]))
+    incomplete();
+
+  const { buildReviewPrompt } = require('./delegation.cjs');
+  return {
+    status:'FRESH_L2_ASSIGNMENT_READY',assignment:mission,
+    prompt:buildReviewPrompt(mission),
+    observed_pr_base_sha:before.base_sha,
+    observed_pr_head_sha:before.head_sha,
+    observed_pr_source_repo:before.head_repo,
+    observed_pr_source_ref:before.head_ref,
+    changed_files:before.changed_files,
+    requires_separate_chat:true,
+    scheduled_task_created:false,
+    live_pr_head_still_requires_verification:true,
+    native_github_approved:false,
+    review_acceptance_granted:false,
+    authorized_to_write:false
+  };
+}
+
+module.exports = { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub };
