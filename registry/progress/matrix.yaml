@@ -1,5 +1,5 @@
 version: 4
-updated_at: "2026-09-14"
+updated_at: "2026-10-10"
 status_machine: "../status-machines.yaml#progress"
 
 phases:
@@ -62,6 +62,23 @@ phases:
                 dependencies: PLANNED
                 traceability: PARTIAL
                 handover: NOT_STARTED
+          SUBLOT-0.4:
+            name: "ChatGPT + GitHub-only development engine research and decision"
+            status: PROPOSED
+            work_items:
+              WORK-0005:
+                status: PROPOSED
+                docs: PARTIAL
+                specification_governance: PARTIAL
+                implementation: NOT_APPLICABLE
+                tests: NOT_STARTED
+                scientific_validation: NOT_APPLICABLE
+                security_review: NOT_STARTED
+                real_system_validation: NOT_STARTED
+                review: NOT_STARTED
+                dependencies: PARTIAL
+                traceability: PARTIAL
+                handover: PARTIAL
       LOT-1:
         name: "Canonical product inventory"
         status: PLANNED

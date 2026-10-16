@@ -1,0 +1,250 @@
+id: WORK-0005
+title: "Implement MONDE V2 single interactive writer and read-only ChatGPT L2 delegation"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-0
+sublot: SUBLOT-0.4
+owner: "MONDE interactive development operating model"
+created_at: "2026-10-10"
+updated_at: "2026-10-11"
+
+purpose: |
+  Design, implement and independently review one manually triggered ChatGPT
+  developer using the connected GitHub repository, with up to four one-shot
+  read-only ChatGPT tasks for research and context-separated L2 review.
+  Tasks return full reports in their own conversations and never mutate GitHub.
+  The earlier four-writer ACTIVE_4/Issue-comment arbiter is superseded research,
+  not an implementation or deployment requirement for this V2.
+
+scope:
+  in:
+    - one user-triggered foreground developer is the only GitHub writer
+    - research, architecture, security and tests may be delegated to one to four read-only scheduled ChatGPT tasks only when beneficial
+    - review assignments contain mission ID, repository, PR, exact SHA, source paths, objectives and author context
+    - separate-context reviewers return full reports in ChatGPT, never GitHub comments
+    - foreground retrieves available task reports using conversation history and explicitly verifies their provenance and exact SHA
+    - inaccessible reports are REPORT_UNAVAILABLE and execution alone is not evidence
+    - independent L2 technical review is not a distinct GitHub actor or native APPROVED review
+    - batch coherent code changes and focused tests, then trusted exact-HEAD CI at promotion boundaries
+    - reuse existing Accepted MONDE lifecycle, registry, tests, reviews and branch protections
+    - work solely through ChatGPT and connected GitHub with GitHub-hosted CI
+    - maintain a safe resumed-state handoff for user-triggered subsequent interactive sessions
+    - retain legacy engineering research as superseded historical analysis
+  out:
+    - four autonomous Scheduled task development writers
+    - issue-comment write-grant dispatcher or ACTIVE_4 deployment
+    - scheduled tasks editing code, issues, comments, PRs, refs or GitHub settings
+    - unattended merges, code promotion or task-to-task self-approval
+    - external paid AI, Codex, desktop computer, persistent service or new database
+    - weakening Accepted governance, WORK-0002/3 review and integration rules
+    - implementation of unrelated MONDE product or WRE functionality
+
+acceptance_criteria:
+  - id: AC-1
+    description: "Only the manually triggered foreground chat can write to GitHub; Scheduled tasks are explicitly read-only."
+    status: NOT_STARTED
+  - id: AC-2
+    description: "One through four bounded read-only assignments are uniquely identified, scope-checked and tied to an exact PR SHA."
+    status: NOT_STARTED
+  - id: AC-3
+    description: "Research/L2 task prompts prohibit GitHub mutation and request complete source-backed reports in the separate ChatGPT answer."
+    status: NOT_STARTED
+  - id: AC-4
+    description: "Available reports are matched to mission, repository, PR, SHA, source context and actual retrieved message before qualification."
+    status: NOT_STARTED
+  - id: AC-5
+    description: "Missing, unverifiable, malformed, out-of-scope and stale reports never become automatic L2 approval."
+    status: NOT_STARTED
+  - id: AC-6
+    description: "Technical L2 and native GitHub approval remain separate authorities with no same-account bypass."
+    status: NOT_STARTED
+  - id: AC-7
+    description: "Pure helper code cannot schedule tasks, call GitHub mutation APIs, grant product write permissions or auto-merge."
+    status: NOT_STARTED
+  - id: AC-8
+    description: "Unprivileged GitHub Actions checks the candidate exact HEAD, runs relevant unit and security tests, and verifies independent review only when externally evidenced."
+    status: NOT_STARTED
+  - id: AC-9
+    description: "An independent ChatGPT context challenges security, architecture, correctness, test coverage and integration and returns a report on frozen HEAD."
+    status: NOT_STARTED
+  - id: AC-10
+    description: "Active branch rules, Accepted status machines and any mandatory exact-head merge/reviewer gates are not silently relaxed."
+    status: NOT_STARTED
+  - id: AC-11
+    description: "The current interactive protocol has a cold-readable README/prompt, bounded checkpoint, explicit rollback and no additional runtime."
+    status: NOT_STARTED
+  - id: AC-12
+    description: "Earlier ACTIVE_4, scheduled four-writer and dispatcher contracts are explicitly superseded, with no conflicting operational directive."
+    status: NOT_STARTED
+
+requirements: []
+assumptions: []
+risks: []
+progress_justifications:
+  scientific_validation: "No world-model or forecasting science behavior is introduced."
+  real_system_validation: "Exact GitHub CI and read-only scheduled ChatGPT retrieval are external facts; pure mocks alone do not prove them."
+
+assurance:
+  level: A3
+  rationale: "Cross-cutting development process, context-separated L2 and CI trust boundary."
+  escalation_triggers:
+    - "any GitHub write authority delegated to a scheduled chat"
+    - "any proposed change to accepted review or merge eligibility"
+    - "use of unverified provenance as an independent approval"
+
+read_before:
+  - README.md
+  - AGENTS.md
+  - docs/00_START_HERE.md
+  - docs/09_GOVERNANCE/constitution.md
+  - docs/13_QUALITY/review-council.md
+  - docs/13_QUALITY/definition-of-done.md
+  - docs/13_QUALITY/advanced-verification.md
+  - registry/status-machines.yaml
+  - registry/acceptance-authority.yaml
+  - registry/work-items/WORK-0002.yaml
+  - registry/work-items/WORK-0003.yaml
+  - docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md
+
+depends_on: [WORK-0001]
+blocks:
+  - "acceptance and deployment of interactive-only Development Engine V2"
+reuses:
+  - "Accepted MONDE governance, existing work and independent review registries"
+  - "ChatGPT scheduled tasks for bounded read-only reviews and research"
+  - "GitHub connector and GitHub Actions for foreground development and CI"
+affected_capabilities: []
+affected_engines: []
+affected_schemas: []
+affected_docs:
+  - docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md
+  - docs/11_ADR/ADR-0001-chatgpt-github-only-development-engine.md
+contracts:
+  - "single interactive writer, 1-4 read-only ChatGPT assistants"
+  - "exact-HEAD provenance-constrained L2 report handoff"
+adrs:
+  - ADR-0001
+
+impact_analysis:
+  blast_radius: CROSS_COMPONENT
+  upstream: [WORK-0001]
+  downstream:
+    - "later MONDE development interactions and L2 handoffs"
+  migrations_or_reprocessing: []
+  compatibility_notes: |
+    This is a revised PROPOSED work scope, not an Accepted governance change.
+    Existing WORK-0002, WORK-0003 and unrelated PRs are unchanged.
+    The implementation candidate is PR #19. Old four-writer materials are
+    retained as historical research, never executable obligations.
+
+implementation_plan:
+  tasks:
+    - id: T1
+      description: "Freeze the single-writer and read-only reviewer operating contract."
+      depends_on: []
+      expected_files: [docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md, docs/12_RESEARCH/monde-dev-v2-interactive-prompt.md, docs/12_RESEARCH/monde-dev-v2-single-writer-delegation.md]
+      status: NOT_STARTED
+    - id: T2
+      description: "Build pure bounded assignment, report validation and handoff helpers."
+      depends_on: [T1]
+      expected_files: [.github/scripts/monde-dev/delegation.cjs, .github/scripts/monde-dev/delegation.test.cjs, .github/scripts/monde-dev/l2-delta-github.cjs, .github/scripts/monde-dev/l2-delta-github.test.cjs]
+      status: NOT_STARTED
+    - id: T3
+      description: "Prove unprivileged exact-HEAD CI and meaningful tests."
+      depends_on: [T2]
+      expected_files: [.github/workflows/monde-dev-ci.yml]
+      status: NOT_STARTED
+    - id: T4
+      description: "Obtain qualified context-separated review and verify actual report-retrieval provenance."
+      depends_on: [T3]
+      expected_files: []
+      status: NOT_STARTED
+  planned_runs:
+    - id: RUN-1
+      objective: "Interactive-only code and protocol proposal"
+      tasks: [T1, T2, T3]
+      exit_condition: "Frozen candidate and externally verified CI"
+      status: NOT_STARTED
+    - id: RUN-2
+      objective: "Independent L2 and governed acceptance qualification"
+      tasks: [T4]
+      exit_condition: "Qualified exact-head review evidence, resolved findings and protection gates"
+      status: NOT_STARTED
+
+review_plan:
+  artifact_class: GOVERNANCE_AUTOMATION
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, PERFORMANCE_SRE, DOCUMENTATION_TRACEABILITY, RED_TEAM_SKEPTIC]
+  completed_reviews: []
+  open_findings: []
+
+required_tests:
+  unit: []
+  property:
+    - "read-only batch of one through four assignments never mutates GitHub"
+  integration:
+    - "actual reporter conversation retrieval and exact assignment/SHA match, or mark unverified"
+  contract:
+    - "technical L2 is not a GitHub non-author APPROVED review"
+    - "no unattended Scheduled task GitHub writes"
+  e2e:
+    - "user-initiated code and bounded separate-chat read-only review, manual foreground correction"
+  regression:
+    - "Accepted WORK-0002/3 and main protections remain unchanged"
+  security:
+    - "malformed, stale, forged, duplicate and incomplete review report fails closed"
+  performance:
+    - "avoid redundant GitHub rereads and unneeded CI loops"
+  real_system:
+    - "exact-HEAD GitHub Actions runner and scheduled-task result observability"
+  epistemic: []
+
+scientific_validation:
+  required: false
+  baseline: null
+  backtest: []
+  temporal_leakage_check: null
+  reproducibility_manifest: null
+  shadow_or_canary: null
+
+observability:
+  required: true
+  logs: ["foreground interactive GitHub PR/commit/check evidence"]
+  metrics: ["accepted useful changes", "focused vs full CI cycles", "retrieved L2 outcomes"]
+  traces: ["assignment -> task result -> source observation -> exact SHA -> correction"]
+  alerts: ["stale review", "missing task result", "mandatory host gate"]
+  slis_slos: []
+
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps:
+    - "PR #19 implementation is a draft candidate, not accepted or merged."
+    - "Reports retrieved from tasks require independently checked provenance and quality."
+    - "Meaningful 100 percent branch coverage target or reviewed exception is pending."
+    - "A real accepted CI/review integration path is not yet demonstrated."
+
+risk:
+  security: HIGH
+  data: LOW
+  epistemic: MEDIUM
+  performance: MEDIUM
+  operational: MEDIUM
+
+rollback:
+  strategy: "Close or revert the candidate PRs without modifying accepted main governance."
+run_log: []
+discoveries: []
+blockers:
+  - "Proposed only; neither native GitHub approval nor A3 L2 acceptance is implied."
+follow_up_work_items: []
+completion:
+  definition_of_ready_checked: false
+  definition_of_done_checked: false
+  specification_gates_checked: false
+  traceability_checked: false
+  review_complete: false
+  docs_updated: false
+  registries_updated: false
+  project_state_updated: false
