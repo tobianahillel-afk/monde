@@ -7894,3 +7894,20 @@ test('WORK planner rejects YAML explicit mappings shadowing nested task sections
       'nested explicit map key cannot be silently ignored');
   }
 });
+
+test('WORK planner rejects YAML multi-document tails and directives',()=>{
+  const original=d.parseWorkPlanningSnapshot(WORK_FIXTURE_ACTIVE,'WORK-0007');
+  assert.equal(original.status,'IN_PROGRESS');
+  for(const tail of [
+    '\n---\n{}',
+    '\n--- # second document\n{status: BLOCKED}',
+    '\n...\n',
+    '\n%TAG !e! tag:example.com,2026:\n',
+    '\n%YAML 1.2\n'
+  ]){
+    assert.throws(()=>d.parseWorkPlanningSnapshot(
+      WORK_FIXTURE_ACTIVE+tail,'WORK-0007'),
+      e=>e.code==='AMBIGUOUS_WORK_DOCUMENT',
+      'multiple YAML documents/directives cannot leave the earlier READY task trusted');
+  }
+});

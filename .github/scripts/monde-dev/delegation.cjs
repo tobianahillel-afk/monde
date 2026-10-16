@@ -1750,6 +1750,11 @@ function parseWorkPlanningSnapshot(text,id) {
      typeof id!=='string'||!/^WORK-[0-9]{4,}$/.test(id))
     bad('INVALID_WORK_SNAPSHOT');
   const rows=text.replace(/\r\n/g,'\n').split('\n');
+  // A WORK is one canonical YAML document. A document boundary or directive
+  // outside the supported subset can change the parsed value in other YAML
+  // readers. Never plan from only the first document while ignoring its tail.
+  if(rows.some(row=>/^(?:---|\.\.\.)(?:[ \t]|$)|^%[A-Za-z]/.test(row)))
+    bad('AMBIGUOUS_WORK_DOCUMENT');
   // YAML double-quoted keys can escape letters: "sta\\u0074us" is
   // semantically "status". This subset parser must reject quoted/merged
   // mapping keys rather than silently trust a different effective value.
