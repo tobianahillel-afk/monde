@@ -7322,3 +7322,124 @@ test('resume: explicit 4-6 character Git abbreviated SHA references are stale-se
     'Review the code at src/dead.cjs'
   ])assert.equal(d.createResumePacket({...base,next_action:hint}).next_action,hint);
 });
+
+
+const WORK_FIXTURE_DONE=[
+  'id: WORK-0001',
+  'title: "Bootstrap repository"',
+  'status: DONE',
+  'depends_on: []',
+  'implementation_plan:',
+  '  tasks:',
+  '    - {id: T1, description: "Build docs, standards", depends_on: [], expected_files: [README.md, docs/00_START_HERE.md], status: DONE}',
+  '    - {id: T12, description: "Complete other checks", depends_on: [T1], expected_files: [], status: DONE}',
+  '  planned_runs:',
+  '    - {id: RUN-1, tasks: [T1], status: DONE}',
+  'review_plan:',
+  '  completed_reviews: []'
+].join('\n');
+const WORK_FIXTURE_ACTIVE=[
+  'id: WORK-0007',
+  'title: "A pending single-writer capability"',
+  'status: IN_PROGRESS',
+  'depends_on: [WORK-0001]',
+  'implementation_plan:',
+  '  tasks:',
+  '    - id: T1',
+  '      description: "Implement the eligible feature"',
+  '      depends_on: []',
+  '      expected_files: [src/feature.cjs]',
+  '      status: READY',
+  '    - id: T2',
+  '      description: "Validate it"',
+  '      depends_on: [T1]',
+  '      expected_files: [src/feature.test.cjs]',
+  '      status: PLANNED',
+  '  planned_runs: []',
+  'review_plan:'
+].join('\n');
+test('WORK adapter decodes accepted real-style inline and block task layouts',()=>{
+  const done=d.parseWorkPlanningSnapshot(WORK_FIXTURE_DONE,'WORK-0001');
+  const active=d.parseWorkPlanningSnapshot(WORK_FIXTURE_ACTIVE,'WORK-0007');
+  assert.equal(done.status,'DONE');
+  assert.deepEqual(done.tasks[0].expected_files,['README.md','docs/00_START_HERE.md']);
+  assert.deepEqual(done.tasks[1].depends_on,['T1']);
+  assert.equal(active.status,'IN_PROGRESS');
+  assert.deepEqual(active.depends_on,['WORK-0001']);
+  assert.equal(active.tasks[0].status,'READY');
+  assert.deepEqual(active.tasks[1].depends_on,['T1']);
+});
+test('WORK adapter handles administrative taskless WORK without fabricating tasks',()=>{
+  const text=['id: WORK-0003','status: PLANNED','depends_on: [WORK-0001]',
+    'implementation_plan:','  tasks: []','  planned_runs: []',
+    'review_plan:'].join('\n');
+  assert.deepEqual(d.parseWorkPlanningSnapshot(text,'WORK-0003').tasks,[]);
+});
+test('WORK adapter rejects ambiguous states, duplicate fields and unsafe paths',()=>{
+  const cases=[
+    WORK_FIXTURE_ACTIVE.replace('id: WORK-0007','id: WORK-0008'),
+    WORK_FIXTURE_ACTIVE+'\nstatus: DONE',
+    WORK_FIXTURE_ACTIVE.replace('status: READY','status: APPROVED'),
+    WORK_FIXTURE_ACTIVE.replace('[src/feature.cjs]','[../secret.cjs]'),
+    WORK_FIXTURE_ACTIVE.replace('status: PLANNED','status: READY').replace('    - id: T2','    - id: T1'),
+    WORK_FIXTURE_ACTIVE.replace('depends_on: [WORK-0001]','depends_on: [WORK-0007]'),
+    WORK_FIXTURE_ACTIVE.replace('depends_on: [T1]','depends_on: [T2]'),
+    WORK_FIXTURE_ACTIVE.replace('expected_files: [src/feature.cjs]','expected_files: [src/feature.cjs, src/feature.cjs]'),
+    WORK_FIXTURE_ACTIVE.replace('implementation_plan:','implementation_plan:\nimplementation_plan:'),
+  ];
+  for(const input of cases)assert.throws(
+    ()=>d.parseWorkPlanningSnapshot(input,'WORK-0007'),undefined,input.slice(0,55));
+});
+test('WORK adapter safely consumes a pinned SHA and plans next eligible task',async()=>{
+  const blobs={'WORK-0001':WORK_FIXTURE_DONE,'WORK-0007':WORK_FIXTURE_ACTIVE};
+  const calls=[];
+  const gh={rest:{repos:{getContent:async args=>{
+    calls.push(args);
+    const id=/WORK-[0-9]+/.exec(args.path)?.[0];
+    return {data:{type:'file',encoding:'base64',
+      size:Buffer.byteLength(blobs[id],'utf8'),
+      content:Buffer.from(blobs[id]).toString('base64')}};
+  }}}};
+  const snapshot=await d.loadWorkPlanFromGitHub({github:gh,repo:H.repo,
+    head_sha:SHA,work_ids:['WORK-0001','WORK-0007']});
+  assert.equal(snapshot.authorized_to_write,false);
+  assert.equal(snapshot.requires_host_head_verification,true);
+  assert.deepEqual(calls.map(x=>x.ref),[SHA,SHA]);
+  assert.deepEqual(calls.map(x=>x.path),[
+    'registry/work-items/WORK-0001.yaml','registry/work-items/WORK-0007.yaml']);
+  const plan=await d.planNextIncrementFromGitHub({github:gh,repo:H.repo,
+    head_sha:SHA,work_ids:['WORK-0001','WORK-0007']});
+  assert.equal(plan.advisory_only,true);
+  assert.equal(plan.authorized_to_write,false);
+  assert.equal(plan.recommended.work,'WORK-0007');
+  assert.equal(plan.recommended.task,'T1');
+});
+test('WORK adapter cannot promote a task if canonical prerequisite is missing',async()=>{
+  const gh={rest:{repos:{getContent:async()=>{
+    return {data:{type:'file',encoding:'base64',
+      content:Buffer.from(WORK_FIXTURE_ACTIVE).toString('base64')}};
+  }}}};
+  const plan=await d.planNextIncrementFromGitHub({github:gh,repo:H.repo,
+    head_sha:SHA,work_ids:['WORK-0007']});
+  assert.equal(plan.recommended,null);
+  assert.equal(plan.blocked[0].reasons.includes('WORK_DEPENDENCIES_UNAVAILABLE'),true);
+});
+test('WORK adapter rejects incomplete responses and noncanonical base64',async()=>{
+  for(const data of [
+    {type:'dir'},{type:'file',encoding:'utf8',content:WORK_FIXTURE_DONE},
+    {type:'file',encoding:'base64',content:'!!INVALID!!'},
+    {type:'file',encoding:'base64',content:'Zg==='},
+    {type:'file',encoding:'base64',content:'a'.repeat(360001)}
+  ]){
+    const gh={rest:{repos:{getContent:async()=>({data})}}};
+    await assert.rejects(d.loadWorkPlanFromGitHub({github:gh,repo:H.repo,
+      head_sha:SHA,work_ids:['WORK-0001']}),{code:'UNTRUSTED_WORK_RESPONSE'});
+  }
+});
+test('WORK adapter rejects invalid GitHub scope and repeated WORK identifiers',async()=>{
+  const gh={rest:{repos:{getContent:async()=>{throw Error('must not fetch');}}}};
+  for(const ids of [[],['WORK-0001','WORK-0001'],['WORK-../README'],Array(41).fill('WORK-0001')]){
+    await assert.rejects(d.loadWorkPlanFromGitHub({github:gh,repo:H.repo,
+      head_sha:SHA,work_ids:ids}),{code:'INVALID_WORK_FETCH'});
+  }
+});
