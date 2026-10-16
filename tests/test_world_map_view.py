@@ -784,7 +784,7 @@ class OfflineCrossEntityConflictInventoryTest(unittest.TestCase):
             'function createConflictInventory()', 'function renderConflictNavigator()',
             'matchesFilters(f,false,true)', 'FILTERED_SOURCE_REPORTS_EXCLUDING_ENTITY_SELECTION',
             'MONDE_MINI_SOURCE_POSITION_CONFLICT_INVENTORY_V1',
-            'connect-src \\'none\\'',
+            "connect-src 'none'",
         ):
             self.assertIn(marker, page)
 
