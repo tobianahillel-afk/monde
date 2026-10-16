@@ -1431,3 +1431,39 @@ test('fresh L2: consistent comparison metadata preserves divergence support',asy
   assert.equal(result.changed_files,2);
   assert.equal(result.native_github_approved,false);
 });
+
+
+test('multi-wave L2: aggregate 250 independent R2 findings without losing provenance',()=>{
+  const plan=wavesFixture(),reports={},sources={};
+  const {MARKER}=require('./delegation.cjs');
+  for(let i=0;i<5;i++){
+    const mission=plan.batches[i].assignment,id=mission.assignment_id;
+    const reviewer='fresh-l2-large-'+String(i).padStart(3,'0');
+    reports[id]='Independent technical findings; evidence remains unqualified.\n'+
+      MARKER+'\n'+JSON.stringify({
+        v:1,assignment_id:id,repo:mission.repo,pr:mission.pr,
+        head_sha:mission.head_sha,reviewer_context_id:reviewer,
+        verdict:'CHANGES_REQUIRED',
+        findings:Array.from({length:50},(_,j)=>({
+          id:'F'+String(j+1).padStart(2,'0'),severity:'R2',
+          path:mission.paths[0],evidence:'Invariant failure case '+j,
+          action:'Recheck and correct invariant '+j
+        })),
+        reviewed_paths:mission.paths,limitations:['No native GitHub approval']
+      });
+    sources[id]={retrieved_from_distinct_chat:true,context_id:reviewer,
+      retrieval_kind:'chat_history',
+      message_ref:'fresh-l2-large-message-'+String(i).padStart(3,'0')};
+  }
+  const outcome=assessFreshL2Waves({
+    plan,reports,sources,current_head:plan.observed_pr_head_sha
+  });
+  assert.equal(outcome.triage_findings.length,250);
+  assert.equal(outcome.actionable_finding_groups.length,250);
+  assert.equal(outcome.material_triage_candidates.length,250);
+  assert.equal(outcome.unqualified_r2,250);
+  assert.equal(outcome.unqualified_blocking_reports,5);
+  assert.equal(outcome.progression_advice,'TRIAGE_UNQUALIFIED_MATERIAL_FINDINGS');
+  assert.equal(outcome.native_github_approved,false);
+  assert.equal(outcome.ready_for_merge,false);
+});

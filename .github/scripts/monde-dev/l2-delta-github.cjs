@@ -728,7 +728,9 @@ function assessFreshL2Waves({
   // Preserve material findings across *all* waves: a caller must not
   // manually parse five separate reports to find the next safe correction.
   // The source claims remain unverified and never confer merge authority.
-  const grouped=require('./delegation.cjs').groupTriageFindings(allFindings);
+  // Five waves x four reviewers x fifty findings may produce 1000 valid
+  // claims. The normal single-wave limit remains 200.
+  const grouped=require('./delegation.cjs').groupTriageFindings(allFindings,1000);
   const unqualified=results.filter(r=>r.needs_attention ||
     r.requires_manual_qualification ||
     !['L2_REPORT_RECEIVED_PENDING_VALIDATION'].includes(r.status));

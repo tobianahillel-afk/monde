@@ -8183,3 +8183,18 @@ test('WORK reader rejects a malformed parallel response without returning a part
     repo:H.repo,head_sha:SHA,work_ids:ids}),{code:'WORK_ID_MISMATCH'});
   assert.equal(calls,4);
 });
+
+test('triage grouping: preserve single-wave cap and explicitly bounded five-wave limit',()=>{
+  const findings=Array.from({length:201},(_,i)=>({
+    assignment_id:'L2-PR19-ALL-WAVES-001',
+    id:'F'+String(i+1).padStart(2,'0'),
+    severity:'R2',path:'src/real.cjs',
+    evidence:'Invariant branch '+i,action:'Correct branch '+i,
+    status:'NEEDS_CORRECTION'
+  }));
+  assert.throws(()=>d.groupTriageFindings(findings),
+    e=>e.code==='INVALID_TRIAGE_INPUT');
+  assert.equal(d.groupTriageFindings(findings,1000).groups.length,201);
+  assert.throws(()=>d.groupTriageFindings(findings,1001),
+    e=>e.code==='INVALID_TRIAGE_INPUT');
+});

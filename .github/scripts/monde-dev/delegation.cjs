@@ -1367,8 +1367,12 @@ function planDelegations(inputs,{prior_confirmed_assignments=[]}={}) {
 
 /* Advisory exact-duplicate grouping for fast foreground remediation.
    No finding is closed, approved, hidden or promoted by this operation. */
-function groupTriageFindings(items){
-  if(!Array.isArray(items)||items.length>200)bad('INVALID_TRIAGE_INPUT');
+function groupTriageFindings(items,maxItems=200){
+  // One reviewer wave is limited to 200 findings (4 missions x 50).
+  // Complete read-only L2 consolidation can span five such waves.
+  if(!Number.isSafeInteger(maxItems)||maxItems<1||maxItems>1000||
+     !Array.isArray(items)||items.length>maxItems)
+    bad('INVALID_TRIAGE_INPUT');
   const rank={R1:0,R2:1,R3:2},groups=new Map();
   for(const item of items){
     if(!plain(item)||typeof item.assignment_id!=='string'||
