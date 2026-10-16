@@ -195,6 +195,36 @@ class WorldMini:
                 "attributes": attributes}
 
 
+
+    def search_reports(self, attribute: str, value, at: str, known_at: str) -> dict:
+        """Find entities with source reports matching a JSON value at T and K.
+
+        A source report is not physical truth. Competing source reports remain
+        visible and missing matches do not mean the property is false.
+        """
+        _id(attribute)
+        _time(at)
+        _time(known_at)
+        needle = json.dumps(_clone(value), sort_keys=True, allow_nan=False,
+                            separators=(",", ":"))
+        matches = []
+        for entity in sorted({a["entity"] for a in self._assertions.values()
+                              if a["attribute"] == attribute}):
+            current = self.query(entity, attribute, at, known_at)["reports"]
+            matched, other = [], []
+            for report in current:
+                actual = json.dumps(report["value"], sort_keys=True,
+                                    allow_nan=False, separators=(",", ":"))
+                (matched if actual == needle else other).append(report)
+            if matched:
+                matches.append({"entity": entity, "status": "REPORTED",
+                                "matched_reports": matched, "other_reports": other})
+        return {"world": "OBSERVED", "query": "SOURCE_REPORT_MATCH_ONLY",
+                "attribute": attribute, "value": _clone(value),
+                "valid_at": at, "knowledge_cutoff": known_at,
+                "status": "MATCHES" if matches else "NO_MATCHES",
+                "matches": matches}
+
     def timeline(self, entity: str, attribute: str, from_at: str,
                  to_at: str, known_at: str) -> dict:
         """Source-reported world-time intervals at one fixed knowledge cutoff.
@@ -288,10 +318,12 @@ class WorldMini:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Query MONDE Mini evidence as of event and knowledge time")
     parser.add_argument("--fixture", required=True)
-    parser.add_argument("--entity", required=True)
+    parser.add_argument("--entity", help="required except for search")
     selection = parser.add_mutually_exclusive_group(required=True)
     selection.add_argument("--attribute")
     selection.add_argument("--all-attributes", action="store_true")
+    selection.add_argument("--search-attribute")
+    parser.add_argument("--equals-json", help="exact JSON value used by cross-entity search")
     parser.add_argument("--at", help="one world-time instant; omit when selecting a timeline")
     parser.add_argument("--timeline-from", help="start of valid-world-time interval")
     parser.add_argument("--timeline-to", help="exclusive end of valid-world-time interval")
@@ -300,7 +332,19 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         world = WorldMini.read(args.fixture)
-        if args.timeline_from is not None or args.timeline_to is not None:
+        if args.search_attribute is not None:
+            if (args.entity is not None or args.at is None or
+                    args.timeline_from is not None or args.timeline_to is not None or
+                    args.compare_known_at is not None or args.equals_json is None):
+                parser.error("search requires --at and --equals-json without --entity/timeline/compare")
+            value = json.loads(args.equals_json, object_pairs_hook=_object_no_duplicates,
+                               parse_constant=lambda _: (_ for _ in ()).throw(
+                                   ValueError("non-finite search value")))
+            result = world.search_reports(args.search_attribute, value,
+                                          args.at, args.known_at)
+        elif args.timeline_from is not None or args.timeline_to is not None:
+            if args.entity is None or args.equals_json is not None:
+                parser.error("timeline requires --entity without --equals-json")
             if (args.timeline_from is None or args.timeline_to is None or
                     args.at is not None or args.all_attributes or
                     args.compare_known_at is not None):
@@ -308,6 +352,8 @@ def main(argv=None) -> int:
             result = world.timeline(args.entity, args.attribute,
                                     args.timeline_from, args.timeline_to, args.known_at)
         else:
+            if args.entity is None or args.equals_json is not None:
+                parser.error("--entity required; --equals-json only used for search")
             if args.at is None:
                 parser.error("--at required unless selecting a timeline")
             if args.compare_known_at is not None:
