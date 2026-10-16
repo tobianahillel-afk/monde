@@ -8117,3 +8117,69 @@ test('taskless DONE advisory uses canonical numeric order under WORK permutation
   assert.equal(first.advisory_only,true);
   assert.equal(first.automatically_accepted,0);
 });
+
+
+test('WORK reader batches independent immutable GitHub reads with a hard cap of four',async()=>{
+  const ids=Array.from({length:9},(_,i)=>'WORK-'+String(8101+i));
+  let active=0,peak=0,count=0;
+  const gh={rest:{repos:{getContent:async({path,ref})=>{
+    assert.equal(ref,SHA);
+    active++;count++;peak=Math.max(peak,active);
+    await new Promise(resolve=>setImmediate(resolve));
+    const id=path.match(/WORK-\d{4,}/)?.[0];
+    const doc=['id: '+id,'status: DONE','depends_on: []',
+      'implementation_plan:','  tasks: []','  planned_runs: []'].join('\n');
+    active--;
+    return {data:{type:'file',encoding:'base64',
+      size:Buffer.byteLength(doc),content:Buffer.from(doc).toString('base64')}};
+  }}}};
+  const got=await d.loadWorkPlanFromGitHub({github:gh,repo:H.repo,
+    head_sha:SHA,work_ids:ids});
+  assert.deepEqual(got.works.map(x=>x.id),ids);
+  assert.equal(count,9);
+  assert.equal(peak,4);
+  assert.equal(got.authorized_to_write,false);
+});
+
+test('WORK reader orders shared dependency closure deterministically across parallel waves',async()=>{
+  const docs={
+    'WORK-8201':['WORK-8203','WORK-8204'],
+    'WORK-8202':['WORK-8204'],
+    'WORK-8203':[],
+    'WORK-8204':[]
+  };
+  const calls=[];
+  const gh={rest:{repos:{getContent:async({path})=>{
+    const id=path.match(/WORK-\d{4,}/)?.[0];
+    calls.push(id);
+    await new Promise(resolve=>setImmediate(resolve));
+    const doc=['id: '+id,'status: DONE',
+      'depends_on: ['+docs[id].join(', ')+']',
+      'implementation_plan:','  tasks: []','  planned_runs: []'].join('\n');
+    return {data:{type:'file',encoding:'base64',
+      size:Buffer.byteLength(doc),content:Buffer.from(doc).toString('base64')}};
+  }}}};
+  const got=await d.loadWorkPlanFromGitHub({github:gh,repo:H.repo,
+    head_sha:SHA,work_ids:['WORK-8201','WORK-8202']});
+  assert.deepEqual(got.works.map(x=>x.id),
+    ['WORK-8201','WORK-8202','WORK-8203','WORK-8204']);
+  assert.equal(calls.length,4);
+});
+
+test('WORK reader rejects a malformed parallel response without returning a partial plan',async()=>{
+  const ids=['WORK-8301','WORK-8302','WORK-8303','WORK-8304'];
+  let calls=0;
+  const gh={rest:{repos:{getContent:async({path})=>{
+    calls++;
+    await new Promise(resolve=>setImmediate(resolve));
+    const id=path.match(/WORK-\d{4,}/)?.[0];
+    const doc=['id: '+(id==='WORK-8303'?'WORK-9999':id),
+      'status: DONE','depends_on: []',
+      'implementation_plan:','  tasks: []','  planned_runs: []'].join('\n');
+    return {data:{type:'file',encoding:'base64',
+      size:Buffer.byteLength(doc),content:Buffer.from(doc).toString('base64')}};
+  }}}};
+  await assert.rejects(d.loadWorkPlanFromGitHub({github:gh,
+    repo:H.repo,head_sha:SHA,work_ids:ids}),{code:'WORK_ID_MISMATCH'});
+  assert.equal(calls,4);
+});

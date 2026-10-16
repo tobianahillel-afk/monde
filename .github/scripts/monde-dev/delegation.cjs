@@ -1874,9 +1874,16 @@ async function loadWorkPlanFromGitHub({github,repo,head_sha,work_ids,include_dep
      typeof include_dependencies!=='boolean')bad('INVALID_WORK_FETCH');
   const [owner,name]=repo.split('/');
   const works=[],queue=work_ids.slice(),seen=new Set(work_ids);
+  // Read independent WORK blobs in bounded parallel waves, but append
+  // discovered dependencies only after the entire wave is validated.
+  // Stable breadth-first order and a single immutable SHA remain unchanged.
+  // Cap read concurrency to avoid bursty GitHub API usage and task slowdowns.
+  const READ_PARALLELISM=4;
   // Resolve the predecessor closure at one exact SHA, never partial-accept.
-  for(let i=0;i<queue.length;i++){
-    const id=queue[i];
+  for(let offset=0;offset<queue.length;){
+    const batch=queue.slice(offset,offset+READ_PARALLELISM);
+    const parsed=await Promise.all(batch.map(async id=>{
+
     const path='registry/work-items/'+id+'.yaml';
     const result=await github.rest.repos.getContent({
       owner,repo:name,path,ref:head_sha});
@@ -1900,12 +1907,19 @@ async function loadWorkPlanFromGitHub({github,repo,head_sha,work_ids,include_dep
     try { decoded=new TextDecoder('utf-8',{fatal:true}).decode(bytes); }
     catch { bad('UNTRUSTED_WORK_RESPONSE'); }
     const work=parseWorkPlanningSnapshot(decoded,id);
-    works.push(work);
-    if(include_dependencies)for(const dep of work.depends_on){
+    return work;
+    }));
+    // A rejected or malformed read aborts the entire batch before the
+    // planner can consume any of its partial results.
+    for(const work of parsed){
+      works.push(work);
+      if(include_dependencies)for(const dep of work.depends_on){
       if(seen.has(dep))continue;
       if(seen.size>=40)bad('WORK_DEPENDENCY_LIMIT');
-      seen.add(dep);queue.push(dep);
+        seen.add(dep);queue.push(dep);
+      }
     }
+    offset+=batch.length;
   }
   return {repo,head_sha,works,verified_repo_snapshot:false,
     requires_host_head_verification:true,advisory_only:true,
