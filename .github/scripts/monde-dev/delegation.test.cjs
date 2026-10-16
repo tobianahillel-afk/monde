@@ -7037,3 +7037,65 @@ test('Oct-16 privacy: POSIX double-slash roots never escape the three public han
     assert.equal(bookmark.action_kind,'CONTINUE_IMPLEMENTATION',url);
   }
 });
+
+test('L2 Oct-16: HTTP query paths cannot be hidden by public-route masking',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const packet={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  for(const route of [
+    'GET /data/stats?config=/home/runner/build.log',
+    'GET /proc/status?target=/Library/Preferences/account.plist',
+    'POST /users/me?file=file:///Network/Servers/team/notes.txt',
+    'GET /data/stats?config=%2Fhome%2Frunner%2Fbuild.log'
+  ]){
+    assert.throws(()=>d.createResumePacket({...packet,
+      next_action:'Inspect '+route}),
+      e=>e.code==='INVALID_RESUME_PACKET',route);
+    const resp=message(data({findings:[{...data().findings[0],
+      evidence:'Reviewer captured '+route}]}));
+    const qualified=d.prepareInteractiveHandoff({expected:H,response:resp,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(qualified.status,'NONPUBLIC_SCOPE_IN_RELAY',route);
+    const raw=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'L2 R2 captured '+route,current_head:SHA,source,
+      publication_clearance:clearance});
+    assert.equal(raw.status,'NONPUBLIC_SCOPE_IN_RELAY',route);
+  }
+});
+test('L2 Oct-16: macOS local roots protected without rejecting benign HTTP API routes',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const packet={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  for(const pathname of [
+    '/Library/Preferences/team.plist','/Network/Servers/office/share.txt',
+    '%2FLibrary%2FPreferences%2Fteam.plist','///Network/Servers/office/share.txt'
+  ]){
+    assert.throws(()=>d.createResumePacket({...packet,
+      next_action:'Inspect '+pathname}),
+      e=>e.code==='INVALID_RESUME_PACKET',pathname);
+    const out=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[{...data().findings[0],
+        evidence:'Reviewer inspected '+pathname}]})),current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(out.status,'NONPUBLIC_SCOPE_IN_RELAY',pathname);
+    const raw=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'L2 R2 local path '+pathname,current_head:SHA,source,
+      publication_clearance:clearance});
+    assert.equal(raw.status,'NONPUBLIC_SCOPE_IN_RELAY',pathname);
+  }
+  for(const route of ['GET /Library/Preferences/public',
+    'GET /Network/Servers/health','GET /data/stats?filter=public']){
+    const bookmark=d.createResumePacket({...packet,
+      next_action:'Review '+route+' in src/public.js'});
+    assert.equal(bookmark.action_kind,'CONTINUE_IMPLEMENTATION');
+    const report=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[{...data().findings[0],
+        evidence:'Public endpoint '+route}]})),current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(report.ready_for_manual_relay,true,route);
+  }
+});
