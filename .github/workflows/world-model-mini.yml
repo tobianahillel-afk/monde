@@ -39,6 +39,30 @@ jobs:
             --at '2026-01-02T00:00:00Z' \
             --known-at '2026-01-10T10:00:00Z' \
             --output /tmp/monde-evidence-map.html
+      - name: Exercise direct GeoJSON-to-offline-map in real browser
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python3 -m monde.map_view \
+            --geojson examples/monde-mini-points.geojson \
+            --source-id original-map-source \
+            --source-locator 'dataset://original/points.geojson' \
+            --captured-at '2026-01-10T10:00:00Z' \
+            --valid-from '2026-01-01T00:00:00Z' \
+            --at '2026-01-02T00:00:00Z' \
+            --known-at '2026-01-10T10:00:00Z' \
+            --output /tmp/monde-direct-geojson.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu \
+            --disable-dev-shm-usage --timeout=15000 --dump-dom \
+            file:///tmp/monde-direct-geojson.html > /tmp/monde-direct-geojson-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-direct-geojson-dom.html
+          grep -q 'original-map-source' /tmp/monde-direct-geojson-dom.html
+          grep -q '<circle' /tmp/monde-direct-geojson-dom.html
+          # Confirm real Chromium executed the offline Natural Earth SVG renderer.
+          grep -q 'data-monde-land-count="127"' /tmp/monde-direct-geojson-dom.html
+          grep -q 'id="land"' /tmp/monde-direct-geojson-dom.html
       - name: Generate real corrected-source knowledge-change HTML map
         env:
           PYTHONPATH: src
@@ -552,6 +576,63 @@ jobs:
             "file:///tmp/monde-conflicts-smoke.html" > /tmp/monde-conflicts-dom.html
           if ! grep -q 'data-monde-conflicts="pass"' /tmp/monde-conflicts-dom.html; then
             grep -o 'data-monde-conflicts="[^"]*"' /tmp/monde-conflicts-dom.html || true
+            exit 1
+          fi
+      - name: Exercise capture-day timeline and date filter in real offline Chromium
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import re
+          html = Path('/tmp/monde-compare-claims.html').read_text(encoding='utf-8')
+          match = re.search(r'(<script type="application/json" id="monde-data">)(.*?)(</script>)', html, re.S)
+          if not match:
+              raise RuntimeError('missing source evidence snapshot')
+          data = json.loads(match.group(2))
+          if len(data['features']) < 2:
+              raise RuntimeError('missing two source reports')
+          data['features'][0]['properties']['captured_at'] = '2026-01-10T10:00:00Z'
+          data['features'][1]['properties']['captured_at'] = '2026-01-11T10:00:00Z'
+          encoded = json.dumps(data, ensure_ascii=False, separators=(',', ':')).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
+          html = html[:match.start(2)] + encoded + html[match.end(2):]
+          script = """<script>
+          (function(){
+            try{
+              var timeline=document.getElementById('capture-timeline');
+              var buttons=Array.from(timeline.querySelectorAll('button'));
+              if(buttons.length<2)throw Error('missing original source capture-day choices');
+              var target=buttons.find(b=>b.textContent.includes('2026-01-10'));
+              if(!target)throw Error('capture day missing');
+              var original=document.getElementById('monde-data').textContent;
+              target.click();
+              if(document.getElementById('captured-from').value!=='2026-01-10' ||
+                 document.getElementById('captured-through').value!=='2026-01-10')
+                throw Error('capture day click did not update both time bounds');
+              var visible=Array.from(document.querySelectorAll('#report-list button'));
+              if(!visible.length)throw Error('capture-day filter did not retain original report');
+              if(timeline.querySelectorAll('button').length<2)
+                throw Error('other day disappeared after selecting a day');
+              if(!Array.from(timeline.querySelectorAll('button')).some(b=>
+                  b.getAttribute('aria-pressed')==='true'))throw Error('missing selected-day state');
+              document.getElementById('clear-capture-days').click();
+              if(document.getElementById('captured-from').value ||
+                 document.getElementById('captured-through').value)
+                throw Error('clear dates did not restore all days');
+              if(document.getElementById('monde-data').textContent!==original)
+                throw Error('original source snapshot mutated');
+              document.body.setAttribute('data-monde-capture-timeline','pass');
+            }catch(e){document.body.setAttribute('data-monde-capture-timeline','fail:'+e.message);}
+          })();
+          </script>"""
+          Path('/tmp/monde-capture-timeline-smoke.html').write_text(
+              html.replace('</body>',script+'</body>'),encoding='utf-8')
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --virtual-time-budget=2500 --timeout=15000 --dump-dom \
+            file:///tmp/monde-capture-timeline-smoke.html > /tmp/monde-capture-timeline-dom.html
+          if ! grep -q 'data-monde-capture-timeline="pass"' /tmp/monde-capture-timeline-dom.html; then
+            grep -o 'data-monde-capture-timeline="[^"]*"' /tmp/monde-capture-timeline-dom.html || true
             exit 1
           fi
       - name: Attach actual offline HTML map for product preview

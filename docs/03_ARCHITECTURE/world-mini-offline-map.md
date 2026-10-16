@@ -228,3 +228,78 @@ bitemporal source query, every included original GeoJSON Feature, assertion IDs,
 source IDs, evidence IDs, and the filters used. Its scope explicitly excludes
 the selected-entity filter so the inventory can compare multiple entities.
 No network calls, external map libraries or saved-state mutation are required.
+
+
+## Direct GeoJSON-to-offline-map workflow (WORK-0022)
+
+You can also generate the same standalone offline evidence map from an original
+GeoJSON `FeatureCollection` of WGS84 `Point` features, without first saving a
+MONDE state file. Each feature needs its own `id`, `geometry` and `properties`.
+The source identity and both time dimensions must be supplied explicitly:
+
+```sh
+PYTHONPATH=src python3 -m monde.map_view \
+  --geojson examples/monde-mini-points.geojson \
+  --source-id original-survey \
+  --source-locator dataset://original-survey/points.geojson \
+  --captured-at 2026-01-10T10:00:00Z \
+  --valid-from 2026-01-01T00:00:00Z \
+  --at 2026-01-02T00:00:00Z \
+  --known-at 2026-01-10T10:00:00Z \
+  --output source-map.html
+```
+
+`--valid-to` and `--source-event-at` are optional only when the original
+source does not provide those facts; they are never inferred. The map uses the
+same automatic source-point bounding box, bitemporal comparison options,
+source/evidence identifiers and offline browser view as saved states and CSV
+manifests. `--state`, `--csv-manifest` and `--geojson` are mutually exclusive.
+GeoJSON claims are **not verified physical positions**, and distinct source
+reports must never be collapsed into one location. Input files and pre-existing
+output files are not overwritten. Repeated corrections require the separate
+append-only state workflow with explicit evidence/supersession.
+
+## Multiple original GeoJSON and mixed source datasets (WORK-0022)
+
+Create an offline evidence map directly from multiple original GeoJSON FeatureCollections of source-reported 2D Points. The same manifest can combine original CSV files and GeoJSON files; each retains separate source attribution and valid/knowledge timestamps. No intermediate persisted WorldMini state is needed.
+
+Save a local sources.json manifest (file paths are relative to the manifest):
+
+```json
+{"datasets":[
+  {"geojson":"survey-a.geojson","source_id":"survey-a","locator":"dataset://a","captured_at":"2026-01-10T10:00:00Z","valid_from":"2026-01-01T00:00:00Z"},
+  {"geojson":"survey-b.geojson","source_id":"survey-b","locator":"dataset://b","captured_at":"2026-01-10T10:00:00Z","valid_from":"2026-01-01T00:00:00Z"}
+]}
+```
+
+Then run:
+
+```sh
+PYTHONPATH=src python3 -m monde.map_view --source-manifest sources.json --at 2026-01-02T00:00:00Z --known-at 2026-01-10T10:00:00Z --output evidence.html
+```
+
+Each dataset requires exactly one csv or geojson input plus source_id, locator, captured_at and valid_from, with optional valid_to and source_event_at. CSV-specific column overrides do not apply to GeoJSON. The existing --csv-manifest CLI name remains an alias for compatibility. The original source claims remain contradictory where they disagree: this feature does not reconcile physical positions or infer a true location, observation time or event time.
+
+All inputs are read-only; one invalid dataset aborts before output, and existing outputs or source files are not overwritten. Existing source-count limits, auto geographic bounds, bitemporal filters, derivative exports, and offline/no-network rendering are reused.
+
+## Offline reference geography (WORK-0022/T5)
+
+The standalone source-evidence HTML now embeds **Natural Earth 1:110m land
+polygons** as a muted SVG base layer. The reference coastlines help an analyst
+recognize continents without opening an online map, installing a mapping SDK,
+requesting tiles, or requiring any API. Points, source disagreement links,
+source evidence, selection, exports and bitemporal queries retain their own
+separate foreground layer and original provenance.
+
+**Source:** [Natural Earth public-domain 1:110m land](https://github.com/nvkelso/natural-earth-vector);
+GeoJSON conversion: [martynafford/natural-earth-geojson](https://github.com/martynafford/natural-earth-geojson/blob/0b9a6ceb0a7032713abd9460ac1e995a9c60cd1e/110m/physical/ne_110m_land.json),
+pinned upstream revision `0b9a6ceb0a7032713abd9460ac1e995a9c60cd1e`.
+The simplified land shapes are **cartographic context**, neither physical
+entity observations nor MONDE evidence. Their coarse scale is unsuitable
+for precise local boundaries or disputes. No source data is transmitted
+externally; the renderer only reads the versioned local asset.
+
+
+## UTC source-capture timeline (WORK-0022/T6)
+
+The offline evidence map shows a clickable histogram-like list of capture days from original source-report metadata (UTC). Its counts apply the current search, source, entity, viewport, distance, disagreement, and comparison filters, **excluding the capture-date range itself** so alternative days remain discoverable. Up to the 24 most recent days are shown; the total number of matching distinct days is reported. Clicking a day sets both inclusive capture-day bounds, and **All capture days** clears them. The visible map, list, and existing GeoJSON/CSV exports remain aligned with the selected bounds; no original source report, ID, timestamp, or temporal query is modified. A capture date is neither a world-state timestamp nor proof that a physical event occurred.

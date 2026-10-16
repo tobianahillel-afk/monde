@@ -46,6 +46,7 @@ section,aside{border:1px solid #314154;border-radius:12px;background:#182436;pad
 #points circle.retired{fill:#ffb871;stroke:#8e5318}
 [hidden]{display:none!important}
 #viewport rect{fill:#6caed0;fill-opacity:.08;stroke:#85bdd9;stroke-width:2;stroke-dasharray:8 6;pointer-events:none}
+#land path{fill:#2a5362;stroke:#588693;stroke-width:.65;fill-rule:evenodd;pointer-events:none}
 #graticule line{stroke:#34536b;stroke-width:1}
 #graticule text{fill:#a0b9ce;font-size:15px}
 .controls{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:12px 0}
@@ -61,6 +62,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 #report-list button,#entity-comparison-list button{width:100%;text-align:left;overflow-wrap:anywhere}
 #entity-comparison-list{list-style:none;padding:0;margin:0 0 12px;max-height:225px;overflow:auto}
 #entity-comparison-list li{margin:0 0 6px}
+#capture-timeline{display:flex;flex-wrap:wrap;gap:6px;max-height:145px;overflow:auto}
+#capture-timeline button[aria-pressed="true"]{border-color:#59d8bb;background:#155248}
 #conflict-list{list-style:none;padding:0;margin:0 0 12px;max-height:240px;overflow:auto}
 #conflict-list li{margin:0 0 6px}
 #conflict-list button{width:100%;text-align:left;overflow-wrap:anywhere}
@@ -84,13 +87,13 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <label><input id="inside-only" type="checkbox"> Inside requested viewport only</label>
 <label><input id="current-view-only" type="checkbox"> Inside displayed map window only</label>
 </div>
-<svg id="map" role="img" tabindex="0" aria-label="Schematic longitude-latitude evidence map. Drag or use arrow keys to pan; not a geographic basemap" viewBox="0 0 1200 600">
+<svg id="map" role="img" tabindex="0" aria-label="Offline geographic context with separate source-reported evidence Points; drag or use arrow keys to pan" viewBox="0 0 1200 600">
 <rect width="1200" height="600" fill="#123044"></rect>
-<g id="graticule"></g><g id="viewport"></g><g id="disagreement-links" aria-hidden="true"></g><g id="points"></g>
+<g id="land" aria-hidden="true"></g><g id="graticule"></g><g id="viewport"></g><g id="disagreement-links" aria-hidden="true"></g><g id="points"></g>
 </svg>
-<p class="subtle">Drag to pan, or use arrow keys when the schematic map has focus. Fit matching reports includes source claims outside the current display window so you can find them again. This is not an estimated physical location. The window filter changes only displayed/exported reports, not the original source query.</p>
+<p class="subtle">Natural Earth 1:110m public-domain land outlines provide approximate geographic orientation only. They are not source evidence or verified entity positions. Drag to pan or use arrow keys, and fit matching reports to revisit source claims outside the display window. No online tiles or requests.</p>
 <p id="metrics"></p>
-<p id="source-notice" class="notice">Source assertions only. Contradictory locations are retained. This schematic is not a basemap, physical position estimate, confidence score or proof of absence.</p>
+<p id="source-notice" class="notice">Source assertions only. Contradictory locations are retained. The static Natural Earth background is not source evidence, a physical position estimate, a confidence score or proof of absence.</p>
 </section>
 <aside aria-label="Evidence explorer">
 <h2>Source evidence</h2>
@@ -105,6 +108,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <div class="controls"><label for="captured-from">Captured from (UTC day)</label><input id="captured-from" type="date" aria-label="Captured from UTC day">
 <label for="captured-through">Captured through (UTC day)</label><input id="captured-through" type="date" aria-label="Captured through UTC day"></div>
 <p class="subtle">Capture dates filter source evidence metadata, not when a claim was valid or known. Date bounds are inclusive UTC days.</p>
+<h2>Source capture days</h2>
+<p id="capture-timeline-summary" class="subtle" role="status">Original report capture dates only, not physical events or claim validity.</p>
+<div id="capture-timeline" aria-label="Filter source reports by capture day"></div>
+<div class="controls"><button id="clear-capture-days" type="button" disabled>All capture days</button></div>
 <div class="controls"><label for="radius-km">Near a reported Point (km)</label><input id="radius-km" type="number" min="0" max="20040" step="any" value="50" aria-label="Approximate radius in kilometers">
 <button id="set-radius-center" type="button" disabled>Use selected report as center</button>
 <button id="clear-radius-center" type="button" disabled>Clear radius</button></div>
@@ -137,6 +144,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 (function () {
   "use strict";
   var data = JSON.parse(document.getElementById("monde-data").textContent);
+  var landReference = __MONDE_EMBEDDED_REFERENCE_LAND__;
   var features = data.features, knowledgeComparing = !!data.monde_bbox_changes_query;
   var worldComparing = !!data.monde_bbox_world_changes_query;
   var comparing = knowledgeComparing || worldComparing;
@@ -155,6 +163,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var entities = document.getElementById("entities");
   var capturedFrom = document.getElementById("captured-from");
   var capturedThrough = document.getElementById("captured-through");
+  var timeline = document.getElementById("capture-timeline");
+  var timelineSummary = document.getElementById("capture-timeline-summary");
+  var clearCaptureDays = document.getElementById("clear-capture-days");
   var differentOnly = document.getElementById("disagreements-only");
   var comparisonSummary = document.getElementById("entity-comparison-summary");
   var comparisonList = document.getElementById("entity-comparison-list");
@@ -202,6 +213,23 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   function label(node, value) { node.textContent = String(value); }
   function x(lon) { return (lon + 180) / 360 * 1200; }
   function y(lat) { return (90 - lat) / 180 * 600; }
+  // Separate immutable reference cartography from MONDE's evidence layer.
+  // Each Natural Earth ring becomes one SVG subpath, preserving inland holes.
+  if (landReference.kind !== "NATURAL_EARTH_110M_LAND_CONTEXT_V1" ||
+      !Array.isArray(landReference.polygons)) throw Error("invalid land reference");
+  var landGroup = document.getElementById("land");
+  landReference.polygons.forEach(function(polygon) {
+    var commands = [];
+    polygon.forEach(function(ring) {
+      ring.forEach(function(point, index) {
+        commands.push((index === 0 ? "M" : "L") +
+          x(point[0]).toFixed(2) + "," + y(point[1]).toFixed(2));
+      });
+      commands.push("Z");
+    });
+    el("path", {d:commands.join(" ")}, landGroup);
+  });
+  document.body.setAttribute("data-monde-land-count", String(landGroup.childElementCount));
   function positionKey(feature) {
     var coords=feature.geometry.coordinates;
     // Longitude +180 and -180 are the same meridian.
@@ -474,7 +502,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   // Apply exactly the same filters for display and for fitting. Only the
   // current map window is ignored for fitting, so off-screen matches recover.
-  function matchesFilters(f, ignoreDisplayedWindow, ignoreEntity) {
+  function matchesFilters(f, ignoreDisplayedWindow, ignoreEntity, ignoreCaptureDays) {
     var p = f.properties;
     var instant = Date.parse(p.captured_at);
     var capturedDay = Number.isFinite(instant) ?
@@ -488,9 +516,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
       ((ignoreEntity === true) || !entities.value || p.entity === entities.value) &&
-      (!capturedFrom.value ||
+      (ignoreCaptureDays || !capturedFrom.value ||
         (capturedDay !== null && capturedDay >= capturedFrom.value)) &&
-      (!capturedThrough.value ||
+      (ignoreCaptureDays || !capturedThrough.value ||
         (capturedDay !== null && capturedDay <= capturedThrough.value)) &&
       (!differentOnly.checked || disputedEntities.has(p.entity)) &&
       (!comparing || !changeFilter.value ||
@@ -596,9 +624,45 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       conflictList.appendChild(li);
     });
   }
+  function renderCaptureTimeline() {
+    // Capture date metadata only. Preserve other user filters but exclude the
+    // date filter itself, so selecting one day never hides the alternatives.
+    var counts=new Map();
+    features.filter(function(f){return matchesFilters(f,false,false,true);})
+      .forEach(function(f){
+        var millis=Date.parse(f.properties.captured_at);
+        if(!Number.isFinite(millis))return;
+        var day=new Date(millis).toISOString().slice(0,10);
+        counts.set(day,(counts.get(day)||0)+1);
+      });
+    var days=Array.from(counts.keys()).sort();
+    var shown=days.slice(-24);
+    timeline.replaceChildren();
+    shown.forEach(function(day){
+      var button=document.createElement("button");
+      button.type="button";
+      button.setAttribute("aria-pressed",String(capturedFrom.value===day&&
+        capturedThrough.value===day));
+      label(button,day+" · "+String(counts.get(day))+" reports");
+      button.addEventListener("click",function(){
+        capturedFrom.value=day;capturedThrough.value=day;render();
+      });
+      timeline.appendChild(button);
+    });
+    clearCaptureDays.disabled=!capturedFrom.value&&!capturedThrough.value;
+    timelineSummary.textContent=days.length ?
+      String(days.length)+" UTC capture days in current non-date filters; "+
+        String(shown.length)+" most recent shown. Choose one day to filter "+
+        "original source reports, not actual world events or validity." :
+      "No source capture days match the other filters; no physical absence inferred.";
+  }
+  clearCaptureDays.addEventListener("click",function(){
+    capturedFrom.value="";capturedThrough.value="";render();
+  });
   function render() {
     layer.replaceChildren(); list.replaceChildren(); comparisonList.replaceChildren();
     renderConflictNavigator();
+    renderCaptureTimeline();
     visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
     fitButton.disabled = matchingReports().length === 0;
     updateMeasurement();
@@ -919,7 +983,13 @@ def render_map(document: dict) -> str:
     encoded = (compact.replace("&", "\\u0026").replace("<", "\\u003c")
                .replace(">", "\\u003e").replace("\u2028", "\\u2028")
                .replace("\u2029", "\\u2029"))
-    return _TEMPLATE.replace("__MONDE_EMBEDDED_GEOJSON__", encoded)
+    # A bundled, public-domain geographic guide; no network or inferred data.
+    reference = (Path(__file__).resolve().parent / "data" /
+                 "ne_110m_land.json").read_text(encoding="utf-8")
+    if not reference.startswith('{"kind":"NATURAL_EARTH_110M_LAND_CONTEXT_V1","polygons":['):
+        raise ValueError("invalid bundled Natural Earth reference")
+    return (_TEMPLATE.replace("__MONDE_EMBEDDED_GEOJSON__", encoded)
+            .replace("__MONDE_EMBEDDED_REFERENCE_LAND__", reference))
 
 
 
@@ -972,7 +1042,15 @@ def main(argv=None) -> int:
         description="Generate a standalone offline source-evidence map (no API)")
     inputs = parser.add_mutually_exclusive_group(required=True)
     inputs.add_argument("--state", help="saved MONDE Mini JSON state")
-    inputs.add_argument("--csv-manifest", help="source-attributed local CSV manifest; no intermediate state")
+    inputs.add_argument("--csv-manifest", "--source-manifest", dest="csv_manifest",
+                        help="source-attributed CSV/GeoJSON manifest; no intermediate state")
+    inputs.add_argument("--geojson", help="local GeoJSON FeatureCollection of source-reported Points; no intermediate state")
+    parser.add_argument("--source-id", help="explicit source identifier for --geojson")
+    parser.add_argument("--source-locator", help="original data locator for --geojson")
+    parser.add_argument("--captured-at", help="source capture time with timezone for --geojson")
+    parser.add_argument("--valid-from", help="claim validity start with timezone for --geojson")
+    parser.add_argument("--valid-to", help="optional claim validity end for --geojson")
+    parser.add_argument("--source-event-at", help="optional source event timestamp for --geojson")
     parser.add_argument("--bbox", default="auto", help="W,S,E,N WGS84 viewport; default auto-fits source reports at requested times")
     parser.add_argument("--at", required=True, help="valid-world-time instant")
     parser.add_argument("--known-at", required=True, help="knowledge-time cutoff")
@@ -982,7 +1060,23 @@ def main(argv=None) -> int:
     parser.add_argument("--output", required=True, help="new output HTML path; no overwrite")
     args = parser.parse_args(argv)
     try:
-        if args.csv_manifest:
+        source_args = ("source_id", "source_locator", "captured_at",
+                       "valid_from", "valid_to", "source_event_at")
+        if args.geojson:
+            if any(not getattr(args, name) for name in source_args[:4]):
+                raise ValueError("--geojson requires --source-id, --source-locator, "
+                                 "--captured-at and --valid-from")
+            if Path(args.geojson).resolve() == Path(args.output).resolve():
+                raise ValueError("output cannot overwrite the source GeoJSON")
+            from .geojson import to_document
+            original = WorldMini.load_document(args.geojson)
+            world = WorldMini.from_document(to_document(
+                original, source_id=args.source_id, locator=args.source_locator,
+                captured_at=args.captured_at, valid_from=args.valid_from,
+                valid_to=args.valid_to, source_event_at=args.source_event_at))
+        elif any(getattr(args, name) is not None for name in source_args):
+            raise ValueError("source provenance flags require --geojson")
+        elif args.csv_manifest:
             from .csv_points import documents_from_manifest
             documents, _ = documents_from_manifest(
                 args.csv_manifest, output_path=args.output)

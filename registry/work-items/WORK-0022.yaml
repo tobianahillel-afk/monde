@@ -1,0 +1,76 @@
+id: WORK-0022
+title: "Generate a standalone evidence map directly from original GeoJSON"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-1
+sublot: SUBLOT-1.2
+owner: "MONDE Mini product development"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+purpose: |
+  Open original source-reported GeoJSON Points in the offline MONDE evidence
+  map with one command, preserving original source and bitemporal provenance
+  without an intermediate persisted WorldMini state.
+scope:
+  in: ["Direct GeoJSON to offline HTML CLI", "Multiple original GeoJSON or mixed CSV/GeoJSON manifest datasets", "Explicit source and timestamps", "No-clobber errors", "Real offline browser test", "Offline public-domain geographic land context"]
+  out: ["New parser or viewer engine", "Reconciliation or inferred positions", "Server or paid API"]
+acceptance_criteria:
+  - {id: AC-1, description: "One command renders source-attributed GeoJSON Points offline", status: IN_PROGRESS}
+  - {id: AC-2, description: "World and knowledge time query and auto bbox reuse existing behavior", status: IN_PROGRESS}
+  - {id: AC-3, description: "Invalid source or missing provenance produces no output", status: IN_PROGRESS}
+  - {id: AC-4, description: "No overwrites; actual headless browser renders source Points", status: IN_PROGRESS}
+  - {id: AC-5, description: "Render multiple original GeoJSON and mixed CSV/GeoJSON datasets with per-source provenance and atomic failure", status: IN_PROGRESS}
+  - {id: AC-6, description: "Offline land context is bundled and visually separate from source evidence, with actual Chromium render proof", status: IN_PROGRESS}
+  - {id: AC-7, description: "Offline capture-day timeline filters original source reports without treating capture dates as world events", status: IN_PROGRESS}
+requirements: []
+assumptions: ["Input is original GeoJSON WGS84 Point claims, not independently verified coordinates"]
+risks: ["Source data mistaken for reconciled state", "Embedding untrusted source strings in offline HTML"]
+assurance: {level: A3, rationale: "Untrusted original geospatial evidence and offline HTML rendering"}
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+depends_on: [WORK-0001, WORK-0008, WORK-0021]
+blocks: []
+reuses: ["monde.geojson.to_document", "WorldMini.load_document", "WorldMini.from_document", "monde.map_view.render_map", "world-model-mini product CI"]
+affected_capabilities: []
+affected_engines: ["MONDE Mini"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["Source attribution, no inferred timestamps, bitemporal query boundaries"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Reuse GeoJSON claim adapter from map CLI", depends_on: [], expected_files: [src/monde/map_view.py], status: IN_PROGRESS}
+    - {id: T2, description: "End-to-end direct GeoJSON and browser test", depends_on: [T1], expected_files: [tests/test_world_map_geojson_direct.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+    - {id: T3, description: "Document one-command analyst workflow", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_PROGRESS}
+    - {id: T4, description: "Multi-source GeoJSON/mixed-source offline evidence map", depends_on: [T1], expected_files: [src/monde/csv_points.py, src/monde/map_view.py, tests/test_world_map_geojson_direct.py], status: IN_PROGRESS}
+    - {id: T5, description: "Embed public-domain offline land reference beneath source evidence", depends_on: [T1], expected_files: [src/monde/data/ne_110m_land.json, src/monde/map_view.py, tests/test_world_map_geojson_direct.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+    - {id: T6, description: "Filter source evidence through an interactive UTC capture-day timeline", depends_on: [T1], expected_files: [src/monde/map_view.py, tests/test_world_map_geojson_direct.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Deliver reusable direct GeoJSON offline map candidate", tasks: [T1, T2, T3, T4], exit_condition: "Exact-head product CI and proportionate read-only L2", status: IN_PROGRESS}
+review_plan:
+  artifact_class: DATA_SOURCE_CONNECTOR
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY, OPERATIONS]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: [tests/test_world_map_geojson_direct.py]
+  integration: ["Original GeoJSON -> source assertions -> offline map"]
+  contract: ["Explicit locator, ID, capture and valid-time; unchanged source claim semantics"]
+  e2e: ["Real Python CLI + real headless Chromium render"]
+  regression: ["world-mini CI suite"]
+  security: ["Invalid input, duplicate keys, no-clobber, safe HTML embedding"]
+  performance: []
+  real_system: ["GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Standalone snapshot only; corrections use append-only state workflow"]
+risk: {security: MEDIUM, data: LOW, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Revert stacked PR without writing to source files or existing saved states."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_done_checked: false, review_complete: false, docs_updated: false, registries_updated: false, project_state_updated: false}
