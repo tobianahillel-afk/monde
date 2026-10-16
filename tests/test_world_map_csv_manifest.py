@@ -133,5 +133,94 @@ class DirectCsvMapTests(unittest.TestCase):
             self.assertFalse(output.exists())
 
 
+    def test_default_auto_bbox_fits_csv_claims_without_manual_coordinates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = self.fixtures(tmp)
+            output = Path(tmp) / "automatic.html"
+            result = self.run_map("--csv-manifest", manifest, "--at", AT,
+                                  "--known-at", KNOWN, "--output", output)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = output.read_text(encoding="utf-8")
+            self.assertIn("survey-a", html)
+            self.assertIn("survey-b", html)
+            self.assertIn('"total_source_features":2', html)
+            self.assertIn('"bbox":[', html)
+
+    def test_auto_bbox_uses_short_dateline_arc_and_keeps_both_sources(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = self.fixtures(tmp)
+            (Path(tmp) / "one.csv").write_text(
+                "id,longitude,latitude,label\nshared,179.8,5,first\n",
+                encoding="utf-8")
+            (Path(tmp) / "two.csv").write_text(
+                "id,longitude,latitude,label\nshared,-179.8,5,second\n",
+                encoding="utf-8")
+            output = Path(tmp) / "dateline.html"
+            result = self.run_map("--csv-manifest", manifest, "--at", AT,
+                                  "--known-at", KNOWN, "--output", output)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            import re
+            bounds = json.loads("[" + re.search(
+                r'"bbox":\[([^\]]+)\]', output.read_text(encoding="utf-8")
+            ).group(1) + "]")
+            self.assertGreater(bounds[0], bounds[2])  # wrapped W > E
+            self.assertGreater(bounds[0], 170)
+            self.assertLess(bounds[2], -170)
+            self.assertTrue(-90 <= bounds[1] <= 5 <= bounds[3] <= 90)
+
+    def test_auto_bbox_comparison_includes_source_only_present_at_early_cutoff(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = self.fixtures(tmp)
+            output = Path(tmp) / "comparison.html"
+            result = self.run_map("--csv-manifest", manifest, "--at", AT,
+                "--compare-known-at", "2026-01-10T10:00:00Z",
+                "--known-at", KNOWN, "--output", output)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = output.read_text(encoding="utf-8")
+            self.assertIn("survey-b", html)
+            self.assertIn("NEWLY_CURRENT", html)
+
+    def test_auto_bbox_empty_history_fails_cleanly_but_explicit_bbox_is_allowed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = self.fixtures(tmp)
+            missing = Path(tmp) / "missing.html"
+            args = ("--csv-manifest", manifest, "--at", AT,
+                    "--known-at", "2026-01-01T00:00:00Z", "--output", missing)
+            result = self.run_map(*args)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("no known source Points", result.stderr)
+            self.assertFalse(missing.exists())
+            explicit = Path(tmp) / "empty.html"
+            result = self.run_map("--csv-manifest", manifest, "--at", AT,
+                "--known-at", "2026-01-01T00:00:00Z", "--bbox",
+                "-180,-90,180,90", "--output", explicit)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('"total_source_features":0',
+                          explicit.read_text(encoding="utf-8"))
+
+    def test_auto_bbox_world_time_comparison_uses_both_world_cutoffs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = self.fixtures(tmp)
+            early = "2025-12-31T00:00:00Z"
+            output = Path(tmp) / "world-time.html"
+            result = self.run_map("--csv-manifest", manifest,
+                "--compare-at", early, "--at", AT,
+                "--known-at", KNOWN, "--output", output)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("NEWLY_CURRENT", output.read_text(encoding="utf-8"))
+
+    def test_auto_bbox_nonfinite_or_invalid_csv_still_refuses_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = self.fixtures(tmp)
+            (Path(tmp) / "two.csv").write_text(
+                "id,longitude,latitude,label\nshared,NaN,48.86,second\n",
+                encoding="utf-8")
+            output = Path(tmp) / "invalid.html"
+            result = self.run_map("--csv-manifest", manifest, "--at", AT,
+                                  "--known-at", KNOWN, "--output", output)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(output.exists())
+
+
 if __name__ == "__main__":
     unittest.main()

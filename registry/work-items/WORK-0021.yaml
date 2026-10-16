@@ -17,6 +17,7 @@ acceptance_criteria:
   - {id: AC-1, description: "Single manifest-to-HTML command renders individual source Points and retains conflicting reports", status: IN_PROGRESS}
   - {id: AC-2, description: "Existing bitemporal cutoffs and comparisons behave identically", status: IN_PROGRESS}
   - {id: AC-3, description: "Invalid inputs do not create HTML; existing files cannot be overwritten", status: IN_PROGRESS}
+  - {id: AC-4, description: "Manifest-to-map supports automatic geographic framing at both requested bitemporal cutoffs and across the antimeridian", status: IN_PROGRESS}
 requirements: []
 assumptions: ["A manifest explicitly declares dataset provenance and times"]
 risks: ["Untrusted source-reported coordinates mistaken for physical fact"]
@@ -35,6 +36,7 @@ implementation_plan:
   tasks:
     - {id: T1, description: "Render map directly from validated CSV manifest", depends_on: [], expected_files: [src/monde/map_view.py], status: IN_PROGRESS}
     - {id: T2, description: "Exercise end-to-end CSV and map CLI; update user guide", depends_on: [T1], expected_files: [tests/test_world_map_csv_manifest.py, docs/03_ARCHITECTURE/world-mini-csv-import.md], status: IN_PROGRESS}
+    - {id: T3, description: "Auto-frame source reports at current and comparison cutoffs including antimeridian", depends_on: [T1], expected_files: [src/monde/map_view.py, tests/test_world_map_csv_manifest.py, docs/03_ARCHITECTURE/world-mini-csv-import.md], status: IN_PROGRESS}
   planned_runs:
     - {id: RUN-1, objective: "Ship one-command offline map candidate with CI", tasks: [T1, T2], exit_condition: "Product CI and proportionate L2", status: IN_PROGRESS}
 review_plan:

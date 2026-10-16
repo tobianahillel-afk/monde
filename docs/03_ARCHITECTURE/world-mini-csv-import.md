@@ -75,3 +75,30 @@ The input choice is exclusive (`--state` **or** `--csv-manifest`). Invalid
 input produces no HTML file; existing destination files and source CSV/manifest
 files cannot be overwritten. Limits remain 16 datasets / 50,000 Points, with
 standalone-map limits of 5,000 included source reports and 3 MB embedded JSON.
+
+
+### Automatic geographic framing (T3)
+
+You can now omit `--bbox` (or use `--bbox auto`) for both saved states and
+CSV manifests. MONDE chooses a viewport from the source-reported Points
+visible at the requested world and knowledge timestamps, with a small padding.
+For example:
+
+```sh
+PYTHONPATH=src python3 -m monde.map_view \
+  --csv-manifest sources.json \
+  --at 2026-01-02T00:00:00Z \
+  --known-at 2026-01-11T10:00:00Z \
+  --output evidence-map.html
+```
+
+When comparing world or knowledge time, automatic framing uses the reports
+visible at **both** cutoffs. It takes the shortest longitude arc across the
+antimeridian, rather than mistakenly showing almost the entire globe for
+reports at +179.8° and -179.8°. The viewport is a convenience for displaying
+source claims, **not** a reconciled location, confidence estimate or evidence
+that other places are empty.
+
+If there are no known source Points at the chosen cutoffs, automatic framing
+fails explicitly without creating HTML; supply a manual `--bbox W,S,E,N`
+if you deliberately want an empty map. Explicit `--bbox` behavior is unchanged.
