@@ -136,6 +136,85 @@ jobs:
             --disable-dev-shm-usage --timeout=15000 --dump-dom \
             file:///tmp/monde-evidence-map-search-test.html > /tmp/monde-search-dom.html
           grep -q 'data-monde-evidence-search="pass"' /tmp/monde-search-dom.html
+      - name: Generate a map with contradictory source-reported positions
+        env:
+          PYTHONPATH: src
+        run: |
+          python3 - <<'PY'
+          import copy
+          from monde.world import WorldMini
+          from monde.geojson import to_document
+          world = WorldMini.read("/tmp/monde-map-state.json")
+          source = WorldMini.load_document("examples/monde-mini-points.geojson")
+          alternative = copy.deepcopy(source)
+          alternative["features"] = alternative["features"][:1]
+          alternative["features"][0]["geometry"]["coordinates"] = [5.0, 45.0]
+          world.append_document(to_document(alternative, source_id="contrary-map",
+              locator="fixture://contrary-map", captured_at="2026-01-10T10:00:00Z",
+              valid_from="2026-01-01T00:00:00Z"))
+          world.save("/tmp/monde-compare-state.json")
+          PY
+          python3 -m monde.map_view \
+            --state /tmp/monde-compare-state.json \
+            --bbox '2.34,48.84,2.36,48.87' \
+            --at '2026-01-02T00:00:00Z' \
+            --known-at '2026-01-10T10:00:00Z' \
+            --output /tmp/monde-compare-claims.html
+      - name: Compare contradictory source reports in a real offline browser
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          original = Path("/tmp/monde-compare-claims.html").read_text(encoding="utf-8")
+          probe = """<script>
+          (async function(){
+            var payload=JSON.parse(document.getElementById('monde-data').textContent);
+            var entities=document.getElementById('entities');
+            var checks=document.getElementById('disagreements-only');
+            if(payload.features.length!==2||entities.options.length!==2)
+              throw Error('missing competing source reports');
+            var entity=payload.features[0].properties.entity;
+            entities.value=entity;
+            entities.dispatchEvent(new Event('change'));
+            if(document.querySelectorAll('#entity-comparison-list button').length!==2)
+              throw Error('entity comparison omitted source evidence');
+            var summary=document.getElementById('entity-comparison-summary').textContent;
+            if(!summary.includes('2 sources')||!summary.includes('2 distinct reported positions'))
+              throw Error('competing positions incorrectly described');
+            document.querySelector('#entity-comparison-list button').click();
+            if(!document.getElementById('details').textContent.includes('Evidence:'))
+              throw Error('comparison cannot inspect original evidence');
+            checks.checked=true;
+            checks.dispatchEvent(new Event('change'));
+            if(document.querySelectorAll('#points circle').length!==2)
+              throw Error('different-source position filter lost source reports');
+            var blob=null;
+            var oldCreate=URL.createObjectURL,oldClick=HTMLAnchorElement.prototype.click;
+            URL.createObjectURL=function(data){blob=data;return 'blob:local-probe';};
+            HTMLAnchorElement.prototype.click=function(){};
+            document.getElementById('export-visible').click();
+            var result=JSON.parse(await blob.text());
+            if(result.features.length!==2||
+               result.monde_visible_export.filters.entity!==entity||
+               result.monde_visible_export.filters.different_source_positions_only!==true)
+              throw Error('comparison metadata/evidence missing from GeoJSON');
+            entities.value='no-such-entity';
+            entities.dispatchEvent(new Event('change'));
+            if(document.querySelectorAll('#points circle').length!==0||
+               !document.getElementById('export-visible').disabled)
+              throw Error('unmatched entity did not empty view');
+            URL.createObjectURL=oldCreate;
+            HTMLAnchorElement.prototype.click=oldClick;
+            document.body.setAttribute('data-monde-compare','pass');
+          }()).catch(e=>document.body.setAttribute('data-monde-compare','fail:'+e.message));
+          </script>"""
+          Path("/tmp/monde-compare-smoke.html").write_text(
+              original.replace("</body>", probe+"</body>"), encoding="utf-8")
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu \
+            --disable-dev-shm-usage --virtual-time-budget=2000 --timeout=15000 --dump-dom \
+            file:///tmp/monde-compare-smoke.html > /tmp/monde-compare-dom.html
+          grep -q 'data-monde-compare="pass"' /tmp/monde-compare-dom.html
       - name: Verify filtered GeoJSON export in a real offline browser
         run: |
           python3 - <<'PY'
@@ -199,6 +278,7 @@ jobs:
           name: monde-mini-offline-evidence-map
           path: |
             /tmp/monde-evidence-map.html
+            /tmp/monde-compare-claims.html
             /tmp/monde-knowledge-changes-map.html
             /tmp/monde-world-changes-map.html
           retention-days: 7

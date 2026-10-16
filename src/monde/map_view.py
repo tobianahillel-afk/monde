@@ -55,7 +55,9 @@ button:disabled{opacity:.5;cursor:default}
 label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 #report-list{list-style:none;padding:0;margin:0;max-height:235px;overflow:auto}
 #report-list li{margin:0 0 6px}
-#report-list button{width:100%;text-align:left;overflow-wrap:anywhere}
+#report-list button,#entity-comparison-list button{width:100%;text-align:left;overflow-wrap:anywhere}
+#entity-comparison-list{list-style:none;padding:0;margin:0 0 12px;max-height:225px;overflow:auto}
+#entity-comparison-list li{margin:0 0 6px}
 #details{white-space:pre-wrap;overflow-wrap:anywhere;background:#102033;border-radius:7px;padding:12px;font-size:.84rem;max-height:280px;overflow:auto;min-height:70px}
 .notice{padding:10px 12px;background:#273b49;border-left:3px solid #ffc873;border-radius:4px;margin:14px 0}
 #metrics{font-size:.9rem;color:#bbd0df}
@@ -88,9 +90,14 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <button id="clear-search" type="button">Clear</button>
 <button id="export-visible" type="button" disabled>Export visible GeoJSON</button></div>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
+<div class="controls"><label for="entities">Entity</label><select id="entities"><option value="">All entities</option></select></div>
+<div class="controls"><label><input id="disagreements-only" type="checkbox"> Different-source position claims only</label></div>
 <div class="controls" id="change-filter-control" hidden><label for="change-filter">Reported change</label>
 <select id="change-filter"><option value="">All changes</option><option value="NEWLY_CURRENT">Newly current</option><option value="NO_LONGER_CURRENT">No longer current</option></select></div>
 <ul id="report-list" aria-label="Reported points"></ul>
+<h2>Compare reported positions</h2>
+<p id="entity-comparison-summary" class="subtle">Select an entity to compare its visible source claims, without inferring a true position.</p>
+<ul id="entity-comparison-list" aria-label="Side-by-side source assertions"></ul>
 <h2>Selected evidence</h2><div id="details" role="status" aria-live="polite">Select a source report to inspect its original evidence.</div>
 </aside>
 </main>
@@ -112,6 +119,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var list = document.getElementById("report-list");
   var details = document.getElementById("details");
   var sources = document.getElementById("sources");
+  var entities = document.getElementById("entities");
+  var differentOnly = document.getElementById("disagreements-only");
+  var comparisonSummary = document.getElementById("entity-comparison-summary");
+  var comparisonList = document.getElementById("entity-comparison-list");
   var insideOnly = document.getElementById("inside-only");
   var changeFilter = document.getElementById("change-filter");
   var search = document.getElementById("report-search");
@@ -182,6 +193,26 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     var option = document.createElement("option");
     option.value = id; label(option,id); sources.appendChild(option);
   });
+  // A disagreement is *different sources reporting different coordinates* for
+  // the same entity. This is not a confidence/physical-location judgement.
+  var entityReports = new Map();
+  features.forEach(function(f) {
+    var key = f.properties.entity;
+    if (!entityReports.has(key)) entityReports.set(key, []);
+    entityReports.get(key).push(f);
+  });
+  var disputedEntities = new Set();
+  entityReports.forEach(function(reports, entity) {
+    var distinctSources = new Set(reports.map(function(f) { return f.properties.source_id; }));
+    var distinctPositions = new Set(reports.map(function(f) {
+      return JSON.stringify(f.geometry.coordinates);
+    }));
+    if (distinctSources.size > 1 && distinctPositions.size > 1) disputedEntities.add(entity);
+    var option = document.createElement("option");
+    option.value = entity;
+    label(option, entity);
+    entities.appendChild(option);
+  });
   function centerOn(feature) {
     // Navigate to this *reported* coordinate, not an inferred true location.
     var coords = feature.geometry.coordinates;
@@ -219,7 +250,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     render();
   }
   function render() {
-    layer.replaceChildren(); list.replaceChildren();
+    layer.replaceChildren(); list.replaceChildren(); comparisonList.replaceChildren();
     var words = search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     visibleFeatures = features.filter(function(f) {
       var p = f.properties;
@@ -228,6 +259,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       return words.every(function(word) { return indexed.includes(word); }) &&
         (!insideOnly.checked || f.properties.monde_inside_bbox) &&
         (!sources.value || f.properties.source_id === sources.value) &&
+        (!entities.value || f.properties.entity === entities.value) &&
+        (!differentOnly.checked || disputedEntities.has(f.properties.entity)) &&
         (!comparing || !changeFilter.value ||
          f.properties.monde_change === changeFilter.value);
     });
@@ -251,6 +284,32 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       button.addEventListener("click",function(){inspect(f);});
       li.appendChild(button);list.appendChild(li);
     });
+    if (entities.value) {
+      var sourceCount = new Set(visibleFeatures.map(function(f) {
+        return f.properties.source_id;
+      })).size;
+      var positionCount = new Set(visibleFeatures.map(function(f) {
+        return JSON.stringify(f.geometry.coordinates);
+      })).size;
+      comparisonSummary.textContent = String(visibleFeatures.length) +
+        " visible source assertions from " + String(sourceCount) +
+        " sources, " + String(positionCount) + " distinct reported positions. " +
+        "These are source claims, not verified truth or movement.";
+      visibleFeatures.forEach(function(f) {
+        var p = f.properties, li = document.createElement("li");
+        var button = document.createElement("button");
+        button.type = "button";
+        label(button,p.source_id + " · " + f.geometry.coordinates.join(", ") +
+          " · assertion " + f.id + " · evidence " + p.evidence_id);
+        button.addEventListener("click",function(){inspect(f);});
+        li.appendChild(button);
+        comparisonList.appendChild(li);
+      });
+    } else {
+      comparisonSummary.textContent = String(disputedEntities.size) +
+        " entities have differing positions reported by distinct sources. " +
+        "Select an entity to compare its original evidence; no physical truth inferred.";
+    }
     document.getElementById("metrics").textContent =
       String(query.total_matching_entities)+" matching entities · "+
       String(visibleFeatures.length)+" displayed source reports / "+String(features.length)+
@@ -276,6 +335,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         filters: {
           search: search.value.trim(),
           source_id: sources.value,
+          entity: entities.value,
+          different_source_positions_only: differentOnly.checked,
           inside_viewport_only: insideOnly.checked,
           knowledge_change: knowledgeComparing ? changeFilter.value : "",
           world_time_change: worldComparing ? changeFilter.value : ""
@@ -294,6 +355,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   });
   sources.addEventListener("change",render);
+  entities.addEventListener("change",render);
+  differentOnly.addEventListener("change",render);
   insideOnly.addEventListener("change",render);
   changeFilter.addEventListener("change",render);
   search.addEventListener("input",render);

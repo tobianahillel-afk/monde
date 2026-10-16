@@ -80,3 +80,18 @@ The viewer reuses `WorldMini.export_geojson_bbox_world_changes` and retains
 and both world instants. Search, filter and export visible source reports
 offline. `--compare-at` and `--compare-known-at` cannot be used together.
 Existing state is immutable; output is never overwritten.
+
+## Compare reports about the same entity (T7)
+
+Use the **Entity** selector to isolate a named entity, or **Different-source position
+claims only** to find entities for which separate sources report differing
+coordinates. **Compare reported positions** lists every still-visible source
+assertion with its original evidence and coordinates; click a report to inspect
+its lineage and center on that *reported* point. Source, text, viewport and
+world/knowledge-change filters compose with entity comparison.
+
+The display does **not** identify a correct coordinate, rank sources by
+trustworthiness, imply that a location moved, or upgrade a source claim into
+observed physical truth. Filtered GeoJSON exports include entity and
+position-disagreement filter metadata, while preserving original assertions
+and the complete original time query.

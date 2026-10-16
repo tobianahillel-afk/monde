@@ -405,3 +405,37 @@ class OfflineWorldTimeComparisonTest(unittest.TestCase):
             self.assertNotEqual(subprocess.run(cmd, capture_output=True,
                  env=dict(os.environ, PYTHONPATH=str(ROOT / "src"))).returncode, 0)
             self.assertFalse(out.exists())
+
+
+class OfflineEntityComparisonTest(unittest.TestCase):
+    def test_entity_comparison_preserves_competing_evidence_without_truth_inference(self):
+        source = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        before = copy.deepcopy(source)
+        page = render_map(source)
+        _, embedded = extract(page)
+        self.assertEqual(before, embedded)
+        self.assertEqual(source, before)
+        self.assertEqual(len(embedded["features"]), 2)
+        self.assertIn('id="entities"', page)
+        self.assertIn('id="disagreements-only"', page)
+        self.assertIn('id="entity-comparison-list"', page)
+        self.assertIn('id="entity-comparison-summary"', page)
+        self.assertIn('different_source_positions_only: differentOnly.checked', page)
+        self.assertIn('entity: entities.value', page)
+        self.assertIn('not verified truth or movement', page)
+        self.assertNotIn('<script src=', page)
+        self.assertIn("connect-src 'none'", page)
+
+    def test_comparison_available_in_both_temporal_change_modes(self):
+        world, _ = corrected_points()
+        inputs = (
+            world.export_geojson_bbox_knowledge_changes(BBOX, VALID, KNOWN, LATE),
+            world.export_geojson_bbox_world_changes(
+                BBOX, "2025-12-31T00:00:00Z", VALID, LATE),
+        )
+        for source in inputs:
+            with self.subTest(kind=list(source)):
+                page = render_map(source)
+                self.assertIn('id="entities"', page)
+                self.assertIn('id="entity-comparison-list"', page)
+                self.assertEqual(extract(page)[1], source)
