@@ -8230,3 +8230,44 @@ test('multi-wave L2 handoff: accepts exactly 1000 bounded allegations, rejects 1
   assert.throws(()=>plan(undefined,[...allegations,allegations[0]]),
     {code:'INVALID_WORK_PLAN'});
 });
+
+test('Oct-16 L2: custom session key values must never leak through public review channels',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const bookmark={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  const synthetic='A'.repeat(32); // Synthetic fixture, not a real secret.
+  for(const exposure of [
+    'X-Session-Key: '+synthetic,
+    'x_session_key='+synthetic,
+    '{"X-Session-Key":"'+synthetic+'"}',
+    'https://example.org/api?x-session-key='+synthetic
+  ]){
+    const review=message(data({findings:[{...data().findings[0],
+      evidence:'Diagnostic from synthetic test: '+exposure}]}));
+    const handoff=d.prepareInteractiveHandoff({expected:H,response:review,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(handoff.ready_for_manual_relay,false,exposure);
+    assert.equal(handoff.status,'CREDENTIAL_IN_RELAY',exposure);
+    assert.equal(handoff.text,null,exposure);
+    const unqualified=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'R2 diagnostic, sample: '+exposure,current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(unqualified.ready_for_manual_relay,false,exposure);
+    assert.equal(unqualified.status,'CREDENTIAL_IN_RELAY',exposure);
+    assert.equal(unqualified.text,null,exposure);
+    assert.throws(()=>d.createResumePacket({...bookmark,
+      next_action:'Investigate '+exposure}), e=>e.code==='INVALID_RESUME_PACKET',exposure);
+  }
+  // A public route and ordinary prose are not themselves credentials.
+  for(const safe of ['GET /api/session/key','Review session key rotation policy']){
+    const handoff=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[{...data().findings[0],
+        evidence:'Review '+safe}]})),current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(handoff.ready_for_manual_relay,true,safe);
+    assert.equal(d.createResumePacket({...bookmark,
+      next_action:'Review '+safe}).action_kind,'CONTINUE_IMPLEMENTATION',safe);
+  }
+});

@@ -592,6 +592,11 @@ const CREDENTIAL_PATTERNS=[
   /(?:\\*)["'](?:token|session|(?:proxy[ _-]*)?authorization|(?:x[ _-]*)?auth(?:[ _-]*token)?|secret|(?:x[ _-]*)?api[ _-]*key|access[ _-]*token|refresh[ _-]*token|client[ _-]*secret|password|passwd|secret[ _-]*key)(?:\\*)["']\s*:\s*(?:\\*)["'][^"'\r\n]{4,}/i,
   // Numeric JSON secrets are also values, not harmless metadata.
   /(?:\\*)["'](?:token|session|(?:proxy[ _-]*)?authorization|auth(?:[ _-]*token)?|secret|api[ _-]*key|access[ _-]*token|client[ _-]*secret|password|passwd)(?:\\*)["']\s*:\s*[0-9]{6,}(?=\s*[,}\]])/i,
+  // Custom session keys appear in real HTTP traces and reviewer quotations.
+  // Keep their secret values out of public PR handoffs even without a JWT
+  // shape or a provider-specific prefix; do not blacklist harmless prose.
+  /(?:^|[^A-Za-z0-9])(?:x[_-]?)?session[_-]?key\s*[:=]\s*(?:\\*["'\x60*_]){0,3}\s*[A-Za-z0-9_%+./=-]{8,}/i,
+  /(?:\\*)["'](?:x[ _-]*)?session[ _-]*key(?:\\*)["']\s*:\s*(?:\\*)["'][^"'\r\n]{8,}/i,
   // An unlabelled JWT pasted from a trace can disclose a live bearer token.
   // A conservative three-part base64url signature avoids generic dot-separated
   // version strings; do not require an Authorization: prefix to flag it.
@@ -602,6 +607,7 @@ const CREDENTIAL_PATTERNS=[
   // A URL containing ?token= or &key= with a plausible value is not safe
   // to copy to public review evidence, even on an otherwise public domain.
   /(?:\?|#|&(?:amp;)?)\s*(?:token|key|auth|authorization|session|signature|sig|secret|jwt|(?:x[_-]?)?api[_-]?key|(?:x[_-]?)?auth[_-]?token)=[A-Za-z0-9._~+/%-]{4,}/i,
+  /(?:\?|#|&(?:amp;)?)\s*(?:x[_-]?)?session[_-]?key=[A-Za-z0-9._~+/%-]{8,}/i,
   // Even a three-character OAuth query code must never reach public relay.
   /(?:\?|#|&(?:amp;)?)\s*code=[A-Za-z0-9._~+/%-]{1,}/i,
   // Context-aware bare/JSON OAuth codes are checked below, not by
