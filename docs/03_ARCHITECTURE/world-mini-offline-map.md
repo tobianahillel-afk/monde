@@ -335,3 +335,27 @@ LineString/Polygon/MultiGeometry, network links, ExtendedData, XML DTD/entities,
 absent or duplicated stable IDs and invalid coordinates are rejected rather
 than silently interpreted or discarded. 10 MB per KML and 50,000 Point cap.
 The output is source *evidence*, never independently verified physical truth.
+
+## GPX waypoint import (WORK-0024)
+
+Original local GPX 1.1 waypoints are accepted as source-reported 2D WGS84 Points.
+Each waypoint name must be unique, identifier-safe and verified stable by the
+source owner: GPX does not guarantee identity stability. Neither position nor
+timestamp is promoted to physical truth. Waypoint description, comment, symbol,
+type and source time are preserved as properties; source capture/validity and
+knowledge time always come from the explicit CLI or manifest flags.
+
+Example (with an original GPX containing waypoint names):
+
+    PYTHONPATH=src python3 -m monde.map_view --gpx original.gpx \
+      --source-id original-gpx --source-locator dataset://gps/original.gpx \
+      --captured-at 2026-01-10T10:00:00Z --valid-from 2026-01-01T00:00:00Z \
+      --at 2026-01-02T00:00:00Z --known-at 2026-01-10T10:00:00Z \
+      --output source-map.html
+
+The existing source-manifest format accepts a gpx input field alongside CSV,
+GeoJSON and KML, preserving original per-source evidence across mixed datasets.
+Input files and existing output files are never overwritten. Routes, tracks,
+elevation, waypoint extensions and unsupported fields are explicitly rejected.
+File-level GPX metadata is not mapped into claims; provide source identity and
+original locator separately. No network calls or external map services are used.
