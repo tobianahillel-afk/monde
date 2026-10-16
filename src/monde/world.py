@@ -533,6 +533,57 @@ class WorldMini:
                     "total_matching_entities": result["total_matches"],
                     "has_more": result["has_more"], "status": result["status"]}}
 
+    def export_geojson_radius(self, center, radius_km, at: str, known_at: str) -> dict:
+        """Map entities whose source report falls within a radius, including conflicts.
+
+        Each matching entity keeps *all* current source Points, including
+        competing positions outside the radius. This is no reconciled truth.
+        """
+        from .geojson import _point
+
+        result = self.search_geo_radius(center, radius_km, at, known_at)
+        features = []
+        for rank, match in enumerate(result["matches"], 1):
+            for within, reports in ((True, match["matched_reports"]),
+                                    (False, match["other_reports"])):
+                for report in reports:
+                    props = {
+                        "entity": match["entity"],
+                        "monde_world": "OBSERVED",
+                        "monde_status": "SOURCE_REPORTED_ONLY",
+                        "valid_at": at,
+                        "knowledge_cutoff": known_at,
+                        "monde_radius_entity_rank": rank,
+                        "monde_radius_entity_nearest_km": match["nearest_reported_km"],
+                        "monde_within_radius": within,
+                        "monde_distance_km": report["distance_km"] if within else None,
+                        "monde_distance_basis":
+                            "SPHERICAL_HAVERSINE_APPROX_NOT_POSITION_ACCURACY",
+                    }
+                    props.update({key: _clone(value) for key, value in report.items()
+                                  if key not in ("value", "distance_km")})
+                    features.append({
+                        "type": "Feature", "id": report["assertion_id"],
+                        "geometry": _point(report["value"]), "properties": props,
+                    })
+        features.sort(key=lambda feature: (
+            feature["properties"]["monde_radius_entity_rank"],
+            not feature["properties"]["monde_within_radius"], feature["id"]))
+        return {
+            "type": "FeatureCollection",
+            "features": features,
+            "monde_radius_query": {
+                "basis": result["query"], "center": result["center"],
+                "radius_km": result["radius_km"],
+                "valid_at": result["valid_at"],
+                "knowledge_cutoff": result["knowledge_cutoff"],
+                "distance_method": result["distance_method"],
+                "total_matching_entities": len(result["matches"]),
+                "total_source_features": len(features),
+                "status": result["status"],
+            },
+        }
+
     def source_disagreements(self, at: str, known_at: str,
                              attribute: str | None = None) -> dict:
         """Different current values reported by distinct source IDs (not truth)."""
@@ -892,6 +943,8 @@ def main(argv=None) -> int:
                             help="GeoJSON map of conflicting current source-reported Points")
     selection.add_argument("--export-geojson-nearest", metavar="LON,LAT",
                            help="GeoJSON map of nearest source-reported Point entities")
+    selection.add_argument("--export-geojson-radius", metavar="LON,LAT",
+                           help="GeoJSON map of source Points within a radius")
     selection.add_argument("--source-disagreements", action="store_true")
     selection.add_argument("--source-history", metavar="SOURCE_ID")
     selection.add_argument("--knowledge-updates", action="store_true")
@@ -912,7 +965,7 @@ def main(argv=None) -> int:
                         help="explicitly overwrite --state-out (single writer only)")
     parser.add_argument("--equals-json", help="exact JSON value used by cross-entity search")
     parser.add_argument("--source-attribute", help="optional property filter for source history")
-    parser.add_argument("--radius-km", type=float, help="nonnegative radius for --search-geo-radius")
+    parser.add_argument("--radius-km", type=float, help="nonnegative radius for source Point radius modes")
     parser.add_argument("--nearest-limit", type=int,
                         help="nearest entity count (1 to 1000)")
     parser.add_argument("--export-bbox", metavar="W,S,E,N",
@@ -926,8 +979,9 @@ def main(argv=None) -> int:
     parser.add_argument("--compare-known-at", help="earlier knowledge cutoff; requires --all-attributes")
     parser.add_argument("--compare-at", help="earlier valid-world-time; requires --all-attributes and --at")
     args = parser.parse_args(argv)
-    if (args.search_geo_radius is None) != (args.radius_km is None):
-        parser.error("--search-geo-radius and --radius-km must be supplied together")
+    if ((args.search_geo_radius is None and args.export_geojson_radius is None)
+            != (args.radius_km is None)):
+        parser.error("--radius-km requires a source Point radius mode")
     if ((args.search_geo_nearest is None and args.export_geojson_nearest is None)
             != (args.nearest_limit is None)):
         parser.error("nearest search or GeoJSON nearest export requires --nearest-limit")
@@ -1036,6 +1090,23 @@ def main(argv=None) -> int:
                     args.equals_json is not None):
                 parser.error("disagreements require --at without entity/timeline/compare")
             result = world.source_disagreements(args.at, args.known_at)
+        elif args.export_geojson_radius is not None:
+            if (args.entity is not None or args.at is None or
+                    args.source_attribute is not None or args.equals_json is not None or
+                    args.timeline_from is not None or args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None or
+                    args.compare_known_at is not None or args.compare_at is not None or
+                    args.updates_from is not None):
+                parser.error("GeoJSON radius export requires --at and --known-at")
+            parts = args.export_geojson_radius.split(",")
+            if len(parts) != 2:
+                raise ValueError("center must be LON,LAT")
+            try:
+                center = [float(part.strip()) for part in parts]
+            except ValueError as exc:
+                raise ValueError("center must contain numeric coordinates") from exc
+            result = world.export_geojson_radius(center, args.radius_km,
+                                                 args.at, args.known_at)
         elif args.export_geojson_nearest is not None:
             if (args.entity is not None or args.at is None or
                     args.source_attribute is not None or args.equals_json is not None or

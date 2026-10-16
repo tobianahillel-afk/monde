@@ -1,0 +1,63 @@
+id: WORK-0015
+title: "Map source-reported Points within a radius as bitemporal GeoJSON"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.8
+owner: "MONDE Mini proximity cartography"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+purpose: |
+  Export nearby source-attributed Point reports as map-ready GeoJSON with
+  provenance and bitemporal visibility, preserving contrary source positions.
+scope:
+  in: ["GeoJSON radius export", "Source disagreements", "Saved-state CLI"]
+  out: ["Routing", "Ground truth", "Tiles", "External GIS engine"]
+acceptance_criteria:
+  - {id: AC-1, description: "Qualifying entities retain all competing source Points", status: NOT_STARTED}
+  - {id: AC-2, description: "Each marker preserves source, evidence and two temporal cutoffs", status: NOT_STARTED}
+  - {id: AC-3, description: "Persisted-state CLI emits GeoJSON with strict radius options", status: NOT_STARTED}
+requirements: []
+assumptions: ["2D WGS84 Points", "Spherical haversine is approximate"]
+risks: ["A source-reported position might be mistaken for verified location"]
+assurance: {level: A3, rationale: "Temporal and geographic evidence integrity"}
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-proximity.md, docs/03_ARCHITECTURE/world-mini-geojson-nearest.md]
+depends_on: [WORK-0001, WORK-0006, WORK-0007, WORK-0008, WORK-0009, WORK-0010, WORK-0011, WORK-0012, WORK-0013, WORK-0014]
+blocks: []
+reuses: ["WorldMini.search_geo_radius", "GeoJSON _point adapter", "existing CLI"]
+affected_capabilities: []
+affected_engines: ["MONDE Mini source geography"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-geojson-radius.md]
+contracts: ["GeoJSON FeatureCollection, no reconciled physical truth"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Implement radius GeoJSON", depends_on: [], expected_files: [src/monde/world.py], status: IN_PROGRESS}
+    - {id: T2, description: "Behavioral and CLI tests with docs", depends_on: [T1], expected_files: [tests/test_world_geojson_radius.py, docs/03_ARCHITECTURE/world-mini-geojson-radius.md], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Radius map", tasks: [T1, T2], exit_condition: "Product CI + scoped L2", status: IN_PROGRESS}
+review_plan:
+  artifact_class: HIGH_RISK_CAPABILITY
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, EPISTEMIC_DATA, ARCHITECTURE_REUSE]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["Radius cutoff", "Outside contradictory reports", "Invalid coordinates"]
+  integration: ["Bitemporal source identity", "Immutability"]
+  e2e: ["Real CLI from persisted state"]
+  security: ["Incompatible flags fail"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Experimental", "Stacked PR not merged", "L2 pending"]
+risk: {security: LOW, data: MEDIUM, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Close this scoped PR without changing predecessor branches or main."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_ready_checked: false, definition_of_done_checked: false, review_complete: false, docs_updated: true, registries_updated: false, project_state_updated: false}
