@@ -7911,3 +7911,25 @@ test('WORK planner rejects YAML multi-document tails and directives',()=>{
       'multiple YAML documents/directives cannot leave the earlier READY task trusted');
   }
 });
+
+
+test('WORK planner rejects hidden YAML line breaks after unexamined keys',()=>{
+  for(const separator of ['\r','\u0085','\u2028','\u2029','\u0000']){
+    // A YAML reader may treat a bare CR as a second top-level status key.
+    // The narrow WORK planner must not silently read the initial state.
+    const document=WORK_FIXTURE_ACTIVE+'\nnotes: harmless'+separator+
+      'status: BLOCKED';
+    assert.throws(()=>d.parseWorkPlanningSnapshot(document,'WORK-0007'),
+      e=>e.code==='AMBIGUOUS_WORK_LINE_BREAK');
+  }
+});
+test('WORK planner accepts standard Windows CRLF but rejects lone carriage returns',()=>{
+  const windows=WORK_FIXTURE_ACTIVE.replace(/\n/g,'\r\n');
+  const parsed=d.parseWorkPlanningSnapshot(windows,'WORK-0007');
+  assert.equal(parsed.status,'IN_PROGRESS');
+  assert.equal(parsed.tasks.length>0,true);
+  const mixed=windows.replace('  planned_runs: []',
+    '  planned_runs: []\rstatus: CANCELLED');
+  assert.throws(()=>d.parseWorkPlanningSnapshot(mixed,'WORK-0007'),
+    e=>e.code==='AMBIGUOUS_WORK_LINE_BREAK');
+});

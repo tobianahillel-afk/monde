@@ -1749,6 +1749,11 @@ function parseWorkPlanningSnapshot(text,id) {
   if(typeof text!=='string'||Buffer.byteLength(text,'utf8')>262144||
      typeof id!=='string'||!/^WORK-[0-9]{4,}$/.test(id))
     bad('INVALID_WORK_SNAPSHOT');
+  // YAML recognizes a lone CR as a line break. Splitting only on LF could
+  // hide a second status/dependency key after an unexamined scalar line.
+  // Keep standard Windows CRLF, but reject other/control separators outright.
+  if(/\r(?!\n)|[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u2028\u2029]/u.test(text))
+    bad('AMBIGUOUS_WORK_LINE_BREAK');
   const rows=text.replace(/\r\n/g,'\n').split('\n');
   // A WORK is one canonical YAML document. A document boundary or directive
   // outside the supported subset can change the parsed value in other YAML
