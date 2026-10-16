@@ -18,6 +18,13 @@ const previous_review = {
   review_verdict: 'APPROVE', context_separated: true,
   coverage_qualified: true, open_material_findings: 0
 };
+const previousBaseEvidence = {
+  assignment_id: assignment.assignment_id,
+  repo: assignment.repo, pr: assignment.pr,
+  head_sha: OLD, base_sha: 'c'.repeat(40),
+  reviewer_context_id: previous_review.reviewer_context_id,
+  evidence_ref: 'msg-reviewed-base-0001'
+};
 const base = {
   status: 'ahead', ahead_by: 1, behind_by: 0,
   total_commits: 1, commits: [{sha: HEAD, parents:[{sha:OLD}]}],
@@ -34,6 +41,7 @@ function args(override = {}) {
   return {github: client(), previous_assignment: assignment,
     previous_review, current_head: HEAD,
     previous_reviewed_pr_base_sha: 'c'.repeat(40),
+    previous_reviewed_pr_base_evidence: previousBaseEvidence,
     new_assignment_id: 'L2-PR19-delta-002', ...override};
 }
 test('GitHub compares exact SHAs then proposes narrow fresh-context L2, never approval', async () => {
@@ -207,6 +215,8 @@ test('live PR bridge verifies exact current PR HEAD before and after comparison'
   assert.equal(result.observed_pr_head_consistent_during_read,true);
   assert.equal(result.observed_pr_base_sha,'c'.repeat(40));
   assert.equal(result.previous_reviewed_pr_base_sha_matched,true);
+  assert.equal(result.prior_review_base_evidence_structurally_bound,true);
+  assert.equal(result.prior_review_base_source_independently_verified,false);
   assert.equal(result.must_recheck_before_review,true);
   assert.equal(result.review_acceptance_granted,false);
   assert.equal(live.calls.pulls.length,2);
@@ -601,4 +611,37 @@ test('fresh L2 batching: longest composable base ID remains valid',async()=>{
   });
   assert.equal(out.batches[0].assignment.assignment_id,assignment_id+'-B01');
   assert.equal(out.batches[0].assignment.assignment_id.length,95);
+});
+
+test('prior review PR base provenance is strictly bound before external API calls',async()=>{
+  for(const evidence of [
+    null,{}, {...previousBaseEvidence,base_sha:'d'.repeat(40)},
+    {...previousBaseEvidence,head_sha:HEAD},
+    {...previousBaseEvidence,repo:'other/other'},
+    {...previousBaseEvidence,pr:20},
+    {...previousBaseEvidence,assignment_id:'L2-other-assignment'},
+    {...previousBaseEvidence,reviewer_context_id:assignment.author_context_id},
+    {...previousBaseEvidence,reviewer_context_id:'another-reviewer-context'},
+    {...previousBaseEvidence,evidence_ref:'short'},
+    {...previousBaseEvidence,evidence_ref:'unsafe/ref'},
+    {...previousBaseEvidence,extra:true}
+  ]){
+    const live=liveClient();
+    await assert.rejects(planL2DeltaFromCurrentGitHub(args({
+      github:live.github,previous_reviewed_pr_base_evidence:evidence
+    })),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(live.calls.pulls.length,0);
+    assert.equal(live.calls.compares.length,0);
+  }
+});
+test('unqualified previous review can only produce a full-impact candidate',async()=>{
+  const live=liveClient();
+  const result=await planL2DeltaFromCurrentGitHub(args({
+    github:live.github,previous_review:null,
+    previous_reviewed_pr_base_evidence:null
+  }));
+  assert.equal(result.status,'MANUAL_IMPACT_ANALYSIS_REQUIRED');
+  assert.equal(result.proposed_assignment,null);
+  assert.equal(result.prior_review_base_evidence_structurally_bound,false);
+  assert.equal(result.review_acceptance_granted,false);
 });

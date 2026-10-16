@@ -94,8 +94,27 @@ async function planL2DeltaFromCurrentGitHub(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input))
     incomplete();
   const { github, previous_assignment, current_head, new_assignment_id,
-    previous_reviewed_pr_base_sha } = input;
+    previous_reviewed_pr_base_sha, previous_reviewed_pr_base_evidence,
+    previous_review } = input;
   const old = assignment(previous_assignment);
+  // The live base SHA alone is not proof of what the earlier L2 reviewed.
+  // A targeted review needs an exact, separate-context provenance binding.
+  if(previous_review !== null && previous_review !== undefined){
+    const e=previous_reviewed_pr_base_evidence;
+    const required=['assignment_id','repo','pr','head_sha','base_sha',
+      'reviewer_context_id','evidence_ref'];
+    if(!e || typeof e!=='object' || Array.isArray(e) ||
+       Object.keys(e).length!==required.length ||
+       required.some(k=>!Object.prototype.hasOwnProperty.call(e,k)) ||
+       e.assignment_id!==old.assignment_id || e.repo!==old.repo ||
+       e.pr!==old.pr || e.head_sha!==old.head_sha ||
+       e.base_sha!==previous_reviewed_pr_base_sha ||
+       e.reviewer_context_id!==previous_review.reviewer_context_id ||
+       e.reviewer_context_id===old.author_context_id ||
+       typeof e.evidence_ref!=='string' ||
+       !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(e.evidence_ref))
+      incomplete();
+  }
   if (old.mission_kind !== 'L2_REVIEW' ||
       typeof new_assignment_id !== 'string' ||
       !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,95}$/.test(new_assignment_id) ||
@@ -145,6 +164,10 @@ async function planL2DeltaFromCurrentGitHub(input) {
     observed_pr_head_consistent_during_read: true,
     observed_pr_base_sha: before.baseSha,
     previous_reviewed_pr_base_sha_matched: true,
+    prior_review_base_evidence_structurally_bound:
+      previous_review!==null && previous_review!==undefined,
+    // Provenance is operator supplied, not an authenticated GitHub approval.
+    prior_review_base_source_independently_verified: false,
     // A live GitHub ref can change immediately after the second observation.
     live_pr_head_still_requires_verification: true,
     must_recheck_before_review: true,
