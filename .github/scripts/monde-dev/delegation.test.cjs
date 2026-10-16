@@ -8099,3 +8099,21 @@ test('R3 backlog chooses a canonical numeric top 16 independent of WORK/TASK ord
   assert.equal(first.qualification_required,true);
   assert.equal(first.execution_blocking,false);
 });
+
+test('taskless DONE advisory uses canonical numeric order under WORK permutations',()=>{
+  const ids=['WORK-10000','WORK-00010','WORK-9999',
+    'WORK-9007199254740993','WORK-0011','WORK-9007199254740992'];
+  const works=ids.map(id=>({id,status:'DONE',depends_on:[],tasks:[]}));
+  const run=items=>d.planNextIncrement({
+    repo:'tobianahillel-afk/monde',head_sha:SHA,works:items
+  });
+  const expected=['WORK-00010','WORK-0011','WORK-9999','WORK-10000',
+    'WORK-9007199254740992','WORK-9007199254740993'];
+  const first=run(works);
+  const reversed=run(works.slice().reverse());
+  assert.deepEqual(first.taskless_done_works_requiring_external_evidence,expected);
+  assert.deepEqual(reversed.taskless_done_works_requiring_external_evidence,expected);
+  assert.equal(first.authorized_to_write,false);
+  assert.equal(first.advisory_only,true);
+  assert.equal(first.automatically_accepted,0);
+});

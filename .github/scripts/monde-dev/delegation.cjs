@@ -2336,7 +2336,9 @@ function planNextIncrement({repo,head_sha,works,triage_findings=[]}) {
     (b.r1_occurrences>0?1:0)-(a.r1_occurrences>0?1:0)||
     a.path.localeCompare(b.path));
   const tasklessDoneWorks=works.filter(w=>w.status==='DONE'&&w.tasks.length===0)
-    .map(w=>w.id);
+    // Stable across GitHub paging/reordered WORK inventories: advisory signals
+    // must not change solely because the source enumeration order changed.
+    .map(w=>w.id).sort((a,b)=>numericIdOrder(a,b,'WORK-'));
   return {repo,head_sha,advisory_only:true,authorized_to_write:false,
     // DONE is a canonical status, but no task-inventory verification exists
     // for these WORKs. Host acceptance still needs external evidence.
