@@ -221,5 +221,74 @@ class WorldMiniTest(unittest.TestCase):
         self.assertEqual(fail.returncode, 2)
 
 
+    def test_knowledge_delta_source_correction_and_stable_other_source(self):
+        delta = self.model.compare_knowledge(
+            "building-001", AT, "2026-01-05T00:00:00Z", LATE)
+        self.assertEqual(delta["comparison"], "KNOWLEDGE_ONLY")
+        self.assertEqual(delta["status"], "CHANGED")
+        floors = delta["changes"]["floors"]
+        self.assertEqual([r["value"] for r in floors["newly_current"]], [7])
+        self.assertEqual([r["value"] for r in floors["no_longer_current"]], [5])
+        self.assertEqual(floors["still_current_count"], 1)
+        self.assertEqual(floors["newly_current"][0]["supersedes"], "a-city-initial")
+        self.assertEqual(floors["newly_current"][0]["source_id"], "city-registry")
+        self.assertEqual(floors["no_longer_current"][0]["evidence_id"], "e-city-reg-1")
+        self.assertEqual(len(self.model.export()["assertions"]), 3)
+
+    def test_knowledge_delta_new_reports_from_unknown(self):
+        delta = self.model.compare_knowledge(
+            "building-001", AT, "2026-01-03T09:59:59Z", "2026-01-05T00:00:00Z")
+        floors = delta["changes"]["floors"]
+        self.assertEqual(floors["before_status"], "UNKNOWN")
+        self.assertEqual(floors["after_status"], "REPORTED")
+        self.assertEqual([r["value"] for r in floors["newly_current"]], [5, 6])
+        self.assertEqual(floors["no_longer_current"], [])
+
+    def test_knowledge_delta_unchanged_cutoffs_and_missing_entity(self):
+        for entity in ("building-001", "missing-001"):
+            delta = self.model.compare_knowledge(
+                entity, AT, LATE, "2026-01-08T00:00:00Z")
+            self.assertEqual(delta["status"], "UNCHANGED")
+            self.assertEqual(delta["changes"], {})
+
+    def test_knowledge_delta_rejects_invalid_range(self):
+        for before, after in [
+            (LATE, LATE), (LATE, "2026-01-05T00:00:00Z"),
+            ("2026-01-05T00:00:00", LATE)
+        ]:
+            with self.assertRaises(ValueError):
+                self.model.compare_knowledge("building-001", AT, before, after)
+
+    def test_knowledge_delta_is_bitemporal_immutable(self):
+        exported = self.model.export()
+        delta = self.model.compare_knowledge(
+            "building-001", "2025-12-31T00:00:00Z",
+            "2026-01-05T00:00:00Z", LATE)
+        self.assertEqual(delta["status"], "UNCHANGED")
+        diff = self.model.compare_knowledge("building-001", AT,
+                                            "2026-01-05T00:00:00Z", LATE)
+        diff["changes"]["floors"]["newly_current"][0]["value"] = -999
+        self.assertEqual(self.model.export(), exported)
+        self.assertEqual(self.query()["reports"][-1]["value"], 7)
+
+    def test_real_cli_knowledge_comparison(self):
+        env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+        args = [sys.executable, "-m", "monde.world", "--fixture",
+                str(ROOT / "examples/monde-mini.json"), "--entity", "building-001",
+                "--all-attributes", "--at", AT, "--known-at", LATE,
+                "--compare-known-at", "2026-01-05T00:00:00Z"]
+        result = subprocess.run(args, capture_output=True, text=True, env=env,
+                                check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        diff = json.loads(result.stdout)
+        self.assertEqual(diff["comparison"], "KNOWLEDGE_ONLY")
+        self.assertEqual([r["value"] for r in
+                          diff["changes"]["floors"]["newly_current"]], [7])
+        invalid = subprocess.run(args + ["--attribute", "floors"],
+                                 capture_output=True, text=True, env=env,
+                                 check=False)
+        self.assertNotEqual(invalid.returncode, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

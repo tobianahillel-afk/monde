@@ -195,6 +195,43 @@ class WorldMini:
                 "attributes": attributes}
 
 
+    def compare_knowledge(self, entity: str, at: str,
+                          from_known_at: str, to_known_at: str) -> dict:
+        """Compare source reports known at K1 and K2 for the same world time.
+
+        A knowledge difference does not assert that the physical world changed.
+        """
+        _id(entity)
+        _time(at)
+        if _time(from_known_at) >= _time(to_known_at):
+            raise ValueError("knowledge comparison requires increasing cutoffs")
+        before = self.entity_snapshot(entity, at, from_known_at)
+        after = self.entity_snapshot(entity, at, to_known_at)
+        changes = {}
+        for attribute in sorted(set(before["attributes"]) | set(after["attributes"])):
+            old = before["attributes"].get(attribute, {}).get("reports", [])
+            new = after["attributes"].get(attribute, {}).get("reports", [])
+            old_ids = {r["assertion_id"] for r in old}
+            new_ids = {r["assertion_id"] for r in new}
+            appeared = [r for r in new if r["assertion_id"] not in old_ids]
+            ceased = [r for r in old if r["assertion_id"] not in new_ids]
+            if appeared or ceased:
+                changes[attribute] = {
+                    "before_status": "REPORTED" if old else "UNKNOWN",
+                    "after_status": "REPORTED" if new else "UNKNOWN",
+                    "newly_current": appeared,
+                    "no_longer_current": ceased,
+                    "still_current_count": len(old_ids & new_ids),
+                }
+        return {
+            "entity": entity, "world": "OBSERVED",
+            "comparison": "KNOWLEDGE_ONLY", "valid_at": at,
+            "from_known_at": from_known_at, "to_known_at": to_known_at,
+            "status": "CHANGED" if changes else "UNCHANGED",
+            "changes": changes,
+        }
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Query MONDE Mini evidence as of event and knowledge time")
     parser.add_argument("--fixture", required=True)
@@ -204,12 +241,19 @@ def main(argv=None) -> int:
     selection.add_argument("--all-attributes", action="store_true")
     parser.add_argument("--at", required=True)
     parser.add_argument("--known-at", required=True)
+    parser.add_argument("--compare-known-at", help="earlier knowledge cutoff; requires --all-attributes")
     args = parser.parse_args(argv)
     try:
         world = WorldMini.read(args.fixture)
-        result = (world.entity_snapshot(args.entity, args.at, args.known_at)
-                  if args.all_attributes else
-                  world.query(args.entity, args.attribute, args.at, args.known_at))
+        if args.compare_known_at is not None:
+            if not args.all_attributes:
+                parser.error("--compare-known-at requires --all-attributes")
+            result = world.compare_knowledge(args.entity, args.at,
+                                             args.compare_known_at, args.known_at)
+        else:
+            result = (world.entity_snapshot(args.entity, args.at, args.known_at)
+                      if args.all_attributes else
+                      world.query(args.entity, args.attribute, args.at, args.known_at))
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     except (OSError, ValueError, TypeError) as exc:
         print("MONDE Mini: " + str(exc), file=sys.stderr)
