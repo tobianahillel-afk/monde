@@ -365,6 +365,20 @@ class OriginalGPXTests(unittest.TestCase):
             self.assertEqual(report["status"], "REPORTED")
             self.assertEqual(report["reports"][0]["value"], 123.75)
             self.assertEqual(report["reports"][0]["source_id"], "elev-gpx")
+            mapped = world.export_geojson_bbox([-180, -90, 180, 90], AT, CAPTURED)
+            by_entity = {f["properties"]["entity"]: f for f in mapped["features"]}
+            for original in (features[0], features[2], features[3]):
+                linked = by_entity[original["id"]]
+                source_elevation = world.query(original["id"], "elevation_m",
+                                              AT, CAPTURED)["reports"][0]
+                self.assertEqual(
+                    linked["properties"]["monde_gpx_sample_elevation_m"],
+                    original["properties"]["elevation_m"])
+                self.assertEqual(linked["properties"]["source_id"], "elev-gpx")
+                self.assertEqual(linked["properties"]["evidence_id"],
+                                 source_elevation["evidence_id"])
+            self.assertNotIn("monde_gpx_sample_elevation_m",
+                             by_entity[features[1]["id"]]["properties"])
 
     def test_repeated_samples_across_track_segments_are_not_collapsed(self):
         sample = '<trkpt lat="40.70" lon="-73.99"/>'
@@ -397,6 +411,25 @@ class OriginalGPXTests(unittest.TestCase):
             self.assertIn("original source trace segments", page)
             self.assertIn("gpx_source_trace: traceFilter.value", page)
 
+    def test_source_elevation_profile_is_offline_and_source_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            elevated = TRACE_GPX.replace(
+                '<rtept lat="48.850" lon="2.350">',
+                '<rtept lat="48.850" lon="2.350"><ele>-5.5</ele>', 1)
+            elevated = elevated.replace(
+                '<rtept lat="48.860" lon="2.360">',
+                '<rtept lat="48.860" lon="2.360"><ele>0</ele>', 1)
+            elevated = elevated.replace(
+                '<rtept lat="48.865" lon="2.365">',
+                '<rtept lat="48.865" lon="2.365"><ele>3.25</ele>', 1)
+            target = Path(directory) / "elevation.html"
+            run = self.cli(*self.flags(self.source(directory, elevated)),
+                           "--at", AT, "--known-at", CAPTURED, "--output", target)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            page = target.read_text(encoding="utf-8")
+            self.assertIn("monde_gpx_sample_elevation_m", page)
+            self.assertIn("source_elevation_pairs", page)
+            self.assertIn("do not prove terrain altitude", page)
 
 if __name__ == "__main__":
     unittest.main()

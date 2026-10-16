@@ -31,6 +31,9 @@ acceptance_criteria:
   - id: AC-4
     description: "Selected source trace segments expose an exportable filtered sample and adjacent-coordinate-separation profile without claiming physical travel."
     status: NOT_STARTED
+  - id: AC-5
+    description: "Selected GPX segments export same-evidence source elevations and adjacent source-only elevation differences, never inferred altitude or movement."
+    status: NOT_STARTED
 depends_on: [WORK-0024]
 reuses:
   - "MONDE Mini bitemporal claim parser and GeoJSON Point ingestion"

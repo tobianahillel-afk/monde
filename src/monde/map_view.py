@@ -465,13 +465,33 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     });
     if(!samples.length)return null;
     var count=0,km=0,missingTimes=0,reversedTimes=0,forwardSeconds=0;
-    var sourceTimestampPairs=[];
+    var sourceTimestampPairs=[],sourceElevationPairs=[],missingElevations=0;
+    var sourceElevationSamples=samples.filter(function(f){
+      return typeof f.properties.monde_gpx_sample_elevation_m==="number" &&
+        Number.isFinite(f.properties.monde_gpx_sample_elevation_m);
+    }).map(function(f){
+      return {assertion_id:f.id,evidence_id:f.properties.evidence_id,
+        source_id:f.properties.source_id,
+        original_sample_order:f.properties.monde_gpx_trace.order,
+        source_reported_elevation_m:f.properties.monde_gpx_sample_elevation_m};
+    });
     for(var i=1;i<samples.length;i++){
       var from=samples[i-1],to=samples[i];
       if(to.properties.monde_gpx_trace.order !==
           from.properties.monde_gpx_trace.order+1)continue;
       km+=approximateDistanceKm(from.geometry.coordinates,to.geometry.coordinates);
       count++;
+      var fromElev=from.properties.monde_gpx_sample_elevation_m;
+      var toElev=to.properties.monde_gpx_sample_elevation_m;
+      if(typeof fromElev!=="number" || !Number.isFinite(fromElev) ||
+          typeof toElev!=="number" || !Number.isFinite(toElev)){
+        missingElevations++;
+      }else{
+        sourceElevationPairs.push({from_assertion_id:from.id,
+          to_assertion_id:to.id,from_source_reported_elevation_m:fromElev,
+          to_source_reported_elevation_m:toElev,
+          source_reported_elevation_delta_m:toElev-fromElev});
+      }
       var fromText=from.properties.monde_gpx_sample_time;
       var toText=to.properties.monde_gpx_sample_time;
       var fromTime=typeof fromText==="string"?Date.parse(fromText):NaN;
@@ -501,6 +521,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       reversed_source_timestamp_pair_count:reversedTimes,
       nonnegative_source_timestamp_delta_seconds:forwardSeconds,
       source_timestamp_pairs:sourceTimestampPairs,
+      source_elevation_sample_count:sourceElevationSamples.length,
+      source_elevation_pair_count:sourceElevationPairs.length,
+      missing_source_elevation_pair_count:missingElevations,
+      source_elevation_samples:sourceElevationSamples,
+      source_elevation_pairs:sourceElevationPairs,
+      source_elevation_interpretation:"Original GPX source-reported elevations only. Adjacent signed differences do not prove terrain altitude, ascent, descent, slope, travel or complete sampling; filtered gaps are never bridged.",
       source_time_interpretation:"Original GPX source clock only. Pairwise differences do not prove elapsed physical travel, speed or complete coverage; filtered gaps are never bridged.",
       distance_method:"SUM_OF_SHORTEST_GREAT_CIRCLE_SEPARATIONS_BETWEEN_VISIBLE_CONSECUTIVE_SOURCE_SAMPLES",
       completeness:"Filtered derivative. Hidden or non-adjacent samples are never bridged.",
@@ -1136,6 +1162,11 @@ def render_map(document: dict) -> str:
         if "monde_gpx_sample_time" in props and (
                 trace is None or not isinstance(props["monde_gpx_sample_time"], str)):
             raise ValueError("invalid GPX source clock evidence")
+        if "monde_gpx_sample_elevation_m" in props and (
+                trace is None or
+                type(props["monde_gpx_sample_elevation_m"]) not in (int, float) or
+                not math.isfinite(props["monde_gpx_sample_elevation_m"])):
+            raise ValueError("invalid GPX source elevation evidence")
         if trace is not None:
             if (not isinstance(trace, dict) or set(trace) !=
                     {"format", "kind", "name", "trace_id", "segment", "order"}
