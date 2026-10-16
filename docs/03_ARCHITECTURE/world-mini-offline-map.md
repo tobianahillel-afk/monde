@@ -491,3 +491,34 @@ Placemarks retain their current IDs and semantics. Malformed, nested, remote,
 real-world area, motion, topology, object identity or asserted containment.
 The map stays schematic, offline and bitemporal; every location remains a
 source report with its evidence and original time metadata.
+
+## Import a local KMZ source archive (WORK-0030)
+
+A local **KMZ** can now be used directly with the existing MONDE Mini map:
+
+```sh
+PYTHONPATH=src python3 -m monde.map_view \
+  --kmz original-survey.kmz \
+  --source-id survey-kmz \
+  --source-locator dataset://original-survey.kmz \
+  --captured-at 2026-01-10T10:00:00Z \
+  --valid-from 2026-01-01T00:00:00Z \
+  --at 2026-01-02T00:00:00Z \
+  --known-at 2026-01-10T10:00:00Z \
+  --output evidence-map.html
+```
+
+The KMZ must contain one **root `doc.kml`**, whose supported Points,
+LineStrings, Polygons and MultiGeometry are processed by the **same** KML
+parser as ordinary `--kml`. Original per-source IDs, vertex ordering, ring
+boundaries and bitemporal provenance are retained. An additional dataset
+in a `--source-manifest` may use `"kmz": "original-survey.kmz"`
+with the same explicit provenance fields as KML.
+
+There is **no extraction** or network access. Accompanying local assets are
+never opened; a second KML document is rejected rather than silently ignored.
+Archives are bounded (25 MB compressed, 40 MB declared inflated content,
+64 members, 10 MB maximum `doc.kml`), and malformed archives, encrypted
+members, unsafe entry names, remote KML links and ambiguous documents fail
+before any output is created. This imports **source claims**, not verified
+geographic reality or a reconstructed globe.

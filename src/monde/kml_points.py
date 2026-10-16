@@ -6,9 +6,13 @@ import os
 import math
 import hashlib
 import json
+import zipfile
 import xml.etree.ElementTree as ET
 
 MAX_KML_BYTES = 10_000_000
+MAX_KMZ_BYTES = 25_000_000
+MAX_KMZ_MEMBERS = 64
+MAX_KMZ_TOTAL_BYTES = 40_000_000
 MAX_POINTS = 50_000
 KML_NAMESPACE = "http://www.opengis.net/kml/2.2"
 
@@ -63,18 +67,67 @@ def _polygon_points(geometry, tag):
         rings.append(points)
     return rings
 
-def to_geojson(path):
+def _read_kmz(path):
+    """Read the single original root doc.kml from a bounded local KMZ.
+
+    Nothing is extracted, executed, rendered remotely, or downloaded.
+    Any other KML document would lose original evidence, so it is rejected.
+    """
+    if os.path.getsize(path) > MAX_KMZ_BYTES:
+        raise ValueError("KMZ exceeds 25 MB archive limit")
+    try:
+        with zipfile.ZipFile(path, "r") as archive:
+            members = archive.infolist()
+            if not 1 <= len(members) <= MAX_KMZ_MEMBERS:
+                raise ValueError("KMZ archive member limit exceeded")
+            names, total = set(), 0
+            selected = None
+            for member in members:
+                name = member.filename
+                parts = name.rstrip("/").split("/")
+                mode = (member.external_attr >> 16) & 0o170000
+                if (not name or name.startswith("/") or "\\" in name
+                        or any(part in ("", ".", "..") for part in parts)
+                        or any(ord(char) < 32 for char in name)
+                        or name in names or member.flag_bits & 1
+                        or mode not in (0, 0o100000, 0o040000)):
+                    raise ValueError("KMZ contains an unsafe or ambiguous entry")
+                names.add(name)
+                total += member.file_size
+                if total > MAX_KMZ_TOTAL_BYTES:
+                    raise ValueError("KMZ inflated data limit exceeded")
+                if name.lower().endswith(".kml"):
+                    if name != "doc.kml" or selected is not None:
+                        raise ValueError("KMZ requires exactly one root doc.kml")
+                    selected = member
+            if selected is None:
+                raise ValueError("KMZ is missing root doc.kml")
+            if selected.file_size > MAX_KML_BYTES:
+                raise ValueError("KMZ document exceeds KML size limit")
+            with archive.open(selected) as stream:
+                raw = stream.read(MAX_KML_BYTES + 1)
+            if len(raw) > MAX_KML_BYTES:
+                raise ValueError("KMZ document exceeds KML size limit")
+            return raw
+    except (zipfile.BadZipFile, RuntimeError, EOFError) as exc:
+        raise ValueError("invalid or unreadable local KMZ archive") from exc
+
+
+def to_geojson(path, *, kmz=False):
     """Convert bounded original KML geometry to source-ordered GeoJSON Point claims.
 
     A Placemark must carry a stable XML id. No ID, timestamp, or true location
     is inferred from name, row order, file name, or coordinates.
     """
-    if os.path.getsize(path) > MAX_KML_BYTES:
-        raise ValueError("KML exceeds 10 MB limit")
-    with open(path, "rb") as source:
-        raw = source.read(MAX_KML_BYTES + 1)
-    if len(raw) > MAX_KML_BYTES:
-        raise ValueError("KML exceeds 10 MB limit")
+    if kmz:
+        raw = _read_kmz(path)
+    else:
+        if os.path.getsize(path) > MAX_KML_BYTES:
+            raise ValueError("KML exceeds 10 MB limit")
+        with open(path, "rb") as source:
+            raw = source.read(MAX_KML_BYTES + 1)
+        if len(raw) > MAX_KML_BYTES:
+            raise ValueError("KML exceeds 10 MB limit")
     if b"<!DOCTYPE" in raw.upper() or b"<!ENTITY" in raw.upper():
         raise ValueError("DTD and XML entities are forbidden in KML")
     try:
