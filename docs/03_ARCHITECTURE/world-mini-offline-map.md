@@ -342,8 +342,9 @@ Original local GPX 1.1 waypoints are accepted as source-reported 2D WGS84 Points
 Each waypoint name must be unique, identifier-safe and verified stable by the
 source owner: GPX does not guarantee identity stability. Neither position nor
 timestamp is promoted to physical truth. Waypoint description, comment, symbol,
-type and source time are preserved as properties; source capture/validity and
-knowledge time always come from the explicit CLI or manifest flags.
+type, source time and finite source-reported elevation (`ele`, metres) are
+preserved as properties; elevation is not a verified 3D position. Source
+capture/validity and knowledge time come from explicit CLI or manifest flags.
 
 Example (with an original GPX containing waypoint names):
 
@@ -356,7 +357,7 @@ Example (with an original GPX containing waypoint names):
 The existing source-manifest format accepts a gpx input field alongside CSV,
 GeoJSON and KML, preserving original per-source evidence across mixed datasets.
 Input files and existing output files are never overwritten. Routes, tracks,
-elevation, waypoint extensions and unsupported fields are explicitly rejected.
+non-finite elevation, waypoint extensions and unsupported fields are explicitly rejected.
 File-level GPX metadata is not mapped into claims; provide source identity and
 original locator separately. No network calls or external map services are used.
 
@@ -371,7 +372,10 @@ records with evidence, capture, valid-world and known-at timestamps. Source
 sample order and track segment numbers are retained as `gpx_trace` claims.
 A track/route sample ID is deterministic from source-reported coordinates,
 trace label and optional time/name: it is **not** a persistent physical entity
-identity. Duplicate indistinguishable samples are rejected. The offline map
+identity. Repeated identical GPS readings (including stationary samples) are
+retained with stable occurrence-suffixed IDs; original segment and sample
+order are never collapsed. Optional finite GPX `ele` is retained as a separate
+source-reported altitude property, not verified vertical position. The offline map
 draws cyan dashed edges only between **consecutive currently visible** points
 of the same source, trace and segment. It never connects missing samples,
 separate segments, or across the antimeridian, and does not establish verified
@@ -390,6 +394,6 @@ PYTHONPATH=src python3 -m monde.map_view \\
   --output trace-evidence.html
 ```
 
-Unsupported extensions, altitude, DTD/entities, remote geometry and ambiguous
-source identities fail closed. The source label and sample grouping come from
+Unsupported extensions, invalid/non-finite altitude, DTD/entities, remote
+geometry and ambiguous source identities fail closed. The source label and sample grouping come from
 the original GPX, not from inferred geographic truth.

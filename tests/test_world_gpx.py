@@ -110,7 +110,10 @@ class OriginalGPXTests(unittest.TestCase):
                 GPX.replace("<name>site-alpha</name>", "<name>has spaces</name>"),
                 GPX.replace('lat="48.8566"', 'lat="inf"'),
                 GPX.replace('lon="2.3522"', 'lon="181"'),
-                GPX.replace('<desc>Claim A</desc>', '<ele>12</ele>'),
+                GPX.replace('<desc>Claim A</desc>', '<ele>NaN</ele>'),
+                GPX.replace('<desc>Claim A</desc>', '<ele>1e309</ele>'),
+                GPX.replace('<desc>Claim A</desc>', '<ele>oops</ele>'),
+                GPX.replace('<desc>Claim A</desc>', '<ele></ele>'),
                 GPX.replace('</gpx>', '<trk/><rte/></gpx>'),
                 GPX.replace('<time>2026-01-09T00:00:00Z</time>',
                             '<time>invalid</time>'),
@@ -254,6 +257,84 @@ class OriginalGPXTests(unittest.TestCase):
                 with self.subTest(text=text[:65]):
                     with self.assertRaises(ValueError):
                         to_geojson(self.source(directory, text))
+
+
+    def test_identical_stationary_readings_preserve_source_sample_order(self):
+        with tempfile.TemporaryDirectory() as directory:
+            original = TRACE_GPX.replace(
+                '<trkpt lat="40.71" lon="-73.98">',
+                '<trkpt lat="40.70" lon="-73.99"><time>'
+                '2026-01-01T09:00:00Z</time></trkpt>'
+                '<trkpt lat="40.71" lon="-73.98">', 1)
+            source = self.source(directory, original)
+            doc = to_geojson(source)
+            self.assertEqual(len(doc["features"]), 8)
+            track = [f for f in doc["features"]
+                     if f["properties"].get("gpx_trace", {}).get("name") ==
+                     "survey-track"]
+            self.assertEqual(len(track), 5)
+            self.assertNotEqual(track[0]["id"], track[1]["id"])
+            self.assertEqual(track[1]["id"], track[0]["id"] + "-repeat-2")
+            self.assertEqual(track[0]["geometry"], track[1]["geometry"])
+            self.assertEqual([p["properties"]["gpx_trace"]["order"]
+                              for p in track], [0, 1, 2, 0, 1])
+            self.assertEqual([p["id"] for p in doc["features"]],
+                             [p["id"] for p in to_geojson(source)["features"]])
+            world = WorldMini.from_document(to_document(
+                doc, source_id="stationary-gpx", locator="dataset://stationary",
+                captured_at=CAPTURED, valid_from=VALID))
+            self.assertEqual(len(world.export_geojson_bbox(
+                [-180, -90, 180, 90], AT, CAPTURED)["features"]), 8)
+            html = Path(directory) / "map.html"
+            run = self.cli(*self.flags(source), "--at", AT,
+                           "--known-at", CAPTURED, "--output", html)
+            self.assertEqual(run.returncode, 0, run.stderr)
+            self.assertIn('"total_source_features":8',
+                          html.read_text(encoding="utf-8"))
+
+    def test_gpx_elevation_is_evidence_only_not_derived_altitude(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source_text = TRACE_GPX.replace(
+                '<trkpt lat="40.70" lon="-73.99">',
+                '<trkpt lat="40.70" lon="-73.99"><ele>123.75</ele>', 1)
+            source_text = source_text.replace(
+                '<rtept lat="48.850" lon="2.350">',
+                '<rtept lat="48.850" lon="2.350"><ele>-5.5</ele>', 1)
+            source_text = source_text.replace(
+                '<rtept lat="48.865" lon="2.365">',
+                '<rtept lat="48.865" lon="2.365"><ele>0</ele>', 1)
+            source = self.source(directory, source_text)
+            features = to_geojson(source)["features"]
+            self.assertEqual(features[0]["properties"]["elevation_m"], -5.5)
+            self.assertEqual(features[2]["properties"]["elevation_m"], 0.0)
+            self.assertEqual(features[3]["properties"]["elevation_m"], 123.75)
+            self.assertEqual(features[3]["geometry"]["coordinates"],
+                             [-73.99, 40.70])
+            world = WorldMini.from_document(to_document(
+                {"type": "FeatureCollection", "features": features},
+                source_id="elev-gpx", locator="dataset://elev",
+                captured_at=CAPTURED, valid_from=VALID))
+            report = world.query(features[3]["id"], "elevation_m", AT, CAPTURED)
+            self.assertEqual(report["status"], "REPORTED")
+            self.assertEqual(report["reports"][0]["value"], 123.75)
+            self.assertEqual(report["reports"][0]["source_id"], "elev-gpx")
+
+    def test_repeated_samples_across_track_segments_are_not_collapsed(self):
+        sample = '<trkpt lat="40.70" lon="-73.99"/>'
+        original = ('<?xml version="1.0"?><gpx '
+                    'xmlns="http://www.topografix.com/GPX/1/1" version="1.1" '
+                    'creator="survey"><trk><name>same-site</name><trkseg>'
+                    + sample + sample + '</trkseg><trkseg>' + sample +
+                    '</trkseg></trk></gpx>')
+        with tempfile.TemporaryDirectory() as directory:
+            doc = to_geojson(self.source(directory, original))
+            self.assertEqual(len(doc["features"]), 3)
+            self.assertEqual(len({f["id"] for f in doc["features"]}), 3)
+            self.assertEqual([f["properties"]["gpx_trace"]["segment"]
+                              for f in doc["features"]], [0, 0, 1])
+            self.assertEqual([f["id"].split("-repeat-")[0]
+                              for f in doc["features"]],
+                             [doc["features"][0]["id"]] * 3)
 
 
 if __name__ == "__main__":

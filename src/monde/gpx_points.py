@@ -2,7 +2,7 @@
 
 GPX traces are preserved as a sequence of source-reported sample positions,
 not as verified movement, a road, a physically continuous path, or a durable
-identity for a real object. Each sample has a deterministic content-based ID.
+identity for a real object. Source sample IDs retain repeated readings.
 """
 import hashlib
 import json
@@ -49,7 +49,8 @@ def _point(node, kind):
             -90 <= lat <= 90 and -180 <= lon <= 180):
         raise ValueError("GPX coordinate is outside WGS84")
     fields = {"name": "name", "desc": "description", "cmt": "comment",
-              "time": "waypoint_time", "sym": "symbol", "type": "waypoint_type"}
+              "time": "waypoint_time", "ele": "elevation_m",
+              "sym": "symbol", "type": "waypoint_type"}
     attrs = {}
     seen = set()
     for child in node:
@@ -62,14 +63,22 @@ def _point(node, kind):
             raise ValueError("GPX property too long")
         if field == "time" and value.strip():
             _time(value.strip())  # Timestamp from source, not physical validity.
-        if value:
+        if field == "ele":
+            try:
+                elevation = float(value.strip())
+            except ValueError as exc:
+                raise ValueError("invalid GPX elevation") from exc
+            if not math.isfinite(elevation):
+                raise ValueError("non-finite GPX elevation")
+            attrs["elevation_m"] = elevation  # Source-reported, not verified height.
+        elif value:
             attrs[fields[field]] = value
     return [lon, lat], attrs
 
 
 def _sample_id(kind, trace, coordinates, attrs):
-    # This ID represents one source-file sample, NEVER the identity of a real
-    # entity. Repeated identical samples are rejected, not silently merged.
+    # This ID represents source sample content, NEVER a real-world entity.
+    # A repeated identical sample receives an occurrence suffix below.
     stable = json.dumps([kind, trace, coordinates,
                          attrs.get("waypoint_time"), attrs.get("name")],
                         ensure_ascii=False, separators=(",", ":"))
@@ -100,7 +109,7 @@ def to_geojson(path):
     if any(child.tag not in {_tag("metadata"), _tag("wpt"),
                             _tag("rte"), _tag("trk")} for child in root):
         raise ValueError("unsupported GPX root element")
-    features, seen, traces = [], set(), set()
+    features, seen, traces, occurrences = [], set(), set(), {}
 
     def append(ident, coords, properties):
         if len(features) >= MAX_POINTS:
@@ -153,7 +162,13 @@ def to_geojson(path):
             for segment_index, samples in enumerate(segments):
                 for sample_index, sample in enumerate(samples):
                     coords, attrs = _point(sample, "trace point")
-                    ident = _sample_id(kind, name, coords, attrs)
+                    base = _sample_id(kind, name, coords, attrs)
+                    # Stationary GPS samples may be bit-for-bit identical.
+                    # Preserve them separately without shifting IDs of distinct
+                    # samples or conflating their original segment/order.
+                    occurrences[base] = occurrences.get(base, 0) + 1
+                    ident = (base if occurrences[base] == 1 else
+                             f"{base}-repeat-{occurrences[base]}")
                     attrs["gpx_trace"] = {
                         "format": "GPX_1_1_TRACE_POINT", "kind": kind,
                         "name": name, "trace_id": trace_id,
