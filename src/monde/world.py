@@ -490,6 +490,49 @@ class WorldMini:
                 "status": "MATCHES" if matches else "NO_MATCHES",
                 "matches": matches[:limit]}
 
+    def export_geojson_nearest(self, center, limit: int,
+                               at: str, known_at: str) -> dict:
+        """Map nearest entities while retaining all current source Points.
+
+        Rankings follow closest source report, never consensus geography.
+        Every current competing source position remains an independent feature.
+        """
+        from .geojson import _point
+
+        result = self.search_geo_nearest(center, limit, at, known_at)
+        features = []
+        for rank, match in enumerate(result["matches"], 1):
+            for report in match["matched_reports"]:
+                props = {
+                    "entity": match["entity"],
+                    "monde_world": "OBSERVED",
+                    "monde_status": "SOURCE_REPORTED_ONLY",
+                    "valid_at": at,
+                    "knowledge_cutoff": known_at,
+                    "monde_nearest_entity_rank": rank,
+                    "monde_nearest_reported_km": match["nearest_reported_km"],
+                    "monde_distance_km": report["distance_km"],
+                    "monde_distance_basis": "SPHERICAL_HAVERSINE_APPROX_NOT_POSITION_ACCURACY",
+                }
+                props.update({key: _clone(value) for key, value in report.items()
+                              if key not in ("value", "distance_km")})
+                features.append({"type": "Feature",
+                                 "id": report["assertion_id"],
+                                 "geometry": _point(report["value"]),
+                                 "properties": props})
+        features.sort(key=lambda f: (
+            f["properties"]["monde_nearest_entity_rank"],
+            f["properties"]["monde_distance_km"], f["id"]))
+        return {"type": "FeatureCollection", "features": features,
+                "monde_nearest_query": {
+                    "basis": result["query"], "center": result["center"],
+                    "limit": result["limit"],
+                    "valid_at": result["valid_at"],
+                    "knowledge_cutoff": result["knowledge_cutoff"],
+                    "distance_method": result["distance_method"],
+                    "total_matching_entities": result["total_matches"],
+                    "has_more": result["has_more"], "status": result["status"]}}
+
     def source_disagreements(self, at: str, known_at: str,
                              attribute: str | None = None) -> dict:
         """Different current values reported by distinct source IDs (not truth)."""
@@ -847,6 +890,8 @@ def main(argv=None) -> int:
                             help="GeoJSON Point changes between two knowledge cutoffs")
     selection.add_argument("--export-geojson-disagreements", action="store_true",
                             help="GeoJSON map of conflicting current source-reported Points")
+    selection.add_argument("--export-geojson-nearest", metavar="LON,LAT",
+                           help="GeoJSON map of nearest source-reported Point entities")
     selection.add_argument("--source-disagreements", action="store_true")
     selection.add_argument("--source-history", metavar="SOURCE_ID")
     selection.add_argument("--knowledge-updates", action="store_true")
@@ -883,8 +928,9 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     if (args.search_geo_radius is None) != (args.radius_km is None):
         parser.error("--search-geo-radius and --radius-km must be supplied together")
-    if (args.search_geo_nearest is None) != (args.nearest_limit is None):
-        parser.error("--search-geo-nearest and --nearest-limit must be supplied together")
+    if ((args.search_geo_nearest is None and args.export_geojson_nearest is None)
+            != (args.nearest_limit is None)):
+        parser.error("nearest search or GeoJSON nearest export requires --nearest-limit")
     if args.export_bbox is not None and not (args.export_geojson or args.export_geojson_changes
                                              or args.export_geojson_disagreements):
         parser.error("--export-bbox requires a GeoJSON export mode")
@@ -990,6 +1036,23 @@ def main(argv=None) -> int:
                     args.equals_json is not None):
                 parser.error("disagreements require --at without entity/timeline/compare")
             result = world.source_disagreements(args.at, args.known_at)
+        elif args.export_geojson_nearest is not None:
+            if (args.entity is not None or args.at is None or
+                    args.source_attribute is not None or args.equals_json is not None or
+                    args.timeline_from is not None or args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None or
+                    args.compare_known_at is not None or args.compare_at is not None or
+                    args.updates_from is not None):
+                parser.error("GeoJSON nearest export requires --at and --known-at")
+            parts = args.export_geojson_nearest.split(",")
+            if len(parts) != 2:
+                raise ValueError("center must be LON,LAT")
+            try:
+                center = [float(part.strip()) for part in parts]
+            except ValueError as exc:
+                raise ValueError("center must contain numeric coordinates") from exc
+            result = world.export_geojson_nearest(center, args.nearest_limit,
+                                                  args.at, args.known_at)
         elif args.export_geojson_disagreements:
             if (args.entity is not None or args.at is None or
                     args.source_attribute is not None or args.equals_json is not None or
