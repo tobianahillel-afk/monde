@@ -579,14 +579,27 @@ test('fresh L2 batching: rename pair never splits across 24-path boundary',async
   const {api}=freshClient({files});
   const result=await prepareFreshL2BatchesFromCurrentGitHub({github:api,...FRESH_MISSION});
   assert.equal(result.batch_count,2);
-  assert.deepEqual(result.batches.map(x=>x.assignment.paths.length),[23,3]);
-  assert.deepEqual(result.batches[1].changed_file_statuses.map(x=>x.status),['renamed','removed']);
-  assert.equal(result.batches[1].immutable_file_refs[0].base_url,
-    'https://github.com/'+FRESH_MISSION.repo+'/blob/'+'c'.repeat(40)+'/src/old.cjs');
-  assert.equal(result.batches[1].immutable_file_refs[0].head_url,
-    'https://github.com/'+FRESH_MISSION.repo+'/blob/'+HEAD+'/src/new.cjs');
-  assert.equal(result.batches[1].immutable_file_refs[1].head_url,null);
   assert.equal(result.reviewed_path_units,26);
+  assert.deepEqual(result.batches.map(x=>x.assignment.paths.length),[24,2]);
+  const changed=result.batches.flatMap(batch=>batch.changed_file_statuses);
+  const refs=result.batches.flatMap(batch=>batch.immutable_file_refs);
+  const renamed=changed.find(x=>x.status==='renamed');
+  const removed=changed.find(x=>x.status==='removed');
+  assert.equal(renamed.path,'src/new.cjs');
+  assert.equal(renamed.previous_path,'src/old.cjs');
+  assert.equal(removed.path,'src/deleted.cjs');
+  const ref=refs.find(x=>x.status==='renamed');
+  assert.equal(ref.base_url,
+    'https://github.com/'+FRESH_MISSION.repo+'/blob/'+'c'.repeat(40)+'/src/old.cjs');
+  assert.equal(ref.head_url,
+    'https://github.com/'+FRESH_MISSION.repo+'/blob/'+HEAD+'/src/new.cjs');
+  assert.equal(refs.find(x=>x.status==='removed').head_url,null);
+  const locations=result.batches.filter(batch=>
+    batch.assignment.paths.includes('src/new.cjs') ||
+    batch.assignment.paths.includes('src/old.cjs'));
+  assert.equal(locations.length,1);
+  assert.equal(locations[0].assignment.paths.includes('src/new.cjs'),true);
+  assert.equal(locations[0].assignment.paths.includes('src/old.cjs'),true);
 });
 test('fresh L2 batching: mid-read drift, duplicates and incomplete pagination fail closed',async()=>{
   for(const options of [
@@ -1076,4 +1089,29 @@ test('fresh L2 invalid expected base SHA is rejected before GitHub reads',async(
       assert.equal(fake.calls.files.length,0);
     }
   }
+});
+
+test('fresh L2 batches are stable for equivalent GitHub file-pagination order',async()=>{
+  const files=Array.from({length:28},(_,i)=>({
+    filename:'src/module-'+String(i).padStart(2,'0')+'.cjs',status:'modified'
+  }));
+  files[13]={filename:'src/moved.cjs',previous_filename:'src/original.cjs',status:'renamed'};
+  const exact={...FRESH_MISSION,expected_head_sha:HEAD,expected_base_sha:'c'.repeat(40)};
+  const planA=await prepareFreshL2BatchesFromCurrentGitHub({
+    github:freshClient({files}).api,...exact});
+  const planB=await prepareFreshL2BatchesFromCurrentGitHub({
+    github:freshClient({files:files.slice().reverse()}).api,...exact});
+  assert.equal(planA.batch_count,2);
+  assert.deepEqual(planA.batches.map(b=>b.assignment.paths),
+    planB.batches.map(b=>b.assignment.paths));
+  assert.deepEqual(planA.batches.map(b=>b.immutable_file_refs),
+    planB.batches.map(b=>b.immutable_file_refs));
+  assert.deepEqual(planA.batches.map(b=>b.prompt),
+    planB.batches.map(b=>b.prompt));
+  const renameBatches=planA.batches.filter(b=>
+    b.assignment.paths.includes('src/moved.cjs') ||
+    b.assignment.paths.includes('src/original.cjs'));
+  assert.equal(renameBatches.length,1);
+  assert.equal(renameBatches[0].assignment.paths.includes('src/moved.cjs'),true);
+  assert.equal(renameBatches[0].assignment.paths.includes('src/original.cjs'),true);
 });

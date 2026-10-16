@@ -475,7 +475,16 @@ async function prepareFreshL2BatchesFromCurrentGitHub(input) {
   verifyImmutableFileManifest(rows,mergeProof.files);
   const unique=new Set(),groups=[];
   let current=[],count=0;
-  for(const row of rows){
+  // GitHub pagination does not define reviewer identity. Normalize each
+  // immutable manifest to stable filename order, keeping renamed pairs atomic.
+  // Otherwise an equivalent listFiles ordering can reshuffle -B01/-B02 at
+  // the same exact HEAD and invalidate assignment-to-path provenance.
+  const orderedRows=rows.slice().sort((left,right)=>{
+    const a=typeof left?.filename==='string'?left.filename:'';
+    const b=typeof right?.filename==='string'?right.filename:'';
+    return a<b?-1:a>b?1:0;
+  });
+  for(const row of orderedRows){
     if(!row || !['added','modified','removed','renamed'].includes(row.status) ||
        typeof row.filename!=='string'||row.filename.endsWith('/')) incomplete();
     const previous=row.status==='renamed'?row.previous_filename:null;
