@@ -1,0 +1,68 @@
+id: WORK-0024
+title: "Original GPX waypoint evidence into offline MONDE Mini maps"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-1
+sublot: SUBLOT-1.2
+owner: "MONDE Mini product development"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Ingest real original GPX 1.1 waypoints into existing offline evidence maps.
+scope:
+  in: ["Local GPX Waypoints", "Mixed manifest", "No-intermediate-state CLI", "Browser smoke"]
+  out: ["Routes/tracks", "Elevation", "Inferred identity/time", "Network fetch"]
+acceptance_criteria:
+  - {id: AC-1, description: "Original waypoint IDs/claims retain provenance", status: IN_PROGRESS}
+  - {id: AC-2, description: "Direct and mixed inputs map without saved state", status: IN_PROGRESS}
+  - {id: AC-3, description: "Invalid input aborts without overwrites", status: IN_PROGRESS}
+  - {id: AC-4, description: "Real GitHub Actions and Chromium verify CLI output", status: IN_PROGRESS}
+requirements: []
+assumptions: ["Waypoint name is caller-verified stable; GPX cannot guarantee stability"]
+risks: ["Untrusted XML", "False identity", "Misinterpreted physical position"]
+assurance: {level: A3, rationale: "Untrusted geographic sources and offline HTML"}
+read_before: [AGENTS.md, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+depends_on: [WORK-0001, WORK-0023]
+blocks: []
+reuses: ["monde.geojson.to_document", "monde.csv_points.documents_from_manifest", "monde.map_view"]
+affected_capabilities: []
+affected_engines: ["MONDE Mini"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["Explicit source and bitemporal provenance"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "GPX waypoint parser", depends_on: [], expected_files: [src/monde/gpx_points.py], status: IN_PROGRESS}
+    - {id: T2, description: "CLI plus mixed manifest integration", depends_on: [T1], expected_files: [src/monde/map_view.py, src/monde/csv_points.py], status: IN_PROGRESS}
+    - {id: T3, description: "Python and Chromium validation", depends_on: [T2], expected_files: [tests/test_world_gpx.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "End-to-end GPX evidence mapping", tasks: [T1, T2, T3], exit_condition: "CI success and proportional L2", status: IN_PROGRESS}
+review_plan:
+  artifact_class: DATA_SOURCE_CONNECTOR
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY, OPERATIONS]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: [tests/test_world_gpx.py]
+  integration: ["Original GPX -> claims -> offline map"]
+  contract: ["Explicit provenance"]
+  e2e: ["CLI and Chromium"]
+  regression: ["world-mini CI"]
+  security: ["No DTD or XXE", "No clobber", "No silent geometry omission"]
+  performance: []
+  real_system: ["GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Tracks/routes/elevation unsupported", "Stable name required"]
+risk: {security: MEDIUM, data: LOW, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Revert stacked PR; original sources and saved states remain unchanged."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_done_checked: false, review_complete: false, docs_updated: false, registries_updated: false, project_state_updated: false}

@@ -68,19 +68,19 @@ def documents_from_manifest(path, *, output_path):
     if not isinstance(datasets, list) or not 1 <= len(datasets) <= MAX_DATASETS:
         raise ValueError("CSV manifest requires 1 to 16 datasets")
     required = {"source_id", "locator", "captured_at", "valid_from"}
-    optional = {"csv", "geojson", "kml", "valid_to", "source_event_at",
+    optional = {"csv", "geojson", "kml", "gpx", "valid_to", "source_event_at",
                 "id_column", "lon_column", "lat_column"}
     documents, features = [], 0
     for entry in datasets:
         if (not isinstance(entry, dict) or not required <= set(entry)
                 or set(entry) - required - optional):
             raise ValueError("CSV dataset has missing or unexpected fields")
-        formats = [name for name in ("csv", "geojson", "kml") if name in entry]
+        formats = [name for name in ("csv", "geojson", "kml", "gpx") if name in entry]
         if len(formats) != 1:
-            raise ValueError("each dataset requires exactly one csv, geojson or kml input")
+            raise ValueError("each dataset requires exactly one csv, geojson, kml or gpx input")
         kind = formats[0]
         if kind != "csv" and {"id_column", "lon_column", "lat_column"} & entry.keys():
-            raise ValueError("CSV column options are invalid for GeoJSON/KML")
+            raise ValueError("CSV column options are invalid for GeoJSON/KML/GPX")
         source_path = entry[kind]
         if (not isinstance(source_path, str) or not source_path
                 or source_path != source_path.strip()):
@@ -96,6 +96,9 @@ def documents_from_manifest(path, *, output_path):
         elif kind == "kml":
             from .kml_points import to_geojson as kml_to_geojson
             geojson = kml_to_geojson(source_file)
+        elif kind == "gpx":
+            from .gpx_points import to_geojson as gpx_to_geojson
+            geojson = gpx_to_geojson(source_file)
         else:
             geojson = WorldMini.load_document(source_file)
         features += len(geojson["features"])

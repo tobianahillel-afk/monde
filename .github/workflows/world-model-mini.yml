@@ -45,6 +45,32 @@ jobs:
           grep -q 'original-kml' /tmp/monde-kml-dom.html
           grep -q 'site-alpha' /tmp/monde-kml-dom.html
           grep -q '<circle' /tmp/monde-kml-dom.html
+      - name: Actual original GPX waypoint to offline map in Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          cat > /tmp/monde-original.gpx <<'GPX'
+          <?xml version="1.0"?>
+          <gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="survey">
+          <wpt lat="48.8566" lon="2.3522"><name>site-original</name></wpt>
+          </gpx>
+          GPX
+          python3 -m monde.map_view --gpx /tmp/monde-original.gpx \
+            --source-id original-gpx --source-locator dataset://gpx-source \
+            --captured-at 2026-01-10T10:00:00Z \
+            --valid-from 2026-01-01T00:00:00Z \
+            --at 2026-01-02T00:00:00Z \
+            --known-at 2026-01-10T10:00:00Z \
+            --output /tmp/monde-gpx-evidence.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --timeout=15000 --dump-dom file:///tmp/monde-gpx-evidence.html \
+            >/tmp/monde-gpx-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-gpx-dom.html
+          grep -q 'original-gpx' /tmp/monde-gpx-dom.html
+          grep -q 'site-original' /tmp/monde-gpx-dom.html
+          grep -q '<circle' /tmp/monde-gpx-dom.html
       - name: Generate standalone HTML map from actual source Point fixture
         env:
           PYTHONPATH: src
