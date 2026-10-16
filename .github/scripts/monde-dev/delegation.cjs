@@ -1701,6 +1701,48 @@ function readSimpleWorkList(value,regex) {
     bad('UNSUPPORTED_WORK_LIST');
   return elements;
 }
+// Strict narrow YAML flow-map lexer. Commas inside quoted descriptions or
+// bracketed arrays are not separators. Duplicate keys always fail closed;
+// never let an incomplete regex silently choose one of two YAML values.
+function parseInlineWorkTask(row) {
+  if(typeof row!=='string'||!row.startsWith('    - {')||!row.endsWith('}'))
+    bad('UNSUPPORTED_TASK_BLOCK');
+  const inner=row.slice(7,-1);
+  const fields=[],values=Object.create(null);
+  let from=0,depth=0,quote=null,escaped=false;
+  for(let i=0;i<inner.length;i++){
+    const char=inner[i];
+    if(quote!==null){
+      if(quote==='"'&&escaped){escaped=false;continue;}
+      if(quote==='"'&&char==='\\'){escaped=true;continue;}
+      if(char===quote){
+        if(quote==="'"&&inner[i+1]==="'"){i++;continue;}
+        quote=null;
+      }
+      continue;
+    }
+    if(char==='"'||char==="'"){quote=char;continue;}
+    if(char==='['){depth++;continue;}
+    if(char===']'){
+      depth--;
+      if(depth<0)bad('UNSUPPORTED_TASK_BLOCK');
+      continue;
+    }
+    if(char===','&&depth===0){
+      fields.push(inner.slice(from,i));
+      from=i+1;
+    }
+  }
+  if(quote!==null||escaped||depth!==0)bad('UNSUPPORTED_TASK_BLOCK');
+  fields.push(inner.slice(from));
+  for(const field of fields){
+    const match=/^\s*([a-z_]+):\s+(.+?)\s*$/.exec(field);
+    if(!match||Object.hasOwn(values,match[1]))
+      bad('DUPLICATE_OR_INVALID_TASK_FIELD');
+    values[match[1]]=match[2];
+  }
+  return values;
+}
 function parseWorkPlanningSnapshot(text,id) {
   if(typeof text!=='string'||Buffer.byteLength(text,'utf8')>262144||
      typeof id!=='string'||!/^WORK-[0-9]{4,}$/.test(id))
@@ -1734,10 +1776,11 @@ function parseWorkPlanningSnapshot(text,id) {
       const first=block[i++];
       let idValue,taskStatus,deps,files;
       if(first.startsWith('    - {')&&first.endsWith('}')){
-        idValue=/^    - \{id: (T[1-9][0-9]*),/.exec(first)?.[1];
-        taskStatus=/,\sstatus: ([A-Z_]+)\}$/.exec(first)?.[1];
-        deps=/,\sdepends_on: (\[[^\]]*\])/.exec(first)?.[1];
-        files=/,\sexpected_files: (\[[^\]]*\])/.exec(first)?.[1];
+        const fields=parseInlineWorkTask(first);
+        idValue=fields.id;
+        taskStatus=fields.status;
+        deps=fields.depends_on;
+        files=fields.expected_files;
       }else{
         idValue=/^    - id: (T[1-9][0-9]*)$/.exec(first)?.[1];
         if(!idValue)bad('UNSUPPORTED_TASK_BLOCK');
@@ -1746,10 +1789,8 @@ function parseWorkPlanningSnapshot(text,id) {
           const row=block[i++];
           const match=/^      ([a-z_]+): (.*)$/.exec(row);
           if(!match)bad('UNSUPPORTED_TASK_BLOCK');
-          if(['status','depends_on','expected_files'].includes(match[1])){
-            if(Object.hasOwn(attrs,match[1]))bad('DUPLICATE_TASK_FIELD');
-            attrs[match[1]]=match[2];
-          }
+          if(Object.hasOwn(attrs,match[1]))bad('DUPLICATE_TASK_FIELD');
+          attrs[match[1]]=match[2];
         }
         taskStatus=attrs.status;deps=attrs.depends_on;files=attrs.expected_files;
       }

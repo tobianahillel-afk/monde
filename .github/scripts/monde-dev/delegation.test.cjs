@@ -7615,3 +7615,45 @@ test('live-main plan: repository rate limit is not hidden or retried',async()=>{
     head_sha:'b'.repeat(40),work_ids:['WORK-0901']
   }),e=>e.status===429);
 });
+
+test('WORK adapter rejects duplicate inline task keys without choosing one value',()=>{
+  const source=WORK_FIXTURE_DONE;
+  for(const field of [
+    'status: BLOCKED, ',
+    'depends_on: [T12], ',
+    'expected_files: [src/forged.cjs], ',
+    'id: T2, ',
+    'description: "other", '
+  ]){
+    const poisoned=source.replace('description: "Build docs, standards",',
+      field+'description: "Build docs, standards",');
+    assert.throws(()=>d.parseWorkPlanningSnapshot(poisoned,'WORK-0001'),
+      undefined,'must reject duplicate '+field);
+  }
+});
+test('WORK adapter reads a quoted comma and fake field name as description text',()=>{
+  const sample=WORK_FIXTURE_DONE.replace(
+    'description: "Build docs, standards"',
+    'description: "Build docs, status: BLOCKED, depends_on: [T9]"');
+  const parsed=d.parseWorkPlanningSnapshot(sample,'WORK-0001');
+  assert.equal(parsed.tasks[0].status,'DONE');
+  assert.deepEqual(parsed.tasks[0].depends_on,[]);
+  assert.equal(parsed.tasks[0].id,'T1');
+});
+test('WORK adapter rejects unbalanced inline quotes and array brackets',()=>{
+  for(const changed of [
+    'description: "unterminated, status: DONE',
+    'depends_on: [T1, status: DONE',
+    "description: 'unterminated, status: DONE"
+  ]){
+    const sample=WORK_FIXTURE_DONE.replace('description: "Build docs, standards"',changed);
+    assert.throws(()=>d.parseWorkPlanningSnapshot(sample,'WORK-0001'));
+  }
+});
+test('WORK adapter rejects duplicate indented metadata keys',()=>{
+  const sample=WORK_FIXTURE_ACTIVE.replace(
+    '      description: "Implement the eligible feature"',
+    '      description: "Implement the eligible feature"\n      description: "conflicting"');
+  assert.throws(()=>d.parseWorkPlanningSnapshot(sample,'WORK-0007'),
+    /DUPLICATE_TASK_FIELD/);
+});
