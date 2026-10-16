@@ -36,3 +36,24 @@ has an offline-denying Content Security Policy.
 
 Existing WORK-0016 viewport GeoJSON and its world/knowledge time semantics
 are reused without modifying the World Model or adding another database.
+
+## Offline knowledge-change map
+
+The same HTML explorer can display **changes in reported knowledge** between
+two cutoffs (not verified physical movement):
+
+```sh
+PYTHONPATH=src python3 -m monde.map_view \
+  --state saved.json --bbox '2.34,48.84,2.36,48.87' \
+  --at 2026-01-02T00:00:00Z \
+  --compare-known-at 2026-01-10T10:00:00Z \
+  --known-at 2026-01-11T10:00:00Z \
+  --output knowledge-changes.html
+```
+
+The map retains both source claims when a reported location is corrected, even
+if the newer position leaves the viewport. Filter by source and by
+`NEWLY_CURRENT` / `NO_LONGER_CURRENT`, select a report to inspect its
+original evidence and its knowledge window, and use the same offline zoom.
+Unchanged source reports are omitted from this *change-only* view; an empty
+result cannot establish physical absence. No new dependency or API.

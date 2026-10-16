@@ -170,5 +170,108 @@ class OfflineMapTest(unittest.TestCase):
             self.assertEqual(out.returncode, 0, out.stderr)
 
 
+LATE = "2026-01-11T10:00:00Z"
+
+
+def corrected_points():
+    world = with_points()
+    snapshot = world.export()
+    sources = {e["id"]: e["source_id"] for e in snapshot["evidence"]}
+    original = next(a for a in snapshot["assertions"]
+                    if a["attribute"] == "geo_point"
+                    and sources[a["evidence_id"]] == "official-map")
+    world.add_evidence({
+        "id": "map-knowledge-correction", "source_id": "official-map",
+        "locator": "fixture://official-map/correction",
+        "captured_at": LATE, "source_event_at": None,
+    })
+    world.add_assertion({
+        **original, "id": "map-knowledge-updated", "known_at": LATE,
+        "evidence_id": "map-knowledge-correction", "supersedes": original["id"],
+        "value": {"type": "Point", "coordinates": [5.5, 44.5]},
+    })
+    return world, original["id"]
+
+
+class OfflineKnowledgeChangeMapTest(unittest.TestCase):
+    def test_evidence_and_locations_retained_across_cutoffs(self):
+        world, prior_id = corrected_points()
+        state = world.export()
+        changes = world.export_geojson_bbox_knowledge_changes(BBOX, VALID, KNOWN, LATE)
+        self.assertEqual(changes["monde_bbox_changes_query"]["status"], "CHANGES")
+        html = render_map(changes)
+        _, embedded = extract(html)
+        self.assertEqual(embedded, changes)
+        self.assertEqual({f["id"] for f in embedded["features"]},
+                         {prior_id, "map-knowledge-updated"})
+        self.assertEqual({f["properties"]["monde_change"] for f in embedded["features"]},
+                         {"NEWLY_CURRENT", "NO_LONGER_CURRENT"})
+        self.assertIn('id="change-filter"', html)
+        self.assertIn("NOT verified physical movement", html)
+        self.assertIn("p.monde_change", html)
+        self.assertEqual(world.export(), state)
+
+    def test_empty_comparison_retains_no_change_not_absence(self):
+        world = with_points()
+        changes = world.export_geojson_bbox_knowledge_changes(BBOX, VALID, KNOWN, LATE)
+        html = render_map(changes)
+        _, embedded = extract(html)
+        self.assertEqual(embedded["features"], [])
+        self.assertEqual(embedded["monde_bbox_changes_query"]["status"], "NO_CHANGES")
+        self.assertIn("not verified", html)
+
+    def test_comparison_rejects_invalid_change_basis(self):
+        world, _ = corrected_points()
+        changes = world.export_geojson_bbox_knowledge_changes(BBOX, VALID, KNOWN, LATE)
+        for mutation in ("basis", "change", "cutoff"):
+            bogus = copy.deepcopy(changes)
+            if mutation == "basis":
+                bogus["monde_bbox_changes_query"]["basis"] = "PHYSICAL_MOTION"
+            elif mutation == "change":
+                bogus["features"][0]["properties"]["monde_change"] = "MOVING"
+            else:
+                bogus["features"][0]["properties"]["from_known_at"] = "2000-01-01T00:00:00Z"
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                render_map(bogus)
+
+    def test_saved_state_cli_comparison_and_no_overwrite(self):
+        world, _ = corrected_points()
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory) / "state.json"
+            target = Path(directory) / "changes.html"
+            world.save(str(state))
+            before = state.read_bytes()
+            command = [sys.executable, "-m", "monde.map_view",
+                       "--state", str(state), "--bbox", "2.34,48.84,2.36,48.87",
+                       "--at", VALID, "--compare-known-at", KNOWN, "--known-at", LATE,
+                       "--output", str(target)]
+            env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+            result = subprocess.run(command, capture_output=True, text=True,
+                                    env=env, cwd=ROOT)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            _, embedded = extract(target.read_text(encoding="utf-8"))
+            self.assertEqual(len(embedded["features"]), 2)
+            self.assertEqual(state.read_bytes(), before)
+            again = subprocess.run(command, capture_output=True, text=True,
+                                   env=env, cwd=ROOT)
+            self.assertNotEqual(again.returncode, 0)
+            self.assertEqual(state.read_bytes(), before)
+
+    def test_cli_rejects_reversed_knowledge_cutoffs(self):
+        world, _ = corrected_points()
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory) / "state.json"
+            target = Path(directory) / "bad.html"
+            world.save(str(state))
+            command = [sys.executable, "-m", "monde.map_view", "--state", str(state),
+                       "--bbox", "2.34,48.84,2.36,48.87", "--at", VALID,
+                       "--compare-known-at", LATE, "--known-at", KNOWN,
+                       "--output", str(target)]
+            result = subprocess.run(command, capture_output=True, text=True,
+                                    env=dict(os.environ, PYTHONPATH=str(ROOT / "src")))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(target.exists())
+
+
 if __name__ == "__main__":
     unittest.main()

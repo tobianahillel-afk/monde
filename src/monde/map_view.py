@@ -39,6 +39,9 @@ section,aside{border:1px solid #314154;border-radius:12px;background:#182436;pad
 #points circle.inside{fill:#51d6ba;stroke:#093b39}
 #points circle.outside{fill:#172b42;stroke:#ffc873;stroke-dasharray:2 2}
 #points circle.selected{stroke:#fff;stroke-width:5}
+#points circle.newly{fill:#63e3ab;stroke:#0b6747}
+#points circle.retired{fill:#ffb871;stroke:#8e5318}
+[hidden]{display:none!important}
 #viewport rect{fill:#6caed0;fill-opacity:.08;stroke:#85bdd9;stroke-width:2;stroke-dasharray:8 6;pointer-events:none}
 #graticule line{stroke:#34536b;stroke-width:1}
 #graticule text{fill:#a0b9ce;font-size:15px}
@@ -72,11 +75,13 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <g id="graticule"></g><g id="viewport"></g><g id="points"></g>
 </svg>
 <p id="metrics"></p>
-<p class="notice">Source assertions only. Contradictory locations are retained. This schematic is not a basemap, physical position estimate, confidence score or proof of absence.</p>
+<p id="source-notice" class="notice">Source assertions only. Contradictory locations are retained. This schematic is not a basemap, physical position estimate, confidence score or proof of absence.</p>
 </section>
 <aside aria-label="Evidence explorer">
 <h2>Source evidence</h2>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
+<div class="controls" id="change-filter-control" hidden><label for="change-filter">Knowledge change</label>
+<select id="change-filter"><option value="">All changes</option><option value="NEWLY_CURRENT">Newly current</option><option value="NO_LONGER_CURRENT">No longer current</option></select></div>
 <ul id="report-list" aria-label="Reported points"></ul>
 <h2>Selected evidence</h2><div id="details" role="status" aria-live="polite">Select a source report to inspect its original evidence.</div>
 </aside>
@@ -86,7 +91,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 (function () {
   "use strict";
   var data = JSON.parse(document.getElementById("monde-data").textContent);
-  var features = data.features, query = data.monde_bbox_query;
+  var features = data.features, comparing = !!data.monde_bbox_changes_query;
+  var query = comparing ? data.monde_bbox_changes_query : data.monde_bbox_query;
   var NS = "http://www.w3.org/2000/svg";
   var svg = document.getElementById("map");
   var view = document.getElementById("viewport");
@@ -96,6 +102,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var details = document.getElementById("details");
   var sources = document.getElementById("sources");
   var insideOnly = document.getElementById("inside-only");
+  var changeFilter = document.getElementById("change-filter");
+  document.getElementById("change-filter-control").hidden = !comparing;
+  if (comparing) {
+    document.getElementById("source-notice").textContent =
+      "Source knowledge changes, NOT verified physical movement. Old and new claims retain separate evidence.";
+  }
   var x0 = 0, y0 = 0, width = 1200, height = 600;
   var selectedId = null;
   function el(type, attrs, parent) {
@@ -140,7 +152,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   if (bbox[0] <= bbox[2]) rectangle(bbox[0],bbox[2]);
   else { rectangle(bbox[0],180); rectangle(-180,bbox[2]); }
   document.getElementById("cutoffs").textContent =
-    "World " + query.valid_at + "  ·  Known " + query.knowledge_cutoff;
+    "World " + query.valid_at + (comparing ?
+      "  ·  Knowledge " + query.from_known_at + " → " + query.to_known_at :
+      "  ·  Known " + query.knowledge_cutoff);
   var identities = Array.from(new Set(features.map(function(f) {
     return f.properties.source_id;
   }))).sort();
@@ -156,12 +170,15 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       "Assertion: " + feature.id,
       "Coordinates: " + feature.geometry.coordinates.join(", "),
       "Within requested viewport: " + (p.monde_inside_bbox ? "yes" : "no — contrary source location"),
+      ...(comparing ? ["Knowledge change: " + p.monde_change,
+        "Knowledge interval: " + query.from_known_at + " → " + query.to_known_at,
+        "Change basis: KNOWLEDGE_NOT_PHYSICAL (not verified motion)"] : []),
       "Source: " + p.source_id,
       "Evidence: " + p.evidence_id,
       "Locator: " + p.locator,
       "Captured: " + p.captured_at,
       "Source event: " + (p.source_event_at || "not supplied"),
-      "Known cutoff: " + query.knowledge_cutoff,
+      "Known cutoff: " + (comparing ? p.knowledge_cutoff : query.knowledge_cutoff),
       "Valid at: " + query.valid_at,
       "Claim status: SOURCE_REPORTED_ONLY"
     ].join("\n");
@@ -171,14 +188,17 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     layer.replaceChildren(); list.replaceChildren();
     var shown = features.filter(function(f) {
       return (!insideOnly.checked || f.properties.monde_inside_bbox) &&
-        (!sources.value || f.properties.source_id === sources.value);
+        (!sources.value || f.properties.source_id === sources.value) &&
+        (!comparing || !changeFilter.value ||
+         f.properties.monde_change === changeFilter.value);
     });
     shown.forEach(function(f) {
       var p = f.properties, coords = f.geometry.coordinates;
       var circle = el("circle", {cx:x(coords[0]),cy:y(coords[1]),
         r:7,tabindex:0,"aria-label":p.entity + " from " + p.source_id},layer);
       circle.setAttribute("class",(p.monde_inside_bbox?"inside":"outside")+
-        (selectedId===f.id?" selected":""));
+        (selectedId===f.id?" selected":"")+
+        (comparing ? (p.monde_change==="NEWLY_CURRENT"?" newly":" retired"):""));
       circle.addEventListener("click",function(){inspect(f);});
       circle.addEventListener("keydown",function(e){
         if(e.key==="Enter"||e.key===" "){e.preventDefault();inspect(f);}
@@ -187,6 +207,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       var button = document.createElement("button");
       button.type="button";
       label(button,p.entity + " — " + p.source_id +
+        (comparing ? " · " + p.monde_change.replaceAll("_"," ").toLowerCase():"") +
         (p.monde_inside_bbox?" · inside":" · contradictory outside"));
       button.addEventListener("click",function(){inspect(f);});
       li.appendChild(button);list.appendChild(li);
@@ -194,7 +215,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     document.getElementById("metrics").textContent =
       String(query.total_matching_entities)+" matching entities · "+
       String(shown.length)+" displayed source reports / "+String(features.length)+
-      " known reports · "+query.status;
+      (comparing ? " changed source reports · " : " known reports · ") +query.status;
     if (!shown.length) {
       var li = document.createElement("li");
       label(li,"No source reports match this view. This does not establish physical absence.");
@@ -203,6 +224,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   sources.addEventListener("change",render);
   insideOnly.addEventListener("change",render);
+  changeFilter.addEventListener("change",render);
   render();
   document.body.setAttribute("data-monde-ready","true");
 }());
@@ -217,13 +239,18 @@ def render_map(document: dict) -> str:
     if not isinstance(document, dict) or document.get("type") != "FeatureCollection":
         raise ValueError("expected a GeoJSON FeatureCollection")
     features = document.get("features")
-    query = document.get("monde_bbox_query")
+    comparing = "monde_bbox_changes_query" in document
+    query = document.get("monde_bbox_changes_query" if comparing else "monde_bbox_query")
     if not isinstance(features, list) or not isinstance(query, dict):
         raise ValueError("viewport GeoJSON and query metadata required")
     if len(features) > MAX_FEATURES:
         raise ValueError("too many reports for an offline standalone map")
-    if set(query) != {"basis", "bbox", "valid_at", "knowledge_cutoff",
-                      "total_matching_entities", "total_source_features", "status"}:
+    expected = ({"basis", "bbox", "valid_at", "from_known_at", "to_known_at",
+                 "total_matching_entities", "total_changed_features", "status"}
+                if comparing else
+                {"basis", "bbox", "valid_at", "knowledge_cutoff",
+                 "total_matching_entities", "total_source_features", "status"})
+    if set(query) != expected:
         raise ValueError("unexpected viewport metadata")
     bounds = query["bbox"]
     if (not isinstance(bounds, list) or len(bounds) != 4
@@ -231,14 +258,19 @@ def render_map(document: dict) -> str:
             or not -180 <= bounds[0] <= 180 or not -180 <= bounds[2] <= 180
             or not -90 <= bounds[1] <= bounds[3] <= 90):
         raise ValueError("invalid WGS84 viewport")
-    if (query["basis"] != "SOURCE_REPORTED_POINT_BBOX_ONLY"
-            or query["total_source_features"] != len(features)
+    if (query["basis"] != ("SOURCE_REPORTED_VIEWPORT_KNOWLEDGE_CHANGES_ONLY"
+                              if comparing else "SOURCE_REPORTED_POINT_BBOX_ONLY")
+            or query["total_changed_features" if comparing else "total_source_features"] != len(features)
             or type(query["total_matching_entities"]) is not int
             or query["total_matching_entities"] < 0
-            or query["status"] not in ("MATCHES", "NO_MATCHES")
-            or not all(isinstance(query[key], str)
-                       for key in ("valid_at", "knowledge_cutoff"))):
+            or query["status"] not in (("CHANGES", "NO_CHANGES") if comparing
+                                      else ("MATCHES", "NO_MATCHES"))
+            or not all(isinstance(query[key], str) and query[key]
+                       for key in (("valid_at", "from_known_at", "to_known_at")
+                                   if comparing else ("valid_at", "knowledge_cutoff")))):
         raise ValueError("inconsistent source viewport metadata")
+    if comparing and query["from_known_at"] >= query["to_known_at"]:
+        raise ValueError("comparison requires increasing knowledge cutoffs")
     for feature in features:
         if (not isinstance(feature, dict)
                 or set(feature) != {"type", "id", "geometry", "properties"}
@@ -261,6 +293,12 @@ def render_map(document: dict) -> str:
                 for k in ("entity", "source_id", "evidence_id", "locator",
                           "captured_at")) or type(props.get("monde_inside_bbox")) is not bool):
             raise ValueError("source identity and evidence are required")
+        if comparing and (props.get("monde_change") not in
+                          ("NEWLY_CURRENT", "NO_LONGER_CURRENT")
+                          or props.get("monde_change_basis") != "KNOWLEDGE_NOT_PHYSICAL"
+                          or props.get("from_known_at") != query["from_known_at"]
+                          or props.get("to_known_at") != query["to_known_at"]):
+            raise ValueError("inconsistent source knowledge change")
     compact = json.dumps(document, ensure_ascii=False, allow_nan=False,
                          sort_keys=True, separators=(",", ":"))
     if len(compact.encode("utf-8")) > MAX_JSON_BYTES:
@@ -279,6 +317,7 @@ def main(argv=None) -> int:
     parser.add_argument("--bbox", required=True, help="W,S,E,N WGS84 viewport")
     parser.add_argument("--at", required=True, help="valid-world-time instant")
     parser.add_argument("--known-at", required=True, help="knowledge-time cutoff")
+    parser.add_argument("--compare-known-at", help="earlier knowledge cutoff for source-report changes")
     parser.add_argument("--output", required=True, help="new output HTML path; no overwrite")
     args = parser.parse_args(argv)
     try:
@@ -287,7 +326,11 @@ def main(argv=None) -> int:
             raise ValueError("bbox must have four numbers W,S,E,N")
         bounds = [float(p.strip()) for p in parts]
         world = WorldMini.read(args.state)
-        page = render_map(world.export_geojson_bbox(bounds, args.at, args.known_at))
+        geojson = (world.export_geojson_bbox_knowledge_changes(
+            bounds, args.at, args.compare_known_at, args.known_at)
+            if args.compare_known_at else
+            world.export_geojson_bbox(bounds, args.at, args.known_at))
+        page = render_map(geojson)
         with open(args.output, "x", encoding="utf-8") as target:
             target.write(page)
     except (ValueError, OSError) as exc:
