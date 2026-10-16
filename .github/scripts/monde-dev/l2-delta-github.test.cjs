@@ -293,3 +293,28 @@ test('live PR delta requires a valid, explicitly prior-reviewed base SHA',async(
     assert.equal(live.calls.compares.length,0);
   }
 });
+
+test('invalid fresh L2 assignment IDs fail before any GitHub compare',async()=>{
+  for(const new_assignment_id of [
+    '',null,undefined,123,'too-short','invalid name with spaces',
+    assignment.assignment_id,'A'.repeat(97)
+  ]){
+    const calls=[];
+    await assert.rejects(
+      planL2DeltaFromGitHub(args({new_assignment_id,github:client(base,calls)}))
+    );
+    assert.equal(calls.length,0,'invalid assignment must not call GitHub');
+  }
+});
+test('invalid fresh L2 assignment IDs fail before any live PR reads',async()=>{
+  for(const new_assignment_id of [
+    undefined,null,'bad','invalid name',assignment.assignment_id,'B'.repeat(97)
+  ]){
+    const live=liveClient();
+    await assert.rejects(planL2DeltaFromCurrentGitHub(
+      args({github:live.github,new_assignment_id})),
+      err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(live.calls.pulls.length,0);
+    assert.equal(live.calls.compares.length,0);
+  }
+});

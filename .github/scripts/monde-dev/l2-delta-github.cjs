@@ -17,6 +17,9 @@ async function planL2DeltaFromGitHub({
   // Validate the canonical mission before sending any external request.
   const old = assignment(previous_assignment);
   if (old.mission_kind !== 'L2_REVIEW' ||
+      typeof new_assignment_id !== 'string' ||
+      !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,95}$/.test(new_assignment_id) ||
+      new_assignment_id === old.assignment_id ||
       typeof current_head !== 'string' || !/^[a-f0-9]{40}$/.test(current_head) ||
       current_head === old.head_sha ||
       !github || !github.rest || !github.rest.repos ||
@@ -90,10 +93,13 @@ async function planL2DeltaFromGitHub({
 async function planL2DeltaFromCurrentGitHub(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input))
     incomplete();
-  const { github, previous_assignment, current_head,
+  const { github, previous_assignment, current_head, new_assignment_id,
     previous_reviewed_pr_base_sha } = input;
   const old = assignment(previous_assignment);
   if (old.mission_kind !== 'L2_REVIEW' ||
+      typeof new_assignment_id !== 'string' ||
+      !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,95}$/.test(new_assignment_id) ||
+      new_assignment_id === old.assignment_id ||
       typeof current_head !== 'string' || !/^[a-f0-9]{40}$/.test(current_head) ||
       // A previous HEAD review only qualifies for a narrow delta if the PR's
       // base commit is also the same one recorded with that review. The caller
