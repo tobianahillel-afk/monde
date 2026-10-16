@@ -104,7 +104,7 @@ async function readMergeBase(github,owner,repo,snapshot) {
     incomplete();
   const response=await github.rest.repos.compareCommitsWithBasehead({
     owner,repo,basehead:snapshot.base_sha+'...'+snapshot.head_sha,
-    page:1,per_page:1
+    page:1,per_page:100
   });
   const result=response?.data;
   const base=result?.base_commit?.sha;
@@ -121,7 +121,35 @@ async function readMergeBase(github,owner,repo,snapshot) {
       (result.status==='diverged' &&
         (merge===snapshot.base_sha || result.behind_by<1)))
     incomplete();
-  return merge;
+  // The immutable comparison also provides the authoritative Git tree diff.
+  // Comparing it with mutable paginated PR files prevents mixed H1/H2
+  // responses from silently narrowing an independent review's scope.
+  if(!Array.isArray(result.files) ||
+     result.files.length!==snapshot.changed_files ||
+     result.files.length<1 || result.files.length>200)
+    incomplete();
+  return {sha:merge,files:result.files};
+}
+function verifyImmutableFileManifest(rows,immutableFiles) {
+  if(!Array.isArray(rows)||!Array.isArray(immutableFiles)||
+     rows.length!==immutableFiles.length)incomplete();
+  const encode=files=>{
+    const paths=new Set();
+    const keys=files.map(f=>{
+      if(!f||typeof f.filename!=='string'||
+         !['added','modified','removed','renamed'].includes(f.status) ||
+         paths.has(f.filename))incomplete();
+      paths.add(f.filename);
+      const old=f.previous_filename;
+      if(f.status==='renamed'?
+         typeof old!=='string' || old===f.filename :
+         old!==undefined && old!==null)incomplete();
+      return JSON.stringify([f.filename,f.status,f.status==='renamed'?old:null]);
+    });
+    return keys.sort();
+  };
+  const a=encode(rows),b=encode(immutableFiles);
+  if(a.some((x,i)=>x!==b[i]))incomplete();
 }
 
 // Observe the live PR on both sides of the exact-SHA comparison. The existing
@@ -265,12 +293,14 @@ async function prepareFreshL2FromCurrentGitHub(input) {
     };
   };
   const before = await observe();
-  const mergeBase = await readMergeBase(github,owner,name,before);
+  const mergeProof = await readMergeBase(github,owner,name,before);
+  const mergeBase = mergeProof.sha;
   const rows = await github.paginate(github.rest.pulls.listFiles,{
     owner,repo:name,pull_number:seed.pr,per_page:100
   });
   if (!Array.isArray(rows) || rows.length !== before.changed_files)
     incomplete();
+  verifyImmutableFileManifest(rows,mergeProof.files);
   const paths=[];
   const changes=[];
   for (const row of rows) {
@@ -400,11 +430,13 @@ async function prepareFreshL2BatchesFromCurrentGitHub(input) {
     };
   };
   const before=await observe();
-  const mergeBase=await readMergeBase(github,owner,name,before);
+  const mergeProof=await readMergeBase(github,owner,name,before);
+  const mergeBase=mergeProof.sha;
   const rows=await github.paginate(github.rest.pulls.listFiles,{
     owner,repo:name,pull_number:seed.pr,per_page:100
   });
   if(!Array.isArray(rows)||rows.length!==before.changed_files)incomplete();
+  verifyImmutableFileManifest(rows,mergeProof.files);
   const unique=new Set(),groups=[];
   let current=[],count=0;
   for(const row of rows){

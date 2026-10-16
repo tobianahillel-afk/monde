@@ -353,7 +353,8 @@ function freshClient(options={}) {
         behind_by:options.behindBy===undefined?
           (options.compareStatus==='diverged'?1:0):options.behindBy,
         base_commit:{sha:options.compareBase||options.base||'c'.repeat(40)},
-        merge_base_commit:{sha:options.mergeBase||options.base||'c'.repeat(40)}
+        merge_base_commit:{sha:options.mergeBase||options.base||'c'.repeat(40)},
+        files:options.immutableFiles||origFiles
       }};
     }},pulls:{
       get:async args=>{
@@ -759,7 +760,7 @@ test('fresh L2 preimage from diverged PR uses merge-base, not newer main',async(
   assert.equal(calls.compares.length,1);
   assert.deepEqual(calls.compares[0],{
     owner:'tobianahillel-afk',repo:'monde',
-    basehead:'c'.repeat(40)+'...'+HEAD,page:1,per_page:1
+    basehead:'c'.repeat(40)+'...'+HEAD,page:1,per_page:100
   });
 });
 test('batched fresh L2 uses merge-base for rename and deletion preimages',async()=>{
@@ -835,4 +836,41 @@ test('merge-base consistency holds for both fresh L2 paths on ahead and diverged
     assert.equal(batch.observed_pr_merge_base_sha,
       options.mergeBase||'c'.repeat(40));
   }
+});
+
+test('fresh L2 rejects paginated files that disagree with immutable Git compare',async()=>{
+  const original=[
+    {status:'modified',filename:PATH},
+    {status:'added',filename:'.github/scripts/monde-dev/l2-delta-github.cjs'}
+  ];
+  for(const immutableFiles of [
+    original.slice(0,1),
+    [{...original[0],status:'removed'},original[1]],
+    [{...original[0],filename:'src/other.cjs'},original[1]],
+    [{...original[0],previous_filename:'src/old.cjs'},original[1]],
+    [original[0],original[0]]
+  ]){
+    const single=freshClient({immutableFiles});
+    await assert.rejects(prepareFreshL2FromCurrentGitHub({
+      github:single.api,...FRESH_MISSION
+    }),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+    const batch=freshClient({immutableFiles});
+    await assert.rejects(prepareFreshL2BatchesFromCurrentGitHub({
+      github:batch.api,...FRESH_MISSION
+    }),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+});
+test('fresh L2 allows different ordering of exact immutable file records',async()=>{
+  const original=[
+    {status:'modified',filename:PATH},
+    {status:'added',filename:'.github/scripts/monde-dev/l2-delta-github.cjs'}
+  ];
+  const single=freshClient({immutableFiles:original.slice().reverse()});
+  const out=await prepareFreshL2FromCurrentGitHub({
+    github:single.api,...FRESH_MISSION});
+  assert.equal(out.changed_files,original.length);
+  const batch=freshClient({immutableFiles:original.slice().reverse()});
+  const result=await prepareFreshL2BatchesFromCurrentGitHub({
+    github:batch.api,...FRESH_MISSION});
+  assert.equal(result.changed_files,original.length);
 });
