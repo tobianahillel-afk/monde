@@ -422,3 +422,22 @@ assertion and evidence IDs. Navigation stops at visible segment bounds and
 respects the existing filters. Hidden samples are skipped rather than interpolated;
 no path, verified movement or physical location is inferred. The original offline
 source snapshot and GeoJSON/CSV export semantics remain unchanged.
+
+
+## WORK-0026 — Original local KML LineString samples
+
+A KML 2.2 source file with uniquely identified 2D Point and LineString
+Placemarks is accepted through the existing --kml one-command offline
+source-evidence map. Each LineString coordinate becomes a distinct
+evidence-linked source-reported Point. Its kml_trace assertion records the
+original Placemark source identity, trace identifier and sample order; repeated
+identical original samples remain separate rather than silently deduplicated.
+
+The offline map draws dotted connections only between adjacent samples
+from the same source, LineString and segment, subject to visible filters.
+It does not connect across missing samples or the antimeridian. Click a Point
+to inspect its original source LineString and sample order. Connections
+are source-reported geometry, not a verified journey, transport route or
+physical trajectory. No server, basemap downloads or external API is used.
+Unsupported geometries, altitude coordinates, network-linked KML, ambiguous
+IDs and malformed XML fail before creating the output file.
