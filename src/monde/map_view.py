@@ -1045,6 +1045,7 @@ def main(argv=None) -> int:
     inputs.add_argument("--csv-manifest", "--source-manifest", dest="csv_manifest",
                         help="source-attributed CSV/GeoJSON manifest; no intermediate state")
     inputs.add_argument("--geojson", help="local GeoJSON FeatureCollection of source-reported Points; no intermediate state")
+    inputs.add_argument("--kml", help="local KML 2.2 source-reported Point Placemarks; no intermediate state")
     parser.add_argument("--source-id", help="explicit source identifier for --geojson")
     parser.add_argument("--source-locator", help="original data locator for --geojson")
     parser.add_argument("--captured-at", help="source capture time with timezone for --geojson")
@@ -1062,20 +1063,25 @@ def main(argv=None) -> int:
     try:
         source_args = ("source_id", "source_locator", "captured_at",
                        "valid_from", "valid_to", "source_event_at")
-        if args.geojson:
+        if args.geojson or args.kml:
             if any(not getattr(args, name) for name in source_args[:4]):
-                raise ValueError("--geojson requires --source-id, --source-locator, "
+                raise ValueError("--geojson/--kml requires --source-id, --source-locator, "
                                  "--captured-at and --valid-from")
-            if Path(args.geojson).resolve() == Path(args.output).resolve():
-                raise ValueError("output cannot overwrite the source GeoJSON")
+            source_file = args.geojson or args.kml
+            if Path(source_file).resolve() == Path(args.output).resolve():
+                raise ValueError("output cannot overwrite the original source file")
             from .geojson import to_document
-            original = WorldMini.load_document(args.geojson)
+            if args.kml:
+                from .kml_points import to_geojson as kml_to_geojson
+                original = kml_to_geojson(args.kml)
+            else:
+                original = WorldMini.load_document(args.geojson)
             world = WorldMini.from_document(to_document(
                 original, source_id=args.source_id, locator=args.source_locator,
                 captured_at=args.captured_at, valid_from=args.valid_from,
                 valid_to=args.valid_to, source_event_at=args.source_event_at))
         elif any(getattr(args, name) is not None for name in source_args):
-            raise ValueError("source provenance flags require --geojson")
+            raise ValueError("source provenance flags require --geojson or --kml")
         elif args.csv_manifest:
             from .csv_points import documents_from_manifest
             documents, _ = documents_from_manifest(
