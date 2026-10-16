@@ -7148,3 +7148,40 @@ test('L2 independent Oct-16: legitimate public HTTP routes remain publishable',(
     assert.equal(report.ready_for_manual_relay,true,route);
   }
 });
+
+test('L2 Oct-16: bare sensitive roots, colon-prefixed paths and encoded-backslash traversal block all public handoffs',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const packet={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  const samples=[
+    '/usr/local','/usr//local','/usr/./local',
+    'Log:////usr//local/bin/helper',
+    'location:////home//runner//.ssh//id_rsa',
+    'GET /data/%5c..%5c..%5chome%5crunner%5c.ssh%5cid_rsa'
+  ];
+  for(const sample of samples){
+    assert.throws(()=>d.createResumePacket({...packet,next_action:'Inspect '+sample}),
+      error=>error.code==='INVALID_RESUME_PACKET',sample);
+    const report=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[{...data().findings[0],
+        evidence:'Inspect '+sample}]})),current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(report.status,'NONPUBLIC_SCOPE_IN_RELAY',sample);
+    const triage=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'R2 inspected '+sample,current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(triage.status,'NONPUBLIC_SCOPE_IN_RELAY',sample);
+  }
+});
+test('L2 Oct-16: normal public HTTP routes and URL authority are not mistaken for local paths',()=>{
+  const packet={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  for(const route of ['GET /usr/local/health','GET /data/stats',
+    'POST /users/me?filter=public']){
+    assert.equal(d.createResumePacket({...packet,next_action:'Review '+route}).action_kind,
+      'CONTINUE_IMPLEMENTATION',route);
+  }
+});

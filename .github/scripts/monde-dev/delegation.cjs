@@ -2128,12 +2128,25 @@ function canonicalLocalPathView(value){
   });
 }
 const PUBLIC_HTTP_TRAVERSAL=/\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/[A-Za-z0-9_.\/%-]*(?:\/|^)\.{1,2}(?:\/|$|\?)/iu;
-const BARE_MACOS_LOCAL_ROOT=/(?:^|[^A-Za-z0-9_./-])\/(?:Library|Network\/Servers)(?=$|[\s"'(),;?])/iu;
+// The bare root is sensitive even after slash/dot normalization. A full
+// path guard requiring an additional child cannot recognize /usr/local alone.
+const BARE_LOCAL_FILESYSTEM_ROOT=/(?:^|[^A-Za-z0-9_./-])\/(?:Library|Network\/Servers|usr\/local|home|Users|root|private|etc|tmp|Volumes)(?=$|[\s"'(),;?])/iu;
 function containsNonpublicScopeDisclosure(value){
   return publicTextMatches(value,text=>{
     const flattened=text.replace(/\\{2,}/g,
       run=>'\\'.repeat(Math.max(1,Math.ceil(run.length/2))));
-    return [text,flattened].some(candidate=>{
+    return [text,flattened].some(raw=>{
+      // HTTP request target: percent-decoded backslash traversal is still
+      // traversal. Normalize only its route, not arbitrary quoted evidence.
+      const httpSlashes=raw.replace(
+        /\b(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)(\s+)(\/[^\s"'<>]*)/giu,
+        (_,method,space,route)=>method+space+route.replace(/\\/g,'/'));
+      // Log:////usr//local and location:////home are filesystem disclosures.
+      // Do not classify https:// or other URL authority as a machine path.
+      const candidate=httpSlashes.replace(
+        /(^|[\s"'(=])([A-Za-z][A-Za-z0-9_-]{0,40}):(?=\/+)/g,
+        (all,boundary,label)=>/^(?:https?|ftps?|wss?)$/i.test(label)?
+          all:boundary+label+'=');
       const traverses=PUBLIC_HTTP_TRAVERSAL.test(candidate);
       // A public route containing traversal is never exempt; query values
       // remain outside the mask and are always classified.
@@ -2147,7 +2160,7 @@ function containsNonpublicScopeDisclosure(value){
         NONPUBLIC_DOUBLE_SLASH_FILESYSTEM_PATH.test(view)||
         NONPUBLIC_EXPLICIT_LOCAL_PATH.test(view)||
         NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH.test(view)||
-        BARE_MACOS_LOCAL_ROOT.test(view)||
+        BARE_LOCAL_FILESYSTEM_ROOT.test(view)||
         NONPUBLIC_WINDOWS_COMPONENT.test(view));
     });
   });
