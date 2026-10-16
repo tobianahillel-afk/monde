@@ -524,4 +524,23 @@ async function prepareFreshL2BatchesFromCurrentGitHub(input) {
     authorized_to_write:false};
 }
 
-module.exports = { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub };
+
+// One read-only entry point for any PR up to the reviewed 200-file cap.
+// The batch planner handles even a one-file PR, so never attempt the
+// 24-path planner first and then repeat network reads after a size failure.
+// This remains a proposal for separate ChatGPT contexts, never an L2 review.
+async function prepareFreshL2AutoFromCurrentGitHub(input) {
+  const plan=await prepareFreshL2BatchesFromCurrentGitHub(input);
+  return {
+    ...plan,
+    mode:plan.batch_count===1?'SINGLE_MISSION':'BATCHED_MISSIONS',
+    // A one-batch result uses the same stable -B01 assignment as the batch
+    // protocol. No second or differently scoped mission is silently created.
+    independent_missions_required:plan.batch_count,
+    scheduled_tasks_created:false,
+    review_acceptance_granted:false,
+    authorized_to_write:false
+  };
+}
+
+module.exports = { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub, prepareFreshL2AutoFromCurrentGitHub };

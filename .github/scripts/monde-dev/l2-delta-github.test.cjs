@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub } = require('./l2-delta-github.cjs');
+const { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub, prepareFreshL2AutoFromCurrentGitHub } = require('./l2-delta-github.cjs');
 
 const OLD = 'a'.repeat(40), HEAD = 'b'.repeat(40);
 const PATH = '.github/scripts/monde-dev/delegation.cjs';
@@ -944,4 +944,48 @@ test('fresh L2: 346-commit PR reads one compare commit and retains full file cov
   assert.deepEqual(calls.compares.map(x=>({page:x.page,per_page:x.per_page})),
     [{page:1,per_page:1}]);
   assert.equal(result.native_github_approved,false);
+});
+
+test('auto L2 preparation: seven changed files need one immutable batch, one API pass',async()=>{
+  const files=Array.from({length:7},(_,i)=>({
+    status:'modified',filename:'docs/review/file'+i+'.md'
+  }));
+  const {api,calls}=freshClient({files});
+  const out=await prepareFreshL2AutoFromCurrentGitHub({
+    github:api,...FRESH_MISSION
+  });
+  assert.equal(out.mode,'SINGLE_MISSION');
+  assert.equal(out.independent_missions_required,1);
+  assert.equal(out.batch_count,1);
+  assert.equal(out.batches[0].assignment.paths.length,7);
+  assert.equal(out.batches[0].assignment.assignment_id,
+    FRESH_MISSION.assignment_id+'-B01');
+  assert.equal(calls.get.length,2);
+  assert.equal(calls.files.length,1);
+  assert.equal(calls.compares.length,1);
+  assert.equal(out.scheduled_tasks_created,false);
+  assert.equal(out.review_acceptance_granted,false);
+  assert.equal(out.authorized_to_write,false);
+});
+test('auto L2 preparation: 26 changed files split without retrying GitHub reads',async()=>{
+  const files=Array.from({length:26},(_,i)=>({
+    status:'modified',filename:'src/module'+i+'.cjs'
+  }));
+  const {api,calls}=freshClient({files});
+  const out=await prepareFreshL2AutoFromCurrentGitHub({
+    github:api,...FRESH_MISSION
+  });
+  assert.equal(out.mode,'BATCHED_MISSIONS');
+  assert.equal(out.independent_missions_required,2);
+  assert.deepEqual(out.batches.map(x=>x.assignment.paths.length),[24,2]);
+  assert.equal(new Set(out.batches.flatMap(x=>x.assignment.paths)).size,26);
+  assert.equal(calls.get.length,2);
+  assert.equal(calls.files.length,1);
+  assert.equal(calls.compares.length,1);
+});
+test('auto L2 preparation: live HEAD drift aborts without partial delegated mission',async()=>{
+  const {api}=freshClient({drift:true});
+  await assert.rejects(prepareFreshL2AutoFromCurrentGitHub({
+    github:api,...FRESH_MISSION
+  }),e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
 });
