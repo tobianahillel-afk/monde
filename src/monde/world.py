@@ -8,8 +8,10 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import json
+import os
 import re
 import sys
+import tempfile
 
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:\-]{0,95}$")
 _EVIDENCE_FIELDS = {"id", "source_id", "locator", "captured_at", "source_event_at"}
@@ -135,11 +137,55 @@ class WorldMini:
             world.add_assertion(assertion)
         return world
 
+    @staticmethod
+    def load_document(path: str) -> dict:
+        with open(path, encoding="utf-8") as stream:
+            return json.load(stream, object_pairs_hook=_object_no_duplicates,
+                             parse_constant=lambda _: (_ for _ in ()).throw(
+                                 ValueError("non-finite JSON value")))
+
     @classmethod
     def read(cls, path: str) -> "WorldMini":
-        with open(path, encoding="utf-8") as f:
-            return cls.from_document(json.load(f, object_pairs_hook=_object_no_duplicates,
-                                               parse_constant=lambda value: (_ for _ in ()).throw(ValueError("non-finite JSON value"))))
+        return cls.from_document(cls.load_document(path))
+
+    def append_document(self, updates: dict) -> dict:
+        """Apply a whole evidence/claim batch, never a partial mutation."""
+        _record(updates, {"schema_version", "evidence", "assertions"})
+        if type(updates["schema_version"]) is not int or updates["schema_version"] != 1:
+            raise ValueError("unsupported schema version")
+        if not isinstance(updates["evidence"], list) or not isinstance(updates["assertions"], list):
+            raise ValueError("evidence and assertions must be arrays")
+        candidate = type(self).from_document(self.export())
+        before_evidence, before_assertions = len(self._evidence), len(self._assertions)
+        for evidence in updates["evidence"]:
+            candidate.add_evidence(evidence)
+        for assertion in updates["assertions"]:
+            candidate.add_assertion(assertion)
+        self._evidence = candidate._evidence
+        self._assertions = candidate._assertions
+        self._last_known = candidate._last_known
+        return {"added_evidence": len(self._evidence) - before_evidence,
+                "added_assertions": len(self._assertions) - before_assertions}
+
+    def save(self, path: str, *, replace: bool = False) -> None:
+        """Atomic snapshot publication, single-writer only; no concurrent CAS."""
+        destination = os.path.abspath(os.fspath(path))
+        fd, temporary = tempfile.mkstemp(prefix=".monde-mini-", suffix=".tmp",
+                                         dir=os.path.dirname(destination))
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                json.dump(self.export(), stream, ensure_ascii=False, sort_keys=True,
+                          indent=2, allow_nan=False)
+                stream.write("\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            if replace:
+                os.replace(temporary, destination)
+            else:
+                os.link(temporary, destination)  # atomic create only if absent
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
 
     def export(self) -> dict:
         return _clone({"schema_version": 1,
@@ -574,18 +620,43 @@ def main(argv=None) -> int:
     selection.add_argument("--source-history", metavar="SOURCE_ID")
     selection.add_argument("--knowledge-updates", action="store_true")
     selection.add_argument("--world-knowledge-changes", action="store_true")
+    selection.add_argument("--ingest-document", metavar="UPDATES_JSON",
+                           help="append source evidence and claims to a saved snapshot")
+    parser.add_argument("--state-out", help="destination JSON snapshot for ingestion")
+    parser.add_argument("--replace-state", action="store_true",
+                        help="explicitly overwrite --state-out (single writer only)")
     parser.add_argument("--equals-json", help="exact JSON value used by cross-entity search")
     parser.add_argument("--source-attribute", help="optional property filter for source history")
     parser.add_argument("--at", help="one world-time instant; omit when selecting a timeline")
     parser.add_argument("--timeline-from", help="start of valid-world-time interval")
     parser.add_argument("--timeline-to", help="exclusive end of valid-world-time interval")
-    parser.add_argument("--known-at", required=True)
+    parser.add_argument("--known-at", help="required for queries, not ingestion")
     parser.add_argument("--updates-from", help="exclusive knowledge start for --knowledge-updates")
     parser.add_argument("--knowledge-timeline-from", help="start of knowledge-time history; --known-at is exclusive upper bound")
     parser.add_argument("--compare-known-at", help="earlier knowledge cutoff; requires --all-attributes")
     parser.add_argument("--compare-at", help="earlier valid-world-time; requires --all-attributes and --at")
     args = parser.parse_args(argv)
     try:
+        if args.ingest_document:
+            if (not args.state_out or args.entity is not None or
+                    args.known_at is not None or args.at is not None or
+                    args.timeline_from is not None or args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None or
+                    args.compare_known_at is not None or args.compare_at is not None or
+                    args.updates_from is not None or args.equals_json is not None or
+                    args.source_attribute is not None):
+                parser.error("ingestion requires --state-out and no query options")
+            world = WorldMini.read(args.fixture)
+            changes = world.append_document(WorldMini.load_document(args.ingest_document))
+            world.save(args.state_out, replace=args.replace_state)
+            print(json.dumps({"operation": "APPEND_SOURCE_REPORTS",
+                              "world": "OBSERVED", "status": "SAVED", **changes},
+                             sort_keys=True))
+            return 0
+        if args.state_out is not None or args.replace_state:
+            parser.error("--state-out and --replace-state require --ingest-document")
+        if args.known_at is None:
+            parser.error("--known-at is required for queries")
         world = WorldMini.read(args.fixture)
         if args.knowledge_updates:
             if (args.updates_from is None or args.at is not None or
