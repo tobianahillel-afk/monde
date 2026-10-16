@@ -1,0 +1,67 @@
+id: WORK-0019
+title: "Ingest source-attributed CSV Points into MONDE Mini"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-5
+sublot: SUBLOT-5.3
+owner: "MONDE Mini source ingestion"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+purpose: |
+  Import local CSV data into the existing evidence-grounded bitemporal
+  World Model so source-reported Points can be queried and mapped offline.
+scope:
+  in: ["CSV WGS84 Point ingestion", "Atomic durable snapshot", "Offline map roundtrip"]
+  out: ["Automatic geocoding", "CRS inference", "Estimated physical coordinates", "Network APIs"]
+acceptance_criteria:
+  - {id: AC-1, description: "Preserve explicit source identifiers and temporal provenance", status: NOT_STARTED}
+  - {id: AC-2, description: "Reject malformed/ambiguous rows with no partial snapshot", status: NOT_STARTED}
+  - {id: AC-3, description: "Query and render imported evidence with existing offline map", status: NOT_STARTED}
+requirements: []
+assumptions: ["User explicitly specifies WGS84 and capture/valid timestamps"]
+risks: ["Unreconciled source locations may be mistaken for ground truth"]
+assurance: {level: A3, rationale: "Source provenance and spatial epistemic boundary"}
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+depends_on: [WORK-0001, WORK-0008, WORK-0018]
+blocks: []
+reuses: ["GeoJSON Point adapter", "WorldMini append_document", "Existing offline map"]
+affected_capabilities: []
+affected_engines: ["MONDE Mini source ingestion"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-csv-import.md]
+contracts: ["Explicit evidence, source attribution and bitemporal validity"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Parse safe source CSV and connect to existing importer", depends_on: [], expected_files: [src/monde/csv_points.py, src/monde/world.py], status: IN_PROGRESS}
+    - {id: T2, description: "Validate CSV to stored World Model to offline map", depends_on: [T1], expected_files: [tests/test_world_csv.py, docs/03_ARCHITECTURE/world-mini-csv-import.md], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Usable CSV data to MONDE Mini map", tasks: [T1, T2], exit_condition: "Product CI and independent L2 if applicable", status: IN_PROGRESS}
+review_plan:
+  artifact_class: DATA_SOURCE_CONNECTOR
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY, OPERATIONS]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: [tests/test_world_csv.py]
+  integration: ["CSV to GeoJSON to source assertions"]
+  contract: ["Evidence and original world/knowledge times"]
+  e2e: ["Python CLI, saved World Model and offline HTML"]
+  regression: ["Existing product tests"]
+  security: ["Invalid CSV, explicit source, no silent overwrite"]
+  performance: ["Maximum 50000 rows"]
+  real_system: ["GitHub Actions product CI"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Only user-declared WGS84 source Point claims"]
+risk: {security: LOW, data: MEDIUM, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Revert this isolated stacked PR without changing its ancestors."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_done_checked: false, review_complete: false, docs_updated: false, registries_updated: false, project_state_updated: false}
