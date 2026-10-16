@@ -561,7 +561,7 @@ class OfflineEntityDossierExportTest(unittest.TestCase):
                          'filters: appliedFilters()',
                          'source_snapshot_report_count: features.length',
                          'entity_reports_in_source_snapshot: features.filter',
-                         'a.properties.source_id !== b.properties.source_id',
+                         'sourcesFound.size > 1 && positionsFound.size > 1',
                          'FILTERED_VISIBLE_SOURCE_REPORTS_ONLY',
                          'monde-entity-evidence-dossier.json',
                          "connect-src 'none'"):
@@ -579,3 +579,47 @@ class OfflineEntityDossierExportTest(unittest.TestCase):
                 self.assertIn('id="export-dossier"', page)
                 self.assertIn('KNOWLEDGE_CHANGE', page)
                 self.assertIn('REPORTED_WORLD_TIME_CHANGE', page)
+
+
+
+class OfflineEntityDossierBehaviorTest(unittest.TestCase):
+    def test_real_javascript_creates_filtered_nonconsensus_entity_dossier(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node.js is required for the browser logic smoke test")
+        document = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        page = render_map(document)
+        start = page.index("  function createEntityDossier() {")
+        end = page.index('  dossierButton.addEventListener("click"', start)
+        function_source = page[start:end]
+        script = (
+            'const assert = require("node:assert/strict");\n'
+            'const features = ' + json.dumps(document["features"]) + ';\n'
+            'const query = ' + json.dumps(document["monde_bbox_query"]) + ';\n'
+            'let visibleFeatures = features.slice();\n'
+            'const entities = {value: features[0].properties.entity};\n'
+            'const selectedFeature = features[0];\n'
+            'const knowledgeComparing = false, worldComparing = false;\n'
+            'const appliedFilters = () => ({source_id:"official-map"});\n'
+            'const positionKey = f => JSON.stringify(f.geometry.coordinates);\n'
+            + function_source +
+            '\nconst original = JSON.stringify(features);\n'
+            'const dossier = createEntityDossier();\n'
+            'assert.equal(dossier.included_report_count, 2);\n'
+            'assert.equal(dossier.distinct_source_count, 2);\n'
+            'assert.equal(dossier.distinct_reported_position_count, 2);\n'
+            'assert.equal(dossier.different_source_positions_reported, true);\n'
+            'assert.equal(dossier.scope, "FILTERED_VISIBLE_SOURCE_REPORTS_ONLY");\n'
+            'assert.deepEqual(dossier.reports, features);\n'
+            'assert.deepEqual(dossier.original_query, query);\n'
+            'assert.equal(dossier.filters.source_id, "official-map");\n'
+            'visibleFeatures = [features[0]];\n'
+            'assert.equal(createEntityDossier().included_report_count, 1);\n'
+            'assert.equal(createEntityDossier().different_source_positions_reported, false);\n'
+            'entities.value = "missing-entity";\n'
+            'assert.equal(createEntityDossier(), null);\n'
+            'assert.equal(JSON.stringify(features), original);\n'
+        )
+        result = subprocess.run([node, "-e", script], capture_output=True,
+                                text=True, cwd=ROOT)
+        self.assertEqual(result.returncode, 0, result.stderr)

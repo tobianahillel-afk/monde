@@ -515,12 +515,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     if (!reports.length) return null;
     var sourcesFound = new Set(reports.map(function(f) { return f.properties.source_id; }));
     var positionsFound = new Set(reports.map(positionKey));
-    var contradictory = reports.some(function(a,i) {
-      return reports.slice(i+1).some(function(b) {
-        return a.properties.source_id !== b.properties.source_id &&
-          positionKey(a) !== positionKey(b);
-      });
-    });
+    // With 2+ distinct sources and 2+ locations, a cross-source conflict
+    // necessarily exists. O(n) rather than pairwise O(n²) at the 5k limit.
+    var contradictory = sourcesFound.size > 1 && positionsFound.size > 1;
     return {
       format: "MONDE_MINI_ENTITY_EVIDENCE_DOSSIER_V1",
       scope: "FILTERED_VISIBLE_SOURCE_REPORTS_ONLY",
