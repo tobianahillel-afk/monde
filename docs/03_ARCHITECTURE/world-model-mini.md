@@ -211,3 +211,29 @@ source audit. The example reports the city's original 5-floor claim and its
 knowledge cutoff, the correction remains invisible and the 5-floor statement
 is still marked current *as a source assertion*. No source consensus,
 reputation scoring, inferred events or new dependency is introduced.
+
+
+## Track how sources became known (T10: knowledge-time timeline)
+
+`WorldMini.knowledge_timeline(entity, attribute, at, from_known_at, to_known_at)`
+holds **world-time T fixed** and divides an increasing **knowledge-time window**
+into half-open intervals. Each segment contains the source reports available at
+that cutoff, or explicit `UNKNOWN` before the first report. Source corrections
+replace only that source's earlier assertion once known; conflicting sources
+remain visible with evidence IDs, capture times, source locators and correction
+lineage. This is a history of what MONDE *knew was reported*, not a history of
+verified changes in the world.
+
+```sh
+PYTHONPATH=src python3 -m monde.world --fixture examples/monde-mini.json \
+  --entity building-001 --attribute floors \
+  --at 2026-01-02T00:00:00Z \
+  --knowledge-timeline-from 2026-01-01T00:00:00Z \
+  --known-at 2026-01-08T00:00:00Z
+```
+
+For the synthetic fixture the sequence is `UNKNOWN`, the city report of
+5 floors, two competing reports (5 and 6), then city-corrected 7 alongside
+the independent news report 6. The exclusive upper bound prevents a future
+correction leaking into earlier segments. No real data ingestion, reconciliation,
+source-quality weighting or event inference is introduced.

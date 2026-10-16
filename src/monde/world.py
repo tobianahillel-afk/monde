@@ -369,6 +369,55 @@ class WorldMini:
         }
 
 
+    def knowledge_timeline(self, entity: str, attribute: str, at: str,
+                           from_known_at: str, to_known_at: str) -> dict:
+        """Show how source reports for one world-time became known over time.
+
+        Intervals are half-open in *knowledge* time; world-time is fixed.
+        Changes show arrivals or source corrections, never physical events.
+        """
+        _id(entity)
+        _id(attribute)
+        valid_at = _time(at)
+        start, end = _time(from_known_at), _time(to_known_at)
+        if start >= end:
+            raise ValueError("knowledge timeline requires increasing cutoffs")
+        cuts = {start, end}
+        for assertion in self._assertions.values():
+            if (assertion["entity"] != entity or
+                    assertion["attribute"] != attribute or
+                    _time(assertion["valid_from"]) > valid_at or
+                    (assertion["valid_to"] is not None and
+                     valid_at >= _time(assertion["valid_to"]))):
+                continue
+            known = _time(assertion["known_at"])
+            if start < known < end:
+                cuts.add(known)
+        segments = []
+        ordered = sorted(cuts)
+        for lower, upper in zip(ordered, ordered[1:]):
+            known = lower.isoformat().replace("+00:00", "Z")
+            reports = self.query(entity, attribute, at, known)["reports"]
+            stop = upper.isoformat().replace("+00:00", "Z")
+            if segments and segments[-1]["reports"] == reports:
+                segments[-1]["known_to"] = stop
+            else:
+                segments.append({
+                    "known_from": known, "known_to": stop,
+                    "status": "REPORTED" if reports else "UNKNOWN",
+                    "reports": reports,
+                })
+        return {
+            "entity": entity, "attribute": attribute, "world": "OBSERVED",
+            "comparison": "KNOWLEDGE_TIME_REPORTS_ONLY",
+            "valid_at": at,
+            "from_known_at": from_known_at, "to_known_at": to_known_at,
+            "status": ("REPORTED" if any(s["reports"] for s in segments)
+                       else "UNKNOWN"),
+            "segments": segments,
+        }
+
+
     def compare_world_time(self, entity: str, from_at: str,
                            to_at: str, known_at: str) -> dict:
         """Compare *reported* validity at T1/T2 with the same knowledge K.
@@ -461,12 +510,24 @@ def main(argv=None) -> int:
     parser.add_argument("--timeline-from", help="start of valid-world-time interval")
     parser.add_argument("--timeline-to", help="exclusive end of valid-world-time interval")
     parser.add_argument("--known-at", required=True)
+    parser.add_argument("--knowledge-timeline-from", help="start of knowledge-time history; --known-at is exclusive upper bound")
     parser.add_argument("--compare-known-at", help="earlier knowledge cutoff; requires --all-attributes")
     parser.add_argument("--compare-at", help="earlier valid-world-time; requires --all-attributes and --at")
     args = parser.parse_args(argv)
     try:
         world = WorldMini.read(args.fixture)
-        if args.source_history is not None:
+        if args.knowledge_timeline_from is not None and (
+                args.entity is None or args.attribute is None or args.at is None or
+                args.all_attributes or args.source_disagreements or
+                args.source_history is not None or args.search_attribute is not None or
+                args.source_attribute is not None or args.equals_json is not None or
+                args.timeline_from is not None or args.timeline_to is not None or
+                args.compare_known_at is not None or args.compare_at is not None):
+            parser.error("knowledge timeline requires --entity, --attribute and --at without other modes")
+        if args.knowledge_timeline_from is not None:
+            result = world.knowledge_timeline(args.entity, args.attribute, args.at,
+                                              args.knowledge_timeline_from, args.known_at)
+        elif args.source_history is not None:
             if (args.at is not None or args.timeline_from is not None or
                     args.timeline_to is not None or args.compare_at is not None or
                     args.compare_known_at is not None or args.equals_json is not None):
