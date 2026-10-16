@@ -35,6 +35,7 @@ main{display:grid;grid-template-columns:minmax(0,2fr) minmax(290px,1fr);gap:16px
 section,aside{border:1px solid #314154;border-radius:12px;background:#182436;padding:14px;min-width:0}
 #map{width:100%;height:auto;max-height:65vh;background:#102b3b;border:1px solid #38526a;border-radius:8px;touch-action:none}
 #disagreement-links line{stroke:#f0a0e3;stroke-width:2.5;stroke-dasharray:7 5;opacity:.85;pointer-events:none}
+#source-traces line{stroke:#58e1dd;stroke-width:2.8;stroke-dasharray:3 2;opacity:.8;pointer-events:none}
 #points circle{cursor:pointer;stroke-width:2.4;outline:none}
 #points circle:focus{stroke:#fff;stroke-width:5}
 #points circle.inside{fill:#51d6ba;stroke:#093b39}
@@ -89,7 +90,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 </div>
 <svg id="map" role="img" tabindex="0" aria-label="Offline geographic context with separate source-reported evidence Points; drag or use arrow keys to pan" viewBox="0 0 1200 600">
 <rect width="1200" height="600" fill="#123044"></rect>
-<g id="land" aria-hidden="true"></g><g id="graticule"></g><g id="viewport"></g><g id="disagreement-links" aria-hidden="true"></g><g id="points"></g>
+<g id="land" aria-hidden="true"></g><g id="graticule"></g><g id="viewport"></g><g id="disagreement-links" aria-hidden="true"></g><g id="source-traces" aria-hidden="true"></g><g id="points"></g>
 </svg>
 <p class="subtle">Natural Earth 1:110m public-domain land outlines provide approximate geographic orientation only. They are not source evidence or verified entity positions. Drag to pan or use arrow keys, and fit matching reports to revisit source claims outside the display window. No online tiles or requests.</p>
 <p id="metrics"></p>
@@ -118,7 +119,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <p id="radius-summary" class="subtle">Select an original source report to choose a proximity center. Distances are approximate, between reported coordinates only.</p>
 <div class="controls"><label><input id="disagreements-only" type="checkbox"> Different-source position claims only</label></div>
 <div class="controls"><label><input id="show-disagreement-links" type="checkbox" checked> Show source-position disagreement links</label></div>
-<p class="subtle">Dashed disagreement links are not routes, movements, uncertainty estimates or verified physical locations.</p>
+<p class="subtle">Pink dashed disagreement links are not routes or movements. Cyan dashed GPX sample connections, when present, show original source order only — not a verified physical path or continuous movement.</p>
 <div class="controls" id="change-filter-control" hidden><label for="change-filter">Reported change</label>
 <select id="change-filter"><option value="">All changes</option><option value="NEWLY_CURRENT">Newly current</option><option value="NO_LONGER_CURRENT">No longer current</option></select></div>
 <ul id="report-list" aria-label="Reported points"></ul>
@@ -156,6 +157,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var grid = document.getElementById("graticule");
   var layer = document.getElementById("points");
   var linkLayer = document.getElementById("disagreement-links");
+  var traceLayer = document.getElementById("source-traces");
   var showLinks = document.getElementById("show-disagreement-links");
   var list = document.getElementById("report-list");
   var details = document.getElementById("details");
@@ -249,6 +251,38 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     var mid=y1+(y2-y1)*(edge-x1)/(x2-x1);
     segment(x1,y1,edge,mid);
     segment(edge===0?1200:0,mid,x2<0?x2+1200:x2-1200,y2);
+  }
+  function renderSourceTraces(reports) {
+    traceLayer.replaceChildren();
+    var grouped = new Map();
+    reports.forEach(function(feature) {
+      var trace=feature.properties.monde_gpx_trace;
+      if(!trace)return;
+      var key=JSON.stringify([feature.properties.source_id,trace.trace_id,
+                              trace.segment]);
+      if(!grouped.has(key))grouped.set(key,[]);
+      grouped.get(key).push(feature);
+    });
+    grouped.forEach(function(samples) {
+      samples.sort(function(a,b){
+        return a.properties.monde_gpx_trace.order -
+          b.properties.monde_gpx_trace.order;
+      });
+      for(var i=1;i<samples.length;i++){
+        var from=samples[i-1],to=samples[i];
+        var first=from.properties.monde_gpx_trace;
+        var next=to.properties.monde_gpx_trace;
+        if(next.order!==first.order+1)continue; // No invented missing edges.
+        var a=from.geometry.coordinates,b=to.geometry.coordinates;
+        // The simple offline world projection never implies a path crossing
+        // the antimeridian: omit that segment instead of drawing across Earth.
+        if(Math.abs(a[0]-b[0])>180)continue;
+        el("line",{x1:x(a[0]),y1:y(a[1]),x2:x(b[0]),y2:y(b[1]),
+          "data-gpx-trace":first.trace_id},traceLayer);
+      }
+    });
+    document.body.setAttribute("data-monde-gpx-segments",
+      String(traceLayer.childElementCount));
   }
   function renderDisagreementLinks(reports) {
     linkLayer.replaceChildren();
@@ -674,6 +708,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       " · assertion "+radiusCenter.assertion_id+" from "+radiusCenter.source_id+
       ". Source-reported coordinates only; not a verified position or ground truth.";
     renderDisagreementLinks(visibleFeatures);
+    renderSourceTraces(visibleFeatures);
     visibleFeatures.forEach(function(f) {
       var p = f.properties, coords = f.geometry.coordinates;
       var circle = el("circle", {cx:x(coords[0]),cy:y(coords[1]),
@@ -958,6 +993,23 @@ def render_map(document: dict) -> str:
                 or not -90 <= lat <= 90):
             raise ValueError("invalid source Point")
         props = feature["properties"]
+        trace = props.get("monde_gpx_trace")
+        if trace is not None:
+            if (not isinstance(trace, dict) or set(trace) !=
+                    {"format", "kind", "name", "trace_id", "segment", "order"}
+                    or trace["format"] != "GPX_1_1_TRACE_POINT"
+                    or trace["kind"] not in ("trk", "rte")
+                    or not isinstance(trace["name"], str)
+                    or not trace["name"]
+                    or not isinstance(trace["trace_id"], str)
+                    or len(trace["trace_id"]) != 24
+                    or any(ch not in "0123456789abcdef"
+                           for ch in trace["trace_id"])
+                    or type(trace["segment"]) is not int
+                    or not 0 <= trace["segment"] < MAX_FEATURES
+                    or type(trace["order"]) is not int
+                    or not 0 <= trace["order"] < 50_000):
+                raise ValueError("invalid source-reported GPX topology")
         if (any(not isinstance(props.get(k), str)
                 for k in ("entity", "source_id", "evidence_id", "locator",
                           "captured_at")) or type(props.get("monde_inside_bbox")) is not bool):
