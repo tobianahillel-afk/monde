@@ -82,4 +82,52 @@ async function planL2DeltaFromGitHub({
   };
 }
 
-module.exports = { planL2DeltaFromGitHub };
+
+// Observe the live PR on both sides of the exact-SHA comparison. The existing
+// adapter only proves ancestry between two caller-supplied SHAs; it does not
+// establish that the requested target is still the PR HEAD. This wrapper
+// bridges that gap for a read-only review plan, not for merge eligibility.
+async function planL2DeltaFromCurrentGitHub(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input))
+    incomplete();
+  const { github, previous_assignment, current_head } = input;
+  const old = assignment(previous_assignment);
+  if (old.mission_kind !== 'L2_REVIEW' ||
+      typeof current_head !== 'string' || !/^[a-f0-9]{40}$/.test(current_head) ||
+      !github || !github.rest || !github.rest.pulls ||
+      typeof github.rest.pulls.get !== 'function' ||
+      !github.rest.repos ||
+      typeof github.rest.repos.compareCommitsWithBasehead !== 'function')
+    incomplete();
+  const [owner, repo] = old.repo.split('/');
+  const observe = async () => {
+    const response = await github.rest.pulls.get({
+      owner, repo, pull_number: old.pr
+    });
+    const data = response && response.data;
+    const head = data && data.head;
+    const base = data && data.base;
+    if (!data || data.number !== old.pr || data.state !== 'open' ||
+        !head || !base || !head.repo || !base.repo ||
+        typeof head.sha !== 'string' || head.sha !== current_head ||
+        base.repo.full_name !== old.repo || base.ref !== 'main' ||
+        typeof base.sha !== 'string' || !/^[a-f0-9]{40}$/.test(base.sha))
+      incomplete();
+    return base.sha;
+  };
+  const beforeBase = await observe();
+  const plan = await planL2DeltaFromGitHub(input);
+  const afterBase = await observe();
+  if (beforeBase !== afterBase) incomplete();
+  return {
+    ...plan,
+    observed_pr_head_consistent_during_read: true,
+    observed_pr_base_sha: beforeBase,
+    // A live GitHub ref can change immediately after the second observation.
+    live_pr_head_still_requires_verification: true,
+    must_recheck_before_review: true,
+    review_acceptance_granted: false
+  };
+}
+
+module.exports = { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub };

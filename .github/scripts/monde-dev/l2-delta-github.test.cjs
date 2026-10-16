@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { planL2DeltaFromGitHub } = require('./l2-delta-github.cjs');
+const { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub } = require('./l2-delta-github.cjs');
 
 const OLD = 'a'.repeat(40), HEAD = 'b'.repeat(40);
 const PATH = '.github/scripts/monde-dev/delegation.cjs';
@@ -175,4 +175,74 @@ test('Single comparison with merge commit is not a linear L2 delta',async()=>{
     planL2DeltaFromGitHub(args({github:client({
       ...base,commits:[{sha:HEAD,parents:[{sha:OLD},{sha:'c'.repeat(40)}]}]
     })})),err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+});
+
+function liveClient({head=HEAD,baseSha='c'.repeat(40),changeAfter=false,
+                    state='open',baseRef='main',wrongRepo=false}={}) {
+  const calls={pulls:[],compares:[]};
+  let n=0;
+  const github=client(base,calls.compares);
+  github.rest.pulls={
+    get:async params=>{
+      calls.pulls.push(params);
+      n++;
+      return {data:{number:19,state,
+        head:{sha:changeAfter&&n===2?OLD:head,
+          repo:{full_name:'tobianahillel-afk/monde'}},
+        base:{sha:changeAfter&&n===2?'d'.repeat(40):baseSha,
+          ref:baseRef,repo:{full_name:wrongRepo?'attacker/other':'tobianahillel-afk/monde'}}
+      }};
+    }
+  };
+  return {github,calls};
+}
+test('live PR bridge verifies exact current PR HEAD before and after comparison',async()=>{
+  const live=liveClient();
+  const result=await planL2DeltaFromCurrentGitHub(args({github:live.github}));
+  assert.equal(result.status,'TARGETED_REVIEW_CANDIDATE');
+  assert.equal(result.observed_pr_head_consistent_during_read,true);
+  assert.equal(result.observed_pr_base_sha,'c'.repeat(40));
+  assert.equal(result.must_recheck_before_review,true);
+  assert.equal(result.review_acceptance_granted,false);
+  assert.equal(live.calls.pulls.length,2);
+  assert.equal(live.calls.compares.length,1);
+  for(const call of live.calls.pulls)assert.deepEqual(call,{
+    owner:'tobianahillel-afk',repo:'monde',pull_number:19
+  });
+});
+test('live PR bridge rejects a stale PR HEAD before requesting comparison',async()=>{
+  const live=liveClient({head:OLD});
+  await assert.rejects(planL2DeltaFromCurrentGitHub(args({github:live.github})),
+    err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+  assert.equal(live.calls.pulls.length,1);
+  assert.equal(live.calls.compares.length,0);
+});
+test('live PR bridge rejects mid-read changes without inferring review coverage',async()=>{
+  const live=liveClient({changeAfter:true});
+  await assert.rejects(planL2DeltaFromCurrentGitHub(args({github:live.github})),
+    err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+  assert.equal(live.calls.pulls.length,2);
+  assert.equal(live.calls.compares.length,1);
+});
+test('live PR bridge rejects wrong repository, PR state or target branch',async()=>{
+  for(const cfg of [{wrongRepo:true},{state:'closed'},{baseRef:'feature'}]){
+    const live=liveClient(cfg);
+    await assert.rejects(planL2DeltaFromCurrentGitHub(args({github:live.github})),
+      err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(live.calls.compares.length,0);
+  }
+});
+test('live PR bridge refuses missing PR adapter without touching compare',async()=>{
+  const calls=[];
+  const github=client(base,calls);
+  await assert.rejects(planL2DeltaFromCurrentGitHub(args({github})),
+    err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+  assert.equal(calls.length,0);
+});
+test('live PR bridge propagates missing PR API permission without fake success',async()=>{
+  const live=liveClient();
+  live.github.rest.pulls.get=async()=>{const err=new Error('Forbidden');err.status=403;throw err;};
+  await assert.rejects(planL2DeltaFromCurrentGitHub(args({github:live.github})),
+    err=>err.status===403);
+  assert.equal(live.calls.compares.length,0);
 });
