@@ -212,7 +212,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       "Locator: " + p.locator,
       "Captured: " + p.captured_at,
       "Source event: " + (p.source_event_at || "not supplied"),
-      "Known cutoff: " + query.knowledge_cutoff,
+      "Known cutoff: " + (knowledgeComparing ? p.knowledge_cutoff : query.knowledge_cutoff),
       "Valid at: " + (worldComparing ? query.from_at + " → " + query.to_at : query.valid_at),
       "Claim status: SOURCE_REPORTED_ONLY"
     ].join("\n");
