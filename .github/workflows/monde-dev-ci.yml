@@ -1,0 +1,43 @@
+name: MONDE Dev V2 Interactive Delegation CI
+# PR code is tested with read-only checkout; NO candidate-controlled github-script,
+# privileged event trigger, Issue mutation or GitHub token-capable code execution.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  delegation-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout candidate without persisted GitHub credentials
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          # On fork PRs, the exact head SHA belongs to the contributor repo,
+          # not necessarily to the base repository's Git object database.
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify checked out HEAD matches the reviewed PR candidate
+        env:
+          EXPECTED_PR_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_PR_HEAD"
+          echo "Candidate HEAD verified: $EXPECTED_PR_HEAD"
+      - name: Node runtime
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Check pure delegation syntax
+        run: node --check .github/scripts/monde-dev/delegation.cjs
+      - name: Run read-only delegation tests
+        run: >-
+          node --test --experimental-test-coverage
+          --test-coverage-lines=99
+          --test-coverage-branches=93
+          --test-coverage-functions=100
+          .github/scripts/monde-dev/delegation.test.cjs
+          .github/scripts/monde-dev/l2-delta-github.test.cjs
