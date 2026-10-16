@@ -338,9 +338,6 @@ class OriginalGPXTests(unittest.TestCase):
                              [doc["features"][0]["id"]] * 3)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
     def test_trace_filter_is_available_in_original_offline_page(self):
         with tempfile.TemporaryDirectory() as directory:
             source = self.source(directory, TRACE_GPX)
@@ -353,3 +350,7 @@ if __name__ == "__main__":
             self.assertIn('id="trace-filter-summary"', page)
             self.assertIn("original source trace segments", page)
             self.assertIn("gpx_source_trace: traceFilter.value", page)
+
+
+if __name__ == "__main__":
+    unittest.main()
