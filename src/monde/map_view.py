@@ -37,6 +37,7 @@ section,aside{border:1px solid #314154;border-radius:12px;background:#182436;pad
 #disagreement-links line{stroke:#f0a0e3;stroke-width:2.5;stroke-dasharray:7 5;opacity:.85;pointer-events:none}
 #source-traces line{stroke:#58e1dd;stroke-width:2.8;stroke-dasharray:3 2;opacity:.8;pointer-events:none}
 #source-traces line[data-kml-boundary]{stroke:#f4b56c;stroke-dasharray:6 3}
+#source-traces line[data-kml-inner-ring]{stroke:#e9a2b6;stroke-dasharray:2 4}
 #points circle{cursor:pointer;stroke-width:2.4;outline:none}
 #points circle:focus{stroke:#fff;stroke-width:5}
 #points circle.inside{fill:#51d6ba;stroke:#093b39}
@@ -282,7 +283,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   function renderSourceTraces(reports) {
     traceLayer.replaceChildren();
-    var grouped = new Map(), gpxCount=0, kmlCount=0, boundaryCount=0;
+    var grouped = new Map(), gpxCount=0, kmlCount=0, boundaryCount=0, innerCount=0;
     reports.forEach(function(feature) {
       var trace=feature.properties.monde_gpx_trace ||
         feature.properties.monde_kml_trace;
@@ -314,8 +315,14 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         var isBoundary=first.format==="KML_2_2_POLYGON_RING_POINT";
         attrs[isGpx?"data-gpx-trace":
               (isBoundary?"data-kml-boundary":"data-kml-trace")]=first.trace_id;
+        if(isBoundary && first.segment>0)
+          attrs["data-kml-inner-ring"]=String(first.segment);
         el("line",attrs,traceLayer);
-        if(isGpx)gpxCount++;else if(isBoundary)boundaryCount++;else kmlCount++;
+        if(isGpx)gpxCount++;
+        else if(isBoundary){
+          boundaryCount++;
+          if(first.segment>0)innerCount++;
+        }else kmlCount++;
       }
     });
     document.body.setAttribute("data-monde-gpx-segments",
@@ -324,6 +331,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       String(kmlCount));
     document.body.setAttribute("data-monde-kml-boundary-segments",
       String(boundaryCount));
+    document.body.setAttribute("data-monde-kml-inner-segments",
+      String(innerCount));
   }
   function renderDisagreementLinks(reports) {
     linkLayer.replaceChildren();
@@ -667,7 +676,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         "KML source " + (p.monde_kml_trace.kind==="Polygon"?
           "boundary: ":"line: ") + p.monde_kml_trace.name,
         ...(p.monde_kml_trace.kind==="Polygon" ?
-          ["Original KML Placemark id: "+p.monde_kml_trace.placemark_id] : []),
+          ["Original KML Placemark id: "+p.monde_kml_trace.placemark_id,
+             "Source-declared ring: "+(p.monde_kml_trace.segment===0 ?
+               "outer":"inner #"+String(p.monde_kml_trace.segment))] : []),
         "KML original sample order: " + String(p.monde_kml_trace.order+1),
         "Interpretation: ORIGINAL_KML_SAMPLES_NOT_VERIFIED_MOTION"
       ] : [])
@@ -1285,7 +1296,8 @@ def render_map(document: dict) -> str:
                     or any(ch not in "0123456789abcdef"
                            for ch in kml_trace["trace_id"])
                     or type(kml_trace["segment"]) is not int
-                    or kml_trace["segment"] != 0
+                    or not 0 <= kml_trace["segment"] <= (
+                         128 if kml_trace["kind"] == "Polygon" else 0)
                     or type(kml_trace["order"]) is not int
                     or not 0 <= kml_trace["order"] < 50_000):
                 raise ValueError("invalid source-reported KML topology")

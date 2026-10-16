@@ -347,5 +347,105 @@ class KMLSourceTests(unittest.TestCase):
             self.assertEqual(sum("kml-boundary-" in x for x in ids), 4)
             self.assertEqual(sum("kml-line-" in x for x in ids), 2)
 
+    def test_polygon_inner_rings_keep_order_role_ids_and_bitemporal_evidence(self):
+        outer = "2.35,48.85 2.37,48.85 2.37,48.87 2.35,48.85"
+        inner = "2.355,48.855 2.365,48.855 2.365,48.865 2.355,48.855"
+        xml = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+               '<Placemark id="reported-zone"><name>Unverified area with hole</name>'
+               '<Polygon><outerBoundaryIs><LinearRing><coordinates>' + outer +
+               '</coordinates></LinearRing></outerBoundaryIs>'
+               '<innerBoundaryIs><LinearRing><coordinates>' + inner +
+               '</coordinates></LinearRing></innerBoundaryIs></Polygon>'
+               '</Placemark></Document></kml>')
+        with tempfile.TemporaryDirectory() as directory:
+            source = self.fixture(directory, xml)
+            features = to_geojson(source)["features"]
+            self.assertEqual(features, to_geojson(source)["features"])
+            self.assertEqual(len(features), 8)
+            self.assertEqual(len({f["id"] for f in features}), 8)
+            traces = [f["properties"]["kml_trace"] for f in features]
+            self.assertEqual([t["segment"] for t in traces], [0]*4 + [1]*4)
+            self.assertEqual([t["order"] for t in traces], list(range(4))*2)
+            self.assertEqual(len({t["trace_id"] for t in traces}), 1)
+            self.assertEqual([f["geometry"]["coordinates"] for f in features[4:]],
+                             [[2.355,48.855],[2.365,48.855],
+                              [2.365,48.865],[2.355,48.855]])
+            doc = to_document({"type":"FeatureCollection","features":features},
+                              source_id="reported-zone-source",
+                              locator="dataset://original-zone.kml",
+                              captured_at=CAPTURED,
+                              valid_from="2026-01-01T00:00:00Z")
+            visible = WorldMini.from_document(doc).export_geojson_bbox(
+                [-180,-90,180,90],AT,CAPTURED)["features"]
+            self.assertEqual(len(visible), 8)
+            self.assertEqual({x["properties"]["monde_kml_trace"]["segment"]
+                              for x in visible}, {0,1})
+            self.assertEqual(len({x["properties"]["evidence_id"] for x in visible}),8)
+            self.assertTrue(all(x["properties"]["source_id"]=="reported-zone-source"
+                                and x["properties"]["monde_status"]=="SOURCE_REPORTED_ONLY"
+                                for x in visible))
+            output=Path(directory)/"zone.html"
+            run=self.cli(*self.flags(source),"--at",AT,"--known-at",CAPTURED,
+                         "--output",output)
+            self.assertEqual(run.returncode,0,run.stderr)
+            html=output.read_text(encoding="utf-8")
+            for marker in ('data-kml-inner-ring','data-monde-kml-inner-segments',
+                           'Source-declared ring:',"Unverified area with hole"):
+                self.assertIn(marker,html)
+            self.assertNotIn("https://tile.",html)
+
+    def test_polygon_multiple_inner_rings_do_not_join_other_ring_evidence(self):
+        outer="2.35,48.85 2.39,48.85 2.39,48.89 2.35,48.85"
+        hole1="2.353,48.853 2.355,48.853 2.355,48.855 2.353,48.853"
+        hole2="2.373,48.873 2.375,48.873 2.375,48.875 2.373,48.873"
+        rings=('<outerBoundaryIs><LinearRing><coordinates>'+outer+
+               '</coordinates></LinearRing></outerBoundaryIs>'+
+               '<innerBoundaryIs><LinearRing><coordinates>'+hole1+
+               '</coordinates></LinearRing></innerBoundaryIs>'+
+               '<innerBoundaryIs><LinearRing><coordinates>'+hole2+
+               '</coordinates></LinearRing></innerBoundaryIs>')
+        xml=('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+             '<Placemark id="zone"><Polygon>'+rings+
+             '</Polygon></Placemark></Document></kml>')
+        with tempfile.TemporaryDirectory() as directory:
+            features=to_geojson(self.fixture(directory,xml))["features"]
+            self.assertEqual(len(features),12)
+            self.assertEqual([f["properties"]["kml_trace"]["segment"]
+                              for f in features],[0]*4+[1]*4+[2]*4)
+            self.assertEqual([f["properties"]["kml_trace"]["order"]
+                              for f in features],list(range(4))*3)
+            self.assertEqual(len({f["id"] for f in features}),12)
+
+    def test_polygon_inner_ring_invalidity_rejects_entire_source_atomically(self):
+        outer=('<outerBoundaryIs><LinearRing><coordinates>'
+               '2.35,48.85 2.39,48.85 2.39,48.89 2.35,48.85'
+               '</coordinates></LinearRing></outerBoundaryIs>')
+        inner=('<innerBoundaryIs><LinearRing><coordinates>'
+               '2.36,48.86 2.37,48.86 2.37,48.87 2.36,48.86'
+               '</coordinates></LinearRing></innerBoundaryIs>')
+        invalids=[
+            inner.replace('2.36,48.86</coordinates>','2.38,48.86</coordinates>'),
+            inner.replace('2.37,48.87','2.37,48.87,9'),
+            inner.replace('2.37,48.87','2.36,48.86'),
+            '<innerBoundaryIs/>',
+            inner.replace('innerBoundaryIs','outerBoundaryIs'),
+            inner*129,
+            inner.replace('<LinearRing>','<LinearRing id="wrong">')
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            for i,bad in enumerate(invalids):
+                xml=('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                     '<Placemark id="zone"><Polygon>'+outer+bad+
+                     '</Polygon></Placemark></Document></kml>')
+                path=self.fixture(directory,xml,str(i)+".kml")
+                with self.subTest(index=i):
+                    with self.assertRaises(ValueError):
+                        to_geojson(path)
+                    out=Path(directory)/("bad-"+str(i)+".html")
+                    result=self.cli(*self.flags(path),"--at",AT,"--known-at",
+                                    CAPTURED,"--output",out)
+                    self.assertNotEqual(result.returncode,0)
+                    self.assertFalse(out.exists())
+
 if __name__ == "__main__":
     unittest.main()

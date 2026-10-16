@@ -1,0 +1,74 @@
+id: WORK-0028
+title: "Display source-declared KML Polygon inner rings offline"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini evidence map and KML source adapter"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Preserve source-declared KML Polygon holes as independently inspectable
+  evidence ring traces instead of rejecting common bounded original files.
+scope:
+  in:
+    - one closed outer ring and up to 128 closed inner KML LinearRings per Placemark
+    - separate ring index and source-reported vertex evidence, no inferred coordinates
+    - visibly distinct original inner and outer source boundary edges
+    - real source CLI and Chromium offline user-path regression
+  out:
+    - filling polygons or spatial containment, legal boundaries and inferred truth
+    - cross-ring geometry repair, complex MultiGeometry, 3D, network data
+acceptance_criteria:
+  - id: AC-1
+    description: "Inner rings are extracted atomically as disjoint ordered evidence with stable IDs, metadata and source ancestry."
+    status: NOT_STARTED
+  - id: AC-2
+    description: "Browser distinguishes inner and outer source boundaries without inventing edges or fills."
+    status: NOT_STARTED
+  - id: AC-3
+    description: "Malformed/open/3D rings fail closed and existing original KML inputs remain compatible."
+    status: NOT_STARTED
+requirements: []
+assumptions:
+  - "Polygon ring boundaries are claims of a source, not geospatial correctness or territorial truth."
+risks:
+  - "Mixing ring indices could falsely connect inner and outer boundaries."
+  - "Sources may contain geometrically invalid but syntactically closed contours."
+assurance:
+  level: A2
+  rationale: "Bounded, local original-source parsing plus offline presentation, not a security or identity architecture change."
+  escalation_triggers: ["loss of provenance", "incorrect source topology", "unexpected external input execution"]
+depends_on: [WORK-0027]
+reuses: ["existing KML parser", "GeoJSON-to-WorldMini evidence", "offline SVG trace renderer", "Chromium CI"]
+read_before: [AGENTS.md, docs/03_ARCHITECTURE/world-mini-offline-map.md, src/monde/kml_points.py, src/monde/map_view.py, tests/test_world_kml.py]
+blocks: []
+affected_capabilities: []
+affected_engines: ["MONDE Mini source-evidence map"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["source-reported KML ring evidence and trace metadata"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Parse and retain every source-declared 2D ring as separate point evidence.", depends_on: [], expected_files: [src/monde/kml_points.py], status: IN_PROGRESS}
+    - {id: T2, description: "Render inner vs outer source segments without crossing rings.", depends_on: [T1], expected_files: [src/monde/map_view.py], status: IN_PROGRESS}
+    - {id: T3, description: "Validate complete CLI and offline Chromium path.", depends_on: [T2], expected_files: [tests/test_world_kml.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+review_plan:
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, DATA_EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["one outer, one/two inners, duplicate coordinates"]
+  integration: ["source KML -> GeoJSON -> WorldMini -> HTML"]
+  e2e: ["actual headless Chromium shows inner edges and no ring bridges"]
+  regression: ["existing Points, LineStrings and single-ring Polygons"]
+  security: ["reject remote XML, unsupported 3D, bad geometry, sample budgets"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked parent #51 and ancestors remain draft", "independent L2 review pending"]
+rollback:
+  strategy: "Close the child PR without touching source data or main."

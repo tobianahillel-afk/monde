@@ -1,4 +1,4 @@
-"""Ingest bounded KML Points, LineStrings, and single-ring Polygon vertices.
+"""Ingest bounded KML Points, LineStrings, and Polygon ring vertices.
 
 Coordinates remain original source claims, not verified routes or areas.
 """
@@ -36,23 +36,32 @@ def _points(text):
 
 
 def _polygon_points(geometry, tag):
-    """Accept only one closed, planar outer KML LinearRing; no holes inferred."""
-    if geometry.attrib or len(geometry) != 1 or geometry[0].tag != tag("outerBoundaryIs"):
-        raise ValueError("KML Polygon requires one outer boundary without holes")
-    outer = geometry[0]
-    if outer.attrib or len(outer) != 1 or outer[0].tag != tag("LinearRing"):
-        raise ValueError("unsupported KML Polygon boundary")
-    ring = outer[0]
-    if ring.attrib or len(ring) != 1 or ring[0].tag != tag("coordinates"):
-        raise ValueError("unsupported KML Polygon LinearRing")
-    coords = ring[0]
-    if coords.attrib or len(coords):
-        raise ValueError("unsupported KML Polygon coordinates")
-    points = _points(coords.text)
-    if len(points) < 4 or points[0] != points[-1] or len({tuple(p) for p in points[:-1]}) < 3:
-        raise ValueError("KML Polygon must have a closed ring of at least three vertices")
-    return points
-
+    """Keep separate source-declared outer and inner rings; infer no area."""
+    children = list(geometry)
+    if (geometry.attrib or not 1 <= len(children) <= 129
+            or children[0].tag != tag("outerBoundaryIs")
+            or any(child.tag != tag("innerBoundaryIs") for child in children[1:])):
+        raise ValueError("KML Polygon requires one outer and up to 128 inner boundaries")
+    rings = []
+    count = 0
+    for boundary in children:
+        if boundary.attrib or len(boundary) != 1 or boundary[0].tag != tag("LinearRing"):
+            raise ValueError("unsupported KML Polygon boundary")
+        ring = boundary[0]
+        if ring.attrib or len(ring) != 1 or ring[0].tag != tag("coordinates"):
+            raise ValueError("unsupported KML Polygon LinearRing")
+        coords = ring[0]
+        if coords.attrib or len(coords):
+            raise ValueError("unsupported KML Polygon coordinates")
+        points = _points(coords.text)
+        if len(points) < 4 or points[0] != points[-1] or len({
+                tuple(p) for p in points[:-1]}) < 3:
+            raise ValueError("KML Polygon ring must close with three distinct vertices")
+        count += len(points)
+        if count > MAX_POINTS:
+            raise ValueError("KML Polygon ring sample limit exceeded")
+        rings.append(points)
+    return rings
 
 def to_geojson(path):
     """Convert bounded original KML geometry to source-ordered GeoJSON Point claims.
@@ -99,7 +108,8 @@ def to_geojson(path):
             raise ValueError("only one supported KML geometry per Placemark")
         geometry = geometries[0]
         if geometry.tag == tag("Polygon"):
-            points = _polygon_points(geometry, tag)
+            rings = _polygon_points(geometry, tag)
+            points = [point for ring in rings for point in ring]
         else:
             if geometry.attrib or len(geometry) != 1 or (
                     geometry[0].tag != tag("coordinates")
@@ -131,7 +141,12 @@ def to_geojson(path):
             continue
         trace_id = hashlib.sha256(ident.encode("utf-8")).hexdigest()[:24]
         repeats = {}
-        for order, point in enumerate(points):
+        samples = ([(ring_index, order, point)
+                    for ring_index, ring in enumerate(rings)
+                    for order, point in enumerate(ring)]
+                   if geometry.tag == tag("Polygon")
+                   else [(0, order, point) for order, point in enumerate(points)])
+        for segment, order, point in samples:
             digest = hashlib.sha256(json.dumps(
                 [ident, point], separators=(",", ":")).encode("utf-8")
                 ).hexdigest()[:32]
@@ -147,7 +162,7 @@ def to_geojson(path):
                                else "KML_2_2_LINESTRING_POINT"),
                     "kind": ("Polygon" if geometry.tag == tag("Polygon")
                              else "LineString"), "name": attrs.get("name", ident),
-                    "trace_id": trace_id, "segment": 0, "order": order,
+                    "trace_id": trace_id, "segment": segment, "order": order,
                     **({"placemark_id": ident} if geometry.tag == tag("Polygon")
                        else {})}},
                 "geometry": {"type": "Point", "coordinates": point}})

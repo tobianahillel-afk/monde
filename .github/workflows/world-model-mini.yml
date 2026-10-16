@@ -81,7 +81,10 @@ jobs:
           <Placemark id="reported-block"><name>Original claimed boundary</name>
           <Polygon><outerBoundaryIs><LinearRing><coordinates>
           2.35,48.85 2.36,48.85 2.36,48.86 2.35,48.85
-          </coordinates></LinearRing></outerBoundaryIs></Polygon>
+          </coordinates></LinearRing></outerBoundaryIs>
+          <innerBoundaryIs><LinearRing><coordinates>
+          2.353,48.853 2.355,48.853 2.355,48.855 2.353,48.853
+          </coordinates></LinearRing></innerBoundaryIs></Polygon>
           </Placemark></Document></kml>
           KML
           python3 -m monde.map_view --kml /tmp/monde-original-polygon.kml \
@@ -96,7 +99,9 @@ jobs:
             --timeout=15000 --dump-dom file:///tmp/monde-kml-boundary.html \
             >/tmp/monde-kml-boundary-dom.html
           grep -q 'data-monde-ready="true"' /tmp/monde-kml-boundary-dom.html
-          grep -q 'data-monde-kml-boundary-segments="3"' /tmp/monde-kml-boundary-dom.html
+          grep -q 'data-monde-kml-boundary-segments="6"' /tmp/monde-kml-boundary-dom.html
+          grep -q 'data-monde-kml-inner-segments="3"' /tmp/monde-kml-boundary-dom.html
+          grep -q 'data-kml-inner-ring="1"' /tmp/monde-kml-boundary-dom.html
           grep -q 'data-kml-boundary=' /tmp/monde-kml-boundary-dom.html
           grep -q 'Original claimed boundary' /tmp/monde-kml-boundary-dom.html
           grep -q 'original-boundary' /tmp/monde-kml-boundary-dom.html
