@@ -210,14 +210,18 @@ async function prepareFreshL2FromCurrentGitHub(input) {
   if (!Array.isArray(rows) || rows.length !== before.changed_files)
     incomplete();
   const paths=[];
+  const changes=[];
   for (const row of rows) {
     if (!row || !['added','modified','removed','renamed'].includes(row.status) ||
         typeof row.filename !== 'string') incomplete();
     paths.push(row.filename);
+    let previous_path = null;
     if (row.status === 'renamed') {
       if (typeof row.previous_filename !== 'string') incomplete();
-      paths.push(row.previous_filename);
+      previous_path = row.previous_filename;
+      paths.push(previous_path);
     }
+    changes.push({path:row.filename,status:row.status,previous_path});
   }
   if (new Set(paths).size !== paths.length || paths.length > 24)
     incomplete();
@@ -232,9 +236,24 @@ async function prepareFreshL2FromCurrentGitHub(input) {
     incomplete();
 
   const { buildReviewPrompt } = require('./delegation.cjs');
+  // The scope is a set of paths, but a deleted path does not exist at HEAD.
+  // Show the immutable base/head and every GitHub change kind so an L2 worker
+  // can examine both sides of a deletion or rename rather than silently omit it.
+  // All paths have already passed the strict assignment scope parser.
+  const changeManifest = changes.map(change => JSON.stringify(change)).join('\n');
+  const prompt = buildReviewPrompt(mission) +
+    '\n\nCONTEXTE DU DIFF GITHUB (lecture seule ; ne prouve aucune revue) :' +
+    '\nBase PR : ' + before.base_sha + '; HEAD PR : ' + before.head_sha +
+    '\nFichiers et opérations GitHub, un objet JSON par ligne :\n' +
+    changeManifest +
+    '\nPour une suppression (removed), analyser le diff et la version du fichier' +
+    ' sur la base de la PR : ce fichier n’existe plus au HEAD.' +
+    '\nPour un renommage (renamed), examiner le chemin précédent sur la base' +
+    ' et le nouveau chemin au HEAD, ainsi que le diff et les dépendances.' +
+    '\nUn chemin indiqué ici n’est PAS une preuve de lecture ni d’approbation.';
   return {
     status:'FRESH_L2_ASSIGNMENT_READY',assignment:mission,
-    prompt:buildReviewPrompt(mission),
+    prompt,changed_file_statuses:changes,
     observed_pr_base_sha:before.base_sha,
     observed_pr_head_sha:before.head_sha,
     observed_pr_source_repo:before.head_repo,

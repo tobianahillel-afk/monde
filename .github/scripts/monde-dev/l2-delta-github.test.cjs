@@ -371,6 +371,12 @@ test('fresh L2: pins full live PR scope and produces read-only separate-context 
   assert.equal(result.assignment.head_sha,HEAD);
   assert.equal(result.assignment.mission_kind,'L2_REVIEW');
   assert.equal(result.assignment.paths.length,2);
+  assert.deepEqual(result.changed_file_statuses,[
+    {path:PATH,status:'modified',previous_path:null},
+    {path:'.github/scripts/monde-dev/l2-delta-github.cjs',
+      status:'added',previous_path:null}
+  ]);
+  assert.match(result.prompt,/CONTEXTE DU DIFF GITHUB/);
   assert.equal(result.observed_pr_base_sha,'c'.repeat(40));
   assert.equal(result.requires_separate_chat,true);
   assert.equal(result.scheduled_task_created,false);
@@ -437,6 +443,25 @@ test('fresh L2: rename includes old and new paths in independent review scope',a
   const {api}=freshClient({files});
   const got=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
   assert.deepEqual(got.assignment.paths,['src/new.cjs','src/old.cjs']);
+  assert.deepEqual(got.changed_file_statuses,[
+    {path:'src/new.cjs',status:'renamed',previous_path:'src/old.cjs'}
+  ]);
+  assert.match(got.prompt,/Pour un renommage/);
+  assert.match(got.prompt,/"previous_path":"src\/old.cjs"/);
+});
+test('fresh L2: a deleted file is explicitly reviewed from the PR base, not HEAD',async()=>{
+  const files=[{status:'removed',filename:'docs/old-contract.md'}];
+  const {api}=freshClient({files});
+  const out=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
+  assert.deepEqual(out.assignment.paths,['docs/old-contract.md']);
+  assert.deepEqual(out.changed_file_statuses,[
+    {path:'docs/old-contract.md',status:'removed',previous_path:null}
+  ]);
+  assert.match(out.prompt,/Pour une suppression/);
+  assert.match(out.prompt,/sur la base de la PR/);
+  assert.match(out.prompt,/ce fichier n.existe plus au HEAD/);
+  assert.equal(out.review_acceptance_granted,false);
+  assert.equal(out.authorized_to_write,false);
 });
 test('fresh L2: read failure propagates and cannot masquerade as review success',async()=>{
   const {api}=freshClient({paginateError:true});
