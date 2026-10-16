@@ -7274,3 +7274,27 @@ test('L2 Oct-16: colon-terminated machine-local roots cannot enter public relay'
     assert.equal(packetSafe.action_kind,'CONTINUE_IMPLEMENTATION',route);
   }
 });
+
+
+test('resume: prevent conversational seven-char HEAD aliases in persistent next_action',()=>{
+  const base={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    action_kind:'AWAIT_L2',next_action:'Read PR files before review'};
+  for(const next_action of [
+    'Review HEAD is deadbee before merging',
+    'Verify commit at deadbee against default branch',
+    'Recheck SHA of deadbee after tests',
+    'Review the HEAD (`deadbee`) before proceeding',
+    'Confirm revision was deadbee after rebasing',
+    'Compare HEAD is de%61dbee with the PR',
+    'Compare HEAD at \u0064eadbee with the PR'
+  ]){
+    assert.throws(()=>d.createResumePacket({...base,next_action}),
+      e=>e.code==='INVALID_RESUME_PACKET',next_action);
+  }
+  for(const next_action of [
+    'Inspect job-116784601317 and the exact current GitHub PR HEAD',
+    'Review commits and CI results on the current PR',
+    'Check source file src/decafed.cjs'
+  ])assert.equal(d.createResumePacket({...base,next_action}).next_action,
+    next_action);
+});

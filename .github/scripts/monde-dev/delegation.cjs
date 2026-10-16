@@ -2194,7 +2194,7 @@ function containsFreeTextCommitRef(action) {
       return true;
     // Seven hex characters are ambiguous in ordinary prose, but unsafe when
     // expressly introduced as a commit/HEAD/SHA/revision reference.
-    return /(?:^|[^A-Za-z0-9])(?:commit(?:\s+(?:id|sha|hash))?|HEAD|SHA|revision|rev)\s*(?:[:=#-]\s*)?[a-f0-9]{7}(?![A-Za-z0-9])/i.test(withoutCiIds);
+    return /(?:^|[^A-Za-z0-9])(?:commit(?:\s+(?:id|sha|hash))?|HEAD|SHA|revision|rev)\s*(?:(?:is|at|of|was)\s+)?(?:[:=#-]\s*)?[("'\x60]{0,2}[a-f0-9]{7}(?![A-Za-z0-9])/i.test(withoutCiIds);
   });
 }
 function resumePacket(input){
