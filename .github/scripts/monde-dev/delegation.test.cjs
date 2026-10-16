@@ -7855,3 +7855,15 @@ test('WORK planner still accepts ordinary quoted values and original canonical f
     'description: "Quoted words: status, tasks, and \\\\u0074"');
   assert.equal(d.parseWorkPlanningSnapshot(desc,'WORK-0001').tasks[0].status,'DONE');
 });
+
+test('WORK planner rejects YAML merge keys with tab separation',()=>{
+  for(const injected of [
+    WORK_FIXTURE_ACTIVE+'\n<<\t: *borrowed',
+    WORK_FIXTURE_ACTIVE.replace('  planned_runs: []',
+      '  planned_runs: []\n  <<\t: *borrowed')
+  ]){
+    assert.throws(()=>d.parseWorkPlanningSnapshot(injected,'WORK-0007'),
+      e=>['AMBIGUOUS_WORK_SNAPSHOT',
+        'AMBIGUOUS_IMPLEMENTATION_SECTIONS'].includes(e.code));
+  }
+});
