@@ -338,6 +338,48 @@ class WorldMini:
                 "matches": matches}
 
 
+    def export_geojson_bbox(self, bounds, at: str, known_at: str) -> dict:
+        """Map source Point entities in a viewport, retaining contrary positions.
+
+        Include *every* current source Point of a qualifying entity, even
+        positions outside the viewport. No position is reconciled into truth.
+        """
+        from .geojson import _point
+
+        result = self.search_geo_bbox(bounds, at, known_at)
+        features = []
+        for match in result["matches"]:
+            for inside, reports in ((True, match["matched_reports"]),
+                                    (False, match["other_reports"])):
+                for report in reports:
+                    properties = {
+                        "entity": match["entity"],
+                        "monde_world": "OBSERVED",
+                        "monde_status": "SOURCE_REPORTED_ONLY",
+                        "valid_at": at,
+                        "knowledge_cutoff": known_at,
+                        "monde_inside_bbox": inside,
+                    }
+                    properties.update({key: _clone(value) for key, value in report.items()
+                                       if key != "value"})
+                    features.append({
+                        "type": "Feature", "id": report["assertion_id"],
+                        "geometry": _point(report["value"]), "properties": properties,
+                    })
+        features.sort(key=lambda f: (f["properties"]["entity"],
+                                     not f["properties"]["monde_inside_bbox"], f["id"]))
+        return {
+            "type": "FeatureCollection", "features": features,
+            "monde_bbox_query": {
+                "basis": result["query"], "bbox": result["bbox"],
+                "valid_at": result["valid_at"],
+                "knowledge_cutoff": result["knowledge_cutoff"],
+                "total_matching_entities": len(result["matches"]),
+                "total_source_features": len(features),
+                "status": result["status"],
+            },
+        }
+
     def export_geojson(self, at: str, known_at: str, bounds=None) -> dict:
         """GeoJSON view: one Feature per current source Point assertion at T/K.
 
@@ -945,6 +987,8 @@ def main(argv=None) -> int:
                            help="GeoJSON map of nearest source-reported Point entities")
     selection.add_argument("--export-geojson-radius", metavar="LON,LAT",
                            help="GeoJSON map of source Points within a radius")
+    selection.add_argument("--export-geojson-bbox", metavar="W,S,E,N",
+                           help="GeoJSON viewport entities with competing source positions")
     selection.add_argument("--source-disagreements", action="store_true")
     selection.add_argument("--source-history", metavar="SOURCE_ID")
     selection.add_argument("--knowledge-updates", action="store_true")
@@ -1090,6 +1134,23 @@ def main(argv=None) -> int:
                     args.equals_json is not None):
                 parser.error("disagreements require --at without entity/timeline/compare")
             result = world.source_disagreements(args.at, args.known_at)
+        elif args.export_geojson_bbox is not None:
+            if (args.entity is not None or args.at is None or
+                    args.known_at is None or args.source_attribute is not None or
+                    args.equals_json is not None or args.timeline_from is not None or
+                    args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None or
+                    args.compare_known_at is not None or args.compare_at is not None or
+                    args.updates_from is not None):
+                parser.error("GeoJSON bbox export requires --at and --known-at")
+            parts = args.export_geojson_bbox.split(",")
+            if len(parts) != 4:
+                raise ValueError("bbox must be WEST,SOUTH,EAST,NORTH")
+            try:
+                bounds = [float(part.strip()) for part in parts]
+            except ValueError as exc:
+                raise ValueError("bbox must contain numeric coordinates") from exc
+            result = world.export_geojson_bbox(bounds, args.at, args.known_at)
         elif args.export_geojson_radius is not None:
             if (args.entity is not None or args.at is None or
                     args.source_attribute is not None or args.equals_json is not None or
