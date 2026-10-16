@@ -19,6 +19,7 @@ acceptance_criteria:
   - {id: AC-1, description: "Return separate as-world-time and as-knowledge-time source reports with evidence lineage", status: NOT_STARTED}
   - {id: AC-2, description: "Preserve contradictory sources and earlier snapshots across append-only corrections", status: NOT_STARTED}
   - {id: AC-3, description: "Execute a real CLI/fixture path and security/temporal regressions on GitHub Actions", status: NOT_STARTED}
+  - {id: AC-4, description: "Query an entity-wide observed snapshot across multiple properties without erasing source contradictions or unknowns", status: NOT_STARTED}
 
 requirements: []
 assumptions: ["Exact offset-aware ISO-8601 time for this bounded prototype; uncertain dates remain an unapproved LOT-2 design question."]
@@ -56,6 +57,7 @@ implementation_plan:
   tasks:
     - {id: T1, description: "Build source-evidence bitemporal query core", depends_on: [], expected_files: [src/monde/world.py, src/monde/__init__.py], status: IN_PROGRESS}
     - {id: T2, description: "Build synthetic end-to-end fixture and Python CI", depends_on: [T1], expected_files: [examples/monde-mini.json, tests/test_world_mini.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+    - {id: T3, description: "Expose entity-wide source-attributed as-of snapshot and CLI", depends_on: [T1], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
   planned_runs:
     - {id: RUN-1, objective: "Deliver reproducible experimental product slice", tasks: [T1, T2], exit_condition: "GH CI succeeds on published candidate HEAD and independent L2 performed", status: IN_PROGRESS}
 review_plan:
@@ -67,7 +69,7 @@ review_plan:
 required_tests:
   unit: ["bitemporal and correction behavior"]
   property: ["idempotency and immutable history"]
-  integration: ["actual Python module subprocess CLI"]
+  integration: ["actual Python module subprocess CLI", "entity snapshot CLI across properties"]
   contract: ["JSON schema version and strict input"]
   e2e: ["synthetic source evidence to two-time query"]
   regression: ["contradiction and revision replay"]

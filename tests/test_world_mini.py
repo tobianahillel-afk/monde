@@ -142,6 +142,72 @@ class WorldMiniTest(unittest.TestCase):
             finally:
                 os.unlink(path)
 
+
+    def test_entity_snapshot_preserves_all_source_reports_without_picking_truth(self):
+        snapshot = self.model.entity_snapshot("building-001", AT, LATE)
+        self.assertEqual(snapshot["world"], "OBSERVED")
+        self.assertEqual(snapshot["status"], "REPORTED")
+        self.assertEqual(list(snapshot["attributes"]), ["floors"])
+        reports = snapshot["attributes"]["floors"]["reports"]
+        self.assertEqual([r["value"] for r in reports], [6, 7])
+        self.assertEqual({r["evidence_id"] for r in reports},
+                         {"e-news-1", "e-city-reg-2"})
+
+    def test_snapshot_is_bitemporal_and_never_fabricates_unknown_attributes(self):
+        before = self.model.entity_snapshot("building-001", AT,
+                                             "2026-01-05T00:00:00Z")
+        self.assertEqual([r["value"] for r in
+                          before["attributes"]["floors"]["reports"]], [5, 6])
+        unknown = self.model.entity_snapshot("building-001", AT,
+                                              "2026-01-02T00:00:00Z")
+        self.assertEqual(unknown["status"], "UNKNOWN")
+        self.assertEqual(unknown["attributes"], {})
+        self.assertNotIn("basements", self.model.entity_snapshot(
+            "building-001", AT, LATE)["attributes"])
+
+    def test_snapshot_aggregates_multiple_properties_without_losing_zero(self):
+        self.model.add_evidence({"id": "e-b-basement", "source_id": "survey",
+                                 "locator": "fixture://survey/basements",
+                                 "captured_at": "2026-01-08T00:00:00Z",
+                                 "source_event_at": None})
+        self.model.add_assertion({"id": "a-b-basement", "entity": "building-001",
+                                  "attribute": "basements", "value": 0,
+                                  "evidence_id": "e-b-basement", "kind": "OBSERVATION",
+                                  "known_at": "2026-01-08T00:00:00Z",
+                                  "valid_from": "2026-01-01T00:00:00Z",
+                                  "valid_to": None, "supersedes": None})
+        current = self.model.entity_snapshot("building-001", AT,
+                                              "2026-01-09T00:00:00Z")
+        self.assertEqual(list(current["attributes"]), ["basements", "floors"])
+        self.assertEqual(current["attributes"]["basements"]["reports"][0]["value"], 0)
+        old = self.model.entity_snapshot("building-001", AT, LATE)
+        self.assertNotIn("basements", old["attributes"])
+        current["attributes"]["floors"]["reports"][0]["value"] = -999
+        self.assertEqual([r["value"] for r in
+                          self.model.query("building-001", "floors", AT,
+                                           "2026-01-09T00:00:00Z")["reports"]],
+                         [6, 7])
+
+    def test_entity_snapshot_rejects_invalid_identity_and_temporal_cutoffs(self):
+        for entity, at, known in [("bad entity", AT, LATE),
+                                   ("building-001", "unparseable", LATE),
+                                   ("building-001", AT, "2026-01-07")]:
+            with self.assertRaises(ValueError):
+                self.model.entity_snapshot(entity, at, known)
+
+    def test_real_cli_all_attributes_and_mutually_exclusive_flags(self):
+        env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+        args = [sys.executable, "-m", "monde.world", "--fixture",
+                str(ROOT / "examples/monde-mini.json"), "--entity", "building-001",
+                "--all-attributes", "--at", AT, "--known-at", LATE]
+        result = subprocess.run(args, capture_output=True, text=True, check=False, env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([x["value"] for x in
+                          json.loads(result.stdout)["attributes"]["floors"]["reports"]], [6, 7])
+        unsupported = subprocess.run(args + ["--attribute", "floors"],
+                                     capture_output=True, text=True, check=False, env=env)
+        self.assertNotEqual(unsupported.returncode, 0)
+
     def test_real_cli_on_repo_fixture(self):
         env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
         args = [sys.executable, "-m", "monde.world", "--fixture",

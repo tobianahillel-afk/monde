@@ -173,19 +173,44 @@ class WorldMini:
                 "status": "REPORTED" if reports else "UNKNOWN",
                 "reports": reports}
 
+    def entity_snapshot(self, entity: str, at: str, known_at: str) -> dict:
+        """All source-reported attributes known at K and valid at T.
+
+        No claim is reconciled into truth: disagreements remain distinct reports.
+        Attributes not known at K are omitted, never represented as zero/false.
+        """
+        _id(entity)
+        _time(at)
+        _time(known_at)
+        attributes = {}
+        for attribute in sorted({a["attribute"] for a in self._assertions.values()
+                                 if a["entity"] == entity}):
+            result = self.query(entity, attribute, at, known_at)
+            if result["reports"]:
+                attributes[attribute] = {"status": "REPORTED",
+                                         "reports": result["reports"]}
+        return {"entity": entity, "world": "OBSERVED",
+                "valid_at": at, "knowledge_cutoff": known_at,
+                "status": "REPORTED" if attributes else "UNKNOWN",
+                "attributes": attributes}
+
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Query MONDE Mini evidence as of event and knowledge time")
     parser.add_argument("--fixture", required=True)
     parser.add_argument("--entity", required=True)
-    parser.add_argument("--attribute", required=True)
+    selection = parser.add_mutually_exclusive_group(required=True)
+    selection.add_argument("--attribute")
+    selection.add_argument("--all-attributes", action="store_true")
     parser.add_argument("--at", required=True)
     parser.add_argument("--known-at", required=True)
     args = parser.parse_args(argv)
     try:
         world = WorldMini.read(args.fixture)
-        print(json.dumps(world.query(args.entity, args.attribute, args.at, args.known_at),
-                         ensure_ascii=False, sort_keys=True))
+        result = (world.entity_snapshot(args.entity, args.at, args.known_at)
+                  if args.all_attributes else
+                  world.query(args.entity, args.attribute, args.at, args.known_at))
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     except (OSError, ValueError, TypeError) as exc:
         print("MONDE Mini: " + str(exc), file=sys.stderr)
         return 2

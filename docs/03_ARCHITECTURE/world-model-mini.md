@@ -37,6 +37,19 @@ The synthetic building produces two contradictory source reports: 6 and 7
 floors. A knowledge cutoff before the city correction returns 5 and 6. An
 unknown property returns status UNKNOWN and zero reports.
 
+For a source-attributed snapshot of **all known building attributes** at the
+same valid-time and knowledge cutoff, omit `--attribute` and use
+`--all-attributes` instead:
+
+    PYTHONPATH=src python3 -m monde.world \\
+      --fixture examples/monde-mini.json \\
+      --entity building-001 --all-attributes \\
+      --at 2026-01-02T00:00:00Z --known-at 2026-01-07T00:00:00Z
+
+The snapshot contains one key per reported attribute, with all distinct source
+reports preserved; no reconciled value is selected. Absent/unobserved properties
+are omitted rather than represented as zero. A real observed zero remains zero.
+
     PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_world_mini.py' -v
 
 A separate GitHub Actions PR CI runs these real Python and CLI tests.
