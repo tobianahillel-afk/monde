@@ -456,3 +456,17 @@ geometry is **not** proof of a legal boundary, territorial ownership, land use,
 traversability, presence or measured surface. Self-intersecting rings remain
 source claims; missing closure, holes, altitude and unsupported geometry fail
 without partial output.
+
+## KML Polygon outer and inner rings (WORK-0028)
+
+A source Polygon with one closed outer `LinearRing` and up to 128 closed
+`innerBoundaryIs` LinearRings is ingested as separate *original point evidence*
+per ring. `monde_kml_trace.segment=0` marks the outer boundary and positive
+segments mark each explicitly supplied inner boundary, in original KML order.
+The original repeated closing vertex is retained as its own sample/evidence.
+The offline SVG evidence map draws only consecutive samples **within the same
+ring**: amber dashed edges for outer rings and rose dashed edges for inner
+rings. Filtering that hides a vertex cannot create replacement or connecting
+edges. No area fill, inside/outside judgment, legal boundary claim, geometric
+repair, or polygon validity inference is performed. Unsupported geometry,
+three-dimensional samples and malformed rings fail atomically.
