@@ -270,6 +270,12 @@ to an existing MONDE Mini snapshot, then write a new validated snapshot to disk.
 All records are checked before changing in-memory state, so one invalid item
 rejects the whole batch. Old source contradictions and knowledge cutoffs survive
 serialization/reopening. The input uses the existing experimental schema v1.
+For multiple ordered batches, repeat `--ingest-document FILE` in the same
+invocation. They are validated as one in-memory transaction and one disk
+publication: any invalid later batch leaves the old saved snapshot unchanged.
+A later batch may correct an assertion from an earlier batch; each source
+still owns only its own corrections. The CLI reports total new evidence,
+new assertions and the number of applied batches.
 
     PYTHONPATH=src python3 -m monde.world \
       --fixture examples/monde-mini.json \

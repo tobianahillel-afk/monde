@@ -1088,5 +1088,110 @@ class WorldMiniTest(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
             self.assertFalse(Path(target).exists())
 
+
+    def test_multibatch_ingest_is_atomic_and_supports_cross_batch_corrections(self):
+        """A correction in batch two can revise a claim introduced in batch one."""
+        first = WorldMini.load_document(str(ROOT / "examples/monde-mini-update.json"))
+        second = {
+            "schema_version": 1,
+            "evidence": [{
+                "id": "e-news-3", "source_id": "local-news",
+                "locator": "fixture://local-news/second-correction",
+                "captured_at": "2026-01-09T10:00:00Z",
+                "source_event_at": "2026-01-09T09:00:00Z",
+            }],
+            "assertions": [{
+                **first["assertions"][0],
+                "id": "a-news-final", "value": 9,
+                "evidence_id": "e-news-3",
+                "known_at": "2026-01-09T10:00:00Z",
+                "supersedes": "a-news-revised",
+            }],
+        }
+        unchanged = self.model.export()
+        invalid = copy.deepcopy(second)
+        invalid["assertions"][0]["evidence_id"] = "missing-evidence"
+        with self.assertRaisesRegex(ValueError, "no recorded evidence"):
+            self.model.append_documents([first, invalid])
+        self.assertEqual(self.model.export(), unchanged)
+        result = self.model.append_documents([first, second])
+        self.assertEqual(result, {
+            "batches": 2, "added_evidence": 2, "added_assertions": 2})
+        self.assertEqual(sorted(r["value"] for r in self.query(
+            "2026-01-10T00:00:00Z")["reports"]), [7, 9])
+        self.assertEqual(sorted(r["value"] for r in self.query(LATE)["reports"]),
+                         [6, 7])
+        self.assertEqual(self.model.append_documents([first, second])["added_assertions"], 0)
+        with self.assertRaisesRegex(ValueError, "at least one"):
+            self.model.append_documents([])
+        self.assertEqual(len(self.model.export()["assertions"]), 5)
+
+    def test_cli_multibatch_persists_all_lots_in_single_restartable_snapshot(self):
+        first = WorldMini.load_document(str(ROOT / "examples/monde-mini-update.json"))
+        second = {
+            "schema_version": 1,
+            "evidence": [{
+                "id": "e-city-update", "source_id": "city-registry",
+                "locator": "fixture://city-registry/second-report",
+                "captured_at": "2026-01-09T12:00:00Z",
+                "source_event_at": "2026-01-09T11:00:00Z",
+            }],
+            "assertions": [{
+                **first["assertions"][0],
+                "id": "a-city-update", "value": 10,
+                "evidence_id": "e-city-update",
+                "known_at": "2026-01-09T12:00:00Z",
+                "supersedes": "a-city-revised",
+            }],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            second_file = Path(directory) / "second.json"
+            second_file.write_text(json.dumps(second), encoding="utf-8")
+            output = Path(directory) / "world.json"
+            env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+            command = [
+                sys.executable, "-m", "monde.world",
+                "--fixture", str(ROOT / "examples/monde-mini.json"),
+                "--ingest-document", str(ROOT / "examples/monde-mini-update.json"),
+                "--ingest-document", str(second_file),
+                "--state-out", str(output),
+            ]
+            imported = subprocess.run(command, capture_output=True, text=True, env=env)
+            self.assertEqual(imported.returncode, 0, imported.stderr)
+            self.assertEqual(json.loads(imported.stdout)["batches"], 2)
+            self.assertEqual(json.loads(imported.stdout)["added_assertions"], 2)
+            query = subprocess.run([
+                sys.executable, "-m", "monde.world",
+                "--fixture", str(output), "--entity", "building-001",
+                "--attribute", "floors", "--at", AT,
+                "--known-at", "2026-01-10T00:00:00Z",
+            ], capture_output=True, text=True, env=env)
+            self.assertEqual(query.returncode, 0, query.stderr)
+            self.assertEqual(sorted(r["value"] for r in json.loads(query.stdout)["reports"]),
+                             [8, 10])
+            self.assertEqual(len(WorldMini.read(output).export()["assertions"]), 5)
+
+    def test_cli_multibatch_invalid_later_lot_preserves_existing_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            output = directory / "saved.json"
+            self.model.save(output)
+            before = output.read_bytes()
+            bad = WorldMini.load_document(str(ROOT / "examples/monde-mini-update.json"))
+            bad["assertions"][0]["evidence_id"] = "not-real"
+            bad_file = directory / "bad.json"
+            bad_file.write_text(json.dumps(bad), encoding="utf-8")
+            env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+            command = [
+                sys.executable, "-m", "monde.world", "--fixture", str(output),
+                "--ingest-document", str(ROOT / "examples/monde-mini-update.json"),
+                "--ingest-document", str(bad_file),
+                "--state-out", str(output), "--replace-state",
+            ]
+            attempted = subprocess.run(command, capture_output=True, text=True, env=env)
+            self.assertNotEqual(attempted.returncode, 0)
+            self.assertEqual(output.read_bytes(), before)
+            self.assertEqual(WorldMini.read(output).export(), self.model.export())
+
 if __name__ == "__main__":
     unittest.main()

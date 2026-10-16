@@ -167,6 +167,26 @@ class WorldMini:
         return {"added_evidence": len(self._evidence) - before_evidence,
                 "added_assertions": len(self._assertions) - before_assertions}
 
+    def append_documents(self, documents: list[dict]) -> dict:
+        """Apply several source batches atomically to the in-memory model.
+
+        Cross-batch corrections may reference assertions from earlier batches.
+        A failure in any batch preserves the original model unchanged.
+        """
+        if not isinstance(documents, list) or not documents:
+            raise ValueError("at least one ingestion document is required")
+        candidate = type(self).from_document(self.export())
+        previous_evidence = len(self._evidence)
+        previous_assertions = len(self._assertions)
+        for document in documents:
+            candidate.append_document(document)
+        self._evidence = candidate._evidence
+        self._assertions = candidate._assertions
+        self._last_known = candidate._last_known
+        return {"batches": len(documents),
+                "added_evidence": len(self._evidence) - previous_evidence,
+                "added_assertions": len(self._assertions) - previous_assertions}
+
     def save(self, path: str, *, replace: bool = False) -> None:
         """Atomic snapshot publication, single-writer only; no concurrent CAS."""
         destination = os.path.abspath(os.fspath(path))
@@ -621,7 +641,8 @@ def main(argv=None) -> int:
     selection.add_argument("--knowledge-updates", action="store_true")
     selection.add_argument("--world-knowledge-changes", action="store_true")
     selection.add_argument("--ingest-document", metavar="UPDATES_JSON",
-                           help="append source evidence and claims to a saved snapshot")
+                           action="append",
+                           help="append one or more ordered source batches atomically; repeat flag")
     parser.add_argument("--state-out", help="destination JSON snapshot for ingestion")
     parser.add_argument("--replace-state", action="store_true",
                         help="explicitly overwrite --state-out (single writer only)")
@@ -647,7 +668,9 @@ def main(argv=None) -> int:
                     args.source_attribute is not None):
                 parser.error("ingestion requires --state-out and no query options")
             world = WorldMini.read(args.fixture)
-            changes = world.append_document(WorldMini.load_document(args.ingest_document))
+            changes = world.append_documents([
+                WorldMini.load_document(path) for path in args.ingest_document
+            ])
             world.save(args.state_out, replace=args.replace_state)
             print(json.dumps({"operation": "APPEND_SOURCE_REPORTS",
                               "world": "OBSERVED", "status": "SAVED", **changes},
