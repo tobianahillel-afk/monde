@@ -1523,18 +1523,43 @@ function liveWaveAssessmentFixture(options={}) {
       repo:{full_name:WAVE_SOURCE_REPO},ref:WAVE_SOURCE_REF},
     base:{sha:WAVE_BASE,ref:'main',repo:{full_name:WAVE_SOURCE_REPO}}
   });
-  const github={rest:{pulls:{get:async args=>{
-    calls.push(args);
-    if(options.refused)throw Object.assign(new Error('GitHub denied'),{status:403});
-    const data=mk();
-    if(options.drift && calls.length===2)data.head.ref='changed-ref';
-    if(options.changedHead)data.head.sha='b'.repeat(40);
-    if(options.changedBase)data.base.sha='f'.repeat(40);
-    if(options.changedRepo)data.head.repo.full_name='imposter/monde';
-    if(options.changedFileCount)data.changed_files=4;
-    if(options.wrongPr)data.number=20;
-    return {data};
-  }}}};
+  // Fixed independent GitHub manifest; never derive rows from the submitted
+  // plan during assessment of plan-tampering adversarial cases.
+  const files=Array.from({length:5},(_,i)=>({
+    filename:'src/wave'+(i+1)+'.cjs',status:'modified',
+    sha:'7'.repeat(40),additions:4,deletions:1,changes:5
+  }));
+  const github={
+    paginate:async(_method,args)=>{
+      assert.equal(args.pull_number,19);
+      return options.missingFile?files.slice(1):options.forgedFile?
+        files.map((row,i)=>i===0?{...row,filename:'src/forged.cjs'}:row):files;
+    },
+    rest:{
+      repos:{compareCommitsWithBasehead:async()=>({
+        data:{base_commit:{sha:WAVE_BASE},
+          merge_base_commit:{sha:options.wrongMergeBase?'e'.repeat(40):'c'.repeat(40)},
+          status:'diverged',ahead_by:2,behind_by:1,total_commits:2,
+          files:options.mismatchedImmutable?files.map((row,i)=>i===0?
+            {...row,sha:'8'.repeat(40)}:row):files}
+      })},
+      pulls:{
+        listFiles:()=>{},
+        get:async args=>{
+          calls.push(args);
+          if(options.refused)throw Object.assign(new Error('GitHub denied'),{status:403});
+          const data=mk();
+          if(options.drift && calls.length===2)data.head.ref='changed-ref';
+          if(options.changedHead)data.head.sha='b'.repeat(40);
+          if(options.changedBase)data.base.sha='f'.repeat(40);
+          if(options.changedRepo)data.head.repo.full_name='imposter/monde';
+          if(options.changedFileCount)data.changed_files=4;
+          if(options.wrongPr)data.number=20;
+          return {data};
+        }
+      }
+    }
+  };
   return {plan,github,calls};
 }
 test('L2 foreground bridge: current GitHub PR is checked twice before returning advisory result',async()=>{
