@@ -623,3 +623,72 @@ class OfflineEntityDossierBehaviorTest(unittest.TestCase):
         result = subprocess.run([node, "-e", script], capture_output=True,
                                 text=True, cwd=ROOT)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class OfflineRadiusExplorerTest(unittest.TestCase):
+    def test_radius_filter_embeds_original_evidence_and_derivative_coordinates(self):
+        document = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        original = copy.deepcopy(document)
+        page = render_map(document)
+        self.assertEqual(extract(page)[1], original)
+        self.assertEqual(document, original)
+        for marker in ('id="radius-km"', 'id="set-radius-center"',
+                       'id="clear-radius-center"',
+                       'function approximateDistanceKm(a,b)',
+                       'function withinReportedRadius(f)',
+                       'withinReportedRadius(f) &&',
+                       'source_radius_center: radiusCenter ? {',
+                       'source_radius_km: radiusCenter ? radiusKmValue() : null',
+                       'APPROXIMATE_GREAT_CIRCLE_BETWEEN_SOURCE_REPORTED_POINTS',
+                       "connect-src 'none'"):
+            self.assertIn(marker, page)
+
+    def test_radius_explorer_supported_in_both_temporal_change_modes(self):
+        world, _ = corrected_points()
+        snapshots = (
+            world.export_geojson_bbox_knowledge_changes(BBOX, VALID, KNOWN, LATE),
+            world.export_geojson_bbox_world_changes(
+                BBOX, "2025-12-31T00:00:00Z", VALID, LATE),
+        )
+        for document in snapshots:
+            with self.subTest(query=tuple(document)):
+                page = render_map(document)
+                self.assertEqual(extract(page)[1], document)
+                self.assertIn('id="set-radius-center"', page)
+
+    def test_real_javascript_distance_wrap_and_filter_are_correct(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node.js required for real offline radius logic")
+        document = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        page = render_map(document)
+        start = page.index("  function approximateDistanceKm(a,b) {")
+        end = page.index("  // Apply exactly the same filters", start)
+        functions = page[start:end]
+        script = (
+            'const assert=require("node:assert/strict");\n'
+            'var radiusInput={value:"50"};\n'
+            'var radiusCenter={coordinates:[179.9,0]};\n'
+            + functions +
+            '\nconst near={geometry:{coordinates:[-179.9,0]}};\n'
+            'const far={geometry:{coordinates:[0,0]}};\n'
+            'assert(approximateDistanceKm([179.9,0],[-179.9,0]) < 25);\n'
+            'assert.equal(approximateDistanceKm([1,2],[1,2]),0);\n'
+            'assert.equal(withinReportedRadius(near),true);\n'
+            'assert.equal(withinReportedRadius(far),false);\n'
+            'radiusInput.value="0";\n'
+            'assert.equal(withinReportedRadius(near),false);\n'
+            'radiusInput.value="abc";\n'
+            'assert.equal(withinReportedRadius(near),false);\n'
+            'radiusInput.value="-1";\n'
+            'assert.equal(withinReportedRadius(near),false);\n'
+            'radiusInput.value="20041";\n'
+            'assert.equal(withinReportedRadius(near),false);\n'
+            'radiusInput.value="20040";\n'
+            'assert.equal(withinReportedRadius(far),true);\n'
+            'radiusCenter=null;\n'
+            'assert.equal(withinReportedRadius(far),true);\n'
+        )
+        result = subprocess.run([node, "-e", script], cwd=ROOT,
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)

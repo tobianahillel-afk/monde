@@ -166,3 +166,23 @@ The dossier is a **filtered derivative, not a complete history or location
 consensus**. Omitted reports prove no physical absence, and reported changes
 do not prove movement. Works offline for normal, knowledge-change and
 world-time-change maps, with no added API, server or package.
+
+## Source-reported proximity exploration (T13)
+
+In the standalone map, select any original source report, choose **Use selected
+report as center**, and enter a nonnegative radius in kilometers (0 to 20040).
+The explorer filters the *embedded source Points* by approximate great-circle
+distance from that report's **source-claimed coordinate**. Longitude wraps at
+the antimeridian. A later selection does not silently move the radius center;
+use the center button again to change it or **Clear radius** to restore all
+other filters. An invalid radius returns no reports until corrected.
+
+This is an evidence-navigation operation, **not a radius around a verified
+physical location**, geocoding, a route, a confidence score or proof of absence.
+It composes with source, entity, capture-day, disagreement, map-window and
+world/knowledge time-change filters and with **Fit matching reports**.
+Visible GeoJSON and entity dossier downloads retain the original source
+assertions, evidence IDs and query and add the chosen center's assertion,
+source and evidence IDs, original coordinates, radius kilometers and an
+explicit approximate-distance derivation under `filters`. It neither changes
+the saved snapshot nor requests an external map or API.

@@ -29,6 +29,7 @@ acceptance_criteria:
   - {id: AC-12, description: "Filter original source evidence by inclusive UTC capture dates while preserving world and knowledge times", status: NOT_STARTED}
   - {id: AC-13, description: "Fit currently matching source-report coordinates without changing the original evidence", status: NOT_STARTED}
   - {id: AC-14, description: "Export a filtered source-evidence dossier for one entity with original temporal query", status: NOT_STARTED}
+  - {id: AC-15, description: "Explore original source-reported Points within a specified offline radius of a selected source Point, retaining all evidence and derivative filter provenance", status: NOT_STARTED}
 requirements: []
 assumptions: ["Standalone schematic WGS84 projection; not a basemap or physical truth"]
 risks: ["Misinterpretation of geographic claim as truth", "Embedded metadata injection"]
@@ -57,6 +58,7 @@ implementation_plan:
     - {id: T10, description: "Explore original source capture dates independently from world and knowledge cutoffs", depends_on: [T5], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
     - {id: T11, description: "Fit currently filtered source reports on the existing offline map", depends_on: [T4, T9, T10], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
     - {id: T12, description: "Export an offline entity evidence dossier", depends_on: [T5, T7], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_PROGRESS}
+    - {id: T13, description: "Filter offline source-reported Points by proximity to a selected source assertion without conflating distance and truth", depends_on: [T4, T5], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_PROGRESS}
   planned_runs:
     - {id: RUN-1, objective: "Product map and bounded verification", tasks: [T1, T2], exit_condition: "HTML saved-state use and green CI", status: IN_PROGRESS}
 review_plan:

@@ -47,7 +47,7 @@ section,aside{border:1px solid #314154;border-radius:12px;background:#182436;pad
 #graticule line{stroke:#34536b;stroke-width:1}
 #graticule text{fill:#a0b9ce;font-size:15px}
 .controls{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:12px 0}
-button,select,input[type=search],input[type=date]{background:#253c50;border:1px solid #48677e;border-radius:7px;color:#fff;padding:8px 10px;font:inherit}
+button,select,input[type=search],input[type=date],input[type=number]{background:#253c50;border:1px solid #48677e;border-radius:7px;color:#fff;padding:8px 10px;font:inherit}
 button,select{cursor:pointer}
 input[type=search]{min-width:170px;flex:1;max-width:360px}
 input[type=search]::placeholder{color:#b6c4d6}
@@ -99,6 +99,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <div class="controls"><label for="captured-from">Captured from (UTC day)</label><input id="captured-from" type="date" aria-label="Captured from UTC day">
 <label for="captured-through">Captured through (UTC day)</label><input id="captured-through" type="date" aria-label="Captured through UTC day"></div>
 <p class="subtle">Capture dates filter source evidence metadata, not when a claim was valid or known. Date bounds are inclusive UTC days.</p>
+<div class="controls"><label for="radius-km">Near a reported Point (km)</label><input id="radius-km" type="number" min="0" max="20040" step="any" value="50" aria-label="Approximate radius in kilometers">
+<button id="set-radius-center" type="button" disabled>Use selected report as center</button>
+<button id="clear-radius-center" type="button" disabled>Clear radius</button></div>
+<p id="radius-summary" class="subtle">Select an original source report to choose a proximity center. Distances are approximate, between reported coordinates only.</p>
 <div class="controls"><label><input id="disagreements-only" type="checkbox"> Different-source position claims only</label></div>
 <div class="controls"><label><input id="show-disagreement-links" type="checkbox" checked> Show source-position disagreement links</label></div>
 <p class="subtle">Dashed disagreement links are not routes, movements, uncertainty estimates or verified physical locations.</p>
@@ -145,6 +149,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var fitButton = document.getElementById("fit-reports");
   var exportButton = document.getElementById("export-visible");
   var dossierButton = document.getElementById("export-dossier");
+  var radiusInput = document.getElementById("radius-km");
+  var setRadiusButton = document.getElementById("set-radius-center");
+  var clearRadiusButton = document.getElementById("clear-radius-center");
+  var radiusSummary = document.getElementById("radius-summary");
+  // Preserve the source report chosen as center even if a later filter hides it.
+  var radiusCenter = null;
   var visibleFeatures = [];
   document.getElementById("change-filter-control").hidden = !comparing;
   if (comparing) {
@@ -339,6 +349,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     selectedId = feature.id;
     selectedFeature = feature;
     focusButton.disabled = false;
+    setRadiusButton.disabled = false;
     centerOn(feature);
     var p = feature.properties;
     details.textContent = [
@@ -363,6 +374,26 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     ].join("\n");
     render();
   }
+  // Haversine distance between TWO SOURCE-REPORTED positions. Neither endpoint
+  // is verified geographic truth; wrap longitude at the antimeridian.
+  function approximateDistanceKm(a,b) {
+    var lat1=a[1]*Math.PI/180,lat2=b[1]*Math.PI/180;
+    var latDelta=lat2-lat1;
+    var lonDelta=(((b[0]-a[0]+540)%360)-180)*Math.PI/180;
+    var h=Math.sin(latDelta/2)**2+Math.cos(lat1)*Math.cos(lat2)*
+      Math.sin(lonDelta/2)**2;
+    return 6371.0088*2*Math.asin(Math.sqrt(Math.min(1,Math.max(0,h))));
+  }
+  function radiusKmValue() {
+    if(!radiusInput.value.trim())return null;
+    var v=Number(radiusInput.value);
+    return Number.isFinite(v)&&v>=0&&v<=20040?v:null;
+  }
+  function withinReportedRadius(f) {
+    return !radiusCenter || (radiusKmValue() !== null &&
+      approximateDistanceKm(radiusCenter.coordinates,f.geometry.coordinates)
+        <=radiusKmValue()+1e-7);
+  }
   // Apply exactly the same filters for display and for fitting. Only the
   // current map window is ignored for fitting, so off-screen matches recover.
   function matchesFilters(f, ignoreDisplayedWindow) {
@@ -374,6 +405,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     var indexed = [f.id,p.entity,p.source_id,p.evidence_id,p.locator]
       .join(" ").toLocaleLowerCase();
     return words.every(function(word) { return indexed.includes(word); }) &&
+      withinReportedRadius(f) &&
       (!insideOnly.checked || p.monde_inside_bbox) &&
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
@@ -406,10 +438,32 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     render();
   }
   fitButton.addEventListener("click",fitReports);
+  setRadiusButton.addEventListener("click",function(){
+    if(!selectedFeature)return;
+    var p=selectedFeature.properties;
+    radiusCenter={assertion_id:selectedFeature.id,entity:p.entity,
+      source_id:p.source_id,evidence_id:p.evidence_id,
+      coordinates:selectedFeature.geometry.coordinates.slice()};
+    clearRadiusButton.disabled=false;
+    render();
+  });
+  clearRadiusButton.addEventListener("click",function(){
+    radiusCenter=null;
+    clearRadiusButton.disabled=true;
+    render();
+  });
+  radiusInput.addEventListener("input",render);
   function render() {
     layer.replaceChildren(); list.replaceChildren(); comparisonList.replaceChildren();
     visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
     fitButton.disabled = matchingReports().length === 0;
+    radiusSummary.textContent = !radiusCenter ?
+      "Select an original source report to choose a proximity center. Distances are approximate, between reported coordinates only." :
+      radiusKmValue()===null ?
+      "Invalid radius: enter a number from 0 to 20040 km; no reports are included." :
+      "Within "+String(radiusKmValue())+" km of "+radiusCenter.entity+
+      " · assertion "+radiusCenter.assertion_id+" from "+radiusCenter.source_id+
+      ". Source-reported coordinates only; not a verified position or ground truth.";
     renderDisagreementLinks(visibleFeatures);
     visibleFeatures.forEach(function(f) {
       var p = f.properties, coords = f.geometry.coordinates;
@@ -475,6 +529,14 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       search: search.value.trim(),
       source_id: sources.value,
       entity: entities.value,
+      source_radius_center: radiusCenter ? {
+        assertion_id:radiusCenter.assertion_id,entity:radiusCenter.entity,
+        source_id:radiusCenter.source_id,evidence_id:radiusCenter.evidence_id,
+        coordinates:radiusCenter.coordinates.slice()
+      } : null,
+      source_radius_km: radiusCenter ? radiusKmValue() : null,
+      source_radius_basis: radiusCenter ?
+        "APPROXIMATE_GREAT_CIRCLE_BETWEEN_SOURCE_REPORTED_POINTS" : null,
       captured_from_utc_day: capturedFrom.value,
       captured_through_utc_day: capturedThrough.value,
       different_source_positions_only: differentOnly.checked,
