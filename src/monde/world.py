@@ -11,7 +11,7 @@ import json
 import re
 import sys
 
-_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$")
+_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:\-]{0,95}$")
 _EVIDENCE_FIELDS = {"id", "source_id", "locator", "captured_at", "source_event_at"}
 _ASSERTION_FIELDS = {
     "id", "entity", "attribute", "value", "evidence_id", "kind",
