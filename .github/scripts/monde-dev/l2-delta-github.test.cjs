@@ -799,12 +799,15 @@ test('batched fresh L2 uses merge-base for rename and deletion preimages',async(
     github:api,...FRESH_MISSION});
   assert.equal(out.observed_pr_merge_base_sha,mergeBase);
   const refs=out.batches[0].immutable_file_refs;
-  assert.equal(refs[0].base_url,
+  const renamed=refs.find(ref=>ref.status==='renamed');
+  const removed=refs.find(ref=>ref.status==='removed');
+  assert.equal(renamed.base_url,
     'https://github.com/tobianahillel-afk/monde/blob/'+mergeBase+'/src/old.cjs');
-  assert.equal(refs[1].base_url,
+  assert.equal(removed.base_url,
     'https://github.com/tobianahillel-afk/monde/blob/'+mergeBase+'/docs/old.md');
-  assert.equal(refs[0].head_url,
+  assert.equal(renamed.head_url,
     'https://github.com/tobianahillel-afk/monde/blob/'+HEAD+'/src/new.cjs');
+  assert.equal(removed.head_url,null);
 });
 test('fresh L2 rejects contradictory GitHub merge-base evidence',async()=>{
   for(const cfg of [
