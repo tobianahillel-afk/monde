@@ -74,6 +74,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <button id="zoom-in" type="button" aria-label="Zoom in">Zoom +</button>
 <button id="zoom-out" type="button" aria-label="Zoom out">Zoom −</button>
 <button id="reset" type="button">Whole world</button>
+<button id="fit-reports" type="button" disabled>Fit matching reports</button>
 <button id="focus-selected" type="button" disabled>Center selected report</button>
 <label><input id="inside-only" type="checkbox"> Inside requested viewport only</label>
 <label><input id="current-view-only" type="checkbox"> Inside displayed map window only</label>
@@ -82,7 +83,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <rect width="1200" height="600" fill="#123044"></rect>
 <g id="graticule"></g><g id="viewport"></g><g id="disagreement-links" aria-hidden="true"></g><g id="points"></g>
 </svg>
-<p class="subtle">Drag to pan, or use arrow keys when the schematic map has focus. The window filter changes only displayed/exported reports, not the original source query.</p>
+<p class="subtle">Drag to pan, or use arrow keys when the schematic map has focus. Fit matching reports includes source claims outside the current display window so you can find them again. This is not an estimated physical location. The window filter changes only displayed/exported reports, not the original source query.</p>
 <p id="metrics"></p>
 <p id="source-notice" class="notice">Source assertions only. Contradictory locations are retained. This schematic is not a basemap, physical position estimate, confidence score or proof of absence.</p>
 </section>
@@ -140,6 +141,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var changeFilter = document.getElementById("change-filter");
   var search = document.getElementById("report-search");
   var focusButton = document.getElementById("focus-selected");
+  var fitButton = document.getElementById("fit-reports");
   var exportButton = document.getElementById("export-visible");
   var visibleFeatures = [];
   document.getElementById("change-filter-control").hidden = !comparing;
@@ -359,31 +361,53 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     ].join("\n");
     render();
   }
+  // Apply exactly the same filters for display and for fitting. Only the
+  // current map window is ignored for fitting, so off-screen matches recover.
+  function matchesFilters(f, ignoreDisplayedWindow) {
+    var p = f.properties;
+    var instant = Date.parse(p.captured_at);
+    var capturedDay = Number.isFinite(instant) ?
+      new Date(instant).toISOString().slice(0,10) : null;
+    var words = search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+    var indexed = [f.id,p.entity,p.source_id,p.evidence_id,p.locator]
+      .join(" ").toLocaleLowerCase();
+    return words.every(function(word) { return indexed.includes(word); }) &&
+      (!insideOnly.checked || p.monde_inside_bbox) &&
+      (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
+      (!sources.value || p.source_id === sources.value) &&
+      (!entities.value || p.entity === entities.value) &&
+      (!capturedFrom.value ||
+        (capturedDay !== null && capturedDay >= capturedFrom.value)) &&
+      (!capturedThrough.value ||
+        (capturedDay !== null && capturedDay <= capturedThrough.value)) &&
+      (!differentOnly.checked || disputedEntities.has(p.entity)) &&
+      (!comparing || !changeFilter.value ||
+       p.monde_change === changeFilter.value);
+  }
+  function matchingReports() {
+    return features.filter(function(f) { return matchesFilters(f, true); });
+  }
+  function fitReports() {
+    var reports = matchingReports();
+    if (!reports.length) return;
+    var xs = reports.map(function(f) { return x(f.geometry.coordinates[0]); });
+    var ys = reports.map(function(f) { return y(f.geometry.coordinates[1]); });
+    var minX = Math.min.apply(null,xs), maxX = Math.max.apply(null,xs);
+    var minY = Math.min.apply(null,ys), maxY = Math.max.apply(null,ys);
+    // This schematic does not wrap the antimeridian. Such reports may
+    // require the global view. Never imply geographic continuity.
+    width = Math.min(1200,Math.max(64,maxX-minX+48,2*(maxY-minY+24)));
+    height = width / 2;
+    x0 = Math.max(0,Math.min(1200-width,(minX+maxX-width)/2));
+    y0 = Math.max(0,Math.min(600-height,(minY+maxY-height)/2));
+    refreshView();
+    render();
+  }
+  fitButton.addEventListener("click",fitReports);
   function render() {
     layer.replaceChildren(); list.replaceChildren(); comparisonList.replaceChildren();
-    var words = search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
-    visibleFeatures = features.filter(function(f) {
-      var p = f.properties;
-      // Compare calendar days in UTC, never the viewer's local timezone.
-      // Unknown source capture time cannot satisfy an active date filter.
-      var instant = Date.parse(p.captured_at);
-      var capturedDay = Number.isFinite(instant) ?
-        new Date(instant).toISOString().slice(0,10) : null;
-      var indexed = [f.id,p.entity,p.source_id,p.evidence_id,p.locator]
-        .join(" ").toLocaleLowerCase();
-      return words.every(function(word) { return indexed.includes(word); }) &&
-        (!insideOnly.checked || f.properties.monde_inside_bbox) &&
-        (!currentViewOnly.checked || insideDisplayedWindow(f)) &&
-        (!sources.value || f.properties.source_id === sources.value) &&
-        (!entities.value || f.properties.entity === entities.value) &&
-        (!capturedFrom.value ||
-          (capturedDay !== null && capturedDay >= capturedFrom.value)) &&
-        (!capturedThrough.value ||
-          (capturedDay !== null && capturedDay <= capturedThrough.value)) &&
-        (!differentOnly.checked || disputedEntities.has(f.properties.entity)) &&
-        (!comparing || !changeFilter.value ||
-         f.properties.monde_change === changeFilter.value);
-    });
+    visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
+    fitButton.disabled = matchingReports().length === 0;
     renderDisagreementLinks(visibleFeatures);
     visibleFeatures.forEach(function(f) {
       var p = f.properties, coords = f.geometry.coordinates;

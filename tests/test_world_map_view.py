@@ -520,3 +520,28 @@ class OfflineCaptureDateFilterTest(unittest.TestCase):
                 self.assertEqual(extract(html)[1], document)
                 self.assertIn('capturedThrough.addEventListener("change",render)', html)
                 self.assertIn('capturedFrom.addEventListener("change",render)', html)
+
+class OfflineFitReportsTest(unittest.TestCase):
+    def test_fit_reuses_filters_without_changing_source_evidence(self):
+        source = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        before = copy.deepcopy(source)
+        html = render_map(source)
+        self.assertEqual(source, before)
+        self.assertEqual(extract(html)[1], before)
+        self.assertIn('id="fit-reports" type="button" disabled', html)
+        self.assertIn('fitButton.addEventListener("click",fitReports)', html)
+        self.assertIn('matchesFilters(f, true)', html)
+        self.assertIn('fitButton.disabled = matchingReports().length === 0', html)
+        self.assertIn("connect-src 'none'", html)
+
+    def test_fit_available_on_both_temporal_comparisons(self):
+        world, _ = corrected_points()
+        for document in (
+            world.export_geojson_bbox_knowledge_changes(BBOX, VALID, KNOWN, LATE),
+            world.export_geojson_bbox_world_changes(
+                BBOX, "2025-12-31T00:00:00Z", VALID, LATE),
+        ):
+            with self.subTest(mode=list(document)):
+                html = render_map(document)
+                self.assertEqual(extract(html)[1], document)
+                self.assertIn('id="fit-reports"', html)

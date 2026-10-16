@@ -137,3 +137,18 @@ The filtered GeoJSON includes `captured_from_utc_day` and
 `captured_through_utc_day` in derivative filter metadata and preserves the
 original bitemporal query, source assertion IDs, evidence, and coordinates.
 Filtering never mutates the saved World Model or implies physical absence.
+
+## Fit matching reports (T11)
+
+Use **Fit matching reports** to frame the source-reported coordinates that match
+current entity, source, evidence search, capture UTC day, disagreement, requested
+bbox and temporal-change filters. Only the *displayed map window* filter is
+ignored while calculating the framing, to recover matching reports outside the
+current pan/zoom window. If that filter remains enabled, the visible list and
+GeoJSON export are recomputed after moving the map.
+
+The map is still a schematic WGS84 projection, not a true-location estimate.
+Locations near opposite sides of the international dateline may require a
+nearly global view rather than an invented geographic route. The button is
+disabled for zero matching reports. All source assertions, IDs, provenance,
+original temporal query and saved state remain unchanged.

@@ -333,6 +333,33 @@ jobs:
                 query.value='no-possible-source-matches-999';
                 query.dispatchEvent(new Event('input'));
                 if(!exportButton.disabled)throw Error('empty export must be disabled');
+
+                 var fit=document.getElementById('fit-reports');
+                 if(!fit.disabled)throw Error('fit enabled with no reports');
+                 query.value='';
+                 query.dispatchEvent(new Event('input'));
+                 if(fit.disabled)throw Error('fit disabled with matching reports');
+                 var windowOnly=document.getElementById('current-view-only');
+                 windowOnly.checked=true;
+                 windowOnly.dispatchEvent(new Event('change'));
+                 document.getElementById('zoom-in').click();
+                 fit.click();
+                 var b=document.getElementById('map').getAttribute('viewBox')
+                   .split(' ').map(Number);
+                 var reports=data.features.filter(f=>f.properties.source_id===srcName);
+                 if(b.length!==4||b.some(n=>!Number.isFinite(n))||
+                   b[2]>1200||b[3]>600||Math.abs(b[2]-2*b[3])>0.00001||
+                   reports.some(f=>{
+                     var coords=f.geometry.coordinates;
+                     var px=(coords[0]+180)/360*1200;
+                     var py=(90-coords[1])/180*600;
+                     return px<b[0]-0.00001||px>b[0]+b[2]+0.00001||
+                       py<b[1]-0.00001||py>b[1]+b[3]+0.00001;
+                   }))
+                   throw Error('fit does not frame the matching reports');
+                 if(document.querySelectorAll('#points circle').length!==reports.length)
+                   throw Error('fit did not restore offscreen matching reports');
+
                 document.body.setAttribute('data-monde-export','pass');
                 URL.createObjectURL=originalCreate;
                 HTMLAnchorElement.prototype.click=originalClick;
