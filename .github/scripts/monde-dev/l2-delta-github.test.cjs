@@ -578,3 +578,27 @@ test('fresh L2 batching: fork source uses immutable fork HEAD and original base'
   assert.match(ref.head_url,/other-owner\/monde-fork\/blob/);
   assert.equal(result.observed_pr_source_repo,'other-owner/monde-fork');
 });
+
+test('fresh L2 batching: malformed base mission IDs cannot coerce into valid provenance',async()=>{
+  for (const assignment_id of [
+    undefined,null,{},[],123,false,'','bad',
+    'invalid name with spaces','A'.repeat(92)
+  ]) {
+    const {api,calls}=freshClient();
+    await assert.rejects(prepareFreshL2BatchesFromCurrentGitHub({
+      github:api,...FRESH_MISSION,assignment_id
+    }),err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(calls.get.length,0,'must reject before GitHub PR reads');
+    assert.equal(calls.files.length,0,'must reject before GitHub pagination');
+  }
+});
+
+test('fresh L2 batching: longest composable base ID remains valid',async()=>{
+  const assignment_id='L'.repeat(91);
+  const {api}=freshClient();
+  const out=await prepareFreshL2BatchesFromCurrentGitHub({
+    github:api,...FRESH_MISSION,assignment_id
+  });
+  assert.equal(out.batches[0].assignment.assignment_id,assignment_id+'-B01');
+  assert.equal(out.batches[0].assignment.assignment_id.length,95);
+});

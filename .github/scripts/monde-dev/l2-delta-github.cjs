@@ -289,6 +289,12 @@ async function prepareFreshL2FromCurrentGitHub(input) {
 async function prepareFreshL2BatchesFromCurrentGitHub(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) incomplete();
   const {github,repo,pr,assignment_id,author_context_id,objective}=input;
+  // Batch IDs append "-B01".."B20". Validate the caller's ID before any
+  // string concatenation, otherwise null/undefined become plausible IDs
+  // ("null-B01"/"undefined-B01") and falsify reviewer provenance.
+  if (typeof assignment_id!=='string' ||
+      !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,90}$/.test(assignment_id))
+    incomplete();
   let seed;
   try {
     seed=assignment({
