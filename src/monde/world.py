@@ -461,6 +461,31 @@ class WorldMini:
         }
 
 
+    def world_knowledge_changes(self, at: str, from_known_at: str,
+                                to_known_at: str) -> dict:
+        """Compare current source reports across all entities at fixed world T.
+
+        This aggregates existing entity-level bitemporal comparisons and never
+        interprets newly available evidence as a verified physical event.
+        """
+        _time(at)
+        if _time(from_known_at) >= _time(to_known_at):
+            raise ValueError("knowledge comparison requires increasing cutoffs")
+        changes = []
+        for entity in sorted({claim["entity"] for claim in self._assertions.values()}):
+            delta = self.compare_knowledge(entity, at, from_known_at, to_known_at)
+            if delta["changes"]:
+                changes.append({"entity": entity, "changes": delta["changes"]})
+        return {
+            "world": "OBSERVED",
+            "comparison": "CROSS_ENTITY_KNOWLEDGE_REPORTS_ONLY",
+            "valid_at": at, "from_known_at": from_known_at,
+            "to_known_at": to_known_at,
+            "status": "CHANGED" if changes else "UNCHANGED",
+            "entity_count": len(changes),
+            "entities": changes,
+        }
+
     def compare_world_time(self, entity: str, from_at: str,
                            to_at: str, known_at: str) -> dict:
         """Compare *reported* validity at T1/T2 with the same knowledge K.
@@ -548,6 +573,7 @@ def main(argv=None) -> int:
     selection.add_argument("--source-disagreements", action="store_true")
     selection.add_argument("--source-history", metavar="SOURCE_ID")
     selection.add_argument("--knowledge-updates", action="store_true")
+    selection.add_argument("--world-knowledge-changes", action="store_true")
     parser.add_argument("--equals-json", help="exact JSON value used by cross-entity search")
     parser.add_argument("--source-attribute", help="optional property filter for source history")
     parser.add_argument("--at", help="one world-time instant; omit when selecting a timeline")
@@ -581,6 +607,17 @@ def main(argv=None) -> int:
         if args.knowledge_updates:
             result = world.knowledge_updates(args.updates_from, args.known_at,
                                              entity=args.entity)
+        elif args.world_knowledge_changes:
+            if (args.entity is not None or args.at is None or
+                    args.compare_known_at is None or
+                    args.source_attribute is not None or
+                    args.equals_json is not None or
+                    args.compare_at is not None or
+                    args.timeline_from is not None or args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None):
+                parser.error("world knowledge changes require --at and --compare-known-at without other modes")
+            result = world.world_knowledge_changes(
+                args.at, args.compare_known_at, args.known_at)
         elif args.knowledge_timeline_from is not None:
             result = world.knowledge_timeline(args.entity, args.attribute, args.at,
                                               args.knowledge_timeline_from, args.known_at)

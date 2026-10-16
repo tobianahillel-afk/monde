@@ -246,3 +246,18 @@ WorldMini.knowledge_updates(from_known_at, to_known_at, entity=None, attribute=N
 Run: PYTHONPATH=src python3 -m monde.world --fixture examples/monde-mini.json --knowledge-updates --updates-from 2026-01-03T10:00:00Z --known-at 2026-01-07T00:00:00Z
 
 NO_NEW_REPORTS means no newly recorded assertions in that slice of the imported fixture, not no real-world changes. This audit is in-memory, not a lossless durable replication cursor; a later event carrying an already-polled timestamp may require overlap/re-reading.
+
+## World-wide knowledge changes at fixed world time (T12)
+
+Use the existing per-entity bitemporal report comparison across all entities.
+Results preserve competing sources, original evidence and correction lineage.
+A newly known report is never treated as a verified physical event.
+
+```sh
+PYTHONPATH=src python3 -m monde.world --fixture examples/monde-mini.json \
+  --world-knowledge-changes --at 2026-01-02T00:00:00Z \
+  --compare-known-at 2026-01-03T00:00:00Z --known-at 2026-01-07T00:00:00Z
+```
+
+Changed entities and attributes only; UNKNOWN is not zero, and this does not
+implement persistent ingestion, a true event detector, or a reconciled belief.

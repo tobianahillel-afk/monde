@@ -28,6 +28,7 @@ acceptance_criteria:
   - {id: AC-10, description: "Audit one source's reported and superseded assertion history by knowledge cutoff with original evidence lineage and CLI", status: NOT_STARTED}
   - {id: AC-11, description: "Inspect how source reports become known at fixed world-time, preserving UNKNOWN gaps, corrections, provenance and half-open knowledge intervals", status: NOT_STARTED}
   - {id: AC-12, description: "Audit cross-entity source-report arrivals and corrections over explicit knowledge cutoffs with evidence lineage", status: NOT_STARTED}
+  - {id: AC-13, description: "Compare cross-entity changes in source reports at a fixed world instant and two knowledge cutoffs", status: NOT_STARTED}
 
 requirements: []
 assumptions: ["Exact offset-aware ISO-8601 time for this bounded prototype; uncertain dates remain an unapproved LOT-2 design question."]
@@ -74,6 +75,7 @@ implementation_plan:
     - {id: T9, description: "Inspect source-attributed assertion and same-source correction history at a knowledge cutoff", depends_on: [T1, T4], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
     - {id: T10, description: "Expose source-reported knowledge-time history at a fixed valid-world instant", depends_on: [T4, T9], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
     - {id: T11, description: "Expose cross-entity knowledge arrivals with correction provenance", depends_on: [T1, T9], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
+    - {id: T12, description: "Cross-entity knowledge state comparison at fixed world instant", depends_on: [T4, T11], expected_files: [src/monde/world.py, tests/test_world_mini.py, docs/03_ARCHITECTURE/world-model-mini.md], status: IN_PROGRESS}
   planned_runs:
     - {id: RUN-1, objective: "Deliver reproducible experimental product slice", tasks: [T1, T2], exit_condition: "GH CI succeeds on published candidate HEAD and independent L2 performed", status: IN_PROGRESS}
 review_plan:
