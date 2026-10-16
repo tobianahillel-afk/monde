@@ -1,0 +1,69 @@
+id: WORK-0023
+title: "Import original KML Point evidence into offline MONDE Mini maps"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-1
+sublot: SUBLOT-1.2
+owner: "MONDE Mini product development"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Add bounded local KML Point claims to existing GeoJSON evidence and map CLI
+  without network access, new service or inferred source/time authority.
+scope:
+  in: ["KML 2.2 Point claims", "Direct one-command offline map", "Mixed source manifests", "Offline real-browser verification"]
+  out: ["Remote KML links", "Polygon/line/3D import", "Inferred timestamps or identity", "Production database"]
+acceptance_criteria:
+  - {id: AC-1, description: "Preserve explicit Point IDs and source/provenance", status: IN_PROGRESS}
+  - {id: AC-2, description: "Direct/mixed KML map CLI works without persisted intermediate state", status: IN_PROGRESS}
+  - {id: AC-3, description: "Unsupported source files fail without clobbering originals", status: IN_PROGRESS}
+  - {id: AC-4, description: "Real CI exercises Python CLI and offline Chromium", status: IN_PROGRESS}
+requirements: []
+assumptions: ["Original KML Placemarks have stable XML ids and are source claims"]
+risks: ["Untrusted XML", "False inference of real location", "Silent partial import"]
+assurance: {level: A3, rationale: "Untrusted geographic source claims and offline HTML"}
+read_before: [AGENTS.md, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+depends_on: [WORK-0001, WORK-0022]
+blocks: []
+reuses: ["monde.geojson.to_document", "monde.csv_points.documents_from_manifest", "monde.map_view.render_map", "GitHub world-mini CI"]
+affected_capabilities: []
+affected_engines: ["MONDE Mini"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["Explicit source identity and bitemporal provenance"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "KML point adapter", depends_on: [], expected_files: [src/monde/kml_points.py], status: IN_PROGRESS}
+    - {id: T2, description: "Direct and mixed source map CLI", depends_on: [T1], expected_files: [src/monde/map_view.py, src/monde/csv_points.py], status: IN_PROGRESS}
+    - {id: T3, description: "CLI, error and browser tests", depends_on: [T1, T2], expected_files: [tests/test_world_kml.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Functional offline KML ingestion", tasks: [T1, T2, T3], exit_condition: "CI and proportional L2", status: IN_PROGRESS}
+review_plan:
+  artifact_class: DATA_SOURCE_CONNECTOR
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY, OPERATIONS]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: [tests/test_world_kml.py]
+  integration: ["Original KML -> assertions -> offline map"]
+  contract: ["Explicit provenance and date input"]
+  e2e: ["Python CLI and headless Chromium"]
+  regression: ["world-mini CI suite"]
+  security: ["No network", "No XXE", "No clobber"]
+  performance: []
+  real_system: ["GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["No polygons, lines, altitude or ExtendedData"]
+risk: {security: MEDIUM, data: LOW, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Revert stacked PR; original files and persisted MONDE states unaffected."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_done_checked: false, review_complete: false, docs_updated: false, registries_updated: false, project_state_updated: false}
