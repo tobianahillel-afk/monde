@@ -394,5 +394,116 @@ class WorldMiniTest(unittest.TestCase):
             self.assertNotEqual(rejected.returncode, 0)
 
 
+
+    def test_search_cross_entity_matching_and_competing_reports(self):
+        self.model.add_evidence({
+            "id": "e-second", "source_id": "survey",
+            "locator": "fixture://second", "captured_at": "2026-01-08T00:00:00Z",
+            "source_event_at": None})
+        self.model.add_assertion({
+            "id": "a-second", "entity": "building-002", "attribute": "floors",
+            "value": 7, "evidence_id": "e-second", "kind": "CLAIM",
+            "known_at": "2026-01-08T00:00:00Z",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_to": None, "supersedes": None})
+        found = self.model.search_reports("floors", 7, AT, "2026-01-09T00:00:00Z")
+        self.assertEqual(found["query"], "SOURCE_REPORT_MATCH_ONLY")
+        self.assertEqual([m["entity"] for m in found["matches"]],
+                         ["building-001", "building-002"])
+        self.assertEqual([r["value"] for r in found["matches"][0]["other_reports"]], [6])
+        self.assertEqual(found["matches"][0]["matched_reports"][0]["evidence_id"], "e-city-reg-2")
+        self.assertEqual(self.model.search_reports(
+            "floors", 7, AT, "2026-01-05T00:00:00Z")["status"], "NO_MATCHES")
+        self.assertEqual(self.model.search_reports(
+            "floors", 5, AT, "2026-01-05T00:00:00Z")["matches"][0]
+            ["matched_reports"][0]["value"], 5)
+
+    def test_search_no_match_means_no_report_not_physical_absence(self):
+        found = self.model.search_reports("floors", 42, AT, LATE)
+        self.assertEqual(found["status"], "NO_MATCHES")
+        self.assertEqual(found["matches"], [])
+        self.assertEqual(found["query"], "SOURCE_REPORT_MATCH_ONLY")
+
+    def test_search_json_value_types_do_not_coerce_boolean_to_integer(self):
+        self.model.add_evidence({
+            "id": "e-exact", "source_id": "registry",
+            "locator": "fixture://boolean", "captured_at": "2026-01-08T00:00:00Z",
+            "source_event_at": None})
+        for i, value in enumerate([False, 0, {"b": 2, "a": 1}]):
+            self.model.add_assertion({
+                "id": "a-exact-" + str(i), "entity": "building-00" + str(i+1),
+                "attribute": "special", "value": value, "evidence_id": "e-exact",
+                "kind": "CLAIM", "known_at": "2026-01-08T00:00:00Z",
+                "valid_from": "2026-01-01T00:00:00Z",
+                "valid_to": None, "supersedes": None})
+        cut = "2026-01-09T00:00:00Z"
+        self.assertEqual([m["entity"] for m in
+                          self.model.search_reports("special", False, AT, cut)["matches"]],
+                         ["building-001"])
+        self.assertEqual([m["entity"] for m in
+                          self.model.search_reports("special", 0, AT, cut)["matches"]],
+                         ["building-002"])
+        self.assertEqual([m["entity"] for m in
+                          self.model.search_reports("special", {"a": 1, "b": 2},
+                                                    AT, cut)["matches"]],
+                         ["building-003"])
+
+    def test_search_results_are_readonly_and_cutoffs_reject_naive_time(self):
+        original = self.model.export()
+        response = self.model.search_reports("floors", 7, AT, LATE)
+        response["matches"][0]["matched_reports"][0]["value"] = 999
+        self.assertEqual(self.model.export(), original)
+        with self.assertRaises(ValueError):
+            self.model.search_reports("floors", 7, AT, "2026-01-09")
+        with self.assertRaises(ValueError):
+            self.model.search_reports("bad attr", 7, AT, LATE)
+
+    def test_cli_cross_entity_search_on_two_buildings(self):
+        fixture = copy.deepcopy(DOC)
+        fixture["evidence"].append({
+            "id": "e-extra", "source_id": "survey", "locator": "fixture://extra",
+            "captured_at": "2026-01-08T00:00:00Z", "source_event_at": None})
+        fixture["assertions"].append({
+            "id": "a-extra", "entity": "building-002", "attribute": "floors",
+            "value": 7, "evidence_id": "e-extra", "kind": "CLAIM",
+            "known_at": "2026-01-08T00:00:00Z",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_to": None, "supersedes": None})
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "many.json"
+            path.write_text(json.dumps(fixture), encoding="utf-8")
+            args = [sys.executable, "-m", "monde.world", "--fixture", str(path),
+                    "--search-attribute", "floors", "--equals-json", "7",
+                    "--at", AT, "--known-at", "2026-01-09T00:00:00Z"]
+            env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+            found = subprocess.run(args, capture_output=True, text=True, env=env)
+            self.assertEqual(found.returncode, 0, found.stderr)
+            result = json.loads(found.stdout)
+            self.assertEqual([m["entity"] for m in result["matches"]],
+                             ["building-001", "building-002"])
+            self.assertEqual(result["matches"][0]["other_reports"][0]["value"], 6)
+            for broken in [
+                args + ["--entity", "building-001"],
+                args[:args.index("--equals-json")+1] + ["NaN"] + args[args.index("--at"):],
+                args[:args.index("--equals-json")+1] + ['{"a":1,"a":2}'] +
+                    args[args.index("--at"):],
+            ]:
+                denied = subprocess.run(broken, capture_output=True, text=True, env=env)
+                self.assertNotEqual(denied.returncode, 0)
+
+    def test_search_flags_do_not_change_existing_entity_query_cli(self):
+        env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+        args = [sys.executable, "-m", "monde.world",
+                "--fixture", str(ROOT / "examples/monde-mini.json"),
+                "--entity", "building-001", "--attribute", "floors",
+                "--at", AT, "--known-at", LATE]
+        good = subprocess.run(args, capture_output=True, text=True, env=env)
+        self.assertEqual(good.returncode, 0, good.stderr)
+        self.assertEqual([r["value"] for r in json.loads(good.stdout)["reports"]], [6, 7])
+        denied = subprocess.run(args + ["--equals-json", "7"],
+                                capture_output=True, text=True, env=env)
+        self.assertNotEqual(denied.returncode, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
