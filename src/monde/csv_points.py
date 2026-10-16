@@ -50,7 +50,7 @@ def documents_from_manifest(path, *, output_path):
     import json
     import os
     from .geojson import to_document
-    from .world import _object_no_duplicates
+    from .world import WorldMini, _object_no_duplicates
 
     manifest = os.path.realpath(os.fspath(path))
     output = os.path.realpath(os.fspath(output_path))
@@ -67,26 +67,36 @@ def documents_from_manifest(path, *, output_path):
     datasets = payload["datasets"]
     if not isinstance(datasets, list) or not 1 <= len(datasets) <= MAX_DATASETS:
         raise ValueError("CSV manifest requires 1 to 16 datasets")
-    required = {"csv", "source_id", "locator", "captured_at", "valid_from"}
-    optional = {"valid_to", "source_event_at", "id_column", "lon_column", "lat_column"}
+    required = {"source_id", "locator", "captured_at", "valid_from"}
+    optional = {"csv", "geojson", "valid_to", "source_event_at",
+                "id_column", "lon_column", "lat_column"}
     documents, features = [], 0
     for entry in datasets:
         if (not isinstance(entry, dict) or not required <= set(entry)
                 or set(entry) - required - optional):
             raise ValueError("CSV dataset has missing or unexpected fields")
-        csv_path = entry["csv"]
-        if not isinstance(csv_path, str) or not csv_path or csv_path != csv_path.strip():
-            raise ValueError("CSV dataset path required")
-        source_file = os.path.realpath(os.path.join(os.path.dirname(manifest), csv_path))
+        is_csv = "csv" in entry
+        if is_csv == ("geojson" in entry):
+            raise ValueError("each dataset requires exactly one csv or geojson input")
+        if not is_csv and {"id_column", "lon_column", "lat_column"} & entry.keys():
+            raise ValueError("CSV column options are invalid for original GeoJSON")
+        source_path = entry["csv" if is_csv else "geojson"]
+        if (not isinstance(source_path, str) or not source_path
+                or source_path != source_path.strip()):
+            raise ValueError("dataset path required")
+        source_file = os.path.realpath(os.path.join(os.path.dirname(manifest), source_path))
         if source_file == output:
-            raise ValueError("output cannot overwrite CSV dataset")
-        geojson = to_geojson(
-            source_file, id_column=entry.get("id_column", "id"),
-            lon_column=entry.get("lon_column", "longitude"),
-            lat_column=entry.get("lat_column", "latitude"))
+            raise ValueError("output cannot overwrite source dataset")
+        if is_csv:
+            geojson = to_geojson(
+                source_file, id_column=entry.get("id_column", "id"),
+                lon_column=entry.get("lon_column", "longitude"),
+                lat_column=entry.get("lat_column", "latitude"))
+        else:
+            geojson = WorldMini.load_document(source_file)
         features += len(geojson["features"])
         if features > MAX_ROWS:
-            raise ValueError("CSV manifest total Point limit exceeded (50000)")
+            raise ValueError("source manifest total Point limit exceeded (50000)")
         documents.append(to_document(
             geojson, source_id=entry["source_id"], locator=entry["locator"],
             captured_at=entry["captured_at"], valid_from=entry["valid_from"],
