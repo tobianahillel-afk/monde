@@ -772,7 +772,7 @@ test('fresh L2 preimage from diverged PR uses merge-base, not newer main',async(
   assert.equal(calls.compares.length,1);
   assert.deepEqual(calls.compares[0],{
     owner:'tobianahillel-afk',repo:'monde',
-    basehead:'c'.repeat(40)+'...'+HEAD,page:1,per_page:100
+    basehead:'c'.repeat(40)+'...'+HEAD,page:1,per_page:1
   });
 });
 test('batched fresh L2 uses merge-base for rename and deletion preimages',async()=>{
