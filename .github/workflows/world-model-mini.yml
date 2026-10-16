@@ -102,18 +102,28 @@ jobs:
           grep -q 'NEWLY_CURRENT' /tmp/monde-world-rendered.html
           grep -q 'NOT verified physical movement' /tmp/monde-world-rendered.html
       - name: Exercise pairwise source separation in a real offline browser
+        env:
+          PYTHONPATH: src
         run: |
           set -euo pipefail
+          # Include both original Point fixtures, not only the smaller viewport.
+          python3 -m monde.map_view \
+            --state /tmp/monde-map-state.json \
+            --bbox '2.28,48.84,2.36,48.88' \
+            --at '2026-01-02T00:00:00Z' \
+            --known-at '2026-01-10T10:00:00Z' \
+            --output /tmp/monde-pairwise-state.html
           python3 - <<'PY'
           from pathlib import Path
-          page = Path("/tmp/monde-evidence-map.html").read_text(encoding="utf-8")
+          page = Path("/tmp/monde-pairwise-state.html").read_text(encoding="utf-8")
           probe = """<script>
           (function(){
             var buttons=document.querySelectorAll('#report-list button');
             if(buttons.length<2)throw Error('fixture must contain two reported positions');
             buttons[0].click();
             document.getElementById('measure-a').click();
-            buttons[1].click();
+            var second=document.querySelectorAll('#report-list button');
+            second[1].click();
             document.getElementById('measure-b').click();
             var summary=document.getElementById('measure-summary').textContent;
             if(!summary.includes('Approx.') || !summary.includes('source-reported coordinates only'))
