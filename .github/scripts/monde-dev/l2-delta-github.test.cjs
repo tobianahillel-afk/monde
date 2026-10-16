@@ -953,6 +953,7 @@ test('fresh L2: 346-commit PR reads one compare commit and retains full file cov
   api.rest.repos.compareCommitsWithBasehead=async args=>{
     const result=await original(args);
     result.data.total_commits=346;
+    result.data.ahead_by=346;
     result.data.commits=[{sha:'1'.repeat(40)}]; // GitHub page 1, not all commits
     return result;
   };
