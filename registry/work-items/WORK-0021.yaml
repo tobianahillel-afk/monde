@@ -1,0 +1,67 @@
+id: WORK-0021
+title: "Generate a standalone offline evidence map directly from source CSV manifests"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-1
+sublot: SUBLOT-1.2
+owner: "MONDE Mini product development"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+purpose: |
+  Make the existing CSV source-to-evidence-map path a single command without
+  requiring analysts to first persist an intermediate WorldMini state file.
+scope:
+  in: ["Use existing source CSV manifest ingestion", "Generate standalone offline source evidence HTML", "Preserve bitemporal and per-source claims", "Test real CLI errors and no-clobber"]
+  out: ["New database, server, AI inference, or authority/reconciliation model"]
+acceptance_criteria:
+  - {id: AC-1, description: "Single manifest-to-HTML command renders individual source Points and retains conflicting reports", status: IN_PROGRESS}
+  - {id: AC-2, description: "Existing bitemporal cutoffs and comparisons behave identically", status: IN_PROGRESS}
+  - {id: AC-3, description: "Invalid inputs do not create HTML; existing files cannot be overwritten", status: IN_PROGRESS}
+requirements: []
+assumptions: ["A manifest explicitly declares dataset provenance and times"]
+risks: ["Untrusted source-reported coordinates mistaken for physical fact"]
+assurance: {level: A3, rationale: "Source-data and offline HTML trust boundary"}
+read_before: [AGENTS.md, docs/03_ARCHITECTURE/world-mini-csv-import.md, docs/03_ARCHITECTURE/world-mini-csv-export.md]
+depends_on: [WORK-0001, WORK-0019, WORK-0020]
+blocks: []
+reuses: ["monde.csv_points.documents_from_manifest", "WorldMini.append_documents", "WorldMini.export_geojson_bbox", "monde.map_view.render_map"]
+affected_capabilities: []
+affected_engines: ["MONDE Mini"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-csv-import.md]
+contracts: ["Source reports are claims, provenance/time never inferred"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Render map directly from validated CSV manifest", depends_on: [], expected_files: [src/monde/map_view.py], status: IN_PROGRESS}
+    - {id: T2, description: "Exercise end-to-end CSV and map CLI; update user guide", depends_on: [T1], expected_files: [tests/test_world_map_csv_manifest.py, docs/03_ARCHITECTURE/world-mini-csv-import.md], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Ship one-command offline map candidate with CI", tasks: [T1, T2], exit_condition: "Product CI and proportionate L2", status: IN_PROGRESS}
+review_plan:
+  artifact_class: DATA_SOURCE_CONNECTOR
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY, OPERATIONS]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: [tests/test_world_map_csv_manifest.py]
+  integration: ["Two distinct source CSVs to independent evidence Points to standalone HTML"]
+  contract: ["Preserved source attribution and bitemporal cutoffs"]
+  e2e: ["Real Python CLI; existing headless browser CI"]
+  regression: ["Existing MONDE Mini test suite"]
+  security: ["Malformed CSV and no-overwrite"]
+  performance: []
+  real_system: ["GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["No persistent state is written in the new one-shot mode"]
+risk: {security: MEDIUM, data: LOW, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Revert this isolated stacked PR without changing existing source states."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_done_checked: false, review_complete: false, docs_updated: false, registries_updated: false, project_state_updated: false}

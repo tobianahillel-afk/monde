@@ -50,3 +50,28 @@ Example:
     ]}
 
 The existing source-to-GeoJSON adapter and atomic `append_documents` commit preserve each source report independently. An invalid later source rejects the entire batch without writing the output state. The manifest permits at most 50,000 Points across all datasets; it never geocodes, reconciles physical positions or infers event times.
+
+## Direct CSV-to-offline-map workflow (WORK-0021)
+
+For local source datasets, a separate persisted JSON state is **not required**
+to generate an interactive, standalone evidence map. Reuse the same CSV manifest
+(with explicit source, capture time and valid-world time) used for batch import:
+
+    PYTHONPATH=src python3 -m monde.map_view \\
+      --csv-manifest sources.json \\
+      --bbox '2.3,48.8,2.5,48.9' \\
+      --at '2026-01-02T00:00:00Z' \\
+      --known-at '2026-01-11T10:00:00Z' \\
+      --output evidence.html
+
+Open `evidence.html` locally; no server, account, external tile provider or
+internet connection is needed. The page retains **source assertions and their
+individual evidence identities** (including contradictory positions), not a
+reconciled/verified location. The viewport and knowledge cutoff are explicit.
+Existing `--compare-known-at` and `--compare-at` modes also work with this
+input. For persistent updates and historical snapshots, keep using the separate
+`--ingest-csv-manifest ... --state-out ...` command followed by `--state`.
+The input choice is exclusive (`--state` **or** `--csv-manifest`). Invalid
+input produces no HTML file; existing destination files and source CSV/manifest
+files cannot be overwritten. Limits remain 16 datasets / 50,000 Points, with
+standalone-map limits of 5,000 included source reports and 3 MB embedded JSON.
