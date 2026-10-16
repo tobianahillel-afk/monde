@@ -676,7 +676,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         "KML source " + (p.monde_kml_trace.kind==="Polygon"?
           "boundary: ":"line: ") + p.monde_kml_trace.name,
         ...(p.monde_kml_trace.kind==="Polygon" ?
-          [["Original KML Placemark id: "+p.monde_kml_trace.placemark_id,
+          ["Original KML Placemark id: "+p.monde_kml_trace.placemark_id,
              "Source-declared ring: "+(p.monde_kml_trace.segment===0 ?
                "outer":"inner #"+String(p.monde_kml_trace.segment))] : []),
         "KML original sample order: " + String(p.monde_kml_trace.order+1),
