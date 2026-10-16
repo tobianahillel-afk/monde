@@ -1,0 +1,63 @@
+id: WORK-0009
+title: "Experiment: bitemporal bounding-box discovery for source-reported Points"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.4
+owner: "MONDE Mini spatial data discovery"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+purpose: |
+  Search current evidence-attributed WGS84 Point claims inside geographic
+  rectangles while preserving provenance and both temporal cutoffs.
+scope:
+  in: ["WGS84 bounding-box search", "as-of world/knowledge filtering", "conflicting source reports", "real CLI"]
+  out: ["geographical truth inference", "polygon geometry", "production GIS index", "network acquisition"]
+acceptance_criteria:
+  - {id: AC-1, description: "Locate source-reported Points inside box with provenance at T and K", status: NOT_STARTED}
+  - {id: AC-2, description: "Preserve competing source locations and never infer physical absence", status: NOT_STARTED}
+  - {id: AC-3, description: "Antimeridian, malformed input and CLI roundtrip verified", status: NOT_STARTED}
+requirements: []
+assumptions: ["WGS84 source-reported 2D Points", "Experimental in-memory scan"]
+risks: ["Missing reports do not imply absence", "Full scan cannot scale to planet size"]
+assurance: {level: A3, rationale: "Temporal and spatial source interpretation are foundational"}
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-geojson.md]
+depends_on: [WORK-0001, WORK-0006, WORK-0007, WORK-0008]
+blocks: []
+reuses: ["WorldMini.query", "monde.geojson._point", "existing CLI", "JSON-v1 snapshot"]
+affected_capabilities: []
+affected_engines: ["MONDE Mini spatial search"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-spatial-search.md]
+contracts: ["Source-reported Point location search as of T and K"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add as-of geographic Point search", depends_on: [], expected_files: [src/monde/world.py], status: IN_PROGRESS}
+    - {id: T2, description: "Prove CLI search and source disagreements", depends_on: [T1], expected_files: [tests/test_world_spatial.py, docs/03_ARCHITECTURE/world-mini-spatial-search.md], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Source-grounded geographic discovery", tasks: [T1, T2], exit_condition: "Real GitHub CI and proportional independent L2", status: IN_PROGRESS}
+review_plan:
+  artifact_class: HIGH_RISK_CAPABILITY
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, EPISTEMIC_DATA]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["geo bounds", "dateline", "dual-time filters"]
+  integration: ["conflicting source provenance", "no mutation"]
+  e2e: ["local GeoJSON import save query"]
+  security: ["malformed geometry rejected"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["experimental", "L2 pending", "linear scan"]
+risk: {security: LOW, data: MEDIUM, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Close stacked PR; no effect on main."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_ready_checked: false, definition_of_done_checked: false, review_complete: false, docs_updated: true, registries_updated: false, project_state_updated: false}
