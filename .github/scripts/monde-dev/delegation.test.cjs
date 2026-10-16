@@ -7813,3 +7813,45 @@ test('GitHub WORK reader accepts wrapped canonical Base64 but rejects Unicode wh
     }),{code:'UNTRUSTED_WORK_RESPONSE'});
   }
 });
+
+
+test('WORK planner rejects double-quoted escaped keys shadowing canonical work fields',()=>{
+  // YAML interprets \u0074 inside a quoted key as "t". A regex that checks
+  // only literal "status" would incorrectly retain the earlier READY value.
+  for(const extra of [
+    '"sta\\u0074us": BLOCKED',
+    '"depend\\u0073_on": [WORK-9999]',
+    '"implementa\\u0074ion_plan": {}',
+    '"i\\u0064": WORK-9999',
+    "'unrelated_key': value",
+    '<<: *untrusted_defaults'
+  ]){
+    assert.throws(()=>d.parseWorkPlanningSnapshot(
+      WORK_FIXTURE_ACTIVE+'\n'+extra,'WORK-0007'),
+      e=>e.code==='AMBIGUOUS_WORK_SNAPSHOT',
+      'reject untrusted YAML mapping key '+extra);
+  }
+});
+test('WORK planner rejects quoted escaped or merged implementation keys',()=>{
+  for(const extra of [
+    '  "ta\\u0073ks": []',
+    '  "planned_\\u0072uns": []',
+    "  'other_field': safe",
+    '  <<: *untrusted_plan'
+  ]){
+    const poisoned=WORK_FIXTURE_ACTIVE.replace(
+      '  planned_runs: []','  planned_runs: []\n'+extra);
+    assert.throws(()=>d.parseWorkPlanningSnapshot(poisoned,'WORK-0007'),
+      e=>e.code==='AMBIGUOUS_IMPLEMENTATION_SECTIONS',
+      'reject untrusted YAML plan key '+extra);
+  }
+});
+test('WORK planner still accepts ordinary quoted values and original canonical fixtures',()=>{
+  const parsed=d.parseWorkPlanningSnapshot(WORK_FIXTURE_ACTIVE,'WORK-0007');
+  assert.equal(parsed.id,'WORK-0007');
+  assert.equal(parsed.tasks.length>0,true);
+  const desc=WORK_FIXTURE_DONE.replace(
+    'description: "Build docs, standards"',
+    'description: "Quoted words: status, tasks, and \\\\u0074"');
+  assert.equal(d.parseWorkPlanningSnapshot(desc,'WORK-0001').tasks[0].status,'DONE');
+});

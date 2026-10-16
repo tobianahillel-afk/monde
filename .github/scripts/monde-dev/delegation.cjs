@@ -1750,6 +1750,11 @@ function parseWorkPlanningSnapshot(text,id) {
      typeof id!=='string'||!/^WORK-[0-9]{4,}$/.test(id))
     bad('INVALID_WORK_SNAPSHOT');
   const rows=text.replace(/\r\n/g,'\n').split('\n');
+  // YAML double-quoted keys can escape letters: "sta\\u0074us" is
+  // semantically "status". This subset parser must reject quoted/merged
+  // mapping keys rather than silently trust a different effective value.
+  if(rows.some(row=>/^(?:["']|<<[ \\t]*:)/.test(row)))
+    bad('AMBIGUOUS_WORK_SNAPSHOT');
   const top=field=>rows.filter(row=>row.startsWith(field+':'));
   // YAML permits spaces before the colon and quoted mapping keys.
   // Detect aliases even when this conservative planner cannot interpret them,
@@ -1772,6 +1777,10 @@ function parseWorkPlanningSnapshot(text,id) {
     !row.startsWith(' ')&&!row.startsWith('#'));
   if(finish<0)finish=rows.length;
   const plan=rows.slice(begin+1,finish);
+  // A YAML merge or escaped quoted key inside the plan can redefine
+  // "tasks"/"planned_runs" without matching the narrow key lexer.
+  if(plan.some(row=>/^  (?:["']|<<[ \\t]*:)/.test(row)))
+    bad('AMBIGUOUS_IMPLEMENTATION_SECTIONS');
   // All YAML spellings of these keys are semantic duplicates, including
   // sections appearing after planned_runs (the task reader stops there).
   // Never treat an earlier READY task list as authoritative when a later
