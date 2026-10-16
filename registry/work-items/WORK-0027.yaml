@@ -1,0 +1,59 @@
+id: WORK-0027
+title: "Original KML Polygon boundaries in MONDE Mini offline evidence maps"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence and offline map"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Inspect source-declared KML Polygon outer ring vertices and visible outlines
+  in the existing local map, with stable source provenance and no inferred truth.
+scope:
+  in:
+    - one bounded closed KML 2.2 Polygon outer LinearRing per Placemark
+    - stable per-vertex source evidence and original order, including closure
+    - filtered amber source-boundary edges with no inferred missing links
+    - CLI and actual offline Chromium map regression
+  out:
+    - polygon holes, invalid-ring repair, geographic containment inference
+    - legal/geopolitical boundaries, geospatial accuracy certification
+    - network calls, third-party rendering libraries or new storage abstractions
+acceptance_criteria:
+  - id: AC-1
+    description: "Single outer-ring KML Polygon is ingested as stable original Point evidence with complete source provenance."
+    status: NOT_STARTED
+  - id: AC-2
+    description: "Offline browser displays only explicitly adjacent source Polygon vertices, distinguishing boundary reports from GPX and LineString."
+    status: NOT_STARTED
+  - id: AC-3
+    description: "Malformed, unclosed, 3D and holed Polygons reject atomically; original Point and LineString behavior remains stable."
+    status: NOT_STARTED
+depends_on: [WORK-0026]
+reuses:
+  - "KML parser, GeoJSON Point ingestion and immutable bitemporal WorldMini"
+  - "offline source segment renderer and existing product CI / Chromium"
+read_before:
+  - AGENTS.md
+  - docs/03_ARCHITECTURE/world-mini-offline-map.md
+  - src/monde/kml_points.py
+  - src/monde/map_view.py
+  - tests/test_world_kml.py
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Parse strict closed single outer ring into original Point evidence.", depends_on: [], expected_files: [src/monde/kml_points.py], status: IN_PROGRESS}
+    - {id: T2, description: "Render source-reported boundary segments and preserve inspection metadata.", depends_on: [T1], expected_files: [src/monde/map_view.py], status: IN_PROGRESS}
+    - {id: T3, description: "Test CLI, safety and real browser render.", depends_on: [T2], expected_files: [tests/test_world_kml.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+review_plan:
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+validation:
+  executed: []
+  evidence: []
+  known_gaps:
+    - "Base PR #50 and upstream stacked product PRs remain unmerged and Draft"
+    - "Feature-level independent L2 review pending"
+rollback:
+  strategy: "Close dependent PR; no durable state or protected main changes"

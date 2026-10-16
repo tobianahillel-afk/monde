@@ -71,6 +71,35 @@ jobs:
           grep -q 'data-monde-kml-segments="2"' /tmp/monde-kml-line-dom.html
           grep -q 'data-kml-trace=' /tmp/monde-kml-line-dom.html
           grep -q 'Survey line source' /tmp/monde-kml-line-dom.html
+      - name: Source-declared KML Polygon outer ring renders offline in Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          cat > /tmp/monde-original-polygon.kml <<'KML'
+          <kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+          <Placemark id="reported-block"><name>Original claimed boundary</name>
+          <Polygon><outerBoundaryIs><LinearRing><coordinates>
+          2.35,48.85 2.36,48.85 2.36,48.86 2.35,48.85
+          </coordinates></LinearRing></outerBoundaryIs></Polygon>
+          </Placemark></Document></kml>
+          KML
+          python3 -m monde.map_view --kml /tmp/monde-original-polygon.kml \
+            --source-id original-boundary --source-locator dataset://boundary.kml \
+            --captured-at 2026-01-10T10:00:00Z \
+            --valid-from 2026-01-01T00:00:00Z \
+            --at 2026-01-02T00:00:00Z \
+            --known-at 2026-01-10T10:00:00Z \
+            --output /tmp/monde-kml-boundary.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --timeout=15000 --dump-dom file:///tmp/monde-kml-boundary.html \
+            >/tmp/monde-kml-boundary-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-kml-boundary-dom.html
+          grep -q 'data-monde-kml-boundary-segments="3"' /tmp/monde-kml-boundary-dom.html
+          grep -q 'data-kml-boundary=' /tmp/monde-kml-boundary-dom.html
+          grep -q 'Original claimed boundary' /tmp/monde-kml-boundary-dom.html
+          grep -q 'original-boundary' /tmp/monde-kml-boundary-dom.html
       - name: Actual original GPX waypoint to offline map in Chromium
         env:
           PYTHONPATH: src
