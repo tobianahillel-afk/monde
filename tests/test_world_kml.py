@@ -89,7 +89,7 @@ class KMLSourceTests(unittest.TestCase):
                 KML.replace('2.3522,48.8566','2.3522,48.8566,35'),
                 KML.replace('2.3522,48.8566','181,48.8566'),
                 KML.replace('<Point><coordinates>2.3522,48.8566</coordinates></Point>',
-                            '<LineString><coordinates>2,48 3,49</coordinates></LineString>'),
+                            '<Polygon><coordinates>2,48 3,49</coordinates></Polygon>'),
                 KML.replace('</Document>','<NetworkLink><name>remote</name></NetworkLink></Document>'),
                 KML.replace('<name>Alpha</name>','<ExtendedData/><name>Alpha</name>'),
                 '<!DOCTYPE kml [<!ENTITY xx "boom">]><kml/>'
@@ -141,6 +141,103 @@ class KMLSourceTests(unittest.TestCase):
                 self.assertNotEqual(r.returncode,0)
                 self.assertFalse(out.exists())
 
+
+    def test_original_linestring_retains_distinct_same_source_sample_evidence(self):
+        line = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                '<Placemark id="line-a"><name>Original survey line</name>'
+                '<LineString><coordinates>2.35,48.85 2.36,48.86 '
+                '2.36,48.86 2.37,48.87</coordinates></LineString>'
+                '</Placemark></Document></kml>')
+        with tempfile.TemporaryDirectory() as directory:
+            file = self.fixture(directory, line)
+            first = to_geojson(file)
+            self.assertEqual(first, to_geojson(file))
+            self.assertEqual(len(first["features"]), 4)
+            ids = [v["id"] for v in first["features"]]
+            self.assertEqual(len(set(ids)), 4)
+            self.assertTrue(ids[2].endswith("-repeat-2"))
+            self.assertEqual([v["properties"]["kml_trace"]["order"]
+                              for v in first["features"]], [0, 1, 2, 3])
+            document = to_document(first, source_id="kml-survey",
+                                   locator="dataset://survey.kml",
+                                   captured_at=CAPTURED,
+                                   valid_from="2026-01-01T00:00:00Z")
+            features = WorldMini.from_document(document).export_geojson_bbox(
+                [-180, -90, 180, 90], AT, CAPTURED)["features"]
+            self.assertEqual(len(features), 4)
+            for feature in features:
+                self.assertEqual(feature["properties"]["source_id"], "kml-survey")
+                self.assertEqual(feature["properties"]["monde_kml_trace"]["trace_id"],
+                                 first["features"][0]["properties"]["kml_trace"]["trace_id"])
+                self.assertEqual(feature["properties"]["monde_status"],
+                                 "SOURCE_REPORTED_ONLY")
+            self.assertEqual(len({f["properties"]["evidence_id"] for f in features}), 4)
+
+    def test_linestring_source_to_offline_map_without_intermediate_state(self):
+        line = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                '<Placemark id="segment"><name>Unverified path</name>'
+                '<LineString><coordinates>2.35,48.85 2.36,48.86 '
+                '2.37,48.87</coordinates></LineString></Placemark>'
+                '</Document></kml>')
+        with tempfile.TemporaryDirectory() as directory:
+            source = self.fixture(directory, line)
+            out = Path(directory) / "line.html"
+            result = self.cli(*self.flags(source), "--at", AT,
+                              "--known-at", CAPTURED, "--output", out)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            html = out.read_text(encoding="utf-8")
+            self.assertIn("data-monde-kml-segments", html)
+            self.assertIn("KML_2_2_LINESTRING_POINT", html)
+            self.assertIn("ORIGINAL_KML_SAMPLES_NOT_VERIFIED_MOTION", html)
+            self.assertIn("Unverified path", html)
+            self.assertEqual(source.read_text(encoding="utf-8"), line)
+
+    def test_linestring_rejects_ambiguous_or_unsupported_geometry_atomically(self):
+        original = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                    '<Placemark id="original-line"><LineString><coordinates>'
+                    '2.35,48.85 2.36,48.86</coordinates></LineString>'
+                    '</Placemark></Document></kml>')
+        errors = [
+            original.replace('2.36,48.86', '2.36,48.86,100'),
+            original.replace('2.36,48.86', 'inf,48.86'),
+            original.replace('2.36,48.86', '200,48.86'),
+            original.replace('2.36,48.86', '2.35,48.85'),
+            original.replace('2.35,48.85 2.36,48.86', '2.35,48.85'),
+            original.replace('<LineString>', '<LineString><tessellate>1</tessellate>'),
+            original.replace('id="original-line"', 'id=""'),
+            original.replace('</Document>', '<Placemark id="original-line">'
+                             '<Point><coordinates>2.3,48.8</coordinates></Point>'
+                             '</Placemark></Document>'),
+        ]
+        # Repeated locations are valid original samples, not invalid geometry.
+        errors.pop(3)
+        with tempfile.TemporaryDirectory() as directory:
+            file = self.fixture(directory, original)
+            out = Path(directory) / "result.html"
+            for invalid in errors:
+                file.write_text(invalid, encoding="utf-8")
+                with self.subTest(text=invalid[:55]):
+                    with self.assertRaises(ValueError):
+                        to_geojson(file)
+                    run = self.cli(*self.flags(file), "--at", AT,
+                                   "--known-at", CAPTURED, "--output", out)
+                    self.assertNotEqual(run.returncode, 0)
+                    self.assertFalse(out.exists())
+
+    def test_linestring_and_original_point_placemarks_remain_separate(self):
+        mixed = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                 '<Placemark id="place"><Point><coordinates>2.35,48.85'
+                 '</coordinates></Point></Placemark>'
+                 '<Placemark id="line"><LineString><coordinates>'
+                 '2.35,48.85 2.36,48.86</coordinates></LineString>'
+                 '</Placemark></Document></kml>')
+        with tempfile.TemporaryDirectory() as directory:
+            feature_set = to_geojson(self.fixture(directory, mixed))["features"]
+            self.assertEqual(len(feature_set), 3)
+            point = next(f for f in feature_set if f["id"] == "place")
+            self.assertNotIn("kml_trace", point["properties"])
+            self.assertEqual(len([f for f in feature_set
+                                  if "kml_trace" in f["properties"]]), 2)
 
 if __name__ == "__main__":
     unittest.main()

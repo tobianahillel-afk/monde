@@ -1,0 +1,60 @@
+id: WORK-0026
+title: "Original KML LineString source evidence on offline MONDE Mini map"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence and offline map"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Make original KML 2.2 LineStrings navigable on the offline source-evidence
+  map without asserting verified routes, motion or world truth.
+scope:
+  in:
+    - original bounded KML LineString coordinate order and unique Placemark IDs
+    - per-coordinate source-reported Point assertions and evidence linkage
+    - adjacent original source segments in the offline browser map
+    - original source/claim metadata inspection and negative parsing tests
+  out:
+    - terrain/trajectory reconstruction, motion inference and line repair
+    - third-party map APIs, altitude interpolation and external services
+acceptance_criteria:
+  - id: AC-1
+    description: "Original KML Point and LineString Placemarks ingest atomically with unique stable sample IDs, preserved coordinates and evidence provenance."
+    status: NOT_STARTED
+  - id: AC-2
+    description: "The browser renders only consecutive source samples from the same LineString and source without inventing continuity or confirmed travel."
+    status: NOT_STARTED
+  - id: AC-3
+    description: "Invalid/unsupported KML geometry is rejected before output creation; representative real Chromium verifies offline end-to-end."
+    status: NOT_STARTED
+depends_on: [WORK-0025]
+reuses:
+  - "existing KML Point import, GeoJSON evidence converter and WorldMini bitemporal model"
+  - "existing GPX original source segment renderer, offline HTML and Chromium CI"
+read_before:
+  - AGENTS.md
+  - docs/09_GOVERNANCE/constitution.md
+  - docs/03_ARCHITECTURE/world-mini-offline-map.md
+  - src/monde/kml_points.py
+  - src/monde/world.py
+  - src/monde/map_view.py
+  - registry/work-items/WORK-0025.yaml
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Parse strict KML LineString into Point evidence.", depends_on: [], expected_files: [src/monde/kml_points.py], status: IN_PROGRESS}
+    - {id: T2, description: "Project source topology and render adjacent samples offline.", depends_on: [T1], expected_files: [src/monde/world.py, src/monde/map_view.py], status: IN_PROGRESS}
+    - {id: T3, description: "Verify parsers, CLI and real browser map end to end.", depends_on: [T2], expected_files: [tests/test_world_kml.py, .github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+review_plan:
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+validation:
+  executed: []
+  evidence: []
+  known_gaps:
+    - "Stacked product PRs #23–49 are still draft and unmerged into main"
+    - "Independent feature-level L2 and integration acceptance pending"
+rollback:
+  strategy: "Close dependent PR; original protected main and durable state remain unchanged"
