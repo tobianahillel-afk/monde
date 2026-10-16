@@ -670,3 +670,27 @@ test('GitHub compare accepts correctly shaped rename metadata but requires impac
   assert.equal(result.proposed_assignment,null);
   assert.equal(result.review_acceptance_granted,false);
 });
+
+test('fresh L2 refuses contradictory old-path metadata on ordinary GitHub file changes', async()=>{
+  for (const status of ['modified','added','removed']) {
+    for (const previous_filename of ['src/different.cjs', '', false, 2]) {
+      const files=[{status,filename:PATH,previous_filename}];
+      for (const prepare of [prepareFreshL2FromCurrentGitHub,
+        prepareFreshL2BatchesFromCurrentGitHub]) {
+        const {api}=freshClient({files});
+        await assert.rejects(prepare({github:api,...FRESH_MISSION}),
+          err=>err.code==='INCOMPLETE_GITHUB_COMPARE',
+          'conflicting old path must not vanish for '+status);
+      }
+    }
+  }
+});
+test('fresh L2 accepts empty old-path metadata on non-renamed files',async()=>{
+  for(const previous_filename of [undefined,null]){
+    const {api}=freshClient({files:[{status:'modified',filename:PATH,previous_filename}]});
+    const full=await prepareFreshL2FromCurrentGitHub({github:api,...FRESH_MISSION});
+    assert.equal(full.changed_file_statuses[0].previous_path,null);
+    const batched=await prepareFreshL2BatchesFromCurrentGitHub({github:api,...FRESH_MISSION});
+    assert.equal(batched.batches[0].changed_file_statuses[0].previous_path,null);
+  }
+});
