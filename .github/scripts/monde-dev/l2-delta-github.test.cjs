@@ -33,6 +33,7 @@ function client(data = base, calls = []) {
 function args(override = {}) {
   return {github: client(), previous_assignment: assignment,
     previous_review, current_head: HEAD,
+    previous_reviewed_pr_base_sha: 'c'.repeat(40),
     new_assignment_id: 'L2-PR19-delta-002', ...override};
 }
 test('GitHub compares exact SHAs then proposes narrow fresh-context L2, never approval', async () => {
@@ -205,6 +206,7 @@ test('live PR bridge verifies exact current PR HEAD before and after comparison'
   assert.equal(result.status,'TARGETED_REVIEW_CANDIDATE');
   assert.equal(result.observed_pr_head_consistent_during_read,true);
   assert.equal(result.observed_pr_base_sha,'c'.repeat(40));
+  assert.equal(result.previous_reviewed_pr_base_sha_matched,true);
   assert.equal(result.must_recheck_before_review,true);
   assert.equal(result.review_acceptance_granted,false);
   assert.equal(live.calls.pulls.length,2);
@@ -270,6 +272,24 @@ test('live PR bridge rejects invalid source identity before GitHub compare',asyn
     const live=liveClient(config);
     await assert.rejects(planL2DeltaFromCurrentGitHub(args({github:live.github})),
       err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(live.calls.compares.length,0);
+  }
+});
+
+test('live PR delta refuses base drift since the previously reviewed HEAD even if current PR head is stable',async()=>{
+  const live=liveClient({baseSha:'d'.repeat(40)});
+  await assert.rejects(planL2DeltaFromCurrentGitHub(args({github:live.github})),
+    err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+  assert.equal(live.calls.pulls.length,1);
+  assert.equal(live.calls.compares.length,0);
+});
+test('live PR delta requires a valid, explicitly prior-reviewed base SHA',async()=>{
+  for(const previous_reviewed_pr_base_sha of [undefined,null,'not-sha','f'.repeat(39)]){
+    const live=liveClient();
+    await assert.rejects(planL2DeltaFromCurrentGitHub(args({
+      github:live.github,previous_reviewed_pr_base_sha
+    })),err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(live.calls.pulls.length,0);
     assert.equal(live.calls.compares.length,0);
   }
 });

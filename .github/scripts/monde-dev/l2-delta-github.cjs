@@ -90,10 +90,16 @@ async function planL2DeltaFromGitHub({
 async function planL2DeltaFromCurrentGitHub(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input))
     incomplete();
-  const { github, previous_assignment, current_head } = input;
+  const { github, previous_assignment, current_head,
+    previous_reviewed_pr_base_sha } = input;
   const old = assignment(previous_assignment);
   if (old.mission_kind !== 'L2_REVIEW' ||
       typeof current_head !== 'string' || !/^[a-f0-9]{40}$/.test(current_head) ||
+      // A previous HEAD review only qualifies for a narrow delta if the PR's
+      // base commit is also the same one recorded with that review. The caller
+      // must retrieve this SHA from its separately qualified prior evidence.
+      typeof previous_reviewed_pr_base_sha !== 'string' ||
+      !/^[a-f0-9]{40}$/.test(previous_reviewed_pr_base_sha) ||
       !github || !github.rest || !github.rest.pulls ||
       typeof github.rest.pulls.get !== 'function' ||
       !github.rest.repos ||
@@ -122,6 +128,7 @@ async function planL2DeltaFromCurrentGitHub(input) {
     return {baseSha: base.sha, headRepo: head.repo.full_name, headRef: head.ref};
   };
   const before = await observe();
+  if (before.baseSha !== previous_reviewed_pr_base_sha) incomplete();
   const plan = await planL2DeltaFromGitHub(input);
   const after = await observe();
   if (before.baseSha !== after.baseSha ||
@@ -131,6 +138,7 @@ async function planL2DeltaFromCurrentGitHub(input) {
     ...plan,
     observed_pr_head_consistent_during_read: true,
     observed_pr_base_sha: before.baseSha,
+    previous_reviewed_pr_base_sha_matched: true,
     // A live GitHub ref can change immediately after the second observation.
     live_pr_head_still_requires_verification: true,
     must_recheck_before_review: true,
