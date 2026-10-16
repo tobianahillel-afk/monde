@@ -7185,3 +7185,39 @@ test('L2 Oct-16: normal public HTTP routes and URL authority are not mistaken fo
       'CONTINUE_IMPLEMENTATION',route);
   }
 });
+
+
+test('L2 Oct-16: exact public HTTP route roots are not local filesystem paths',()=>{
+  const bookmark={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  const safe=[
+    'GET /usr/local','POST /usr/local',
+    'GET /Library','GET /Network/Servers',
+    'GET /data','HEAD /dev','GET /System?view=public',
+    'GET /usr/local?filter=public'
+  ];
+  for(const route of safe){
+    const packet=d.createResumePacket({...bookmark,next_action:'Inspect '+route});
+    assert.equal(packet.action_kind,'CONTINUE_IMPLEMENTATION',route);
+  }
+});
+
+test('L2 Oct-16: exact-route HTTP masking never hides local query or traversal',()=>{
+  const bookmark={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  const unsafe=[
+    '/usr/local','GET /usr/local?file=/home/runner/.ssh/id_rsa',
+    'GET /Library?file=%2FUsers%2Falice%2Fsecret.txt',
+    'GET /Network/Servers?target=file:///Network/Servers/team/secret.txt',
+    'GET /usr/local/../home/runner',
+    'GET /data/%2e%2e%2fUsers%2falice',
+    'GET /data/%5c..%5c..%5cUsers%5calice'
+  ];
+  for(const route of unsafe){
+    assert.throws(
+      ()=>d.createResumePacket({...bookmark,next_action:'Inspect '+route}),
+      error=>error.code==='INVALID_RESUME_PACKET',route);
+  }
+});

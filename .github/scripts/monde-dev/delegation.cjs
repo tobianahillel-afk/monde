@@ -2108,9 +2108,11 @@ const NONPUBLIC_EXPLICIT_LOCAL_PATH =
   /(?:^|[^A-Za-z0-9_])(?:path\s*[:=]\s*|(?:local(?:\s+(?:file|path|directory|artifact))?|filesystem|cwd|workspace(?:_dir)?|absolute\s+path)\s+(?:at\s+)?)\/[A-Za-z0-9_.\/-]+/iu;
 // HTTP verb followed by a public endpoint under /data or /users is not a
 // machine-local directory. This narrow masking does not clear file: or path=.
-// Mask only the HTTP pathname; local paths in ?query=... must remain visible.
+// Mask only the HTTP pathname, including exact public route roots; local
+// paths in ?query=... must remain visible. Enforce a token boundary so
+// /users-secret cannot be mistaken for the root /users.
 const PUBLIC_HTTP_ROUTE =
-  /\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/(?:data|users|run|app|builds?|project|deploy|usr\/(?:local|bin|sbin|lib|lib64)|bin|sbin|lib|lib64|dev|proc|sys|System|Applications|Volumes|Library|Network\/Servers)\/[A-Za-z0-9_./%-]*/giu;
+  /\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/(?:data|users|run|app|builds?|project|deploy|usr\/(?:local|bin|sbin|lib|lib64)|bin|sbin|lib|lib64|dev|proc|sys|System|Applications|Volumes|Library|Network\/Servers)(?:\/[A-Za-z0-9_./%-]*)?(?=$|[\s?#])/giu;
 // Normalize slash-led filesystem candidates for classification only. Never
 // rewrite evidence or HTTP authority strings in public review material.
 const SLASH_LED_TOKEN=/(^|[\s"'(=])\/+[A-Za-z0-9_.\/-]*/g;
