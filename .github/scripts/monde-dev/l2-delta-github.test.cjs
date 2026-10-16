@@ -2,6 +2,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub, prepareFreshL2AutoFromCurrentGitHub, assessFreshL2Waves } = require('./l2-delta-github.cjs');
+const WAVE_BASE='d'.repeat(40), WAVE_SOURCE_REPO='tobianahillel-afk/monde';
+const WAVE_SOURCE_REF='feature/monde-v2';
+const assessWithObservedPr=(args)=>assessFreshL2Waves({
+  current_base_sha:WAVE_BASE,current_source_repo:WAVE_SOURCE_REPO,
+  current_source_ref:WAVE_SOURCE_REF,...args
+});
 
 const OLD = 'a'.repeat(40), HEAD = 'b'.repeat(40);
 const PATH = '.github/scripts/monde-dev/delegation.cjs';
@@ -1213,6 +1219,8 @@ function wavesFixture(){
   return {
     status:'FRESH_L2_BATCHES_READY',full_scope_partition_verified:true,
     observed_pr_head_sha:sha,
+    observed_pr_base_sha:WAVE_BASE,
+    observed_pr_source_ref:WAVE_SOURCE_REF,
     observed_pr_merge_base_sha:'c'.repeat(40),
     observed_pr_source_repo:'tobianahillel-afk/monde',
     reviewed_path_units:5,changed_files:5,
@@ -1224,7 +1232,7 @@ function wavesFixture(){
 }
 test('review waves: five assignments span two waves; missing result never means approval',()=>{
   const fixture=wavesFixture();
-  const outcome=assessFreshL2Waves({plan:fixture,
+  const outcome=assessWithObservedPr({plan:fixture,
     current_head:fixture.observed_pr_head_sha});
   assert.equal(outcome.wave_count,2);
   assert.equal(outcome.assessed_missions,5);
@@ -1238,18 +1246,18 @@ test('review waves: forged wave order or uncovered path fails closed',()=>{
   const original=wavesFixture();
   const reordered=structuredClone(original);
   reordered.review_waves[0].assignment_ids.reverse();
-  assert.throws(()=>assessFreshL2Waves({plan:reordered,current_head:OLD}),
+  assert.throws(()=>assessWithObservedPr({plan:reordered,current_head:OLD}),
     e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
   const uncovered=structuredClone(original);
   uncovered.reviewed_path_units=4;
-  assert.throws(()=>assessFreshL2Waves({plan:uncovered,current_head:OLD}),
+  assert.throws(()=>assessWithObservedPr({plan:uncovered,current_head:OLD}),
     e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
 });
 test('review waves: foreign report and stale head cannot be accepted',()=>{
   const plan=wavesFixture();
-  assert.throws(()=>assessFreshL2Waves({plan,current_head:HEAD}),
+  assert.throws(()=>assessWithObservedPr({plan,current_head:HEAD}),
     e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
-  assert.throws(()=>assessFreshL2Waves({plan,current_head:OLD,
+  assert.throws(()=>assessWithObservedPr({plan,current_head:OLD,
     reports:{'L2-PR19-FOREIGN-001':'some content'}}),
     e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
 });
@@ -1271,7 +1279,7 @@ test('review waves: reused reviewer chat across different waves remains unqualif
       context_id:'chat-l2-shared-001',retrieval_kind:'chat_history',
       message_ref:'history-l2-shared-001'};
   }
-  const result=assessFreshL2Waves({plan,reports,sources,current_head:OLD});
+  const result=assessWithObservedPr({plan,reports,sources,current_head:OLD});
   assert.equal(result.missing_assignment_ids.length,0);
   assert.equal(result.wave_count,2);
   assert.equal(result.review_acceptance_granted,false);
@@ -1299,7 +1307,7 @@ test('review waves: L2 correction findings are consolidated across all waves',()
       retrieval_kind:'chat_history',
       message_ref:'fresh-l2-message-'+String(i).padStart(3,'0')};
   }
-  const out=assessFreshL2Waves({plan,reports,sources,
+  const out=assessWithObservedPr({plan,reports,sources,
     current_head:plan.observed_pr_head_sha});
   assert.equal(out.assessed_missions,5);
   assert.equal(out.missing_assignment_ids.length,0);
@@ -1317,7 +1325,7 @@ test('review waves: L2 correction findings are consolidated across all waves',()
 });
 test('review waves: no reports yields empty triage, not fabricated findings',()=>{
   const plan=wavesFixture();
-  const out=assessFreshL2Waves({plan,
+  const out=assessWithObservedPr({plan,
     current_head:plan.observed_pr_head_sha});
   assert.deepEqual(out.triage_findings,[]);
   assert.deepEqual(out.actionable_finding_groups,[]);
@@ -1333,7 +1341,7 @@ test('review waves: no reports yields empty triage, not fabricated findings',()=
 test('review waves: plausible but narrowed assignment cannot omit a GitHub changed file',()=>{
   const plan=wavesFixture();
   plan.batches[0].assignment.paths=['src/unrelated.cjs'];
-  assert.throws(()=>assessFreshL2Waves({plan,current_head:plan.observed_pr_head_sha}),
+  assert.throws(()=>assessWithObservedPr({plan,current_head:plan.observed_pr_head_sha}),
     e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
 });
 test('review waves: dropping a manifest row with rewritten counter never passes',()=>{
@@ -1341,24 +1349,24 @@ test('review waves: dropping a manifest row with rewritten counter never passes'
   plan.batches[4].changed_file_statuses=[];
   plan.batches[4].immutable_file_refs=[];
   plan.changed_files=4;
-  assert.throws(()=>assessFreshL2Waves({plan,current_head:plan.observed_pr_head_sha}),
+  assert.throws(()=>assessWithObservedPr({plan,current_head:plan.observed_pr_head_sha}),
     e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
 });
 test('review waves: a fabricated immutable file path invalidates coverage',()=>{
   const plan=wavesFixture();
   plan.batches[2].immutable_file_refs[0].path='src/fake.cjs';
-  assert.throws(()=>assessFreshL2Waves({plan,current_head:plan.observed_pr_head_sha}),
+  assert.throws(()=>assessWithObservedPr({plan,current_head:plan.observed_pr_head_sha}),
     e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
 });
 test('review waves: changed file count must equal concrete manifest rows',()=>{
   const plan=wavesFixture();plan.changed_files=4;
-  assert.throws(()=>assessFreshL2Waves({plan,current_head:plan.observed_pr_head_sha}),
+  assert.throws(()=>assessWithObservedPr({plan,current_head:plan.observed_pr_head_sha}),
     e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
 });
 
 test('review waves: forged immutable base/head links cannot redirect reviewer',()=>{
   const fixture=wavesFixture();
-  assert.equal(assessFreshL2Waves({plan:fixture,
+  assert.equal(assessWithObservedPr({plan:fixture,
     current_head:fixture.observed_pr_head_sha}).status,'MISSING_L2_REPORTS');
   for(const mutate of [
     ref=>{ref.base_url=ref.base_url.replace('c'.repeat(40),'d'.repeat(40));},
@@ -1368,7 +1376,7 @@ test('review waves: forged immutable base/head links cannot redirect reviewer',(
     ref=>{ref.head_url=null;}
   ]){
     const plan=wavesFixture();mutate(plan.batches[2].immutable_file_refs[0]);
-    assert.throws(()=>assessFreshL2Waves({plan,
+    assert.throws(()=>assessWithObservedPr({plan,
       current_head:plan.observed_pr_head_sha}),
       e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
   }
@@ -1384,10 +1392,10 @@ test('review waves: rename preimage URL must reference original path',()=>{
   ref.base_url='https://github.com/tobianahillel-afk/monde/blob/'+
     'c'.repeat(40)+'/'+previous;
   plan.reviewed_path_units=6;
-  assert.equal(assessFreshL2Waves({plan,
+  assert.equal(assessWithObservedPr({plan,
     current_head:plan.observed_pr_head_sha}).status,'MISSING_L2_REPORTS');
   ref.base_url=ref.base_url.replace(previous,'src/wave1.cjs');
-  assert.throws(()=>assessFreshL2Waves({plan,
+  assert.throws(()=>assessWithObservedPr({plan,
     current_head:plan.observed_pr_head_sha}),
     e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
 });
@@ -1399,7 +1407,7 @@ test('review waves: incomplete immutable origin metadata cannot establish covera
     p=>{delete p.observed_pr_source_repo;}
   ]){
     const plan=wavesFixture();mutate(plan);
-    assert.throws(()=>assessFreshL2Waves({plan,
+    assert.throws(()=>assessWithObservedPr({plan,
       current_head:plan.observed_pr_head_sha}),
       e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
   }
@@ -1455,7 +1463,7 @@ test('multi-wave L2: aggregate 250 independent R2 findings without losing proven
       retrieval_kind:'chat_history',
       message_ref:'fresh-l2-large-message-'+String(i).padStart(3,'0')};
   }
-  const outcome=assessFreshL2Waves({
+  const outcome=assessWithObservedPr({
     plan,reports,sources,current_head:plan.observed_pr_head_sha
   });
   assert.equal(outcome.triage_findings.length,250);
@@ -1466,4 +1474,42 @@ test('multi-wave L2: aggregate 250 independent R2 findings without losing proven
   assert.equal(outcome.progression_advice,'TRIAGE_UNQUALIFIED_MATERIAL_FINDINGS');
   assert.equal(outcome.native_github_approved,false);
   assert.equal(outcome.ready_for_merge,false);
+});
+
+
+test('L2 waves require matching independently observed live PR base and source identity',()=>{
+  const plan=wavesFixture();
+  const valid={
+    plan,current_head:plan.observed_pr_head_sha,
+    current_base_sha:WAVE_BASE,current_source_repo:WAVE_SOURCE_REPO,
+    current_source_ref:WAVE_SOURCE_REF
+  };
+  assert.equal(assessFreshL2Waves(valid).status,'MISSING_L2_REPORTS');
+  for(const field of ['current_base_sha','current_source_repo','current_source_ref']){
+    const missing={...valid};delete missing[field];
+    assert.throws(()=>assessFreshL2Waves(missing),
+      e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+  for(const mutation of [
+    {current_base_sha:'not-a-sha'},
+    {current_base_sha:'f'.repeat(40)},
+    {current_source_ref:'feature/other-branch'},
+    {current_source_ref:'feature/../spoof'},
+    {current_source_repo:'another-user/monde'},
+    {current_source_repo:'not/a/repo'}
+  ]){
+    assert.throws(()=>assessFreshL2Waves({...valid,...mutation}),
+      e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+  for(const mutation of [
+    {observed_pr_base_sha:undefined},
+    {observed_pr_base_sha:'not-a-sha'},
+    {observed_pr_source_ref:undefined},
+    {observed_pr_source_ref:'feature/other-branch'},
+    {observed_pr_source_repo:'another-user/monde'}
+  ]){
+    assert.throws(()=>assessFreshL2Waves({...valid,
+      plan:{...plan,...mutation}}),
+      e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
 });

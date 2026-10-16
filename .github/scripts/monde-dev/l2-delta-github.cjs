@@ -601,6 +601,7 @@ async function prepareFreshL2AutoFromCurrentGitHub(input) {
 // were not reconciled in one complete coverage report.
 function assessFreshL2Waves({
   plan, reports={}, sources={}, coverage_manifests={}, current_head,
+  current_base_sha, current_source_repo, current_source_ref,
   prior_sources=[]
 }) {
   if(!plan || plan.status!=='FRESH_L2_BATCHES_READY' ||
@@ -615,6 +616,18 @@ function assessFreshL2Waves({
      typeof current_head!=='string' ||
      !/^[a-f0-9]{40}$/.test(current_head) ||
      plan.observed_pr_head_sha!==current_head ||
+     // Compare with an independently retrieved current PR snapshot rather
+     // than trusting the submission's embedded base/source provenance.
+     typeof current_base_sha!=='string' ||
+     !/^[a-f0-9]{40}$/.test(current_base_sha) ||
+     plan.observed_pr_base_sha!==current_base_sha ||
+     typeof current_source_repo!=='string' ||
+     !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(current_source_repo) ||
+     plan.observed_pr_source_repo!==current_source_repo ||
+     typeof current_source_ref!=='string' ||
+     !/^[A-Za-z0-9._/-]+$/.test(current_source_ref) ||
+     current_source_ref.split('/').some(x=>!x||x==='.'||x==='..') ||
+     plan.observed_pr_source_ref!==current_source_ref ||
      typeof plan.observed_pr_merge_base_sha!=='string' ||
      !/^[a-f0-9]{40}$/.test(plan.observed_pr_merge_base_sha) ||
      typeof plan.observed_pr_source_repo!=='string' ||
