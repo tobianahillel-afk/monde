@@ -298,3 +298,30 @@ class EvidenceSearchNavigationTest(unittest.TestCase):
         self.assertEqual(source, before)
         self.assertEqual(parsed, before)
         self.assertIn('Source assertions only.', page)
+
+
+class VisibleGeoJSONExportTest(unittest.TestCase):
+    def test_export_action_retains_original_geojson_and_exposes_derivative_scope(self):
+        original = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        immutable = copy.deepcopy(original)
+        html = render_map(original)
+        self.assertEqual(extract(html)[1], immutable)
+        self.assertEqual(original, immutable)
+        self.assertIn('id="export-visible"', html)
+        self.assertIn('"VISIBLE_SOURCE_REPORTS_ONLY"', html)
+        self.assertIn('original_feature_count: features.length', html)
+        self.assertIn('exported_feature_count: visibleFeatures.length', html)
+        self.assertIn('monde-visible-source-evidence.geojson', html)
+        self.assertIn('knowledge_change: comparing ? changeFilter.value : ""', html)
+        self.assertIn("exportButton.disabled = visibleFeatures.length === 0", html)
+        self.assertIn("connect-src 'none'", html)
+
+    def test_visible_export_exists_in_knowledge_change_map(self):
+        world, _ = corrected_points()
+        exported = world.export_geojson_bbox_knowledge_changes(
+            BBOX, VALID, KNOWN, LATE)
+        html = render_map(exported)
+        self.assertIn('id="export-visible"', html)
+        self.assertIn('knowledge_change: comparing ? changeFilter.value : ""', html)
+        self.assertIn('features: visibleFeatures.slice()', html)
+        self.assertEqual(extract(html)[1], exported)

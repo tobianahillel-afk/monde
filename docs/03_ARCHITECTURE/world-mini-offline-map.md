@@ -16,6 +16,8 @@ PYTHONPATH=src python3 -m monde.map_view \
 Open `evidence-map.html` in a browser. The self-contained page requires no server,
 API key, JavaScript library, remote tiles, external images or internet access.
 
+Use **Export visible GeoJSON** to save the currently displayed source reports (after search, source, viewport and change filters) into a portable GeoJSON FeatureCollection, without network requests. The download preserves source assertion IDs, evidence, competing positions and the original time/viewport query. The `monde_visible_export` field records the applied filters and explicitly marks the result as a **filtered derivative**, not complete source coverage or reconciled physical truth. The original saved MONDE state remains unchanged. The button is disabled when there are no visible reports.
+
 Use **Find evidence** to search locally by entity, assertion ID, source ID,
 evidence ID or original locator (case-insensitive, multiple words); combine the
 search with the source, change and inside-viewport filters. Select a report to

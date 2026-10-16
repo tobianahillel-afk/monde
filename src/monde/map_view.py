@@ -85,7 +85,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <h2>Source evidence</h2>
 <div class="controls"><label for="report-search">Find evidence</label>
 <input id="report-search" type="search" placeholder="Entity, assertion, source, evidence or locator" autocomplete="off" aria-label="Search source evidence">
-<button id="clear-search" type="button">Clear</button></div>
+<button id="clear-search" type="button">Clear</button>
+<button id="export-visible" type="button" disabled>Export visible GeoJSON</button></div>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
 <div class="controls" id="change-filter-control" hidden><label for="change-filter">Knowledge change</label>
 <select id="change-filter"><option value="">All changes</option><option value="NEWLY_CURRENT">Newly current</option><option value="NO_LONGER_CURRENT">No longer current</option></select></div>
@@ -112,6 +113,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var changeFilter = document.getElementById("change-filter");
   var search = document.getElementById("report-search");
   var focusButton = document.getElementById("focus-selected");
+  var exportButton = document.getElementById("export-visible");
+  var visibleFeatures = [];
   document.getElementById("change-filter-control").hidden = !comparing;
   if (comparing) {
     document.getElementById("source-notice").textContent =
@@ -208,7 +211,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   function render() {
     layer.replaceChildren(); list.replaceChildren();
     var words = search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
-    var shown = features.filter(function(f) {
+    visibleFeatures = features.filter(function(f) {
       var p = f.properties;
       var indexed = [f.id,p.entity,p.source_id,p.evidence_id,p.locator]
         .join(" ").toLocaleLowerCase();
@@ -218,7 +221,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         (!comparing || !changeFilter.value ||
          f.properties.monde_change === changeFilter.value);
     });
-    shown.forEach(function(f) {
+    visibleFeatures.forEach(function(f) {
       var p = f.properties, coords = f.geometry.coordinates;
       var circle = el("circle", {cx:x(coords[0]),cy:y(coords[1]),
         r:7,tabindex:0,"aria-label":p.entity + " from " + p.source_id},layer);
@@ -240,14 +243,45 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     });
     document.getElementById("metrics").textContent =
       String(query.total_matching_entities)+" matching entities · "+
-      String(shown.length)+" displayed source reports / "+String(features.length)+
+      String(visibleFeatures.length)+" displayed source reports / "+String(features.length)+
       (comparing ? " changed source reports · " : " known reports · ") +query.status;
-    if (!shown.length) {
+    exportButton.disabled = visibleFeatures.length === 0;
+    if (!visibleFeatures.length) {
       var li = document.createElement("li");
       label(li,"No source reports match this view. This does not establish physical absence.");
       list.appendChild(li);
     }
   }
+  exportButton.addEventListener("click",function(){
+    if (!visibleFeatures.length) return;
+    // Preserve the complete, unchanged source query and every original evidence
+    // field. The explicit visible-only scope distinguishes this derivative export
+    // from the unfiltered source-reported snapshot, including map contradictions.
+    var exported = Object.assign({}, data, {
+      features: visibleFeatures.slice(),
+      monde_visible_export: {
+        scope: "VISIBLE_SOURCE_REPORTS_ONLY",
+        original_feature_count: features.length,
+        exported_feature_count: visibleFeatures.length,
+        filters: {
+          search: search.value.trim(),
+          source_id: sources.value,
+          inside_viewport_only: insideOnly.checked,
+          knowledge_change: comparing ? changeFilter.value : ""
+        }
+      }
+    });
+    var blob = new Blob([JSON.stringify(exported, null, 2) + "\\n"],
+      {type:"application/geo+json"});
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = "monde-visible-source-evidence.geojson";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
   sources.addEventListener("change",render);
   insideOnly.addEventListener("change",render);
   changeFilter.addEventListener("change",render);

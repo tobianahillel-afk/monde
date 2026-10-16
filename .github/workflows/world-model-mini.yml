@@ -119,6 +119,62 @@ jobs:
             --disable-dev-shm-usage --timeout=15000 --dump-dom \
             file:///tmp/monde-evidence-map-search-test.html > /tmp/monde-search-dom.html
           grep -q 'data-monde-evidence-search="pass"' /tmp/monde-search-dom.html
+      - name: Verify filtered GeoJSON export in a real offline browser
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for src, target in (
+              ('/tmp/monde-evidence-map.html', '/tmp/monde-filtered-export-smoke.html'),
+              ('/tmp/monde-knowledge-changes-map.html', '/tmp/monde-filtered-changes-smoke.html'),
+          ):
+              page = Path(src).read_text(encoding='utf-8')
+              probe = """<script>
+              (async function(){
+                var data=JSON.parse(document.getElementById('monde-data').textContent);
+                var query=document.getElementById('report-search');
+                var exportButton=document.getElementById('export-visible');
+                var download=null;
+                var payload=null;
+                var originalClick=HTMLAnchorElement.prototype.click;
+                var originalCreate=URL.createObjectURL;
+                URL.createObjectURL=function(blob){payload=blob;return 'blob:monde-test';};
+                HTMLAnchorElement.prototype.click=function(){download=this.download;};
+                var srcName=data.features[0]?.properties.source_id;
+                if(!srcName)throw Error('no fixture reports');
+                document.getElementById('sources').value=srcName;
+                document.getElementById('sources').dispatchEvent(new Event('change'));
+                var expected=data.features.filter(f=>f.properties.source_id===srcName);
+                if(!expected.length||exportButton.disabled)throw Error('no export selection');
+                exportButton.click();
+                if(!payload||download!=='monde-visible-source-evidence.geojson')
+                  throw Error('missing visible GeoJSON download');
+                var result=JSON.parse(await payload.text());
+                if(result.type!=='FeatureCollection'||
+                   JSON.stringify(result.features)!==JSON.stringify(expected)||
+                   result.monde_visible_export.exported_feature_count!==expected.length||
+                   result.monde_visible_export.original_feature_count!==data.features.length||
+                   result.monde_visible_export.scope!=='VISIBLE_SOURCE_REPORTS_ONLY')
+                  throw Error('lost filtered source evidence');
+                if(JSON.stringify(data.features).includes('monde_visible_export'))
+                  throw Error('source snapshot mutated');
+                query.value='no-possible-source-matches-999';
+                query.dispatchEvent(new Event('input'));
+                if(!exportButton.disabled)throw Error('empty export must be disabled');
+                document.body.setAttribute('data-monde-export','pass');
+                URL.createObjectURL=originalCreate;
+                HTMLAnchorElement.prototype.click=originalClick;
+              }()).catch(e=>document.body.setAttribute('data-monde-export','fail:'+e.message));
+              </script>"""
+              Path(target).write_text(page.replace('</body>', probe+'</body>'),encoding='utf-8')
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          for page in filtered-export-smoke filtered-changes-smoke; do
+            "$browser" --headless --no-sandbox --disable-gpu \
+              --disable-dev-shm-usage --virtual-time-budget=2000 \
+              --timeout=15000 --dump-dom \
+              "file:///tmp/monde-$page.html" > "/tmp/monde-$page-dom.html"
+            grep -q 'data-monde-export="pass"' "/tmp/monde-$page-dom.html"
+          done
       - name: Attach actual offline HTML map for product preview
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
