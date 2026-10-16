@@ -195,6 +195,59 @@ class WorldMini:
                 "attributes": attributes}
 
 
+    def timeline(self, entity: str, attribute: str, from_at: str,
+                 to_at: str, known_at: str) -> dict:
+        """Source-reported world-time intervals at one fixed knowledge cutoff.
+
+        Every interval is half-open. UNKNOWN gaps remain visible; source
+        disagreement is not reconciled into a physical-world state change.
+        """
+        _id(entity)
+        _id(attribute)
+        start, end, cutoff = _time(from_at), _time(to_at), _time(known_at)
+        if start >= end:
+            raise ValueError("timeline requires increasing world-time bounds")
+
+        # Only knowledge visible at K may introduce timeline breakpoints.
+        cuts = {start, end}
+        for assertion in self._assertions.values():
+            if (assertion["entity"] != entity or
+                    assertion["attribute"] != attribute or
+                    _time(assertion["known_at"]) > cutoff):
+                continue
+            lower = _time(assertion["valid_from"])
+            upper = (_time(assertion["valid_to"])
+                     if assertion["valid_to"] is not None else None)
+            if start < lower < end:
+                cuts.add(lower)
+            if upper is not None and start < upper < end:
+                cuts.add(upper)
+
+        ordered = sorted(cuts)
+        segments = []
+        for left, right in zip(ordered, ordered[1:]):
+            at = left.isoformat().replace("+00:00", "Z")
+            observed = self.query(entity, attribute, at, known_at)
+            reports = observed["reports"]
+            upper = right.isoformat().replace("+00:00", "Z")
+            if segments and segments[-1]["reports"] == reports:
+                segments[-1]["valid_to"] = upper
+            else:
+                segments.append({
+                    "valid_from": at, "valid_to": upper,
+                    "status": "REPORTED" if reports else "UNKNOWN",
+                    "reports": reports,
+                })
+        return {
+            "entity": entity, "attribute": attribute, "world": "OBSERVED",
+            "comparison": "WORLD_TIME_REPORTS_ONLY",
+            "knowledge_cutoff": known_at,
+            "from_at": from_at, "to_at": to_at,
+            "status": "REPORTED" if any(s["reports"] for s in segments) else "UNKNOWN",
+            "segments": segments,
+        }
+
+
     def compare_knowledge(self, entity: str, at: str,
                           from_known_at: str, to_known_at: str) -> dict:
         """Compare source reports known at K1 and K2 for the same world time.
@@ -239,21 +292,33 @@ def main(argv=None) -> int:
     selection = parser.add_mutually_exclusive_group(required=True)
     selection.add_argument("--attribute")
     selection.add_argument("--all-attributes", action="store_true")
-    parser.add_argument("--at", required=True)
+    parser.add_argument("--at", help="one world-time instant; omit when selecting a timeline")
+    parser.add_argument("--timeline-from", help="start of valid-world-time interval")
+    parser.add_argument("--timeline-to", help="exclusive end of valid-world-time interval")
     parser.add_argument("--known-at", required=True)
     parser.add_argument("--compare-known-at", help="earlier knowledge cutoff; requires --all-attributes")
     args = parser.parse_args(argv)
     try:
         world = WorldMini.read(args.fixture)
-        if args.compare_known_at is not None:
-            if not args.all_attributes:
-                parser.error("--compare-known-at requires --all-attributes")
-            result = world.compare_knowledge(args.entity, args.at,
-                                             args.compare_known_at, args.known_at)
+        if args.timeline_from is not None or args.timeline_to is not None:
+            if (args.timeline_from is None or args.timeline_to is None or
+                    args.at is not None or args.all_attributes or
+                    args.compare_known_at is not None):
+                parser.error("timeline requires both bounds, --attribute, and no --at/--compare-known-at")
+            result = world.timeline(args.entity, args.attribute,
+                                    args.timeline_from, args.timeline_to, args.known_at)
         else:
-            result = (world.entity_snapshot(args.entity, args.at, args.known_at)
-                      if args.all_attributes else
-                      world.query(args.entity, args.attribute, args.at, args.known_at))
+            if args.at is None:
+                parser.error("--at required unless selecting a timeline")
+            if args.compare_known_at is not None:
+                if not args.all_attributes:
+                    parser.error("--compare-known-at requires --all-attributes")
+                result = world.compare_knowledge(args.entity, args.at,
+                                                 args.compare_known_at, args.known_at)
+            else:
+                result = (world.entity_snapshot(args.entity, args.at, args.known_at)
+                          if args.all_attributes else
+                          world.query(args.entity, args.attribute, args.at, args.known_at))
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     except (OSError, ValueError, TypeError) as exc:
         print("MONDE Mini: " + str(exc), file=sys.stderr)

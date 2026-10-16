@@ -91,3 +91,28 @@ experimental knowledge-history query, not a truth or causal-change engine.
 
 Rollback: close or revert this one isolated PR; it makes no changes to main,
 database, credentials or existing accepted contracts.
+
+## Inspect reported world-time history at fixed knowledge
+
+Use `WorldMini.timeline(entity, attribute, from_at, to_at, known_at)` to
+see the half-open periods in which a source report was current, **at one
+fixed knowledge cutoff**. UNKNOWN gaps are explicit, and competing source
+reports appear side-by-side without an estimated or simulated state. The
+`WORLD_TIME_REPORTS_ONLY` marker means changes in a source's validity
+assertions, **not verified physical changes**. Original evidence, event and
+capture timestamps remain in each report. Input bounds require timezone-aware
+ISO-8601 values and an increasing interval.
+
+```sh
+PYTHONPATH=src python3 -m monde.world \
+  --fixture examples/monde-mini.json \
+  --entity building-001 --attribute floors \
+  --timeline-from 2026-01-01T00:00:00Z \
+  --timeline-to 2026-02-01T00:00:00Z \
+  --known-at 2026-01-07T00:00:00Z
+```
+
+This is an experimental LOT-2 reporting primitive: in-memory data and strict
+source-reported validity only. It neither detects real-world events nor resolves
+contradictions. The existing one-instant and knowledge-delta CLI modes remain
+unchanged.
