@@ -645,3 +645,28 @@ test('unqualified previous review can only produce a full-impact candidate',asyn
   assert.equal(result.prior_review_base_evidence_structurally_bound,false);
   assert.equal(result.review_acceptance_granted,false);
 });
+
+test('GitHub compare rejects contradictory rename provenance instead of dropping it',async()=>{
+  for(const row of [
+    {filename:PATH,status:'modified',previous_filename:'src/old.cjs'},
+    {filename:PATH,status:'added',previous_filename:'src/old.cjs'},
+    {filename:PATH,status:'removed',previous_filename:'src/old.cjs'},
+    {filename:PATH,status:'renamed',previous_filename:PATH},
+    {filename:PATH,status:'renamed',previous_filename:19},
+    {filename:PATH,status:'renamed',previous_filename:null},
+    {filename:PATH,status:'renamed'}
+  ]){
+    await assert.rejects(planL2DeltaFromGitHub(args({
+      github:client({...base,files:[row]})
+    })),err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+});
+test('GitHub compare accepts correctly shaped rename metadata but requires impact review',async()=>{
+  const changed={...base,files:[{
+    filename:'src/renamed.cjs',status:'renamed',previous_filename:PATH
+  }]};
+  const result=await planL2DeltaFromGitHub(args({github:client(changed)}));
+  assert.equal(result.status,'MANUAL_IMPACT_ANALYSIS_REQUIRED');
+  assert.equal(result.proposed_assignment,null);
+  assert.equal(result.review_acceptance_granted,false);
+});

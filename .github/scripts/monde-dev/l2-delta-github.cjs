@@ -61,10 +61,19 @@ async function planL2DeltaFromGitHub({
     if (!file || typeof file.filename !== 'string' ||
         !['added','modified','removed','renamed'].includes(file.status))
       incomplete();
+    // The GitHub compare response carries a rename source ONLY on a rename.
+    // Reject contradictory metadata rather than silently discarding it, or
+    // treating a self-rename as evidence of a meaningful code move.
+    if (file.status === 'renamed') {
+      if (typeof file.previous_filename !== 'string' ||
+          file.previous_filename === file.filename)
+        incomplete();
+    } else if (file.previous_filename !== undefined &&
+               file.previous_filename !== null) incomplete();
     return {
       path: file.filename, status: file.status,
       previous_path: file.status === 'renamed' ?
-        file.previous_filename ?? null : null
+        file.previous_filename : null
     };
   });
   const result = planL2Delta({
