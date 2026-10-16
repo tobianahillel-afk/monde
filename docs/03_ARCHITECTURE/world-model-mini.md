@@ -54,6 +54,30 @@ are omitted rather than represented as zero. A real observed zero remains zero.
 
 A separate GitHub Actions PR CI runs these real Python and CLI tests.
 
+## Compare what sources reported at two knowledge cutoffs
+
+At a fixed world-time T, MONDE Mini can now show which source-reported
+assertions became current and which earlier reports ceased to be current
+because of corrections. It never treats a knowledge update as a physical
+change in the world.
+
+    PYTHONPATH=src python3 -m monde.world \
+      --fixture examples/monde-mini.json \
+      --entity building-001 --all-attributes \
+      --at 2026-01-02T00:00:00Z \
+      --compare-known-at 2026-01-05T00:00:00Z \
+      --known-at 2026-01-07T00:00:00Z
+
+The output has comparison KNOWLEDGE_ONLY and retains complete provenance
+for newly current and no-longer-current source reports, including their
+original event/capture timestamps. On the synthetic building, the city
+registry corrects 5 floors to 7; the independent news claim of 6 remains
+current. The previous claim is still in the append-only export.
+
+Both knowledge cutoffs are exact, timezone-aware timestamps, with the
+earlier cutoff strictly before the later cutoff. The feature is an
+experimental knowledge-history query, not a truth or causal-change engine.
+
 ## Scope and limitations
 
 - Pure in-memory reference model, explicit JSON import/export only; not durable.
