@@ -221,3 +221,41 @@ The `MONDE_V2_RESUME_V1` bookmark accepts only GitHub CI job/run/check numeric I
 ### Fenced ChatGPT footer recovery (2026-10-14)
 
 If a scheduled ChatGPT reviewer wraps the final JSON in a simple Markdown code fence, `recoverUnqualifiedClaims` may recover the **structured R1/R2 allegations for foreground correction** instead of losing their actions. This is a deliberately narrow import-only compatibility feature: `parseReviewResponse` still rejects fenced footers and the report stays `REPORT_NEEDS_MANUAL_REVIEW`, with no L2 qualification, no GitHub approval and no permission to merge. Unsupported/incomplete fences leave the blocking evidence unknown and require manual examination of the original ChatGPT response. Do not schedule duplicate reviews merely to fix formatting.
+
+
+## GitHub WORK snapshots → next interactive increment (candidate)
+
+The pure helper reads actual canonical WORK records through the read-only
+GitHub Contents API, pinned to a **caller-verified GitHub commit SHA**.
+This removes manual retyping of statuses, task dependencies and declared files.
+
+In an authorized GitHub-hosted Node context with an existing Octokit client:
+
+```js
+const {planNextIncrementFromGitHub} =
+  require('./.github/scripts/monde-dev/delegation.cjs');
+const plan = await planNextIncrementFromGitHub({
+  github,
+  repo: 'tobianahillel-afk/monde',
+  head_sha: verifiedMainSha,
+  work_ids: ['WORK-0001', 'WORK-0002', 'WORK-0003'],
+  triage_findings: []
+});
+console.log(plan.recommended, plan.blocked);
+```
+
+The foreground caller must independently verify `verifiedMainSha` against
+GitHub, include relevant predecessor WORKs, inspect related contracts and
+findings, and recheck actual PR/CI/review/branch state before any mutation.
+A missing predecessor prevents its dependent task being recommended.
+
+Each read is limited to the canonical WORK subset (inline or block task
+entries), 40 WORK records and 256 KiB per record. Ambiguous YAML, unexpected
+statuses and untrusted blob formats are rejected instead of guessed.
+No server, paid AI API, autonomous Scheduled writer or parallel registry is added.
+
+The initial interactive repository-read compatibility check parsed the real
+`WORK-0001` (8 tasks), `WORK-0002` (5 tasks), and taskless `WORK-0003`.
+This is **not** a separate-context L2 review or full production validation.
+The adapter and plan return advisory results only:
+`authorized_to_write:false`; accepted governance and host approval stay separate.
