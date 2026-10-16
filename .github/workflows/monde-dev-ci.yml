@@ -40,3 +40,4 @@ jobs:
           --test-coverage-branches=93
           --test-coverage-functions=100
           .github/scripts/monde-dev/delegation.test.cjs
+          .github/scripts/monde-dev/l2-delta-github.test.cjs

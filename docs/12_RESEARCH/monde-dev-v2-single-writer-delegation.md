@@ -262,3 +262,26 @@ The initial interactive repository-read compatibility check parsed the real
 This is **not** a separate-context L2 review or full production validation.
 The adapter and plan return advisory results only:
 `authorized_to_write:false`; accepted governance and host approval stay separate.
+
+### Adapter GitHub de revue L2 incrémentale (candidat, lecture seule)
+
+L'adaptateur `.github/scripts/monde-dev/l2-delta-github.cjs` réutilise
+`planL2Delta` et lit directement le comparatif GitHub entre **deux SHA** via
+`github.rest.repos.compareCommitsWithBasehead`. Il exige un historique linéaire
+(`ahead`), une base commune exacte, un dernier commit exact, **au plus 100
+commits** et **moins de 300 fichiers** pour éviter les comparaisons tronquées.
+Une suppression, un renommage, un changement hors périmètre ou l'absence de
+revue antérieure qualifiée impose une analyse d'impact plus large. Le résultat
+reste une **proposition** ; il ne prouve pas que le HEAD courant de la PR soit
+toujours identique, ni l'indépendance du réviseur, ni une approbation native.
+Aucune écriture GitHub, tâche autonome ou approbation n'est effectuée.
+
+Exemple en contexte GitHub/Octokit existant :
+
+```js
+const {planL2DeltaFromGitHub} = require('./.github/scripts/monde-dev/l2-delta-github.cjs');
+const delta = await planL2DeltaFromGitHub({
+  github, previous_assignment, current_head: verifiedCandidateHead,
+  new_assignment_id: 'L2-MISSION-NEW', previous_review
+});
+```
