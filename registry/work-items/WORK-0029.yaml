@@ -1,0 +1,66 @@
+id: WORK-0029
+title: "Import bounded original KML MultiGeometry into MONDE Mini map"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini original-source map"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Accept real original KML Placemarks containing multiple source-declared
+  Point, LineString and Polygon geometries without inventing topology or
+  losing source attribution, then display their distinct samples offline.
+scope:
+  in:
+    - at most 32 directly nested supported 2D geometries per Placemark
+    - stable distinct component sample and trace identities
+    - compatibility with existing single-geometry KML evidence IDs
+    - original KML through CLI and real offline Chromium visualization
+  out:
+    - nested MultiGeometry, remote links, KML Model/3D, inferred area
+    - geometry repair, geographic containment or reconciled entity truth
+acceptance_criteria:
+  - {id: AC-1, description: "MultiGeometry components retain independent IDs, source and temporal ancestry.", status: NOT_STARTED}
+  - {id: AC-2, description: "Offline map draws only original same-component and same-ring edges.", status: NOT_STARTED}
+  - {id: AC-3, description: "Unsupported or ambiguous inputs fail atomically, while legacy KML remains stable.", status: NOT_STARTED}
+requirements: []
+assumptions: ["Original KML geometries are source assertions, not observed ground truth."]
+risks: ["Accidental bridging between unrelated source components.", "Ambiguous feature identity."]
+assurance:
+  level: A2
+  rationale: "Bounded original-source adapter reusing existing bitemporal evidence and offline browser."
+  escalation_triggers: ["Loss of evidence", "Cross-component fabricated edges", "Untrusted remote XML"]
+depends_on: [WORK-0028]
+reuses: ["src/monde/kml_points.py", "src/monde/geojson.py", "src/monde/world.py", "src/monde/map_view.py", "existing Chromium product CI"]
+read_before: [AGENTS.md, docs/03_ARCHITECTURE/world-mini-offline-map.md, src/monde/kml_points.py, tests/test_world_kml.py]
+blocks: []
+affected_capabilities: []
+affected_engines: ["MONDE Mini source evidence map"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["bounded KML original-source geometry and sample evidence"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Retain unique per-component original source samples.", depends_on: [], expected_files: [src/monde/kml_points.py], status: IN_PROGRESS}
+    - {id: T2, description: "Exercise source-to-WorldMini CLI path and invalid input.", depends_on: [T1], expected_files: [tests/test_world_kml.py], status: IN_PROGRESS}
+    - {id: T3, description: "Prove distinct traces on a real offline Chromium page.", depends_on: [T2], expected_files: [.github/workflows/world-model-mini.yml], status: IN_PROGRESS}
+review_plan:
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, DATA_EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["mixed MultiGeometry and repeat components", "legacy single-geometry identity"]
+  integration: ["KML -> GeoJSON -> WorldMini -> offline HTML"]
+  e2e: ["original KML MultiGeometry produces separate SVG line and ring counts in Chromium"]
+  regression: ["source Point/LineString/Polygon before MultiGeometry"]
+  security: ["reject nested, missing, attributed, out-of-range, ambiguous or oversized geometry"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Ancestors #23–#52 remain draft, not integrated into main.", "Independent L2 review pending."]
+rollback:
+  strategy: "Close this Draft child PR; protected main and original input data unchanged."

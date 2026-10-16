@@ -103,23 +103,20 @@ def to_geojson(path):
         seen.add(ident)
         geometries = [node for node in placemark
                       if node.tag in geometry_types]
-        if len(geometries) != 1 or geometries[0].tag not in (
-                tag("Point"), tag("LineString"), tag("Polygon")):
-            raise ValueError("only one supported KML geometry per Placemark")
-        geometry = geometries[0]
-        if geometry.tag == tag("Polygon"):
-            rings = _polygon_points(geometry, tag)
-            points = [point for ring in rings for point in ring]
+        if len(geometries) != 1:
+            raise ValueError("one original KML geometry required per Placemark")
+        original = geometries[0]
+        multi = original.tag == tag("MultiGeometry")
+        if multi:
+            if (original.attrib or not 1 <= len(original) <= 32
+                    or any(child.tag not in (tag("Point"), tag("LineString"),
+                                              tag("Polygon")) for child in original)):
+                raise ValueError("KML MultiGeometry requires 1..32 supported geometries")
+            components = list(original)
+        elif original.tag in (tag("Point"), tag("LineString"), tag("Polygon")):
+            components = [original]
         else:
-            if geometry.attrib or len(geometry) != 1 or (
-                    geometry[0].tag != tag("coordinates")
-                    or geometry[0].attrib or len(geometry[0])):
-                raise ValueError("unsupported or ambiguous KML geometry")
-            points = _points(geometry[0].text)
-        if geometry.tag == tag("Point") and len(points) != 1:
-            raise ValueError("KML Point must contain one coordinate")
-        if geometry.tag == tag("LineString") and len(points) < 2:
-            raise ValueError("KML LineString must have at least two samples")
+            raise ValueError("unsupported KML geometry")
         attrs = {}
         name = placemark.find(tag("name"))
         if name is not None and name.text is not None:
@@ -133,39 +130,72 @@ def to_geojson(path):
             attrs["description"] = description.text
         if placemark.find(tag("ExtendedData")) is not None:
             raise ValueError("KML ExtendedData is not yet supported; no silent loss")
-        if len(features) + len(points) > MAX_POINTS:
-            raise ValueError("KML source sample count limit exceeded")
-        if geometry.tag == tag("Point"):
-            features.append({"type": "Feature", "id": ident, "properties": attrs,
-                             "geometry": {"type": "Point", "coordinates": points[0]}})
-            continue
-        trace_id = hashlib.sha256(ident.encode("utf-8")).hexdigest()[:24]
-        repeats = {}
-        samples = ([(ring_index, order, point)
-                    for ring_index, ring in enumerate(rings)
-                    for order, point in enumerate(ring)]
-                   if geometry.tag == tag("Polygon")
-                   else [(0, order, point) for order, point in enumerate(points)])
-        for segment, order, point in samples:
-            digest = hashlib.sha256(json.dumps(
-                [ident, point], separators=(",", ":")).encode("utf-8")
-                ).hexdigest()[:32]
-            base = ("kml-boundary-" if geometry.tag == tag("Polygon") else
-                    "kml-line-") + digest
-            repeats[base] = repeats.get(base, 0) + 1
-            sample_id = base if repeats[base] == 1 else (
-                base + "-repeat-" + str(repeats[base]))
-            features.append({
-                "type": "Feature", "id": sample_id,
-                "properties": {**attrs, "kml_trace": {
-                    "format": ("KML_2_2_POLYGON_RING_POINT" if geometry.tag == tag("Polygon")
-                               else "KML_2_2_LINESTRING_POINT"),
-                    "kind": ("Polygon" if geometry.tag == tag("Polygon")
-                             else "LineString"), "name": attrs.get("name", ident),
-                    "trace_id": trace_id, "segment": segment, "order": order,
-                    **({"placemark_id": ident} if geometry.tag == tag("Polygon")
-                       else {})}},
-                "geometry": {"type": "Point", "coordinates": point}})
+        for component_index, geometry in enumerate(components):
+            is_polygon = geometry.tag == tag("Polygon")
+            if is_polygon:
+                rings = _polygon_points(geometry, tag)
+                points = [point for ring in rings for point in ring]
+            else:
+                if geometry.attrib or len(geometry) != 1 or (
+                        geometry[0].tag != tag("coordinates")
+                        or geometry[0].attrib or len(geometry[0])):
+                    raise ValueError("unsupported or ambiguous KML geometry")
+                points = _points(geometry[0].text)
+            if geometry.tag == tag("Point") and len(points) != 1:
+                raise ValueError("KML Point must contain one coordinate")
+            if geometry.tag == tag("LineString") and len(points) < 2:
+                raise ValueError("KML LineString must have at least two samples")
+            if len(features) + len(points) > MAX_POINTS:
+                raise ValueError("KML source sample count limit exceeded")
+            if geometry.tag == tag("Point"):
+                # A MultiGeometry component is an original point *sample*, not
+                # a second inferred real-world entity with the Placemark ID.
+                ident_for_point = ident
+                if multi:
+                    payload = json.dumps([ident, component_index],
+                                         ensure_ascii=False, separators=(",", ":"))
+                    ident_for_point = ("kml-point-" + hashlib.sha256(
+                        payload.encode("utf-8")).hexdigest()[:32])
+                features.append({
+                    "type": "Feature", "id": ident_for_point,
+                    "properties": attrs,
+                    "geometry": {"type": "Point", "coordinates": points[0]}})
+                continue
+            # A MultiGeometry component has its own trace. The existing viewer
+            # groups only by source + trace_id + ring segment: distinct source
+            # components must NEVER acquire artificial joining edges.
+            trace_payload = (ident.encode("utf-8") if not multi else
+                             json.dumps([ident, component_index],
+                                        ensure_ascii=False,
+                                        separators=(",", ":")).encode("utf-8"))
+            trace_id = hashlib.sha256(trace_payload).hexdigest()[:24]
+            repeats = {}
+            samples = ([(ring_index, order, point)
+                        for ring_index, ring in enumerate(rings)
+                        for order, point in enumerate(ring)]
+                       if is_polygon else
+                       [(0, order, point) for order, point in enumerate(points)])
+            for segment, order, point in samples:
+                digest_input = ([ident, point] if not multi else
+                                [ident, component_index, point])
+                digest = hashlib.sha256(json.dumps(
+                    digest_input, separators=(",", ":")
+                    ).encode("utf-8")).hexdigest()[:32]
+                base = ("kml-boundary-" if is_polygon else "kml-line-") + digest
+                repeats[base] = repeats.get(base, 0) + 1
+                sample_id = base if repeats[base] == 1 else (
+                    base + "-repeat-" + str(repeats[base]))
+                features.append({
+                    "type": "Feature", "id": sample_id,
+                    "properties": {**attrs, "kml_trace": {
+                        "format": ("KML_2_2_POLYGON_RING_POINT" if is_polygon
+                                   else "KML_2_2_LINESTRING_POINT"),
+                        "kind": ("Polygon" if is_polygon else "LineString"),
+                        "name": attrs.get("name", ident),
+                        "trace_id": trace_id, "segment": segment,
+                        "order": order,
+                        **({"placemark_id": ident} if is_polygon else {})}},
+                    "geometry": {"type": "Point", "coordinates": point}})
     if not features:
         raise ValueError("KML contains no supported Point, LineString or Polygon Placemark")
     return {"type": "FeatureCollection", "features": features}

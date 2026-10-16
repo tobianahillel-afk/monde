@@ -447,5 +447,122 @@ class KMLSourceTests(unittest.TestCase):
                     self.assertNotEqual(result.returncode,0)
                     self.assertFalse(out.exists())
 
+
+    def test_multigeometry_mixed_source_components_to_world_and_offline_map(self):
+        multi = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                 '<Placemark id="compound"><name>Source compound</name>'
+                 '<MultiGeometry>'
+                 '<Point><coordinates>2.35,48.85</coordinates></Point>'
+                 '<LineString><coordinates>2.35,48.85 2.36,48.86 '
+                 '2.37,48.87</coordinates></LineString>'
+                 '<Polygon><outerBoundaryIs><LinearRing><coordinates>'
+                 '2.35,48.85 2.37,48.85 2.37,48.87 2.35,48.85'
+                 '</coordinates></LinearRing></outerBoundaryIs>'
+                 '<innerBoundaryIs><LinearRing><coordinates>'
+                 '2.353,48.853 2.356,48.853 2.356,48.856 2.353,48.853'
+                 '</coordinates></LinearRing></innerBoundaryIs>'
+                 '</Polygon></MultiGeometry></Placemark></Document></kml>')
+        with tempfile.TemporaryDirectory() as directory:
+            source = self.fixture(directory, multi)
+            geo = to_geojson(source)
+            self.assertEqual(geo, to_geojson(source))
+            features = geo["features"]
+            self.assertEqual(len(features), 12)
+            self.assertEqual(len({f["id"] for f in features}), 12)
+            self.assertTrue(features[0]["id"].startswith("kml-point-"))
+            self.assertNotIn("kml_trace", features[0]["properties"])
+            traces = [f["properties"]["kml_trace"] for f in features[1:]]
+            self.assertEqual([t["kind"] for t in traces],
+                             ["LineString"]*3 + ["Polygon"]*8)
+            self.assertEqual(len({t["trace_id"] for t in traces[:3]}), 1)
+            self.assertEqual(len({t["trace_id"] for t in traces[3:]}), 1)
+            self.assertNotEqual(traces[0]["trace_id"], traces[3]["trace_id"])
+            self.assertEqual([t["segment"] for t in traces[3:]], [0]*4 + [1]*4)
+            doc = to_document(geo, source_id="compound-source",
+                              locator="dataset://compound.kml",
+                              captured_at=CAPTURED,
+                              valid_from="2026-01-01T00:00:00Z")
+            visible = WorldMini.from_document(doc).export_geojson_bbox(
+                [-180, -90, 180, 90], AT, CAPTURED)["features"]
+            self.assertEqual(len(visible), 12)
+            self.assertEqual(len({f["properties"]["evidence_id"]
+                                  for f in visible}), 12)
+            self.assertTrue(all(f["properties"]["source_id"] == "compound-source"
+                                and f["properties"]["monde_status"] ==
+                                "SOURCE_REPORTED_ONLY" for f in visible))
+            out = Path(directory) / "compound.html"
+            completed = self.cli(*self.flags(source), "--at", AT,
+                                 "--known-at", CAPTURED, "--output", out)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            html = out.read_text(encoding="utf-8")
+            self.assertIn('KML_2_2_POLYGON_RING_POINT', html)
+            self.assertIn('KML_2_2_LINESTRING_POINT', html)
+            self.assertIn('Source compound', html)
+            self.assertNotIn("https://tile.", html)
+
+    def test_multigeometry_identical_components_have_distinct_source_traces(self):
+        same = "<LineString><coordinates>2.35,48.85 2.36,48.86</coordinates></LineString>"
+        content = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                   '<Placemark id="repeated"><MultiGeometry>' + same + same +
+                   '</MultiGeometry></Placemark></Document></kml>')
+        with tempfile.TemporaryDirectory() as directory:
+            features = to_geojson(self.fixture(directory, content))["features"]
+        self.assertEqual(len(features), 4)
+        self.assertEqual(len({f["id"] for f in features}), 4)
+        ids = [f["properties"]["kml_trace"]["trace_id"] for f in features]
+        self.assertEqual(ids[0], ids[1])
+        self.assertEqual(ids[2], ids[3])
+        self.assertNotEqual(ids[0], ids[2])
+        self.assertEqual([f["properties"]["kml_trace"]["order"]
+                          for f in features], [0, 1, 0, 1])
+
+    def test_multigeometry_fail_closed_for_unsupported_or_ambiguous_components(self):
+        point = "<Point><coordinates>2.35,48.85</coordinates></Point>"
+        line = "<LineString><coordinates>2.35,48.85 2.36,48.86</coordinates></LineString>"
+        invalid = [
+            '<MultiGeometry/>',
+            '<MultiGeometry>' + point * 33 + '</MultiGeometry>',
+            '<MultiGeometry>' + point +
+            '<MultiGeometry>' + line + '</MultiGeometry></MultiGeometry>',
+            '<MultiGeometry>' + point + '<Model/></MultiGeometry>',
+            '<MultiGeometry id="surprise">' + point + '</MultiGeometry>',
+            '<MultiGeometry>' + point.replace('2.35,48.85', '200,48.85') +
+            '</MultiGeometry>',
+            '<MultiGeometry>' + line.replace('2.36,48.86', '2.36,48.86,10') +
+            '</MultiGeometry>',
+            '<MultiGeometry>' + point + '</MultiGeometry>' + point,
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            for i, geometry in enumerate(invalid):
+                source = self.fixture(
+                    directory, '<kml xmlns="http://www.opengis.net/kml/2.2">'
+                    '<Document><Placemark id="invalid">' + geometry +
+                    '</Placemark></Document></kml>', str(i) + ".kml")
+                output = Path(directory) / ("invalid-%d.html" % i)
+                with self.subTest(case=i):
+                    with self.assertRaises(ValueError):
+                        to_geojson(source)
+                    completed = self.cli(*self.flags(source), "--at", AT,
+                                         "--known-at", CAPTURED, "--output", output)
+                    self.assertNotEqual(completed.returncode, 0)
+                    self.assertFalse(output.exists())
+
+    def test_multigeometry_source_ids_do_not_change_legacy_geometry_contracts(self):
+        sample = '<LineString><coordinates>2.35,48.85 2.36,48.86</coordinates></LineString>'
+        root = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                '<Placemark id="legacy">' + sample + '</Placemark></Document></kml>')
+        wrapped = ('<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+                   '<Placemark id="legacy"><MultiGeometry>' + sample +
+                   '</MultiGeometry></Placemark></Document></kml>')
+        with tempfile.TemporaryDirectory() as directory:
+            legacy = to_geojson(self.fixture(directory, root, "legacy.kml"))
+            compound = to_geojson(self.fixture(directory, wrapped, "wrapped.kml"))
+        self.assertEqual(len(legacy["features"]), 2)
+        self.assertEqual(len(compound["features"]), 2)
+        self.assertEqual(len({f["id"] for f in compound["features"]}), 2)
+        self.assertNotEqual(legacy["features"][0]["id"], compound["features"][0]["id"])
+        self.assertEqual([f["geometry"]["coordinates"] for f in legacy["features"]],
+                         [f["geometry"]["coordinates"] for f in compound["features"]])
+
 if __name__ == "__main__":
     unittest.main()

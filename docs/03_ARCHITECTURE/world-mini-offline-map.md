@@ -470,3 +470,22 @@ rings. Filtering that hides a vertex cannot create replacement or connecting
 edges. No area fill, inside/outside judgment, legal boundary claim, geometric
 repair, or polygon validity inference is performed. Unsupported geometry,
 three-dimensional samples and malformed rings fail atomically.
+
+## Source-declared KML MultiGeometry (WORK-0029)
+
+A KML 2.2 Placemark can contain one bounded \`MultiGeometry\` with up to 32
+direct \`Point\`, \`LineString\` and \`Polygon\` children. Run the same offline
+\`--kml\` command already used above: the original local file is converted
+into independently evidenced source Point samples and displayed on the same map.
+No extra conversion tool, dependency, network request or map engine is needed.
+
+Every component receives distinct deterministic source sample IDs; LineString
+and Polygon traces use distinct per-component trace IDs, so neither two shapes
+nor adjacent rings are joined by a fabricated edge. Existing single geometry
+Placemarks retain their current IDs and semantics. Malformed, nested, remote,
+3D or over-budget input is rejected before producing output.
+
+**Important:** MultiGeometry is an original *source grouping*, not a proven
+real-world area, motion, topology, object identity or asserted containment.
+The map stays schematic, offline and bitemporal; every location remains a
+source report with its evidence and original time metadata.
