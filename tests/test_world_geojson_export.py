@@ -61,7 +61,7 @@ class GeoJsonExportTests(unittest.TestCase):
                          {"map-primary", "map-secondary"})
         self.assertEqual({tuple(f["geometry"]["coordinates"]) for f in features},
                          {(2.3522, 48.8566), (7.1, 47.2)})
-        viewport = world.export_geojson(AT, KNOWN, [2, 48, 3, 49])["features"]
+        viewport = world.export_geojson(AT, KNOWN, [2.35, 48.85, 2.36, 48.86])["features"]
         self.assertEqual(len(viewport), 1)
         self.assertEqual(viewport[0]["properties"]["source_id"], "map-primary")
 
@@ -110,7 +110,7 @@ class GeoJsonExportTests(unittest.TestCase):
                            "--state-out", str(state))
             self.assertEqual(imported.returncode, 0, imported.stderr)
             out = run("--fixture", str(state), "--export-geojson",
-                      "--at", AT, "--known-at", KNOWN, "--export-bbox", "2,48,3,49")
+                      "--at", AT, "--known-at", KNOWN, "--export-bbox", "2.35,48.85,2.36,48.86")
             self.assertEqual(out.returncode, 0, out.stderr)
             payload = json.loads(out.stdout)
             self.assertEqual(payload["type"], "FeatureCollection")
