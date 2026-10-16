@@ -423,7 +423,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          source = Path('/tmp/monde-evidence-map.html').read_text(encoding='utf-8')
+          source = Path('/tmp/monde-compare-claims.html').read_text(encoding='utf-8')
           check = """<script>
           (async function(){
             var data=JSON.parse(document.getElementById('monde-data').textContent);
@@ -473,7 +473,10 @@ jobs:
           "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
             --virtual-time-budget=2200 --timeout=15000 --dump-dom \
             "file:///tmp/monde-conflicts-smoke.html" > /tmp/monde-conflicts-dom.html
-          grep -q 'data-monde-conflicts="pass"' /tmp/monde-conflicts-dom.html
+          if ! grep -q 'data-monde-conflicts="pass"' /tmp/monde-conflicts-dom.html; then
+            grep -o 'data-monde-conflicts="[^"]*"' /tmp/monde-conflicts-dom.html || true
+            exit 1
+          fi
       - name: Attach actual offline HTML map for product preview
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
