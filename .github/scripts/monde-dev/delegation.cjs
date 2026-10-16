@@ -2110,21 +2110,46 @@ const NONPUBLIC_EXPLICIT_LOCAL_PATH =
 // machine-local directory. This narrow masking does not clear file: or path=.
 // Mask only the HTTP pathname; local paths in ?query=... must remain visible.
 const PUBLIC_HTTP_ROUTE =
-  /\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/(?:data|users|run|app|builds?|project|deploy|usr\/(?:bin|sbin|lib|lib64)|bin|sbin|lib|lib64|dev|proc|sys|System|Applications|Volumes|Library|Network\/Servers)\/[A-Za-z0-9_./%-]*/giu;
-function containsNonpublicScopeDisclosure(value) {
+  /\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/(?:data|users|run|app|builds?|project|deploy|usr\/(?:local|bin|sbin|lib|lib64)|bin|sbin|lib|lib64|dev|proc|sys|System|Applications|Volumes|Library|Network\/Servers)\/[A-Za-z0-9_./%-]*/giu;
+// Normalize slash-led filesystem candidates for classification only. Never
+// rewrite evidence or HTTP authority strings in public review material.
+const SLASH_LED_TOKEN=/(^|[\s"'(=])\/+[A-Za-z0-9_.\/-]*/g;
+function canonicalLocalPathView(value){
+  return value.replace(SLASH_LED_TOKEN,(whole,boundary)=>{
+    const parts=[];
+    for(const segment of whole.slice(boundary.length).split('/')){
+      if(!segment||segment==='.')continue;
+      if(segment==='..'){
+        if(parts.length&&parts[parts.length-1]!=='..')parts.pop();
+        else parts.push('..');
+      }else parts.push(segment);
+    }
+    return boundary+'/'+parts.join('/');
+  });
+}
+const PUBLIC_HTTP_TRAVERSAL=/\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\/[A-Za-z0-9_.\/%-]*(?:\/|^)\.{1,2}(?:\/|$|\?)/iu;
+const BARE_MACOS_LOCAL_ROOT=/(?:^|[^A-Za-z0-9_./-])\/(?:Library|Network\/Servers)(?=$|[\s"'(),;?])/iu;
+function containsNonpublicScopeDisclosure(value){
   return publicTextMatches(value,text=>{
-    // Quoted evidence (JSON/Markdown) doubles Windows backslashes. Check both
-    // representations so output formatting cannot make a local path public.
     const flattened=text.replace(/\\{2,}/g,
       run=>'\\'.repeat(Math.max(1,Math.ceil(run.length/2))));
-    return [text,flattened].some(candidate=>
-      NONPUBLIC_PATH_COMPONENT.test(candidate)||
-      NONPUBLIC_DIRECTORY_LEAF.test(candidate)||
-      NONPUBLIC_DOUBLE_SLASH_FILESYSTEM_PATH.test(candidate)||
-      NONPUBLIC_EXPLICIT_LOCAL_PATH.test(candidate)||
-      NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH.test(
-        candidate.replace(PUBLIC_HTTP_ROUTE,'[PUBLIC_HTTP_ROUTE]'))||
-      NONPUBLIC_WINDOWS_COMPONENT.test(candidate));
+    return [text,flattened].some(candidate=>{
+      const traverses=PUBLIC_HTTP_TRAVERSAL.test(candidate);
+      // A public route containing traversal is never exempt; query values
+      // remain outside the mask and are always classified.
+      const unmasked=candidate.replace(PUBLIC_HTTP_ROUTE,route=>
+        /\/(?:\.|\.\.)(?:\/|$)/.test(route)||route.includes('//')?
+          route:'[PUBLIC_HTTP_ROUTE]');
+      const views=[unmasked,canonicalLocalPathView(unmasked)];
+      return traverses||views.some(view=>
+        NONPUBLIC_PATH_COMPONENT.test(view)||
+        NONPUBLIC_DIRECTORY_LEAF.test(view)||
+        NONPUBLIC_DOUBLE_SLASH_FILESYSTEM_PATH.test(view)||
+        NONPUBLIC_EXPLICIT_LOCAL_PATH.test(view)||
+        NONPUBLIC_ABSOLUTE_FILESYSTEM_PATH.test(view)||
+        BARE_MACOS_LOCAL_ROOT.test(view)||
+        NONPUBLIC_WINDOWS_COMPONENT.test(view));
+    });
   });
 }
 function potentiallyNonpublicResumeText(value) {

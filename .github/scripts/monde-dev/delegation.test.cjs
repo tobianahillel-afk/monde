@@ -7099,3 +7099,52 @@ test('L2 Oct-16: macOS local roots protected without rejecting benign HTTP API r
     assert.equal(report.ready_for_manual_relay,true,route);
   }
 });
+
+test('L2 independent Oct-16: canonical local roots and route traversal are private in all relays',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const packet={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  for(const location of [
+    '/Library','/Network/Servers','/Network//Servers/share/secret',
+    '/Network/./Servers/share/secret',
+    '/Network/foo/../Servers/share/secret',
+    '/usr//local/bin/private-helper','/usr/./local/bin/private-helper',
+    'GET /data/../../home/runner/.ssh/id_rsa',
+    'GET /data/..%2F..%2Fhome%2Frunner%2F.ssh%2Fid_rsa',
+    'POST /users/me?config=/Network//Servers/share/secret',
+    'GET /data/stats?config=%2FNetwork%2Ffoo%2F..%2FServers%2Fsecret'
+  ]){
+    assert.throws(()=>d.createResumePacket({...packet,next_action:'Inspect '+location}),
+      e=>e.code==='INVALID_RESUME_PACKET',location);
+    const report=message(data({findings:[{...data().findings[0],
+      evidence:'L2 inspected '+location}]}));
+    const handoff=d.prepareInteractiveHandoff({expected:H,response:report,
+      current_head:SHA,source,publication_clearance:clearance});
+    assert.equal(handoff.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+    const triage=d.prepareUnqualifiedTriageHandoff({expected:H,
+      response:'R2 inspected '+location,current_head:SHA,source,
+      publication_clearance:clearance});
+    assert.equal(triage.status,'NONPUBLIC_SCOPE_IN_RELAY',location);
+  }
+});
+test('L2 independent Oct-16: legitimate public HTTP routes remain publishable',()=>{
+  const clearance={secrets_checked:true,personal_data_checked:true,
+    public_repo_safe:true,finding_details_approved:true};
+  const packet={repo:H.repo,pr:H.pr,head_sha:SHA,base_sha:'b'.repeat(40),
+    work:'WORK-0005',task:'T1',expected_files:['src/public.js'],
+    action_kind:'CONTINUE_IMPLEMENTATION',evidence_refs:[]};
+  for(const route of ['GET /data/stats','GET /Library/Preferences/public',
+    'GET /Network/Servers/health','POST /users/me?filter=public',
+    'GET /usr/local/health']){
+    assert.equal(d.createResumePacket({...packet,
+      next_action:'Review '+route+' in src/public.js'}).action_kind,
+      'CONTINUE_IMPLEMENTATION',route);
+    const report=d.prepareInteractiveHandoff({expected:H,
+      response:message(data({findings:[{...data().findings[0],
+        evidence:'Public route '+route}]})),current_head:SHA,
+      source,publication_clearance:clearance});
+    assert.equal(report.ready_for_manual_relay,true,route);
+  }
+});
