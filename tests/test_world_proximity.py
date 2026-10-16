@@ -118,3 +118,67 @@ class ProximityTests(unittest.TestCase):
             self.assertNotEqual(run("--fixture", str(dest), "--search-geo-radius",
                                     "wrong", "--radius-km", "1", "--at", AT,
                                     "--known-at", KNOWN).returncode, 0)
+
+    def test_nearest_n_preserves_source_and_order(self):
+        world = model()
+        one = world.search_geo_nearest([2.3522, 48.8566], 1, AT, KNOWN)
+        self.assertEqual(one["query"], "SOURCE_REPORTED_NEAREST_POINTS_ONLY")
+        self.assertEqual(one["total_matches"], 2)
+        self.assertTrue(one["has_more"])
+        self.assertEqual([m["entity"] for m in one["matches"]], ["place-001"])
+        self.assertAlmostEqual(one["matches"][0]["nearest_reported_km"], 0, places=8)
+        self.assertEqual(one["matches"][0]["matched_reports"][0]["source_id"], ARGS["source_id"])
+        both = world.search_geo_nearest([2.3522, 48.8566], 2, AT, KNOWN)
+        self.assertEqual([m["entity"] for m in both["matches"]], ["place-001", "place-002"])
+        self.assertFalse(both["has_more"])
+
+    def test_nearest_competing_sources_not_reconciled(self):
+        world = model()
+        data = copy.deepcopy(WorldMini.load_document(str(POINTS)))
+        data["features"][0]["geometry"]["coordinates"] = [5, 45]
+        world.append_document(to_document(data, source_id="different-map",
+                locator="fixture://different-map", captured_at=KNOWN,
+                valid_from=ARGS["valid_from"]))
+        result = world.search_geo_nearest([2.3522, 48.8566], 1, AT, KNOWN)
+        self.assertEqual(result["matches"][0]["entity"], "place-001")
+        self.assertEqual({r["source_id"] for r in result["matches"][0]["other_reports"]},
+                         {"different-map"})
+
+    def test_nearest_temporal_and_invalid_limits(self):
+        world = model()
+        before = world.export()
+        self.assertEqual(world.search_geo_nearest(
+            [2.3522, 48.8566], 1, AT, "2026-01-10T09:59:59Z")["status"],
+            "NO_MATCHES")
+        for invalid in [0, -1, True, 1.2, "1", None, 1001]:
+            with self.subTest(limit=invalid), self.assertRaises(ValueError):
+                world.search_geo_nearest([2.3522, 48.8566], invalid, AT, KNOWN)
+        with self.assertRaises(ValueError):
+            world.search_geo_nearest([float("nan"), 0], 1, AT, KNOWN)
+        self.assertEqual(world.export(), before)
+
+    def test_nearest_cli_persisted_geojson(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            saved = Path(tmp) / "saved.json"
+            env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+            def run(*args):
+                return subprocess.run([sys.executable, "-m", "monde.world", *args],
+                                      env=env, capture_output=True, text=True)
+            ingested = run("--fixture", str(FIXTURE), "--ingest-geojson",
+                           str(POINTS), "--source-id", ARGS["source_id"],
+                           "--source-locator", ARGS["locator"],
+                           "--captured-at", KNOWN, "--valid-from", ARGS["valid_from"],
+                           "--state-out", str(saved))
+            self.assertEqual(ingested.returncode, 0, ingested.stderr)
+            query = ("--fixture", str(saved), "--search-geo-nearest",
+                     "2.3522,48.8566", "--nearest-limit", "1",
+                     "--at", AT, "--known-at", KNOWN)
+            got = run(*query)
+            self.assertEqual(got.returncode, 0, got.stderr)
+            parsed = json.loads(got.stdout)
+            self.assertEqual(parsed["total_matches"], 2)
+            self.assertEqual([m["entity"] for m in parsed["matches"]], ["place-001"])
+            self.assertNotEqual(run(*query, "--entity", "place-001").returncode, 0)
+            self.assertNotEqual(run("--fixture", str(saved), "--search-geo-nearest",
+                                    "2.3522,48.8566", "--at", AT,
+                                    "--known-at", KNOWN).returncode, 0)
