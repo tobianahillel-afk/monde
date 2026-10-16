@@ -1847,11 +1847,15 @@ async function loadWorkPlanFromGitHub({github,repo,head_sha,work_ids,include_dep
     if(!plain(data)||data.type!=='file'||data.encoding!=='base64'||
        typeof data.content!=='string'||data.size>262144)
       bad('UNTRUSTED_WORK_RESPONSE');
-    const encoded=data.content.replace(/\s/g,'');
+    // GitHub wraps base64 with ASCII line breaks. Other Unicode whitespace
+    // is not an allowed transport separator and must not change the bytes.
+    const encoded=data.content.replace(/[\r\n]/g,'');
     if(encoded.length>360000||!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded))
       bad('UNTRUSTED_WORK_RESPONSE');
     const bytes=Buffer.from(encoded,'base64');
-    if(bytes.length>262144||bytes.toString('base64')!==encoded)
+    if(bytes.length>262144||bytes.toString('base64')!==encoded||
+       (data.size!==undefined &&
+        (!Number.isSafeInteger(data.size)||data.size!==bytes.length)))
       bad('UNTRUSTED_WORK_RESPONSE');
     // Buffer.toString silently replaces malformed UTF-8 with U+FFFD.
     // Repository governance snapshots must be decoded losslessly.

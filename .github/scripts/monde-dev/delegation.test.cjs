@@ -7781,3 +7781,35 @@ test('WORK adapter decodes valid non-ASCII comments without changing canonical t
   assert.equal(out.works[0].id,'WORK-0001');
   assert.equal(out.works[0].status,'DONE');
 });
+
+test('GitHub WORK reader rejects a host size conflicting with decoded Base64 bytes',async()=>{
+  const bytes=Buffer.from(WORK_FIXTURE_DONE,'utf8');
+  for(const size of [bytes.length+1,bytes.length-1,-1,''+bytes.length,1.25]){
+    const github={rest:{repos:{getContent:async()=>({data:{
+      type:'file',encoding:'base64',size,
+      content:bytes.toString('base64')
+    }})}}};
+    await assert.rejects(d.loadWorkPlanFromGitHub({
+      github,repo:H.repo,head_sha:SHA,work_ids:['WORK-0001']
+    }),{code:'UNTRUSTED_WORK_RESPONSE'});
+  }
+});
+test('GitHub WORK reader accepts wrapped canonical Base64 but rejects Unicode whitespace',async()=>{
+  const raw=Buffer.from(WORK_FIXTURE_DONE,'utf8').toString('base64');
+  const split=Math.floor(raw.length/8)*4;
+  const accepted=raw.slice(0,split)+'\r\n'+raw.slice(split);
+  const githubFor=content=>({rest:{repos:{getContent:async()=>({data:{
+    type:'file',encoding:'base64',size:Buffer.byteLength(WORK_FIXTURE_DONE,'utf8'),
+    content
+  }})}}});
+  const result=await d.loadWorkPlanFromGitHub({github:githubFor(accepted),
+    repo:H.repo,head_sha:SHA,work_ids:['WORK-0001']});
+  assert.equal(result.works[0].status,'DONE');
+  for(const separator of ['\u00a0','\u2028',' ','\t']){
+    const mutated=raw.slice(0,split)+separator+raw.slice(split);
+    await assert.rejects(d.loadWorkPlanFromGitHub({
+      github:githubFor(mutated),repo:H.repo,head_sha:SHA,
+      work_ids:['WORK-0001']
+    }),{code:'UNTRUSTED_WORK_RESPONSE'});
+  }
+});
