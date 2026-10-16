@@ -165,3 +165,23 @@ reports 6 and 7. This means **source-reported coverage at different T**, not
 verified construction or demolition. Times must be offset-aware and ordered
 strictly; the knowledge cutoff is held constant, and no real data ingestion
 or persistent World Ledger is implied.
+
+## Find cross-source disagreements without selecting a winner (T8)
+
+WorldMini.source_disagreements(at, known_at, attribute=None) scans for distinct
+source IDs reporting different JSON values on the same property and entity at
+a world-time instant T and knowledge cutoff K. Each value group retains the
+original evidence lineage and all reports. Multiple conflicting reports from
+only one source ID are not treated as cross-source disagreement. Source IDs
+do not establish statistical independence.
+
+Command:
+
+    PYTHONPATH=src python3 -m monde.world --fixture examples/monde-mini.json \
+      --source-disagreements --at 2026-01-02T00:00:00Z \
+      --known-at 2026-01-07T00:00:00Z
+
+The synthetic fixture yields conflicting claims of six and seven floors with
+both evidence IDs. This is source-report comparison, not physical-world truth,
+causal inference, confidence calibration or source reputation. Empty results
+do not prove agreement or missingness; cutoff limits are explicit.

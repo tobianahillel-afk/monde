@@ -225,6 +225,49 @@ class WorldMini:
                 "status": "MATCHES" if matches else "NO_MATCHES",
                 "matches": matches}
 
+    def source_disagreements(self, at: str, known_at: str,
+                             attribute: str | None = None) -> dict:
+        """Different current values reported by distinct source IDs (not truth)."""
+        _time(at)
+        _time(known_at)
+        if attribute is not None:
+            _id(attribute)
+        pairs = sorted({(a["entity"], a["attribute"]) for a in self._assertions.values()
+                        if attribute is None or a["attribute"] == attribute})
+        disagreements = []
+        for entity, name in pairs:
+            reports = self.query(entity, name, at, known_at)["reports"]
+            groups = {}
+            for report in reports:
+                key = json.dumps(report["value"], sort_keys=True, allow_nan=False,
+                                 separators=(",", ":"))
+                if key not in groups:
+                    groups[key] = {"value": report["value"], "sources": set(),
+                                   "reports": []}
+                groups[key]["sources"].add(report["source_id"])
+                groups[key]["reports"].append(report)
+            values = [groups[key] for key in sorted(groups)]
+            conflicting_sources = any(
+                first != second
+                for i, a in enumerate(values) for b in values[i + 1:]
+                for first in a["sources"] for second in b["sources"]
+            )
+            if conflicting_sources:
+                disagreements.append({
+                    "entity": entity, "attribute": name,
+                    "value_groups": [{"value": group["value"],
+                                      "source_ids": sorted(group["sources"]),
+                                      "reports": group["reports"]}
+                                     for group in values],
+                })
+        return {
+            "world": "OBSERVED", "comparison": "DIFFERENT_SOURCE_REPORTS_ONLY",
+            "valid_at": at, "knowledge_cutoff": known_at, "attribute": attribute,
+            "status": ("DISAGREEMENTS_FOUND" if disagreements
+                       else "NO_DISAGREEMENTS_FOUND"),
+            "disagreements": disagreements,
+        }
+
     def timeline(self, entity: str, attribute: str, from_at: str,
                  to_at: str, known_at: str) -> dict:
         """Source-reported world-time intervals at one fixed knowledge cutoff.
@@ -362,6 +405,7 @@ def main(argv=None) -> int:
     selection.add_argument("--attribute")
     selection.add_argument("--all-attributes", action="store_true")
     selection.add_argument("--search-attribute")
+    selection.add_argument("--source-disagreements", action="store_true")
     parser.add_argument("--equals-json", help="exact JSON value used by cross-entity search")
     parser.add_argument("--at", help="one world-time instant; omit when selecting a timeline")
     parser.add_argument("--timeline-from", help="start of valid-world-time interval")
@@ -372,7 +416,14 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         world = WorldMini.read(args.fixture)
-        if args.search_attribute is not None:
+        if args.source_disagreements:
+            if (args.entity is not None or args.at is None or
+                    args.timeline_from is not None or args.timeline_to is not None or
+                    args.compare_known_at is not None or args.compare_at is not None or
+                    args.equals_json is not None):
+                parser.error("disagreements require --at without entity/timeline/compare")
+            result = world.source_disagreements(args.at, args.known_at)
+        elif args.search_attribute is not None:
             if (args.entity is not None or args.at is None or
                     args.timeline_from is not None or args.timeline_to is not None or
                     args.compare_known_at is not None or args.compare_at is not None or
