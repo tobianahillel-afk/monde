@@ -369,6 +369,49 @@ class WorldMini:
         }
 
 
+    def knowledge_updates(self, from_known_at: str, to_known_at: str,
+                          entity: str | None = None,
+                          attribute: str | None = None) -> dict:
+        """Newly known source reports in (K1, K2], across all entities.
+
+        Arrivals and corrections are reported as evidence, never as verified
+        physical changes. This is not a durable exactly-once replication cursor.
+        """
+        start, end = _time(from_known_at), _time(to_known_at)
+        if end <= start:
+            raise ValueError("knowledge update cutoff must advance")
+        if entity is not None:
+            _id(entity)
+        if attribute is not None:
+            _id(attribute)
+        reports = []
+        for claim in self._assertions.values():
+            known = _time(claim["known_at"])
+            if not start < known <= end:
+                continue
+            if entity is not None and claim["entity"] != entity:
+                continue
+            if attribute is not None and claim["attribute"] != attribute:
+                continue
+            ev = self._evidence[claim["evidence_id"]]
+            reports.append({
+                "assertion_id": claim["id"], "entity": claim["entity"],
+                "attribute": claim["attribute"], "kind": claim["kind"],
+                "value": _clone(claim["value"]), "known_at": claim["known_at"],
+                "valid_from": claim["valid_from"], "valid_to": claim["valid_to"],
+                "supersedes": claim["supersedes"], "evidence_id": ev["id"],
+                "source_id": ev["source_id"], "locator": ev["locator"],
+                "captured_at": ev["captured_at"],
+                "source_event_at": ev["source_event_at"],
+            })
+        reports.sort(key=lambda r: (_time(r["known_at"]), r["assertion_id"]))
+        return {"world": "OBSERVED", "comparison": "NEW_SOURCE_REPORTS_ONLY",
+                "knowledge_after_exclusive": from_known_at,
+                "knowledge_until_inclusive": to_known_at,
+                "entity": entity, "attribute": attribute,
+                "status": "REPORTS_FOUND" if reports else "NO_NEW_REPORTS",
+                "count": len(reports), "reports": reports}
+
     def knowledge_timeline(self, entity: str, attribute: str, at: str,
                            from_known_at: str, to_known_at: str) -> dict:
         """Show how source reports for one world-time became known over time.
@@ -504,18 +547,29 @@ def main(argv=None) -> int:
     selection.add_argument("--search-attribute")
     selection.add_argument("--source-disagreements", action="store_true")
     selection.add_argument("--source-history", metavar="SOURCE_ID")
+    selection.add_argument("--knowledge-updates", action="store_true")
     parser.add_argument("--equals-json", help="exact JSON value used by cross-entity search")
     parser.add_argument("--source-attribute", help="optional property filter for source history")
     parser.add_argument("--at", help="one world-time instant; omit when selecting a timeline")
     parser.add_argument("--timeline-from", help="start of valid-world-time interval")
     parser.add_argument("--timeline-to", help="exclusive end of valid-world-time interval")
     parser.add_argument("--known-at", required=True)
+    parser.add_argument("--updates-from", help="exclusive knowledge start for --knowledge-updates")
     parser.add_argument("--knowledge-timeline-from", help="start of knowledge-time history; --known-at is exclusive upper bound")
     parser.add_argument("--compare-known-at", help="earlier knowledge cutoff; requires --all-attributes")
     parser.add_argument("--compare-at", help="earlier valid-world-time; requires --all-attributes and --at")
     args = parser.parse_args(argv)
     try:
         world = WorldMini.read(args.fixture)
+        if args.knowledge_updates:
+            if (args.updates_from is None or args.at is not None or
+                    args.timeline_from is not None or args.timeline_to is not None or
+                    args.knowledge_timeline_from is not None or
+                    args.compare_known_at is not None or args.compare_at is not None or
+                    args.equals_json is not None or args.source_attribute is not None):
+                parser.error("knowledge updates require --updates-from and --known-at without other modes")
+        elif args.updates_from is not None:
+            parser.error("--updates-from requires --knowledge-updates")
         if args.knowledge_timeline_from is not None and (
                 args.entity is None or args.attribute is None or args.at is None or
                 args.all_attributes or args.source_disagreements or
@@ -524,7 +578,10 @@ def main(argv=None) -> int:
                 args.timeline_from is not None or args.timeline_to is not None or
                 args.compare_known_at is not None or args.compare_at is not None):
             parser.error("knowledge timeline requires --entity, --attribute and --at without other modes")
-        if args.knowledge_timeline_from is not None:
+        if args.knowledge_updates:
+            result = world.knowledge_updates(args.updates_from, args.known_at,
+                                             entity=args.entity)
+        elif args.knowledge_timeline_from is not None:
             result = world.knowledge_timeline(args.entity, args.attribute, args.at,
                                               args.knowledge_timeline_from, args.known_at)
         elif args.source_history is not None:

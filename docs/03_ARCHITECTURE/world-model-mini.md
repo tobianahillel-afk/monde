@@ -237,3 +237,12 @@ For the synthetic fixture the sequence is `UNKNOWN`, the city report of
 the independent news report 6. The exclusive upper bound prevents a future
 correction leaking into earlier segments. No real data ingestion, reconciliation,
 source-quality weighting or event inference is introduced.
+
+
+## Cross-entity knowledge arrivals (T11)
+
+WorldMini.knowledge_updates(from_known_at, to_known_at, entity=None, attribute=None) lists newly known source assertions in the interval (K1, K2], including corrections. It preserves evidence, source ID/locator, original event/capture time, claimed validity, and supersedes lineage. It never labels report arrival as a physical-world change.
+
+Run: PYTHONPATH=src python3 -m monde.world --fixture examples/monde-mini.json --knowledge-updates --updates-from 2026-01-03T10:00:00Z --known-at 2026-01-07T00:00:00Z
+
+NO_NEW_REPORTS means no newly recorded assertions in that slice of the imported fixture, not no real-world changes. This audit is in-memory, not a lossless durable replication cursor; a later event carrying an already-polled timestamp may require overlap/re-reading.
