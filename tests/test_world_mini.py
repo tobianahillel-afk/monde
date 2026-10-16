@@ -603,5 +603,72 @@ class WorldMiniTest(unittest.TestCase):
             run = subprocess.run(bad, capture_output=True, text=True, env=env)
             self.assertNotEqual(run.returncode, 0)
 
+    def test_source_disagreements_temporal_evidence_and_revisions(self):
+        found = self.model.source_disagreements(AT, LATE)
+        self.assertEqual(found["comparison"], "DIFFERENT_SOURCE_REPORTS_ONLY")
+        self.assertEqual(found["status"], "DISAGREEMENTS_FOUND")
+        self.assertEqual([(d["entity"], d["attribute"]) for d in found["disagreements"]],
+                         [("building-001", "floors")])
+        groups = found["disagreements"][0]["value_groups"]
+        self.assertEqual([g["value"] for g in groups], [6, 7])
+        self.assertEqual({r["evidence_id"] for g in groups for r in g["reports"]},
+                         {"e-news-1", "e-city-reg-2"})
+        self.assertEqual(self.model.source_disagreements(
+            AT, "2026-01-03T10:00:00Z")["status"], "NO_DISAGREEMENTS_FOUND")
+        self.assertEqual(self.model.source_disagreements(
+            AT, LATE, "nonexistent")["disagreements"], [])
+
+    def test_source_disagreements_require_distinct_sources_and_values(self):
+        only_one_source = copy.deepcopy(DOC)
+        only_one_source["evidence"] = [DOC["evidence"][0], DOC["evidence"][2]]
+        only_one_source["assertions"] = [copy.deepcopy(DOC["assertions"][0]),
+                                         copy.deepcopy(DOC["assertions"][2])]
+        only_one_source["assertions"][1]["supersedes"] = None
+        self.assertEqual(WorldMini.from_document(only_one_source).source_disagreements(
+            AT, LATE)["status"], "NO_DISAGREEMENTS_FOUND")
+        agreement = copy.deepcopy(DOC)
+        agreement["assertions"][2]["value"] = 6
+        self.assertEqual(WorldMini.from_document(agreement).source_disagreements(
+            AT, LATE)["disagreements"], [])
+
+    def test_source_disagreements_across_entities_preserve_json_types(self):
+        for source, label in [("survey", "a"), ("inspection", "b")]:
+            self.model.add_evidence({
+                "id": "ev-" + label, "source_id": source, "locator": "fixture://" + label,
+                "captured_at": "2026-01-08T00:00:00Z", "source_event_at": None})
+        for i, value in enumerate([False, 0]):
+            self.model.add_assertion({
+                "id": "val-" + str(i), "entity": "building-002",
+                "attribute": "active", "value": value,
+                "evidence_id": "ev-" + ("a" if i == 0 else "b"),
+                "kind": "CLAIM", "known_at": "2026-01-08T00:00:00Z",
+                "valid_from": "2026-01-01T00:00:00Z",
+                "valid_to": None, "supersedes": None})
+        found = self.model.source_disagreements(AT, "2026-01-09T00:00:00Z")
+        self.assertEqual([(r["entity"], r["attribute"]) for r in found["disagreements"]],
+                         [("building-001", "floors"), ("building-002", "active")])
+        self.assertEqual({type(g["value"]) for g in
+                          found["disagreements"][1]["value_groups"]}, {bool, int})
+        frozen = self.model.export()
+        found["disagreements"][0]["value_groups"][0]["reports"][0]["value"] = 999
+        self.assertEqual(self.model.export(), frozen)
+
+    def test_source_disagreements_real_cli_and_invalid_modes(self):
+        env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+        cmd = [sys.executable, "-m", "monde.world", "--fixture",
+               str(ROOT / "examples/monde-mini.json"),
+               "--source-disagreements", "--at", AT, "--known-at", LATE]
+        out = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(json.loads(out.stdout)["status"], "DISAGREEMENTS_FOUND")
+        for extra in [["--entity", "building-001"], ["--equals-json", "7"],
+                      ["--compare-at", AT], ["--timeline-from", AT]]:
+            rejected = subprocess.run(cmd + extra, capture_output=True, text=True, env=env)
+            self.assertNotEqual(rejected.returncode, 0)
+        with self.assertRaises(ValueError):
+            self.model.source_disagreements(AT, "2026-01-07")
+        with self.assertRaises(ValueError):
+            self.model.source_disagreements(AT, LATE, "invalid attribute")
+
 if __name__ == "__main__":
     unittest.main()
