@@ -142,12 +142,12 @@ implementation_plan:
     - id: T1
       description: "Freeze the single-writer and read-only reviewer operating contract."
       depends_on: []
-      expected_files: [docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md]
+      expected_files: [docs/12_RESEARCH/chatgpt-github-only-development-engine-v2-rfc.md, docs/12_RESEARCH/monde-dev-v2-interactive-prompt.md, docs/12_RESEARCH/monde-dev-v2-single-writer-delegation.md]
       status: NOT_STARTED
     - id: T2
       description: "Build pure bounded assignment, report validation and handoff helpers."
       depends_on: [T1]
-      expected_files: [.github/scripts/monde-dev/delegation.cjs, .github/scripts/monde-dev/delegation.test.cjs]
+      expected_files: [.github/scripts/monde-dev/delegation.cjs, .github/scripts/monde-dev/delegation.test.cjs, .github/scripts/monde-dev/l2-delta-github.cjs, .github/scripts/monde-dev/l2-delta-github.test.cjs]
       status: NOT_STARTED
     - id: T3
       description: "Prove unprivileged exact-HEAD CI and meaningful tests."
