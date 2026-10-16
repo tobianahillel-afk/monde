@@ -11,12 +11,13 @@ purpose: |
   Locate and rank source-reported WGS84 Points near a user-supplied coordinate
   without treating reports as reconciled physical truth.
 scope:
-  in: ["spherical radius Point search", "temporal cutoffs", "distance sorting", "source provenance", "CLI"]
+  in: ["nearest-N source-reported Point search", "spherical radius Point search", "temporal cutoffs", "distance sorting", "source provenance", "CLI"]
   out: ["verified geodesy", "geocoding", "polygon intersection", "GIS index", "live data acquisition"]
 acceptance_criteria:
   - {id: AC-1, description: "Report source-attributed Points within inclusive approximate radius at T and K", status: NOT_STARTED}
   - {id: AC-2, description: "Retain competing source positions and never infer physical absence", status: NOT_STARTED}
   - {id: AC-3, description: "Antimeridian, polar geometry, invalid inputs and real CLI persistence covered", status: NOT_STARTED}
+  - {id: AC-4, description: "Nearest-N entity ranking preserves bitemporal source provenance and disagreement", status: NOT_STARTED}
 requirements: []
 assumptions: ["WGS84 source-reported 2D Points", "mean-radius spherical approximation", "experimental in-memory scan"]
 risks: ["Inaccurate physical precision if inferred from spherical distance", "Unindexed full scan is not planetary scale"]

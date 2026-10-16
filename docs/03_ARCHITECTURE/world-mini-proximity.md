@@ -24,3 +24,19 @@ confidence estimate. Radius is finite and nonnegative; zero permits exact
 coordinate matches. Antimeridian/polar searches use shortest spherical arcs.
 All operations are read-only, bitemporal and linear-time in this experimental
 in-memory dataset; no network, new dependency, index or truth reconciliation.
+
+## Nearest N source-reported Points
+
+For a map sidebar or other bounded discovery view, request the closest
+current source-reported Point entities without supplying a radius:
+
+    PYTHONPATH=src python3 -m monde.world --fixture saved-world.json \
+      --search-geo-nearest '2.3522,48.8566' --nearest-limit 10 \
+      --at 2026-01-02T00:00:00Z --known-at 2026-01-11T00:00:00Z
+
+The integer nearest limit is 1 to 1000. Results count **entities**, not
+source assertions. The closest current source report determines ranking; its
+evidence and any competing source reports are retained in the returned item.
+Results include `total_matches`, `has_more`, and explicit world/knowledge
+cutoffs. No location is promoted to verified physical truth. This remains
+an experimental unindexed linear scan using spherical approximations.
