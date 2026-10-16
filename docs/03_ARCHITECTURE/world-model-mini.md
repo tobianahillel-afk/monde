@@ -261,3 +261,35 @@ PYTHONPATH=src python3 -m monde.world --fixture examples/monde-mini.json \
 
 Changed entities and attributes only; UNKNOWN is not zero, and this does not
 implement persistent ingestion, a true event detector, or a reconciled belief.
+
+
+## Durable experimental batch ingestion (WORK-0007)
+
+An opt-in CLI command can append a **source-evidence and assertion JSON batch**
+to an existing MONDE Mini snapshot, then write a new validated snapshot to disk.
+All records are checked before changing in-memory state, so one invalid item
+rejects the whole batch. Old source contradictions and knowledge cutoffs survive
+serialization/reopening. The input uses the existing experimental schema v1.
+
+    PYTHONPATH=src python3 -m monde.world \
+      --fixture examples/monde-mini.json \
+      --ingest-document examples/monde-mini-update.json \
+      --state-out saved-world.json
+
+    PYTHONPATH=src python3 -m monde.world \
+      --fixture saved-world.json \
+      --entity building-001 --attribute floors \
+      --at 2026-01-02T00:00:00Z --known-at 2026-01-09T00:00:00Z
+
+This yields two **source-reported**, conflicting claims (7 and 8 floors).
+An earlier knowledge cutoff still returns 6 and 7. Ingesting the same batch
+twice is idempotent for assertions and evidence. No reconciliation into
+verified physical truth takes place.
+
+A new destination file is created atomically without overwriting any existing
+file. Explicit option --replace-state permits replacing a state file (including
+the input file if requested). **This is single-writer only**: concurrent
+read/modify/write sequences may lose updates even though the final file replace
+is atomic. The prototype does not provide database transactions, crash-proof
+directory fsync, multi-writer CAS, production access controls or live web
+acquisition. It is a bounded functional persistence experiment.

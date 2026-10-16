@@ -995,5 +995,98 @@ class WorldMiniTest(unittest.TestCase):
                                  capture_output=True, text=True, env=env)
         self.assertNotEqual(missing.returncode, 0)
 
+
+    def test_ingest_batch_rejects_partial_mutation_on_second_invalid_record(self):
+        before = self.model.export()
+        update = WorldMini.load_document(str(ROOT / "examples/monde-mini-update.json"))
+        update["assertions"].append({**update["assertions"][0],
+                                     "id": "a-second", "evidence_id": "not-found"})
+        with self.assertRaisesRegex(ValueError, "no recorded evidence"):
+            self.model.append_document(update)
+        self.assertEqual(self.model.export(), before)
+
+    def test_ingest_idempotence_and_bitemporal_source_correction(self):
+        update = WorldMini.load_document(str(ROOT / "examples/monde-mini-update.json"))
+        self.assertEqual(self.model.append_document(update),
+                         {"added_evidence": 1, "added_assertions": 1})
+        self.assertEqual(self.model.append_document(update),
+                         {"added_evidence": 0, "added_assertions": 0})
+        current = self.model.query("building-001", "floors", AT,
+                                   "2026-01-09T00:00:00Z")
+        self.assertEqual([r["value"] for r in current["reports"]], [7, 8])
+        old = self.model.query("building-001", "floors", AT, LATE)
+        self.assertEqual([r["value"] for r in old["reports"]], [6, 7])
+        self.assertEqual(len(self.model.export()["assertions"]), 4)
+
+    def test_ingest_collision_does_not_mutate_state(self):
+        update = WorldMini.load_document(str(ROOT / "examples/monde-mini-update.json"))
+        update["evidence"][0]["source_id"] = "wrong-source"
+        before = self.model.export()
+        with self.assertRaisesRegex(ValueError, "one source cannot retract"):
+            self.model.append_document(update)
+        self.assertEqual(before, self.model.export())
+
+    def test_atomic_save_reopen_and_opt_in_replace(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "saved.json"
+            self.model.save(output)
+            self.assertEqual(WorldMini.read(output).export(), self.model.export())
+            self.model.append_document(WorldMini.load_document(
+                str(ROOT / "examples/monde-mini-update.json")))
+            with self.assertRaises(FileExistsError):
+                self.model.save(output)
+            self.assertEqual(len(WorldMini.read(output).export()["assertions"]), 3)
+            self.model.save(output, replace=True)
+            self.assertEqual(WorldMini.read(output).export(), self.model.export())
+
+    def test_cli_ingest_then_reopen_in_independent_process(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = str(Path(directory) / "saved.json")
+            env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+            ingest = [sys.executable, "-m", "monde.world",
+                      "--fixture", str(ROOT / "examples/monde-mini.json"),
+                      "--ingest-document", str(ROOT / "examples/monde-mini-update.json"),
+                      "--state-out", output]
+            result = subprocess.run(ingest, text=True, capture_output=True, env=env)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout)["added_assertions"], 1)
+            query = subprocess.run([sys.executable, "-m", "monde.world",
+                "--fixture", output, "--entity", "building-001", "--attribute", "floors",
+                "--at", AT, "--known-at", "2026-01-09T00:00:00Z"],
+                capture_output=True, text=True, env=env)
+            self.assertEqual(query.returncode, 0, query.stderr)
+            self.assertEqual([r["value"] for r in
+                json.loads(query.stdout)["reports"]], [7, 8])
+            retry = subprocess.run(ingest, capture_output=True, text=True, env=env)
+            self.assertNotEqual(retry.returncode, 0)
+            self.assertEqual(len(WorldMini.read(output).export()["assertions"]), 4)
+
+    def test_cli_invalid_batch_never_creates_partial_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bad, output = Path(directory) / "bad.json", Path(directory) / "out.json"
+            update = WorldMini.load_document(str(ROOT / "examples/monde-mini-update.json"))
+            update["assertions"][0]["evidence_id"] = "missing"
+            bad.write_text(json.dumps(update), encoding="utf-8")
+            env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+            result = subprocess.run([sys.executable, "-m", "monde.world",
+                "--fixture", str(ROOT / "examples/monde-mini.json"),
+                "--ingest-document", str(bad), "--state-out", str(output)],
+                text=True, capture_output=True, env=env)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(output.exists())
+
+    def test_cli_ingest_rejects_query_options(self):
+        env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+        cmd = [sys.executable, "-m", "monde.world",
+               "--fixture", str(ROOT / "examples/monde-mini.json"),
+               "--ingest-document", str(ROOT / "examples/monde-mini-update.json")]
+        with tempfile.TemporaryDirectory() as directory:
+            target = str(Path(directory) / "saved.json")
+            for args in ([], ["--known-at", LATE, "--state-out", target],
+                         ["--at", AT, "--state-out", target]):
+                result = subprocess.run(cmd + args, capture_output=True, text=True, env=env)
+                self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(Path(target).exists())
+
 if __name__ == "__main__":
     unittest.main()
