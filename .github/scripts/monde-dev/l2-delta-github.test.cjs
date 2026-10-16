@@ -1201,11 +1201,18 @@ function wavesFixture(){
     changed_file_statuses:[{path:'src/wave'+(i+1)+'.cjs',
       status:'modified',previous_path:null}],
     immutable_file_refs:[{path:'src/wave'+(i+1)+'.cjs',
-      status:'modified',previous_path:null}]
+      status:'modified',previous_path:null,
+      base_url:'https://github.com/tobianahillel-afk/monde/blob/'+
+        'c'.repeat(40)+'/src/wave'+(i+1)+'.cjs',
+      head_url:'https://github.com/tobianahillel-afk/monde/blob/'+
+        sha+'/src/wave'+(i+1)+'.cjs'}]
   }));
   return {
     status:'FRESH_L2_BATCHES_READY',full_scope_partition_verified:true,
-    observed_pr_head_sha:sha,reviewed_path_units:5,changed_files:5,
+    observed_pr_head_sha:sha,
+    observed_pr_merge_base_sha:'c'.repeat(40),
+    observed_pr_source_repo:'tobianahillel-afk/monde',
+    reviewed_path_units:5,changed_files:5,
     batch_count:5,batches,wave_count:2,
     review_waves:[{wave_number:1,
       assignment_ids:batches.slice(0,4).map(x=>x.assignment.assignment_id)},
@@ -1344,4 +1351,53 @@ test('review waves: changed file count must equal concrete manifest rows',()=>{
   const plan=wavesFixture();plan.changed_files=4;
   assert.throws(()=>assessFreshL2Waves({plan,current_head:plan.observed_pr_head_sha}),
     e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+});
+
+test('review waves: forged immutable base/head links cannot redirect reviewer',()=>{
+  const fixture=wavesFixture();
+  assert.equal(assessFreshL2Waves({plan:fixture,
+    current_head:fixture.observed_pr_head_sha}).status,'MISSING_L2_REPORTS');
+  for(const mutate of [
+    ref=>{ref.base_url=ref.base_url.replace('c'.repeat(40),'d'.repeat(40));},
+    ref=>{ref.head_url=ref.head_url.replace('tobianahillel-afk/monde','imposter/repo');},
+    ref=>{ref.head_url=ref.head_url.replace('a'.repeat(40),'b'.repeat(40));},
+    ref=>{ref.base_url=null;},
+    ref=>{ref.head_url=null;}
+  ]){
+    const plan=wavesFixture();mutate(plan.batches[2].immutable_file_refs[0]);
+    assert.throws(()=>assessFreshL2Waves({plan,
+      current_head:plan.observed_pr_head_sha}),
+      e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+});
+test('review waves: rename preimage URL must reference original path',()=>{
+  const plan=wavesFixture(),batch=plan.batches[0];
+  const previous='src/previous.cjs';
+  batch.assignment.paths=['src/previous.cjs','src/wave1.cjs'];
+  batch.changed_file_statuses[0].status='renamed';
+  batch.changed_file_statuses[0].previous_path=previous;
+  const ref=batch.immutable_file_refs[0];
+  ref.status='renamed';ref.previous_path=previous;
+  ref.base_url='https://github.com/tobianahillel-afk/monde/blob/'+
+    'c'.repeat(40)+'/'+previous;
+  plan.reviewed_path_units=6;
+  assert.equal(assessFreshL2Waves({plan,
+    current_head:plan.observed_pr_head_sha}).status,'MISSING_L2_REPORTS');
+  ref.base_url=ref.base_url.replace(previous,'src/wave1.cjs');
+  assert.throws(()=>assessFreshL2Waves({plan,
+    current_head:plan.observed_pr_head_sha}),
+    e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+});
+test('review waves: incomplete immutable origin metadata cannot establish coverage',()=>{
+  for(const mutate of [
+    p=>{delete p.observed_pr_merge_base_sha;},
+    p=>{p.observed_pr_merge_base_sha='bad';},
+    p=>{p.observed_pr_source_repo='https://attacker.invalid/monde';},
+    p=>{delete p.observed_pr_source_repo;}
+  ]){
+    const plan=wavesFixture();mutate(plan);
+    assert.throws(()=>assessFreshL2Waves({plan,
+      current_head:plan.observed_pr_head_sha}),
+      e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
 });

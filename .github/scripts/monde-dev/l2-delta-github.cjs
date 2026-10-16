@@ -613,6 +613,10 @@ function assessFreshL2Waves({
      typeof current_head!=='string' ||
      !/^[a-f0-9]{40}$/.test(current_head) ||
      plan.observed_pr_head_sha!==current_head ||
+     typeof plan.observed_pr_merge_base_sha!=='string' ||
+     !/^[a-f0-9]{40}$/.test(plan.observed_pr_merge_base_sha) ||
+     typeof plan.observed_pr_source_repo!=='string' ||
+     !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(plan.observed_pr_source_repo) ||
      !reports || typeof reports!=='object' || Array.isArray(reports) ||
      !sources || typeof sources!=='object' || Array.isArray(sources) ||
      !coverage_manifests || typeof coverage_manifests!=='object' ||
@@ -646,6 +650,15 @@ function assessFreshL2Waves({
            item.previous_path!==null)||
          !ref||ref.path!==item.path||ref.status!==item.status||
          ref.previous_path!==item.previous_path||
+         // File URLs are scoped evidence; path counters alone cannot stop
+         // a substituted URL from redirecting a reviewer to another revision.
+         ref.base_url!==(item.status==='added'?null:
+           'https://github.com/'+mission.repo+'/blob/'+
+           plan.observed_pr_merge_base_sha+'/' +
+           (item.status==='renamed'?item.previous_path:item.path)) ||
+         ref.head_url!==(item.status==='removed'?null:
+           'https://github.com/'+plan.observed_pr_source_repo+
+           '/blob/'+current_head+'/'+item.path) ||
          changedFiles.has(item.path))incomplete();
       changedFiles.add(item.path);
       for(const path of [item.path,
