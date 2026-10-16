@@ -249,10 +249,6 @@ class DirectGeoJSONMapTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertFalse(output.exists())
 
-
-if __name__ == "__main__":
-    unittest.main()
-
     def test_offline_land_reference_is_bundled_and_separate_from_evidence(self):
         with tempfile.TemporaryDirectory() as folder:
             source = self.fixture(folder)
@@ -267,3 +263,7 @@ if __name__ == "__main__":
             self.assertIn('"total_source_features":2', page)
             self.assertNotIn("__MONDE_EMBEDDED_REFERENCE_LAND__", page)
             self.assertNotIn('https://tile.', page)
+
+
+if __name__ == "__main__":
+    unittest.main()
