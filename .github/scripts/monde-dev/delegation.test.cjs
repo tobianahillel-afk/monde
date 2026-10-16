@@ -7867,3 +7867,30 @@ test('WORK planner rejects YAML merge keys with tab separation',()=>{
         'AMBIGUOUS_IMPLEMENTATION_SECTIONS'].includes(e.code));
   }
 });
+
+test('WORK planner rejects YAML explicit mapping keys shadowing top-level authority',()=>{
+  for(const suffix of [
+    '\n? status\n: BLOCKED',
+    '\n? depends_on\n: [WORK-0999]',
+    '\n? implementation_plan\n: {tasks: []}',
+    '\n?\n  status\n: DONE'
+  ]){
+    assert.throws(()=>d.parseWorkPlanningSnapshot(
+      WORK_FIXTURE_ACTIVE+suffix,'WORK-0007'),
+    e=>e.code==='AMBIGUOUS_WORK_SNAPSHOT',
+    'explicit top-level YAML key cannot be ignored');
+  }
+});
+test('WORK planner rejects YAML explicit mappings shadowing nested task sections',()=>{
+  for(const injected of [
+    '  ? tasks\n  : []',
+    '  ? planned_runs\n  : []',
+    '  ?\n    tasks\n  : []'
+  ]){
+    const sample=WORK_FIXTURE_ACTIVE.replace('  planned_runs: []',
+      '  planned_runs: []\n'+injected);
+    assert.throws(()=>d.parseWorkPlanningSnapshot(sample,'WORK-0007'),
+      e=>e.code==='AMBIGUOUS_IMPLEMENTATION_SECTIONS',
+      'nested explicit map key cannot be silently ignored');
+  }
+});
