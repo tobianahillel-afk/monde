@@ -359,6 +359,8 @@ function freshClient(options={}) {
       return {data:{
         status:options.compareStatus||'ahead',
         ahead_by:options.aheadBy===undefined?1:options.aheadBy,
+        total_commits:options.totalCommits===undefined?
+          (options.aheadBy===undefined?1:options.aheadBy):options.totalCommits,
         behind_by:options.behindBy===undefined?
           (options.compareStatus==='diverged'?1:0):options.behindBy,
         base_commit:{sha:options.compareBase||options.base||'c'.repeat(40)},
@@ -1400,4 +1402,31 @@ test('review waves: incomplete immutable origin metadata cannot establish covera
       current_head:plan.observed_pr_head_sha}),
       e=>e.code==='INCOMPLETE_GITHUB_COMPARE');
   }
+});
+
+
+test('fresh L2: immutable compare total_commits must match GitHub ahead_by',async()=>{
+  for(const config of [
+    {totalCommits:0},{totalCommits:2},{totalCommits:'1'},
+    {totalCommits:null},{totalCommits:-1}
+  ]){
+    const {api,calls}=freshClient(config);
+    await assert.rejects(prepareFreshL2AutoFromCurrentGitHub({
+      github:api,...FRESH_MISSION
+    }),err=>err.code==='INCOMPLETE_GITHUB_COMPARE');
+    assert.equal(calls.compares.length,1);
+    assert.equal(calls.files.length,0);
+  }
+});
+test('fresh L2: consistent comparison metadata preserves divergence support',async()=>{
+  const {api}=freshClient({
+    compareStatus:'diverged',aheadBy:4,totalCommits:4,behindBy:2,
+    mergeBase:'d'.repeat(40)
+  });
+  const result=await prepareFreshL2AutoFromCurrentGitHub({
+    github:api,...FRESH_MISSION
+  });
+  assert.equal(result.observed_pr_merge_base_sha,'d'.repeat(40));
+  assert.equal(result.changed_files,2);
+  assert.equal(result.native_github_approved,false);
 });

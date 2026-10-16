@@ -117,6 +117,8 @@ async function readMergeBase(github,owner,repo,snapshot) {
       typeof merge!=='string' || !/^[a-f0-9]{40}$/.test(merge) ||
       !['ahead','diverged'].includes(result.status) ||
       !Number.isSafeInteger(result.ahead_by) || result.ahead_by<1 ||
+      !Number.isSafeInteger(result.total_commits) ||
+      result.total_commits!==result.ahead_by ||
       !Number.isSafeInteger(result.behind_by) || result.behind_by<0 ||
       // For ahead, no commit is behind the target base. For diverged,
       // both sides must contain commits and merge-base must precede base.
