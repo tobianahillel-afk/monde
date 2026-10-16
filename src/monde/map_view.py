@@ -271,7 +271,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         }
       }
     });
-    var blob = new Blob([JSON.stringify(exported, null, 2) + "\\n"],
+    var blob = new Blob([JSON.stringify(exported, null, 2) + "\n"],
       {type:"application/geo+json"});
     var url = URL.createObjectURL(blob);
     var link = document.createElement("a");
