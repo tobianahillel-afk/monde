@@ -281,35 +281,44 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   function renderSourceTraces(reports) {
     traceLayer.replaceChildren();
-    var grouped = new Map();
+    var grouped = new Map(), gpxCount=0, kmlCount=0;
     reports.forEach(function(feature) {
-      var trace=feature.properties.monde_gpx_trace;
+      var trace=feature.properties.monde_gpx_trace ||
+        feature.properties.monde_kml_trace;
       if(!trace)return;
-      var key=JSON.stringify([feature.properties.source_id,trace.trace_id,
-                              trace.segment]);
+      var key=JSON.stringify([feature.properties.source_id,trace.format,
+                              trace.trace_id,trace.segment]);
       if(!grouped.has(key))grouped.set(key,[]);
       grouped.get(key).push(feature);
     });
     grouped.forEach(function(samples) {
       samples.sort(function(a,b){
-        return a.properties.monde_gpx_trace.order -
-          b.properties.monde_gpx_trace.order;
+        var aTrace=a.properties.monde_gpx_trace || a.properties.monde_kml_trace;
+        var bTrace=b.properties.monde_gpx_trace || b.properties.monde_kml_trace;
+        return aTrace.order-bTrace.order;
       });
       for(var i=1;i<samples.length;i++){
         var from=samples[i-1],to=samples[i];
-        var first=from.properties.monde_gpx_trace;
-        var next=to.properties.monde_gpx_trace;
+        var first=from.properties.monde_gpx_trace ||
+          from.properties.monde_kml_trace;
+        var next=to.properties.monde_gpx_trace ||
+          to.properties.monde_kml_trace;
         if(next.order!==first.order+1)continue; // No invented missing edges.
         var a=from.geometry.coordinates,b=to.geometry.coordinates;
         // The simple offline world projection never implies a path crossing
         // the antimeridian: omit that segment instead of drawing across Earth.
         if(Math.abs(a[0]-b[0])>180)continue;
-        el("line",{x1:x(a[0]),y1:y(a[1]),x2:x(b[0]),y2:y(b[1]),
-          "data-gpx-trace":first.trace_id},traceLayer);
+        var isGpx=first.format==="GPX_1_1_TRACE_POINT";
+        var attrs={x1:x(a[0]),y1:y(a[1]),x2:x(b[0]),y2:y(b[1])};
+        attrs[isGpx?"data-gpx-trace":"data-kml-trace"]=first.trace_id;
+        el("line",attrs,traceLayer);
+        if(isGpx)gpxCount++;else kmlCount++;
       }
     });
     document.body.setAttribute("data-monde-gpx-segments",
-      String(traceLayer.childElementCount));
+      String(gpxCount));
+    document.body.setAttribute("data-monde-kml-segments",
+      String(kmlCount));
   }
   function renderDisagreementLinks(reports) {
     linkLayer.replaceChildren();
@@ -648,7 +657,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       "Source event: " + (p.source_event_at || "not supplied"),
       "Known cutoff: " + (knowledgeComparing ? p.knowledge_cutoff : query.knowledge_cutoff),
       "Valid at: " + (worldComparing ? query.from_at + " → " + query.to_at : query.valid_at),
-      "Claim status: SOURCE_REPORTED_ONLY"
+      "Claim status: SOURCE_REPORTED_ONLY",
+      ...(p.monde_kml_trace ? [
+        "KML source line: " + p.monde_kml_trace.name,
+        "KML original sample order: " + String(p.monde_kml_trace.order+1),
+        "Interpretation: ORIGINAL_KML_SAMPLES_NOT_VERIFIED_MOTION"
+      ] : [])
     ].join("\n");
     render();
   }
@@ -1242,6 +1256,24 @@ def render_map(document: dict) -> str:
             raise ValueError("invalid source Point")
         props = feature["properties"]
         trace = props.get("monde_gpx_trace")
+        kml_trace = props.get("monde_kml_trace")
+        if kml_trace is not None:
+            if (trace is not None or not isinstance(kml_trace, dict)
+                    or set(kml_trace) !=
+                    {"format", "kind", "name", "trace_id", "segment", "order"}
+                    or kml_trace["format"] != "KML_2_2_LINESTRING_POINT"
+                    or kml_trace["kind"] != "LineString"
+                    or not isinstance(kml_trace["name"], str)
+                    or not kml_trace["name"]
+                    or not isinstance(kml_trace["trace_id"], str)
+                    or len(kml_trace["trace_id"]) != 24
+                    or any(ch not in "0123456789abcdef"
+                           for ch in kml_trace["trace_id"])
+                    or type(kml_trace["segment"]) is not int
+                    or kml_trace["segment"] != 0
+                    or type(kml_trace["order"]) is not int
+                    or not 0 <= kml_trace["order"] < 50_000):
+                raise ValueError("invalid source-reported KML topology")
         if "monde_gpx_sample_time" in props and (
                 trace is None or not isinstance(props["monde_gpx_sample_time"], str)):
             raise ValueError("invalid GPX source clock evidence")
@@ -1353,7 +1385,7 @@ def main(argv=None) -> int:
     inputs.add_argument("--csv-manifest", "--source-manifest", dest="csv_manifest",
                         help="source-attributed CSV/GeoJSON manifest; no intermediate state")
     inputs.add_argument("--geojson", help="local GeoJSON FeatureCollection of source-reported Points; no intermediate state")
-    inputs.add_argument("--kml", help="local KML 2.2 source-reported Point Placemarks; no intermediate state")
+    inputs.add_argument("--kml", help="local KML 2.2 Point or LineString Placemarks; no intermediate state")
     inputs.add_argument("--gpx", help="original local GPX 1.1 waypoints; no saved intermediate state")
     parser.add_argument("--source-id", help="explicit source identifier for --geojson")
     parser.add_argument("--source-locator", help="original data locator for --geojson")
