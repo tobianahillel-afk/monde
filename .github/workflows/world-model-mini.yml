@@ -101,6 +101,39 @@ jobs:
           grep -q 'data-monde-ready="true"' /tmp/monde-world-rendered.html
           grep -q 'NEWLY_CURRENT' /tmp/monde-world-rendered.html
           grep -q 'NOT verified physical movement' /tmp/monde-world-rendered.html
+      - name: Exercise pairwise source separation in a real offline browser
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          page = Path("/tmp/monde-evidence-map.html").read_text(encoding="utf-8")
+          probe = """<script>
+          (function(){
+            var buttons=document.querySelectorAll('#report-list button');
+            if(buttons.length<2)throw Error('fixture must contain two reported positions');
+            buttons[0].click();
+            document.getElementById('measure-a').click();
+            buttons[1].click();
+            document.getElementById('measure-b').click();
+            var summary=document.getElementById('measure-summary').textContent;
+            if(!summary.includes('Approx.') || !summary.includes('source-reported coordinates only'))
+              throw Error('pairwise source distance not displayed');
+            if(document.getElementById('export-measure').disabled)
+              throw Error('evidence pair export not enabled');
+            document.getElementById('clear-measure').click();
+            if(!document.getElementById('export-measure').disabled)
+              throw Error('clear must disable stale distance export');
+            document.body.setAttribute('data-monde-pairwise-distance','pass');
+          }());
+          </script>"""
+          Path("/tmp/monde-evidence-map-pair-test.html").write_text(
+              page.replace("</body>", probe+"</body>"), encoding="utf-8")
+          PY
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu \
+            --disable-dev-shm-usage --timeout=15000 --dump-dom \
+            file:///tmp/monde-evidence-map-pair-test.html > /tmp/monde-pair-dom.html
+          grep -q 'data-monde-pairwise-distance="pass"' /tmp/monde-pair-dom.html
       - name: Exercise evidence search and focus in a real headless browser
         run: |
           python3 - <<'PY'
