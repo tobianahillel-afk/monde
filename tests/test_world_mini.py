@@ -670,9 +670,6 @@ class WorldMiniTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.model.source_disagreements(AT, LATE, "invalid attribute")
 
-if __name__ == "__main__":
-    unittest.main()
-
 
     def test_source_history_preserves_corrections_and_capture_lineage(self):
         result = self.model.source_history("city-registry", LATE)
@@ -766,3 +763,7 @@ if __name__ == "__main__":
         ]:
             rejected = subprocess.run(args, capture_output=True, text=True, env=env)
             self.assertNotEqual(rejected.returncode, 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
