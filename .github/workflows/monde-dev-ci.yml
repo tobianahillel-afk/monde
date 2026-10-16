@@ -16,6 +16,9 @@ jobs:
       - name: Checkout candidate without persisted GitHub credentials
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          # On fork PRs, the exact head SHA belongs to the contributor repo,
+          # not necessarily to the base repository's Git object database.
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Verify checked out HEAD matches the reviewed PR candidate
