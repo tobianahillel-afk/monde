@@ -192,8 +192,8 @@ class DirectCsvMapTests(unittest.TestCase):
             self.assertFalse(missing.exists())
             explicit = Path(tmp) / "empty.html"
             result = self.run_map("--csv-manifest", manifest, "--at", AT,
-                "--known-at", "2026-01-01T00:00:00Z", "--bbox",
-                "-180,-90,180,90", "--output", explicit)
+                "--known-at", "2026-01-01T00:00:00Z",
+                "--bbox=-180,-90,180,90", "--output", explicit)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('"total_source_features":0',
                           explicit.read_text(encoding="utf-8"))
