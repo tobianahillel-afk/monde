@@ -403,9 +403,9 @@ test('fresh L2: pins full live PR scope and produces read-only separate-context 
   assert.equal(result.assignment.mission_kind,'L2_REVIEW');
   assert.equal(result.assignment.paths.length,2);
   assert.deepEqual(result.changed_file_statuses,[
+    {path:PATH,status:'modified',previous_path:null},
     {path:'.github/scripts/monde-dev/l2-delta-github.cjs',
-      status:'added',previous_path:null},
-    {path:PATH,status:'modified',previous_path:null}
+      status:'added',previous_path:null}
   ]);
   assert.match(result.prompt,/CONTEXTE DU DIFF GITHUB/);
   assert.equal(result.observed_pr_base_sha,'c'.repeat(40));
