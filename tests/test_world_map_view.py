@@ -692,3 +692,78 @@ class OfflineRadiusExplorerTest(unittest.TestCase):
         result = subprocess.run([node, "-e", script], cwd=ROOT,
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class OfflinePairwiseSeparationTest(unittest.TestCase):
+    def test_ui_and_export_preserve_original_reports_without_truth_promotion(self):
+        original = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        untouched = copy.deepcopy(original)
+        html = render_map(original)
+        self.assertEqual(extract(html)[1], untouched)
+        self.assertEqual(original, untouched)
+        for marker in (
+            'id="measure-a"', 'id="measure-b"',
+            'id="clear-measure"', 'id="export-measure"',
+            'function measuredSeparation()', 'function measuredEndpoint(feature)',
+            'approximateDistanceKm(measureA.coordinates,measureB.coordinates)',
+            'assertion_a:measureA.feature', 'assertion_b:measureB.feature',
+            'MONDE_MINI_SOURCE_POINT_SEPARATION_V1',
+            'TWO_SELECTED_SOURCE_ASSERTIONS_NOT_VERIFIED_LOCATIONS',
+            'NOT a route or verified physical movement'):
+            self.assertIn(marker, html)
+
+    def test_pair_measurement_exists_in_both_bitemporal_change_maps(self):
+        world, _ = corrected_points()
+        for doc in (
+            world.export_geojson_bbox_knowledge_changes(BBOX, VALID, KNOWN, LATE),
+            world.export_geojson_bbox_world_changes(
+                BBOX, "2025-12-31T00:00:00Z", VALID, LATE),
+        ):
+            html = render_map(doc)
+            self.assertIn('id="export-measure"', html)
+            self.assertEqual(extract(html)[1], doc)
+
+    def test_real_js_keeps_original_evidence_and_measures_dateline(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node.js required for source-point separation test")
+        html = render_map(with_points().export_geojson_bbox(BBOX, VALID, KNOWN))
+        start = html.index("  // Haversine distance between TWO SOURCE-REPORTED")
+        end = html.index("  function radiusKmValue()", start)
+        funcs = html[start:end]
+        script = (
+            'const assert=require("node:assert/strict");\n'
+            'var selectedFeature=null,measureA=null,measureB=null;\n'
+            'var measureAButton={addEventListener:()=>{}};\n'
+            'var measureBButton={addEventListener:()=>{}};\n'
+            'var clearMeasureButton={disabled:true,addEventListener:()=>{}};\n'
+            'var exportMeasureButton={disabled:true,addEventListener:()=>{}};\n'
+            'var measureSummary={textContent:""};\n'
+            'var query={valid_at:"2026-01-01T00:00:00Z"};\n'
+            'function render(){}\n'
+            + funcs + '\n'
+            'const a={id:"a1",geometry:{coordinates:[179.9,0]},'
+            'properties:{entity:"building",source_id:"s1",evidence_id:"e1"}};\n'
+            'const b={id:"a2",geometry:{coordinates:[-179.9,0]},'
+            'properties:{entity:"building",source_id:"s2",evidence_id:"e2"}};\n'
+            'measureA=measuredEndpoint(a);measureB=measuredEndpoint(b);\n'
+            'const result=measuredSeparation();updateMeasurement();\n'
+            'assert(result.approximate_distance_km>22);\n'
+            'assert(result.approximate_distance_km<23);\n'
+            'assert.equal(result.assertion_a,a);\n'
+            'assert.equal(result.assertion_b,b);\n'
+            'assert.equal(result.same_entity,true);\n'
+            'assert.equal(result.same_assertion,false);\n'
+            'assert.equal(result.source_query,query);\n'
+            'assert.equal(exportMeasureButton.disabled,false);\n'
+            'assert.match(measureSummary.textContent,/source-reported coordinates only/);\n'
+            'measureB=measuredEndpoint(a);\n'
+            'assert.equal(measuredSeparation().approximate_distance_km,0);\n'
+            'assert.equal(measuredSeparation().same_assertion,true);\n'
+            'measureB=null;updateMeasurement();\n'
+            'assert.equal(exportMeasureButton.disabled,true);\n'
+            'assert.equal(measuredSeparation(),null);\n'
+        )
+        result = subprocess.run([node, "-e", script], cwd=ROOT,
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)

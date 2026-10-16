@@ -186,3 +186,21 @@ assertions, evidence IDs and query and add the chosen center's assertion,
 source and evidence IDs, original coordinates, radius kilometers and an
 explicit approximate-distance derivation under `filters`. It neither changes
 the saved snapshot nor requests an external map or API.
+
+## Compare two original reported Points (T14)
+
+Select any original source report, click **Use selected as A**, select another
+report, and click **Use selected as B**. The offline map shows an approximate
+shortest great-circle distance between the two **source-claimed WGS84 Point
+coordinates** (Earth mean-radius approximation, not a measured survey).
+An endpoint stays bound to its original assertion and provenance if a filter
+subsequently hides that report; use **Clear comparison** to start over.
+
+**Export evidence + separation** downloads JSON with both intact original
+GeoJSON features (assertion, source ID, evidence, capture and temporal context),
+the original bitemporal map query, the approximate distance in kilometers and
+explicit same-entity/same-assertion indicators. Works with regular and both
+temporal-change maps. No remote map, geocoding, inference engine or new package.
+A result is **not** a route, verified movement, true entity location,
+location consensus or a confidence estimate. A zero distance means the two
+reported coordinates coincide, not that either is physically correct.

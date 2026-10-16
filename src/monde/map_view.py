@@ -40,6 +40,8 @@ section,aside{border:1px solid #314154;border-radius:12px;background:#182436;pad
 #points circle.inside{fill:#51d6ba;stroke:#093b39}
 #points circle.outside{fill:#172b42;stroke:#ffc873;stroke-dasharray:2 2}
 #points circle.selected{stroke:#fff;stroke-width:5}
+#points circle.measured-a{stroke:#f9c45e;stroke-width:5}
+#points circle.measured-b{stroke:#f28bc3;stroke-width:5}
 #points circle.newly{fill:#63e3ab;stroke:#0b6747}
 #points circle.retired{fill:#ffb871;stroke:#8e5318}
 [hidden]{display:none!important}
@@ -112,6 +114,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <h2>Compare reported positions</h2>
 <p id="entity-comparison-summary" class="subtle">Select an entity to compare its visible source claims, without inferring a true position.</p>
 <ul id="entity-comparison-list" aria-label="Side-by-side source assertions"></ul>
+<h2>Compare two source-reported Points</h2>
+<div class="controls"><button id="measure-a" type="button" disabled>Use selected as A</button>
+<button id="measure-b" type="button" disabled>Use selected as B</button>
+<button id="clear-measure" type="button" disabled>Clear comparison</button>
+<button id="export-measure" type="button" disabled>Export evidence + separation</button></div>
+<p id="measure-summary" class="subtle" role="status" aria-live="polite">Choose two original source assertions to estimate their coordinate separation; no verified physical movement or location.</p>
 <h2>Selected evidence</h2><div id="details" role="status" aria-live="polite">Select a source report to inspect its original evidence.</div>
 </aside>
 </main>
@@ -153,6 +161,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var setRadiusButton = document.getElementById("set-radius-center");
   var clearRadiusButton = document.getElementById("clear-radius-center");
   var radiusSummary = document.getElementById("radius-summary");
+  var measureAButton = document.getElementById("measure-a");
+  var measureBButton = document.getElementById("measure-b");
+  var clearMeasureButton = document.getElementById("clear-measure");
+  var exportMeasureButton = document.getElementById("export-measure");
+  var measureSummary = document.getElementById("measure-summary");
+  var measureA = null, measureB = null;
   // Preserve the source report chosen as center even if a later filter hides it.
   var radiusCenter = null;
   var visibleFeatures = [];
@@ -350,6 +364,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     selectedFeature = feature;
     focusButton.disabled = false;
     setRadiusButton.disabled = false;
+    measureAButton.disabled = false;
+    measureBButton.disabled = false;
     centerOn(feature);
     var p = feature.properties;
     details.textContent = [
@@ -384,6 +400,54 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       Math.sin(lonDelta/2)**2;
     return 6371.0088*2*Math.asin(Math.sqrt(Math.min(1,Math.max(0,h))));
   }
+
+  // Measurement endpoints retain their ORIGINAL source assertion even if
+  // subsequent search/view filters hide it. This is not inferred geometry.
+  function measuredEndpoint(feature) {
+    return {feature:feature,assertion_id:feature.id,
+      entity:feature.properties.entity,source_id:feature.properties.source_id,
+      evidence_id:feature.properties.evidence_id,
+      coordinates:feature.geometry.coordinates.slice()};
+  }
+  function measuredSeparation() {
+    if(!measureA || !measureB)return null;
+    return {
+      format:"MONDE_MINI_SOURCE_POINT_SEPARATION_V1",
+      scope:"TWO_SELECTED_SOURCE_ASSERTIONS_NOT_VERIFIED_LOCATIONS",
+      source_query:query,
+      assertion_a:measureA.feature,
+      assertion_b:measureB.feature,
+      approximate_distance_km:Math.round(
+        approximateDistanceKm(measureA.coordinates,measureB.coordinates)*1000)/1000,
+      method:"APPROXIMATE_GREAT_CIRCLE_BETWEEN_SOURCE_REPORTED_POINTS",
+      same_assertion:measureA.assertion_id===measureB.assertion_id,
+      same_entity:measureA.entity===measureB.entity,
+      interpretation:"Distance between two unverified source-reported coordinates; not a route, verified movement, location consensus or confidence interval."
+    };
+  }
+  function updateMeasurement() {
+    var result=measuredSeparation();
+    clearMeasureButton.disabled=!measureA&&!measureB;
+    exportMeasureButton.disabled=!result;
+    measureSummary.textContent=!result ?
+      (measureA||measureB ?
+        "Choose the remaining endpoint. Comparison keeps original source evidence even when hidden by filters." :
+        "Choose two original source assertions to estimate coordinate separation; no verified physical movement or location.") :
+      "Approx. "+String(result.approximate_distance_km)+" km between A: "+
+      measureA.assertion_id+" ("+measureA.source_id+") and B: "+
+      measureB.assertion_id+" ("+measureB.source_id+"). "+
+      (result.same_entity?"Same entity; ":"Different entities; ")+
+      "source-reported coordinates only, NOT a route or verified physical movement.";
+  }
+  measureAButton.addEventListener("click",function(){
+    if(selectedFeature){measureA=measuredEndpoint(selectedFeature);render();}
+  });
+  measureBButton.addEventListener("click",function(){
+    if(selectedFeature){measureB=measuredEndpoint(selectedFeature);render();}
+  });
+  clearMeasureButton.addEventListener("click",function(){
+    measureA=null;measureB=null;render();
+  });
   function radiusKmValue() {
     if(!radiusInput.value.trim())return null;
     var v=Number(radiusInput.value);
@@ -457,6 +521,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     layer.replaceChildren(); list.replaceChildren(); comparisonList.replaceChildren();
     visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
     fitButton.disabled = matchingReports().length === 0;
+    updateMeasurement();
     radiusSummary.textContent = !radiusCenter ?
       "Select an original source report to choose a proximity center. Distances are approximate, between reported coordinates only." :
       radiusKmValue()===null ?
@@ -471,6 +536,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         r:7,tabindex:0,"aria-label":p.entity + " from " + p.source_id},layer);
       circle.setAttribute("class",(p.monde_inside_bbox?"inside":"outside")+
         (selectedId===f.id?" selected":"")+
+        (measureA&&measureA.assertion_id===f.id?" measured-a":"")+
+        (measureB&&measureB.assertion_id===f.id?" measured-b":"")+
         (comparing ? (p.monde_change==="NEWLY_CURRENT"?" newly":" retired"):""));
       circle.addEventListener("click",function(){inspect(f);});
       circle.addEventListener("keydown",function(e){
@@ -569,6 +636,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         filters: appliedFilters()
       }
     }),"monde-visible-source-evidence.geojson","application/geo+json");
+  });
+  exportMeasureButton.addEventListener("click",function(){
+    var result=measuredSeparation();
+    if(result)saveEvidence(result,"monde-source-point-separation.json","application/json");
   });
   function createEntityDossier() {
     var entity = entities.value || (selectedFeature ? selectedFeature.properties.entity : "");

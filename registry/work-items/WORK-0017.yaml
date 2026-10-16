@@ -60,6 +60,7 @@ implementation_plan:
     - {id: T12, description: "Export an offline entity evidence dossier", depends_on: [T5, T7], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_PROGRESS}
     - {id: T13, description: "Filter offline source-reported Points by proximity to a selected source assertion without conflating distance and truth", depends_on: [T4, T5], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_PROGRESS}
   planned_runs:
+    - {id: T14, description: "Compare and export pairwise separation with original source evidence", depends_on: [T7, T13], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_PROGRESS}
     - {id: RUN-1, objective: "Product map and bounded verification", tasks: [T1, T2], exit_condition: "HTML saved-state use and green CI", status: IN_PROGRESS}
 review_plan:
   artifact_class: HIGH_RISK_CAPABILITY
