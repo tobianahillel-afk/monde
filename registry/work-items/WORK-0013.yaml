@@ -1,0 +1,63 @@
+id: WORK-0013
+title: "GeoJSON map of conflicting bitemporal source Point reports"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.6
+owner: "MONDE Mini source conflict cartography"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+purpose: |
+  Map simultaneous conflicting source reports of Point locations, retaining
+  bitemporal evidence without inventing geographic ground truth.
+scope:
+  in: ["GeoJSON source disagreements", "temporal cutoffs", "CLI", "viewport"]
+  out: ["Truth consensus", "production map tiles", "external data acquisition"]
+acceptance_criteria:
+  - {id: AC-1, description: "Map output retains evidence-linked conflicting Points", status: NOT_STARTED}
+  - {id: AC-2, description: "Viewport clipping does not erase offscreen disagreement", status: NOT_STARTED}
+  - {id: AC-3, description: "Saved snapshot CLI works at world and knowledge cutoffs", status: NOT_STARTED}
+requirements: []
+assumptions: ["WGS84 2D Point only", "Immutable assertion IDs"]
+risks: ["Misinterpretation of source reports as ground truth"]
+assurance: {level: A3, rationale: "Geospatial epistemic fidelity"}
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-geojson-export.md]
+depends_on: [WORK-0001, WORK-0006, WORK-0007, WORK-0008, WORK-0009, WORK-0010, WORK-0011, WORK-0012]
+blocks: []
+reuses: ["WorldMini.source_disagreements", "WorldMini.export_geojson", "existing CLI"]
+affected_capabilities: []
+affected_engines: ["MONDE Mini temporal geography"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-geojson-disagreements.md]
+contracts: ["GeoJSON FeatureCollection of conflicting current source reports"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Export source conflicts and expose CLI", depends_on: [], expected_files: [src/monde/world.py], status: IN_PROGRESS}
+    - {id: T2, description: "Test provenance, cutoffs, viewport, real CLI", depends_on: [T1], expected_files: [tests/test_world_geojson_disagreements.py, docs/03_ARCHITECTURE/world-mini-geojson-disagreements.md], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Conflict map GeoJSON export", tasks: [T1, T2], exit_condition: "Product CI and scoped L2", status: IN_PROGRESS}
+review_plan:
+  artifact_class: HIGH_RISK_CAPABILITY
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, EPISTEMIC_DATA, ARCHITECTURE_REUSE]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["Multiple source positions", "identical positions", "knowledge cutoff", "viewport"]
+  integration: ["Evidence and assertion identity", "Immutability"]
+  e2e: ["Saved-state CLI"]
+  security: ["Reject bad bbox and incompatible modes"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Experimental", "Scoped L2 pending", "Unindexed scan"]
+risk: {security: LOW, data: MEDIUM, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Close this stacked PR without changing predecessors or main."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_ready_checked: false, definition_of_done_checked: false, review_complete: false, docs_updated: true, registries_updated: false, project_state_updated: false}
