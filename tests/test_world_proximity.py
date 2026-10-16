@@ -141,8 +141,9 @@ class ProximityTests(unittest.TestCase):
                 valid_from=ARGS["valid_from"]))
         result = world.search_geo_nearest([2.3522, 48.8566], 1, AT, KNOWN)
         self.assertEqual(result["matches"][0]["entity"], "place-001")
-        self.assertEqual({r["source_id"] for r in result["matches"][0]["other_reports"]},
-                         {"different-map"})
+        self.assertEqual({r["source_id"] for r in result["matches"][0]["matched_reports"]},
+                         {ARGS["source_id"], "different-map"})
+        self.assertEqual(result["matches"][0]["other_reports"], [])
 
     def test_nearest_temporal_and_invalid_limits(self):
         world = model()
