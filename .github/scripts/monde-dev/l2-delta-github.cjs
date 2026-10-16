@@ -282,4 +282,116 @@ async function prepareFreshL2FromCurrentGitHub(input) {
   };
 }
 
-module.exports = { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub };
+
+// Prepare bounded independent-review assignments for a PR too large for one
+// 24-path mission. Read-only: batching is not review, approval or scheduling.
+// Rename pairs stay atomic; every GitHub change is accounted for or we fail.
+async function prepareFreshL2BatchesFromCurrentGitHub(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) incomplete();
+  const {github,repo,pr,assignment_id,author_context_id,objective}=input;
+  let seed;
+  try {
+    seed=assignment({
+      mission_kind:'L2_REVIEW',assignment_id:assignment_id+'-B01',
+      repo,pr,author_context_id,objective,head_sha:'0'.repeat(40),
+      paths:['.github/monde-dev-review-placeholder.cjs']
+    });
+  } catch { incomplete(); }
+  if (!github || typeof github.paginate!=='function' ||
+      !github.rest?.pulls ||
+      typeof github.rest.pulls.get!=='function' ||
+      typeof github.rest.pulls.listFiles!=='function') incomplete();
+  const [owner,name]=seed.repo.split('/');
+  const observe=async()=>{
+    const result=await github.rest.pulls.get({owner,repo:name,pull_number:seed.pr});
+    const data=result?.data;
+    if(!data || data.number!==seed.pr || data.state!=='open' ||
+       data.base?.repo?.full_name!==seed.repo || data.base?.ref!=='main' ||
+       typeof data.base.sha!=='string' || !/^[a-f0-9]{40}$/.test(data.base.sha) ||
+       typeof data.head?.sha!=='string' || !/^[a-f0-9]{40}$/.test(data.head.sha) ||
+       typeof data.head.repo?.full_name!=='string' ||
+       !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(data.head.repo.full_name) ||
+       typeof data.head.ref!=='string' || !/^[A-Za-z0-9._/-]+$/.test(data.head.ref) ||
+       data.head.ref.split('/').some(x=>!x||x==='.'||x==='..') ||
+       !Number.isSafeInteger(data.changed_files) ||
+       data.changed_files<1 || data.changed_files>200) incomplete();
+    return {
+      base_sha:data.base.sha,head_sha:data.head.sha,
+      head_repo:data.head.repo.full_name,head_ref:data.head.ref,
+      changed_files:data.changed_files
+    };
+  };
+  const before=await observe();
+  const rows=await github.paginate(github.rest.pulls.listFiles,{
+    owner,repo:name,pull_number:seed.pr,per_page:100
+  });
+  if(!Array.isArray(rows)||rows.length!==before.changed_files)incomplete();
+  const unique=new Set(),groups=[];
+  let current=[],count=0;
+  for(const row of rows){
+    if(!row || !['added','modified','removed','renamed'].includes(row.status) ||
+       typeof row.filename!=='string') incomplete();
+    const previous=row.status==='renamed'?row.previous_filename:null;
+    if(row.status==='renamed'&&typeof previous!=='string')incomplete();
+    const paths=[row.filename,...(previous===null?[]:[previous])];
+    for(const path of paths){
+      // Delegate path validation to the exact canonical mission validator.
+      try { assignment({...seed,paths:[path]}); } catch { incomplete(); }
+      if(unique.has(path))incomplete();
+      unique.add(path);
+    }
+    if(current.length && count+paths.length>24){
+      groups.push(current);current=[];count=0;
+    }
+    if(paths.length>24)incomplete();
+    current.push({path:row.filename,status:row.status,previous_path:previous});
+    count+=paths.length;
+  }
+  if(current.length)groups.push(current);
+  if(!groups.length||groups.length>20)incomplete();
+  const after=await observe();
+  if(Object.keys(before).some(key=>before[key]!==after[key]))incomplete();
+  const {buildReviewPrompt}=require('./delegation.cjs');
+  const batches=groups.map((changes,index)=>{
+    const paths=changes.flatMap(c=>[c.path,...(c.previous_path?[c.previous_path]:[])]);
+    const mission=assignment({...seed,
+      assignment_id:assignment_id+'-B'+String(index+1).padStart(2,'0'),
+      head_sha:before.head_sha,paths
+    });
+    const refs=changes.map(c=>({
+      path:c.path,status:c.status,previous_path:c.previous_path,
+      base_url:c.status==='added'?null:
+        'https://github.com/'+seed.repo+'/blob/'+before.base_sha+'/'+
+        (c.previous_path||c.path),
+      head_url:c.status==='removed'?null:
+        'https://github.com/'+before.head_repo+'/blob/'+before.head_sha+'/'+c.path
+    }));
+    const prompt=buildReviewPrompt(mission)+
+      '\n\nLOT DE REVUE '+(index+1)+' / '+groups.length+
+      ' (couverture partielle de la PR, aucune approbation globale).'+
+      '\nBase PR : '+before.base_sha+' ; HEAD : '+before.head_sha+
+      '\nPour chaque chemin, analyser les références immuables et les dépendances.'+
+      '\nManifest des changements GitHub, JSON par ligne :\n'+
+      refs.map(x=>JSON.stringify(x)).join('\n')+
+      '\nUne suppression se lit à la base, un ajout au HEAD, et un renommage aux deux.';
+    return {status:'FRESH_L2_BATCH_READY',assignment:mission,prompt,
+      changed_file_statuses:changes,immutable_file_refs:refs,
+      batch_number:index+1,batch_count:groups.length,
+      reviewer_context_required:true,review_acceptance_granted:false,
+      authorized_to_write:false};
+  });
+  if(batches.flatMap(x=>x.assignment.paths).length!==unique.size ||
+      new Set(batches.flatMap(x=>x.assignment.paths)).size!==unique.size)
+    incomplete();
+  return {status:'FRESH_L2_BATCHES_READY',
+    observed_pr_base_sha:before.base_sha,observed_pr_head_sha:before.head_sha,
+    observed_pr_source_repo:before.head_repo,observed_pr_source_ref:before.head_ref,
+    changed_files:before.changed_files,reviewed_path_units:unique.size,
+    batch_count:batches.length,batches,
+    full_scope_partition_verified:true,requires_separate_chat:true,
+    scheduled_tasks_created:false,live_pr_head_still_requires_verification:true,
+    native_github_approved:false,review_acceptance_granted:false,
+    authorized_to_write:false};
+}
+
+module.exports = { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub };

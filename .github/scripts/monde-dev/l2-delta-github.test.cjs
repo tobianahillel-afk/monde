@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub } = require('./l2-delta-github.cjs');
+const { planL2DeltaFromGitHub, planL2DeltaFromCurrentGitHub, prepareFreshL2FromCurrentGitHub, prepareFreshL2BatchesFromCurrentGitHub } = require('./l2-delta-github.cjs');
 
 const OLD = 'a'.repeat(40), HEAD = 'b'.repeat(40);
 const PATH = '.github/scripts/monde-dev/delegation.cjs';
@@ -507,4 +507,74 @@ test('fresh L2: fork PR links use original base and actual fork head repository'
     'https://github.com/other-owner/monde-copy/blob/'+HEAD+'/'+PATH);
   assert.match(v.prompt,/other-owner\/monde-copy/);
   assert.equal(v.native_github_approved,false);
+});
+
+test('fresh L2 batching: 26 changed files produce two full read-only missions',async()=>{
+  const files=Array.from({length:26},(_,i)=>({
+    status:'modified',filename:'src/mod'+String(i).padStart(2,'0')+'.cjs'
+  }));
+  const {api,calls}=freshClient({files});
+  const plan=await prepareFreshL2BatchesFromCurrentGitHub({github:api,...FRESH_MISSION});
+  assert.equal(plan.status,'FRESH_L2_BATCHES_READY');
+  assert.equal(plan.changed_files,26);
+  assert.equal(plan.reviewed_path_units,26);
+  assert.equal(plan.batch_count,2);
+  assert.deepEqual(plan.batches.map(x=>x.assignment.paths.length),[24,2]);
+  assert.deepEqual(plan.batches.map(x=>x.assignment.assignment_id),[
+    FRESH_MISSION.assignment_id+'-B01',FRESH_MISSION.assignment_id+'-B02'
+  ]);
+  assert.equal(new Set(plan.batches.flatMap(x=>x.assignment.paths)).size,26);
+  assert.equal(plan.review_acceptance_granted,false);
+  assert.equal(plan.authorized_to_write,false);
+  assert.equal(plan.scheduled_tasks_created,false);
+  assert.equal(calls.get.length,2);
+  assert.equal(calls.files.length,1);
+  for(const batch of plan.batches){
+    assert.equal(batch.review_acceptance_granted,false);
+    assert.match(batch.prompt,/LOT DE REVUE/);
+  }
+});
+test('fresh L2 batching: rename pair never splits across 24-path boundary',async()=>{
+  const files=[
+    ...Array.from({length:23},(_,i)=>({
+      status:'modified',filename:'src/test'+i+'.cjs'
+    })),
+    {status:'renamed',filename:'src/new.cjs',previous_filename:'src/old.cjs'},
+    {status:'removed',filename:'src/deleted.cjs'}
+  ];
+  const {api}=freshClient({files});
+  const result=await prepareFreshL2BatchesFromCurrentGitHub({github:api,...FRESH_MISSION});
+  assert.equal(result.batch_count,2);
+  assert.deepEqual(result.batches.map(x=>x.assignment.paths.length),[23,3]);
+  assert.deepEqual(result.batches[1].changed_file_statuses.map(x=>x.status),['renamed','removed']);
+  assert.equal(result.batches[1].immutable_file_refs[0].base_url,
+    'https://github.com/'+FRESH_MISSION.repo+'/blob/'+'c'.repeat(40)+'/src/old.cjs');
+  assert.equal(result.batches[1].immutable_file_refs[0].head_url,
+    'https://github.com/'+FRESH_MISSION.repo+'/blob/'+HEAD+'/src/new.cjs');
+  assert.equal(result.batches[1].immutable_file_refs[1].head_url,null);
+  assert.equal(result.reviewed_path_units,26);
+});
+test('fresh L2 batching: mid-read drift, duplicates and incomplete pagination fail closed',async()=>{
+  for(const options of [
+    {drift:true},
+    {count:3},
+    {files:[{status:'modified',filename:PATH},{status:'modified',filename:PATH}]},
+    {files:[{status:'renamed',filename:'src/a.cjs',previous_filename:'src/a.cjs'}]},
+    {files:[{status:'modified',filename:'../unsafe.cjs'}]},
+    {count:201}
+  ]){
+    const {api}=freshClient(options);
+    await assert.rejects(prepareFreshL2BatchesFromCurrentGitHub({
+      github:api,...FRESH_MISSION
+    }),error=>error.code==='INCOMPLETE_GITHUB_COMPARE');
+  }
+});
+test('fresh L2 batching: fork source uses immutable fork HEAD and original base',async()=>{
+  const {api}=freshClient({headRepo:'other-owner/monde-fork'});
+  const result=await prepareFreshL2BatchesFromCurrentGitHub({github:api,...FRESH_MISSION});
+  assert.equal(result.batch_count,1);
+  const ref=result.batches[0].immutable_file_refs[0];
+  assert.match(ref.base_url,/tobianahillel-afk\/monde\/blob/);
+  assert.match(ref.head_url,/other-owner\/monde-fork\/blob/);
+  assert.equal(result.observed_pr_source_repo,'other-owner/monde-fork');
 });
