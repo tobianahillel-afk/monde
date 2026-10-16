@@ -22,6 +22,7 @@ acceptance_criteria:
   - {id: AC-5, description: "Explore source-reported knowledge changes between two cutoffs without implying physical movement", status: NOT_STARTED}
   - {id: AC-6, description: "Search evidence locally and navigate to selected source-reported coordinates without external services", status: NOT_STARTED}
   - {id: AC-7, description: "Export the currently filtered source-evidence GeoJSON with original provenance and explicit derivative scope without network calls", status: NOT_STARTED}
+  - {id: AC-8, description: "Explore reported world-time validity changes using the offline map without inferring physical motion", status: NOT_STARTED}
 requirements: []
 assumptions: ["Standalone schematic WGS84 projection; not a basemap or physical truth"]
 risks: ["Misinterpretation of geographic claim as truth", "Embedded metadata injection"]
@@ -43,6 +44,7 @@ implementation_plan:
     - {id: T3, description: "Explore source knowledge deltas in the standalone map", depends_on: [T1], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_PROGRESS}
     - {id: T4, description: "Search evidence and navigate to report on map", depends_on: [T1], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_PROGRESS}
     - {id: T5, description: "Export filtered source reports for downstream offline evidence exploration", depends_on: [T1, T4], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_PROGRESS}
+    - {id: T6, description: "Present world-time source validity changes in existing offline map", depends_on: [T1, T3], expected_files: [src/monde/map_view.py, tests/test_world_map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_PROGRESS}
   planned_runs:
     - {id: RUN-1, objective: "Product map and bounded verification", tasks: [T1, T2], exit_condition: "HTML saved-state use and green CI", status: IN_PROGRESS}
 review_plan:

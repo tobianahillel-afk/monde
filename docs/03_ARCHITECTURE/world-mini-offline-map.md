@@ -66,3 +66,17 @@ if the newer position leaves the viewport. Filter by source and by
 original evidence and its knowledge window, and use the same offline zoom.
 Unchanged source reports are omitted from this *change-only* view; an empty
 result cannot establish physical absence. No new dependency or API.
+
+## Offline source-reported world-time changes
+
+Compare source-reported Point validity between two world instants at a
+fixed knowledge cutoff. This is different from comparing what MONDE learned;
+source validity changes are not proof of physical movement.
+
+Example command: `PYTHONPATH=src python3 -m monde.map_view --state saved.json --bbox '2.34,48.84,2.36,48.87' --compare-at 2025-12-31T00:00:00Z --at 2026-01-02T00:00:00Z --known-at 2026-01-10T10:00:00Z --output world-changes.html`.
+
+The viewer reuses `WorldMini.export_geojson_bbox_world_changes` and retains
+`NEWLY_CURRENT` / `NO_LONGER_CURRENT` original source evidence, coordinates,
+and both world instants. Search, filter and export visible source reports
+offline. `--compare-at` and `--compare-known-at` cannot be used together.
+Existing state is immutable; output is never overwritten.
