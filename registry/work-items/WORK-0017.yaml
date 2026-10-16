@@ -1,0 +1,69 @@
+id: WORK-0017
+title: "Generate an offline interactive source-evidence map from MONDE Mini"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-5
+sublot: SUBLOT-5.1
+owner: "MONDE Mini explorer"
+created_at: "2026-10-16"
+updated_at: "2026-10-16"
+purpose: |
+  Make a saved evidence-grounded source Point snapshot explorable as standalone
+  HTML, without hosting, network calls, paid maps, third-party code, or
+  upgrading contradictory source assertions into physical truth.
+scope:
+  in: ["Browser-inspectable offline snapshot", "Source/evidence drilldown", "Viewport", "CLI"]
+  out: ["Live backend", "Production globe", "External basemap", "Reconciliation", "Prediction"]
+acceptance_criteria:
+  - {id: AC-1, description: "Create standalone map from saved temporal source Points", status: NOT_STARTED}
+  - {id: AC-2, description: "Display source contradictions and precise evidence lineage", status: NOT_STARTED}
+  - {id: AC-3, description: "Prevent untrusted metadata HTML/script injection and external calls", status: NOT_STARTED}
+  - {id: AC-4, description: "Preserve original saved state and refuse accidental output overwrite", status: NOT_STARTED}
+requirements: []
+assumptions: ["Standalone schematic WGS84 projection; not a basemap or physical truth"]
+risks: ["Misinterpretation of geographic claim as truth", "Embedded metadata injection"]
+assurance: {level: A3, rationale: "Evidence and HTML boundary integrity"}
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-geojson-bbox.md]
+depends_on: [WORK-0001, WORK-0006, WORK-0007, WORK-0008, WORK-0009, WORK-0010, WORK-0011, WORK-0012, WORK-0013, WORK-0014, WORK-0015, WORK-0016]
+blocks: []
+reuses: ["WorldMini.export_geojson_bbox", "Existing Python test/CI", "Standard HTML/SVG/JSON"]
+affected_capabilities: []
+affected_engines: ["MONDE Mini source geography explorer"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["Bitemporal source-reported Point export with lineage"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Render self-contained safe HTML with source evidence explorer", depends_on: [], expected_files: [src/monde/map_view.py], status: IN_PROGRESS}
+    - {id: T2, description: "Test real saved-state CLI and browser evidence boundary", depends_on: [T1], expected_files: [tests/test_world_map_view.py], status: IN_PROGRESS}
+  planned_runs:
+    - {id: RUN-1, objective: "Product map and bounded verification", tasks: [T1, T2], exit_condition: "HTML saved-state use and green CI", status: IN_PROGRESS}
+review_plan:
+  artifact_class: HIGH_RISK_CAPABILITY
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY, DOCUMENTATION_TRACEABILITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: [tests/test_world_map_view.py]
+  integration: ["GeoJSON bbox snapshot to HTML"]
+  contract: ["No inferred physical truth", "Preserve original source IDs"]
+  e2e: ["Saved-state Python CLI and generated HTML"]
+  regression: ["Existing world mini product test suite"]
+  security: ["Safe script embedding and CSP", "No external network requests"]
+  performance: ["Bound maximum embedded features and bytes"]
+  real_system: ["GitHub Actions tests; headless browser smoke if runner supports Chrome"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["No live data, tile service, or physical location consensus"]
+risk: {security: HIGH, data: LOW, epistemic: HIGH, performance: LOW, operational: LOW}
+rollback:
+  strategy: "Revert WORK-0017 branch/PR; prior GeoJSON capabilities unchanged."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion: {definition_of_done_checked: false, review_complete: false, docs_updated: false, registries_updated: false, project_state_updated: false}
