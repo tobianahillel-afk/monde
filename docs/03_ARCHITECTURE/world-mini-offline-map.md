@@ -95,3 +95,13 @@ trustworthiness, imply that a location moved, or upgrade a source claim into
 observed physical truth. Filtered GeoJSON exports include entity and
 position-disagreement filter metadata, while preserving original assertions
 and the complete original time query.
+
+## Visual links between source-reported positions
+
+Enable **Show source-position disagreement links** to compare different-source
+coordinate claims about the same entity directly on the schematic map. Dashed
+links are derived from currently visible reports, so existing entity, source,
+search, viewport and temporal-change filters apply. Connections use the shortest
+antimeridian wrap and do not describe a route, physical movement, verified
+location, confidence score or uncertainty distance. Links are screen-only; a
+filtered GeoJSON download retains the original source evidence unchanged.

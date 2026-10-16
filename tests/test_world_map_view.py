@@ -439,3 +439,28 @@ class OfflineEntityComparisonTest(unittest.TestCase):
                 self.assertIn('id="entities"', page)
                 self.assertIn('id="entity-comparison-list"', page)
                 self.assertEqual(extract(page)[1], source)
+
+class OfflineDisagreementLinksTest(unittest.TestCase):
+    def test_links_toggle_and_original_source_provenance_unchanged(self):
+        source = with_points().export_geojson_bbox(BBOX, VALID, KNOWN)
+        before = copy.deepcopy(source)
+        page = render_map(source)
+        self.assertEqual(extract(page)[1], before)
+        self.assertEqual(source, before)
+        self.assertIn('id="disagreement-links"', page)
+        self.assertIn('id="show-disagreement-links"', page)
+        self.assertIn('showLinks.addEventListener("change",render)', page)
+        self.assertIn('renderDisagreementLinks(visibleFeatures)', page)
+        self.assertIn('not routes, movements', page)
+        self.assertIn("connect-src 'none'", page)
+
+    def test_links_are_supported_in_knowledge_and_world_comparisons(self):
+        world, _ = corrected_points()
+        for source in (world.export_geojson_bbox_knowledge_changes(
+                BBOX, VALID, KNOWN, LATE),
+                world.export_geojson_bbox_world_changes(
+                BBOX, "2025-12-31T00:00:00Z", VALID, LATE)):
+            with self.subTest(basis=list(source)):
+                page = render_map(source)
+                self.assertIn('id="disagreement-links"', page)
+                self.assertEqual(extract(page)[1], source)

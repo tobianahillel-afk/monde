@@ -34,6 +34,7 @@ small,.subtle{color:#b6c4d6}
 main{display:grid;grid-template-columns:minmax(0,2fr) minmax(290px,1fr);gap:16px;padding:16px;max-width:1600px;margin:0 auto}
 section,aside{border:1px solid #314154;border-radius:12px;background:#182436;padding:14px;min-width:0}
 #map{width:100%;height:auto;max-height:65vh;background:#102b3b;border:1px solid #38526a;border-radius:8px;touch-action:none}
+#disagreement-links line{stroke:#f0a0e3;stroke-width:2.5;stroke-dasharray:7 5;opacity:.85;pointer-events:none}
 #points circle{cursor:pointer;stroke-width:2.4;outline:none}
 #points circle:focus{stroke:#fff;stroke-width:5}
 #points circle.inside{fill:#51d6ba;stroke:#093b39}
@@ -78,7 +79,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 </div>
 <svg id="map" role="img" aria-label="Schematic longitude-latitude evidence map, not a geographic basemap" viewBox="0 0 1200 600">
 <rect width="1200" height="600" fill="#123044"></rect>
-<g id="graticule"></g><g id="viewport"></g><g id="points"></g>
+<g id="graticule"></g><g id="viewport"></g><g id="disagreement-links" aria-hidden="true"></g><g id="points"></g>
 </svg>
 <p id="metrics"></p>
 <p id="source-notice" class="notice">Source assertions only. Contradictory locations are retained. This schematic is not a basemap, physical position estimate, confidence score or proof of absence.</p>
@@ -92,6 +93,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
 <div class="controls"><label for="entities">Entity</label><select id="entities"><option value="">All entities</option></select></div>
 <div class="controls"><label><input id="disagreements-only" type="checkbox"> Different-source position claims only</label></div>
+<div class="controls"><label><input id="show-disagreement-links" type="checkbox" checked> Show source-position disagreement links</label></div>
+<p class="subtle">Dashed disagreement links are not routes, movements, uncertainty estimates or verified physical locations.</p>
 <div class="controls" id="change-filter-control" hidden><label for="change-filter">Reported change</label>
 <select id="change-filter"><option value="">All changes</option><option value="NEWLY_CURRENT">Newly current</option><option value="NO_LONGER_CURRENT">No longer current</option></select></div>
 <ul id="report-list" aria-label="Reported points"></ul>
@@ -116,6 +119,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var view = document.getElementById("viewport");
   var grid = document.getElementById("graticule");
   var layer = document.getElementById("points");
+  var linkLayer = document.getElementById("disagreement-links");
+  var showLinks = document.getElementById("show-disagreement-links");
   var list = document.getElementById("report-list");
   var details = document.getElementById("details");
   var sources = document.getElementById("sources");
@@ -147,6 +152,55 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   function label(node, value) { node.textContent = String(value); }
   function x(lon) { return (lon + 180) / 360 * 1200; }
   function y(lat) { return (90 - lat) / 180 * 600; }
+  function positionKey(feature) {
+    var coords=feature.geometry.coordinates;
+    // Longitude +180 and -180 are the same meridian.
+    return JSON.stringify([coords[0]===180?-180:coords[0],coords[1]]);
+  }
+  function drawDisagreement(a,b) {
+    var aa=a.geometry.coordinates,bb=b.geometry.coordinates;
+    var x1=x(aa[0]),x2=x(bb[0]),y1=y(aa[1]),y2=y(bb[1]);
+    function segment(ax,ay,bx,by) {
+      el("line",{x1:ax,y1:ay,x2:bx,y2:by},linkLayer);
+    }
+    // The shortest wrap is a visual comparison only, not a movement path.
+    if(x2-x1>600)x2-=1200;
+    else if(x2-x1< -600)x2+=1200;
+    if(x2>=0&&x2<=1200){segment(x1,y1,x2,y2);return;}
+    var edge=x2<0?0:1200;
+    var mid=y1+(y2-y1)*(edge-x1)/(x2-x1);
+    segment(x1,y1,edge,mid);
+    segment(edge===0?1200:0,mid,x2<0?x2+1200:x2-1200,y2);
+  }
+  function renderDisagreementLinks(reports) {
+    linkLayer.replaceChildren();
+    if(!showLinks.checked)return;
+    var grouped=new Map();
+    reports.forEach(function(f){
+      var id=f.properties.entity;
+      if(!grouped.has(id))grouped.set(id,[]);
+      grouped.get(id).push(f);
+    });
+    grouped.forEach(function(items){
+      if(items.length<2)return;
+      var first=items[0];
+      var alternate=items.find(function(f){
+        return f.properties.source_id!==first.properties.source_id;
+      });
+      if(!alternate)return;
+      var drawn=new Set();
+      items.forEach(function(f){
+        var other=f.properties.source_id===first.properties.source_id?alternate:first;
+        var a=positionKey(f),b=positionKey(other);
+        if(a===b)return;
+        var key=[a,b].sort().join("|");
+        if(drawn.has(key))return;
+        drawn.add(key);
+        drawDisagreement(f,other);
+      });
+    });
+  }
+
   function refreshView() { svg.setAttribute("viewBox", [x0, y0, width, height].join(" ")); }
   function changeZoom(factor) {
     var next = Math.max(32, Math.min(1200, width * factor));
@@ -204,9 +258,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var disputedEntities = new Set();
   entityReports.forEach(function(reports, entity) {
     var distinctSources = new Set(reports.map(function(f) { return f.properties.source_id; }));
-    var distinctPositions = new Set(reports.map(function(f) {
-      return JSON.stringify(f.geometry.coordinates);
-    }));
+    var distinctPositions = new Set(reports.map(positionKey));
     if (distinctSources.size > 1 && distinctPositions.size > 1) disputedEntities.add(entity);
     var option = document.createElement("option");
     option.value = entity;
@@ -264,6 +316,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         (!comparing || !changeFilter.value ||
          f.properties.monde_change === changeFilter.value);
     });
+    renderDisagreementLinks(visibleFeatures);
     visibleFeatures.forEach(function(f) {
       var p = f.properties, coords = f.geometry.coordinates;
       var circle = el("circle", {cx:x(coords[0]),cy:y(coords[1]),
@@ -288,9 +341,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       var sourceCount = new Set(visibleFeatures.map(function(f) {
         return f.properties.source_id;
       })).size;
-      var positionCount = new Set(visibleFeatures.map(function(f) {
-        return JSON.stringify(f.geometry.coordinates);
-      })).size;
+      var positionCount = new Set(visibleFeatures.map(positionKey)).size;
       comparisonSummary.textContent = String(visibleFeatures.length) +
         " visible source assertions from " + String(sourceCount) +
         " sources, " + String(positionCount) + " distinct reported positions. " +
@@ -357,6 +408,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   sources.addEventListener("change",render);
   entities.addEventListener("change",render);
   differentOnly.addEventListener("change",render);
+  showLinks.addEventListener("change",render);
   insideOnly.addEventListener("change",render);
   changeFilter.addEventListener("change",render);
   search.addEventListener("input",render);
