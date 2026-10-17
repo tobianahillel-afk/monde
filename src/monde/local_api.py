@@ -73,7 +73,9 @@ def _explorer_html(source_ids: tuple[str, ...] = ()) -> str:
         forms.append(
             '<form action="/viewer" method="get"><h2>' + title + '</h2>' +
             '<input type="hidden" name="view" value="' + mode + '">' +
-            ''.join(inputs) + '<button type="submit">Open map</button></form>')
+            ''.join(inputs) + '<button type="submit">Open map</button>' +
+            (' <button type="submit" formaction="/source-catalog">Browse in-area sources</button>'
+             if mode == "current" else '') + '</form>')
     return """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MONDE Mini — Evidence Explorer</title>
@@ -420,6 +422,57 @@ def _filter_source_bbox(document: dict, source: str | None) -> dict:
     return result
 
 
+def _viewport_source_catalog(geojson: dict, args: dict[str, str]) -> dict:
+    """Count original source Points in bounds, not inferred entity locations."""
+    counts = {}
+    for feature in geojson["features"]:
+        p = feature["properties"]
+        if not p["monde_inside_bbox"]:
+            continue
+        item = counts.setdefault(p["source_id"], {"entities": set(), "reports": 0})
+        item["reports"] += 1
+        item["entities"].add(p["entity"])
+    return {
+        "monde_source_catalog": {
+            "bbox": args["bbox"], "at": args["at"], "known_at": args["known_at"],
+            "scope": "original_points_inside_bbox"
+        },
+        "sources": [
+            {"source_id": source, "point_reports": value["reports"],
+             "matching_entities": len(value["entities"])}
+            for source, value in sorted(counts.items())
+        ]
+    }
+
+
+def _viewport_source_catalog_html(catalog: dict, args: dict[str, str]) -> str:
+    items = []
+    for entry in catalog["sources"]:
+        source = entry["source_id"]
+        label = (escape(source) + " — " +
+                 str(entry["matching_entities"]) + " entities; " +
+                 str(entry["point_reports"]) + " original Point reports")
+        if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}", source):
+            link = urlencode({"view": "current", "bbox": args["bbox"],
+                              "at": args["at"], "known_at": args["known_at"],
+                              "source": source})
+            items.append('<li><a href="/viewer?' + escape(link, quote=True) +
+                         '">' + label + '</a></li>')
+        else:
+            items.append('<li>' + label + ' (not linkable)</li>')
+    return ("""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>MONDE Mini — Source catalog</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>:root{color-scheme:dark;font-family:system-ui;background:#101827;color:#ebf2f9}
+body{max-width:850px;margin:auto;padding:24px}a{color:#66e0c0}
+li{margin:12px 0}p{line-height:1.5;color:#bfd0e1}</style></head><body>
+<h1>Original source Points in viewport</h1><p>Only source-reported
+Point observations inside this area at the selected world/knowledge cutoffs
+are counted; counts do not imply agreement or physical truth.</p><ul>""" +
+            ''.join(items) + '</ul><p><a href="/explore">Back to explorer</a></p>' +
+            '</body></html>')
+
+
 def create_server(state: str | Path, port: int = 0, *,
                   max_response_bytes: int = MAX_RESPONSE_BYTES) -> ThreadingHTTPServer:
     """Load once, then serve queries only on 127.0.0.1. No state writes."""
@@ -486,6 +539,8 @@ def create_server(state: str | Path, port: int = 0, *,
         def _inspection(self, payload: dict | None, mode: str | None = None,
                         params: dict[str, str] | None = None):
             body = (_source_catalog_html(payload) if mode == "source-catalog"
+                    else _viewport_source_catalog_html(payload, params)
+                    if mode == "viewport-source-catalog"
                     else _inspection_html(payload, mode, params)).encode("utf-8")
             if len(body) > max_response_bytes:
                 return self._reply(413, {"error": "response_too_large"})
@@ -524,7 +579,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/knowledge-updates", "/knowledge-timeline",
                             "/world-knowledge-changes", "/map-disagreements",
                             "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore", "/inspect",
-                            "/sources", "/sources-browser"}:
+                            "/sources", "/sources-browser", "/map-sources", "/source-catalog"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -590,6 +645,17 @@ def create_server(state: str | Path, port: int = 0, *,
                     output = world.source_disagreement_changes(
                         args["at"], args["from_known_at"], args["to_known_at"],
                         args.get("attribute"))
+                elif path == "/map-sources":
+                    _require(args, {"bbox", "at", "known_at"})
+                    output = _viewport_source_catalog(world.export_geojson_bbox(
+                        _bbox(args["bbox"]), args["at"], args["known_at"]), args)
+                elif path == "/source-catalog":
+                    _require(args, {"view", "bbox", "at", "known_at"}, {"source"})
+                    if args["view"] != "current":
+                        raise ValueError("unsupported viewport source mode")
+                    output = _viewport_source_catalog(world.export_geojson_bbox(
+                        _bbox(args["bbox"]), args["at"], args["known_at"]), args)
+                    return self._inspection(output, "viewport-source-catalog", args)
                 elif path == "/map-disagreements":
                     _require(args, {"bbox", "at", "known_at"})
                     output = world.export_geojson_disagreements(
