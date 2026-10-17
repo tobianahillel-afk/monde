@@ -382,3 +382,19 @@ movement, consensus position, storage mutation or new dependency.
 ### Compare original disagreements across world-valid time
 
 The existing read-only `/disagreement-report` accepts optional earlier `from_at` alongside later `at`, at a fixed `known_at`. Its native browser form shows earlier and later original source Point assertions for the same viewport, source and optional entity, with existing earlier map/GeoJSON/CSV links. The two comparison axes `from_at` and `from_known_at` are mutually exclusive. A selected source independently qualifies using its own in-bounds Point at each cutoff; conflicting offscreen evidence is retained. Labels describe changes in selected original evidence, **not** actual physical movement or ground truth. Single-cutoff exports and persisted state are unchanged.
+
+
+### Download an original disagreement comparison (WORK-0071)
+
+`GET /disagreement-compare.json?bbox=W,S,E,N&at=T2&known_at=K&from_at=T1`
+compares source disagreements at two world times with fixed knowledge.
+Alternatively, use `from_known_at=K1` and fixed `at=T` to compare knowledge.
+Exactly one earlier cutoff is required. Optional `source` and `entity` filters
+retain opposing original evidence and the selected viewport. The existing
+read-only disagreement report exposes a **Download complete original comparison
+JSON** link for either mode. The response includes the two original selected
+GeoJSON documents, their independent time labels, and per-entity *selection*
+changes (`APPEARED IN SELECTION`, `NO LONGER IN SELECTION`,
+`REPORTED EVIDENCE CHANGED`, or `SAME REPORTED EVIDENCE`). Neither unchanged
+selection nor an empty result proves agreement, actual location or movement.
+The endpoint preserves original provenance and never changes saved state.
