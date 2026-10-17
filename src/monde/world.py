@@ -1189,7 +1189,7 @@ class WorldMini:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Query MONDE Mini evidence as of event and knowledge time")
-    parser.add_argument("--fixture", required=True)
+    parser.add_argument("--fixture", help="saved state; optional for new source-manifest imports")
     parser.add_argument("--entity", help="required except for search")
     selection = parser.add_mutually_exclusive_group(required=True)
     selection.add_argument("--attribute")
@@ -1232,8 +1232,9 @@ def main(argv=None) -> int:
                            help="import source-attributed 2D GeoJSON points")
     selection.add_argument("--ingest-csv", metavar="POINTS_CSV",
                            help="import explicitly attributed local WGS84 CSV Points")
-    selection.add_argument("--ingest-csv-manifest", metavar="DATASETS_JSON",
-                           help="atomically import independently attributed CSV datasets")
+    selection.add_argument("--ingest-csv-manifest", "--ingest-source-manifest",
+                           dest="ingest_csv_manifest", metavar="DATASETS_JSON",
+                           help="atomically import original mixed source datasets")
     parser.add_argument("--state-out", help="destination JSON snapshot for ingestion")
     parser.add_argument("--source-id", help="source identity for GeoJSON assertions")
     parser.add_argument("--source-locator", help="original dataset locator for GeoJSON provenance")
@@ -1289,13 +1290,15 @@ def main(argv=None) -> int:
             from .csv_points import documents_from_manifest
             batches, features = documents_from_manifest(
                 args.ingest_csv_manifest, output_path=args.state_out)
-            world = WorldMini.read(args.fixture)
+            world = WorldMini.read(args.fixture) if args.fixture else WorldMini()
             changes = world.append_documents(batches)
             world.save(args.state_out, replace=args.replace_state)
             print(json.dumps({"operation": "IMPORT_CSV_DATASETS",
                               "world": "OBSERVED", "status": "SAVED",
                               "features": features, **changes}, sort_keys=True))
             return 0
+        if not args.fixture:
+            parser.error("--fixture is required for queries and other ingestion modes")
         if args.ingest_geojson or args.ingest_csv:
             if args.ingest_geojson and any(value is not None for value in
                                            (args.csv_id_column, args.csv_lon_column,

@@ -1,0 +1,60 @@
+id: WORK-0041
+title: "Persist original mixed sources as a reusable WorldMini evidence state"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source ingestion"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Reuse the existing source manifest to create a durable bitemporal state
+  without requiring a seed fixture or offline HTML map.
+scope:
+  in: ["direct persistent mixed-source import", "temporal query reuse", "atomic output"]
+  out: ["new format reader", "network service", "truth reconciliation"]
+acceptance_criteria:
+  - {id: AC-1, description: "One command persists all original manifest data.", status: NOT_STARTED}
+  - {id: AC-2, description: "Saved model can be queried and mapped.", status: NOT_STARTED}
+  - {id: AC-3, description: "Invalid input never partially overwrites output.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0040]
+read_before: [src/monde/world.py, src/monde/csv_points.py, src/monde/map_view.py]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Enable empty-state source-manifest import.", depends_on: [], expected_files: [src/monde/world.py], status: IN_REVIEW}
+    - {id: T2, description: "Test mixed originals and atomic publication.", depends_on: [T1], expected_files: [tests/test_world_source_manifest_ingest.py], status: IN_REVIEW}
+    - {id: T3, description: "Document persistent import.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/world-mini-source-manifest-state.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [SECURITY, VERIFICATION_VALIDATION, DOCUMENTATION_TRACEABILITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_source_manifest_ingest.py]
+  real_system: ["GitHub world-mini Actions at exact head"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged PR #64, independent L2 pending."]
+risk:
+  security: MEDIUM
+  data: MEDIUM
+  epistemic: MEDIUM
+  performance: LOW
+  operational: LOW
+rollback:
+  strategy: "Revert PR before merge; leave local original data untouched."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion:
+  definition_of_done_checked: false
+  review_complete: false
+  docs_updated: false
+  registries_updated: false
+  project_state_updated: false
