@@ -1,0 +1,49 @@
+id: WORK-0048
+title: "Trace changes to contradictory source claims over knowledge time"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Expose newly recorded, changed and resolved source-report contradictions
+  across two knowledge cutoffs without selecting a verified physical state.
+scope:
+  in: ["source disagreement knowledge comparison", "evidence lineage", "offline CLI"]
+  out: ["truth inference", "automatic reconciliation", "new parser"]
+acceptance_criteria:
+  - {id: AC-1, description: "Classify appeared/resolved/changed contradictions by source and value.", status: NOT_STARTED}
+  - {id: AC-2, description: "Retain original before/after evidence and preserve saved state.", status: NOT_STARTED}
+  - {id: AC-3, description: "Keep legacy CLI and reject invalid knowledge-time ordering.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0047]
+read_before: [AGENTS.md, src/monde/world.py, tests/test_world_map_view.py]
+reuses: [WorldMini.source_disagreements, WorldMini.query]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Implement knowledge-time disagreement change query.", depends_on: [], expected_files: [src/monde/world.py], status: IN_REVIEW}
+    - {id: T2, description: "Test source corrections, CLI and saved-state integrity.", depends_on: [T1], expected_files: [tests/test_world_disagreement_changes.py], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_disagreement_changes.py]
+  real_system: ["GitHub Actions world-mini check on exact HEAD"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on WORK-0047 draft PR #71."]
+risk:
+  security: LOW
+  data: MEDIUM
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Discard PR; persisted source snapshots are not modified."
