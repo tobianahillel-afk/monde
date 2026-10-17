@@ -122,7 +122,7 @@ class WebMercatorGeoPackageTests(unittest.TestCase):
             world=WorldMini()
             world.append_documents(docs)
             reports=world.search_reports("gpkg_source_srs","EPSG:3857",AT,CAP)
-            self.assertGreaterEqual(len(reports["reports"]),1)
+            self.assertGreaterEqual(len(reports["matches"]),1)
             out=Path(d)/"offline.html"
             command=[sys.executable,"-m","monde.map_view","--gpkg",str(source),
                 "--gpkg-all-layers","--source-id","survey",
