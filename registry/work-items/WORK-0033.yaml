@@ -1,0 +1,79 @@
+id: WORK-0033
+title: "Inspect original GeoPackage 2D Polygon boundaries in MONDE Mini offline map"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini original source evidence"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Preserve original 2D WGS84 GeoPackage Polygon outer and inner ring
+  vertices, their order and source provenance in MONDE Mini offline maps.
+scope:
+  in: ["source GeoPackage 2D EPSG:4326 Polygon", "outer and inner rings", "offline map", "manifest import"]
+  out: ["geographic area inference", "3D WKB", "MultiPolygon", "CRS reprojection", "remote network"]
+acceptance_criteria:
+  - {id: AC-1, description: "Original ring sample order, feature IDs and evidence provenance remain intact.", status: NOT_STARTED}
+  - {id: AC-2, description: "Mixed source GeoPackage manifest and direct CLI render ring distinctions offline.", status: NOT_STARTED}
+  - {id: AC-3, description: "Bad WKB, bounds or contradictory metadata fail atomically.", status: NOT_STARTED}
+requirements: []
+assumptions: ["Local read-only GeoPackage physical Polygon feature table; SRID EPSG:4326; 2D."]
+risks: ["Malformed untrusted SQLite/WKB", "Inferred boundary meaning"]
+assurance:
+  level: A3
+  rationale: "Untrusted original geospatial binary source and topology provenance."
+  escalation_triggers: ["Remote acquisition", "Changing world truth semantics"]
+depends_on: [WORK-0032]
+reuses: ["src/monde/geopackage_points.py", "src/monde/map_view.py", "src/monde/geojson.py"]
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+blocks: []
+affected_capabilities: []
+affected_engines: ["MONDE Mini offline evidence map"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["original source trace topology", "bitemporal provenance", "atomic output"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Decode bounded source Polygon WKB and per-ring source evidence.", depends_on: [], expected_files: [src/monde/geopackage_points.py], status: NOT_STARTED}
+    - {id: T2, description: "Display distinct outer and inner rings offline.", depends_on: [T1], expected_files: [src/monde/map_view.py], status: NOT_STARTED}
+    - {id: T3, description: "Prove integration and WKB-failure boundaries with GitHub Actions.", depends_on: [T2], expected_files: [tests/test_world_geopackage_polygons.py], status: NOT_STARTED}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE_CONNECTOR
+  independence_level: L2_TARGET
+  required_hats: [SECURITY, VERIFICATION_VALIDATION, DOCUMENTATION_TRACEABILITY, PERFORMANCE_SRE]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["strict WKB Polygon ring bounds and geometry type"]
+  integration: ["original SQLite -> WorldMini -> offline map"]
+  contract: ["original topology and temporal evidence"]
+  e2e: ["headless Chromium ring DOM"]
+  regression: ["original GeoPackage Points and Linestring remain accepted"]
+  security: ["read-only malformed geometry rejection"]
+  real_system: ["GitHub-hosted full Python and Chromium"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Pending exact-head CI and context-separated L2."]
+risk:
+  security: MEDIUM
+  data: MEDIUM
+  epistemic: HIGH
+  performance: LOW
+  operational: LOW
+rollback:
+  strategy: "Revert this child PR; keep WORK-0032 original Lines and Points unchanged."
+run_log: []
+discoveries: []
+blockers: ["Parent WORK-0032 and stacked product ancestors remain Draft until proper review."]
+follow_up_work_items: []
+completion:
+  definition_of_done_checked: false
+  review_complete: false
+  docs_updated: false
+  registries_updated: false
+  project_state_updated: false

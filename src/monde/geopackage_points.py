@@ -1,4 +1,4 @@
-"""Bounded read-only GeoPackage EPSG:4326 Point/LineString adapter for original source evidence."""
+"""Bounded read-only GeoPackage EPSG:4326 Point/LineString/Polygon adapter for original source evidence."""
 import hashlib
 import math
 import os
@@ -80,6 +80,58 @@ def _line(blob):
     return points
 
 
+
+def _polygon(blob):
+    """Read source-declared 2D Polygon rings; never infer filled geographic area."""
+    if not isinstance(blob, bytes) or len(blob) < 17 or blob[:3] != b"GP\x00":
+        raise ValueError("GeoPackage requires a Polygon geometry")
+    flags = blob[3]
+    envelope = (flags >> 1) & 7
+    if flags & 0xF0 or envelope not in (0, 1):
+        raise ValueError("unsupported GeoPackage Polygon flags")
+    header_endian = "<" if flags & 1 else ">"
+    if struct.unpack_from(header_endian + "i", blob, 4)[0] != 4326:
+        raise ValueError("GeoPackage Polygon is not EPSG:4326")
+    offset = 8 + (32 if envelope else 0)
+    if len(blob) < offset + 9 or blob[offset] not in (0, 1):
+        raise ValueError("GeoPackage requires 2D WKB Polygon")
+    endian = "<" if blob[offset] == 1 else ">"
+    kind, count = struct.unpack_from(endian + "II", blob, offset + 1)
+    if kind != 3 or not 1 <= count <= 129:
+        raise ValueError("Polygon needs one outer and at most 128 inner rings")
+    pos = offset + 9
+    rings = []
+    total = 0
+    for _ in range(count):
+        if pos + 4 > len(blob):
+            raise ValueError("truncated Polygon ring count")
+        vertices = struct.unpack_from(endian + "I", blob, pos)[0]
+        pos += 4
+        if vertices < 4 or vertices > MAX_POINTS - total or pos + vertices * 16 > len(blob):
+            raise ValueError("invalid bounded Polygon ring")
+        ring = []
+        for i in range(vertices):
+            lon, lat = struct.unpack_from(endian + "dd", blob, pos + i * 16)
+            if (not math.isfinite(lon) or not math.isfinite(lat)
+                    or not -180 <= lon <= 180 or not -90 <= lat <= 90):
+                raise ValueError("Polygon coordinate outside WGS84 bounds")
+            ring.append([lon, lat])
+        if ring[0] != ring[-1] or len({tuple(p) for p in ring[:-1]}) < 3:
+            raise ValueError("Polygon ring must be closed with three distinct vertices")
+        rings.append(ring)
+        total += vertices
+        pos += 16 * vertices
+    if pos != len(blob):
+        raise ValueError("unexpected trailing Polygon geometry bytes")
+    if envelope:
+        west, east, south, north = struct.unpack_from(header_endian + "dddd", blob, 8)
+        if (not all(math.isfinite(v) for v in (west, east, south, north))
+                or any(not west <= lon <= east or not south <= lat <= north
+                       for ring in rings for lon, lat in ring)):
+            raise ValueError("GeoPackage envelope contradicts Polygon rings")
+    return rings
+
+
 def to_geojson(path, *, layer):
     """Read one local feature table, preserving original primary keys and attributes.
 
@@ -107,8 +159,9 @@ def to_geojson(path, *, layer):
             if (contents != [("features", 4326)] or len(columns_metadata) != 1
                     or reference != [("EPSG", 4326)]
                     or columns_metadata[0][1:] not in (
-                        ("POINT", 4326, 0, 0), ("LINESTRING", 4326, 0, 0))):
-                raise ValueError("layer must declare a 2D EPSG:4326 Point or LineString table")
+                        ("POINT", 4326, 0, 0), ("LINESTRING", 4326, 0, 0),
+                         ("POLYGON", 4326, 0, 0))):
+                raise ValueError("layer must declare a 2D EPSG:4326 Point, LineString or Polygon table")
             kind = columns_metadata[0][1]
             geometry_field = columns_metadata[0][0]
             geom_sql = _identifier(geometry_field)
@@ -153,8 +206,9 @@ def to_geojson(path, *, layer):
                                      "properties": properties, "geometry": {
                                          "type": "Point", "coordinates": _point(row[1])}})
                 else:
-                    points = _line(row[1])
-                    if len(features) + len(points) > MAX_POINTS:
+                    rings = ([_line(row[1])] if kind == "LINESTRING"
+                             else _polygon(row[1]))
+                    if len(features) + sum(len(ring) for ring in rings) > MAX_POINTS:
                         raise ValueError("GeoPackage source exceeds 50000 vertices")
                     trace_id = hashlib.sha256((layer + ":" + str(row[0])).encode(
                         "utf-8")).hexdigest()[:24]
@@ -162,19 +216,26 @@ def to_geojson(path, *, layer):
                     label = (original_name if isinstance(original_name, str)
                              and 0 < len(original_name) <= 1000
                              else layer + " #" + str(row[0]))
-                    for order, point in enumerate(points):
-                        features.append({
-                            "type": "Feature",
-                            "id": "gpkg-line-" + layer + "-" + str(row[0]) + "-" + str(order),
-                            "properties": {**properties, "gpkg_trace": {
-                                "format": "GPKG_1_3_LINESTRING_POINT",
-                                "kind": "LineString", "name": label,
-                                "trace_id": trace_id, "segment": 0, "order": order,
-                                "layer": layer, "feature_id": str(row[0])}},
-                            "geometry": {"type": "Point", "coordinates": point}})
+                    is_polygon = kind == "POLYGON"
+                    for segment, ring in enumerate(rings):
+                        for order, point in enumerate(ring):
+                            features.append({
+                                "type": "Feature",
+                                "id": ("gpkg-polygon-" if is_polygon else "gpkg-line-")
+                                      + layer + "-" + str(row[0]) + "-"
+                                      + (str(segment) + "-" if is_polygon else "")
+                                      + str(order),
+                                "properties": {**properties, "gpkg_trace": {
+                                    "format": ("GPKG_1_3_POLYGON_RING_POINT" if is_polygon
+                                               else "GPKG_1_3_LINESTRING_POINT"),
+                                    "kind": ("Polygon" if is_polygon else "LineString"),
+                                    "name": label, "trace_id": trace_id,
+                                    "segment": segment, "order": order,
+                                    "layer": layer, "feature_id": str(row[0])}},
+                                "geometry": {"type": "Point", "coordinates": point}})
 
     except sqlite3.DatabaseError as exc:
         raise ValueError("invalid or unreadable local GeoPackage") from exc
     if not features:
-        raise ValueError("GeoPackage contains no original Point or LineString reports")
+        raise ValueError("GeoPackage contains no supported original geometry reports")
     return {"type": "FeatureCollection", "features": features}
