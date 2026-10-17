@@ -62,7 +62,7 @@ class EvidenceInspectorTests(unittest.TestCase):
                     self.forms.append(dict(attributes))
         forms = Forms()
         forms.feed(document.decode("utf-8"))
-        self.assertEqual(len(forms.forms), 4)
+        self.assertEqual(len(forms.forms), 5)
         self.assertTrue(all(f.get("action") == "/inspect" and f.get("method") == "get"
                             for f in forms.forms))
 
@@ -350,6 +350,113 @@ class EvidenceInspectorTests(unittest.TestCase):
             self.assertEqual(located, {
                 GEO_K1: "2.35,48.85", GEO_K2: "3.25,49.1"})
             self.assertEqual(state.read_bytes(), saved)
+        finally:
+            server.shutdown()
+            worker.join(timeout=5)
+            server.server_close()
+
+    def test_browser_world_comparison_uses_existing_world_model_and_json(self):
+        params = {"view": "compare-world", "entity": "building-001",
+                  "from_at": "2025-12-31T00:00:00Z", "to_at": AT, "known_at": LATE}
+        code, headers, content = self.fetch(params=params)
+        self.assertEqual(code, 200)
+        self.assertIn("script-src 'none'", headers["Content-Security-Policy"])
+        self.assertIn("no-store", headers["Cache-Control"])
+        html = content.decode("utf-8")
+        expected = self.world.compare_world_time("building-001",
+            params["from_at"], params["to_at"], LATE)
+        self.assertEqual(expected["status"], "CHANGED")
+        self.assertEqual(expected["comparison"], "WORLD_TIME_REPORTS_ONLY")
+        self.assertIn("Reported at later world time", html)
+        self.assertIn("source assertions", html)
+        from html import escape
+        for delta in expected["changes"].values():
+            for report in delta["newly_current"] + delta["no_longer_current"]:
+                self.assertIn(escape(json.dumps(report, ensure_ascii=False,
+                    sort_keys=True, indent=2, allow_nan=False)), html)
+        raw = {k: v for k, v in params.items() if k != "view"}
+        status, _, body = self.fetch("/compare-world", raw)
+        self.assertEqual((status, json.loads(body)), (200, expected))
+        stable = {**params, "from_at": AT, "to_at": "2026-01-03T00:00:00Z"}
+        status, _, body = self.fetch(params=stable)
+        self.assertEqual(status, 200)
+        self.assertIn(b"UNCHANGED", body)
+        for broken in ({"to_at": params["from_at"]},
+                       {"from_at": params["to_at"]},
+                       {"known_at": "not-a-date"},
+                       {"unexpected": "oops"}):
+            status, _, body = self.fetch(params={**params, **broken})
+            self.assertEqual((status, json.loads(body)),
+                             (400, {"error": "invalid_query"}))
+        self.assertEqual(self.path.read_bytes(), self.original)
+
+    def test_browser_world_comparison_map_links_keep_original_world_cutoffs(self):
+        from tests.test_world_geojson_changes import K1 as GEO_K1
+        world = change_model()
+        world.append_document({
+            "schema_version": 1,
+            "evidence": [
+                {"id": "e-old-location", "source_id": "historical-survey",
+                 "locator": "fixture://old-location", "captured_at": GEO_K1,
+                 "source_event_at": None},
+                {"id": "e-new-location", "source_id": "updated-survey",
+                 "locator": "fixture://new-location", "captured_at": GEO_K1,
+                 "source_event_at": None}],
+            "assertions": [
+                {"id": "a-old-location", "entity": "site-a", "attribute": "geo_point",
+                 "value": {"type": "Point", "coordinates": [2.0, 48.0]},
+                 "evidence_id": "e-old-location", "kind": "CLAIM",
+                 "known_at": GEO_K1, "valid_from": GEO_VALID,
+                 "valid_to": "2026-01-03T00:00:00Z", "supersedes": None},
+                {"id": "a-new-location", "entity": "site-a", "attribute": "geo_point",
+                 "value": {"type": "Point", "coordinates": [3.0, 49.0]},
+                 "evidence_id": "e-new-location", "kind": "CLAIM",
+                 "known_at": GEO_K1, "valid_from": "2026-01-03T00:00:00Z",
+                 "valid_to": None, "supersedes": None}]
+        })
+        state = Path(self.dir.name) / "world-times.json"
+        world.save(state)
+        before = state.read_bytes()
+        server = create_server(state)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        try:
+            query = {"view": "compare-world", "entity": "site-a",
+                     "from_at": GEO_AT, "to_at": "2026-01-04T00:00:00Z",
+                     "known_at": GEO_K1}
+            connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+            try:
+                connection.request("GET", "/inspect?" + urlencode(query),
+                    headers={"Host": "127.0.0.1:" + str(server.server_port)})
+                response = connection.getresponse()
+                self.assertEqual(response.status, 200)
+                document = response.read().decode("utf-8")
+            finally:
+                connection.close()
+            class Links(HTMLParser):
+                def __init__(self):
+                    super().__init__()
+                    self.urls = []
+                def handle_starttag(self, tag, attrs):
+                    if tag == "a":
+                        href = dict(attrs).get("href", "")
+                        if href.startswith("/viewer?"):
+                            self.urls.append(href)
+            parser = Links()
+            parser.feed(document)
+            self.assertIn("a-old-location", document)
+            self.assertIn("a-new-location", document)
+            self.assertEqual(len(parser.urls), 2)
+            links = {}
+            for url in parser.urls:
+                args = {k: values[0] for k, values in
+                        parse_qs(urlsplit(url).query).items()}
+                self.assertEqual(args["known_at"], GEO_K1)
+                self.assertEqual(args["view"], "radius")
+                links[args["at"]] = args["center"]
+            self.assertEqual(links, {GEO_AT: "2.0,48.0",
+                "2026-01-04T00:00:00Z": "3.0,49.0"})
+            self.assertEqual(state.read_bytes(), before)
         finally:
             server.shutdown()
             worker.join(timeout=5)

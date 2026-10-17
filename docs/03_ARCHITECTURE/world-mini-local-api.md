@@ -231,3 +231,19 @@ inferred or corrected by the UI; the offline map, saved snapshot, loopback
 restriction, no-network Content Security Policy, and strict GET interface
 remain intact.
 
+
+### Comparing source-reported world-time validity in the browser (WORK-0056)
+
+The same read-only `/inspect` browser now offers `view=compare-world`
+with an entity, two world-time instants (`from_at`, `to_at`) and one fixed
+knowledge cutoff (`known_at`). This reuses `WorldMini.compare_world_time`
+directly; the unmodified JSON is available at `/compare-world`.
+
+Where `compare-knowledge` holds world time fixed and varies what was known,
+`compare-world` holds knowledge fixed and varies **source-reported validity**.
+The original assertions and provenance are displayed as reported at the
+earlier and later instants. Differences **do not prove physical change**.
+Source-reported Points link to their actual earlier/later world-time map states,
+with the same knowledge cutoff. Unchanged results are labeled UNCHANGED rather
+than inferred absence. No additional data model, service, writable route,
+remote call or external dependency was introduced.
