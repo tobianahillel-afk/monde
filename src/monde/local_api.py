@@ -529,7 +529,7 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
         for key in ("bbox", "at", "known_at", "source", "entity") if key in params)
     compare_form = (
         '<details><summary>Compare earlier source knowledge</summary>'
-        '<form action="/disagreement-report" method="get">' +
+        '<form method="get">' +
         compare_preserved +
         '<label>Earlier knowledge cutoff (UTC ISO-8601)'
         '<input name="from_known_at" required value="' +
