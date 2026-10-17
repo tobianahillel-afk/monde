@@ -119,5 +119,64 @@ class SourceComparisonHTTPTests(unittest.TestCase):
         self.assertNotIn("<script", html)
 
 
+    def test_only_different_reports_reuses_pair_and_preserves_originals(self):
+        params = {**QUERY, "different_only": "1"}
+        status, headers, raw = self.fetch("/map-compare-sources", params)
+        self.assertEqual(status, 200)
+        data = json.loads(raw)
+        self.assertEqual(data["monde_source_comparison"]["scope"],
+                         "DIFFERENT_REPORTED_POINT_SETS")
+        self.assertEqual(data["monde_source_comparison"]["matching_entities"], 1)
+        self.assertEqual({f["properties"]["source_id"] for f in data["features"]},
+                         {"survey-east", "survey-west"})
+        self.assertEqual(len(data["features"]), 2)
+        self.assertEqual(data["monde_bbox_query"]["total_source_features"], 2)
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+        view = {"view": "compare-sources", **params}
+        code, response_headers, page = self.fetch("/viewer", view)
+        self.assertEqual(code, 200)
+        self.assertEqual(page.decode(), render_map(data, inspector_links=True, navigation=view))
+        self.assertIn(b'name="different_only" value="1" checked', page)
+        self.assertIn("connect-src 'none'", response_headers["Content-Security-Policy"])
+        _, _, home = self.fetch("/explore", {})
+        self.assertIn(b'name="different_only" value="1"', home)
+
+    def test_rejects_invalid_difference_filter_without_changing_default(self):
+        original = json.loads(self.fetch("/map-compare-sources", QUERY)[2])
+        self.assertNotIn("scope", original["monde_source_comparison"])
+        for flag in ("0", "true", "yes", "../1", ""):
+            with self.subTest(flag=flag):
+                params = {**QUERY, "different_only": flag}
+                for route, query in (("/map-compare-sources", params),
+                                     ("/viewer", {"view": "compare-sources", **params})):
+                    status, _, raw = self.fetch(route, query)
+                    self.assertEqual(status, 400)
+                    self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        self.assertEqual(json.loads(self.fetch("/map-compare-sources", QUERY)[2]), original)
+
+    def test_equal_source_coordinates_are_not_reported_as_conflicts(self):
+        from monde.world import WorldMini
+        from monde.local_api import _compare_source_bbox
+        from tests.test_world_geojson_disagreements import add
+
+        model = WorldMini()
+        add(model, "survey-east", [2.35, 48.85], entity="same")
+        add(model, "survey-west", [2.35, 48.85], entity="same")
+        add(model, "survey-east", [2.36, 48.85], entity="different")
+        add(model, "survey-west", [4.0, 45.0], entity="different")
+        original = model.export()
+        selection = model.export_geojson_bbox([2.3, 48.8, 2.4, 48.9], AT, K1)
+        unfiltered = _compare_source_bbox(selection, "survey-east", "survey-west")
+        filtered = _compare_source_bbox(selection, "survey-east", "survey-west", True)
+        self.assertEqual(unfiltered["monde_source_comparison"]["matching_entities"], 2)
+        self.assertEqual(filtered["monde_source_comparison"]["matching_entities"], 1)
+        self.assertEqual({f["properties"]["entity"] for f in filtered["features"]},
+                         {"different"})
+        self.assertEqual(len(filtered["features"]), 2)
+        self.assertEqual({f["properties"]["source_id"] for f in filtered["features"]},
+                         {"survey-east", "survey-west"})
+        self.assertEqual(model.export(), original)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -80,7 +80,8 @@ class BrowserViewerTests(unittest.TestCase):
         expected = {
             "current": {"view", "bbox", "at", "known_at", "source"},
             "disagreements": {"view", "bbox", "at", "known_at"},
-            "compare-sources": {"view", "bbox", "at", "known_at", "source_a", "source_b"},
+            "compare-sources": {"view", "bbox", "at", "known_at", "source_a", "source_b",
+                                "different_only"},
             "knowledge-changes": {"view", "bbox", "at", "from_known_at", "to_known_at"},
             "world-changes": {"view", "bbox", "from_at", "to_at", "known_at"},
             "nearest": {"view", "center", "limit", "at", "known_at", "source"},
@@ -94,7 +95,8 @@ class BrowserViewerTests(unittest.TestCase):
                   "center": "2.3522,48.8566", "limit": "10", "radius_km": "5",
                   "from_known_at": K1, "to_known_at": K2,
                   "from_at": EARLIER, "to_at": AT, "source": "survey-1",
-                   "source_a": "survey-1", "source_b": "survey-2"}
+                   "source_a": "survey-1", "source_b": "survey-2",
+                   "different_only": "1"}
         for form in viewer_forms:
             self.assertEqual((form["action"], form["method"]), ("/viewer", "get"))
             fields = form["inputs"]

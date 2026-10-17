@@ -353,3 +353,18 @@ or enter the output. Provenance IDs and original coordinates are unchanged;
 `monde_source_comparison` and updated result counts identify the scope.
 This is source evidence comparison, **not** reconciled truth or inferred motion.
 No new renderer, service, dependency, persisted data or writable route.
+
+
+### Isolate differing original positions between two sources (WORK-0063)
+
+The existing two-source comparison map and local browser accept the opt-in
+`different_only=1` checkbox. After the normal source-owned viewport and
+bitemporal eligibility checks, a matching entity is shown only when the two
+selected sources' **sets of original Point coordinates differ**. Both sources'
+original features, including relevant offscreen positions and their evidence
+and assertion IDs, remain visible. Exact coordinate disagreement describes
+reported positions only: neither matching coordinates nor different positions
+establish truth, trust, measurement precision or physical movement. Without
+the flag all previous JSON and browser results are unchanged. Only the literal
+value `1` is accepted; saved evidence remains immutable. The existing
+loopback read-only endpoints, renderer and time-navigation form are reused.
