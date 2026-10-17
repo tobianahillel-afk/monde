@@ -45,7 +45,36 @@ _EXPLORER_LABELS = {
 }
 
 
-def _explorer_html(source_ids: tuple[str, ...] = ()) -> str:
+
+def _source_directory(snapshot: dict) -> dict:
+    """All saved original sources; counts do not assert current world truth."""
+    records = {}
+    evidence_sources = {}
+    for item in snapshot["evidence"]:
+        source = item["source_id"]
+        evidence_sources[item["id"]] = source
+        record = records.setdefault(source, {
+            "source_id": source, "evidence_count": 0, "assertion_count": 0,
+            "geo_point_assertion_count": 0, "entity_count": 0,
+        })
+        record["evidence_count"] += 1
+    entities = {source: set() for source in records}
+    for item in snapshot["assertions"]:
+        source = evidence_sources[item["evidence_id"]]
+        records[source]["assertion_count"] += 1
+        if item["attribute"] == "geo_point":
+            records[source]["geo_point_assertion_count"] += 1
+        entities[source].add(item["entity"])
+    for source in records:
+        records[source]["entity_count"] = len(entities[source])
+    return {
+        "scope": "ALL_SAVED_ORIGINAL_REPORTS_NOT_CURRENT_STATE",
+        "total_sources": len(records),
+        "sources": [records[source] for source in sorted(records)],
+    }
+
+
+def _explorer_html(source_ids: tuple[str, ...] = (), directory: dict | None = None) -> str:
     """Native GET forms with suggestions from original Point-source evidence."""
     # The datalist is a convenience; manually typed valid IDs remain usable.
     suggestions = ''.join(
@@ -55,6 +84,30 @@ def _explorer_html(source_ids: tuple[str, ...] = ()) -> str:
         '<p>' + str(len(source_ids)) + ' original Point sources in this saved '
         'snapshot (not necessarily current at the selected world/knowledge '
         'time). Type an ID if it is absent from the first 200 suggestions.</p>')
+    source_index = ""
+    if directory is not None:
+        entries = []
+        for record in directory["sources"][:100]:
+            original_id = escape(record["source_id"], quote=True)
+            entries.append(
+                '<li><strong>' + original_id + '</strong> — ' +
+                str(record["evidence_count"]) + ' evidence, ' +
+                str(record["assertion_count"]) + ' assertions (' +
+                str(record["geo_point_assertion_count"]) + ' Point), ' +
+                str(record["entity_count"]) + ' entities' +
+                '<form action="/inspect" method="get">' +
+                '<input type="hidden" name="view" value="source-history">' +
+                '<input type="hidden" name="source" value="' + original_id + '">' +
+                '<label>Knowledge cutoff (ISO-8601 with timezone)' +
+                '<input name="known_at" required placeholder="2026-01-12T00:00:00Z"></label>' +
+                '<button type="submit">Inspect source history</button></form></li>')
+        source_index = (
+            '<details><summary>Browse original source directory (' +
+            str(directory["total_sources"]) + ' sources)</summary>' +
+            '<p>Historical saved reports, not current positions or verified truth.</p>' +
+            '<ol>' + ''.join(entries) + '</ol>' +
+            ('<p>First 100 shown; GET /sources lists all sources.</p>'
+             if directory["total_sources"] > 100 else '') + '</details>')
     forms = []
     for mode, title, fields in _EXPLORER_VIEWS:
         inputs = []
@@ -97,6 +150,7 @@ truth. No external requests, data upload or saved-state changes.</p>
 """ + source_hint + """
 <datalist id="saved-original-sources">""" + suggestions + """</datalist>
 <main>""" + ''.join(forms) + """</main>
+""" + source_index + """
 <p><a href="/inspect">Inspect original entity reports and source histories</a></p>
 <p>Local read-only interface. Time cutoffs must be timezone-aware ISO-8601.</p>
 </body></html>"""
@@ -411,10 +465,9 @@ def create_server(state: str | Path, port: int = 0, *,
     snapshot = world.export()
     source_by_evidence = {
         evidence["id"]: evidence["source_id"] for evidence in snapshot["evidence"]}
-    map_source_ids = tuple(sorted({
-        source_by_evidence[assertion["evidence_id"]]
-        for assertion in snapshot["assertions"] if assertion["attribute"] == "geo_point"
-    }))
+    directory = _source_directory(snapshot)
+    map_source_ids = tuple(row["source_id"] for row in directory["sources"]
+                           if row["geo_point_assertion_count"])
     del snapshot, source_by_evidence
 
     class Handler(BaseHTTPRequestHandler):
@@ -441,7 +494,7 @@ def create_server(state: str | Path, port: int = 0, *,
             # Reuse the offline map renderer; no new browser-side service or
             # unauthenticated state-changing route is introduced.
             from .map_view import render_map
-            body = (_explorer_html(map_source_ids) if geojson is None else render_map(geojson, inspector_links=True,
+            body = (_explorer_html(map_source_ids, directory) if geojson is None else render_map(geojson, inspector_links=True,
                                  navigation=navigation)).encode("utf-8")
             if len(body) > max_response_bytes:
                 return self._reply(413, {"error": "response_too_large"})
@@ -500,7 +553,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/compare-world", "/source-history", "/disagreement-changes",
                             "/knowledge-updates", "/knowledge-timeline",
                             "/world-knowledge-changes", "/map-disagreements",
-                            "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore", "/inspect"}:
+                            "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore", "/inspect", "/sources"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -508,6 +561,9 @@ def create_server(state: str | Path, port: int = 0, *,
                     _require(args, set())
                     output = {"service": "MONDE Mini", "mode": "READ_ONLY",
                               "world": "OBSERVED", "status": "READY"}
+                elif path == "/sources":
+                    _require(args, set())
+                    output = directory
                 elif path == "/reports":
                     _require(args, {"entity", "attribute", "at", "known_at"})
                     output = world.query(args["entity"], args["attribute"],
