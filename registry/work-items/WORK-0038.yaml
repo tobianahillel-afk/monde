@@ -1,0 +1,59 @@
+id: WORK-0038
+title: "One-command source-isolated GeoPackage multi-layer offline map"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini original source evidence"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+
+purpose: |
+  Import every feature layer in one original local GeoPackage into the same
+  offline evidence map, with separate source and entity identity for each layer.
+scope:
+  in: ["read all local GeoPackage feature layers", "source identity per layer",
+       "one-command offline WorldMini map", "bounded atomic failure",
+       "interactive original source-layer comparison"]
+  out: ["remote fetch", "reprojection", "3D/M", "GeometryCollection",
+        "automatic cross-source entity merge", "implicit source times"]
+acceptance_criteria:
+  - {id: AC-1, description: "Discover a bounded list of original feature layers without skipping unsupported layers.", status: NOT_STARTED}
+  - {id: AC-2, description: "Preserve source and entity separation even when tables reuse primary keys.", status: NOT_STARTED}
+  - {id: AC-3, description: "A single command renders all valid layers, while an invalid layer leaves no partial HTML.", status: NOT_STARTED}
+  - {id: AC-4, description: "Offline analyst can compare, hide and restore original GeoPackage layers without rewriting evidence or changing provenance.", status: NOT_STARTED}
+requirements: []
+assumptions: ["Original GeoPackage EPSG:4326 2D feature layers, explicit user source/time claims."]
+risks: ["Overlapping source FIDs", "Untrusted SQLite/WKB", "Partial output from bad layer"]
+depends_on: [WORK-0037]
+read_before: [src/monde/geopackage_points.py, src/monde/map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Discover layer set and namespace evidence.", depends_on: [], expected_files: [src/monde/geopackage_points.py], status: IN_REVIEW}
+    - {id: T2, description: "Expose CLI, real GeoPackage and atomic-output test.", depends_on: [T1], expected_files: [src/monde/map_view.py, tests/test_world_geopackage_all_layers.py, docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_REVIEW}
+    - {id: T3, description: "Add offline multi-layer visibility/comparison controls and Chromium test.", depends_on: [T2], expected_files: [src/monde/map_view.py, tests/test_world_geopackage_all_layers.py, docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [SECURITY, VERIFICATION_VALIDATION, DOCUMENTATION_TRACEABILITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: [tests/test_world_geopackage_all_layers.py]
+  integration: [tests/test_world_geopackage_all_layers.py]
+  security: [tests/test_world_geopackage_all_layers.py]
+  real_system: ["GitHub Actions world-mini on exact candidate SHA"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Draft stacked ancestors must be merged before main delivery."]
+risk:
+  security: MEDIUM
+  data: MEDIUM
+  epistemic: MEDIUM
+  performance: LOW
+  operational: LOW
+rollback:
+  strategy: "Revert this child PR, preserving original GeoPackage support in WORK-0037."

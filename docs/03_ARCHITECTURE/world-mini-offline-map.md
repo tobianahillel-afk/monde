@@ -666,3 +666,39 @@ The import is strictly 2D WGS84. Unsupported subtypes, including
 GeometryCollection and Z/M geometries, malformed WKB, conflicting envelopes
 or SRIDs, non-finite coordinates and unsafe source metadata are rejected
 without producing partial HTML.
+
+
+## One-command original GeoPackage multi-layer source map (WORK-0038)
+
+Use `--gpkg-all-layers` instead of `--gpkg-layer` with the existing
+`--gpkg`, explicit source/time flags and `--output`. MONDE reads up to
+16 original GeoPackage feature tables (sorted by name), reuses the bounded
+2D EPSG:4326 decoders and produces **one offline map** without a manifest.
+Each layer gets its own source identity (`source-id:layer`) and locator
+fragment, preserving equal row/FID values from different layers as distinct
+evidence. Original layer and feature identities remain in
+`gpkg_source_layer` and `gpkg_source_fid` properties.
+Unsupported/malformed source layers, unsafe attributes, excessive counts
+or conflicting metadata reject the **whole** export before writing HTML.
+No data are downloaded, reprojected, reconciled or silently omitted.
+Existing single-layer and explicit multi-dataset manifest modes are unchanged.
+
+Original layer/FID pairs are also visible as `monde_gpkg_source_layer` and
+`monde_gpkg_source_fid` in the offline map's source-evidence features.
+
+
+## Compare original GeoPackage source layers interactively
+
+For offline maps made from two or more original GeoPackage layers, the source
+evidence sidebar displays a checkbox for each **original source layer**. All
+layers are initially visible. Untick one or more to hide its source reports
+from the map, evidence list, fit-to-reports, disagreements and visible exports.
+`Show all layers` restores them without re-reading or altering the GeoPackage.
+The existing Source selector can still narrow the display to one exact source.
+Exports include the selected source-layer identifiers in their filter metadata.
+
+A hidden layer remains in the immutable embedded evidence snapshot. Visibility
+is an analyst presentation filter, **not** a claim that a source, feature,
+physical structure or place is absent. All features keep their original source
+identity, layer, row ID and temporal provenance. No online service or additional
+library is needed.

@@ -110,6 +110,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <button id="export-visible-csv" type="button" disabled>Export visible CSV</button>
 <button id="export-dossier" type="button" disabled>Export entity evidence dossier</button></div>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
+<div id="gpkg-layer-control" class="controls" hidden>
+  <strong>Original GeoPackage layers</strong>
+  <div id="gpkg-layer-options" role="group" aria-label="Toggle original GeoPackage source layers"></div>
+  <button id="gpkg-all-layers" type="button" disabled>Show all layers</button>
+</div>
+<p id="gpkg-layer-summary" class="subtle" role="status" aria-live="polite" hidden></p>
 <div class="controls" id="trace-filter-control" hidden>
 <label for="trace-filter">GPX source trace / segment</label>
 <select id="trace-filter" aria-label="Select original GPX source trace and segment"><option value="">All source reports</option></select>
@@ -486,6 +492,50 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     var option = document.createElement("option");
     option.value = id; label(option,id); sources.appendChild(option);
   });
+  // A GeoPackage layer is a separate original source, not a verified world
+  // layer. Keep the source dropdown for exact source filtering; this control
+  // allows multiple original GeoPackage layers to be compared side by side.
+  var gpkgLayerOptions = document.getElementById("gpkg-layer-options");
+  var gpkgLayerSummary = document.getElementById("gpkg-layer-summary");
+  var gpkgAllButton = document.getElementById("gpkg-all-layers");
+  var gpkgLayerBySource = new Map();
+  features.forEach(function(f) {
+    var p = f.properties;
+    if (typeof p.monde_gpkg_source_layer === "string" &&
+        !gpkgLayerBySource.has(p.source_id)) {
+      gpkgLayerBySource.set(p.source_id,p.monde_gpkg_source_layer);
+    }
+  });
+  var gpkgLayers = Array.from(gpkgLayerBySource.entries()).sort(function(a,b){
+    return a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]);
+  });
+  var visibleGpkgSources = new Set(gpkgLayers.map(function(item){return item[0];}));
+  if (gpkgLayers.length > 1) {
+    document.getElementById("gpkg-layer-control").hidden = false;
+    gpkgLayerSummary.hidden = false;
+    gpkgLayers.forEach(function(item) {
+      var toggle = document.createElement("label");
+      var checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = true;
+      checkbox.dataset.sourceId = item[0];
+      toggle.appendChild(checkbox);
+      toggle.appendChild(document.createTextNode(item[1] + " · " + item[0]));
+      gpkgLayerOptions.appendChild(toggle);
+      checkbox.addEventListener("change", function() {
+        if (checkbox.checked) visibleGpkgSources.add(item[0]);
+        else visibleGpkgSources.delete(item[0]);
+        render();
+      });
+    });
+    gpkgAllButton.addEventListener("click", function() {
+      gpkgLayerOptions.querySelectorAll("input").forEach(function(checkbox) {
+        checkbox.checked = true;
+        visibleGpkgSources.add(checkbox.dataset.sourceId);
+      });
+      render();
+    });
+  }
   // Group only original source-reported samples. This does not imply movement.
   function traceKey(feature) {
     var p=feature.properties, trace=p.monde_gpx_trace;
@@ -709,6 +759,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         "KML original sample order: " + String(p.monde_kml_trace.order+1),
         "Interpretation: ORIGINAL_KML_SAMPLES_NOT_VERIFIED_MOTION"
       ] : []),
+      ...(p.monde_gpkg_source_layer && !p.monde_gpkg_trace ? [
+        "GeoPackage source layer: " + p.monde_gpkg_source_layer,
+        "Original feature id: " + p.monde_gpkg_source_fid
+      ] : []),
       ...(p.monde_gpkg_trace ? [
         "GeoPackage source layer: " + p.monde_gpkg_trace.layer,
         "Original feature id: " + p.monde_gpkg_trace.feature_id,
@@ -823,6 +877,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       (!insideOnly.checked || p.monde_inside_bbox) &&
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
+      (!p.monde_gpkg_source_layer || gpkgLayers.length <= 1 ||
+        visibleGpkgSources.has(p.source_id)) &&
       (!traceFilter.value || traceKey(f) === traceFilter.value) &&
       ((ignoreEntity === true) || !entities.value || p.entity === entities.value) &&
       (ignoreCaptureDays || !capturedFrom.value ||
@@ -974,6 +1030,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   });
   function render() {
     layer.replaceChildren(); list.replaceChildren(); comparisonList.replaceChildren();
+    if (gpkgLayers.length > 1) {
+      gpkgAllButton.disabled = visibleGpkgSources.size === gpkgLayers.length;
+      gpkgLayerSummary.textContent = String(visibleGpkgSources.size) + " of " +
+        String(gpkgLayers.length) + " original GeoPackage source layers selected. " +
+        "Hidden layers remain in the original evidence snapshot; no physical absence is inferred.";
+    }
     renderConflictNavigator();
     renderCaptureTimeline();
     visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
@@ -1085,6 +1147,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     return {
       search: search.value.trim(),
       source_id: sources.value,
+      gpkg_visible_source_ids: gpkgLayers.length > 1 ?
+        Array.from(visibleGpkgSources).sort() : null,
+      gpkg_layer_filter_basis: gpkgLayers.length > 1 ?
+        "ORIGINAL_GPKG_SOURCE_LAYERS_NOT_VERIFIED_WORLD" : null,
       gpx_source_trace: traceFilter.value ? {
         source_id: availableTraces.get(traceFilter.value).source,
         kind: availableTraces.get(traceFilter.value).kind,
@@ -1324,6 +1390,15 @@ def render_map(document: dict) -> str:
         trace = props.get("monde_gpx_trace")
         kml_trace = props.get("monde_kml_trace")
         gpkg_trace = props.get("monde_gpkg_trace")
+        gpkg_layer = props.get("monde_gpkg_source_layer")
+        gpkg_fid = props.get("monde_gpkg_source_fid")
+        if (("monde_gpkg_source_layer" in props) != ("monde_gpkg_source_fid" in props)
+                or (gpkg_layer is not None and (
+                    not isinstance(gpkg_layer, str) or not re.fullmatch(
+                        r"[A-Za-z_][A-Za-z0-9_]{0,62}", gpkg_layer)
+                    or not isinstance(gpkg_fid, str)
+                    or not 0 < len(gpkg_fid) <= 128))):
+            raise ValueError("invalid original GeoPackage layer/row provenance")
         if gpkg_trace is not None:
             if (trace is not None or kml_trace is not None
                     or not isinstance(gpkg_trace, dict)
@@ -1500,6 +1575,8 @@ def main(argv=None) -> int:
     inputs.add_argument("--gpx", help="original local GPX 1.1 waypoints; no saved intermediate state")
     inputs.add_argument("--gpkg", help="original local GeoPackage WGS84 Point, LineString or Polygon source")
     parser.add_argument("--gpkg-layer", help="exact original GeoPackage feature-table name")
+    parser.add_argument("--gpkg-all-layers", action="store_true",
+                        help="import every original feature layer with separate provenance")
     parser.add_argument("--source-id", help="explicit source identifier for --geojson")
     parser.add_argument("--source-locator", help="original data locator for --geojson")
     parser.add_argument("--captured-at", help="source capture time with timezone for --geojson")
@@ -1517,8 +1594,11 @@ def main(argv=None) -> int:
     try:
         source_args = ("source_id", "source_locator", "captured_at",
                        "valid_from", "valid_to", "source_event_at")
-        if bool(args.gpkg) != bool(args.gpkg_layer):
-            raise ValueError("--gpkg and --gpkg-layer are required together")
+        if args.gpkg:
+            if bool(args.gpkg_layer) == bool(args.gpkg_all_layers):
+                raise ValueError("choose exactly one of --gpkg-layer or --gpkg-all-layers")
+        elif args.gpkg_layer or args.gpkg_all_layers:
+            raise ValueError("GeoPackage layer options require --gpkg")
         if args.geojson or args.kml or args.kmz or args.gpx or args.gpkg:
             if any(not getattr(args, name) for name in source_args[:4]):
                 raise ValueError("--geojson/--kml/--kmz/--gpx/--gpkg requires --source-id, --source-locator, "
@@ -1527,21 +1607,31 @@ def main(argv=None) -> int:
             if Path(source_file).resolve() == Path(args.output).resolve():
                 raise ValueError("output cannot overwrite the original source file")
             from .geojson import to_document
-            if args.kml or args.kmz:
-                from .kml_points import to_geojson as kml_to_geojson
-                original = kml_to_geojson(args.kml or args.kmz, kmz=bool(args.kmz))
-            elif args.gpkg:
-                from .geopackage_points import to_geojson as gpkg_to_geojson
-                original = gpkg_to_geojson(args.gpkg, layer=args.gpkg_layer)
-            elif args.gpx:
-                from .gpx_points import to_geojson as gpx_to_geojson
-                original = gpx_to_geojson(args.gpx)
+            if args.gpkg and args.gpkg_all_layers:
+                from .geopackage_points import documents_for_layers
+                documents = documents_for_layers(
+                    args.gpkg, source_id=args.source_id,
+                    locator=args.source_locator,
+                    captured_at=args.captured_at, valid_from=args.valid_from,
+                    valid_to=args.valid_to, source_event_at=args.source_event_at)
+                world = WorldMini()
+                world.append_documents(documents)
             else:
-                original = WorldMini.load_document(args.geojson)
-            world = WorldMini.from_document(to_document(
-                original, source_id=args.source_id, locator=args.source_locator,
-                captured_at=args.captured_at, valid_from=args.valid_from,
-                valid_to=args.valid_to, source_event_at=args.source_event_at))
+                if args.kml or args.kmz:
+                    from .kml_points import to_geojson as kml_to_geojson
+                    original = kml_to_geojson(args.kml or args.kmz, kmz=bool(args.kmz))
+                elif args.gpkg:
+                    from .geopackage_points import to_geojson as gpkg_to_geojson
+                    original = gpkg_to_geojson(args.gpkg, layer=args.gpkg_layer)
+                elif args.gpx:
+                    from .gpx_points import to_geojson as gpx_to_geojson
+                    original = gpx_to_geojson(args.gpx)
+                else:
+                    original = WorldMini.load_document(args.geojson)
+                world = WorldMini.from_document(to_document(
+                    original, source_id=args.source_id, locator=args.source_locator,
+                    captured_at=args.captured_at, valid_from=args.valid_from,
+                    valid_to=args.valid_to, source_event_at=args.source_event_at))
         elif any(getattr(args, name) is not None for name in source_args):
             raise ValueError("source provenance flags require --geojson, --kml, --kmz, --gpx or --gpkg")
         elif args.csv_manifest:

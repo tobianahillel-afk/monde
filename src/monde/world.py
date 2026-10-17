@@ -351,6 +351,7 @@ class WorldMini:
         trace_reports = {}
         kml_reports = {}
         gpkg_reports = {}
+        gpkg_source_reports = {}
         sample_time_reports = {}
         elevation_reports = {}
         for match in result["matches"]:
@@ -387,6 +388,20 @@ class WorldMini:
                     for r in self.query(match["entity"], "gpkg_trace",
                                         at, known_at)["reports"]
                 }
+            if any(a["entity"] == match["entity"] and
+                   a["attribute"] == "gpkg_source_layer"
+                   for a in self._assertions.values()):
+                layer_reports = {
+                    r["evidence_id"]: r["value"]
+                    for r in self.query(match["entity"], "gpkg_source_layer",
+                                        at, known_at)["reports"]
+                }
+                row_reports = {
+                    r["evidence_id"]: r["value"]
+                    for r in self.query(match["entity"], "gpkg_source_fid",
+                                        at, known_at)["reports"]
+                }
+                gpkg_source_reports[match["entity"]] = (layer_reports, row_reports)
             for inside, reports in ((True, match["matched_reports"]),
                                     (False, match["other_reports"])):
                 for report in reports:
@@ -422,6 +437,12 @@ class WorldMini:
                         report["evidence_id"])
                     if gpkg_trace is not None:
                         properties["monde_gpkg_trace"] = _clone(gpkg_trace)
+                    layers, rows = gpkg_source_reports.get(match["entity"], ({}, {}))
+                    original_layer = layers.get(report["evidence_id"])
+                    original_row = rows.get(report["evidence_id"])
+                    if isinstance(original_layer, str) and isinstance(original_row, str):
+                        properties["monde_gpkg_source_layer"] = original_layer
+                        properties["monde_gpkg_source_fid"] = original_row
                     features.append({
                         "type": "Feature", "id": report["assertion_id"],
                         "geometry": _point(report["value"]), "properties": properties,
