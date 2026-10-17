@@ -318,3 +318,7 @@ a source-only subset or a consensus location; filtering must never conceal the
 opposing evidence. The unfiltered JSON/map is unchanged. Native world-time and
 knowledge-cutoff navigation retains the selected source. All operations are
 read-only and use the existing offline source assertions without new dependencies.
+
+### Original opposing-source evidence report (WORK-0066)
+
+The local `/explore` Source disagreements form offers **Read opposing original evidence** to open `GET /disagreement-report?bbox=W,S,E,N&at=UTC&known_at=UTC[&source=ID]`. This script-free, loopback-only HTML groups original conflicting Point reports by entity, exposing source/assertion/evidence identities, original coordinates, entity dossiers and links to the map and GeoJSON. A selected source qualifies an entity with its own Point inside the viewport; original opposing reports outside the viewport remain visible. An empty report is not evidence of source agreement or absence. The existing strict GET parsing, CSP, response-size limit and unchanged saved snapshot apply.
