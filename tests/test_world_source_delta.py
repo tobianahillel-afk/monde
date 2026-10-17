@@ -97,7 +97,8 @@ class SnapshotDeltaTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(json.loads(result.stdout)["added"]["assertions"], 1)
             input_bytes = before.read_bytes(), after.read_bytes()
-            failed = subprocess.run(command[:-1] + [str(before)],
+            failed = subprocess.run([sys.executable, "-m", "monde.source_delta",
+                                     "--before", str(after), "--after", str(before)],
                                     env=env, text=True, capture_output=True)
             self.assertEqual(failed.returncode, 2)
             self.assertIn("diverged", failed.stderr)
@@ -112,7 +113,8 @@ class SnapshotDeltaTests(unittest.TestCase):
             after.append_documents(paths)
             out = source_delta(before, after)
             self.assertEqual(out["added"]["evidence"], total)
-            self.assertEqual(out["added"]["assertions"], total)
+            self.assertEqual(out["added"]["assertions"],
+                             sum(len(doc["assertions"]) for doc in paths))
             self.assertEqual(out["added"]["corrections"], 0)
             self.assertEqual(len(out["sources"]), 4)
             self.assertEqual(sum(x["assertions_added"] for x in out["sources"]), total)
