@@ -236,6 +236,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var radiusCenter = null;
   var visibleFeatures = [];
   document.getElementById("change-filter-control").hidden = !comparing;
+  if (data.monde_source_delta) {
+    document.getElementById("source-notice").textContent =
+      "NEW SOURCE REPORTS ONLY: these newly recorded source assertions are not verified physical movement, reconciled truth, or proof that other places did not change.";
+    document.querySelector("section[aria-label='Source-report map'] h2").textContent =
+      "Newly recorded source Points";
+  }
   if (comparing) {
     document.getElementById("source-notice").textContent = knowledgeComparing ?
       "Source knowledge changes, NOT verified physical movement. Old and new claims retain separate evidence." :
@@ -479,6 +485,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   if (bbox[0] <= bbox[2]) rectangle(bbox[0],bbox[2]);
   else { rectangle(bbox[0],180); rectangle(-180,bbox[2]); }
   document.getElementById("cutoffs").textContent =
+    data.monde_source_delta ?
+      "New source reports · across original validity/knowledge times" :
     worldComparing ?
       "Reported world time " + query.from_at + " → " + query.to_at +
         "  ·  Known " + query.knowledge_cutoff :
