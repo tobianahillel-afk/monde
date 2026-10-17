@@ -1144,7 +1144,15 @@ jobs:
           "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
             --timeout=15000 --dump-dom file:///tmp/monde-gpkg-lines.html \
             >/tmp/monde-gpkg-lines-dom.html
-          grep -q 'data-monde-ready="true"' /tmp/monde-gpkg-lines-dom.html
-          grep -q 'data-monde-gpkg-segments="2"' /tmp/monde-gpkg-lines-dom.html
-          grep -q 'data-gpkg-trace=' /tmp/monde-gpkg-lines-dom.html
-          grep -q 'Original road claim' /tmp/monde-gpkg-lines-dom.html
+          python3 - <<'PY'
+          from pathlib import Path
+          html=Path('/tmp/monde-gpkg-lines-dom.html').read_text(encoding='utf8')
+          pos=html.find('<body')
+          print('GeoPackage Chromium body:',html[pos:pos+450])
+          for marker in ('data-monde-ready="true"',
+                         'data-monde-gpkg-segments="2"',
+                         'data-gpkg-trace=',
+                         'Original road claim'):
+              print('GeoPackage Chromium assertion:', marker, marker in html)
+              assert marker in html, 'missing browser marker: '+marker
+          PY
