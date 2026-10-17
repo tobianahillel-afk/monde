@@ -1,0 +1,49 @@
+id: WORK-0049
+title: "Map changes in source-report contradictions across knowledge time"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini offline evidence experience"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Make changes to contradictory original source-reported Points visible on an
+  offline map with before/after evidence groups, without truth inference.
+scope:
+  in: ["knowledge-time disagreement-change map", "original evidence", "offline HTML"]
+  out: ["ground truth", "new parser", "network services", "source-state mutation"]
+acceptance_criteria:
+  - {id: AC-1, description: "Display changed report Points with complete before/after source evidence.", status: NOT_STARTED}
+  - {id: AC-2, description: "Preserve old map modes; handle empty results and invalid comparisons.", status: NOT_STARTED}
+  - {id: AC-3, description: "Keep saved source state immutable and HTML output create-only.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0048]
+read_before: [AGENTS.md, src/monde/world.py, src/monde/map_view.py, tests/test_world_map_disagreements.py]
+reuses: [WorldMini.source_disagreement_changes, WorldMini.export_geojson_bbox_knowledge_changes, render_map]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Show source contradiction transitions offline.", depends_on: [], expected_files: [src/monde/map_view.py], status: IN_REVIEW}
+    - {id: T2, description: "Exercise saved state and before/after evidence.", depends_on: [T1], expected_files: [tests/test_world_disagreement_change_map.py], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_disagreement_change_map.py]
+  real_system: ["Exact HEAD GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on draft WORK-0048 / PR #72."]
+risk:
+  security: LOW
+  data: MEDIUM
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Discard PR; original snapshots are unchanged."
