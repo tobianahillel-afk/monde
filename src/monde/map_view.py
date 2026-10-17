@@ -103,6 +103,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <p class="subtle">Natural Earth 1:110m public-domain land outlines provide approximate geographic orientation only. They are not source evidence or verified entity positions. Drag to pan or use arrow keys, and fit matching reports to revisit source claims outside the display window. No online tiles or requests.</p>
 <p id="metrics"></p>
 <p id="source-notice" class="notice">Source assertions only. Contradictory locations are retained. The static Natural Earth background is not source evidence, a physical position estimate, a confidence score or proof of absence.</p>
+<p id="saved-disagreements-note" class="notice" role="status" hidden></p>
 </section>
 <aside aria-label="Evidence explorer">
 <h2>Source evidence</h2>
@@ -182,6 +183,15 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 (function () {
   "use strict";
   var data = JSON.parse(document.getElementById("monde-data").textContent);
+  if (data.monde_disagreements_view) {
+    var savedWarning = document.getElementById("saved-disagreements-note");
+    savedWarning.hidden = false;
+    savedWarning.textContent = "Saved-state source disagreement view at " +
+      data.monde_disagreements_view.valid_at + " (known at " +
+      data.monde_disagreements_view.knowledge_cutoff + "). " +
+      data.monde_disagreements_view.conflicting_entities_in_view +
+      " conflicting entity/ies in the requested viewport. These are source reports, not physical truth.";
+  }
   // Preview warnings belong to this unsaved capture, never to a reconciled state.
   if (Array.isArray(data.monde_preview_disagreements)) {
     var warnings = data.monde_preview_disagreements;
@@ -1562,7 +1572,8 @@ def render_map(document: dict) -> str:
 
 
 def automatic_source_bbox(world: WorldMini, at: str, known_at: str,
-                          *, compare_at=None, compare_known_at=None) -> list[float]:
+                          *, compare_at=None, compare_known_at=None,
+                          only_disagreements=False) -> list[float]:
     """Fit source reports visible at either time cutoff, not an inferred place.
 
     Find the shortest longitude arc by excluding the largest circular gap.
@@ -1576,9 +1587,11 @@ def automatic_source_bbox(world: WorldMini, at: str, known_at: str,
         snapshots.append((at, compare_known_at))
     points = [feature["geometry"]["coordinates"]
               for instant, cutoff in snapshots
-              for feature in world.export_geojson(instant, cutoff)["features"]]
+              for feature in (world.export_geojson_disagreements(instant, cutoff)
+                            if only_disagreements else world.export_geojson(instant, cutoff))["features"]]
     if not points:
-        raise ValueError("no known source Points at these time cutoffs; "
+        raise ValueError(("no conflicting source-reported Points" if only_disagreements
+                          else "no known source Points") + " at these time cutoffs; "
                          "provide an explicit --bbox to show an empty viewport")
     angles = sorted({(lon + 180.0) % 360.0 for lon, _ in points})
     if len(angles) == 1:
@@ -1632,9 +1645,13 @@ def main(argv=None) -> int:
     comparison = parser.add_mutually_exclusive_group()
     comparison.add_argument("--compare-known-at", help="earlier knowledge cutoff for source-report changes")
     comparison.add_argument("--compare-at", help="earlier world-time instant at fixed knowledge")
+    parser.add_argument("--only-disagreements", action="store_true",
+                        help="show only entities with conflicting Point reports from distinct sources")
     parser.add_argument("--output", required=True, help="new output HTML path; no overwrite")
     args = parser.parse_args(argv)
     try:
+        if args.only_disagreements and (args.compare_at or args.compare_known_at):
+            raise ValueError("--only-disagreements cannot be combined with time comparison")
         source_args = ("source_id", "source_locator", "captured_at",
                        "valid_from", "valid_to", "source_event_at")
         if args.gpkg:
@@ -1689,7 +1706,8 @@ def main(argv=None) -> int:
             bounds = automatic_source_bbox(
                 world, args.at, args.known_at,
                 compare_at=args.compare_at,
-                compare_known_at=args.compare_known_at)
+                compare_known_at=args.compare_known_at,
+                only_disagreements=args.only_disagreements)
         else:
             parts = args.bbox.split(",")
             if len(parts) != 4:
@@ -1701,6 +1719,38 @@ def main(argv=None) -> int:
                 bounds, args.at, args.compare_known_at, args.known_at)
             if args.compare_known_at else
             world.export_geojson_bbox(bounds, args.at, args.known_at))
+        if args.only_disagreements:
+            # Find conflicts globally, before viewport filtering. A contrary
+            # out-of-window source report is retained for a qualifying entity.
+            contradicting = world.source_disagreements(
+                args.at, args.known_at, "geo_point")["disagreements"]
+            sources = {
+                row["entity"]: sorted({
+                    source_id for group in row["value_groups"]
+                    for source_id in group["source_ids"]
+                })
+                for row in contradicting
+            }
+            features = [feature for feature in geojson["features"]
+                        if feature["properties"]["entity"] in sources]
+            for feature in features:
+                feature["properties"]["monde_disagreement_basis"] = (
+                    "DISTINCT_SOURCE_REPORTS_NOT_PHYSICAL_TRUTH")
+                feature["properties"]["monde_conflicting_source_ids"] = (
+                    sources[feature["properties"]["entity"]])
+            geojson["features"] = features
+            query = geojson["monde_bbox_query"]
+            query["total_source_features"] = len(features)
+            query["total_matching_entities"] = len({
+                item["properties"]["entity"] for item in features
+                if item["properties"]["monde_inside_bbox"]
+            })
+            query["status"] = "MATCHES" if features else "NO_MATCHES"
+            geojson["monde_disagreements_view"] = {
+                "basis": "CONTRADICTORY_SOURCE_POINT_REPORTS_ONLY",
+                "valid_at": args.at, "knowledge_cutoff": args.known_at,
+                "conflicting_entities_in_view": query["total_matching_entities"],
+            }
         page = render_map(geojson)
         with open(args.output, "x", encoding="utf-8") as target:
             target.write(page)
