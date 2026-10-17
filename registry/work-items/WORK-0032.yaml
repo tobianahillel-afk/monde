@@ -1,0 +1,60 @@
+id: WORK-0032
+title: "Inspect original GeoPackage WGS84 LineStrings in MONDE Mini offline map"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini offline source evidence"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Preserve source-defined GeoPackage 2D LineString vertices, original primary
+  key, order and temporal provenance; display source traces in offline map.
+scope:
+  in: ["GeoPackage 2D WGS84 LineString", "direct CLI and mixed manifests", "original source vertex claims"]
+  out: ["CRS reprojection", "Polygon or MultiLineString", "inferred movement", "external tiles"]
+acceptance_criteria:
+  - {id: AC-1, description: "Original lines and vertex order retain stable provenance IDs.", status: NOT_STARTED}
+  - {id: AC-2, description: "Direct CLI and mixed source manifests render connected source traces offline.", status: NOT_STARTED}
+  - {id: AC-3, description: "Malformed WKB and contradictory CRS/envelopes reject atomically.", status: NOT_STARTED}
+requirements: []
+assumptions: ["GeoPackage 1.x physical feature table, EPSG:4326, 2D LineString only."]
+risks: ["Untrusted SQLite source", "Invented route between unrelated source features"]
+assurance:
+  level: A3
+  rationale: "Original geospatial binary input and data provenance boundary."
+  escalation_triggers: ["Remote acquisition", "CRS transformation"]
+depends_on: [WORK-0031]
+reuses: ["src/monde/geopackage_points.py", "src/monde/map_view.py", "src/monde/geojson.py"]
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+blocks: []
+affected_capabilities: []
+affected_engines: ["MONDE Mini offline map"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["source evidence provenance", "no inferred route", "atomic HTML output"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Read bounded original GeoPackage 2D LineStrings.", depends_on: [], expected_files: [src/monde/geopackage_points.py], status: IN_PROGRESS}
+    - {id: T2, description: "Re-use offline source trace rendering and query validation.", depends_on: [T1], expected_files: [src/monde/map_view.py], status: IN_PROGRESS}
+    - {id: T3, description: "Real SQLite source and CLI/manifest regression tests.", depends_on: [T2], expected_files: [tests/test_world_geopackage_lines.py], status: IN_PROGRESS}
+review_plan:
+  artifact_class: DATA_SOURCE_CONNECTOR
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY, OPERATIONS]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["WKB framing and envelope"]
+  integration: ["source LineString -> bitemporal Points -> offline traces"]
+  e2e: ["real SQLite CLI and mixed manifests"]
+  regression: ["GeoPackage Point unchanged"]
+  security: ["untrusted SQLite and atomic failure"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Ancestor product PR stack not yet merged.", "Independent L2 not yet received."]
+rollback:
+  strategy: "Close only this stacked Draft PR without changing original GeoPackage or main."

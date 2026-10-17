@@ -559,3 +559,24 @@ Read-only import is bounded to 100 MB per database and 50,000 source Points;
 the original source remains untouched, and existing output files cannot be
 overwritten. No reprojection, remote attachment, spatial inference or feature
 reconciliation is performed.
+
+
+## Inspect original GeoPackage LineString traces (WORK-0032)
+
+The existing `--gpkg FILE --gpkg-layer TABLE` CLI and `gpkg` manifest entries
+also accept one original GeoPackage **2D EPSG:4326 LineString** feature table.
+No conversion, reprojection, network access or GIS dependency is required.
+For example, substitute `--gpkg-layer survey_lines` into the GeoPackage
+command above. Original row primary keys, per-line vertex order, scalar
+attributes and explicit source/capture/validity times are retained. The
+offline map draws only consecutive vertices from the **same original line**,
+labels the result as source evidence rather than verified movement and
+never joins separate feature IDs. Antimeridian-crossing segments are omitted
+instead of inventing a route across the map.
+
+WKB count, endianness, SRID, optional envelope, finite WGS84 ranges, and
+exact binary length are validated; lines require at least two 2D vertices.
+The existing read-only 100 MB database and 50,000 source-sample limits apply.
+Malformed or unsupported geometries fail before writing any output. Original
+GeoPackage Point imports remain unchanged. Polygons, 3D/Z/M, complex
+geometries and external resources remain unsupported.
