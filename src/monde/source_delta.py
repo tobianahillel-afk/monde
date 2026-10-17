@@ -137,7 +137,8 @@ def source_delta_geojson(before: WorldMini, after: WorldMini) -> dict:
 
 
 
-def source_delta_html(before: WorldMini, after: WorldMini) -> str:
+def source_delta_html(before: WorldMini, after: WorldMini, *,
+                      disagreements: list[dict] | None = None) -> str:
     """Open the newly recorded source Points in the existing offline map.
 
     No world-time snapshot is inferred: reports span their original source
@@ -167,6 +168,10 @@ def source_delta_html(before: WorldMini, after: WorldMini) -> str:
         "total_source_features": len(features),
         "status": "MATCHES" if features else "NO_MATCHES",
     }
+    if disagreements is not None:
+        if not isinstance(disagreements, list):
+            raise ValueError("invalid preview disagreement list")
+        result["monde_preview_disagreements"] = disagreements
     return render_map(result)
 
 

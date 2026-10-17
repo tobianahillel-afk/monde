@@ -125,3 +125,10 @@ This is a **warning about source-report disagreement**, not a confidence
 estimate, verified ground truth, physical motion or a merge decision. The
 existing preview digest and confirmed refresh command remain unchanged.
 The preview still does not save or rewrite a world snapshot.
+
+
+The optional `--preview-source-map preview.html` now includes the same
+cross-source disagreement warnings as the JSON preview, with both original
+source IDs, values, assertion IDs and overlapping validity interval. The
+standalone HTML works offline; untrusted source strings appear as text, not
+HTML, and the persisted world and raw source files are not modified.

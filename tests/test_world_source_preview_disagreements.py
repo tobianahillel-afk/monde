@@ -102,6 +102,47 @@ class CrossSourcePreviewTests(unittest.TestCase):
             self.assertEqual(sorted(p.name for p in root.iterdir()),
                              ["before.json", "manifest.json", "observations.csv"])
 
+    def test_preview_offline_map_displays_conflicting_original_sources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, original_csv = csv_source(root)
+            snapshot = root / "before.json"
+            initial = invoke("--ingest-source-manifest", manifest,
+                             "--state-out", snapshot)
+            self.assertEqual(initial.returncode, 0, initial.stderr)
+            old_snapshot, old_csv = snapshot.read_bytes(), original_csv.read_bytes()
+            csv_source(root, source="different", locator="dataset://different/points",
+                       capture=K2, rows=[("site-a", 3.0, 49.0, "conflicted")])
+            new_csv = original_csv.read_bytes()
+            page = root / "preview.html"
+            outcome = invoke("--fixture", snapshot, "--preview-source-manifest",
+                             manifest, "--preview-source-map", page)
+            self.assertEqual(outcome.returncode, 0, outcome.stderr)
+            payload = json.loads(outcome.stdout)
+            self.assertGreaterEqual(payload["cross_source_disagreement_count"], 2)
+            html = page.read_text(encoding="utf-8")
+            self.assertIn('id="preview-source-conflicts"', html)
+            self.assertIn('"monde_preview_disagreements"', html)
+            self.assertIn('"CONFLICTING_SOURCE_REPORTS_ONLY"', html)
+            self.assertIn('conflicted', html)
+            self.assertEqual(payload["status"], "PREVIEW_NOT_SAVED")
+            self.assertEqual(snapshot.read_bytes(), old_snapshot)
+            self.assertEqual(original_csv.read_bytes(), new_csv)
+
+    def test_preview_map_escapes_untrusted_source_values_and_keeps_preview_only(self):
+        from monde.source_delta import source_delta_html
+        previous = WorldMini.from_document(report("source_a", "e1", "a1", "open", K1))
+        next_world, _ = refresh_documents(previous, [
+            report("source_b", "e2", "a2", "</script><img src=x>", K2)])
+        warnings = preview_documents(previous, [
+            report("source_b", "e2", "a2", "</script><img src=x>", K2)])
+        html = source_delta_html(previous, next_world,
+                                 disagreements=warnings["cross_source_disagreements"])
+        self.assertIn('"monde_preview_disagreements"', html)
+        self.assertNotIn("</script><img src=x>", html)
+        self.assertIn("\\u003c/script\\u003e", html)
+        self.assertIn("data-monde-ready", html)
+
 
 if __name__ == "__main__":
     unittest.main()

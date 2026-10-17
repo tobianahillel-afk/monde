@@ -73,6 +73,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 #conflict-list{list-style:none;padding:0;margin:0 0 12px;max-height:240px;overflow:auto}
 #conflict-list li{margin:0 0 6px}
 #conflict-list button{width:100%;text-align:left;overflow-wrap:anywhere}
+#preview-conflict-list{list-style:none;padding:0;margin:0 0 12px;max-height:260px;overflow:auto}
+#preview-conflict-list li{margin:0 0 8px}
+#preview-conflict-list button{width:100%;text-align:left;white-space:normal;overflow-wrap:anywhere;border-left:3px solid #f0a0e3}
 #details{white-space:pre-wrap;overflow-wrap:anywhere;background:#102033;border-radius:7px;padding:12px;font-size:.84rem;max-height:280px;overflow:auto;min-height:70px}
 .notice{padding:10px 12px;background:#273b49;border-left:3px solid #ffc873;border-radius:4px;margin:14px 0}
 #metrics{font-size:.9rem;color:#bbd0df}
@@ -103,6 +106,13 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 </section>
 <aside aria-label="Evidence explorer">
 <h2>Source evidence</h2>
+<div id="preview-source-conflicts" hidden aria-label="Incoming source disagreements">
+  <h2>Incoming cross-source disagreement warnings</h2>
+  <p class="subtle">New source-reported claims only. Neither source is ranked as ground truth.
+  An empty warning list is not proof of agreement or completeness.</p>
+  <p id="preview-conflict-summary" role="status" aria-live="polite"></p>
+  <ul id="preview-conflict-list" aria-label="New source contradictions"></ul>
+</div>
 <div class="controls"><label for="report-search">Find evidence</label>
 <input id="report-search" type="search" placeholder="Entity, assertion, source, evidence or locator" autocomplete="off" aria-label="Search source evidence">
 <button id="clear-search" type="button">Clear</button>
@@ -172,6 +182,31 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 (function () {
   "use strict";
   var data = JSON.parse(document.getElementById("monde-data").textContent);
+  // Preview warnings belong to this unsaved capture, never to a reconciled state.
+  if (Array.isArray(data.monde_preview_disagreements)) {
+    var warnings = data.monde_preview_disagreements;
+    var warningBox = document.getElementById("preview-source-conflicts");
+    var warningList = document.getElementById("preview-conflict-list");
+    warningBox.hidden = false;
+    document.getElementById("preview-conflict-summary").textContent =
+      warnings.length + " conflicting cross-source report pair(s) in this preview";
+    warnings.forEach(function (item) {
+      var li = document.createElement("li");
+      var button = document.createElement("button");
+      button.type = "button";
+      button.textContent = item.entity + " / " + item.attribute +
+        " — " + item.new_source_id + ": " +
+        JSON.stringify(item.new_reported_value) + " versus " +
+        item.other_source_id + ": " + JSON.stringify(item.other_reported_value) +
+        " (overlap " + item.overlap_valid_from + " to " +
+        (item.overlap_valid_to || "open ended") + ")";
+      button.title = "Assertion " + item.new_assertion_id +
+        " versus " + item.other_assertion_id +
+        " · known at " + item.knowledge_cutoff;
+      li.appendChild(button);
+      warningList.appendChild(li);
+    });
+  }
   var landReference = __MONDE_EMBEDDED_REFERENCE_LAND__;
   var features = data.features, knowledgeComparing = !!data.monde_bbox_changes_query;
   var worldComparing = !!data.monde_bbox_world_changes_query;
