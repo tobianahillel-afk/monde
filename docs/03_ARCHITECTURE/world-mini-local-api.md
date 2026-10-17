@@ -27,6 +27,15 @@ Endpoints (GET, all JSON):
   cross-source values; `attribute` is optional.
 - `/map?bbox=1,45,6,51&at=...&known_at=...` — WorldMini's existing
   source-report GeoJSON, including conflicting coordinates.
+- `/tile?z=5&x=16&y=11&at=...&known_at=...` — GeoJSON for a WGS84
+  viewport derived from a standard XYZ Web Mercator tile, including the original
+  source Point assertions and tile metadata; this is not a raster tile service.
+- `/nearest?center=2.3522,48.8566&limit=10&at=...&known_at=...` —
+  nearest **source-reported** Point entities, ranked by approximate spherical
+  distance, not inferred ground-truth positions (maximum 1000 entities).
+- `/radius?center=2.3522,48.8566&radius_km=5&at=...&known_at=...` —
+  source Points within a radius, keeping conflicting out-of-radius reports of
+  matched entities. Distance is not a measure of positional accuracy.
 
 Queries always require explicit valid world time `at` and knowledge time
 `known_at` except `/health`. Duplicate/missing/unknown parameters, malformed

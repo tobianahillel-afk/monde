@@ -46,6 +46,17 @@ def _bbox(value: str) -> list[float]:
         raise ValueError("invalid bbox coordinates") from exc
 
 
+
+def _center(value: str) -> list[float]:
+    parts = value.split(",")
+    if len(parts) != 2:
+        raise ValueError("expected longitude,latitude")
+    try:
+        return [float(v) for v in parts]
+    except ValueError as exc:
+        raise ValueError("invalid point coordinates") from exc
+
+
 def create_server(state: str | Path, port: int = 0, *,
                   max_response_bytes: int = MAX_RESPONSE_BYTES) -> ThreadingHTTPServer:
     """Load once, then serve queries only on 127.0.0.1. No state writes."""
@@ -88,7 +99,8 @@ def create_server(state: str | Path, port: int = 0, *,
             if len(self.path) > MAX_REQUEST_TARGET:
                 return self._reply(414, {"error": "request_target_too_long"})
             path = urlsplit(self.path).path
-            if path not in {"/health", "/reports", "/entity", "/disagreements", "/map"}:
+            if path not in {"/health", "/reports", "/entity", "/disagreements", "/map",
+                            "/tile", "/nearest", "/radius"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -108,10 +120,26 @@ def create_server(state: str | Path, port: int = 0, *,
                     _require(args, {"at", "known_at"}, {"attribute"})
                     output = world.source_disagreements(args["at"], args["known_at"],
                                                         args.get("attribute"))
-                else:
+
+                elif path == "/map":
                     _require(args, {"bbox", "at", "known_at"})
                     output = world.export_geojson_bbox(_bbox(args["bbox"]),
                                                       args["at"], args["known_at"])
+                elif path == "/tile":
+                    _require(args, {"z", "x", "y", "at", "known_at"})
+                    output = world.export_geojson_tile(
+                        int(args["z"]), int(args["x"]), int(args["y"]),
+                        args["at"], args["known_at"])
+                elif path == "/nearest":
+                    _require(args, {"center", "limit", "at", "known_at"})
+                    output = world.export_geojson_nearest(
+                        _center(args["center"]), int(args["limit"]),
+                        args["at"], args["known_at"])
+                else:
+                    _require(args, {"center", "radius_km", "at", "known_at"})
+                    output = world.export_geojson_radius(
+                        _center(args["center"]), float(args["radius_km"]),
+                        args["at"], args["known_at"])
                 return self._reply(200, output)
             except (ValueError, KeyError, OverflowError):
                 return self._reply(400, {"error": "invalid_query"})

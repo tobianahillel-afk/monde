@@ -11,6 +11,7 @@ from urllib.parse import urlencode
 from monde.local_api import create_server
 from monde.world import WorldMini
 from tests.test_world_mini import DOC, AT, LATE
+from tests.test_world_spatial import model as spatial_model, CAPTURED as SPATIAL_K
 
 
 class LocalAPIIntegrationTests(unittest.TestCase):
@@ -30,9 +31,10 @@ class LocalAPIIntegrationTests(unittest.TestCase):
         self.assertEqual(self.state.read_bytes(), self.original)
         self.tempdir.cleanup()
 
-    def request(self, path, *, method="GET", host=None):
-        conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
-        headers = {"Host": host or ("127.0.0.1:" + str(self.server.server_port))}
+    def request(self, path, *, method="GET", host=None, port=None):
+        port = self.server.server_port if port is None else port
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        headers = {"Host": host or ("127.0.0.1:" + str(port))}
         conn.request(method, path, headers=headers)
         res = conn.getresponse()
         body = res.read()
@@ -87,6 +89,67 @@ class LocalAPIIntegrationTests(unittest.TestCase):
         self.assertEqual(result["type"], "FeatureCollection")
         self.assertEqual(result["monde_bbox_query"]["basis"],
                          "SOURCE_REPORTED_POINT_BBOX_ONLY")
+
+    def test_spatial_navigation_over_real_local_http(self):
+        """One persisted spatial model serves tiles and provenance-preserving proximity."""
+        spatial = spatial_model()
+        spatial_path = Path(self.tempdir.name) / "spatial.json"
+        spatial.save(spatial_path)
+        original = spatial_path.read_bytes()
+        server = create_server(spatial_path)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        try:
+            cases = [
+                ("/tile", {"z": 5, "x": 16, "y": 11, "at": AT,
+                           "known_at": SPATIAL_K},
+                 spatial.export_geojson_tile(5, 16, 11, AT, SPATIAL_K)),
+                ("/nearest", {"center": "2.3522,48.8566", "limit": 1,
+                              "at": AT, "known_at": SPATIAL_K},
+                 spatial.export_geojson_nearest([2.3522, 48.8566], 1, AT, SPATIAL_K)),
+                ("/radius", {"center": "2.3522,48.8566", "radius_km": 10,
+                             "at": AT, "known_at": SPATIAL_K},
+                 spatial.export_geojson_radius([2.3522, 48.8566], 10, AT, SPATIAL_K)),
+            ]
+            for endpoint, args, expected in cases:
+                with self.subTest(endpoint=endpoint):
+                    code, _, result = self.request(self.path(endpoint, **args),
+                                                    port=server.server_port)
+                    self.assertEqual(code, 200)
+                    self.assertEqual(result, expected)
+                    self.assertEqual(result["type"], "FeatureCollection")
+                    self.assertTrue(result["features"])
+                    self.assertTrue(all(f["properties"]["source_id"] == "example-map"
+                                        and f["properties"]["evidence_id"]
+                                        for f in result["features"]))
+            _, _, too_early = self.request(self.path(
+                "/nearest", center="2.3522,48.8566", limit=1, at=AT,
+                known_at="2026-01-10T09:59:59Z"), port=server.server_port)
+            self.assertEqual(too_early["features"], [])
+        finally:
+            server.shutdown()
+            worker.join(timeout=5)
+            server.server_close()
+        self.assertEqual(spatial_path.read_bytes(), original)
+
+    def test_new_spatial_endpoints_reject_bad_inputs(self):
+        for endpoint, params in [
+            ("/tile", {"z": -1, "x": 0, "y": 0}),
+            ("/tile", {"z": 23, "x": 0, "y": 0}),
+            ("/tile", {"z": 4, "x": 16, "y": 0}),
+            ("/tile", {"z": "bad", "x": 0, "y": 0}),
+            ("/nearest", {"center": "2.3", "limit": 1}),
+            ("/nearest", {"center": "200,48", "limit": 1}),
+            ("/nearest", {"center": "2,48", "limit": 0}),
+            ("/radius", {"center": "2,48", "radius_km": -1}),
+            ("/radius", {"center": "nan,48", "radius_km": 10}),
+            ("/radius", {"center": "2,48", "radius_km": "inf"}),
+        ]:
+            with self.subTest(endpoint=endpoint, params=params):
+                code, _, result = self.request(self.path(
+                    endpoint, **params, at=AT, known_at=LATE))
+                self.assertEqual(code, 400)
+                self.assertEqual(result["error"], "invalid_query")
 
     def test_mutation_methods_have_no_effect(self):
         for method in ("POST", "PUT", "PATCH", "DELETE"):
