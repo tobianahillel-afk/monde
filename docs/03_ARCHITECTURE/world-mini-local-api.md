@@ -322,3 +322,17 @@ read-only and use the existing offline source assertions without new dependencie
 ### Original opposing-source evidence report (WORK-0066)
 
 The local `/explore` Source disagreements form offers **Read opposing original evidence** to open `GET /disagreement-report?bbox=W,S,E,N&at=UTC&known_at=UTC[&source=ID]`. This script-free, loopback-only HTML groups original conflicting Point reports by entity, exposing source/assertion/evidence identities, original coordinates, entity dossiers and links to the map and GeoJSON. A selected source qualifies an entity with its own Point inside the viewport; original opposing reports outside the viewport remain visible. An empty report is not evidence of source agreement or absence. The existing strict GET parsing, CSP, response-size limit and unchanged saved snapshot apply.
+
+
+### Direct original-disagreement CSV export (WORK-0067)
+
+The read-only local HTML source-disagreement report now links to
+GET /disagreement.csv?bbox=...&at=...&known_at=...&source=optional.
+CSV preserves original entity, source_id, assertion_id, evidence_id,
+WGS84 reported Point, source Point in/out-of-viewport indicator, and
+both original world and knowledge cutoffs. Selected source qualifies
+a conflict but never hides the opposing reports, even outside the bbox.
+CSV data uses standard quoting and neutralizes spreadsheet formulas in
+text identifiers. These are **original conflicting assertions**, not a
+verified location, physical motion or reconciled consensus. Unfiltered
+reports keep their existing behavior; no data writes or new dependencies.
