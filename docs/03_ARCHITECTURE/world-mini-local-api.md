@@ -49,9 +49,19 @@ Endpoints (GET, all JSON):
   — how cross-source contradictions evolved as additional reports were learned.
   `attribute` is optional.
 
-The five investigation routes reuse existing `WorldMini` methods: no new
+- `/knowledge-updates?from_known_at=K1&to_known_at=K2&entity=building-001&attribute=floors`
+  — evidence-linked source reports learned during (K1, K2], including corrections.
+  `entity` and `attribute` are optional. This is a historical change feed,
+  **not an exactly-once replication cursor**.
+- `/knowledge-timeline?entity=building-001&attribute=floors&at=T&from_known_at=K1&to_known_at=K2`
+  — UNKNOWN and REPORTED intervals for one world-time as knowledge evolved.
+- `/world-knowledge-changes?at=T&from_known_at=K1&to_known_at=K2`
+  — entity-wide source-report changes at unchanged world-time T; no inference
+  that physical objects changed.
+
+These investigation routes reuse existing `WorldMini` methods: no new
 temporal engine, mutable state, model prediction or inferred consensus.
-For temporal comparisons, `K1 < K2` or `T1 < T2` is required, and query
+For temporal comparisons and the knowledge-change feed, `K1 < K2` or `T1 < T2` is required, and query
 timestamps must be explicit timezone-aware ISO-8601 values.
 
 Queries require the exact temporal parameters for each endpoint, except

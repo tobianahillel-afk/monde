@@ -13,12 +13,13 @@ purpose: |
 scope:
   in: ["local HTTP GET /reports, /entity, /disagreements, /map, /tile,
        /nearest, /radius, /health, /timeline, /compare-knowledge, /compare-world,
-       /source-history and /disagreement-changes",
+       /source-history, /disagreement-changes, /knowledge-updates,
+       /knowledge-timeline and /world-knowledge-changes",
        "single immutable loaded snapshot", "bounded JSON replies", "HTTP integration tests"]
   out: ["internet-facing server", "write API", "authentication service",
         "new model of truth", "remote data acquisition", "paid APIs"]
 acceptance_criteria:
-  - {id: AC-1, description: "Expose source-reported bitemporal evidence, map tiles, proximity GeoJSON and temporal investigations through real loopback HTTP.", status: NOT_STARTED}
+  - {id: AC-1, description: "Expose source-reported bitemporal evidence, map tiles, proximity GeoJSON, temporal investigations and cross-entity knowledge-change feed through real loopback HTTP.", status: NOT_STARTED}
   - {id: AC-2, description: "Reject mutations, off-host authority, unexpected parameters and invalid times/bounds.", status: NOT_STARTED}
   - {id: AC-3, description: "Preserve saved source state and avoid adding runtime dependencies.", status: NOT_STARTED}
 requirements: []
@@ -29,6 +30,8 @@ reuses: [WorldMini.read, WorldMini.query, WorldMini.entity_snapshot,
          WorldMini.source_disagreements, WorldMini.export_geojson_bbox,
          WorldMini.timeline, WorldMini.compare_knowledge, WorldMini.compare_world_time,
          WorldMini.source_history, WorldMini.source_disagreement_changes,
+         WorldMini.knowledge_updates, WorldMini.knowledge_timeline,
+         WorldMini.world_knowledge_changes,
          http.server]
 implementation_plan:
   tasks:

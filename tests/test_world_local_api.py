@@ -205,6 +205,67 @@ class LocalAPIIntegrationTests(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertEqual(missing["status"], "NO_REPORTS")
 
+    def test_knowledge_change_feed_over_real_http(self):
+        """Existing WorldMini methods are exposed with unchanged provenance and clocks."""
+        model = WorldMini.from_document(copy.deepcopy(DOC))
+        older = "2026-01-03T09:59:59Z"
+        cases = [
+            ("/knowledge-updates",
+             {"from_known_at": older, "to_known_at": LATE,
+              "entity": "building-001", "attribute": "floors"},
+             model.knowledge_updates(older, LATE, "building-001", "floors")),
+            ("/knowledge-timeline",
+             {"entity": "building-001", "attribute": "floors", "at": AT,
+              "from_known_at": older, "to_known_at": LATE},
+             model.knowledge_timeline("building-001", "floors", AT, older, LATE)),
+            ("/world-knowledge-changes",
+             {"at": AT, "from_known_at": older, "to_known_at": LATE},
+             model.world_knowledge_changes(AT, older, LATE)),
+        ]
+        for route, params, expected in cases:
+            with self.subTest(route=route):
+                status, headers, result = self.request(self.path(route, **params))
+                self.assertEqual(status, 200)
+                self.assertEqual(result, expected)
+                self.assertEqual(result["world"], "OBSERVED")
+                self.assertEqual(headers["Cache-Control"], "no-store")
+                self.assertNotIn("Access-Control-Allow-Origin", headers)
+        self.assertTrue(cases[0][2]["reports"])
+        self.assertTrue(all(entry["source_id"] and entry["evidence_id"]
+                            and entry["locator"] for entry in cases[0][2]["reports"]))
+        self.assertTrue(cases[1][2]["segments"])
+        self.assertTrue(cases[2][2]["entities"])
+
+    def test_knowledge_change_feed_rejects_invalid_ranges_and_filters(self):
+        older = "2026-01-03T09:59:59Z"
+        examples = [
+            ("/knowledge-updates", {"from_known_at": LATE, "to_known_at": older}),
+            ("/knowledge-updates", {"from_known_at": older, "to_known_at": older}),
+            ("/knowledge-updates", {"from_known_at": older, "to_known_at": LATE,
+                                    "entity": "bad entity"}),
+            ("/knowledge-updates", {"from_known_at": older, "to_known_at": LATE,
+                                    "unknown": "value"}),
+            ("/knowledge-timeline", {"entity": "building-001", "attribute": "floors",
+                                     "at": AT, "from_known_at": LATE,
+                                     "to_known_at": older}),
+            ("/knowledge-timeline", {"entity": "building-001", "attribute": "floors",
+                                     "at": AT, "from_known_at": older}),
+            ("/world-knowledge-changes", {"at": AT, "from_known_at": LATE,
+                                          "to_known_at": older}),
+            ("/world-knowledge-changes", {"at": AT, "from_known_at": older,
+                                          "to_known_at": "not-a-time"}),
+            ("/world-knowledge-changes", {"from_known_at": older, "to_known_at": LATE}),
+        ]
+        for route, params in examples:
+            with self.subTest(route=route, params=params):
+                code, _, result = self.request(self.path(route, **params))
+                self.assertEqual(code, 400)
+                self.assertEqual(result["error"], "invalid_query")
+        valid = self.path("/knowledge-updates", from_known_at=older, to_known_at=LATE)
+        code, _, result = self.request(valid + "&to_known_at=" + LATE)
+        self.assertEqual(code, 400)
+        self.assertEqual(result["error"], "invalid_query")
+
     def test_temporal_endpoints_reject_ambiguous_or_invalid_ranges(self):
         cases = [
             ("/timeline", {"entity": "building-001", "attribute": "floors",
