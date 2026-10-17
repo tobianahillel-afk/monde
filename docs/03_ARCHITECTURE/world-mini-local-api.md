@@ -208,3 +208,64 @@ outside the radius. Invalid/non-Point values get no link. URLs are query-encoded
 HTML-escaped, and stay same-origin; the inspector remains script-free and every
 endpoint remains read-only. End-to-end tests follow the link through the loopback
 server and check that the saved World Model is byte-for-byte unchanged.
+
+
+### Comparing knowledge of one entity in the browser (WORK-0056)
+
+The read-only local /inspect browser form now supports view=compare-knowledge
+with entity, at, from_known_at, and to_known_at. It directly calls the
+existing WorldMini.compare_knowledge entity query; the matching JSON response
+is already available at /compare-knowledge with the same non-view parameters.
+
+The same physical-world time (at) is used on both sides. The earlier and
+later knowledge cutoffs select the original reports marked "No longer current"
+and "Newly current". Their full unmodified report dictionaries, source IDs,
+evidence IDs, locators, and timestamps are HTML-escaped and displayed. A
+difference in knowledge is NOT proof of an observed physical-world change.
+When no report changed the page says UNCHANGED rather than UNKNOWN or absent.
+
+For original geo_point corrections, links to the existing local map viewer
+retain the correct historical state: retired source-reported Points use
+from_known_at, and newly current Points use to_known_at. No geolocation is
+inferred or corrected by the UI; the offline map, saved snapshot, loopback
+restriction, no-network Content Security Policy, and strict GET interface
+remain intact.
+
+
+### Comparing source-reported world-time validity in the browser (WORK-0056)
+
+The same read-only `/inspect` browser now offers `view=compare-world`
+with an entity, two world-time instants (`from_at`, `to_at`) and one fixed
+knowledge cutoff (`known_at`). This reuses `WorldMini.compare_world_time`
+directly; the unmodified JSON is available at `/compare-world`.
+
+Where `compare-knowledge` holds world time fixed and varies what was known,
+`compare-world` holds knowledge fixed and varies **source-reported validity**.
+The original assertions and provenance are displayed as reported at the
+earlier and later instants. Differences **do not prove physical change**.
+Source-reported Points link to their actual earlier/later world-time map states,
+with the same knowledge cutoff. Unchanged results are labeled UNCHANGED rather
+than inferred absence. No additional data model, service, writable route,
+remote call or external dependency was introduced.
+
+### One-click temporal change map
+
+From either entity comparison in `/inspect`, open a **combined source-reported
+Point change map** with a single link. The link reuses the existing read-only
+`/viewer` knowledge-change or world-change map, preserving the exact temporal
+cutoffs and selecting a viewport around both earlier and later source-reported
+positions. This is an area query: nearby evidence may also appear. It does
+**not** infer verified physical motion. A map link is not shown when no original
+source Point changes, or when positions cross the antimeridian and a naive
+viewport would misleadingly cover almost the globe. Original per-source
+position links remain available. No additional service, dependency or write.
+
+### Dateline-crossing source comparison maps (WORK-0056)
+
+The one-click temporal comparison map uses the shortest circular longitude
+arc for original source-reported Points. Across ±180°, a wrapped WGS84 bbox
+(west > east) reuses the existing WorldMini and map viewer, avoiding a false
+near-global rectangle. Widely dispersed reports spanning more than 180°
+still have no misleading combined map link. Original reports, cutoffs,
+provenance and saved state remain unchanged. A real local HTTP test follows
+the wrapped viewer link and verifies both original Point change reports.

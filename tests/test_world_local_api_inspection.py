@@ -62,7 +62,7 @@ class EvidenceInspectorTests(unittest.TestCase):
                     self.forms.append(dict(attributes))
         forms = Forms()
         forms.feed(document.decode("utf-8"))
-        self.assertEqual(len(forms.forms), 3)
+        self.assertEqual(len(forms.forms), 5)
         self.assertTrue(all(f.get("action") == "/inspect" and f.get("method") == "get"
                             for f in forms.forms))
 
@@ -246,3 +246,381 @@ class EvidenceInspectorTests(unittest.TestCase):
         code, _, body = self.fetch(host="attacker.example")
         self.assertEqual((code, json.loads(body)), (403, {"error": "loopback_host_required"}))
         self.assertEqual(self.path.read_bytes(), self.original)
+
+    def test_browser_knowledge_comparison_has_original_provenance_and_json_parity(self):
+        before = "2026-01-05T00:00:00Z"
+        params = {"view": "compare-knowledge", "entity": "building-001",
+                  "at": AT, "from_known_at": before, "to_known_at": LATE}
+        code, headers, body = self.fetch(params=params)
+        self.assertEqual(code, 200)
+        self.assertIn("script-src 'none'", headers["Content-Security-Policy"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertEqual(headers["Content-Length"], str(len(body)))
+        html = body.decode("utf-8")
+        expected = self.world.compare_knowledge("building-001", AT, before, LATE)
+        self.assertEqual(expected["status"], "CHANGED")
+        self.assertIn("Newly current", html)
+        self.assertIn("No longer current", html)
+        self.assertIn("Knowledge changes are not verified physical", html)
+        self.assertIn("/compare-knowledge?", html)
+        from html import escape
+        for change in expected["changes"].values():
+            for report in change["newly_current"] + change["no_longer_current"]:
+                self.assertIn(escape(json.dumps(report, ensure_ascii=False,
+                    sort_keys=True, indent=2, allow_nan=False)), html)
+        raw_params = {k: v for k, v in params.items() if k != "view"}
+        status, _, original = self.fetch("/compare-knowledge", raw_params)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(original), expected)
+        self.assertEqual(self.path.read_bytes(), self.original)
+
+    def test_browser_knowledge_comparison_unchanged_and_invalid_inputs(self):
+        params = {"view": "compare-knowledge", "entity": "building-001",
+                  "at": AT, "from_known_at": LATE,
+                  "to_known_at": "2026-01-08T00:00:00Z"}
+        status, _, body = self.fetch(params=params)
+        self.assertEqual(status, 200)
+        self.assertIn(b"UNCHANGED", body)
+        self.assertNotIn(b"UNKNOWN \xe2\x80\x94 no matching", body)
+        for changed in ({"to_known_at": LATE},
+                        {"to_known_at": "2026-01-04T00:00:00Z"},
+                        {"at": "invalid"},
+                        {"unexpected": "overwrite"}):
+            code, _, body = self.fetch(params={**params, **changed})
+            self.assertEqual((code, json.loads(body)),
+                             (400, {"error": "invalid_query"}))
+        code, _, body = self.fetch("/inspect?view=compare-knowledge&" +
+                                    urlencode(params))
+        self.assertEqual((code, json.loads(body)),
+                         (400, {"error": "invalid_query"}))
+        code, _, body = self.fetch(params={**params,
+            "entity": "<img src=x onerror=alert(1)>"})
+        self.assertEqual((code, json.loads(body)),
+                         (400, {"error": "invalid_query"}))
+
+    def test_browser_knowledge_correction_links_old_and_new_points_to_correct_cutoffs(self):
+        from tests.test_world_geojson_changes import K1 as GEO_K1
+        geographic = change_model()
+        original_report = correct(geographic)
+        state = Path(self.dir.name) / "geographic-compare.json"
+        geographic.save(state)
+        saved = state.read_bytes()
+        server = create_server(state)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        def read(target):
+            conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+            try:
+                conn.request("GET", target, headers={
+                    "Host": "127.0.0.1:" + str(server.server_port)})
+                response = conn.getresponse()
+                return response.status, response.read().decode("utf-8")
+            finally:
+                conn.close()
+        class MapLinks(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.links = []
+            def handle_starttag(self, tag, attributes):
+                if tag == "a":
+                    href = dict(attributes).get("href", "")
+                    if href.startswith("/viewer?"):
+                        self.links.append(href)
+        try:
+            params = {"view": "compare-knowledge", "entity": "site-a",
+                      "at": GEO_AT, "from_known_at": GEO_K1, "to_known_at": GEO_K2}
+            code, body = read("/inspect?" + urlencode(params))
+            self.assertEqual(code, 200)
+            self.assertIn(original_report["assertion_id"], body)
+            self.assertIn("correct-a", body)
+            parser = MapLinks()
+            parser.feed(body)
+            self.assertEqual(len(parser.links), 3)
+            located = {}
+            comparison = None
+            for link in parser.links:
+                parsed = urlsplit(link)
+                args = {k: v[0] for k, v in parse_qs(parsed.query).items()}
+                self.assertEqual(parsed.path, "/viewer")
+                if args["view"] == "knowledge-changes":
+                    comparison = args
+                    self.assertEqual(args["at"], GEO_AT)
+                    self.assertEqual(args["from_known_at"], GEO_K1)
+                    self.assertEqual(args["to_known_at"], GEO_K2)
+                else:
+                    self.assertEqual(args["view"], "radius")
+                    self.assertEqual(args["at"], GEO_AT)
+                    located[args["known_at"]] = args["center"]
+                map_code, map_html = read(link)
+                self.assertEqual(map_code, 200)
+                self.assertIn("MONDE Mini", map_html)
+            self.assertIsNotNone(comparison)
+            code, raw = read("/map-knowledge-changes?" + urlencode({
+                key: value for key, value in comparison.items() if key != "view"}))
+            self.assertEqual(code, 200)
+            self.assertEqual({f["properties"]["monde_change"]
+                              for f in json.loads(raw)["features"]},
+                             {"NO_LONGER_CURRENT", "NEWLY_CURRENT"})
+            self.assertEqual(located, {
+                GEO_K1: "2.35,48.85", GEO_K2: "3.25,49.1"})
+            self.assertEqual(state.read_bytes(), saved)
+        finally:
+            server.shutdown()
+            worker.join(timeout=5)
+            server.server_close()
+
+    def test_browser_world_comparison_uses_existing_world_model_and_json(self):
+        params = {"view": "compare-world", "entity": "building-001",
+                  "from_at": "2025-12-31T00:00:00Z", "to_at": AT, "known_at": LATE}
+        code, headers, content = self.fetch(params=params)
+        self.assertEqual(code, 200)
+        self.assertIn("script-src 'none'", headers["Content-Security-Policy"])
+        self.assertIn("no-store", headers["Cache-Control"])
+        html = content.decode("utf-8")
+        expected = self.world.compare_world_time("building-001",
+            params["from_at"], params["to_at"], LATE)
+        self.assertEqual(expected["status"], "CHANGED")
+        self.assertEqual(expected["comparison"], "WORLD_TIME_REPORTS_ONLY")
+        self.assertIn("Reported at later world time", html)
+        self.assertIn("source assertions", html)
+        from html import escape
+        for delta in expected["changes"].values():
+            for report in delta["newly_current"] + delta["no_longer_current"]:
+                self.assertIn(escape(json.dumps(report, ensure_ascii=False,
+                    sort_keys=True, indent=2, allow_nan=False)), html)
+        raw = {k: v for k, v in params.items() if k != "view"}
+        status, _, body = self.fetch("/compare-world", raw)
+        self.assertEqual((status, json.loads(body)), (200, expected))
+        stable = {**params, "from_at": AT, "to_at": "2026-01-03T00:00:00Z"}
+        status, _, body = self.fetch(params=stable)
+        self.assertEqual(status, 200)
+        self.assertIn(b"UNCHANGED", body)
+        for broken in ({"to_at": params["from_at"]},
+                       {"from_at": params["to_at"]},
+                       {"known_at": "not-a-date"},
+                       {"unexpected": "oops"}):
+            status, _, body = self.fetch(params={**params, **broken})
+            self.assertEqual((status, json.loads(body)),
+                             (400, {"error": "invalid_query"}))
+        self.assertEqual(self.path.read_bytes(), self.original)
+
+    def test_browser_world_comparison_map_links_keep_original_world_cutoffs(self):
+        from tests.test_world_geojson_changes import K1 as GEO_K1
+        world = change_model()
+        world.append_document({
+            "schema_version": 1,
+            "evidence": [
+                {"id": "e-old-location", "source_id": "historical-survey",
+                 "locator": "fixture://old-location", "captured_at": GEO_K1,
+                 "source_event_at": None},
+                {"id": "e-new-location", "source_id": "updated-survey",
+                 "locator": "fixture://new-location", "captured_at": GEO_K1,
+                 "source_event_at": None}],
+            "assertions": [
+                {"id": "a-old-location", "entity": "site-a", "attribute": "geo_point",
+                 "value": {"type": "Point", "coordinates": [2.0, 48.0]},
+                 "evidence_id": "e-old-location", "kind": "CLAIM",
+                 "known_at": GEO_K1, "valid_from": GEO_VALID,
+                 "valid_to": "2026-01-03T00:00:00Z", "supersedes": None},
+                {"id": "a-new-location", "entity": "site-a", "attribute": "geo_point",
+                 "value": {"type": "Point", "coordinates": [3.0, 49.0]},
+                 "evidence_id": "e-new-location", "kind": "CLAIM",
+                 "known_at": GEO_K1, "valid_from": "2026-01-03T00:00:00Z",
+                 "valid_to": None, "supersedes": None}]
+        })
+        state = Path(self.dir.name) / "world-times.json"
+        world.save(state)
+        before = state.read_bytes()
+        server = create_server(state)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        try:
+            query = {"view": "compare-world", "entity": "site-a",
+                     "from_at": GEO_AT, "to_at": "2026-01-04T00:00:00Z",
+                     "known_at": GEO_K1}
+            connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+            try:
+                connection.request("GET", "/inspect?" + urlencode(query),
+                    headers={"Host": "127.0.0.1:" + str(server.server_port)})
+                response = connection.getresponse()
+                self.assertEqual(response.status, 200)
+                document = response.read().decode("utf-8")
+            finally:
+                connection.close()
+            class Links(HTMLParser):
+                def __init__(self):
+                    super().__init__()
+                    self.urls = []
+                def handle_starttag(self, tag, attrs):
+                    if tag == "a":
+                        href = dict(attrs).get("href", "")
+                        if href.startswith("/viewer?"):
+                            self.urls.append(href)
+            parser = Links()
+            parser.feed(document)
+            self.assertIn("a-old-location", document)
+            self.assertIn("a-new-location", document)
+            self.assertEqual(len(parser.urls), 3)
+            links = {}
+            comparison = None
+            for url in parser.urls:
+                args = {k: values[0] for k, values in
+                        parse_qs(urlsplit(url).query).items()}
+                self.assertEqual(args["known_at"], GEO_K1)
+                if args["view"] == "world-changes":
+                    comparison = args
+                    self.assertEqual(args["from_at"], GEO_AT)
+                    self.assertEqual(args["to_at"], "2026-01-04T00:00:00Z")
+                else:
+                    self.assertEqual(args["view"], "radius")
+                    links[args["at"]] = args["center"]
+            self.assertIsNotNone(comparison)
+            connection = http.client.HTTPConnection(
+                "127.0.0.1", server.server_port, timeout=5)
+            try:
+                connection.request("GET", "/map-world-changes?" + urlencode({
+                    key: value for key, value in comparison.items()
+                    if key != "view"}), headers={
+                    "Host": "127.0.0.1:" + str(server.server_port)})
+                response = connection.getresponse()
+                self.assertEqual(response.status, 200)
+                collection = json.loads(response.read())
+                self.assertEqual({f["properties"]["monde_change"]
+                    for f in collection["features"]},
+                    {"NO_LONGER_CURRENT", "NEWLY_CURRENT"})
+            finally:
+                connection.close()
+            self.assertEqual(links, {GEO_AT: "2.0,48.0",
+                "2026-01-04T00:00:00Z": "3.0,49.0"})
+            self.assertEqual(state.read_bytes(), before)
+        finally:
+            server.shutdown()
+            worker.join(timeout=5)
+            server.server_close()
+
+
+    def test_bitemporal_map_link_does_not_invent_original_geography(self):
+        from monde.local_api import _comparison_map_link
+        params = {"at": GEO_AT, "from_known_at": "2026-01-01T00:00:00Z",
+                  "to_known_at": "2026-01-04T00:00:00Z"}
+        no_points = {"changes": {"floors": {
+            "newly_current": [{"value": 4}], "no_longer_current": []}}}
+        self.assertIsNone(_comparison_map_link(no_points, "compare-knowledge", params))
+        def point(lon, lat):
+            return {"value": {"type": "Point", "coordinates": [lon, lat]}}
+        changes = {"changes": {"geo_point": {
+            "newly_current": [point(179.9, 48)],
+            "no_longer_current": [point(-179.9, 48)]}}}
+        dateline = _comparison_map_link(changes, "compare-knowledge", params)
+        self.assertIsNotNone(dateline)
+        args = {k: v[0] for k, v in parse_qs(urlsplit(dateline).query).items()}
+        self.assertEqual(args["view"], "knowledge-changes")
+        west, south, east, north = map(float, args["bbox"].split(","))
+        self.assertGreater(west, east)
+        self.assertGreater(west, 179.8)
+        self.assertLess(east, -179.8)
+        self.assertLessEqual(south, 48)
+        self.assertGreaterEqual(north, 48)
+        world_params = {"from_at": GEO_AT, "to_at": "2026-01-04T00:00:00Z",
+                        "known_at": GEO_K2}
+        world_url = _comparison_map_link(changes, "compare-world", world_params)
+        self.assertIsNotNone(world_url)
+        world_args = {k: v[0] for k, v in
+                      parse_qs(urlsplit(world_url).query).items()}
+        self.assertEqual(world_args["view"], "world-changes")
+        self.assertGreater(float(world_args["bbox"].split(",")[0]),
+                           float(world_args["bbox"].split(",")[2]))
+        changes["changes"]["geo_point"]["newly_current"].append(point(0, 48))
+        self.assertIsNone(_comparison_map_link(changes, "compare-knowledge", params))
+        changes["changes"]["geo_point"]["newly_current"].pop()
+        changes["changes"]["geo_point"]["no_longer_current"] = [point(179.8, 48)]
+        url = _comparison_map_link(changes, "compare-knowledge", params)
+        self.assertTrue(url.startswith("/viewer?"))
+        args = {k: v[0] for k, v in parse_qs(urlsplit(url).query).items()}
+        self.assertEqual(args["view"], "knowledge-changes")
+        self.assertEqual(args["to_known_at"], params["to_known_at"])
+        west, south, east, north = map(float, args["bbox"].split(","))
+        self.assertLessEqual(west, 179.8)
+        self.assertGreaterEqual(east, 179.9)
+        self.assertLessEqual(south, 48)
+        self.assertGreaterEqual(north, 48)
+
+    def test_dateline_comparison_map_roundtrip_with_original_reports(self):
+        """Follow a wrapped map link using actual saved source records and HTTP."""
+        from monde.geojson import to_document
+        from tests.test_world_geojson_changes import K1 as K1
+        world = WorldMini()
+        world.append_document(to_document({
+            "type": "FeatureCollection",
+            "features": [{"type": "Feature", "id": "dateline-site",
+                          "geometry": {"type": "Point", "coordinates": [179.9, 48]},
+                          "properties": {}}],
+        }, source_id="survey-east", locator="fixture://east",
+            captured_at=K1, valid_from=GEO_VALID))
+        old = world.query("dateline-site", "geo_point", GEO_AT, K1)["reports"][0]
+        world.append_document({"schema_version": 1, "evidence": [{
+            "id": "cross-dateline-e", "source_id": "survey-east",
+            "locator": "fixture://west-correction", "captured_at": GEO_K2,
+            "source_event_at": None}],
+            "assertions": [{
+                "id": "cross-dateline-a", "entity": "dateline-site",
+                "attribute": "geo_point",
+                "value": {"type": "Point", "coordinates": [-179.9, 48]},
+                "evidence_id": "cross-dateline-e", "kind": "CLAIM",
+                "known_at": GEO_K2, "valid_from": GEO_VALID,
+                "valid_to": None, "supersedes": old["assertion_id"]}]})
+        state = Path(self.dir.name) / "dateline.json"
+        world.save(state)
+        saved = state.read_bytes()
+        server = create_server(state)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        def read(url):
+            connection = http.client.HTTPConnection("127.0.0.1", server.server_port,
+                                                     timeout=5)
+            try:
+                connection.request("GET", url, headers={
+                    "Host": "127.0.0.1:" + str(server.server_port)})
+                response = connection.getresponse()
+                return response.status, response.read().decode("utf-8")
+            finally:
+                connection.close()
+        try:
+            query = {"view": "compare-knowledge", "entity": "dateline-site",
+                     "at": GEO_AT, "from_known_at": K1, "to_known_at": GEO_K2}
+            status, html = read("/inspect?" + urlencode(query))
+            self.assertEqual(status, 200)
+            class Links(HTMLParser):
+                def __init__(self):
+                    super().__init__()
+                    self.urls = []
+                def handle_starttag(self, tag, attrs):
+                    if tag == "a":
+                        self.urls.append(dict(attrs).get("href", ""))
+            links = Links()
+            links.feed(html)
+            map_urls = [url for url in links.urls
+                        if url.startswith("/viewer?view=knowledge-changes")]
+            self.assertEqual(len(map_urls), 1)
+            args = {key: values[0] for key, values in
+                    parse_qs(urlsplit(map_urls[0]).query).items()}
+            west, south, east, north = map(float, args["bbox"].split(","))
+            self.assertGreater(west, east)
+            self.assertLessEqual(west, 179.9)
+            self.assertGreaterEqual(east, -179.9)
+            status, map_html = read(map_urls[0])
+            self.assertEqual(status, 200)
+            self.assertIn("MONDE Mini", map_html)
+            status, body = read("/map-knowledge-changes?" + urlencode({
+                key: value for key, value in args.items() if key != "view"}))
+            self.assertEqual(status, 200)
+            features = json.loads(body)["features"]
+            self.assertEqual({tuple(f["geometry"]["coordinates"]) for f in features},
+                             {(179.9, 48), (-179.9, 48)})
+            self.assertEqual({f["properties"]["monde_change"] for f in features},
+                             {"NO_LONGER_CURRENT", "NEWLY_CURRENT"})
+            self.assertEqual(state.read_bytes(), saved)
+        finally:
+            server.shutdown()
+            worker.join(timeout=5)
+            server.server_close()

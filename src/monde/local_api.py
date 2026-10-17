@@ -94,14 +94,24 @@ _INSPECTION_FORMS = (
     ("entity", "Entity evidence dossier", ("entity", "at", "known_at")),
     ("reports", "Source reports for an attribute", ("entity", "attribute", "at", "known_at")),
     ("source-history", "Original source correction history", ("source", "known_at")),
+    ("compare-knowledge", "What changed in our knowledge of an entity?",
+     ("entity", "at", "from_known_at", "to_known_at")),
+    ("compare-world", "How did sources report the entity across world time?",
+     ("entity", "from_at", "to_at", "known_at")),
 )
 _INSPECTION_LABELS = {
     "entity": "Entity ID", "attribute": "Attribute", "source": "Original source ID",
     "at": "World time (ISO-8601 with timezone)",
     "known_at": "Knowledge cutoff (ISO-8601 with timezone)",
+    "from_known_at": "Earlier knowledge cutoff (ISO-8601 with timezone)",
+    "to_known_at": "Later knowledge cutoff (ISO-8601 with timezone)",
+    "from_at": "Earlier world time (ISO-8601 with timezone)",
+    "to_at": "Later world time (ISO-8601 with timezone)",
 }
 _INSPECTION_ROUTES = {
     "entity": "/entity", "reports": "/reports", "source-history": "/source-history",
+    "compare-knowledge": "/compare-knowledge",
+    "compare-world": "/compare-world",
 }
 
 
@@ -126,6 +136,44 @@ def _report_map_link(attribute: str, report: dict, mode: str,
         "at": (report["valid_from"] if mode == "source-history" else params["at"]),
         "known_at": params["known_at"],
     })
+
+
+def _comparison_map_link(payload: dict, mode: str,
+                         params: dict[str, str]) -> str | None:
+    """Show original source Point changes on the existing bitemporal map."""
+    from .geojson import _point
+
+    coords = []
+    for change in payload["changes"].values():
+        for report in change["newly_current"] + change["no_longer_current"]:
+            try:
+                coords.append(_point(report["value"])["coordinates"])
+            except (KeyError, ValueError, TypeError):
+                continue
+    if not coords:
+        return None
+    south, north = min(p[1] for p in coords), max(p[1] for p in coords)
+    # Find the shortest circular longitude span of original source Points.
+    longitudes = sorted((p[0] + 180) % 360 for p in coords)
+    gaps = [(longitudes[i + 1] - longitudes[i], i)
+            for i in range(len(longitudes) - 1)]
+    gaps.append((longitudes[0] + 360 - longitudes[-1], len(longitudes) - 1))
+    largest_gap, index = max(gaps)
+    if 360 - largest_gap > 180:
+        # No misleading globe-scale comparison viewport.
+        return None
+    west = (longitudes[(index + 1) % len(longitudes)] - 0.02) % 360 - 180
+    east = (longitudes[index] + 0.02) % 360 - 180
+    bounds = (west, max(-90, south - 0.02),
+              east, min(90, north + 0.02))
+    query = {"view": ("knowledge-changes" if mode == "compare-knowledge"
+                      else "world-changes"),
+             "bbox": ",".join(str(v) for v in bounds)}
+    fields = (("at", "from_known_at", "to_known_at")
+              if mode == "compare-knowledge" else
+              ("from_at", "to_at", "known_at"))
+    query.update({key: params[key] for key in fields})
+    return "/viewer?" + urlencode(query)
 
 
 def _inspection_html(payload: dict | None, mode: str | None = None,
@@ -155,37 +203,78 @@ def _inspection_html(payload: dict | None, mode: str | None = None,
         items = []
         if mode == "entity":
             for attribute, value in payload["attributes"].items():
-                items.extend((attribute, report) for report in value["reports"])
+                items.extend((attribute, report, "", params["known_at"])
+                             for report in value["reports"])
+        elif mode in {"compare-knowledge", "compare-world"}:
+            # Keep both bitemporal comparisons owned by the World Model.
+            if mode == "compare-knowledge":
+                earlier, later = params["from_known_at"], params["to_known_at"]
+                old_label, new_label = "No longer current", "Newly current"
+            else:
+                earlier, later = params["from_at"], params["to_at"]
+                old_label, new_label = ("Reported at earlier world time",
+                                        "Reported at later world time")
+            for attribute, change in payload["changes"].items():
+                for report in change["newly_current"]:
+                    items.append((attribute, report, new_label, later))
+                for report in change["no_longer_current"]:
+                    items.append((attribute, report, old_label, earlier))
         else:
-            items.extend((report.get("attribute", params.get("attribute", "")), report)
+            items.extend((report.get("attribute", params.get("attribute", "")),
+                          report, "", params["known_at"])
                          for report in payload["reports"])
         records = []
-        for attribute, report in items:
+        for attribute, report, label, cutoff in items:
             title = " / ".join(str(report.get(field, "")) for field in
                                ("source_id", "assertion_id"))
-            map_url = _report_map_link(attribute, report, mode, params)
+            # A retired report is mapped at the earlier cutoff, not the later
+            # one where it has already been superseded.
+            if mode == "compare-knowledge":
+                map_url = _report_map_link(
+                    attribute, report, "entity",
+                    {"at": params["at"], "known_at": cutoff})
+            elif mode == "compare-world":
+                map_url = _report_map_link(
+                    attribute, report, "entity",
+                    {"at": cutoff, "known_at": params["known_at"]})
+            else:
+                map_url = _report_map_link(attribute, report, mode, params)
             map_link = ('<p><a href="' + escape(map_url, quote=True) +
                         '">Show this original reported Point on the map</a></p>'
                         if map_url else '')
-            records.append('<details><summary>' + escape(attribute) + ': ' +
+            records.append('<details><summary>' +
+                           (escape(label) + ' / ' if label else '') +
+                           escape(attribute) + ': ' +
                            escape(title) + '</summary><pre>' +
                            escape(json.dumps(report, ensure_ascii=False, sort_keys=True,
                                              indent=2, allow_nan=False)) +
                            '</pre>' + map_link + '</details>')
         source_url = _INSPECTION_ROUTES[mode] + "?" + urlencode({
             key: value for key, value in params.items() if key != "view"})
+        comparison_link = (_comparison_map_link(payload, mode, params)
+                           if mode in {"compare-knowledge", "compare-world"}
+                           else None)
+        map_overview = ('<p><a href="' + escape(comparison_link, quote=True) +
+                        '">Map earlier and later original source Points together</a>'
+                        ' (may include nearby source reports)</p>'
+                        if comparison_link else '')
         title = next(label for name, label, _ in _INSPECTION_FORMS if name == mode)
         content = ('<h1>' + escape(title) + '</h1><p class="warning">Original '
                    'source assertions only: no reconciliation, inferred truth or '
-                   'proof of absence. Corrections remain visible at the selected '
+                   'proof of absence. Knowledge changes are not verified physical '
+                   'changes. Corrections remain visible at the selected '
                    'knowledge cutoff.</p><p>World: ' +
                    escape(str(payload.get("world", "OBSERVED"))) +
                    ' · Status: ' + escape(str(payload.get("status", "SOURCE_REPORTS"))) +
                    ' · Reports: ' + str(len(items)) + '</p><p><a href="' +
                    escape(source_url, quote=True) +
                    '">View complete original JSON response</a></p>' +
+                   map_overview +
                    (''.join(records) if records else
-                    '<p role="status">UNKNOWN — no matching source report at these cutoffs.</p>'))
+                    ('<p role="status">UNCHANGED — no newly current or retired '
+                     'source reports between these selected cutoffs.</p>'
+                     if mode in {"compare-knowledge", "compare-world"} else
+                     '<p role="status">UNKNOWN — no matching source report at these cutoffs.</p>')))
     return ('''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MONDE Mini — Evidence Inspector</title>
@@ -424,6 +513,17 @@ def create_server(state: str | Path, port: int = 0, *,
                         output = world.source_history(
                             args["source"], args["known_at"],
                             args.get("entity"), args.get("attribute"))
+                    elif mode == "compare-knowledge":
+                        _require(args, {"view", "entity", "at",
+                                        "from_known_at", "to_known_at"})
+                        output = world.compare_knowledge(
+                            args["entity"], args["at"], args["from_known_at"],
+                            args["to_known_at"])
+                    elif mode == "compare-world":
+                        _require(args, {"view", "entity", "from_at", "to_at", "known_at"})
+                        output = world.compare_world_time(
+                            args["entity"], args["from_at"], args["to_at"],
+                            args["known_at"])
                     else:
                         raise ValueError("unsupported inspection mode")
                     return self._inspection(output, mode, args)
