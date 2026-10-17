@@ -306,7 +306,7 @@ This is a native read-only GET /viewer over existing WorldMini queries:
 no new model, inferred physical movement, external service, upload or saved-state
 change. Standalone offline CLI maps intentionally show no server-dependent form.
 
-### Investigate contradictory source Points by original source (WORK-0059)
+### Investigate contradictory source Points by original source (WORK-0065)
 
 The local `/explore` disagreement map can now focus on a selected original
 source ID. `/viewer?view=disagreements` and `/map-disagreements` accept an
