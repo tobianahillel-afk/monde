@@ -160,5 +160,65 @@ class DisagreementReportHTTPTests(unittest.TestCase):
 
 
 
+
+    def test_source_focused_geojson_export_matches_full_original_report_and_csv(self):
+        params = {**QUERY, "source": "survey-east"}
+        status, headers, raw = self.fetch("/map-disagreements", params)
+        self.assertEqual(status, 200)
+        document = json.loads(raw)
+        features = document["features"]
+        self.assertEqual(document["monde_disagreement_source_focus"], "survey-east")
+        self.assertEqual({f["properties"]["entity"] for f in features}, {"site-a"})
+        self.assertEqual({f["properties"]["source_id"] for f in features},
+                         {"survey-east", "survey-west"})
+        self.assertEqual({tuple(f["geometry"]["coordinates"]) for f in features},
+                         {(2.35, 48.85), (7.2, 47.5)})
+        self.assertEqual({f["properties"]["monde_inside_bbox"] for f in features},
+                         {True, False})
+        self.assertTrue(all(f["properties"]["evidence_id"]
+                            and f["properties"]["assertion_id"] for f in features))
+        self.assertEqual(document["monde_bbox_query"]["total_matching_entities"], 1)
+        self.assertEqual(document["monde_bbox_query"]["total_source_features"], 2)
+        self.assertIn("no-store", headers["Cache-Control"])
+        csv_status, _, csv_raw = self.fetch("/disagreement.csv", params)
+        self.assertEqual(csv_status, 200)
+        rows = list(csv.DictReader(io.StringIO(csv_raw.decode("utf-8"))))
+        self.assertEqual(
+            {(f["properties"]["source_id"], f["properties"]["assertion_id"])
+             for f in features},
+            {(row["source_id"], row["assertion_id"]) for row in rows})
+        self.assertEqual({r["inside_bbox"] for r in rows}, {"true", "false"})
+        report = self.fetch("/disagreement-report", params)[2].decode("utf-8")
+        for feature in features:
+            self.assertIn(feature["properties"]["evidence_id"], report)
+
+    def test_source_focus_never_borrows_the_other_sources_bbox_qualification(self):
+        status, _, raw = self.fetch(
+            "/map-disagreements", {**QUERY, "source": "survey-west"})
+        self.assertEqual(status, 200)
+        data = json.loads(raw)
+        self.assertEqual(data["features"], [])
+        self.assertEqual(data["monde_bbox_query"]["total_matching_entities"], 0)
+        self.assertEqual(data["monde_bbox_query"]["status"], "NO_MATCHES")
+        status, _, raw = self.fetch("/map-disagreements", {
+            **QUERY, "source": "unseen-source"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw)["features"], [])
+        status, _, raw = self.fetch(
+            "/map-disagreements", {**QUERY, "source": "../survey-east"})
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+    def test_unfiltered_disagreement_geojson_remains_original_world_export(self):
+        status, _, raw = self.fetch("/map-disagreements", QUERY)
+        self.assertEqual(status, 200)
+        expected = self.world.export_geojson_disagreements(
+            AT, K1, [2.3, 48.8, 2.4, 48.9])
+        self.assertEqual(json.loads(raw), expected)
+        status, _, blank = self.fetch(
+            "/map-disagreements", {**QUERY, "source": ""})
+        self.assertEqual(status, 200)
+        self.assertEqual(blank, raw)
+
 if __name__ == "__main__":
     unittest.main()

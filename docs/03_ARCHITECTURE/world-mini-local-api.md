@@ -336,3 +336,17 @@ CSV data uses standard quoting and neutralizes spreadsheet formulas in
 text identifiers. These are **original conflicting assertions**, not a
 verified location, physical motion or reconciled consensus. Unfiltered
 reports keep their existing behavior; no data writes or new dependencies.
+
+
+### Complete source-focused GeoJSON evidence (WORK-0068)
+
+When an analyst selects `source` in `/disagreement-report`, its **Open
+read-only GeoJSON** link now returns exactly the same qualifying original
+opposing Point reports as the HTML report and `/disagreement.csv`. A source's
+own disputed Point must be inside the bbox; opposing source positions **outside
+that viewport** remain in the GeoJSON with their assertion/evidence IDs and
+`monde_inside_bbox` flags. This prevents a filtered map download from
+silently dropping contradictory evidence. Only the optional `source` version
+of `/map-disagreements` uses the existing full disagreement viewer selection.
+Without `source` (or when it is blank), the legacy WorldMini JSON response
+remains unchanged. No inferred location, new endpoint or persisted-state write.
