@@ -1,0 +1,61 @@
+id: WORK-0035
+title: "Inspect source GeoPackage MultiLineString components offline"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini original source evidence"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Decode local EPSG:4326 GeoPackage MultiLineString member traces independently
+  and preserve their original source evidence on the offline MONDE Mini map.
+scope:
+  in: ["GeoPackage MULTILINESTRING members", "offline trace display", "source provenance"]
+  out: ["inferred route network", "verified movement", "3D geometry", "reprojection"]
+acceptance_criteria:
+  - {id: AC-1, description: "Each original line component has stable source identity and source vertex order.", status: NOT_STARTED}
+  - {id: AC-2, description: "CLI and mixed manifests render disconnected source lines without invented connecting edges.", status: NOT_STARTED}
+  - {id: AC-3, description: "Malformed nested WKB, mismatched CRS and envelopes fail atomically.", status: NOT_STARTED}
+requirements: []
+assumptions: ["Local read-only physical 2D GeoPackage feature table, EPSG:4326."]
+risks: ["Binary parsing", "Misjoined segments", "Misrepresented geographic truth"]
+assurance:
+  level: A3
+  rationale: "Untrusted nested WKB and explicit source-topology preservation."
+  escalation_triggers: ["Remote network acquisition", "Change to World Model truth semantics"]
+depends_on: [WORK-0034]
+reuses: ["src/monde/geopackage_points.py", "src/monde/map_view.py"]
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+blocks: []
+affected_capabilities: []
+affected_engines: ["MONDE Mini offline map"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["Original-source topology", "Bitemporal provenance", "Atomic output"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Decode bounded WKB MultiLineString members.", depends_on: [], expected_files: [src/monde/geopackage_points.py], status: NOT_STARTED}
+    - {id: T2, description: "Preserve original member identity and render source routes.", depends_on: [T1], expected_files: [src/monde/map_view.py], status: NOT_STARTED}
+    - {id: T3, description: "Prove live SQLite, CLI, manifest and invalid-input behavior.", depends_on: [T2], expected_files: [tests/test_world_geopackage_multilines.py], status: NOT_STARTED}
+review_plan:
+  artifact_class: DATA_SOURCE_CONNECTOR
+  independence_level: L2_TARGET
+  required_hats: [SECURITY, VERIFICATION_VALIDATION, DATA_EPISTEMIC, OPERATIONS]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["mixed endian nested WKB, member identity and bounds"]
+  integration: ["SQLite source -> WorldMini bitemporal records -> HTML"]
+  e2e: ["direct CLI and mixed source-manifest offline map"]
+  regression: ["GeoPackage Point, LineString, Polygon and MultiPolygon"]
+  security: ["invalid geometries cause no partial output"]
+  real_system: ["GitHub Actions real SQLite and offline HTML"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Parent WORK-0034 and ancestor product PRs remain Draft.", "L2 pending."]
+rollback:
+  strategy: "Close the child PR without modifying parent or main."

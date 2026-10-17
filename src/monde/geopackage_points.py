@@ -1,4 +1,4 @@
-"""Bounded read-only GeoPackage EPSG:4326 Point/LineString/Polygon/MultiPolygon adapter for original source evidence."""
+"""Bounded read-only GeoPackage EPSG:4326 Point/LineString/MultiLineString/Polygon/MultiPolygon adapter for original source evidence."""
 import hashlib
 import math
 import os
@@ -133,6 +133,55 @@ def _polygon(blob):
 
 
 
+
+def _multiline(blob):
+    """Decode original bounded 2D WKB MultiLineString members, never join paths."""
+    if (not isinstance(blob, bytes) or len(blob) < 17 or len(blob) > MAX_BYTES
+            or blob[:3] != b"GP\x00"):
+        raise ValueError("GeoPackage requires one bounded MultiLineString")
+    flags = blob[3]
+    envelope = (flags >> 1) & 7
+    if flags & 0xF0 or envelope not in (0, 1):
+        raise ValueError("unsupported GeoPackage MultiLineString flags")
+    header_endian = "<" if flags & 1 else ">"
+    if struct.unpack_from(header_endian + "i", blob, 4)[0] != 4326:
+        raise ValueError("GeoPackage MultiLineString is not EPSG:4326")
+    offset = 8 + (32 if envelope else 0)
+    if len(blob) < offset + 9 or blob[offset] not in (0, 1):
+        raise ValueError("GeoPackage requires 2D WKB MultiLineString")
+    endian = "<" if blob[offset] == 1 else ">"
+    kind, count = struct.unpack_from(endian + "II", blob, offset + 1)
+    if kind != 5 or not 1 <= count <= 128:
+        raise ValueError("MultiLineString needs 1..128 original LineString components")
+    pos = offset + 9
+    lines = []
+    total = 0
+    for _ in range(count):
+        if pos + 9 > len(blob) or blob[pos] not in (0, 1):
+            raise ValueError("truncated MultiLineString member")
+        member_endian = "<" if blob[pos] == 1 else ">"
+        member_type, vertices = struct.unpack_from(member_endian + "II", blob, pos + 1)
+        if (member_type != 2 or vertices < 2
+                or vertices > MAX_POINTS - total
+                or pos + 9 + 16 * vertices > len(blob)):
+            raise ValueError("invalid bounded MultiLineString member")
+        end = pos + 9 + 16 * vertices
+        # Delegate coordinate and WKB validity to the existing LineString decoder.
+        member = b"GP\x00\x01" + struct.pack("<i", 4326) + blob[pos:end]
+        lines.append(_line(member))
+        total += vertices
+        pos = end
+    if pos != len(blob):
+        raise ValueError("unexpected trailing MultiLineString bytes")
+    if envelope:
+        west, east, south, north = struct.unpack_from(header_endian + "dddd", blob, 8)
+        if (not all(math.isfinite(v) for v in (west, east, south, north))
+                or any(not west <= lon <= east or not south <= lat <= north
+                       for line in lines for lon, lat in line)):
+            raise ValueError("GeoPackage envelope contradicts MultiLineString vertices")
+    return lines
+
+
 def _multipolygon(blob):
     """Preserve each original WKB MultiPolygon component and its independent rings."""
     if (not isinstance(blob, bytes) or len(blob) < 17 or len(blob) > MAX_BYTES
@@ -215,8 +264,9 @@ def to_geojson(path, *, layer):
                     or reference != [("EPSG", 4326)]
                     or columns_metadata[0][1:] not in (
                         ("POINT", 4326, 0, 0), ("LINESTRING", 4326, 0, 0),
-                         ("POLYGON", 4326, 0, 0), ("MULTIPOLYGON", 4326, 0, 0))):
-                raise ValueError("layer must declare a 2D EPSG:4326 Point, LineString, Polygon or MultiPolygon table")
+                         ("POLYGON", 4326, 0, 0), ("MULTIPOLYGON", 4326, 0, 0),
+                         ("MULTILINESTRING", 4326, 0, 0))):
+                raise ValueError("layer must declare a 2D EPSG:4326 Point, LineString, MultiLineString, Polygon or MultiPolygon table")
             kind = columns_metadata[0][1]
             geometry_field = columns_metadata[0][0]
             geom_sql = _identifier(geometry_field)
@@ -262,6 +312,8 @@ def to_geojson(path, *, layer):
                                          "type": "Point", "coordinates": _point(row[1])}})
                 else:
                     polygons = (_multipolygon(row[1]) if kind == "MULTIPOLYGON"
+                                else [[line] for line in _multiline(row[1])]
+                                if kind == "MULTILINESTRING"
                                 else [[_line(row[1])] if kind == "LINESTRING"
                                       else _polygon(row[1])])
                     if len(features) + sum(len(ring) for rings in polygons for ring in rings) > MAX_POINTS:
@@ -273,7 +325,7 @@ def to_geojson(path, *, layer):
                     is_polygon = kind in ("POLYGON", "MULTIPOLYGON")
                     for polygon_index, rings in enumerate(polygons):
                         trace_key = layer + ":" + str(row[0])
-                        if kind == "MULTIPOLYGON":
+                        if kind in ("MULTIPOLYGON", "MULTILINESTRING"):
                             trace_key += ":" + str(polygon_index)
                         trace_id = hashlib.sha256(trace_key.encode("utf-8")).hexdigest()[:24]
                         for segment, ring in enumerate(rings):
@@ -281,21 +333,27 @@ def to_geojson(path, *, layer):
                                 trace = {
                                     "format": ("GPKG_1_3_MULTIPOLYGON_RING_POINT"
                                                if kind == "MULTIPOLYGON" else
+                                               "GPKG_1_3_MULTILINESTRING_POINT"
+                                               if kind == "MULTILINESTRING" else
                                                "GPKG_1_3_POLYGON_RING_POINT" if is_polygon
                                                else "GPKG_1_3_LINESTRING_POINT"),
-                                    "kind": ("MultiPolygon" if kind == "MULTIPOLYGON"
-                                             else "Polygon" if is_polygon else "LineString"),
+                                    "kind": ("MultiPolygon" if kind == "MULTIPOLYGON" else
+                                             "MultiLineString" if kind == "MULTILINESTRING" else
+                                             "Polygon" if is_polygon else "LineString"),
                                     "name": label, "trace_id": trace_id,
                                     "segment": segment, "order": order,
                                     "layer": layer, "feature_id": str(row[0])}
                                 if kind == "MULTIPOLYGON":
                                     trace["polygon_index"] = polygon_index
+                                if kind == "MULTILINESTRING":
+                                    trace["line_index"] = polygon_index
                                 features.append({
                                     "type": "Feature",
-                                    "id": ("gpkg-multipolygon-" if kind == "MULTIPOLYGON"
+                                    "id": ("gpkg-multipolygon-" if kind == "MULTIPOLYGON" else
+                                           "gpkg-multiline-" if kind == "MULTILINESTRING"
                                            else "gpkg-polygon-" if is_polygon else "gpkg-line-")
                                           + layer + "-" + str(row[0]) + "-"
-                                          + (str(polygon_index) + "-" if kind == "MULTIPOLYGON"
+                                          + (str(polygon_index) + "-" if kind in ("MULTIPOLYGON", "MULTILINESTRING")
                                              else "")
                                           + (str(segment) + "-" if is_polygon else "")
                                           + str(order),
