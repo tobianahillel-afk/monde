@@ -81,7 +81,10 @@ def _explorer_html(source_ids: tuple[str, ...] = ()) -> str:
         forms.append(
             '<form action="/viewer" method="get"><h2>' + title + '</h2>' +
             '<input type="hidden" name="view" value="' + mode + '">' +
-            ''.join(inputs) + '<button type="submit">Open map</button>' +
+            ''.join(inputs) +
+            ('<label><input type="checkbox" name="different_only" value="1"> '
+             'Only different reported positions</label>' if mode == "compare-sources" else '') +
+            '<button type="submit">Open map</button>' +
             (' <button type="submit" formaction="/source-catalog">Browse in-area sources</button>'
              if mode == "current" else '') + '</form>')
     return """<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -481,7 +484,16 @@ are counted; counts do not imply agreement or physical truth.</p><ul>""" +
             '</body></html>')
 
 
-def _compare_source_bbox(document: dict, first: str, second: str) -> dict:
+def _different_only(args: dict[str, str]) -> bool:
+    """Only the opt-in literal 1 is permitted, no boolean coercion."""
+    value = args.get("different_only")
+    if value is not None and value != "1":
+        raise ValueError("invalid different_only")
+    return value == "1"
+
+
+def _compare_source_bbox(document: dict, first: str, second: str,
+                         different_only: bool = False) -> dict:
     """Show only paired original source reports, never reconciled positions.
 
     An entity qualifies if BOTH selected sources have a current Point and at
@@ -504,6 +516,16 @@ def _compare_source_bbox(document: dict, first: str, second: str) -> dict:
         if {first, second} <= {f["properties"]["source_id"] for f in features}
         and any(f["properties"]["monde_inside_bbox"] for f in features)
     }
+    if different_only:
+        # Compare each source's complete reported Point sets for an entity.
+        # Equality of source positions is not evidence of verified truth.
+        qualifying = {
+            entity for entity in qualifying
+            if {tuple(f["geometry"]["coordinates"]) for f in grouped[entity]
+                if f["properties"]["source_id"] == first}
+            != {tuple(f["geometry"]["coordinates"]) for f in grouped[entity]
+                if f["properties"]["source_id"] == second}
+        }
     features = [feature for feature in document["features"]
                 if feature["properties"]["entity"] in qualifying
                 and feature["properties"]["source_id"] in {first, second}]
@@ -511,11 +533,14 @@ def _compare_source_bbox(document: dict, first: str, second: str) -> dict:
             "total_matching_entities": len(qualifying),
             "total_source_features": len(features),
             "status": "MATCHES" if features else "NO_MATCHES"}
-    return {**document, "features": features, "monde_bbox_query": bbox,
+    result = {**document, "features": features, "monde_bbox_query": bbox,
             "monde_source_comparison": {
                 "source_a": first, "source_b": second,
                 "comparison_basis": "ORIGINAL_SOURCE_POINTS_NOT_GROUND_TRUTH",
                 "matching_entities": len(qualifying)}}
+    if different_only:
+        result["monde_source_comparison"]["scope"] = "DIFFERENT_REPORTED_POINT_SETS"
+    return result
 
 
 def create_server(state: str | Path, port: int = 0, *,
@@ -703,11 +728,13 @@ def create_server(state: str | Path, port: int = 0, *,
                         _bbox(args["bbox"]), args["at"], args["known_at"]), args)
                     return self._inspection(output, "viewport-source-catalog", args)
                 elif path == "/map-compare-sources":
-                    _require(args, {"bbox", "at", "known_at", "source_a", "source_b"})
+                    _require(args, {"bbox", "at", "known_at", "source_a", "source_b"},
+                             {"different_only"})
                     output = _compare_source_bbox(
                         world.export_geojson_bbox(
                             _bbox(args["bbox"]), args["at"], args["known_at"]),
-                        args["source_a"], args["source_b"])
+                        args["source_a"], args["source_b"],
+                        _different_only(args))
                 elif path == "/map-disagreements":
                     _require(args, {"bbox", "at", "known_at"})
                     output = world.export_geojson_disagreements(
@@ -768,11 +795,12 @@ def create_server(state: str | Path, port: int = 0, *,
                             args.get("source"))
                     elif mode == "compare-sources":
                         _require(args, {"view", "bbox", "at", "known_at",
-                                        "source_a", "source_b"})
+                                        "source_a", "source_b"}, {"different_only"})
                         geojson = _compare_source_bbox(
                             world.export_geojson_bbox(_bbox(args["bbox"]),
                                                       args["at"], args["known_at"]),
-                            args["source_a"], args["source_b"])
+                            args["source_a"], args["source_b"],
+                            _different_only(args))
                     elif mode == "disagreements":
                         _require(args, {"view", "bbox", "at", "known_at"})
                         from .map_view import disagreement_view
