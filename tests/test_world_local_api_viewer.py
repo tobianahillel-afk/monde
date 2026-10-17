@@ -190,7 +190,7 @@ class BrowserViewerTests(unittest.TestCase):
              self.world.export_geojson_nearest(center, 1, AT, K1)),
             (dict(view="radius", center="2.3522,48.8566",
                   radius_km="5", at=AT, known_at=K1),
-             self.world.export_geojson_radius(center, 5, AT, K1)),
+             self.world.export_geojson_radius(center, 5.0, AT, K1)),
         )
         for query, expected in queries:
             with self.subTest(view=query["view"]):
@@ -220,7 +220,7 @@ class BrowserViewerTests(unittest.TestCase):
             query = dict(view="radius", center="2.3522,48.8566",
                          radius_km="5", at=AT, known_at=K1)
             status, _, document = self.fetch(query, server=server)
-            expected = model.export_geojson_radius([2.3522, 48.8566], 5, AT, K1)
+            expected = model.export_geojson_radius([2.3522, 48.8566], 5.0, AT, K1)
             self.assertEqual(status, 200)
             self.assertEqual(document.decode("utf-8"), render_map(expected))
             features = expected["features"]
