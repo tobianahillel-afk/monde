@@ -1,0 +1,52 @@
+id: WORK-0064
+title: "Browse original source comparison evidence side by side"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini evidence explorer"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Make an existing pair of original source-reported Point maps inspectable as
+  source-specific evidence rows, without inferring a real-world position.
+scope:
+  in: ["Read-only side-by-side original source comparison HTML",
+       "Original assertion and evidence IDs and same-origin dossier links",
+       "Real HTTP/browser navigation and no-mutation tests"]
+  out: ["New data model", "Consensus positions", "External requests", "Writes"]
+acceptance_criteria:
+  - {id: AC-1, description: "Reuse current pair comparison and display both original positions including offscreen originals.", status: NOT_STARTED}
+  - {id: AC-2, description: "Preserve source/evidence/assertion IDs and world/knowledge cutoffs in dossier links.", status: NOT_STARTED}
+  - {id: AC-3, description: "Read-only native explorer opens report with difference filter intact.", status: NOT_STARTED}
+  - {id: AC-4, description: "Enforce strict parameters, output escaping and no mutation of saved snapshot.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0063]
+read_before: [AGENTS.md, src/monde/local_api.py, src/monde/map_view.py]
+reuses: [monde.local_api._compare_source_bbox, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Render original side-by-side evidence report from existing pair comparison.", depends_on: [], expected_files: [src/monde/local_api.py], status: IN_REVIEW}
+    - {id: T2, description: "Prove real HTTP and source provenance without snapshot mutation.", depends_on: [T1], expected_files: [tests/test_world_local_api_source_pair_report.py], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_source_pair_report.py]
+  real_system: ["Exact-head GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0063 / PR #90."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close the stacked PR; no migration or data changes."

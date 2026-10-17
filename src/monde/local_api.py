@@ -86,7 +86,9 @@ def _explorer_html(source_ids: tuple[str, ...] = ()) -> str:
              'Only different reported positions</label>' if mode == "compare-sources" else '') +
             '<button type="submit">Open map</button>' +
             (' <button type="submit" formaction="/source-catalog">Browse in-area sources</button>'
-             if mode == "current" else '') + '</form>')
+             if mode == "current" else '') +
+            (' <button type="submit" formaction="/source-pair-report">Inspect paired source evidence</button>'
+             if mode == "compare-sources" else '') + '</form>')
     return """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MONDE Mini — Evidence Explorer</title>
@@ -543,6 +545,66 @@ def _compare_source_bbox(document: dict, first: str, second: str,
     return result
 
 
+
+def _source_pair_report_html(document: dict, args: dict[str, str]) -> str:
+    """Human-readable original Point pairs, using the *same* selected map data.
+
+    This is a report of source assertions, never proof of true location or
+    deduced motion. Includes offscreen original Points from qualifying entities.
+    """
+    entries = []
+    for feature in document["features"]:
+        props = feature["properties"]
+        dossier = "/inspect?" + urlencode({
+            "view": "entity", "entity": props["entity"],
+            "at": args["at"], "known_at": args["known_at"]})
+        cells = (props["entity"], props["source_id"],
+                 json.dumps(feature["geometry"]["coordinates"],
+                            ensure_ascii=False, allow_nan=False),
+                 props["assertion_id"], props["evidence_id"],
+                 "Inside selection" if props["monde_inside_bbox"] else
+                 "Outside selection — original retained")
+        entries.append(
+            "<tr>" + "".join("<td>" + escape(str(cell), quote=True) + "</td>"
+                             for cell in cells) +
+            '<td><a href="' + escape(dossier, quote=True) +
+            '">Original entity dossier</a></td></tr>')
+    compare = document["monde_source_comparison"]
+    query = urlencode({k: v for k, v in args.items() if k != "view"})
+    heading = ("Original source positions: " +
+               escape(compare["source_a"]) + " versus " +
+               escape(compare["source_b"]))
+    message = (
+        "Only entities with different complete reported Point sets."
+        if args.get("different_only") == "1" else
+        "All entities reported by both selected sources in the selection.")
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<title>MONDE Mini — Original source comparison</title>'
+        '<style>body{font:16px system-ui;background:#101827;color:#ebf2f9;'
+        'margin:auto;max-width:1200px;padding:20px}a{color:#8ee6d3}'
+        'table{border-collapse:collapse;width:100%}'
+        'td,th{padding:9px;border:1px solid #48677e;text-align:left;'
+        'overflow-wrap:anywhere}p{line-height:1.5}'
+        ':focus-visible{outline:3px solid #ffc870}</style>'
+        '</head><body><h1>' + heading + '</h1>'
+        '<p>Source-reported evidence, not consensus coordinates or verified truth. '
+        'World validity and knowledge cutoffs remain distinct.</p>'
+        '<p>' + escape(message) + ' Matching entities: ' +
+        str(compare["matching_entities"]) + '; original Point reports: ' +
+        str(len(document["features"])) + '.</p>'
+        '<p><a href="/viewer?' +
+        escape(urlencode({"view": "compare-sources", **{
+            k: v for k, v in args.items() if k != "view"}}), quote=True) +
+        '">Return to original evidence map</a></p>'
+        '<table><thead><tr><th>Entity</th><th>Source</th><th>Original coordinates'
+        '</th><th>Assertion</th><th>Evidence</th><th>Viewport</th>'
+        '<th>Dossier</th></tr></thead><tbody>' +
+        ''.join(entries) + '</tbody></table></body></html>'
+    )
+
+
 def create_server(state: str | Path, port: int = 0, *,
                   max_response_bytes: int = MAX_RESPONSE_BYTES) -> ThreadingHTTPServer:
     """Load once, then serve queries only on 127.0.0.1. No state writes."""
@@ -608,7 +670,8 @@ def create_server(state: str | Path, port: int = 0, *,
 
         def _inspection(self, payload: dict | None, mode: str | None = None,
                         params: dict[str, str] | None = None):
-            body = (_source_catalog_html(payload) if mode == "source-catalog"
+            body = (_source_pair_report_html(payload, params) if mode == "source-pair-report"
+                    else _source_catalog_html(payload) if mode == "source-catalog"
                     else _viewport_source_catalog_html(payload, params)
                     if mode == "viewport-source-catalog"
                     else _inspection_html(payload, mode, params)).encode("utf-8")
@@ -650,7 +713,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/world-knowledge-changes", "/map-disagreements",
                             "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore", "/inspect",
                             "/sources", "/sources-browser", "/map-sources", "/source-catalog",
-                             "/map-compare-sources"}:
+                             "/map-compare-sources", "/source-pair-report"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -735,6 +798,17 @@ def create_server(state: str | Path, port: int = 0, *,
                             _bbox(args["bbox"]), args["at"], args["known_at"]),
                         args["source_a"], args["source_b"],
                         _different_only(args))
+                elif path == "/source-pair-report":
+                    _require(args, {"view", "bbox", "at", "known_at",
+                                    "source_a", "source_b"}, {"different_only"})
+                    if args["view"] != "compare-sources":
+                        raise ValueError("unsupported source comparison report")
+                    output = _compare_source_bbox(
+                        world.export_geojson_bbox(
+                            _bbox(args["bbox"]), args["at"], args["known_at"]),
+                        args["source_a"], args["source_b"],
+                        _different_only(args))
+                    return self._inspection(output, "source-pair-report", args)
                 elif path == "/map-disagreements":
                     _require(args, {"bbox", "at", "known_at"})
                     output = world.export_geojson_disagreements(
