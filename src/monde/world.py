@@ -1232,11 +1232,15 @@ def main(argv=None) -> int:
                            help="import source-attributed 2D GeoJSON points")
     selection.add_argument("--ingest-csv", metavar="POINTS_CSV",
                            help="import explicitly attributed local WGS84 CSV Points")
+    selection.add_argument("--preview-source-manifest", metavar="DATASETS_JSON",
+                            help="preview source refresh and earlier reported values without saving")
     selection.add_argument("--refresh-source-manifest", metavar="DATASETS_JSON",
                             help="append a later source capture to a saved state; keep old reports")
     selection.add_argument("--ingest-csv-manifest", "--ingest-source-manifest",
                            dest="ingest_csv_manifest", metavar="DATASETS_JSON",
                            help="atomically import original mixed source datasets")
+    parser.add_argument("--preview-source-map", metavar="HTML_PATH",
+                        help="with --preview-source-manifest, create an offline map of new source Points")
     parser.add_argument("--state-out", help="destination JSON snapshot for ingestion")
     parser.add_argument("--source-id", help="source identity for GeoJSON assertions")
     parser.add_argument("--source-locator", help="original dataset locator for GeoJSON provenance")
@@ -1265,6 +1269,8 @@ def main(argv=None) -> int:
     parser.add_argument("--compare-known-at", help="earlier knowledge cutoff; requires --all-attributes")
     parser.add_argument("--compare-at", help="earlier valid-world-time; requires --all-attributes and --at")
     args = parser.parse_args(argv)
+    if args.preview_source_map and not args.preview_source_manifest:
+        parser.error("--preview-source-map requires --preview-source-manifest")
     if ((args.search_geo_radius is None and args.export_geojson_radius is None)
             != (args.radius_km is None)):
         parser.error("--radius-km requires a source Point radius mode")
@@ -1277,6 +1283,41 @@ def main(argv=None) -> int:
     try:
         geo_metadata = (args.source_id, args.source_locator, args.captured_at,
                         args.valid_from, args.valid_to, args.source_event_at)
+        if args.preview_source_manifest:
+            if (not args.fixture or args.state_out or args.replace_state
+                    or any(v is not None for v in geo_metadata)
+                    or any(v is not None for v in
+                           (args.csv_id_column, args.csv_lon_column,
+                            args.csv_lat_column))
+                    or args.entity is not None or args.known_at is not None
+                    or args.at is not None or args.timeline_from is not None
+                    or args.timeline_to is not None
+                    or args.knowledge_timeline_from is not None
+                    or args.compare_known_at is not None or args.compare_at is not None
+                    or args.updates_from is not None or args.equals_json is not None
+                    or args.source_attribute is not None):
+                parser.error("preview requires --fixture; no output, query or replace flags")
+            from .csv_points import documents_from_manifest
+            from .source_refresh import preview_documents, refresh_documents
+            from .world import WorldMini as PersistedWorldMini
+            # The read-only snapshot path is the exclusion target, not an output.
+            batches, features = documents_from_manifest(
+                args.preview_source_manifest, output_path=args.fixture)
+            before = PersistedWorldMini.read(args.fixture)
+            result = preview_documents(before, batches)
+            if args.preview_source_map:
+                from .source_delta import source_delta_html
+                # Finish all source validation and map rendering before opening
+                # any output. 'x' forbids replacing a snapshot, manifest or
+                # original source file even through a symlink.
+                candidate, _ = refresh_documents(before, batches)
+                page = source_delta_html(before, candidate)
+                with open(args.preview_source_map, "x", encoding="utf-8") as target:
+                    target.write(page)
+                result["preview_map_html"] = args.preview_source_map
+            print(json.dumps({"features": features, **result},
+                             ensure_ascii=False, sort_keys=True, allow_nan=False))
+            return 0
         if args.refresh_source_manifest:
             if (not args.fixture or not args.state_out or args.replace_state
                     or any(v is not None for v in geo_metadata)

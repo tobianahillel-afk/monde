@@ -45,3 +45,44 @@ assertion count, distinct entity count, attributes and timestamp ranges.
 Reports captured after the cutoff and assertions learned later are excluded.
 This **read-only** inventory does not modify the original datasets or
 persistent snapshot and does not imply truth, confidence or physical movement.
+
+
+## Preview a source capture without changing saved state (WORK-0044)
+
+Inspect source-reported changes, including before/after values and the
+original source locator, **before** deciding to save another world snapshot:
+
+```sh
+PYTHONPATH=src python3 -m monde.world \
+  --fixture previous-world.json \
+  --preview-source-manifest updated-sources.json
+```
+
+The result is a JSON report labeled `PREVIEW_NOT_SAVED`. No output state is
+created or overwritten. Both earlier and incoming values are **source claims**,
+not reconciled physical truth. Missing rows never imply that features were
+deleted. Invalid, ambiguous, or stale captures reject without output state.
+The analyst can then run the existing `--refresh-source-manifest`
+command with a new `--state-out` after reviewing the evidence.
+Changing the manifest between preview and refresh requires a new inspection.
+
+## Preview new source Point reports on an offline map (WORK-0044)
+
+Create a local map **before** accepting a later capture. The HTML contains only
+newly recorded source-reported Points, with source identity, original locator,
+valid/knowledge times and correction ancestry. It is **not** a map of verified
+physical movement or deletions:
+
+```sh
+PYTHONPATH=src python3 -m monde.world \
+  --fixture previous-world.json \
+  --preview-source-manifest updated-sources.json \
+  --preview-source-map capture-preview.html
+```
+
+The command still prints the ordinary `PREVIEW_NOT_SAVED` JSON summary;
+`preview_map_html` identifies the created offline visualization. It does
+not create or alter a WorldMini snapshot. The HTML output must be a **new path**
+(existing output, the manifest, source files and the original snapshot cannot
+be overwritten). An invalid capture produces no map. No network access is
+needed to open the generated page.
