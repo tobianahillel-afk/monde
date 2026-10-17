@@ -116,7 +116,7 @@ class SourceLensHTTPTests(unittest.TestCase):
                 self.assertEqual(code, 400)
                 self.assertEqual(json.loads(body), {"error": "invalid_query"})
         for route, query in (
-            ("/viewer", {"view": "disagreements", **QUERY, "source": "survey-east"}),
+            ("/viewer", {"view": "disagreements", **QUERY, "source": "../survey-east"}),
             ("/map", {**QUERY, "source": "survey-east", "extra": "x"}),
         ):
             code, _, body = self.fetch(route, query)

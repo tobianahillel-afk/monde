@@ -20,7 +20,7 @@ MAX_RESPONSE_BYTES = 2_000_000
 
 _EXPLORER_VIEWS = (
     ("current", "Current reports", ("bbox", "at", "known_at", "source")),
-    ("disagreements", "Source disagreements", ("bbox", "at", "known_at")),
+    ("disagreements", "Source disagreements", ("bbox", "at", "known_at", "source")),
     ("knowledge-changes", "Newly known or corrected evidence",
      ("bbox", "at", "from_known_at", "to_known_at", "source")),
     ("world-changes", "Changes in reported validity",
@@ -32,7 +32,7 @@ _EXPLORER_VIEWS = (
 )
 _EXPLORER_LABELS = {
     "bbox": "WGS84 bounds (west,south,east,north)",
-    "source": "Optional original source ID (show only that source)",
+    "source": "Optional source ID (in disagreements, show its opposing reports too)",
     "center": "WGS84 search center (longitude,latitude)",
     "limit": "Maximum nearest entities (1–1000)",
     "radius_km": "Search radius (kilometers)",
@@ -398,6 +398,41 @@ def _filter_source_changes(document: dict, source: str | None, query_key: str) -
             "monde_source_filter": source}
 
 
+
+def _focus_disagreement_source(document: dict, source: str | None) -> dict:
+    """Show disagreements involving a source without hiding opposing evidence.
+
+    Qualification is based on the selected source's own point *inside* the
+    viewport. Once qualified, retain every already-exported conflicting
+    source report for that entity, including opposing positions outside it.
+    """
+    if source is None:
+        return document
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}", source):
+        raise ValueError("invalid source ID")
+    qualifying = {
+        feature["properties"]["entity"] for feature in document["features"]
+        if feature["properties"]["source_id"] == source
+        and feature["properties"].get("monde_inside_bbox", True)
+    }
+    features = [f for f in document["features"]
+                if f["properties"]["entity"] in qualifying]
+    result = {**document, "features": features,
+              "monde_disagreement_source_focus": source}
+    if "monde_bbox_query" in document:
+        query = {**document["monde_bbox_query"],
+                 "total_matching_entities": len(qualifying),
+                 "total_source_features": len(features),
+                 "status": "MATCHES" if features else "NO_MATCHES"}
+        result["monde_bbox_query"] = query
+    if "monde_disagreements_view" in document:
+        result["monde_disagreements_view"] = {
+            **document["monde_disagreements_view"],
+            "conflicting_entities_in_view": len(qualifying),
+        }
+    return result
+
+
 def create_server(state: str | Path, port: int = 0, *,
                   max_response_bytes: int = MAX_RESPONSE_BYTES) -> ThreadingHTTPServer:
     """Load once, then serve queries only on 127.0.0.1. No state writes."""
@@ -559,9 +594,11 @@ def create_server(state: str | Path, port: int = 0, *,
                         args["at"], args["from_known_at"], args["to_known_at"],
                         args.get("attribute"))
                 elif path == "/map-disagreements":
-                    _require(args, {"bbox", "at", "known_at"})
-                    output = world.export_geojson_disagreements(
-                        args["at"], args["known_at"], _bbox(args["bbox"]))
+                    _require(args, {"bbox", "at", "known_at"}, {"source"})
+                    output = _focus_disagreement_source(
+                        world.export_geojson_disagreements(
+                            args["at"], args["known_at"], _bbox(args["bbox"])),
+                        args.get("source"))
                 elif path == "/map-knowledge-changes":
                     _require(args, {"bbox", "at", "from_known_at", "to_known_at"},
                              {"source"})
@@ -623,10 +660,13 @@ def create_server(state: str | Path, port: int = 0, *,
                             _bbox(args["bbox"]), args["at"], args["known_at"]),
                             args.get("source"))
                     elif mode == "disagreements":
-                        _require(args, {"view", "bbox", "at", "known_at"})
+                        _require(args, {"view", "bbox", "at", "known_at"},
+                                 {"source"})
                         from .map_view import disagreement_view
-                        geojson = disagreement_view(
-                            world, _bbox(args["bbox"]), args["at"], args["known_at"])
+                        geojson = _focus_disagreement_source(
+                            disagreement_view(world, _bbox(args["bbox"]),
+                                              args["at"], args["known_at"]),
+                            args.get("source"))
                     elif mode == "knowledge-changes":
                         _require(args, {"view", "bbox", "at",
                                         "from_known_at", "to_known_at"},
