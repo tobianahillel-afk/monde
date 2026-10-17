@@ -269,3 +269,17 @@ near-global rectangle. Widely dispersed reports spanning more than 180°
 still have no misleading combined map link. Original reports, cutoffs,
 provenance and saved state remain unchanged. A real local HTTP test follows
 the wrapped viewer link and verifies both original Point change reports.
+
+
+### Change world validity and knowledge time on the open map (WORK-0057)
+
+Local /viewer maps include an expandable **Explore another world / knowledge
+time** form. Editing the UTC world-validity and knowledge cutoff opens the
+same map or proximity query at those times, preserving its geographic viewport,
+center, mode and distance or limit. Current maps can switch to cross-source
+disagreements without returning to /explore.
+
+Knowledge/world comparison maps preserve their earlier/later temporal cutoffs.
+This is a native read-only GET /viewer over existing WorldMini queries:
+no new model, inferred physical movement, external service, upload or saved-state
+change. Standalone offline CLI maps intentionally show no server-dependent form.
