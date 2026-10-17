@@ -154,8 +154,9 @@ class SnapshotDeltaTests(unittest.TestCase):
 
     def test_html_source_text_is_script_escaped_and_divergent_history_fails(self):
         from monde.source_delta import source_delta_html
-        unsafe = document("e1", "a1", source="</script><script>alert(1)</script>",
+        unsafe = document("e1", "a1", source="survey",
                           value={"type": "Point", "coordinates": [1, 2]})
+        unsafe["evidence"][0]["locator"] = "</script><script>alert(1)</script>"
         unsafe["assertions"][0]["attribute"] = "geo_point"
         after = WorldMini.from_document(unsafe)
         html = source_delta_html(WorldMini(), after)
