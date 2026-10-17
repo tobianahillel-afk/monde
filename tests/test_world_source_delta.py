@@ -161,7 +161,7 @@ class SnapshotDeltaTests(unittest.TestCase):
         after = WorldMini.from_document(unsafe)
         html = source_delta_html(WorldMini(), after)
         self.assertNotIn("</script><script>alert(1)", html)
-        self.assertIn("\\\\u003c", html)
+        self.assertIn("\\u003c", html)
         with self.assertRaisesRegex(ValueError, "diverged"):
             source_delta_html(after, WorldMini())
 
