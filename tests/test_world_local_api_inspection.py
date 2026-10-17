@@ -624,3 +624,79 @@ class EvidenceInspectorTests(unittest.TestCase):
             server.shutdown()
             worker.join(timeout=5)
             server.server_close()
+
+
+    def test_viewer_time_navigation_preserves_query_and_is_read_only(self):
+        class Form(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.fields, self.forms, self.options = {}, [], []
+            def handle_starttag(self, tag, attrs):
+                props = dict(attrs)
+                if tag == "form" and props.get("action") == "/viewer":
+                    self.forms.append(props)
+                if tag == "input" and "name" in props:
+                    self.fields[props["name"]] = props.get("value", "")
+                if tag == "option" and "selected" in props:
+                    self.options.append(props.get("value"))
+        modes = (
+            ("current", {"bbox": "2.3,48.8,2.4,48.9", "at": AT, "known_at": LATE}),
+            ("disagreements", {"bbox": "2.3,48.8,2.4,48.9", "at": AT, "known_at": LATE}),
+            ("nearest", {"center": "2.3522,48.8566", "limit": "10", "at": AT, "known_at": LATE}),
+            ("radius", {"center": "2.3522,48.8566", "radius_km": "5", "at": AT, "known_at": LATE}),
+            ("knowledge-changes", {"bbox": "2.3,48.8,2.4,48.9", "at": AT,
+                                   "from_known_at": "2026-01-01T00:00:00Z", "to_known_at": LATE}),
+            ("world-changes", {"bbox": "2.3,48.8,2.4,48.9",
+                               "from_at": "2025-12-31T00:00:00Z", "to_at": AT,
+                               "known_at": LATE}),
+        )
+        for mode, args in modes:
+            query = {"view": mode, **args}
+            status, headers, content = self.fetch("/viewer", query)
+            self.assertEqual(status, 200, mode)
+            self.assertIn("no-store", headers["Cache-Control"])
+            self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+            self.assertIn("form-action 'self'", headers["Content-Security-Policy"])
+            html = content.decode("utf-8")
+            self.assertIn("Explore another world / knowledge time", html)
+            parser = Form()
+            parser.feed(html)
+            self.assertEqual(len(parser.forms), 1)
+            self.assertEqual(parser.forms[0]["method"], "get")
+            self.assertEqual(parser.fields, args if mode in {"current", "disagreements"}
+                             else query)
+            if mode in {"current", "disagreements"}:
+                self.assertEqual(parser.options, [mode])
+            self.assertIn("not verified physical changes", html)
+        before = {"view": "current", "bbox": "2.3,48.8,2.4,48.9",
+                  "at": AT, "known_at": "2026-01-03T00:00:00Z"}
+        after = {**before, "known_at": LATE}
+        old, _, old_map = self.fetch("/viewer", before)
+        new, _, new_map = self.fetch("/viewer", after)
+        self.assertEqual((old, new), (200, 200))
+        self.assertIn(before["known_at"].encode(), old_map)
+        self.assertIn(after["known_at"].encode(), new_map)
+
+    def test_time_navigation_is_not_in_offline_cli_export(self):
+        from monde.map_view import render_map
+        document = self.world.export_geojson_bbox([2.3, 48.8, 2.4, 48.9], AT, LATE)
+        standalone = render_map(document)
+        self.assertNotIn("Explore another world / knowledge time", standalone)
+        self.assertNotIn("__MONDE_TIME_NAVIGATION__", standalone)
+        self.assertNotIn('action="/viewer"', standalone)
+
+    def test_viewer_navigation_rejects_unsafe_query_and_escapes_values(self):
+        params = {"view": "current", "bbox": "2.3,48.8,2.4,48.9",
+                  "at": AT, "known_at": LATE}
+        for bad in ({"at": '<img src=x onerror=alert(1)>'},
+                    {"known_at": "yesterday"},
+                    {"unexpected": "new"},
+                    {"bbox": '2.3,48.8,2.4,48.9"><script>alert(1)</script>'}):
+            status, _, body = self.fetch("/viewer", {**params, **bad})
+            self.assertEqual((status, json.loads(body)), (400, {"error": "invalid_query"}))
+        from monde.map_view import _viewer_time_navigation
+        with self.assertRaises(ValueError):
+            _viewer_time_navigation({**params, "other": "bad"})
+        safe = _viewer_time_navigation({**params, "known_at": '"<unsafe>&'})
+        self.assertIn("&quot;&lt;unsafe&gt;&amp;", safe)
+        self.assertNotIn('value=""<unsafe>', safe)

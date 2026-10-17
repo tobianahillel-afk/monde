@@ -6,6 +6,7 @@ tiles, infer a physical location, or turn source assertions into truth.
 from __future__ import annotations
 
 import argparse
+from html import escape as html_escape
 import json
 from pathlib import Path
 import math
@@ -34,6 +35,12 @@ h2{font-size:1rem; margin:0 0 12px}
 small,.subtle{color:#b6c4d6}
 main{display:grid;grid-template-columns:minmax(0,2fr) minmax(290px,1fr);gap:16px;padding:16px;max-width:1600px;margin:0 auto}
 section,aside{border:1px solid #314154;border-radius:12px;background:#182436;padding:14px;min-width:0}
+.time-navigation{padding:10px 22px;background:#192b3b;border-bottom:1px solid #38526a}
+.time-navigation summary{cursor:pointer;color:#8ee6d3;font-weight:bold}
+.time-navigation p{color:#b6c4d6}
+.time-navigation form{display:flex;gap:12px;flex-wrap:wrap;align-items:end;padding:12px 0}
+.time-navigation label{display:flex;flex-direction:column;gap:5px;font-size:.83rem}
+.time-navigation input{min-width:200px}
 #map{width:100%;height:auto;max-height:65vh;background:#102b3b;border:1px solid #38526a;border-radius:8px;touch-action:none}
 #disagreement-links line{stroke:#f0a0e3;stroke-width:2.5;stroke-dasharray:7 5;opacity:.85;pointer-events:none}
 #source-traces line{stroke:#58e1dd;stroke-width:2.8;stroke-dasharray:3 2;opacity:.8;pointer-events:none}
@@ -84,6 +91,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 </head>
 <body>
 <header><h1>MONDE Mini <span class="subtle">/ evidence-based world map</span></h1><small id="cutoffs"></small></header>
+__MONDE_TIME_NAVIGATION__
 <main>
 <section aria-label="Source-report map">
 <h2>Source-reported Points</h2>
@@ -1452,7 +1460,67 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 """
 
 
-def render_map(document: dict, *, inspector_links: bool = False) -> str:
+
+_VIEWER_TIME_FIELDS = {
+    "current": ("bbox", "at", "known_at"),
+    "disagreements": ("bbox", "at", "known_at"),
+    "knowledge-changes": ("bbox", "at", "from_known_at", "to_known_at"),
+    "world-changes": ("bbox", "from_at", "to_at", "known_at"),
+    "nearest": ("center", "limit", "at", "known_at"),
+    "radius": ("center", "radius_km", "at", "known_at"),
+}
+_VIEWER_TIME_LABELS = {
+    "bbox": "WGS84 bounds (west, south, east, north)",
+    "center": "WGS84 search center (longitude, latitude)",
+    "limit": "Maximum nearest source entities",
+    "radius_km": "Reported search radius (km)",
+    "at": "Reported world time (UTC ISO-8601)",
+    "known_at": "Knowledge cutoff (UTC ISO-8601)",
+    "from_known_at": "Earlier knowledge cutoff (UTC ISO-8601)",
+    "to_known_at": "Later knowledge cutoff (UTC ISO-8601)",
+    "from_at": "Earlier reported world time (UTC ISO-8601)",
+    "to_at": "Later reported world time (UTC ISO-8601)",
+}
+
+def _viewer_time_navigation(query: dict[str, str] | None) -> str:
+    """Loopback-only, native GET navigation; no inferred truth or state writes."""
+    if query is None:
+        return ""
+    if type(query) is not dict or query.get("view") not in _VIEWER_TIME_FIELDS:
+        raise ValueError("invalid time navigation")
+    mode = query["view"]
+    fields = _VIEWER_TIME_FIELDS[mode]
+    if set(query) != set(fields) | {"view"} or any(
+            type(value) is not str or len(value) > 256 for value in query.values()):
+        raise ValueError("invalid time navigation")
+    if mode in {"current", "disagreements"}:
+        options = "".join(
+            '<option value="' + name + '"' + (' selected' if name == mode else '') +
+            '>' + ("All source reports" if name == "current" else
+                   "Cross-source disagreements") + "</option>"
+            for name in ("current", "disagreements"))
+        view_field = '<label>Map view <select name="view">' + options + '</select></label>'
+    else:
+        view_field = '<input type="hidden" name="view" value="' + html_escape(mode) + '">'
+    inputs = "".join(
+        '<label>' + html_escape(_VIEWER_TIME_LABELS[field]) +
+        '<input name="' + field + '" value="' +
+        html_escape(query[field], quote=True) + '" required></label>'
+        for field in fields)
+    return (
+        '<nav class="time-navigation" aria-label="World and knowledge time navigation">'
+        '<details><summary>Explore another world / knowledge time</summary>'
+        '<p>Edit source-reported world validity and/or what was known. '
+        'These are distinct clocks, not verified physical changes. '
+        'The original map area or search center is retained.</p>'
+        '<form action="/viewer" method="get">' +
+        view_field + inputs +
+        '<button type="submit">Open evidence at selected times</button></form>'
+        '</details></nav>')
+
+
+def render_map(document: dict, *, inspector_links: bool = False,
+               navigation: dict[str, str] | None = None) -> str:
     """Render source reports; live dossier links are enabled only on loopback."""
     if type(inspector_links) is not bool:
         raise ValueError("inspector_links must be boolean")
@@ -1713,6 +1781,7 @@ def render_map(document: dict, *, inspector_links: bool = False) -> str:
     if not reference.startswith('{"kind":"NATURAL_EARTH_110M_LAND_CONTEXT_V1","polygons":['):
         raise ValueError("invalid bundled Natural Earth reference")
     return (_TEMPLATE.replace("__MONDE_EMBEDDED_GEOJSON__", encoded)
+            .replace("__MONDE_TIME_NAVIGATION__", _viewer_time_navigation(navigation))
             .replace("__MONDE_EMBEDDED_REFERENCE_LAND__", reference)
             .replace("__MONDE_INSPECTOR_ENABLED__",
                      "true" if inspector_links else "false"))

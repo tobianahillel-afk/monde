@@ -361,11 +361,12 @@ def create_server(state: str | Path, port: int = 0, *,
             self.wfile.write(body)
 
 
-        def _html(self, geojson: dict | None):
+        def _html(self, geojson: dict | None, navigation: dict[str, str] | None = None):
             # Reuse the offline map renderer; no new browser-side service or
             # unauthenticated state-changing route is introduced.
             from .map_view import render_map
-            body = (_explorer_html() if geojson is None else render_map(geojson, inspector_links=True)).encode("utf-8")
+            body = (_explorer_html() if geojson is None else render_map(geojson, inspector_links=True,
+                                 navigation=navigation)).encode("utf-8")
             if len(body) > max_response_bytes:
                 return self._reply(413, {"error": "response_too_large"})
             self.send_response(200)
@@ -380,7 +381,7 @@ def create_server(state: str | Path, port: int = 0, *,
                              "style-src 'unsafe-inline'; connect-src 'none'; "
                              "img-src 'none'; object-src 'none'; base-uri 'none'; "
                              "frame-ancestors 'none'" +
-                             ("; form-action 'self'" if geojson is None else ""))
+                             ("; form-action 'self'" if geojson is None or navigation is not None else ""))
             self.end_headers()
             self.wfile.write(body)
 
@@ -568,7 +569,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             args["at"], args["known_at"])
                     else:
                         raise ValueError("unsupported viewer mode")
-                    return self._html(geojson)
+                    return self._html(geojson, navigation=args)
                 elif path == "/map":
                     _require(args, {"bbox", "at", "known_at"})
                     output = world.export_geojson_bbox(_bbox(args["bbox"]),
