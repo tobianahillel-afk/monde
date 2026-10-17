@@ -112,7 +112,7 @@ class BrowserViewerTests(unittest.TestCase):
             self.assertEqual(
                 empty_body.decode("utf-8"),
                 render_map(disagreement_view(
-                    model, [10, 10, 11, 11], AT, K1)))
+                    model, [10.0, 10.0, 11.0, 11.0], AT, K1)))
         finally:
             server.shutdown()
             worker.join(timeout=5)
