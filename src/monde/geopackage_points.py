@@ -158,13 +158,17 @@ def to_geojson(path, *, layer):
                         raise ValueError("GeoPackage source exceeds 50000 vertices")
                     trace_id = hashlib.sha256((layer + ":" + str(row[0])).encode(
                         "utf-8")).hexdigest()[:24]
+                    original_name = properties.get("name")
+                    label = (original_name if isinstance(original_name, str)
+                             and 0 < len(original_name) <= 1000
+                             else layer + " #" + str(row[0]))
                     for order, point in enumerate(points):
                         features.append({
                             "type": "Feature",
                             "id": "gpkg-line-" + layer + "-" + str(row[0]) + "-" + str(order),
                             "properties": {**properties, "gpkg_trace": {
                                 "format": "GPKG_1_3_LINESTRING_POINT",
-                                "kind": "LineString", "name": layer + " #" + str(row[0]),
+                                "kind": "LineString", "name": label,
                                 "trace_id": trace_id, "segment": 0, "order": order,
                                 "layer": layer, "feature_id": str(row[0])}},
                             "geometry": {"type": "Point", "coordinates": point}})
