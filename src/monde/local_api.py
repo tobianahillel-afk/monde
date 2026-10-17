@@ -509,7 +509,7 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
     # The extra comparison cutoff belongs only to the HTML report:
     # existing map, GeoJSON and CSV routes accept exactly one knowledge cutoff.
     values = {key: value for key, value in params.items()
-              if key not in ("view", "from_known_at")}
+              if key not in ("view", "from_known_at", "from_at")}
     map_url = "/viewer?" + urlencode({"view": "disagreements", **values})
     json_url = "/map-disagreements?" + urlencode(values)
     csv_url = "/disagreement.csv?" + urlencode(values)
@@ -536,16 +536,25 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
         escape(params.get("from_known_at", ""), quote=True) + '"></label>'
         '<button type="submit">Compare original evidence</button>'
         '</form></details>')
+    world_compare_form = (
+        '<details><summary>Compare earlier world validity</summary>'
+        '<form method="get">' + compare_preserved +
+        '<label>Earlier world time (UTC ISO-8601)'
+        '<input name="from_at" required value="' +
+        escape(params.get("from_at", ""), quote=True) + '"></label>'
+        '<button type="submit">Compare original source validity</button>'
+        '</form></details>')
     time_navigation = (
         '<nav aria-label="Disagreement time navigation"><details>'
         '<summary>Explore this disagreement at another time</summary>'
         '<p>Edit world validity and/or what was known, without inferring truth.</p>'
         '<form action="/disagreement-report" method="get">' +
-        retained + (('<input type="hidden" name="from_known_at" value="' +
-                     escape(params["from_known_at"], quote=True) + '">')
-                    if "from_known_at" in params else '') + time_inputs +
+        retained + ''.join(
+            '<input type="hidden" name="' + key + '" value="' +
+            escape(params[key], quote=True) + '">'
+            for key in ("from_known_at", "from_at") if key in params) + time_inputs +
         '<button type="submit">Refresh original evidence</button>'
-        '</form></details>' + compare_form + '</nav>')
+        '</form></details>' + compare_form + world_compare_form + '</nav>')
     sections = []
     for entity, reports in sorted(grouped.items()):
         focus_url = "/disagreement-report?" + urlencode({**values, "entity": entity})
@@ -595,13 +604,23 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
                            '; earlier: ' + str(len(before)) +
                            ' original Points; later: ' + str(len(after)) +
                            ' original Points</li>')
-        earlier_args = {k: v for k, v in values.items() if k != "from_known_at"}
-        earlier_args["known_at"] = params["from_known_at"]
+        earlier_args = dict(values)
+        if "from_at" in params:
+            earlier_args["at"] = params["from_at"]
+            comparison_heading = (
+                '<h2>Original source disagreements at two world times</h2>'
+                '<p>Same knowledge cutoff: ' + escape(params["known_at"]) +
+                '; earlier world time: ' + escape(params["from_at"]) +
+                '; later world time: ' + escape(params["at"]))
+        else:
+            earlier_args["known_at"] = params["from_known_at"]
+            comparison_heading = (
+                '<h2>Original source disagreements at two knowledge cutoffs</h2>'
+                '<p>Same world time: ' + escape(params["at"]) +
+                '; earlier knowledge: ' + escape(params["from_known_at"]) +
+                '; later knowledge: ' + escape(params["known_at"]))
         comparison = (
-            '<section><h2>Original source disagreements at two knowledge cutoffs</h2>'
-            '<p>Same world time: ' + escape(params["at"]) +
-            '; earlier knowledge: ' + escape(params["from_known_at"]) +
-            '; later knowledge: ' + escape(params["known_at"]) +
+            '<section>' + comparison_heading +
             '. Selected original evidence, NOT actual physical movement or '
             'verified agreement.</p><p><a href="' +
             escape("/viewer?" + urlencode({"view": "disagreements", **earlier_args}), quote=True) +
@@ -852,7 +871,7 @@ def create_server(state: str | Path, port: int = 0, *,
                     return
                 elif path == "/disagreement-report":
                     _require(args, {"bbox", "at", "known_at"},
-                             {"source", "entity", "view", "from_known_at"})
+                             {"source", "entity", "view", "from_known_at", "from_at"})
                     if "view" in args and args["view"] != "disagreements":
                         raise ValueError("invalid disagreement report view")
                     from .map_view import disagreement_view
@@ -862,11 +881,19 @@ def create_server(state: str | Path, port: int = 0, *,
                         _focus_disagreement_source(reports, args.get("source")),
                         args.get("entity"))
                     earlier = None
+                    if "from_at" in args and "from_known_at" in args:
+                        raise ValueError("choose only one comparison axis")
                     if "from_known_at" in args:
                         if _time(args["from_known_at"]) >= _time(args["known_at"]):
                             raise ValueError("knowledge comparison must advance")
                         earlier = disagreement_view(
                             world, _bbox(args["bbox"]), args["at"], args["from_known_at"])
+                    elif "from_at" in args:
+                        if _time(args["from_at"]) >= _time(args["at"]):
+                            raise ValueError("world comparison must advance")
+                        earlier = disagreement_view(
+                            world, _bbox(args["bbox"]), args["from_at"], args["known_at"])
+                    if earlier is not None:
                         earlier = _focus_disagreement_entity(
                             _focus_disagreement_source(earlier, args.get("source")),
                             args.get("entity"))

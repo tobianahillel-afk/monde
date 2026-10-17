@@ -423,5 +423,80 @@ class DisagreementReportHTTPTests(unittest.TestCase):
             self.assertEqual(self.fetch(parsed.path, query)[0], 200)
 
 
+
+    def test_world_time_comparison_preserves_original_source_evidence(self):
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_at": "2025-12-31T00:00:00Z"}
+        status, headers, raw = self.fetch("/disagreement-report", params)
+        self.assertEqual(status, 200)
+        html = raw.decode("utf-8")
+        for expected in ("Original source disagreements at two world times",
+                         "Same knowledge cutoff: " + K1,
+                         "APPEARED IN SELECTION", "earlier: 0 original Points",
+                         "later: 2 original Points", "Earlier original CSV",
+                         "Earlier complete GeoJSON", "survey-west",
+                         'name="from_at" required', "NOT actual physical movement"):
+            self.assertIn(expected, html)
+        self.assertIn("script-src 'none'", headers["Content-Security-Policy"])
+
+    def test_world_time_comparison_links_keep_one_cutoff_and_original_source(self):
+        from html.parser import HTMLParser
+        from urllib.parse import urlsplit, parse_qs
+
+        class Links(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.urls = []
+
+            def handle_starttag(self, tag, attrs):
+                if tag == "a":
+                    self.urls.append(dict(attrs).get("href", ""))
+
+        earlier = "2026-01-01T12:00:00Z"
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_at": earlier}
+        status, _, raw = self.fetch("/disagreement-report", params)
+        self.assertEqual(status, 200)
+        self.assertIn("SAME REPORTED EVIDENCE", raw.decode())
+        p = Links()
+        p.feed(raw.decode())
+        cutoffs = []
+        for url in p.urls:
+            parsed = urlsplit(url)
+            if parsed.path not in ("/viewer", "/map-disagreements", "/disagreement.csv"):
+                continue
+            args = {key: value[0] for key, value in parse_qs(parsed.query).items()}
+            self.assertNotIn("from_at", args)
+            self.assertEqual(args["known_at"], K1)
+            self.assertEqual(args["source"], "survey-east")
+            self.assertEqual(args["entity"], "site-a")
+            self.assertEqual(self.fetch(parsed.path, args)[0], 200)
+            cutoffs.append(args["at"])
+        self.assertEqual(cutoffs.count(earlier), 3)
+        self.assertEqual(cutoffs.count(AT), 3)
+
+    def test_world_time_compare_rejects_invalid_axes_and_wrong_source(self):
+        for cutoff in (AT, "2026-01-04T00:00:00Z", "invalid",
+                       "2025-12-31T00:00:00"):
+            code, _, raw = self.fetch("/disagreement-report",
+                                      {**QUERY, "from_at": cutoff})
+            self.assertEqual(code, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        status, _, raw = self.fetch("/disagreement-report", {
+            **QUERY, "from_at": "2025-12-31T00:00:00Z",
+            "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(status, 400)
+        for route in ("/map-disagreements", "/disagreement.csv", "/viewer"):
+            args = {**QUERY, "from_at": "2025-12-31T00:00:00Z"}
+            if route == "/viewer":
+                args["view"] = "disagreements"
+            self.assertEqual(self.fetch(route, args)[0], 400)
+        status, _, raw = self.fetch("/disagreement-report", {
+            **QUERY, "source": "survey-west", "entity": "site-a",
+            "from_at": "2025-12-31T00:00:00Z"})
+        self.assertEqual(status, 200)
+        self.assertIn("NO SOURCE DISAGREEMENT IN EITHER SELECTION", raw.decode())
+
+
 if __name__ == "__main__":
     unittest.main()
