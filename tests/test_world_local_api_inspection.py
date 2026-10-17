@@ -664,7 +664,8 @@ class EvidenceInspectorTests(unittest.TestCase):
             self.assertEqual(len(parser.forms), 1)
             self.assertEqual(parser.forms[0]["method"], "get")
             expected = ({**args, "source": ""} if mode == "current" else
-                        args if mode == "disagreements" else query)
+                        args if mode == "disagreements" else
+                        {**query, "source": ""} if mode in {"nearest", "radius"} else query)
             self.assertEqual(parser.fields, expected)
             if mode in {"current", "disagreements"}:
                 self.assertEqual(parser.options, [mode])

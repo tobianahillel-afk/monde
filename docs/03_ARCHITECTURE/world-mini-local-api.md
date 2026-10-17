@@ -319,3 +319,7 @@ timezone validation. Browser source IDs and deep links are escaped, the local
 service remains loopback-only with no-network CSP and response-size bounds.
 The feature is a candidate stacked on WORK-0058 / PR #82; no claim of
 availability from unmerged `main`.
+
+### Source-scoped proximity maps (WORK-0060)
+
+`/nearest`, `/radius` and their browser `/viewer` modes accept an optional original `source` ID. **Source selection precedes nearest ranking and radius qualification**; a filtered result includes only the selected source’s original Point claims, including its own opposing positions outside the radius. Unfiltered results still include independent competing sources. The native browser forms preserve `source` alongside explicit world time and knowledge cutoff. Filtered GeoJSON includes `monde_source_filter`. Input IDs follow the WorldMini source-ID contract; no inference, external requests or saved-state changes are introduced.
