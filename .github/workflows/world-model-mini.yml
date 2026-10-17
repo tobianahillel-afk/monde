@@ -1096,3 +1096,63 @@ jobs:
           grep -q 'KMZ evidence' /tmp/monde-kmz-dom.html
           grep -q 'original-kmz' /tmp/monde-kmz-dom.html
           grep -q 'data-kml-trace=' /tmp/monde-kmz-dom.html
+
+      - name: Read original GeoPackage LineString and render segments in offline Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import sqlite3, struct
+          from pathlib import Path
+          dbfile=Path('/tmp/monde-source-lines.gpkg')
+          gp=lambda pts: (b'GP\x00\x01' + struct.pack('<i',4326) +
+                         b'\x01' + struct.pack('<II',2,len(pts)) +
+                         b''.join(struct.pack('<dd',*xy) for xy in pts))
+          with sqlite3.connect(dbfile) as db:
+              db.execute("PRAGMA application_id=1196444487")
+              db.executescript("""
+                  CREATE TABLE gpkg_spatial_ref_sys (
+                    srs_name TEXT, srs_id INTEGER PRIMARY KEY,
+                    organization TEXT, organization_coordsys_id INTEGER,
+                    definition TEXT, description TEXT);
+                  CREATE TABLE gpkg_contents (
+                    table_name TEXT PRIMARY KEY, data_type TEXT, identifier TEXT, srs_id INTEGER);
+                  CREATE TABLE gpkg_geometry_columns (
+                    table_name TEXT, column_name TEXT, geometry_type_name TEXT,
+                    srs_id INTEGER, z INTEGER, m INTEGER);
+                  CREATE TABLE source_lines(fid INTEGER PRIMARY KEY,geom BLOB,name TEXT);
+                  INSERT INTO gpkg_spatial_ref_sys VALUES
+                    ('WGS84',4326,'EPSG',4326,'fixture','fixture');
+                  INSERT INTO gpkg_contents VALUES
+                    ('source_lines','features','Original source lines',4326);
+                  INSERT INTO gpkg_geometry_columns VALUES
+                    ('source_lines','geom','LINESTRING',4326,0,0);
+              """)
+              db.execute('INSERT INTO source_lines VALUES (?,?,?)',
+                         (1,gp([(2.35,48.85),(2.36,48.86),(2.37,48.87)]),'Original road claim'))
+          PY
+          python3 -m monde.map_view --gpkg /tmp/monde-source-lines.gpkg \
+            --gpkg-layer source_lines --source-id gpkg-original \
+            --source-locator dataset://gpkg-original \
+            --captured-at 2026-01-10T10:00:00Z \
+            --valid-from 2026-01-01T00:00:00Z \
+            --at 2026-01-02T00:00:00Z \
+            --known-at 2026-01-10T10:00:00Z \
+            --output /tmp/monde-gpkg-lines.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --timeout=15000 --dump-dom file:///tmp/monde-gpkg-lines.html \
+            >/tmp/monde-gpkg-lines-dom.html
+          python3 - <<'PY'
+          from pathlib import Path
+          html=Path('/tmp/monde-gpkg-lines-dom.html').read_text(encoding='utf8')
+          pos=html.find('<body')
+          print('GeoPackage Chromium body:',html[pos:pos+450])
+          for marker in ('data-monde-ready="true"',
+                         'data-monde-gpkg-segments="2"',
+                         'data-gpkg-trace=',
+                         'Original road claim'):
+              print('GeoPackage Chromium assertion:', marker, marker in html)
+              assert marker in html, 'missing browser marker: '+marker
+          PY
