@@ -1,0 +1,52 @@
+id: WORK-0058
+title: "Filter local observed Point maps by one original source"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence explorer"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Let users isolate an original source's mapped Point assertions without
+  conflating source disagreement, inferred geography or selected other sources.
+scope:
+  in: ["Read-only original-source filter for local bbox JSON and current map",
+       "Browser source selection and bitemporal navigation", "Real HTTP regressions"]
+  out: ["Source reconciliation", "New World Model", "Remote endpoints", "Data writes"]
+acceptance_criteria:
+  - {id: AC-1, description: "Filter to one original source with its own bbox qualification.", status: NOT_STARTED}
+  - {id: AC-2, description: "Preserve original source assertions, evidence and correct result counts.", status: NOT_STARTED}
+  - {id: AC-3, description: "Expose source selection in browser, with world and knowledge cutoffs.", status: NOT_STARTED}
+  - {id: AC-4, description: "Reject invalid parameters and leave the persisted snapshot unchanged.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0057]
+read_before: [AGENTS.md, src/monde/world.py, src/monde/local_api.py, src/monde/map_view.py]
+reuses: [WorldMini.export_geojson_bbox, monde.local_api.create_server, monde.map_view.render_map]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Implement source-aware current map and JSON lens.", depends_on: [], expected_files: [src/monde/local_api.py, src/monde/map_view.py], status: IN_REVIEW}
+    - {id: T2, description: "Prove actual local HTTP/source isolation and persistence.", depends_on: [T1], expected_files: [tests/test_world_local_api_source_filter.py, tests/test_world_local_api_viewer.py], status: IN_REVIEW}
+    - {id: T3, description: "Document visible epistemic scope.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_source_filter.py, tests/test_world_local_api_viewer.py]
+  real_system: ["Exact-head GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0057 / PR #81."]
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close or revert scoped PR; read-only filter, no migration."

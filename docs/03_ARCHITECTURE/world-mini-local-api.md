@@ -39,6 +39,15 @@ Endpoints (GET, all JSON):
   These are not verified physical movements.
 - `/map?bbox=1,45,6,51&at=...&known_at=...` — WorldMini's existing
   source-report GeoJSON, including conflicting coordinates.
+- `/map?bbox=2.3,48.8,2.4,48.9&at=T&known_at=K&source=survey-1` — optional
+  **single-original-source** evidence lens. The source's own Point must
+  intersect the viewport to select an entity; the same source's other
+  positions for that entity remain visible as contrary reports. The response
+  preserves each assertion and its provenance, contains `monde_source_filter`,
+  and updates its displayed result counts. It does **not** imply that another
+  source agreed or that a position is verified physical truth. The same
+  optional filter is available in `/viewer?view=current&...` and its native
+  evidence/time-navigation forms; other views remain explicitly unfiltered.
 - `/tile?z=5&x=16&y=11&at=...&known_at=...` — GeoJSON for a WGS84
   viewport derived from a standard XYZ Web Mercator tile, including the original
   source Point assertions and tile metadata; this is not a raster tile service.
