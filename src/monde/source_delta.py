@@ -84,14 +84,61 @@ def source_delta(before: WorldMini, after: WorldMini) -> dict:
     }
 
 
+def source_delta_geojson(before: WorldMini, after: WorldMini) -> dict:
+    """Map *newly recorded* source Point reports; never infer actual movement.
+
+    Uses the same append-only ancestry check as source_delta(). Each feature
+    remains one un-reconciled assertion with its own evidence and temporal
+    provenance, including superseded reports.
+    """
+    from .geojson import _point
+
+    change = source_delta(before, after)
+    additions = {item["id"]: item for item in
+                 after.export()["assertions"]
+                 if item["id"] in {row["assertion_id"]
+                                  for row in change["new_reports"]}}
+    features = []
+    for report in change["new_reports"]:
+        if report["attribute"] != "geo_point":
+            continue
+        assertion = additions[report["assertion_id"]]
+        features.append({
+            "type": "Feature",
+            "id": report["assertion_id"],
+            "geometry": _point(assertion["value"]),
+            "properties": {
+                **report,
+                "monde_world": "OBSERVED",
+                "monde_status": "NEW_SOURCE_REPORT_ONLY",
+            },
+        })
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "monde_source_delta": {
+            "basis": "APPEND_ONLY_SOURCE_REPORTS",
+            "point_reports_added": len(features),
+            "evidence_added": change["added"]["evidence"],
+            "assertions_added": change["added"]["assertions"],
+            "corrections_added": change["added"]["corrections"],
+            "status": "NEW_POINT_REPORTS" if features else "NO_NEW_POINT_REPORTS",
+        },
+    }
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Compare saved MONDE Mini states: source reports added, not inferred truth")
     parser.add_argument("--before", required=True, help="earlier validated WorldMini JSON")
     parser.add_argument("--after", required=True, help="later append-only WorldMini JSON")
+    parser.add_argument("--as-geojson", action="store_true",
+                        help="export only newly recorded source Point reports as GeoJSON")
     args = parser.parse_args(argv)
     try:
-        report = source_delta(WorldMini.read(args.before), WorldMini.read(args.after))
+        before, after = WorldMini.read(args.before), WorldMini.read(args.after)
+        report = (source_delta_geojson(before, after) if args.as_geojson
+                  else source_delta(before, after))
         print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     except (OSError, ValueError, TypeError) as exc:
         print("MONDE Mini source delta: " + str(exc), file=sys.stderr)

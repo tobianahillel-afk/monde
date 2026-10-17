@@ -12,12 +12,13 @@ purpose: |
   exactly what new evidence and claims arrived, by source and entity, without
   interpreting source disagreement as new physical truth.
 scope:
-  in: ["read-only append-only snapshot comparison", "per-source change summary", "source report CLI"]
+  in: ["read-only append-only snapshot comparison", "per-source change summary", "source report CLI", "source-reported new Point GeoJSON export"]
   out: ["automatic belief reconciliation", "destructive updates", "new external API", "background agent"]
 acceptance_criteria:
   - {id: AC-1, description: "Report newly added source evidence, claims and same-source corrections.", status: NOT_STARTED}
   - {id: AC-2, description: "Reject removed, reordered or changed pre-existing history.", status: NOT_STARTED}
   - {id: AC-3, description: "Support actual saved mixed GeoPackage/GeoJSON source states and one-command read-only CLI.", status: NOT_STARTED}
+  - {id: AC-4, description: "Export newly recorded source-reported Point positions to interoperable GeoJSON with original provenance and temporal metadata.", status: NOT_STARTED}
 requirements: []
 depends_on: [WORK-0041]
 read_before: [src/monde/world.py, src/monde/source_inventory.py, tests/test_world_source_manifest_ingest.py]
@@ -26,6 +27,7 @@ implementation_plan:
   tasks:
     - {id: T1, description: "Implement append-only source snapshot comparison and CLI.", depends_on: [], expected_files: [src/monde/source_delta.py], status: IN_REVIEW}
     - {id: T2, description: "Test correction, invalidated history and actual mixed-source inputs.", depends_on: [T1], expected_files: [tests/test_world_source_delta.py], status: IN_REVIEW}
+    - {id: T3, description: "Export and test new source Point reports as provenance-preserving GeoJSON.", depends_on: [T1, T2], expected_files: [src/monde/source_delta.py, tests/test_world_source_delta.py], status: IN_REVIEW}
   planned_runs: []
 review_plan:
   artifact_class: DATA_SOURCE

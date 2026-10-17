@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 
-from monde.source_delta import source_delta
+from monde.source_delta import source_delta, source_delta_geojson
 from monde.world import WorldMini
 from monde.csv_points import documents_from_manifest
 from tests.test_world_map_source_manifest_layers import sample
@@ -103,6 +103,75 @@ class SnapshotDeltaTests(unittest.TestCase):
             self.assertEqual(failed.returncode, 2)
             self.assertIn("diverged", failed.stderr)
             self.assertEqual((before.read_bytes(), after.read_bytes()), input_bytes)
+
+    def test_geojson_maps_only_new_source_point_reports_with_original_provenance(self):
+        earlier = document("e1", "a1", value={"type": "Point", "coordinates": [2.3, 48.8]})
+        earlier["assertions"][0]["attribute"] = "geo_point"
+        before = WorldMini.from_document(earlier)
+        after = WorldMini.from_document(before.export())
+        corrected = document("e2", "a2", source="survey",
+                             known="2026-01-03T12:00:00Z", supersedes="a1",
+                             value={"type": "Point", "coordinates": [2.4, 48.9]})
+        corrected["assertions"][0]["attribute"] = "geo_point"
+        after.append_document(corrected)
+        mapped = source_delta_geojson(before, after)
+        self.assertEqual(mapped["type"], "FeatureCollection")
+        self.assertEqual([f["id"] for f in mapped["features"]], ["a2"])
+        point = mapped["features"][0]
+        self.assertEqual(point["geometry"]["coordinates"], [2.4, 48.9])
+        self.assertEqual(point["properties"]["source_id"], "survey")
+        self.assertEqual(point["properties"]["evidence_id"], "e2")
+        self.assertEqual(point["properties"]["supersedes"], "a1")
+        self.assertEqual(point["properties"]["known_at"], "2026-01-03T12:00:00Z")
+        self.assertEqual(point["properties"]["monde_status"], "NEW_SOURCE_REPORT_ONLY")
+        self.assertEqual(mapped["monde_source_delta"]["corrections_added"], 1)
+        self.assertEqual(before.export()["assertions"][0]["value"]["coordinates"],
+                         [2.3, 48.8])
+
+    def test_geojson_empty_for_non_spatial_reports_and_no_change(self):
+        before = WorldMini.from_document(document("e1", "a1"))
+        after = WorldMini.from_document(before.export())
+        after.append_document(document("e2", "a2", known="2026-01-04T12:00:00Z"))
+        report = source_delta_geojson(before, after)
+        self.assertEqual(report["features"], [])
+        self.assertEqual(report["monde_source_delta"]["assertions_added"], 1)
+        self.assertEqual(report["monde_source_delta"]["status"], "NO_NEW_POINT_REPORTS")
+        self.assertEqual(source_delta_geojson(after, after)["features"], [])
+
+    def test_geojson_rejects_invalid_point_and_divergent_history(self):
+        before = WorldMini()
+        bad = document("e1", "a1",
+                       value={"type": "Point", "coordinates": [190, 42]})
+        bad["assertions"][0]["attribute"] = "geo_point"
+        after = WorldMini.from_document(bad)
+        with self.assertRaisesRegex(ValueError, "WGS84"):
+            source_delta_geojson(before, after)
+        with self.assertRaisesRegex(ValueError, "diverged"):
+            source_delta_geojson(after, before)
+
+    def test_cli_geojson_output_from_saved_states_without_file_mutation(self):
+        with tempfile.TemporaryDirectory() as root:
+            p = Path(root)
+            before = WorldMini()
+            after = WorldMini()
+            point = document("e1", "a1",
+                             value={"type": "Point", "coordinates": [12.5, 41.9]})
+            point["assertions"][0]["attribute"] = "geo_point"
+            after.append_document(point)
+            older, newer = p / "before.json", p / "after.json"
+            before.save(older)
+            after.save(newer)
+            source_bytes = older.read_bytes(), newer.read_bytes()
+            done = subprocess.run(
+                [sys.executable, "-m", "monde.source_delta",
+                 "--before", str(older), "--after", str(newer), "--as-geojson"],
+                env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
+                capture_output=True, text=True)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            geojson = json.loads(done.stdout)
+            self.assertEqual(geojson["features"][0]["geometry"]["coordinates"],
+                             [12.5, 41.9])
+            self.assertEqual((older.read_bytes(), newer.read_bytes()), source_bytes)
 
     def test_real_geopackage_and_geojson_manifest_yield_per_source_delta(self):
         with tempfile.TemporaryDirectory() as root:
