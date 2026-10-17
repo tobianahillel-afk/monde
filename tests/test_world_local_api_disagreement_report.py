@@ -220,5 +220,70 @@ class DisagreementReportHTTPTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(blank, raw)
 
+
+    def test_entity_focus_original_provenance_parity(self):
+        report = self.fetch("/disagreement-report", QUERY)[2].decode("utf-8")
+        self.assertIn("Focus on this disagreement", report)
+        self.assertIn("entity=site-a", report)
+        params = {**QUERY, "entity": "site-a"}
+        status, _, raw = self.fetch("/map-disagreements", params)
+        self.assertEqual(status, 200)
+        data = json.loads(raw)
+        self.assertEqual(data["monde_disagreement_entity_focus"], "site-a")
+        self.assertEqual({f["properties"]["source_id"] for f in data["features"]},
+                         {"survey-east", "survey-west"})
+        self.assertEqual({f["properties"]["monde_inside_bbox"] for f in data["features"]},
+                         {True, False})
+        self.assertEqual(data["monde_bbox_query"]["total_matching_entities"], 1)
+        rows = list(csv.DictReader(io.StringIO(
+            self.fetch("/disagreement.csv", params)[2].decode("utf-8"))))
+        self.assertEqual({r["assertion_id"] for r in rows},
+                         {f["properties"]["assertion_id"] for f in data["features"]})
+        html = self.fetch("/disagreement-report", params)[2].decode()
+        self.assertIn("Focused entity: site-a", html)
+        self.assertIn("survey-west", html)
+        self.assertNotIn("<h2>site-b</h2>", html)
+
+    def test_entity_source_intersection_requires_own_source_qualification(self):
+        for optional, expected in (
+                ({"entity": "site-a", "source": "survey-east"},
+                 {"survey-east", "survey-west"}),
+                ({"entity": "site-a", "source": "survey-west"}, set()),
+                ({"entity": "site-b", "source": "survey-east"}, set()),
+                ({"entity": "unknown"}, set())):
+            with self.subTest(optional=optional):
+                params = {**QUERY, **optional}
+                data = json.loads(self.fetch("/map-disagreements", params)[2])
+                self.assertEqual({f["properties"]["source_id"]
+                                  for f in data["features"]}, expected)
+                self.assertEqual(self.fetch("/disagreement-report", params)[0], 200)
+                self.assertEqual(self.fetch("/disagreement.csv", params)[0], 200)
+
+    def test_entity_map_preserves_source_and_time_selection(self):
+        params = {"view": "disagreements", **QUERY,
+                  "source": "survey-east", "entity": "site-a"}
+        status, _, raw = self.fetch("/viewer", params)
+        self.assertEqual(status, 200)
+        html = raw.decode()
+        self.assertIn('name="entity" value="site-a"', html)
+        self.assertIn('name="source" value="survey-east"', html)
+        self.assertIn(b'name="entity"', self.fetch("/explore", {})[2])
+
+    def test_unfiltered_contract_and_invalid_entity_inputs(self):
+        for route in ("/map-disagreements", "/disagreement-report",
+                      "/disagreement.csv", "/viewer"):
+            params = {**QUERY, **({"view": "disagreements"}
+                                   if route == "/viewer" else {})}
+            with self.subTest(route=route):
+                original = self.fetch(route, params)
+                blank = self.fetch(route, {**params, "entity": ""})
+                self.assertEqual(original[0], blank[0])
+                self.assertEqual(original[2], blank[2])
+                for bad in ("bad\nentity", "x" * 257):
+                    status, _, body = self.fetch(route, {**params, "entity": bad})
+                    self.assertEqual(status, 400)
+                    self.assertEqual(json.loads(body), {"error": "invalid_query"})
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -22,7 +22,7 @@ MAX_RESPONSE_BYTES = 2_000_000
 
 _EXPLORER_VIEWS = (
     ("current", "Current reports", ("bbox", "at", "known_at", "source")),
-    ("disagreements", "Source disagreements", ("bbox", "at", "known_at", "source")),
+    ("disagreements", "Source disagreements", ("bbox", "at", "known_at", "source", "entity")),
     ("knowledge-changes", "Newly known or corrected evidence",
      ("bbox", "at", "from_known_at", "to_known_at", "source")),
     ("world-changes", "Changes in reported validity",
@@ -35,6 +35,7 @@ _EXPLORER_VIEWS = (
 _EXPLORER_LABELS = {
     "bbox": "WGS84 bounds (west,south,east,north)",
     "source": "Optional source ID (in disagreements, show its opposing reports too)",
+    "entity": "Optional entity ID (focus one disagreement, retain opposing sources)",
     "center": "WGS84 search center (longitude,latitude)",
     "limit": "Maximum nearest entities (1–1000)",
     "radius_km": "Search radius (kilometers)",
@@ -67,10 +68,12 @@ def _explorer_html(source_ids: tuple[str, ...] = ()) -> str:
                 "limit": ' value="10"',
                 "radius_km": ' value="5"',
                 "source": ' placeholder="e.g. survey-1 (optional)"',
+                "entity": ' placeholder="e.g. site-a (optional)"',
             }.get(key, ' placeholder="2026-01-02T00:00:00Z"')
             inputs.append('<label>' + _EXPLORER_LABELS[key] +
                           '<input name="' + key + '"' +
-                          (' list="saved-original-sources"' if key == "source" else ' required') +
+                          (' list="saved-original-sources"' if key == "source" else
+                            ('' if key == "entity" else ' required')) +
                           initial + '></label>')
         forms.append(
             '<form action="/viewer" method="get"><h2>' + title + '</h2>' +
@@ -319,13 +322,13 @@ def _parameters(target: str, path: str) -> dict[str, str]:
         raise ValueError("invalid request path")
     values = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
                       max_num_fields=8)
-    if any(len(v) != 1 or (not v[0] and key != "source")
+    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity"})
            for key, v in values.items()):
         raise ValueError("all parameters must appear exactly once")
     # Browser GET forms submit empty optional controls: treat blank source as
     # no filter, but keep every other parameter strict.
     return {key: items[0] for key, items in values.items()
-            if key != "source" or items[0]}
+            if key not in {"source", "entity"} or items[0]}
 
 
 def _require(values: dict[str, str], required: set[str],
@@ -440,6 +443,33 @@ def _focus_disagreement_source(document: dict, source: str | None) -> dict:
 
 
 
+def _focus_disagreement_entity(document: dict, entity: str | None) -> dict:
+    """Select one conflicting entity, preserving all its opposing source reports."""
+    if entity is None:
+        return document
+    if not isinstance(entity, str) or not entity or len(entity) > 256 or any(
+            ord(ch) < 32 or ord(ch) == 127 for ch in entity):
+        raise ValueError("invalid entity ID")
+    features = [f for f in document["features"]
+                if f["properties"]["entity"] == entity]
+    result = {**document, "features": features,
+              "monde_disagreement_entity_focus": entity}
+    count = 1 if features else 0
+    if "monde_bbox_query" in document:
+        result["monde_bbox_query"] = {
+            **document["monde_bbox_query"],
+            "total_matching_entities": count,
+            "total_source_features": len(features),
+            "status": "MATCHES" if features else "NO_MATCHES",
+        }
+    if "monde_disagreements_view" in document:
+        result["monde_disagreements_view"] = {
+            **document["monde_disagreements_view"],
+            "conflicting_entities_in_view": count,
+        }
+    return result
+
+
 def _disagreement_csv(document: dict, params: dict[str, str]) -> bytes:
     """Export the *same selected original* conflicting reports, never consensus."""
     output = io.StringIO()
@@ -482,6 +512,7 @@ def _disagreement_report_html(document: dict, params: dict[str, str]) -> str:
     csv_url = "/disagreement.csv?" + urlencode(values)
     sections = []
     for entity, reports in sorted(grouped.items()):
+        focus_url = "/disagreement-report?" + urlencode({**values, "entity": entity})
         dossier = "/inspect?" + urlencode({
             "view": "entity", "entity": entity, "at": params["at"],
             "known_at": params["known_at"]})
@@ -502,7 +533,9 @@ def _disagreement_report_html(document: dict, params: dict[str, str]) -> str:
         sections.append('<section><h2>' + escape(entity) + '</h2><p>' +
                         str(len(reports)) + ' original source Point reports · '
                         '<a href="' + escape(dossier, quote=True) +
-                        '">Open full entity evidence dossier</a></p>' +
+                        '">Open full entity evidence dossier</a> · ' +
+                        '<a href="' + escape(focus_url, quote=True) +
+                        '">Focus on this disagreement</a></p>' +
                         ''.join(details) + '</section>')
     focus = params.get("source")
     description = (
@@ -525,6 +558,8 @@ inferred truth or confirmed physical movement.</p><p>''' +
             description + '</p><p>World time: ' + escape(params["at"]) +
             ' · Knowledge cutoff: ' + escape(params["known_at"]) +
             ' · Entities: ' + str(len(grouped)) +
+            (' · Focused entity: ' + escape(params["entity"])
+             if "entity" in params else '') +
             '</p><p><a href="' + escape(map_url, quote=True) +
             '">Show disagreement map</a> · <a href="' +
             escape(json_url, quote=True) +
@@ -699,24 +734,28 @@ def create_server(state: str | Path, port: int = 0, *,
                         args["at"], args["from_known_at"], args["to_known_at"],
                         args.get("attribute"))
                 elif path == "/map-disagreements":
-                    _require(args, {"bbox", "at", "known_at"}, {"source"})
-                    if "source" in args:
+                    _require(args, {"bbox", "at", "known_at"}, {"source", "entity"})
+                    if "source" in args or "entity" in args:
                         # Match the report/CSV evidence set: preserve opposing
                         # original Points outside the viewport for chosen entities.
                         from .map_view import disagreement_view
                         reports = disagreement_view(
                             world, _bbox(args["bbox"]), args["at"], args["known_at"])
-                        output = _focus_disagreement_source(reports, args["source"])
+                        output = _focus_disagreement_entity(
+                            _focus_disagreement_source(reports, args.get("source")),
+                            args.get("entity"))
                     else:
                         # Preserve existing unfiltered endpoint contract.
                         output = world.export_geojson_disagreements(
                             args["at"], args["known_at"], _bbox(args["bbox"]))
                 elif path == "/disagreement.csv":
-                    _require(args, {"bbox", "at", "known_at"}, {"source"})
+                    _require(args, {"bbox", "at", "known_at"}, {"source", "entity"})
                     from .map_view import disagreement_view
                     reports = disagreement_view(
                         world, _bbox(args["bbox"]), args["at"], args["known_at"])
-                    reports = _focus_disagreement_source(reports, args.get("source"))
+                    reports = _focus_disagreement_entity(
+                        _focus_disagreement_source(reports, args.get("source")),
+                        args.get("entity"))
                     body = _disagreement_csv(reports, args)
                     if len(body) > max_response_bytes:
                         return self._reply(413, {"error": "response_too_large"})
@@ -731,13 +770,15 @@ def create_server(state: str | Path, port: int = 0, *,
                     self.wfile.write(body)
                     return
                 elif path == "/disagreement-report":
-                    _require(args, {"bbox", "at", "known_at"}, {"source", "view"})
+                    _require(args, {"bbox", "at", "known_at"}, {"source", "entity", "view"})
                     if "view" in args and args["view"] != "disagreements":
                         raise ValueError("invalid disagreement report view")
                     from .map_view import disagreement_view
                     reports = disagreement_view(
                         world, _bbox(args["bbox"]), args["at"], args["known_at"])
-                    reports = _focus_disagreement_source(reports, args.get("source"))
+                    reports = _focus_disagreement_entity(
+                        _focus_disagreement_source(reports, args.get("source")),
+                        args.get("entity"))
                     return self._inspection(_disagreement_report_html(reports, args))
                 elif path == "/map-knowledge-changes":
                     _require(args, {"bbox", "at", "from_known_at", "to_known_at"},
@@ -801,12 +842,14 @@ def create_server(state: str | Path, port: int = 0, *,
                             args.get("source"))
                     elif mode == "disagreements":
                         _require(args, {"view", "bbox", "at", "known_at"},
-                                 {"source"})
+                                 {"source", "entity"})
                         from .map_view import disagreement_view
-                        geojson = _focus_disagreement_source(
-                            disagreement_view(world, _bbox(args["bbox"]),
-                                              args["at"], args["known_at"]),
-                            args.get("source"))
+                        geojson = _focus_disagreement_entity(
+                            _focus_disagreement_source(
+                                disagreement_view(world, _bbox(args["bbox"]),
+                                                  args["at"], args["known_at"]),
+                                args.get("source")),
+                            args.get("entity"))
                     elif mode == "knowledge-changes":
                         _require(args, {"view", "bbox", "at",
                                         "from_known_at", "to_known_at"},

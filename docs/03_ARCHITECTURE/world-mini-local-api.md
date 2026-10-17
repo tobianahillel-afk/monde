@@ -350,3 +350,14 @@ silently dropping contradictory evidence. Only the optional `source` version
 of `/map-disagreements` uses the existing full disagreement viewer selection.
 Without `source` (or when it is blank), the legacy WorldMini JSON response
 remains unchanged. No inferred location, new endpoint or persisted-state write.
+
+## Focus one conflicting entity in original evidence (WORK-0069)
+
+The existing read-only `/disagreement-report`, `/disagreement.csv`,
+`/map-disagreements` and `/viewer?view=disagreements` accept an optional
+`entity=<original-id>` selection. Analysts can follow a per-entity HTML report
+link, preserving all opposing original source Points, even outside the viewport,
+and retaining both temporal cutoffs. If a source filter is also present, that
+source alone must qualify inside the viewport before the entity filter applies.
+The native map time form retains the entity. Unfiltered routes are unchanged,
+and an unknown entity is an empty evidence result, not evidence of agreement.
