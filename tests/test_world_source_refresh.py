@@ -178,5 +178,43 @@ class SourceRefreshTests(unittest.TestCase):
             self.assertEqual(WorldMini.read(three).export(), WorldMini.read(two).export())
 
 
+    def test_real_mixed_geopackage_and_geojson_revisions_preserve_original_files(self):
+        from tests.test_world_map_source_manifest_layers import sample
+        with tempfile.TemporaryDirectory() as directory:
+            manifest, database, note, payload = sample(directory)
+            original_database = database.read_bytes()
+            before_batches, count = documents_from_manifest(
+                manifest, output_path=Path(directory)/"before.json")
+            self.assertEqual(count, 35)
+            before, first = refresh_documents(WorldMini(), before_batches)
+            self.assertGreater(first["added_assertions"], 35)
+            original = before.export()
+            newer_capture = "2026-02-01T10:00:00Z"
+            for dataset in payload["datasets"]:
+                dataset["captured_at"] = newer_capture
+            manifest.write_text(json.dumps(payload), encoding="utf-8")
+            source_note = json.loads(note.read_text(encoding="utf-8"))
+            source_note["features"][0]["geometry"]["coordinates"] = [5.1, 50.2]
+            note.write_text(json.dumps(source_note), encoding="utf-8")
+            after_batches, count = documents_from_manifest(
+                manifest, output_path=Path(directory)/"after.json")
+            after, change = refresh_documents(before, after_batches)
+            self.assertEqual(count, 35)
+            self.assertEqual(change["source_report_revisions"],
+                             len(original["assertions"]))
+            delta = source_delta(before, after)
+            self.assertEqual(delta["added"]["corrections"],
+                             len(original["assertions"]))
+            self.assertEqual(before.export(), original)
+            self.assertEqual(database.read_bytes(), original_database)
+            older = after.query("local-note", "geo_point", AT,
+                                payload["datasets"][0]["valid_from"].replace("00:00:00", "12:00:00"))
+            current = after.query("local-note", "geo_point", AT, newer_capture)
+            self.assertEqual(older["reports"][0]["value"]["coordinates"], [4.3, 50.1])
+            self.assertEqual(current["reports"][0]["value"]["coordinates"], [5.1, 50.2])
+            self.assertEqual(current["reports"][0]["source_id"], "note")
+
+
+
 if __name__ == "__main__":
     unittest.main()
