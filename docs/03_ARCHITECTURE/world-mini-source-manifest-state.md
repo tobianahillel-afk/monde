@@ -28,3 +28,20 @@ supplies --replace-state. The legacy --ingest-csv-manifest flag still works.
 Original coordinates and timestamps are source-reported evidence, not
 reconciled geographic truth. No geocoding or physical-motion inference.
 The original bounds of 16 datasets and 50,000 source reports remain.
+
+## Query original source coverage at a knowledge cutoff
+
+Read the persisted snapshot to inspect which independent source reports MONDE
+had at a specific knowledge-time cutoff:
+
+```sh
+PYTHONPATH=src python3 -m monde.source_inventory --state world.json \
+  --known-at 2026-01-11T10:00:00Z
+```
+
+Output lists each original source ID separately, including independent
+GeoPackage layers, the original source locator(s), evidence count, recorded
+assertion count, distinct entity count, attributes and timestamp ranges.
+Reports captured after the cutoff and assertions learned later are excluded.
+This **read-only** inventory does not modify the original datasets or
+persistent snapshot and does not imply truth, confidence or physical movement.
