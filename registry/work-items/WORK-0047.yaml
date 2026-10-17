@@ -1,0 +1,49 @@
+id: WORK-0047
+title: "Offline inspection of contradictory saved source positions"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence map"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Inspect contradictions already captured in an existing WorldMini without
+  copying source files, changing a state or inferring physical-world truth.
+scope:
+  in: ["saved-state offline map", "bitemporal disagreement selection", "original source identities"]
+  out: ["ground-truth inference", "automatic reconciliation", "new geographic parser"]
+acceptance_criteria:
+  - {id: AC-1, description: "Show only entities with contradictory distinct-source geo_point reports.", status: NOT_STARTED}
+  - {id: AC-2, description: "Retain all contrary source positions including outside the selected viewport.", status: NOT_STARTED}
+  - {id: AC-3, description: "Auto-fit actual disagreements, preserve read-only outputs and bitemporal cutoffs.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0046]
+read_before: [AGENTS.md, src/monde/world.py, src/monde/map_view.py]
+reuses: [WorldMini.source_disagreements, WorldMini.export_geojson_bbox, render_map]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Expose filtered persisted disagreements in existing offline map CLI.", depends_on: [], expected_files: [src/monde/map_view.py], status: IN_REVIEW}
+    - {id: T2, description: "Prove saved-state, empty, time and overwrite paths.", depends_on: [T1], expected_files: [tests/test_world_map_disagreements.py], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_map_disagreements.py]
+  real_system: ["GitHub Actions world-mini at exact HEAD"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked above unmerged WORK-0046."]
+risk:
+  security: LOW
+  data: MEDIUM
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Discard the candidate; source evidence and snapshots are untouched."
