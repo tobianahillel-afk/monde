@@ -693,7 +693,8 @@ class WorldMini:
         features.sort(key=lambda f: (f["properties"]["entity"], f["id"]))
         return {"type": "FeatureCollection", "features": features}
 
-    def search_geo_radius(self, center, radius_km, at: str, known_at: str) -> dict:
+    def search_geo_radius(self, center, radius_km, at: str, known_at: str,
+                          source_id: str | None = None) -> dict:
         """Find source-reported Points near a coordinate at world/knowledge T,K.
 
         Approximate spherical distance is a *derived search measurement*, not
@@ -707,12 +708,16 @@ class WorldMini:
             raise ValueError("radius must be a nonnegative finite distance in km")
         _time(at)
         _time(known_at)
+        if source_id is not None:
+            _id(source_id)
         lon0, lat0 = center
         lat0_r = math.radians(lat0)
         matches = []
         for entity in sorted({a["entity"] for a in self._assertions.values()
                               if a["attribute"] == "geo_point"}):
             current = self.query(entity, "geo_point", at, known_at)["reports"]
+            if source_id is not None:
+                current = [r for r in current if r["source_id"] == source_id]
             nearby, outside = [], []
             for report in current:
                 lon, lat = _point(report["value"])["coordinates"]
@@ -739,13 +744,15 @@ class WorldMini:
                 "status": "MATCHES" if matches else "NO_MATCHES",
                 "matches": matches}
 
-    def search_geo_nearest(self, center, limit: int, at: str, known_at: str) -> dict:
+    def search_geo_nearest(self, center, limit: int, at: str, known_at: str,
+                           source_id: str | None = None) -> dict:
         """Nearest N entities by current source-reported Point, never world truth."""
         import math
 
         if type(limit) is not int or not 1 <= limit <= 1000:
             raise ValueError("nearest limit must be an integer from 1 to 1000")
-        ranked = self.search_geo_radius(center, math.pi * 6371.0088, at, known_at)
+        ranked = self.search_geo_radius(center, math.pi * 6371.0088, at, known_at,
+                                        source_id=source_id)
         matches = ranked["matches"]
         return {"world": "OBSERVED",
                 "query": "SOURCE_REPORTED_NEAREST_POINTS_ONLY",
@@ -757,7 +764,8 @@ class WorldMini:
                 "matches": matches[:limit]}
 
     def export_geojson_nearest(self, center, limit: int,
-                               at: str, known_at: str) -> dict:
+                               at: str, known_at: str,
+                               source_id: str | None = None) -> dict:
         """Map nearest entities while retaining all current source Points.
 
         Rankings follow closest source report, never consensus geography.
@@ -765,7 +773,8 @@ class WorldMini:
         """
         from .geojson import _point
 
-        result = self.search_geo_nearest(center, limit, at, known_at)
+        result = self.search_geo_nearest(center, limit, at, known_at,
+                                         source_id=source_id)
         features = []
         for rank, match in enumerate(result["matches"], 1):
             for report in match["matched_reports"]:
@@ -790,6 +799,7 @@ class WorldMini:
             f["properties"]["monde_nearest_entity_rank"],
             f["properties"]["monde_distance_km"], f["id"]))
         return {"type": "FeatureCollection", "features": features,
+                **({"monde_source_filter": source_id} if source_id is not None else {}),
                 "monde_nearest_query": {
                     "basis": result["query"], "center": result["center"],
                     "limit": result["limit"],
@@ -799,7 +809,8 @@ class WorldMini:
                     "total_matching_entities": result["total_matches"],
                     "has_more": result["has_more"], "status": result["status"]}}
 
-    def export_geojson_radius(self, center, radius_km, at: str, known_at: str) -> dict:
+    def export_geojson_radius(self, center, radius_km, at: str, known_at: str,
+                              source_id: str | None = None) -> dict:
         """Map entities whose source report falls within a radius, including conflicts.
 
         Each matching entity keeps *all* current source Points, including
@@ -807,7 +818,8 @@ class WorldMini:
         """
         from .geojson import _point
 
-        result = self.search_geo_radius(center, radius_km, at, known_at)
+        result = self.search_geo_radius(center, radius_km, at, known_at,
+                                        source_id=source_id)
         features = []
         for rank, match in enumerate(result["matches"], 1):
             for within, reports in ((True, match["matched_reports"]),
@@ -838,6 +850,7 @@ class WorldMini:
         return {
             "type": "FeatureCollection",
             "features": features,
+            **({"monde_source_filter": source_id} if source_id is not None else {}),
             "monde_radius_query": {
                 "basis": result["query"], "center": result["center"],
                 "radius_km": result["radius_km"],
