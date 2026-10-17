@@ -377,3 +377,8 @@ the **selected evidence view**, revised original report sets, and unchanged
 reports. It includes complete earlier original source evidence, map, CSV and
 GeoJSON links, retaining offscreen opposing source claims. No claimed physical
 movement, consensus position, storage mutation or new dependency.
+
+
+### Compare original disagreements across world-valid time
+
+The existing read-only `/disagreement-report` accepts optional earlier `from_at` alongside later `at`, at a fixed `known_at`. Its native browser form shows earlier and later original source Point assertions for the same viewport, source and optional entity, with existing earlier map/GeoJSON/CSV links. The two comparison axes `from_at` and `from_known_at` are mutually exclusive. A selected source independently qualifies using its own in-bounds Point at each cutoff; conflicting offscreen evidence is retained. Labels describe changes in selected original evidence, **not** actual physical movement or ground truth. Single-cutoff exports and persisted state are unchanged.
