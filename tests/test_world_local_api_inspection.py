@@ -10,7 +10,7 @@ import unittest
 from urllib.parse import urlencode, urlsplit, parse_qs
 
 from monde.local_api import _inspection_html, create_server
-from tests.test_world_geojson_changes import model as change_model, correct, AT as GEO_AT, K2 as GEO_K2
+from tests.test_world_geojson_changes import model as change_model, correct, AT as GEO_AT, VALID as GEO_VALID, K2 as GEO_K2
 from monde.world import WorldMini
 from tests.test_world_mini import DOC, AT, LATE
 
@@ -184,7 +184,7 @@ class EvidenceInspectorTests(unittest.TestCase):
                         self.assertEqual(values["known_at"], GEO_K2)
                         self.assertEqual(values["radius_km"], "1")
                         self.assertEqual(len(values["center"].split(",")), 2)
-                        self.assertEqual(values["at"], GEO_AT)
+                        self.assertEqual(values["at"], GEO_VALID if view == "source-history" else GEO_AT)
                         code, map_html = retrieve(href)
                         self.assertEqual(code, 200)
                         self.assertIn("MONDE Mini", map_html)
