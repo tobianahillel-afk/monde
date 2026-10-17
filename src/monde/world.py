@@ -1315,7 +1315,9 @@ def main(argv=None) -> int:
                 # any output. 'x' forbids replacing a snapshot, manifest or
                 # original source file even through a symlink.
                 candidate, _ = refresh_documents(before, batches)
-                page = source_delta_html(before, candidate)
+                page = source_delta_html(
+                    before, candidate,
+                    disagreements=result["cross_source_disagreements"])
                 with open(args.preview_source_map, "x", encoding="utf-8") as target:
                     target.write(page)
                 result["preview_map_html"] = args.preview_source_map

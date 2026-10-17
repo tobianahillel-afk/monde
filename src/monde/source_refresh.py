@@ -100,6 +100,68 @@ def preview_sha256(before: WorldMini, after: WorldMini) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
+
+def _preview_source_disagreements(candidate: WorldMini, new_ids: set[str]) -> list[dict]:
+    """Find different source-reported values with overlapping validity.
+
+    Compare only reports that were knowable by each incoming report's
+    knowledge time. A later source correction supersedes its predecessor,
+    not another source's report. No result is an estimated physical state.
+    """
+    snapshot = candidate.export()
+    reports = snapshot["assertions"]
+    evidence = {row["id"]: row for row in snapshot["evidence"]}
+    by_subject = {}
+    superseded_at = {}
+    for row in reports:
+        by_subject.setdefault((row["entity"], row["attribute"]), []).append(row)
+        if row["supersedes"] is not None:
+            superseded_at[row["supersedes"]] = _time(row["known_at"])
+
+    conflicts, seen = [], set()
+    for new in reports:
+        if new["id"] not in new_ids:
+            continue
+        known = _time(new["known_at"])
+        new_source = evidence[new["evidence_id"]]["source_id"]
+        new_value = json.dumps(new["value"], sort_keys=True, allow_nan=False)
+        for other in by_subject[(new["entity"], new["attribute"])]:
+            if other["id"] == new["id"] or _time(other["known_at"]) > known:
+                continue
+            other_source = evidence[other["evidence_id"]]["source_id"]
+            if other_source == new_source:
+                continue
+            replaced = superseded_at.get(other["id"])
+            if replaced is not None and replaced <= known:
+                continue
+            if json.dumps(other["value"], sort_keys=True, allow_nan=False) == new_value:
+                continue
+            start = max(_time(new["valid_from"]), _time(other["valid_from"]))
+            ends = [_time(value) for value in (new["valid_to"], other["valid_to"])
+                    if value is not None]
+            end = min(ends) if ends else None
+            if end is not None and end <= start:
+                continue
+            pair = tuple(sorted((new["id"], other["id"])))
+            if pair in seen:
+                continue
+            seen.add(pair)
+            conflicts.append({
+                "status": "CONFLICTING_SOURCE_REPORTS_ONLY",
+                "entity": new["entity"],
+                "attribute": new["attribute"],
+                "new_assertion_id": new["id"],
+                "new_source_id": new_source,
+                "new_reported_value": new["value"],
+                "other_assertion_id": other["id"],
+                "other_source_id": other_source,
+                "other_reported_value": other["value"],
+                "overlap_valid_from": start.isoformat(),
+                "overlap_valid_to": end.isoformat() if end else None,
+                "knowledge_cutoff": new["known_at"],
+            })
+    return conflicts
+
 def preview_documents(world: WorldMini, documents: list[dict]) -> dict:
     """Inspect later source reports without mutating or saving a world snapshot."""
     from .source_delta import source_delta
@@ -131,11 +193,15 @@ def preview_documents(world: WorldMini, documents: list[dict]) -> dict:
             "previous_reported_value": previous["value"] if previous else None,
             "reported_value": current["value"],
         })
+    disagreements = _preview_source_disagreements(
+        candidate, {row["assertion_id"] for row in delta["new_reports"]})
     return {
         "operation": "PREVIEW_SOURCE_MANIFEST",
         "world": "OBSERVED",
         "status": "PREVIEW_NOT_SAVED",
         "preview_sha256": preview_sha256(world, candidate),
+        "cross_source_disagreement_count": len(disagreements),
+        "cross_source_disagreements": disagreements,
         **counts,
         "added_by_source": delta["sources"],
         "new_reports": changes,

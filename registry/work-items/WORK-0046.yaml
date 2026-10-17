@@ -1,0 +1,60 @@
+id: WORK-0046
+title: "Expose cross-source disagreements before accepting source captures"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source lifecycle"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Alert analysts when a new original-source capture reports a different value
+  from a concurrent independent source, before saving evidence.
+scope:
+  in: ["read-only cross-source preview warnings", "source and time lineage", "real CSV integration tests"]
+  out: ["inferred world truth", "automatic reconciled values", "new database", "new source parser"]
+acceptance_criteria:
+  - {id: AC-1, description: "New source reports expose contemporaneous differing claims with both source identities.", status: NOT_STARTED}
+  - {id: AC-2, description: "Disjoint validity intervals, same-source history and superseded old claims do not create false warnings.", status: NOT_STARTED}
+  - {id: AC-3, description: "Preview is read-only and preserves the confirmation digest behavior.", status: NOT_STARTED}
+  - {id: AC-4, description: "Offline preview HTML exposes source disagreement warnings without changing or trusting original data.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0045]
+read_before: [AGENTS.md, src/monde/source_refresh.py, src/monde/world.py, src/monde/source_delta.py, tests/test_world_source_preview.py]
+reuses: [WorldMini, refresh_documents, source_delta, preview_documents]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Compare newly captured assertions with active source reports in overlapping validity periods.", depends_on: [], expected_files: [src/monde/source_refresh.py], status: IN_REVIEW}
+    - {id: T2, description: "Exercise source contradictions, temporal edges and original CSV CLI without new dependencies.", depends_on: [T1], expected_files: [tests/test_world_source_preview_disagreements.py, src/monde/source_delta.py, src/monde/map_view.py, src/monde/world.py], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_source_preview_disagreements.py]
+  real_system: ["GitHub Actions world-mini on exact candidate HEAD"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0045 / PR #69; actual default-branch runtime not installed."]
+risk:
+  security: LOW
+  data: MEDIUM
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Discard the isolated candidate branch; old snapshots and source files are unchanged."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion:
+  definition_of_done_checked: false
+  review_complete: false
+  docs_updated: false
+  registries_updated: false
+  project_state_updated: false
