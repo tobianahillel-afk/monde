@@ -123,6 +123,13 @@ class WebMercatorGeoPackageTests(unittest.TestCase):
             world.append_documents(docs)
             reports=world.search_reports("gpkg_source_srs","EPSG:3857",AT,CAP)
             self.assertGreaterEqual(len(reports["matches"]),1)
+            mapped=world.export_geojson_bbox([-180,-90,180,90],AT,CAP)
+            projected=[f for f in mapped["features"] if
+                       f["properties"].get("monde_gpkg_source_srs")=="EPSG:3857"]
+            self.assertTrue(projected)
+            self.assertTrue(all(
+                f["properties"]["monde_coordinate_transform"]==
+                "WEB_MERCATOR_TO_WGS84_DERIVED" for f in projected))
             out=Path(d)/"offline.html"
             command=[sys.executable,"-m","monde.map_view","--gpkg",str(source),
                 "--gpkg-all-layers","--source-id","survey",
