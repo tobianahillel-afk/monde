@@ -122,3 +122,26 @@ timezone-aware ISO-8601. This entry page has no JavaScript, online tiles,
 external scripts or writes. It is bounded, read-only, frame-denied and
 loopback-only, with CSP form-action limited to self. Unknown query parameters
 to /explore receive HTTP 400.
+
+### Nearby source-reported observations in the local browser (WORK-0053)
+
+Open `http://127.0.0.1:8765/explore` to use the two new **proximity
+map** forms alongside the four existing evidence views. They do not
+geolocate the current user: enter the search center explicitly.
+
+- `/viewer?view=nearest&center=2.3522,48.8566&limit=10&at=T&known_at=K`
+  shows the nearest source-reported Point entities (1–1000). All current
+  competing source Point locations of selected entities remain distinct;
+  distance is calculated from reported coordinates, not an estimated
+  true position or measurement accuracy.
+- `/viewer?view=radius&center=2.3522,48.8566&radius_km=5&at=T&known_at=K`
+  maps entities with at least one source-reported Point inside the radius.
+  **Other current source reports of those entities remain on the map even
+  when their coordinates are outside the radius**, preserving disagreements.
+
+Both modes reuse the already available `WorldMini.export_geojson_nearest`,
+`WorldMini.export_geojson_radius` and `monde.map_view.render_map` unchanged.
+The existing loopback-only HTTP server enforces exact params, world and
+knowledge cutoffs, response limits, no-store, no-network CSP, no writes,
+and saved-state immutability. There is no online basemap, new proximity
+algorithm, geolocation permission or external API.
