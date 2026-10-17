@@ -152,3 +152,29 @@ The existing loopback-only HTTP server enforces exact params, world and
 knowledge cutoffs, response limits, no-store, no-network CSP, no writes,
 and saved-state immutability. There is no online basemap, new proximity
 algorithm, geolocation permission or external API.
+
+### Inspect original entity reports and source history in a local browser (WORK-0054)
+
+Open `http://127.0.0.1:8765/inspect` or follow **Inspect original entity
+reports and source histories** from `/explore`. Three native GET forms expose
+only the existing `WorldMini.entity_snapshot`, `WorldMini.query`, and
+`WorldMini.source_history` functions:
+
+- `/inspect?view=entity&entity=building-001&at=T&known_at=K` — every
+  source-reported attribute, including original conflicting source claims.
+- `/inspect?view=reports&entity=building-001&attribute=floors&at=T&known_at=K`
+  — source evidence and provenance for one attribute at explicit world/knowledge time.
+- `/inspect?view=source-history&source=city-registry&known_at=K` — source
+  assertions and their corrections up to K; optional `entity`/`attribute`
+  parameters may narrow the history.
+
+The browser renders each full original report in an expandable, HTML-escaped
+evidence record (including evidence and assertion IDs, source locator,
+original event/capture time, validity and knowledge cutoffs). It never
+merges contradictory reports or infers truth. An empty result is explicitly
+**UNKNOWN**, not zero, false or proof of absence. Links to the unchanged
+original JSON endpoints make the complete machine-readable evidence available.
+The inspection HTML has **no browser scripts or external requests**, and
+inherits loopback-only hosting, strict argument validation, size limits,
+no-store, frame denial, and no saved-state mutation. This remains an
+**unmerged stacked candidate**; the GitHub Actions tests cover its branch.
