@@ -702,5 +702,84 @@ class DisagreementReportHTTPTests(unittest.TestCase):
 
 
 
+    def test_change_kind_html_json_csv_real_http_selection_parity(self):
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        for kind, classification in (("appeared", "APPEARED IN SELECTION"),
+                                     ("disappeared", None),
+                                     ("modified", None)):
+            with self.subTest(kind=kind):
+                selected = {**params, "change_kind": kind}
+                status, _, raw = self.fetch("/disagreement-compare.json", selected)
+                self.assertEqual(status, 200)
+                comparison = json.loads(raw)
+                self.assertEqual(comparison["selection"]["change_kind"], kind)
+                self.assertEqual({r["classification"] for r in comparison["changes"]},
+                                 {classification} if classification else set())
+                reports = comparison["later"]["geojson"]["features"]
+                self.assertEqual({r["properties"]["source_id"] for r in reports},
+                                 {"survey-east", "survey-west"} if classification else set())
+                csv_status, _, csv_raw = self.fetch("/disagreement-compare.csv", selected)
+                self.assertEqual(csv_status, 200)
+                rows = list(csv.DictReader(io.StringIO(csv_raw.decode())))
+                self.assertEqual(len(rows), len(reports))
+                self.assertEqual({r["classification"] for r in rows},
+                                 {classification} if classification else set())
+                html_status, _, html_raw = self.fetch("/disagreement-report", selected)
+                self.assertEqual(html_status, 200)
+                html = html_raw.decode()
+                self.assertIn("Show newly appearing disagreements only", html)
+                self.assertIn("Show disappearing disagreements only", html)
+                self.assertIn("Show revised original evidence only", html)
+                self.assertIn("change_kind=" + kind, html)
+                if classification is None:
+                    self.assertIn("NO ORIGINAL SOURCE DISAGREEMENT WITH SELECTED CHANGE TYPE", html)
+
+    def test_change_kind_all_three_classes_at_both_bitemporal_axes(self):
+        from unittest.mock import patch
+        from monde.local_api import _disagreement_pair
+
+        def point(entity, assertion, longitude):
+            return {"type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [longitude, 48.85]},
+                    "properties": {"entity": entity, "source_id": "survey-a",
+                                   "assertion_id": assertion,
+                                   "evidence_id": "e-" + assertion}}
+        old = [point("disappeared", "old", 2.31), point("modified", "old-c", 2.32),
+               point("stable", "same", 2.33)]
+        new = [point("appeared", "new", 2.34), point("modified", "new-c", 2.35),
+               point("stable", "same", 2.33)]
+        old_doc = {"type": "FeatureCollection", "features": old}
+        new_doc = {"type": "FeatureCollection", "features": new}
+        for axis in ("from_at", "from_known_at"):
+            for kind in ("appeared", "disappeared", "modified"):
+                with self.subTest(axis=axis, kind=kind):
+                    values = {**QUERY, axis: "2026-01-01T00:00:00Z",
+                              "change_kind": kind}
+                    with patch("monde.map_view.disagreement_view",
+                               side_effect=[new_doc, old_doc]):
+                        later, earlier = _disagreement_pair(self.world, values)
+                    seen = {feature["properties"]["entity"] for feature
+                            in later["features"] + earlier["features"]}
+                    self.assertEqual(seen, {kind})
+
+    def test_change_kind_rejects_unknown_values_and_unrelated_routes(self):
+        base = {**QUERY, "from_known_at": "2026-01-09T00:00:00Z"}
+        for route in ("/disagreement-report", "/disagreement-compare.json",
+                      "/disagreement-compare.csv"):
+            for params in ({**base, "change_kind": "other"},
+                           {**QUERY, "change_kind": "appeared"},
+                           {**base, "change_kind": ""}):
+                with self.subTest(route=route, params=params):
+                    status, _, raw = self.fetch(route, params)
+                    self.assertEqual(status, 400)
+                    self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        for route in ("/viewer", "/map-disagreements", "/disagreement.csv"):
+            params = {**QUERY, "change_kind": "appeared"}
+            if route == "/viewer":
+                params["view"] = "disagreements"
+            self.assertEqual(self.fetch(route, params)[0], 400)
+
+
 if __name__ == "__main__":
     unittest.main()
