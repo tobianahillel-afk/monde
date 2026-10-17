@@ -39,6 +39,28 @@ Endpoints (GET, all JSON):
   These are not verified physical movements.
 - `/map?bbox=1,45,6,51&at=...&known_at=...` — WorldMini's existing
   source-report GeoJSON, including conflicting coordinates.
+- `/map?bbox=2.3,48.8,2.4,48.9&at=T&known_at=K&source=survey-1` — optional
+  **single-original-source** evidence lens. The source's own Point must
+  intersect the viewport to select an entity; the same source's other
+  positions for that entity remain visible as contrary reports. The response
+  preserves each assertion and its provenance, contains `monde_source_filter`,
+  and updates its displayed result counts. It does **not** imply that another
+  source agreed or that a position is verified physical truth. The same
+  optional filter is available in `/viewer?view=current&...` and its native
+  evidence/time-navigation forms. The same original-source lens now also
+  applies to `/map-knowledge-changes`, `/map-world-changes` and their
+  `/viewer` historical maps. Qualification requires a **changed report from
+  that source** inside the bbox at either cutoff; both old/new source reports
+  for qualifying entities remain, even if the other position is offscreen.
+  Source-specific counts exclude unrelated sources. Time differences are
+  source reports, never verified physical changes. Disagreements, nearest
+  and radius remain explicitly unfiltered.
+  The local `/explore` form suggests source IDs that have at least one original
+  `geo_point` assertion in the saved snapshot. Up to 200 alphabetical IDs
+  appear as native browser suggestions; manually entering any valid source ID
+  still works. Suggestions do not assert that a source has an active Point at
+  the chosen world-time/knowledge-time cutoff. No browser script or network
+  dependency is added.
 - `/tile?z=5&x=16&y=11&at=...&known_at=...` — GeoJSON for a WGS84
   viewport derived from a standard XYZ Web Mercator tile, including the original
   source Point assertions and tile metadata; this is not a raster tile service.

@@ -9,6 +9,7 @@ import argparse
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import re
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlsplit
 
@@ -18,12 +19,12 @@ MAX_REQUEST_TARGET = 2048
 MAX_RESPONSE_BYTES = 2_000_000
 
 _EXPLORER_VIEWS = (
-    ("current", "Current reports", ("bbox", "at", "known_at")),
+    ("current", "Current reports", ("bbox", "at", "known_at", "source")),
     ("disagreements", "Source disagreements", ("bbox", "at", "known_at")),
     ("knowledge-changes", "Newly known or corrected evidence",
-     ("bbox", "at", "from_known_at", "to_known_at")),
+     ("bbox", "at", "from_known_at", "to_known_at", "source")),
     ("world-changes", "Changes in reported validity",
-     ("bbox", "from_at", "to_at", "known_at")),
+     ("bbox", "from_at", "to_at", "known_at", "source")),
     ("nearest", "Nearest source-reported places",
      ("center", "limit", "at", "known_at")),
     ("radius", "Source-reported places within a radius",
@@ -31,6 +32,7 @@ _EXPLORER_VIEWS = (
 )
 _EXPLORER_LABELS = {
     "bbox": "WGS84 bounds (west,south,east,north)",
+    "source": "Optional original source ID (show only that source)",
     "center": "WGS84 search center (longitude,latitude)",
     "limit": "Maximum nearest entities (1–1000)",
     "radius_km": "Search radius (kilometers)",
@@ -43,8 +45,16 @@ _EXPLORER_LABELS = {
 }
 
 
-def _explorer_html() -> str:
-    """Native GET forms for existing evidence maps, without browser JS."""
+def _explorer_html(source_ids: tuple[str, ...] = ()) -> str:
+    """Native GET forms with suggestions from original Point-source evidence."""
+    # The datalist is a convenience; manually typed valid IDs remain usable.
+    suggestions = ''.join(
+        '<option value="' + escape(source_id, quote=True) + '"></option>'
+        for source_id in source_ids[:200])
+    source_hint = (
+        '<p>' + str(len(source_ids)) + ' original Point sources in this saved '
+        'snapshot (not necessarily current at the selected world/knowledge '
+        'time). Type an ID if it is absent from the first 200 suggestions.</p>')
     forms = []
     for mode, title, fields in _EXPLORER_VIEWS:
         inputs = []
@@ -54,10 +64,12 @@ def _explorer_html() -> str:
                 "center": ' value="2.3522,48.8566"',
                 "limit": ' value="10"',
                 "radius_km": ' value="5"',
+                "source": ' placeholder="e.g. survey-1 (optional)"',
             }.get(key, ' placeholder="2026-01-02T00:00:00Z"')
             inputs.append('<label>' + _EXPLORER_LABELS[key] +
-                          '<input name="' + key + '" required' + initial +
-                          '></label>')
+                          '<input name="' + key + '"' +
+                          (' list="saved-original-sources"' if key == "source" else ' required') +
+                          initial + '></label>')
         forms.append(
             '<form action="/viewer" method="get"><h2>' + title + '</h2>' +
             '<input type="hidden" name="view" value="' + mode + '">' +
@@ -82,6 +94,8 @@ padding:10px 14px;font:inherit;font-weight:bold;cursor:pointer}
 <p>Explore original source-reported claims at explicit world-time and
 knowledge-time cutoffs. Map positions are evidence, not verified physical
 truth. No external requests, data upload or saved-state changes.</p>
+""" + source_hint + """
+<datalist id="saved-original-sources">""" + suggestions + """</datalist>
 <main>""" + ''.join(forms) + """</main>
 <p><a href="/inspect">Inspect original entity reports and source histories</a></p>
 <p>Local read-only interface. Time cutoffs must be timezone-aware ISO-8601.</p>
@@ -300,9 +314,13 @@ def _parameters(target: str, path: str) -> dict[str, str]:
         raise ValueError("invalid request path")
     values = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
                       max_num_fields=8)
-    if any(len(v) != 1 or not v[0] for v in values.values()):
+    if any(len(v) != 1 or (not v[0] and key != "source")
+           for key, v in values.items()):
         raise ValueError("all parameters must appear exactly once")
-    return {key: items[0] for key, items in values.items()}
+    # Browser GET forms submit empty optional controls: treat blank source as
+    # no filter, but keep every other parameter strict.
+    return {key: items[0] for key, items in values.items()
+            if key != "source" or items[0]}
 
 
 def _require(values: dict[str, str], required: set[str],
@@ -332,6 +350,54 @@ def _center(value: str) -> list[float]:
         raise ValueError("invalid point coordinates") from exc
 
 
+def _filter_source_bbox(document: dict, source: str | None) -> dict:
+    """Restrict a bbox map to one original source without merging assertions.
+
+    A source entity qualifies only if *its own* Point intersects the bbox;
+    retain that source's contrary Point positions for the same entity.
+    The original collection is not modified.
+    """
+    if source is None:
+        return document
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}", source):
+        raise ValueError("invalid source ID")
+    selected = [feature for feature in document["features"]
+                if feature["properties"]["source_id"] == source]
+    entities = {feature["properties"]["entity"] for feature in selected
+                if feature["properties"]["monde_inside_bbox"]}
+    features = [feature for feature in selected
+                if feature["properties"]["entity"] in entities]
+    query = dict(document["monde_bbox_query"])
+    query["total_matching_entities"] = len(entities)
+    query["total_source_features"] = len(features)
+    query["status"] = "MATCHES" if features else "NO_MATCHES"
+    return {**document, "features": features, "monde_bbox_query": query,
+            "monde_source_filter": source}
+
+
+def _filter_source_changes(document: dict, source: str | None, query_key: str) -> dict:
+    """Map one source's original changed Points, qualifying at either cutoff.
+
+    A different source's in-viewport Point cannot qualify this source's
+    historical change. Retain both sides of the change for selected entities.
+    """
+    if source is None:
+        return document
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}", source):
+        raise ValueError("invalid source ID")
+    selected = [f for f in document["features"]
+                if f["properties"]["source_id"] == source]
+    entities = {f["properties"]["entity"] for f in selected
+                if f["properties"]["monde_inside_bbox"]}
+    features = [f for f in selected if f["properties"]["entity"] in entities]
+    query = dict(document[query_key])
+    query["total_matching_entities"] = len(entities)
+    query["total_changed_features"] = len(features)
+    query["status"] = "CHANGES" if features else "NO_CHANGES"
+    return {**document, "features": features, query_key: query,
+            "monde_source_filter": source}
+
+
 def create_server(state: str | Path, port: int = 0, *,
                   max_response_bytes: int = MAX_RESPONSE_BYTES) -> ThreadingHTTPServer:
     """Load once, then serve queries only on 127.0.0.1. No state writes."""
@@ -340,6 +406,16 @@ def create_server(state: str | Path, port: int = 0, *,
     if type(max_response_bytes) is not int or max_response_bytes < 256:
         raise ValueError("invalid response limit")
     world = WorldMini.read(str(state))
+    # Read the already validated snapshot once. Only source-reported Point
+    # assertions contribute to map suggestions; no inferred source catalog.
+    snapshot = world.export()
+    source_by_evidence = {
+        evidence["id"]: evidence["source_id"] for evidence in snapshot["evidence"]}
+    map_source_ids = tuple(sorted({
+        source_by_evidence[assertion["evidence_id"]]
+        for assertion in snapshot["assertions"] if assertion["attribute"] == "geo_point"
+    }))
+    del snapshot, source_by_evidence
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, format_string, *args):
@@ -365,7 +441,7 @@ def create_server(state: str | Path, port: int = 0, *,
             # Reuse the offline map renderer; no new browser-side service or
             # unauthenticated state-changing route is introduced.
             from .map_view import render_map
-            body = (_explorer_html() if geojson is None else render_map(geojson, inspector_links=True,
+            body = (_explorer_html(map_source_ids) if geojson is None else render_map(geojson, inspector_links=True,
                                  navigation=navigation)).encode("utf-8")
             if len(body) > max_response_bytes:
                 return self._reply(413, {"error": "response_too_large"})
@@ -487,15 +563,21 @@ def create_server(state: str | Path, port: int = 0, *,
                     output = world.export_geojson_disagreements(
                         args["at"], args["known_at"], _bbox(args["bbox"]))
                 elif path == "/map-knowledge-changes":
-                    _require(args, {"bbox", "at", "from_known_at", "to_known_at"})
-                    output = world.export_geojson_bbox_knowledge_changes(
-                        _bbox(args["bbox"]), args["at"],
-                        args["from_known_at"], args["to_known_at"])
+                    _require(args, {"bbox", "at", "from_known_at", "to_known_at"},
+                             {"source"})
+                    output = _filter_source_changes(
+                        world.export_geojson_bbox_knowledge_changes(
+                            _bbox(args["bbox"]), args["at"],
+                            args["from_known_at"], args["to_known_at"]),
+                        args.get("source"), "monde_bbox_changes_query")
                 elif path == "/map-world-changes":
-                    _require(args, {"bbox", "from_at", "to_at", "known_at"})
-                    output = world.export_geojson_bbox_world_changes(
-                        _bbox(args["bbox"]), args["from_at"],
-                        args["to_at"], args["known_at"])
+                    _require(args, {"bbox", "from_at", "to_at", "known_at"},
+                             {"source"})
+                    output = _filter_source_changes(
+                        world.export_geojson_bbox_world_changes(
+                            _bbox(args["bbox"]), args["from_at"],
+                            args["to_at"], args["known_at"]),
+                        args.get("source"), "monde_bbox_world_changes_query")
                 elif path == "/inspect":
                     if not args:
                         return self._inspection(None)
@@ -536,9 +618,10 @@ def create_server(state: str | Path, port: int = 0, *,
                     # existing offline CLI, at caller-selected time cutoffs.
                     mode = args.get("view")
                     if mode == "current":
-                        _require(args, {"view", "bbox", "at", "known_at"})
-                        geojson = world.export_geojson_bbox(
-                            _bbox(args["bbox"]), args["at"], args["known_at"])
+                        _require(args, {"view", "bbox", "at", "known_at"}, {"source"})
+                        geojson = _filter_source_bbox(world.export_geojson_bbox(
+                            _bbox(args["bbox"]), args["at"], args["known_at"]),
+                            args.get("source"))
                     elif mode == "disagreements":
                         _require(args, {"view", "bbox", "at", "known_at"})
                         from .map_view import disagreement_view
@@ -546,16 +629,22 @@ def create_server(state: str | Path, port: int = 0, *,
                             world, _bbox(args["bbox"]), args["at"], args["known_at"])
                     elif mode == "knowledge-changes":
                         _require(args, {"view", "bbox", "at",
-                                        "from_known_at", "to_known_at"})
-                        geojson = world.export_geojson_bbox_knowledge_changes(
-                            _bbox(args["bbox"]), args["at"],
-                            args["from_known_at"], args["to_known_at"])
+                                        "from_known_at", "to_known_at"},
+                                 {"source"})
+                        geojson = _filter_source_changes(
+                            world.export_geojson_bbox_knowledge_changes(
+                                _bbox(args["bbox"]), args["at"],
+                                args["from_known_at"], args["to_known_at"]),
+                            args.get("source"), "monde_bbox_changes_query")
                     elif mode == "world-changes":
                         _require(args, {"view", "bbox", "from_at",
-                                        "to_at", "known_at"})
-                        geojson = world.export_geojson_bbox_world_changes(
-                            _bbox(args["bbox"]), args["from_at"],
-                            args["to_at"], args["known_at"])
+                                        "to_at", "known_at"},
+                                 {"source"})
+                        geojson = _filter_source_changes(
+                            world.export_geojson_bbox_world_changes(
+                                _bbox(args["bbox"]), args["from_at"],
+                                args["to_at"], args["known_at"]),
+                            args.get("source"), "monde_bbox_world_changes_query")
                     elif mode == "nearest":
                         _require(args, {"view", "center", "limit", "at", "known_at"})
                         geojson = world.export_geojson_nearest(
@@ -571,9 +660,11 @@ def create_server(state: str | Path, port: int = 0, *,
                         raise ValueError("unsupported viewer mode")
                     return self._html(geojson, navigation=args)
                 elif path == "/map":
-                    _require(args, {"bbox", "at", "known_at"})
-                    output = world.export_geojson_bbox(_bbox(args["bbox"]),
-                                                      args["at"], args["known_at"])
+                    _require(args, {"bbox", "at", "known_at"}, {"source"})
+                    output = _filter_source_bbox(
+                        world.export_geojson_bbox(_bbox(args["bbox"]),
+                                                  args["at"], args["known_at"]),
+                        args.get("source"))
                 elif path == "/tile":
                     _require(args, {"z", "x", "y", "at", "known_at"})
                     output = world.export_geojson_tile(
