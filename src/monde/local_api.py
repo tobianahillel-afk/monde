@@ -73,7 +73,10 @@ def _explorer_html(source_ids: tuple[str, ...] = ()) -> str:
         forms.append(
             '<form action="/viewer" method="get"><h2>' + title + '</h2>' +
             '<input type="hidden" name="view" value="' + mode + '">' +
-            ''.join(inputs) + '<button type="submit">Open map</button></form>')
+            ''.join(inputs) + '<button type="submit">Open map</button>' +
+            ('<button type="submit" formaction="/disagreement-report">'
+             'Read opposing original evidence</button>' if mode == "disagreements"
+             else '') + '</form>')
     return """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MONDE Mini — Evidence Explorer</title>
@@ -433,6 +436,69 @@ def _focus_disagreement_source(document: dict, source: str | None) -> dict:
     return result
 
 
+
+def _disagreement_report_html(document: dict, params: dict[str, str]) -> str:
+    """Readable original opposing source Points, with provenance and no consensus."""
+    grouped: dict[str, list[dict]] = {}
+    for feature in document["features"]:
+        grouped.setdefault(str(feature["properties"]["entity"]), []).append(feature)
+    values = {key: value for key, value in params.items() if key != "view"}
+    map_url = "/viewer?" + urlencode({"view": "disagreements", **values})
+    json_url = "/map-disagreements?" + urlencode(values)
+    sections = []
+    for entity, reports in sorted(grouped.items()):
+        dossier = "/inspect?" + urlencode({
+            "view": "entity", "entity": entity, "at": params["at"],
+            "known_at": params["known_at"]})
+        details = []
+        for feature in sorted(reports, key=lambda f: (
+                str(f["properties"].get("source_id", "")),
+                str(f["properties"].get("assertion_id", "")))):
+            props = feature["properties"]
+            label = " · ".join((
+                str(props.get("source_id", "")),
+                str(props.get("assertion_id", "")),
+                str(feature.get("geometry", {}).get("coordinates", []))))
+            details.append('<details><summary>' + escape(label) +
+                           '</summary><pre>' + escape(json.dumps(
+                               feature, ensure_ascii=False, sort_keys=True,
+                               indent=2, allow_nan=False)) +
+                           '</pre></details>')
+        sections.append('<section><h2>' + escape(entity) + '</h2><p>' +
+                        str(len(reports)) + ' original source Point reports · '
+                        '<a href="' + escape(dossier, quote=True) +
+                        '">Open full entity evidence dossier</a></p>' +
+                        ''.join(details) + '</section>')
+    focus = params.get("source")
+    description = (
+        'Selected original source: ' + escape(focus) +
+        ' (qualifies by its own in-bounds Point; opposing reports may be outside).'
+        if focus else 'All original source disagreements with an in-bounds Point.')
+    return ('''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MONDE Mini — Original source disagreements</title>
+<style>:root{color-scheme:dark;background:#101827;color:#ebf2f9;font-family:system-ui,sans-serif}
+body{margin:auto;padding:24px;max-width:1050px}section,details{padding:14px;margin:12px 0;
+border:1px solid #48677e;border-radius:10px;background:#182436}
+a{color:#8ee6d3}pre{white-space:pre-wrap;overflow-wrap:anywhere}
+summary{cursor:pointer;overflow-wrap:anywhere}
+:focus-visible{outline:3px solid #ffc870;outline-offset:2px}</style></head><body>
+<nav><a href="/explore">Source explorer</a></nav>
+<h1>Original source disagreement evidence</h1>
+<p>OBSERVED original reports, not verified physical positions. No consensus location,
+inferred truth or confirmed physical movement.</p><p>''' +
+            description + '</p><p>World time: ' + escape(params["at"]) +
+            ' · Knowledge cutoff: ' + escape(params["known_at"]) +
+            ' · Entities: ' + str(len(grouped)) +
+            '</p><p><a href="' + escape(map_url, quote=True) +
+            '">Show disagreement map</a> · <a href="' +
+            escape(json_url, quote=True) +
+            '">Open read-only GeoJSON</a></p>' +
+            (''.join(sections) if sections else
+             '<p role="status">NO MATCHING SOURCE DISAGREEMENT — '
+             'not evidence of agreement or absence.</p>') + '</body></html>')
+
+
 def create_server(state: str | Path, port: int = 0, *,
                   max_response_bytes: int = MAX_RESPONSE_BYTES) -> ThreadingHTTPServer:
     """Load once, then serve queries only on 127.0.0.1. No state writes."""
@@ -498,7 +564,8 @@ def create_server(state: str | Path, port: int = 0, *,
 
         def _inspection(self, payload: dict | None, mode: str | None = None,
                         params: dict[str, str] | None = None):
-            body = _inspection_html(payload, mode, params).encode("utf-8")
+            body = (payload if isinstance(payload, str) else
+                    _inspection_html(payload, mode, params)).encode("utf-8")
             if len(body) > max_response_bytes:
                 return self._reply(413, {"error": "response_too_large"})
             self.send_response(200)
@@ -535,7 +602,8 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/compare-world", "/source-history", "/disagreement-changes",
                             "/knowledge-updates", "/knowledge-timeline",
                             "/world-knowledge-changes", "/map-disagreements",
-                            "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore", "/inspect"}:
+                            "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore",
+                             "/inspect", "/disagreement-report"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -599,6 +667,15 @@ def create_server(state: str | Path, port: int = 0, *,
                         world.export_geojson_disagreements(
                             args["at"], args["known_at"], _bbox(args["bbox"])),
                         args.get("source"))
+                elif path == "/disagreement-report":
+                    _require(args, {"bbox", "at", "known_at"}, {"source", "view"})
+                    if "view" in args and args["view"] != "disagreements":
+                        raise ValueError("invalid disagreement report view")
+                    from .map_view import disagreement_view
+                    reports = disagreement_view(
+                        world, _bbox(args["bbox"]), args["at"], args["known_at"])
+                    reports = _focus_disagreement_source(reports, args.get("source"))
+                    return self._inspection(_disagreement_report_html(reports, args))
                 elif path == "/map-knowledge-changes":
                     _require(args, {"bbox", "at", "from_known_at", "to_known_at"},
                              {"source"})
