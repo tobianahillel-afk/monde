@@ -139,8 +139,15 @@ geolocate the current user: enter the search center explicitly.
   **Other current source reports of those entities remain on the map even
   when their coordinates are outside the radius**, preserving disagreements.
 
-Both modes reuse the already available `WorldMini.export_geojson_nearest`,
-`WorldMini.export_geojson_radius` and `monde.map_view.render_map` unchanged.
+Both modes reuse the existing `WorldMini.export_geojson_nearest` and
+`WorldMini.export_geojson_radius` selectors **unchanged**. The existing
+`monde.map_view.render_map` now also accepts their source-evidence documents:
+it derives a **display-only envelope** from the original selected coordinates
+to reuse the standalone offline map. This display envelope is NOT the search
+radius, the ranking criterion, a new source claim, or a physical position
+estimate. Original `monde_nearest_query` / `monde_radius_query` metadata
+and every original competing source position remain included; the radius view
+distinguishes inside/outside reports using `monde_within_radius`.
 The existing loopback-only HTTP server enforces exact params, world and
 knowledge cutoffs, response limits, no-store, no-network CSP, no writes,
 and saved-state immutability. There is no online basemap, new proximity

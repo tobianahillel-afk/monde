@@ -232,6 +232,10 @@ class BrowserViewerTests(unittest.TestCase):
             self.assertTrue(all(f["properties"]["evidence_id"] for f in features))
             self.assertIn(b"survey-east", document)
             self.assertIn(b"survey-west", document)
+            self.assertIn(b'"monde_proximity_display":"SELECTED_SOURCE_ENVELOPE_NOT_QUERY_BBOX"',
+                          document)
+            self.assertIn(b'"monde_within_radius":false', document)
+            self.assertIn(b'"monde_within_radius":true', document)
         finally:
             server.shutdown()
             thread.join(timeout=5)
