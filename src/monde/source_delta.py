@@ -10,6 +10,7 @@ import argparse
 import csv
 import io
 import json
+from pathlib import Path
 import sys
 
 from .world import WorldMini
@@ -135,6 +136,40 @@ def source_delta_geojson(before: WorldMini, after: WorldMini) -> dict:
 
 
 
+
+def source_delta_html(before: WorldMini, after: WorldMini) -> str:
+    """Open the newly recorded source Points in the existing offline map.
+
+    No world-time snapshot is inferred: reports span their original source
+    validity and knowledge times, and old assertions remain in the files.
+    """
+    from .map_view import render_map
+
+    result = source_delta_geojson(before, after)
+    features = result["features"]
+    for feature in features:
+        props = feature["properties"]
+        locator = props["source_locator"]
+        props.update({
+            "locator": locator if isinstance(locator, str) else json.dumps(
+                locator, ensure_ascii=False, sort_keys=True, allow_nan=False),
+            "monde_inside_bbox": True,
+            "valid_at": "ALL_SOURCE_VALIDITY_INTERVALS",
+            "knowledge_cutoff": "ALL_RECORDED_KNOWLEDGE",
+        })
+    result["monde_bbox_query"] = {
+        "basis": "SOURCE_REPORTED_POINT_BBOX_ONLY",
+        "bbox": [-180, -90, 180, 90],
+        "valid_at": "ALL_SOURCE_VALIDITY_INTERVALS",
+        "knowledge_cutoff": "ALL_RECORDED_KNOWLEDGE",
+        "total_matching_entities": len({
+            feature["properties"]["entity"] for feature in features}),
+        "total_source_features": len(features),
+        "status": "MATCHES" if features else "NO_MATCHES",
+    }
+    return render_map(result)
+
+
 def source_delta_csv(before: WorldMini, after: WorldMini) -> str:
     """Export every new source report, including old/new correction values.
 
@@ -186,10 +221,24 @@ def main(argv=None) -> int:
                          help="export only newly recorded source Point reports as GeoJSON")
     formats.add_argument("--as-csv", action="store_true",
                          help="export all new reports, corrections and old/new source values as CSV")
+    formats.add_argument("--as-html", action="store_true",
+                         help="show newly recorded source Points on the existing offline map")
+    parser.add_argument("--output", help="new HTML path for --as-html (no overwrite)")
     args = parser.parse_args(argv)
     try:
+        if args.as_html != bool(args.output):
+            raise ValueError("--as-html requires --output; --output is HTML-only")
+        if args.as_html and any(
+                Path(args.output).resolve() ==
+                __import__("pathlib").Path(source).resolve()
+                for source in (args.before, args.after)):
+            raise ValueError("output cannot overwrite input snapshot")
         before, after = WorldMini.read(args.before), WorldMini.read(args.after)
-        if args.as_csv:
+        if args.as_html:
+            page = source_delta_html(before, after)
+            with open(args.output, "x", encoding="utf-8") as target:
+                target.write(page)
+        elif args.as_csv:
             print(source_delta_csv(before, after), end="")
         else:
             report = (source_delta_geojson(before, after) if args.as_geojson

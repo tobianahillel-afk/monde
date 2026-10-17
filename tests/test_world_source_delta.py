@@ -83,6 +83,87 @@ class SnapshotDeltaTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "diverged"):
             source_delta(before, WorldMini.from_document(reordered))
 
+
+    def test_html_uses_existing_offline_renderer_without_fabricating_world_movement(self):
+        from monde.source_delta import source_delta_html
+        earlier = document("e1", "a1", value={"type": "Point",
+                                             "coordinates": [2.3, 48.8]})
+        earlier["assertions"][0]["attribute"] = "geo_point"
+        before = WorldMini.from_document(earlier)
+        after = WorldMini.from_document(before.export())
+        correction = document("e2", "a2", known="2026-01-03T12:00:00Z",
+                              supersedes="a1", value={"type": "Point",
+                                                       "coordinates": [2.4, 48.9]})
+        correction["assertions"][0]["attribute"] = "geo_point"
+        after.append_document(correction)
+        html = source_delta_html(before, after)
+        self.assertIn("NEW SOURCE REPORTS ONLY", html)
+        self.assertIn("id=\"monde-data\"", html)
+        self.assertNotIn("https://tile.", html)
+        self.assertNotIn("</script><script>alert", html)
+        embedded = html.split('id="monde-data">', 1)[1].split("</script>", 1)[0]
+        mapped = json.loads(embedded)
+        self.assertEqual([f["id"] for f in mapped["features"]], ["a2"])
+        self.assertEqual(mapped["features"][0]["properties"]["supersedes"], "a1")
+        self.assertEqual(mapped["features"][0]["properties"]["source_id"], "survey")
+        self.assertEqual(mapped["monde_source_delta"]["corrections_added"], 1)
+        self.assertEqual(mapped["monde_bbox_query"]["total_source_features"], 1)
+        self.assertEqual(before.export()["assertions"][0]["value"]["coordinates"],
+                         [2.3, 48.8])
+
+    def test_html_works_with_no_new_geo_points_but_preserves_delta_counts(self):
+        from monde.source_delta import source_delta_html
+        original = WorldMini.from_document(document("e1", "a1"))
+        changed = WorldMini.from_document(original.export())
+        changed.append_document(document("e2", "a2", value=2))
+        html = source_delta_html(original, changed)
+        embedded = html.split('id="monde-data">', 1)[1].split("</script>", 1)[0]
+        data = json.loads(embedded)
+        self.assertEqual(data["features"], [])
+        self.assertEqual(data["monde_bbox_query"]["status"], "NO_MATCHES")
+        self.assertEqual(data["monde_source_delta"]["assertions_added"], 1)
+
+    def test_cli_html_from_saved_snapshots_is_read_only_and_never_overwrites(self):
+        with tempfile.TemporaryDirectory() as root:
+            p = Path(root)
+            before, after = WorldMini(), WorldMini()
+            point = document("e1", "a1", value={"type": "Point",
+                                                "coordinates": [12.5, 41.9]})
+            point["assertions"][0]["attribute"] = "geo_point"
+            after.append_document(point)
+            first, second, out = p/"before.json", p/"after.json", p/"changes.html"
+            before.save(first)
+            after.save(second)
+            originals = first.read_bytes(), second.read_bytes()
+            command = [sys.executable, "-m", "monde.source_delta",
+                       "--before", str(first), "--after", str(second),
+                       "--as-html", "--output", str(out)]
+            env = {**os.environ, "PYTHONPATH": str(ROOT/"src")}
+            done = subprocess.run(command, env=env, capture_output=True, text=True)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertIn('id="monde-data"', out.read_text(encoding="utf-8"))
+            self.assertEqual((first.read_bytes(), second.read_bytes()), originals)
+            repeat = subprocess.run(command, env=env, capture_output=True, text=True)
+            self.assertEqual(repeat.returncode, 2)
+            self.assertEqual((first.read_bytes(), second.read_bytes()), originals)
+            self.assertEqual(out.read_text(encoding="utf-8").count('id="monde-data"'), 1)
+            overwrite = subprocess.run(command[:-1] + [str(first)], env=env,
+                                       capture_output=True, text=True)
+            self.assertEqual(overwrite.returncode, 2)
+            self.assertEqual((first.read_bytes(), second.read_bytes()), originals)
+
+    def test_html_source_text_is_script_escaped_and_divergent_history_fails(self):
+        from monde.source_delta import source_delta_html
+        unsafe = document("e1", "a1", source="</script><script>alert(1)</script>",
+                          value={"type": "Point", "coordinates": [1, 2]})
+        unsafe["assertions"][0]["attribute"] = "geo_point"
+        after = WorldMini.from_document(unsafe)
+        html = source_delta_html(WorldMini(), after)
+        self.assertNotIn("</script><script>alert(1)", html)
+        self.assertIn("\\\\u003c", html)
+        with self.assertRaisesRegex(ValueError, "diverged"):
+            source_delta_html(after, WorldMini())
+
     def test_cli_reads_disk_snapshots_and_reports_failure_without_overwriting(self):
         with tempfile.TemporaryDirectory() as root:
             p = Path(root)
