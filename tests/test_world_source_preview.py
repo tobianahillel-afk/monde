@@ -180,5 +180,82 @@ class SourcePreviewTests(unittest.TestCase):
                              ["reports"][0]["value"], "still reported")
 
 
+    def test_confirmed_preview_saves_only_the_inspected_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, raw = csv_source(root)
+            old = root / "old.json"
+            self.assertEqual(invoke("--ingest-source-manifest", manifest,
+                                    "--state-out", old).returncode, 0)
+            old_bytes = old.read_bytes()
+            csv_source(root, capture=K2, rows=[("site-a", 3.2, 49.3, "updated")])
+            original_source = raw.read_bytes()
+            preview_run = invoke("--fixture", old, "--preview-source-manifest", manifest)
+            self.assertEqual(preview_run.returncode, 0, preview_run.stderr)
+            inspected = json.loads(preview_run.stdout)
+            digest = inspected["preview_sha256"]
+            self.assertRegex(digest, r"^[0-9a-f]{64}$")
+            target = root / "reviewed.json"
+            saved = invoke("--fixture", old, "--refresh-source-manifest", manifest,
+                           "--expect-preview-sha256", digest,
+                           "--state-out", target)
+            self.assertEqual(saved.returncode, 0, saved.stderr)
+            self.assertEqual(json.loads(saved.stdout)["preview_sha256"], digest)
+            self.assertEqual(WorldMini.read(target).query("site-a", "label", AT, K2)
+                             ["reports"][0]["value"], "updated")
+            self.assertEqual(old.read_bytes(), old_bytes)
+            self.assertEqual(raw.read_bytes(), original_source)
+
+    def test_stale_preview_cannot_save_modified_capture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, _ = csv_source(root)
+            old = root / "old.json"
+            self.assertEqual(invoke("--ingest-source-manifest", manifest,
+                                    "--state-out", old).returncode, 0)
+            old_bytes = old.read_bytes()
+            csv_source(root, capture=K2, rows=[("site-a", 2.5, 48.9, "inspected")])
+            preview = json.loads(invoke("--fixture", old,
+                "--preview-source-manifest", manifest).stdout)
+            csv_source(root, capture="2026-01-04T12:00:00Z",
+                       rows=[("site-a", 5.1, 50.2, "later")])
+            target = root / "not-saved.json"
+            denied = invoke("--fixture", old, "--refresh-source-manifest", manifest,
+                            "--expect-preview-sha256", preview["preview_sha256"],
+                            "--state-out", target)
+            self.assertNotEqual(denied.returncode, 0)
+            self.assertIn("preview no longer matches", denied.stderr)
+            self.assertFalse(target.exists())
+            self.assertEqual(old.read_bytes(), old_bytes)
+
+    def test_baseline_drift_and_invalid_preview_digest_fail_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, _ = csv_source(root)
+            old = root / "old.json"
+            self.assertEqual(invoke("--ingest-source-manifest", manifest,
+                                    "--state-out", old).returncode, 0)
+            csv_source(root, capture=K2, rows=[("site-a", 2.7, 49, "revised")])
+            preview = json.loads(invoke("--fixture", old,
+                "--preview-source-manifest", manifest).stdout)
+            new_base = root / "second.json"
+            self.assertEqual(invoke("--fixture", old, "--refresh-source-manifest",
+                                    manifest, "--state-out", new_base).returncode, 0)
+            target = root / "refused.json"
+            mismatch = invoke("--fixture", new_base, "--refresh-source-manifest",
+                              manifest, "--state-out", target,
+                              "--expect-preview-sha256", preview["preview_sha256"])
+            self.assertNotEqual(mismatch.returncode, 0)
+            self.assertFalse(target.exists())
+            for malformed in ("", "a" * 63, "A" * 64, "z" * 64):
+                bad = invoke("--fixture", old, "--refresh-source-manifest", manifest,
+                             "--state-out", target, "--expect-preview-sha256", malformed)
+                self.assertNotEqual(bad.returncode, 0)
+                self.assertFalse(target.exists())
+            wrong_mode = invoke("--fixture", old, "--preview-source-manifest",
+                                manifest, "--expect-preview-sha256", "a" * 64)
+            self.assertNotEqual(wrong_mode.returncode, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
