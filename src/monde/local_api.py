@@ -96,6 +96,8 @@ _INSPECTION_FORMS = (
     ("source-history", "Original source correction history", ("source", "known_at")),
     ("compare-knowledge", "What changed in our knowledge of an entity?",
      ("entity", "at", "from_known_at", "to_known_at")),
+    ("compare-world", "How did sources report the entity across world time?",
+     ("entity", "from_at", "to_at", "known_at")),
 )
 _INSPECTION_LABELS = {
     "entity": "Entity ID", "attribute": "Attribute", "source": "Original source ID",
@@ -103,10 +105,13 @@ _INSPECTION_LABELS = {
     "known_at": "Knowledge cutoff (ISO-8601 with timezone)",
     "from_known_at": "Earlier knowledge cutoff (ISO-8601 with timezone)",
     "to_known_at": "Later knowledge cutoff (ISO-8601 with timezone)",
+    "from_at": "Earlier world time (ISO-8601 with timezone)",
+    "to_at": "Later world time (ISO-8601 with timezone)",
 }
 _INSPECTION_ROUTES = {
     "entity": "/entity", "reports": "/reports", "source-history": "/source-history",
     "compare-knowledge": "/compare-knowledge",
+    "compare-world": "/compare-world",
 }
 
 
@@ -162,16 +167,20 @@ def _inspection_html(payload: dict | None, mode: str | None = None,
             for attribute, value in payload["attributes"].items():
                 items.extend((attribute, report, "", params["known_at"])
                              for report in value["reports"])
-        elif mode == "compare-knowledge":
-            # The existing WorldMini method determines knowledge changes.
-            # Never reinterpret them as verified changes to the physical world.
+        elif mode in {"compare-knowledge", "compare-world"}:
+            # Keep both bitemporal comparisons owned by the World Model.
+            if mode == "compare-knowledge":
+                earlier, later = params["from_known_at"], params["to_known_at"]
+                old_label, new_label = "No longer current", "Newly current"
+            else:
+                earlier, later = params["from_at"], params["to_at"]
+                old_label, new_label = ("Reported at earlier world time",
+                                        "Reported at later world time")
             for attribute, change in payload["changes"].items():
                 for report in change["newly_current"]:
-                    items.append((attribute, report, "Newly current",
-                                  params["to_known_at"]))
+                    items.append((attribute, report, new_label, later))
                 for report in change["no_longer_current"]:
-                    items.append((attribute, report, "No longer current",
-                                  params["from_known_at"]))
+                    items.append((attribute, report, old_label, earlier))
         else:
             items.extend((report.get("attribute", params.get("attribute", "")),
                           report, "", params["known_at"])
@@ -186,6 +195,10 @@ def _inspection_html(payload: dict | None, mode: str | None = None,
                 map_url = _report_map_link(
                     attribute, report, "entity",
                     {"at": params["at"], "known_at": cutoff})
+            elif mode == "compare-world":
+                map_url = _report_map_link(
+                    attribute, report, "entity",
+                    {"at": cutoff, "known_at": params["known_at"]})
             else:
                 map_url = _report_map_link(attribute, report, mode, params)
             map_link = ('<p><a href="' + escape(map_url, quote=True) +
@@ -213,8 +226,8 @@ def _inspection_html(payload: dict | None, mode: str | None = None,
                    '">View complete original JSON response</a></p>' +
                    (''.join(records) if records else
                     ('<p role="status">UNCHANGED — no newly current or retired '
-                     'source reports between these knowledge cutoffs.</p>'
-                     if mode == "compare-knowledge" else
+                     'source reports between these selected cutoffs.</p>'
+                     if mode in {"compare-knowledge", "compare-world"} else
                      '<p role="status">UNKNOWN — no matching source report at these cutoffs.</p>')))
     return ('''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -460,6 +473,11 @@ def create_server(state: str | Path, port: int = 0, *,
                         output = world.compare_knowledge(
                             args["entity"], args["at"], args["from_known_at"],
                             args["to_known_at"])
+                    elif mode == "compare-world":
+                        _require(args, {"view", "entity", "from_at", "to_at", "known_at"})
+                        output = world.compare_world_time(
+                            args["entity"], args["from_at"], args["to_at"],
+                            args["known_at"])
                     else:
                         raise ValueError("unsupported inspection mode")
                     return self._inspection(output, mode, args)
