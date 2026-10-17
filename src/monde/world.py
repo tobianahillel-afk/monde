@@ -1232,6 +1232,8 @@ def main(argv=None) -> int:
                            help="import source-attributed 2D GeoJSON points")
     selection.add_argument("--ingest-csv", metavar="POINTS_CSV",
                            help="import explicitly attributed local WGS84 CSV Points")
+    selection.add_argument("--refresh-source-manifest", metavar="DATASETS_JSON",
+                            help="append a later source capture to a saved state; keep old reports")
     selection.add_argument("--ingest-csv-manifest", "--ingest-source-manifest",
                            dest="ingest_csv_manifest", metavar="DATASETS_JSON",
                            help="atomically import original mixed source datasets")
@@ -1275,6 +1277,32 @@ def main(argv=None) -> int:
     try:
         geo_metadata = (args.source_id, args.source_locator, args.captured_at,
                         args.valid_from, args.valid_to, args.source_event_at)
+        if args.refresh_source_manifest:
+            if (not args.fixture or not args.state_out or args.replace_state
+                    or any(v is not None for v in geo_metadata)
+                    or any(v is not None for v in
+                           (args.csv_id_column, args.csv_lon_column,
+                            args.csv_lat_column))
+                    or args.entity is not None or args.known_at is not None
+                    or args.at is not None or args.timeline_from is not None
+                    or args.timeline_to is not None
+                    or args.knowledge_timeline_from is not None
+                    or args.compare_known_at is not None or args.compare_at is not None
+                    or args.updates_from is not None or args.equals_json is not None
+                    or args.source_attribute is not None):
+                parser.error("refresh requires --fixture and a new --state-out; no query or replace flags")
+            if os.path.realpath(args.fixture) == os.path.realpath(args.state_out):
+                parser.error("refresh must preserve the input snapshot in a separate file")
+            from .csv_points import documents_from_manifest
+            from .source_refresh import refresh_documents
+            batches, features = documents_from_manifest(
+                args.refresh_source_manifest, output_path=args.state_out)
+            updated, changes = refresh_documents(WorldMini.read(args.fixture), batches)
+            updated.save(args.state_out)
+            print(json.dumps({"operation": "REFRESH_SOURCE_MANIFEST",
+                              "world": "OBSERVED", "status": "SAVED",
+                              "features": features, **changes}, sort_keys=True))
+            return 0
         if args.ingest_csv_manifest:
             if (not args.state_out or any(v is not None for v in geo_metadata)
                     or any(v is not None for v in

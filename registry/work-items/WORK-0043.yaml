@@ -1,0 +1,61 @@
+id: WORK-0043
+title: "Refresh captured local source datasets while preserving earlier source evidence"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini original-source capture lifecycle"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Turn initial multi-format source import and saved-snapshot delta into a
+  repeatable observation workflow. Preserve original reports while explicit
+  later captures of the same source and validity scope revise their own claims.
+scope:
+  in: ["read-only input snapshots", "explicit later source capture", "append-only same-source revision chain", "atomic refreshed state", "CLI", "mixed-source integration tests"]
+  out: ["estimated truth", "automatic detection of missing objects", "deletion or hidden rewriting", "network acquisition", "concurrent state writes"]
+acceptance_criteria:
+  - {id: AC-1, description: "A subsequent captured manifest yields a distinct snapshot and source-linked latest reports.", status: NOT_STARTED}
+  - {id: AC-2, description: "Earlier assertions, evidence and input source files are never rewritten; same-capture replay is idempotent.", status: NOT_STARTED}
+  - {id: AC-3, description: "Ambiguous, malformed, colliding and stale inputs reject atomically without creating output.", status: NOT_STARTED}
+  - {id: AC-4, description: "Persisted before/after snapshots work with existing source_delta and GeoJSON views.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0042]
+read_before: [src/monde/world.py, src/monde/csv_points.py, src/monde/geojson.py, src/monde/source_delta.py, tests/test_world_source_manifest_ingest.py]
+reuses: ["WorldMini", "documents_from_manifest", "source_delta", "existing immutable capture metadata"]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Implement explicit later-source revision ingest from saved snapshots.", depends_on: [], expected_files: [src/monde/source_refresh.py, src/monde/world.py], status: IN_REVIEW}
+    - {id: T2, description: "Test real CSV source updates, duplicate replay, isolation, provenance and CLI.", depends_on: [T1], expected_files: [tests/test_world_source_refresh.py], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_source_refresh.py]
+  real_system: ["world-model-mini GitHub Actions exact-head"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked atop the unmerged experimental source snapshot PR #66."]
+risk:
+  security: LOW
+  data: MEDIUM
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Discard feature branch; input snapshots and original datasets remain unchanged."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion:
+  definition_of_done_checked: false
+  review_complete: false
+  docs_updated: false
+  registries_updated: false
+  project_state_updated: false
