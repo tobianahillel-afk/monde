@@ -1,4 +1,4 @@
-"""Bounded read-only GeoPackage EPSG:4326 source-geometry adapter for original source evidence."""
+"""Bounded read-only GeoPackage 2D source geometries (EPSG:4326 / EPSG:3857)."""
 import hashlib
 import math
 import os
@@ -19,6 +19,47 @@ def _identifier(value):
     return '"' + value + '"'
 
 
+# Explicit, bounded Web Mercator interpretation. Every derived Point is tagged
+# with its original source CRS; the original SQLite/WKB is never modified.
+_WEB_RADIUS = 6378137.0
+_WEB_LIMIT = math.pi * _WEB_RADIUS
+
+
+def _source_srs(blob, endian):
+    srs = struct.unpack_from(endian + "i", blob, 4)[0]
+    if srs not in (4326, 3857):
+        raise ValueError("only 2D EPSG:4326 or EPSG:3857 is supported")
+    return srs
+
+
+def _lonlat(x, y, srs):
+    if not math.isfinite(x) or not math.isfinite(y):
+        raise ValueError("nonfinite original GeoPackage coordinate")
+    if srs == 4326:
+        if not -180 <= x <= 180 or not -90 <= y <= 90:
+            raise ValueError("original WGS84 coordinate outside bounds")
+        return [x, y]
+    if srs != 3857 or abs(x) > _WEB_LIMIT or abs(y) > _WEB_LIMIT:
+        raise ValueError("original EPSG:3857 coordinate outside Web Mercator bounds")
+    return [math.degrees(x / _WEB_RADIUS),
+            math.degrees(math.atan(math.sinh(y / _WEB_RADIUS)))]
+
+
+def _check_envelope(blob, endian, points, srs):
+    west, east, south, north = struct.unpack_from(endian + "dddd", blob, 8)
+    if not all(math.isfinite(v) for v in (west, east, south, north)):
+        raise ValueError("nonfinite GeoPackage source envelope")
+    if west > east or south > north:
+        raise ValueError("reversed GeoPackage source envelope")
+    bottom = _lonlat(west, south, srs)
+    upper = _lonlat(east, north, srs)
+    tolerance = 1e-9 if srs == 3857 else 0.0
+    if any(not bottom[0] - tolerance <= point[0] <= upper[0] + tolerance
+           or not bottom[1] - tolerance <= point[1] <= upper[1] + tolerance
+           for point in points):
+        raise ValueError("GeoPackage source envelope contradicts geometry")
+
+
 def _point(blob):
     """Decode standard GeoPackage binary header and one 2D WKB Point."""
     if not isinstance(blob, bytes) or len(blob) < 29 or blob[:3] != b"GP\x00":
@@ -28,22 +69,18 @@ def _point(blob):
     if flags & 0xF0 or envelope not in (0, 1):
         raise ValueError("unsupported GeoPackage flags or envelope")
     endian = "<" if flags & 1 else ">"
-    if struct.unpack(endian + "i", blob[4:8])[0] != 4326:
-        raise ValueError("GeoPackage geometry is not EPSG:4326")
+    srs = _source_srs(blob, endian)
     offset = 8 + (32 if envelope else 0)
     if len(blob) != offset + 21 or blob[offset] not in (0, 1):
         raise ValueError("GeoPackage requires exactly one 2D WKB Point")
     marker = "<" if blob[offset] == 1 else ">"
     geometry_type, lon, lat = struct.unpack(marker + "Idd", blob[offset + 1:])
-    if (geometry_type != 1 or not math.isfinite(lon) or not math.isfinite(lat)
-            or not -180 <= lon <= 180 or not -90 <= lat <= 90):
-        raise ValueError("invalid WGS84 Point geometry")
+    if geometry_type != 1:
+        raise ValueError("invalid 2D WKB Point geometry")
+    point = _lonlat(lon, lat, srs)
     if envelope:
-        a, b, c, d = struct.unpack(endian + "dddd", blob[8:40])
-        if (not all(math.isfinite(v) for v in (a, b, c, d))
-                or not a <= lon <= b or not c <= lat <= d):
-            raise ValueError("GeoPackage envelope contradicts the Point")
-    return [lon, lat]
+        _check_envelope(blob, endian, [point], srs)
+    return point
 
 
 
@@ -57,8 +94,7 @@ def _multipoint(blob):
     if flags & 0xF0 or envelope not in (0, 1):
         raise ValueError("unsupported MultiPoint flags")
     header_endian = "<" if flags & 1 else ">"
-    if struct.unpack_from(header_endian + "i", blob, 4)[0] != 4326:
-        raise ValueError("MultiPoint must be EPSG:4326")
+    srs = _source_srs(blob, header_endian)
     offset = 8 + 32 * bool(envelope)
     if len(blob) < offset + 9 or blob[offset] not in (0, 1):
         raise ValueError("MultiPoint WKB header missing")
@@ -69,14 +105,10 @@ def _multipoint(blob):
     points = []
     for index in range(count):
         start = offset + 9 + index * 21
-        member = b"GP\x00\x01" + struct.pack("<i", 4326) + blob[start:start + 21]
+        member = b"GP\x00\x01" + struct.pack("<i", srs) + blob[start:start + 21]
         points.append(_point(member))
     if envelope:
-        west, east, south, north = struct.unpack_from(header_endian + "dddd", blob, 8)
-        if (not all(math.isfinite(v) for v in (west, east, south, north))
-                or any(not west <= lon <= east or not south <= lat <= north
-                       for lon, lat in points)):
-            raise ValueError("MultiPoint envelope contradicts source members")
+        _check_envelope(blob, header_endian, points, srs)
     return points
 
 
@@ -89,8 +121,7 @@ def _line(blob):
     if flags & 0xF0 or envelope not in (0, 1):
         raise ValueError("unsupported GeoPackage flags or envelope")
     endian_header = "<" if flags & 1 else ">"
-    if struct.unpack(endian_header + "i", blob[4:8])[0] != 4326:
-        raise ValueError("GeoPackage geometry is not EPSG:4326")
+    srs = _source_srs(blob, endian_header)
     offset = 8 + (32 if envelope else 0)
     if len(blob) < offset + 9 or blob[offset] not in (0, 1):
         raise ValueError("GeoPackage requires 2D WKB LineString")
@@ -101,16 +132,9 @@ def _line(blob):
     points = []
     for index in range(count):
         lon, lat = struct.unpack_from(endian + "dd", blob, offset + 9 + 16 * index)
-        if (not math.isfinite(lon) or not math.isfinite(lat)
-                or not -180 <= lon <= 180 or not -90 <= lat <= 90):
-            raise ValueError("LineString coordinate outside WGS84 bounds")
-        points.append([lon, lat])
+        points.append(_lonlat(lon, lat, srs))
     if envelope:
-        west, east, south, north = struct.unpack(endian_header + "dddd", blob[8:40])
-        if (not all(math.isfinite(v) for v in (west, east, south, north))
-                or any(not west <= lon <= east or not south <= lat <= north
-                       for lon, lat in points)):
-            raise ValueError("GeoPackage envelope contradicts LineString")
+        _check_envelope(blob, endian_header, points, srs)
     return points
 
 
@@ -124,8 +148,7 @@ def _polygon(blob):
     if flags & 0xF0 or envelope not in (0, 1):
         raise ValueError("unsupported GeoPackage Polygon flags")
     header_endian = "<" if flags & 1 else ">"
-    if struct.unpack_from(header_endian + "i", blob, 4)[0] != 4326:
-        raise ValueError("GeoPackage Polygon is not EPSG:4326")
+    srs = _source_srs(blob, header_endian)
     offset = 8 + (32 if envelope else 0)
     if len(blob) < offset + 9 or blob[offset] not in (0, 1):
         raise ValueError("GeoPackage requires 2D WKB Polygon")
@@ -146,10 +169,7 @@ def _polygon(blob):
         ring = []
         for i in range(vertices):
             lon, lat = struct.unpack_from(endian + "dd", blob, pos + i * 16)
-            if (not math.isfinite(lon) or not math.isfinite(lat)
-                    or not -180 <= lon <= 180 or not -90 <= lat <= 90):
-                raise ValueError("Polygon coordinate outside WGS84 bounds")
-            ring.append([lon, lat])
+            ring.append(_lonlat(lon, lat, srs))
         if ring[0] != ring[-1] or len({tuple(p) for p in ring[:-1]}) < 3:
             raise ValueError("Polygon ring must be closed with three distinct vertices")
         rings.append(ring)
@@ -158,11 +178,7 @@ def _polygon(blob):
     if pos != len(blob):
         raise ValueError("unexpected trailing Polygon geometry bytes")
     if envelope:
-        west, east, south, north = struct.unpack_from(header_endian + "dddd", blob, 8)
-        if (not all(math.isfinite(v) for v in (west, east, south, north))
-                or any(not west <= lon <= east or not south <= lat <= north
-                       for ring in rings for lon, lat in ring)):
-            raise ValueError("GeoPackage envelope contradicts Polygon rings")
+        _check_envelope(blob, header_endian, [point for ring in rings for point in ring], srs)
     return rings
 
 
@@ -178,8 +194,7 @@ def _multiline(blob):
     if flags & 0xF0 or envelope not in (0, 1):
         raise ValueError("unsupported GeoPackage MultiLineString flags")
     header_endian = "<" if flags & 1 else ">"
-    if struct.unpack_from(header_endian + "i", blob, 4)[0] != 4326:
-        raise ValueError("GeoPackage MultiLineString is not EPSG:4326")
+    srs = _source_srs(blob, header_endian)
     offset = 8 + (32 if envelope else 0)
     if len(blob) < offset + 9 or blob[offset] not in (0, 1):
         raise ValueError("GeoPackage requires 2D WKB MultiLineString")
@@ -201,18 +216,14 @@ def _multiline(blob):
             raise ValueError("invalid bounded MultiLineString member")
         end = pos + 9 + 16 * vertices
         # Delegate coordinate and WKB validity to the existing LineString decoder.
-        member = b"GP\x00\x01" + struct.pack("<i", 4326) + blob[pos:end]
+        member = b"GP\x00\x01" + struct.pack("<i", srs) + blob[pos:end]
         lines.append(_line(member))
         total += vertices
         pos = end
     if pos != len(blob):
         raise ValueError("unexpected trailing MultiLineString bytes")
     if envelope:
-        west, east, south, north = struct.unpack_from(header_endian + "dddd", blob, 8)
-        if (not all(math.isfinite(v) for v in (west, east, south, north))
-                or any(not west <= lon <= east or not south <= lat <= north
-                       for line in lines for lon, lat in line)):
-            raise ValueError("GeoPackage envelope contradicts MultiLineString vertices")
+        _check_envelope(blob, header_endian, [point for line in lines for point in line], srs)
     return lines
 
 
@@ -226,8 +237,7 @@ def _multipolygon(blob):
     if flags & 0xF0 or envelope not in (0, 1):
         raise ValueError("unsupported GeoPackage MultiPolygon flags")
     header_endian = "<" if flags & 1 else ">"
-    if struct.unpack_from(header_endian + "i", blob, 4)[0] != 4326:
-        raise ValueError("GeoPackage MultiPolygon must be EPSG:4326")
+    srs = _source_srs(blob, header_endian)
     offset = 8 + (32 if envelope else 0)
     if len(blob) < offset + 9 or blob[offset] not in (0, 1):
         raise ValueError("GeoPackage requires 2D WKB MultiPolygon")
@@ -258,16 +268,12 @@ def _multipolygon(blob):
             pos += 16 * vertices
         # Reuse the already validated Polygon ring decoder rather than inventing
         # another ring-validation path. The outer GP header is checked separately.
-        member = b"GP\x00\x01" + struct.pack("<i", 4326) + blob[start:pos]
+        member = b"GP\x00\x01" + struct.pack("<i", srs) + blob[start:pos]
         polygons.append(_polygon(member))
     if pos != len(blob):
         raise ValueError("trailing MultiPolygon WKB bytes")
     if envelope:
-        west, east, south, north = struct.unpack_from(header_endian + "dddd", blob, 8)
-        if (not all(math.isfinite(v) for v in (west, east, south, north))
-                or any(not west <= lon <= east or not south <= lat <= north
-                       for polygon in polygons for ring in polygon for lon, lat in ring)):
-            raise ValueError("GeoPackage envelope contradicts MultiPolygon vertices")
+        _check_envelope(blob, header_endian, [point for polygon in polygons for ring in polygon for point in ring], srs)
     return polygons
 
 
@@ -281,8 +287,7 @@ def _declared_geometry_kind(blob):
     if flags & 0xF0 or envelope not in (0, 1):
         raise ValueError("unsupported GeoPackage GEOMETRY flags")
     endian = "<" if flags & 1 else ">"
-    if struct.unpack_from(endian + "i", blob, 4)[0] != 4326:
-        raise ValueError("GeoPackage GEOMETRY must be EPSG:4326")
+    _source_srs(blob, endian)
     offset = 8 + (32 if envelope else 0)
     if len(blob) < offset + 5 or blob[offset] not in (0, 1):
         raise ValueError("missing 2D WKB subtype")
@@ -361,7 +366,8 @@ def documents_for_layers(path, *, source_id, locator, captured_at,
 def to_geojson(path, *, layer):
     """Read one local feature table, preserving original primary keys and attributes.
 
-    Never infer capture/valid times or CRS, never write to the source database.
+    Never infer capture/valid times. EPSG:3857 -> WGS84 is an explicitly
+    labelled derived map coordinate, not a rewrite of original source WKB.
     """
     table = _identifier(layer)
     source = os.path.realpath(os.fspath(path))
@@ -379,18 +385,18 @@ def to_geojson(path, *, layer):
             columns_metadata = db.execute(
                 "SELECT column_name, geometry_type_name, srs_id, z, m "
                 "FROM gpkg_geometry_columns WHERE table_name=?", (layer,)).fetchall()
+            source_srs = contents[0][1] if len(contents) == 1 else None
             reference = db.execute(
                 "SELECT organization, organization_coordsys_id "
-                "FROM gpkg_spatial_ref_sys WHERE srs_id=4326").fetchall()
-            if (contents != [("features", 4326)] or len(columns_metadata) != 1
-                    or reference != [("EPSG", 4326)]
-                    or columns_metadata[0][1:] not in (
-                        ("POINT", 4326, 0, 0), ("LINESTRING", 4326, 0, 0),
-                         ("POLYGON", 4326, 0, 0), ("MULTIPOLYGON", 4326, 0, 0),
-                         ("MULTILINESTRING", 4326, 0, 0),
-                          ("MULTIPOINT", 4326, 0, 0),
-                          ("GEOMETRY", 4326, 0, 0))):
-                raise ValueError("layer must declare a supported 2D EPSG:4326 geometry table")
+                "FROM gpkg_spatial_ref_sys WHERE srs_id=?", (source_srs,)).fetchall()
+            if (source_srs not in (4326, 3857) or
+                    contents != [("features", source_srs)] or len(columns_metadata) != 1
+                    or reference != [("EPSG", source_srs)]
+                    or columns_metadata[0][1:] not in tuple(
+                        (kind, source_srs, 0, 0) for kind in (
+                            "POINT", "LINESTRING", "POLYGON", "MULTIPOLYGON",
+                            "MULTILINESTRING", "MULTIPOINT", "GEOMETRY"))):
+                raise ValueError("layer must declare supported 2D EPSG:4326 or EPSG:3857 geometry")
             kind = columns_metadata[0][1]
             geometry_field = columns_metadata[0][0]
             geom_sql = _identifier(geometry_field)
@@ -406,6 +412,7 @@ def to_geojson(path, *, layer):
             attrs = [col[1] for col in columns
                      if col[1] not in (key[0], geometry_field)]
             if (len(attrs) > 16 or "geo_point" in attrs or "gpkg_trace" in attrs
+                    or "gpkg_source_srs" in attrs
                     or any(not _NAME.fullmatch(name) for name in attrs)):
                 raise ValueError("unsupported source columns")
             selected = [_identifier(key[0]), geom_sql] + [_identifier(v) for v in attrs]
@@ -430,6 +437,13 @@ def to_geojson(path, *, layer):
                     else:
                         raise ValueError("unsupported source attribute type")
                     properties[name] = value
+                if not isinstance(row[1], bytes) or len(row[1]) < 8 or row[1][:3] != b"GP\x00":
+                    raise ValueError("GeoPackage row has invalid geometry header")
+                header_endian = "<" if row[1][3] & 1 else ">"
+                if _source_srs(row[1], header_endian) != source_srs:
+                    raise ValueError("GeoPackage row SRID disagrees with declared layer")
+                if source_srs == 3857:
+                    properties["gpkg_source_srs"] = "EPSG:3857"
                 row_kind = (_declared_geometry_kind(row[1])
                             if kind == "GEOMETRY" else kind)
                 if row_kind == "POINT":
