@@ -109,3 +109,16 @@ it is not an authenticated shared web service. All inputs follow the same
 strict duplicate/unknown-parameter, spatial and temporal validation as the
 corresponding GeoJSON endpoints. Responses are bounded by the server's
 configured limit, marked `no-store`, and deny framing.
+
+
+### Guided local map explorer (WORK-0052)
+
+Open **http://127.0.0.1:8765/explore** after starting the local API.
+Four native HTML GET forms open existing original source observations,
+source disagreements, knowledge-time changes and world-time changes.
+They submit only each viewer's accepted parameters. The bbox is an editable
+WGS84 example, not a user location; all timestamps must be explicit and
+timezone-aware ISO-8601. This entry page has no JavaScript, online tiles,
+external scripts or writes. It is bounded, read-only, frame-denied and
+loopback-only, with CSP form-action limited to self. Unknown query parameters
+to /explore receive HTTP 400.

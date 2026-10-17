@@ -35,15 +35,75 @@ class BrowserViewerTests(unittest.TestCase):
         self.assertEqual(self.path.read_bytes(), self.original)
         self.tempdir.cleanup()
 
-    def fetch(self, query, *, server=None, host=None):
+    def fetch(self, query, *, server=None, host=None, path="/viewer"):
         server = server or self.server
         connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
-        connection.request("GET", "/viewer?" + urlencode(query), headers={
+        connection.request("GET", path + ("?" + urlencode(query) if query else ""), headers={
             "Host": host or "127.0.0.1:" + str(server.server_port)})
         reply = connection.getresponse()
         output = (reply.status, dict(reply.getheaders()), reply.read())
         connection.close()
         return output
+
+    def test_explorer_submits_exact_real_viewer_queries(self):
+        from html.parser import HTMLParser
+
+        class FormReader(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.forms = []
+                self.active = None
+
+            def handle_starttag(self, tag, attrs):
+                values = dict(attrs)
+                if tag == "form":
+                    self.active = {"action": values.get("action"),
+                                   "method": values.get("method"), "inputs": []}
+                    self.forms.append(self.active)
+                elif tag == "input" and self.active is not None:
+                    self.active["inputs"].append(values)
+
+            def handle_endtag(self, tag):
+                if tag == "form":
+                    self.active = None
+
+        code, headers, data = self.fetch({}, path="/explore")
+        self.assertEqual(code, 200)
+        self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertEqual(headers["X-Frame-Options"], "DENY")
+        self.assertIn("form-action 'self'", headers["Content-Security-Policy"])
+        self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+        self.assertNotIn(b"<script", data)
+        forms = FormReader()
+        forms.feed(data.decode("utf-8"))
+        expected = {
+            "current": {"view", "bbox", "at", "known_at"},
+            "disagreements": {"view", "bbox", "at", "known_at"},
+            "knowledge-changes": {"view", "bbox", "at", "from_known_at", "to_known_at"},
+            "world-changes": {"view", "bbox", "from_at", "to_at", "known_at"}
+        }
+        self.assertEqual(len(forms.forms), 4)
+        params = {"bbox": "2.3,48.8,2.4,48.9", "at": AT, "known_at": K2,
+                  "from_known_at": K1, "to_known_at": K2,
+                  "from_at": EARLIER, "to_at": AT}
+        for form in forms.forms:
+            self.assertEqual((form["action"], form["method"]), ("/viewer", "get"))
+            fields = form["inputs"]
+            names = [f["name"] for f in fields]
+            self.assertEqual(len(names), len(set(names)))
+            mode = next(f["value"] for f in fields if f["name"] == "view")
+            self.assertIn(mode, expected)
+            self.assertEqual(set(names), expected[mode])
+            query = {name: params[name] for name in names if name != "view"}
+            query["view"] = mode
+            status, _, content = self.fetch(query)
+            self.assertEqual(status, 200, mode)
+            self.assertIn(b"MONDE Mini", content)
+
+        code, _, response = self.fetch({"view": "current"}, path="/explore")
+        self.assertEqual(code, 400)
+        self.assertEqual(json.loads(response), {"error": "invalid_query"})
 
     def test_all_three_browser_views_match_existing_model_and_renderer(self):
         cases = [

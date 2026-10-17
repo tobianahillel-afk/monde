@@ -21,6 +21,7 @@ acceptance_criteria:
   - {id: AC-2, description: "Render explicit world/knowledge change comparisons with epistemic labels.", status: NOT_STARTED}
   - {id: AC-3, description: "Enforce strict loopback, parameter, response and content-security bounds and preserve snapshot bytes.", status: NOT_STARTED}
   - {id: AC-4, description: "Render conflicting original source Point locations without losing evidence from outside the viewport or inventing a consensus position.", status: NOT_STARTED}
+  - {id: AC-5, description: "Open all four source-evidence viewer modes from a guided local browser page with explicit time cutoffs.", status: NOT_STARTED}
 requirements: []
 depends_on: [WORK-0051]
 read_before: [AGENTS.md, src/monde/local_api.py, src/monde/map_view.py,
@@ -32,6 +33,7 @@ implementation_plan:
     - {id: T1, description: "Add browser HTML for the existing source and disagreement map renderer.", depends_on: [], expected_files: [src/monde/local_api.py], status: IN_REVIEW}
     - {id: T2, description: "Test three real loopback HTTP browser views and refusal paths.", depends_on: [T1], expected_files: [tests/test_world_local_api_viewer.py], status: IN_REVIEW}
     - {id: T3, description: "Document local-only browser usage and its source/temporal limits.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+    - {id: T4, description: "Expose the four map modes from a guided local browser entry page.", depends_on: [T1], expected_files: [src/monde/local_api.py, tests/test_world_local_api_viewer.py], status: IN_REVIEW}
   planned_runs: []
 review_plan:
   artifact_class: DATA_SOURCE
