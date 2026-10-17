@@ -85,6 +85,29 @@ def create_server(state: str | Path, port: int = 0, *,
             self.end_headers()
             self.wfile.write(body)
 
+
+        def _html(self, geojson: dict):
+            # Reuse the offline map renderer; no new browser-side service or
+            # unauthenticated state-changing route is introduced.
+            from .map_view import render_map
+            body = render_map(geojson).encode("utf-8")
+            if len(body) > max_response_bytes:
+                return self._reply(413, {"error": "response_too_large"})
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("Content-Security-Policy",
+                             "default-src 'none'; script-src 'unsafe-inline'; "
+                             "style-src 'unsafe-inline'; connect-src 'none'; "
+                             "img-src 'none'; object-src 'none'; base-uri 'none'; "
+                             "frame-ancestors 'none'")
+            self.end_headers()
+            self.wfile.write(body)
+
         def _host_valid(self):
             # Exact loopback Host also excludes DNS-rebinding origins.
             hosts = self.headers.get_all("Host", [])
@@ -104,7 +127,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/compare-world", "/source-history", "/disagreement-changes",
                             "/knowledge-updates", "/knowledge-timeline",
                             "/world-knowledge-changes", "/map-disagreements",
-                            "/map-knowledge-changes", "/map-world-changes"}:
+                            "/map-knowledge-changes", "/map-world-changes", "/viewer"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -176,6 +199,29 @@ def create_server(state: str | Path, port: int = 0, *,
                     output = world.export_geojson_bbox_world_changes(
                         _bbox(args["bbox"]), args["from_at"],
                         args["to_at"], args["known_at"])
+                elif path == "/viewer":
+                    # The same browser-ready, self-contained map as the
+                    # existing offline CLI, at caller-selected time cutoffs.
+                    mode = args.get("view")
+                    if mode == "current":
+                        _require(args, {"view", "bbox", "at", "known_at"})
+                        geojson = world.export_geojson_bbox(
+                            _bbox(args["bbox"]), args["at"], args["known_at"])
+                    elif mode == "knowledge-changes":
+                        _require(args, {"view", "bbox", "at",
+                                        "from_known_at", "to_known_at"})
+                        geojson = world.export_geojson_bbox_knowledge_changes(
+                            _bbox(args["bbox"]), args["at"],
+                            args["from_known_at"], args["to_known_at"])
+                    elif mode == "world-changes":
+                        _require(args, {"view", "bbox", "from_at",
+                                        "to_at", "known_at"})
+                        geojson = world.export_geojson_bbox_world_changes(
+                            _bbox(args["bbox"]), args["from_at"],
+                            args["to_at"], args["known_at"])
+                    else:
+                        raise ValueError("unsupported viewer mode")
+                    return self._html(geojson)
                 elif path == "/map":
                     _require(args, {"bbox", "at", "known_at"})
                     output = world.export_geojson_bbox(_bbox(args["bbox"]),
