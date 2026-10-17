@@ -180,6 +180,7 @@ class SourceRefreshTests(unittest.TestCase):
 
     def test_real_mixed_geopackage_and_geojson_revisions_preserve_original_files(self):
         from tests.test_world_map_source_manifest_layers import sample
+        from tests.test_world_geopackage import CAP as SOURCE_CAPTURE
         with tempfile.TemporaryDirectory() as directory:
             manifest, database, note, payload = sample(directory)
             original_database = database.read_bytes()
@@ -207,8 +208,7 @@ class SourceRefreshTests(unittest.TestCase):
                              len(original["assertions"]))
             self.assertEqual(before.export(), original)
             self.assertEqual(database.read_bytes(), original_database)
-            older = after.query("local-note", "geo_point", AT,
-                                payload["datasets"][0]["valid_from"].replace("00:00:00", "12:00:00"))
+            older = after.query("local-note", "geo_point", AT, SOURCE_CAPTURE)
             current = after.query("local-note", "geo_point", AT, newer_capture)
             self.assertEqual(older["reports"][0]["value"]["coordinates"], [4.3, 50.1])
             self.assertEqual(current["reports"][0]["value"]["coordinates"], [5.1, 50.2])
