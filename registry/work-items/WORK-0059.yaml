@@ -1,0 +1,53 @@
+id: WORK-0059
+title: "Browse bitemporal original-source catalog from saved MONDE Mini"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence explorer"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Discover original reporting sources, including non-Point or historically
+  superseded evidence, at explicit world and knowledge times.
+scope:
+  in: ["Source catalog in the existing WorldMini model",
+       "Read-only local JSON and native HTML source browser",
+       "Cutoff-aware source counts and original-history links"]
+  out: ["Source quality ratings", "Reconciled ground truth", "Data writes", "Hosted services"]
+acceptance_criteria:
+  - {id: AC-1, description: "List only sources with assertions known by the knowledge cutoff.", status: NOT_STARTED}
+  - {id: AC-2, description: "Count historical and current reports without treating superseded Points as current.", status: NOT_STARTED}
+  - {id: AC-3, description: "Explore sources and reach original history with safe browser links.", status: NOT_STARTED}
+  - {id: AC-4, description: "Preserve existing snapshot bytes and local HTTP security boundaries.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0058]
+read_before: [AGENTS.md, src/monde/world.py, src/monde/local_api.py]
+reuses: [WorldMini.query, WorldMini.source_history, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Implement cutoff-aware source catalog and local browser.", depends_on: [], expected_files: [src/monde/world.py, src/monde/local_api.py], status: IN_REVIEW}
+    - {id: T2, description: "Exercise real loopback HTTP and bitemporal source revisions.", depends_on: [T1], expected_files: [tests/test_world_source_catalog.py], status: IN_REVIEW}
+    - {id: T3, description: "Document original-evidence source catalog semantics.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_source_catalog.py]
+  real_system: ["Exact-head GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0058 / PR #82."]
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close or revert source catalog PR; no migration or persistence changes."
