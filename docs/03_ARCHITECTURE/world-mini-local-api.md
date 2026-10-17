@@ -305,3 +305,16 @@ Knowledge/world comparison maps preserve their earlier/later temporal cutoffs.
 This is a native read-only GET /viewer over existing WorldMini queries:
 no new model, inferred physical movement, external service, upload or saved-state
 change. Standalone offline CLI maps intentionally show no server-dependent form.
+
+### Investigate contradictory source Points by original source (WORK-0065)
+
+The local `/explore` disagreement map can now focus on a selected original
+source ID. `/viewer?view=disagreements` and `/map-disagreements` accept an
+optional `source` query parameter. An entity qualifies only when that source's
+**own conflicting Point is inside the requested WGS84 viewport**. Every other
+original contradictory report exported for the qualified entity remains visible
+or discoverable, even when its point lies outside the viewport. This is **not**
+a source-only subset or a consensus location; filtering must never conceal the
+opposing evidence. The unfiltered JSON/map is unchanged. Native world-time and
+knowledge-cutoff navigation retains the selected source. All operations are
+read-only and use the existing offline source assertions without new dependencies.
