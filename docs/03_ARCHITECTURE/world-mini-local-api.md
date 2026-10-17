@@ -305,3 +305,16 @@ Knowledge/world comparison maps preserve their earlier/later temporal cutoffs.
 This is a native read-only GET /viewer over existing WorldMini queries:
 no new model, inferred physical movement, external service, upload or saved-state
 change. Standalone offline CLI maps intentionally show no server-dependent form.
+
+
+### Saved original-source directory (WORK-0059)
+
+GET /sources returns the full, read-only saved-source inventory: original
+source IDs, distinct evidence records, source assertions, Point assertions
+and distinct reported entities. These are **historical stored observations**,
+not current source coverage, source credibility or verified physical truth.
+
+The existing /explore page exposes the first 100 original source entries
+and native GET forms to open /inspect source-history with an explicit
+knowledge cutoff. More than 100 sources remain available via /sources JSON.
+No network calls, new storage, state mutation or reconciliation.
