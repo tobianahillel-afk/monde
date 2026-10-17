@@ -86,3 +86,24 @@ not create or alter a WorldMini snapshot. The HTML output must be a **new path**
 (existing output, the manifest, source files and the original snapshot cannot
 be overwritten). An invalid capture produces no map. No network access is
 needed to open the generated page.
+
+## Confirm a source capture already inspected (WORK-0045)
+
+The preview JSON includes `preview_sha256`, a SHA-256 digest of the
+**complete original and resulting WorldMini evidence states**, including
+their source/claim histories. Copy it into the refresh command:
+
+```sh
+PYTHONPATH=src python3 -m monde.world \
+  --fixture before.json --preview-source-manifest captured.json
+# Copy the preview_sha256 field from this JSON output:
+PYTHONPATH=src python3 -m monde.world \
+  --fixture before.json --refresh-source-manifest captured.json \
+  --expect-preview-sha256 THE_64_CHARACTER_SHA256 --state-out accepted.json
+```
+
+If the parsed capture or original state changes before refresh, nothing is
+saved. Original data and old snapshots are not overwritten. This is an
+optional semantic consistency check, not an exact raw-file-byte checksum,
+digital signature or assertion of physical truth. The existing unconfirmed
+refresh command remains available and unchanged.

@@ -1,0 +1,59 @@
+id: WORK-0045
+title: "Save exactly the previewed original-source evidence state"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source lifecycle"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  After previewing a new local original-source capture, optionally require
+  refresh to save the exact corresponding source-evidence state.
+scope:
+  in: ["source preview fingerprint", "opt-in confirmation at refresh", "real CSV integration tests"]
+  out: ["new source parser", "cryptographic signatures", "truth inference", "remote services"]
+acceptance_criteria:
+  - {id: AC-1, description: "Preview reports a deterministic entire-result-state digest.", status: NOT_STARTED}
+  - {id: AC-2, description: "Confirmed refresh saves only the inspected state and preserves the old one.", status: NOT_STARTED}
+  - {id: AC-3, description: "Changed capture or baseline refuses new state; unconfirmed refresh remains supported.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0044]
+read_before: [AGENTS.md, src/monde/world.py, src/monde/source_refresh.py, tests/test_world_source_preview.py]
+reuses: [WorldMini, refresh_documents, preview_documents]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Bind preview to a full-state digest and check it before saving.", depends_on: [], expected_files: [src/monde/source_refresh.py, src/monde/world.py], status: IN_REVIEW}
+    - {id: T2, description: "Exercise real CSV preview, revised captures and baseline drift.", depends_on: [T1], expected_files: [tests/test_world_source_preview.py], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_source_preview.py]
+  real_system: ["GitHub Actions world-mini on exact candidate HEAD"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0044 / PR #68."]
+risk:
+  security: LOW
+  data: MEDIUM
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Discard the candidate branch; no input sources or prior states changed."
+run_log: []
+discoveries: []
+blockers: []
+follow_up_work_items: []
+completion:
+  definition_of_done_checked: false
+  review_complete: false
+  docs_updated: false
+  registries_updated: false
+  project_state_updated: false

@@ -1241,6 +1241,8 @@ def main(argv=None) -> int:
                            help="atomically import original mixed source datasets")
     parser.add_argument("--preview-source-map", metavar="HTML_PATH",
                         help="with --preview-source-manifest, create an offline map of new source Points")
+    parser.add_argument("--expect-preview-sha256", metavar="SHA256",
+                        help="refresh only if source reports match the inspected preview")
     parser.add_argument("--state-out", help="destination JSON snapshot for ingestion")
     parser.add_argument("--source-id", help="source identity for GeoJSON assertions")
     parser.add_argument("--source-locator", help="original dataset locator for GeoJSON provenance")
@@ -1271,6 +1273,8 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     if args.preview_source_map and not args.preview_source_manifest:
         parser.error("--preview-source-map requires --preview-source-manifest")
+    if args.expect_preview_sha256 is not None and not args.refresh_source_manifest:
+        parser.error("--expect-preview-sha256 requires --refresh-source-manifest")
     if ((args.search_geo_radius is None and args.export_geojson_radius is None)
             != (args.radius_km is None)):
         parser.error("--radius-km requires a source Point radius mode")
@@ -1335,15 +1339,24 @@ def main(argv=None) -> int:
             if os.path.realpath(args.fixture) == os.path.realpath(args.state_out):
                 parser.error("refresh must preserve the input snapshot in a separate file")
             from .csv_points import documents_from_manifest
-            from .source_refresh import refresh_documents
+            from .source_refresh import preview_sha256, refresh_documents
             from .world import WorldMini as PersistedWorldMini
+            if (args.expect_preview_sha256 is not None and
+                    not re.fullmatch(r"[0-9a-f]{64}", args.expect_preview_sha256)):
+                raise ValueError("expected preview SHA-256 must be 64 lowercase hex characters")
             batches, features = documents_from_manifest(
                 args.refresh_source_manifest, output_path=args.state_out)
-            updated, changes = refresh_documents(PersistedWorldMini.read(args.fixture), batches)
+            original = PersistedWorldMini.read(args.fixture)
+            updated, changes = refresh_documents(original, batches)
+            calculated_preview = preview_sha256(original, updated)
+            if (args.expect_preview_sha256 is not None and
+                    calculated_preview != args.expect_preview_sha256):
+                raise ValueError("source preview no longer matches; preview the capture again")
             updated.save(args.state_out)
             print(json.dumps({"operation": "REFRESH_SOURCE_MANIFEST",
                               "world": "OBSERVED", "status": "SAVED",
-                              "features": features, **changes}, sort_keys=True))
+                              "features": features, "preview_sha256": calculated_preview,
+                              **changes}, sort_keys=True))
             return 0
         if args.ingest_csv_manifest:
             if (not args.state_out or any(v is not None for v in geo_metadata)
