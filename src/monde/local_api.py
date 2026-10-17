@@ -412,8 +412,12 @@ def _filter_source_bbox(document: dict, source: str | None) -> dict:
     query["total_matching_entities"] = len(entities)
     query["total_source_features"] = len(features)
     query["status"] = "MATCHES" if features else "NO_MATCHES"
-    return {**document, "features": features, "monde_bbox_query": query,
-            "monde_source_filter": source}
+    result = {**document, "features": features, "monde_bbox_query": query,
+              "monde_source_filter": source}
+    if "monde_tile_query" in result:
+        result["monde_tile_query"] = {**result["monde_tile_query"],
+                                      "status": query["status"]}
+    return result
 
 
 def create_server(state: str | Path, port: int = 0, *,
@@ -682,10 +686,10 @@ def create_server(state: str | Path, port: int = 0, *,
                                                   args["at"], args["known_at"]),
                         args.get("source"))
                 elif path == "/tile":
-                    _require(args, {"z", "x", "y", "at", "known_at"})
-                    output = world.export_geojson_tile(
+                    _require(args, {"z", "x", "y", "at", "known_at"}, {"source"})
+                    output = _filter_source_bbox(world.export_geojson_tile(
                         int(args["z"]), int(args["x"]), int(args["y"]),
-                        args["at"], args["known_at"])
+                        args["at"], args["known_at"]), args.get("source"))
                 elif path == "/nearest":
                     _require(args, {"center", "limit", "at", "known_at"}, {"source"})
                     output = world.export_geojson_nearest(
