@@ -335,18 +335,32 @@ class EvidenceInspectorTests(unittest.TestCase):
             self.assertIn("correct-a", body)
             parser = MapLinks()
             parser.feed(body)
-            self.assertEqual(len(parser.links), 2)
+            self.assertEqual(len(parser.links), 3)
             located = {}
+            comparison = None
             for link in parser.links:
                 parsed = urlsplit(link)
                 args = {k: v[0] for k, v in parse_qs(parsed.query).items()}
                 self.assertEqual(parsed.path, "/viewer")
-                self.assertEqual(args["view"], "radius")
-                self.assertEqual(args["at"], GEO_AT)
-                located[args["known_at"]] = args["center"]
+                if args["view"] == "knowledge-changes":
+                    comparison = args
+                    self.assertEqual(args["at"], GEO_AT)
+                    self.assertEqual(args["from_known_at"], GEO_K1)
+                    self.assertEqual(args["to_known_at"], GEO_K2)
+                else:
+                    self.assertEqual(args["view"], "radius")
+                    self.assertEqual(args["at"], GEO_AT)
+                    located[args["known_at"]] = args["center"]
                 map_code, map_html = read(link)
                 self.assertEqual(map_code, 200)
                 self.assertIn("MONDE Mini", map_html)
+            self.assertIsNotNone(comparison)
+            code, raw = read("/map-knowledge-changes?" + urlencode({
+                key: value for key, value in comparison.items() if key != "view"}))
+            self.assertEqual(code, 200)
+            self.assertEqual({f["properties"]["monde_change"]
+                              for f in json.loads(raw)["features"]},
+                             {"NO_LONGER_CURRENT", "NEWLY_CURRENT"})
             self.assertEqual(located, {
                 GEO_K1: "2.35,48.85", GEO_K2: "3.25,49.1"})
             self.assertEqual(state.read_bytes(), saved)
@@ -446,14 +460,36 @@ class EvidenceInspectorTests(unittest.TestCase):
             parser.feed(document)
             self.assertIn("a-old-location", document)
             self.assertIn("a-new-location", document)
-            self.assertEqual(len(parser.urls), 2)
+            self.assertEqual(len(parser.urls), 3)
             links = {}
+            comparison = None
             for url in parser.urls:
                 args = {k: values[0] for k, values in
                         parse_qs(urlsplit(url).query).items()}
                 self.assertEqual(args["known_at"], GEO_K1)
-                self.assertEqual(args["view"], "radius")
-                links[args["at"]] = args["center"]
+                if args["view"] == "world-changes":
+                    comparison = args
+                    self.assertEqual(args["from_at"], GEO_AT)
+                    self.assertEqual(args["to_at"], "2026-01-04T00:00:00Z")
+                else:
+                    self.assertEqual(args["view"], "radius")
+                    links[args["at"]] = args["center"]
+            self.assertIsNotNone(comparison)
+            connection = http.client.HTTPConnection(
+                "127.0.0.1", server.server_port, timeout=5)
+            try:
+                connection.request("GET", "/map-world-changes?" + urlencode({
+                    key: value for key, value in comparison.items()
+                    if key != "view"}), headers={
+                    "Host": "127.0.0.1:" + str(server.server_port)})
+                response = connection.getresponse()
+                self.assertEqual(response.status, 200)
+                collection = json.loads(response.read())
+                self.assertEqual({f["properties"]["monde_change"]
+                    for f in collection["features"]},
+                    {"NO_LONGER_CURRENT", "NEWLY_CURRENT"})
+            finally:
+                connection.close()
             self.assertEqual(links, {GEO_AT: "2.0,48.0",
                 "2026-01-04T00:00:00Z": "3.0,49.0"})
             self.assertEqual(state.read_bytes(), before)
@@ -461,3 +497,29 @@ class EvidenceInspectorTests(unittest.TestCase):
             server.shutdown()
             worker.join(timeout=5)
             server.server_close()
+
+
+    def test_bitemporal_map_link_does_not_invent_original_geography(self):
+        from monde.local_api import _comparison_map_link
+        params = {"at": GEO_AT, "from_known_at": "2026-01-01T00:00:00Z",
+                  "to_known_at": "2026-01-04T00:00:00Z"}
+        no_points = {"changes": {"floors": {
+            "newly_current": [{"value": 4}], "no_longer_current": []}}}
+        self.assertIsNone(_comparison_map_link(no_points, "compare-knowledge", params))
+        def point(lon, lat):
+            return {"value": {"type": "Point", "coordinates": [lon, lat]}}
+        changes = {"changes": {"geo_point": {
+            "newly_current": [point(179.9, 48)],
+            "no_longer_current": [point(-179.9, 48)]}}}
+        self.assertIsNone(_comparison_map_link(changes, "compare-knowledge", params))
+        changes["changes"]["geo_point"]["no_longer_current"] = [point(179.8, 48)]
+        url = _comparison_map_link(changes, "compare-knowledge", params)
+        self.assertTrue(url.startswith("/viewer?"))
+        args = {k: v[0] for k, v in parse_qs(urlsplit(url).query).items()}
+        self.assertEqual(args["view"], "knowledge-changes")
+        self.assertEqual(args["to_known_at"], params["to_known_at"])
+        west, south, east, north = map(float, args["bbox"].split(","))
+        self.assertLessEqual(west, 179.8)
+        self.assertGreaterEqual(east, 179.9)
+        self.assertLessEqual(south, 48)
+        self.assertGreaterEqual(north, 48)

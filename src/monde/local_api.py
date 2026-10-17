@@ -138,6 +138,37 @@ def _report_map_link(attribute: str, report: dict, mode: str,
     })
 
 
+def _comparison_map_link(payload: dict, mode: str,
+                         params: dict[str, str]) -> str | None:
+    """Show original source Point changes on the existing bitemporal map."""
+    from .geojson import _point
+
+    coords = []
+    for change in payload["changes"].values():
+        for report in change["newly_current"] + change["no_longer_current"]:
+            try:
+                coords.append(_point(report["value"])["coordinates"])
+            except (KeyError, ValueError, TypeError):
+                continue
+    if not coords:
+        return None
+    west, east = min(p[0] for p in coords), max(p[0] for p in coords)
+    south, north = min(p[1] for p in coords), max(p[1] for p in coords)
+    # A naive antimeridian bbox would mistakenly select nearly the whole globe.
+    if east - west > 180:
+        return None
+    bounds = (max(-180, west - 0.02), max(-90, south - 0.02),
+              min(180, east + 0.02), min(90, north + 0.02))
+    query = {"view": ("knowledge-changes" if mode == "compare-knowledge"
+                      else "world-changes"),
+             "bbox": ",".join(str(v) for v in bounds)}
+    fields = (("at", "from_known_at", "to_known_at")
+              if mode == "compare-knowledge" else
+              ("from_at", "to_at", "known_at"))
+    query.update({key: params[key] for key in fields})
+    return "/viewer?" + urlencode(query)
+
+
 def _inspection_html(payload: dict | None, mode: str | None = None,
                      params: dict[str, str] | None = None) -> str:
     """A readable view of untouched WorldMini output; no inference or browser scripts."""
@@ -213,6 +244,13 @@ def _inspection_html(payload: dict | None, mode: str | None = None,
                            '</pre>' + map_link + '</details>')
         source_url = _INSPECTION_ROUTES[mode] + "?" + urlencode({
             key: value for key, value in params.items() if key != "view"})
+        comparison_link = (_comparison_map_link(payload, mode, params)
+                           if mode in {"compare-knowledge", "compare-world"}
+                           else None)
+        map_overview = ('<p><a href="' + escape(comparison_link, quote=True) +
+                        '">Map earlier and later original source Points together</a>'
+                        ' (may include nearby source reports)</p>'
+                        if comparison_link else '')
         title = next(label for name, label, _ in _INSPECTION_FORMS if name == mode)
         content = ('<h1>' + escape(title) + '</h1><p class="warning">Original '
                    'source assertions only: no reconciliation, inferred truth or '
@@ -224,6 +262,7 @@ def _inspection_html(payload: dict | None, mode: str | None = None,
                    ' · Reports: ' + str(len(items)) + '</p><p><a href="' +
                    escape(source_url, quote=True) +
                    '">View complete original JSON response</a></p>' +
+                   map_overview +
                    (''.join(records) if records else
                     ('<p role="status">UNCHANGED — no newly current or retired '
                      'source reports between these selected cutoffs.</p>'

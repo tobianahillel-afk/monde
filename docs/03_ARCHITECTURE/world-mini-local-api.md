@@ -247,3 +247,15 @@ Source-reported Points link to their actual earlier/later world-time map states,
 with the same knowledge cutoff. Unchanged results are labeled UNCHANGED rather
 than inferred absence. No additional data model, service, writable route,
 remote call or external dependency was introduced.
+
+### One-click temporal change map
+
+From either entity comparison in `/inspect`, open a **combined source-reported
+Point change map** with a single link. The link reuses the existing read-only
+`/viewer` knowledge-change or world-change map, preserving the exact temporal
+cutoffs and selecting a viewport around both earlier and later source-reported
+positions. This is an area query: nearby evidence may also appear. It does
+**not** infer verified physical motion. A map link is not shown when no original
+source Point changes, or when positions cross the antimeridian and a naive
+viewport would misleadingly cover almost the globe. Original per-source
+position links remain available. No additional service, dependency or write.
