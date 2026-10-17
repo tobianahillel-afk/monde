@@ -249,7 +249,7 @@ def create_server(state: str | Path, port: int = 0, *,
             # Reuse the offline map renderer; no new browser-side service or
             # unauthenticated state-changing route is introduced.
             from .map_view import render_map
-            body = (_explorer_html() if geojson is None else render_map(geojson)).encode("utf-8")
+            body = (_explorer_html() if geojson is None else render_map(geojson, inspector_links=True)).encode("utf-8")
             if len(body) > max_response_bytes:
                 return self._reply(413, {"error": "response_too_large"})
             self.send_response(200)

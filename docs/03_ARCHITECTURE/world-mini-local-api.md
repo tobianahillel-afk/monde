@@ -178,3 +178,16 @@ The inspection HTML has **no browser scripts or external requests**, and
 inherits loopback-only hosting, strict argument validation, size limits,
 no-store, frame denial, and no saved-state mutation. This remains an
 **unmerged stacked candidate**; the GitHub Actions tests cover its branch.
+
+### Map selection to full original evidence (WORK-0055)
+
+A selected original source Point in the local /viewer now exposes links to the
+complete entity dossier and original source revision history on the same
+loopback server. The selected entity/source and explicit time cutoffs are
+encoded by URLSearchParams, never used as raw HTML. A NO_LONGER_CURRENT
+comparison uses the earlier valid/knowledge cutoff to inspect retired source
+reports; newly current evidence uses the later cutoff. The map shows a filtered
+subset; the complete dossier can contain other reports. This is not inferred
+truth, a physical-world change or proof of absence. The standalone/offline CLI
+keeps the links inactive. No remote API or mutable endpoint was added. This
+is still an unmerged stacked proposal after WORK-0054.

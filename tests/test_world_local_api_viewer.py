@@ -124,13 +124,53 @@ class BrowserViewerTests(unittest.TestCase):
                 code, headers, response = self.fetch(query)
                 self.assertEqual(code, 200)
                 self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
-                self.assertEqual(response.decode("utf-8"), render_map(expected))
+                self.assertEqual(response.decode("utf-8"), render_map(expected, inspector_links=True))
                 self.assertIn(b"source-reported", response.lower())
                 self.assertEqual(headers["Content-Length"], str(len(response)))
                 self.assertEqual(headers["X-Frame-Options"], "DENY")
                 self.assertEqual(headers["Cache-Control"], "no-store")
                 self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
                 self.assertNotIn("Access-Control-Allow-Origin", headers)
+
+    def test_local_map_selection_can_open_original_evidence(self):
+        variants = (
+            dict(view="current", bbox="2.3,48.8,2.4,48.9", at=AT, known_at=K2),
+            dict(view="knowledge-changes", bbox="2.3,48.8,2.4,48.9",
+                 at=AT, from_known_at=K1, to_known_at=K2),
+            dict(view="world-changes", bbox="2.3,48.8,2.4,48.9",
+                 from_at=EARLIER, to_at=AT, known_at=K2),
+            dict(view="nearest", center="2.3522,48.8566", limit="1",
+                 at=AT, known_at=K2),
+            dict(view="radius", center="2.3522,48.8566",
+                 radius_km="5", at=AT, known_at=K2),
+        )
+        for query in variants:
+            with self.subTest(view=query["view"]):
+                status, headers, content = self.fetch(query)
+                html = content.decode("utf-8")
+                self.assertEqual(status, 200)
+                self.assertIn("var inspectorEnabled = true;", html)
+                self.assertIn('id="full-entity-inspection"', html)
+                self.assertIn('id="full-source-history"', html)
+                self.assertIn('view:"entity",entity:p.entity,at:worldAt,known_at:knownAt', html)
+                self.assertIn('view:"source-history",source:p.source_id,entity:p.entity,known_at:knownAt', html)
+                self.assertIn('p.monde_change === "NO_LONGER_CURRENT"', html)
+                self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+        original = self.path.read_bytes()
+        entity = self.world.export_geojson_bbox(BBOX, AT, K2)["features"][0]["properties"]["entity"]
+        code, _, body = self.fetch(dict(view="entity", entity=entity,
+                                         at=AT, known_at=K2), path="/inspect")
+        self.assertEqual(code, 200)
+        self.assertIn(b"Original source assertions only", body)
+        self.assertEqual(self.path.read_bytes(), original)
+
+    def test_standalone_map_does_not_advertise_server_links(self):
+        source = self.world.export_geojson_bbox(BBOX, AT, K2)
+        html = render_map(source)
+        self.assertIn("var inspectorEnabled = false;", html)
+        self.assertIn('id="full-inspection-links" hidden', html)
+        with self.assertRaises(ValueError):
+            render_map(source, inspector_links="true")
 
     def test_browser_disagreements_preserves_offscreen_opposition(self):
         # Reuse real saved source claims and the existing offline renderer.
@@ -148,7 +188,7 @@ class BrowserViewerTests(unittest.TestCase):
             expected = disagreement_view(
                 model, [2.3, 48.8, 2.4, 48.9], AT, K1)
             self.assertEqual(status, 200)
-            self.assertEqual(body.decode("utf-8"), render_map(expected))
+            self.assertEqual(body.decode("utf-8"), render_map(expected, inspector_links=True))
             # The map intentionally keeps both original source positions:
             # one inside the requested viewport and its opposing offscreen report.
             self.assertEqual(len(expected["features"]), 2)
@@ -175,7 +215,8 @@ class BrowserViewerTests(unittest.TestCase):
             self.assertEqual(
                 empty_body.decode("utf-8"),
                 render_map(disagreement_view(
-                    model, [10.0, 10.0, 11.0, 11.0], AT, K1)))
+                    model, [10.0, 10.0, 11.0, 11.0], AT, K1),
+                    inspector_links=True))
         finally:
             server.shutdown()
             worker.join(timeout=5)
@@ -196,7 +237,7 @@ class BrowserViewerTests(unittest.TestCase):
             with self.subTest(view=query["view"]):
                 status, headers, body = self.fetch(query)
                 self.assertEqual(status, 200)
-                self.assertEqual(body.decode("utf-8"), render_map(expected))
+                self.assertEqual(body.decode("utf-8"), render_map(expected, inspector_links=True))
                 self.assertEqual(headers["Content-Length"], str(len(body)))
                 self.assertEqual(headers["Cache-Control"], "no-store")
                 self.assertEqual(headers["X-Frame-Options"], "DENY")
@@ -222,7 +263,7 @@ class BrowserViewerTests(unittest.TestCase):
             status, _, document = self.fetch(query, server=server)
             expected = model.export_geojson_radius([2.3522, 48.8566], 5.0, AT, K1)
             self.assertEqual(status, 200)
-            self.assertEqual(document.decode("utf-8"), render_map(expected))
+            self.assertEqual(document.decode("utf-8"), render_map(expected, inspector_links=True))
             features = expected["features"]
             self.assertEqual(len(features), 2)
             self.assertEqual({f["properties"]["source_id"] for f in features},

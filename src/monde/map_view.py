@@ -183,6 +183,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <button id="export-measure" type="button" disabled>Export evidence + separation</button></div>
 <p id="measure-summary" class="subtle" role="status" aria-live="polite">Choose two original source assertions to estimate their coordinate separation; no verified physical movement or location.</p>
 <h2>Selected evidence</h2><div id="details" role="status" aria-live="polite">Select a source report to inspect its original evidence.</div>
+<p id="full-inspection-links" hidden><a id="full-entity-inspection" href="/inspect">Complete entity evidence dossier</a> ·
+<a id="full-source-history" href="/inspect">Original source revision history</a>
+<span class="subtle">The complete dossier may contain evidence not shown on this filtered map.</span></p>
 </aside>
 </main>
 <script type="application/json" id="monde-data">__MONDE_EMBEDDED_GEOJSON__</script>
@@ -238,6 +241,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var comparing = knowledgeComparing || worldComparing;
   var query = knowledgeComparing ? data.monde_bbox_changes_query :
     (worldComparing ? data.monde_bbox_world_changes_query : data.monde_bbox_query);
+  var inspectorEnabled = __MONDE_INSPECTOR_ENABLED__;
   var NS = "http://www.w3.org/2000/svg";
   var svg = document.getElementById("map");
   var view = document.getElementById("viewport");
@@ -248,6 +252,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var showLinks = document.getElementById("show-disagreement-links");
   var list = document.getElementById("report-list");
   var details = document.getElementById("details");
+  var inspectionLinks = document.getElementById("full-inspection-links");
+  var entityInspection = document.getElementById("full-entity-inspection");
+  var sourceInspection = document.getElementById("full-source-history");
   var sources = document.getElementById("sources");
   var traceFilter = document.getElementById("trace-filter");
   var traceClear = document.getElementById("clear-trace-filter");
@@ -840,6 +847,23 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     measureBButton.disabled = false;
     centerOn(feature);
     var p = feature.properties;
+    // Retired reports open at the earlier cutoff; newly current reports
+    // open at the later cutoff. No physical-world change is inferred.
+    if (inspectorEnabled) {
+      var worldAt = worldComparing ?
+        (p.monde_change === "NO_LONGER_CURRENT" ? query.from_at : query.to_at) :
+        query.valid_at;
+      var knownAt = knowledgeComparing ?
+        (p.monde_change === "NO_LONGER_CURRENT" ?
+          query.from_known_at : query.to_known_at) : query.knowledge_cutoff;
+      entityInspection.href = "/inspect?" + new URLSearchParams({
+        view:"entity",entity:p.entity,at:worldAt,known_at:knownAt
+      }).toString();
+      sourceInspection.href = "/inspect?" + new URLSearchParams({
+        view:"source-history",source:p.source_id,entity:p.entity,known_at:knownAt
+      }).toString();
+      inspectionLinks.hidden = false;
+    }
     details.textContent = [
       "Entity: " + p.entity,
       "Assertion: " + feature.id,
@@ -1428,8 +1452,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 """
 
 
-def render_map(document: dict) -> str:
-    """Render original source-reported GeoJSON without inferring a location."""
+def render_map(document: dict, *, inspector_links: bool = False) -> str:
+    """Render source reports; live dossier links are enabled only on loopback."""
+    if type(inspector_links) is not bool:
+        raise ValueError("inspector_links must be boolean")
     # The offline canvas already expects a display envelope. For nearest/radius
     # searches, derive ONLY a display extent from the selected original source
     # points. Keep the full untouched selection metadata in the HTML document.
@@ -1687,7 +1713,9 @@ def render_map(document: dict) -> str:
     if not reference.startswith('{"kind":"NATURAL_EARTH_110M_LAND_CONTEXT_V1","polygons":['):
         raise ValueError("invalid bundled Natural Earth reference")
     return (_TEMPLATE.replace("__MONDE_EMBEDDED_GEOJSON__", encoded)
-            .replace("__MONDE_EMBEDDED_REFERENCE_LAND__", reference))
+            .replace("__MONDE_EMBEDDED_REFERENCE_LAND__", reference)
+            .replace("__MONDE_INSPECTOR_ENABLED__",
+                     "true" if inspector_links else "false"))
 
 
 
