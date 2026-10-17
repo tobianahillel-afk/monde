@@ -178,3 +178,33 @@ The inspection HTML has **no browser scripts or external requests**, and
 inherits loopback-only hosting, strict argument validation, size limits,
 no-store, frame denial, and no saved-state mutation. This remains an
 **unmerged stacked candidate**; the GitHub Actions tests cover its branch.
+
+### Map selection to full original evidence (WORK-0055)
+
+A selected original source Point in the local /viewer now exposes links to the
+complete entity dossier and original source revision history on the same
+loopback server. The selected entity/source and explicit time cutoffs are
+encoded by URLSearchParams, never used as raw HTML. A NO_LONGER_CURRENT
+comparison uses the earlier valid/knowledge cutoff to inspect retired source
+reports; newly current evidence uses the later cutoff. The map shows a filtered
+subset; the complete dossier can contain other reports. This is not inferred
+truth, a physical-world change or proof of absence. The standalone/offline CLI
+keeps the links inactive. No remote API or mutable endpoint was added. This
+is still an unmerged stacked proposal after WORK-0054.
+
+### Return to the original source Point from a dossier (WORK-0055)
+
+A loopback `/inspect` entity dossier, single-attribute report or source-history
+record now links each **original `geo_point` source assertion** back to the
+existing local `/viewer?view=radius` map, centered on the *reported* coordinate
+(1 km display search). This is navigation among already-saved source claims, not
+geocoding, inferred entity position or verification of ground truth. Entity and
+attribute views preserve the chosen world/knowledge cutoff; source history uses
+the surviving assertion's original validity start and requested knowledge cutoff.
+Superseded history assertions deliberately have no map link because the current
+report map would otherwise show a different assertion instead. Other competing
+current source positions of a matching entity remain visible, including those
+outside the radius. Invalid/non-Point values get no link. URLs are query-encoded,
+HTML-escaped, and stay same-origin; the inspector remains script-free and every
+endpoint remains read-only. End-to-end tests follow the link through the loopback
+server and check that the saved World Model is byte-for-byte unchanged.

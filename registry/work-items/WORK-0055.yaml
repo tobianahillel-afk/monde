@@ -1,0 +1,55 @@
+id: WORK-0055
+title: "Bidirectional navigation between local map Points and original evidence dossiers"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini local evidence"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Link source-report map selections to complete original entity dossiers
+  and source histories, and return to the original reported Point from a dossier
+  when the selected bitemporal state still displays that source assertion.
+scope:
+  in: ["Map to inspector navigation", "Inspector to original Point map navigation", "Bitemporal source-report cutoffs", "Loopback integration tests"]
+  out: ["New reconciliation", "New remote API", "Mutable state", "External services"]
+acceptance_criteria:
+  - {id: AC-1, description: "Selected map reports link to entity dossiers and original source histories.", status: NOT_STARTED}
+  - {id: AC-2, description: "Retired and newly current reports use the corresponding comparison cutoff.", status: NOT_STARTED}
+  - {id: AC-3, description: "Offline CLI stays standalone; loopback API and saved-state immutability remain tested.", status: NOT_STARTED}
+  - {id: AC-4, description: "Entity/report dossiers and surviving source revisions link back to original reported Points at the matching cutoff, never to retired positions.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0054]
+read_before: [AGENTS.md, src/monde/map_view.py, src/monde/local_api.py,
+              docs/03_ARCHITECTURE/world-mini-local-api.md]
+reuses: [monde.map_view.render_map, monde.local_api.create_server,
+         WorldMini.entity_snapshot, WorldMini.source_history]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Enable source dossier links only on served local maps.", depends_on: [], expected_files: [src/monde/map_view.py, src/monde/local_api.py], status: IN_REVIEW}
+    - {id: T2, description: "Check bitemporal link inputs and standalone isolation.", depends_on: [T1], expected_files: [tests/test_world_local_api_viewer.py], status: IN_REVIEW}
+    - {id: T3, description: "Document unchanged evidence semantics.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+    - {id: T4, description: "Navigate from complete source dossiers to report-grounded map locations.", depends_on: [T1], expected_files: [src/monde/local_api.py, tests/test_world_local_api_inspection.py], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_viewer.py]
+  real_system: ["Exact-head GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged PR #78 and all its predecessors."]
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close this isolated stacked PR or revert the bounded navigation delta."
