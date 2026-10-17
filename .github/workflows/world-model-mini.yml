@@ -1156,3 +1156,32 @@ jobs:
               print('GeoPackage Chromium assertion:', marker, marker in html)
               assert marker in html, 'missing browser marker: '+marker
           PY
+
+      - name: Original GeoPackage Polygon outer and inner rings render in offline Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from tests.test_world_geopackage import build
+          from tests.test_world_geopackage_polygons import add_polygons
+          add_polygons(build(Path('/tmp/monde-original-polygons.gpkg')))
+          PY
+          python3 -m monde.map_view --gpkg /tmp/monde-original-polygons.gpkg \
+            --gpkg-layer survey_polygons --source-id original-boundaries \
+            --source-locator dataset://boundaries.gpkg \
+            --captured-at 2026-01-10T10:00:00Z \
+            --valid-from 2026-01-01T00:00:00Z \
+            --at 2026-01-02T00:00:00Z \
+            --known-at 2026-01-10T10:00:00Z \
+            --output /tmp/monde-gpkg-polygons.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --timeout=15000 --dump-dom file:///tmp/monde-gpkg-polygons.html \
+            >/tmp/monde-gpkg-polygons-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-gpkg-polygons-dom.html
+          grep -q 'data-monde-gpkg-boundary-segments="9"' /tmp/monde-gpkg-polygons-dom.html
+          grep -q 'data-monde-gpkg-inner-segments="3"' /tmp/monde-gpkg-polygons-dom.html
+          grep -q 'data-gpkg-inner-ring="1"' /tmp/monde-gpkg-polygons-dom.html
+          grep -q 'Claimed block' /tmp/monde-gpkg-polygons-dom.html

@@ -39,6 +39,8 @@ section,aside{border:1px solid #314154;border-radius:12px;background:#182436;pad
 #source-traces line{stroke:#58e1dd;stroke-width:2.8;stroke-dasharray:3 2;opacity:.8;pointer-events:none}
 #source-traces line[data-kml-boundary]{stroke:#f4b56c;stroke-dasharray:6 3}
 #source-traces line[data-kml-inner-ring]{stroke:#e9a2b6;stroke-dasharray:2 4}
+#source-traces line[data-gpkg-boundary]{stroke:#f4b56c;stroke-dasharray:6 3}
+#source-traces line[data-gpkg-inner-ring]{stroke:#e9a2b6;stroke-dasharray:2 4}
 #points circle{cursor:pointer;stroke-width:2.4;outline:none}
 #points circle:focus{stroke:#fff;stroke-width:5}
 #points circle.inside{fill:#51d6ba;stroke:#093b39}
@@ -284,7 +286,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   function renderSourceTraces(reports) {
     traceLayer.replaceChildren();
-    var grouped = new Map(), gpxCount=0, kmlCount=0, gpkgCount=0, boundaryCount=0, innerCount=0;
+    var grouped = new Map(), gpxCount=0, kmlCount=0, gpkgCount=0, boundaryCount=0, innerCount=0, gpkgBoundaryCount=0, gpkgInnerCount=0;
     reports.forEach(function(feature) {
       var trace=feature.properties.monde_gpx_trace ||
         feature.properties.monde_kml_trace || feature.properties.monde_gpkg_trace;
@@ -316,16 +318,26 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         var isGpx=first.format==="GPX_1_1_TRACE_POINT";
         var attrs={x1:x(a[0]),y1:y(a[1]),x2:x(b[0]),y2:y(b[1])};
         var isBoundary=first.format==="KML_2_2_POLYGON_RING_POINT";
-        var isGpkg=first.format==="GPKG_1_3_LINESTRING_POINT";
+        var isGpkgBoundary=first.format==="GPKG_1_3_POLYGON_RING_POINT";
+        var isGpkg=isGpkgBoundary || first.format==="GPKG_1_3_LINESTRING_POINT";
         attrs[isGpx?"data-gpx-trace":
               (isGpkg?"data-gpkg-trace":
                (isBoundary?"data-kml-boundary":"data-kml-trace"))]=first.trace_id;
         if(isBoundary && first.segment>0)
           attrs["data-kml-inner-ring"]=String(first.segment);
+        if(isGpkgBoundary){
+          attrs["data-gpkg-boundary"]=String(first.segment);
+          if(first.segment>0)attrs["data-gpkg-inner-ring"]=String(first.segment);
+        }
         el("line",attrs,traceLayer);
         if(isGpx)gpxCount++;
-        else if(isGpkg)gpkgCount++;
-        else if(isBoundary){
+        else if(isGpkg){
+          gpkgCount++;
+          if(isGpkgBoundary){
+            gpkgBoundaryCount++;
+            if(first.segment>0)gpkgInnerCount++;
+          }
+        }else if(isBoundary){
           boundaryCount++;
           if(first.segment>0)innerCount++;
         }else kmlCount++;
@@ -335,6 +347,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       String(gpxCount));
     document.body.setAttribute("data-monde-gpkg-segments",
       String(gpkgCount));
+    document.body.setAttribute("data-monde-gpkg-boundary-segments",
+      String(gpkgBoundaryCount));
+    document.body.setAttribute("data-monde-gpkg-inner-segments",
+      String(gpkgInnerCount));
     document.body.setAttribute("data-monde-kml-segments",
       String(kmlCount));
     document.body.setAttribute("data-monde-kml-boundary-segments",
@@ -693,8 +709,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       ...(p.monde_gpkg_trace ? [
         "GeoPackage source layer: " + p.monde_gpkg_trace.layer,
         "Original feature id: " + p.monde_gpkg_trace.feature_id,
-        "Original LineString vertex: " + String(p.monde_gpkg_trace.order + 1),
-        "Interpretation: SOURCE_LINE_NOT_VERIFIED_MOTION"
+        ...(p.monde_gpkg_trace.kind==="Polygon" ?
+          ["Source-declared Polygon ring: " + (p.monde_gpkg_trace.segment===0 ?
+            "outer" : "inner #" + String(p.monde_gpkg_trace.segment))] : []),
+        "Original " + p.monde_gpkg_trace.kind + " vertex: " +
+          String(p.monde_gpkg_trace.order + 1),
+        "Interpretation: SOURCE_GEOMETRY_NOT_VERIFIED_GEOGRAPHY_OR_MOTION"
       ] : [])
     ].join("\n");
     render();
@@ -1296,8 +1316,9 @@ def render_map(document: dict) -> str:
                     or not isinstance(gpkg_trace, dict)
                     or set(gpkg_trace) != {"format", "kind", "name", "trace_id",
                                            "segment", "order", "layer", "feature_id"}
-                    or gpkg_trace["format"] != "GPKG_1_3_LINESTRING_POINT"
-                    or gpkg_trace["kind"] != "LineString"
+                    or (gpkg_trace["format"], gpkg_trace["kind"]) not in (
+                        ("GPKG_1_3_LINESTRING_POINT", "LineString"),
+                        ("GPKG_1_3_POLYGON_RING_POINT", "Polygon"))
                     or not isinstance(gpkg_trace["name"], str)
                     or not 0 < len(gpkg_trace["name"]) <= 1000
                     or not isinstance(gpkg_trace["layer"], str)
@@ -1307,7 +1328,8 @@ def render_map(document: dict) -> str:
                     or not isinstance(gpkg_trace["trace_id"], str)
                     or not re.fullmatch(r"[0-9a-f]{24}", gpkg_trace["trace_id"])
                     or type(gpkg_trace["segment"]) is not int
-                    or gpkg_trace["segment"] != 0
+                    or not 0 <= gpkg_trace["segment"] <= (
+                        128 if gpkg_trace["kind"] == "Polygon" else 0)
                     or type(gpkg_trace["order"]) is not int
                     or not 0 <= gpkg_trace["order"] < 50_000):
                 raise ValueError("invalid source-reported GeoPackage trace")
@@ -1450,7 +1472,7 @@ def main(argv=None) -> int:
     inputs.add_argument("--kml", help="original local KML 2.2 Placemarks")
     inputs.add_argument("--kmz", help="bounded local KMZ with root doc.kml; no extraction")
     inputs.add_argument("--gpx", help="original local GPX 1.1 waypoints; no saved intermediate state")
-    inputs.add_argument("--gpkg", help="original local GeoPackage WGS84 Point or LineString source")
+    inputs.add_argument("--gpkg", help="original local GeoPackage WGS84 Point, LineString or Polygon source")
     parser.add_argument("--gpkg-layer", help="exact original GeoPackage feature-table name")
     parser.add_argument("--source-id", help="explicit source identifier for --geojson")
     parser.add_argument("--source-locator", help="original data locator for --geojson")

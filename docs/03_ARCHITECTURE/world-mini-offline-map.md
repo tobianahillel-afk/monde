@@ -580,3 +580,26 @@ The existing read-only 100 MB database and 50,000 source-sample limits apply.
 Malformed or unsupported geometries fail before writing any output. Original
 GeoPackage Point imports remain unchanged. Polygons, 3D/Z/M, complex
 geometries and external resources remain unsupported.
+
+## Import original GeoPackage Polygon rings (WORK-0033)
+
+The existing `--gpkg FILE --gpkg-layer TABLE` and `--source-manifest`
+also support physical feature tables declared **2D WGS84 POLYGON**. No
+conversion or additional dependency is necessary. Original integer feature
+keys, names, coordinate order and separate **outer / inner rings** are preserved
+as individually attributed source-report samples in the World Model.
+
+The map joins **only consecutive vertices in the same original ring**,
+distinguishes inner from outer boundaries visually and exposes the source
+layer, feature ID, ring index, sample order and evidence timestamps. An
+original closed ring stays closed; it does not imply a verified filled area,
+land ownership or true physical geometry. Missing samples and
+antimeridian-crossing segments are never invented.
+
+Binary GeoPackage and 2D WKB geometry must agree on type and EPSG:4326;
+optional envelopes are verified against all original vertices. At most 128
+inner rings and 50,000 total source samples are accepted within the existing
+100 MB read-only database limit. Invalid, truncated, nonclosed,
+out-of-range or contradictory rings abort before any HTML output is created.
+Point and LineString imports are unchanged. 3D/Z/M, MultiPolygon, reprojection
+and remote datasets remain outside this narrow increment.
