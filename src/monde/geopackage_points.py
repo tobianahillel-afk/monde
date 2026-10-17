@@ -1,4 +1,5 @@
-"""Bounded read-only GeoPackage EPSG:4326 Point adapter for original source evidence."""
+"""Bounded read-only GeoPackage EPSG:4326 Point/LineString adapter for original source evidence."""
+import hashlib
 import math
 import os
 import re
@@ -45,6 +46,40 @@ def _point(blob):
     return [lon, lat]
 
 
+def _line(blob):
+    """Exactly one bounded, two-dimensional GeoPackage WKB LineString."""
+    if not isinstance(blob, bytes) or len(blob) < 17 or blob[:3] != b"GP\x00":
+        raise ValueError("GeoPackage requires a LineString geometry")
+    flags = blob[3]
+    envelope = (flags >> 1) & 7
+    if flags & 0xF0 or envelope not in (0, 1):
+        raise ValueError("unsupported GeoPackage flags or envelope")
+    endian_header = "<" if flags & 1 else ">"
+    if struct.unpack(endian_header + "i", blob[4:8])[0] != 4326:
+        raise ValueError("GeoPackage geometry is not EPSG:4326")
+    offset = 8 + (32 if envelope else 0)
+    if len(blob) < offset + 9 or blob[offset] not in (0, 1):
+        raise ValueError("GeoPackage requires 2D WKB LineString")
+    endian = "<" if blob[offset] == 1 else ">"
+    kind, count = struct.unpack_from(endian + "II", blob, offset + 1)
+    if kind != 2 or not 2 <= count <= MAX_POINTS or len(blob) != offset + 9 + 16 * count:
+        raise ValueError("invalid bounded 2D WKB LineString")
+    points = []
+    for index in range(count):
+        lon, lat = struct.unpack_from(endian + "dd", blob, offset + 9 + 16 * index)
+        if (not math.isfinite(lon) or not math.isfinite(lat)
+                or not -180 <= lon <= 180 or not -90 <= lat <= 90):
+            raise ValueError("LineString coordinate outside WGS84 bounds")
+        points.append([lon, lat])
+    if envelope:
+        west, east, south, north = struct.unpack(endian_header + "dddd", blob[8:40])
+        if (not all(math.isfinite(v) for v in (west, east, south, north))
+                or any(not west <= lon <= east or not south <= lat <= north
+                       for lon, lat in points)):
+            raise ValueError("GeoPackage envelope contradicts LineString")
+    return points
+
+
 def to_geojson(path, *, layer):
     """Read one local feature table, preserving original primary keys and attributes.
 
@@ -71,8 +106,10 @@ def to_geojson(path, *, layer):
                 "FROM gpkg_spatial_ref_sys WHERE srs_id=4326").fetchall()
             if (contents != [("features", 4326)] or len(columns_metadata) != 1
                     or reference != [("EPSG", 4326)]
-                    or columns_metadata[0][1:] != ("POINT", 4326, 0, 0)):
-                raise ValueError("layer must declare a 2D EPSG:4326 Point feature table")
+                    or columns_metadata[0][1:] not in (
+                        ("POINT", 4326, 0, 0), ("LINESTRING", 4326, 0, 0))):
+                raise ValueError("layer must declare a 2D EPSG:4326 Point or LineString table")
+            kind = columns_metadata[0][1]
             geometry_field = columns_metadata[0][0]
             geom_sql = _identifier(geometry_field)
             if db.execute("SELECT type FROM sqlite_master WHERE name=?",
@@ -86,7 +123,7 @@ def to_geojson(path, *, layer):
                 raise ValueError("GeoPackage requires a single integer primary key")
             attrs = [col[1] for col in columns
                      if col[1] not in (key[0], geometry_field)]
-            if (len(attrs) > 16 or "geo_point" in attrs
+            if (len(attrs) > 16 or "geo_point" in attrs or "gpkg_trace" in attrs
                     or any(not _NAME.fullmatch(name) for name in attrs)):
                 raise ValueError("unsupported source columns")
             selected = [_identifier(key[0]), geom_sql] + [_identifier(v) for v in attrs]
@@ -111,11 +148,29 @@ def to_geojson(path, *, layer):
                     else:
                         raise ValueError("unsupported source attribute type")
                     properties[name] = value
-                features.append({"type": "Feature", "id": str(row[0]),
-                                 "properties": properties, "geometry": {
-                                     "type": "Point", "coordinates": _point(row[1])}})
+                if kind == "POINT":
+                    features.append({"type": "Feature", "id": str(row[0]),
+                                     "properties": properties, "geometry": {
+                                         "type": "Point", "coordinates": _point(row[1])}})
+                else:
+                    points = _line(row[1])
+                    if len(features) + len(points) > MAX_POINTS:
+                        raise ValueError("GeoPackage source exceeds 50000 vertices")
+                    trace_id = hashlib.sha256((layer + ":" + str(row[0])).encode(
+                        "utf-8")).hexdigest()[:24]
+                    for order, point in enumerate(points):
+                        features.append({
+                            "type": "Feature",
+                            "id": "gpkg-line-" + layer + "-" + str(row[0]) + "-" + str(order),
+                            "properties": {**properties, "gpkg_trace": {
+                                "format": "GPKG_1_3_LINESTRING_POINT",
+                                "kind": "LineString", "name": layer + " #" + str(row[0]),
+                                "trace_id": trace_id, "segment": 0, "order": order,
+                                "layer": layer, "feature_id": str(row[0])}},
+                            "geometry": {"type": "Point", "coordinates": point}})
+
     except sqlite3.DatabaseError as exc:
         raise ValueError("invalid or unreadable local GeoPackage") from exc
     if not features:
-        raise ValueError("GeoPackage contains no original Point reports")
+        raise ValueError("GeoPackage contains no original Point or LineString reports")
     return {"type": "FeatureCollection", "features": features}
