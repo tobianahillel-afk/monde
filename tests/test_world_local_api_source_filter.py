@@ -136,7 +136,7 @@ class HistoricalSourceLensHTTPTests(unittest.TestCase):
                  "geometry": {"type": "Point", "coordinates": [2.35, 48.85]},
                  "properties": {}}]},
             source_id="survey-2", locator="fixture://survey-2",
-            captured_at="2026-01-10T10:00:00Z",
+            captured_at="2026-01-12T10:00:00Z",
             valid_from="2026-01-01T00:00:00Z"))
         self.temp = tempfile.TemporaryDirectory()
         self.path = Path(self.temp.name) / "world.json"
@@ -179,7 +179,10 @@ class HistoricalSourceLensHTTPTests(unittest.TestCase):
                             "KNOWLEDGE_NOT_PHYSICAL" for f in payload["features"]))
         code, raw = self.fetch("/map-knowledge-changes", {**query, "source": "survey-2"})
         self.assertEqual(code, 200)
-        self.assertEqual(json.loads(raw)["features"], [])
+        survey2 = json.loads(raw)["features"]
+        self.assertEqual(len(survey2), 1)
+        self.assertEqual(survey2[0]["properties"]["source_id"], "survey-2")
+        self.assertEqual(survey2[0]["properties"]["monde_change"], "NEWLY_CURRENT")
         code, raw = self.fetch("/map-knowledge-changes", query)
         self.assertEqual(code, 200)
         self.assertEqual(json.loads(raw),
