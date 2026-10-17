@@ -124,5 +124,66 @@ class SourceLensHTTPTests(unittest.TestCase):
             self.assertEqual(json.loads(body), {"error": "invalid_query"})
 
 
+    def test_filtered_nearest_ranks_before_limit(self):
+        query = {"center": "2.35,48.85", "limit": "1", "at": AT, "known_at": K1}
+        for source, point, count in (
+                ("survey-east", [2.35, 48.85], 2),
+                ("survey-west", [7.2, 47.5], 1)):
+            with self.subTest(source=source):
+                params = {**query, "source": source}
+                status, _, raw = self.fetch("/nearest", params)
+                self.assertEqual(status, 200)
+                result = json.loads(raw)
+                self.assertEqual(result["monde_source_filter"], source)
+                self.assertEqual(result["monde_nearest_query"]["total_matching_entities"], count)
+                self.assertEqual(result["monde_nearest_query"]["has_more"], count > 1)
+                self.assertEqual([f["geometry"]["coordinates"]
+                                  for f in result["features"]], [point])
+                self.assertEqual({f["properties"]["source_id"]
+                                  for f in result["features"]}, {source})
+                nav = {"view": "nearest", **params}
+                response, _, html = self.fetch("/viewer", nav)
+                self.assertEqual(response, 200)
+                self.assertIn(('name="source" value="' + source + '"').encode(), html)
+                self.assertEqual(html.decode(), render_map(
+                    result, inspector_links=True, navigation=nav))
+
+    def test_filtered_radius_qualifies_only_original_source(self):
+        query = {"center": "2.35,48.85", "radius_km": "15",
+                 "at": AT, "known_at": K1}
+        for source, entities in (
+                ("survey-east", {"site-a"}), ("survey-west", set())):
+            with self.subTest(source=source):
+                params = {**query, "source": source}
+                status, _, raw = self.fetch("/radius", params)
+                self.assertEqual(status, 200)
+                result = json.loads(raw)
+                self.assertEqual(result["monde_source_filter"], source)
+                self.assertEqual({f["properties"]["entity"]
+                                  for f in result["features"]}, entities)
+                self.assertEqual(result["monde_radius_query"]["total_matching_entities"],
+                                 len(entities))
+                nav = {"view": "radius", **params}
+                response, _, html = self.fetch("/viewer", nav)
+                self.assertEqual(response, 200)
+                self.assertIn(('name="source" value="' + source + '"').encode(), html)
+
+    def test_proximity_unfiltered_parity_and_invalid_sources(self):
+        near = {"center": "2.35,48.85", "limit": "1", "at": AT, "known_at": K1}
+        radius = {"center": "2.35,48.85", "radius_km": "15", "at": AT, "known_at": K1}
+        for route, params, expected in (
+                ("/nearest", near,
+                 self.world.export_geojson_nearest([2.35, 48.85], 1, AT, K1)),
+                ("/radius", radius,
+                 self.world.export_geojson_radius([2.35, 48.85], 15.0, AT, K1))):
+            self.assertEqual(json.loads(self.fetch(route, params)[2]), expected)
+            self.assertEqual(json.loads(self.fetch(route, {**params, "source": ""})[2]),
+                             expected)
+            for bad in ("../bad", "bad source", "<script>", "z" * 100):
+                with self.subTest(route=route, source=bad):
+                    status, _, raw = self.fetch(route, {**params, "source": bad})
+                    self.assertEqual(status, 400)
+                    self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
 if __name__ == "__main__":
     unittest.main()
