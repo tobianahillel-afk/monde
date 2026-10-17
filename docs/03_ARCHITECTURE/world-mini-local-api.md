@@ -350,3 +350,30 @@ silently dropping contradictory evidence. Only the optional `source` version
 of `/map-disagreements` uses the existing full disagreement viewer selection.
 Without `source` (or when it is blank), the legacy WorldMini JSON response
 remains unchanged. No inferred location, new endpoint or persisted-state write.
+
+## Focus one conflicting entity in original evidence (WORK-0069)
+
+The existing read-only `/disagreement-report`, `/disagreement.csv`,
+`/map-disagreements` and `/viewer?view=disagreements` accept an optional
+`entity=<original-id>` selection. Analysts can follow a per-entity HTML report
+link, preserving all opposing original source Points, even outside the viewport,
+and retaining both temporal cutoffs. If a source filter is also present, that
+source alone must qualify inside the viewport before the entity filter applies.
+The native map time form retains the entity. Unfiltered routes are unchanged,
+and an unknown entity is an empty evidence result, not evidence of agreement.
+
+### Navigate focused original disagreements through time
+
+The read-only `/disagreement-report` now provides a native GET form to change world-valid time or knowledge cutoff while retaining the selected bounding box, original source and entity. It reuses the existing evidence query and never infers physical truth or mutates saved assertions. Inputs are escaped and invalid cutoffs continue to fail validation.
+
+
+### Compare one source disagreement across two knowledge cutoffs (WORK-0069)
+
+The existing read-only `/disagreement-report` accepts an optional earlier
+`from_known_at` strictly before `known_at`. A native GET form compares the
+original evidence in the same bbox, fixed world time, source and entity at
+both knowledge cutoffs. The UI distinguishes cases appearing/disappearing from
+the **selected evidence view**, revised original report sets, and unchanged
+reports. It includes complete earlier original source evidence, map, CSV and
+GeoJSON links, retaining offscreen opposing source claims. No claimed physical
+movement, consensus position, storage mutation or new dependency.

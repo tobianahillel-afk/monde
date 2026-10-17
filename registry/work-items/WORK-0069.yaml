@@ -1,0 +1,51 @@
+id: WORK-0069
+title: "Focus one original geographic disagreement across evidence views"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini evidence browser"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Let an analyst isolate one entity's original opposing geographic claims across
+  the existing local report, CSV, GeoJSON and map, without inferring truth.
+scope:
+  in: ["Per-entity browser links and original opposing evidence parity",
+       "Source-plus-entity selection preserving temporal and spatial meaning"]
+  out: ["New model/service/storage", "Inferred truth", "State writes"]
+acceptance_criteria:
+  - {id: AC-1, description: "Entity focus preserves all opposing source evidence.", status: IN_REVIEW}
+  - {id: AC-2, description: "Source must qualify from its own in-bounds Point.", status: IN_REVIEW}
+  - {id: AC-3, description: "HTML CSV GeoJSON and map preserve entity and cutoff semantics.", status: IN_REVIEW}
+  - {id: AC-4, description: "Unfiltered behavior and saved state remain unchanged.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0068]
+read_before: [AGENTS.md, src/monde/local_api.py, src/monde/map_view.py]
+reuses: [monde.map_view.disagreement_view, monde.local_api._focus_disagreement_source]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add entity focus and preserve temporal navigation.", depends_on: [], expected_files: [src/monde/local_api.py, src/monde/map_view.py], status: IN_REVIEW}
+    - {id: T2, description: "Test HTTP evidence parity and unchanged behavior.", depends_on: [T1], expected_files: [tests/test_world_local_api_disagreement_report.py], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_disagreement_report.py]
+  real_system: ["Exact-head GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0068 / PR #98."]
+risk:
+  security: LOW
+  data: MEDIUM
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close or revert scoped PR; no stored-data migration."

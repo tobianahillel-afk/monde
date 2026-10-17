@@ -220,5 +220,208 @@ class DisagreementReportHTTPTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(blank, raw)
 
+
+    def test_entity_focus_original_provenance_parity(self):
+        report = self.fetch("/disagreement-report", QUERY)[2].decode("utf-8")
+        self.assertIn("Focus on this disagreement", report)
+        self.assertIn("entity=site-a", report)
+        params = {**QUERY, "entity": "site-a"}
+        status, _, raw = self.fetch("/map-disagreements", params)
+        self.assertEqual(status, 200)
+        data = json.loads(raw)
+        self.assertEqual(data["monde_disagreement_entity_focus"], "site-a")
+        self.assertEqual({f["properties"]["source_id"] for f in data["features"]},
+                         {"survey-east", "survey-west"})
+        self.assertEqual({f["properties"]["monde_inside_bbox"] for f in data["features"]},
+                         {True, False})
+        self.assertEqual(data["monde_bbox_query"]["total_matching_entities"], 1)
+        rows = list(csv.DictReader(io.StringIO(
+            self.fetch("/disagreement.csv", params)[2].decode("utf-8"))))
+        self.assertEqual({r["assertion_id"] for r in rows},
+                         {f["properties"]["assertion_id"] for f in data["features"]})
+        html = self.fetch("/disagreement-report", params)[2].decode()
+        self.assertIn("Focused entity: site-a", html)
+        self.assertIn("survey-west", html)
+        self.assertNotIn("<h2>site-b</h2>", html)
+
+    def test_entity_source_intersection_requires_own_source_qualification(self):
+        for optional, expected in (
+                ({"entity": "site-a", "source": "survey-east"},
+                 {"survey-east", "survey-west"}),
+                ({"entity": "site-a", "source": "survey-west"}, set()),
+                ({"entity": "site-b", "source": "survey-east"}, set()),
+                ({"entity": "unknown"}, set())):
+            with self.subTest(optional=optional):
+                params = {**QUERY, **optional}
+                data = json.loads(self.fetch("/map-disagreements", params)[2])
+                self.assertEqual({f["properties"]["source_id"]
+                                  for f in data["features"]}, expected)
+                self.assertEqual(self.fetch("/disagreement-report", params)[0], 200)
+                self.assertEqual(self.fetch("/disagreement.csv", params)[0], 200)
+
+    def test_entity_map_preserves_source_and_time_selection(self):
+        params = {"view": "disagreements", **QUERY,
+                  "source": "survey-east", "entity": "site-a"}
+        status, _, raw = self.fetch("/viewer", params)
+        self.assertEqual(status, 200)
+        html = raw.decode()
+        self.assertIn('name="entity" value="site-a"', html)
+        self.assertIn('name="source" value="survey-east"', html)
+        self.assertIn(b'formaction="/disagreement-report"',
+                      self.fetch("/explore", {})[2])
+
+
+    def test_focused_disagreement_time_form_preserves_case_and_cutoffs(self):
+        from html.parser import HTMLParser
+
+        class Form(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.active = False
+                self.found = False
+                self.inputs = {}
+
+            def handle_starttag(self, tag, attrs):
+                values = dict(attrs)
+                if tag == "form" and values.get("action") == "/disagreement-report":
+                    self.active = True
+                    self.found = values.get("method") == "get"
+                if tag == "input" and self.active:
+                    self.inputs[values["name"]] = values.get("value", "")
+
+            def handle_endtag(self, tag):
+                if tag == "form":
+                    self.active = False
+
+        params = {**QUERY, "source": "survey-east", "entity": "site-a"}
+        status, headers, raw = self.fetch("/disagreement-report", params)
+        self.assertEqual(status, 200)
+        parser = Form()
+        parser.feed(raw.decode("utf-8"))
+        self.assertTrue(parser.found)
+        self.assertEqual(parser.inputs, params)
+        updated = {**parser.inputs, "known_at": "2020-01-01T00:00:00Z"}
+        status, _, changed = self.fetch("/disagreement-report", updated)
+        self.assertEqual(status, 200)
+        self.assertIn(b"Focused entity: site-a", changed)
+        self.assertIn(b"Selected original source: survey-east", changed)
+        self.assertIn(b"Knowledge cutoff: 2020-01-01T00:00:00Z", changed)
+        status, _, unchanged = self.fetch("/disagreement-report", parser.inputs)
+        self.assertEqual(status, 200)
+        self.assertIn(b"survey-east", unchanged)
+        self.assertIn(b"survey-west", unchanged)
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertIn("script-src 'none'", headers["Content-Security-Policy"])
+
+    def test_time_form_escapes_entity_and_rejects_invalid_time(self):
+        entity = '<img src=x onerror=alert(1)>'
+        status, _, raw = self.fetch("/disagreement-report", {**QUERY, "entity": entity})
+        self.assertEqual(status, 200)
+        html = raw.decode("utf-8")
+        self.assertNotIn(entity, html)
+        self.assertIn("&lt;img", html)
+        self.assertIn("NO MATCHING SOURCE DISAGREEMENT", html)
+        status, _, raw = self.fetch("/disagreement-report", {**QUERY, "at": "yesterday"})
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+    def test_unfiltered_contract_and_invalid_entity_inputs(self):
+        for route in ("/map-disagreements", "/disagreement-report",
+                      "/disagreement.csv", "/viewer"):
+            params = {**QUERY, **({"view": "disagreements"}
+                                   if route == "/viewer" else {})}
+            with self.subTest(route=route):
+                original = self.fetch(route, params)
+                blank = self.fetch(route, {**params, "entity": ""})
+                self.assertEqual(original[0], blank[0])
+                self.assertEqual(original[2], blank[2])
+                for bad in ("bad\nentity", "x" * 257):
+                    status, _, body = self.fetch(route, {**params, "entity": bad})
+                    self.assertEqual(status, 400)
+                    self.assertEqual(json.loads(body), {"error": "invalid_query"})
+
+
+    def test_compare_original_disagreement_at_two_knowledge_cutoffs(self):
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, headers, raw = self.fetch("/disagreement-report", params)
+        self.assertEqual(status, 200)
+        html = raw.decode("utf-8")
+        for expected in ("Original source disagreements at two knowledge cutoffs",
+                         "APPEARED IN SELECTION",
+                         "earlier: 0 original Points; later: 2 original Points",
+                         "Earlier complete GeoJSON", "Earlier original CSV",
+                         'name="from_known_at" value="2026-01-09T00:00:00Z"',
+                         "survey-west", "NOT actual physical movement"):
+            self.assertIn(expected, html)
+        self.assertIn("script-src 'none'", headers["Content-Security-Policy"])
+
+    def test_compare_unchanged_original_evidence_and_provenance(self):
+        later = "2026-01-12T10:00:00Z"
+        params = {**QUERY, "entity": "site-a",
+                  "from_known_at": K1, "known_at": later}
+        status, _, raw = self.fetch("/disagreement-report", params)
+        self.assertEqual(status, 200)
+        html = raw.decode("utf-8")
+        self.assertIn("SAME REPORTED EVIDENCE", html)
+        self.assertIn("earlier: 2 original Points; later: 2 original Points", html)
+        selected = json.loads(self.fetch("/map-disagreements", {
+            **QUERY, "entity": "site-a", "known_at": later})[2])
+        for f in selected["features"]:
+            self.assertIn(f["properties"]["assertion_id"], html)
+            self.assertIn(f["properties"]["evidence_id"], html)
+
+    def test_compare_rejects_invalid_order_and_does_not_change_json_contract(self):
+        for earlier, later in ((K1, K1),
+                               ("2026-01-13T00:00:00Z", K1),
+                               ("invalid", K1),
+                               ("2026-01-09T00:00:00", K1)):
+            code, _, raw = self.fetch("/disagreement-report", {
+                **QUERY, "from_known_at": earlier, "known_at": later})
+            self.assertEqual(code, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        code, _, _ = self.fetch("/map-disagreements", {
+            **QUERY, "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(code, 400)
+
+    def test_compare_does_not_borrow_an_outside_source_point(self):
+        params = {**QUERY, "source": "survey-west", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, raw = self.fetch("/disagreement-report", params)
+        self.assertEqual(status, 200)
+        self.assertIn("NO SOURCE DISAGREEMENT IN EITHER SELECTION", raw.decode())
+
+
+    def test_comparison_links_resolve_to_existing_single_cutoff_routes(self):
+        from html.parser import HTMLParser
+        from urllib.parse import urlsplit, parse_qs
+
+        class Anchors(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.links = []
+
+            def handle_starttag(self, tag, attrs):
+                if tag == "a":
+                    self.links.append(dict(attrs).get("href", ""))
+
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, raw = self.fetch("/disagreement-report", params)
+        self.assertEqual(status, 200)
+        parser = Anchors()
+        parser.feed(raw.decode())
+        target = [u for u in parser.links if urlsplit(u).path in (
+            "/viewer", "/map-disagreements", "/disagreement.csv")]
+        self.assertEqual(len(target), 6)
+        for link in target:
+            parsed = urlsplit(link)
+            query = {k: v[0] for k, v in parse_qs(parsed.query).items()}
+            self.assertNotIn("from_known_at", query)
+            self.assertEqual(query["source"], "survey-east")
+            self.assertEqual(query["entity"], "site-a")
+            self.assertEqual(self.fetch(parsed.path, query)[0], 200)
+
+
 if __name__ == "__main__":
     unittest.main()
