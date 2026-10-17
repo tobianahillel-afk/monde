@@ -350,6 +350,7 @@ class WorldMini:
         features = []
         trace_reports = {}
         kml_reports = {}
+        gpkg_reports = {}
         sample_time_reports = {}
         elevation_reports = {}
         for match in result["matches"]:
@@ -377,6 +378,13 @@ class WorldMini:
                 kml_reports[match["entity"]] = {
                     r["evidence_id"]: r["value"]
                     for r in self.query(match["entity"], "kml_trace",
+                                        at, known_at)["reports"]
+                }
+            if any(a["entity"] == match["entity"] and
+                   a["attribute"] == "gpkg_trace" for a in self._assertions.values()):
+                gpkg_reports[match["entity"]] = {
+                    r["evidence_id"]: r["value"]
+                    for r in self.query(match["entity"], "gpkg_trace",
                                         at, known_at)["reports"]
                 }
             for inside, reports in ((True, match["matched_reports"]),
@@ -410,6 +418,10 @@ class WorldMini:
                         report["evidence_id"])
                     if kml_trace is not None:
                         properties["monde_kml_trace"] = _clone(kml_trace)
+                    gpkg_trace = gpkg_reports.get(match["entity"], {}).get(
+                        report["evidence_id"])
+                    if gpkg_trace is not None:
+                        properties["monde_gpkg_trace"] = _clone(gpkg_trace)
                     features.append({
                         "type": "Feature", "id": report["assertion_id"],
                         "geometry": _point(report["value"]), "properties": properties,
