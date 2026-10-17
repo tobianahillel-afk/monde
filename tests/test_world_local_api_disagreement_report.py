@@ -270,6 +270,61 @@ class DisagreementReportHTTPTests(unittest.TestCase):
         self.assertIn(b'formaction="/disagreement-report"',
                       self.fetch("/explore", {})[2])
 
+
+    def test_focused_disagreement_time_form_preserves_case_and_cutoffs(self):
+        from html.parser import HTMLParser
+
+        class Form(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.active = False
+                self.found = False
+                self.inputs = {}
+
+            def handle_starttag(self, tag, attrs):
+                values = dict(attrs)
+                if tag == "form" and values.get("action") == "/disagreement-report":
+                    self.active = True
+                    self.found = values.get("method") == "get"
+                if tag == "input" and self.active:
+                    self.inputs[values["name"]] = values.get("value", "")
+
+            def handle_endtag(self, tag):
+                if tag == "form":
+                    self.active = False
+
+        params = {**QUERY, "source": "survey-east", "entity": "site-a"}
+        status, headers, raw = self.fetch("/disagreement-report", params)
+        self.assertEqual(status, 200)
+        parser = Form()
+        parser.feed(raw.decode("utf-8"))
+        self.assertTrue(parser.found)
+        self.assertEqual(parser.inputs, params)
+        updated = {**parser.inputs, "known_at": "2020-01-01T00:00:00Z"}
+        status, _, changed = self.fetch("/disagreement-report", updated)
+        self.assertEqual(status, 200)
+        self.assertIn(b"Focused entity: site-a", changed)
+        self.assertIn(b"Selected original source: survey-east", changed)
+        self.assertIn(b"Knowledge cutoff: 2020-01-01T00:00:00Z", changed)
+        status, _, unchanged = self.fetch("/disagreement-report", parser.inputs)
+        self.assertEqual(status, 200)
+        self.assertIn(b"survey-east", unchanged)
+        self.assertIn(b"survey-west", unchanged)
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertIn("script-src 'none'", headers["Content-Security-Policy"])
+
+    def test_time_form_escapes_entity_and_rejects_invalid_time(self):
+        entity = '<img src=x onerror=alert(1)>'
+        status, _, raw = self.fetch("/disagreement-report", {**QUERY, "entity": entity})
+        self.assertEqual(status, 200)
+        html = raw.decode("utf-8")
+        self.assertNotIn(entity, html)
+        self.assertIn("&lt;img", html)
+        self.assertIn("NO MATCHING SOURCE DISAGREEMENT", html)
+        status, _, raw = self.fetch("/disagreement-report", {**QUERY, "at": "yesterday"})
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
     def test_unfiltered_contract_and_invalid_entity_inputs(self):
         for route in ("/map-disagreements", "/disagreement-report",
                       "/disagreement.csv", "/viewer"):

@@ -361,3 +361,7 @@ and retaining both temporal cutoffs. If a source filter is also present, that
 source alone must qualify inside the viewport before the entity filter applies.
 The native map time form retains the entity. Unfiltered routes are unchanged,
 and an unknown entity is an empty evidence result, not evidence of agreement.
+
+### Navigate focused original disagreements through time
+
+The read-only `/disagreement-report` now provides a native GET form to change world-valid time or knowledge cutoff while retaining the selected bounding box, original source and entity. It reuses the existing evidence query and never infers physical truth or mutates saved assertions. Inputs are escaped and invalid cutoffs continue to fail validation.

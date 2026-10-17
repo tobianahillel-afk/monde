@@ -304,7 +304,9 @@ form,details{border:1px solid #48677e;border-radius:10px;padding:16px;background
 label{display:block;margin:12px 0}input{display:block;width:100%;margin-top:5px;
 padding:9px;background:#253c50;color:white;border:1px solid #7090aa}
 button{padding:10px;cursor:pointer;background:#66e0c0;color:#073d35;border:0}
-summary{cursor:pointer;overflow-wrap:anywhere}pre{overflow:auto;white-space:pre-wrap;
+summary{cursor:pointer;overflow-wrap:anywhere}
+label{display:block;margin:10px 0}input{display:block;width:100%;max-width:620px;padding:8px;background:#253c50;color:white;border:1px solid #7090aa;border-radius:6px}
+button{padding:8px 12px;background:#66e0c0;color:#073d35;border:0;border-radius:6px;cursor:pointer}pre{overflow:auto;white-space:pre-wrap;
 overflow-wrap:anywhere}a{color:#8ee6d3}.warning{border-left:3px solid #ffc873;padding:12px}
 :focus-visible{outline:3px solid #ffc870;outline-offset:2px}</style></head><body>
 <nav><a href="/explore">Return to source maps</a></nav>''' +
@@ -507,6 +509,24 @@ def _disagreement_report_html(document: dict, params: dict[str, str]) -> str:
     map_url = "/viewer?" + urlencode({"view": "disagreements", **values})
     json_url = "/map-disagreements?" + urlencode(values)
     csv_url = "/disagreement.csv?" + urlencode(values)
+
+    retained = ''.join(
+        '<input type="hidden" name="' + key + '" value="' +
+        escape(params[key], quote=True) + '">'
+        for key in ("bbox", "source", "entity") if key in params)
+    time_inputs = ''.join(
+        '<label>' + label + '<input name="' + key + '" value="' +
+        escape(params[key], quote=True) + '" required></label>'
+        for key, label in (("at", "World-valid time (UTC ISO-8601)"),
+                           ("known_at", "Knowledge cutoff (UTC ISO-8601)")))
+    time_navigation = (
+        '<nav aria-label="Disagreement time navigation"><details>'
+        '<summary>Explore this disagreement at another time</summary>'
+        '<p>Edit world validity and/or what was known, without inferring truth.</p>'
+        '<form action="/disagreement-report" method="get">' +
+        retained + time_inputs +
+        '<button type="submit">Refresh original evidence</button>'
+        '</form></details></nav>')
     sections = []
     for entity, reports in sorted(grouped.items()):
         focus_url = "/disagreement-report?" + urlencode({**values, "entity": entity})
@@ -552,7 +572,7 @@ summary{cursor:pointer;overflow-wrap:anywhere}
 <h1>Original source disagreement evidence</h1>
 <p>OBSERVED original reports, not verified physical positions. No consensus location,
 inferred truth or confirmed physical movement.</p><p>''' +
-            description + '</p><p>World time: ' + escape(params["at"]) +
+            description + '</p>' + time_navigation + '<p>World time: ' + escape(params["at"]) +
             ' · Knowledge cutoff: ' + escape(params["known_at"]) +
             ' · Entities: ' + str(len(grouped)) +
             (' · Focused entity: ' + escape(params["entity"])
