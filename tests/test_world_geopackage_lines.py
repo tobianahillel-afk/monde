@@ -87,6 +87,11 @@ class GeoPackageLineTests(unittest.TestCase):
             export = world.export_geojson_bbox([-180, -90, 180, 90], AT, CAP)
             self.assertEqual(len(export["features"]), 5)
             self.assertEqual(export["features"][0]["properties"]["source_id"], "gpkg-lines")
+            self.assertTrue(all("monde_gpkg_trace" in feature["properties"]
+                                for feature in export["features"]))
+            self.assertEqual(
+                sorted({feature["properties"]["monde_gpkg_trace"]["feature_id"]
+                        for feature in export["features"]}), ["12", "13"])
             self.assertEqual(original.read_bytes(), untouched)
 
     def test_cli_renders_real_lines_without_remote_data(self):
