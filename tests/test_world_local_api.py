@@ -151,6 +151,82 @@ class LocalAPIIntegrationTests(unittest.TestCase):
                 self.assertEqual(code, 400)
                 self.assertEqual(result["error"], "invalid_query")
 
+    def test_temporal_investigation_over_real_http(self):
+        """Existing WorldMini history and two clocks are exposed without recomputation."""
+        model = WorldMini.from_document(copy.deepcopy(DOC))
+        start = "2025-12-31T00:00:00Z"
+        older = "2026-01-03T09:59:59Z"
+        cases = [
+            ("/timeline",
+             {"entity": "building-001", "attribute": "floors", "from_at": start,
+              "to_at": AT, "known_at": LATE},
+             model.timeline("building-001", "floors", start, AT, LATE)),
+            ("/compare-knowledge",
+             {"entity": "building-001", "at": AT,
+              "from_known_at": older, "to_known_at": LATE},
+             model.compare_knowledge("building-001", AT, older, LATE)),
+            ("/compare-world",
+             {"entity": "building-001", "from_at": start, "to_at": AT,
+              "known_at": LATE},
+             model.compare_world_time("building-001", start, AT, LATE)),
+            ("/source-history", {"source": "city-registry", "known_at": LATE,
+                                 "entity": "building-001", "attribute": "floors"},
+             model.source_history("city-registry", LATE, "building-001", "floors")),
+            ("/disagreement-changes",
+             {"at": AT, "from_known_at": older, "to_known_at": LATE,
+              "attribute": "floors"},
+             model.source_disagreement_changes(AT, older, LATE, "floors")),
+        ]
+        for endpoint, args, expected in cases:
+            with self.subTest(endpoint=endpoint):
+                code, headers, result = self.request(self.path(endpoint, **args))
+                self.assertEqual(code, 200)
+                self.assertEqual(result, expected)
+                self.assertEqual(result["world"], "OBSERVED")
+                self.assertEqual(headers["Cache-Control"], "no-store")
+                self.assertNotIn("Access-Control-Allow-Origin", headers)
+
+    def test_source_corrections_keep_original_provenance_via_http(self):
+        url = self.path("/source-history", source="city-registry",
+                        known_at=LATE, entity="building-001", attribute="floors")
+        code, _, result = self.request(url)
+        self.assertEqual(code, 200)
+        self.assertEqual(result["view"], "SOURCE_ASSERTION_HISTORY_ONLY")
+        self.assertTrue(result["reports"])
+        for report in result["reports"]:
+            self.assertEqual(report["source_id"], "city-registry")
+            self.assertTrue(report["evidence_id"])
+            self.assertTrue(report["locator"])
+            self.assertIn("source_event_at", report)
+            self.assertIn("captured_at", report)
+        code, _, missing = self.request(self.path(
+            "/source-history", source="city-registry",
+            known_at="2025-01-01T00:00:00Z", entity="building-001"))
+        self.assertEqual(code, 200)
+        self.assertEqual(missing["status"], "NO_REPORTS")
+
+    def test_temporal_endpoints_reject_ambiguous_or_invalid_ranges(self):
+        cases = [
+            ("/timeline", {"entity": "building-001", "attribute": "floors",
+                           "from_at": AT, "to_at": AT, "known_at": LATE}),
+            ("/compare-knowledge", {"entity": "building-001", "at": AT,
+                                     "from_known_at": LATE, "to_known_at": LATE}),
+            ("/compare-world", {"entity": "building-001", "from_at": AT,
+                                 "to_at": "garbage", "known_at": LATE}),
+            ("/disagreement-changes", {"at": AT, "from_known_at": LATE,
+                                       "to_known_at": "2025-01-01T00:00:00Z"}),
+            ("/source-history", {"source": "city-registry", "known_at": "bad"}),
+            ("/source-history", {"source": "city-registry", "known_at": LATE,
+                                "not_a_filter": "unexpected"}),
+            ("/timeline", {"entity": "building-001", "attribute": "floors",
+                           "from_at": AT, "to_at": LATE}),  # missing known_at
+        ]
+        for endpoint, args in cases:
+            with self.subTest(endpoint=endpoint, args=args):
+                status, _, data = self.request(self.path(endpoint, **args))
+                self.assertEqual(status, 400)
+                self.assertEqual(data["error"], "invalid_query")
+
     def test_mutation_methods_have_no_effect(self):
         for method in ("POST", "PUT", "PATCH", "DELETE"):
             code, _, result = self.request("/reports", method=method)

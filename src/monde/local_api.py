@@ -100,7 +100,8 @@ def create_server(state: str | Path, port: int = 0, *,
                 return self._reply(414, {"error": "request_target_too_long"})
             path = urlsplit(self.path).path
             if path not in {"/health", "/reports", "/entity", "/disagreements", "/map",
-                            "/tile", "/nearest", "/radius"}:
+                            "/tile", "/nearest", "/radius", "/timeline", "/compare-knowledge",
+                            "/compare-world", "/source-history", "/disagreement-changes"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -121,6 +122,27 @@ def create_server(state: str | Path, port: int = 0, *,
                     output = world.source_disagreements(args["at"], args["known_at"],
                                                         args.get("attribute"))
 
+                elif path == "/timeline":
+                    _require(args, {"entity", "attribute", "from_at", "to_at", "known_at"})
+                    output = world.timeline(args["entity"], args["attribute"],
+                                            args["from_at"], args["to_at"], args["known_at"])
+                elif path == "/compare-knowledge":
+                    _require(args, {"entity", "at", "from_known_at", "to_known_at"})
+                    output = world.compare_knowledge(args["entity"], args["at"],
+                                                     args["from_known_at"], args["to_known_at"])
+                elif path == "/compare-world":
+                    _require(args, {"entity", "from_at", "to_at", "known_at"})
+                    output = world.compare_world_time(args["entity"],
+                                                     args["from_at"], args["to_at"], args["known_at"])
+                elif path == "/source-history":
+                    _require(args, {"source", "known_at"}, {"entity", "attribute"})
+                    output = world.source_history(args["source"], args["known_at"],
+                                                  args.get("entity"), args.get("attribute"))
+                elif path == "/disagreement-changes":
+                    _require(args, {"at", "from_known_at", "to_known_at"}, {"attribute"})
+                    output = world.source_disagreement_changes(
+                        args["at"], args["from_known_at"], args["to_known_at"],
+                        args.get("attribute"))
                 elif path == "/map":
                     _require(args, {"bbox", "at", "known_at"})
                     output = world.export_geojson_bbox(_bbox(args["bbox"]),

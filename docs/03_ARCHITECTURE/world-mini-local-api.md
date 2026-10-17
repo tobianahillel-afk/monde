@@ -36,9 +36,27 @@ Endpoints (GET, all JSON):
 - `/radius?center=2.3522,48.8566&radius_km=5&at=...&known_at=...` —
   source Points within a radius, keeping conflicting out-of-radius reports of
   matched entities. Distance is not a measure of positional accuracy.
+- `/timeline?entity=building-001&attribute=floors&from_at=T1&to_at=T2&known_at=K`
+  — source-reported intervals and explicit UNKNOWN gaps, at fixed knowledge K.
+- `/compare-knowledge?entity=building-001&at=T&from_known_at=K1&to_known_at=K2`
+  — reports newly known or corrected at unchanged world time T.
+- `/compare-world?entity=building-001&from_at=T1&to_at=T2&known_at=K`
+  — changes in source-reported validity, not proof of physical-world events.
+- `/source-history?source=city-registry&known_at=K&entity=building-001&attribute=floors`
+  — that source's original and superseded assertions with evidence lineage.
+  `entity` and `attribute` are optional filters.
+- `/disagreement-changes?at=T&from_known_at=K1&to_known_at=K2&attribute=floors`
+  — how cross-source contradictions evolved as additional reports were learned.
+  `attribute` is optional.
 
-Queries always require explicit valid world time `at` and knowledge time
-`known_at` except `/health`. Duplicate/missing/unknown parameters, malformed
+The five investigation routes reuse existing `WorldMini` methods: no new
+temporal engine, mutable state, model prediction or inferred consensus.
+For temporal comparisons, `K1 < K2` or `T1 < T2` is required, and query
+timestamps must be explicit timezone-aware ISO-8601 values.
+
+Queries require the exact temporal parameters for each endpoint, except
+`/health`. An entity history can require only `known_at`; other queries distinguish
+world-time and knowledge-time fields explicitly. Duplicate/missing/unknown parameters, malformed
 bounds/times and non-loopback Host headers are rejected. POST/PUT/PATCH/DELETE
 return HTTP 405 and cannot change source state. Output is bounded by default
 to 2 MB; larger responses fail with HTTP 413 rather than truncating evidence.
