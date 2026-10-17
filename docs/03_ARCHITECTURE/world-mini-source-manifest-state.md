@@ -158,3 +158,20 @@ with `--compare-at` or `--compare-known-at`.
 This is read-only source-report disagreement, **not** a verified position,
 physical movement or inference of ground truth. Existing maps and state files
 are unchanged; an existing HTML output file is never overwritten.
+
+
+## Bitemporal source disagreement changes (WORK-0048)
+
+Compare a fixed world-valid time between two knowledge cutoffs:
+
+    PYTHONPATH=src python3 -m monde.world --fixture world.json \
+      --source-disagreements --at 2026-01-02T00:00:00Z \
+      --compare-known-at 2026-01-09T00:00:00Z \
+      --known-at 2026-01-12T00:00:00Z
+
+The read-only JSON classifies APPEARED, RESOLVED and CHANGED source/value
+contradictions while retaining original before/after source reports and
+evidence IDs. A new assertion ID with identical source value is not a new
+conflict. RESOLVED means conflicting reports are no longer present at the
+specified cutoff, **not** that a physical location is verified. Existing
+single-cutoff --source-disagreements commands retain their behavior.

@@ -893,6 +893,51 @@ class WorldMini:
             "disagreements": disagreements,
         }
 
+    def source_disagreement_changes(self, at: str, from_known_at: str,
+                                    to_known_at: str,
+                                    attribute: str | None = None) -> dict:
+        """Compare source-reported contradictions across knowledge cutoffs."""
+        if _time(from_known_at) >= _time(to_known_at):
+            raise ValueError("disagreement knowledge cutoff must advance")
+        before = self.source_disagreements(at, from_known_at, attribute)
+        after = self.source_disagreements(at, to_known_at, attribute)
+        previous = {(row["entity"], row["attribute"]): row
+                    for row in before["disagreements"]}
+        current = {(row["entity"], row["attribute"]): row
+                   for row in after["disagreements"]}
+
+        def values(row):
+            if row is None:
+                return ()
+            return tuple(sorted(
+                (source, json.dumps(group["value"], sort_keys=True,
+                                    separators=(",", ":"), allow_nan=False))
+                for group in row["value_groups"]
+                for source in group["source_ids"]))
+
+        changes = []
+        counts = {"APPEARED": 0, "RESOLVED": 0, "CHANGED": 0}
+        for entity, name in sorted(set(previous) | set(current)):
+            old, new = previous.get((entity, name)), current.get((entity, name))
+            if values(old) == values(new):
+                continue
+            kind = ("APPEARED" if old is None else
+                    "RESOLVED" if new is None else "CHANGED")
+            counts[kind] += 1
+            changes.append({
+                "entity": entity, "attribute": name, "change": kind,
+                "before_value_groups": old["value_groups"] if old else [],
+                "after_value_groups": new["value_groups"] if new else [],
+            })
+        return {
+            "world": "OBSERVED",
+            "comparison": "SOURCE_DISAGREEMENT_KNOWLEDGE_CHANGES_ONLY",
+            "valid_at": at, "from_known_at": from_known_at,
+            "to_known_at": to_known_at, "attribute": attribute,
+            "status": "CHANGED" if changes else "UNCHANGED",
+            "counts": counts, "changes": changes,
+        }
+
     def source_history(self, source_id: str, known_at: str,
                        entity: str | None = None,
                        attribute: str | None = None) -> dict:
@@ -1495,10 +1540,12 @@ def main(argv=None) -> int:
                 parser.error("--source-attribute requires --source-history")
             if (args.entity is not None or args.at is None or
                     args.timeline_from is not None or args.timeline_to is not None or
-                    args.compare_known_at is not None or args.compare_at is not None or
-                    args.equals_json is not None):
-                parser.error("disagreements require --at without entity/timeline/compare")
-            result = world.source_disagreements(args.at, args.known_at)
+                    args.compare_at is not None or args.equals_json is not None):
+                parser.error("disagreements require --at without entity/timeline/world-compare")
+            result = (world.source_disagreement_changes(
+                args.at, args.compare_known_at, args.known_at)
+                if args.compare_known_at is not None else
+                world.source_disagreements(args.at, args.known_at))
         elif args.export_geojson_bbox_world_changes is not None:
             if (args.entity is not None or args.at is None or args.compare_at is None
                     or args.compare_known_at is not None or args.source_attribute is not None
