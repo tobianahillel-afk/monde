@@ -643,5 +643,64 @@ class DisagreementReportHTTPTests(unittest.TestCase):
         self.assertEqual(rows[0]["evidence_id"], "'@BAD")
 
 
+    def test_change_focus_hides_stable_evidence_and_retains_provenance(self):
+        stable = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_at": "2026-01-01T01:00:00Z"}
+        original = json.loads(self.fetch("/disagreement-compare.json", stable)[2])
+        self.assertEqual(original["changes"][0]["classification"],
+                         "SAME REPORTED EVIDENCE")
+        selected = {**stable, "changes_only": "1"}
+        status, _, raw = self.fetch("/disagreement-compare.json", selected)
+        self.assertEqual(status, 200)
+        data = json.loads(raw)
+        self.assertEqual(data["selection"]["changes_only"], "1")
+        self.assertEqual(data["changes"], [])
+        self.assertEqual(data["earlier"]["geojson"]["features"], [])
+        self.assertEqual(data["later"]["geojson"]["features"], [])
+        status, _, raw = self.fetch("/disagreement-compare.csv", selected)
+        self.assertEqual(status, 200)
+        self.assertEqual(list(csv.DictReader(io.StringIO(raw.decode()))), [])
+        html = self.fetch("/disagreement-report", selected)[2].decode()
+        self.assertIn("NO CHANGED ORIGINAL SOURCE DISAGREEMENT", html)
+        self.assertIn("Show all original evidence", html)
+
+    def test_change_focus_preserves_complete_opposing_reports(self):
+        selected = {**QUERY, "source": "survey-east", "entity": "site-a",
+                    "from_known_at": "2026-01-09T00:00:00Z", "changes_only": "1"}
+        status, _, raw = self.fetch("/disagreement-compare.json", selected)
+        self.assertEqual(status, 200)
+        data = json.loads(raw)
+        self.assertEqual(data["axis"], "KNOWLEDGE_TIME")
+        self.assertEqual(data["changes"][0]["classification"],
+                         "APPEARED IN SELECTION")
+        features = data["later"]["geojson"]["features"]
+        self.assertEqual({f["properties"]["source_id"] for f in features},
+                         {"survey-east", "survey-west"})
+        rows = list(csv.DictReader(io.StringIO(
+            self.fetch("/disagreement-compare.csv", selected)[2].decode())))
+        self.assertEqual({r["source_id"] for r in rows},
+                         {"survey-east", "survey-west"})
+        self.assertEqual(len(rows), len(features))
+        html = self.fetch("/disagreement-report", selected)[2].decode()
+        self.assertIn("Show changed evidence only", html)
+        self.assertIn("changes_only=1", html)
+
+    def test_change_focus_rejects_invalid_scope_and_unrelated_routes(self):
+        for route in ("/disagreement-report", "/disagreement-compare.json",
+                      "/disagreement-compare.csv"):
+            for params in ({**QUERY, "changes_only": "1"},
+                           {**QUERY, "from_known_at": "2026-01-09T00:00:00Z",
+                            "changes_only": "yes"}):
+                status, _, raw = self.fetch(route, params)
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        for route in ("/viewer", "/map-disagreements", "/disagreement.csv"):
+            params = {**QUERY, "changes_only": "1"}
+            if route == "/viewer":
+                params["view"] = "disagreements"
+            self.assertEqual(self.fetch(route, params)[0], 400)
+
+
+
 if __name__ == "__main__":
     unittest.main()

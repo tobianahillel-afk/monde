@@ -412,3 +412,19 @@ These classifications describe changed source reports, not verified physical
 movement, inferred agreement or consensus. Empty selections return a header-only
 CSV. Text IDs are inert in spreadsheet software, responses are read-only and
 bounded, and the saved WorldMini snapshot remains unchanged.
+
+
+## Changed-only original disagreement comparison (WORK-0073)
+
+For a two-cutoff `/disagreement-report`, `/disagreement-compare.json`, or
+`/disagreement-compare.csv`, add `changes_only=1` to see only entities whose
+*selected original source evidence* appeared, disappeared or changed between
+cutoffs. The browser report provides links to toggle this focus. This is **not**
+a determination that a real-world location changed or that other sources agree.
+Classification is computed before filtering, and for every qualifying entity
+all opposing original Points (including offscreen reports), source/assertion/
+evidence identifiers, and bitemporal cutoffs remain available in JSON/CSV.
+The filter requires exactly one earlier cutoff (`from_at` or `from_known_at`)
+and does not change unfiltered map/export behavior. A result with no changed
+entities means only that the selected evidence was unchanged, not that no
+conflict exists or that a source statement is verified truth.

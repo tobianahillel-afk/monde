@@ -504,6 +504,9 @@ def _disagreement_pair(world: WorldMini, args: dict[str, str]) -> tuple[dict, di
     """Select original opposing reports consistently at two independent cutoffs."""
     if "from_at" in args and "from_known_at" in args:
         raise ValueError("choose only one comparison axis")
+    if "changes_only" in args and (args["changes_only"] != "1" or
+                                   not ({"from_at", "from_known_at"} & args.keys())):
+        raise ValueError("changed-only requires one comparison axis")
 
     from .map_view import disagreement_view
 
@@ -527,6 +530,17 @@ def _disagreement_pair(world: WorldMini, args: dict[str, str]) -> tuple[dict, di
     later = selected(args["at"], args["known_at"])
     earlier = selected(earlier_at, earlier_known) if (
         "from_at" in args or "from_known_at" in args) else None
+    if "changes_only" in args:
+        # Determine changes from the COMPLETE selections before filtering.
+        # Retain every original opposing Point for each changed entity.
+        comparison = _disagreement_comparison_json(later, earlier, args)
+        changed = {row["entity"] for row in comparison["changes"]
+                   if row["classification"] != "SAME REPORTED EVIDENCE"}
+        def restricted(document):
+            return {**document, "features": [
+                f for f in document["features"]
+                if str(f["properties"]["entity"]) in changed]}
+        earlier, later = restricted(earlier), restricted(later)
     return later, earlier
 
 
@@ -561,8 +575,8 @@ def _disagreement_comparison_json(later: dict, earlier: dict,
         "world": "OBSERVED",
         "basis": "ORIGINAL_SOURCE_REPORTS_NOT_VERIFIED_PHYSICAL_TRUTH",
         "axis": "WORLD_TIME" if "from_at" in args else "KNOWLEDGE_TIME",
-        "selection": {key: args[key] for key in ("bbox", "source", "entity")
-                      if key in args},
+        "selection": {key: args[key] for key in ("bbox", "source", "entity",
+                                                "changes_only") if key in args},
         "earlier": {"at": earlier_at, "known_at": earlier_known,
                     "geojson": earlier},
         "later": {"at": args["at"], "known_at": args["known_at"],
@@ -616,7 +630,7 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
     # The extra comparison cutoff belongs only to the HTML report:
     # existing map, GeoJSON and CSV routes accept exactly one knowledge cutoff.
     values = {key: value for key, value in params.items()
-              if key not in ("view", "from_known_at", "from_at")}
+              if key not in ("view", "from_known_at", "from_at", "changes_only")}
     map_url = "/viewer?" + urlencode({"view": "disagreements", **values})
     json_url = "/map-disagreements?" + urlencode(values)
     csv_url = "/disagreement.csv?" + urlencode(values)
@@ -726,6 +740,14 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
                 '<p>Same world time: ' + escape(params["at"]) +
                 '; earlier knowledge: ' + escape(params["from_known_at"]) +
                 '; later knowledge: ' + escape(params["known_at"]))
+        unfiltered = {k: v for k, v in params.items() if k != "changes_only"}
+        filter_links = (
+            '<p><a href="' + escape(
+                "/disagreement-report?" + urlencode({**unfiltered, "changes_only": "1"}),
+                quote=True) + '">Show changed evidence only</a> · '
+            '<a href="' + escape("/disagreement-report?" + urlencode(unfiltered),
+                                 quote=True) +
+            '">Show all original evidence</a></p>')
         comparison = (
             '<section>' + comparison_heading +
             '. Selected original evidence, NOT actual physical movement or '
@@ -739,10 +761,13 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
             escape("/disagreement-compare.json?" + urlencode(params), quote=True) +
             '">Download complete original comparison JSON</a> · <a href="' +
             escape("/disagreement-compare.csv?" + urlencode(params), quote=True) +
-            '">Download original comparison CSV</a></p>' +
+            '">Download original comparison CSV</a></p>' + filter_links +
             ('<ul>' + ''.join(changes) + '</ul>' if changes else
-             '<p role="status">NO SOURCE DISAGREEMENT IN EITHER SELECTION — '
-             'not proof of agreement or absence.</p>') +
+             '<p role="status">' + (
+                 'NO CHANGED ORIGINAL SOURCE DISAGREEMENT IN THIS SELECTION'
+                 if "changes_only" in params else
+                 'NO SOURCE DISAGREEMENT IN EITHER SELECTION') +
+             ' — not proof of agreement or absence.</p>') +
             '<details><summary>Earlier complete original source reports</summary><pre>' +
             escape(json.dumps(earlier["features"], ensure_ascii=False,
                               sort_keys=True, indent=2, allow_nan=False)) +
@@ -983,14 +1008,14 @@ def create_server(state: str | Path, port: int = 0, *,
                     return
                 elif path == "/disagreement-report":
                     _require(args, {"bbox", "at", "known_at"},
-                             {"source", "entity", "view", "from_known_at", "from_at"})
+                             {"source", "entity", "view", "from_known_at", "from_at", "changes_only"})
                     if "view" in args and args["view"] != "disagreements":
                         raise ValueError("invalid disagreement report view")
                     reports, earlier = _disagreement_pair(world, args)
                     return self._inspection(_disagreement_report_html(reports, args, earlier))
                 elif path == "/disagreement-compare.csv":
                     _require(args, {"bbox", "at", "known_at"},
-                             {"source", "entity", "from_known_at", "from_at"})
+                             {"source", "entity", "from_known_at", "from_at", "changes_only"})
                     if ("from_at" in args) == ("from_known_at" in args):
                         raise ValueError("exactly one comparison axis is required")
                     later, earlier = _disagreement_pair(world, args)
@@ -1010,7 +1035,7 @@ def create_server(state: str | Path, port: int = 0, *,
                     return
                 elif path == "/disagreement-compare.json":
                     _require(args, {"bbox", "at", "known_at"},
-                             {"source", "entity", "from_known_at", "from_at"})
+                             {"source", "entity", "from_known_at", "from_at", "changes_only"})
                     if ("from_at" in args) == ("from_known_at" in args):
                         raise ValueError("exactly one comparison axis is required")
                     later, earlier = _disagreement_pair(world, args)
