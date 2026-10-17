@@ -666,3 +666,19 @@ The import is strictly 2D WGS84. Unsupported subtypes, including
 GeometryCollection and Z/M geometries, malformed WKB, conflicting envelopes
 or SRIDs, non-finite coordinates and unsafe source metadata are rejected
 without producing partial HTML.
+
+
+## One-command original GeoPackage multi-layer source map (WORK-0038)
+
+Use `--gpkg-all-layers` instead of `--gpkg-layer` with the existing
+`--gpkg`, explicit source/time flags and `--output`. MONDE reads up to
+16 original GeoPackage feature tables (sorted by name), reuses the bounded
+2D EPSG:4326 decoders and produces **one offline map** without a manifest.
+Each layer gets its own source identity (`source-id:layer`) and locator
+fragment, preserving equal row/FID values from different layers as distinct
+evidence. Original layer and feature identities remain in
+`gpkg_source_layer` and `gpkg_source_fid` properties.
+Unsupported/malformed source layers, unsafe attributes, excessive counts
+or conflicting metadata reject the **whole** export before writing HTML.
+No data are downloaded, reprojected, reconciled or silently omitted.
+Existing single-layer and explicit multi-dataset manifest modes are unchanged.

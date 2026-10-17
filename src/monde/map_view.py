@@ -1500,6 +1500,8 @@ def main(argv=None) -> int:
     inputs.add_argument("--gpx", help="original local GPX 1.1 waypoints; no saved intermediate state")
     inputs.add_argument("--gpkg", help="original local GeoPackage WGS84 Point, LineString or Polygon source")
     parser.add_argument("--gpkg-layer", help="exact original GeoPackage feature-table name")
+    parser.add_argument("--gpkg-all-layers", action="store_true",
+                        help="import every original feature layer with separate provenance")
     parser.add_argument("--source-id", help="explicit source identifier for --geojson")
     parser.add_argument("--source-locator", help="original data locator for --geojson")
     parser.add_argument("--captured-at", help="source capture time with timezone for --geojson")
@@ -1517,8 +1519,11 @@ def main(argv=None) -> int:
     try:
         source_args = ("source_id", "source_locator", "captured_at",
                        "valid_from", "valid_to", "source_event_at")
-        if bool(args.gpkg) != bool(args.gpkg_layer):
-            raise ValueError("--gpkg and --gpkg-layer are required together")
+        if args.gpkg:
+            if bool(args.gpkg_layer) == bool(args.gpkg_all_layers):
+                raise ValueError("choose exactly one of --gpkg-layer or --gpkg-all-layers")
+        elif args.gpkg_layer or args.gpkg_all_layers:
+            raise ValueError("GeoPackage layer options require --gpkg")
         if args.geojson or args.kml or args.kmz or args.gpx or args.gpkg:
             if any(not getattr(args, name) for name in source_args[:4]):
                 raise ValueError("--geojson/--kml/--kmz/--gpx/--gpkg requires --source-id, --source-locator, "
@@ -1527,21 +1532,31 @@ def main(argv=None) -> int:
             if Path(source_file).resolve() == Path(args.output).resolve():
                 raise ValueError("output cannot overwrite the original source file")
             from .geojson import to_document
-            if args.kml or args.kmz:
-                from .kml_points import to_geojson as kml_to_geojson
-                original = kml_to_geojson(args.kml or args.kmz, kmz=bool(args.kmz))
-            elif args.gpkg:
-                from .geopackage_points import to_geojson as gpkg_to_geojson
-                original = gpkg_to_geojson(args.gpkg, layer=args.gpkg_layer)
-            elif args.gpx:
-                from .gpx_points import to_geojson as gpx_to_geojson
-                original = gpx_to_geojson(args.gpx)
+            if args.gpkg and args.gpkg_all_layers:
+                from .geopackage_points import documents_for_layers
+                documents = documents_for_layers(
+                    args.gpkg, source_id=args.source_id,
+                    locator=args.source_locator,
+                    captured_at=args.captured_at, valid_from=args.valid_from,
+                    valid_to=args.valid_to, source_event_at=args.source_event_at)
+                world = WorldMini()
+                world.append_documents(documents)
             else:
-                original = WorldMini.load_document(args.geojson)
-            world = WorldMini.from_document(to_document(
-                original, source_id=args.source_id, locator=args.source_locator,
-                captured_at=args.captured_at, valid_from=args.valid_from,
-                valid_to=args.valid_to, source_event_at=args.source_event_at))
+                if args.kml or args.kmz:
+                    from .kml_points import to_geojson as kml_to_geojson
+                    original = kml_to_geojson(args.kml or args.kmz, kmz=bool(args.kmz))
+                elif args.gpkg:
+                    from .geopackage_points import to_geojson as gpkg_to_geojson
+                    original = gpkg_to_geojson(args.gpkg, layer=args.gpkg_layer)
+                elif args.gpx:
+                    from .gpx_points import to_geojson as gpx_to_geojson
+                    original = gpx_to_geojson(args.gpx)
+                else:
+                    original = WorldMini.load_document(args.geojson)
+                world = WorldMini.from_document(to_document(
+                    original, source_id=args.source_id, locator=args.source_locator,
+                    captured_at=args.captured_at, valid_from=args.valid_from,
+                    valid_to=args.valid_to, source_event_at=args.source_event_at))
         elif any(getattr(args, name) is not None for name in source_args):
             raise ValueError("source provenance flags require --geojson, --kml, --kmz, --gpx or --gpkg")
         elif args.csv_manifest:

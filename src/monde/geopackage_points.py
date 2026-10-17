@@ -295,6 +295,65 @@ def _declared_geometry_kind(blob):
     return types[geometry_type]
 
 
+
+MAX_LAYERS = 16
+
+
+def list_layers(path):
+    """Discover all original GeoPackage feature tables, never hidden layers."""
+    source = os.path.realpath(os.fspath(path))
+    if not os.path.isfile(source) or os.path.getsize(source) > MAX_BYTES:
+        raise ValueError("GeoPackage requires a local file at most 100 MB")
+    uri = "file:" + quote(source, safe="/") + "?mode=ro&immutable=1"
+    try:
+        with closing(sqlite3.connect(uri, uri=True)) as db:
+            db.execute("PRAGMA query_only=ON")
+            db.execute("PRAGMA trusted_schema=OFF")
+            if db.execute("PRAGMA application_id").fetchone()[0] != 0x47504B47:
+                raise ValueError("not a standard GeoPackage")
+            layers = [row[0] for row in db.execute(
+                "SELECT table_name FROM gpkg_contents "
+                "WHERE data_type='features' ORDER BY table_name LIMIT ?",
+                (MAX_LAYERS + 1,))]
+    except sqlite3.DatabaseError as exc:
+        raise ValueError("invalid or unreadable local GeoPackage") from exc
+    if not 1 <= len(layers) <= MAX_LAYERS:
+        raise ValueError("GeoPackage requires 1 to 16 feature layers")
+    for name in layers:
+        _identifier(name)
+    return layers
+
+
+def documents_for_layers(path, *, source_id, locator, captured_at,
+                         valid_from, valid_to=None, source_event_at=None):
+    """Source-scoped, atomic multi-layer WorldMini documents from one local file.
+
+    Reuse the existing strict per-layer GeoPackage reader. Each layer retains
+    its own source identity; equal row IDs in different layers stay distinct.
+    """
+    from .geojson import to_document
+    documents, count = [], 0
+    for layer in list_layers(path):
+        geo = to_geojson(path, layer=layer)
+        count += len(geo["features"])
+        if count > MAX_POINTS:
+            raise ValueError("GeoPackage all-layers observation limit exceeded")
+        for feature in geo["features"]:
+            props = feature["properties"]
+            if "gpkg_source_layer" in props or "gpkg_source_fid" in props:
+                raise ValueError("GeoPackage attribute collides with layer provenance")
+            original = str(feature["id"])
+            feature["id"] = "gpkg-layer-" + hashlib.sha256(
+                (layer + "\x00" + original).encode("utf-8")).hexdigest()[:32]
+            props["gpkg_source_layer"] = layer
+            props["gpkg_source_fid"] = original
+        documents.append(to_document(
+            geo, source_id=source_id + ":" + layer,
+            locator=locator + "#gpkg-layer=" + layer,
+            captured_at=captured_at, valid_from=valid_from,
+            valid_to=valid_to, source_event_at=source_event_at))
+    return documents
+
 def to_geojson(path, *, layer):
     """Read one local feature table, preserving original primary keys and attributes.
 
