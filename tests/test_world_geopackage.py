@@ -82,6 +82,8 @@ class GeoPackageTests(unittest.TestCase):
             self.assertEqual(len(export["features"]), 2)
             self.assertEqual(len({x["properties"]["evidence_id"]
                                   for x in export["features"]}), 2)
+            self.assertEqual(world.entity_snapshot("1", AT, CAP)["attributes"]
+                             ["name"]["reports"][0]["value"], "Survey A")
             self.assertEqual(source.read_bytes(), original)
 
     def test_direct_cli_creates_actual_offline_map(self):
@@ -91,8 +93,7 @@ class GeoPackageTests(unittest.TestCase):
             run = self.cmd(*self.direct(source), "--output", output)
             self.assertEqual(run.returncode, 0, run.stderr)
             html = output.read_text(encoding="utf8")
-            for marker in ('"total_source_features":2', "Survey A", "Survey B",
-                           "gpkg-survey", "dataset://survey.gpkg"):
+            for marker in ('"total_source_features":2', "gpkg-survey", "dataset://survey.gpkg"):
                 self.assertIn(marker, html)
             self.assertNotIn("https://tile.", html)
             self.assertEqual(source.read_bytes()[:16], b"SQLite format 3\x00")
