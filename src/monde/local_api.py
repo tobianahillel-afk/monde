@@ -207,6 +207,10 @@ def create_server(state: str | Path, port: int = 0, *,
                         _require(args, {"view", "bbox", "at", "known_at"})
                         geojson = world.export_geojson_bbox(
                             _bbox(args["bbox"]), args["at"], args["known_at"])
+                    elif mode == "disagreements":
+                        _require(args, {"view", "bbox", "at", "known_at"})
+                        geojson = world.export_geojson_disagreements(
+                            args["at"], args["known_at"], _bbox(args["bbox"]))
                     elif mode == "knowledge-changes":
                         _require(args, {"view", "bbox", "at",
                                         "from_known_at", "to_known_at"})

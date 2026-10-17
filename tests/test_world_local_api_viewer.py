@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 from monde.local_api import create_server
 from monde.map_view import render_map
 from tests.test_world_geojson_changes import model as change_model, correct, AT, K1, K2
+from tests.test_world_geojson_disagreements import disputed
 
 BBOX = [2.3, 48.8, 2.4, 48.9]
 EARLIER = "2025-12-31T00:00:00Z"
@@ -68,10 +69,53 @@ class BrowserViewerTests(unittest.TestCase):
                 self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
                 self.assertNotIn("Access-Control-Allow-Origin", headers)
 
+    def test_browser_disagreements_preserves_offscreen_opposition(self):
+        # Reuse real saved source claims and the existing offline renderer.
+        model = disputed()
+        path = Path(self.tempdir.name) / "disputed.json"
+        model.save(path)
+        original = path.read_bytes()
+        server = create_server(path)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        try:
+            query = dict(view="disagreements", bbox="2.3,48.8,2.4,48.9",
+                         at=AT, known_at=K1)
+            status, headers, body = self.fetch(query, server=server)
+            expected = model.export_geojson_disagreements(
+                AT, K1, [2.3, 48.8, 2.4, 48.9])
+            self.assertEqual(status, 200)
+            self.assertEqual(body.decode("utf-8"), render_map(expected))
+            self.assertEqual(len(expected["features"]), 1)
+            self.assertEqual(
+                expected["features"][0]["properties"]["monde_conflicting_source_ids"],
+                ["survey-east", "survey-west"])
+            self.assertIn(b"Saved-state source disagreement view", body)
+            self.assertIn(b"survey-east", body)
+            self.assertIn(b"survey-west", body)
+            self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+            self.assertNotIn("Access-Control-Allow-Origin", headers)
+
+            # A viewport with no conflicting reports must not invent evidence.
+            empty = dict(query, bbox="10,10,11,11")
+            _, _, empty_body = self.fetch(empty, server=server)
+            self.assertEqual(
+                empty_body.decode("utf-8"),
+                render_map(model.export_geojson_disagreements(
+                    AT, K1, [10, 10, 11, 11])))
+        finally:
+            server.shutdown()
+            worker.join(timeout=5)
+            server.server_close()
+        self.assertEqual(path.read_bytes(), original)
+
     def test_disallows_wrong_view_unknown_keys_and_invalid_time_or_bbox(self):
         valid = dict(view="current", bbox="2.3,48.8,2.4,48.9", at=AT, known_at=K2)
         invalid = [
             {**valid, "view": "unsupported"},
+            {**valid, "view": "disagreements", "unexpected": "not-allowed"},
+            {**valid, "view": "disagreements", "known_at": "not-a-time"},
+            {**valid, "view": "disagreements", "bbox": "not-a-bbox"},
             {**valid, "view": ""},
             {**valid, "unexpected": "foo"},
             {**valid, "bbox": "200,1,210,2"},

@@ -96,6 +96,7 @@ The same already-existing standalone map renderer can now be served by the
 read-only loopback API. In a browser on the machine running MONDE Mini, visit:
 
 - `/viewer?view=current&bbox=2.3,48.8,2.4,48.9&at=T&known_at=K` — original source-reported Points in the viewport.
+- `/viewer?view=disagreements&bbox=2.3,48.8,2.4,48.9&at=T&known_at=K` — original source Point reports that disagree across distinct sources. The disagreement is determined before viewport clipping, so offscreen opposing evidence remains identified and no consensus position is fabricated.
 - `/viewer?view=knowledge-changes&bbox=2.3,48.8,2.4,48.9&at=T&from_known_at=K1&to_known_at=K2` — learn/correction changes at fixed world time, **not physical motion**.
 - `/viewer?view=world-changes&bbox=2.3,48.8,2.4,48.9&from_at=T1&to_at=T2&known_at=K` — validity changes at fixed knowledge, **not verified events or movement**.
 
