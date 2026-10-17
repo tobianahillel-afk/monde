@@ -6,6 +6,8 @@ times. This is a local integration surface, not a public or writable service.
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -437,6 +439,38 @@ def _focus_disagreement_source(document: dict, source: str | None) -> dict:
 
 
 
+
+def _disagreement_csv(document: dict, params: dict[str, str]) -> bytes:
+    """Export the *same selected original* conflicting reports, never consensus."""
+    output = io.StringIO()
+    writer = csv.writer(output, lineterminator="\r\n")
+    writer.writerow(("entity", "source_id", "assertion_id", "evidence_id",
+                     "longitude", "latitude", "inside_bbox",
+                     "world_at", "known_at"))
+
+    def literal(value):
+        text = str(value)
+        # CSV quoting alone does not prevent spreadsheet formula execution.
+        if text.lstrip().startswith(("=", "+", "-", "@")) or (
+                text and text[0] in "\t\r\n"):
+            return "'" + text
+        return text
+
+    for feature in sorted(document["features"], key=lambda item: (
+            str(item["properties"]["entity"]),
+            str(item["properties"].get("source_id", "")),
+            str(item["properties"].get("assertion_id", "")))):
+        props = feature["properties"]
+        point = feature["geometry"]["coordinates"]
+        writer.writerow((
+            literal(props["entity"]), literal(props["source_id"]),
+            literal(props["assertion_id"]), literal(props["evidence_id"]),
+            point[0], point[1],
+            "true" if props.get("monde_inside_bbox", True) else "false",
+            params["at"], params["known_at"]))
+    return output.getvalue().encode("utf-8")
+
+
 def _disagreement_report_html(document: dict, params: dict[str, str]) -> str:
     """Readable original opposing source Points, with provenance and no consensus."""
     grouped: dict[str, list[dict]] = {}
@@ -445,6 +479,7 @@ def _disagreement_report_html(document: dict, params: dict[str, str]) -> str:
     values = {key: value for key, value in params.items() if key != "view"}
     map_url = "/viewer?" + urlencode({"view": "disagreements", **values})
     json_url = "/map-disagreements?" + urlencode(values)
+    csv_url = "/disagreement.csv?" + urlencode(values)
     sections = []
     for entity, reports in sorted(grouped.items()):
         dossier = "/inspect?" + urlencode({
@@ -493,7 +528,9 @@ inferred truth or confirmed physical movement.</p><p>''' +
             '</p><p><a href="' + escape(map_url, quote=True) +
             '">Show disagreement map</a> · <a href="' +
             escape(json_url, quote=True) +
-            '">Open read-only GeoJSON</a></p>' +
+            '">Open read-only GeoJSON</a> · <a href="' +
+            escape(csv_url, quote=True) +
+            '">Download original evidence CSV</a></p>' +
             (''.join(sections) if sections else
              '<p role="status">NO MATCHING SOURCE DISAGREEMENT — '
              'not evidence of agreement or absence.</p>') + '</body></html>')
@@ -603,7 +640,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/knowledge-updates", "/knowledge-timeline",
                             "/world-knowledge-changes", "/map-disagreements",
                             "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore",
-                             "/inspect", "/disagreement-report"}:
+                             "/inspect", "/disagreement-report", "/disagreement.csv"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -667,6 +704,25 @@ def create_server(state: str | Path, port: int = 0, *,
                         world.export_geojson_disagreements(
                             args["at"], args["known_at"], _bbox(args["bbox"])),
                         args.get("source"))
+                elif path == "/disagreement.csv":
+                    _require(args, {"bbox", "at", "known_at"}, {"source"})
+                    from .map_view import disagreement_view
+                    reports = disagreement_view(
+                        world, _bbox(args["bbox"]), args["at"], args["known_at"])
+                    reports = _focus_disagreement_source(reports, args.get("source"))
+                    body = _disagreement_csv(reports, args)
+                    if len(body) > max_response_bytes:
+                        return self._reply(413, {"error": "response_too_large"})
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/csv; charset=utf-8")
+                    self.send_header("Content-Disposition",
+                                     'attachment; filename="original-source-disagreements.csv"')
+                    self.send_header("Content-Length", str(len(body)))
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("X-Content-Type-Options", "nosniff")
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
                 elif path == "/disagreement-report":
                     _require(args, {"bbox", "at", "known_at"}, {"source", "view"})
                     if "view" in args and args["view"] != "disagreements":
