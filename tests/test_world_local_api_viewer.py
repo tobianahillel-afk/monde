@@ -79,7 +79,7 @@ class BrowserViewerTests(unittest.TestCase):
         forms.feed(data.decode("utf-8"))
         expected = {
             "current": {"view", "bbox", "at", "known_at", "source"},
-            "disagreements": {"view", "bbox", "at", "known_at"},
+            "disagreements": {"view", "bbox", "at", "known_at", "source"},
             "knowledge-changes": {"view", "bbox", "at", "from_known_at", "to_known_at", "source"},
             "world-changes": {"view", "bbox", "from_at", "to_at", "known_at", "source"},
             "nearest": {"view", "center", "limit", "at", "known_at"},
