@@ -9,6 +9,7 @@ import argparse
 import json
 from pathlib import Path
 import math
+import re
 import sys
 
 from .world import WorldMini
@@ -283,10 +284,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   }
   function renderSourceTraces(reports) {
     traceLayer.replaceChildren();
-    var grouped = new Map(), gpxCount=0, kmlCount=0, boundaryCount=0, innerCount=0;
+    var grouped = new Map(), gpxCount=0, kmlCount=0, gpkgCount=0, boundaryCount=0, innerCount=0;
     reports.forEach(function(feature) {
       var trace=feature.properties.monde_gpx_trace ||
-        feature.properties.monde_kml_trace;
+        feature.properties.monde_kml_trace || feature.properties.monde_gpkg_trace;
       if(!trace)return;
       var key=JSON.stringify([feature.properties.source_id,trace.format,
                               trace.trace_id,trace.segment]);
@@ -295,16 +296,18 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     });
     grouped.forEach(function(samples) {
       samples.sort(function(a,b){
-        var aTrace=a.properties.monde_gpx_trace || a.properties.monde_kml_trace;
-        var bTrace=b.properties.monde_gpx_trace || b.properties.monde_kml_trace;
+        var aTrace=a.properties.monde_gpx_trace || a.properties.monde_kml_trace ||
+          a.properties.monde_gpkg_trace;
+        var bTrace=b.properties.monde_gpx_trace || b.properties.monde_kml_trace ||
+          b.properties.monde_gpkg_trace;
         return aTrace.order-bTrace.order;
       });
       for(var i=1;i<samples.length;i++){
         var from=samples[i-1],to=samples[i];
-        var first=from.properties.monde_gpx_trace ||
-          from.properties.monde_kml_trace;
-        var next=to.properties.monde_gpx_trace ||
-          to.properties.monde_kml_trace;
+        var first=from.properties.monde_gpx_trace || from.properties.monde_kml_trace ||
+          from.properties.monde_gpkg_trace;
+        var next=to.properties.monde_gpx_trace || to.properties.monde_kml_trace ||
+          to.properties.monde_gpkg_trace;
         if(next.order!==first.order+1)continue; // No invented missing edges.
         var a=from.geometry.coordinates,b=to.geometry.coordinates;
         // The simple offline world projection never implies a path crossing
@@ -313,12 +316,15 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         var isGpx=first.format==="GPX_1_1_TRACE_POINT";
         var attrs={x1:x(a[0]),y1:y(a[1]),x2:x(b[0]),y2:y(b[1])};
         var isBoundary=first.format==="KML_2_2_POLYGON_RING_POINT";
+        var isGpkg=first.format==="GPKG_1_3_LINESTRING_POINT";
         attrs[isGpx?"data-gpx-trace":
-              (isBoundary?"data-kml-boundary":"data-kml-trace")]=first.trace_id;
+              (isGpkg?"data-gpkg-trace":
+               (isBoundary?"data-kml-boundary":"data-kml-trace"))]=first.trace_id;
         if(isBoundary && first.segment>0)
           attrs["data-kml-inner-ring"]=String(first.segment);
         el("line",attrs,traceLayer);
         if(isGpx)gpxCount++;
+        else if(isGpkg)gpkgCount++;
         else if(isBoundary){
           boundaryCount++;
           if(first.segment>0)innerCount++;
@@ -327,6 +333,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     });
     document.body.setAttribute("data-monde-gpx-segments",
       String(gpxCount));
+    document.body.setAttribute("data-monde-gpkg-segments",
+      String(gpkgCount));
     document.body.setAttribute("data-monde-kml-segments",
       String(kmlCount));
     document.body.setAttribute("data-monde-kml-boundary-segments",
@@ -681,6 +689,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
                "outer":"inner #"+String(p.monde_kml_trace.segment))] : []),
         "KML original sample order: " + String(p.monde_kml_trace.order+1),
         "Interpretation: ORIGINAL_KML_SAMPLES_NOT_VERIFIED_MOTION"
+      ] : []),
+      ...(p.monde_gpkg_trace ? [
+        "GeoPackage source layer: " + p.monde_gpkg_trace.layer,
+        "Original feature id: " + p.monde_gpkg_trace.feature_id,
+        "Original LineString vertex: " + String(p.monde_gpkg_trace.order + 1),
+        "Interpretation: SOURCE_LINE_NOT_VERIFIED_MOTION"
       ] : [])
     ].join("\n");
     render();
@@ -1276,6 +1290,27 @@ def render_map(document: dict) -> str:
         props = feature["properties"]
         trace = props.get("monde_gpx_trace")
         kml_trace = props.get("monde_kml_trace")
+        gpkg_trace = props.get("monde_gpkg_trace")
+        if gpkg_trace is not None:
+            if (trace is not None or kml_trace is not None
+                    or not isinstance(gpkg_trace, dict)
+                    or set(gpkg_trace) != {"format", "kind", "name", "trace_id",
+                                           "segment", "order", "layer", "feature_id"}
+                    or gpkg_trace["format"] != "GPKG_1_3_LINESTRING_POINT"
+                    or gpkg_trace["kind"] != "LineString"
+                    or not isinstance(gpkg_trace["name"], str)
+                    or not 0 < len(gpkg_trace["name"]) <= 1000
+                    or not isinstance(gpkg_trace["layer"], str)
+                    or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,62}", gpkg_trace["layer"])
+                    or not isinstance(gpkg_trace["feature_id"], str)
+                    or not gpkg_trace["feature_id"].isdigit()
+                    or not isinstance(gpkg_trace["trace_id"], str)
+                    or not re.fullmatch(r"[0-9a-f]{24}", gpkg_trace["trace_id"])
+                    or type(gpkg_trace["segment"]) is not int
+                    or gpkg_trace["segment"] != 0
+                    or type(gpkg_trace["order"]) is not int
+                    or not 0 <= gpkg_trace["order"] < 50_000):
+                raise ValueError("invalid source-reported GeoPackage trace")
         if kml_trace is not None:
             if (trace is not None or not isinstance(kml_trace, dict)
                     or set(kml_trace) !=
@@ -1415,7 +1450,7 @@ def main(argv=None) -> int:
     inputs.add_argument("--kml", help="original local KML 2.2 Placemarks")
     inputs.add_argument("--kmz", help="bounded local KMZ with root doc.kml; no extraction")
     inputs.add_argument("--gpx", help="original local GPX 1.1 waypoints; no saved intermediate state")
-    inputs.add_argument("--gpkg", help="original local GeoPackage WGS84 Point source")
+    inputs.add_argument("--gpkg", help="original local GeoPackage WGS84 Point or LineString source")
     parser.add_argument("--gpkg-layer", help="exact original GeoPackage feature-table name")
     parser.add_argument("--source-id", help="explicit source identifier for --geojson")
     parser.add_argument("--source-locator", help="original data locator for --geojson")
