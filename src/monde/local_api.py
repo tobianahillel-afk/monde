@@ -45,8 +45,16 @@ _EXPLORER_LABELS = {
 }
 
 
-def _explorer_html() -> str:
-    """Native GET forms for existing evidence maps, without browser JS."""
+def _explorer_html(source_ids: tuple[str, ...] = ()) -> str:
+    """Native GET forms with suggestions from original Point-source evidence."""
+    # The datalist is a convenience; manually typed valid IDs remain usable.
+    suggestions = ''.join(
+        '<option value="' + escape(source_id, quote=True) + '"></option>'
+        for source_id in source_ids[:200])
+    source_hint = (
+        '<p>' + str(len(source_ids)) + ' original Point sources in this saved '
+        'snapshot (not necessarily current at the selected world/knowledge '
+        'time). Type an ID if it is absent from the first 200 suggestions.</p>')
     forms = []
     for mode, title, fields in _EXPLORER_VIEWS:
         inputs = []
@@ -59,8 +67,9 @@ def _explorer_html() -> str:
                 "source": ' placeholder="e.g. survey-1 (optional)"',
             }.get(key, ' placeholder="2026-01-02T00:00:00Z"')
             inputs.append('<label>' + _EXPLORER_LABELS[key] +
-                          '<input name="' + key + '"' + ('' if key == "source" else ' required') + initial +
-                          '></label>')
+                          '<input name="' + key + '"' +
+                          (' list="saved-original-sources"' if key == "source" else ' required') +
+                          initial + '></label>')
         forms.append(
             '<form action="/viewer" method="get"><h2>' + title + '</h2>' +
             '<input type="hidden" name="view" value="' + mode + '">' +
@@ -85,6 +94,8 @@ padding:10px 14px;font:inherit;font-weight:bold;cursor:pointer}
 <p>Explore original source-reported claims at explicit world-time and
 knowledge-time cutoffs. Map positions are evidence, not verified physical
 truth. No external requests, data upload or saved-state changes.</p>
+""" + source_hint + """
+<datalist id="saved-original-sources">""" + suggestions + """</datalist>
 <main>""" + ''.join(forms) + """</main>
 <p><a href="/inspect">Inspect original entity reports and source histories</a></p>
 <p>Local read-only interface. Time cutoffs must be timezone-aware ISO-8601.</p>
@@ -372,6 +383,16 @@ def create_server(state: str | Path, port: int = 0, *,
     if type(max_response_bytes) is not int or max_response_bytes < 256:
         raise ValueError("invalid response limit")
     world = WorldMini.read(str(state))
+    # Read the already validated snapshot once. Only source-reported Point
+    # assertions contribute to map suggestions; no inferred source catalog.
+    snapshot = world.export()
+    source_by_evidence = {
+        evidence["id"]: evidence["source_id"] for evidence in snapshot["evidence"]}
+    map_source_ids = tuple(sorted({
+        source_by_evidence[assertion["evidence_id"]]
+        for assertion in snapshot["assertions"] if assertion["attribute"] == "geo_point"
+    }))
+    del snapshot, source_by_evidence
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, format_string, *args):
@@ -397,7 +418,7 @@ def create_server(state: str | Path, port: int = 0, *,
             # Reuse the offline map renderer; no new browser-side service or
             # unauthenticated state-changing route is introduced.
             from .map_view import render_map
-            body = (_explorer_html() if geojson is None else render_map(geojson, inspector_links=True,
+            body = (_explorer_html(map_source_ids) if geojson is None else render_map(geojson, inspector_links=True,
                                  navigation=navigation)).encode("utf-8")
             if len(body) > max_response_bytes:
                 return self._reply(413, {"error": "response_too_large"})

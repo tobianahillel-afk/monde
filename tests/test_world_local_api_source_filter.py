@@ -7,7 +7,7 @@ import threading
 import unittest
 from urllib.parse import urlencode
 
-from monde.local_api import create_server
+from monde.local_api import create_server, _explorer_html
 from monde.map_view import render_map
 from tests.test_world_geojson_disagreements import AT, K1, disputed
 
@@ -41,6 +41,33 @@ class SourceLensHTTPTests(unittest.TestCase):
         data = (result.status, dict(result.getheaders()), result.read())
         connection.close()
         return data
+
+    def test_explorer_suggests_original_sources_from_saved_points(self):
+        code, headers, body = self.fetch("/explore", {})
+        self.assertEqual(code, 200)
+        self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
+        self.assertIn(b'list="saved-original-sources"', body)
+        self.assertIn(b'<option value="survey-east"></option>', body)
+        self.assertIn(b'<option value="survey-west"></option>', body)
+        self.assertIn(b'original Point sources in this saved snapshot', body)
+        self.assertNotIn(b"<script", body)
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+        status, _, page = self.fetch("/viewer",
+             {"view": "current", **QUERY, "source": "survey-east"})
+        self.assertEqual(status, 200)
+        self.assertIn(b'name="source" value="survey-east"', page)
+
+    def test_suggested_source_ids_are_escaped_and_bounded(self):
+        page = _explorer_html(('map"><script>alert(1)</script>', 'safe-source'))
+        self.assertNotIn('<option value="map"><script>', page)
+        self.assertIn('&lt;script&gt;', page)
+        self.assertIn('value="safe-source"', page)
+        capped = _explorer_html(tuple("source-%03d" % i for i in range(205)))
+        self.assertIn('205 original Point sources', capped)
+        self.assertIn('value="source-199"', capped)
+        self.assertNotIn('value="source-200"', capped)
 
     def test_original_source_selection_keeps_provenance_and_counts(self):
         code, headers, body = self.fetch("/map", {**QUERY, "source": "survey-east"})

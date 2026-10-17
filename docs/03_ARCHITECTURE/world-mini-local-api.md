@@ -48,6 +48,12 @@ Endpoints (GET, all JSON):
   source agreed or that a position is verified physical truth. The same
   optional filter is available in `/viewer?view=current&...` and its native
   evidence/time-navigation forms; other views remain explicitly unfiltered.
+  The local `/explore` form suggests source IDs that have at least one original
+  `geo_point` assertion in the saved snapshot. Up to 200 alphabetical IDs
+  appear as native browser suggestions; manually entering any valid source ID
+  still works. Suggestions do not assert that a source has an active Point at
+  the chosen world-time/knowledge-time cutoff. No browser script or network
+  dependency is added.
 - `/tile?z=5&x=16&y=11&at=...&known_at=...` — GeoJSON for a WGS84
   viewport derived from a standard XYZ Web Mercator tile, including the original
   source Point assertions and tile metadata; this is not a raster tile service.
