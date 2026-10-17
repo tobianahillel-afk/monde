@@ -111,6 +111,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <h2>Changes in cross-source reports</h2>
 <p class="subtle">Map markers show changed source Point assertions only, not verified physical change. Select a change for complete original before/after reports.</p>
 <p id="disagreement-change-summary" role="status"></p>
+<button id="export-disagreement-changes" type="button">Export complete before/after source evidence JSON</button>
 <ul id="disagreement-change-list" aria-label="Entities with changing source disagreements"></ul>
 </div>
 <div id="preview-source-conflicts" hidden aria-label="Incoming source disagreements">
@@ -262,6 +263,24 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       changes.counts.APPEARED + " appeared · " +
       changes.counts.CHANGED + " changed · " +
       changes.counts.RESOLVED + " resolved source contradictions (no ground-truth inference)";
+    document.getElementById("export-disagreement-changes").addEventListener("click",
+      function() {
+        // Export the complete original source groups, not the viewport- and
+        // filter-dependent map markers. No inferred position or source ranking.
+        saveEvidence({
+          format: "MONDE_SOURCE_DISAGREEMENT_CHANGES_V1",
+          basis: changes.basis,
+          world: "OBSERVED",
+          valid_at: changes.valid_at,
+          from_known_at: changes.from_known_at,
+          to_known_at: changes.to_known_at,
+          map_scope: changes.map_scope,
+          export_scope: "COMPLETE_ORIGINAL_SOURCE_GROUPS_NOT_VIEWPORT_FILTERED",
+          counts: changes.counts,
+          changes: changes.changes,
+          interpretation: "Conflicting original source reports only; no verified physical location or movement."
+        }, "monde-source-disagreement-changes.json", "application/json");
+      });
     changes.changes.forEach(function(item) {
       var li = document.createElement("li");
       var button = document.createElement("button");

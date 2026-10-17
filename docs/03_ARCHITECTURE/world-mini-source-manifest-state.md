@@ -196,3 +196,11 @@ entities with changing Point contradictions; when there are none, supply an
 explicit `--bbox W,S,E,N` for an honest empty result. Existing saved state
 and source datasets remain unchanged, HTML output is create-only, and this
 mode cannot be used with `--only-disagreements` or `--compare-at`.
+
+The evidence panel also offers **Export complete before/after source evidence JSON**.
+It downloads the full original `before_value_groups` and
+`after_value_groups` (including assertion/evidence/source IDs) and cutoff
+metadata, **not only visible map markers**. The download is generated locally
+from the embedded snapshot, with no network request, write-back, inferred
+source ranking or physical-location conclusion; it remains usable for an
+explicitly bounded view with zero transitions.

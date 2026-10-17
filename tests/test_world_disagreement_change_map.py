@@ -41,6 +41,12 @@ class OfflineDisagreementTransitionTests(unittest.TestCase):
             self.assertTrue(all(r["assertion_id"] and r["evidence_id"] for r in reports))
             self.assertIn('id="disagreement-change-panel"', html)
             self.assertIn('id="disagreement-change-list"', html)
+            self.assertIn('id="export-disagreement-changes"', html)
+            self.assertIn("MONDE_SOURCE_DISAGREEMENT_CHANGES_V1", html)
+            self.assertIn("COMPLETE_ORIGINAL_SOURCE_GROUPS_NOT_VIEWPORT_FILTERED", html)
+            self.assertIn('changes: changes.changes', html)
+            self.assertIn('counts: changes.counts', html)
+            self.assertIn('saveEvidence({', html)
             self.assertEqual(state.read_bytes(), original)
 
     def test_resolved_conflict_keeps_both_previous_values(self):
@@ -91,6 +97,11 @@ class OfflineDisagreementTransitionTests(unittest.TestCase):
             self.assertEqual(geo["features"], [])
             self.assertEqual(geo["monde_disagreement_changes_view"]["changes"], [])
             self.assertEqual(geo["monde_bbox_changes_query"]["status"], "NO_CHANGES")
+            html = page.read_text(encoding="utf-8")
+            self.assertIn('id="export-disagreement-changes"', html)
+            self.assertIn('changes: changes.changes', html)
+            self.assertEqual(geo["monde_disagreement_changes_view"]["counts"],
+                             {"APPEARED": 0, "CHANGED": 0, "RESOLVED": 0})
 
     def test_invalid_combinations_and_nonoverwrite(self):
         with tempfile.TemporaryDirectory() as root:
