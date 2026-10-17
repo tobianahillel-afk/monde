@@ -656,6 +656,7 @@ class EvidenceInspectorTests(unittest.TestCase):
             self.assertEqual(status, 200, mode)
             self.assertIn("no-store", headers["Cache-Control"])
             self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+            self.assertIn("form-action 'self'", headers["Content-Security-Policy"])
             html = content.decode("utf-8")
             self.assertIn("Explore another world / knowledge time", html)
             parser = Form()

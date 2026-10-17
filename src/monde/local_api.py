@@ -381,7 +381,7 @@ def create_server(state: str | Path, port: int = 0, *,
                              "style-src 'unsafe-inline'; connect-src 'none'; "
                              "img-src 'none'; object-src 'none'; base-uri 'none'; "
                              "frame-ancestors 'none'" +
-                             ("; form-action 'self'" if geojson is None else ""))
+                             ("; form-action 'self'" if geojson is None or navigation is not None else ""))
             self.end_headers()
             self.wfile.write(body)
 
