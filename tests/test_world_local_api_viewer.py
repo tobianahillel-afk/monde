@@ -157,11 +157,17 @@ class BrowserViewerTests(unittest.TestCase):
                 self.assertIn('p.monde_change === "NO_LONGER_CURRENT"', html)
                 self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
         original = self.path.read_bytes()
-        entity = self.world.export_geojson_bbox(BBOX, AT, K2)["features"][0]["properties"]["entity"]
+        entity = "site-a"  # Known original source entity, though its corrected Point moved.
         code, _, body = self.fetch(dict(view="entity", entity=entity,
                                          at=AT, known_at=K2), path="/inspect")
         self.assertEqual(code, 200)
         self.assertIn(b"Original source assertions only", body)
+        code, _, revisions = self.fetch(
+            dict(view="source-history", source="survey-1", entity=entity, known_at=K2),
+            path="/inspect")
+        self.assertEqual(code, 200)
+        self.assertIn(b"Original source assertions only", revisions)
+        self.assertIn(b"correct-a", revisions)
         self.assertEqual(self.path.read_bytes(), original)
 
     def test_standalone_map_does_not_advertise_server_links(self):
