@@ -500,6 +500,80 @@ def _disagreement_csv(document: dict, params: dict[str, str]) -> bytes:
     return output.getvalue().encode("utf-8")
 
 
+def _disagreement_pair(world: WorldMini, args: dict[str, str]) -> tuple[dict, dict | None]:
+    """Select original opposing reports consistently at two independent cutoffs."""
+    if "from_at" in args and "from_known_at" in args:
+        raise ValueError("choose only one comparison axis")
+
+    from .map_view import disagreement_view
+
+    bounds = _bbox(args["bbox"])
+
+    def selected(at: str, known_at: str) -> dict:
+        return _focus_disagreement_entity(
+            _focus_disagreement_source(
+                disagreement_view(world, bounds, at, known_at),
+                args.get("source")), args.get("entity"))
+
+    earlier_at, earlier_known = args["at"], args["known_at"]
+    if "from_known_at" in args:
+        if _time(args["from_known_at"]) >= _time(args["known_at"]):
+            raise ValueError("knowledge comparison must advance")
+        earlier_known = args["from_known_at"]
+    elif "from_at" in args:
+        if _time(args["from_at"]) >= _time(args["at"]):
+            raise ValueError("world comparison must advance")
+        earlier_at = args["from_at"]
+    later = selected(args["at"], args["known_at"])
+    earlier = selected(earlier_at, earlier_known) if (
+        "from_at" in args or "from_known_at" in args) else None
+    return later, earlier
+
+
+def _disagreement_comparison_json(later: dict, earlier: dict,
+                                  args: dict[str, str]) -> dict:
+    """Return both *original* selections, not inferred locations or movement."""
+    groups = []
+    for document in (earlier, later):
+        grouped = {}
+        for feature in document["features"]:
+            grouped.setdefault(str(feature["properties"]["entity"]), []).append(feature)
+        groups.append(grouped)
+    before, after = groups
+
+    def identifiers(features):
+        return {(f["properties"]["source_id"], f["properties"]["assertion_id"],
+                 f["properties"]["evidence_id"],
+                 tuple(f["geometry"]["coordinates"])) for f in features}
+
+    changes = []
+    for entity in sorted(set(before) | set(after)):
+        old, new = before.get(entity, []), after.get(entity, [])
+        kind = ("APPEARED IN SELECTION" if not old else
+                "NO LONGER IN SELECTION" if not new else
+                "REPORTED EVIDENCE CHANGED" if identifiers(old) != identifiers(new)
+                else "SAME REPORTED EVIDENCE")
+        changes.append({"entity": entity, "classification": kind,
+                        "earlier_count": len(old), "later_count": len(new)})
+    earlier_at = args.get("from_at", args["at"])
+    earlier_known = args.get("from_known_at", args["known_at"])
+    return {
+        "world": "OBSERVED",
+        "basis": "ORIGINAL_SOURCE_REPORTS_NOT_VERIFIED_PHYSICAL_TRUTH",
+        "axis": "WORLD_TIME" if "from_at" in args else "KNOWLEDGE_TIME",
+        "selection": {key: args[key] for key in ("bbox", "source", "entity")
+                      if key in args},
+        "earlier": {"at": earlier_at, "known_at": earlier_known,
+                    "geojson": earlier},
+        "later": {"at": args["at"], "known_at": args["known_at"],
+                  "geojson": later},
+        "changes": changes,
+        "status": "SELECTION_CHANGED" if any(
+            row["classification"] != "SAME REPORTED EVIDENCE" for row in changes)
+            else "NO_SELECTION_CHANGE"
+    }
+
+
 def _disagreement_report_html(document: dict, params: dict[str, str],
                               earlier: dict | None = None) -> str:
     """Readable original opposing source Points, with provenance and no consensus."""
@@ -628,7 +702,9 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
             escape("/map-disagreements?" + urlencode(earlier_args), quote=True) +
             '">Earlier complete GeoJSON</a> · <a href="' +
             escape("/disagreement.csv?" + urlencode(earlier_args), quote=True) +
-            '">Earlier original CSV</a></p>' +
+            '">Earlier original CSV</a> · <a href="' +
+            escape("/disagreement-compare.json?" + urlencode(params), quote=True) +
+            '">Download complete original comparison JSON</a></p>' +
             ('<ul>' + ''.join(changes) + '</ul>' if changes else
              '<p role="status">NO SOURCE DISAGREEMENT IN EITHER SELECTION — '
              'not proof of agreement or absence.</p>') +
@@ -775,7 +851,8 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/knowledge-updates", "/knowledge-timeline",
                             "/world-knowledge-changes", "/map-disagreements",
                             "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore",
-                             "/inspect", "/disagreement-report", "/disagreement.csv"}:
+                             "/inspect", "/disagreement-report", "/disagreement.csv",
+                             "/disagreement-compare.json"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -874,30 +951,16 @@ def create_server(state: str | Path, port: int = 0, *,
                              {"source", "entity", "view", "from_known_at", "from_at"})
                     if "view" in args and args["view"] != "disagreements":
                         raise ValueError("invalid disagreement report view")
-                    from .map_view import disagreement_view
-                    reports = disagreement_view(
-                        world, _bbox(args["bbox"]), args["at"], args["known_at"])
-                    reports = _focus_disagreement_entity(
-                        _focus_disagreement_source(reports, args.get("source")),
-                        args.get("entity"))
-                    earlier = None
-                    if "from_at" in args and "from_known_at" in args:
-                        raise ValueError("choose only one comparison axis")
-                    if "from_known_at" in args:
-                        if _time(args["from_known_at"]) >= _time(args["known_at"]):
-                            raise ValueError("knowledge comparison must advance")
-                        earlier = disagreement_view(
-                            world, _bbox(args["bbox"]), args["at"], args["from_known_at"])
-                    elif "from_at" in args:
-                        if _time(args["from_at"]) >= _time(args["at"]):
-                            raise ValueError("world comparison must advance")
-                        earlier = disagreement_view(
-                            world, _bbox(args["bbox"]), args["from_at"], args["known_at"])
-                    if earlier is not None:
-                        earlier = _focus_disagreement_entity(
-                            _focus_disagreement_source(earlier, args.get("source")),
-                            args.get("entity"))
+                    reports, earlier = _disagreement_pair(world, args)
                     return self._inspection(_disagreement_report_html(reports, args, earlier))
+                elif path == "/disagreement-compare.json":
+                    _require(args, {"bbox", "at", "known_at"},
+                             {"source", "entity", "from_known_at", "from_at"})
+                    if ("from_at" in args) == ("from_known_at" in args):
+                        raise ValueError("exactly one comparison axis is required")
+                    later, earlier = _disagreement_pair(world, args)
+                    return self._reply(
+                        200, _disagreement_comparison_json(later, earlier, args))
                 elif path == "/map-knowledge-changes":
                     _require(args, {"bbox", "at", "from_known_at", "to_known_at"},
                              {"source"})

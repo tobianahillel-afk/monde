@@ -498,5 +498,73 @@ class DisagreementReportHTTPTests(unittest.TestCase):
         self.assertIn("NO SOURCE DISAGREEMENT IN EITHER SELECTION", raw.decode())
 
 
+
+    def test_comparison_json_world_time_preserves_all_original_provenance(self):
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_at": "2025-12-31T00:00:00Z"}
+        status, headers, raw = self.fetch("/disagreement-compare.json", params)
+        self.assertEqual(status, 200)
+        self.assertIn("application/json", headers["Content-Type"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        result = json.loads(raw)
+        self.assertEqual(result["world"], "OBSERVED")
+        self.assertEqual(result["axis"], "WORLD_TIME")
+        self.assertEqual(result["selection"]["source"], "survey-east")
+        self.assertEqual(result["earlier"]["at"], params["from_at"])
+        self.assertEqual(result["later"]["at"], AT)
+        self.assertEqual(result["earlier"]["known_at"], K1)
+        self.assertEqual(result["later"]["known_at"], K1)
+        self.assertEqual(result["changes"][0]["classification"], "APPEARED IN SELECTION")
+        self.assertEqual(result["status"], "SELECTION_CHANGED")
+        current = json.loads(self.fetch("/map-disagreements", {
+            **QUERY, "source": "survey-east", "entity": "site-a"})[2])
+        self.assertEqual(result["later"]["geojson"], current)
+        for feature in result["later"]["geojson"]["features"]:
+            for key in ("source_id", "assertion_id", "evidence_id"):
+                self.assertTrue(feature["properties"][key])
+        html = self.fetch("/disagreement-report", params)[2].decode("utf-8")
+        self.assertIn("/disagreement-compare.json?", html)
+        self.assertIn("Download complete original comparison JSON", html)
+
+    def test_comparison_json_knowledge_time_remains_distinct_from_world_time(self):
+        params = {**QUERY, "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, raw = self.fetch("/disagreement-compare.json", params)
+        self.assertEqual(status, 200)
+        data = json.loads(raw)
+        self.assertEqual(data["axis"], "KNOWLEDGE_TIME")
+        self.assertEqual(data["earlier"]["at"], AT)
+        self.assertEqual(data["later"]["at"], AT)
+        self.assertEqual(data["earlier"]["known_at"], params["from_known_at"])
+        self.assertEqual(data["later"]["known_at"], K1)
+        self.assertEqual(data["changes"][0]["classification"], "APPEARED IN SELECTION")
+
+    def test_comparison_json_no_selection_is_not_inferred_agreement(self):
+        params = {**QUERY, "source": "unseen-source",
+                  "from_at": "2025-12-31T00:00:00Z"}
+        status, _, raw = self.fetch("/disagreement-compare.json", params)
+        self.assertEqual(status, 200)
+        data = json.loads(raw)
+        self.assertEqual(data["changes"], [])
+        self.assertEqual(data["status"], "NO_SELECTION_CHANGE")
+        self.assertEqual(data["earlier"]["geojson"]["features"], [])
+        self.assertEqual(data["later"]["geojson"]["features"], [])
+        self.assertNotIn("consensus", json.dumps(data))
+
+    def test_comparison_json_rejects_bad_cutoffs_axes_and_unknown_keys(self):
+        for params in ({**QUERY},
+                       {**QUERY, "from_at": AT},
+                       {**QUERY, "from_at": "invalid"},
+                       {**QUERY, "from_at": "2025-12-31T00:00:00"},
+                       {**QUERY, "from_known_at": K1},
+                       {**QUERY, "from_known_at": "2026-01-13T00:00:00Z"},
+                       {**QUERY, "from_at": "2025-12-31T00:00:00Z",
+                        "from_known_at": "2026-01-09T00:00:00Z"},
+                       {**QUERY, "from_at": "2025-12-31T00:00:00Z", "bad": "1"}):
+            status, _, raw = self.fetch("/disagreement-compare.json", params)
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+
 if __name__ == "__main__":
     unittest.main()
