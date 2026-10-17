@@ -8,7 +8,7 @@ import unittest
 from urllib.parse import urlencode
 
 from monde.local_api import create_server
-from monde.map_view import render_map
+from monde.map_view import render_map, disagreement_view
 from tests.test_world_geojson_changes import model as change_model, correct, AT, K1, K2
 from tests.test_world_geojson_disagreements import disputed
 
@@ -82,8 +82,8 @@ class BrowserViewerTests(unittest.TestCase):
             query = dict(view="disagreements", bbox="2.3,48.8,2.4,48.9",
                          at=AT, known_at=K1)
             status, headers, body = self.fetch(query, server=server)
-            expected = model.export_geojson_disagreements(
-                AT, K1, [2.3, 48.8, 2.4, 48.9])
+            expected = disagreement_view(
+                model, [2.3, 48.8, 2.4, 48.9], AT, K1)
             self.assertEqual(status, 200)
             self.assertEqual(body.decode("utf-8"), render_map(expected))
             self.assertEqual(len(expected["features"]), 1)
@@ -101,8 +101,8 @@ class BrowserViewerTests(unittest.TestCase):
             _, _, empty_body = self.fetch(empty, server=server)
             self.assertEqual(
                 empty_body.decode("utf-8"),
-                render_map(model.export_geojson_disagreements(
-                    AT, K1, [10, 10, 11, 11])))
+                render_map(disagreement_view(
+                    model, [10, 10, 11, 11], AT, K1)))
         finally:
             server.shutdown()
             worker.join(timeout=5)
