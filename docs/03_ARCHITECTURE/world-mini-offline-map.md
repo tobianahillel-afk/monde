@@ -522,3 +522,40 @@ Archives are bounded (25 MB compressed, 40 MB declared inflated content,
 members, unsafe entry names, remote KML links and ambiguous documents fail
 before any output is created. This imports **source claims**, not verified
 geographic reality or a reconstructed globe.
+
+
+## Import an original GeoPackage Point source (WORK-0031)
+
+MONDE Mini can read a local SQLite **GeoPackage (.gpkg)** directly, without
+GeoJSON conversion, a GIS server, extra libraries or network services.
+Specify exactly which original 2D WGS84 Point feature table to inspect.
+
+    PYTHONPATH=src python3 -m monde.map_view \
+      --gpkg original-survey.gpkg \
+      --gpkg-layer survey_points \
+      --source-id original-survey \
+      --source-locator dataset://original-survey.gpkg \
+      --captured-at 2026-01-10T10:00:00Z \
+      --valid-from 2026-01-01T00:00:00Z \
+      --at 2026-01-02T00:00:00Z \
+      --known-at 2026-01-10T10:00:00Z \
+      --output evidence-map.html
+
+In a multi-source \`--source-manifest\` dataset, use
+\`"gpkg": "original-survey.gpkg", "gpkg_layer": "survey_points"\` with
+the normal explicit \`source_id\`, \`locator\`, \`captured_at\` and
+\`valid_from\` fields. Mixed original CSV, GeoJSON, GPX, KML and KMZ datasets
+continue to use the same atomic WorldMini evidence model.
+
+The layer must be a physical GeoPackage feature table with one INTEGER primary
+key, an explicitly declared 2D Point geometry, and matching EPSG:4326 table,
+spatial-reference and binary geometry metadata. Source point IDs, scalar
+attributes and coordinates are preserved as **source reports**, not validated
+physical truth. Timestamps are mandatory inputs, never inferred from files.
+Unsupported CRS, non-Point geometries, invalid or contradictory WKB, ambiguous
+layer/column identifiers and malformed SQLite sources are rejected.
+
+Read-only import is bounded to 100 MB per database and 50,000 source Points;
+the original source remains untouched, and existing output files cannot be
+overwritten. No reprojection, remote attachment, spatial inference or feature
+reconciliation is performed.

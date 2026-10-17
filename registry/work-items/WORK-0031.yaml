@@ -1,0 +1,60 @@
+id: WORK-0031
+title: "Import original GeoPackage WGS84 Points into MONDE Mini"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini offline source evidence"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Map original source GeoPackage WGS84 Points while preserving IDs and
+  explicit bitemporal source provenance without conversion or paid GIS APIs.
+scope:
+  in: ["bounded read-only GeoPackage", "EPSG:4326 original 2D Points", "CLI and source-manifest"]
+  out: ["CRS reprojection", "other geometries", "remote data", "source-to-truth promotion"]
+acceptance_criteria:
+  - {id: AC-1, description: "Original IDs, coordinates and attributes survive bitemporal ingestion.", status: NOT_STARTED}
+  - {id: AC-2, description: "Direct CLI and mixed manifest yield the offline evidence map.", status: NOT_STARTED}
+  - {id: AC-3, description: "Untrusted or malformed sources fail atomically without source overwrite.", status: NOT_STARTED}
+requirements: []
+assumptions: ["The named feature table truthfully declares EPSG:4326; binary SRID is checked separately."]
+risks: ["Malicious SQLite files", "Ambiguous CRS", "Lost original source identity"]
+assurance:
+  level: A3
+  rationale: "New original GIS source boundary and SQLite input."
+  escalation_triggers: ["Remote access", "CRS transformations"]
+depends_on: [WORK-0030]
+reuses: ["src/monde/geojson.py", "src/monde/map_view.py", "src/monde/csv_points.py", "sqlite3 standard library"]
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+blocks: []
+affected_capabilities: []
+affected_engines: ["MONDE Mini offline map"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["source evidence provenance", "bitemporal attribution", "atomic output"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Parse bounded original GeoPackage WGS84 Point source.", depends_on: [], expected_files: [src/monde/geopackage_points.py], status: IN_PROGRESS}
+    - {id: T2, description: "Direct CLI and manifest imports.", depends_on: [T1], expected_files: [src/monde/map_view.py, src/monde/csv_points.py], status: IN_PROGRESS}
+    - {id: T3, description: "SQLite source, real CLI and invalid-input regressions.", depends_on: [T2], expected_files: [tests/test_world_geopackage.py], status: IN_PROGRESS}
+review_plan:
+  artifact_class: DATA_SOURCE_CONNECTOR
+  independence_level: L2_TARGET
+  required_hats: [DATA_EPISTEMIC, VERIFICATION_VALIDATION, SECURITY, OPERATIONS]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["binary WKB, CRS, schema validation"]
+  integration: ["GeoPackage -> source assertions -> WorldMini -> offline map"]
+  e2e: ["direct CLI and source manifest with real SQLite input"]
+  regression: ["existing GeoJSON, CSV, GPX, KML, KMZ"]
+  security: ["read-only source, metadata, malformed geometry and atomic output"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Parent product PRs #23–#54 remain Draft.", "Independent L2 pending."]
+rollback:
+  strategy: "Close draft child PR without changing main or source datasets."
