@@ -26,9 +26,9 @@ _EXPLORER_VIEWS = (
     ("world-changes", "Changes in reported validity",
      ("bbox", "from_at", "to_at", "known_at")),
     ("nearest", "Nearest source-reported places",
-     ("center", "limit", "at", "known_at")),
+     ("center", "limit", "at", "known_at", "source")),
     ("radius", "Source-reported places within a radius",
-     ("center", "radius_km", "at", "known_at")),
+     ("center", "radius_km", "at", "known_at", "source")),
 )
 _EXPLORER_LABELS = {
     "bbox": "WGS84 bounds (west,south,east,north)",
@@ -662,16 +662,16 @@ def create_server(state: str | Path, port: int = 0, *,
                             _bbox(args["bbox"]), args["from_at"],
                             args["to_at"], args["known_at"])
                     elif mode == "nearest":
-                        _require(args, {"view", "center", "limit", "at", "known_at"})
+                        _require(args, {"view", "center", "limit", "at", "known_at"}, {"source"})
                         geojson = world.export_geojson_nearest(
                             _center(args["center"]), int(args["limit"]),
-                            args["at"], args["known_at"])
+                            args["at"], args["known_at"], args.get("source"))
                     elif mode == "radius":
                         _require(args, {"view", "center", "radius_km",
-                                        "at", "known_at"})
+                                        "at", "known_at"}, {"source"})
                         geojson = world.export_geojson_radius(
                             _center(args["center"]), float(args["radius_km"]),
-                            args["at"], args["known_at"])
+                            args["at"], args["known_at"], args.get("source"))
                     else:
                         raise ValueError("unsupported viewer mode")
                     return self._html(geojson, navigation=args)
@@ -687,15 +687,15 @@ def create_server(state: str | Path, port: int = 0, *,
                         int(args["z"]), int(args["x"]), int(args["y"]),
                         args["at"], args["known_at"])
                 elif path == "/nearest":
-                    _require(args, {"center", "limit", "at", "known_at"})
+                    _require(args, {"center", "limit", "at", "known_at"}, {"source"})
                     output = world.export_geojson_nearest(
                         _center(args["center"]), int(args["limit"]),
-                        args["at"], args["known_at"])
+                        args["at"], args["known_at"], args.get("source"))
                 else:
-                    _require(args, {"center", "radius_km", "at", "known_at"})
+                    _require(args, {"center", "radius_km", "at", "known_at"}, {"source"})
                     output = world.export_geojson_radius(
                         _center(args["center"]), float(args["radius_km"]),
-                        args["at"], args["known_at"])
+                        args["at"], args["known_at"], args.get("source"))
                 return self._reply(200, output)
             except (ValueError, KeyError, OverflowError):
                 return self._reply(400, {"error": "invalid_query"})
