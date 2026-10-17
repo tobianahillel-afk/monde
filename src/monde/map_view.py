@@ -227,6 +227,14 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var landReference = __MONDE_EMBEDDED_REFERENCE_LAND__;
   var features = data.features, knowledgeComparing = !!data.monde_bbox_changes_query;
   var worldComparing = !!data.monde_bbox_world_changes_query;
+  var proximity = data.monde_nearest_query || data.monde_radius_query;
+  function inSelection(p) {
+    return data.monde_radius_query ? p.monde_within_radius : p.monde_inside_bbox;
+  }
+  if (proximity) {
+    document.getElementById("source-notice").textContent =
+      "Original source-reported nearby evidence only. Distance is approximate, not positional accuracy. The displayed envelope comes from original reported positions, not a verified location or a spatial query. Competing out-of-radius reports remain included.";
+  }
   var comparing = knowledgeComparing || worldComparing;
   var query = knowledgeComparing ? data.monde_bbox_changes_query :
     (worldComparing ? data.monde_bbox_world_changes_query : data.monde_bbox_query);
@@ -836,7 +844,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       "Entity: " + p.entity,
       "Assertion: " + feature.id,
       "Coordinates: " + feature.geometry.coordinates.join(", "),
-      "Within requested viewport: " + (p.monde_inside_bbox ? "yes" : "no — contrary source location"),
+      (data.monde_radius_query ? "Inside requested radius: " :
+        data.monde_nearest_query ? "Selected nearest source entity: " :
+        "Within requested viewport: ") +
+        (inSelection(p) ? "yes" : "no — competing source location"),
       ...(knowledgeComparing ? ["Knowledge change: " + p.monde_change,
         "Knowledge interval: " + query.from_known_at + " → " + query.to_known_at,
         "Change basis: KNOWLEDGE_NOT_PHYSICAL (not verified motion)"] : []),
@@ -976,7 +987,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       .join(" ").toLocaleLowerCase();
     return words.every(function(word) { return indexed.includes(word); }) &&
       withinReportedRadius(f) &&
-      (!insideOnly.checked || p.monde_inside_bbox) &&
+      (!insideOnly.checked || inSelection(p)) &&
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
       (!p.monde_gpkg_source_layer || gpkgLayers.length <= 1 ||
@@ -1187,7 +1198,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       var p = f.properties, coords = f.geometry.coordinates;
       var circle = el("circle", {cx:x(coords[0]),cy:y(coords[1]),
         r:7,tabindex:0,"aria-label":p.entity + " from " + p.source_id},layer);
-      circle.setAttribute("class",(p.monde_inside_bbox?"inside":"outside")+
+      circle.setAttribute("class",(inSelection(p)?"inside":"outside")+
         (selectedId===f.id?" selected":"")+
         (measureA&&measureA.assertion_id===f.id?" measured-a":"")+
         (measureB&&measureB.assertion_id===f.id?" measured-b":"")+
@@ -1201,7 +1212,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       button.type="button";
       label(button,p.entity + " — " + p.source_id +
         (comparing ? " · " + p.monde_change.replaceAll("_"," ").toLowerCase():"") +
-        (p.monde_inside_bbox?" · inside":" · contradictory outside"));
+        (inSelection(p)?" · inside":" · contradictory outside"));
       button.addEventListener("click",function(){inspect(f);});
       li.appendChild(button);list.appendChild(li);
     });
@@ -1316,7 +1327,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       var values = [p.entity,pos[0],pos[1],f.id,p.source_id,p.evidence_id,
         p.locator,p.captured_at,p.source_event_at,p.kind,p.known_at,
         p.valid_from,p.valid_to,p.valid_at,p.knowledge_cutoff,p.monde_status,
-        String(!!p.monde_inside_bbox),p.monde_change,
+        String(!!inSelection(p)),p.monde_change,
         "FILTERED_VISIBLE_SOURCE_REPORTS_ONLY"];
       return values.map(function(v,i){return cell(v,i===1||i===2);}).join(",");
     });
@@ -1418,7 +1429,67 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 
 
 def render_map(document: dict) -> str:
-    """Encode an existing evidence-grounded bbox GeoJSON result into safe HTML."""
+    """Render original source-reported GeoJSON without inferring a location."""
+    # The offline canvas already expects a display envelope. For nearest/radius
+    # searches, derive ONLY a display extent from the selected original source
+    # points. Keep the full untouched selection metadata in the HTML document.
+    # This is not a second spatial query or a reconciled physical position.
+    if isinstance(document, dict) and (
+            "monde_nearest_query" in document or "monde_radius_query" in document):
+        nearest = "monde_nearest_query" in document
+        if nearest and "monde_radius_query" in document:
+            raise ValueError("ambiguous proximity selection")
+        key = "monde_nearest_query" if nearest else "monde_radius_query"
+        selector = document[key]
+        features = document.get("features")
+        if (not isinstance(selector, dict) or not isinstance(features, list)
+                or len(features) > MAX_FEATURES):
+            raise ValueError("invalid source proximity selection")
+        center = selector.get("center")
+        if (not isinstance(center, list) or len(center) != 2
+                or any(type(v) not in (int, float) or not math.isfinite(v)
+                       for v in center)
+                or not -180 <= center[0] <= 180
+                or not -90 <= center[1] <= 90):
+            raise ValueError("invalid WGS84 search center")
+        coords = [center]
+        prepared = []
+        for feature in features:
+            if not isinstance(feature, dict) or not isinstance(feature.get("properties"), dict):
+                raise ValueError("invalid source proximity feature")
+            geo = feature.get("geometry")
+            point = geo.get("coordinates") if isinstance(geo, dict) else None
+            if (not isinstance(point, list) or len(point) != 2
+                    or any(type(v) not in (int, float) or not math.isfinite(v)
+                           for v in point)
+                    or not -180 <= point[0] <= 180
+                    or not -90 <= point[1] <= 90):
+                raise ValueError("invalid source proximity coordinates")
+            coords.append(point)
+            prepared.append({**feature,
+                             "properties": {**feature["properties"],
+                                            "monde_inside_bbox": True}})
+        if (selector.get("status") not in ("MATCHES", "NO_MATCHES")
+                or type(selector.get("total_matching_entities")) is not int
+                or selector["total_matching_entities"] < 0
+                or selector.get("distance_method") != "SPHERICAL_HAVERSINE_APPROX"
+                or selector.get("basis") != (
+                    "SOURCE_REPORTED_NEAREST_POINTS_ONLY" if nearest else
+                    "SOURCE_REPORTED_POINT_RADIUS_ONLY")):
+            raise ValueError("invalid proximity provenance")
+        bounds = [min(p[0] for p in coords), min(p[1] for p in coords),
+                  max(p[0] for p in coords), max(p[1] for p in coords)]
+        document = {**document, "features": prepared,
+                    "monde_proximity_display": "SELECTED_SOURCE_ENVELOPE_NOT_QUERY_BBOX",
+                    "monde_bbox_query": {
+                        "basis": "SOURCE_REPORTED_POINT_BBOX_ONLY",
+                        "bbox": bounds,
+                        "valid_at": selector["valid_at"],
+                        "knowledge_cutoff": selector["knowledge_cutoff"],
+                        "total_matching_entities": len({
+                            f["properties"].get("entity") for f in prepared}),
+                        "total_source_features": len(prepared),
+                        "status": "MATCHES" if prepared else "NO_MATCHES"}}
     if not isinstance(document, dict) or document.get("type") != "FeatureCollection":
         raise ValueError("expected a GeoJSON FeatureCollection")
     features = document.get("features")
