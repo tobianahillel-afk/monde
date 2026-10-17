@@ -392,5 +392,36 @@ class DisagreementReportHTTPTests(unittest.TestCase):
         self.assertIn("NO SOURCE DISAGREEMENT IN EITHER SELECTION", raw.decode())
 
 
+    def test_comparison_links_resolve_to_existing_single_cutoff_routes(self):
+        from html.parser import HTMLParser
+        from urllib.parse import urlsplit, parse_qs
+
+        class Anchors(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.links = []
+
+            def handle_starttag(self, tag, attrs):
+                if tag == "a":
+                    self.links.append(dict(attrs).get("href", ""))
+
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, raw = self.fetch("/disagreement-report", params)
+        self.assertEqual(status, 200)
+        parser = Anchors()
+        parser.feed(raw.decode())
+        target = [u for u in parser.links if urlsplit(u).path in (
+            "/viewer", "/map-disagreements", "/disagreement.csv")]
+        self.assertEqual(len(target), 6)
+        for link in target:
+            parsed = urlsplit(link)
+            query = {k: v[0] for k, v in parse_qs(parsed.query).items()}
+            self.assertNotIn("from_known_at", query)
+            self.assertEqual(query["source"], "survey-east")
+            self.assertEqual(query["entity"], "site-a")
+            self.assertEqual(self.fetch(parsed.path, query)[0], 200)
+
+
 if __name__ == "__main__":
     unittest.main()

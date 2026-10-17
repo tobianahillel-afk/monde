@@ -506,7 +506,10 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
     grouped: dict[str, list[dict]] = {}
     for feature in document["features"]:
         grouped.setdefault(str(feature["properties"]["entity"]), []).append(feature)
-    values = {key: value for key, value in params.items() if key != "view"}
+    # The extra comparison cutoff belongs only to the HTML report:
+    # existing map, GeoJSON and CSV routes accept exactly one knowledge cutoff.
+    values = {key: value for key, value in params.items()
+              if key not in ("view", "from_known_at")}
     map_url = "/viewer?" + urlencode({"view": "disagreements", **values})
     json_url = "/map-disagreements?" + urlencode(values)
     csv_url = "/disagreement.csv?" + urlencode(values)
