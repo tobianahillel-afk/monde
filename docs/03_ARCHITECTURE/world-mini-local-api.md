@@ -259,3 +259,13 @@ positions. This is an area query: nearby evidence may also appear. It does
 source Point changes, or when positions cross the antimeridian and a naive
 viewport would misleadingly cover almost the globe. Original per-source
 position links remain available. No additional service, dependency or write.
+
+### Dateline-crossing source comparison maps (WORK-0056)
+
+The one-click temporal comparison map uses the shortest circular longitude
+arc for original source-reported Points. Across ±180°, a wrapped WGS84 bbox
+(west > east) reuses the existing WorldMini and map viewer, avoiding a false
+near-global rectangle. Widely dispersed reports spanning more than 180°
+still have no misleading combined map link. Original reports, cutoffs,
+provenance and saved state remain unchanged. A real local HTTP test follows
+the wrapped viewer link and verifies both original Point change reports.

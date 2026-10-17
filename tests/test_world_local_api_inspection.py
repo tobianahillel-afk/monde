@@ -511,7 +511,28 @@ class EvidenceInspectorTests(unittest.TestCase):
         changes = {"changes": {"geo_point": {
             "newly_current": [point(179.9, 48)],
             "no_longer_current": [point(-179.9, 48)]}}}
+        dateline = _comparison_map_link(changes, "compare-knowledge", params)
+        self.assertIsNotNone(dateline)
+        args = {k: v[0] for k, v in parse_qs(urlsplit(dateline).query).items()}
+        self.assertEqual(args["view"], "knowledge-changes")
+        west, south, east, north = map(float, args["bbox"].split(","))
+        self.assertGreater(west, east)
+        self.assertGreater(west, 179.8)
+        self.assertLess(east, -179.8)
+        self.assertLessEqual(south, 48)
+        self.assertGreaterEqual(north, 48)
+        world_params = {"from_at": GEO_AT, "to_at": "2026-01-04T00:00:00Z",
+                        "known_at": GEO_K2}
+        world_url = _comparison_map_link(changes, "compare-world", world_params)
+        self.assertIsNotNone(world_url)
+        world_args = {k: v[0] for k, v in
+                      parse_qs(urlsplit(world_url).query).items()}
+        self.assertEqual(world_args["view"], "world-changes")
+        self.assertGreater(float(world_args["bbox"].split(",")[0]),
+                           float(world_args["bbox"].split(",")[2]))
+        changes["changes"]["geo_point"]["newly_current"].append(point(0, 48))
         self.assertIsNone(_comparison_map_link(changes, "compare-knowledge", params))
+        changes["changes"]["geo_point"]["newly_current"].pop()
         changes["changes"]["geo_point"]["no_longer_current"] = [point(179.8, 48)]
         url = _comparison_map_link(changes, "compare-knowledge", params)
         self.assertTrue(url.startswith("/viewer?"))
@@ -523,3 +544,83 @@ class EvidenceInspectorTests(unittest.TestCase):
         self.assertGreaterEqual(east, 179.9)
         self.assertLessEqual(south, 48)
         self.assertGreaterEqual(north, 48)
+
+    def test_dateline_comparison_map_roundtrip_with_original_reports(self):
+        """Follow a wrapped map link using actual saved source records and HTTP."""
+        from monde.geojson import to_document
+        from tests.test_world_geojson_changes import K1 as K1
+        world = WorldMini()
+        world.append_document(to_document({
+            "type": "FeatureCollection",
+            "features": [{"type": "Feature", "id": "dateline-site",
+                          "geometry": {"type": "Point", "coordinates": [179.9, 48]},
+                          "properties": {}}],
+        }, source_id="survey-east", locator="fixture://east",
+            captured_at=K1, valid_from=GEO_VALID))
+        old = world.query("dateline-site", "geo_point", GEO_AT, K1)["reports"][0]
+        world.append_document({"schema_version": 1, "evidence": [{
+            "id": "cross-dateline-e", "source_id": "survey-east",
+            "locator": "fixture://west-correction", "captured_at": GEO_K2,
+            "source_event_at": None}],
+            "assertions": [{
+                "id": "cross-dateline-a", "entity": "dateline-site",
+                "attribute": "geo_point",
+                "value": {"type": "Point", "coordinates": [-179.9, 48]},
+                "evidence_id": "cross-dateline-e", "kind": "CLAIM",
+                "known_at": GEO_K2, "valid_from": GEO_VALID,
+                "valid_to": None, "supersedes": old["assertion_id"]}]})
+        state = Path(self.dir.name) / "dateline.json"
+        world.save(state)
+        saved = state.read_bytes()
+        server = create_server(state)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        def read(url):
+            connection = http.client.HTTPConnection("127.0.0.1", server.server_port,
+                                                     timeout=5)
+            try:
+                connection.request("GET", url, headers={
+                    "Host": "127.0.0.1:" + str(server.server_port)})
+                response = connection.getresponse()
+                return response.status, response.read().decode("utf-8")
+            finally:
+                connection.close()
+        try:
+            query = {"view": "compare-knowledge", "entity": "dateline-site",
+                     "at": GEO_AT, "from_known_at": K1, "to_known_at": GEO_K2}
+            status, html = read("/inspect?" + urlencode(query))
+            self.assertEqual(status, 200)
+            class Links(HTMLParser):
+                def __init__(self):
+                    super().__init__()
+                    self.urls = []
+                def handle_starttag(self, tag, attrs):
+                    if tag == "a":
+                        self.urls.append(dict(attrs).get("href", ""))
+            links = Links()
+            links.feed(html)
+            map_urls = [url for url in links.urls
+                        if url.startswith("/viewer?view=knowledge-changes")]
+            self.assertEqual(len(map_urls), 1)
+            args = {key: values[0] for key, values in
+                    parse_qs(urlsplit(map_urls[0]).query).items()}
+            west, south, east, north = map(float, args["bbox"].split(","))
+            self.assertGreater(west, east)
+            self.assertLessEqual(west, 179.9)
+            self.assertGreaterEqual(east, -179.9)
+            status, map_html = read(map_urls[0])
+            self.assertEqual(status, 200)
+            self.assertIn("MONDE Mini", map_html)
+            status, body = read("/map-knowledge-changes?" + urlencode({
+                key: value for key, value in args.items() if key != "view"}))
+            self.assertEqual(status, 200)
+            features = json.loads(body)["features"]
+            self.assertEqual({tuple(f["geometry"]["coordinates"]) for f in features},
+                             {(179.9, 48), (-179.9, 48)})
+            self.assertEqual({f["properties"]["monde_change"] for f in features},
+                             {"NO_LONGER_CURRENT", "NEWLY_CURRENT"})
+            self.assertEqual(state.read_bytes(), saved)
+        finally:
+            server.shutdown()
+            worker.join(timeout=5)
+            server.server_close()

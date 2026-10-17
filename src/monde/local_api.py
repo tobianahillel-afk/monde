@@ -152,13 +152,20 @@ def _comparison_map_link(payload: dict, mode: str,
                 continue
     if not coords:
         return None
-    west, east = min(p[0] for p in coords), max(p[0] for p in coords)
     south, north = min(p[1] for p in coords), max(p[1] for p in coords)
-    # A naive antimeridian bbox would mistakenly select nearly the whole globe.
-    if east - west > 180:
+    # Find the shortest circular longitude span of original source Points.
+    longitudes = sorted((p[0] + 180) % 360 for p in coords)
+    gaps = [(longitudes[i + 1] - longitudes[i], i)
+            for i in range(len(longitudes) - 1)]
+    gaps.append((longitudes[0] + 360 - longitudes[-1], len(longitudes) - 1))
+    largest_gap, index = max(gaps)
+    if 360 - largest_gap > 180:
+        # No misleading globe-scale comparison viewport.
         return None
-    bounds = (max(-180, west - 0.02), max(-90, south - 0.02),
-              min(180, east + 0.02), min(90, north + 0.02))
+    west = (longitudes[(index + 1) % len(longitudes)] - 0.02) % 360 - 180
+    east = (longitudes[index] + 0.02) % 360 - 180
+    bounds = (west, max(-90, south - 0.02),
+              east, min(90, north + 0.02))
     query = {"view": ("knowledge-changes" if mode == "compare-knowledge"
                       else "world-changes"),
              "bbox": ",".join(str(v) for v in bounds)}
