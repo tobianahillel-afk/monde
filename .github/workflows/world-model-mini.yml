@@ -366,6 +366,24 @@ jobs:
             --compare-known-at '2026-01-10T10:00:00Z' \
             --known-at '2026-01-11T10:00:00Z' \
             --output /tmp/monde-knowledge-changes-map.html
+      - name: Render new source evidence from saved snapshots in actual offline Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python3 -m monde.source_delta \
+            --before /tmp/monde-map-state.json \
+            --after /tmp/monde-map-revised-state.json \
+            --as-html --output /tmp/monde-new-source-reports.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu \
+            --disable-dev-shm-usage --timeout=15000 --dump-dom \
+            file:///tmp/monde-new-source-reports.html > /tmp/monde-new-source-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-new-source-dom.html
+          grep -q 'NEW SOURCE REPORTS ONLY' /tmp/monde-new-source-dom.html
+          grep -q 'demo-map-revision-assertion' /tmp/monde-new-source-dom.html
+          grep -q '<circle' /tmp/monde-new-source-dom.html
+
       - name: Generate offline source world-time comparison
         env:
           PYTHONPATH: src
