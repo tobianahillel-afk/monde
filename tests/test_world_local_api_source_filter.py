@@ -83,7 +83,7 @@ class SourceLensHTTPTests(unittest.TestCase):
         self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
 
     def test_invalid_source_cannot_change_query_semantics(self):
-        for source in ("../survey-east", "bad<script>", "/abs", "a b", "z" * 100):
+        for source in ("../survey-east", "bad<script>", "/abs", "a b", "a\\b", "z" * 100):
             with self.subTest(source=source):
                 code, _, body = self.fetch("/map", {**QUERY, "source": source})
                 self.assertEqual(code, 400)

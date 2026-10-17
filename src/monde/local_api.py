@@ -348,7 +348,7 @@ def _filter_source_bbox(document: dict, source: str | None) -> dict:
     """
     if source is None:
         return document
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:\\-]{0,95}", source):
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}", source):
         raise ValueError("invalid source ID")
     selected = [feature for feature in document["features"]
                 if feature["properties"]["source_id"] == source]
