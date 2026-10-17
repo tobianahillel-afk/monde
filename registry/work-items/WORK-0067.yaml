@@ -1,0 +1,50 @@
+id: WORK-0067
+title: "Download original cross-source disagreement evidence as CSV"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini original source evidence explorer"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Export the selected opposing original source Point evidence from the
+  existing read-only disagreement report for independent offline analysis.
+scope:
+  in: ["Read-only CSV endpoint on local HTTP", "Original opposing sources including outside viewport", "Spreadsheet-safe identifiers", "Real HTTP tests"]
+  out: ["Source reconciliation", "Verified truth", "New state storage", "Remote services", "New dependencies"]
+acceptance_criteria:
+  - {id: AC-1, description: "CSV retains both opposing original source reports and provenance IDs.", status: IN_REVIEW}
+  - {id: AC-2, description: "Cutoffs and in-viewport status match existing disagreement report.", status: IN_REVIEW}
+  - {id: AC-3, description: "Reject unexpected inputs, neutralize spreadsheet formulas and keep saved state intact.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0066]
+read_before: [AGENTS.md, src/monde/local_api.py, src/monde/map_view.py]
+reuses: [monde.local_api._focus_disagreement_source, monde.map_view.disagreement_view, csv.writer]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add CSV export and local report link.", depends_on: [], expected_files: [src/monde/local_api.py], status: IN_REVIEW}
+    - {id: T2, description: "Verify local HTTP and data integrity.", depends_on: [T1], expected_files: [tests/test_world_local_api_disagreement_report.py], status: IN_REVIEW}
+    - {id: T3, description: "Document CSV evidence scope.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_disagreement_report.py]
+  real_system: ["Exact HEAD GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0066 / PR #94."]
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close or revert scoped candidate; no migration."
