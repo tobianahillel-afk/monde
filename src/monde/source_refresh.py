@@ -87,3 +87,44 @@ def refresh_documents(world: WorldMini, documents: list[dict]):
         "source_report_revisions": corrections,
         "replayed_assertions": replayed,
     }
+
+
+def preview_documents(world: WorldMini, documents: list[dict]) -> dict:
+    """Inspect later source reports without mutating or saving a world snapshot."""
+    from .source_delta import source_delta
+
+    candidate, counts = refresh_documents(world, documents)
+    delta = source_delta(world, candidate)
+    snapshot = candidate.export()
+    assertions = {row["id"]: row for row in snapshot["assertions"]}
+    evidence = {row["id"]: row for row in snapshot["evidence"]}
+    changes = []
+    for row in delta["new_reports"]:
+        current = assertions[row["assertion_id"]]
+        previous = assertions.get(row["supersedes"])
+        capture = evidence[row["evidence_id"]]
+        changes.append({
+            "status": ("SOURCE_REPORT_REVISION" if previous
+                       else "NEW_SOURCE_REPORT"),
+            "assertion_id": current["id"],
+            "source_id": row["source_id"],
+            "source_locator": capture["locator"],
+            "entity": current["entity"],
+            "attribute": current["attribute"],
+            "kind": current["kind"],
+            "known_at": current["known_at"],
+            "captured_at": capture["captured_at"],
+            "valid_from": current["valid_from"],
+            "valid_to": current["valid_to"],
+            "supersedes": current["supersedes"],
+            "previous_reported_value": previous["value"] if previous else None,
+            "reported_value": current["value"],
+        })
+    return {
+        "operation": "PREVIEW_SOURCE_MANIFEST",
+        "world": "OBSERVED",
+        "status": "PREVIEW_NOT_SAVED",
+        **counts,
+        "added_by_source": delta["sources"],
+        "new_reports": changes,
+    }

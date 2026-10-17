@@ -1232,6 +1232,8 @@ def main(argv=None) -> int:
                            help="import source-attributed 2D GeoJSON points")
     selection.add_argument("--ingest-csv", metavar="POINTS_CSV",
                            help="import explicitly attributed local WGS84 CSV Points")
+    selection.add_argument("--preview-source-manifest", metavar="DATASETS_JSON",
+                            help="preview source refresh and earlier reported values without saving")
     selection.add_argument("--refresh-source-manifest", metavar="DATASETS_JSON",
                             help="append a later source capture to a saved state; keep old reports")
     selection.add_argument("--ingest-csv-manifest", "--ingest-source-manifest",
@@ -1277,6 +1279,30 @@ def main(argv=None) -> int:
     try:
         geo_metadata = (args.source_id, args.source_locator, args.captured_at,
                         args.valid_from, args.valid_to, args.source_event_at)
+        if args.preview_source_manifest:
+            if (not args.fixture or args.state_out or args.replace_state
+                    or any(v is not None for v in geo_metadata)
+                    or any(v is not None for v in
+                           (args.csv_id_column, args.csv_lon_column,
+                            args.csv_lat_column))
+                    or args.entity is not None or args.known_at is not None
+                    or args.at is not None or args.timeline_from is not None
+                    or args.timeline_to is not None
+                    or args.knowledge_timeline_from is not None
+                    or args.compare_known_at is not None or args.compare_at is not None
+                    or args.updates_from is not None or args.equals_json is not None
+                    or args.source_attribute is not None):
+                parser.error("preview requires --fixture; no output, query or replace flags")
+            from .csv_points import documents_from_manifest
+            from .source_refresh import preview_documents
+            # Manifest conversion checks source file paths against a destination.
+            # The read-only snapshot path is the exclusion target, not an output.
+            batches, features = documents_from_manifest(
+                args.preview_source_manifest, output_path=args.fixture)
+            result = preview_documents(WorldMini.read(args.fixture), batches)
+            print(json.dumps({"features": features, **result},
+                             ensure_ascii=False, sort_keys=True, allow_nan=False))
+            return 0
         if args.refresh_source_manifest:
             if (not args.fixture or not args.state_out or args.replace_state
                     or any(v is not None for v in geo_metadata)

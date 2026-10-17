@@ -45,3 +45,23 @@ assertion count, distinct entity count, attributes and timestamp ranges.
 Reports captured after the cutoff and assertions learned later are excluded.
 This **read-only** inventory does not modify the original datasets or
 persistent snapshot and does not imply truth, confidence or physical movement.
+
+
+## Preview a source capture without changing saved state (WORK-0044)
+
+Inspect source-reported changes, including before/after values and the
+original source locator, **before** deciding to save another world snapshot:
+
+```sh
+PYTHONPATH=src python3 -m monde.world \
+  --fixture previous-world.json \
+  --preview-source-manifest updated-sources.json
+```
+
+The result is a JSON report labeled `PREVIEW_NOT_SAVED`. No output state is
+created or overwritten. Both earlier and incoming values are **source claims**,
+not reconciled physical truth. Missing rows never imply that features were
+deleted. Invalid, ambiguous, or stale captures reject without output state.
+The analyst can then run the existing `--refresh-source-manifest`
+command with a new `--state-out` after reviewing the evidence.
+Changing the manifest between preview and refresh requires a new inspection.
