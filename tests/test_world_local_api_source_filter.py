@@ -124,5 +124,39 @@ class SourceLensHTTPTests(unittest.TestCase):
             self.assertEqual(json.loads(body), {"error": "invalid_query"})
 
 
+    def test_source_qualified_xyz_tile_retains_original_evidence_and_query_status(self):
+        tile = {"z": "8", "x": "129", "y": "88", "at": AT, "known_at": K1}
+        for source, entities in (("survey-east", {"site-a"}), ("survey-west", set())):
+            with self.subTest(source=source):
+                status, headers, data = self.fetch("/tile", {**tile, "source": source})
+                self.assertEqual(status, 200)
+                payload = json.loads(data)
+                self.assertEqual(payload["monde_source_filter"], source)
+                self.assertEqual({f["properties"]["entity"]
+                                  for f in payload["features"]}, entities)
+                self.assertEqual({f["properties"]["source_id"]
+                                  for f in payload["features"]}, {source} if entities else set())
+                expected_status = "MATCHES" if entities else "NO_MATCHES"
+                self.assertEqual(payload["monde_bbox_query"]["status"], expected_status)
+                self.assertEqual(payload["monde_tile_query"]["status"], expected_status)
+                self.assertEqual(payload["monde_bbox_query"]["total_matching_entities"],
+                                 len(entities))
+                self.assertEqual(headers["Cache-Control"], "no-store")
+
+    def test_xyz_source_filter_unfiltered_compatibility_and_invalid_parameters(self):
+        tile = {"z": "8", "x": "129", "y": "88", "at": AT, "known_at": K1}
+        original = self.world.export_geojson_tile(8, 129, 88, AT, K1)
+        self.assertEqual(json.loads(self.fetch("/tile", tile)[2]), original)
+        self.assertEqual(json.loads(self.fetch("/tile", {**tile, "source": ""})[2]),
+                         original)
+        for bad in ("../survey-east", "a b", "<script>", "x" * 100):
+            status, _, raw = self.fetch("/tile", {**tile, "source": bad})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        status, _, raw = self.fetch("/tile", {**tile, "source": "survey-east", "extra": "x"})
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+
 if __name__ == "__main__":
     unittest.main()
