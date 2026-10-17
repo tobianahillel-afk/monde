@@ -124,6 +124,55 @@ class SourceLensHTTPTests(unittest.TestCase):
             self.assertEqual(json.loads(body), {"error": "invalid_query"})
 
 
+    def test_source_directory_json_and_browser_history_navigation(self):
+        code, headers, body = self.fetch("/sources", {})
+        self.assertEqual(code, 200)
+        directory = json.loads(body)
+        self.assertEqual(directory["scope"],
+                         "ALL_SAVED_ORIGINAL_REPORTS_NOT_CURRENT_STATE")
+        self.assertEqual(directory["total_sources"], 2)
+        self.assertEqual([row["source_id"] for row in directory["sources"]],
+                         ["survey-east", "survey-west"])
+        east, west = directory["sources"]
+        self.assertEqual((east["evidence_count"], east["assertion_count"],
+                          east["geo_point_assertion_count"], east["entity_count"]),
+                         (2, 2, 2, 2))
+        self.assertEqual((west["evidence_count"], west["assertion_count"],
+                          west["geo_point_assertion_count"], west["entity_count"]),
+                         (1, 1, 1, 1))
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        status, page_headers, page = self.fetch("/explore", {})
+        self.assertEqual(status, 200)
+        self.assertIn(b"Browse original source directory (2 sources)", page)
+        self.assertIn(b'name="view" value="source-history"', page)
+        self.assertIn(b'name="source" value="survey-east"', page)
+        self.assertIn(b'action="/inspect"', page)
+        self.assertIn(b'name="known_at" required', page)
+        self.assertEqual(page_headers["Cache-Control"], "no-store")
+
+    def test_source_directory_rejects_parameters_and_preserves_snapshot(self):
+        for params in ({"source": "survey-east"}, {"at": AT}, {"unexpected": "1"}):
+            with self.subTest(params=params):
+                status, _, body = self.fetch("/sources", params)
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        self.assertEqual(self.fetch("/sources", {})[0], 200)
+
+    def test_source_directory_html_escapes_original_ids(self):
+        from monde.local_api import _explorer_html
+        malicious = 'bad"><img src=x onerror=alert(1)>'
+        directory = {"total_sources": 1, "sources": [
+            {"source_id": malicious, "evidence_count": 1,
+             "assertion_count": 1, "geo_point_assertion_count": 0,
+             "entity_count": 1}
+        ]}
+        page = _explorer_html((), directory)
+        self.assertNotIn('<img src=x onerror=', page)
+        self.assertIn('&lt;img', page)
+        self.assertNotIn('value="' + malicious + '"', page)
+
+
+
 class HistoricalSourceLensHTTPTests(unittest.TestCase):
     def setUp(self):
         from tests.test_world_geojson_changes import model, correct
