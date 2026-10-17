@@ -103,7 +103,8 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/tile", "/nearest", "/radius", "/timeline", "/compare-knowledge",
                             "/compare-world", "/source-history", "/disagreement-changes",
                             "/knowledge-updates", "/knowledge-timeline",
-                            "/world-knowledge-changes"}:
+                            "/world-knowledge-changes", "/map-disagreements",
+                            "/map-knowledge-changes", "/map-world-changes"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -161,6 +162,20 @@ def create_server(state: str | Path, port: int = 0, *,
                     output = world.source_disagreement_changes(
                         args["at"], args["from_known_at"], args["to_known_at"],
                         args.get("attribute"))
+                elif path == "/map-disagreements":
+                    _require(args, {"bbox", "at", "known_at"})
+                    output = world.export_geojson_disagreements(
+                        args["at"], args["known_at"], _bbox(args["bbox"]))
+                elif path == "/map-knowledge-changes":
+                    _require(args, {"bbox", "at", "from_known_at", "to_known_at"})
+                    output = world.export_geojson_bbox_knowledge_changes(
+                        _bbox(args["bbox"]), args["at"],
+                        args["from_known_at"], args["to_known_at"])
+                elif path == "/map-world-changes":
+                    _require(args, {"bbox", "from_at", "to_at", "known_at"})
+                    output = world.export_geojson_bbox_world_changes(
+                        _bbox(args["bbox"]), args["from_at"],
+                        args["to_at"], args["known_at"])
                 elif path == "/map":
                     _require(args, {"bbox", "at", "known_at"})
                     output = world.export_geojson_bbox(_bbox(args["bbox"]),

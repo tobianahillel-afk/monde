@@ -25,6 +25,18 @@ Endpoints (GET, all JSON):
   reported attributes, preserving contradictory reports and explicit UNKNOWN.
 - `/disagreements?at=...&known_at=...&attribute=floors` — distinct
   cross-source values; `attribute` is optional.
+- `/map-disagreements?bbox=2.3,48.8,2.4,48.9&at=T&known_at=K` —
+  original source Point disagreements within a viewport. Disagreement is
+  calculated across *all* sources before clipping, so an offscreen opposing
+  report still identifies an on-screen conflict. No consensus position.
+- `/map-knowledge-changes?bbox=2.3,48.8,2.4,48.9&at=T&from_known_at=K1&to_known_at=K2` —
+  entering/leaving source Point assertions at fixed world time. Entities are
+  selected if they intersect the viewport at either knowledge cutoff; changed
+  positions outside the viewport are retained with evidence and IDs.
+  Learning a new report does not prove physical movement.
+- `/map-world-changes?bbox=2.3,48.8,2.4,48.9&from_at=T1&to_at=T2&known_at=K` —
+  observed source *reports* whose validity changes at fixed knowledge cutoff.
+  These are not verified physical movements.
 - `/map?bbox=1,45,6,51&at=...&known_at=...` — WorldMini's existing
   source-report GeoJSON, including conflicting coordinates.
 - `/tile?z=5&x=16&y=11&at=...&known_at=...` — GeoJSON for a WGS84
