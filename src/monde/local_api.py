@@ -6,10 +6,11 @@ times. This is a local integration surface, not a public or writable service.
 from __future__ import annotations
 
 import argparse
+from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 from .world import WorldMini
 
@@ -82,9 +83,97 @@ padding:10px 14px;font:inherit;font-weight:bold;cursor:pointer}
 knowledge-time cutoffs. Map positions are evidence, not verified physical
 truth. No external requests, data upload or saved-state changes.</p>
 <main>""" + ''.join(forms) + """</main>
+<p><a href="/inspect">Inspect original entity reports and source histories</a></p>
 <p>Local read-only interface. Time cutoffs must be timezone-aware ISO-8601.</p>
 </body></html>"""
 
+
+
+
+_INSPECTION_FORMS = (
+    ("entity", "Entity evidence dossier", ("entity", "at", "known_at")),
+    ("reports", "Source reports for an attribute", ("entity", "attribute", "at", "known_at")),
+    ("source-history", "Original source correction history", ("source", "known_at")),
+)
+_INSPECTION_LABELS = {
+    "entity": "Entity ID", "attribute": "Attribute", "source": "Original source ID",
+    "at": "World time (ISO-8601 with timezone)",
+    "known_at": "Knowledge cutoff (ISO-8601 with timezone)",
+}
+_INSPECTION_ROUTES = {
+    "entity": "/entity", "reports": "/reports", "source-history": "/source-history",
+}
+
+
+def _inspection_html(payload: dict | None, mode: str | None = None,
+                     params: dict[str, str] | None = None) -> str:
+    """A readable view of untouched WorldMini output; no inference or browser scripts."""
+    if payload is None:
+        parts = []
+        for name, title, fields in _INSPECTION_FORMS:
+            inputs = ''.join(
+                '<label>' + escape(_INSPECTION_LABELS[field]) +
+                '<input name="' + field + '" required' +
+                (' value="building-001"' if field == "entity" else
+                 ' value="floors"' if field == "attribute" else
+                 ' value="city-registry"' if field == "source" else
+                 ' placeholder="2026-01-02T00:00:00Z"') +
+                '></label>' for field in fields)
+            parts.append('<form action="/inspect" method="get"><h2>' +
+                         escape(title) + '</h2><input type="hidden" name="view" value="' +
+                         name + '">' + inputs +
+                         '<button type="submit">Inspect evidence</button></form>')
+        content = '<h1>Inspect source evidence</h1><p>Original reports, not verified facts. ' \
+                  'World time and knowledge time are distinct; an empty result is UNKNOWN, ' \
+                  'not evidence of absence.</p><main>' + ''.join(parts) + '</main>'
+    else:
+        if mode not in _INSPECTION_ROUTES or params is None:
+            raise ValueError("unsupported inspection")
+        items = []
+        if mode == "entity":
+            for attribute, value in payload["attributes"].items():
+                items.extend((attribute, report) for report in value["reports"])
+        else:
+            items.extend((report.get("attribute", params.get("attribute", "")), report)
+                         for report in payload["reports"])
+        records = []
+        for attribute, report in items:
+            title = " / ".join(str(report.get(field, "")) for field in
+                               ("source_id", "assertion_id"))
+            records.append('<details><summary>' + escape(attribute) + ': ' +
+                           escape(title) + '</summary><pre>' +
+                           escape(json.dumps(report, ensure_ascii=False, sort_keys=True,
+                                             indent=2, allow_nan=False)) +
+                           '</pre></details>')
+        source_url = _INSPECTION_ROUTES[mode] + "?" + urlencode({
+            key: value for key, value in params.items() if key != "view"})
+        title = next(label for name, label, _ in _INSPECTION_FORMS if name == mode)
+        content = ('<h1>' + escape(title) + '</h1><p class="warning">Original '
+                   'source assertions only: no reconciliation, inferred truth or '
+                   'proof of absence. Corrections remain visible at the selected '
+                   'knowledge cutoff.</p><p>World: ' +
+                   escape(str(payload.get("world", "OBSERVED"))) +
+                   ' · Status: ' + escape(str(payload.get("status", "SOURCE_REPORTS"))) +
+                   ' · Reports: ' + str(len(items)) + '</p><p><a href="' +
+                   escape(source_url, quote=True) +
+                   '">View complete original JSON response</a></p>' +
+                   (''.join(records) if records else
+                    '<p role="status">UNKNOWN — no matching source report at these cutoffs.</p>'))
+    return ('''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MONDE Mini — Evidence Inspector</title>
+<style>:root{color-scheme:dark;background:#101827;color:#ebf2f9;font-family:system-ui,sans-serif}
+body{margin:auto;padding:24px;max-width:1050px}main{display:grid;gap:14px;
+grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+form,details{border:1px solid #48677e;border-radius:10px;padding:16px;background:#182436}
+label{display:block;margin:12px 0}input{display:block;width:100%;margin-top:5px;
+padding:9px;background:#253c50;color:white;border:1px solid #7090aa}
+button{padding:10px;cursor:pointer;background:#66e0c0;color:#073d35;border:0}
+summary{cursor:pointer;overflow-wrap:anywhere}pre{overflow:auto;white-space:pre-wrap;
+overflow-wrap:anywhere}a{color:#8ee6d3}.warning{border-left:3px solid #ffc873;padding:12px}
+:focus-visible{outline:3px solid #ffc870;outline-offset:2px}</style></head><body>
+<nav><a href="/explore">Return to source maps</a></nav>''' +
+            content + '</body></html>')
 
 
 def _parameters(target: str, path: str) -> dict[str, str]:
@@ -179,6 +268,26 @@ def create_server(state: str | Path, port: int = 0, *,
             self.end_headers()
             self.wfile.write(body)
 
+        def _inspection(self, payload: dict | None, mode: str | None = None,
+                        params: dict[str, str] | None = None):
+            body = _inspection_html(payload, mode, params).encode("utf-8")
+            if len(body) > max_response_bytes:
+                return self._reply(413, {"error": "response_too_large"})
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("Content-Security-Policy",
+                             "default-src 'none'; script-src 'none'; "
+                             "style-src 'unsafe-inline'; connect-src 'none'; "
+                             "img-src 'none'; object-src 'none'; base-uri 'none'; "
+                             "frame-ancestors 'none'; form-action 'self'")
+            self.end_headers()
+            self.wfile.write(body)
+
         def _host_valid(self):
             # Exact loopback Host also excludes DNS-rebinding origins.
             hosts = self.headers.get_all("Host", [])
@@ -198,7 +307,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/compare-world", "/source-history", "/disagreement-changes",
                             "/knowledge-updates", "/knowledge-timeline",
                             "/world-knowledge-changes", "/map-disagreements",
-                            "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore"}:
+                            "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore", "/inspect"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -270,6 +379,27 @@ def create_server(state: str | Path, port: int = 0, *,
                     output = world.export_geojson_bbox_world_changes(
                         _bbox(args["bbox"]), args["from_at"],
                         args["to_at"], args["known_at"])
+                elif path == "/inspect":
+                    if not args:
+                        return self._inspection(None)
+                    mode = args.get("view")
+                    if mode == "entity":
+                        _require(args, {"view", "entity", "at", "known_at"})
+                        output = world.entity_snapshot(
+                            args["entity"], args["at"], args["known_at"])
+                    elif mode == "reports":
+                        _require(args, {"view", "entity", "attribute", "at", "known_at"})
+                        output = world.query(args["entity"], args["attribute"],
+                                             args["at"], args["known_at"])
+                    elif mode == "source-history":
+                        _require(args, {"view", "source", "known_at"},
+                                 {"entity", "attribute"})
+                        output = world.source_history(
+                            args["source"], args["known_at"],
+                            args.get("entity"), args.get("attribute"))
+                    else:
+                        raise ValueError("unsupported inspection mode")
+                    return self._inspection(output, mode, args)
                 elif path == "/explore":
                     _require(args, set())
                     return self._html(None)

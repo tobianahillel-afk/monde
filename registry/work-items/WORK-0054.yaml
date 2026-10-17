@@ -1,0 +1,55 @@
+id: WORK-0054
+title: "Inspect original entity evidence and source revisions from a local browser"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini local integration"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Let users inspect the original non-spatial source assertions, evidence
+  provenance and corrections alongside the existing browser maps.
+scope:
+  in: ["Read-only entity/attribute/source-history browser inspections",
+       "Human-readable preserved original evidence and UNKNOWN states",
+       "Loopback HTTP integration and HTML-escaping tests"]
+  out: ["New world model or reconciliation algorithm", "Public website",
+        "Mutable routes", "External API", "New JS framework"]
+acceptance_criteria:
+  - {id: AC-1, description: "Open entity dossiers, attribute reports and original source history in a local browser using existing WorldMini queries.", status: NOT_STARTED}
+  - {id: AC-2, description: "Preserve original source IDs, assertion/evidence IDs, validity and knowledge timestamps, including corrections and UNKNOWN.", status: NOT_STARTED}
+  - {id: AC-3, description: "Read-only HTTP, XSS-safe no-script HTML, strict input, provenance parity and immutable saved state are tested.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0053]
+read_before: [AGENTS.md, src/monde/local_api.py, src/monde/world.py,
+              docs/03_ARCHITECTURE/world-mini-local-api.md]
+reuses: [WorldMini.entity_snapshot, WorldMini.query, WorldMini.source_history,
+         monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Render existing bitemporal source reports safely in local HTML.", depends_on: [], expected_files: [src/monde/local_api.py], status: IN_REVIEW}
+    - {id: T2, description: "Prove original model/HTTP parity, strict inputs and escaping.", depends_on: [T1], expected_files: [tests/test_world_local_api_inspection.py], status: IN_REVIEW}
+    - {id: T3, description: "Document browser evidence-inspector semantics and use.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_inspection.py]
+  real_system: ["Exact-HEAD GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged PR #77 / WORK-0053 and predecessors; not on main."]
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close this small stacked PR or revert it; no state migrations."
