@@ -46,7 +46,7 @@ MAX_DATASETS = 16
 
 
 def documents_from_manifest(path, *, output_path):
-    """Convert source-specific local CSVs for one atomic WorldMini transaction."""
+    """Convert source-specific local datasets for one atomic WorldMini transaction."""
     import json
     import os
     from .geojson import to_document
@@ -68,7 +68,8 @@ def documents_from_manifest(path, *, output_path):
     if not isinstance(datasets, list) or not 1 <= len(datasets) <= MAX_DATASETS:
         raise ValueError("CSV manifest requires 1 to 16 datasets")
     required = {"source_id", "locator", "captured_at", "valid_from"}
-    optional = {"csv", "geojson", "kml", "kmz", "gpx", "gpkg", "gpkg_layer", "valid_to", "source_event_at",
+    optional = {"csv", "geojson", "kml", "kmz", "gpx", "gpkg", "gpkg_layer",
+                "gpkg_all_layers", "valid_to", "source_event_at",
                 "id_column", "lon_column", "lat_column"}
     documents, features = [], 0
     for entry in datasets:
@@ -79,10 +80,18 @@ def documents_from_manifest(path, *, output_path):
         if len(formats) != 1:
             raise ValueError("each dataset requires exactly one csv, geojson, kml, kmz, gpx or gpkg input")
         kind = formats[0]
-        if (kind != "gpkg" and "gpkg_layer" in entry) or (
-                kind == "gpkg" and (not isinstance(entry.get("gpkg_layer"), str)
-                                    or not entry["gpkg_layer"])):
-            raise ValueError("gpkg_layer is required only for gpkg datasets")
+        if kind != "gpkg":
+            if "gpkg_layer" in entry or "gpkg_all_layers" in entry:
+                raise ValueError("GeoPackage layer selection requires gpkg input")
+        else:
+            all_layers = entry.get("gpkg_all_layers") is True
+            if "gpkg_all_layers" in entry and not all_layers:
+                raise ValueError("gpkg_all_layers must be true when present")
+            layer = entry.get("gpkg_layer")
+            if (("gpkg_layer" in entry and
+                 (not isinstance(layer, str) or not layer.strip()))
+                    or bool(layer) == all_layers):
+                raise ValueError("choose exactly one gpkg_layer or gpkg_all_layers")
         if kind != "csv" and {"id_column", "lon_column", "lat_column"} & entry.keys():
             raise ValueError("CSV column options are invalid for GeoJSON/KML/GPX")
         source_path = entry[kind]
@@ -92,6 +101,21 @@ def documents_from_manifest(path, *, output_path):
         source_file = os.path.realpath(os.path.join(os.path.dirname(manifest), source_path))
         if source_file == output:
             raise ValueError("output cannot overwrite source dataset")
+        if kind == "gpkg" and entry.get("gpkg_all_layers") is True:
+            # Reuse the strict original per-layer reader; preserve each row FID
+            # and the per-layer source namespace within a mixed-source manifest.
+            from .geopackage_points import documents_for_layers
+            layers = documents_for_layers(
+                source_file, source_id=entry["source_id"],
+                locator=entry["locator"], captured_at=entry["captured_at"],
+                valid_from=entry["valid_from"],
+                valid_to=entry.get("valid_to"),
+                source_event_at=entry.get("source_event_at"))
+            features += sum(len(doc["evidence"]) for doc in layers)
+            if features > MAX_ROWS:
+                raise ValueError("source manifest total feature limit exceeded (50000)")
+            documents.extend(layers)
+            continue
         if kind == "csv":
             geojson = to_geojson(
                 source_file, id_column=entry.get("id_column", "id"),
@@ -110,7 +134,7 @@ def documents_from_manifest(path, *, output_path):
             geojson = WorldMini.load_document(source_file)
         features += len(geojson["features"])
         if features > MAX_ROWS:
-            raise ValueError("source manifest total Point limit exceeded (50000)")
+            raise ValueError("source manifest total feature limit exceeded (50000)")
         documents.append(to_document(
             geojson, source_id=entry["source_id"], locator=entry["locator"],
             captured_at=entry["captured_at"], valid_from=entry["valid_from"],
