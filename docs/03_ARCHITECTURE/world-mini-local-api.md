@@ -53,8 +53,17 @@ Endpoints (GET, all JSON):
   that source** inside the bbox at either cutoff; both old/new source reports
   for qualifying entities remain, even if the other position is offscreen.
   Source-specific counts exclude unrelated sources. Time differences are
-  source reports, never verified physical changes. Disagreements, nearest
-  and radius remain explicitly unfiltered.
+  source reports, never verified physical changes. For disagreements,
+  `/map-disagreements?bbox=...&at=T&known_at=K&source=survey-1` and
+  `/viewer?view=disagreements&...&source=survey-1` now focus on conflicts
+  involving the selected source while retaining **all original opposing
+  source assertions**, including offscreen reports. The selected source's
+  own conflicting Point must intersect the viewport: an opposing source
+  cannot qualify it by itself. The response marks this focus using
+  `monde_source_focus`, keeps `monde_conflicting_source_ids` and evidence
+  provenance, and updates counts. Without `source`, both disagreement
+  endpoints retain their previous behavior. Nearest and radius remain
+  unfiltered.
   The local `/explore` form suggests source IDs that have at least one original
   `geo_point` assertion in the saved snapshot. Up to 200 alphabetical IDs
   appear as native browser suggestions; manually entering any valid source ID
