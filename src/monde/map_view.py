@@ -107,6 +107,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 </section>
 <aside aria-label="Evidence explorer">
 <h2>Source evidence</h2>
+<div id="disagreement-change-panel" hidden aria-label="Knowledge-time source disagreements">
+<h2>Changes in cross-source reports</h2>
+<p class="subtle">Map markers show changed source Point assertions only, not verified physical change. Select a change for complete original before/after reports.</p>
+<p id="disagreement-change-summary" role="status"></p>
+<ul id="disagreement-change-list" aria-label="Entities with changing source disagreements"></ul>
+</div>
 <div id="preview-source-conflicts" hidden aria-label="Incoming source disagreements">
   <h2>Incoming cross-source disagreement warnings</h2>
   <p class="subtle">New source-reported claims only. Neither source is ranked as ground truth.
@@ -246,6 +252,30 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   var gpxClockSummary = document.getElementById("gpx-clock-summary");
   var exportTraceProfile = document.getElementById("export-trace-profile");
   var entities = document.getElementById("entities");
+  if (data.monde_disagreement_changes_view) {
+    var changes = data.monde_disagreement_changes_view;
+    var panel = document.getElementById("disagreement-change-panel");
+    panel.hidden = false;
+    document.getElementById("source-notice").textContent =
+      "Changes in ORIGINAL SOURCE disagreements, not physical movement or verified location. Only changed assertion positions are map markers; all original conflicting reports remain in the list.";
+    document.getElementById("disagreement-change-summary").textContent =
+      changes.counts.APPEARED + " appeared · " +
+      changes.counts.CHANGED + " changed · " +
+      changes.counts.RESOLVED + " resolved source contradictions (no ground-truth inference)";
+    changes.changes.forEach(function(item) {
+      var li = document.createElement("li");
+      var button = document.createElement("button");
+      button.type = "button";
+      button.textContent = item.change + " · " + item.entity + " / " + item.attribute;
+      button.addEventListener("click", function() {
+        entities.value = item.entity;
+        render();
+        details.textContent = JSON.stringify(item, null, 2);
+      });
+      li.appendChild(button);
+      document.getElementById("disagreement-change-list").appendChild(li);
+    });
+  }
   var capturedFrom = document.getElementById("captured-from");
   var capturedThrough = document.getElementById("captured-through");
   var timeline = document.getElementById("capture-timeline");
@@ -1573,7 +1603,8 @@ def render_map(document: dict) -> str:
 
 def automatic_source_bbox(world: WorldMini, at: str, known_at: str,
                           *, compare_at=None, compare_known_at=None,
-                          only_disagreements=False) -> list[float]:
+                          only_disagreements=False,
+                          selected_entities=None) -> list[float]:
     """Fit source reports visible at either time cutoff, not an inferred place.
 
     Find the shortest longitude arc by excluding the largest circular gap.
@@ -1588,7 +1619,8 @@ def automatic_source_bbox(world: WorldMini, at: str, known_at: str,
     points = [feature["geometry"]["coordinates"]
               for instant, cutoff in snapshots
               for feature in (world.export_geojson_disagreements(instant, cutoff)
-                            if only_disagreements else world.export_geojson(instant, cutoff))["features"]]
+                            if only_disagreements else world.export_geojson(instant, cutoff))["features"]
+              if selected_entities is None or feature["properties"]["entity"] in selected_entities]
     if not points:
         raise ValueError(("no conflicting source-reported Points" if only_disagreements
                           else "no known source Points") + " at these time cutoffs; "
@@ -1647,11 +1679,16 @@ def main(argv=None) -> int:
     comparison.add_argument("--compare-at", help="earlier world-time instant at fixed knowledge")
     parser.add_argument("--only-disagreements", action="store_true",
                         help="show only entities with conflicting Point reports from distinct sources")
+    parser.add_argument("--disagreement-changes", action="store_true",
+                        help="map original-source Point contradictions that change across knowledge time")
     parser.add_argument("--output", required=True, help="new output HTML path; no overwrite")
     args = parser.parse_args(argv)
     try:
-        if args.only_disagreements and (args.compare_at or args.compare_known_at):
-            raise ValueError("--only-disagreements cannot be combined with time comparison")
+        if args.only_disagreements and (args.compare_at or args.compare_known_at
+                                        or args.disagreement_changes):
+            raise ValueError("--only-disagreements cannot be combined with time comparison or disagreement changes")
+        if args.disagreement_changes and (not args.compare_known_at or args.compare_at):
+            raise ValueError("--disagreement-changes requires --compare-known-at, not world-time comparison")
         source_args = ("source_id", "source_locator", "captured_at",
                        "valid_from", "valid_to", "source_event_at")
         if args.gpkg:
@@ -1702,12 +1739,21 @@ def main(argv=None) -> int:
             world.append_documents(documents)
         else:
             world = WorldMini.read(args.state)
+        disagreements = (world.source_disagreement_changes(
+            args.at, args.compare_known_at, args.known_at, "geo_point")
+            if args.disagreement_changes else None)
+        changed_entities = ({row["entity"] for row in disagreements["changes"]}
+                            if disagreements is not None else None)
         if args.bbox == "auto":
+            if disagreements is not None and not changed_entities:
+                raise ValueError("no changed cross-source Point disagreements; "
+                                 "provide an explicit --bbox to show an empty view")
             bounds = automatic_source_bbox(
                 world, args.at, args.known_at,
                 compare_at=args.compare_at,
                 compare_known_at=args.compare_known_at,
-                only_disagreements=args.only_disagreements)
+                only_disagreements=args.only_disagreements,
+                selected_entities=changed_entities)
         else:
             parts = args.bbox.split(",")
             if len(parts) != 4:
@@ -1719,6 +1765,30 @@ def main(argv=None) -> int:
                 bounds, args.at, args.compare_known_at, args.known_at)
             if args.compare_known_at else
             world.export_geojson_bbox(bounds, args.at, args.known_at))
+        if disagreements is not None:
+            # Reuse the knowledge-change Point exporter; full competing report
+            # groups are embedded in the list even if a Point was unchanged.
+            by_entity = {row["entity"]: row for row in disagreements["changes"]}
+            geojson["features"] = [
+                f for f in geojson["features"] if f["properties"]["entity"] in by_entity
+            ]
+            for feature in geojson["features"]:
+                feature["properties"]["monde_disagreement_transition"] = (
+                    by_entity[feature["properties"]["entity"]]["change"])
+            query = geojson["monde_bbox_changes_query"]
+            query["total_changed_features"] = len(geojson["features"])
+            query["total_matching_entities"] = len({
+                f["properties"]["entity"] for f in geojson["features"]
+                if f["properties"]["monde_inside_bbox"]
+            })
+            query["status"] = "CHANGES" if geojson["features"] else "NO_CHANGES"
+            geojson["monde_disagreement_changes_view"] = {
+                "basis": "ORIGINAL_SOURCE_DISAGREEMENT_KNOWLEDGE_CHANGES_ONLY",
+                "valid_at": args.at, "from_known_at": args.compare_known_at,
+                "to_known_at": args.known_at, "counts": disagreements["counts"],
+                "changes": disagreements["changes"],
+                "map_scope": "CHANGED_SOURCE_POINT_ASSERTIONS_ONLY",
+            }
         if args.only_disagreements:
             # Find conflicts globally, before viewport filtering. A contrary
             # out-of-window source report is retained for a qualifying entity.
