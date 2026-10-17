@@ -1,6 +1,7 @@
 """One-command all-layer GeoPackage -> bitemporal WorldMini offline evidence."""
 import json
 import os
+import shutil
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -134,6 +135,57 @@ class AllGeoPackageLayersTests(unittest.TestCase):
             result = self.cli(*self.direct(source), "--output", output)
             self.assertNotEqual(result.returncode, 0)
             self.assertFalse(output.exists())
+
+
+    def test_offline_browser_can_toggle_multiple_original_layers_and_restore_all(self):
+        # Exercise the generated single-file HTML in an actual browser, not a
+        # simulated UI. Filtering is shared by map, search, conflicts and export.
+        browser = (shutil.which("google-chrome") or shutil.which("chromium")
+                   or shutil.which("chromium-browser"))
+        if not browser:
+            self.skipTest("Chromium not installed (GitHub Actions includes it)")
+        with tempfile.TemporaryDirectory() as d:
+            source = make_source(Path(d) / "survey.gpkg")
+            out = Path(d) / "map.html"
+            result = self.cli(*self.direct(source), "--output", out)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            page = out.read_text(encoding="utf-8")
+            probe = r"""<script>
+(function(){
+  var boxes = Array.from(document.querySelectorAll(
+      '#gpkg-layer-options input[type="checkbox"]'));
+  var count = function(){return document.querySelectorAll('#points circle').length;};
+  var total = count();
+  if (boxes.length !== 3 || total !== 34) {
+    document.body.dataset.gpkgLayerToggleTest = "missing-initial";
+    return;
+  }
+  boxes[0].click();
+  var oneHidden = count();
+  var summary = document.getElementById('gpkg-layer-summary').textContent;
+  var filtered = oneHidden > 0 && oneHidden < total &&
+    !boxes[0].checked && summary.includes('2 of 3') &&
+    !document.getElementById('gpkg-all-layers').disabled;
+  boxes[1].click();
+  boxes[2].click();
+  var allHidden = count() === 0 && !boxes.some(function(x){return x.checked;});
+  document.getElementById('gpkg-all-layers').click();
+  var restored = count() === total && boxes.every(function(x){return x.checked;}) &&
+    document.getElementById('gpkg-all-layers').disabled;
+  document.body.dataset.gpkgLayerToggleTest =
+    filtered && allHidden && restored ? "passed" : "failed";
+})();
+</script>"""
+            out.write_text(page.replace("</body>", probe + "\n</body>"),
+                           encoding="utf-8")
+            rendered = subprocess.run(
+                [browser, "--headless", "--no-sandbox", "--disable-gpu",
+                 "--disable-dev-shm-usage", "--virtual-time-budget=2000",
+                 "--dump-dom", out.as_uri()],
+                capture_output=True, text=True, timeout=35)
+            self.assertEqual(rendered.returncode, 0, rendered.stderr[-1500:])
+            self.assertIn('data-gpkg-layer-toggle-test="passed"',
+                          rendered.stdout)
 
 
 if __name__ == "__main__":

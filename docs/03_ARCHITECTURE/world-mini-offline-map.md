@@ -685,3 +685,20 @@ Existing single-layer and explicit multi-dataset manifest modes are unchanged.
 
 Original layer/FID pairs are also visible as `monde_gpkg_source_layer` and
 `monde_gpkg_source_fid` in the offline map's source-evidence features.
+
+
+## Compare original GeoPackage source layers interactively
+
+For offline maps made from two or more original GeoPackage layers, the source
+evidence sidebar displays a checkbox for each **original source layer**. All
+layers are initially visible. Untick one or more to hide its source reports
+from the map, evidence list, fit-to-reports, disagreements and visible exports.
+`Show all layers` restores them without re-reading or altering the GeoPackage.
+The existing Source selector can still narrow the display to one exact source.
+Exports include the selected source-layer identifiers in their filter metadata.
+
+A hidden layer remains in the immutable embedded evidence snapshot. Visibility
+is an analyst presentation filter, **not** a claim that a source, feature,
+physical structure or place is absent. All features keep their original source
+identity, layer, row ID and temporal provenance. No online service or additional
+library is needed.

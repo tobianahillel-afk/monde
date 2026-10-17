@@ -110,6 +110,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 <button id="export-visible-csv" type="button" disabled>Export visible CSV</button>
 <button id="export-dossier" type="button" disabled>Export entity evidence dossier</button></div>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
+<div id="gpkg-layer-control" class="controls" hidden>
+  <strong>Original GeoPackage layers</strong>
+  <div id="gpkg-layer-options" role="group" aria-label="Toggle original GeoPackage source layers"></div>
+  <button id="gpkg-all-layers" type="button" disabled>Show all layers</button>
+</div>
+<p id="gpkg-layer-summary" class="subtle" role="status" aria-live="polite" hidden></p>
 <div class="controls" id="trace-filter-control" hidden>
 <label for="trace-filter">GPX source trace / segment</label>
 <select id="trace-filter" aria-label="Select original GPX source trace and segment"><option value="">All source reports</option></select>
@@ -486,6 +492,50 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     var option = document.createElement("option");
     option.value = id; label(option,id); sources.appendChild(option);
   });
+  // A GeoPackage layer is a separate original source, not a verified world
+  // layer. Keep the source dropdown for exact source filtering; this control
+  // allows multiple original GeoPackage layers to be compared side by side.
+  var gpkgLayerOptions = document.getElementById("gpkg-layer-options");
+  var gpkgLayerSummary = document.getElementById("gpkg-layer-summary");
+  var gpkgAllButton = document.getElementById("gpkg-all-layers");
+  var gpkgLayerBySource = new Map();
+  features.forEach(function(f) {
+    var p = f.properties;
+    if (typeof p.monde_gpkg_source_layer === "string" &&
+        !gpkgLayerBySource.has(p.source_id)) {
+      gpkgLayerBySource.set(p.source_id,p.monde_gpkg_source_layer);
+    }
+  });
+  var gpkgLayers = Array.from(gpkgLayerBySource.entries()).sort(function(a,b){
+    return a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]);
+  });
+  var visibleGpkgSources = new Set(gpkgLayers.map(function(item){return item[0];}));
+  if (gpkgLayers.length > 1) {
+    document.getElementById("gpkg-layer-control").hidden = false;
+    gpkgLayerSummary.hidden = false;
+    gpkgLayers.forEach(function(item) {
+      var toggle = document.createElement("label");
+      var checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = true;
+      checkbox.dataset.sourceId = item[0];
+      toggle.appendChild(checkbox);
+      toggle.appendChild(document.createTextNode(item[1] + " · " + item[0]));
+      gpkgLayerOptions.appendChild(toggle);
+      checkbox.addEventListener("change", function() {
+        if (checkbox.checked) visibleGpkgSources.add(item[0]);
+        else visibleGpkgSources.delete(item[0]);
+        render();
+      });
+    });
+    gpkgAllButton.addEventListener("click", function() {
+      gpkgLayerOptions.querySelectorAll("input").forEach(function(checkbox) {
+        checkbox.checked = true;
+        visibleGpkgSources.add(checkbox.dataset.sourceId);
+      });
+      render();
+    });
+  }
   // Group only original source-reported samples. This does not imply movement.
   function traceKey(feature) {
     var p=feature.properties, trace=p.monde_gpx_trace;
@@ -827,6 +877,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       (!insideOnly.checked || p.monde_inside_bbox) &&
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
+      (!p.monde_gpkg_source_layer || gpkgLayers.length <= 1 ||
+        visibleGpkgSources.has(p.source_id)) &&
       (!traceFilter.value || traceKey(f) === traceFilter.value) &&
       ((ignoreEntity === true) || !entities.value || p.entity === entities.value) &&
       (ignoreCaptureDays || !capturedFrom.value ||
@@ -978,6 +1030,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
   });
   function render() {
     layer.replaceChildren(); list.replaceChildren(); comparisonList.replaceChildren();
+    if (gpkgLayers.length > 1) {
+      gpkgAllButton.disabled = visibleGpkgSources.size === gpkgLayers.length;
+      gpkgLayerSummary.textContent = String(visibleGpkgSources.size) + " of " +
+        String(gpkgLayers.length) + " original GeoPackage source layers selected. " +
+        "Hidden layers remain in the original evidence snapshot; no physical absence is inferred.";
+    }
     renderConflictNavigator();
     renderCaptureTimeline();
     visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
@@ -1089,6 +1147,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
     return {
       search: search.value.trim(),
       source_id: sources.value,
+      gpkg_visible_source_ids: gpkgLayers.length > 1 ?
+        Array.from(visibleGpkgSources).sort() : null,
+      gpkg_layer_filter_basis: gpkgLayers.length > 1 ?
+        "ORIGINAL_GPKG_SOURCE_LAYERS_NOT_VERIFIED_WORLD" : null,
       gpx_source_trace: traceFilter.value ? {
         source_id: availableTraces.get(traceFilter.value).source,
         kind: availableTraces.get(traceFilter.value).kind,
