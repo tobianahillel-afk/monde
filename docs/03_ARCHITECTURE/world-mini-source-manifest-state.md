@@ -107,3 +107,21 @@ saved. Original data and old snapshots are not overwritten. This is an
 optional semantic consistency check, not an exact raw-file-byte checksum,
 digital signature or assertion of physical truth. The existing unconfirmed
 refresh command remains available and unchanged.
+
+
+## Preview conflicting reports from different sources (WORK-0046)
+
+The existing \`--preview-source-manifest\` response also lists
+\`cross_source_disagreement_count\` and \`cross_source_disagreements\`.
+Before accepting a capture, analysts can now see each **newly recorded**
+value that differs from another source's report on the same entity and
+attribute during an overlapping source-validity interval. Each item
+preserves both assertion IDs, independent source IDs, the original values,
+knowledge cutoff and the precise overlap interval. Later known corrections
+of a source replace that source's earlier report when comparing; absence
+of a row never means retraction.
+
+This is a **warning about source-report disagreement**, not a confidence
+estimate, verified ground truth, physical motion or a merge decision. The
+existing preview digest and confirmed refresh command remain unchanged.
+The preview still does not save or rewrite a world snapshot.
