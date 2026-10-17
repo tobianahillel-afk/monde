@@ -124,7 +124,7 @@ class BrowserViewerTests(unittest.TestCase):
                 code, headers, response = self.fetch(query)
                 self.assertEqual(code, 200)
                 self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
-                self.assertEqual(response.decode("utf-8"), render_map(expected, inspector_links=True))
+                self.assertEqual(response.decode("utf-8"), render_map(expected, inspector_links=True, navigation=query))
                 self.assertIn(b"source-reported", response.lower())
                 self.assertEqual(headers["Content-Length"], str(len(response)))
                 self.assertEqual(headers["X-Frame-Options"], "DENY")
@@ -194,7 +194,7 @@ class BrowserViewerTests(unittest.TestCase):
             expected = disagreement_view(
                 model, [2.3, 48.8, 2.4, 48.9], AT, K1)
             self.assertEqual(status, 200)
-            self.assertEqual(body.decode("utf-8"), render_map(expected, inspector_links=True))
+            self.assertEqual(body.decode("utf-8"), render_map(expected, inspector_links=True, navigation=query))
             # The map intentionally keeps both original source positions:
             # one inside the requested viewport and its opposing offscreen report.
             self.assertEqual(len(expected["features"]), 2)
@@ -222,7 +222,7 @@ class BrowserViewerTests(unittest.TestCase):
                 empty_body.decode("utf-8"),
                 render_map(disagreement_view(
                     model, [10.0, 10.0, 11.0, 11.0], AT, K1),
-                    inspector_links=True))
+                    inspector_links=True, navigation=empty))
         finally:
             server.shutdown()
             worker.join(timeout=5)
@@ -243,7 +243,7 @@ class BrowserViewerTests(unittest.TestCase):
             with self.subTest(view=query["view"]):
                 status, headers, body = self.fetch(query)
                 self.assertEqual(status, 200)
-                self.assertEqual(body.decode("utf-8"), render_map(expected, inspector_links=True))
+                self.assertEqual(body.decode("utf-8"), render_map(expected, inspector_links=True, navigation=query))
                 self.assertEqual(headers["Content-Length"], str(len(body)))
                 self.assertEqual(headers["Cache-Control"], "no-store")
                 self.assertEqual(headers["X-Frame-Options"], "DENY")
@@ -269,7 +269,7 @@ class BrowserViewerTests(unittest.TestCase):
             status, _, document = self.fetch(query, server=server)
             expected = model.export_geojson_radius([2.3522, 48.8566], 5.0, AT, K1)
             self.assertEqual(status, 200)
-            self.assertEqual(document.decode("utf-8"), render_map(expected, inspector_links=True))
+            self.assertEqual(document.decode("utf-8"), render_map(expected, inspector_links=True, navigation=query))
             features = expected["features"]
             self.assertEqual(len(features), 2)
             self.assertEqual({f["properties"]["source_id"] for f in features},
