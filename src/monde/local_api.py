@@ -574,6 +574,39 @@ def _disagreement_comparison_json(later: dict, earlier: dict,
     }
 
 
+def _disagreement_comparison_csv(comparison: dict) -> bytes:
+    """Preserve original reports at both cutoffs, without inferring truth."""
+    output = io.StringIO()
+    writer = csv.writer(output, lineterminator="\r\n")
+    writer.writerow(("axis", "period", "classification", "entity", "source_id",
+                     "assertion_id", "evidence_id", "longitude", "latitude",
+                     "inside_bbox", "world_at", "known_at"))
+    classes = {row["entity"]: row["classification"]
+               for row in comparison["changes"]}
+
+    def inert(value):
+        text = str(value)
+        return "'" + text if text.lstrip().startswith(("=", "+", "-", "@")) or (
+            text and text[0] in "\t\r\n") else text
+
+    for period in ("earlier", "later"):
+        selection = comparison[period]
+        features = sorted(selection["geojson"]["features"], key=lambda f: (
+            str(f["properties"]["entity"]), str(f["properties"]["source_id"]),
+            str(f["properties"]["assertion_id"])))
+        for f in features:
+            p = f["properties"]
+            longitude, latitude = f["geometry"]["coordinates"]
+            writer.writerow((
+                comparison["axis"], period, inert(classes[p["entity"]]),
+                inert(p["entity"]), inert(p["source_id"]),
+                inert(p["assertion_id"]), inert(p["evidence_id"]),
+                longitude, latitude,
+                "true" if p.get("monde_inside_bbox", True) else "false",
+                selection["at"], selection["known_at"]))
+    return output.getvalue().encode("utf-8")
+
+
 def _disagreement_report_html(document: dict, params: dict[str, str],
                               earlier: dict | None = None) -> str:
     """Readable original opposing source Points, with provenance and no consensus."""
@@ -704,7 +737,9 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
             escape("/disagreement.csv?" + urlencode(earlier_args), quote=True) +
             '">Earlier original CSV</a> · <a href="' +
             escape("/disagreement-compare.json?" + urlencode(params), quote=True) +
-            '">Download complete original comparison JSON</a></p>' +
+            '">Download complete original comparison JSON</a> · <a href="' +
+            escape("/disagreement-compare.csv?" + urlencode(params), quote=True) +
+            '">Download original comparison CSV</a></p>' +
             ('<ul>' + ''.join(changes) + '</ul>' if changes else
              '<p role="status">NO SOURCE DISAGREEMENT IN EITHER SELECTION — '
              'not proof of agreement or absence.</p>') +
@@ -852,7 +887,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/world-knowledge-changes", "/map-disagreements",
                             "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore",
                              "/inspect", "/disagreement-report", "/disagreement.csv",
-                             "/disagreement-compare.json"}:
+                             "/disagreement-compare.json", "/disagreement-compare.csv"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -953,6 +988,26 @@ def create_server(state: str | Path, port: int = 0, *,
                         raise ValueError("invalid disagreement report view")
                     reports, earlier = _disagreement_pair(world, args)
                     return self._inspection(_disagreement_report_html(reports, args, earlier))
+                elif path == "/disagreement-compare.csv":
+                    _require(args, {"bbox", "at", "known_at"},
+                             {"source", "entity", "from_known_at", "from_at"})
+                    if ("from_at" in args) == ("from_known_at" in args):
+                        raise ValueError("exactly one comparison axis is required")
+                    later, earlier = _disagreement_pair(world, args)
+                    body = _disagreement_comparison_csv(
+                        _disagreement_comparison_json(later, earlier, args))
+                    if len(body) > max_response_bytes:
+                        return self._reply(413, {"error": "response_too_large"})
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/csv; charset=utf-8")
+                    self.send_header("Content-Disposition",
+                                     'attachment; filename="original-disagreement-comparison.csv"')
+                    self.send_header("Content-Length", str(len(body)))
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("X-Content-Type-Options", "nosniff")
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
                 elif path == "/disagreement-compare.json":
                     _require(args, {"bbox", "at", "known_at"},
                              {"source", "entity", "from_known_at", "from_at"})

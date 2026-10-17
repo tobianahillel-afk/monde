@@ -398,3 +398,17 @@ changes (`APPEARED IN SELECTION`, `NO LONGER IN SELECTION`,
 `REPORTED EVIDENCE CHANGED`, or `SAME REPORTED EVIDENCE`). Neither unchanged
 selection nor an empty result proves agreement, actual location or movement.
 The endpoint preserves original provenance and never changes saved state.
+
+## Original disagreement comparison CSV (WORK-0072)
+
+From a historical /disagreement-report, download a source-preserving table via
+GET /disagreement-compare.csv alongside the existing complete comparison JSON.
+It accepts precisely one earlier world-time `from_at` or knowledge-time
+`from_known_at`, plus current bbox, `at`, `known_at` and optional source/entity.
+Rows identify earlier/later selection, comparison axis, source's original
+assertion/evidence IDs, WGS84 point, inside/outside viewport, both time cutoffs
+and reported-evidence classification. All opposing offscreen sources remain.
+These classifications describe changed source reports, not verified physical
+movement, inferred agreement or consensus. Empty selections return a header-only
+CSV. Text IDs are inert in spreadsheet software, responses are read-only and
+bounded, and the saved WorldMini snapshot remains unchanged.
