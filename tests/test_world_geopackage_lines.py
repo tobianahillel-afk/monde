@@ -74,6 +74,7 @@ class GeoPackageLineTests(unittest.TestCase):
                               "gpkg-line-survey_lines-12-2"])
             first = collection["features"][0]
             self.assertEqual(first["properties"]["name"], "Survey path")
+            self.assertEqual(first["properties"]["gpkg_trace"]["name"], "Survey path")
             self.assertEqual(first["properties"]["gpkg_trace"]["feature_id"], "12")
             self.assertEqual(first["properties"]["gpkg_trace"]["order"], 0)
             self.assertEqual(collection["features"][1]["geometry"]["coordinates"], [2.36, 48.86])
