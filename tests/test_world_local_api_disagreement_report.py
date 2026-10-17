@@ -565,6 +565,83 @@ class DisagreementReportHTTPTests(unittest.TestCase):
             self.assertEqual(status, 400)
             self.assertEqual(json.loads(raw), {"error": "invalid_query"})
 
+    def test_comparison_csv_knowledge_time_retains_full_opposing_evidence(self):
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, headers, body = self.fetch("/disagreement-compare.csv", params)
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "text/csv; charset=utf-8")
+        self.assertIn("original-disagreement-comparison.csv",
+                      headers["Content-Disposition"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        rows = list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
+        comparison = json.loads(self.fetch("/disagreement-compare.json", params)[2])
+        expected = {(f["properties"]["source_id"], f["properties"]["assertion_id"],
+                     f["properties"]["evidence_id"],
+                     tuple(f["geometry"]["coordinates"]))
+                    for f in comparison["later"]["geojson"]["features"]}
+        actual = {(r["source_id"], r["assertion_id"], r["evidence_id"],
+                   (float(r["longitude"]), float(r["latitude"]))) for r in rows}
+        self.assertEqual(actual, expected)
+        self.assertEqual({r["source_id"] for r in rows},
+                         {"survey-east", "survey-west"})
+        self.assertEqual({r["inside_bbox"] for r in rows}, {"true", "false"})
+        self.assertEqual({r["period"] for r in rows}, {"later"})
+        self.assertEqual({r["classification"] for r in rows},
+                         {"APPEARED IN SELECTION"})
+        self.assertIn("/disagreement-compare.csv?",
+                      self.fetch("/disagreement-report", params)[2].decode("utf-8"))
+
+    def test_comparison_csv_world_time_and_two_original_periods(self):
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_at": "2026-01-01T01:00:00Z"}
+        code, _, raw = self.fetch("/disagreement-compare.csv", params)
+        self.assertEqual(code, 200)
+        rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+        reference = json.loads(self.fetch("/disagreement-compare.json", params)[2])
+        self.assertEqual(reference["axis"], "WORLD_TIME")
+        self.assertEqual({r["period"] for r in rows}, {"earlier", "later"})
+        self.assertEqual(len(rows), sum(len(reference[p]["geojson"]["features"])
+                                       for p in ("earlier", "later")))
+        self.assertEqual({r["classification"] for r in rows},
+                         {"SAME REPORTED EVIDENCE"})
+        for row in rows:
+            part = reference[row["period"]]
+            self.assertEqual((row["world_at"], row["known_at"]),
+                             (part["at"], part["known_at"]))
+
+    def test_comparison_csv_empty_and_invalid_requests(self):
+        query = {**QUERY, "source": "source-not-seen",
+                 "from_known_at": "2026-01-09T00:00:00Z"}
+        code, _, body = self.fetch("/disagreement-compare.csv", query)
+        self.assertEqual(code, 200)
+        self.assertEqual(list(csv.DictReader(io.StringIO(body.decode("utf-8")))), [])
+        for query in ({**QUERY}, {**QUERY, "from_at": AT},
+                      {**QUERY, "from_at": "2025-12-31T00:00:00Z",
+                       "from_known_at": "2026-01-09T00:00:00Z"},
+                      {**QUERY, "from_known_at": "2026-01-09T00:00:00Z",
+                       "unknown": "extra"}):
+            status, _, body = self.fetch("/disagreement-compare.csv", query)
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(body), {"error": "invalid_query"})
+
+    def test_comparison_csv_prevents_spreadsheet_formula_execution(self):
+        from monde.local_api import _disagreement_comparison_csv
+        feature = {"geometry": {"coordinates": [2.35, 48.85]},
+                   "properties": {"entity": "=2+2", "source_id": "+BAD",
+                                  "assertion_id": "-BAD", "evidence_id": "@BAD",
+                                  "monde_inside_bbox": True}}
+        comparison = {"axis": "KNOWLEDGE_TIME",
+                      "changes": [{"entity": "=2+2", "classification": "REPORTED EVIDENCE CHANGED"}],
+                      "earlier": {"at": AT, "known_at": K1, "geojson": {"features": []}},
+                      "later": {"at": AT, "known_at": K1, "geojson": {"features": [feature]}}}
+        rows = list(csv.DictReader(io.StringIO(
+            _disagreement_comparison_csv(comparison).decode("utf-8"))))
+        self.assertEqual(rows[0]["entity"], "'=2+2")
+        self.assertEqual(rows[0]["source_id"], "'+BAD")
+        self.assertEqual(rows[0]["assertion_id"], "'-BAD")
+        self.assertEqual(rows[0]["evidence_id"], "'@BAD")
+
 
 if __name__ == "__main__":
     unittest.main()
