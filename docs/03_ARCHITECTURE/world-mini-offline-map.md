@@ -645,3 +645,24 @@ member retains a stable index, feature ID, source attributes and explicit
 capture/valid times. These source-reported markers are never connected into
 invented trajectories. Nested mixed-endian WKB, envelope and metadata checks
 fail atomically before HTML output; local SQLite is opened read-only.
+
+
+## Original mixed GeoPackage GEOMETRY layers (WORK-0037)
+
+A local 2D EPSG:4326 feature table declared GEOMETRY may contain original
+Point, LineString, Polygon, MultiPoint, MultiLineString and MultiPolygon
+features **in the same layer**. MONDE Mini dispatches each WKB row to
+the already validated subtype reader; no intermediary file conversion or new
+library is required.
+
+The existing CLI options --gpkg, --gpkg-layer, --source-id,
+--source-locator, --captured-at, --valid-from, --at, --known-at and --output
+work unchanged. Likewise for source-manifest gpkg / gpkg_layer datasets.
+Original row IDs, geometry component/ring indices, attributes and source
+time/provenance are preserved through the offline WorldMini map.
+Multipart members remain independent; no routes or boundaries are inferred.
+
+The import is strictly 2D WGS84. Unsupported subtypes, including
+GeometryCollection and Z/M geometries, malformed WKB, conflicting envelopes
+or SRIDs, non-finite coordinates and unsafe source metadata are rejected
+without producing partial HTML.

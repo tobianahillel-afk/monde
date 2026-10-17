@@ -1,0 +1,55 @@
+id: WORK-0037
+title: "Import mixed original GeoPackage GEOMETRY evidence into MONDE Mini"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini original source evidence"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+
+purpose: |
+  Read original local EPSG:4326 GeoPackage GEOMETRY layers holding
+  heterogeneous supported 2D WKB members, preserving original source
+  identities, bitemporal evidence and independent components.
+scope:
+  in: ["mixed GeoPackage GEOMETRY source rows", "WorldMini evidence", "offline maps"]
+  out: ["GEOMETRYCOLLECTION", "3D and M", "reprojection", "remote fetch", "inferred geography"]
+acceptance_criteria:
+  - {id: AC-1, description: "Every supported row reuses a strict existing WKB parser.", status: NOT_STARTED}
+  - {id: AC-2, description: "Mixed rows preserve identities, components, times and provenance through WorldMini and HTML.", status: NOT_STARTED}
+  - {id: AC-3, description: "Malformed or unsupported rows fail atomically without partial output.", status: NOT_STARTED}
+requirements: []
+assumptions: ["Local, immutable/read-only, EPSG:4326, z=0 and m=0."]
+risks: ["Untrusted WKB", "Cross-geometry source interpretation"]
+depends_on: [WORK-0036]
+read_before: [src/monde/geopackage_points.py, src/monde/map_view.py, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Dispatch original mixed WKB subtype with existing parsers.", depends_on: [], expected_files: [src/monde/geopackage_points.py], status: IN_REVIEW}
+    - {id: T2, description: "Test SQLite, WorldMini, CLI, manifest and malformed rows.", depends_on: [T1], expected_files: [tests/test_world_geopackage_mixed.py, docs/03_ARCHITECTURE/world-mini-offline-map.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [SECURITY, VERIFICATION_VALIDATION, DOCUMENTATION_TRACEABILITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: [tests/test_world_geopackage_mixed.py]
+  integration: [tests/test_world_geopackage_mixed.py]
+  security: [tests/test_world_geopackage_mixed.py]
+  real_system: ["GitHub Actions world-mini on exact candidate SHA"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Draft stacked ancestors must be integrated before delivery to main."]
+risk:
+  security: MEDIUM
+  data: MEDIUM
+  epistemic: MEDIUM
+  performance: LOW
+  operational: LOW
+rollback:
+  strategy: "Revert this child PR alone; parent WORK-0036 remains unchanged."
