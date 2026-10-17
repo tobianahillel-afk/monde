@@ -305,3 +305,17 @@ Knowledge/world comparison maps preserve their earlier/later temporal cutoffs.
 This is a native read-only GET /viewer over existing WorldMini queries:
 no new model, inferred physical movement, external service, upload or saved-state
 change. Standalone offline CLI maps intentionally show no server-dependent form.
+
+## Original-source proximity exploration (WORK-0059)
+
+The existing read-only `/nearest`, `/radius` and `/viewer?view=nearest|radius`
+queries accept the optional exact `source` ID. The local `/explore` form offers
+saved source suggestions. An absent or empty `source` retains the original
+unfiltered output; malformed IDs return HTTP 400. A selected source is applied
+**before distance ranking and radius qualification** at the existing world and
+knowledge-time cutoffs. Therefore another source's closer Point cannot qualify
+or crowd out the selected source's entities. Only that original source's reports
+are shown (including its own contrary positions outside a radius). The returned
+FeatureCollection has `monde_source_filter`, and existing ranking and evidence
+IDs remain traceable. Source-reported coordinates are not reconciled truth.
+No new route, network access, saved-state change or dependency is introduced.

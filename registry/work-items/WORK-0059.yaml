@@ -1,0 +1,51 @@
+id: WORK-0059
+title: "Filter original-source nearest and radius maps before spatial ranking"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source proximity experience"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Let an analyst find the nearest or in-radius original Points reported by
+  one selected source, without other sources silently determining the ranking.
+scope:
+  in: ["Native browser source selection for proximity", "Source-aware original Point ranking and radius semantics", "Read-only real HTTP regression tests"]
+  out: ["Reconciliation or truth inference", "New services", "Database or persisted-state writes"]
+acceptance_criteria:
+  - {id: AC-1, description: "Apply selected source before nearest rank and radius eligibility.", status: NOT_STARTED}
+  - {id: AC-2, description: "Preserve original source lineage, bitemporal cutoffs and legacy unfiltered response.", status: NOT_STARTED}
+  - {id: AC-3, description: "Use existing browser forms, map renderer and read-only JSON routes.", status: NOT_STARTED}
+  - {id: AC-4, description: "Reject malformed source filters, preserve saved snapshots and test live HTTP.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0058]
+read_before: [AGENTS.md, src/monde/world.py, src/monde/local_api.py, src/monde/map_view.py]
+reuses: [WorldMini.search_geo_radius, WorldMini.search_geo_nearest, WorldMini.export_geojson_nearest, WorldMini.export_geojson_radius, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Source-scoped proximity semantics and local browser inputs.", depends_on: [], expected_files: [src/monde/world.py, src/monde/local_api.py, src/monde/map_view.py], status: IN_REVIEW}
+    - {id: T2, description: "Test real HTTP, source correctness and stable persisted model.", depends_on: [T1], expected_files: [tests/test_world_local_api_proximity_source.py], status: IN_REVIEW}
+    - {id: T3, description: "Document epistemic contract.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_proximity_source.py]
+  real_system: ["Exact-head GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0058 / PR #82."]
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close or revert scoped PR; no migration or persisted-state mutation."
