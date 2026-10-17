@@ -94,21 +94,26 @@ def source_delta_geojson(before: WorldMini, after: WorldMini) -> dict:
     from .geojson import _point
 
     change = source_delta(before, after)
-    additions = {item["id"]: item for item in
-                 after.export()["assertions"]
-                 if item["id"] in {row["assertion_id"]
-                                  for row in change["new_reports"]}}
+    snapshot = after.export()
+    new_ids = {row["assertion_id"] for row in change["new_reports"]}
+    additions = {item["id"]: item for item in snapshot["assertions"]
+                 if item["id"] in new_ids}
+    evidence = {item["id"]: item for item in snapshot["evidence"]}
     features = []
     for report in change["new_reports"]:
         if report["attribute"] != "geo_point":
             continue
         assertion = additions[report["assertion_id"]]
+        capture = evidence[report["evidence_id"]]
         features.append({
             "type": "Feature",
             "id": report["assertion_id"],
             "geometry": _point(assertion["value"]),
             "properties": {
                 **report,
+                "source_locator": capture["locator"],
+                "captured_at": capture["captured_at"],
+                "source_event_at": capture["source_event_at"],
                 "monde_world": "OBSERVED",
                 "monde_status": "NEW_SOURCE_REPORT_ONLY",
             },
