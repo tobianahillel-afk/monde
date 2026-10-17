@@ -1,0 +1,51 @@
+id: WORK-0059
+title: "Browse original saved-source inventory and evidence volumes"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini evidence explorer"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Discover all original saved sources, count historical evidence and assertions,
+  and inspect source history at an explicit knowledge cutoff without deriving truth.
+scope:
+  in: ["Source inventory JSON", "Browser source directory and history links",
+       "Real local read-only HTTP tests"]
+  out: ["New source model", "Source reconciliation", "Remote services", "State writes"]
+acceptance_criteria:
+  - {id: AC-1, description: "Expose all source IDs and historical original evidence volumes.", status: IN_REVIEW}
+  - {id: AC-2, description: "Open per-source evidence history with explicit knowledge cutoff.", status: IN_REVIEW}
+  - {id: AC-3, description: "Preserve saved state, escape source IDs, reject unexpected inputs.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0058]
+read_before: [AGENTS.md, src/monde/world.py, src/monde/local_api.py]
+reuses: [WorldMini.export, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Implement original-source catalog and browser navigation.", depends_on: [], expected_files: [src/monde/local_api.py], status: IN_REVIEW}
+    - {id: T2, description: "Prove persisted HTTP and safety semantics.", depends_on: [T1], expected_files: [tests/test_world_local_api_source_filter.py], status: IN_REVIEW}
+    - {id: T3, description: "Document provenance and saved-history scope.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_source_filter.py]
+  real_system: ["Exact HEAD GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0058 / PR #82."]
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close or revert candidate PR; no data migration."
