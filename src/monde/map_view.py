@@ -709,6 +709,10 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         "KML original sample order: " + String(p.monde_kml_trace.order+1),
         "Interpretation: ORIGINAL_KML_SAMPLES_NOT_VERIFIED_MOTION"
       ] : []),
+      ...(p.monde_gpkg_source_layer && !p.monde_gpkg_trace ? [
+        "GeoPackage source layer: " + p.monde_gpkg_source_layer,
+        "Original feature id: " + p.monde_gpkg_source_fid
+      ] : []),
       ...(p.monde_gpkg_trace ? [
         "GeoPackage source layer: " + p.monde_gpkg_trace.layer,
         "Original feature id: " + p.monde_gpkg_trace.feature_id,
@@ -1324,6 +1328,15 @@ def render_map(document: dict) -> str:
         trace = props.get("monde_gpx_trace")
         kml_trace = props.get("monde_kml_trace")
         gpkg_trace = props.get("monde_gpkg_trace")
+        gpkg_layer = props.get("monde_gpkg_source_layer")
+        gpkg_fid = props.get("monde_gpkg_source_fid")
+        if (("monde_gpkg_source_layer" in props) != ("monde_gpkg_source_fid" in props)
+                or (gpkg_layer is not None and (
+                    not isinstance(gpkg_layer, str) or not re.fullmatch(
+                        r"[A-Za-z_][A-Za-z0-9_]{0,62}", gpkg_layer)
+                    or not isinstance(gpkg_fid, str)
+                    or not 0 < len(gpkg_fid) <= 128))):
+            raise ValueError("invalid original GeoPackage layer/row provenance")
         if gpkg_trace is not None:
             if (trace is not None or kml_trace is not None
                     or not isinstance(gpkg_trace, dict)

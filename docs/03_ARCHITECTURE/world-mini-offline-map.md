@@ -682,3 +682,6 @@ Unsupported/malformed source layers, unsafe attributes, excessive counts
 or conflicting metadata reject the **whole** export before writing HTML.
 No data are downloaded, reprojected, reconciled or silently omitted.
 Existing single-layer and explicit multi-dataset manifest modes are unchanged.
+
+Original layer/FID pairs are also visible as `monde_gpkg_source_layer` and
+`monde_gpkg_source_fid` in the offline map's source-evidence features.

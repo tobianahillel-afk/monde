@@ -62,9 +62,9 @@ class AllGeoPackageLayersTests(unittest.TestCase):
             ids = [f["properties"]["entity"] for f in geo["features"]]
             self.assertEqual(len(ids), len(set(ids)))
             distinct = [f for f in geo["features"]
-                        if f["properties"].get("gpkg_source_fid") == "1"]
+                        if f["properties"].get("monde_gpkg_source_fid") == "1"]
             self.assertEqual(len(distinct), 2)
-            self.assertEqual({f["properties"]["gpkg_source_layer"] for f in distinct},
+            self.assertEqual({f["properties"]["monde_gpkg_source_layer"] for f in distinct},
                              {"survey_duplicate", "survey_points"})
             self.assertEqual({f["properties"]["source_id"] for f in distinct},
                              {"survey:survey_duplicate", "survey:survey_points"})
@@ -82,6 +82,7 @@ class AllGeoPackageLayersTests(unittest.TestCase):
             self.assertIn("survey:survey_points", page)
             self.assertIn("survey:survey_duplicate", page)
             self.assertIn("GPKG_1_3_MULTIPOLYGON_RING_POINT", page)
+            self.assertIn("monde_gpkg_source_layer", page)
             self.assertNotIn("https://tile.", page)
 
     def test_invalid_layer_blocks_entire_output_atomically(self):
@@ -123,6 +124,7 @@ class AllGeoPackageLayersTests(unittest.TestCase):
             source = make_source(Path(d) / "survey.gpkg")
             with sqlite3.connect(source) as db:
                 db.execute("ALTER TABLE survey_duplicate ADD COLUMN gpkg_source_fid TEXT")
+                db.execute("UPDATE survey_duplicate SET gpkg_source_fid='source-defined'")
             output = Path(d) / "bad.html"
             result = self.cli(*self.direct(source), "--output", output)
             self.assertNotEqual(result.returncode, 0)
