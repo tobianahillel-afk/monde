@@ -175,3 +175,32 @@ evidence IDs. A new assertion ID with identical source value is not a new
 conflict. RESOLVED means conflicting reports are no longer present at the
 specified cutoff, **not** that a physical location is verified. Existing
 single-cutoff --source-disagreements commands retain their behavior.
+
+## Offline map of changing original-source contradictions (WORK-0049)
+
+```bash
+PYTHONPATH=src python3 -m monde.map_view --state world.json \
+  --at 2026-01-02T00:00:00Z \
+  --compare-known-at 2026-01-09T00:00:00Z \
+  --known-at 2026-01-12T00:00:00Z \
+  --disagreement-changes --output disagreement-changes.html
+```
+
+The standalone HTML maps **changed original source Point assertions**, not
+every source Point. Its evidence list preserves **both complete before and
+after conflicting source groups**, even when a competing Point was unchanged
+and is therefore not a map marker. APPEARED, RESOLVED and CHANGED refer
+only to cross-source contradictions in the source record. None is a ground-truth
+decision or proof of physical movement. The automatic viewport fits only
+entities with changing Point contradictions; when there are none, supply an
+explicit `--bbox W,S,E,N` for an honest empty result. Existing saved state
+and source datasets remain unchanged, HTML output is create-only, and this
+mode cannot be used with `--only-disagreements` or `--compare-at`.
+
+The evidence panel also offers **Export complete before/after source evidence JSON**.
+It downloads the full original `before_value_groups` and
+`after_value_groups` (including assertion/evidence/source IDs) and cutoff
+metadata, **not only visible map markers**. The download is generated locally
+from the embedded snapshot, with no network request, write-back, inferred
+source ranking or physical-location conclusion; it remains usable for an
+explicitly bounded view with zero transitions.
