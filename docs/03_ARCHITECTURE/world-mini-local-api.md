@@ -53,8 +53,18 @@ Endpoints (GET, all JSON):
   that source** inside the bbox at either cutoff; both old/new source reports
   for qualifying entities remain, even if the other position is offscreen.
   Source-specific counts exclude unrelated sources. Time differences are
-  source reports, never verified physical changes. Disagreements, nearest
-  and radius remain explicitly unfiltered.
+  source reports, never verified physical changes. Nearest and radius
+  remain explicitly unfiltered.
+- `/map-disagreements?bbox=2.3,48.8,2.4,48.9&at=T&known_at=K&source=survey-1`
+  and `/viewer?view=disagreements&...&source=survey-1` select contradictions
+  **involving** the specified original source. That source must itself have
+  a conflicting Point inside the viewport; another source cannot qualify
+  the entity on its behalf. **All opposing original source reports** for
+  matching entities remain visible, even when an opposing position lies
+  outside the viewport. `monde_source_filter_basis` records that this
+  means involvement, not a single-source map or verified physical truth.
+  Without `source`, existing disagreement JSON and viewer results are
+  unchanged. The local native forms preserve source ID and time cutoffs.
   The local `/explore` form suggests source IDs that have at least one original
   `geo_point` assertion in the saved snapshot. Up to 200 alphabetical IDs
   appear as native browser suggestions; manually entering any valid source ID

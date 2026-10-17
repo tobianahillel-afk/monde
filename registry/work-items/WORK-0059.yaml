@@ -1,0 +1,53 @@
+id: WORK-0059
+title: "Browse cross-source map disagreements involving a selected original source"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence explorer"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Allow investigators to isolate original source conflicts in a local map,
+  without hiding the opposing source reports that explain the disagreement.
+scope:
+  in: ["Optional original-source disagreement filter for local map and viewer",
+       "Preserved opposing source evidence and native time navigation",
+       "Real loopback HTTP regressions on persisted source observations"]
+  out: ["Source reconciliation", "Inferred truth", "Remote endpoints", "Data writes"]
+acceptance_criteria:
+  - {id: AC-1, description: "Select only conflicts with a chosen source's own in-bbox Point.", status: IN_REVIEW}
+  - {id: AC-2, description: "Keep all opposing source reports and evidence IDs.", status: IN_REVIEW}
+  - {id: AC-3, description: "Expose source selection in browser with bitemporal controls.", status: IN_REVIEW}
+  - {id: AC-4, description: "Preserve unfiltered API and immutable snapshot; reject invalid inputs.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0058]
+read_before: [AGENTS.md, src/monde/world.py, src/monde/local_api.py, src/monde/map_view.py]
+reuses: [WorldMini.source_disagreements, monde.map_view.disagreement_view, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Extend existing local conflict map selector and browser navigation.", depends_on: [], expected_files: [src/monde/local_api.py, src/monde/map_view.py], status: IN_REVIEW}
+    - {id: T2, description: "Verify HTTP, opposing evidence and persistence.", depends_on: [T1], expected_files: [tests/test_world_local_api_disagreement_source.py], status: IN_REVIEW}
+    - {id: T3, description: "Describe source-involved epistemic semantics.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_disagreement_source.py]
+  real_system: ["Exact-head GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0058 / PR #82."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close or revert this stacked PR; no migration."
