@@ -622,3 +622,17 @@ incomplete rings and envelope contradictions fail atomically. The decoder
 accepts at most 128 Polygon components and 50,000 total source vertices.
 It adds no remote API, tile service or dependency and preserves the previous
 Point, LineString and Polygon formats.
+
+## Original GeoPackage MultiLineString routes (WORK-0035)
+
+A local read-only **2D EPSG:4326 `MULTILINESTRING`** layer now opens in the
+same offline MONDE Mini command and source manifest as GeoPackage Points,
+LineStrings, Polygons and MultiPolygons. Each original LineString member retains
+a separate `line_index`, `trace_id`, feature ID and vertex sequence, so two
+unconnected source routes are never silently joined into one path.
+
+This is *source-reported geometry*, not verified motion, routing, land coverage
+or a reconstructed real-world trajectory. MultiLineString supports mixed
+endianness WKB children and optional bounded envelopes; unsupported SRIDs,
+3D geometries, malformed members and incorrect metadata fail before an output
+map is written. The original SQLite file remains unmodified.

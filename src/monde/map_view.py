@@ -320,7 +320,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         var isBoundary=first.format==="KML_2_2_POLYGON_RING_POINT";
         var isGpkgBoundary=first.format==="GPKG_1_3_POLYGON_RING_POINT" ||
           first.format==="GPKG_1_3_MULTIPOLYGON_RING_POINT";
-        var isGpkg=isGpkgBoundary || first.format==="GPKG_1_3_LINESTRING_POINT";
+        var isGpkg=isGpkgBoundary || first.format==="GPKG_1_3_LINESTRING_POINT" ||
+           first.format==="GPKG_1_3_MULTILINESTRING_POINT";
         attrs[isGpx?"data-gpx-trace":
               (isGpkg?"data-gpkg-trace":
                (isBoundary?"data-kml-boundary":"data-kml-trace"))]=first.trace_id;
@@ -713,6 +714,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         ...(p.monde_gpkg_trace.kind==="MultiPolygon" ?
           ["Source-declared MultiPolygon component: " +
            String(p.monde_gpkg_trace.polygon_index+1)] : []),
+        ...(p.monde_gpkg_trace.kind==="MultiLineString" ?
+          ["Source-declared MultiLineString component: " +
+           String(p.monde_gpkg_trace.line_index+1)] : []),
         ...(["Polygon","MultiPolygon"].includes(p.monde_gpkg_trace.kind) ?
           ["Source-declared " + p.monde_gpkg_trace.kind + " ring: " +
            (p.monde_gpkg_trace.segment===0 ?
@@ -1322,14 +1326,20 @@ def render_map(document: dict) -> str:
                     or set(gpkg_trace) != ({"format", "kind", "name", "trace_id",
                                             "segment", "order", "layer", "feature_id"}
                                            | ({"polygon_index"} if gpkg_trace.get("kind") ==
-                                              "MultiPolygon" else set()))
+                                              "MultiPolygon" else set())
+                                           | ({"line_index"} if gpkg_trace.get("kind") ==
+                                              "MultiLineString" else set()))
                     or (gpkg_trace["format"], gpkg_trace["kind"]) not in (
                         ("GPKG_1_3_LINESTRING_POINT", "LineString"),
+                        ("GPKG_1_3_MULTILINESTRING_POINT", "MultiLineString"),
                         ("GPKG_1_3_POLYGON_RING_POINT", "Polygon"),
                         ("GPKG_1_3_MULTIPOLYGON_RING_POINT", "MultiPolygon"))
                     or (gpkg_trace["kind"] == "MultiPolygon" and
                         (type(gpkg_trace["polygon_index"]) is not int or
                          not 0 <= gpkg_trace["polygon_index"] < 128))
+                    or (gpkg_trace["kind"] == "MultiLineString" and
+                        (type(gpkg_trace["line_index"]) is not int or
+                         not 0 <= gpkg_trace["line_index"] < 128))
                     or not isinstance(gpkg_trace["name"], str)
                     or not 0 < len(gpkg_trace["name"]) <= 1000
                     or not isinstance(gpkg_trace["layer"], str)
