@@ -1669,6 +1669,48 @@ def automatic_source_bbox(world: WorldMini, at: str, known_at: str,
             east, min(90.0, high + lat_padding)]
 
 
+
+def disagreement_view(world: WorldMini, bounds: list[float], at: str,
+                      known_at: str, geojson: dict | None = None) -> dict:
+    """Reuse the CLI's evidence-grounded disagreement map for local viewers.
+
+    Detect contradictions across all sources before filtering the viewport.
+    A report whose opposing source is offscreen still remains a disagreement.
+    """
+    if geojson is None:
+        geojson = world.export_geojson_bbox(bounds, at, known_at)
+    contradicting = world.source_disagreements(
+        at, known_at, "geo_point")["disagreements"]
+    sources = {
+        row["entity"]: sorted({
+            source_id for group in row["value_groups"]
+            for source_id in group["source_ids"]
+        })
+        for row in contradicting
+    }
+    features = [feature for feature in geojson["features"]
+                if feature["properties"]["entity"] in sources]
+    for feature in features:
+        feature["properties"]["monde_disagreement_basis"] = (
+            "DISTINCT_SOURCE_REPORTS_NOT_PHYSICAL_TRUTH")
+        feature["properties"]["monde_conflicting_source_ids"] = (
+            sources[feature["properties"]["entity"]])
+    geojson["features"] = features
+    query = geojson["monde_bbox_query"]
+    query["total_source_features"] = len(features)
+    query["total_matching_entities"] = len({
+        item["properties"]["entity"] for item in features
+        if item["properties"]["monde_inside_bbox"]
+    })
+    query["status"] = "MATCHES" if features else "NO_MATCHES"
+    geojson["monde_disagreements_view"] = {
+        "basis": "CONTRADICTORY_SOURCE_POINT_REPORTS_ONLY",
+        "valid_at": at, "knowledge_cutoff": known_at,
+        "conflicting_entities_in_view": query["total_matching_entities"],
+    }
+    return geojson
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Generate a standalone offline source-evidence map (no API)")
@@ -1809,37 +1851,8 @@ def main(argv=None) -> int:
                 "map_scope": "CHANGED_SOURCE_POINT_ASSERTIONS_ONLY",
             }
         if args.only_disagreements:
-            # Find conflicts globally, before viewport filtering. A contrary
-            # out-of-window source report is retained for a qualifying entity.
-            contradicting = world.source_disagreements(
-                args.at, args.known_at, "geo_point")["disagreements"]
-            sources = {
-                row["entity"]: sorted({
-                    source_id for group in row["value_groups"]
-                    for source_id in group["source_ids"]
-                })
-                for row in contradicting
-            }
-            features = [feature for feature in geojson["features"]
-                        if feature["properties"]["entity"] in sources]
-            for feature in features:
-                feature["properties"]["monde_disagreement_basis"] = (
-                    "DISTINCT_SOURCE_REPORTS_NOT_PHYSICAL_TRUTH")
-                feature["properties"]["monde_conflicting_source_ids"] = (
-                    sources[feature["properties"]["entity"]])
-            geojson["features"] = features
-            query = geojson["monde_bbox_query"]
-            query["total_source_features"] = len(features)
-            query["total_matching_entities"] = len({
-                item["properties"]["entity"] for item in features
-                if item["properties"]["monde_inside_bbox"]
-            })
-            query["status"] = "MATCHES" if features else "NO_MATCHES"
-            geojson["monde_disagreements_view"] = {
-                "basis": "CONTRADICTORY_SOURCE_POINT_REPORTS_ONLY",
-                "valid_at": args.at, "knowledge_cutoff": args.known_at,
-                "conflicting_entities_in_view": query["total_matching_entities"],
-            }
+            geojson = disagreement_view(
+                world, bounds, args.at, args.known_at, geojson)
         page = render_map(geojson)
         with open(args.output, "x", encoding="utf-8") as target:
             target.write(page)

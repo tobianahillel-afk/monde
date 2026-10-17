@@ -88,3 +88,37 @@ browse the filesystem, enable CORS or call an external service.
 
 This is an **unmerged candidate** dependent on WORK-0049 and its stacked chain;
 CI proves the tested branch, not delivery on `main`.
+
+
+### Open the map directly in a local browser (WORK-0052)
+
+The same already-existing standalone map renderer can now be served by the
+read-only loopback API. In a browser on the machine running MONDE Mini, visit:
+
+- `/viewer?view=current&bbox=2.3,48.8,2.4,48.9&at=T&known_at=K` — original source-reported Points in the viewport.
+- `/viewer?view=disagreements&bbox=2.3,48.8,2.4,48.9&at=T&known_at=K` — original source Point reports that disagree across distinct sources. The disagreement is determined before viewport clipping, so offscreen opposing evidence remains identified and no consensus position is fabricated.
+- `/viewer?view=knowledge-changes&bbox=2.3,48.8,2.4,48.9&at=T&from_known_at=K1&to_known_at=K2` — learn/correction changes at fixed world time, **not physical motion**.
+- `/viewer?view=world-changes&bbox=2.3,48.8,2.4,48.9&from_at=T1&to_at=T2&known_at=K` — validity changes at fixed knowledge, **not verified events or movement**.
+
+Replace T/K placeholders with URL-encoded UTC timestamps. This produces a
+self-contained HTML map with source/evidence IDs and the existing timeline,
+zoom, pan and evidence-inspection controls. No JavaScript API fetches, online
+tiles, cross-origin scripts, browser persistence, public listener or data
+mutations are introduced. It is designed for **trusted local users only**;
+it is not an authenticated shared web service. All inputs follow the same
+strict duplicate/unknown-parameter, spatial and temporal validation as the
+corresponding GeoJSON endpoints. Responses are bounded by the server's
+configured limit, marked `no-store`, and deny framing.
+
+
+### Guided local map explorer (WORK-0052)
+
+Open **http://127.0.0.1:8765/explore** after starting the local API.
+Four native HTML GET forms open existing original source observations,
+source disagreements, knowledge-time changes and world-time changes.
+They submit only each viewer's accepted parameters. The bbox is an editable
+WGS84 example, not a user location; all timestamps must be explicit and
+timezone-aware ISO-8601. This entry page has no JavaScript, online tiles,
+external scripts or writes. It is bounded, read-only, frame-denied and
+loopback-only, with CSP form-action limited to self. Unknown query parameters
+to /explore receive HTTP 400.

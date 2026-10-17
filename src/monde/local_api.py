@@ -16,6 +16,65 @@ from .world import WorldMini
 MAX_REQUEST_TARGET = 2048
 MAX_RESPONSE_BYTES = 2_000_000
 
+_EXPLORER_VIEWS = (
+    ("current", "Current reports", ("bbox", "at", "known_at")),
+    ("disagreements", "Source disagreements", ("bbox", "at", "known_at")),
+    ("knowledge-changes", "Newly known or corrected evidence",
+     ("bbox", "at", "from_known_at", "to_known_at")),
+    ("world-changes", "Changes in reported validity",
+     ("bbox", "from_at", "to_at", "known_at")),
+)
+_EXPLORER_LABELS = {
+    "bbox": "WGS84 bounds (west,south,east,north)",
+    "at": "World time (UTC ISO-8601)",
+    "known_at": "Known by (UTC ISO-8601)",
+    "from_known_at": "Earlier knowledge cutoff (UTC ISO-8601)",
+    "to_known_at": "Later knowledge cutoff (UTC ISO-8601)",
+    "from_at": "Earlier world time (UTC ISO-8601)",
+    "to_at": "Later world time (UTC ISO-8601)",
+}
+
+
+def _explorer_html() -> str:
+    """Four native GET forms for the existing map modes, without browser JS."""
+    forms = []
+    for mode, title, fields in _EXPLORER_VIEWS:
+        inputs = []
+        for key in fields:
+            initial = ' value="2.3,48.8,2.4,48.9"' if key == "bbox" else (
+                ' placeholder="2026-01-02T00:00:00Z"')
+            inputs.append('<label>' + _EXPLORER_LABELS[key] +
+                          '<input name="' + key + '" required' + initial +
+                          '></label>')
+        forms.append(
+            '<form action="/viewer" method="get"><h2>' + title + '</h2>' +
+            '<input type="hidden" name="view" value="' + mode + '">' +
+            ''.join(inputs) + '<button type="submit">Open map</button></form>')
+    return """<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MONDE Mini — Evidence Explorer</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#101827;color:#ebf2f9}
+*{box-sizing:border-box}body{margin:auto;max-width:1100px;padding:24px}
+p{color:#bfd0e1;line-height:1.5}
+main{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+form{padding:18px;background:#182436;border:1px solid #48677e;border-radius:12px}
+h2{font-size:1.15rem}label{display:block;margin:12px 0;font-weight:600}
+input{display:block;width:100%;margin-top:5px;padding:10px;background:#253c50;
+color:white;border:1px solid #7090aa;border-radius:6px;font:inherit}
+button{background:#66e0c0;color:#073d35;border:0;border-radius:7px;
+padding:10px 14px;font:inherit;font-weight:bold;cursor:pointer}
+:focus-visible{outline:3px solid #ffc870;outline-offset:2px}
+</style></head><body>
+<h1>MONDE Mini / Source evidence explorer</h1>
+<p>Explore original source-reported claims at explicit world-time and
+knowledge-time cutoffs. Map positions are evidence, not verified physical
+truth. No external requests, data upload or saved-state changes.</p>
+<main>""" + ''.join(forms) + """</main>
+<p>Local read-only interface. Time cutoffs must be timezone-aware ISO-8601.</p>
+</body></html>"""
+
+
 
 def _parameters(target: str, path: str) -> dict[str, str]:
     if len(target) > MAX_REQUEST_TARGET:
@@ -85,6 +144,30 @@ def create_server(state: str | Path, port: int = 0, *,
             self.end_headers()
             self.wfile.write(body)
 
+
+        def _html(self, geojson: dict | None):
+            # Reuse the offline map renderer; no new browser-side service or
+            # unauthenticated state-changing route is introduced.
+            from .map_view import render_map
+            body = (_explorer_html() if geojson is None else render_map(geojson)).encode("utf-8")
+            if len(body) > max_response_bytes:
+                return self._reply(413, {"error": "response_too_large"})
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("Content-Security-Policy",
+                             "default-src 'none'; script-src 'unsafe-inline'; "
+                             "style-src 'unsafe-inline'; connect-src 'none'; "
+                             "img-src 'none'; object-src 'none'; base-uri 'none'; "
+                             "frame-ancestors 'none'" +
+                             ("; form-action 'self'" if geojson is None else ""))
+            self.end_headers()
+            self.wfile.write(body)
+
         def _host_valid(self):
             # Exact loopback Host also excludes DNS-rebinding origins.
             hosts = self.headers.get_all("Host", [])
@@ -104,7 +187,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/compare-world", "/source-history", "/disagreement-changes",
                             "/knowledge-updates", "/knowledge-timeline",
                             "/world-knowledge-changes", "/map-disagreements",
-                            "/map-knowledge-changes", "/map-world-changes"}:
+                            "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -176,6 +259,37 @@ def create_server(state: str | Path, port: int = 0, *,
                     output = world.export_geojson_bbox_world_changes(
                         _bbox(args["bbox"]), args["from_at"],
                         args["to_at"], args["known_at"])
+                elif path == "/explore":
+                    _require(args, set())
+                    return self._html(None)
+                elif path == "/viewer":
+                    # The same browser-ready, self-contained map as the
+                    # existing offline CLI, at caller-selected time cutoffs.
+                    mode = args.get("view")
+                    if mode == "current":
+                        _require(args, {"view", "bbox", "at", "known_at"})
+                        geojson = world.export_geojson_bbox(
+                            _bbox(args["bbox"]), args["at"], args["known_at"])
+                    elif mode == "disagreements":
+                        _require(args, {"view", "bbox", "at", "known_at"})
+                        from .map_view import disagreement_view
+                        geojson = disagreement_view(
+                            world, _bbox(args["bbox"]), args["at"], args["known_at"])
+                    elif mode == "knowledge-changes":
+                        _require(args, {"view", "bbox", "at",
+                                        "from_known_at", "to_known_at"})
+                        geojson = world.export_geojson_bbox_knowledge_changes(
+                            _bbox(args["bbox"]), args["at"],
+                            args["from_known_at"], args["to_known_at"])
+                    elif mode == "world-changes":
+                        _require(args, {"view", "bbox", "from_at",
+                                        "to_at", "known_at"})
+                        geojson = world.export_geojson_bbox_world_changes(
+                            _bbox(args["bbox"]), args["from_at"],
+                            args["to_at"], args["known_at"])
+                    else:
+                        raise ValueError("unsupported viewer mode")
+                    return self._html(geojson)
                 elif path == "/map":
                     _require(args, {"bbox", "at", "known_at"})
                     output = world.export_geojson_bbox(_bbox(args["bbox"]),
