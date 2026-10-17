@@ -92,6 +92,76 @@ class SourcePreviewTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
             self.assertFalse((root / "must-not-exist.json").exists())
 
+    def test_preview_source_map_creates_offline_new_point_map_without_saving(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, raw = csv_source(root)
+            state = root / "old.json"
+            self.assertEqual(invoke("--ingest-source-manifest", manifest,
+                                    "--state-out", state).returncode, 0)
+            old_bytes = state.read_bytes()
+            csv_source(root, capture=K2, rows=[("site-a", 2.4, 48.9, "updated")])
+            raw_bytes = raw.read_bytes()
+            map_path = root / "preview.html"
+            result = invoke("--fixture", state, "--preview-source-manifest",
+                            manifest, "--preview-source-map", map_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            summary = json.loads(result.stdout)
+            self.assertEqual(summary["status"], "PREVIEW_NOT_SAVED")
+            self.assertEqual(summary["preview_map_html"], str(map_path))
+            self.assertEqual(summary["source_report_revisions"], 2)
+            page = map_path.read_text(encoding="utf-8")
+            self.assertIn("data-monde-ready", page)
+            self.assertIn("site-a", page)
+            self.assertIn("NEW_SOURCE_REPORT_ONLY", page)
+            self.assertIn("survey", page)
+            self.assertIn("dataset://survey/points", page)
+            self.assertEqual(state.read_bytes(), old_bytes)
+            self.assertEqual(raw.read_bytes(), raw_bytes)
+
+    def test_preview_source_map_rejects_overwrite_and_invalid_capture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, raw = csv_source(root)
+            state = root / "old.json"
+            self.assertEqual(invoke("--ingest-source-manifest", manifest,
+                                    "--state-out", state).returncode, 0)
+            state_before = state.read_bytes()
+            for out in (state, manifest, raw):
+                original = Path(out).read_bytes()
+                result = invoke("--fixture", state, "--preview-source-manifest",
+                                manifest, "--preview-source-map", out)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(Path(out).read_bytes(), original)
+            no_map = root / "never-created.html"
+            csv_source(root, rows=[("site-a", 2.7, 49.2, "collision")])
+            invalid = invoke("--fixture", state, "--preview-source-manifest",
+                             manifest, "--preview-source-map", no_map)
+            self.assertNotEqual(invalid.returncode, 0)
+            self.assertFalse(no_map.exists())
+            self.assertEqual(state.read_bytes(), state_before)
+
+    def test_preview_source_map_requires_preview_mode_and_is_create_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, _ = csv_source(root)
+            state = root / "old.json"
+            self.assertEqual(invoke("--ingest-source-manifest", manifest,
+                                    "--state-out", state).returncode, 0)
+            map_path = root / "preview.html"
+            wrong_mode = invoke("--fixture", state, "--all-attributes",
+                                "--preview-source-map", map_path)
+            self.assertNotEqual(wrong_mode.returncode, 0)
+            self.assertFalse(map_path.exists())
+            first = invoke("--fixture", state, "--preview-source-manifest",
+                           manifest, "--preview-source-map", map_path)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            original = map_path.read_bytes()
+            duplicate = invoke("--fixture", state, "--preview-source-manifest",
+                               manifest, "--preview-source-map", map_path)
+            self.assertNotEqual(duplicate.returncode, 0)
+            self.assertEqual(map_path.read_bytes(), original)
+
     def test_preview_is_not_retraction_or_physical_truth(self):
         with tempfile.TemporaryDirectory() as directory:
             manifest, _ = csv_source(directory, rows=[

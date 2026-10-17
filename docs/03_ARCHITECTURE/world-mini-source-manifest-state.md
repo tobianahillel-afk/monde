@@ -65,3 +65,24 @@ deleted. Invalid, ambiguous, or stale captures reject without output state.
 The analyst can then run the existing `--refresh-source-manifest`
 command with a new `--state-out` after reviewing the evidence.
 Changing the manifest between preview and refresh requires a new inspection.
+
+## Preview new source Point reports on an offline map (WORK-0044)
+
+Create a local map **before** accepting a later capture. The HTML contains only
+newly recorded source-reported Points, with source identity, original locator,
+valid/knowledge times and correction ancestry. It is **not** a map of verified
+physical movement or deletions:
+
+```sh
+PYTHONPATH=src python3 -m monde.world \
+  --fixture previous-world.json \
+  --preview-source-manifest updated-sources.json \
+  --preview-source-map capture-preview.html
+```
+
+The command still prints the ordinary `PREVIEW_NOT_SAVED` JSON summary;
+`preview_map_html` identifies the created offline visualization. It does
+not create or alter a WorldMini snapshot. The HTML output must be a **new path**
+(existing output, the manifest, source files and the original snapshot cannot
+be overwritten). An invalid capture produces no map. No network access is
+needed to open the generated page.
