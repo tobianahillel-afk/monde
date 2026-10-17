@@ -1,0 +1,61 @@
+id: WORK-0039
+title: "Read EPSG:3857 original GeoPackage source geometries on MONDE Mini offline maps"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source acquisition"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+
+purpose: |
+  Import common original, local EPSG:3857 2D GeoPackage feature layers into
+  evidence-grounded offline maps while preserving the source CRS claim,
+  original SQLite/WKB untouched, and explicit capture/valid/knowledge times.
+scope:
+  in: ["EPSG:3857 2D Point and line/polygon/multipart GeoPackage",
+       "strict bounded conversion to GeoJSON WGS84", "mixed CRS layers",
+       "source CRS provenance", "offline WorldMini map and tests"]
+  out: ["arbitrary reprojection", "online sources", "3D/M geometries",
+        "automatic coordinate inference", "source overwrite",
+        "GeometryCollection", "source truth reconciliation"]
+acceptance_criteria:
+  - {id: AC-1, description: "Bounded strict 3857 decoding for six supported geometry types without weakening WGS84 validation.", status: NOT_STARTED}
+  - {id: AC-2, description: "Original source CRS is explicit evidence metadata and coordinates on map are derived, not relabelled as direct WGS84 observations.", status: NOT_STARTED}
+  - {id: AC-3, description: "Read-only SQLite, mixed 4326/3857 layers and one-command offline WorldMini map work with original time/source assertions.", status: NOT_STARTED}
+  - {id: AC-4, description: "Malformed projected coordinates, mismatched layer/row SRS, invalid envelopes and mixed-layer errors fail atomically.", status: NOT_STARTED}
+requirements: []
+assumptions: ["Explicit EPSG codes and local immutable 2D WKB, no guessed CRS."]
+risks: ["Web Mercator numerical limits", "original vs transformed coordinate distinction"]
+depends_on: [WORK-0038]
+read_before: [src/monde/geopackage_points.py, src/monde/world.py, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Extend strict WKB decoders with verified 3857 interpretation.", depends_on: [], expected_files: [src/monde/geopackage_points.py], status: IN_REVIEW}
+    - {id: T2, description: "Test actual SQLite, WorldMini, CLI and invalid geometries.", depends_on: [T1], expected_files: [tests/test_world_geopackage_mercator.py], status: IN_REVIEW}
+    - {id: T3, description: "Document exact CRS and source provenance semantics.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/world-mini-geopackage-mercator.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [SECURITY, VERIFICATION_VALIDATION, DOCUMENTATION_TRACEABILITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: [tests/test_world_geopackage_mercator.py]
+  integration: [tests/test_world_geopackage_mercator.py]
+  security: [tests/test_world_geopackage_mercator.py]
+  real_system: ["GitHub Actions world-mini on exact candidate SHA"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked product ancestor PRs remain Draft until independently qualified and integrated."]
+risk:
+  security: MEDIUM
+  data: MEDIUM
+  epistemic: HIGH
+  performance: LOW
+  operational: LOW
+rollback:
+  strategy: "Revert this scoped child PR; parent WORK-0038 stays unchanged."
