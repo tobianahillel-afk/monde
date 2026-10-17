@@ -1,5 +1,7 @@
 """HTTP regression: readable original source disagreement reports."""
 import http.client
+import csv
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -100,6 +102,62 @@ class DisagreementReportHTTPTests(unittest.TestCase):
         self.assertIn("known_at=", html)
         self.assertIn("at=", html)
         self.assertIn("Original source disagreement evidence", html)
+
+
+    def test_download_original_disagreement_csv_matches_visible_opposition(self):
+        params = {**QUERY, "source": "survey-east"}
+        code, headers, raw = self.fetch("/disagreement.csv", params)
+        self.assertEqual(code, 200)
+        self.assertEqual(headers["Content-Type"], "text/csv; charset=utf-8")
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertIn("attachment;", headers["Content-Disposition"])
+        rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+        self.assertEqual(len(rows), 2)
+        self.assertEqual({r["entity"] for r in rows}, {"site-a"})
+        self.assertEqual({r["source_id"] for r in rows},
+                         {"survey-east", "survey-west"})
+        self.assertEqual({r["inside_bbox"] for r in rows}, {"true", "false"})
+        self.assertTrue(all(r["assertion_id"] and r["evidence_id"] for r in rows))
+        self.assertTrue(all(r["world_at"] == AT and r["known_at"] == K1
+                            for r in rows))
+        self.assertEqual({float(r["longitude"]) for r in rows}, {2.35, 7.2})
+        html = self.fetch("/disagreement-report", params)[2].decode("utf-8")
+        self.assertIn("Download original evidence CSV", html)
+        self.assertIn("/disagreement.csv?", html)
+        self.assertIn("source=survey-east", html)
+
+    def test_csv_empty_source_and_invalid_parameters(self):
+        status, _, raw = self.fetch(
+            "/disagreement.csv", {**QUERY, "source": "unseen-source"})
+        self.assertEqual(status, 200)
+        self.assertEqual(len(list(csv.DictReader(
+            io.StringIO(raw.decode("utf-8"))))), 0)
+        for bad in (
+            {**QUERY, "source": "../survey-east"},
+            {**QUERY, "unexpected": "value"},
+            {**QUERY, "at": "not-a-date"},
+            {**QUERY, "bbox": "0,0,0"},
+        ):
+            with self.subTest(bad=bad):
+                status, _, raw = self.fetch("/disagreement.csv", bad)
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+    def test_csv_escapes_spreadsheet_formula_like_entity_id(self):
+        from monde.local_api import _disagreement_csv
+        report = {"features": [
+            {"properties": {
+                "entity": "=2+2", "source_id": "legit-source",
+                "assertion_id": "assertion-1", "evidence_id": "evidence-1",
+                "monde_inside_bbox": True
+            }, "geometry": {"coordinates": [-1.5, 42]}}
+        ]}
+        raw = _disagreement_csv(report, {"at": AT, "known_at": K1})
+        rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+        self.assertEqual(rows[0]["entity"], "'=2+2")
+        self.assertEqual(rows[0]["longitude"], "-1.5")
+        self.assertIn("evidence-1", raw.decode("utf-8"))
+
 
 
 if __name__ == "__main__":
