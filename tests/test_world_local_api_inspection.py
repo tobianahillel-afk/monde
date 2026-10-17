@@ -62,7 +62,7 @@ class EvidenceInspectorTests(unittest.TestCase):
                     self.forms.append(dict(attributes))
         forms = Forms()
         forms.feed(document.decode("utf-8"))
-        self.assertEqual(len(forms.forms), 3)
+        self.assertEqual(len(forms.forms), 4)
         self.assertTrue(all(f.get("action") == "/inspect" and f.get("method") == "get"
                             for f in forms.forms))
 
@@ -246,3 +246,111 @@ class EvidenceInspectorTests(unittest.TestCase):
         code, _, body = self.fetch(host="attacker.example")
         self.assertEqual((code, json.loads(body)), (403, {"error": "loopback_host_required"}))
         self.assertEqual(self.path.read_bytes(), self.original)
+
+    def test_browser_knowledge_comparison_has_original_provenance_and_json_parity(self):
+        before = "2026-01-05T00:00:00Z"
+        params = {"view": "compare-knowledge", "entity": "building-001",
+                  "at": AT, "from_known_at": before, "to_known_at": LATE}
+        code, headers, body = self.fetch(params=params)
+        self.assertEqual(code, 200)
+        self.assertIn("script-src 'none'", headers["Content-Security-Policy"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertEqual(headers["Content-Length"], str(len(body)))
+        html = body.decode("utf-8")
+        expected = self.world.compare_knowledge("building-001", AT, before, LATE)
+        self.assertEqual(expected["status"], "CHANGED")
+        self.assertIn("Newly current", html)
+        self.assertIn("No longer current", html)
+        self.assertIn("Knowledge changes are not verified physical", html)
+        self.assertIn("/compare-knowledge?", html)
+        from html import escape
+        for change in expected["changes"].values():
+            for report in change["newly_current"] + change["no_longer_current"]:
+                self.assertIn(escape(json.dumps(report, ensure_ascii=False,
+                    sort_keys=True, indent=2, allow_nan=False)), html)
+        raw_params = {k: v for k, v in params.items() if k != "view"}
+        status, _, original = self.fetch("/compare-knowledge", raw_params)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(original), expected)
+        self.assertEqual(self.path.read_bytes(), self.original)
+
+    def test_browser_knowledge_comparison_unchanged_and_invalid_inputs(self):
+        params = {"view": "compare-knowledge", "entity": "building-001",
+                  "at": AT, "from_known_at": LATE,
+                  "to_known_at": "2026-01-08T00:00:00Z"}
+        status, _, body = self.fetch(params=params)
+        self.assertEqual(status, 200)
+        self.assertIn(b"UNCHANGED", body)
+        self.assertNotIn(b"UNKNOWN \xe2\x80\x94 no matching", body)
+        for changed in ({"to_known_at": LATE},
+                        {"to_known_at": "2026-01-04T00:00:00Z"},
+                        {"at": "invalid"},
+                        {"unexpected": "overwrite"}):
+            code, _, body = self.fetch(params={**params, **changed})
+            self.assertEqual((code, json.loads(body)),
+                             (400, {"error": "invalid_query"}))
+        code, _, body = self.fetch("/inspect?view=compare-knowledge&" +
+                                    urlencode(params))
+        self.assertEqual((code, json.loads(body)),
+                         (400, {"error": "invalid_query"}))
+        code, _, body = self.fetch(params={**params,
+            "entity": "<img src=x onerror=alert(1)>"})
+        self.assertEqual((code, json.loads(body)),
+                         (400, {"error": "invalid_query"}))
+
+    def test_browser_knowledge_correction_links_old_and_new_points_to_correct_cutoffs(self):
+        from tests.test_world_geojson_changes import K1 as GEO_K1
+        geographic = change_model()
+        original_report = correct(geographic)
+        state = Path(self.dir.name) / "geographic-compare.json"
+        geographic.save(state)
+        saved = state.read_bytes()
+        server = create_server(state)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        def read(target):
+            conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+            try:
+                conn.request("GET", target, headers={
+                    "Host": "127.0.0.1:" + str(server.server_port)})
+                response = conn.getresponse()
+                return response.status, response.read().decode("utf-8")
+            finally:
+                conn.close()
+        class MapLinks(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.links = []
+            def handle_starttag(self, tag, attributes):
+                if tag == "a":
+                    href = dict(attributes).get("href", "")
+                    if href.startswith("/viewer?"):
+                        self.links.append(href)
+        try:
+            params = {"view": "compare-knowledge", "entity": "site-a",
+                      "at": GEO_AT, "from_known_at": GEO_K1, "to_known_at": GEO_K2}
+            code, body = read("/inspect?" + urlencode(params))
+            self.assertEqual(code, 200)
+            self.assertIn(original_report["assertion_id"], body)
+            self.assertIn("correct-a", body)
+            parser = MapLinks()
+            parser.feed(body)
+            self.assertEqual(len(parser.links), 2)
+            located = {}
+            for link in parser.links:
+                parsed = urlsplit(link)
+                args = {k: v[0] for k, v in parse_qs(parsed.query).items()}
+                self.assertEqual(parsed.path, "/viewer")
+                self.assertEqual(args["view"], "radius")
+                self.assertEqual(args["at"], GEO_AT)
+                located[args["known_at"]] = args["center"]
+                map_code, map_html = read(link)
+                self.assertEqual(map_code, 200)
+                self.assertIn("MONDE Mini", map_html)
+            self.assertEqual(located, {
+                GEO_K1: "2.35,48.85", GEO_K2: "3.25,49.1"})
+            self.assertEqual(state.read_bytes(), saved)
+        finally:
+            server.shutdown()
+            worker.join(timeout=5)
+            server.server_close()
