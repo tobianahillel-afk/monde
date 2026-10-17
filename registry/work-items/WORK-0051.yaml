@@ -1,0 +1,56 @@
+id: WORK-0051
+title: "Expose evidence-grounded geographic change maps over local HTTP"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini local integration"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Reuse existing source-attributed geographic disagreement and bitemporal
+  change queries over the existing read-only loopback HTTP interface.
+scope:
+  in: ["GET /map-disagreements", "GET /map-knowledge-changes",
+       "GET /map-world-changes", "real loopback HTTP integration tests"]
+  out: ["new model engine", "new dependencies", "public listener", "write API",
+        "paid service", "inferred location or physical movement"]
+acceptance_criteria:
+  - {id: AC-1, description: "Serve GeoJSON changes and disagreements with original source/evidence identity.", status: NOT_STARTED}
+  - {id: AC-2, description: "Preserve fixed-world versus fixed-knowledge meanings, offscreen contradictions, and reject invalid time/bounds.", status: NOT_STARTED}
+  - {id: AC-3, description: "Test real loopback HTTP and preserve the original saved snapshot.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0050]
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md,
+              src/monde/world.py, src/monde/local_api.py,
+              tests/test_world_geojson_bbox.py, tests/test_world_geojson_disagreements.py]
+reuses: [WorldMini.export_geojson_disagreements,
+         WorldMini.export_geojson_bbox_knowledge_changes,
+         WorldMini.export_geojson_bbox_world_changes, create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Expose existing map results over HTTP.", depends_on: [], expected_files: [src/monde/local_api.py], status: IN_REVIEW}
+    - {id: T2, description: "Verify end-to-end local HTTP and provenance.", depends_on: [T1], expected_files: [tests/test_world_local_api_geochange.py], status: IN_REVIEW}
+    - {id: T3, description: "Document routes and their epistemic limits.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [ARCHITECTURE_REUSE, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_geochange.py]
+  real_system: ["Exact-HEAD GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on draft WORK-0050 / PR #74; not merged into main."]
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Discard branch or revert HTTP adapter changes; saved state unaffected."
