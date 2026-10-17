@@ -1,0 +1,50 @@
+id: WORK-0059
+title: "Original-source nearest and radius navigation"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini original-evidence explorer"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: "Search source-reported nearby Points without cross-source ranking bias."
+scope:
+  in: ["Source-scoped nearest and radius", "Read-only local browser and JSON",
+       "Real HTTP/immutability regression"]
+  out: ["Reconciled location", "Remote service", "State mutation"]
+acceptance_criteria:
+  - {id: AC-1, description: "Nearest rank computed after source selection.", status: IN_REVIEW}
+  - {id: AC-2, description: "Radius qualified by chosen source only.", status: IN_REVIEW}
+  - {id: AC-3, description: "Local forms and time navigation preserve filter.", status: IN_REVIEW}
+  - {id: AC-4, description: "HTTP, input validation, unfiltered parity, immutable state.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0058]
+read_before: [AGENTS.md, src/monde/world.py, src/monde/local_api.py, src/monde/map_view.py]
+reuses: [WorldMini.search_geo_radius, WorldMini.search_geo_nearest, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Rank source reports directly.", depends_on: [], expected_files: [src/monde/world.py], status: IN_REVIEW}
+    - {id: T2, description: "Wire source into existing API/browser.", depends_on: [T1], expected_files: [src/monde/local_api.py, src/monde/map_view.py], status: IN_REVIEW}
+    - {id: T3, description: "Verify local HTTP and saved snapshot.", depends_on: [T2], expected_files: [tests/test_world_local_api_proximity_source.py], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [SECURITY, VERIFICATION_VALIDATION, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_proximity_source.py]
+  real_system: ["GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked onto unmerged WORK-0058 PR #82."]
+risk:
+  security: MEDIUM
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close the stacked PR; no data migration."
