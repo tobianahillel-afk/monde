@@ -1,4 +1,6 @@
 """Portable append-only source-change reports, including real mixed-source files."""
+import csv
+import io
 import json
 import os
 from pathlib import Path
@@ -7,7 +9,7 @@ import sys
 import tempfile
 import unittest
 
-from monde.source_delta import source_delta, source_delta_geojson
+from monde.source_delta import source_delta, source_delta_geojson, source_delta_csv
 from monde.world import WorldMini
 from monde.csv_points import documents_from_manifest
 from tests.test_world_map_source_manifest_layers import sample
@@ -175,6 +177,80 @@ class SnapshotDeltaTests(unittest.TestCase):
             self.assertEqual(geojson["features"][0]["geometry"]["coordinates"],
                              [12.5, 41.9])
             self.assertEqual((older.read_bytes(), newer.read_bytes()), source_bytes)
+
+
+    def test_csv_audits_original_and_corrected_values_without_inventing_truth(self):
+        earlier = document("e1", "a1", value={"type": "Point", "coordinates": [2.3, 48.8]})
+        earlier["assertions"][0]["attribute"] = "geo_point"
+        before = WorldMini.from_document(earlier)
+        after = WorldMini.from_document(before.export())
+        corrected = document("e2", "a2", known="2026-01-03T12:00:00Z",
+                             supersedes="a1",
+                             value={"type": "Point", "coordinates": [2.4, 48.9]})
+        corrected["assertions"][0]["attribute"] = "geo_point"
+        corrected["evidence"][0]["locator"] = "=UNTRUSTED_EXTERNAL_FORMULA()"
+        after.append_document(corrected)
+        csv_body = source_delta_csv(before, after)
+        rows = list(csv.DictReader(io.StringIO(csv_body)))
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["world"], "OBSERVED")
+        self.assertEqual(row["status"], "NEW_SOURCE_REPORT_ONLY")
+        self.assertEqual(row["supersedes"], "a1")
+        self.assertEqual(row["source_id"], "survey")
+        self.assertEqual(json.loads(row["previous_value_json"]), earlier["assertions"][0]["value"])
+        self.assertEqual(json.loads(row["reported_value_json"]), corrected["assertions"][0]["value"])
+        self.assertEqual(json.loads(row["source_locator_json"]),
+                         "=UNTRUSTED_EXTERNAL_FORMULA()")
+        self.assertTrue(row["source_locator_json"].startswith('"'))
+        self.assertEqual(row["known_at"], "2026-01-03T12:00:00Z")
+        self.assertEqual(before.export()["assertions"][0]["value"],
+                         {"type": "Point", "coordinates": [2.3, 48.8]})
+
+    def test_csv_includes_nonspatial_reports_without_implying_reconciliation(self):
+        before = WorldMini.from_document(document("e1", "a1", value="unchanged"))
+        after = WorldMini.from_document(before.export())
+        after.append_document(document("e2", "a2", known="2026-01-05T12:00:00Z",
+                                       source="other", value={"claim": True}))
+        rows = list(csv.DictReader(io.StringIO(source_delta_csv(before, after))))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["attribute"], "status")
+        self.assertEqual(rows[0]["source_id"], "other")
+        self.assertEqual(json.loads(rows[0]["reported_value_json"]), {"claim": True})
+        self.assertEqual(rows[0]["previous_value_json"], "")
+        header_only = source_delta_csv(after, WorldMini.from_document(after.export()))
+        self.assertEqual(len(list(csv.reader(io.StringIO(header_only)))), 1)
+
+    def test_cli_csv_produces_readonly_auditable_output_and_rejects_mixed_formats(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p = Path(folder)
+            old = WorldMini()
+            new = WorldMini.from_document(document(
+                "e1", "a1", value={"label": "reported"}))
+            before_path, after_path = p / "before.json", p / "after.json"
+            old.save(before_path)
+            new.save(after_path)
+            originals = (before_path.read_bytes(), after_path.read_bytes())
+            args = [sys.executable, "-m", "monde.source_delta", "--before",
+                    str(before_path), "--after", str(after_path)]
+            env = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+            csv_result = subprocess.run([*args, "--as-csv"], env=env,
+                                        capture_output=True, text=True)
+            self.assertEqual(csv_result.returncode, 0, csv_result.stderr)
+            rows = list(csv.DictReader(io.StringIO(csv_result.stdout)))
+            self.assertEqual([row["assertion_id"] for row in rows], ["a1"])
+            self.assertEqual(json.loads(rows[0]["reported_value_json"]),
+                             {"label": "reported"})
+            invalid = subprocess.run([*args, "--as-csv", "--as-geojson"], env=env,
+                                     capture_output=True, text=True)
+            self.assertNotEqual(invalid.returncode, 0)
+            divergent = subprocess.run([
+                sys.executable, "-m", "monde.source_delta", "--before",
+                str(after_path), "--after", str(before_path), "--as-csv"
+            ], env=env, capture_output=True, text=True)
+            self.assertEqual(divergent.returncode, 2)
+            self.assertFalse(divergent.stdout)
+            self.assertEqual((before_path.read_bytes(), after_path.read_bytes()), originals)
 
     def test_real_geopackage_and_geojson_manifest_yield_per_source_delta(self):
         with tempfile.TemporaryDirectory() as root:

@@ -7,6 +7,8 @@ history, even if its headline counts happen to agree.
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 import sys
 
@@ -132,19 +134,67 @@ def source_delta_geojson(before: WorldMini, after: WorldMini) -> dict:
     }
 
 
+
+def source_delta_csv(before: WorldMini, after: WorldMini) -> str:
+    """Export every new source report, including old/new correction values.
+
+    JSON-encoded locator/value cells retain the original types and do not
+    expose untrusted source strings as spreadsheet formulas. This is a change
+    in the *recorded source evidence*, not a finding of physical-world truth.
+    """
+    report = source_delta(before, after)
+    snapshot = after.export()
+    assertions = {item["id"]: item for item in snapshot["assertions"]}
+    evidence = {item["id"]: item for item in snapshot["evidence"]}
+    output = io.StringIO(newline="")
+    rows = csv.writer(output, lineterminator="\n")
+    rows.writerow([
+        "world", "status", "assertion_id", "entity", "attribute", "kind",
+        "source_id", "evidence_id", "source_locator_json", "captured_at",
+        "source_event_at", "known_at", "valid_from", "valid_to", "supersedes",
+        "previous_value_json", "reported_value_json",
+    ])
+
+    def as_json(value):
+        return json.dumps(value, ensure_ascii=False, sort_keys=True,
+                          allow_nan=False, separators=(",", ":"))
+
+    for item in report["new_reports"]:
+        assertion = assertions[item["assertion_id"]]
+        capture = evidence[item["evidence_id"]]
+        parent = assertions[item["supersedes"]] if item["supersedes"] else None
+        rows.writerow([
+            "OBSERVED", "NEW_SOURCE_REPORT_ONLY", item["assertion_id"],
+            item["entity"], item["attribute"], item["kind"],
+            item["source_id"], item["evidence_id"], as_json(capture["locator"]),
+            capture["captured_at"], capture["source_event_at"] or "",
+            item["known_at"], item["valid_from"], item["valid_to"] or "",
+            item["supersedes"] or "",
+            as_json(parent["value"]) if parent else "",
+            as_json(assertion["value"]),
+        ])
+    return output.getvalue()
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Compare saved MONDE Mini states: source reports added, not inferred truth")
     parser.add_argument("--before", required=True, help="earlier validated WorldMini JSON")
     parser.add_argument("--after", required=True, help="later append-only WorldMini JSON")
-    parser.add_argument("--as-geojson", action="store_true",
-                        help="export only newly recorded source Point reports as GeoJSON")
+    formats = parser.add_mutually_exclusive_group()
+    formats.add_argument("--as-geojson", action="store_true",
+                         help="export only newly recorded source Point reports as GeoJSON")
+    formats.add_argument("--as-csv", action="store_true",
+                         help="export all new reports, corrections and old/new source values as CSV")
     args = parser.parse_args(argv)
     try:
         before, after = WorldMini.read(args.before), WorldMini.read(args.after)
-        report = (source_delta_geojson(before, after) if args.as_geojson
-                  else source_delta(before, after))
-        print(json.dumps(report, ensure_ascii=False, sort_keys=True))
+        if args.as_csv:
+            print(source_delta_csv(before, after), end="")
+        else:
+            report = (source_delta_geojson(before, after) if args.as_geojson
+                      else source_delta(before, after))
+            print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     except (OSError, ValueError, TypeError) as exc:
         print("MONDE Mini source delta: " + str(exc), file=sys.stderr)
         return 2
