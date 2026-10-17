@@ -1295,11 +1295,12 @@ def main(argv=None) -> int:
                 parser.error("preview requires --fixture; no output, query or replace flags")
             from .csv_points import documents_from_manifest
             from .source_refresh import preview_documents
+            from .world import WorldMini as PersistedWorldMini
             # Manifest conversion checks source file paths against a destination.
             # The read-only snapshot path is the exclusion target, not an output.
             batches, features = documents_from_manifest(
                 args.preview_source_manifest, output_path=args.fixture)
-            result = preview_documents(WorldMini.read(args.fixture), batches)
+            result = preview_documents(PersistedWorldMini.read(args.fixture), batches)
             print(json.dumps({"features": features, **result},
                              ensure_ascii=False, sort_keys=True, allow_nan=False))
             return 0
