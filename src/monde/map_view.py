@@ -1526,7 +1526,7 @@ def _viewer_time_navigation(query: dict[str, str] | None) -> str:
           and "source" in query) else "") +
         (('<label>Focus entity ID (optional)<input name="entity" value="' +
           html_escape(query.get("entity", ""), quote=True) +
-          '"></label>') if mode == "disagreements" else "") +
+          '"></label>') if mode == "disagreements" and "entity" in query else "") +
         '<button type="submit">Open evidence at selected times</button></form>'
         '</details></nav>')
 

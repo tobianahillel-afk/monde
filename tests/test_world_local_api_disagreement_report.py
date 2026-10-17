@@ -267,7 +267,8 @@ class DisagreementReportHTTPTests(unittest.TestCase):
         html = raw.decode()
         self.assertIn('name="entity" value="site-a"', html)
         self.assertIn('name="source" value="survey-east"', html)
-        self.assertIn(b'name="entity"', self.fetch("/explore", {})[2])
+        self.assertIn(b'formaction="/disagreement-report"',
+                      self.fetch("/explore", {})[2])
 
     def test_unfiltered_contract_and_invalid_entity_inputs(self):
         for route in ("/map-disagreements", "/disagreement-report",

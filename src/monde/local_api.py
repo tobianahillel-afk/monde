@@ -22,7 +22,7 @@ MAX_RESPONSE_BYTES = 2_000_000
 
 _EXPLORER_VIEWS = (
     ("current", "Current reports", ("bbox", "at", "known_at", "source")),
-    ("disagreements", "Source disagreements", ("bbox", "at", "known_at", "source", "entity")),
+    ("disagreements", "Source disagreements", ("bbox", "at", "known_at", "source")),
     ("knowledge-changes", "Newly known or corrected evidence",
      ("bbox", "at", "from_known_at", "to_known_at", "source")),
     ("world-changes", "Changes in reported validity",
@@ -35,7 +35,6 @@ _EXPLORER_VIEWS = (
 _EXPLORER_LABELS = {
     "bbox": "WGS84 bounds (west,south,east,north)",
     "source": "Optional source ID (in disagreements, show its opposing reports too)",
-    "entity": "Optional entity ID (focus one disagreement, retain opposing sources)",
     "center": "WGS84 search center (longitude,latitude)",
     "limit": "Maximum nearest entities (1–1000)",
     "radius_km": "Search radius (kilometers)",
@@ -68,12 +67,10 @@ def _explorer_html(source_ids: tuple[str, ...] = ()) -> str:
                 "limit": ' value="10"',
                 "radius_km": ' value="5"',
                 "source": ' placeholder="e.g. survey-1 (optional)"',
-                "entity": ' placeholder="e.g. site-a (optional)"',
             }.get(key, ' placeholder="2026-01-02T00:00:00Z"')
             inputs.append('<label>' + _EXPLORER_LABELS[key] +
                           '<input name="' + key + '"' +
-                          (' list="saved-original-sources"' if key == "source" else
-                            ('' if key == "entity" else ' required')) +
+                          (' list="saved-original-sources"' if key == "source" else ' required') +
                           initial + '></label>')
         forms.append(
             '<form action="/viewer" method="get"><h2>' + title + '</h2>' +
