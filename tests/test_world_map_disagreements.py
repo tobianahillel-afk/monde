@@ -97,7 +97,7 @@ class SavedDisagreementMapTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             _, data = extract(page.read_text(encoding="utf-8"))
             self.assertNotIn("monde_disagreements_view", data)
-            self.assertGreater(len(data["features"]), 2)
+            self.assertEqual(data, with_points().export_geojson_bbox(BBOX, VALID, KNOWN))
             prior = page.read_bytes()
             denied = run(*args)
             self.assertNotEqual(denied.returncode, 0)

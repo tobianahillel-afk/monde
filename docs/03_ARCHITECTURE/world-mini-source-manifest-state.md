@@ -132,3 +132,29 @@ cross-source disagreement warnings as the JSON preview, with both original
 source IDs, values, assertion IDs and overlapping validity interval. The
 standalone HTML works offline; untrusted source strings appear as text, not
 HTML, and the persisted world and raw source files are not modified.
+
+
+## Explore saved contradictory source positions offline (WORK-0047)
+
+After capturing a WorldMini state, inspect **only** entities for which distinct
+sources currently report incompatible geographic Points at a chosen world-time
+instant and knowledge cutoff:
+
+```bash
+python -m monde.map_view --state world.json \
+  --at 2026-01-02T00:00:00Z --known-at 2026-01-10T10:00:00Z \
+  --only-disagreements --output saved-source-disagreements.html
+```
+
+The generated self-contained HTML shows each competing original source Point
+separately, retaining source IDs, evidence metadata and bitemporal labels.
+Automatic bounds fit the disagreeing claims, including across the dateline.
+An explicit `--bbox W,S,E,N` retains every contrary report for an entity
+qualifying inside the viewport, even if a different source places it outside.
+If there are no conflicting Points, auto-fit refuses to invent a location;
+an explicit bbox can still show an empty map. The new mode cannot be combined
+with `--compare-at` or `--compare-known-at`.
+
+This is read-only source-report disagreement, **not** a verified position,
+physical movement or inference of ground truth. Existing maps and state files
+are unchanged; an existing HTML output file is never overwritten.
