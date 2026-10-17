@@ -600,6 +600,43 @@ def _disagreement_comparison_json(later: dict, earlier: dict,
     }
 
 
+def _disagreement_comparison_geojson(comparison: dict) -> dict:
+    """Combine original Point reports without inventing movement."""
+    classes = {row["entity"]: row["classification"] for row in comparison["changes"]}
+    features = []
+    for period in ("earlier", "later"):
+        selection = comparison[period]
+        for index, feature in enumerate(selection["geojson"]["features"]):
+            features.append({
+                **feature,
+                "id": f"{period}:{index}",
+                "properties": {
+                    **feature["properties"],
+                    "monde_original_feature_id": feature.get("id"),
+                    "monde_comparison_period": period,
+                    "monde_disagreement_classification": classes[
+                        feature["properties"]["entity"]],
+                    "monde_world_at": selection["at"],
+                    "monde_known_at": selection["known_at"],
+                },
+            })
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "world": comparison["world"],
+        "basis": comparison["basis"],
+        "monde_comparison": {
+            "axis": comparison["axis"],
+            "selection": comparison["selection"],
+            "earlier": {"at": comparison["earlier"]["at"],
+                        "known_at": comparison["earlier"]["known_at"]},
+            "later": {"at": comparison["later"]["at"],
+                      "known_at": comparison["later"]["known_at"]},
+            "status": comparison["status"],
+        },
+    }
+
+
 def _disagreement_comparison_csv(comparison: dict) -> bytes:
     """Preserve original reports at both cutoffs, without inferring truth."""
     output = io.StringIO()
@@ -784,7 +821,9 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
             escape("/disagreement-compare.json?" + urlencode(params), quote=True) +
             '">Download complete original comparison JSON</a> · <a href="' +
             escape("/disagreement-compare.csv?" + urlencode(params), quote=True) +
-            '">Download original comparison CSV</a></p>' + filter_links +
+            '">Download original comparison CSV</a> · <a href="' +
+            escape("/disagreement-compare.geojson?" + urlencode(params), quote=True) +
+            '">Open original comparison GeoJSON</a></p>' + filter_links +
             ('<ul>' + ''.join(changes) + '</ul>' if changes else
              '<p role="status">' + (
                  'NO ORIGINAL SOURCE DISAGREEMENT WITH SELECTED CHANGE TYPE'
@@ -937,7 +976,8 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/world-knowledge-changes", "/map-disagreements",
                             "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore",
                              "/inspect", "/disagreement-report", "/disagreement.csv",
-                             "/disagreement-compare.json", "/disagreement-compare.csv"}:
+                             "/disagreement-compare.json", "/disagreement-compare.csv",
+                             "/disagreement-compare.geojson"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -1058,14 +1098,16 @@ def create_server(state: str | Path, port: int = 0, *,
                     self.end_headers()
                     self.wfile.write(body)
                     return
-                elif path == "/disagreement-compare.json":
+                elif path in ("/disagreement-compare.json",
+                               "/disagreement-compare.geojson"):
                     _require(args, {"bbox", "at", "known_at"},
                              {"source", "entity", "from_known_at", "from_at", "changes_only", "change_kind"})
                     if ("from_at" in args) == ("from_known_at" in args):
                         raise ValueError("exactly one comparison axis is required")
                     later, earlier = _disagreement_pair(world, args)
-                    return self._reply(
-                        200, _disagreement_comparison_json(later, earlier, args))
+                    comparison = _disagreement_comparison_json(later, earlier, args)
+                    return self._reply(200, _disagreement_comparison_geojson(comparison)
+                                       if path.endswith(".geojson") else comparison)
                 elif path == "/map-knowledge-changes":
                     _require(args, {"bbox", "at", "from_known_at", "to_known_at"},
                              {"source"})

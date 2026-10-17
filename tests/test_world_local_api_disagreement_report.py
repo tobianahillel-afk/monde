@@ -781,5 +781,90 @@ class DisagreementReportHTTPTests(unittest.TestCase):
             self.assertEqual(self.fetch(route, params)[0], 400)
 
 
+    def test_comparison_geojson_matches_original_reports_for_both_axes(self):
+        for axis in ({"from_known_at": "2026-01-09T00:00:00Z"},
+                     {"from_at": "2026-01-01T01:00:00Z"}):
+            with self.subTest(axis=axis):
+                params = {**QUERY, "source": "survey-east", "entity": "site-a", **axis}
+                status, headers, body = self.fetch("/disagreement-compare.geojson", params)
+                self.assertEqual(status, 200)
+                self.assertEqual(headers["Content-Type"], "application/json; charset=utf-8")
+                self.assertEqual(headers["Cache-Control"], "no-store")
+                data = json.loads(body)
+                source = json.loads(self.fetch("/disagreement-compare.json", params)[2])
+                self.assertEqual(data["type"], "FeatureCollection")
+                self.assertEqual(data["world"], "OBSERVED")
+                self.assertEqual(data["basis"], source["basis"])
+                self.assertEqual(data["monde_comparison"]["axis"], source["axis"])
+                self.assertEqual(data["monde_comparison"]["selection"], source["selection"])
+                self.assertEqual(data["monde_comparison"]["status"], source["status"])
+                references = []
+                for period in ("earlier", "later"):
+                    original = source[period]
+                    self.assertEqual(data["monde_comparison"][period],
+                                     {"at": original["at"], "known_at": original["known_at"]})
+                    references.extend((period, feature)
+                                      for feature in original["geojson"]["features"])
+                self.assertEqual(len(data["features"]), len(references))
+                self.assertEqual(len({f["id"] for f in data["features"]}),
+                                 len(data["features"]))
+                classifications = {r["entity"]: r["classification"]
+                                   for r in source["changes"]}
+                for feature, (period, original) in zip(data["features"], references):
+                    props = feature["properties"]
+                    self.assertEqual(feature["geometry"], original["geometry"])
+                    for key, value in original["properties"].items():
+                        self.assertEqual(props[key], value)
+                    self.assertEqual(props["monde_original_feature_id"], original.get("id"))
+                    self.assertEqual(props["monde_comparison_period"], period)
+                    self.assertEqual(props["monde_disagreement_classification"],
+                                     classifications[props["entity"]])
+                    self.assertEqual(props["monde_world_at"], source[period]["at"])
+                    self.assertEqual(props["monde_known_at"], source[period]["known_at"])
+                html = self.fetch("/disagreement-report", params)[2].decode()
+                self.assertIn("/disagreement-compare.geojson?", html)
+                self.assertIn("Open original comparison GeoJSON", html)
+
+    def test_comparison_geojson_filters_preserve_offscreen_opposing_sources(self):
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z", "change_kind": "appeared"}
+        code, _, raw = self.fetch("/disagreement-compare.geojson", params)
+        self.assertEqual(code, 200)
+        result = json.loads(raw)
+        self.assertEqual(result["monde_comparison"]["selection"]["change_kind"], "appeared")
+        self.assertEqual({f["properties"]["source_id"] for f in result["features"]},
+                         {"survey-east", "survey-west"})
+        self.assertEqual({f["properties"]["monde_inside_bbox"]
+                          for f in result["features"]}, {True, False})
+        self.assertEqual({f["properties"]["monde_disagreement_classification"]
+                          for f in result["features"]}, {"APPEARED IN SELECTION"})
+        empty = json.loads(self.fetch("/disagreement-compare.geojson",
+                                      {**params, "change_kind": "disappeared"})[2])
+        self.assertEqual(empty["features"], [])
+
+    def test_comparison_geojson_invalid_queries_fail_closed(self):
+        valid = {**QUERY, "from_known_at": "2026-01-09T00:00:00Z"}
+        for query in (QUERY, {**valid, "from_at": "2026-01-01T00:00:00Z"},
+                      {**valid, "change_kind": "unknown"},
+                      {**valid, "extra": "x"},
+                      {**valid, "from_known_at": K1}):
+            with self.subTest(query=query):
+                status, _, raw = self.fetch("/disagreement-compare.geojson", query)
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+    def test_comparison_geojson_does_not_mutate_original_comparison(self):
+        from copy import deepcopy
+        from monde.local_api import _disagreement_comparison_geojson
+        params = {**QUERY, "from_at": "2026-01-01T01:00:00Z"}
+        source = json.loads(self.fetch("/disagreement-compare.json", params)[2])
+        initial = deepcopy(source)
+        output = _disagreement_comparison_geojson(source)
+        self.assertEqual(source, initial)
+        if output["features"]:
+            output["features"][0]["properties"]["entity"] = "altered"
+        self.assertEqual(source, initial)
+
+
 if __name__ == "__main__":
     unittest.main()

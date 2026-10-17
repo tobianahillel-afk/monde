@@ -440,3 +440,18 @@ comparison. Classification happens before filtering; all opposing original
 source Points, including offscreen evidence and IDs, are retained for matching
 entities in both periods. Report-selection changes are not verified physical
 movement or proof of absence. Other routes and invalid types reject the filter.
+
+### Map-ready original bitemporal disagreement GeoJSON (WORK-0075)
+
+The read-only comparison report links to /disagreement-compare.geojson,
+using exactly one earlier knowledge or world-time cutoff. This combines both
+sets of original source Points into a GeoJSON FeatureCollection for map tools.
+Each report retains original geometry, evidence/assertion/source identifiers,
+inside/outside-viewport flags, and separate original feature ID, period,
+classification, world-valid time and knowledge cutoff. The export feature ID
+is period-qualified, not a replacement assertion ID. Existing changes_only,
+change_kind, source and entity filters apply consistently, retaining opposing
+offscreen reports; empty results are valid empty FeatureCollections. These are
+source reports, not confirmed movement or consensus. The endpoint reuses the
+local host restrictions, response limits and immutable persisted snapshot.
+This candidate depends on unmerged WORK-0074 / PR #105.
