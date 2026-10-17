@@ -323,3 +323,18 @@ availability from unmerged `main`.
 ### Source-scoped proximity maps (WORK-0060)
 
 `/nearest`, `/radius` and their browser `/viewer` modes accept an optional original `source` ID. **Source selection precedes nearest ranking and radius qualification**; a filtered result includes only the selected source’s original Point claims, including its own opposing positions outside the radius. Unfiltered results still include independent competing sources. The native browser forms preserve `source` alongside explicit world time and knowledge cutoff. Filtered GeoJSON includes `monde_source_filter`. Input IDs follow the WorldMini source-ID contract; no inference, external requests or saved-state changes are introduced.
+
+
+### Source discovery for the current map (WORK-0061)
+
+The `/explore` Current reports form (in addition to the global source catalog) includes **Browse sources**, which opens
+`/source-catalog?view=current&bbox=W,S,E,N&at=T&known_at=K`. Each original
+source with a Point report **inside** the viewport is listed with its original
+Point-report count and distinct entity count; clicking it opens the existing
+source-filtered map. `/map-sources?bbox=W,S,E,N&at=T&known_at=K` supplies the
+same catalog as read-only JSON. Out-of-bounds contrary reports do not count
+toward source presence, although the downstream filtered map retains the
+source's original contrary positions. Source counts are not source quality,
+consensus, exhaustive coverage, or verified physical positions. Both routes
+reuse the local loopback API, its bitemporal cutoffs, strict parameters,
+HTML escaping, CSP and saved-state immutability. Unmerged stacked after PR #84 (WORK-0060).
