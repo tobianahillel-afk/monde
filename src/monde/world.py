@@ -1346,8 +1346,9 @@ def main(argv=None) -> int:
                 raise ValueError("expected preview SHA-256 must be 64 lowercase hex characters")
             batches, features = documents_from_manifest(
                 args.refresh_source_manifest, output_path=args.state_out)
-            updated, changes = refresh_documents(PersistedWorldMini.read(args.fixture), batches)
-            calculated_preview = preview_sha256(updated)
+            original = PersistedWorldMini.read(args.fixture)
+            updated, changes = refresh_documents(original, batches)
+            calculated_preview = preview_sha256(original, updated)
             if (args.expect_preview_sha256 is not None and
                     calculated_preview != args.expect_preview_sha256):
                 raise ValueError("source preview no longer matches; preview the capture again")

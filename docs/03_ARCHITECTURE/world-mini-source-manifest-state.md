@@ -90,8 +90,8 @@ needed to open the generated page.
 ## Confirm a source capture already inspected (WORK-0045)
 
 The preview JSON includes `preview_sha256`, a SHA-256 digest of the
-**complete validated resulting WorldMini evidence state**, including its
-original evidence/claim history. Copy it into the refresh command:
+**complete original and resulting WorldMini evidence states**, including
+their source/claim histories. Copy it into the refresh command:
 
 ```sh
 PYTHONPATH=src python3 -m monde.world \
