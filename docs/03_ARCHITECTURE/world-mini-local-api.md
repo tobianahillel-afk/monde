@@ -208,3 +208,26 @@ outside the radius. Invalid/non-Point values get no link. URLs are query-encoded
 HTML-escaped, and stay same-origin; the inspector remains script-free and every
 endpoint remains read-only. End-to-end tests follow the link through the loopback
 server and check that the saved World Model is byte-for-byte unchanged.
+
+
+### Comparing knowledge of one entity in the browser (WORK-0056)
+
+The read-only local /inspect browser form now supports view=compare-knowledge
+with entity, at, from_known_at, and to_known_at. It directly calls the
+existing WorldMini.compare_knowledge entity query; the matching JSON response
+is already available at /compare-knowledge with the same non-view parameters.
+
+The same physical-world time (at) is used on both sides. The earlier and
+later knowledge cutoffs select the original reports marked "No longer current"
+and "Newly current". Their full unmodified report dictionaries, source IDs,
+evidence IDs, locators, and timestamps are HTML-escaped and displayed. A
+difference in knowledge is NOT proof of an observed physical-world change.
+When no report changed the page says UNCHANGED rather than UNKNOWN or absent.
+
+For original geo_point corrections, links to the existing local map viewer
+retain the correct historical state: retired source-reported Points use
+from_known_at, and newly current Points use to_known_at. No geolocation is
+inferred or corrected by the UI; the offline map, saved snapshot, loopback
+restriction, no-network Content Security Policy, and strict GET interface
+remain intact.
+
