@@ -1,0 +1,50 @@
+id: WORK-0059
+title: "Filter local nearest and radius evidence maps by original source"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence browser"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Select one original Point source before calculating ranks or radius inclusion.
+  Preserve its other current Points and original evidence, without consensus.
+scope:
+  in: ["Source-specific nearest/radius selectors", "Local JSON/browser controls", "Real HTTP regressions"]
+  out: ["Reconciled locations", "New store", "Remote requests", "Data mutation"]
+acceptance_criteria:
+  - {id: AC-1, description: "Source-only nearest search ranks before limiting results.", status: NOT_STARTED}
+  - {id: AC-2, description: "Radius selection requires the selected source itself to be nearby.", status: NOT_STARTED}
+  - {id: AC-3, description: "Other current Points of selected source retain original provenance.", status: NOT_STARTED}
+  - {id: AC-4, description: "Browser/API filters are safe, optional and preserve snapshots.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0058]
+read_before: [AGENTS.md, src/monde/world.py, src/monde/local_api.py]
+reuses: [WorldMini.search_geo_radius, WorldMini.search_geo_nearest, WorldMini.export_geojson_radius, WorldMini.export_geojson_nearest, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Extend original source selectors and browser endpoints.", depends_on: [], expected_files: [src/monde/world.py, src/monde/local_api.py], status: IN_REVIEW}
+    - {id: T2, description: "Verify actual HTTP ranking, provenance and rejection.", depends_on: [T1], expected_files: [tests/test_world_local_api_proximity_source.py], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_proximity_source.py]
+  real_system: ["Exact-head GitHub Actions world-mini"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0058 / PR #82."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close stacked PR; pure read-only feature with no migration."
