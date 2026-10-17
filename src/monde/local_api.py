@@ -22,9 +22,9 @@ _EXPLORER_VIEWS = (
     ("current", "Current reports", ("bbox", "at", "known_at", "source")),
     ("disagreements", "Source disagreements", ("bbox", "at", "known_at")),
     ("knowledge-changes", "Newly known or corrected evidence",
-     ("bbox", "at", "from_known_at", "to_known_at")),
+     ("bbox", "at", "from_known_at", "to_known_at", "source")),
     ("world-changes", "Changes in reported validity",
-     ("bbox", "from_at", "to_at", "known_at")),
+     ("bbox", "from_at", "to_at", "known_at", "source")),
     ("nearest", "Nearest source-reported places",
      ("center", "limit", "at", "known_at")),
     ("radius", "Source-reported places within a radius",
@@ -375,6 +375,29 @@ def _filter_source_bbox(document: dict, source: str | None) -> dict:
             "monde_source_filter": source}
 
 
+def _filter_source_changes(document: dict, source: str | None, query_key: str) -> dict:
+    """Map one source's original changed Points, qualifying at either cutoff.
+
+    A different source's in-viewport Point cannot qualify this source's
+    historical change. Retain both sides of the change for selected entities.
+    """
+    if source is None:
+        return document
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}", source):
+        raise ValueError("invalid source ID")
+    selected = [f for f in document["features"]
+                if f["properties"]["source_id"] == source]
+    entities = {f["properties"]["entity"] for f in selected
+                if f["properties"]["monde_inside_bbox"]}
+    features = [f for f in selected if f["properties"]["entity"] in entities]
+    query = dict(document[query_key])
+    query["total_matching_entities"] = len(entities)
+    query["total_changed_features"] = len(features)
+    query["status"] = "CHANGES" if features else "NO_CHANGES"
+    return {**document, "features": features, query_key: query,
+            "monde_source_filter": source}
+
+
 def create_server(state: str | Path, port: int = 0, *,
                   max_response_bytes: int = MAX_RESPONSE_BYTES) -> ThreadingHTTPServer:
     """Load once, then serve queries only on 127.0.0.1. No state writes."""
@@ -540,15 +563,21 @@ def create_server(state: str | Path, port: int = 0, *,
                     output = world.export_geojson_disagreements(
                         args["at"], args["known_at"], _bbox(args["bbox"]))
                 elif path == "/map-knowledge-changes":
-                    _require(args, {"bbox", "at", "from_known_at", "to_known_at"})
-                    output = world.export_geojson_bbox_knowledge_changes(
-                        _bbox(args["bbox"]), args["at"],
-                        args["from_known_at"], args["to_known_at"])
+                    _require(args, {"bbox", "at", "from_known_at", "to_known_at"},
+                             {"source"})
+                    output = _filter_source_changes(
+                        world.export_geojson_bbox_knowledge_changes(
+                            _bbox(args["bbox"]), args["at"],
+                            args["from_known_at"], args["to_known_at"]),
+                        args.get("source"), "monde_bbox_changes_query")
                 elif path == "/map-world-changes":
-                    _require(args, {"bbox", "from_at", "to_at", "known_at"})
-                    output = world.export_geojson_bbox_world_changes(
-                        _bbox(args["bbox"]), args["from_at"],
-                        args["to_at"], args["known_at"])
+                    _require(args, {"bbox", "from_at", "to_at", "known_at"},
+                             {"source"})
+                    output = _filter_source_changes(
+                        world.export_geojson_bbox_world_changes(
+                            _bbox(args["bbox"]), args["from_at"],
+                            args["to_at"], args["known_at"]),
+                        args.get("source"), "monde_bbox_world_changes_query")
                 elif path == "/inspect":
                     if not args:
                         return self._inspection(None)
@@ -600,16 +629,22 @@ def create_server(state: str | Path, port: int = 0, *,
                             world, _bbox(args["bbox"]), args["at"], args["known_at"])
                     elif mode == "knowledge-changes":
                         _require(args, {"view", "bbox", "at",
-                                        "from_known_at", "to_known_at"})
-                        geojson = world.export_geojson_bbox_knowledge_changes(
-                            _bbox(args["bbox"]), args["at"],
-                            args["from_known_at"], args["to_known_at"])
+                                        "from_known_at", "to_known_at"},
+                                 {"source"})
+                        geojson = _filter_source_changes(
+                            world.export_geojson_bbox_knowledge_changes(
+                                _bbox(args["bbox"]), args["at"],
+                                args["from_known_at"], args["to_known_at"]),
+                            args.get("source"), "monde_bbox_changes_query")
                     elif mode == "world-changes":
                         _require(args, {"view", "bbox", "from_at",
-                                        "to_at", "known_at"})
-                        geojson = world.export_geojson_bbox_world_changes(
-                            _bbox(args["bbox"]), args["from_at"],
-                            args["to_at"], args["known_at"])
+                                        "to_at", "known_at"},
+                                 {"source"})
+                        geojson = _filter_source_changes(
+                            world.export_geojson_bbox_world_changes(
+                                _bbox(args["bbox"]), args["from_at"],
+                                args["to_at"], args["known_at"]),
+                            args.get("source"), "monde_bbox_world_changes_query")
                     elif mode == "nearest":
                         _require(args, {"view", "center", "limit", "at", "known_at"})
                         geojson = world.export_geojson_nearest(
