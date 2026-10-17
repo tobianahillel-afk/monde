@@ -85,12 +85,15 @@ class BrowserViewerTests(unittest.TestCase):
             "nearest": {"view", "center", "limit", "at", "known_at"},
             "radius": {"view", "center", "radius_km", "at", "known_at"}
         }
-        self.assertEqual(len(forms.forms), 6)
+        viewer_forms = [form for form in forms.forms if form["action"] == "/viewer"]
+        self.assertEqual(len(viewer_forms), 6)
+        self.assertEqual([form["action"] for form in forms.forms
+                          if form["action"] != "/viewer"], ["/sources-browser"])
         params = {"bbox": "2.3,48.8,2.4,48.9", "at": AT, "known_at": K2,
                   "center": "2.3522,48.8566", "limit": "10", "radius_km": "5",
                   "from_known_at": K1, "to_known_at": K2,
                   "from_at": EARLIER, "to_at": AT, "source": "survey-1"}
-        for form in forms.forms:
+        for form in viewer_forms:
             self.assertEqual((form["action"], form["method"]), ("/viewer", "get"))
             fields = form["inputs"]
             names = [f["name"] for f in fields]

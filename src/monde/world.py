@@ -212,6 +212,50 @@ class WorldMini:
                        "evidence": list(self._evidence.values()),
                        "assertions": list(self._assertions.values())})
 
+    def source_catalog(self, at: str, known_at: str) -> dict:
+        """Discover original sources at knowledge cutoff K and their Point evidence at T.
+
+        Historical assertion counts include superseded reports known by K.
+        Current Point counts exclude superseded or world-invalid assertions.
+        Neither source counts nor locations imply source quality or truth.
+        """
+        valid_at, cutoff = _time(at), _time(known_at)
+        by_source = {}
+        current_points = []
+        for assertion in self._assertions.values():
+            if _time(assertion["known_at"]) > cutoff:
+                continue
+            source = self._evidence[assertion["evidence_id"]]["source_id"]
+            row = by_source.setdefault(source, {
+                "source_id": source, "known_assertion_count": 0,
+                "current_point_report_count": 0,
+                "current_point_entity_count": 0,
+            })
+            row["known_assertion_count"] += 1
+            if (assertion["attribute"] == "geo_point"
+                    and _time(assertion["valid_from"]) <= valid_at
+                    and (assertion["valid_to"] is None
+                         or valid_at < _time(assertion["valid_to"]))):
+                current_points.append(assertion)
+
+        superseded = {a["supersedes"] for a in current_points
+                      if a["supersedes"] is not None}
+        entities = {source: set() for source in by_source}
+        for assertion in current_points:
+            if assertion["id"] in superseded:
+                continue
+            source = self._evidence[assertion["evidence_id"]]["source_id"]
+            by_source[source]["current_point_report_count"] += 1
+            entities[source].add(assertion["entity"])
+        for source, row in by_source.items():
+            row["current_point_entity_count"] = len(entities[source])
+
+        sources = [by_source[source] for source in sorted(by_source)]
+        return {"world": "OBSERVED", "view": "SOURCE_CATALOG_ONLY",
+                "valid_at": at, "knowledge_cutoff": known_at,
+                "status": "SOURCES_FOUND" if sources else "NO_SOURCES",
+                "sources": sources}
+
     def query(self, entity: str, attribute: str, at: str, known_at: str) -> dict:
         _id(entity)
         _id(attribute)

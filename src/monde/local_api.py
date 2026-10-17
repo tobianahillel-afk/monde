@@ -97,11 +97,52 @@ truth. No external requests, data upload or saved-state changes.</p>
 """ + source_hint + """
 <datalist id="saved-original-sources">""" + suggestions + """</datalist>
 <main>""" + ''.join(forms) + """</main>
+<form action="/sources-browser" method="get"><h2>Browse original sources at T / K</h2>
+<label>World time (UTC ISO-8601)<input required name="at" placeholder="2026-01-02T00:00:00Z"></label>
+<label>Knowledge cutoff (UTC ISO-8601)<input required name="known_at" placeholder="2026-01-10T10:00:00Z"></label>
+<button type="submit">Browse sources</button></form>
 <p><a href="/inspect">Inspect original entity reports and source histories</a></p>
 <p>Local read-only interface. Time cutoffs must be timezone-aware ISO-8601.</p>
 </body></html>"""
 
 
+
+
+def _source_catalog_html(catalog: dict) -> str:
+    """Read-only source links based on the same cutoff-aware catalog as JSON."""
+    rows = []
+    for item in catalog["sources"]:
+        source = item["source_id"]
+        link = "/inspect?" + urlencode({
+            "view": "source-history", "source": source,
+            "known_at": catalog["knowledge_cutoff"]})
+        rows.append(
+            '<tr><td><a href="' + escape(link, quote=True) + '">' +
+            escape(source) + '</a></td><td>' +
+            str(item["known_assertion_count"]) + '</td><td>' +
+            str(item["current_point_report_count"]) + '</td><td>' +
+            str(item["current_point_entity_count"]) + '</td></tr>')
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<title>MONDE Mini — Source catalog</title>'
+        '<style>:root{color-scheme:dark;font-family:system-ui,sans-serif;'
+        'background:#101827;color:#ebf2f9}body{max-width:1000px;'
+        'margin:auto;padding:24px}a{color:#80e5db}table{width:100%;'
+        'border-collapse:collapse}th,td{padding:10px;border:1px solid #48677e;'
+        'text-align:left}p{line-height:1.5}</style></head><body>'
+        '<h1>Original evidence sources</h1>'
+        '<p>Known by ' + escape(catalog["knowledge_cutoff"]) +
+        ', valid at ' + escape(catalog["valid_at"]) +
+        '. Counts reflect source reports, not physical truth or source quality. '
+        'Historical assertions include corrections and superseded claims; '
+        'current Point counts exclude superseded claims.</p>'
+        '<p><a href="/explore">Back to the evidence explorer</a></p>'
+        '<table><thead><tr><th>Source</th><th>Known historical assertions</th>'
+        '<th>Current Point reports</th><th>Current Point entities</th></tr>'
+        '</thead><tbody>' + ''.join(rows) + '</tbody></table>'
+        '<p>' + str(len(rows)) + ' sources visible at this knowledge cutoff.</p>'
+        '</body></html>')
 
 
 _INSPECTION_FORMS = (
@@ -440,7 +481,8 @@ def create_server(state: str | Path, port: int = 0, *,
 
         def _inspection(self, payload: dict | None, mode: str | None = None,
                         params: dict[str, str] | None = None):
-            body = _inspection_html(payload, mode, params).encode("utf-8")
+            body = (_source_catalog_html(payload) if mode == "source-catalog"
+                    else _inspection_html(payload, mode, params)).encode("utf-8")
             if len(body) > max_response_bytes:
                 return self._reply(413, {"error": "response_too_large"})
             self.send_response(200)
@@ -477,7 +519,8 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/compare-world", "/source-history", "/disagreement-changes",
                             "/knowledge-updates", "/knowledge-timeline",
                             "/world-knowledge-changes", "/map-disagreements",
-                            "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore", "/inspect"}:
+                            "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore", "/inspect",
+                            "/sources", "/sources-browser"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -485,6 +528,14 @@ def create_server(state: str | Path, port: int = 0, *,
                     _require(args, set())
                     output = {"service": "MONDE Mini", "mode": "READ_ONLY",
                               "world": "OBSERVED", "status": "READY"}
+                elif path == "/sources":
+                    _require(args, {"at", "known_at"})
+                    output = world.source_catalog(args["at"], args["known_at"])
+                elif path == "/sources-browser":
+                    _require(args, {"at", "known_at"})
+                    return self._inspection(
+                        world.source_catalog(args["at"], args["known_at"]),
+                        "source-catalog", args)
                 elif path == "/reports":
                     _require(args, {"entity", "attribute", "at", "known_at"})
                     output = world.query(args["entity"], args["attribute"],

@@ -298,3 +298,24 @@ Knowledge/world comparison maps preserve their earlier/later temporal cutoffs.
 This is a native read-only GET /viewer over existing WorldMini queries:
 no new model, inferred physical movement, external service, upload or saved-state
 change. Standalone offline CLI maps intentionally show no server-dependent form.
+
+
+### Browse original sources at a chosen world/knowledge time (WORK-0059)
+
+`/explore` now includes a native **Browse sources** form. Enter UTC
+world time T and knowledge cutoff K to open the read-only `/sources-browser` table,
+which links each source ID to its original assertion/correction history.
+The equivalent machine-readable `/sources?at=T&known_at=K` returns:
+`source_id`, `known_assertion_count`, `current_point_report_count` and
+`current_point_entity_count`. Sources are listed only after an actual
+assertion from that source was known at K. Historical counts include assertions
+later superseded; current Point counts exclude replaced or world-invalid reports
+at T. Sources with known non-geographic evidence but zero current Points remain
+discoverable. Counts are **not** source quality, inferred consensus, or truth.
+
+This uses the existing saved `WorldMini` evidence/assertion ledger, no new
+storage, paid API, network fetch or state writes. Input timestamps retain strict
+timezone validation. Browser source IDs and deep links are escaped, the local
+service remains loopback-only with no-network CSP and response-size bounds.
+The feature is a candidate stacked on WORK-0058 / PR #82; no claim of
+availability from unmerged `main`.
