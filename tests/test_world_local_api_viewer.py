@@ -86,10 +86,20 @@ class BrowserViewerTests(unittest.TestCase):
                 model, [2.3, 48.8, 2.4, 48.9], AT, K1)
             self.assertEqual(status, 200)
             self.assertEqual(body.decode("utf-8"), render_map(expected))
-            self.assertEqual(len(expected["features"]), 1)
+            # The map intentionally keeps both original source positions:
+            # one inside the requested viewport and its opposing offscreen report.
+            self.assertEqual(len(expected["features"]), 2)
             self.assertEqual(
-                expected["features"][0]["properties"]["monde_conflicting_source_ids"],
-                ["survey-east", "survey-west"])
+                {feature["properties"]["monde_inside_bbox"]
+                 for feature in expected["features"]}, {True, False})
+            self.assertEqual(
+                {feature["properties"]["source_id"]
+                 for feature in expected["features"]},
+                {"survey-east", "survey-west"})
+            self.assertTrue(all(
+                feature["properties"]["monde_conflicting_source_ids"] ==
+                ["survey-east", "survey-west"]
+                for feature in expected["features"]))
             self.assertIn(b"Saved-state source disagreement view", body)
             self.assertIn(b"survey-east", body)
             self.assertIn(b"survey-west", body)
