@@ -123,7 +123,7 @@ class GeoPackageMultiLineTests(unittest.TestCase):
             source = add_multilines(build(Path(d) / "source.gpkg"))
             valid = multiline(LINES)
             invalid = [b"bad", valid[:-1], valid + b"extra",
-                       multiline(LINES, srid=3857), multiline([]),
+                       multiline(LINES, srid=9999), multiline([]),
                        multiline([[[2, 48]]])]
             wrong_type = bytearray(valid)
             struct.pack_into("<I", wrong_type, 17, 1)

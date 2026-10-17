@@ -139,7 +139,7 @@ class GeoPackageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             source = build(Path(d) / "source.gpkg")
             for index, malformed in enumerate([
-                b"bad", point(2, 49, srid=3857),
+                b"bad", point(2, 49, srid=9999),
                 point(200, 49), point(float("nan"), 49),
                 point(2, 49) + b"extra"
             ]):

@@ -110,7 +110,7 @@ class MultiPointTests(unittest.TestCase):
             path = source_db(build(Path(d) / "source.gpkg"))
             valid = multipoint(POINTS)
             corrupt = [valid[:-1], valid+b"x", b"bad",
-                       multipoint(POINTS,srid=3857), multipoint([]),
+                       multipoint(POINTS,srid=9999), multipoint([]),
                        multipoint([[200,48]])]
             wrong = bytearray(valid)
             struct.pack_into("<I",wrong,17,2)
