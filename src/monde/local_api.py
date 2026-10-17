@@ -94,14 +94,19 @@ _INSPECTION_FORMS = (
     ("entity", "Entity evidence dossier", ("entity", "at", "known_at")),
     ("reports", "Source reports for an attribute", ("entity", "attribute", "at", "known_at")),
     ("source-history", "Original source correction history", ("source", "known_at")),
+    ("compare-knowledge", "What changed in our knowledge of an entity?",
+     ("entity", "at", "from_known_at", "to_known_at")),
 )
 _INSPECTION_LABELS = {
     "entity": "Entity ID", "attribute": "Attribute", "source": "Original source ID",
     "at": "World time (ISO-8601 with timezone)",
     "known_at": "Knowledge cutoff (ISO-8601 with timezone)",
+    "from_known_at": "Earlier knowledge cutoff (ISO-8601 with timezone)",
+    "to_known_at": "Later knowledge cutoff (ISO-8601 with timezone)",
 }
 _INSPECTION_ROUTES = {
     "entity": "/entity", "reports": "/reports", "source-history": "/source-history",
+    "compare-knowledge": "/compare-knowledge",
 }
 
 
@@ -155,19 +160,38 @@ def _inspection_html(payload: dict | None, mode: str | None = None,
         items = []
         if mode == "entity":
             for attribute, value in payload["attributes"].items():
-                items.extend((attribute, report) for report in value["reports"])
+                items.extend((attribute, report, "", params["known_at"])
+                             for report in value["reports"])
+        elif mode == "compare-knowledge":
+            # The existing WorldMini method determines knowledge changes.
+            # Never reinterpret them as verified changes to the physical world.
+            for attribute, change in payload["changes"].items():
+                for report in change["newly_current"]:
+                    items.append((attribute, report, "Newly current",
+                                  params["to_known_at"]))
+                for report in change["no_longer_current"]:
+                    items.append((attribute, report, "No longer current",
+                                  params["from_known_at"]))
         else:
-            items.extend((report.get("attribute", params.get("attribute", "")), report)
+            items.extend((report.get("attribute", params.get("attribute", "")),
+                          report, "", params["known_at"])
                          for report in payload["reports"])
         records = []
-        for attribute, report in items:
+        for attribute, report, label, cutoff in items:
             title = " / ".join(str(report.get(field, "")) for field in
                                ("source_id", "assertion_id"))
-            map_url = _report_map_link(attribute, report, mode, params)
+            # A retired report is mapped at the earlier cutoff, not the later
+            # one where it has already been superseded.
+            map_params = {"at": params["at"], "known_at": cutoff}
+            map_url = _report_map_link(attribute, report, "entity",
+                                       map_params) if mode == "compare-knowledge" else (
+                                           _report_map_link(attribute, report, mode, params))
             map_link = ('<p><a href="' + escape(map_url, quote=True) +
                         '">Show this original reported Point on the map</a></p>'
                         if map_url else '')
-            records.append('<details><summary>' + escape(attribute) + ': ' +
+            records.append('<details><summary>' +
+                           (escape(label) + ' / ' if label else '') +
+                           escape(attribute) + ': ' +
                            escape(title) + '</summary><pre>' +
                            escape(json.dumps(report, ensure_ascii=False, sort_keys=True,
                                              indent=2, allow_nan=False)) +
@@ -177,7 +201,8 @@ def _inspection_html(payload: dict | None, mode: str | None = None,
         title = next(label for name, label, _ in _INSPECTION_FORMS if name == mode)
         content = ('<h1>' + escape(title) + '</h1><p class="warning">Original '
                    'source assertions only: no reconciliation, inferred truth or '
-                   'proof of absence. Corrections remain visible at the selected '
+                   'proof of absence. Knowledge changes are not verified physical '
+                   'changes. Corrections remain visible at the selected '
                    'knowledge cutoff.</p><p>World: ' +
                    escape(str(payload.get("world", "OBSERVED"))) +
                    ' · Status: ' + escape(str(payload.get("status", "SOURCE_REPORTS"))) +
@@ -185,7 +210,10 @@ def _inspection_html(payload: dict | None, mode: str | None = None,
                    escape(source_url, quote=True) +
                    '">View complete original JSON response</a></p>' +
                    (''.join(records) if records else
-                    '<p role="status">UNKNOWN — no matching source report at these cutoffs.</p>'))
+                    ('<p role="status">UNCHANGED — no newly current or retired '
+                     'source reports between these knowledge cutoffs.</p>'
+                     if mode == "compare-knowledge" else
+                     '<p role="status">UNKNOWN — no matching source report at these cutoffs.</p>')))
     return ('''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MONDE Mini — Evidence Inspector</title>
@@ -424,6 +452,12 @@ def create_server(state: str | Path, port: int = 0, *,
                         output = world.source_history(
                             args["source"], args["known_at"],
                             args.get("entity"), args.get("attribute"))
+                    elif mode == "compare-knowledge":
+                        _require(args, {"view", "entity", "at",
+                                        "from_known_at", "to_known_at"})
+                        output = world.compare_knowledge(
+                            args["entity"], args["at"], args["from_known_at"],
+                            args["to_known_at"])
                     else:
                         raise ValueError("unsupported inspection mode")
                     return self._inspection(output, mode, args)
