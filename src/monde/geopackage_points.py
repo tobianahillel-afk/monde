@@ -368,7 +368,7 @@ def to_geojson(path, *, layer):
                         raise ValueError("unsupported source attribute type")
                     properties[name] = value
                 row_kind = (_declared_geometry_kind(row[1])
-                            if row_kind == "GEOMETRY" else kind)
+                            if kind == "GEOMETRY" else kind)
                 if row_kind == "POINT":
                     features.append({"type": "Feature", "id": str(row[0]),
                                      "properties": properties, "geometry": {
