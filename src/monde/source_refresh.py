@@ -6,6 +6,9 @@ and validity interval can supersede its previous source report.
 """
 from __future__ import annotations
 
+import hashlib
+import json
+
 from .world import WorldMini, _time
 
 
@@ -89,6 +92,14 @@ def refresh_documents(world: WorldMini, documents: list[dict]):
     }
 
 
+def preview_sha256(world: WorldMini) -> str:
+    """Digest the full resulting source-evidence snapshot, not raw file bytes."""
+    canonical = json.dumps(world.export(), ensure_ascii=False,
+                           sort_keys=True, allow_nan=False,
+                           separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def preview_documents(world: WorldMini, documents: list[dict]) -> dict:
     """Inspect later source reports without mutating or saving a world snapshot."""
     from .source_delta import source_delta
@@ -124,6 +135,7 @@ def preview_documents(world: WorldMini, documents: list[dict]) -> dict:
         "operation": "PREVIEW_SOURCE_MANIFEST",
         "world": "OBSERVED",
         "status": "PREVIEW_NOT_SAVED",
+        "preview_sha256": preview_sha256(candidate),
         **counts,
         "added_by_source": delta["sources"],
         "new_reports": changes,
