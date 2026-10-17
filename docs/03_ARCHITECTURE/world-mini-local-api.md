@@ -365,3 +365,15 @@ and an unknown entity is an empty evidence result, not evidence of agreement.
 ### Navigate focused original disagreements through time
 
 The read-only `/disagreement-report` now provides a native GET form to change world-valid time or knowledge cutoff while retaining the selected bounding box, original source and entity. It reuses the existing evidence query and never infers physical truth or mutates saved assertions. Inputs are escaped and invalid cutoffs continue to fail validation.
+
+
+### Compare one source disagreement across two knowledge cutoffs (WORK-0069)
+
+The existing read-only `/disagreement-report` accepts an optional earlier
+`from_known_at` strictly before `known_at`. A native GET form compares the
+original evidence in the same bbox, fixed world time, source and entity at
+both knowledge cutoffs. The UI distinguishes cases appearing/disappearing from
+the **selected evidence view**, revised original report sets, and unchanged
+reports. It includes complete earlier original source evidence, map, CSV and
+GeoJSON links, retaining offscreen opposing source claims. No claimed physical
+movement, consensus position, storage mutation or new dependency.

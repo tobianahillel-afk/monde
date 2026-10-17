@@ -341,5 +341,56 @@ class DisagreementReportHTTPTests(unittest.TestCase):
                     self.assertEqual(json.loads(body), {"error": "invalid_query"})
 
 
+    def test_compare_original_disagreement_at_two_knowledge_cutoffs(self):
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, headers, raw = self.fetch("/disagreement-report", params)
+        self.assertEqual(status, 200)
+        html = raw.decode("utf-8")
+        for expected in ("Original source disagreements at two knowledge cutoffs",
+                         "APPEARED IN SELECTION",
+                         "earlier: 0 original Points; later: 2 original Points",
+                         "Earlier complete GeoJSON", "Earlier original CSV",
+                         'name="from_known_at" value="2026-01-09T00:00:00Z"',
+                         "survey-west", "NOT actual physical movement"):
+            self.assertIn(expected, html)
+        self.assertIn("script-src 'none'", headers["Content-Security-Policy"])
+
+    def test_compare_unchanged_original_evidence_and_provenance(self):
+        later = "2026-01-12T10:00:00Z"
+        params = {**QUERY, "entity": "site-a",
+                  "from_known_at": K1, "known_at": later}
+        status, _, raw = self.fetch("/disagreement-report", params)
+        self.assertEqual(status, 200)
+        html = raw.decode("utf-8")
+        self.assertIn("SAME REPORTED EVIDENCE", html)
+        self.assertIn("earlier: 2 original Points; later: 2 original Points", html)
+        selected = json.loads(self.fetch("/map-disagreements", {
+            **QUERY, "entity": "site-a", "known_at": later})[2])
+        for f in selected["features"]:
+            self.assertIn(f["properties"]["assertion_id"], html)
+            self.assertIn(f["properties"]["evidence_id"], html)
+
+    def test_compare_rejects_invalid_order_and_does_not_change_json_contract(self):
+        for earlier, later in ((K1, K1),
+                               ("2026-01-13T00:00:00Z", K1),
+                               ("invalid", K1),
+                               ("2026-01-09T00:00:00", K1)):
+            code, _, raw = self.fetch("/disagreement-report", {
+                **QUERY, "from_known_at": earlier, "known_at": later})
+            self.assertEqual(code, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        code, _, _ = self.fetch("/map-disagreements", {
+            **QUERY, "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(code, 400)
+
+    def test_compare_does_not_borrow_an_outside_source_point(self):
+        params = {**QUERY, "source": "survey-west", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, raw = self.fetch("/disagreement-report", params)
+        self.assertEqual(status, 200)
+        self.assertIn("NO SOURCE DISAGREEMENT IN EITHER SELECTION", raw.decode())
+
+
 if __name__ == "__main__":
     unittest.main()

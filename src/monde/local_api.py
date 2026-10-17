@@ -15,7 +15,7 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from .world import WorldMini
+from .world import WorldMini, _time
 
 MAX_REQUEST_TARGET = 2048
 MAX_RESPONSE_BYTES = 2_000_000
@@ -500,7 +500,8 @@ def _disagreement_csv(document: dict, params: dict[str, str]) -> bytes:
     return output.getvalue().encode("utf-8")
 
 
-def _disagreement_report_html(document: dict, params: dict[str, str]) -> str:
+def _disagreement_report_html(document: dict, params: dict[str, str],
+                              earlier: dict | None = None) -> str:
     """Readable original opposing source Points, with provenance and no consensus."""
     grouped: dict[str, list[dict]] = {}
     for feature in document["features"]:
@@ -519,14 +520,29 @@ def _disagreement_report_html(document: dict, params: dict[str, str]) -> str:
         escape(params[key], quote=True) + '" required></label>'
         for key, label in (("at", "World-valid time (UTC ISO-8601)"),
                            ("known_at", "Knowledge cutoff (UTC ISO-8601)")))
+    compare_preserved = ''.join(
+        '<input type="hidden" name="' + key + '" value="' +
+        escape(params[key], quote=True) + '">'
+        for key in ("bbox", "at", "known_at", "source", "entity") if key in params)
+    compare_form = (
+        '<details><summary>Compare earlier source knowledge</summary>'
+        '<form action="/disagreement-report" method="get">' +
+        compare_preserved +
+        '<label>Earlier knowledge cutoff (UTC ISO-8601)'
+        '<input name="from_known_at" required value="' +
+        escape(params.get("from_known_at", ""), quote=True) + '"></label>'
+        '<button type="submit">Compare original evidence</button>'
+        '</form></details>')
     time_navigation = (
         '<nav aria-label="Disagreement time navigation"><details>'
         '<summary>Explore this disagreement at another time</summary>'
         '<p>Edit world validity and/or what was known, without inferring truth.</p>'
         '<form action="/disagreement-report" method="get">' +
-        retained + time_inputs +
+        retained + (('<input type="hidden" name="from_known_at" value="' +
+                     escape(params["from_known_at"], quote=True) + '">')
+                    if "from_known_at" in params else '') + time_inputs +
         '<button type="submit">Refresh original evidence</button>'
-        '</form></details></nav>')
+        '</form></details>' + compare_form + '</nav>')
     sections = []
     for entity, reports in sorted(grouped.items()):
         focus_url = "/disagreement-report?" + urlencode({**values, "entity": entity})
@@ -554,6 +570,51 @@ def _disagreement_report_html(document: dict, params: dict[str, str]) -> str:
                         '<a href="' + escape(focus_url, quote=True) +
                         '">Focus on this disagreement</a></p>' +
                         ''.join(details) + '</section>')
+    comparison = ''
+    if earlier is not None:
+        old = {}
+        for feature in earlier["features"]:
+            old.setdefault(str(feature["properties"]["entity"]), []).append(feature)
+
+        def original_ids(features):
+            return {(f["properties"]["source_id"], f["properties"]["assertion_id"],
+                     f["properties"]["evidence_id"],
+                     tuple(f["geometry"]["coordinates"])) for f in features}
+
+        changes = []
+        for name in sorted(set(old) | set(grouped)):
+            before, after = old.get(name, []), grouped.get(name, [])
+            kind = ("APPEARED IN SELECTION" if not before else
+                    "NO LONGER IN SELECTION" if not after else
+                    "REPORTED EVIDENCE CHANGED" if original_ids(before) != original_ids(after)
+                    else "SAME REPORTED EVIDENCE")
+            changes.append('<li>' + escape(name) + ' — ' + kind +
+                           '; earlier: ' + str(len(before)) +
+                           ' original Points; later: ' + str(len(after)) +
+                           ' original Points</li>')
+        earlier_args = {k: v for k, v in values.items() if k != "from_known_at"}
+        earlier_args["known_at"] = params["from_known_at"]
+        comparison = (
+            '<section><h2>Original source disagreements at two knowledge cutoffs</h2>'
+            '<p>Same world time: ' + escape(params["at"]) +
+            '; earlier knowledge: ' + escape(params["from_known_at"]) +
+            '; later knowledge: ' + escape(params["known_at"]) +
+            '. Selected original evidence, NOT actual physical movement or '
+            'verified agreement.</p><p><a href="' +
+            escape("/viewer?" + urlencode({"view": "disagreements", **earlier_args}), quote=True) +
+            '">Earlier map</a> · <a href="' +
+            escape("/map-disagreements?" + urlencode(earlier_args), quote=True) +
+            '">Earlier complete GeoJSON</a> · <a href="' +
+            escape("/disagreement.csv?" + urlencode(earlier_args), quote=True) +
+            '">Earlier original CSV</a></p>' +
+            ('<ul>' + ''.join(changes) + '</ul>' if changes else
+             '<p role="status">NO SOURCE DISAGREEMENT IN EITHER SELECTION — '
+             'not proof of agreement or absence.</p>') +
+            '<details><summary>Earlier complete original source reports</summary><pre>' +
+            escape(json.dumps(earlier["features"], ensure_ascii=False,
+                              sort_keys=True, indent=2, allow_nan=False)) +
+            '</pre></details></section>')
+
     focus = params.get("source")
     description = (
         'Selected original source: ' + escape(focus) +
@@ -572,7 +633,7 @@ summary{cursor:pointer;overflow-wrap:anywhere}
 <h1>Original source disagreement evidence</h1>
 <p>OBSERVED original reports, not verified physical positions. No consensus location,
 inferred truth or confirmed physical movement.</p><p>''' +
-            description + '</p>' + time_navigation + '<p>World time: ' + escape(params["at"]) +
+            description + '</p>' + time_navigation + comparison + '<p>World time: ' + escape(params["at"]) +
             ' · Knowledge cutoff: ' + escape(params["known_at"]) +
             ' · Entities: ' + str(len(grouped)) +
             (' · Focused entity: ' + escape(params["entity"])
@@ -787,7 +848,8 @@ def create_server(state: str | Path, port: int = 0, *,
                     self.wfile.write(body)
                     return
                 elif path == "/disagreement-report":
-                    _require(args, {"bbox", "at", "known_at"}, {"source", "entity", "view"})
+                    _require(args, {"bbox", "at", "known_at"},
+                             {"source", "entity", "view", "from_known_at"})
                     if "view" in args and args["view"] != "disagreements":
                         raise ValueError("invalid disagreement report view")
                     from .map_view import disagreement_view
@@ -796,7 +858,16 @@ def create_server(state: str | Path, port: int = 0, *,
                     reports = _focus_disagreement_entity(
                         _focus_disagreement_source(reports, args.get("source")),
                         args.get("entity"))
-                    return self._inspection(_disagreement_report_html(reports, args))
+                    earlier = None
+                    if "from_known_at" in args:
+                        if _time(args["from_known_at"]) >= _time(args["known_at"]):
+                            raise ValueError("knowledge comparison must advance")
+                        earlier = disagreement_view(
+                            world, _bbox(args["bbox"]), args["at"], args["from_known_at"])
+                        earlier = _focus_disagreement_entity(
+                            _focus_disagreement_source(earlier, args.get("source")),
+                            args.get("entity"))
+                    return self._inspection(_disagreement_report_html(reports, args, earlier))
                 elif path == "/map-knowledge-changes":
                     _require(args, {"bbox", "at", "from_known_at", "to_known_at"},
                              {"source"})
