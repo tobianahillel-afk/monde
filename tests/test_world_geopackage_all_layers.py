@@ -59,6 +59,11 @@ class AllGeoPackageLayersTests(unittest.TestCase):
             world.append_documents(docs)
             geo = world.export_geojson_bbox([-180, -90, 180, 90], AT, CAP)
             self.assertEqual(len(geo["features"]), 34)
+            # Multipart members still carry their original SQLite row FIDs.
+            mixed = [f for f in geo["features"] if
+                     f["properties"].get("monde_gpkg_source_layer") == "survey_mixed"]
+            self.assertEqual({f["properties"]["monde_gpkg_source_fid"]
+                              for f in mixed}, {"11", "12", "13", "14", "15", "16"})
             ids = [f["properties"]["entity"] for f in geo["features"]]
             self.assertEqual(len(ids), len(set(ids)))
             distinct = [f for f in geo["features"]
