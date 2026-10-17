@@ -1295,9 +1295,10 @@ def main(argv=None) -> int:
                 parser.error("refresh must preserve the input snapshot in a separate file")
             from .csv_points import documents_from_manifest
             from .source_refresh import refresh_documents
+            from .world import WorldMini as PersistedWorldMini
             batches, features = documents_from_manifest(
                 args.refresh_source_manifest, output_path=args.state_out)
-            updated, changes = refresh_documents(WorldMini.read(args.fixture), batches)
+            updated, changes = refresh_documents(PersistedWorldMini.read(args.fixture), batches)
             updated.save(args.state_out)
             print(json.dumps({"operation": "REFRESH_SOURCE_MANIFEST",
                               "world": "OBSERVED", "status": "SAVED",
