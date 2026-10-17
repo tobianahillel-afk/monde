@@ -105,6 +105,29 @@ _INSPECTION_ROUTES = {
 }
 
 
+def _report_map_link(attribute: str, report: dict, mode: str,
+                     params: dict[str, str]) -> str | None:
+    """Link only a map-visible original WGS84 Point at its source cutoffs.
+
+    Superseded source-history assertions are not linked: the current-report
+    map cannot display an assertion already retired at the chosen cutoff.
+    """
+    if attribute != "geo_point" or (mode == "source-history" and
+                                     report.get("current_at_cutoff") is not True):
+        return None
+    from .geojson import _point
+    try:
+        lon, lat = _point(report["value"])["coordinates"]
+    except (ValueError, KeyError, TypeError):
+        return None
+    return "/viewer?" + urlencode({
+        "view": "radius", "center": str(lon) + "," + str(lat),
+        "radius_km": "1",
+        "at": (report["valid_from"] if mode == "source-history" else params["at"]),
+        "known_at": params["known_at"],
+    })
+
+
 def _inspection_html(payload: dict | None, mode: str | None = None,
                      params: dict[str, str] | None = None) -> str:
     """A readable view of untouched WorldMini output; no inference or browser scripts."""
@@ -140,11 +163,15 @@ def _inspection_html(payload: dict | None, mode: str | None = None,
         for attribute, report in items:
             title = " / ".join(str(report.get(field, "")) for field in
                                ("source_id", "assertion_id"))
+            map_url = _report_map_link(attribute, report, mode, params)
+            map_link = ('<p><a href="' + escape(map_url, quote=True) +
+                        '">Show this original reported Point on the map</a></p>'
+                        if map_url else '')
             records.append('<details><summary>' + escape(attribute) + ': ' +
                            escape(title) + '</summary><pre>' +
                            escape(json.dumps(report, ensure_ascii=False, sort_keys=True,
                                              indent=2, allow_nan=False)) +
-                           '</pre></details>')
+                           '</pre>' + map_link + '</details>')
         source_url = _INSPECTION_ROUTES[mode] + "?" + urlencode({
             key: value for key, value in params.items() if key != "view"})
         title = next(label for name, label, _ in _INSPECTION_FORMS if name == mode)
