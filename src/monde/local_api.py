@@ -21,6 +21,8 @@ MAX_RESPONSE_BYTES = 2_000_000
 _EXPLORER_VIEWS = (
     ("current", "Current reports", ("bbox", "at", "known_at", "source")),
     ("disagreements", "Source disagreements", ("bbox", "at", "known_at")),
+    ("compare-sources", "Compare two original sources",
+     ("bbox", "at", "known_at", "source_a", "source_b")),
     ("knowledge-changes", "Newly known or corrected evidence",
      ("bbox", "at", "from_known_at", "to_known_at")),
     ("world-changes", "Changes in reported validity",
@@ -33,6 +35,8 @@ _EXPLORER_VIEWS = (
 _EXPLORER_LABELS = {
     "bbox": "WGS84 bounds (west,south,east,north)",
     "source": "Optional original source ID (show only that source)",
+    "source_a": "First original source ID",
+    "source_b": "Second original source ID",
     "center": "WGS84 search center (longitude,latitude)",
     "limit": "Maximum nearest entities (1–1000)",
     "radius_km": "Search radius (kilometers)",
@@ -65,10 +69,14 @@ def _explorer_html(source_ids: tuple[str, ...] = ()) -> str:
                 "limit": ' value="10"',
                 "radius_km": ' value="5"',
                 "source": ' placeholder="e.g. survey-1 (optional)"',
+                "source_a": ' placeholder="e.g. survey-east"',
+                "source_b": ' placeholder="e.g. survey-west"',
             }.get(key, ' placeholder="2026-01-02T00:00:00Z"')
             inputs.append('<label>' + _EXPLORER_LABELS[key] +
                           '<input name="' + key + '"' +
-                          (' list="saved-original-sources"' if key == "source" else ' required') +
+                          (' list="saved-original-sources"' +
+                            (' required' if key != "source" else '')
+                            if key in {"source", "source_a", "source_b"} else ' required') +
                           initial + '></label>')
         forms.append(
             '<form action="/viewer" method="get"><h2>' + title + '</h2>' +
@@ -473,6 +481,43 @@ are counted; counts do not imply agreement or physical truth.</p><ul>""" +
             '</body></html>')
 
 
+def _compare_source_bbox(document: dict, first: str, second: str) -> dict:
+    """Show only paired original source reports, never reconciled positions.
+
+    An entity qualifies if BOTH selected sources have a current Point and at
+    least one selected source's own Point is within the requested bbox.
+    Retain the other selected source's contrary position even when offscreen.
+    The WorldMini original document and its feature records stay untouched.
+    """
+    for source in (first, second):
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}", source):
+            raise ValueError("invalid source ID")
+    if first == second:
+        raise ValueError("comparison requires two distinct sources")
+    grouped = {}
+    for feature in document["features"]:
+        props = feature["properties"]
+        if props["source_id"] in {first, second}:
+            grouped.setdefault(props["entity"], []).append(feature)
+    qualifying = {
+        entity for entity, features in grouped.items()
+        if {first, second} <= {f["properties"]["source_id"] for f in features}
+        and any(f["properties"]["monde_inside_bbox"] for f in features)
+    }
+    features = [feature for feature in document["features"]
+                if feature["properties"]["entity"] in qualifying
+                and feature["properties"]["source_id"] in {first, second}]
+    bbox = {**document["monde_bbox_query"],
+            "total_matching_entities": len(qualifying),
+            "total_source_features": len(features),
+            "status": "MATCHES" if features else "NO_MATCHES"}
+    return {**document, "features": features, "monde_bbox_query": bbox,
+            "monde_source_comparison": {
+                "source_a": first, "source_b": second,
+                "comparison_basis": "ORIGINAL_SOURCE_POINTS_NOT_GROUND_TRUTH",
+                "matching_entities": len(qualifying)}}
+
+
 def create_server(state: str | Path, port: int = 0, *,
                   max_response_bytes: int = MAX_RESPONSE_BYTES) -> ThreadingHTTPServer:
     """Load once, then serve queries only on 127.0.0.1. No state writes."""
@@ -579,7 +624,8 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/knowledge-updates", "/knowledge-timeline",
                             "/world-knowledge-changes", "/map-disagreements",
                             "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore", "/inspect",
-                            "/sources", "/sources-browser", "/map-sources", "/source-catalog"}:
+                            "/sources", "/sources-browser", "/map-sources", "/source-catalog",
+                             "/map-compare-sources"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -656,6 +702,12 @@ def create_server(state: str | Path, port: int = 0, *,
                     output = _viewport_source_catalog(world.export_geojson_bbox(
                         _bbox(args["bbox"]), args["at"], args["known_at"]), args)
                     return self._inspection(output, "viewport-source-catalog", args)
+                elif path == "/map-compare-sources":
+                    _require(args, {"bbox", "at", "known_at", "source_a", "source_b"})
+                    output = _compare_source_bbox(
+                        world.export_geojson_bbox(
+                            _bbox(args["bbox"]), args["at"], args["known_at"]),
+                        args["source_a"], args["source_b"])
                 elif path == "/map-disagreements":
                     _require(args, {"bbox", "at", "known_at"})
                     output = world.export_geojson_disagreements(
@@ -714,6 +766,13 @@ def create_server(state: str | Path, port: int = 0, *,
                         geojson = _filter_source_bbox(world.export_geojson_bbox(
                             _bbox(args["bbox"]), args["at"], args["known_at"]),
                             args.get("source"))
+                    elif mode == "compare-sources":
+                        _require(args, {"view", "bbox", "at", "known_at",
+                                        "source_a", "source_b"})
+                        geojson = _compare_source_bbox(
+                            world.export_geojson_bbox(_bbox(args["bbox"]),
+                                                      args["at"], args["known_at"]),
+                            args["source_a"], args["source_b"])
                     elif mode == "disagreements":
                         _require(args, {"view", "bbox", "at", "known_at"})
                         from .map_view import disagreement_view

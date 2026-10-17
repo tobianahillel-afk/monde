@@ -1464,6 +1464,7 @@ __MONDE_TIME_NAVIGATION__
 _VIEWER_TIME_FIELDS = {
     "current": ("bbox", "at", "known_at"),
     "disagreements": ("bbox", "at", "known_at"),
+    "compare-sources": ("bbox", "at", "known_at", "source_a", "source_b"),
     "knowledge-changes": ("bbox", "at", "from_known_at", "to_known_at"),
     "world-changes": ("bbox", "from_at", "to_at", "known_at"),
     "nearest": ("center", "limit", "at", "known_at"),
@@ -1471,6 +1472,8 @@ _VIEWER_TIME_FIELDS = {
 }
 _VIEWER_TIME_LABELS = {
     "bbox": "WGS84 bounds (west, south, east, north)",
+    "source_a": "First original source ID",
+    "source_b": "Second original source ID",
     "center": "WGS84 search center (longitude, latitude)",
     "limit": "Maximum nearest source entities",
     "radius_km": "Reported search radius (km)",

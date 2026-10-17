@@ -338,3 +338,18 @@ source's original contrary positions. Source counts are not source quality,
 consensus, exhaustive coverage, or verified physical positions. Both routes
 reuse the local loopback API, its bitemporal cutoffs, strict parameters,
 HTML escaping, CSP and saved-state immutability. Unmerged stacked after PR #84 (WORK-0060).
+
+## Compare two original source Point maps (WORK-0062)
+
+The existing loopback MONDE Mini source explorer offers a native **Compare two
+original sources** form. Its read-only JSON endpoint
+`/map-compare-sources?bbox=W,S,E,N&at=T&known_at=K&source_a=A&source_b=B`
+and self-contained `/viewer?view=compare-sources&...` show *original* current
+Point reports for entities that have reports from **both** selected, distinct
+sources at the world-time and knowledge-time cutoffs. A selected source must
+have a Point inside the specified bbox; the other selected source's contrary
+position is retained even if outside it. Other sources never qualify an entity
+or enter the output. Provenance IDs and original coordinates are unchanged;
+`monde_source_comparison` and updated result counts identify the scope.
+This is source evidence comparison, **not** reconciled truth or inferred motion.
+No new renderer, service, dependency, persisted data or writable route.

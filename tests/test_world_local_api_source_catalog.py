@@ -80,7 +80,7 @@ class SourceCatalogHTTPTests(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertEqual(body.count(b'formaction="/source-catalog"'), 1)
         # Six existing map forms plus the global temporal source form.
-        self.assertEqual(body.count(b'<form '), 7)
+        self.assertEqual(body.count(b'<form '), 8)
 
     def test_strict_query_and_empty_area(self):
         for route, params in [
