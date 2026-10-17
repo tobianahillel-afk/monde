@@ -1,0 +1,61 @@
+id: WORK-0036
+title: "Inspect original GeoPackage MultiPoint observations offline"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini original source evidence"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+purpose: |
+  Preserve original source MultiPoint WGS84 members as distinct bitemporal
+  evidence, with no invented routes, in MONDE Mini's offline map.
+scope:
+  in: ["GeoPackage MULTIPOINT", "offline rendering", "source provenance"]
+  out: ["inferred trajectories", "3D", "reprojection", "remote fetch"]
+acceptance_criteria:
+  - {id: AC-1, description: "Members retain stable source identity and order.", status: NOT_STARTED}
+  - {id: AC-2, description: "Bitemporal export, CLI and manifests render unconnected markers.", status: NOT_STARTED}
+  - {id: AC-3, description: "Malformed WKB/CRS/envelope fails without partial output.", status: NOT_STARTED}
+requirements: []
+assumptions: ["Local read-only EPSG:4326 2D source layer."]
+risks: ["Untrusted WKB", "Source geometry misinterpretation"]
+assurance:
+  level: A3
+  rationale: "Untrusted nested geometry and source provenance."
+  escalation_triggers: ["Remote acquisition", "New inferred truth semantics"]
+depends_on: [WORK-0035]
+reuses: ["src/monde/geopackage_points.py", "src/monde/map_view.py"]
+read_before: [AGENTS.md, docs/09_GOVERNANCE/constitution.md, docs/03_ARCHITECTURE/world-mini-offline-map.md]
+blocks: []
+affected_capabilities: []
+affected_engines: ["MONDE Mini offline map"]
+affected_schemas: []
+affected_docs: [docs/03_ARCHITECTURE/world-mini-offline-map.md]
+contracts: ["Source geometry", "Bitemporal provenance", "Atomic output"]
+adrs: []
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Decode bounded MultiPoint members.", depends_on: [], expected_files: [src/monde/geopackage_points.py], status: NOT_STARTED}
+    - {id: T2, description: "Display unconnected evidence Points.", depends_on: [T1], expected_files: [src/monde/map_view.py], status: NOT_STARTED}
+    - {id: T3, description: "Test source DB, WorldMini and offline CLI.", depends_on: [T2], expected_files: [tests/test_world_geopackage_multipoints.py], status: NOT_STARTED}
+review_plan:
+  artifact_class: DATA_SOURCE_CONNECTOR
+  independence_level: L2_TARGET
+  required_hats: [SECURITY, VERIFICATION_VALIDATION, DATA_EPISTEMIC, OPERATIONS]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  unit: ["nested WKB members"]
+  integration: ["SQLite source -> bitemporal WorldMini"]
+  e2e: ["direct CLI and mixed manifest"]
+  regression: ["other GeoPackage geometries"]
+  security: ["invalid WKB leaves no output"]
+  real_system: ["GitHub Actions real SQLite and HTML"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Ancestors remain Draft.", "L2 pending."]
+rollback:
+  strategy: "Close this child PR without modifying main or parents."

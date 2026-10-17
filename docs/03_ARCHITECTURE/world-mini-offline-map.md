@@ -636,3 +636,12 @@ or a reconstructed real-world trajectory. MultiLineString supports mixed
 endianness WKB children and optional bounded envelopes; unsupported SRIDs,
 3D geometries, malformed members and incorrect metadata fail before an output
 map is written. The original SQLite file remains unmodified.
+
+
+## Original GeoPackage MultiPoint member observations (WORK-0036)
+
+Local EPSG:4326 2D `MULTIPOINT` feature tables are now supported. Every
+member retains a stable index, feature ID, source attributes and explicit
+capture/valid times. These source-reported markers are never connected into
+invented trajectories. Nested mixed-endian WKB, envelope and metadata checks
+fail atomically before HTML output; local SQLite is opened read-only.

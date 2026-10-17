@@ -310,6 +310,7 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
           from.properties.monde_gpkg_trace;
         var next=to.properties.monde_gpx_trace || to.properties.monde_kml_trace ||
           to.properties.monde_gpkg_trace;
+        if(first.kind==="MultiPoint")continue; // Original point sets are not routes.
         if(next.order!==first.order+1)continue; // No invented missing edges.
         var a=from.geometry.coordinates,b=to.geometry.coordinates;
         // The simple offline world projection never implies a path crossing
@@ -714,6 +715,9 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         ...(p.monde_gpkg_trace.kind==="MultiPolygon" ?
           ["Source-declared MultiPolygon component: " +
            String(p.monde_gpkg_trace.polygon_index+1)] : []),
+        ...(p.monde_gpkg_trace.kind==="MultiPoint" ?
+          ["Source-declared MultiPoint member: " +
+           String(p.monde_gpkg_trace.order+1)] : []),
         ...(p.monde_gpkg_trace.kind==="MultiLineString" ?
           ["Source-declared MultiLineString component: " +
            String(p.monde_gpkg_trace.line_index+1)] : []),
@@ -1332,6 +1336,7 @@ def render_map(document: dict) -> str:
                     or (gpkg_trace["format"], gpkg_trace["kind"]) not in (
                         ("GPKG_1_3_LINESTRING_POINT", "LineString"),
                         ("GPKG_1_3_MULTILINESTRING_POINT", "MultiLineString"),
+                        ("GPKG_1_3_MULTIPOINT_POINT", "MultiPoint"),
                         ("GPKG_1_3_POLYGON_RING_POINT", "Polygon"),
                         ("GPKG_1_3_MULTIPOLYGON_RING_POINT", "MultiPolygon"))
                     or (gpkg_trace["kind"] == "MultiPolygon" and

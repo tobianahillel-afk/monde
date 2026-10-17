@@ -46,6 +46,40 @@ def _point(blob):
     return [lon, lat]
 
 
+
+def _multipoint(blob):
+    """Read original 2D WKB MultiPoint members; never infer a path."""
+    if (not isinstance(blob, bytes) or len(blob) < 17 or len(blob) > MAX_BYTES
+            or blob[:3] != b"GP\x00"):
+        raise ValueError("invalid bounded GeoPackage MultiPoint")
+    flags = blob[3]
+    envelope = (flags >> 1) & 7
+    if flags & 0xF0 or envelope not in (0, 1):
+        raise ValueError("unsupported MultiPoint flags")
+    header_endian = "<" if flags & 1 else ">"
+    if struct.unpack_from(header_endian + "i", blob, 4)[0] != 4326:
+        raise ValueError("MultiPoint must be EPSG:4326")
+    offset = 8 + 32 * bool(envelope)
+    if len(blob) < offset + 9 or blob[offset] not in (0, 1):
+        raise ValueError("MultiPoint WKB header missing")
+    endian = "<" if blob[offset] == 1 else ">"
+    kind, count = struct.unpack_from(endian + "II", blob, offset + 1)
+    if kind != 4 or not 1 <= count <= MAX_POINTS or len(blob) != offset + 9 + 21 * count:
+        raise ValueError("invalid bounded MultiPoint members")
+    points = []
+    for index in range(count):
+        start = offset + 9 + index * 21
+        member = b"GP\x00\x01" + struct.pack("<i", 4326) + blob[start:start + 21]
+        points.append(_point(member))
+    if envelope:
+        west, east, south, north = struct.unpack_from(header_endian + "dddd", blob, 8)
+        if (not all(math.isfinite(v) for v in (west, east, south, north))
+                or any(not west <= lon <= east or not south <= lat <= north
+                       for lon, lat in points)):
+            raise ValueError("MultiPoint envelope contradicts source members")
+    return points
+
+
 def _line(blob):
     """Exactly one bounded, two-dimensional GeoPackage WKB LineString."""
     if not isinstance(blob, bytes) or len(blob) < 17 or blob[:3] != b"GP\x00":
@@ -265,7 +299,8 @@ def to_geojson(path, *, layer):
                     or columns_metadata[0][1:] not in (
                         ("POINT", 4326, 0, 0), ("LINESTRING", 4326, 0, 0),
                          ("POLYGON", 4326, 0, 0), ("MULTIPOLYGON", 4326, 0, 0),
-                         ("MULTILINESTRING", 4326, 0, 0))):
+                         ("MULTILINESTRING", 4326, 0, 0),
+                          ("MULTIPOINT", 4326, 0, 0))):
                 raise ValueError("layer must declare a 2D EPSG:4326 Point, LineString, MultiLineString, Polygon or MultiPolygon table")
             kind = columns_metadata[0][1]
             geometry_field = columns_metadata[0][0]
@@ -310,6 +345,27 @@ def to_geojson(path, *, layer):
                     features.append({"type": "Feature", "id": str(row[0]),
                                      "properties": properties, "geometry": {
                                          "type": "Point", "coordinates": _point(row[1])}})
+                elif kind == "MULTIPOINT":
+                    points = _multipoint(row[1])
+                    if len(features) + len(points) > MAX_POINTS:
+                        raise ValueError("GeoPackage source exceeds 50000 original Points")
+                    original_name = properties.get("name")
+                    label = (original_name if isinstance(original_name, str)
+                             and 0 < len(original_name) <= 1000
+                             else layer + " #" + str(row[0]))
+                    group = hashlib.sha256((layer + ":" + str(row[0])).encode(
+                        "utf-8")).hexdigest()[:24]
+                    for index, point in enumerate(points):
+                        features.append({
+                            "type": "Feature",
+                            "id": "gpkg-multipoint-" + layer + "-" + str(row[0])
+                                  + "-" + str(index),
+                            "properties": {**properties, "gpkg_trace": {
+                                "format": "GPKG_1_3_MULTIPOINT_POINT",
+                                "kind": "MultiPoint", "name": label,
+                                "trace_id": group, "segment": 0, "order": index,
+                                "layer": layer, "feature_id": str(row[0])}},
+                            "geometry": {"type": "Point", "coordinates": point}})
                 else:
                     polygons = (_multipolygon(row[1]) if kind == "MULTIPOLYGON"
                                 else [[line] for line in _multiline(row[1])]
