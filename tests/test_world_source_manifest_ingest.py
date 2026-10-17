@@ -92,7 +92,7 @@ class PersistentSourceManifestTests(unittest.TestCase):
             run = cli("--fixture", fixture, "--ingest-csv-manifest", manifest,
                       "--state-out", output)
             self.assertEqual(run.returncode, 0, run.stderr)
-            self.assertEqual(len(WorldMini.read(output).export()["assertions"]), 35)
+            self.assertEqual(len(WorldMini.read(output).export_geojson_bbox(\n                [-180, -90, 180, 90], AT, CAP)["features"]), 35)
             missing = cli("--export-geojson", "--at", AT, "--known-at", CAP)
             self.assertNotEqual(missing.returncode, 0)
             self.assertIn("--fixture", missing.stderr)
