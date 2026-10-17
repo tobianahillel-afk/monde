@@ -603,3 +603,22 @@ inner rings and 50,000 total source samples are accepted within the existing
 out-of-range or contradictory rings abort before any HTML output is created.
 Point and LineString imports are unchanged. 3D/Z/M, MultiPolygon, reprojection
 and remote datasets remain outside this narrow increment.
+
+
+## Original GeoPackage MultiPolygon components (WORK-0034)
+
+Physical 2D EPSG:4326 **MULTIPOLYGON** feature tables can be opened directly with
+`--gpkg FILE --gpkg-layer TABLE` or a local `gpkg` manifest entry. Each
+source-declared Polygon member retains its **original component index**, ring
+index (outer or hole), complete vertex order, source feature ID, source
+attributes, capture time and world-valid-time provenance. Each member has its
+own trace identity; separate components and rings are never joined on the map.
+The map shows outline evidence only, not an inferred filled boundary or
+verified physical geography.
+
+The original binary is parsed read-only. Unsupported CRS, Z/M WKB,
+mismatched MultiPolygon/Polygon declarations, malformed member counts,
+incomplete rings and envelope contradictions fail atomically. The decoder
+accepts at most 128 Polygon components and 50,000 total source vertices.
+It adds no remote API, tile service or dependency and preserves the previous
+Point, LineString and Polygon formats.

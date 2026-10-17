@@ -1185,3 +1185,33 @@ jobs:
           grep -q 'data-monde-gpkg-inner-segments="3"' /tmp/monde-gpkg-polygons-dom.html
           grep -q 'data-gpkg-inner-ring="1"' /tmp/monde-gpkg-polygons-dom.html
           grep -q 'Claimed block' /tmp/monde-gpkg-polygons-dom.html
+
+      - name: Original GeoPackage MultiPolygon components render offline in Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from tests.test_world_geopackage import build
+          from tests.test_world_geopackage_multipolygons import add_multipolygons
+          add_multipolygons(build(Path('/tmp/monde-original-multipolygons.gpkg')))
+          PY
+          python3 -m monde.map_view \
+            --gpkg /tmp/monde-original-multipolygons.gpkg \
+            --gpkg-layer survey_multi --source-id original-multi \
+            --source-locator dataset://multi.gpkg \
+            --captured-at 2026-01-10T10:00:00Z \
+            --valid-from 2026-01-01T00:00:00Z \
+            --at 2026-01-02T00:00:00Z \
+            --known-at 2026-01-10T10:00:00Z \
+            --output /tmp/monde-gpkg-multi.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --timeout=15000 --dump-dom file:///tmp/monde-gpkg-multi.html \
+            >/tmp/monde-gpkg-multi-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-gpkg-multi-dom.html
+          grep -q 'data-monde-gpkg-boundary-segments="9"' /tmp/monde-gpkg-multi-dom.html
+          grep -q 'data-monde-gpkg-inner-segments="3"' /tmp/monde-gpkg-multi-dom.html
+          grep -q 'data-gpkg-inner-ring="1"' /tmp/monde-gpkg-multi-dom.html
+          grep -q 'GPKG_1_3_MULTIPOLYGON_RING_POINT' /tmp/monde-gpkg-multi-dom.html

@@ -318,7 +318,8 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
         var isGpx=first.format==="GPX_1_1_TRACE_POINT";
         var attrs={x1:x(a[0]),y1:y(a[1]),x2:x(b[0]),y2:y(b[1])};
         var isBoundary=first.format==="KML_2_2_POLYGON_RING_POINT";
-        var isGpkgBoundary=first.format==="GPKG_1_3_POLYGON_RING_POINT";
+        var isGpkgBoundary=first.format==="GPKG_1_3_POLYGON_RING_POINT" ||
+          first.format==="GPKG_1_3_MULTIPOLYGON_RING_POINT";
         var isGpkg=isGpkgBoundary || first.format==="GPKG_1_3_LINESTRING_POINT";
         attrs[isGpx?"data-gpx-trace":
               (isGpkg?"data-gpkg-trace":
@@ -709,8 +710,12 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
       ...(p.monde_gpkg_trace ? [
         "GeoPackage source layer: " + p.monde_gpkg_trace.layer,
         "Original feature id: " + p.monde_gpkg_trace.feature_id,
-        ...(p.monde_gpkg_trace.kind==="Polygon" ?
-          ["Source-declared Polygon ring: " + (p.monde_gpkg_trace.segment===0 ?
+        ...(p.monde_gpkg_trace.kind==="MultiPolygon" ?
+          ["Source-declared MultiPolygon component: " +
+           String(p.monde_gpkg_trace.polygon_index+1)] : []),
+        ...(["Polygon","MultiPolygon"].includes(p.monde_gpkg_trace.kind) ?
+          ["Source-declared " + p.monde_gpkg_trace.kind + " ring: " +
+           (p.monde_gpkg_trace.segment===0 ?
             "outer" : "inner #" + String(p.monde_gpkg_trace.segment))] : []),
         "Original " + p.monde_gpkg_trace.kind + " vertex: " +
           String(p.monde_gpkg_trace.order + 1),
@@ -1314,11 +1319,17 @@ def render_map(document: dict) -> str:
         if gpkg_trace is not None:
             if (trace is not None or kml_trace is not None
                     or not isinstance(gpkg_trace, dict)
-                    or set(gpkg_trace) != {"format", "kind", "name", "trace_id",
-                                           "segment", "order", "layer", "feature_id"}
+                    or set(gpkg_trace) != ({"format", "kind", "name", "trace_id",
+                                            "segment", "order", "layer", "feature_id"}
+                                           | ({"polygon_index"} if gpkg_trace.get("kind") ==
+                                              "MultiPolygon" else set()))
                     or (gpkg_trace["format"], gpkg_trace["kind"]) not in (
                         ("GPKG_1_3_LINESTRING_POINT", "LineString"),
-                        ("GPKG_1_3_POLYGON_RING_POINT", "Polygon"))
+                        ("GPKG_1_3_POLYGON_RING_POINT", "Polygon"),
+                        ("GPKG_1_3_MULTIPOLYGON_RING_POINT", "MultiPolygon"))
+                    or (gpkg_trace["kind"] == "MultiPolygon" and
+                        (type(gpkg_trace["polygon_index"]) is not int or
+                         not 0 <= gpkg_trace["polygon_index"] < 128))
                     or not isinstance(gpkg_trace["name"], str)
                     or not 0 < len(gpkg_trace["name"]) <= 1000
                     or not isinstance(gpkg_trace["layer"], str)
@@ -1329,7 +1340,7 @@ def render_map(document: dict) -> str:
                     or not re.fullmatch(r"[0-9a-f]{24}", gpkg_trace["trace_id"])
                     or type(gpkg_trace["segment"]) is not int
                     or not 0 <= gpkg_trace["segment"] <= (
-                        128 if gpkg_trace["kind"] == "Polygon" else 0)
+                        128 if gpkg_trace["kind"] in ("Polygon", "MultiPolygon") else 0)
                     or type(gpkg_trace["order"]) is not int
                     or not 0 <= gpkg_trace["order"] < 50_000):
                 raise ValueError("invalid source-reported GeoPackage trace")
