@@ -1,0 +1,54 @@
+id: WORK-0040
+title: "Combine original GeoPackage layers with independent offline source datasets"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source ingestion"
+created_at: "2026-10-17"
+updated_at: "2026-10-17"
+
+purpose: |
+  Combine every original GeoPackage layer with other local sources using
+  the existing manifest and evidence-driven offline map, not new engines.
+scope:
+  in: ["gpkg_all_layers manifest input", "mixed original source map",
+       "original layer and FID provenance", "atomic import rejection"]
+  out: ["network services", "new geometry decoder", "inferred CRS",
+        "automatic reconciliation of conflicting source claims"]
+acceptance_criteria:
+  - {id: AC-1, description: "Manifest renders all original layers alongside independent sources.", status: NOT_STARTED}
+  - {id: AC-2, description: "Original FID, layer and source identities remain distinguishable.", status: NOT_STARTED}
+  - {id: AC-3, description: "Any invalid input fails atomically without partial HTML.", status: NOT_STARTED}
+  - {id: AC-4, description: "Single-layer manifests remain compatible and flags unambiguous.", status: NOT_STARTED}
+requirements: []
+depends_on: [WORK-0039]
+read_before: [src/monde/csv_points.py, src/monde/geopackage_points.py, src/monde/map_view.py]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Use existing multi-layer reader in source manifest.", depends_on: [], expected_files: [src/monde/csv_points.py], status: IN_REVIEW}
+    - {id: T2, description: "Test mixed original SQLite and GeoJSON end to end.", depends_on: [T1], expected_files: [tests/test_world_map_source_manifest_layers.py], status: IN_REVIEW}
+    - {id: T3, description: "Document one-command experience.", depends_on: [T2], expected_files: [docs/03_ARCHITECTURE/world-mini-multi-source-geopackage.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: DATA_SOURCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, DOCUMENTATION_TRACEABILITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_map_source_manifest_layers.py]
+  real_system: ["world-mini Actions on exact candidate SHA"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked predecessor PRs remain Draft."]
+risk:
+  security: MEDIUM
+  data: MEDIUM
+  epistemic: HIGH
+  performance: LOW
+  operational: LOW
+rollback:
+  strategy: "Revert child PR, preserving WORK-0039 and prior manifest behavior."
