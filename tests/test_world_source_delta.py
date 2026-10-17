@@ -117,7 +117,8 @@ class SnapshotDeltaTests(unittest.TestCase):
                              sum(len(doc["assertions"]) for doc in paths))
             self.assertEqual(out["added"]["corrections"], 0)
             self.assertEqual(len(out["sources"]), 4)
-            self.assertEqual(sum(x["assertions_added"] for x in out["sources"]), total)
+            self.assertEqual(sum(x["assertions_added"] for x in out["sources"]),
+                             sum(len(doc["assertions"]) for doc in paths))
             self.assertEqual({x["source_id"] for x in out["sources"]},
                              {"survey:survey_points", "survey:survey_mixed",
                               "survey:survey_duplicate", "note"})
