@@ -292,3 +292,18 @@ Knowledge/world comparison maps preserve their earlier/later temporal cutoffs.
 This is a native read-only GET /viewer over existing WorldMini queries:
 no new model, inferred physical movement, external service, upload or saved-state
 change. Standalone offline CLI maps intentionally show no server-dependent form.
+
+
+### Source discovery for the current map (WORK-0059)
+
+The `/explore` Current reports form includes **Browse sources**, which opens
+`/source-catalog?view=current&bbox=W,S,E,N&at=T&known_at=K`. Each original
+source with a Point report **inside** the viewport is listed with its original
+Point-report count and distinct entity count; clicking it opens the existing
+source-filtered map. `/map-sources?bbox=W,S,E,N&at=T&known_at=K` supplies the
+same catalog as read-only JSON. Out-of-bounds contrary reports do not count
+toward source presence, although the downstream filtered map retains the
+source's original contrary positions. Source counts are not source quality,
+consensus, exhaustive coverage, or verified physical positions. Both routes
+reuse the local loopback API, its bitemporal cutoffs, strict parameters,
+HTML escaping, CSP and saved-state immutability. Unmerged stacked PR #83.
