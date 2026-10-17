@@ -52,12 +52,18 @@ class DisagreementFocusHTTPTests(unittest.TestCase):
         self.assertEqual(data["monde_disagreement_source_focus"], "survey-east")
         self.assertEqual({f["properties"]["entity"] for f in data["features"]},
                          {"site-a"})
+        # Filtered GeoJSON now matches the full original evidence in the
+        # already-existing viewer/report/CSV, including the offscreen opponent.
         self.assertEqual({f["properties"]["source_id"] for f in data["features"]},
-                         {"survey-east"})
-        props = data["features"][0]["properties"]
-        self.assertEqual(props["monde_conflicting_source_ids"],
-                         ["survey-east", "survey-west"])
-        self.assertTrue(props["evidence_id"])
+                         {"survey-east", "survey-west"})
+        self.assertEqual({f["properties"]["monde_inside_bbox"] for f in data["features"]},
+                         {True, False})
+        for feature in data["features"]:
+            props = feature["properties"]
+            self.assertEqual(props["monde_conflicting_source_ids"],
+                             ["survey-east", "survey-west"])
+            self.assertTrue(props["evidence_id"])
+            self.assertTrue(props["assertion_id"])
         self.assertEqual(headers["Cache-Control"], "no-store")
         self.assertNotIn("Access-Control-Allow-Origin", headers)
 
@@ -95,10 +101,13 @@ class DisagreementFocusHTTPTests(unittest.TestCase):
                                     {**QUERY, "source": "survey-north"})
         self.assertEqual(status, 200)
         props = [f["properties"] for f in json.loads(body)["features"]]
-        self.assertEqual([(p["entity"], p["source_id"]) for p in props],
-                         [("site-b", "survey-north")])
-        self.assertEqual(props[0]["monde_conflicting_source_ids"],
-                         ["survey-east", "survey-north"])
+        self.assertEqual({(p["entity"], p["source_id"]) for p in props},
+                         {("site-b", "survey-north"),
+                          ("site-b", "survey-east")})
+        self.assertEqual({p["monde_inside_bbox"] for p in props}, {True, False})
+        for point in props:
+            self.assertEqual(point["monde_conflicting_source_ids"],
+                             ["survey-east", "survey-north"])
 
     def test_unfiltered_json_unchanged_and_source_form_available(self):
         status, _, body = self.fetch("/map-disagreements", QUERY)
