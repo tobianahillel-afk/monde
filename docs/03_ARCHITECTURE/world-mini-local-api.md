@@ -428,3 +428,15 @@ The filter requires exactly one earlier cutoff (`from_at` or `from_known_at`)
 and does not change unfiltered map/export behavior. A result with no changed
 entities means only that the selected evidence was unchanged, not that no
 conflict exists or that a source statement is verified truth.
+
+
+### Original disagreement change type (WORK-0074)
+
+For a two-cutoff `/disagreement-report`, `/disagreement-compare.json` or
+`/disagreement-compare.csv`, optional `change_kind=appeared|disappeared|modified`
+focuses the existing original-source evidence comparison on one selected
+classification. The HTML report links to each type and back to the complete
+comparison. Classification happens before filtering; all opposing original
+source Points, including offscreen evidence and IDs, are retained for matching
+entities in both periods. Report-selection changes are not verified physical
+movement or proof of absence. Other routes and invalid types reject the filter.
