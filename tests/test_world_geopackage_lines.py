@@ -130,7 +130,7 @@ class GeoPackageLineTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             original = add_lines(build(Path(d) / "survey.gpkg"))
             cases = [
-                b"bad", line([(2, 48), (3, 49)], srid=3857),
+                b"bad", line([(2, 48), (3, 49)], srid=9999),
                 line([(2, 48), (190, 49)]),
                 line([(2, 48), (float("nan"), 49)]),
                 line([(2, 48), (3, 49)]) + b"extra",

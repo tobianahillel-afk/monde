@@ -124,7 +124,7 @@ class GeoPackageMultiPolygonTests(unittest.TestCase):
             valid = multipolygon(POLYGONS)
             invalid = [
                 b"bad", valid + b"extra", valid[:-2],
-                multipolygon(POLYGONS, srid=3857), multipolygon([]),
+                multipolygon(POLYGONS, srid=9999), multipolygon([]),
                 multipolygon([[OUTER[:-1]]]), multipolygon([[OUTER, INNER], []]),
             ]
             bad_type = bytearray(valid)

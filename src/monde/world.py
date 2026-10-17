@@ -352,6 +352,7 @@ class WorldMini:
         kml_reports = {}
         gpkg_reports = {}
         gpkg_source_reports = {}
+        gpkg_srs_reports = {}
         sample_time_reports = {}
         elevation_reports = {}
         for match in result["matches"]:
@@ -402,6 +403,14 @@ class WorldMini:
                                         at, known_at)["reports"]
                 }
                 gpkg_source_reports[match["entity"]] = (layer_reports, row_reports)
+            if any(a["entity"] == match["entity"] and
+                   a["attribute"] == "gpkg_source_srs"
+                   for a in self._assertions.values()):
+                gpkg_srs_reports[match["entity"]] = {
+                    r["evidence_id"]: r["value"]
+                    for r in self.query(match["entity"], "gpkg_source_srs",
+                                        at, known_at)["reports"]
+                }
             for inside, reports in ((True, match["matched_reports"]),
                                     (False, match["other_reports"])):
                 for report in reports:
@@ -443,6 +452,12 @@ class WorldMini:
                     if isinstance(original_layer, str) and isinstance(original_row, str):
                         properties["monde_gpkg_source_layer"] = original_layer
                         properties["monde_gpkg_source_fid"] = original_row
+                    source_srs = gpkg_srs_reports.get(match["entity"], {}).get(
+                        report["evidence_id"])
+                    if source_srs == "EPSG:3857":
+                        properties["monde_gpkg_source_srs"] = source_srs
+                        properties["monde_coordinate_transform"] = (
+                            "WEB_MERCATOR_TO_WGS84_DERIVED")
                     features.append({
                         "type": "Feature", "id": report["assertion_id"],
                         "geometry": _point(report["value"]), "properties": properties,

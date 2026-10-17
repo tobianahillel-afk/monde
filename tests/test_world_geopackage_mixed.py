@@ -124,7 +124,7 @@ class MixedGeoPackageTests(unittest.TestCase):
             bad_type = valid[:9] + struct.pack("<I", 7) + valid[13:]
             bad_3d = valid[:9] + struct.pack("<I", 1001) + valid[13:]
             malformed = [b"bad", valid[:-1], valid + b"trailing",
-                         point(2.35, 48.85, srid=3857), bad_type, bad_3d,
+                         point(2.35, 48.85, srid=9999), bad_type, bad_3d,
                          point(181, 48.85), point(float("nan"), 48.85)]
             for i, blob in enumerate(malformed):
                 with self.subTest(case=i):

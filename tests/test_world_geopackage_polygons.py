@@ -130,7 +130,7 @@ class GeoPackagePolygonTests(unittest.TestCase):
         self.assertEqual(_polygon(polygon([OUTER, INNER], big_endian=True)),
                          [OUTER, INNER])
         self.assertEqual(_polygon(polygon([OUTER], envelope=True)), [OUTER])
-        for blob in [b"bad", polygon([OUTER], srid=3857),
+        for blob in [b"bad", polygon([OUTER], srid=9999),
                      polygon([OUTER]) + b"extra", polygon([OUTER])[:-2],
                      polygon([]), polygon([OUTER[:-1]]),
                      polygon([OUTER, [[2, 48], [3, 49], [4, 49], [2, 48]]],
@@ -142,7 +142,7 @@ class GeoPackagePolygonTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             path = add_polygons(build(Path(d) / "source.gpkg"))
             malformed = [
-                polygon([OUTER], srid=3857),
+                polygon([OUTER], srid=9999),
                 polygon([OUTER[:-1]]),
                 polygon([[[2.0, 48.0], [3.0, 48.0],
                           [3.0, float("nan")], [2.0, 48.0]]]),
