@@ -182,10 +182,12 @@ def _inspection_html(payload: dict | None, mode: str | None = None,
                                ("source_id", "assertion_id"))
             # A retired report is mapped at the earlier cutoff, not the later
             # one where it has already been superseded.
-            map_params = {"at": params["at"], "known_at": cutoff}
-            map_url = _report_map_link(attribute, report, "entity",
-                                       map_params) if mode == "compare-knowledge" else (
-                                           _report_map_link(attribute, report, mode, params))
+            if mode == "compare-knowledge":
+                map_url = _report_map_link(
+                    attribute, report, "entity",
+                    {"at": params["at"], "known_at": cutoff})
+            else:
+                map_url = _report_map_link(attribute, report, mode, params)
             map_link = ('<p><a href="' + escape(map_url, quote=True) +
                         '">Show this original reported Point on the map</a></p>'
                         if map_url else '')
