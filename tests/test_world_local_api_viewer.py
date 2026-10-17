@@ -81,10 +81,13 @@ class BrowserViewerTests(unittest.TestCase):
             "current": {"view", "bbox", "at", "known_at"},
             "disagreements": {"view", "bbox", "at", "known_at"},
             "knowledge-changes": {"view", "bbox", "at", "from_known_at", "to_known_at"},
-            "world-changes": {"view", "bbox", "from_at", "to_at", "known_at"}
+            "world-changes": {"view", "bbox", "from_at", "to_at", "known_at"},
+            "nearest": {"view", "center", "limit", "at", "known_at"},
+            "radius": {"view", "center", "radius_km", "at", "known_at"}
         }
-        self.assertEqual(len(forms.forms), 4)
+        self.assertEqual(len(forms.forms), 6)
         params = {"bbox": "2.3,48.8,2.4,48.9", "at": AT, "known_at": K2,
+                  "center": "2.3522,48.8566", "limit": "10", "radius_km": "5",
                   "from_known_at": K1, "to_known_at": K2,
                   "from_at": EARLIER, "to_at": AT}
         for form in forms.forms:
@@ -178,6 +181,96 @@ class BrowserViewerTests(unittest.TestCase):
             worker.join(timeout=5)
             server.server_close()
         self.assertEqual(path.read_bytes(), original)
+
+    def test_proximity_browser_matches_existing_geojson_and_map_renderer(self):
+        center = [2.3522, 48.8566]
+        queries = (
+            (dict(view="nearest", center="2.3522,48.8566",
+                  limit="1", at=AT, known_at=K1),
+             self.world.export_geojson_nearest(center, 1, AT, K1)),
+            (dict(view="radius", center="2.3522,48.8566",
+                  radius_km="5", at=AT, known_at=K1),
+             self.world.export_geojson_radius(center, 5.0, AT, K1)),
+        )
+        for query, expected in queries:
+            with self.subTest(view=query["view"]):
+                status, headers, body = self.fetch(query)
+                self.assertEqual(status, 200)
+                self.assertEqual(body.decode("utf-8"), render_map(expected))
+                self.assertEqual(headers["Content-Length"], str(len(body)))
+                self.assertEqual(headers["Cache-Control"], "no-store")
+                self.assertEqual(headers["X-Frame-Options"], "DENY")
+                self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+                self.assertNotIn("Access-Control-Allow-Origin", headers)
+                model_route = "/nearest" if query["view"] == "nearest" else "/radius"
+                raw_query = {k: v for k, v in query.items() if k != "view"}
+                code, _, raw_body = self.fetch(raw_query, path=model_route)
+                self.assertEqual(code, 200)
+                self.assertEqual(json.loads(raw_body), expected)
+
+    def test_browser_radius_preserves_off_radius_competing_sources(self):
+        model = disputed()
+        path = Path(self.tempdir.name) / "nearby-disputed.json"
+        model.save(path)
+        original = path.read_bytes()
+        server = create_server(path)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = dict(view="radius", center="2.3522,48.8566",
+                         radius_km="5", at=AT, known_at=K1)
+            status, _, document = self.fetch(query, server=server)
+            expected = model.export_geojson_radius([2.3522, 48.8566], 5.0, AT, K1)
+            self.assertEqual(status, 200)
+            self.assertEqual(document.decode("utf-8"), render_map(expected))
+            features = expected["features"]
+            self.assertEqual(len(features), 2)
+            self.assertEqual({f["properties"]["source_id"] for f in features},
+                             {"survey-east", "survey-west"})
+            self.assertEqual({f["properties"]["monde_within_radius"] for f in features},
+                             {True, False})
+            self.assertTrue(all(f["properties"]["evidence_id"] for f in features))
+            self.assertIn(b"survey-east", document)
+            self.assertIn(b"survey-west", document)
+            self.assertIn(b'"monde_proximity_display":"SELECTED_SOURCE_ENVELOPE_NOT_QUERY_BBOX"',
+                          document)
+            self.assertIn(b'"monde_within_radius":false', document)
+            self.assertIn(b'"monde_within_radius":true', document)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+        self.assertEqual(path.read_bytes(), original)
+
+    def test_proximity_browser_rejects_unsafe_or_ambiguous_inputs(self):
+        base = dict(view="nearest", center="2.3522,48.8566",
+                    limit="10", at=AT, known_at=K1)
+        bad = (
+            dict(base, limit="0"),
+            dict(base, limit="1001"),
+            dict(base, center="200,48.8"),
+            dict(base, center="nan,48.8"),
+            dict(base, at="invalid"),
+            dict(base, unknown="extra"),
+            dict(base, radius_km="5"),
+            dict(base, view="radius"),
+            dict(base, view="radius", radius_km="-1", limit=None),
+            dict(base, view="radius", radius_km="nan", limit=None),
+        )
+        for query in bad:
+            with self.subTest(query=query):
+                query = {key: value for key, value in query.items() if value is not None}
+                status, _, body = self.fetch(query)
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
+        conn.request("GET", "/viewer?view=nearest&center=2.3522,48.8566"
+                     "&center=0,0&limit=10&at=" + AT + "&known_at=" + K1,
+                     headers={"Host": "127.0.0.1:" + str(self.server.server_port)})
+        response = conn.getresponse()
+        self.assertEqual(response.status, 400)
+        response.read()
+        conn.close()
 
     def test_disallows_wrong_view_unknown_keys_and_invalid_time_or_bbox(self):
         valid = dict(view="current", bbox="2.3,48.8,2.4,48.9", at=AT, known_at=K2)

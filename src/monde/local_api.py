@@ -23,9 +23,16 @@ _EXPLORER_VIEWS = (
      ("bbox", "at", "from_known_at", "to_known_at")),
     ("world-changes", "Changes in reported validity",
      ("bbox", "from_at", "to_at", "known_at")),
+    ("nearest", "Nearest source-reported places",
+     ("center", "limit", "at", "known_at")),
+    ("radius", "Source-reported places within a radius",
+     ("center", "radius_km", "at", "known_at")),
 )
 _EXPLORER_LABELS = {
     "bbox": "WGS84 bounds (west,south,east,north)",
+    "center": "WGS84 search center (longitude,latitude)",
+    "limit": "Maximum nearest entities (1–1000)",
+    "radius_km": "Search radius (kilometers)",
     "at": "World time (UTC ISO-8601)",
     "known_at": "Known by (UTC ISO-8601)",
     "from_known_at": "Earlier knowledge cutoff (UTC ISO-8601)",
@@ -36,13 +43,17 @@ _EXPLORER_LABELS = {
 
 
 def _explorer_html() -> str:
-    """Four native GET forms for the existing map modes, without browser JS."""
+    """Native GET forms for existing evidence maps, without browser JS."""
     forms = []
     for mode, title, fields in _EXPLORER_VIEWS:
         inputs = []
         for key in fields:
-            initial = ' value="2.3,48.8,2.4,48.9"' if key == "bbox" else (
-                ' placeholder="2026-01-02T00:00:00Z"')
+            initial = {
+                "bbox": ' value="2.3,48.8,2.4,48.9"',
+                "center": ' value="2.3522,48.8566"',
+                "limit": ' value="10"',
+                "radius_km": ' value="5"',
+            }.get(key, ' placeholder="2026-01-02T00:00:00Z"')
             inputs.append('<label>' + _EXPLORER_LABELS[key] +
                           '<input name="' + key + '" required' + initial +
                           '></label>')
@@ -287,6 +298,17 @@ def create_server(state: str | Path, port: int = 0, *,
                         geojson = world.export_geojson_bbox_world_changes(
                             _bbox(args["bbox"]), args["from_at"],
                             args["to_at"], args["known_at"])
+                    elif mode == "nearest":
+                        _require(args, {"view", "center", "limit", "at", "known_at"})
+                        geojson = world.export_geojson_nearest(
+                            _center(args["center"]), int(args["limit"]),
+                            args["at"], args["known_at"])
+                    elif mode == "radius":
+                        _require(args, {"view", "center", "radius_km",
+                                        "at", "known_at"})
+                        geojson = world.export_geojson_radius(
+                            _center(args["center"]), float(args["radius_km"]),
+                            args["at"], args["known_at"])
                     else:
                         raise ValueError("unsupported viewer mode")
                     return self._html(geojson)
