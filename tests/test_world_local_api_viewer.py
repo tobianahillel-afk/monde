@@ -80,8 +80,8 @@ class BrowserViewerTests(unittest.TestCase):
         expected = {
             "current": {"view", "bbox", "at", "known_at", "source"},
             "disagreements": {"view", "bbox", "at", "known_at"},
-            "knowledge-changes": {"view", "bbox", "at", "from_known_at", "to_known_at"},
-            "world-changes": {"view", "bbox", "from_at", "to_at", "known_at"},
+            "knowledge-changes": {"view", "bbox", "at", "from_known_at", "to_known_at", "source"},
+            "world-changes": {"view", "bbox", "from_at", "to_at", "known_at", "source"},
             "nearest": {"view", "center", "limit", "at", "known_at"},
             "radius": {"view", "center", "radius_km", "at", "known_at"}
         }
