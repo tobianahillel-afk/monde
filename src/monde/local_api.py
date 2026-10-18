@@ -1126,7 +1126,7 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
         threshold = args["min_change_km"]
         # Explicitly reject negatives, nonfinite values, exponent notation
         # and precision > 0.001 km. UNKNOWN never becomes a zero delta.
-        if (not re.fullmatch(r"(?:0|[1-9][0-9]{0,5})(?:\.[0-9]{1,3})?", threshold)
+        if (not re.fullmatch(r"(?:0|[1-9][0-9]{0,6})(?:\.[0-9]{1,3})?", threshold)
                 or float(threshold) > 1000000):
             raise ValueError("invalid minimum source-pair distance change")
         minimum = float(threshold)
