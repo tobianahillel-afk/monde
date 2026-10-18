@@ -669,3 +669,21 @@ LATER_ONLY. Both world-time and knowledge-time cutoffs are preserved. The labels
 are evidence visibility, **not** inferred movement, creation or disappearance
 of a real entity. The exporter reuses the existing original entity GeoJSON
 selection; no state mutation, additional service or third-party dependency.
+
+## Map original report visibility across cutoffs (WORK-0120)
+
+From the existing exact-entity source directory, select **Earlier cutoff only**,
+**Later cutoff only**, or **Both cutoffs**. The links reuse the current map
+viewer with the optional `presence=earlier|later|both` filter. The same filter
+is accepted by the existing read-only `format=geojson` export.
+
+Report identity is the original reporter ID, assertion ID, evidence ID and
+the exact source-reported Point coordinates at each of the two cutoffs.
+Filtered GeoJSON annotates each original feature with
+`monde_visibility_transition`. Reports visible at both cutoffs retain both
+period-specific features with their original world and knowledge times.
+An unfiltered export remains unchanged. This does not infer actual
+appearance, disappearance, movement, consensus geography or source accuracy.
+
+The filter is invalid without an exact entity and for table, CSV or JSON
+directory outputs. No new route, dependency, hosted API or state mutation.

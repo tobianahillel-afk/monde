@@ -1504,5 +1504,124 @@ class SourceDirectoryTests(unittest.TestCase):
                          ["'=entity", "'@source", "'=report", "'+evidence"])
 
 
+
+    def test_original_report_presence_map_matches_csv_and_geojson(self):
+        """Map filter and original CSV use the same report identity."""
+        query = {**self.knowledge(), "entity": "site-1"}
+        status, _, raw = self.get({**query, "format": "presence-csv"})
+        self.assertEqual(status, 200)
+        rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+        self.assertTrue(rows)
+        expected = {(row["source_id"], row["assertion_id"], row["evidence_id"],
+                     float(row["longitude"]), float(row["latitude"])):
+                    row["visibility_transition"] for row in rows}
+        total = 0
+        for mode, transition in (("earlier", "EARLIER_ONLY"),
+                                 ("later", "LATER_ONLY"),
+                                 ("both", "BOTH_CUTOFFS")):
+            status, _, raw = self.get({**query, "presence": mode, "format": "geojson"})
+            self.assertEqual(status, 200)
+            doc = json.loads(raw)
+            self.assertEqual(doc["monde_source_coverage"]["presence_filter"], mode)
+            for feature in doc["features"]:
+                p = feature["properties"]
+                key = (p["source_id"], str(p["monde_original_assertion_id"]),
+                       p["evidence_id"], *feature["geometry"]["coordinates"])
+                self.assertEqual(expected[key], transition)
+                self.assertEqual(p["monde_visibility_transition"], transition)
+                self.assertIn(p["monde_comparison_period"], ("earlier", "later"))
+            total += len(doc["features"])
+            status, _, html = self.get({**query, "presence": mode, "format": "map"})
+            self.assertEqual(status, 200)
+            self.assertIn(b"<!doctype html>", html.lower())
+        status, _, raw = self.get({**query, "format": "geojson"})
+        self.assertEqual(status, 200)
+        original = json.loads(raw)["features"]
+        self.assertEqual(total, len(original))
+        self.assertTrue(all("monde_visibility_transition" not in
+                            feature["properties"] for feature in original))
+        status, _, html = self.get(query)
+        self.assertEqual(status, 200)
+        for token in (b"presence=earlier", b"presence=later",
+                      b"presence=both", b"Earlier cutoff only",
+                      b"Later cutoff only", b"Both cutoffs"):
+            self.assertIn(token, html)
+
+    def test_original_report_presence_map_rejects_unscoped_query(self):
+        query = self.knowledge()
+        invalid = (
+            {"presence": "later", "format": "geojson"},
+            {"source": "survey-a", "presence": "later", "format": "map"},
+            {"entity": "site-1", "presence": "unknown", "format": "map"},
+            {"entity": "site-1", "presence": "later", "format": "json"},
+            {"entity": "site-1", "presence": "earlier", "format": "presence-csv"},
+            {"entity": "site-1", "presence": "both", "format": "table"},
+        )
+        for args in invalid:
+            status, _, raw = self.get({**query, **args})
+            self.assertEqual(status, 400, args)
+            self.assertEqual(json.loads(raw)["error"], "invalid_query")
+
+    def test_original_report_presence_map_world_axis_read_only(self):
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "presence-map-world.json"
+        world.save(saved)
+        old = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = {"directory": "1", "axis": "world", "from_at": EARLY,
+                     "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**query, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            entity = json.loads(raw)["sources"][0]["example_entity"]
+            for mode in ("earlier", "later", "both"):
+                status, _, raw = self.get({**query, "entity": entity,
+                    "presence": mode, "format": "geojson"}, server)
+                self.assertEqual(status, 200)
+                doc = json.loads(raw)
+                self.assertEqual(doc["monde_source_coverage"]["axis"], "world")
+                self.assertEqual(doc["monde_source_coverage"]["presence_filter"], mode)
+                for feature in doc["features"]:
+                    p = feature["properties"]
+                    self.assertIn(p["monde_world_at"], (EARLY, LATE))
+                    self.assertEqual(p["monde_known_at"], KNOWN)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+        self.assertEqual(saved.read_bytes(), old)
+
+    def test_report_presence_is_per_original_point_not_inferred_movement(self):
+        from monde.source_pair_changes import source_directory_entity_geojson
+        class Minimal:
+            def export_geojson(self, at, known):
+                earlier = known == BEFORE
+                ids = [("stay", 1), ("old", 2)] if earlier else [
+                    ("stay", 1), ("new", 3)]
+                return {"features": [{
+                    "id": item,
+                    "geometry": {"type": "Point", "coordinates": [lon, 10]},
+                    "properties": {"entity": "e1", "source_id": "survey-1",
+                                   "evidence_id": "evidence-" + item}
+                } for item, lon in ids]}
+        directory = {
+            "schema": "MONDE_SOURCE_COVERAGE_DIRECTORY_V1",
+            "entity_focus": "e1", "axis": "knowledge",
+            "sources": [{"source_id": "survey-1",
+                         "example_assertion_ids": ["stay", "old", "new"]}],
+            "cutoffs": {"earlier": {"world_at": AT, "knowledge_at": BEFORE},
+                        "later": {"world_at": AT, "knowledge_at": AFTER}},
+            "interpretation": "original only",
+        }
+        expected = {"earlier": {"old"}, "later": {"new"}, "both": {"stay"}}
+        for mode, reports in expected.items():
+            out = source_directory_entity_geojson(Minimal(), directory, mode)
+            self.assertEqual({f["properties"]["monde_original_assertion_id"]
+                              for f in out["features"]}, reports)
+            self.assertEqual(len(out["features"]), 2 if mode == "both" else 1)
+
+
 if __name__ == "__main__":
     unittest.main()

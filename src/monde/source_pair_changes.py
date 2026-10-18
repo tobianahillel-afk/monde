@@ -510,8 +510,8 @@ def source_directory_map(world, detail):
     return geojson
 
 
-def source_directory_entity_geojson(world, directory):
-    """Preserve both cutoffs' original Points for selected exact-entity reporters."""
+def source_directory_entity_geojson(world, directory, presence=None):
+    """Preserve original Point reports, optionally select temporal visibility."""
     if (directory.get("schema") != "MONDE_SOURCE_COVERAGE_DIRECTORY_V1" or
             "entity_focus" not in directory):
         raise ValueError("original entity reporter directory required")
@@ -535,6 +535,33 @@ def source_directory_entity_geojson(world, directory):
                 "type": "Feature", "id": period + ":" + str(original["id"]),
                 "geometry": original["geometry"], "properties": metadata,
             })
+    if presence is not None:
+        if presence not in ("earlier", "later", "both"):
+            raise ValueError("invalid original report presence filter")
+        # Identity combines original reporter, assertion, evidence and Point.
+        # Never infer movement or a consensus position from a source update.
+        periods = {}
+        for feature in features:
+            p = feature["properties"]
+            identity = (p["source_id"], p["monde_original_assertion_id"],
+                        p["evidence_id"], tuple(feature["geometry"]["coordinates"]))
+            periods.setdefault(identity, set()).add(p["monde_comparison_period"])
+        selected = []
+        for feature in features:
+            p = feature["properties"]
+            identity = (p["source_id"], p["monde_original_assertion_id"],
+                        p["evidence_id"], tuple(feature["geometry"]["coordinates"]))
+            periods_seen = periods[identity]
+            classification = ("both" if len(periods_seen) == 2 else
+                              "earlier" if "earlier" in periods_seen else "later")
+            if classification == presence:
+                p["monde_visibility_transition"] = {
+                    "earlier": "EARLIER_ONLY",
+                    "later": "LATER_ONLY",
+                    "both": "BOTH_CUTOFFS",
+                }[classification]
+                selected.append(feature)
+        features = selected
     return {
         "type": "FeatureCollection", "features": features,
         "monde_source_coverage": {
@@ -545,6 +572,7 @@ def source_directory_entity_geojson(world, directory):
             **({"source_focus": directory["source_focus"]}
                if "source_focus" in directory else {}),
             "original_feature_count": len(features),
+            **({"presence_filter": presence} if presence is not None else {}),
             "interpretation": directory["interpretation"],
         },
     }
@@ -614,9 +642,9 @@ def source_directory_entity_presence_csv(world, directory):
                          late["world_at"], late["knowledge_at"]))
     return output.getvalue()
 
-def source_directory_entity_map(world, directory):
-    """Reuse the source Point display envelope, never infer consensus or motion."""
-    geojson = source_directory_entity_geojson(world, directory)
+def source_directory_entity_map(world, directory, presence=None):
+    """Reuse the original Point map for selected temporal visibility."""
+    geojson = source_directory_entity_geojson(world, directory, presence)
     features = geojson["features"]
     for feature in features:
         feature["properties"]["monde_inside_bbox"] = True
