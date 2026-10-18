@@ -2107,5 +2107,68 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(status, 400)
             self.assertEqual(json.loads(payload)["error"], "invalid_query")
 
+    def test_unique_presence_map_reuses_exact_original_points(self):
+        from monde.source_pair_changes import source_directory_entity_presence_map
+        query = {**self.knowledge(), "entity": "site-1"}
+        directory = json.loads(self.get({**query, "format": "json"})[2])
+        geojson = json.loads(self.get({**query, "format": "presence-geojson"})[2])
+        mapped = source_directory_entity_presence_map(self.world, directory)
+        self.assertEqual([f["id"] for f in mapped["features"]],
+                         [f["id"] for f in geojson["features"]])
+        self.assertEqual(mapped["monde_bbox_query"]["total_source_features"],
+                         len(geojson["features"]))
+        self.assertTrue(mapped["features"])
+        self.assertTrue(all(f["properties"]["monde_inside_bbox"]
+                            for f in mapped["features"]))
+        self.assertEqual(
+            {f["properties"]["monde_visibility_transition"]
+             for f in mapped["features"]},
+            {f["properties"]["monde_visibility_transition"]
+             for f in geojson["features"]})
+        self.assertEqual(len({f["id"] for f in mapped["features"]}),
+                         len(mapped["features"]))
+        self.assertIn("NOT_VERIFIED_MOVEMENT",
+                      mapped["monde_source_coverage"]["display_basis"])
+
+    def test_unique_presence_map_live_http_filters_links_and_unchanged_snapshot(self):
+        from html import unescape
+        from urllib.parse import parse_qs, urlsplit
+        import re
+        query = {**self.knowledge(), "entity": "site-1"}
+        code, headers, body = self.get({**query, "format": "presence-map"})
+        self.assertEqual(code, 200)
+        self.assertIn("text/html", headers["Content-Type"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertIn(b"MONDE_ORIGINAL_POINT_PRESENCE_GEOJSON_V1", body)
+        self.assertIn(b"monde_visibility_transition", body)
+        page = self.get({**query, "format": "table"})[2].decode("utf-8")
+        self.assertIn("Map unique original reports by temporal presence", page)
+        links = [unescape(v) for v in re.findall(r'href="([^"]+)"', page)]
+        link = next(v for v in links if "format=presence-map" in v)
+        params = {k: v[0] for k, v in parse_qs(urlsplit(link).query).items()}
+        self.assertEqual(self.get(params)[0], 200)
+        self.assertIn(b"Map unique matching Points",
+                      self.get({**query, "format": "presence-table"})[2])
+        for category in ("earlier", "later", "both"):
+            params = {**query, "format": "presence-map", "source": "survey-a",
+                      "presence": category}
+            self.assertEqual(self.get(params)[0], 200)
+        for bad in ({**query, "format": "presence-map", "presence": "invalid"},
+                    {**self.knowledge(), "format": "presence-map"},
+                    {**query, "format": "presence-map", "unknown": "x"}):
+            self.assertEqual(self.get(bad)[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_unique_presence_map_empty_world_cutoffs(self):
+        from monde.source_pair_changes import source_directory_entity_presence_map
+        query = {"directory": "1", "axis": "world", "from_at": EARLY,
+                 "to_at": LATE, "known_at": KNOWN, "entity": "missing"}
+        directory = json.loads(self.get({**query, "format": "json"})[2])
+        mapped = source_directory_entity_presence_map(self.world, directory)
+        self.assertEqual(mapped["features"], [])
+        self.assertEqual(mapped["monde_bbox_query"]["status"], "NO_MATCHES")
+        self.assertEqual(self.get({**query, "format": "presence-map"})[0], 200)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()

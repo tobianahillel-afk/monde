@@ -724,6 +724,30 @@ def source_directory_entity_presence_geojson(world, directory, presence=None):
     }
 
 
+def source_directory_entity_presence_map(world, directory, presence=None):
+    """Map each original report identity only once at the two cutoffs.
+
+    Reuses the source-presence GeoJSON, without inferring movement or truth.
+    """
+    geojson = source_directory_entity_presence_geojson(world, directory, presence)
+    features = geojson["features"]
+    for feature in features:
+        feature["properties"]["monde_inside_bbox"] = True
+    earlier = directory["cutoffs"]["earlier"]
+    geojson["monde_bbox_query"] = {
+        "basis": "ORIGINAL_POINT_PRESENCE_ONLY",
+        "bbox": _source_display_bbox(features),
+        "valid_at": earlier["world_at"],
+        "knowledge_cutoff": earlier["knowledge_at"],
+        "total_matching_entities": 1 if features else 0,
+        "total_source_features": len(features),
+        "status": "MATCHES" if features else "NO_MATCHES",
+    }
+    geojson["monde_source_coverage"]["display_basis"] = (
+        "ONE_ORIGINAL_REPORT_PER_IDENTITY_NOT_VERIFIED_MOVEMENT")
+    return geojson
+
+
 def source_directory_entity_presence_csv(world, directory, presence=None):
     """Spreadsheet-safe original presence CSV, from the shared report identities."""
     reports = source_directory_entity_presence_records(world, directory, presence)
