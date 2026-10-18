@@ -1000,6 +1000,11 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             '<input type="hidden" name="discover" value="1">'
             '<input type="hidden" name="axis" value="' + axis + '">'
             + inputs +
+            '<label>Rank by <select name="rank">'
+            '<option value="separation">Largest reported separation</option>'
+            '<option value="increasing">Increasing distance, matched entity</option>'
+            '<option value="decreasing">Decreasing distance, matched entity</option>'
+            '</select></label>'
             '<label>Top pairs (1–100)<input type="number" name="top"'
             ' min="1" max="100" value="25"></label>'
             '<label>Output <select name="format">'
@@ -1151,12 +1156,12 @@ def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid discovery format")
     if args.get("axis") == "knowledge":
         _require(args, {"discover", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format", "top"})
+                 {"format", "top", "rank"})
         cuts = ((args["at"], args["from_known_at"]),
                 (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"discover", "axis", "from_at", "to_at", "known_at"},
-                 {"format", "top"})
+                 {"format", "top", "rank"})
         cuts = ((args["from_at"], args["known_at"]),
                 (args["to_at"], args["known_at"]))
     else:
@@ -1164,14 +1169,15 @@ def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
     raw_top = args.get("top", "25")
     if not re.fullmatch(r"[1-9][0-9]{0,2}", raw_top) or int(raw_top) > 100:
         raise ValueError("invalid discovery top")
-    return discover_source_pairs(world, args["axis"], cuts, int(raw_top))
+    return discover_source_pairs(world, args["axis"], cuts, int(raw_top),
+                                 args.get("rank", "separation"))
 
 
 def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
     rows = []
     for pair in document["pairs"]:
         params = {k: v for k, v in args.items()
-                  if k not in ("discover", "top", "format")}
+                  if k not in ("discover", "top", "format", "rank")}
         params.update(source_a=pair["source_a"], source_b=pair["source_b"],
                       format="table")
         link = "/source-pair?" + urlencode(params)
@@ -1179,6 +1185,8 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
             '<tr><th scope="row"><a href="' + escape(link, quote=True) + '">' +
             escape(pair["source_a"]) + " / " + escape(pair["source_b"]) +
             '</a></th><td>' + str(pair["max_nearest_km"]) +
+            '</td><td>' + (str(pair["rank_delta_km"])
+                           if "rank_delta_km" in pair else "—") +
             '</td><td>' + str(pair["joint_entities"]) +
             '</td><td>' + str(pair["joint_earlier_entities"]) + " / " +
             str(pair["joint_later_entities"]) + '</td><td>' +
@@ -1196,9 +1204,10 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
         '<p>' + escape(document["interpretation"]) + '</p>'
         '<p>' + escape(document["axis"]) + " time; " +
         str(document["total_pairs"]) + ' observed pairs.</p>'
-        '<table><caption>Ranked maximum nearest original source separations'
+        '<table><caption>Ranked original source separations and temporal changes'
         '</caption><thead><tr><th scope="col">Open complete source evidence</th>'
-        '<th scope="col">Max km</th><th scope="col">Joint entities</th>'
+        '<th scope="col">Max km</th><th scope="col">Change km</th>'
+        '<th scope="col">Joint entities</th>'
         '<th scope="col">Earlier / later counts</th>'
         '<th scope="col">Example entity / cutoff</th></tr></thead><tbody>' +
         ''.join(rows) + '</tbody></table>' +
