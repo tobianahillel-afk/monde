@@ -40,16 +40,10 @@ def _measure(left, right):
             "farthest_km": round(max(values), 3)}
 
 
-def compare_source_pair(world, source_a, source_b, at, from_known_at, to_known_at):
-    """Use the existing WorldMini bitemporal GeoJSON selector and original IDs."""
-    if not all(isinstance(s, str) and s for s in (source_a, source_b)) \
-            or source_a == source_b:
-        raise ValueError("choose two distinct original sources")
-    if _instant(from_known_at) >= _instant(to_known_at):
-        raise ValueError("knowledge cutoffs must increase")
-    _instant(at)
+def _source_pair_rows(world, source_a, source_b, cutoffs):
+    """Compare original source Points at two explicitly chosen bitemporal cuts."""
     snapshots = []
-    for known_at in (from_known_at, to_known_at):
+    for at, known_at in cutoffs:
         by_entity = {}
         for feature in world.export_geojson(at, known_at)["features"]:
             p = feature["properties"]
@@ -62,30 +56,68 @@ def compare_source_pair(world, source_a, source_b, at, from_known_at, to_known_a
         periods = []
         for snapshot in snapshots:
             entry = snapshot.get(entity, {})
-            a = entry.get(source_a, [])
-            b = entry.get(source_b, [])
-            measured = _measure(a, b)
+            left = entry.get(source_a, [])
+            right = entry.get(source_b, [])
+            measured = _measure(left, right)
             periods.append({"status": "JOINTLY_REPORTED" if measured
                             else "NOT_JOINTLY_REPORTED",
-                            "source_a_original_reports": a,
-                            "source_b_original_reports": b,
+                            "source_a_original_reports": left,
+                            "source_b_original_reports": right,
                             "separation": measured})
         earlier, later = periods
         if earlier["separation"] is None and later["separation"] is None:
             continue
         delta = None
-        if earlier["separation"] and later["separation"]:
+        if earlier["separation"] is not None and later["separation"] is not None:
             delta = {name: round(later["separation"][name] -
                                  earlier["separation"][name], 3)
                      for name in ("nearest_km", "farthest_km")}
         rows.append({"entity": entity, "earlier": earlier, "later": later,
                      "earlier_to_later_change_km": delta})
+    return rows
+
+
+def _validate_sources(source_a, source_b):
+    if not all(isinstance(s, str) and s for s in (source_a, source_b)) \
+            or source_a == source_b:
+        raise ValueError("choose two distinct original sources")
+
+
+def compare_source_pair(world, source_a, source_b, at, from_known_at, to_known_at):
+    """Compare evolving *knowledge* at a fixed world-valid time."""
+    _validate_sources(source_a, source_b)
+    if _instant(from_known_at) >= _instant(to_known_at):
+        raise ValueError("knowledge cutoffs must increase")
+    _instant(at)
     return {"schema": "MONDE_SOURCE_PAIR_CHANGE_V1", "source_a": source_a,
             "source_b": source_b, "valid_at": at,
             "from_known_at": from_known_at, "to_known_at": to_known_at,
             "interpretation": "Original report separation only; not verified "
                               "location, motion, accuracy, or ground truth.",
-            "entities": rows}
+            "entities": _source_pair_rows(world, source_a, source_b,
+                                          ((at, from_known_at),
+                                           (at, to_known_at)))}
+
+
+def compare_source_pair_world_time(world, source_a, source_b,
+                                   from_at, to_at, known_at):
+    """Compare reported *world validity* at one fixed knowledge cutoff.
+
+    A separation delta is about source assertions, never actual movement.
+    """
+    _validate_sources(source_a, source_b)
+    if _instant(from_at) >= _instant(to_at):
+        raise ValueError("world times must increase")
+    _instant(known_at)
+    return {"schema": "MONDE_SOURCE_PAIR_WORLD_CHANGE_V1",
+            "source_a": source_a, "source_b": source_b,
+            "from_at": from_at, "to_at": to_at, "known_at": known_at,
+            "interpretation": "Differences in source-reported world validity "
+                              "only; not verified motion, location, accuracy, "
+                              "or ground truth.",
+            "entities": _source_pair_rows(world, source_a, source_b,
+                                          ((from_at, known_at),
+                                           (to_at, known_at)))}
 
 
 def main(argv=None):
@@ -94,14 +126,29 @@ def main(argv=None):
     parser.add_argument("--fixture", required=True)
     parser.add_argument("--source-a", required=True)
     parser.add_argument("--source-b", required=True)
-    parser.add_argument("--at", required=True)
-    parser.add_argument("--from-known-at", required=True)
-    parser.add_argument("--to-known-at", required=True)
+    parser.add_argument("--at", help="fixed world time for knowledge comparison")
+    parser.add_argument("--from-known-at")
+    parser.add_argument("--to-known-at")
+    parser.add_argument("--from-at", help="earlier world time (world comparison)")
+    parser.add_argument("--to-at", help="later world time (world comparison)")
+    parser.add_argument("--known-at", help="fixed knowledge cutoff (world comparison)")
     args = parser.parse_args(argv)
+    knowledge_args = (args.at, args.from_known_at, args.to_known_at)
+    world_args = (args.from_at, args.to_at, args.known_at)
+    if any(value is not None for value in world_args):
+        if any(value is not None for value in knowledge_args) or \
+                not all(value is not None for value in world_args):
+            parser.error("choose exactly one complete comparison axis")
+        compare = compare_source_pair_world_time
+        cutoffs = world_args
+    else:
+        if not all(value is not None for value in knowledge_args):
+            parser.error("provide complete --at/--from-known-at/--to-known-at")
+        compare = compare_source_pair
+        cutoffs = knowledge_args
     try:
-        result = compare_source_pair(
-            WorldMini.read(args.fixture), args.source_a, args.source_b,
-            args.at, args.from_known_at, args.to_known_at)
+        result = compare(WorldMini.read(args.fixture),
+                         args.source_a, args.source_b, *cutoffs)
     except (ValueError, OSError) as error:
         parser.error(str(error))
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
