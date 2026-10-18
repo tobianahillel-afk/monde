@@ -701,3 +701,18 @@ Les lignes sont filtrées après comparaison des identités originales (source,
 assertion, evidence et coordonnées) aux deux cutoffs. Le CSV existant non filtré
 est inchangé ; lecture seule pour les axes world et knowledge, sans prétendre
 établir un mouvement ou une vérité géographique.
+
+## Deduplicated original Point presence GeoJSON (WORK-0124)
+
+The existing exact-entity `/source-pair` directory now accepts `format=presence-geojson`
+with either knowledge-time or world-validity cutoffs. Unlike the existing
+`format=geojson` (which intentionally includes a feature for **each** cutoff),
+this produces **one GeoJSON Feature for each original source/assertion/evidence/
+coordinate identity**, retaining original source metadata and explicit
+`earlier_visible`, `later_visible`, and `monde_visibility_transition` properties.
+It derives each classification from the same original presence records as
+`format=presence-json` and `format=presence-csv`. `source` and `presence` may
+restrict the exact entity's reporters and categories. Empty evidence yields an
+empty FeatureCollection. This is **observation visibility**, never a measured
+movement, confirmed physical location, or estimate. The saved WorldMini remains
+byte-identical; the existing loopback GET endpoint and response-size policy apply.

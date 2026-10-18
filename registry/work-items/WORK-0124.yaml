@@ -1,0 +1,42 @@
+id: WORK-0124
+title: "Export deduplicated original Point presence as GeoJSON"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Let an analyst consume one original Point per source/assertion/evidence/coordinate
+  across two temporal cutoffs, with explicit earlier/later visibility in GeoJSON.
+scope:
+  in: ["Exact original entity", "Reporter and presence filters", "Both time axes", "Read-only original Point GeoJSON"]
+  out: ["Inferred movement", "Consensus geometry", "Hosted services", "Persistent model mutation"]
+acceptance_criteria:
+  - {id: AC-1, description: "Deduplicate per original Point identity, preserving original source metadata.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Preserve JSON parity, both temporal flags, source and presence selection.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Expose read-only loopback HTTP and accessible download navigation; test persisted world.", status: IN_PROGRESS}
+depends_on: [WORK-0123]
+requirements: []
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.source_pair_changes.source_directory_entity_presence_records, monde.source_pair_changes.source_directory_entity_geojson, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Export deduplicated original presence GeoJSON using existing canonical reports.", depends_on: [], expected_files: [src/monde/source_pair_changes.py, src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T2, description: "Verify real HTTP, JSON parity, time-axis and immutability regressions.", depends_on: [T1], expected_files: [tests/test_world_local_source_directory.py], status: IN_PROGRESS}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Ancestor product PRs are still stacked and unmerged."]
