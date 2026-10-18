@@ -1140,6 +1140,24 @@ class DisagreementReportHTTPTests(unittest.TestCase):
                                   for item in offline_data["features"]},
                                  {"survey-east", "survey-west"})
 
+    def test_offline_download_link_from_native_explorer_rejects_view_only_in_link(self):
+        from html import unescape
+        from re import search
+        from urllib.parse import parse_qs, urlsplit
+
+        selected = {**QUERY, "view": "disagreements", "source": "survey-east",
+                    "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, report = self.fetch("/disagreement-report", selected)
+        self.assertEqual(status, 200)
+        match = search(r'href="([^"]+)">Download offline comparison map</a>',
+                       report.decode("utf-8"))
+        self.assertIsNotNone(match)
+        url = urlsplit(unescape(match.group(1)))
+        args = {key: val[0] for key, val in parse_qs(url.query).items()}
+        self.assertEqual(url.path, "/disagreement-compare.html")
+        self.assertEqual(args, {k: v for k, v in selected.items() if k != "view"})
+        self.assertEqual(self.fetch(url.path, args)[0], 200)
+
     def test_download_comparison_map_reuses_filters_empty_and_validation(self):
         selected = {**QUERY, "from_known_at": "2026-01-09T00:00:00Z",
                     "source": "survey-east", "entity": "site-a"}

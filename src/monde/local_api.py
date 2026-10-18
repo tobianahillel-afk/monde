@@ -884,7 +884,7 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
             escape("/viewer?" + urlencode({**params, "view": "disagreement-comparison"}),
                    quote=True) +
             '">Map both original evidence periods</a> · <a href="' +
-            escape("/disagreement-compare.html?" + urlencode(params), quote=True) +
+            escape("/disagreement-compare.html?" + urlencode({k: v for k, v in params.items() if k != "view"}), quote=True) +
             '">Download offline comparison map</a></p>' + filter_links +
             ('<ul>' + ''.join(changes) + '</ul>' if changes else
              '<p role="status">' + (
