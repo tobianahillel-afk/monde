@@ -672,6 +672,58 @@ def source_directory_entity_presence_json(world, directory, presence=None):
             "interpretation": "Original source-report visibility, not verified movement or truth"}
 
 
+def source_directory_entity_presence_geojson(world, directory, presence=None):
+    """One original Point per identity, with its presence at two cutoffs.
+
+    The regular entity GeoJSON intentionally has one feature *per cutoff*.
+    This export retains original source metadata but removes the duplicated
+    period features so GIS consumers cannot count one report twice.
+    """
+    rows = source_directory_entity_presence_records(world, directory, presence)
+    by_identity = {
+        (row["source_id"], row["assertion_id"], row["evidence_id"],
+         row["longitude"], row["latitude"]): row for row in rows
+    }
+    features = []
+    seen = set()
+    for original in source_directory_entity_geojson(world, directory)["features"]:
+        props = original["properties"]
+        longitude, latitude = original["geometry"]["coordinates"]
+        identity = (props["source_id"], props["monde_original_assertion_id"],
+                    props["evidence_id"], longitude, latitude)
+        if identity in seen or identity not in by_identity:
+            continue
+        seen.add(identity)
+        row = by_identity[identity]
+        properties = {key: value for key, value in props.items()
+                      if key not in ("monde_comparison_period",
+                                     "monde_world_at", "monde_known_at")}
+        properties.update(earlier_visible=row["earlier_visible"],
+                          later_visible=row["later_visible"],
+                          monde_visibility_transition=row["visibility_transition"])
+        features.append({
+            "type": "Feature",
+            "id": json.dumps(identity, ensure_ascii=False, separators=(",", ":")),
+            "geometry": original["geometry"],
+            "properties": properties,
+        })
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "monde_source_coverage": {
+            "schema": "MONDE_ORIGINAL_POINT_PRESENCE_GEOJSON_V1",
+            "entity_focus": directory["entity_focus"],
+            "axis": directory["axis"],
+            "cutoffs": directory["cutoffs"],
+            **({"source_focus": directory["source_focus"]}
+               if "source_focus" in directory else {}),
+            **({"presence_filter": presence} if presence is not None else {}),
+            "original_report_count": len(features),
+            "interpretation": "Original source visibility at two cutoffs, not verified movement or truth",
+        },
+    }
+
+
 def source_directory_entity_presence_csv(world, directory, presence=None):
     """Spreadsheet-safe original presence CSV, from the shared report identities."""
     reports = source_directory_entity_presence_records(world, directory, presence)

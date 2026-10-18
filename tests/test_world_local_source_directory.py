@@ -2018,5 +2018,94 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(doc["cutoffs"]["earlier"]["knowledge_at"], KNOWN)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_presence_geojson_unique_original_points_and_json_identity_parity(self):
+        """Real persisted HTTP: one original report even when seen at both cutoffs."""
+        query = {**self.knowledge(), "entity": "site-1"}
+        status, headers, payload = self.get({**query, "format": "presence-geojson"})
+        self.assertEqual(status, 200)
+        self.assertIn("application/json", headers["Content-Type"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        doc = json.loads(payload)
+        self.assertEqual(doc["type"], "FeatureCollection")
+        self.assertEqual(doc["monde_source_coverage"]["schema"],
+                         "MONDE_ORIGINAL_POINT_PRESENCE_GEOJSON_V1")
+        report_doc = json.loads(self.get({**query, "format": "presence-json"})[2])
+        self.assertEqual(len(doc["features"]), report_doc["report_count"])
+        by_identity = {
+            (r["source_id"], r["assertion_id"], r["evidence_id"],
+             r["longitude"], r["latitude"]): r for r in report_doc["reports"]
+        }
+        self.assertTrue(by_identity)
+        identities = set()
+        for item in doc["features"]:
+            p = item["properties"]
+            coords = item["geometry"]["coordinates"]
+            key = (p["source_id"], p["monde_original_assertion_id"],
+                   p["evidence_id"], coords[0], coords[1])
+            self.assertNotIn(key, identities)
+            identities.add(key)
+            original = by_identity[key]
+            self.assertEqual(json.loads(item["id"]), list(key))
+            self.assertEqual(p["earlier_visible"], original["earlier_visible"])
+            self.assertEqual(p["later_visible"], original["later_visible"])
+            self.assertEqual(p["monde_visibility_transition"],
+                             original["visibility_transition"])
+            self.assertNotIn("monde_comparison_period", p)
+        self.assertEqual(identities, set(by_identity))
+        self.assertTrue(any(r["earlier_visible"] and r["later_visible"]
+                            for r in report_doc["reports"]))
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_presence_geojson_filters_world_axis_and_browser_download(self):
+        """Source/category filters, navigation, and world-time are read-only."""
+        from html import unescape
+        from urllib.parse import parse_qs, urlsplit
+        import re
+        query = {**self.knowledge(), "entity": "site-1"}
+        full = json.loads(self.get({**query, "format": "presence-geojson"})[2])
+        for reporter in ("survey-a", "survey-b"):
+            for selection, category in (("earlier", "EARLIER_ONLY"),
+                                        ("later", "LATER_ONLY"),
+                                        ("both", "BOTH_CUTOFFS")):
+                subset = {**query, "source": reporter, "presence": selection,
+                          "format": "presence-geojson"}
+                status, _, payload = self.get(subset)
+                self.assertEqual(status, 200)
+                obj = json.loads(payload)
+                self.assertEqual(obj["monde_source_coverage"]["source_focus"], reporter)
+                self.assertEqual(obj["monde_source_coverage"]["presence_filter"], selection)
+                self.assertEqual(
+                    [f["id"] for f in obj["features"]],
+                    [f["id"] for f in full["features"]
+                     if f["properties"]["source_id"] == reporter and
+                     f["properties"]["monde_visibility_transition"] == category])
+        page = self.get({**query, "format": "table"})[2].decode("utf-8")
+        self.assertIn("Download unique original report presence GeoJSON", page)
+        links = [unescape(v) for v in re.findall(r'href="([^"]+)"', page)]
+        href = next(v for v in links if "format=presence-geojson" in v)
+        params = {k: v[0] for k, v in parse_qs(urlsplit(href).query).items()}
+        self.assertEqual(json.loads(self.get(params)[2]), full)
+        table = self.get({**query, "format": "presence-table"})[2]
+        self.assertIn(b"Download unique matching GeoJSON", table)
+        world = {"directory": "1", "axis": "world", "from_at": EARLY,
+                 "to_at": LATE, "known_at": KNOWN, "entity": "missing",
+                 "format": "presence-geojson"}
+        self.assertEqual(json.loads(self.get(world)[2])["features"], [])
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_presence_geojson_rejects_unscoped_or_invalid_queries(self):
+        for query in (
+            {**self.knowledge(), "format": "presence-geojson"},
+            {**self.knowledge(), "source": "survey-a", "format": "presence-geojson"},
+            {**self.knowledge(), "entity": "site-1", "presence": "unknown",
+             "format": "presence-geojson"},
+            {**self.knowledge(), "entity": "site-1", "extra": "x",
+             "format": "presence-geojson"},
+        ):
+            status, _, payload = self.get(query)
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(payload)["error"], "invalid_query")
+
 if __name__ == "__main__":
     unittest.main()
