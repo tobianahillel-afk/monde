@@ -834,6 +834,25 @@ __MONDE_TIME_NAVIGATION__
               "text/csv;charset=utf-8");
           });
           exportButtons.appendChild(entityGeo);exportButtons.appendChild(entityCsv);
+          var showOnMap=document.createElement("button");
+          showOnMap.type="button";showOnMap.textContent="Show both periods on map";
+          showOnMap.setAttribute("aria-label",
+            "Show both original source-reported periods on map for "+String(entity)+" from "+id);
+          showOnMap.addEventListener("click",function(){
+            // Navigate existing map to original evidence, not an inferred location.
+            // Reset display-only filters which could hide the selected reports.
+            sources.value=id;document.getElementById("entities").value=entity;
+            presenceSelect.value="";comparisonPeriod.value="";
+            search.value="";insideOnly.checked=false;
+            currentViewOnly.checked=false;differentOnly.checked=false;
+            changeFilter.value="";traceFilter.value="";
+            capturedFrom.value="";capturedThrough.value="";
+            gpxClockFrom.value="";gpxClockThrough.value="";
+            radiusCenter=null;clearRadiusButton.disabled=true;
+            if(gpkgLayers.length>1)visibleGpkgSources.add(id);
+            fitReports();
+          });
+          exportButtons.appendChild(showOnMap);
           detail.appendChild(exportButtons);
           item.appendChild(detail);list.appendChild(item);
         });

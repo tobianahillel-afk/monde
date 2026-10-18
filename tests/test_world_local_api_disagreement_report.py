@@ -1788,7 +1788,7 @@ HTMLAnchorElement.prototype.click=function(){
   else root.dataset.entityGeoFilename=this.download;
 };
 const exports=row.querySelectorAll("button");
-root.dataset.entityExportButtons=String(exports.length===2);
+root.dataset.entityExportButtons=String(exports.length===3);
 exports[0].click();exports[1].click();
 root.dataset.entityGeoComplete=String(geoOK);
 root.dataset.entityCsvComplete=String(csvOK);
@@ -1832,6 +1832,16 @@ for(const selected of ["earlier","later"]){
       period.value==="later" && search.value==="no-such-visible-item");
 }
 window.Blob=oldBlob;
+// Navigate from comparison evidence to its source/entitity map without
+// changing the complete underlying embedded original selection.
+const show=Array.from(exports).find(x=>x.textContent==="Show both periods on map");
+show?.click();
+root.dataset.entityFocusMap=String(
+  !!show && document.getElementById("sources").value===src &&
+  document.getElementById("entities").value===chosenEntity &&
+  period.value==="" && search.value==="" &&
+  document.querySelectorAll("#points circle").length===expectedEntity.length &&
+  document.getElementById("fit-reports").disabled===false);
 button.click();
 root.dataset.sourceEntityClosed=String(
   button.getAttribute("aria-expanded")==="false" &&
@@ -1855,6 +1865,7 @@ root.dataset.sourceEntityClosed=String(
         self.assertIn('data-entity-csv-complete="true"', result)
         self.assertIn('data-entity-export-filters-preserved="true"', result)
         self.assertIn('data-entity-period-defaults-both="true"', result)
+        self.assertIn('data-entity-focus-map="true"', result)
         self.assertIn('data-entity-earlier-export-complete="true"', result)
         self.assertIn('data-entity-later-export-complete="true"', result)
         self.assertIn('data-entity-both-geo-filename="monde-original-source-entity-both-periods.geojson"', result)

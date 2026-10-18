@@ -625,3 +625,5 @@ GeoJSON records the selected period, exported count, original period counts and
 the scope `COMPLETE_EMBEDDED_SOURCE_ENTITY_SELECTED_PERIOD_NOT_DISPLAY_FILTERED`.
 The default Both export retains the previous structure. No new route, dependency,
 network call, inferred truth or saved-world mutation.
+
+From each original source/entity comparison row, **Show both periods on map** now reuses the offline viewer to focus and fit the selected source's original entity Point reports. It clears conflicting presentation filters, not the embedded source evidence; no claimed physical movement, consensus position, new endpoint or data mutation.
