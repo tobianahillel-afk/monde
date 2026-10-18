@@ -244,10 +244,14 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
                          ["a-a1", "a-b1"])
         self.assertEqual(pair["example_later_assertion_ids"],
                          ["a-a1", "a-b2"])
-        for invalid in ("", "a\nb"):
-            status, _, raw = self.get({**args, "source": invalid})
-            self.assertEqual(status, 400)
-            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        # An empty browser form input means no source focus (parse_qs
+        # omits blank values), preserving default discovery behavior.
+        status, _, raw = self.get({**args, "source": ""})
+        self.assertEqual(status, 200)
+        self.assertNotIn("source_focus", json.loads(raw))
+        status, _, raw = self.get({**args, "source": "a\nb"})
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(raw), {"error": "invalid_query"})
         unreported = discover_source_pairs(
             sample(dateline=True), "world",
             ((EARLY, KNOWN), (LATE, KNOWN)), source="unknown-source")
