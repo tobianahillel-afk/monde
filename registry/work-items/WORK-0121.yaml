@@ -1,0 +1,42 @@
+id: WORK-0121
+title: "Browse original report presence per reporter in an entity dossier"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Count original Point assertion visibility changes for every reporter of an exact
+  entity and navigate directly to the original source evidence map.
+scope:
+  in: ["Exact entity", "Two temporal axes", "Original reporter and Point", "Read-only map navigation"]
+  out: ["Inferred physical changes", "Consensus location", "World mutations", "New dependency"]
+acceptance_criteria:
+  - {id: AC-1, description: "Count distinct original reporter/assertion/evidence/Point identities by cutoff presence.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Link nonzero reporter counts to existing source- and presence-scoped maps.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Test persisted HTTP parity with original CSV and both time axes.", status: IN_PROGRESS}
+depends_on: [WORK-0120]
+requirements: []
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py]
+reuses: [monde.source_pair_changes.source_directory_entity_geojson, monde.source_pair_changes.source_directory_entity_map, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Count original assertion presence and show reporter map links.", depends_on: [], expected_files: [src/monde/source_pair_changes.py, src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T2, description: "Prove actual HTTP and original report consistency.", depends_on: [T1], expected_files: [tests/test_world_local_source_directory.py], status: READY}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["The product prerequisite PR chain remains unmerged."]

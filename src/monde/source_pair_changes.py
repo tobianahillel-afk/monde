@@ -607,6 +607,26 @@ def source_directory_entity_assertions_csv(world, directory):
     return output.getvalue()
 
 
+
+def source_directory_entity_presence_summary(world, directory):
+    """Distinct original report identities per reporter at both cutoffs."""
+    features = source_directory_entity_geojson(world, directory)["features"]
+    seen = {}
+    for feature in features:
+        p = feature["properties"]
+        identity = (p["source_id"], p["monde_original_assertion_id"],
+                    p["evidence_id"], tuple(feature["geometry"]["coordinates"]))
+        seen.setdefault(identity, set()).add(p["monde_comparison_period"])
+    rows = {item["source_id"]: {"source_id": item["source_id"],
+            "earlier_only": 0, "later_only": 0, "both_cutoffs": 0}
+            for item in directory["sources"]}
+    for identity, periods in seen.items():
+        category = ("both_cutoffs" if len(periods) == 2 else
+                    "earlier_only" if "earlier" in periods else "later_only")
+        rows[identity[0]][category] += 1
+    return [rows[source] for source in sorted(rows)]
+
+
 def source_directory_entity_presence_csv(world, directory):
     """Original report presence at two cutoffs; never inferred real-world change."""
     features = source_directory_entity_geojson(world, directory)["features"]

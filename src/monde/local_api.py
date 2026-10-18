@@ -1285,7 +1285,8 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     return directory
 
 
-def _source_directory_html(document: dict, args: dict[str, str]) -> str:
+def _source_directory_html(document: dict, args: dict[str, str],
+                           report_rows: list[dict] = ()) -> str:
     rows = []
     for item in document["sources"]:
         query = {key: value for key, value in args.items()
@@ -1409,6 +1410,41 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
                     ("later", "Later cutoff only"),
                     ("both", "Both cutoffs"),
                 )) + '</p>')
+
+    reporter_presence = ""
+    if "entity_focus" in document:
+        summary_rows = []
+        for row in report_rows:
+            cells = []
+            for field, mode in (("earlier_only", "earlier"),
+                                ("later_only", "later"),
+                                ("both_cutoffs", "both")):
+                count = row[field]
+                if count:
+                    query = {k: v for k, v in args.items()
+                             if k not in ("format", "source", "rank",
+                                          "source_prefix", "change", "presence")}
+                    query.update(source=row["source_id"], presence=mode,
+                                 format="map")
+                    href = "/source-pair?" + urlencode(query)
+                    cells.append('<td><a href="' + escape(href, quote=True) +
+                                 '">' + str(count) + '</a></td>')
+                else:
+                    cells.append("<td>0</td>")
+            summary_rows.append('<tr><th scope="row">' +
+                                escape(row["source_id"]) + "</th>" +
+                                "".join(cells) + "</tr>")
+        reporter_presence = (
+            '<section aria-label="Original report presence by reporter">'
+            "<h2>Original Point report presence by reporter</h2>"
+            "<p>Distinct original source, assertion, evidence and coordinate "
+            "identities at two cutoffs. Counts do not prove physical appearance, "
+            "disappearance or movement. Select a count for its original map.</p>"
+            '<table><thead><tr><th scope="col">Original reporter</th>'
+            '<th scope="col">Earlier only</th><th scope="col">Later only</th>'
+            '<th scope="col">Both cutoffs</th></tr></thead><tbody>' +
+            "".join(summary_rows) + "</tbody></table></section>")
+
     count_label = (str(document["total_sources"]) + " matching of " +
                    str(document["available_sources"]) + " original sources"
                    if "available_sources" in document else
@@ -1441,7 +1477,7 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
          escape("/source-pair?" + urlencode(
              {**args, "format": "geojson"}), quote=True) +
          '">Download original reporter Points GeoJSON</a>'
-         if "entity_focus" in document else '') + '</p>' + presence_maps +
+         if "entity_focus" in document else '') + '</p>' + presence_maps + reporter_presence +
         '<table><caption>Original source entities at the two cutoffs</caption>'
         '<thead><tr><th scope="col">Source — investigate partners</th>'
         '<th scope="col">Entities earlier / later</th>'
@@ -1994,9 +2030,13 @@ def create_server(state: str | Path, port: int = 0, *,
                             self.end_headers()
                             self.wfile.write(body)
                             return
+                        from .source_pair_changes import source_directory_entity_presence_summary
                         return self._html(None, rendered_html=(
                             _source_directory_detail_html(document, args)
-                            if "source" in args else _source_directory_html(document, args)))
+                            if "source" in args else _source_directory_html(
+                                document, args,
+                                source_directory_entity_presence_summary(world, document)
+                                if "entity" in args else ())))
                     if args.get("discover") == "1":
                         discovery = _pair_discovery_query(world, args)
                         output_format = args.get("format", "table")

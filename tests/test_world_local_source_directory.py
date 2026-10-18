@@ -1623,5 +1623,90 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(len(out["features"]), 2 if mode == "both" else 1)
 
 
+    def test_original_reporter_presence_summary_links_match_csv(self):
+        import re
+        from html import unescape
+        from urllib.parse import parse_qs, urlsplit
+        from monde.source_pair_changes import source_directory_entity_presence_summary
+
+        query = {**self.knowledge(), "entity": "site-1"}
+        status, _, raw = self.get({**query, "format": "json"})
+        self.assertEqual(status, 200)
+        rows = source_directory_entity_presence_summary(self.world, json.loads(raw))
+        self.assertTrue(rows)
+        status, _, csv_raw = self.get({**query, "format": "presence-csv"})
+        self.assertEqual(status, 200)
+        expected = {}
+        for line in csv.DictReader(io.StringIO(csv_raw.decode("utf-8"))):
+            by_source = expected.setdefault(line["source_id"],
+                {"earlier_only": 0, "later_only": 0, "both_cutoffs": 0})
+            field = {"EARLIER_ONLY": "earlier_only",
+                     "LATER_ONLY": "later_only",
+                     "BOTH_CUTOFFS": "both_cutoffs"}[line["visibility_transition"]]
+            by_source[field] += 1
+        for row in rows:
+            self.assertEqual({k: row[k] for k in expected[row["source_id"]]},
+                             expected[row["source_id"]])
+        status, _, html_raw = self.get(query)
+        self.assertEqual(status, 200)
+        html = html_raw.decode("utf-8")
+        self.assertIn("Original Point report presence by reporter", html)
+        links = [unescape(v) for v in re.findall(r'href="([^"]+)"', html)]
+        scoped = [s for s in links
+                  if "presence=" in s and "source=" in s and "format=map" in s]
+        self.assertEqual(len(scoped), sum(sum(row[k] > 0 for k in
+            ("earlier_only", "later_only", "both_cutoffs")) for row in rows))
+        for link in scoped:
+            params = {k: v[0] for k, v in parse_qs(urlsplit(link).query).items()}
+            self.assertEqual(urlsplit(link).path, "/source-pair")
+            self.assertEqual(params["entity"], "site-1")
+            status, _, map_html = self.get(params)
+            self.assertEqual(status, 200)
+            self.assertIn(b"<!doctype html>", map_html.lower())
+            status, _, data = self.get({**params, "format": "geojson"})
+            self.assertEqual(status, 200)
+            features = json.loads(data)["features"]
+            self.assertTrue(features)
+            for feature in features:
+                self.assertEqual(feature["properties"]["source_id"], params["source"])
+                self.assertEqual(feature["properties"]["monde_visibility_transition"],
+                    {"earlier": "EARLIER_ONLY", "later": "LATER_ONLY",
+                     "both": "BOTH_CUTOFFS"}[params["presence"]])
+
+    def test_original_reporter_presence_summary_world_axis_and_no_evidence(self):
+        from monde.source_pair_changes import source_directory_entity_presence_summary
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "reporter-world.json"
+        world.save(saved)
+        initial = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = {"directory": "1", "axis": "world",
+                     "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**query, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            entity = json.loads(raw)["sources"][0]["example_entity"]
+            selected = {**query, "entity": entity}
+            status, _, raw = self.get({**selected, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            summary = source_directory_entity_presence_summary(world, json.loads(raw))
+            self.assertTrue(summary)
+            status, _, page = self.get(selected, server)
+            self.assertEqual(status, 200)
+            self.assertIn(b"Original Point report presence by reporter", page)
+            self.assertIn(b"from_at=", page)
+            self.assertIn(b"to_at=", page)
+            status, _, empty = self.get({**query, "entity": "missing-entity"}, server)
+            self.assertEqual(status, 200)
+            self.assertIn(b"Original Point report presence by reporter", empty)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+        self.assertEqual(saved.read_bytes(), initial)
+
+
 if __name__ == "__main__":
     unittest.main()
