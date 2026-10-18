@@ -335,3 +335,20 @@ accessible table, JSON, GeoJSON and CSV outputs. The JSON/GeoJSON
 `persistent_separation_filter` records the threshold and qualifying count.
 The underlying saved WorldMini is never rewritten. Omitting the option retains
 the existing output contract.
+
+## Discover original source pairs (WORK-0105)
+
+The existing loopback-only `/source-pair` browser now includes native
+**Discover source pairs** forms for knowledge time and world-validity time.
+The read-only `discover=1` query returns an accessible ranking table
+(`format=table`, default) or machine-readable
+`MONDE_SOURCE_PAIR_DISCOVERY_V1` (`format=json`), without requiring
+source IDs in advance. Clicking a source pair opens its already-existing
+full original-evidence comparison at the same cutoffs.
+
+Ranking uses the **largest nearest original Point separation** across
+jointly reported entities at either selected cutoff; counts of jointly
+reported entities at earlier and later cutoffs remain distinct. This
+is not an accuracy score, consensus location, inferred movement or
+continuous persistence claim. Missing joint reports remain UNKNOWN,
+never zero. The WorldMini saved snapshot is unchanged.

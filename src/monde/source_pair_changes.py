@@ -123,6 +123,73 @@ def compare_source_pair_world_time(world, source_a, source_b,
 
 
 
+
+def discover_source_pairs(world, axis, cutoffs, top=25):
+    """Discover independently reported Point separations at two explicit cutoffs."""
+    from itertools import combinations
+
+    if axis not in ("knowledge", "world") or len(cutoffs) != 2:
+        raise ValueError("invalid source-pair discovery axis")
+    if type(top) is not int or not 1 <= top <= 100:
+        raise ValueError("invalid source-pair discovery limit")
+    for at, known_at in cutoffs:
+        _instant(at)
+        _instant(known_at)
+    (at1, known1), (at2, known2) = cutoffs
+    if axis == "knowledge":
+        if at1 != at2 or _instant(known1) >= _instant(known2):
+            raise ValueError("invalid discovery knowledge cutoffs")
+    elif known1 != known2 or _instant(at1) >= _instant(at2):
+        raise ValueError("invalid discovery world cutoffs")
+    pairs = {}
+    for period, (at, known_at) in zip(("earlier", "later"), cutoffs):
+        by_entity = {}
+        for feature in world.export_geojson(at, known_at)["features"]:
+            prop = feature["properties"]
+            by_entity.setdefault(prop["entity"], {}).setdefault(
+                prop["source_id"], []).append(feature)
+        for entity, reporters in by_entity.items():
+            for sa, sb in combinations(sorted(reporters), 2):
+                measured = _measure(reporters[sa], reporters[sb])
+                if measured is None:
+                    continue
+                item = pairs.setdefault((sa, sb), {
+                    "source_a": sa, "source_b": sb,
+                    "joint_earlier_entities": 0, "joint_later_entities": 0,
+                    "max_nearest_km": 0.0, "example_entity": None,
+                    "example_period": None, "example_assertion_ids": [],
+                    "_entities": set(),
+                })
+                item["_entities"].add(entity)
+                item["joint_" + period + "_entities"] += 1
+                distance = measured["nearest_km"]
+                if item["example_entity"] is None or distance > item["max_nearest_km"]:
+                    item["max_nearest_km"] = distance
+                    item["example_entity"] = entity
+                    item["example_period"] = period
+                    item["example_assertion_ids"] = sorted(
+                        feature["id"] for source in (sa, sb)
+                        for feature in reporters[source])
+    ranked = []
+    for item in pairs.values():
+        item["joint_entities"] = len(item.pop("_entities"))
+        ranked.append(item)
+    ranked.sort(key=lambda item: (
+        -item["max_nearest_km"], -item["joint_entities"],
+        item["source_a"], item["source_b"]))
+    return {
+        "schema": "MONDE_SOURCE_PAIR_DISCOVERY_V1",
+        "axis": axis, "cutoffs": {
+            period: {"world_at": at, "knowledge_at": known_at}
+            for period, (at, known_at) in zip(("earlier", "later"), cutoffs)
+        },
+        "interpretation": ("Original source-reported Point differences only; "
+                           "not verified accuracy, agreement, movement, or truth. "
+                           "Missing joint reports are UNKNOWN, not zero."),
+        "total_pairs": len(ranked), "top": top, "pairs": ranked[:top],
+    }
+
+
 def comparison_csv(document):
     """CSV representation of original source evidence for either time axis."""
     if document["schema"] == "MONDE_SOURCE_PAIR_CHANGE_V1":

@@ -1,0 +1,49 @@
+id: WORK-0105
+title: "Discover geographically divergent original source pairs"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini evidence browser"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Discover and rank geographic source-reporting differences without knowing
+  source IDs in advance; preserve original evidence and both temporal axes.
+scope:
+  in: ["Automatic original Point source-pair discovery", "Accessible drilldown", "Bitemporal ranking", "Read-only local HTTP"]
+  out: ["Inferred ground truth", "Source accuracy scoring", "Hosted API", "Data writes"]
+acceptance_criteria:
+  - {id: AC-1, description: "Rank pairs on measured original-source geographic separations at explicit cutoffs.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Show jointly reported entity counts and link to complete original evidence.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Preserve source/temporal semantics, reject malformed inputs and avoid persisted writes.", status: IN_PROGRESS}
+depends_on: [WORK-0104]
+requirements: []
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.source_pair_changes._measure, monde.world.WorldMini.export_geojson, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Implement source-pair ranking from original bitemporal Points and drilldown.", depends_on: [], expected_files: [src/monde/source_pair_changes.py, src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T2, description: "Test persisted loopback HTTP, both time axes, negative queries and evidence preservation.", depends_on: [T1], expected_files: [tests/test_world_local_source_pair_discovery.py], status: READY}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_pair_discovery.py]
+  real_system: ["GitHub Actions world-mini; loopback HTTP"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Candidate stacked on unmerged WORK-0104 PR #134 and its ancestors."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close or revert this stacked PR; no migration."

@@ -940,6 +940,7 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
     options = ''.join('<option value="' + escape(s, quote=True) + '"></option>'
                       for s in source_ids[:200])
     parts = []
+    discovery = []
     for axis, fields in (("knowledge", ("at", "from_known_at", "to_known_at")),
                          ("world", ("from_at", "to_at", "known_at"))):
         inputs = ''.join('<label>' + escape(k) + ' (ISO-8601 UTC)'
@@ -993,6 +994,18 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
                       '<label>Top absolute nearest changes (optional, max 1000)'
                       '<input type="number" name="top" min="1" max="1000" step="1">'
                       '</label><button>Compare original evidence</button></form>')
+        discovery.append(
+            '<form action="/source-pair" method="get">'
+            '<h2>Discover geographically divergent source pairs — ' + axis + '</h2>'
+            '<input type="hidden" name="discover" value="1">'
+            '<input type="hidden" name="axis" value="' + axis + '">'
+            + inputs +
+            '<label>Top pairs (1–100)<input type="number" name="top"'
+            ' min="1" max="100" value="25"></label>'
+            '<label>Output <select name="format">'
+            '<option value="table">Accessible ranked table</option>'
+            '<option value="json">JSON</option></select></label>'
+            '<button>Discover original source pairs</button></form>')
     return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
             '<title>MONDE original source pairs</title><style>'
             ':root{color-scheme:dark;background:#101827;color:#ebf2f9;'
@@ -1004,7 +1017,7 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             '<h1>Compare original source Point reports</h1>'
             '<p>Reported source disagreement is not verified physical movement.</p>'
             '<datalist id="pair-ids">' + options + '</datalist>' +
-            ''.join(parts) + '</body></html>')
+            ''.join(discovery) + ''.join(parts) + '</body></html>')
 
 
 
@@ -1129,6 +1142,68 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
          'not evidence of agreement or absence.</p>' if not rows else "") +
         "</body></html>"
     )
+
+
+
+def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
+    from .source_pair_changes import discover_source_pairs
+    if args.get("discover") != "1" or args.get("format", "table") not in ("json", "table"):
+        raise ValueError("invalid discovery format")
+    if args.get("axis") == "knowledge":
+        _require(args, {"discover", "axis", "at", "from_known_at", "to_known_at"},
+                 {"format", "top"})
+        cuts = ((args["at"], args["from_known_at"]),
+                (args["at"], args["to_known_at"]))
+    elif args.get("axis") == "world":
+        _require(args, {"discover", "axis", "from_at", "to_at", "known_at"},
+                 {"format", "top"})
+        cuts = ((args["from_at"], args["known_at"]),
+                (args["to_at"], args["known_at"]))
+    else:
+        raise ValueError("invalid discovery axis")
+    raw_top = args.get("top", "25")
+    if not re.fullmatch(r"[1-9][0-9]{0,2}", raw_top) or int(raw_top) > 100:
+        raise ValueError("invalid discovery top")
+    return discover_source_pairs(world, args["axis"], cuts, int(raw_top))
+
+
+def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
+    rows = []
+    for pair in document["pairs"]:
+        params = {k: v for k, v in args.items()
+                  if k not in ("discover", "top", "format")}
+        params.update(source_a=pair["source_a"], source_b=pair["source_b"],
+                      format="table")
+        link = "/source-pair?" + urlencode(params)
+        rows.append(
+            '<tr><th scope="row"><a href="' + escape(link, quote=True) + '">' +
+            escape(pair["source_a"]) + " / " + escape(pair["source_b"]) +
+            '</a></th><td>' + str(pair["max_nearest_km"]) +
+            '</td><td>' + str(pair["joint_entities"]) +
+            '</td><td>' + str(pair["joint_earlier_entities"]) + " / " +
+            str(pair["joint_later_entities"]) + '</td><td>' +
+            escape(pair["example_entity"]) + " / " +
+            escape(pair["example_period"]) + '</td></tr>')
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<title>Original source-pair discovery</title>'
+        '<style>:root{color-scheme:dark;background:#101827;color:#ebf2f9;'
+        'font-family:system-ui,sans-serif}body{max-width:950px;margin:auto;'
+        'padding:24px}a{color:#8ee6d3}th,td{border:1px solid #59788c;'
+        'padding:10px;text-align:left}table{border-collapse:collapse}</style>'
+        '</head><body><a href="/source-pair">Source comparison</a>'
+        '<h1>Geographic differences between original reporters</h1>'
+        '<p>' + escape(document["interpretation"]) + '</p>'
+        '<p>' + escape(document["axis"]) + " time; " +
+        str(document["total_pairs"]) + ' observed pairs.</p>'
+        '<table><caption>Ranked maximum nearest original source separations'
+        '</caption><thead><tr><th scope="col">Open complete source evidence</th>'
+        '<th scope="col">Max km</th><th scope="col">Joint entities</th>'
+        '<th scope="col">Earlier / later counts</th>'
+        '<th scope="col">Example entity / cutoff</th></tr></thead><tbody>' +
+        ''.join(rows) + '</tbody></table>' +
+        ('<p role="status">NO JOINT ORIGINAL SOURCE REPORTS — not evidence '
+         'of agreement.</p>' if not rows else '') + '</body></html>')
 
 
 def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
@@ -1402,6 +1477,11 @@ def create_server(state: str | Path, port: int = 0, *,
                 if path == "/source-pair":
                     if not args:
                         return self._html(None, rendered_html=_pair_explorer_html(map_source_ids))
+                    if args.get("discover") == "1":
+                        discovery = _pair_discovery_query(world, args)
+                        if args.get("format", "table") == "json":
+                            return self._reply(200, discovery)
+                        return self._html(None, rendered_html=_pair_discovery_html(discovery, args))
                     data = _pair_query(world, args)
                     from .source_pair_changes import comparison_geojson, comparison_html, comparison_csv
                     if args.get("format") == "csv":
