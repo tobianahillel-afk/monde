@@ -208,6 +208,19 @@ __MONDE_TIME_NAVIGATION__
 </table>
 <p id="comparison-source-entity-summary" class="subtle" role="status" aria-live="polite"></p>
 </details>
+<details id="comparison-source-pairs" hidden>
+  <summary>Compare original same-period entity coverage from two sources</summary>
+  <p class="subtle">Shared entity IDs are counted only if BOTH sources report that entity in the same earlier or later original selection. This is not agreement, completeness or verified ground truth. Exports retain full embedded original reports regardless of display filters.</p>
+  <label for="comparison-source-a">First reporting source</label>
+  <select id="comparison-source-a" aria-label="First reporting source"><option value="">Choose first source</option></select>
+  <label for="comparison-source-b">Second reporting source</label>
+  <select id="comparison-source-b" aria-label="Second reporting source"><option value="">Choose second source</option></select>
+  <button id="comparison-source-pair-export" type="button" disabled>Download complete shared-entity pair GeoJSON</button>
+  <p id="comparison-source-pair-summary" class="subtle" role="status" aria-live="polite"></p>
+  <table aria-label="Entities jointly reported by two sources in original periods">
+  <thead><tr><th scope="col">Original entity</th><th scope="col">Both earlier</th><th scope="col">Both later</th><th scope="col">Pair original reports</th><th scope="col">Explore</th></tr></thead>
+  <tbody id="comparison-source-pair-rows"></tbody></table>
+</details>
 <div id="gpkg-layer-control" class="controls" hidden>
   <strong>Original GeoPackage layers</strong>
   <div id="gpkg-layer-options" role="group" aria-label="Toggle original GeoPackage source layers"></div>
@@ -1341,6 +1354,91 @@ __MONDE_TIME_NAVIGATION__
       });
     filterSourceEntityRows();
     document.getElementById("comparison-source-entity-coverage").hidden=false;
+
+    // Only two selected sources are compared; avoid quadratic all-pair tables.
+    // Reuse the unfiltered entity/source/period inventory from above.
+    var pairPanel=document.getElementById("comparison-source-pairs");
+    var pairA=document.getElementById("comparison-source-a");
+    var pairB=document.getElementById("comparison-source-b");
+    var pairRows=document.getElementById("comparison-source-pair-rows");
+    var pairSummary=document.getElementById("comparison-source-pair-summary");
+    var pairExport=document.getElementById("comparison-source-pair-export");
+    [pairA,pairB].forEach(function(select){
+      sourceNames.forEach(function(source){
+        var option=document.createElement("option");
+        option.value=source;option.textContent=source;
+        select.appendChild(option);
+      });
+    });
+    var pairShared=[];
+    function renderPair(){
+      pairShared=[];
+      pairRows.replaceChildren();pairExport.disabled=true;
+      var first=sourceEntityCoverage.get(pairA.value);
+      var second=sourceEntityCoverage.get(pairB.value);
+      if(!first||!second||pairA.value===pairB.value){
+        pairSummary.textContent="Choose two different original sources to compare.";
+        return;
+      }
+      Array.from(first.keys()).sort().forEach(function(entity){
+        if(!second.has(entity))return;
+        var a=first.get(entity),b=second.get(entity);
+        var earlier=Boolean(a.earlier.length&&b.earlier.length);
+        var later=Boolean(a.later.length&&b.later.length);
+        if(!earlier&&!later)return;
+        pairShared.push(entity);
+        var tr=document.createElement("tr");
+        tr.dataset.pairEntity=entity;
+        tr.dataset.sharedEarlier=String(earlier);
+        tr.dataset.sharedLater=String(later);
+        function cell(value){
+          var td=document.createElement("td");td.textContent=String(value);
+          tr.appendChild(td);return td;
+        }
+        cell(entity);cell(earlier?"Yes":"No");cell(later?"Yes":"No");
+        cell(a.earlier.length+a.later.length+b.earlier.length+b.later.length);
+        var action=cell(""),button=document.createElement("button");
+        button.type="button";button.textContent="Explore all original reports for entity";
+        button.addEventListener("click",function(){
+          // Existing entity explorer may include other reporting sources.
+          sources.value="";entities.value=entity;comparisonPeriod.value="";
+          presenceSelect.value="";search.value="";
+          insideOnly.checked=false;currentViewOnly.checked=false;
+          render();fitReports();
+        });
+        action.appendChild(button);pairRows.appendChild(tr);
+      });
+      pairExport.disabled=!pairShared.length;
+      pairSummary.textContent=pairShared.length+
+        " jointly reported entity IDs in at least one same-period selection. "+
+        "No inferred consensus, movement or verified absence.";
+    }
+    pairA.addEventListener("change",renderPair);
+    pairB.addEventListener("change",renderPair);
+    pairExport.addEventListener("click",function(){
+      if(pairExport.disabled)return;
+      var selected=new Set(pairShared),a=pairA.value,b=pairB.value;
+      var reports=features.filter(function(f){
+        return (f.properties.source_id===a||f.properties.source_id===b)&&
+          selected.has(f.properties.entity);
+      });
+      var earlierCount=reports.filter(function(f){
+        return f.properties.monde_comparison_period==="earlier";
+      }).length;
+      saveEvidence(Object.assign({},data,{
+        features:reports,
+        monde_source_pair_coverage_export:{
+          scope:"COMPLETE_EMBEDDED_SAME_PERIOD_JOINT_ENTITY_COVERAGE",
+          comparison_axis:data.monde_comparison.axis,
+          source_a:a,source_b:b,shared_entity_count:pairShared.length,
+          earlier_original_report_count:earlierCount,
+          later_original_report_count:reports.length-earlierCount,
+          original_feature_count:features.length,
+          exported_feature_count:reports.length
+        }
+      }),"monde-original-source-pair-shared-evidence.geojson","application/geo+json");
+    });
+    renderPair();pairPanel.hidden=false;
 
   }
   // A GeoPackage layer is a separate original source, not a verified world
