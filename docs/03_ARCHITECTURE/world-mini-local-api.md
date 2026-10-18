@@ -739,3 +739,25 @@ saved WorldMini state or add a route, service, data model or dependency.
 ### Pairwise original reporting-source coverage (WORK-0088)
 
 The existing self-contained two-period comparison map lets an analyst select **two distinct original reporting sources**, count their jointly reported entity IDs in the same earlier/later selection, inspect the entities through the original evidence explorer, and download the complete original GeoJSON from exactly those two sources for the shared entities. Counts and downloads use the original embedded evidence, independently of map display filters. A shared entity ID does **not** mean that sources agree, that a source is comprehensive, or that a location or movement is verified. The ordinary source map retains its previous behavior. No service, model, dependency or saved-state mutation is introduced.
+
+### Compare original reported coordinates between two sources (WORK-0089)
+
+For two selected source IDs in the offline two-period original evidence map,
+the source-pair table now separately reports whether each source's **set of
+original Point coordinates** differs at the earlier or later comparison cutoff.
+Only entity IDs jointly reported in that period are compared; a period without
+both sources is explicitly marked **Not jointly reported**, not "same".
+Duplicate reports of one coordinate do not create false differences.
+Identical coordinates do not prove independent agreement or ground truth, and
+different coordinates do not identify the correct source or establish movement.
+
+The new **Download original reports with different source coordinates** action
+exports *all original Point features from both sources and both periods* for
+entity IDs with a coordinate-set difference in at least one jointly reported
+period. The source IDs, comparison axis, original assertion/evidence metadata
+and original/selected report counts are retained, regardless of viewport,
+search, source or period presentation controls. No consensus coordinates are
+invented, no source report is rewritten, and the existing complete pair export
+is unchanged. As in WORK-0088, this is a candidate on an unmerged stacked
+branch, with no new endpoint, browser library, external service or persisted
+WorldMini state change.
