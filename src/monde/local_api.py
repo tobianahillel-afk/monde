@@ -320,7 +320,7 @@ def _parameters(target: str, path: str) -> dict[str, str]:
     if parsed.path != path or parsed.fragment:
         raise ValueError("invalid request path")
     values = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
-                      max_num_fields=9)
+                      max_num_fields=10)
     if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top"})
            for key, v in values.items()):
         raise ValueError("all parameters must appear exactly once")
@@ -948,6 +948,8 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
                      '<input type="hidden" name="axis" value="' + axis + '">'
                      '<label>Source A <input name="source_a" list="pair-ids" required></label>'
                      '<label>Source B <input name="source_b" list="pair-ids" required></label>'
+                      '<label>Entity ID (optional; one original-report entity)'
+                      '<input name="entity"></label>'
                      + inputs +
                       '<label>Output <select name="format">'
                       '<option value="html">Offline evidence map</option>'
@@ -986,7 +988,7 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
         filter_source_pair_direction, top_nearest_source_pair_changes)
     _id(args.get("source_a"))
     _id(args.get("source_b"))
-    extra = {"format", "direction", "top"}
+    extra = {"format", "direction", "top", "entity"}
     if args.get("axis") == "knowledge":
         _require(args, {"axis", "source_a", "source_b",
                         "at", "from_known_at", "to_known_at"}, extra)
@@ -1001,6 +1003,11 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
             args["to_at"], args["known_at"])
     else:
         raise ValueError("unknown source-pair comparison axis")
+    if "entity" in args:
+        _id(args["entity"])
+        # Select one original entity before direction or top-N ranking.
+        output = {**output, "entities": [
+            row for row in output["entities"] if row["entity"] == args["entity"]]}
     if "direction" in args:
         output = filter_source_pair_direction(output, args["direction"])
     if "top" in args:
