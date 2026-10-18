@@ -1247,11 +1247,12 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid source directory axis")
     if "presence" in args and (
             args["presence"] not in ("earlier", "later", "both") or
-            args.get("format") not in ("map", "geojson") or
+            args.get("format") not in ("map", "geojson", "presence-csv") or
             "entity" not in args):
-        raise ValueError("original presence requires an exact entity map")
+        raise ValueError("original presence requires an exact entity export")
     if args.get("format") in ("assertions-csv", "presence-csv") and (
-            "entity" not in args or "source" in args):
+            "entity" not in args or
+            ("source" in args and args["format"] != "presence-csv")):
         raise ValueError("original assertion CSV requires exact entity directory")
     if (args.get("format") in ("geojson", "map") and
             "source" not in args and "entity" not in args):
@@ -1262,8 +1263,8 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("prefix search only applies to original source directory")
     if "source" in args and "entity" in args:
         # Keep canonical directory/detail JSON, CSV and tables unchanged.
-        # This intersection is exclusively an original-point map/export lens.
-        if args.get("format") not in ("map", "geojson"):
+        # Original source/entity intersection also permits the presence CSV.
+        if args.get("format") not in ("map", "geojson", "presence-csv"):
             raise ValueError("source and entity selection requires a map export")
         source = args["source"]
         if not 0 < len(source) <= 200 or any(
@@ -1427,8 +1428,12 @@ def _source_directory_html(document: dict, args: dict[str, str],
                     query.update(source=row["source_id"], presence=mode,
                                  format="map")
                     href = "/source-pair?" + urlencode(query)
+                    csv_href = "/source-pair?" + urlencode({
+                        **query, "format": "presence-csv"})
                     cells.append('<td><a href="' + escape(href, quote=True) +
-                                 '">' + str(count) + '</a></td>')
+                                 '">' + str(count) + '</a> · <a href="' +
+                                 escape(csv_href, quote=True) +
+                                 '">CSV</a></td>')
                 else:
                     cells.append("<td>0</td>")
             summary_rows.append('<tr><th scope="row">' +
@@ -2007,7 +2012,8 @@ def create_server(state: str | Path, port: int = 0, *,
                         if output_format in ("csv", "assertions-csv", "presence-csv"):
                             if output_format == "presence-csv":
                                 from .source_pair_changes import source_directory_entity_presence_csv
-                                body = source_directory_entity_presence_csv(world, document).encode("utf-8")
+                                body = source_directory_entity_presence_csv(
+                                    world, document, args.get("presence")).encode("utf-8")
                             elif output_format == "assertions-csv":
                                 from .source_pair_changes import source_directory_entity_assertions_csv
                                 body = source_directory_entity_assertions_csv(world, document).encode("utf-8")

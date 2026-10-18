@@ -1554,7 +1554,6 @@ class SourceDirectoryTests(unittest.TestCase):
             {"source": "survey-a", "presence": "later", "format": "map"},
             {"entity": "site-1", "presence": "unknown", "format": "map"},
             {"entity": "site-1", "presence": "later", "format": "json"},
-            {"entity": "site-1", "presence": "earlier", "format": "presence-csv"},
             {"entity": "site-1", "presence": "both", "format": "table"},
         )
         for args in invalid:
@@ -1706,6 +1705,95 @@ class SourceDirectoryTests(unittest.TestCase):
             thread.join(timeout=5)
             server.server_close()
         self.assertEqual(saved.read_bytes(), initial)
+
+
+    def test_presence_category_csv_per_reporter_matches_original_geojson(self):
+        """Real HTTP download matches current map by source and report identity."""
+        import re
+        from html import unescape
+        from urllib.parse import parse_qs, urlsplit
+        base = {**self.knowledge(), "entity": "site-1"}
+        status, _, raw = self.get({**base, "format": "presence-csv"})
+        self.assertEqual(status, 200)
+        all_rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+        status, _, page = self.get(base)
+        self.assertEqual(status, 200)
+        links = [unescape(v) for v in re.findall(
+            r'href="([^"]+)"', page.decode("utf-8"))]
+        csv_links = [v for v in links if "source=" in v and "presence=" in v
+                     and "format=presence-csv" in v]
+        self.assertTrue(csv_links)
+        for link in csv_links:
+            params = {k: v[0] for k, v in
+                      parse_qs(urlsplit(link).query).items()}
+            status, headers, raw = self.get(params)
+            self.assertEqual(status, 200)
+            self.assertIn("text/csv", headers["Content-Type"])
+            selected = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+            wanted = {"earlier": "EARLIER_ONLY", "later": "LATER_ONLY",
+                      "both": "BOTH_CUTOFFS"}[params["presence"]]
+            self.assertEqual(selected, [r for r in all_rows
+                if r["source_id"] == params["source"]
+                and r["visibility_transition"] == wanted])
+            self.assertTrue(selected)
+            status, _, raw = self.get({**params, "format": "geojson"})
+            self.assertEqual(status, 200)
+            got = {(r["source_id"], r["assertion_id"], r["evidence_id"],
+                    float(r["longitude"]), float(r["latitude"]))
+                   for r in selected}
+            expected = set()
+            for f in json.loads(raw)["features"]:
+                p = f["properties"]
+                expected.add((p["source_id"],
+                    str(p["monde_original_assertion_id"]), p["evidence_id"],
+                    *f["geometry"]["coordinates"]))
+            self.assertEqual(got, expected)
+
+    def test_presence_category_csv_world_axis_read_only_and_validation(self):
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "presence-category-world.json"
+        world.save(saved)
+        original = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = {"directory": "1", "axis": "world",
+                     "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**query, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            entity = json.loads(raw)["sources"][0]["example_entity"]
+            base = {**query, "entity": entity}
+            status, _, raw = self.get({**base, "format": "presence-csv"}, server)
+            self.assertEqual(status, 200)
+            all_rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+            self.assertTrue(all_rows)
+            for presence, label in (("earlier", "EARLIER_ONLY"),
+                                    ("later", "LATER_ONLY"),
+                                    ("both", "BOTH_CUTOFFS")):
+                status, _, raw = self.get({**base, "presence": presence,
+                    "format": "presence-csv"}, server)
+                self.assertEqual(status, 200)
+                rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+                self.assertEqual(rows, [r for r in all_rows
+                                       if r["visibility_transition"] == label])
+            status, _, raw = self.get({**base, "presence": "earlier",
+                "source": "missing", "format": "presence-csv"}, server)
+            self.assertEqual(status, 200)
+            self.assertEqual(list(csv.DictReader(
+                io.StringIO(raw.decode("utf-8")))), [])
+            for bad in ({"presence": "wrong"}, {"presence": "both", "format": "table"},
+                        {"source": "survey-a", "format": "assertions-csv"},
+                        {"entity": "", "presence": "both"}):
+                status, _, raw = self.get({**base, "format": "presence-csv",
+                                           **bad}, server)
+                self.assertEqual(status, 400, bad)
+                self.assertEqual(json.loads(raw)["error"], "invalid_query")
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+        self.assertEqual(saved.read_bytes(), original)
 
 
 if __name__ == "__main__":

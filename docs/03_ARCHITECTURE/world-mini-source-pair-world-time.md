@@ -691,3 +691,13 @@ directory outputs. No new route, dependency, hosted API or state mutation.
 ### WORK-0121: original report presence per reporter (candidate)
 
 An exact-entity `/source-pair?directory=1` dossier shows distinct original source/assertion/evidence/Point identities reported only earlier, only later, or at both cutoffs for each original source. Nonzero counts link to existing original evidence maps filtered by source and visibility class, on either temporal axis. This is reported evidence availability, **not evidence of actual physical arrival/departure, movement or correctness**. The saved WorldMini snapshot is read-only and the endpoint/renderer are reused.
+
+
+### Filtrer les exports de présence par reporter et cutoff
+
+Dans le tableau de l'entité, chaque catégorie non nulle dispose désormais d'un
+lien CSV à côté de la carte originale : `format=presence-csv&source=...&presence=earlier|later|both`.
+Les lignes sont filtrées après comparaison des identités originales (source,
+assertion, evidence et coordonnées) aux deux cutoffs. Le CSV existant non filtré
+est inchangé ; lecture seule pour les axes world et knowledge, sans prétendre
+établir un mouvement ou une vérité géographique.

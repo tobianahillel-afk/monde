@@ -627,8 +627,10 @@ def source_directory_entity_presence_summary(world, directory):
     return [rows[source] for source in sorted(rows)]
 
 
-def source_directory_entity_presence_csv(world, directory):
-    """Original report presence at two cutoffs; never inferred real-world change."""
+def source_directory_entity_presence_csv(world, directory, presence=None):
+    """Original Point report visibility, optionally filtered after classification."""
+    if presence is not None and presence not in ("earlier", "later", "both"):
+        raise ValueError("invalid original report presence filter")
     features = source_directory_entity_geojson(world, directory)["features"]
     presence = {}
     for feature in features:
@@ -655,6 +657,10 @@ def source_directory_entity_presence_csv(world, directory):
         before, after = ("earlier" in presence[key], "later" in presence[key])
         transition = ("BOTH_CUTOFFS" if before and after else
                       "EARLIER_ONLY" if before else "LATER_ONLY")
+        if presence is not None and transition != {
+                "earlier": "EARLIER_ONLY", "later": "LATER_ONLY",
+                "both": "BOTH_CUTOFFS"}[presence]:
+            continue
         writer.writerow((safe(directory["entity_focus"]), safe(source),
                          safe(assertion), safe(evidence), lon, lat,
                          int(before), int(after), transition,
