@@ -19,6 +19,30 @@ jobs:
         env:
           PYTHONPATH: src
         run: python3 -m unittest discover -s tests -p 'test_world*.py' -v
+      - name: Original two-source temporal evidence opens in offline Chromium
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from tests.test_world_source_pair_changes import fixture_world
+          fixture_world().save('/tmp/monde-pair-world.json')
+          PY
+          python3 -m monde.source_pair_changes \
+            --fixture /tmp/monde-pair-world.json --source-a survey-a \
+            --source-b survey-b --at 2026-01-05T00:00:00Z \
+            --from-known-at 2026-01-03T12:00:00Z \
+            --to-known-at 2026-01-05T12:00:00Z \
+            --format html > /tmp/monde-pair-evidence.html
+          browser="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$browser" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage \
+            --timeout=15000 --dump-dom file:///tmp/monde-pair-evidence.html \
+            > /tmp/monde-pair-evidence-dom.html
+          grep -q 'data-monde-ready="true"' /tmp/monde-pair-evidence-dom.html
+          grep -q 'comparison-period' /tmp/monde-pair-evidence-dom.html
+          grep -q 'survey-a' /tmp/monde-pair-evidence-dom.html
+          grep -q 'survey-b' /tmp/monde-pair-evidence-dom.html
+          grep -q '<circle' /tmp/monde-pair-evidence-dom.html
       - name: Actual KML source to offline map in Chromium
         env:
           PYTHONPATH: src

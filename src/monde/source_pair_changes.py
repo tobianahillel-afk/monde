@@ -179,6 +179,78 @@ def comparison_csv(document):
 
 
 
+
+def comparison_geojson(document):
+    """Project original source Points at two time cutoffs, never inferred motion."""
+    if document["schema"] == "MONDE_SOURCE_PAIR_CHANGE_V1":
+        axis = "knowledge"
+        times = {"earlier": (document["valid_at"], document["from_known_at"]),
+                 "later": (document["valid_at"], document["to_known_at"])}
+    elif document["schema"] == "MONDE_SOURCE_PAIR_WORLD_CHANGE_V1":
+        axis = "world"
+        times = {"earlier": (document["from_at"], document["known_at"]),
+                 "later": (document["to_at"], document["known_at"])}
+    else:
+        raise ValueError("unsupported source-pair comparison schema")
+
+    features = []
+    for entity in document["entities"]:
+        for period in ("earlier", "later"):
+            row = entity[period]
+            at, known_at = times[period]
+            for key in ("source_a_original_reports", "source_b_original_reports"):
+                for original in row[key]:
+                    properties = dict(original["properties"])
+                    properties["monde_original_assertion_id"] = original["id"]
+                    properties["monde_source_pair"] = {
+                        "period": period, "world_at": at,
+                        "knowledge_at": known_at, "status": row["status"],
+                        "separation": row["separation"],
+                        "earlier_to_later_change_km":
+                            entity["earlier_to_later_change_km"],
+                        "direction": source_pair_direction(entity),
+                    }
+                    features.append({
+                        "type": "Feature", "id": f"{period}:{len(features)}",
+                        "geometry": original["geometry"], "properties": properties,
+                    })
+    return {
+        "type": "FeatureCollection", "features": features,
+        "monde_comparison": {
+            "schema": "MONDE_SOURCE_PAIR_GEOJSON_V1",
+            "comparison_schema": document["schema"], "comparison_axis": axis,
+            "source_a": document["source_a"], "source_b": document["source_b"],
+            "cutoffs": {
+                period: {"world_at": at, "knowledge_at": known_at}
+                for period, (at, known_at) in times.items()},
+            "interpretation": document["interpretation"],
+            "selection": document.get("selection"),
+            "direction_filter": document.get("direction_filter"),
+        },
+    }
+
+
+def source_pair_direction(row):
+    """Classify only the nearest reported cross-source separation change."""
+    change = row["earlier_to_later_change_km"]
+    if change is None:
+        return "incomparable"
+    delta = change["nearest_km"]
+    return "diverging" if delta > 0 else "converging" if delta < 0 else "unchanged"
+
+
+def filter_source_pair_direction(document, direction):
+    """Filter selected original records, without altering the input document."""
+    if direction not in ("converging", "diverging", "unchanged", "incomparable"):
+        raise ValueError("invalid reported source-pair direction")
+    matched = [row for row in document["entities"]
+               if source_pair_direction(row) == direction]
+    return {**document, "entities": matched,
+            "direction_filter": {"direction": direction,
+                                 "total_entities": len(document["entities"]),
+                                 "selected_entities": len(matched)}}
+
+
 def top_nearest_source_pair_changes(document, limit):
     """Select material changes in original source separations, with provenance.
 
@@ -206,13 +278,77 @@ def top_nearest_source_pair_changes(document, limit):
         "selected_entities": min(limit, len(eligible))}}
 
 
+
+def comparison_html(document):
+    """Render original pair reports in the existing offline MONDE map viewer.
+
+    Every original report remains separate. This is a *display* envelope, not
+    a new spatial query, reconstructed route, position estimate or truth claim.
+    """
+    from .map_view import render_map
+
+    geojson = comparison_geojson(document)
+    features = geojson["features"]
+    cutoffs = geojson["monde_comparison"]["cutoffs"]
+    for feature in features:
+        props = feature["properties"]
+        pair = props["monde_source_pair"]
+        props["monde_comparison_period"] = pair["period"]
+        props["monde_world_at"] = pair["world_at"]
+        props["monde_known_at"] = pair["knowledge_at"]
+        props["monde_original_feature_id"] = props["monde_original_assertion_id"]
+        props["monde_inside_bbox"] = True
+
+    if features:
+        coords = [f["geometry"]["coordinates"] for f in features]
+        # Smallest WGS84 circular longitude interval, including antimeridian.
+        angles = sorted({(p[0] + 180.0) % 360.0 for p in coords})
+        if len(angles) == 1:
+            start = end = angles[0]
+        else:
+            gap = max(range(len(angles)), key=lambda i:
+                      (angles[(i + 1) % len(angles)] - angles[i]) % 360.0)
+            start, end = angles[(gap + 1) % len(angles)], angles[gap]
+            if end < start:
+                end += 360.0
+        span = end - start
+        padding = max(.005, span * .05)
+        if span + 2 * padding >= 360.0:
+            west, east = -180., 180.
+        else:
+            west = ((start - padding) % 360.0) - 180.0
+            east = ((end + padding) % 360.0) - 180.0
+        south, north = min(p[1] for p in coords), max(p[1] for p in coords)
+        lat_padding = max(.005, (north - south) * .05)
+        bounds = [west, max(-90., south - lat_padding),
+                  east, min(90., north + lat_padding)]
+    else:
+        bounds = [-180., -90., 180., 90.]
+
+    geojson["monde_comparison"]["axis"] = geojson["monde_comparison"]["comparison_axis"]
+    geojson["monde_bbox_query"] = {
+        "basis": "SOURCE_REPORTED_POINT_BBOX_ONLY",
+        "bbox": bounds,
+        "valid_at": cutoffs["earlier"]["world_at"],
+        "knowledge_cutoff": cutoffs["earlier"]["knowledge_at"],
+        "total_matching_entities": len({
+            f["properties"]["entity"] for f in features}),
+        "total_source_features": len(features),
+        "status": "MATCHES" if features else "NO_MATCHES",
+    }
+    return render_map(geojson)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Compare two original source Point reports across knowledge time")
     parser.add_argument("--fixture", required=True)
-    parser.add_argument("--format", choices=("json", "csv"), default="json")
+    parser.add_argument("--format", choices=("json", "csv", "geojson", "html"), default="json")
     parser.add_argument("--top-nearest-changes", type=int, metavar="N",
                         help="top N absolute changes in original-source nearest separation")
+    parser.add_argument("--change-direction",
+                        choices=("converging", "diverging", "unchanged", "incomparable"),
+                        help="filter by change in original cross-source separation")
     parser.add_argument("--source-a", required=True)
     parser.add_argument("--source-b", required=True)
     parser.add_argument("--at", help="fixed world time for knowledge comparison")
@@ -240,6 +376,8 @@ def main(argv=None):
                          args.source_a, args.source_b, *cutoffs)
     except (ValueError, OSError) as error:
         parser.error(str(error))
+    if args.change_direction is not None:
+        result = filter_source_pair_direction(result, args.change_direction)
     if args.top_nearest_changes is not None:
         try:
             result = top_nearest_source_pair_changes(result, args.top_nearest_changes)
@@ -247,6 +385,10 @@ def main(argv=None):
             parser.error(str(error))
     if args.format == "csv":
         print(comparison_csv(result), end="")
+    elif args.format == "geojson":
+        print(json.dumps(comparison_geojson(result), ensure_ascii=False, sort_keys=True))
+    elif args.format == "html":
+        print(comparison_html(result))
     else:
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0
