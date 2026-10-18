@@ -1191,11 +1191,17 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
         # world/knowledge cutoffs and only this pair's example entity.
         map_link = "/source-pair?" + urlencode({
             **params, "format": "html", "entity": pair["example_entity"]})
+        # The same original, bitemporal example can be saved as real GeoJSON,
+        # without inventing a location or introducing a second exporter.
+        geojson_link = "/source-pair?" + urlencode({
+            **params, "format": "geojson", "entity": pair["example_entity"]})
         rows.append(
             '<tr><th scope="row"><a href="' + escape(link, quote=True) + '">' +
             escape(pair["source_a"]) + " / " + escape(pair["source_b"]) +
             '</a> · <a href="' + escape(map_link, quote=True) +
-            '">Map original example evidence</a></th><td>' +
+            '">Map original example evidence</a> · <a download="source-pair-example.geojson"'
+            ' href="' + escape(geojson_link, quote=True) +
+            '">Download original example GeoJSON</a></th><td>' +
             str(pair["max_nearest_km"]) +
             '</td><td>' + (str(pair["rank_delta_km"])
                            if "rank_delta_km" in pair else "—") +

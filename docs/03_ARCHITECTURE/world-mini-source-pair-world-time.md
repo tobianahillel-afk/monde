@@ -404,6 +404,14 @@ original reports**. The map reuses the existing `/source-pair`
 and knowledge cutoffs. Discovery-only filters (`source`, `rank`, `top`,
 `discover`) do not leak into map requests; the source pair itself remains
 explicit. Every reported Point retains its original assertion identity.
+The same ranked row also offers **Download original example GeoJSON** using
+the already-supported source-pair `format=geojson&entity=...` export, so a
+researcher can inspect the original Points in GIS software without losing
+either reporter, original assertion IDs, or both temporal cutoffs. Discovery
+filters do not leak into this link. The browser download filename is
+`source-pair-example.geojson`; no new endpoint or export format is introduced.
+
 The example is not a consensus position, an accuracy verdict or inferred
-movement. Pairs without any joint original evidence have no example-map link.
-No new endpoint, store, third-party dependency or network access is added.
+movement. Pairs without joint original evidence offer neither an example map
+nor an example GeoJSON download. No new endpoint, store, third-party
+dependency or network access is added.

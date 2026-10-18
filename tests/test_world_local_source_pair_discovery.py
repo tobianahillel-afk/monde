@@ -403,6 +403,86 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
                     thread.join(timeout=5)
                     server.server_close()
 
+    def test_ranked_discovery_exports_original_example_geojson(self):
+        """Ranked evidence -> real GeoJSON; never lose source/temporal provenance."""
+        from html import unescape
+        from urllib.parse import parse_qs, urlsplit
+        import re
+
+        for axis in ("knowledge", "world"):
+            if axis == "knowledge":
+                server = self.server
+                args = {**self.knowledge(), "source": "survey-a",
+                        "rank": "separation", "top": "1"}
+            else:
+                file = Path(self.tmp.name) / "ranked-world-geojson.json"
+                world = sample(dateline=True)
+                world.save(file)
+                original = file.read_bytes()
+                server = create_server(file)
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                args = {"discover": "1", "axis": "world",
+                        "from_at": EARLY, "to_at": LATE,
+                        "known_at": KNOWN, "top": "1"}
+            try:
+                status, _, html = self.get({**args, "format": "table"}, server)
+                self.assertEqual(status, 200)
+                text = html.decode("utf-8")
+                self.assertIn("Download original example GeoJSON", text)
+                hrefs = [unescape(h) for h in re.findall(
+                    r'<a download="source-pair-example.geojson" href="([^"]+)"',
+                    text)]
+                self.assertEqual(len(hrefs), 1)
+                query = parse_qs(urlsplit(hrefs[0]).query)
+                self.assertEqual(query["format"], ["geojson"])
+                self.assertEqual(query["axis"], [axis])
+                for excluded in ("discover", "rank", "top", "source"):
+                    self.assertNotIn(excluded, query)
+                for cutoff in (("at", "from_known_at", "to_known_at")
+                               if axis == "knowledge" else
+                               ("from_at", "to_at", "known_at")):
+                    self.assertEqual(query[cutoff], [args[cutoff]])
+                ranked = json.loads(self.get({**args, "format": "json"}, server)[2])
+                example = ranked["pairs"][0]
+                self.assertEqual(query["entity"], [example["example_entity"]])
+                status, _, raw = self.get(
+                    {key: values[0] for key, values in query.items()}, server)
+                self.assertEqual(status, 200)
+                exported = json.loads(raw)
+                self.assertEqual(exported["type"], "FeatureCollection")
+                self.assertEqual(exported["monde_comparison"]["comparison_axis"], axis)
+                self.assertEqual(exported["monde_comparison"]["cutoffs"], ranked["cutoffs"])
+                self.assertEqual({feature["properties"]["source_id"]
+                                  for feature in exported["features"]},
+                                 {example["source_a"], example["source_b"]})
+                self.assertEqual({feature["properties"]["entity"]
+                                  for feature in exported["features"]},
+                                 {example["example_entity"]})
+                original_ids = {
+                    f["properties"]["monde_original_assertion_id"]
+                    for f in exported["features"]
+                }
+                self.assertTrue(set(example["example_assertion_ids"])
+                                .issubset(original_ids))
+                self.assertTrue(all(
+                    f["properties"]["monde_source_pair"]["period"] in
+                    ("earlier", "later") for f in exported["features"]))
+            finally:
+                if axis == "world":
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+                    self.assertEqual(file.read_bytes(), original)
+
+    def test_ranked_geojson_empty_results_have_no_download_link(self):
+        args = {"discover": "1", "axis": "knowledge", "at": AT,
+                "from_known_at": "2026-01-02T00:00:00Z",
+                "to_known_at": "2026-01-02T12:00:00Z"}
+        status, _, html = self.get(args)
+        self.assertEqual(status, 200)
+        self.assertNotIn(b"Download original example GeoJSON", html)
+
     def test_ranked_discovery_without_joint_reports_has_no_example_map(self):
         args = {"discover": "1", "axis": "knowledge", "at": AT,
                 "from_known_at": "2026-01-02T00:00:00Z",
