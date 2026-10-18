@@ -124,7 +124,8 @@ def compare_source_pair_world_time(world, source_a, source_b,
 
 
 
-def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", source=None):
+def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", source=None,
+                          min_joint_entities=1):
     """Rank original source pairs by geographic separation or temporal change.
 
     A trend requires the same entity to be jointly reported by both original
@@ -140,6 +141,8 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
         raise ValueError("invalid source-pair discovery ranking")
     if source is not None and (not isinstance(source, str) or not source):
         raise ValueError("invalid original source focus")
+    if type(min_joint_entities) is not int or not 1 <= min_joint_entities <= 10000:
+        raise ValueError("invalid minimum joint entities")
     for at, known_at in cutoffs:
         _instant(at)
         _instant(known_at)
@@ -224,6 +227,10 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
                         example_assertion_ids=sorted(set(
                             periods["earlier"]["assertion_ids"] +
                             periods["later"]["assertion_ids"])))
+        evidence_count = (item["joint_entities"] if rank == "separation"
+                          else item["comparable_entities"])
+        if evidence_count < min_joint_entities:
+            continue
         ranked.append(item)
     if rank == "separation":
         ranked.sort(key=lambda item: (
@@ -246,6 +253,8 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
     }
     if source is not None:
         result["source_focus"] = source
+    if min_joint_entities != 1:
+        result["min_joint_entities"] = min_joint_entities
     if rank != "separation":
         result["rank"] = rank
         result["interpretation"] += (
@@ -296,6 +305,7 @@ def discovery_geojson(world, document):
             "axis": document["axis"], "cutoffs": document["cutoffs"],
             "rank": document.get("rank", "separation"),
             "source_focus": document.get("source_focus"),
+            "min_joint_entities": document.get("min_joint_entities", 1),
             "total_pairs": document["total_pairs"],
             "exported_pairs": len(document["pairs"]),
             "interpretation": document["interpretation"],
