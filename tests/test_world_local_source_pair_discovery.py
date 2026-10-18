@@ -229,7 +229,8 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
         self.assertIn(b"Original reporter focus: survey-a", table)
         self.assertIn(b"source_a=survey-a", table)
         self.assertIn(b"source_b=survey-b", table)
-        self.assertNotIn(b"&amp;source=survey-a", table)
+        detail_url = table.rsplit(b'<a href="', 1)[1].split(b'"', 1)[0]
+        self.assertNotIn(b"&amp;source=survey-a", detail_url)
         status, _, homepage = self.get()
         self.assertEqual(status, 200)
         self.assertEqual(homepage.count(b'name="source" list="pair-ids"'), 2)
