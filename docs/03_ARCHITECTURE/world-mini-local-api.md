@@ -789,3 +789,17 @@ In the self-contained two-period source-pair map, the analyst can choose **neare
 ### Rank original source-pair coordinate divergence (WORK-0091)
 
 The existing two-source comparison panel offers **original entity ID**, **largest separation first** and **smallest separation first** ordering. Ranking reuses the nearest/farthest distance metric and earlier/later/either period already selected by the analyst. For either-period ranking, the largest actual same-period measured separation is used; missing jointly reported measurements are unknown, never zero, and sort last. Equal distances are ordered by original entity ID for deterministic browsing. This presentation choice does not change the minimum threshold, original source assertions, or complete and threshold-matching GeoJSON/CSV exports. Separations are approximate original source-reported coordinate differences, not verified geography, motion, reliability or accuracy. No stored state, endpoint, paid API or dependency is added.
+
+
+#### Inspect both original reporting sources on one offline map (WORK-0091)
+
+The source-pair comparison table now links each jointly reported entity to its
+**two original reporting sources on the map**, using the selected earlier/later/
+either period. Other display filters are reset for this temporary focus, and
+the map fits all original points reported by the two selected sources. A visible
+**Show all original reports on map** control clears the focus; changing one of
+the two selected sources also exits it. The underlying original assertions,
+provenance and complete unfiltered GeoJSON/CSV exports are never modified.
+These are source-reported coordinate claims, not verified truth, routes,
+accuracy rankings or physical movements. No new API, dependency or persisted
+state is introduced.

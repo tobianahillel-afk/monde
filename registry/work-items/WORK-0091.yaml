@@ -18,6 +18,8 @@ acceptance_criteria:
   - {id: AC-2, description: "Rank follows selected metric and period; unreported periods never count as zero.", status: IN_REVIEW}
   - {id: AC-3, description: "Ranking does not mutate stored evidence or existing GeoJSON/CSV exports.", status: IN_REVIEW}
   - {id: AC-4, description: "Real Chromium checks ranking against independent source-distance oracle.", status: IN_REVIEW}
+  - {id: AC-5, description: "Inspect the selected original two-source entity on the map and return to complete original evidence.", status: IN_REVIEW}
+  - {id: AC-6, description: "Real Chromium checks earlier/either focus, reset and unchanged complete exports.", status: IN_REVIEW}
 requirements: []
 depends_on: [WORK-0090]
 read_before: [AGENTS.md, src/monde/map_view.py, tests/test_world_local_api_disagreement_report.py, docs/03_ARCHITECTURE/world-mini-local-api.md]
@@ -27,6 +29,7 @@ implementation_plan:
     - {id: T1, description: "Rank existing source-pair rows using measured distance.", depends_on: [], expected_files: [src/monde/map_view.py], status: IN_REVIEW}
     - {id: T2, description: "Validate browser ranking against independent measurement oracle.", depends_on: [T1], expected_files: [tests/test_world_local_api_disagreement_report.py], status: IN_REVIEW}
     - {id: T3, description: "Document limits of original source separation ranking.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+    - {id: T4, description: "Focus exact two-source entity reports on offline map and test reversibility.", depends_on: [T1], expected_files: [src/monde/map_view.py, tests/test_world_local_api_disagreement_report.py, docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
   planned_runs: []
 review_plan:
   artifact_class: WORLD_MODEL_EXPERIENCE

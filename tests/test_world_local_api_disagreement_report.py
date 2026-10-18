@@ -2773,6 +2773,40 @@ rankControl.value="entity";rankControl.dispatchEvent(new Event("change"));
 root.dataset.pairRankDefaultRestored=String(JSON.stringify(actualPairOrder())===
   JSON.stringify(Object.keys(separations).sort()));
 periodControl.value="either";periodControl.dispatchEvent(new Event("change"));
+const pairEntity=actualPairOrder()[0];
+const pairRow=Array.from(document.querySelectorAll("#comparison-source-pair-rows tr"))
+  .find(function(row){return row.dataset.pairEntity===pairEntity;});
+const focusPair=pairRow&&pairRow.querySelector("button[data-map-pair]");
+const clearPair=document.getElementById("comparison-source-pair-clear-focus");
+const pairFocusStatus=document.getElementById("comparison-source-pair-focus-summary");
+const mapPoints=function(){return Array.from(document.querySelectorAll("#points circle"));};
+const pairReports=reports.filter(function(f){return f.properties.entity===pairEntity;});
+document.getElementById("report-search").value="not-real-source-report";
+if(focusPair)focusPair.click();
+root.dataset.pairFocusBothCorrect=String(!!focusPair&&!clearPair.disabled&&
+  mapPoints().length===pairReports.length&&mapPoints().every(function(point){
+    return sourcesPair.some(function(source){
+      return point.getAttribute("aria-label")===pairEntity+" from "+source;
+    });
+  })&&pairFocusStatus.textContent.includes("both periods")&&
+  document.getElementById("report-search").value==="");
+periodControl.value="earlier";periodControl.dispatchEvent(new Event("change"));
+if(focusPair)focusPair.click();
+const earlierPairReports=pairReports.filter(function(f){
+  return f.properties.monde_comparison_period==="earlier";
+});
+root.dataset.pairFocusEarlierCorrect=String(mapPoints().length===earlierPairReports.length&&
+  document.getElementById("comparison-period").value==="earlier");
+clearPair.click();
+root.dataset.pairFocusClearCorrect=String(clearPair.disabled&&
+  document.getElementById("entities").value===""&&
+  document.getElementById("comparison-period").value===""&&
+  mapPoints().length===__TOTAL__);
+output=null;filename=null;exportButton.click();
+root.dataset.pairFocusExportsUnchanged=String(!!output&&
+  output.features.length===reports.length&&
+  filename==="monde-original-source-pair-shared-evidence.geojson");
+periodControl.value="either";periodControl.dispatchEvent(new Event("change"));
 a.value=sourcesPair[0];b.value=sourcesPair[0];b.dispatchEvent(new Event("change"));
 root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disabled&&csvButton.disabled&&thresholdExport.disabled&&
   document.querySelectorAll("#comparison-source-pair-rows tr").length===0);
@@ -2799,6 +2833,8 @@ root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disab
                      "pair-threshold-invalid-denied", "pair-threshold-reset-correct",
                      "pair-rank-descending", "pair-rank-ascending",
                      "pair-rank-missing-last", "pair-rank-default-restored",
+                     "pair-focus-both-correct", "pair-focus-earlier-correct",
+                     "pair-focus-clear-correct", "pair-focus-exports-unchanged",
                      "pair-same-source-denied"):
             self.assertIn('data-'+name+'="true"', output, name)
         response, _, ordinary = self.fetch("/viewer", {**QUERY, "view": "current"})
