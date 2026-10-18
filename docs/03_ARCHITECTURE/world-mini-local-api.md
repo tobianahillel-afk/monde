@@ -533,3 +533,18 @@ and distinguishes this complete embedded selection from the existing
 **Export visible GeoJSON** button. It neither downloads the entire World
 Model nor infers truth, location, movement or agreement. No network access,
 server dependency, package, new route or state mutation is introduced.
+
+### Complete offline comparison-period CSV (WORK-0081)
+
+The existing self-contained original disagreement comparison map now provides
+**Export complete original period CSV** alongside complete GeoJSON. Choose
+**both**, **earlier** or **later**. The tabular export contains the original
+embedded source-reported Point selection, including offscreen opposing evidence,
+period, comparison axis, world and knowledge cutoffs, original feature,
+assertion, source and evidence identifiers, and coordinates. Display-only
+viewport, text and source filters do not remove rows. Text cells are CSV-quoted
+and spreadsheet-formula escaped; only validated Point coordinates are numeric.
+The CSV is a flattened analyst table; use the existing complete GeoJSON for
+full nested original metadata. Empty selected periods export a header-only
+CSV, not synthetic evidence. No external requests, new endpoint, model or
+persistent data modifications.

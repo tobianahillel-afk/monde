@@ -142,7 +142,8 @@ __MONDE_TIME_NAVIGATION__
 <option value="">Both original periods</option>
 <option value="earlier">Earlier source reports only</option>
 <option value="later">Later source reports only</option>
-</select><button id="export-comparison-complete" type="button">Export complete original period GeoJSON</button></div>
+</select><button id="export-comparison-complete" type="button">Export complete original period GeoJSON</button>
+<button id="export-comparison-csv" type="button">Export complete original period CSV</button></div>
 <p id="comparison-period-summary" class="subtle" role="status" aria-live="polite" hidden></p>
 <div id="gpkg-layer-control" class="controls" hidden>
   <strong>Original GeoPackage layers</strong>
@@ -274,6 +275,7 @@ __MONDE_TIME_NAVIGATION__
   var sources = document.getElementById("sources");
   var comparisonPeriod = document.getElementById("comparison-period");
   var comparisonExport = document.getElementById("export-comparison-complete");
+  var comparisonCsvExport = document.getElementById("export-comparison-csv");
   var comparisonPeriodSummary = document.getElementById("comparison-period-summary");
   if (data.monde_comparison) {
     document.getElementById("comparison-period-control").hidden = false;
@@ -1367,18 +1369,18 @@ __MONDE_TIME_NAVIGATION__
   }
   // Browser-only derivative from the *same* filtered reports as visible GeoJSON.
   // Text fields are quoted and formula-escaped; coordinates stay numeric.
+  function csvCell(value, number) {
+    if(value === null || value === undefined)return '""';
+    var v = String(value);
+    if(!number && (/^\s*[=+\-@]/.test(v) || /^[\t\r\n]/.test(v)))v = "'" + v;
+    return '"' + v.replace(/"/g,'""') + '"';
+  }
   function visibleCsv() {
     var columns = ["entity","longitude","latitude","assertion_id",
       "source_id","evidence_id","locator","captured_at","source_event_at",
       "kind","known_at","valid_from","valid_to","valid_at",
       "knowledge_cutoff","monde_status","monde_inside_bbox","monde_change",
       "export_scope"];
-    function cell(value, number) {
-      if(value === null || value === undefined)return '""';
-      var v = String(value);
-      if(!number && /^\s*[=+\-@]/.test(v))v = "'" + v;
-      return '"' + v.replace(/"/g,'""') + '"';
-    }
     var rows = visibleFeatures.map(function(f){
       var p = f.properties, pos = f.geometry.coordinates;
       var values = [p.entity,pos[0],pos[1],f.id,p.source_id,p.evidence_id,
@@ -1386,7 +1388,7 @@ __MONDE_TIME_NAVIGATION__
         p.valid_from,p.valid_to,p.valid_at,p.knowledge_cutoff,p.monde_status,
         String(!!inSelection(p)),p.monde_change,
         "FILTERED_VISIBLE_SOURCE_REPORTS_ONLY"];
-      return values.map(function(v,i){return cell(v,i===1||i===2);}).join(",");
+      return values.map(function(v,i){return csvCell(v,i===1||i===2);}).join(",");
     });
     return "\uFEFF" + columns.join(",") + "\r\n" +
       rows.join("\r\n") + "\r\n";
@@ -1418,6 +1420,37 @@ __MONDE_TIME_NAVIGATION__
       }
     }),"monde-original-"+(period||"both")+"-comparison.geojson",
       "application/geo+json");
+  });
+  // Complete original per-period evidence table from the same embedded
+  // FeatureCollection as the full GeoJSON download. Ignore viewport, search,
+  // source and visibility filters; these are presentation choices only.
+  function completeComparisonCsv(reports) {
+    var columns = ["axis","period","classification","entity","source_id",
+      "assertion_id","original_feature_id","evidence_id","longitude","latitude",
+      "inside_bbox","world_at","known_at","locator","captured_at",
+      "source_event_at","valid_from","valid_to","export_scope"];
+    var rows = reports.map(function(f) {
+      var p=f.properties, position=f.geometry.coordinates;
+      var values=[data.monde_comparison.axis,p.monde_comparison_period,
+        p.monde_disagreement_classification,p.entity,p.source_id,
+        p.assertion_id||p.monde_original_feature_id,
+        p.monde_original_feature_id,p.evidence_id,position[0],position[1],
+        String(p.monde_inside_bbox!==false),p.monde_world_at,p.monde_known_at,
+        p.locator,p.captured_at,p.source_event_at,p.valid_from,p.valid_to,
+        "COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED"];
+      return values.map(function(v,i){return csvCell(v,i===8||i===9);}).join(",");
+    });
+    return "\uFEFF"+columns.join(",")+"\r\n"+rows.join("\r\n")+"\r\n";
+  }
+  comparisonCsvExport.addEventListener("click",function(){
+    if(!data.monde_comparison)return;
+    var period=comparisonPeriod.value;
+    var reports=period ? features.filter(function(f){
+      return f.properties.monde_comparison_period===period;
+    }) : features.slice();
+    saveDownload(completeComparisonCsv(reports),
+      "monde-original-"+(period||"both")+"-comparison.csv",
+      "text/csv;charset=utf-8");
   });
   exportButton.addEventListener("click",function(){
     if (!visibleFeatures.length) return;
