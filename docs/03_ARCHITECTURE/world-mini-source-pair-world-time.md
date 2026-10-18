@@ -657,3 +657,15 @@ reporter, assertion/evidence IDs, original longitude/latitude and both time
 cutoffs. No comparison consensus, fabricated movement or saved-state mutation.
 The existing summary `format=csv` and source-specific detail exports are
 unchanged. Formula-leading text IDs are escaped for spreadsheet safety.
+
+
+## Original report visibility at two cutoffs (WORK-0119)
+
+On the exact-entity source directory select **Download original report presence changes CSV**.
+The existing read-only /source-pair route accepts format=presence-csv only for a focused
+entity. A CSV row represents one original reporter Point assertion/evidence/coordinate
+identity and indicates which cutoff contains it: BOTH_CUTOFFS, EARLIER_ONLY, or
+LATER_ONLY. Both world-time and knowledge-time cutoffs are preserved. The labels
+are evidence visibility, **not** inferred movement, creation or disappearance
+of a real entity. The exporter reuses the existing original entity GeoJSON
+selection; no state mutation, additional service or third-party dependency.

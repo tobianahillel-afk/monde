@@ -1405,5 +1405,103 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(row["evidence_id"], "'+evidence")
 
 
+    def test_original_report_presence_csv_matches_both_geojson_cutoffs(self):
+        query = {**self.knowledge(), "entity": "site-1"}
+        status, _, data = self.get({**query, "format": "geojson"})
+        self.assertEqual(status, 200)
+        expected = {}
+        for feature in json.loads(data)["features"]:
+            p = feature["properties"]
+            key = (p["source_id"], str(p["monde_original_assertion_id"]),
+                   p["evidence_id"], *feature["geometry"]["coordinates"])
+            expected.setdefault(key, set()).add(p["monde_comparison_period"])
+        self.assertTrue(expected)
+        status, headers, data = self.get({**query, "format": "presence-csv"})
+        self.assertEqual(status, 200)
+        self.assertIn("text/csv", headers["Content-Type"])
+        self.assertIn("original-entity-report-presence.csv", headers["Content-Disposition"])
+        rows = list(csv.DictReader(io.StringIO(data.decode("utf-8"))))
+        self.assertEqual(len(rows), len(expected))
+        for row in rows:
+            key = (row["source_id"], row["assertion_id"], row["evidence_id"],
+                   float(row["longitude"]), float(row["latitude"]))
+            seen = expected[key]
+            self.assertEqual(row["earlier_visible"], str(int("earlier" in seen)))
+            self.assertEqual(row["later_visible"], str(int("later" in seen)))
+            self.assertEqual(row["visibility_transition"], (
+                "BOTH_CUTOFFS" if len(seen) == 2 else
+                "EARLIER_ONLY" if "earlier" in seen else "LATER_ONLY"))
+            self.assertEqual(row["earlier_world_at"], AT)
+            self.assertEqual(row["later_world_at"], AT)
+            self.assertEqual(row["earlier_known_at"], BEFORE)
+            self.assertEqual(row["later_known_at"], AFTER)
+        status, _, page = self.get(query)
+        self.assertEqual(status, 200)
+        self.assertIn(b"Download original report presence changes CSV", page)
+        self.assertIn(b"format=presence-csv", page)
+
+    def test_original_report_presence_csv_world_axis_and_empty(self):
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "presence-world.json"
+        world.save(saved)
+        old = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = {"directory": "1", "axis": "world", "from_at": EARLY,
+                     "to_at": LATE, "known_at": KNOWN}
+            status, _, doc = self.get({**query, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            entity = json.loads(doc)["sources"][0]["example_entity"]
+            status, _, body = self.get({**query, "entity": entity,
+                                        "format": "presence-csv"}, server)
+            self.assertEqual(status, 200)
+            rows = list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
+            self.assertTrue(rows)
+            for row in rows:
+                self.assertEqual(row["earlier_world_at"], EARLY)
+                self.assertEqual(row["later_world_at"], LATE)
+                self.assertEqual(row["earlier_known_at"], KNOWN)
+                self.assertEqual(row["later_known_at"], KNOWN)
+            status, _, body = self.get({**query, "entity": "missing-entity",
+                                        "format": "presence-csv"}, server)
+            self.assertEqual(status, 200)
+            self.assertFalse(list(csv.DictReader(io.StringIO(body.decode("utf-8")))))
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+        self.assertEqual(saved.read_bytes(), old)
+
+    def test_original_report_presence_csv_scope_and_spreadsheet_safety(self):
+        for extra in ({"format": "presence-csv"},
+                      {"entity": "site-1", "source": "survey-a", "format": "presence-csv"},
+                      {"entity": "site-1", "format": "presence-csv", "extra": "x"}):
+            status, _, data = self.get({**self.knowledge(), **extra})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(data)["error"], "invalid_query")
+        from monde.source_pair_changes import source_directory_entity_presence_csv
+        class Minimal:
+            def export_geojson(self, at, known):
+                return {"features": [{"id": "=report",
+                    "geometry": {"type": "Point", "coordinates": [1, 2]},
+                    "properties": {"entity": "=entity", "source_id": "@source",
+                                   "evidence_id": "+evidence"}}]}
+        directory = {"schema": "MONDE_SOURCE_COVERAGE_DIRECTORY_V1",
+                     "entity_focus": "=entity", "axis": "knowledge",
+                     "sources": [{"source_id": "@source",
+                                  "example_assertion_ids": ["=report"]}],
+                     "cutoffs": {"earlier": {"world_at": AT, "knowledge_at": BEFORE},
+                                "later": {"world_at": AT, "knowledge_at": AFTER}}}
+        data = source_directory_entity_presence_csv(Minimal(), directory)
+        rows = list(csv.DictReader(io.StringIO(data)))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["visibility_transition"], "BOTH_CUTOFFS")
+        self.assertEqual([rows[0][k] for k in
+                          ("entity", "source_id", "assertion_id", "evidence_id")],
+                         ["'=entity", "'@source", "'=report", "'+evidence"])
+
+
 if __name__ == "__main__":
     unittest.main()
