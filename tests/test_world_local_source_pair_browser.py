@@ -213,5 +213,102 @@ class LocalSourcePairBrowserTests(unittest.TestCase):
         self.assertEqual(code, 400)
 
 
+    def test_exact_entity_filter_retains_original_provenance_in_all_formats(self):
+        original = compare_source_pair(self.world, "survey-a", "survey-b",
+                                       AT, BEFORE, AFTER)
+        focused = {**original, "entities": [
+            row for row in original["entities"] if row["entity"] == "site-1"]}
+        args = {**self.knowledge(), "entity": "site-1"}
+        for fmt, expected in (("json", focused),
+                              ("geojson", comparison_geojson(focused))):
+            code, _, raw = self.fetch({**args, "format": fmt})
+            self.assertEqual(code, 200)
+            self.assertEqual(json.loads(raw), expected)
+        code, _, raw = self.fetch({**args, "format": "csv"})
+        self.assertEqual(code, 200)
+        self.assertEqual(raw.decode("utf-8"), comparison_csv(focused))
+        code, _, raw = self.fetch(args)
+        self.assertEqual(code, 200)
+        self.assertEqual(raw.decode("utf-8"), comparison_html(focused))
+        self.assertIn("a-b2", json.dumps(focused))
+
+    def test_unknown_entity_is_empty_valid_comparison_and_form_accepts_blank(self):
+        original = compare_source_pair(self.world, "survey-a", "survey-b",
+                                       AT, BEFORE, AFTER)
+        expected = {**original, "entities": []}
+        for fmt in ("json", "geojson", "csv"):
+            status, _, raw = self.fetch({**self.knowledge(), "entity": "missing",
+                                         "format": fmt})
+            self.assertEqual(status, 200)
+            if fmt == "json":
+                self.assertEqual(json.loads(raw), expected)
+            elif fmt == "geojson":
+                self.assertEqual(json.loads(raw), comparison_geojson(expected))
+            else:
+                self.assertEqual(raw.decode(), comparison_csv(expected))
+        status, _, raw = self.fetch({**self.knowledge(), "format": "json",
+                                     "direction": "", "top": "", "entity": ""})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw), original)
+        status, _, form = self.fetch()
+        self.assertEqual(status, 200)
+        self.assertEqual(form.count(b'name="entity"'), 2)
+
+    def test_entity_scope_before_top_on_two_real_original_entities(self):
+        world = fixture_world()
+        for source, tag, longitude in (("survey-a", "extra-a", 10.0),
+                                       ("survey-b", "extra-b", 10.5)):
+            world.add_evidence({"id": "e-" + tag, "source_id": source,
+                                "locator": "fixture://" + tag,
+                                "captured_at": BEFORE, "source_event_at": BEFORE})
+            world.add_assertion({
+                "id": "a-" + tag, "entity": "site-extra", "attribute": "geo_point",
+                "value": {"type": "Point", "coordinates": [longitude, 0.]},
+                "evidence_id": "e-" + tag, "kind": "CLAIM",
+                "known_at": BEFORE, "valid_from": "2026-01-01T00:00:00Z",
+                "valid_to": None, "supersedes": None})
+        file = Path(self.temp.name) / "multi.json"
+        world.save(file)
+        saved = file.read_bytes()
+        server = create_server(file)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            original = compare_source_pair(world, "survey-a", "survey-b",
+                                           AT, BEFORE, AFTER)
+            self.assertEqual({row["entity"] for row in original["entities"]},
+                             {"site-1", "site-extra"})
+            focused = {**original, "entities": [
+                row for row in original["entities"] if row["entity"] == "site-extra"]}
+            expected = top_nearest_source_pair_changes(focused, 1)
+            query = {**self.knowledge(), "entity": "site-extra",
+                     "top": "1", "format": "json"}
+            conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+            conn.request("GET", "/source-pair?" + urlencode(query),
+                         headers={"Host": "127.0.0.1:" + str(server.server_port)})
+            result = conn.getresponse()
+            code, actual = result.status, json.loads(result.read())
+            conn.close()
+            self.assertEqual(code, 200)
+            self.assertEqual(actual, expected)
+            self.assertEqual([row["entity"] for row in actual["entities"]],
+                             ["site-extra"])
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(file.read_bytes(), saved)
+
+    def test_entity_filter_rejects_unsafe_ids_and_extraneous_fields(self):
+        for entity in ("../site-1", "path/evil", "site-1\x00"):
+            with self.subTest(entity=entity):
+                code, _, body = self.fetch({**self.knowledge(), "entity": entity})
+                self.assertEqual(code, 400)
+                self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        code, _, body = self.fetch({**self.knowledge(), "entity": "site-1",
+                                    "extra": "unexpected"})
+        self.assertEqual(code, 400)
+
+
 if __name__ == "__main__":
     unittest.main()
