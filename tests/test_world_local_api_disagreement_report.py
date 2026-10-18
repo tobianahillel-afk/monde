@@ -2797,6 +2797,12 @@ const earlierPairReports=pairReports.filter(function(f){
 });
 root.dataset.pairFocusEarlierCorrect=String(mapPoints().length===earlierPairReports.length&&
   document.getElementById("comparison-period").value==="earlier");
+// The pre-existing all-sources explorer must never inherit an invisible pair lock.
+pairRow.querySelector("button:not([data-map-pair])").click();
+root.dataset.pairFocusExploreAllCorrect=String(clearPair.disabled&&
+  document.getElementById("entities").value===pairEntity&&
+  pairFocusStatus.textContent.includes("all original reporting sources"));
+if(focusPair)focusPair.click();
 clearPair.click();
 root.dataset.pairFocusClearCorrect=String(clearPair.disabled&&
   document.getElementById("entities").value===""&&
@@ -2834,7 +2840,8 @@ root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disab
                      "pair-rank-descending", "pair-rank-ascending",
                      "pair-rank-missing-last", "pair-rank-default-restored",
                      "pair-focus-both-correct", "pair-focus-earlier-correct",
-                     "pair-focus-clear-correct", "pair-focus-exports-unchanged",
+                     "pair-focus-clear-correct", "pair-focus-explore-all-correct",
+                     "pair-focus-exports-unchanged",
                      "pair-same-source-denied"):
             self.assertIn('data-'+name+'="true"', output, name)
         response, _, ordinary = self.fetch("/viewer", {**QUERY, "view": "current"})

@@ -1554,7 +1554,9 @@ __MONDE_TIME_NAVIGATION__
         var action=cell(""),button=document.createElement("button");
         button.type="button";button.textContent="Explore all original reports for entity";
         button.addEventListener("click",function(){
-          // Existing entity explorer may include other reporting sources.
+          // This broader explorer must leave the temporary two-source focus.
+          pairFocus=null;pairClearFocus.disabled=true;
+          pairFocusSummary.textContent="Showing all original reporting sources for "+entity+".";
           sources.value="";entities.value=entity;comparisonPeriod.value="";
           presenceSelect.value="";search.value="";
           insideOnly.checked=false;currentViewOnly.checked=false;
