@@ -1235,16 +1235,21 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format", "source", "change", "rank", "source_prefix", "entity"})
+                 {"format", "source", "change", "rank", "source_prefix", "entity", "presence"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
-                 {"format", "source", "change", "rank", "source_prefix", "entity"})
+                 {"format", "source", "change", "rank", "source_prefix", "entity", "presence"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
+    if "presence" in args and (
+            args["presence"] not in ("earlier", "later", "both") or
+            args.get("format") not in ("map", "geojson") or
+            "entity" not in args):
+        raise ValueError("original presence requires an exact entity map")
     if args.get("format") in ("assertions-csv", "presence-csv") and (
             "entity" not in args or "source" in args):
         raise ValueError("original assertion CSV requires exact entity directory")
@@ -1390,6 +1395,20 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
             'Reported separation is not verified ground truth.</p>'
             '</fieldset></form>')
 
+    presence_maps = ""
+    if "entity_focus" in document:
+        presence_maps = (
+            '<p>Original reports visible at selected cutoffs: ' +
+            ' · '.join(
+                '<a href="' + escape("/source-pair?" + urlencode({
+                    **{k: v for k, v in args.items() if k != "presence"},
+                    "format": "map", "presence": mode,
+                }), quote=True) + '">' + label + '</a>'
+                for mode, label in (
+                    ("earlier", "Earlier cutoff only"),
+                    ("later", "Later cutoff only"),
+                    ("both", "Both cutoffs"),
+                )) + '</p>')
     count_label = (str(document["total_sources"]) + " matching of " +
                    str(document["available_sources"]) + " original sources"
                    if "available_sources" in document else
@@ -1422,7 +1441,7 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
          escape("/source-pair?" + urlencode(
              {**args, "format": "geojson"}), quote=True) +
          '">Download original reporter Points GeoJSON</a>'
-         if "entity_focus" in document else '') + '</p>'
+         if "entity_focus" in document else '') + '</p>' + presence_maps +
         '<table><caption>Original source entities at the two cutoffs</caption>'
         '<thead><tr><th scope="col">Source — investigate partners</th>'
         '<th scope="col">Entities earlier / later</th>'
@@ -1938,13 +1957,17 @@ def create_server(state: str | Path, port: int = 0, *,
                                 source_directory_geojson, source_directory_entity_geojson)
                             exporter = (source_directory_entity_geojson if "entity" in args
                                         else source_directory_geojson)
-                            return self._reply(200, exporter(world, document))
+                            return self._reply(200, exporter(
+                                world, document, args.get("presence"))
+                                if "entity" in args else exporter(world, document))
                         if output_format == "map":
                             from .source_pair_changes import (
                                 source_directory_map, source_directory_entity_map)
                             exporter = (source_directory_entity_map if "entity" in args
                                         else source_directory_map)
-                            return self._html(exporter(world, document))
+                            return self._html(
+                                exporter(world, document, args.get("presence"))
+                                if "entity" in args else exporter(world, document))
                         if output_format in ("csv", "assertions-csv", "presence-csv"):
                             if output_format == "presence-csv":
                                 from .source_pair_changes import source_directory_entity_presence_csv
