@@ -733,5 +733,121 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(json.loads(data), {"error": "invalid_query"})
 
 
+    def test_source_prefix_search_real_http_json_csv_and_navigation(self):
+        query = self.knowledge()
+        status, _, original_raw = self.get({**query, "format": "json"})
+        self.assertEqual(status, 200)
+        original = json.loads(original_raw)
+        options = {**query, "source_prefix": "survey-a"}
+        status, _, raw = self.get({**options, "format": "json"})
+        self.assertEqual(status, 200)
+        selected = json.loads(raw)
+        self.assertEqual(selected["source_prefix"], "survey-a")
+        self.assertEqual(selected["available_sources"], original["total_sources"])
+        self.assertEqual(selected["sources"], [item for item in original["sources"]
+                          if item["source_id"].startswith("survey-a")])
+        for variation in (options, {**options, "rank": "net-gain"},
+                          {**options, "rank": "turnover", "change": "both"}):
+            status, _, raw = self.get({**variation, "format": "json"})
+            self.assertEqual(status, 200)
+            filtered = json.loads(raw)
+            status, _, csv_body = self.get({**variation, "format": "csv"})
+            self.assertEqual(status, 200)
+            rows = list(csv.DictReader(io.StringIO(csv_body.decode("utf-8"))))
+            self.assertEqual([row["source_id"] for row in rows],
+                             [item["source_id"] for item in filtered["sources"]])
+        status, _, html_bytes = self.get(options)
+        self.assertEqual(status, 200)
+        html = html_bytes.decode("utf-8")
+        self.assertIn("source_prefix=survey-a", html)
+        self.assertIn("matching of", html)
+        # Both per-source and partner deep links should remain usable after
+        # navigating from a directory with prefix/rank filters applied.
+        from html import unescape
+        import re
+        for params in (options, {**options, "rank": "net-loss"}):
+            status, _, html_bytes = self.get(params)
+            self.assertEqual(status, 200)
+            html = html_bytes.decode("utf-8")
+            links = re.findall(r'href="([^"]+)"[^>]*>Find partners</a>', html)
+            self.assertTrue(links)
+            for link in links:
+                url = unescape(link)
+                self.assertIn("discover=1", url)
+                self.assertNotIn("source_prefix=", url)
+                self.assertNotIn("rank=", url)
+                connection = http.client.HTTPConnection(
+                    "127.0.0.1", self.server.server_port, timeout=5)
+                connection.request("GET", url, headers={
+                    "Host": "127.0.0.1:" + str(self.server.server_port)})
+                reply = connection.getresponse()
+                self.assertEqual(reply.status, 200)
+                reply.read()
+                connection.close()
+        status, _, blank_raw = self.get({**query, "source_prefix": "",
+                                           "format": "json"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(blank_raw), original)
+        status, _, missing = self.get({**query, "source_prefix": "absent",
+                                       "format": "json"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(missing)["sources"], [])
+        status, _, missing_html = self.get({**query, "source_prefix": "absent"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"NO MATCHING ORIGINAL SOURCE REPORTING TRANSITIONS",
+                      missing_html)
+
+    def test_source_prefix_strict_validation_and_detail_scope(self):
+        query = self.knowledge()
+        for invalid in ("*", "../", "space name", "survey%00",
+                        "a" * 81, "\u00e9"):
+            status, _, body = self.get({**query, "source_prefix": invalid,
+                                        "format": "json"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        status, _, body = self.get({**query, "source": "survey-a",
+                                    "source_prefix": "survey", "format": "json"})
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        with self.assertRaises(ValueError):
+            source_directory(self.world, "knowledge", ((AT, BEFORE), (AT, AFTER)),
+                             source_prefix="../../")
+
+    def test_source_prefix_world_axis_retains_persisted_model(self):
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "source-prefix-world.json"
+        world.save(saved)
+        before = saved.read_bytes()
+        server = create_server(saved)
+        runner = threading.Thread(target=server.serve_forever, daemon=True)
+        runner.start()
+        try:
+            query = {"directory": "1", "axis": "world",
+                     "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**query, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            original = json.loads(raw)["sources"]
+            self.assertTrue(original)
+            prefix = original[0]["source_id"][:3]
+            status, _, raw = self.get({**query, "source_prefix": prefix,
+                                       "format": "json"}, server)
+            self.assertEqual(status, 200)
+            filtered = json.loads(raw)["sources"]
+            self.assertEqual(filtered, [row for row in original
+                                       if row["source_id"].startswith(prefix)])
+            status, _, raw = self.get({**query, "source_prefix": prefix,
+                                       "format": "csv"}, server)
+            self.assertEqual(status, 200)
+            csv_rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+            self.assertEqual([row["source_id"] for row in csv_rows],
+                             [row["source_id"] for row in filtered])
+        finally:
+            server.shutdown()
+            runner.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), before)
+
+
+
 if __name__ == "__main__":
     unittest.main()
