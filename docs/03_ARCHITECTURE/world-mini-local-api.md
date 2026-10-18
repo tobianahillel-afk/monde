@@ -505,3 +505,14 @@ evidence IDs, per-period cutoffs, epistemic warnings and opposing offscreen
 reports remain embedded. The response uses an attachment filename, CSP with
 no network access and existing response-size limits. No snapshot changes.
 Candidate is stacked on unmerged WORK-0077 / PR #108.
+
+### Filter earlier and later original reports inside saved comparison maps (WORK-0079)
+
+The existing two-period disagreement `/viewer?view=disagreement-comparison` and
+standalone `/disagreement-compare.html` display an **Original evidence period**
+selector: both periods (default), earlier only, or later only. The same original
+Point assertions and time cutoffs remain embedded in the document. Changing the
+selector affects displayed markers, side lists and filtered exports only;
+server JSON/GeoJSON/CSV, source provenance and the saved World Model are never
+modified. A hidden point is not missing evidence, a verified location or
+proof of physical movement. Other map modes keep the control hidden.
