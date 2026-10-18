@@ -226,6 +226,12 @@ __MONDE_TIME_NAVIGATION__
     <label for="comparison-pair-distance-min-km">At least (km)</label>
     <input id="comparison-pair-distance-min-km" type="number" min="0" max="20040" step="any" value="0" aria-label="Minimum original source separation in kilometers">
     <button id="comparison-pair-distance-export" type="button" disabled>Download threshold-matching original evidence GeoJSON</button>
+    <label for="comparison-pair-distance-sort">Order by reported source separation</label>
+    <select id="comparison-pair-distance-sort" aria-label="Rank entities by source coordinate divergence">
+      <option value="entity">Original entity ID</option>
+      <option value="descending">Largest separation first</option>
+      <option value="ascending">Smallest separation first</option>
+    </select>
   </div>
   <p class="subtle">Threshold filters this pair table only. An unreported period never counts as zero; complete pair exports remain unfiltered. Nearest and farthest are distances between original source-reported coordinates, not verified positions, accuracy or movement.</p>
   <p id="comparison-source-pair-summary" class="subtle" role="status" aria-live="polite"></p>
@@ -1381,6 +1387,7 @@ __MONDE_TIME_NAVIGATION__
     var pairPeriod=document.getElementById("comparison-pair-distance-period");
     var pairMinKm=document.getElementById("comparison-pair-distance-min-km");
     var pairMatchExport=document.getElementById("comparison-pair-distance-export");
+    var pairSort=document.getElementById("comparison-pair-distance-sort");
     [pairA,pairB].forEach(function(select){
       sourceNames.forEach(function(source){
         var option=document.createElement("option");
@@ -1389,6 +1396,31 @@ __MONDE_TIME_NAVIGATION__
       });
     });
     var pairShared=[],pairDifferent=[],pairDistances=[],pairMatches=[];
+    function sortPairRows(){
+      var periods=pairPeriod.value==="either"?["earlier","later"]:[pairPeriod.value];
+      var metric=pairMetric.value+"_km";
+      var distances=new Map(pairDistances.map(function(item){return [item.entity,item];}));
+      function rank(entity){
+        var item=distances.get(entity);
+        if(!item)return null;
+        var values=periods.map(function(period){
+          return item[period]&&item[period][metric];
+        }).filter(function(value){return typeof value==="number";});
+        // Rank by the strongest actual original-source separation for "either".
+        // An unreported period is UNKNOWN, never measured zero.
+        return values.length?Math.max.apply(null,values):null;
+      }
+      Array.from(pairRows.children).sort(function(a,b){
+        var nameA=a.dataset.pairEntity,nameB=b.dataset.pairEntity;
+        if(pairSort.value==="entity")return nameA.localeCompare(nameB);
+        var left=rank(nameA),right=rank(nameB);
+        if(left===null)return right===null?nameA.localeCompare(nameB):1;
+        if(right===null)return -1;
+        var diff=pairSort.value==="descending"?right-left:left-right;
+        return diff||nameA.localeCompare(nameB);
+      }).forEach(function(row){pairRows.appendChild(row);});
+    }
+    pairSort.addEventListener("change",sortPairRows);
     function applyPairDistanceFilter(){
       pairMatches=[];
       var raw=pairMinKm.value.trim();
@@ -1408,6 +1440,7 @@ __MONDE_TIME_NAVIGATION__
         if(matched)pairMatches.push(item.entity);
       });
       pairMatchExport.disabled=!pairMatches.length;
+      sortPairRows();
       if(pairA.value&&pairB.value&&pairA.value!==pairB.value){
         pairSummary.textContent=valid?
           pairMatches.length+" of "+pairShared.length+" jointly reported entities "+
