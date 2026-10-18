@@ -203,7 +203,7 @@ __MONDE_TIME_NAVIGATION__
 </select>
 <button id="comparison-source-entity-export" type="button">Download complete source/entity selection changes CSV</button>
 <table aria-label="Original sources and reported entities across both selections">
-<thead><tr><th scope="col">Original source</th><th scope="col">Entities earlier</th><th scope="col">Entities later</th><th scope="col">Changed entity selections</th><th scope="col">Original reports</th></tr></thead>
+<thead><tr><th scope="col">Original source</th><th scope="col">Entities earlier</th><th scope="col">Entities later</th><th scope="col">Changed entity selections</th><th scope="col">Original reports</th><th scope="col">Download changing entity evidence</th></tr></thead>
 <tbody id="comparison-source-entity-rows"></tbody>
 </table>
 <p id="comparison-source-entity-summary" class="subtle" role="status" aria-live="polite"></p>
@@ -1285,6 +1285,40 @@ __MONDE_TIME_NAVIGATION__
         return n+p.earlier.length+p.later.length;
       },0));
       tr.appendChild(total);
+      // Export only source-reported entity selections that changed between
+      // these two embedded periods. Never infer true absence or movement.
+      var downloadCell=document.createElement("td");
+      var downloadChanged=document.createElement("button");
+      downloadChanged.type="button";
+      downloadChanged.textContent="Download changed entity GeoJSON";
+      downloadChanged.dataset.sourceEntityChangeExport=source;
+      downloadChanged.disabled=changed.length===0;
+      downloadChanged.setAttribute("aria-label","Download original changed entity selection reports from source "+source);
+      downloadChanged.addEventListener("click",function(){
+        var changedIds=new Set(changed);
+        var selected=features.filter(function(f){
+          return f.properties.source_id===source &&
+            changedIds.has(f.properties.entity);
+        });
+        var earlierCount=selected.filter(function(f){
+          return f.properties.monde_comparison_period==="earlier";
+        }).length;
+        saveEvidence(Object.assign({},data,{
+          features:selected,
+          monde_source_entity_turnover_export:{
+            scope:"COMPLETE_EMBEDDED_CHANGED_ENTITY_SELECTIONS_NOT_DISPLAY_FILTERED",
+            source_id:source,comparison_axis:data.monde_comparison.axis,
+            changed_entity_count:changed.length,
+            earlier_original_report_count:earlierCount,
+            later_original_report_count:selected.length-earlierCount,
+            original_feature_count:features.length,
+            exported_feature_count:selected.length
+          }
+        }),"monde-original-source-changing-entity-evidence.geojson",
+          "application/geo+json");
+      });
+      downloadCell.appendChild(downloadChanged);
+      tr.appendChild(downloadCell);
       sourceEntityRows.appendChild(tr);
     });
     function filterSourceEntityRows(){
