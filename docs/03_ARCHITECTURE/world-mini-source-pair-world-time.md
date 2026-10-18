@@ -535,3 +535,17 @@ a source is rejected. Existing JSON, CSV and table behavior is unchanged.
 ### Original source coverage map (WORK-0112)
 
 On a source-specific coverage detail page, **Map original source Points at both cutoffs** opens the existing local read-only map via `/source-pair?directory=1&axis=knowledge|world&source=...&format=map`. Both earlier and later original Point assertions are rendered, including per-report period, original assertion/evidence IDs and world/knowledge cutoffs. Optional `change=new|gone|both` filters the original reporting transitions. The viewport is a shortest-longitude-arc display envelope, not a new query, inferred physical movement or a consensus source position. The existing GeoJSON/CSV/JSON export contracts and saved WorldMini remain unchanged.
+
+### Filter reporters by bitemporal entity coverage (WORK-0113)
+
+The existing reporter directory has four native read-only views: **All reporters**,
+**Any newly reported entities**, **Any no-longer-reported entities**, and
+**Any continuously reported entities**. Optional `change=new|gone|both`
+reuses the exact original source-reported entity counts at the selected
+world/knowledge cutoffs. A reporter qualifies when at least one of its entities
+belongs to that class; these categories may overlap. Filtered JSON includes
+`reporting_filter` and `available_sources`; `total_sources` and the CSV
+describe the filtered list. Reporter detail links retain the same transition
+filter, whereas Find partners clears the directory-only filter for its
+existing source-pair discovery route. No original observation is mutated,
+and absence of a report is UNKNOWN, not verified disappearance or movement.
