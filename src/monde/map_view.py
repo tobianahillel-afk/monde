@@ -168,6 +168,16 @@ __MONDE_TIME_NAVIGATION__
 </table>
 <p id="comparison-source-total" class="subtle" role="status"></p>
 </details>
+<details id="comparison-entity-coverage" hidden>
+<summary>Original entity coverage across sources and periods</summary>
+<p class="subtle">This is an inventory of original source Point reports embedded in the comparison, not inferred agreement, completeness, or physical movement. View filters cannot remove original evidence from this table or its CSV.</p>
+<button id="comparison-export-entity-coverage-csv" type="button">Download complete entity and source coverage CSV</button>
+<table aria-label="Complete original entity reporting by source and period">
+<thead><tr><th scope="col">Original entity</th><th scope="col">Sources earlier</th><th scope="col">Sources later</th><th scope="col">Sources in both</th><th scope="col">Original reports</th></tr></thead>
+<tbody id="comparison-entity-rows"></tbody>
+</table>
+<p id="comparison-entity-total" class="subtle" role="status"></p>
+</details>
 <div id="gpkg-layer-control" class="controls" hidden>
   <strong>Original GeoPackage layers</strong>
   <div id="gpkg-layer-options" role="group" aria-label="Toggle original GeoPackage source layers"></div>
@@ -966,6 +976,87 @@ __MONDE_TIME_NAVIGATION__
       String(counts.size)+" original sources · "+String(features.length)+
       " embedded original reports. No inferred truth or completeness.";
     coverage.hidden=false;
+
+    // Invert the existing original-source grouping for analysts who start
+    // from an entity: never derive counts from visibleFeatures or controls.
+    var entityCoverage=new Map();
+    features.forEach(function(f){
+      var p=f.properties,period=p.monde_comparison_period;
+      if(period!=="earlier"&&period!=="later")return;
+      if(!entityCoverage.has(p.entity))entityCoverage.set(p.entity,new Map());
+      var bySource=entityCoverage.get(p.entity);
+      if(!bySource.has(p.source_id))
+        bySource.set(p.source_id,{earlier:[],later:[]});
+      bySource.get(p.source_id)[period].push(f);
+    });
+    var entityRows=document.getElementById("comparison-entity-rows");
+    var entityNames=Array.from(entityCoverage.keys()).sort();
+    entityNames.forEach(function(entity){
+      var bySource=entityCoverage.get(entity),sourceNames=Array.from(bySource.keys()).sort();
+      var earlier=sourceNames.filter(function(id){return bySource.get(id).earlier.length>0;});
+      var later=sourceNames.filter(function(id){return bySource.get(id).later.length>0;});
+      var both=sourceNames.filter(function(id){
+        return bySource.get(id).earlier.length>0&&bySource.get(id).later.length>0;
+      });
+      var row=document.createElement("tr");row.dataset.entity=entity;
+      var first=document.createElement("td"),jump=document.createElement("button");
+      jump.type="button";jump.textContent=entity;
+      jump.setAttribute("aria-label","Show all original reports for entity "+entity);
+      jump.addEventListener("click",function(){
+        sources.value="";presenceSelect.value="";
+        comparisonPeriod.value="";search.value="";
+        insideOnly.checked=false;currentViewOnly.checked=false;
+        document.getElementById("entities").value=entity;
+        render();fitReports();
+      });
+      first.appendChild(jump);row.appendChild(first);
+      [earlier,later,both].forEach(function(ids){
+        var td=document.createElement("td");
+        td.textContent=ids.length ? ids.join(", ") : "None in embedded selection";
+        row.appendChild(td);
+      });
+      var count=document.createElement("td");
+      count.textContent=String(sourceNames.reduce(function(n,id){
+        var x=bySource.get(id);return n+x.earlier.length+x.later.length;
+      },0));
+      row.appendChild(count);entityRows.appendChild(row);
+    });
+    document.getElementById("comparison-entity-total").textContent=
+      String(entityCoverage.size)+" original entities across "+
+      String(counts.size)+" sources. No inferred absence or source consensus.";
+    document.getElementById("comparison-export-entity-coverage-csv")
+      .addEventListener("click",function(){
+        var header=["comparison_axis","entity","source_id",
+          "earlier_original_report_count","later_original_report_count",
+          "earlier_assertion_ids_json","later_assertion_ids_json",
+          "earlier_evidence_ids_json","later_evidence_ids_json","export_scope"];
+        var lines=[];
+        entityNames.forEach(function(entity){
+          var bySource=entityCoverage.get(entity);
+          Array.from(bySource.keys()).sort().forEach(function(source){
+            var periods=bySource.get(source);
+            function reportIds(period,key){
+              return JSON.stringify(periods[period].map(function(f){
+                var p=f.properties;
+                return String(key==="assertion" ?
+                  (p.assertion_id||p.monde_original_feature_id):p.evidence_id);
+              }));
+            }
+            var values=[data.monde_comparison.axis,entity,source,
+              periods.earlier.length,periods.later.length,
+              reportIds("earlier","assertion"),reportIds("later","assertion"),
+              reportIds("earlier","evidence"),reportIds("later","evidence"),
+              "COMPLETE_EMBEDDED_ENTITY_SOURCE_INVENTORY_NOT_DISPLAY_FILTERED"];
+            lines.push(values.map(function(v,i){
+              return csvCell(v,i===3||i===4);
+            }).join(","));
+          });
+        });
+        saveDownload("\uFEFF"+header.join(",")+"\r\n"+
+          lines.join("\r\n")+"\r\n",
+          "monde-original-entity-source-coverage.csv","text/csv;charset=utf-8");
+      });
+    document.getElementById("comparison-entity-coverage").hidden=false;
   }
   // A GeoPackage layer is a separate original source, not a verified world
   // layer. Keep the source dropdown for exact source filtering; this control
