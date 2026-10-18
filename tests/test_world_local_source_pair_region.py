@@ -545,12 +545,17 @@ class GeographicSourcePairTests(unittest.TestCase):
         result = json.loads(raw)
         canonical = compare_source_pair(
             self.world, "survey-a", "survey-b", AT, BEFORE, AFTER)
-        self.assertEqual(result["entities"], canonical["entities"])
+        expected = [row for row in canonical["entities"]
+                    if all(row[period]["separation"] is not None
+                           and row[period]["separation"]["nearest_km"] >= 100
+                           for period in ("earlier", "later"))]
+        self.assertEqual(result["entities"], expected)
+        self.assertEqual([row["entity"] for row in expected], ["site-1"])
         self.assertEqual(result["persistent_separation_filter"], {
             "minimum_nearest_km": 100.0,
             "cutoffs": ["earlier", "later"],
             "total_entities": len(canonical["entities"]),
-            "matching_entities": len(canonical["entities"]),
+            "matching_entities": len(expected),
         })
         no_match = json.loads(self.fetch({
             **args, "min_persistent_km": "120"})[2])
