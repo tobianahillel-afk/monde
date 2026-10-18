@@ -735,7 +735,7 @@ def source_directory_entity_presence_map(world, directory, presence=None):
         feature["properties"]["monde_inside_bbox"] = True
     earlier = directory["cutoffs"]["earlier"]
     geojson["monde_bbox_query"] = {
-        "basis": "ORIGINAL_POINT_PRESENCE_ONLY",
+        "basis": "SOURCE_REPORTED_POINT_BBOX_ONLY",
         "bbox": _source_display_bbox(features),
         "valid_at": earlier["world_at"],
         "knowledge_cutoff": earlier["knowledge_at"],
