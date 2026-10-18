@@ -2234,5 +2234,95 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(self.get(bad)[0], 400)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_presence_kml_matches_unique_source_points_over_persisted_http(self):
+        from xml.etree import ElementTree as ET
+        ns = {"k": "http://www.opengis.net/kml/2.2"}
+        params = {**self.knowledge(), "entity": "site-1"}
+        status, headers, body = self.get({**params, "format": "presence-kml"})
+        self.assertEqual(status, 200)
+        self.assertIn("application/vnd.google-earth.kml+xml", headers["Content-Type"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertIn(".kml", headers["Content-Disposition"])
+        root = ET.fromstring(body)
+        metadata = {f.attrib["name"]: f.findtext("k:value", namespaces=ns)
+                    for f in root.findall("k:Document/k:ExtendedData/k:Data", ns)}
+        self.assertEqual(metadata["schema"], "MONDE_ORIGINAL_POINT_PRESENCE_KML_V1")
+        self.assertEqual(metadata["earlier_world_at"], AT)
+        self.assertEqual(metadata["earlier_knowledge_at"], BEFORE)
+        self.assertEqual(metadata["later_knowledge_at"], AFTER)
+        original = json.loads(self.get({**params, "format": "presence-geojson"})[2])
+        marks = root.findall("k:Document/k:Placemark", ns)
+        self.assertEqual(int(metadata["report_count"]), len(original["features"]))
+        self.assertEqual(len(marks), len(original["features"]))
+        seen = set()
+        for mark, feature in zip(marks, original["features"]):
+            props = {d.attrib["name"]: d.findtext("k:value", namespaces=ns)
+                     for d in mark.findall("k:ExtendedData/k:Data", ns)}
+            source = feature["properties"]
+            longitude, latitude = feature["geometry"]["coordinates"]
+            coords = mark.findtext("k:Point/k:coordinates", namespaces=ns)
+            self.assertEqual([float(x) for x in coords.split(",")],
+                             [longitude, latitude, 0.])
+            identity = (props["source_id"], props["assertion_id"],
+                        props["evidence_id"], longitude, latitude)
+            self.assertNotIn(identity, seen)
+            seen.add(identity)
+            self.assertEqual(props["assertion_id"], source["monde_original_assertion_id"])
+            self.assertEqual(props["evidence_id"], source["evidence_id"])
+            self.assertEqual(props["visibility_transition"],
+                             source["monde_visibility_transition"])
+            for period in ("earlier", "later"):
+                self.assertEqual(props[period + "_visible"],
+                                 str(source[period + "_visible"]).lower())
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_presence_kml_filters_links_empty_world_and_strict_scope(self):
+        from xml.etree import ElementTree as ET
+        from html import unescape
+        from urllib.parse import parse_qs, urlsplit
+        import re
+        ns = {"k": "http://www.opengis.net/kml/2.2"}
+        params = {**self.knowledge(), "entity": "site-1"}
+        all_points = json.loads(self.get({**params, "format": "presence-geojson"})[2])
+        for source in ("survey-a", "survey-b"):
+            for selection, category in (("earlier", "EARLIER_ONLY"),
+                                        ("later", "LATER_ONLY"),
+                                        ("both", "BOTH_CUTOFFS")):
+                q = {**params, "source": source, "presence": selection,
+                     "format": "presence-kml"}
+                status, _, body = self.get(q)
+                self.assertEqual(status, 200)
+                actual = ET.fromstring(body).findall("k:Document/k:Placemark", ns)
+                wanted = [f for f in all_points["features"]
+                          if f["properties"]["source_id"] == source and
+                          f["properties"]["monde_visibility_transition"] == category]
+                self.assertEqual(len(actual), len(wanted))
+        html = self.get({**params, "format": "table"})[2].decode("utf-8")
+        self.assertIn("Download original Point presence KML", html)
+        link = next(unescape(l) for l in re.findall(r'href="([^"]+)"', html)
+                    if "format=presence-kml" in l)
+        target = {k: v[0] for k, v in parse_qs(urlsplit(link).query).items()}
+        self.assertEqual(self.get(target)[2],
+                         self.get({**params, "format": "presence-kml"})[2])
+        self.assertIn(b"Download matching KML",
+                      self.get({**params, "format": "presence-table"})[2])
+        empty = {"directory": "1", "axis": "world", "from_at": EARLY,
+                 "to_at": LATE, "known_at": KNOWN, "entity": "missing",
+                 "format": "presence-kml"}
+        self.assertEqual(ET.fromstring(self.get(empty)[2]).findall(
+            "k:Document/k:Placemark", ns), [])
+        good = {**params, "format": "presence-kml"}
+        for bad in ({**self.knowledge(), "format": "presence-kml"},
+                    {**good, "presence": "unknown"},
+                    {**good, "unexpected": "value"},
+                    {**good, "source": "survey-a", "assertion": "unscoped"},
+                    {**{k: v for k, v in good.items() if k != "entity"},
+                     "source": "survey-a"}):
+            status, _, body = self.get(bad)
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(body)["error"], "invalid_query")
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()
