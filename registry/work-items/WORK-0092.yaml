@@ -1,0 +1,52 @@
+id: WORK-0092
+title: "Report original two-source Point separations across knowledge time"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini original-source evidence"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Expose original cross-source Point separation changes as a single local command,
+  reusing the existing persisted bitemporal WorldMini evidence store without
+  inferring verified location, correctness or physical movement.
+scope:
+  in: ["Load saved WorldMini evidence", "Compare fixed-valid-time source pair at two knowledge cutoffs", "Return complete original source reports and nullable nearest/farthest km changes", "Executable CLI with no remote services"]
+  out: ["Ground-truth resolution", "Movement estimation", "Hosted endpoints", "New runtime dependencies", "Persisted state writes"]
+acceptance_criteria:
+  - {id: AC-1, description: "Real persisted WorldMini original source reports and revisions are preserved at their exact knowledge cutoffs.", status: IN_REVIEW}
+  - {id: AC-2, description: "Missing joint reporting produces null measurements and null change, never zero.", status: IN_REVIEW}
+  - {id: AC-3, description: "Distance is antimeridian aware and comparisons reject invalid cutoffs and duplicate sources.", status: IN_REVIEW}
+  - {id: AC-4, description: "Real CLI produces JSON and leaves the original saved evidence byte-identical.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0091]
+read_before: [AGENTS.md, src/monde/world.py, src/monde/map_view.py, docs/03_ARCHITECTURE/world-mini-local-api.md]
+reuses: [monde.world.WorldMini.read, monde.world.WorldMini.export_geojson]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Build original source separation report CLI.", depends_on: [], expected_files: [src/monde/source_pair_changes.py], status: IN_REVIEW}
+    - {id: T2, description: "Prove real persisted input, provenance and no mutation.", depends_on: [T1], expected_files: [tests/test_world_source_pair_changes.py], status: IN_REVIEW}
+    - {id: T3, description: "Document exact semantics and invocation.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-source-pair-cli.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_source_pair_changes.py]
+  real_system: ["GitHub Actions world-mini including subprocess CLI"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0091 PR #122; not installed on main."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close draft stacked PR; no existing stored-state mutation or migration."
