@@ -1191,8 +1191,11 @@ class DisagreementReportHTTPTests(unittest.TestCase):
                     f["properties"]["monde_comparison_period"] == period
                     for f in expected["features"])
                     for period in ("earlier", "later")}
-                self.assertGreater(counts["earlier"], 0)
-                self.assertGreater(counts["later"], 0)
+                # An empty earlier period is valid: absence of known source
+                # reports at that cutoff must not be filled with later evidence.
+                self.assertEqual(counts["earlier"] + counts["later"],
+                                 len(expected["features"]))
+                self.assertGreater(len(expected["features"]), 0)
                 for route in ("/disagreement-compare.html", "/viewer"):
                     args = ({"view": "disagreement-comparison", **selected}
                             if route == "/viewer" else selected)
