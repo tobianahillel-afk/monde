@@ -1288,7 +1288,8 @@ def create_server(state: str | Path, port: int = 0, *,
                             args["at"], args["known_at"])
                     else:
                         raise ValueError("unsupported viewer mode")
-                    return self._html(geojson, navigation=args)
+                    return self._html(geojson, navigation=(
+                        None if mode == "disagreement-comparison" else args))
                 elif path == "/map":
                     _require(args, {"bbox", "at", "known_at"}, {"source"})
                     output = _filter_source_bbox(
