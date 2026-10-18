@@ -1001,6 +1001,9 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             '<input type="hidden" name="directory" value="1">'
             '<input type="hidden" name="axis" value="' + axis + '">'
             + inputs +
+            '<label>Original source ID starts with (optional)'
+            '<input name="source_prefix" maxlength="80"'
+            ' placeholder="e.g. survey-" autocomplete="off"></label>'
             '<label>Output <select name="format">'
             '<option value="table">Accessible coverage table</option>'
             '<option value="json">JSON</option>'
@@ -1189,12 +1192,12 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format", "source", "change", "rank"})
+                 {"format", "source", "change", "rank", "source_prefix"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
-                 {"format", "source", "change", "rank"})
+                 {"format", "source", "change", "rank", "source_prefix"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
@@ -1203,23 +1206,27 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("source map or GeoJSON requires a source")
     if "source" in args and "rank" in args:
         raise ValueError("ranking only applies to original source directory")
+    if "source" in args and args.get("source_prefix"):
+        raise ValueError("prefix search only applies to original source directory")
     if "source" in args:
         from .source_pair_changes import source_directory_detail
         return source_directory_detail(
             world, args["axis"], cutoffs, args["source"], args.get("change"))
     return source_directory(world, args["axis"], cutoffs,
-                            args.get("change"), args.get("rank"))
+                            args.get("change"), args.get("rank"),
+                            args.get("source_prefix") or None)
 
 
 def _source_directory_html(document: dict, args: dict[str, str]) -> str:
     rows = []
     for item in document["sources"]:
         query = {key: value for key, value in args.items()
-                 if key not in ("directory", "format", "rank")}
+                 if key not in ("directory", "format", "rank", "source_prefix")}
         query.pop("change", None)  # partner discovery has no directory filter
         query.update(discover="1", source=item["source_id"], format="table")
         link = "/source-pair?" + urlencode({
-            **{k: v for k, v in args.items() if k != "rank"},
+            **{k: v for k, v in args.items()
+               if k not in ("rank", "source_prefix")},
             "source": item["source_id"], "format": "table"})
         partners = "/source-pair?" + urlencode(query)
         rows.append(
@@ -1270,7 +1277,7 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         ' · '.join(rank_links)) + '</p></nav>'
     count_label = (str(document["total_sources"]) + " matching of " +
                    str(document["available_sources"]) + " original sources"
-                   if "reporting_filter" in document else
+                   if "available_sources" in document else
                    str(document["total_sources"]) + " original sources")
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -1294,7 +1301,7 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         '<th scope="col">Example original entity</th></tr></thead><tbody>' +
         ''.join(rows) + '</tbody></table>' +
         ('<p role="status">NO MATCHING ORIGINAL SOURCE REPORTING TRANSITIONS.'
-         '</p>' if not rows and "reporting_filter" in document else
+         '</p>' if not rows and "available_sources" in document else
          '<p role="status">NO ORIGINAL POINT SOURCE REPORTS at either cutoff.'
          '</p>' if not rows else '') + '</body></html>')
 

@@ -134,6 +134,11 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
     """
     from itertools import combinations
 
+    if source_prefix is not None:
+        if (not isinstance(source_prefix, str) or not source_prefix or
+                len(source_prefix) > 80 or not source_prefix.isascii() or
+                not all(c.isalnum() or c in "._:-" for c in source_prefix)):
+            raise ValueError("invalid source directory prefix")
     if axis not in ("knowledge", "world") or len(cutoffs) != 2:
         raise ValueError("invalid source-pair discovery axis")
     if type(top) is not int or not 1 <= top <= 100:
@@ -292,7 +297,7 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
 
 
 
-def source_directory(world, axis, cutoffs, change=None, rank=None):
+def source_directory(world, axis, cutoffs, change=None, rank=None, source_prefix=None):
     """Per-original-source Point coverage and optional evidence-based ranking."""
     if change not in (None, "new", "gone", "both"):
         raise ValueError("invalid source reporting transition")
@@ -341,6 +346,8 @@ def source_directory(world, axis, cutoffs, change=None, rank=None):
     result.sort(key=lambda row: (-max(row["earlier_entities"],
                                      row["later_entities"]), row["source_id"]))
     available_sources = len(result)
+    if source_prefix is not None:
+        result = [row for row in result if row["source_id"].startswith(source_prefix)]
     if change is not None:
         field = {"new": "newly_reported_entities",
                  "gone": "no_longer_reported_entities",
@@ -376,6 +383,9 @@ def source_directory(world, axis, cutoffs, change=None, rank=None):
     }
     if change is not None:
         document["reporting_filter"] = change
+    if source_prefix is not None:
+        document["source_prefix"] = source_prefix
+    if change is not None or source_prefix is not None:
         document["available_sources"] = available_sources
     if rank is not None:
         document["ranking"] = rank

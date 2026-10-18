@@ -580,3 +580,16 @@ These ranks are view-only: no persisted change, inferred geographic movement,
 source accuracy or reliability claim. The default directory schema and order,
 per-source detail and source-partner discovery remain unchanged. Unknown ranks
 and directory ranks on source-specific detail are rejected.
+
+
+### Find original reporters by exact source ID prefix
+
+The existing directory form accepts optional `source_prefix=survey-` for both
+knowledge-time and world-time comparisons. The case-sensitive literal prefix
+filters original reporter IDs *before* transition filtering and ranking;
+the same selection appears in HTML, JSON and CSV. Prefixes are ASCII letters,
+digits, `._:-`, up to 80 characters, not wildcards or patterns.
+An empty optional form field leaves old unfiltered JSON unchanged.
+Filtered JSON adds `source_prefix` and `available_sources`; no saved
+WorldMini model changes. Source detail and pair-discovery links drop
+inapplicable directory prefix/rank controls to remain navigable.
