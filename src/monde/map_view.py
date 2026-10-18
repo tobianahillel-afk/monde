@@ -142,7 +142,7 @@ __MONDE_TIME_NAVIGATION__
 <option value="">Both original periods</option>
 <option value="earlier">Earlier source reports only</option>
 <option value="later">Later source reports only</option>
-</select></div>
+</select><button id="export-comparison-complete" type="button">Export complete original period GeoJSON</button></div>
 <p id="comparison-period-summary" class="subtle" role="status" aria-live="polite" hidden></p>
 <div id="gpkg-layer-control" class="controls" hidden>
   <strong>Original GeoPackage layers</strong>
@@ -273,6 +273,7 @@ __MONDE_TIME_NAVIGATION__
   var sourceInspection = document.getElementById("full-source-history");
   var sources = document.getElementById("sources");
   var comparisonPeriod = document.getElementById("comparison-period");
+  var comparisonExport = document.getElementById("export-comparison-complete");
   var comparisonPeriodSummary = document.getElementById("comparison-period-summary");
   if (data.monde_comparison) {
     document.getElementById("comparison-period-control").hidden = false;
@@ -1398,6 +1399,25 @@ __MONDE_TIME_NAVIGATION__
   exportConflictsButton.addEventListener("click",function(){
     var report=createConflictInventory();
     if(report)saveEvidence(report,"monde-source-conflict-inventory.json","application/json");
+  });
+  // Complete original reports already embedded in this comparison, including
+  // offscreen opposing evidence. No search/source/viewport display filters.
+  comparisonExport.addEventListener("click",function(){
+    if(!data.monde_comparison)return;
+    var period=comparisonPeriod.value;
+    var reports=period ? features.filter(function(f){
+      return f.properties.monde_comparison_period===period;
+    }) : features.slice();
+    saveEvidence(Object.assign({},data,{
+      features:reports,
+      monde_complete_period_export:{
+        scope:"COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED",
+        selected_period:period||"both",
+        original_feature_count:features.length,
+        exported_feature_count:reports.length
+      }
+    }),"monde-original-"+(period||"both")+"-comparison.geojson",
+      "application/geo+json");
   });
   exportButton.addEventListener("click",function(){
     if (!visibleFeatures.length) return;
