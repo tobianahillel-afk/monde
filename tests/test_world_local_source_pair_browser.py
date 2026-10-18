@@ -326,5 +326,149 @@ class LocalSourcePairBrowserTests(unittest.TestCase):
         self.assertEqual(code, 400)
 
 
+    def test_accessible_pair_table_shows_original_evidence_and_links(self):
+        original = compare_source_pair(self.world, "survey-a", "survey-b",
+                                       AT, BEFORE, AFTER)
+        code, headers, page = self.fetch({**self.knowledge(), "format": "table"})
+        body = page.decode("utf-8")
+        self.assertEqual(code, 200)
+        self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
+        self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+        self.assertNotIn("<script", body)
+        self.assertIn('<table>', body)
+        self.assertIn('<th scope="col">Earlier reported separation</th>', body)
+        for item in original["entities"]:
+            self.assertIn(item["entity"], body)
+            for period in ("earlier", "later"):
+                for source in ("source_a_original_reports", "source_b_original_reports"):
+                    for report in item[period][source]:
+                        self.assertIn(report["id"], body)
+                        self.assertIn(report["properties"]["evidence_id"], body)
+        self.assertIn("/inspect?view=source-history", body)
+        self.assertIn("/inspect?view=entity", body)
+        self.assertIn("format=csv", body)
+        self.assertIn("format=geojson", body)
+
+    def test_pair_table_retains_filters_and_world_time_cutoffs(self):
+        from monde.source_pair_changes import source_pair_direction
+        source = compare_source_pair_world_time(
+            self.world, "survey-a", "survey-b", EARLY, LATE, KNOWN)
+        # Ensure the table is derived from the same canonical records.
+        query = {"axis": "world", "source_a": "survey-a",
+                 "source_b": "survey-b", "from_at": EARLY, "to_at": LATE,
+                 "known_at": KNOWN, "format": "table"}
+        code, _, page = self.fetch(query)
+        self.assertEqual(code, 200)
+        html = page.decode("utf-8")
+        for item in source["entities"]:
+            self.assertIn(item["entity"], html)
+            self.assertIn(source_pair_direction(item), html)
+        self.assertIn("from_at=", html)
+        self.assertIn("to_at=", html)
+        self.assertIn("world " + EARLY, html)
+        self.assertIn("world " + LATE, html)
+
+    def test_pair_table_uses_existing_selection_and_handles_unknown(self):
+        query = {**self.knowledge(), "entity": "site-1", "format": "table"}
+        status, _, page = self.fetch(query)
+        self.assertEqual(status, 200)
+        self.assertIn(b"site-1", page)
+        self.assertIn(b"entity=site-1", page)
+        status, _, page = self.fetch({**query, "entity": "absent-entity"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"NO MATCHING COMPARABLE SOURCE EVIDENCE", page)
+        self.assertNotIn(b"<script", page)
+
+    def test_pair_table_form_and_query_reject_invalid_format_and_inputs(self):
+        status, _, html = self.fetch()
+        self.assertEqual(status, 200)
+        self.assertIn(b'<option value="table">', html)
+        for params in ({**self.knowledge(), "format": "table", "source_a": "../bad"},
+                       {**self.knowledge(), "format": "table", "unexpected": "x"},
+                       {**self.knowledge(), "format": "TABLE"}):
+            status, _, raw = self.fetch(params)
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+    def test_pair_table_escapes_untrusted_source_and_assertion_strings(self):
+        from monde.local_api import _pair_table_html
+        data = compare_source_pair(self.world, "survey-a", "survey-b",
+                                   AT, BEFORE, AFTER)
+        altered = json.loads(json.dumps(data))
+        altered["source_a"] = '<img src=x onerror=alert(1)>'
+        altered["entities"][0]["entity"] = 'evil"><script>alert(1)</script>'
+        altered["entities"][0]["earlier"]["source_a_original_reports"][0]["id"] = \
+            '<svg onload=alert(1)>'
+        html = _pair_table_html(altered, self.knowledge())
+        self.assertNotIn("<script>", html)
+        self.assertNotIn("<svg", html)
+        self.assertNotIn("<img", html)
+        self.assertIn("&lt;script&gt;", html)
+        self.assertIn("&lt;svg", html)
+        self.assertIn("&lt;img", html)
+
+
+    def test_min_distance_change_threshold_matches_existing_source_pair_engine(self):
+        source = compare_source_pair(self.world, "survey-a", "survey-b", AT, BEFORE, AFTER)
+        for threshold in ("0", "0.000", "2.500", "1000000"):
+            value = float(threshold)
+            selected = {**source, "entities": [
+                row for row in source["entities"]
+                if row["earlier_to_later_change_km"] is not None and
+                abs(row["earlier_to_later_change_km"]["nearest_km"]) >= value]}
+            for fmt, expected in (("json", selected),
+                                  ("geojson", comparison_geojson(selected))):
+                with self.subTest(threshold=threshold, format=fmt):
+                    status, _, raw = self.fetch({
+                        **self.knowledge(), "format": fmt, "min_change_km": threshold})
+                    self.assertEqual(status, 200)
+                    self.assertEqual(json.loads(raw), expected)
+            status, _, raw = self.fetch({
+                **self.knowledge(), "format": "csv", "min_change_km": threshold})
+            self.assertEqual(status, 200)
+            self.assertEqual(raw.decode("utf-8"), comparison_csv(selected))
+
+    def test_min_distance_threshold_combines_with_direction_entity_before_top(self):
+        initial = compare_source_pair(self.world, "survey-a", "survey-b", AT, BEFORE, AFTER)
+        entity = {**initial, "entities": [
+            row for row in initial["entities"] if row["entity"] == "site-1"]}
+        directed = filter_source_pair_direction(entity, "diverging")
+        material = {**directed, "entities": [
+            row for row in directed["entities"] if
+            row["earlier_to_later_change_km"] is not None]}
+        expected = top_nearest_source_pair_changes(material, 1)
+        status, _, raw = self.fetch({
+            **self.knowledge(), "format": "json", "entity": "site-1",
+            "direction": "diverging", "min_change_km": "0", "top": "1"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw), expected)
+
+    def test_min_distance_threshold_native_form_and_empty_accessible_table(self):
+        status, _, form = self.fetch()
+        self.assertEqual(status, 200)
+        self.assertIn(b'name="min_change_km"', form)
+        status, _, html = self.fetch({
+            **self.knowledge(), "format": "table", "min_change_km": "1000000"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"NO MATCHING COMPARABLE SOURCE EVIDENCE", html)
+        self.assertIn(b"min_change_km=1000000", html)
+
+    def test_min_distance_threshold_blank_native_optional_field(self):
+        status, _, raw = self.fetch({
+            **self.knowledge(), "format": "json", "min_change_km": ""})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw), compare_source_pair(
+            self.world, "survey-a", "survey-b", AT, BEFORE, AFTER))
+
+    def test_min_distance_threshold_rejects_invalid_numeric_input(self):
+        for text in ("-1", "nan", "inf", "1e3", "1.2345", "01", ".5",
+                     "1000000.001", "1000001", "0\nHost: evil", "<script>"):
+            with self.subTest(value=text):
+                status, _, raw = self.fetch({
+                    **self.knowledge(), "format": "json", "min_change_km": text})
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+
 if __name__ == "__main__":
     unittest.main()
