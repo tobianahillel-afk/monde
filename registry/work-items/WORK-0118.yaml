@@ -1,0 +1,44 @@
+id: WORK-0118
+title: "Export original entity reporter assertions across both cutoffs"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Allow investigators to export every selected original reporter Point for
+  one entity at both temporal cutoffs as an evidence-level CSV, instead of
+  downloading only per-reporter summary coverage.
+scope:
+  in: ["Read-only original reporter assertion CSV", "Exact entity", "Both time axes", "Original provenance"]
+  out: ["New service", "Inferred ground truth", "World Model mutation", "Paid dependencies"]
+acceptance_criteria:
+  - {id: AC-1, description: "Export original assertion and evidence IDs, coordinates, source and both cutoffs.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Preserve current GeoJSON evidence selection and untouched saved snapshots.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Require exact entity and reject unscoped inputs or invalid combinations.", status: IN_PROGRESS}
+  - {id: AC-4, description: "Offer one-click link from existing source directory.", status: IN_PROGRESS}
+depends_on: [WORK-0117]
+requirements: []
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py]
+reuses: [monde.source_pair_changes.source_directory_entity_geojson, monde.local_api._source_directory_query]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Export exact original reporter evidence CSV through existing local route.", depends_on: [], expected_files: [src/monde/source_pair_changes.py, src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T2, description: "Verify persisted HTTP original evidence, temporal and hostile-input behavior.", depends_on: [T1], expected_files: [tests/test_world_local_source_directory.py], status: READY}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Ancestors remain stacked/unmerged to main."]
