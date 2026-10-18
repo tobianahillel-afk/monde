@@ -785,6 +785,30 @@ def source_directory_entity_presence_kml(world, directory, presence=None):
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
 
 
+
+def source_directory_entity_presence_kmz(world, directory, presence=None):
+    """Portable offline KMZ containing original KML and full source GeoJSON.
+
+    GIS tools open doc.kml. The GeoJSON sidecar retains original evidence
+    properties for machine-readable comparison; neither infers physical truth.
+    """
+    from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
+
+    geojson = source_directory_entity_presence_geojson(world, directory, presence)
+    kml = source_directory_entity_presence_kml(world, directory, presence)
+    original = json.dumps(geojson, ensure_ascii=False, sort_keys=True,
+                          separators=(",", ":"), allow_nan=False).encode("utf-8")
+    output = io.BytesIO()
+    with ZipFile(output, "w") as archive:
+        for name, payload in (("doc.kml", kml),
+                              ("original-presence.geojson", original)):
+            item = ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            item.compress_type = ZIP_DEFLATED
+            item.external_attr = 0o644 << 16
+            archive.writestr(item, payload)
+    return output.getvalue()
+
+
 def source_directory_entity_presence_map(world, directory, presence=None, focus=None):
     """Map original report identities once; optionally select one exact Point.
 
