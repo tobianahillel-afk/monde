@@ -644,3 +644,16 @@ The existing /source-pair directory then leads to source-specific original
 Point evidence and comparison maps, without retyping entity IDs or timestamps.
 These navigation controls make no inference of physical movement, location
 truth or missing-source agreement, and do not mutate the saved WorldMini.
+
+
+## All original reporter assertions CSV (WORK-0118)
+
+From an exact-entity `/source-pair?directory=1` coverage view, select
+**Download all original reporter assertions CSV**. The same read-only local
+route accepts `format=assertions-csv` only with an exact `entity` and no
+source selector. The export reuses the existing two-cutoff entity GeoJSON
+selection: one row per original Point assertion and period, retaining the
+reporter, assertion/evidence IDs, original longitude/latitude and both time
+cutoffs. No comparison consensus, fabricated movement or saved-state mutation.
+The existing summary `format=csv` and source-specific detail exports are
+unchanged. Formula-leading text IDs are escaped for spreadsheet safety.

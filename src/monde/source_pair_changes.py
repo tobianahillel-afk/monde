@@ -550,6 +550,34 @@ def source_directory_entity_geojson(world, directory):
     }
 
 
+
+def source_directory_entity_assertions_csv(world, directory):
+    """One original Point per row, across all selected entity reporters/cutoffs.
+
+    Reuses the already-proven entity GeoJSON selection. CSV is for inspection,
+    not for establishing consensus or transforming stored source assertions.
+    """
+    geojson = source_directory_entity_geojson(world, directory)
+
+    def safe(value):
+        value = str(value)
+        # Quoting CSV cells is insufficient against spreadsheet formulas.
+        return "'" + value if value.startswith(("=", "+", "-", "@", "\t", "\r", "\n")) else value
+
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\r\n")
+    writer.writerow(("entity", "source_id", "period", "world_at", "known_at",
+                     "assertion_id", "evidence_id", "longitude", "latitude"))
+    for feature in geojson["features"]:
+        props = feature["properties"]
+        longitude, latitude = feature["geometry"]["coordinates"]
+        writer.writerow((safe(props["entity"]), safe(props["source_id"]),
+                         props["monde_comparison_period"], props["monde_world_at"],
+                         props["monde_known_at"],
+                         safe(props["monde_original_assertion_id"]),
+                         safe(props["evidence_id"]), longitude, latitude))
+    return output.getvalue()
+
 def source_directory_entity_map(world, directory):
     """Reuse the source Point display envelope, never infer consensus or motion."""
     geojson = source_directory_entity_geojson(world, directory)

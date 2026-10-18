@@ -1291,5 +1291,119 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(saved.read_bytes(), before)
 
 
+    def test_all_original_reporters_assertion_csv_real_http(self):
+        """CSV has each untouched original Point, not summary counts or inferred truth."""
+        query = {**self.knowledge(), "entity": "site-1"}
+        status, _, raw = self.get({**query, "format": "geojson"})
+        self.assertEqual(status, 200)
+        geojson = json.loads(raw)
+        expected = [
+            (p["properties"]["monde_comparison_period"],
+             p["properties"]["source_id"],
+             str(p["properties"]["monde_original_assertion_id"]),
+             p["properties"]["evidence_id"],
+             p["properties"]["monde_world_at"],
+             p["properties"]["monde_known_at"],
+             str(p["geometry"]["coordinates"][0]),
+             str(p["geometry"]["coordinates"][1]))
+            for p in geojson["features"]
+        ]
+        self.assertTrue(expected)
+        status, headers, raw = self.get({**query, "format": "assertions-csv"})
+        self.assertEqual(status, 200)
+        self.assertIn("text/csv", headers["Content-Type"])
+        self.assertIn("original-entity-reporter-assertions.csv",
+                      headers["Content-Disposition"])
+        rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+        self.assertEqual(len(rows), len(expected))
+        actual = [(row["period"], row["source_id"], row["assertion_id"],
+                   row["evidence_id"], row["world_at"], row["known_at"],
+                   row["longitude"], row["latitude"]) for row in rows]
+        self.assertEqual(actual, expected)
+        self.assertEqual({row["entity"] for row in rows}, {"site-1"})
+        status, _, page = self.get(query)
+        self.assertEqual(status, 200)
+        self.assertIn(b"Download all original reporter assertions CSV", page)
+        self.assertIn(b"format=assertions-csv", page)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_assertion_csv_world_axis_and_empty_entity(self):
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "source-assertions-world.json"
+        world.save(saved)
+        before = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            q = {"directory": "1", "axis": "world", "from_at": EARLY,
+                 "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**q, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            entity = json.loads(raw)["sources"][0]["example_entity"]
+            status, _, original = self.get({**q, "entity": entity,
+                                            "format": "geojson"}, server)
+            self.assertEqual(status, 200)
+            status, _, raw = self.get({**q, "entity": entity,
+                                      "format": "assertions-csv"}, server)
+            self.assertEqual(status, 200)
+            rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+            self.assertEqual(len(rows), len(json.loads(original)["features"]))
+            self.assertEqual({row["known_at"] for row in rows}, {KNOWN})
+            self.assertTrue({row["world_at"] for row in rows}.issubset({EARLY, LATE}))
+            status, _, raw = self.get({**q, "entity": "absent-original-entity",
+                                      "format": "assertions-csv"}, server)
+            self.assertEqual(status, 200)
+            self.assertEqual(list(csv.DictReader(io.StringIO(raw.decode("utf-8")))), [])
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+        self.assertEqual(saved.read_bytes(), before)
+
+    def test_assertion_csv_rejects_unscoped_source_and_bad_formats(self):
+        query = self.knowledge()
+        for extra in (
+                {"format": "assertions-csv"},
+                {"format": "assertions-csv", "source": "survey-a"},
+                {"format": "assertions-csv", "source": "survey-a", "entity": "site-1"},
+                {"format": "assertions-csv", "entity": "site-1", "rank": "nonsense"},
+                {"format": "assertions-csv", "entity": "site-1", "extra": "x"}):
+            with self.subTest(extra=extra):
+                status, _, raw = self.get({**query, **extra})
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(raw)["error"], "invalid_query")
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_assertion_csv_escapes_spreadsheet_formula_identifiers(self):
+        from monde.source_pair_changes import source_directory_entity_assertions_csv
+        class Minimal:
+            def export_geojson(self, at, known):
+                return {"features": [{
+                    "id": "=assertion", "geometry": {"type": "Point", "coordinates": [1, 2]},
+                    "properties": {"entity": "=entity", "source_id": "@reporter",
+                                   "evidence_id": "+evidence"}
+                }]}
+        directory = {
+            "schema": "MONDE_SOURCE_COVERAGE_DIRECTORY_V1",
+            "entity_focus": "=entity", "axis": "knowledge",
+            "sources": [{"source_id": "@reporter",
+                         "example_assertion_ids": ["=assertion"]}],
+            "cutoffs": {
+                "earlier": {"world_at": AT, "knowledge_at": BEFORE},
+                "later": {"world_at": AT, "knowledge_at": AFTER},
+            },
+            "interpretation": "original"
+        }
+        output = source_directory_entity_assertions_csv(Minimal(), directory)
+        rows = list(csv.DictReader(io.StringIO(output)))
+        self.assertEqual(len(rows), 2)
+        for row in rows:
+            self.assertEqual(row["entity"], "'=entity")
+            self.assertEqual(row["source_id"], "'@reporter")
+            self.assertEqual(row["assertion_id"], "'=assertion")
+            self.assertEqual(row["evidence_id"], "'+evidence")
+
+
 if __name__ == "__main__":
     unittest.main()
