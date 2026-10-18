@@ -153,6 +153,13 @@ __MONDE_TIME_NAVIGATION__
 <details id="comparison-source-coverage" hidden>
 <summary>Original source coverage by comparison period</summary>
 <p class="subtle">Counts use all original source reports embedded in this comparison, including offscreen evidence. Display filters do not change them. They are NOT evidence of physical agreement, movement or absence.</p>
+<label for="comparison-source-presence">Source reporting across selections</label>
+<select id="comparison-source-presence" aria-label="Filter original sources by earlier and later reporting">
+<option value="">All original sources</option>
+<option value="both">Reported in both selections</option>
+<option value="earlier-only">Reported only in earlier selection</option>
+<option value="later-only">Reported only in later selection</option>
+</select>
 <button type="button" id="comparison-all-sources">Show all original sources</button>
 <button type="button" id="comparison-export-coverage-csv">Export complete source coverage CSV</button>
 <table aria-label="Embedded original reports by source and period">
@@ -661,6 +668,10 @@ __MONDE_TIME_NAVIGATION__
       if(period==="earlier"||period==="later")counts.get(source)[period]++;
     });
     var rows=document.getElementById("comparison-source-rows");
+    var presenceSelect=document.getElementById("comparison-source-presence");
+    presenceSelect.addEventListener("change",function() {
+      sources.value="";render();
+    });
     Array.from(counts.keys()).sort().forEach(function(id) {
       var value=counts.get(id),tr=document.createElement("tr"),cell=document.createElement("td");
       tr.dataset.sourceId=id;
@@ -668,7 +679,9 @@ __MONDE_TIME_NAVIGATION__
       button.type="button";
       button.textContent=id;
       button.setAttribute("aria-label","Show original evidence from source "+id);
-      button.addEventListener("click",function(){sources.value=id;render();});
+      button.addEventListener("click",function(){
+        presenceSelect.value="";sources.value=id;render();
+      });
       cell.appendChild(button);tr.appendChild(cell);
       ["earlier","later"].forEach(function(period) {
         var td=document.createElement("td"),count=value[period];
@@ -678,7 +691,7 @@ __MONDE_TIME_NAVIGATION__
           jump.textContent=String(count);
           jump.setAttribute("aria-label","Show "+period+" original reports from source "+id);
           jump.addEventListener("click",function(){
-            sources.value=id;comparisonPeriod.value=period;render();
+            presenceSelect.value="";sources.value=id;comparisonPeriod.value=period;render();
           });
           td.appendChild(jump);
         }else{
@@ -716,7 +729,7 @@ __MONDE_TIME_NAVIGATION__
         "monde-original-source-period-coverage.csv","text/csv;charset=utf-8");
     });
     document.getElementById("comparison-all-sources").addEventListener("click",function() {
-      sources.value="";render();
+      sources.value="";presenceSelect.value="";render();
     });
     document.getElementById("comparison-source-total").textContent =
       String(counts.size)+" original sources · "+String(features.length)+
@@ -1128,6 +1141,14 @@ __MONDE_TIME_NAVIGATION__
       (!insideOnly.checked || inSelection(p)) &&
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
+      (!data.monde_comparison || !presenceSelect.value ||
+        (counts.has(p.source_id) && (
+          (presenceSelect.value==="both" && counts.get(p.source_id).earlier>0 &&
+            counts.get(p.source_id).later>0) ||
+          (presenceSelect.value==="earlier-only" && counts.get(p.source_id).earlier>0 &&
+            counts.get(p.source_id).later===0) ||
+          (presenceSelect.value==="later-only" && counts.get(p.source_id).earlier===0 &&
+            counts.get(p.source_id).later>0)))) &&
       (!data.monde_comparison || !comparisonPeriod.value ||
        p.monde_comparison_period === comparisonPeriod.value) &&
       (!p.monde_gpkg_source_layer || gpkgLayers.length <= 1 ||
@@ -1295,7 +1316,8 @@ __MONDE_TIME_NAVIGATION__
     if (data.monde_comparison) {
       comparisonPeriodSummary.textContent = String(visibleFeatures.length) +
         " original source reports currently shown (" +
-        (comparisonPeriod.value || "both periods") + "). " +
+        (comparisonPeriod.value || "both periods") + "; " +
+        (presenceSelect.value || "all source-coverage classes") + "). " +
         "The complete earlier/later evidence remains embedded and unchanged; " +
         "hiding a report is not proof of its absence or verified movement.";
     }
@@ -1407,6 +1429,7 @@ __MONDE_TIME_NAVIGATION__
     return {
       search: search.value.trim(),
       source_id: sources.value,
+      comparison_source_presence: data.monde_comparison ? presenceSelect.value : null,
       comparison_period: data.monde_comparison ? comparisonPeriod.value : null,
       gpkg_visible_source_ids: gpkgLayers.length > 1 ?
         Array.from(visibleGpkgSources).sort() : null,

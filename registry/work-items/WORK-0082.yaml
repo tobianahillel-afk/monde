@@ -13,6 +13,7 @@ purpose: |
 scope:
   in: ["Earlier/later original source evidence counts", "Source-to-map navigation",
        "Complete source-by-period coverage CSV export",
+       "Browse source reporting classes across comparison periods",
        "Offline browser and saved-state regression tests"]
   out: ["Verified movement or consensus", "New endpoint or data store",
         "External network calls", "Independent inferred evidence"]

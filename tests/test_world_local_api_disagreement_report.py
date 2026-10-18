@@ -1452,6 +1452,14 @@ document.body.setAttribute("data-count-both",String(count("")));
             entry = actual.setdefault(source, {"earlier": 0, "later": 0})
             entry[period] += 1
         self.assertGreaterEqual(len(actual), 2)
+        class_counts = {
+            "both": sum(v["earlier"] + v["later"] for v in actual.values()
+                        if v["earlier"] and v["later"]),
+            "earlier-only": sum(v["earlier"] for v in actual.values()
+                                if v["earlier"] and not v["later"]),
+            "later-only": sum(v["later"] for v in actual.values()
+                              if v["later"] and not v["earlier"]),
+        }
         expected = "|".join(
             f"{name}:{actual[name]['earlier']}:{actual[name]['later']}"
             for name in sorted(actual))
@@ -1490,8 +1498,17 @@ periodSelect.value="later";
 periodSelect.dispatchEvent(new Event("change"));
 body.dataset.coverageAfterFiltering=String(
   document.getElementById("comparison-source-total").textContent===originalCount);
+const presence=document.getElementById("comparison-source-presence");
+sourceSelect.value="";periodSelect.value="";
+["both","earlier-only","later-only"].forEach(function(group){
+  presence.value=group;presence.dispatchEvent(new Event("change"));
+  body.dataset["coverageGroup"+group.replace("-","")]=
+    document.getElementById("comparison-period-summary").textContent.split(" original")[0];
+});
 document.getElementById("comparison-all-sources").click();
-body.dataset.sourceAfterReset=String(sourceSelect.value==="");
+body.dataset.sourceAfterReset=String(sourceSelect.value===""&&presence.value==="");
+body.dataset.coverageGroupReset=document.getElementById("comparison-period-summary")
+  .textContent.split(" original")[0];
 </script>"""
         output = Path(self.folder.name) / "coverage-comparison-offline.html"
         output.write_text(html.replace("</body>", probe + "</body>"), encoding="utf-8")
@@ -1509,6 +1526,11 @@ body.dataset.sourceAfterReset=String(sourceSelect.value==="");
         self.assertIn('data-zero-cells-plain="true"', rendered)
         self.assertIn('data-coverage-after-filtering="true"', rendered)
         self.assertIn('data-source-after-reset="true"', rendered)
+        for group, expected_count in class_counts.items():
+            attr = "coverage-group-" + group.replace("-", "")
+            self.assertIn(f'data-{attr}="{expected_count}"', rendered)
+        self.assertIn('data-coverage-group-reset="' +
+                      str(len(embedded["features"])) + '"', rendered)
         self.assertEqual(self.path.read_bytes(), self.before)
 
     def test_comparison_source_coverage_is_not_active_on_regular_maps(self):
@@ -1562,6 +1584,8 @@ document.getElementById("sources").value=rows[0].dataset.sourceId;
 document.getElementById("sources").dispatchEvent(new Event("change"));
 document.getElementById("comparison-period").value="later";
 document.getElementById("comparison-period").dispatchEvent(new Event("change"));
+const presence=document.getElementById("comparison-source-presence");
+presence.value="earlier-only";presence.dispatchEvent(new Event("change"));
 document.getElementById("comparison-export-coverage-csv").click();
 body.dataset.coverageCsvDisplayFilter=document.getElementById("comparison-period").value;
 </script>"""

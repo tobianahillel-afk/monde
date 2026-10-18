@@ -557,6 +557,12 @@ comes from **all original source reports embedded in the selected comparison**,
 not viewport, search, source or period display filters. Choosing a source
 filters the visible map to that source; clicking a nonzero **Earlier** or **Later**
 count selects that source and its original evidence period in one action.
+A **Source reporting across selections** selector filters the offline map to
+sources present in both selections, only the earlier selection, or only the
+later selection. It classifies the entire embedded original report selection
+before display filters. Choosing a source row clears this group selector;
+**Show all original sources** clears both source and coverage-class filters.
+No absent report can establish physical absence.
 Zero counts are not links and do not imply physical absence.
 **Show all original sources**
 clears only the source display selection; neither operation mutates the
