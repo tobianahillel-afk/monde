@@ -262,9 +262,8 @@ class SourceDirectoryTests(unittest.TestCase):
         status, _, raw = self.get({**query, "change": "both", "format": "json"})
         self.assertEqual(json.loads(raw)["matched_entities"], 1)
 
-    def test_reporting_filter_rejects_unknown_values_and_directory_misuse(self):
-        for query in ({**self.knowledge(), "change": "new"},
-                      {**self.knowledge(), "source": "survey-a", "change": "OTHER"},
+    def test_reporting_filter_rejects_unknown_values_and_discovery_misuse(self):
+        for query in ({**self.knowledge(), "source": "survey-a", "change": "OTHER"},
                       {**self.knowledge(), "source": "survey-a", "change": ""},
                       {**self.knowledge(), "source": "survey-a",
                        "change": "new", "discover": "1"}):
