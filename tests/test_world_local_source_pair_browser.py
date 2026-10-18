@@ -453,9 +453,16 @@ class LocalSourcePairBrowserTests(unittest.TestCase):
         self.assertIn(b"NO MATCHING COMPARABLE SOURCE EVIDENCE", html)
         self.assertIn(b"min_change_km=1000000", html)
 
+    def test_min_distance_threshold_blank_native_optional_field(self):
+        status, _, raw = self.fetch({
+            **self.knowledge(), "format": "json", "min_change_km": ""})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw), compare_source_pair(
+            self.world, "survey-a", "survey-b", AT, BEFORE, AFTER))
+
     def test_min_distance_threshold_rejects_invalid_numeric_input(self):
         for text in ("-1", "nan", "inf", "1e3", "1.2345", "01", ".5",
-                     "1000000.001", "1000001", "0\nHost: evil", "<script>", ""):
+                     "1000000.001", "1000001", "0\nHost: evil", "<script>"):
             with self.subTest(value=text):
                 status, _, raw = self.fetch({
                     **self.knowledge(), "format": "json", "min_change_km": text})
