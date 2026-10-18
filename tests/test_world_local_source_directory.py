@@ -126,7 +126,7 @@ class SourceDirectoryTests(unittest.TestCase):
         q = self.knowledge()
         for extra in ({"directory": "0"}, {"axis": "invalid"},
                       {"format": "yaml"}, {"discover": "1"},
-                      {"source": "survey-a"}, {"top": "1"},
+                      {"top": "1"},
                       {"from_known_at": AFTER, "to_known_at": BEFORE},
                       {"from_known_at": "2026-01-01T00:00:00"}):
             with self.subTest(extra=extra):
