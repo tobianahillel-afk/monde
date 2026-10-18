@@ -740,14 +740,14 @@ __MONDE_TIME_NAVIGATION__
       });
       // Inspect every original source assertion by entity across both periods.
       // Build from complete embedded evidence, never from filtered map markers.
-      var inspect=document.createElement("button"),expanded=null;
-      inspect.type="button";inspect.textContent="Compare entities";
-      inspect.setAttribute("aria-expanded","false");
-      inspect.setAttribute("aria-label","Compare original entity reports for source "+id);
-      inspect.addEventListener("click",function(){
+      var compareEntitiesButton=document.createElement("button"),expanded=null;
+      compareEntitiesButton.type="button";compareEntitiesButton.textContent="Compare entities";
+      compareEntitiesButton.setAttribute("aria-expanded","false");
+      compareEntitiesButton.setAttribute("aria-label","Compare original entity reports for source "+id);
+      compareEntitiesButton.addEventListener("click",function(){
         if(expanded){
           expanded.remove();expanded=null;
-          inspect.setAttribute("aria-expanded","false");return;
+          compareEntitiesButton.setAttribute("aria-expanded","false");return;
         }
         var entities=new Map();
         features.forEach(function(f){
@@ -873,11 +873,11 @@ __MONDE_TIME_NAVIGATION__
         });
         cell.appendChild(list);expanded.appendChild(cell);
         tr.insertAdjacentElement("afterend",expanded);
-        inspect.setAttribute("aria-expanded","true");
+        compareEntitiesButton.setAttribute("aria-expanded","true");
       });
       exportCell.appendChild(exportSource);
       exportCell.appendChild(csvButton);
-      exportCell.appendChild(inspect);
+      exportCell.appendChild(compareEntitiesButton);
       tr.appendChild(exportCell);
       rows.appendChild(tr);
     });
