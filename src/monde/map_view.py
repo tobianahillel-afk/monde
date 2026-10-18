@@ -728,7 +728,19 @@ __MONDE_TIME_NAVIGATION__
           }
         }),"monde-original-source-both-periods.geojson","application/geo+json");
       });
-      exportCell.appendChild(exportSource);tr.appendChild(exportCell);
+      // Reuse complete-period CSV, scoped to this original source; UI filters do not apply.
+      var csvButton=document.createElement("button");
+      csvButton.type="button";
+      csvButton.textContent="Download CSV";
+      csvButton.setAttribute("aria-label","Download both periods of original CSV evidence from source "+id);
+      csvButton.addEventListener("click",function() {
+        var reports=features.filter(function(f){return f.properties.source_id===id;});
+        saveDownload(completeComparisonCsv(reports),
+          "monde-original-source-both-periods.csv","text/csv;charset=utf-8");
+      });
+      exportCell.appendChild(exportSource);
+      exportCell.appendChild(csvButton);
+      tr.appendChild(exportCell);
       rows.appendChild(tr);
     });
     // Download exactly the embedded original source selection, not a derivative

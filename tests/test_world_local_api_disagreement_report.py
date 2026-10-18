@@ -1643,6 +1643,21 @@ body.dataset.sourceDownloadButton=String(Boolean(row && row.children[5]
   .querySelector("button")));
 const NativeBlob=window.Blob;
 window.Blob=function(parts,options){
+  if(options && options.type && options.type.startsWith("text/csv")){
+    const csv=String(parts[0]),lines=csv.replace(/^\uFEFF/,"").trimEnd().split("\r\n");
+    const assertions=expected.map(f=>String(f.properties.assertion_id||
+      f.properties.monde_original_feature_id));
+    body.dataset.sourceCsvIntegrity=String(
+      lines.length===expected.length+1 &&
+      lines[0].includes("assertion_id") &&
+      lines[0].includes("source_id") &&
+      lines[0].includes("period") &&
+      lines[0].includes("export_scope") &&
+      lines.slice(1).every(line=>line.includes('"'+source.replace(/"/g,'""')+'"')) &&
+      assertions.every(id=>csv.includes('"'+id.replace(/"/g,'""')+'"')) &&
+      csv.includes("COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED"));
+    return new NativeBlob(parts,options);
+  }
   const output=JSON.parse(String(parts[0]));
   const meta=output.monde_source_period_export;
   body.dataset.sourceDownloadIntegrity=String(
@@ -1657,7 +1672,8 @@ window.Blob=function(parts,options){
   return new NativeBlob(parts,options);
 };
 HTMLAnchorElement.prototype.click=function(){
-  body.dataset.sourceDownloadFilename=this.download;
+  if(this.download.endsWith(".csv"))body.dataset.sourceCsvFilename=this.download;
+  else body.dataset.sourceDownloadFilename=this.download;
 };
 const selection=document.getElementById("sources");
 selection.value=source;selection.dispatchEvent(new Event("change"));
@@ -1666,6 +1682,7 @@ period.value="later";period.dispatchEvent(new Event("change"));
 const search=document.getElementById("report-search");
 search.value="no-visible-match";search.dispatchEvent(new Event("input"));
 row.children[5].querySelector("button").click();
+row.children[5].querySelectorAll("button")[1].click();
 body.dataset.sourceDownloadPeriodUnchanged=String(period.value==="later");
 </script>"""
         probe = (probe.replace("__SOURCE__", json.dumps(source))
@@ -1684,6 +1701,8 @@ body.dataset.sourceDownloadPeriodUnchanged=String(period.value==="later");
         self.assertIn('data-source-download-button="true"', rendered)
         self.assertIn('data-source-download-integrity="true"', rendered)
         self.assertIn('data-source-download-period-unchanged="true"', rendered)
+        self.assertIn('data-source-csv-integrity="true"', rendered)
+        self.assertIn('data-source-csv-filename="monde-original-source-both-periods.csv"', rendered)
         self.assertIn('data-source-download-filename="monde-original-source-both-periods.geojson"',
                       rendered)
         self.assertEqual(self.path.read_bytes(), self.before)
