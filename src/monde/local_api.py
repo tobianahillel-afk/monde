@@ -1004,7 +1004,7 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
              '<input name="source" list="pair-ids" placeholder="Discover its partners"></label>'
              '<label>Rank by <select name="rank">'
             '<option value="separation">Largest reported separation</option>'
-            '<option value="separation">Largest reported separation</option>'
+            '<option value="coverage">Most jointly observed entities</option>'
             '<option value="increasing">Increasing distance, matched entity</option>'
             '<option value="decreasing">Decreasing distance, matched entity</option>'
             '</select></label>'
