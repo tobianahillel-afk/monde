@@ -97,7 +97,7 @@ truth. No external requests, data upload or saved-state changes.</p>
 """ + source_hint + """
 <datalist id="saved-original-sources">""" + suggestions + """</datalist>
 <main>""" + ''.join(forms) + """</main>
-<p><a href="/inspect">Inspect original entity reports and source histories</a> · <a href="/sources">Browse original Point sources</a></p>
+<p><a href="/inspect">Inspect original entity reports and source histories</a></p>
 <p>Local read-only interface. Time cutoffs must be timezone-aware ISO-8601.</p>
 </body></html>"""
 
@@ -314,13 +314,13 @@ def _parameters(target: str, path: str) -> dict[str, str]:
         raise ValueError("invalid request path")
     values = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
                       max_num_fields=8)
-    if any(len(v) != 1 or (not v[0] and key not in ("source", "prefix"))
+    if any(len(v) != 1 or (not v[0] and key != "source")
            for key, v in values.items()):
         raise ValueError("all parameters must appear exactly once")
     # Browser GET forms submit empty optional controls: treat blank source as
     # no filter, but keep every other parameter strict.
     return {key: items[0] for key, items in values.items()
-            if key not in ("source", "prefix") or items[0]}
+            if key != "source" or items[0]}
 
 
 def _require(values: dict[str, str], required: set[str],
@@ -430,82 +430,6 @@ def _filter_disagreement_source(document: dict, source: str | None) -> dict:
             "monde_source_filter_scope": "SELECTED_SOURCE_INSIDE_BBOX_KEEP_OPPONENTS"}
 
 
-
-def _source_catalog_html(world: WorldMini, source_ids: tuple[str, ...],
-                         params: dict[str, str]) -> str:
-    """Browse original surviving Point assertions without inferring truth."""
-    at, known_at = params.get("at"), params.get("known_at")
-    prefix, after = params.get("prefix", ""), params.get("after", "")
-    for key in (prefix, after):
-        if key and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}", key):
-            raise ValueError("invalid source selector")
-    form = ('<form method="get" action="/sources">'
-            '<label>World time <input name="at" required value="' +
-            escape(at or "", quote=True) + '"></label>'
-            '<label>Knowledge cutoff <input name="known_at" required value="' +
-            escape(known_at or "", quote=True) + '"></label>'
-            '<label>Source prefix (optional) <input name="prefix" value="' +
-            escape(prefix, quote=True) + '"></label>'
-            '<button>Find original sources</button></form>')
-    rows = []
-    footer = '<p>Choose both times to browse original source reports.</p>'
-    if at is not None and known_at is not None:
-        # Existing WorldMini handles supersession and both temporal cutoffs.
-        map_data = world.export_geojson_bbox([-180, -90, 180, 90], at, known_at)
-        records = {}
-        for feature in map_data["features"]:
-            prop = feature["properties"]
-            item = records.setdefault(prop["source_id"],
-                                      {"entities": set(), "ids": set(), "points": []})
-            item["entities"].add(prop["entity"])
-            item["ids"].add(prop["assertion_id"])
-            item["points"].append(feature["geometry"]["coordinates"])
-        matching = [s for s in source_ids if s.startswith(prefix) and s > after]
-        selected = matching[:100]
-        for source in selected:
-            info = records.get(source, {"entities": set(), "ids": set(), "points": []})
-            history = "/inspect?" + urlencode({
-                "view": "source-history", "source": source, "known_at": known_at})
-            links = '<a href="' + escape(history, quote=True) + '">History</a>'
-            points = info["points"]
-            if points:
-                # Shortest circular arc preserves source positions across ±180°.
-                lons = sorted((point[0] + 180) % 360 for point in points)
-                gaps = [(lons[i + 1] - lons[i], i) for i in range(len(lons) - 1)]
-                gaps.append((lons[0] + 360 - lons[-1], len(lons) - 1))
-                gap, index = max(gaps)
-                if 360 - gap <= 180:
-                    west = (lons[(index + 1) % len(lons)] - 0.02) % 360 - 180
-                    east = (lons[index] + 0.02) % 360 - 180
-                    south = max(-90, min(point[1] for point in points) - 0.02)
-                    north = min(90, max(point[1] for point in points) + 0.02)
-                    url = "/viewer?" + urlencode({
-                        "view": "current", "bbox": ",".join(map(str, (west, south, east, north))),
-                        "at": at, "known_at": known_at, "source": source})
-                    links += ' · <a href="' + escape(url, quote=True) + '">Map</a>'
-            rows.append('<tr><td>' + escape(source) + '</td><td>' +
-                        str(len(info["entities"])) + '</td><td>' +
-                        str(len(info["ids"])) + '</td><td>' + links + '</td></tr>')
-        footer = ('<p>' + str(len(source_ids)) + ' saved source IDs; ' +
-                  str(len(selected)) + ' on this page. Counts are original '
-                  'surviving Point assertions, not physical truth or reliability.</p>')
-        if len(matching) > len(selected):
-            url = "/sources?" + urlencode({
-                "at": at, "known_at": known_at, "prefix": prefix, "after": selected[-1]})
-            footer += '<a href="' + escape(url, quote=True) + '">Next 100 sources</a>'
-    return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
-            '<title>MONDE Mini — Original Point sources</title><style>'
-            ':root{color-scheme:dark;background:#101827;color:#ebf2f9;'
-            'font-family:system-ui,sans-serif}body{max-width:1000px;margin:auto;padding:24px}'
-            'a{color:#8ee6d3}input,button{padding:8px;margin:5px}'
-            'table{width:100%;border-collapse:collapse}td,th{padding:10px;'
-            'border-bottom:1px solid #48677e;text-align:left;overflow-wrap:anywhere}'
-            '</style></head><body><nav><a href="/explore">Back to explorer</a></nav>'
-            '<h1>Original Point sources</h1>' + form + footer +
-            '<table><tr><th>Source</th><th>Entities</th><th>Reports</th>'
-            '<th>Original evidence</th></tr>' + ''.join(rows) + '</table></body></html>')
-
-
 def create_server(state: str | Path, port: int = 0, *,
                   max_response_bytes: int = MAX_RESPONSE_BYTES) -> ThreadingHTTPServer:
     """Load once, then serve queries only on 127.0.0.1. No state writes."""
@@ -569,25 +493,6 @@ def create_server(state: str | Path, port: int = 0, *,
             self.end_headers()
             self.wfile.write(body)
 
-        def _sources(self, args: dict[str, str]):
-            body = _source_catalog_html(world, map_source_ids, args).encode("utf-8")
-            if len(body) > max_response_bytes:
-                return self._reply(413, {"error": "response_too_large"})
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("X-Content-Type-Options", "nosniff")
-            self.send_header("X-Frame-Options", "DENY")
-            self.send_header("Referrer-Policy", "no-referrer")
-            self.send_header("Content-Security-Policy",
-                             "default-src 'none'; script-src 'none'; "
-                             "style-src 'unsafe-inline'; connect-src 'none'; "
-                             "img-src 'none'; object-src 'none'; base-uri 'none'; "
-                             "frame-ancestors 'none'; form-action 'self'")
-            self.end_headers()
-            self.wfile.write(body)
-
         def _inspection(self, payload: dict | None, mode: str | None = None,
                         params: dict[str, str] | None = None):
             body = _inspection_html(payload, mode, params).encode("utf-8")
@@ -627,7 +532,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/compare-world", "/source-history", "/disagreement-changes",
                             "/knowledge-updates", "/knowledge-timeline",
                             "/world-knowledge-changes", "/map-disagreements",
-                            "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore", "/inspect", "/sources"}:
+                            "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore", "/inspect"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -747,10 +652,6 @@ def create_server(state: str | Path, port: int = 0, *,
                 elif path == "/explore":
                     _require(args, set())
                     return self._html(None)
-                elif path == "/sources":
-                    if args:
-                        _require(args, {"at", "known_at"}, {"prefix", "after"})
-                    return self._sources(args)
                 elif path == "/viewer":
                     # The same browser-ready, self-contained map as the
                     # existing offline CLI, at caller-selected time cutoffs.
