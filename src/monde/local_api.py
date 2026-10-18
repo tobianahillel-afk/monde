@@ -11,6 +11,7 @@ import io
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import math
 import re
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlsplit
@@ -320,14 +321,14 @@ def _parameters(target: str, path: str) -> dict[str, str]:
     if parsed.path != path or parsed.fragment:
         raise ValueError("invalid request path")
     values = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
-                      max_num_fields=11)
-    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top", "min_change_km"})
+                      max_num_fields=12)
+    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top", "min_change_km", "bbox"})
            for key, v in values.items()):
         raise ValueError("all parameters must appear exactly once")
     # Browser GET forms submit empty optional controls: treat blank source as
     # no filter, but keep every other parameter strict.
     return {key: items[0] for key, items in values.items()
-            if key not in {"source", "entity", "direction", "top", "min_change_km"} or items[0]}
+            if key not in {"source", "entity", "direction", "top", "min_change_km", "bbox"} or items[0]}
 
 
 def _require(values: dict[str, str], required: set[str],
@@ -950,6 +951,8 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
                      '<label>Source B <input name="source_b" list="pair-ids" required></label>'
                       '<label>Entity ID (optional; one original-report entity)'
                       '<input name="entity"></label>'
+                       '<label>Geographic region (optional WGS84 west,south,east,north)'
+                       '<input name="bbox" placeholder="-5,40,10,52"></label>'
                      + inputs +
                       '<label>Output <select name="format">'
                       '<option value="html">Offline evidence map</option><option value="table">Accessible source-pair evidence table</option>'
@@ -1078,7 +1081,11 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
         '<p>' + export_link("html", "Open comparison map") + " · " +
         export_link("json", "Canonical JSON") + " · " +
         export_link("geojson", "Original Point GeoJSON") + " · " +
-        export_link("csv", "Download complete evidence CSV") + "</p>"
+        export_link("csv", "Download complete evidence CSV") + "</p>" +
+        ('<p>Geographic focus: original Point inside ' +
+         escape(str(document["spatial_filter"]["bbox"])) +
+         ' in either period; complete original reports remain available.</p>'
+         if "spatial_filter" in document else "") +
         '<p>Entities: ' + str(len(document["entities"])) + "</p>"
         '<table><caption>Source-reported separation at earlier and later cutoffs'
         '</caption><thead><tr><th scope="col">Entity &amp; evidence dossier</th>'
@@ -1100,7 +1107,7 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
         filter_source_pair_direction, top_nearest_source_pair_changes)
     _id(args.get("source_a"))
     _id(args.get("source_b"))
-    extra = {"format", "direction", "top", "entity", "min_change_km"}
+    extra = {"format", "direction", "top", "entity", "min_change_km", "bbox"}
     if args.get("axis") == "knowledge":
         _require(args, {"axis", "source_a", "source_b",
                         "at", "from_known_at", "to_known_at"}, extra)
@@ -1115,6 +1122,34 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
             args["to_at"], args["known_at"])
     else:
         raise ValueError("unknown source-pair comparison axis")
+    if "bbox" in args:
+        # Qualify by either source's original Point at either cutoff; retain
+        # all original reports for a selected entity, including outside bounds.
+        west, south, east, north = bounds = _bbox(args["bbox"])
+        if (not all(math.isfinite(v) for v in bounds)
+                or not (-180 <= west <= 180 and -180 <= east <= 180
+                        and -90 <= south <= north <= 90)):
+            raise ValueError("invalid WGS84 geographic focus")
+
+        def inside(original: dict) -> bool:
+            lon, lat = original["geometry"]["coordinates"]
+            within_lon = (west <= lon <= east if west <= east
+                          else lon >= west or lon <= east)
+            return within_lon and south <= lat <= north
+
+        selected = [
+            row for row in output["entities"]
+            if any(inside(original)
+                   for period in ("earlier", "later")
+                   for field in ("source_a_original_reports", "source_b_original_reports")
+                   for original in row[period][field])
+        ]
+        output = {**output, "entities": selected, "spatial_filter": {
+            "bbox": bounds,
+            "basis": "ANY_ORIGINAL_SOURCE_POINT_IN_EITHER_PERIOD",
+            "total_entities": len(output["entities"]),
+            "matching_entities": len(selected),
+        }}
     if "entity" in args:
         _id(args["entity"])
         # Select one original entity before direction or top-N ranking.

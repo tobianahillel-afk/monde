@@ -214,7 +214,7 @@ def comparison_geojson(document):
                         "type": "Feature", "id": f"{period}:{len(features)}",
                         "geometry": original["geometry"], "properties": properties,
                     })
-    return {
+    result = {
         "type": "FeatureCollection", "features": features,
         "monde_comparison": {
             "schema": "MONDE_SOURCE_PAIR_GEOJSON_V1",
@@ -228,6 +228,9 @@ def comparison_geojson(document):
             "direction_filter": document.get("direction_filter"),
         },
     }
+    if "spatial_filter" in document:
+        result["monde_comparison"]["spatial_filter"] = document["spatial_filter"]
+    return result
 
 
 def source_pair_direction(row):

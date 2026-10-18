@@ -221,3 +221,31 @@ The HTML output is a server-rendered, accessible plain table without scripts or 
 ## Minimum material original-source separation change (WORK-0100)
 
 The existing `/source-pair` native form accepts optional `min_change_km=2.5` for both world-validity and knowledge-time comparisons. Original entity, direction and minimum absolute nearest-separation change filters apply **before** top-N ranking. Only entities with comparable earlier **and** later source-reported separations qualify; missing comparisons remain UNKNOWN and are not treated as zero. The same selection is reflected in the HTML/map, accessible table, JSON, GeoJSON and CSV. No new route, distance algorithm, persistence mutation or hosted dependency.
+
+## Original source-pair geographic focus (WORK-0101)
+
+The existing read-only `GET /source-pair` browser forms accept an optional
+`bbox=west,south,east,north` WGS84 longitude/latitude rectangle. Both
+knowledge-time and world-validity comparisons support this. West greater
+than east selects an antimeridian-wrapping rectangle.
+
+An entity qualifies only when **either original selected source reports a
+Point within the rectangle at the earlier or later cutoff**. Selection happens
+before direction, minimum absolute change and top-N filtering. **All original
+Point reports from both sources at both cutoffs remain in the selected row**,
+including any reported coordinates outside the rectangle. Thus the filter
+cannot manufacture apparent agreement or hide conflicting evidence in the
+selected entity. It never infers physical movement, estimated position,
+accuracy, source credibility or ground truth.
+
+With `bbox`, JSON adds a `spatial_filter` object with the original numeric
+bounds, selection basis and counts. GeoJSON includes the same metadata as
+`monde_comparison.spatial_filter`, retaining every original feature's
+source/assertion/evidence provenance. The accessible table displays the
+geographic focus; current map, CSV and JSON routes remain the same.
+Without `bbox`, output behavior and schemas are unchanged.
+
+Blank optional bbox fields submitted by the browser mean no filter.
+Malformed, nonfinite, out-of-WGS84 or inverted latitude values return 400.
+This is entirely local, read-only, dependency-free, with unchanged saved
+WorldMini bytes. Draft stacked on WORK-0100, not merged into `main`.
