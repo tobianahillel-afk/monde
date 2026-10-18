@@ -1000,7 +1000,9 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             '<input type="hidden" name="discover" value="1">'
             '<input type="hidden" name="axis" value="' + axis + '">'
             + inputs +
-            '<label>Rank by <select name="rank">'
+            '<label>Original source to investigate (optional)'
+             '<input name="source" list="pair-ids" placeholder="Discover its partners"></label>'
+             '<label>Rank by <select name="rank">'
             '<option value="separation">Largest reported separation</option>'
             '<option value="increasing">Increasing distance, matched entity</option>'
             '<option value="decreasing">Decreasing distance, matched entity</option>'
@@ -1156,12 +1158,12 @@ def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid discovery format")
     if args.get("axis") == "knowledge":
         _require(args, {"discover", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format", "top", "rank"})
+                 {"format", "top", "rank", "source"})
         cuts = ((args["at"], args["from_known_at"]),
                 (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"discover", "axis", "from_at", "to_at", "known_at"},
-                 {"format", "top", "rank"})
+                 {"format", "top", "rank", "source"})
         cuts = ((args["from_at"], args["known_at"]),
                 (args["to_at"], args["known_at"]))
     else:
@@ -1169,15 +1171,18 @@ def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
     raw_top = args.get("top", "25")
     if not re.fullmatch(r"[1-9][0-9]{0,2}", raw_top) or int(raw_top) > 100:
         raise ValueError("invalid discovery top")
+    if "source" in args:
+        _id(args["source"])
     return discover_source_pairs(world, args["axis"], cuts, int(raw_top),
-                                 args.get("rank", "separation"))
+                                 args.get("rank", "separation"),
+                                 args.get("source"))
 
 
 def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
     rows = []
     for pair in document["pairs"]:
         params = {k: v for k, v in args.items()
-                  if k not in ("discover", "top", "format", "rank")}
+                  if k not in ("discover", "top", "format", "rank", "source")}
         params.update(source_a=pair["source_a"], source_b=pair["source_b"],
                       format="table")
         link = "/source-pair?" + urlencode(params)
@@ -1203,7 +1208,10 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
         '<h1>Geographic differences between original reporters</h1>'
         '<p>' + escape(document["interpretation"]) + '</p>'
         '<p>' + escape(document["axis"]) + " time; " +
-        str(document["total_pairs"]) + ' observed pairs.</p>'
+        str(document["total_pairs"]) + ' observed pairs.</p>' +
+        ('<p>Original reporter focus: ' + escape(document["source_focus"]) +
+         '; only independently reported partners are ranked.</p>'
+         if "source_focus" in document else '')
         '<table><caption>Ranked original source separations and temporal changes'
         '</caption><thead><tr><th scope="col">Open complete source evidence</th>'
         '<th scope="col">Max km</th><th scope="col">Change km</th>'
