@@ -1125,7 +1125,7 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
     _id(args.get("source_a"))
     _id(args.get("source_b"))
     extra = {"format", "direction", "top", "entity", "min_change_km",
-             "bbox", "region_source"}
+             "bbox", "region_source", "region_period"}
     if ("region_source" in args or "region_period" in args) and "bbox" not in args:
         raise ValueError("region options require bbox")
     region_source = args.get("region_source", "either")
