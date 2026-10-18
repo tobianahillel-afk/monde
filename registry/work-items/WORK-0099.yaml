@@ -1,0 +1,50 @@
+id: WORK-0099
+title: "Focus original source-pair comparisons on an exact entity"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source-pair browser"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Let analysts isolate one entity's original reports across a pair of sources
+  and both temporal axes without changing the World Model.
+scope:
+  in: ["Optional exact entity filter on existing /source-pair", "Original HTML/JSON/GeoJSON/CSV", "Real HTTP regression"]
+  out: ["New solver", "New route", "Remote API", "World Model mutation", "Inferred physical truth"]
+acceptance_criteria:
+  - {id: AC-1, description: "Filter entity before direction and top-N on both axes.", status: IN_REVIEW}
+  - {id: AC-2, description: "Preserve original source and evidence information on all formats.", status: IN_REVIEW}
+  - {id: AC-3, description: "Native optional input, strict errors and immutable state verified with real HTTP.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0098]
+read_before: [AGENTS.md, src/monde/local_api.py, src/monde/source_pair_changes.py]
+reuses: [monde.local_api._pair_query, monde.source_pair_changes.compare_source_pair, monde.source_pair_changes.comparison_csv]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add native entity form and exact original-row filtering.", depends_on: [], expected_files: [src/monde/local_api.py], status: IN_REVIEW}
+    - {id: T2, description: "Test original HTTP formats, selection order, errors, and immutable saved state.", depends_on: [T1], expected_files: [tests/test_world_local_source_pair_browser.py], status: IN_REVIEW}
+    - {id: T3, description: "Explain the entity-focused original source comparison.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, EPISTEMIC, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_pair_browser.py]
+  real_system: ["GitHub Actions world-mini; local HTTP"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Draft stack on WORK-0098 PR #128; unmerged ancestors."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close or revert this PR; no data migration."

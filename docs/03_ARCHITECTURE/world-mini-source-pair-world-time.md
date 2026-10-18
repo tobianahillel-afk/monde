@@ -199,3 +199,15 @@ agreement, ground truth or physical movement. CSV formula-escaping is
 inherited from the same exporter. The response is a local file attachment,
 with no caching, CORS, network request or saved-state write. Invalid or
 oversized query controls return an error.
+
+## Focus one entity in a source-pair comparison (WORK-0099)
+
+The native read-only `/source-pair` browser forms now offer optional
+**Entity ID**, e.g. `&entity=site-1`. The exact entity is selected from
+the existing canonical world- or knowledge-time original-report comparison
+*before* optional convergence/divergence selection and top-N ranking.
+HTML map, JSON, GeoJSON and CSV preserve the earlier/later original
+assertions, sources, evidence IDs, reported coordinates, nullable
+separations and cutoffs. Missing entities produce an empty valid comparison
+and never a fabricated location. Empty optional form input is ignored.
+The existing loopback-only HTTP server and saved snapshots remain read-only.
