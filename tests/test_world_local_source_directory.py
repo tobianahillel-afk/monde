@@ -533,6 +533,13 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(saved.read_bytes(), initial)
 
 
+    def test_optional_rank_form_does_not_submit_an_empty_rejected_rank(self):
+        status, _, html = self.get()
+        self.assertEqual(status, 200)
+        self.assertEqual(html.count(b'name="rank"'), 2 * 3)
+        self.assertNotIn(b'<select name="rank">', html)
+        self.assertNotIn(b'name="rank" value=""', html)
+
     def test_rank_original_reporter_transitions_http_json_csv_html(self):
         query = self.knowledge()
         _, _, raw = self.get({**query, "format": "json"})

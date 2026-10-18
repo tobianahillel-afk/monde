@@ -1006,12 +1006,14 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             '<option value="json">JSON</option>'
             '<option value="csv">Coverage CSV</option>'
             '</select></label>'
-            '<label>Prioritize original reporting changes <select name="rank">'
-            '<option value="">Default coverage order</option>'
-            '<option value="new">Most newly reported entities</option>'
-            '<option value="gone">Most no-longer-reported entities</option>'
-            '<option value="turnover">Most changed reported entities</option>'
-            '</select></label><button>Browse source coverage</button></form>')
+            '<fieldset><legend>Optional original reporting ranking</legend>'
+            '<label><input type="radio" name="rank" value="new">'
+            'Most newly reported entities</label>'
+            '<label><input type="radio" name="rank" value="gone">'
+            'Most no-longer-reported entities</label>'
+            '<label><input type="radio" name="rank" value="turnover">'
+            'Most changed reported entities</label>'
+            '</fieldset><button>Browse source coverage</button></form>')
         discovery.append(
             '<form action="/source-pair" method="get">'
             '<h2>Discover geographically divergent source pairs — ' + axis + '</h2>'
