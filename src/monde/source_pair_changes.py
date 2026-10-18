@@ -254,6 +254,50 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
     return result
 
 
+def discovery_csv(document):
+    """Export ranked original reporter evidence at both temporal cutoffs."""
+    if document["schema"] != "MONDE_SOURCE_PAIR_DISCOVERY_V1":
+        raise ValueError("unsupported source-pair discovery schema")
+
+    def safe(value):
+        text = str(value)
+        return "'" + text if text.startswith(("=", "+", "-", "@", "\t", "\r", "\n")) else text
+
+    def ids(item, key):
+        return json.dumps(item.get(key, []), ensure_ascii=False,
+                          separators=(",", ":"))
+
+    early = document["cutoffs"]["earlier"]
+    late = document["cutoffs"]["later"]
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\r\n")
+    writer.writerow((
+        "axis", "earlier_world_at", "earlier_knowledge_at",
+        "later_world_at", "later_knowledge_at", "ranking",
+        "source_focus", "total_pairs", "source_a", "source_b",
+        "max_nearest_km", "rank_delta_km", "joint_entities",
+        "joint_earlier_entities", "joint_later_entities",
+        "comparable_entities", "matching_entities",
+        "example_entity", "example_period",
+        "example_assertion_ids", "example_earlier_assertion_ids",
+        "example_later_assertion_ids"))
+    for item in document["pairs"]:
+        writer.writerow((
+            document["axis"], early["world_at"], early["knowledge_at"],
+            late["world_at"], late["knowledge_at"],
+            document.get("rank", "separation"),
+            safe(document.get("source_focus", "")), document["total_pairs"],
+            safe(item["source_a"]), safe(item["source_b"]),
+            item["max_nearest_km"], item.get("rank_delta_km", ""),
+            item["joint_entities"], item["joint_earlier_entities"],
+            item["joint_later_entities"], item.get("comparable_entities", ""),
+            item.get("matching_entities", ""), safe(item["example_entity"]),
+            item["example_period"], ids(item, "example_assertion_ids"),
+            ids(item, "example_earlier_assertion_ids"),
+            ids(item, "example_later_assertion_ids")))
+    return output.getvalue()
+
+
 def comparison_csv(document):
     """CSV representation of original source evidence for either time axis."""
     if document["schema"] == "MONDE_SOURCE_PAIR_CHANGE_V1":
