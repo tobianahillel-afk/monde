@@ -179,7 +179,7 @@ class GeographicSourcePairTests(unittest.TestCase):
 
     def test_reporter_selection_matches_json_geojson_csv_table_and_map(self):
         params = {**self.query(), "bbox": "29.5,-1,30.5,1",
-                  "region_source": "a", "top": "1"}
+                  "region_source": "a"}
         doc = json.loads(self.fetch({**params, "format": "json"})[2])
         self.assertEqual(json.loads(self.fetch({**params, "format": "geojson"})[2]),
                          comparison_geojson(doc))
@@ -191,6 +191,10 @@ class GeographicSourcePairTests(unittest.TestCase):
             self.assertIn(b"site-far", page)
             self.assertNotIn(b"site-1", page)
         self.assertIn(b"survey-a", self.fetch({**params, "format": "table"})[2])
+        # Top-N is intentionally restricted to entities comparable at both
+        # time cutoffs. site-far is not comparable in the earlier period.
+        ranked = json.loads(self.fetch({**params, "top": "1", "format": "json"})[2])
+        self.assertEqual(ranked["entities"], [])
 
     def test_reporter_selection_rejects_invalid_values_and_requires_region(self):
         for extra in ({"region_source": "a"},
