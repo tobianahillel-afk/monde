@@ -2564,6 +2564,7 @@ const root=document.body,panel=document.getElementById("comparison-source-pairs"
 const a=document.getElementById("comparison-source-a"),b=document.getElementById("comparison-source-b");
 const exportButton=document.getElementById("comparison-source-pair-export");
 const diffButton=document.getElementById("comparison-source-pair-diff-export");
+const csvButton=document.getElementById("comparison-source-pair-distance-csv");
 a.value=sourcesPair[0];a.dispatchEvent(new Event("change"));
 b.value=sourcesPair[1];b.dispatchEvent(new Event("change"));
 const rows=Array.from(document.querySelectorAll("#comparison-source-pair-rows tr"));
@@ -2592,10 +2593,12 @@ search.value="not-in-evidence";search.dispatchEvent(new Event("input"));
 const period=document.getElementById("comparison-period");
 period.value="later";period.dispatchEvent(new Event("change"));
 const nativeBlob=window.Blob;
-let output=null,filename=null;
+let output=null,filename=null,csvOutput=null;
 window.Blob=function(parts,options){
   if(options&&options.type==="application/geo+json")
     output=JSON.parse(String(parts[0]));
+  if(options&&options.type==="text/csv;charset=utf-8")
+    csvOutput=String(parts[0]);
   return new nativeBlob(parts,options);
 };
 HTMLAnchorElement.prototype.click=function(){filename=this.download;};
@@ -2645,8 +2648,29 @@ root.dataset.diffExportCorrect=String(!!metaDiff&&
   }).length&&
   filename==="monde-original-source-pair-position-differences.geojson"&&
   search.value==="not-in-evidence"&&period.value==="later");
+csvOutput=null;filename=null;csvButton.click();
+const csvLines=csvOutput&&csvOutput.replace(/^\uFEFF/,"").trimEnd().split("\r\n");
+const csvRows=csvLines&&csvLines.slice(1),csvHeader=csvLines&&csvLines[0];
+root.dataset.pairSeparationCsvCorrect=String(!!csvRows&&
+  filename==="monde-original-source-pair-separations.csv"&&
+  csvHeader.includes("nearest_separation_km,farthest_separation_km")&&
+  csvRows.length===2*Object.keys(expected).length&&
+  csvRows.every(function(line){
+    return line.includes('"'+sourcesPair[0]+'"')&&
+      line.includes('"'+sourcesPair[1]+'"')&&
+      line.includes("ORIGINAL_SOURCE_REPORT_SEPARATION_NOT_VERIFIED_TRUTH_OR_MOTION");
+  })&&Object.keys(expected).every(function(entity){
+    return ["earlier","later"].every(function(p){
+      const row=csvRows.find(function(line){return line.includes('"'+entity+'","'+p+'"');});
+      if(!row)return false;
+      const item=separations[entity][p];
+      return item?
+        row.includes('"'+item.nearest_km+'"')&&row.includes('"'+item.farthest_km+'"'):
+        row.includes('"NOT_JOINTLY_REPORTED"')&&row.includes(',"","",');
+    });
+  })&&search.value==="not-in-evidence"&&period.value==="later");
 a.value=sourcesPair[0];b.value=sourcesPair[0];b.dispatchEvent(new Event("change"));
-root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disabled&&
+root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disabled&&csvButton.disabled&&
   document.querySelectorAll("#comparison-source-pair-rows tr").length===0);
 </script>""".replace("__EXPECTED__", json.dumps(overlap))
                    .replace("__SEPARATIONS__", json.dumps(separations))
@@ -2665,6 +2689,7 @@ root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disab
             check=True).stdout.decode("utf-8")
         for name in ("pair-rows-correct", "pair-export-correct",
                      "diff-rows-correct", "diff-export-correct",
+                     "pair-separation-csv-correct",
                      "pair-same-source-denied"):
             self.assertIn('data-'+name+'="true"', output, name)
         response, _, ordinary = self.fetch("/viewer", {**QUERY, "view": "current"})

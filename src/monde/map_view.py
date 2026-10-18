@@ -217,6 +217,7 @@ __MONDE_TIME_NAVIGATION__
   <select id="comparison-source-b" aria-label="Second reporting source"><option value="">Choose second source</option></select>
   <button id="comparison-source-pair-export" type="button" disabled>Download complete shared-entity pair GeoJSON</button>
   <button id="comparison-source-pair-diff-export" type="button" disabled>Download original reports with different source coordinates</button>
+  <button id="comparison-source-pair-distance-csv" type="button" disabled>Download complete pair separation CSV</button>
   <p id="comparison-source-pair-summary" class="subtle" role="status" aria-live="polite"></p>
   <table aria-label="Entities jointly reported by two sources in original periods">
   <thead><tr><th scope="col">Original entity</th><th scope="col">Both earlier</th><th scope="col">Both later</th><th scope="col">Earlier reported coordinates differ</th><th scope="col">Later reported coordinates differ</th><th scope="col">Pair original reports</th><th scope="col">Earlier source separation (km)</th><th scope="col">Later source separation (km)</th><th scope="col">Explore</th></tr></thead>
@@ -1365,6 +1366,7 @@ __MONDE_TIME_NAVIGATION__
     var pairSummary=document.getElementById("comparison-source-pair-summary");
     var pairExport=document.getElementById("comparison-source-pair-export");
     var pairDiffExport=document.getElementById("comparison-source-pair-diff-export");
+    var pairCsv=document.getElementById("comparison-source-pair-distance-csv");
     [pairA,pairB].forEach(function(select){
       sourceNames.forEach(function(source){
         var option=document.createElement("option");
@@ -1408,7 +1410,7 @@ __MONDE_TIME_NAVIGATION__
     function renderPair(){
       pairShared=[];pairDifferent=[];pairDistances=[];
       pairRows.replaceChildren();pairExport.disabled=true;
-      pairDiffExport.disabled=true;
+      pairDiffExport.disabled=true;pairCsv.disabled=true;
       var first=sourceEntityCoverage.get(pairA.value);
       var second=sourceEntityCoverage.get(pairB.value);
       if(!first||!second||pairA.value===pairB.value){
@@ -1467,7 +1469,7 @@ __MONDE_TIME_NAVIGATION__
         action.appendChild(button);pairRows.appendChild(tr);
       });
       pairExport.disabled=!pairShared.length;
-      pairDiffExport.disabled=!pairDifferent.length;
+      pairDiffExport.disabled=!pairDifferent.length;pairCsv.disabled=!pairShared.length;
       pairSummary.textContent=pairShared.length+
         " jointly reported entity IDs in at least one same-period selection; "+
         pairDifferent.length+" with different original reported coordinate sets "+
@@ -1530,6 +1532,47 @@ __MONDE_TIME_NAVIGATION__
         }
       }),"monde-original-source-pair-position-differences.geojson",
         "application/geo+json");
+    });
+    // Export the full original-source inventory, independent of display filters.
+    pairCsv.addEventListener("click",function(){
+      if(pairCsv.disabled)return;
+      var columns=["comparison_axis","source_a","source_b","entity","period",
+        "same_period_status","source_a_original_reports","source_b_original_reports",
+        "source_a_assertion_ids","source_b_assertion_ids",
+        "source_a_evidence_ids","source_b_evidence_ids",
+        "nearest_separation_km","farthest_separation_km","interpretation"];
+      var rows=[];
+      pairDistances.forEach(function(item){
+        var a=sourceEntityCoverage.get(pairA.value).get(item.entity);
+        var b=sourceEntityCoverage.get(pairB.value).get(item.entity);
+        ["earlier","later"].forEach(function(period){
+          var left=a[period],right=b[period],distance=item[period];
+          var status=!distance?"NOT_JOINTLY_REPORTED":
+            differentCoordinates(left,right)?"DIFFERENT_REPORTED_COORDINATES":
+            "SAME_REPORTED_COORDINATES";
+          function reportIds(reports,key){
+            return JSON.stringify(reports.map(function(f){
+              return String(f.properties[key]||
+                (key==="assertion_id"?f.properties.monde_original_feature_id:""));
+            }));
+          }
+          var values=[data.monde_comparison.axis,pairA.value,pairB.value,
+            item.entity,period,status,left.length,right.length,
+            reportIds(left,"assertion_id"),reportIds(right,"assertion_id"),
+            reportIds(left,"evidence_id"),reportIds(right,"evidence_id"),
+            distance?distance.nearest_km:null,
+            distance?distance.farthest_km:null,
+            "ORIGINAL_SOURCE_REPORT_SEPARATION_NOT_VERIFIED_TRUTH_OR_MOTION"];
+          rows.push(values.map(function(value,i){
+            return csvCell(value,i===6||i===7||
+              ((i===12||i===13)&&value!==null));
+          }).join(","));
+        });
+      });
+      saveDownload("\uFEFF"+columns.join(",")+"\r\n"+
+        rows.join("\r\n")+"\r\n",
+        "monde-original-source-pair-separations.csv",
+        "text/csv;charset=utf-8");
     });
     renderPair();pairPanel.hidden=false;
 

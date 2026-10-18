@@ -778,3 +778,6 @@ per-period nearest/farthest source-report separations computed from the **full
 embedded evidence**, independent of map filters. No location is verified, no
 movement or route is inferred, and no new endpoint, dependency, or stored-state
 write is introduced.
+
+
+The **Download complete pair separation CSV** action exports both earlier and later original source selections for every jointly reported entity, including source IDs, original report counts, assertion/evidence ID arrays, period-specific same/different/missing states, and nearest/farthest approximate source Point separations (km). Where reports are not jointly available, numeric distances are left blank rather than invented as zero. The source-pair export is based on complete immutable embedded evidence, regardless of visible map, search or period filters; spreadsheet-formula-like text uses the existing CSV quoting/escaping. Source separations do **not** establish verified positions, physical motion, accuracy or which source is correct.
