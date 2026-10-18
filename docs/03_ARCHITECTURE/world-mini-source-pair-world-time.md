@@ -382,3 +382,15 @@ JSON adds `source_focus` only on explicit requests. HTML drilldown removes
 the discovery-only filter before opening the existing full original evidence
 comparison. Both temporal axes, ranking defaults and original assertion IDs
 are preserved. No new route, dependency, store, truth inference or mutation.
+
+### Ranked source-discovery CSV
+
+The existing read-only `/source-pair?discover=1` interface supports `format=csv`
+in addition to JSON and an accessible ranked table. Its download link retains the
+comparison axis, both world/knowledge cutoffs, original reporter focus, ranking
+and top-N selection. The UTF-8 CSV preserves each displayed pair's original
+assertion IDs, example entity, reported separation, and both periods' joint
+report counts. No matching original reports yield headers only rather than
+invented agreement. Strings that could become spreadsheet formulas are escaped.
+The response is limited by the existing server response size cap and leaves
+persisted evidence unchanged. This is not a verified truth or trajectory.
