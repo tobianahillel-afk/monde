@@ -307,7 +307,7 @@ class GeographicSourcePairTests(unittest.TestCase):
             self.assertNotIn(b"site-1", output)
         code, _, form = self.fetch()
         self.assertEqual(code, 200)
-        self.assertEqual(form.count(b'<option value="both">'), 2)
+        self.assertEqual(form.count(b'<option value="both">Both sources, same period</option>'), 2)
 
     def test_both_reporters_supports_world_axis_and_rejects_invalid_controls(self):
         w = sample(dateline=True)
