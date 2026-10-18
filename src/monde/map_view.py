@@ -1016,9 +1016,28 @@ __MONDE_TIME_NAVIGATION__
         render();fitReports();
       });
       first.appendChild(jump);row.appendChild(first);
-      [earlier,later,both].forEach(function(ids){
+      // Open one original entity/source/period intersection on the same
+      // offline map. These are source-reported selections, never consensus.
+      [earlier,later,both].forEach(function(ids,index){
         var td=document.createElement("td");
-        td.textContent=ids.length ? ids.join(", ") : "None in embedded selection";
+        if(!ids.length)td.textContent="None in embedded selection";
+        ids.forEach(function(id,position){
+          if(position)td.appendChild(document.createTextNode(", "));
+          var link=document.createElement("button");
+          link.type="button";link.textContent=id;
+          link.dataset.sourceId=id;
+          link.dataset.period=index===0?"earlier":index===1?"later":"both";
+          link.setAttribute("aria-label","Show "+link.dataset.period+
+            " original reports for entity "+entity+" from source "+id);
+          link.addEventListener("click",function(){
+            presenceSelect.value="";
+            sources.value=id;entities.value=entity;
+            comparisonPeriod.value=link.dataset.period==="both"?"":link.dataset.period;
+            search.value="";insideOnly.checked=false;currentViewOnly.checked=false;
+            render();fitReports();
+          });
+          td.appendChild(link);
+        });
         row.appendChild(td);
       });
       var count=document.createElement("td");

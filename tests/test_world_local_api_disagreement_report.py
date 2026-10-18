@@ -2098,6 +2098,21 @@ for(const selected of ["earlier","later","both"]){
 root.dataset.entityGeojsonFiltersPreserved=String(period.value==="later" &&
   search.value==="not-a-visible-report" && exportPeriod.value==="both");
 window.Blob=NativeBlob;
+// An entity/source/period intersection must navigate to *that* report set,
+// not only to the source as a whole or whatever is currently visible.
+const intersect=target.querySelector("td:nth-child(2) button") ||
+  target.querySelector("td:nth-child(3) button") ||
+  target.querySelector("td:nth-child(4) button");
+const selectedSource=intersect && intersect.dataset.sourceId;
+const selectedPeriod=intersect && intersect.dataset.period;
+if(intersect)intersect.click();
+root.dataset.entityMatrixSourceDrilldown=String(!!intersect &&
+  document.getElementById("entities").value===entities[0] &&
+  document.getElementById("sources").value===selectedSource &&
+  document.getElementById("comparison-period").value===
+    (selectedPeriod==="both"?"":selectedPeriod) &&
+  document.getElementById("report-search").value==="" &&
+  !document.getElementById("current-view-only").checked);
 target.querySelector("button").click();
 root.dataset.entityMatrixNavigation=String(
   document.getElementById("entities").value===entities[0] &&
@@ -2114,7 +2129,7 @@ root.dataset.entityMatrixNavigation=String(
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
             check=True).stdout.decode("utf-8")
         for attr in ("entity-matrix-rendered", "entity-matrix-filters-preserved",
-                     "entity-matrix-navigation"):
+                     "entity-matrix-source-drilldown", "entity-matrix-navigation"):
             self.assertIn('data-' + attr + '="true"', rendered, attr)
         self.assertIn(
             'data-entity-matrix-filename="monde-original-entity-source-coverage.csv"',

@@ -672,3 +672,11 @@ entity, regardless of map viewport, search, source or displayed period filters.
 The `monde_entity_period_export` metadata records scope, selected entity,
 period and original report counts. No consensus/movement inference, external
 request, new endpoint or saved WorldMini mutation occurs.
+
+**Entity × original source × comparison period navigation (WORK-0084):**
+Each source name in an entity's Earlier, Later or Both coverage cell is now an
+interactive, read-only link to exactly that entity/source/period selection on
+the already embedded offline evidence map. It clears contradictory presentation
+filters and fits the selected original reports. Empty intersections show no
+link. The source and entity IDs are assigned through text nodes; no new
+network route, source inference, or persisted model change is introduced.
