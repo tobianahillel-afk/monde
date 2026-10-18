@@ -719,3 +719,18 @@ all presentation filters. The source-first table derives from the same embedded
 original comparison features, not a second model, endpoint, hosted service or
 persistent store. Saved snapshots and the unmodified offline map renderer
 remain read-only.
+
+### Source-first changed-entity evidence downloads (WORK-0087)
+
+Each reporting-source row in the original two-period comparison now offers
+**Download changed entity GeoJSON** when that source reports an entity in only
+one of the two embedded selections. The download contains every original Point
+report for those source/entity intersections (earlier and later as applicable),
+including unchanged assertion/evidence identifiers and comparison metadata.
+Its explicit source, comparison axis and original/selected counts come from
+the complete embedded evidence, independent of map search, viewport, source,
+or period presentation filters. Rows without selection changes disable the
+button. This is a change in *which source reports appear in the selection*,
+not proof of disappearance, movement, source completeness or truth. The export
+uses the existing offline browser download mechanism; it does not mutate
+saved WorldMini state or add a route, service, data model or dependency.
