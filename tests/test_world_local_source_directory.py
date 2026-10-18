@@ -391,6 +391,11 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertIn(b"monde_original_assertion_id", page)
         self.assertIn(b"monde_comparison_period", page)
         self.assertIn(b"monde_inside_bbox", page)
+        # Both HTML inspector links and detail labels must use the selected
+        # original Point's own cutoffs, never the synthetic display envelope.
+        self.assertIn(b"sourceCoveragePeriod ? p.monde_world_at", page)
+        self.assertIn(b"sourceCoveragePeriod ? p.monde_known_at", page)
+        self.assertIn(b"Original reporting period: ", page)
         detail = source_directory_detail(
             self.world, "knowledge", ((AT, BEFORE), (AT, AFTER)), "survey-a")
         original = source_directory_geojson(self.world, detail)
