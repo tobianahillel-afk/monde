@@ -1431,9 +1431,6 @@ document.body.setAttribute("data-count-both",String(count("")));
             self.assertEqual(int(match.group(1)), value)
         self.assertEqual(self.path.read_bytes(), self.before)
 
-if __name__ == "__main__":
-    unittest.main()
-
     def test_offline_comparison_source_coverage_matches_complete_embedded_evidence(self):
         """Source/period matrix counts the full original snapshot, not the visible map."""
         import shutil
@@ -1501,3 +1498,7 @@ body.dataset.sourceAfterReset=String(sourceSelect.value==="");
         self.assertEqual(status, 200)
         self.assertIn(b'id="comparison-source-coverage" hidden', current)
         self.assertEqual(self.path.read_bytes(), self.before)
+
+
+if __name__ == "__main__":
+    unittest.main()
