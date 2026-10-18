@@ -1220,7 +1220,7 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertIn(b"survey-b", body)
         status, headers, body = self.get({**selected, "format": "csv"})
         self.assertEqual(status, 200)
-        self.assertIn("text/csv", headers["content-type"])
+        self.assertIn("text/csv", headers["Content-Type"])
         rows = list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
         self.assertEqual({row["entity"] for row in rows}, {"site-1"})
         self.assertEqual({row["source_a"] for row in rows}, {"survey-a"})
