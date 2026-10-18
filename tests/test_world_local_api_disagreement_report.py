@@ -2332,8 +2332,19 @@ root.dataset.entityMatrixNavigation=String(
                     len(reports) for periods in by_entity.values()
                     for reports in periods.values())
             }
+        expected_exports = {}
+        for source, by_entity in observations.items():
+            changed_entities = {
+                entity for entity, periods in by_entity.items()
+                if bool(periods["earlier"]) != bool(periods["later"])
+            }
+            expected_exports[source] = [
+                feature for feature in embedded["features"]
+                if feature["properties"]["source_id"] == source
+                and feature["properties"]["entity"] in changed_entities
+            ]
         script = """<script>
-const expected=__EXPECTED__,body=document.body;
+const expected=__EXPECTED__,expectedExports=__EXPECTED_EXPORTS__,body=document.body;
 const panel=document.getElementById("comparison-source-entity-coverage");
 const rows=Array.from(document.querySelectorAll("#comparison-source-entity-rows tr"));
 body.dataset.sourceEntityReady=String(!!panel && !panel.hidden &&
@@ -2380,12 +2391,60 @@ if(entityLink){
     document.getElementById("entities").value==="" &&
     period.value==="");
 }
+// Exercise real saveEvidence Blob generation for *each* original source.
+const NativeBlob=window.Blob;
+let exportsMatch=true,downloads=0;
+const changedResults=[];
+window.Blob=function(parts,options){
+  if(options&&options.type==="application/geo+json")
+    changedResults.push(JSON.parse(String(parts[0])));
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  if(this.download.endsWith(".geojson"))
+    body.dataset.changedSourceFilename=this.download;
+};
+search.value="not-on-map";search.dispatchEvent(new Event("input"));
+period.value="later";period.dispatchEvent(new Event("change"));
+rows.forEach(function(row){
+  const source=row.dataset.sourceId;
+  const button=row.querySelector("button[data-source-entity-change-export]");
+  const expectedReports=expectedExports[source],hasChanges=expectedReports.length>0;
+  if(!button||button.disabled===hasChanges){exportsMatch=false;return;}
+  if(!hasChanges)return;
+  const before=changedResults.length;
+  button.click();
+  if(changedResults.length!==before+1){exportsMatch=false;return;}
+  const output=changedResults[before],meta=output.monde_source_entity_turnover_export;
+  const earlierCount=expectedReports.filter(function(f){
+    return f.properties.monde_comparison_period==="earlier";
+  }).length;
+  if(JSON.stringify(output.features)!==JSON.stringify(expectedReports)||
+     !meta||meta.source_id!==source||
+     meta.comparison_axis!==output.monde_comparison.axis||
+     meta.changed_entity_count!==Object.keys(expected[source].changed).length||
+     meta.exported_feature_count!==expectedReports.length||
+     meta.earlier_original_report_count!==earlierCount||
+     meta.later_original_report_count!==expectedReports.length-earlierCount||
+     meta.original_feature_count!==__TOTAL_FEATURES__||
+     meta.scope!=="COMPLETE_EMBEDDED_CHANGED_ENTITY_SELECTIONS_NOT_DISPLAY_FILTERED"||
+     body.dataset.changedSourceFilename!=="monde-original-source-changing-entity-evidence.geojson"||
+     search.value!=="not-on-map"||period.value!=="later")exportsMatch=false;
+  downloads++;
+});
+window.Blob=NativeBlob;
+body.dataset.changedSourceExport=String(exportsMatch&&
+  downloads===Object.keys(expectedExports).filter(function(source){
+    return expectedExports[source].length>0;
+  }).length);
 const marker={};
 HTMLAnchorElement.prototype.click=function(){body.dataset.sourceEntityFilename=this.download;};
 document.getElementById("comparison-source-entity-export").click();
 body.dataset.sourceEntityCsvReused=String(
   body.dataset.sourceEntityFilename==="monde-original-reporting-source-selection-changes.csv");
 </script>""".replace("__EXPECTED__", json.dumps(expected))
+                     .replace("__EXPECTED_EXPORTS__", json.dumps(expected_exports))
+                     .replace("__TOTAL_FEATURES__", str(len(embedded["features"])))
         target = Path(self.folder.name) / "source-first-coverage.html"
         target.write_text(html.replace("</body>", script+"</body>"), encoding="utf-8")
         output = subprocess.run([
@@ -2395,7 +2454,8 @@ body.dataset.sourceEntityCsvReused=String(
             check=True).stdout.decode("utf-8")
         for attribute in ("source-entity-ready", "source-entity-drilldown",
                           "source-entity-filterchanged", "source-entity-filtersame",
-                          "source-entity-filterall", "source-entity-csv-reused"):
+                          "source-entity-filterall", "source-entity-csv-reused",
+                          "changed-source-export"):
             self.assertIn('data-'+attribute+'="true"', output, attribute)
         self.assertEqual(self.path.read_bytes(), self.before)
 
