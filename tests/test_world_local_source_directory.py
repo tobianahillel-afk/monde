@@ -1197,8 +1197,9 @@ class SourceDirectoryTests(unittest.TestCase):
 
     def test_entity_original_reporters_export_all_formats_from_same_form(self):
         """Native GET selections preserve exact source IDs and both cutoffs."""
-        selected = {**self.knowledge(), "entity": "site-1",
-                    "source_a": "survey-a", "source_b": "survey-b"}
+        selected = {k: v for k, v in self.knowledge().items()
+                    if k != "directory"}
+        selected.update(entity="site-1", source_a="survey-a", source_b="survey-b")
         status, _, raw = self.get({**selected, "format": "json"})
         self.assertEqual(status, 200)
         doc = json.loads(raw)
@@ -1236,8 +1237,9 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
     def test_source_comparison_export_rejects_invalid_and_duplicate_reporters(self):
-        base = {**self.knowledge(), "entity": "site-1",
-                "source_a": "survey-a", "source_b": "survey-b"}
+        base = {k: v for k, v in self.knowledge().items()
+                if k != "directory"}
+        base.update(entity="site-1", source_a="survey-a", source_b="survey-b")
         for extra in ({"source_b": "survey-a"},
                       {"format": "xml"},
                       {"source_a": "../bad"},
