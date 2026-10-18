@@ -1006,7 +1006,11 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertIn(b"<!doctype html>", html.lower())
             status, _, raw = self.get({**q, "source": "survey-a",
                                       "entity": entity, "format": "geojson"}, server)
-            self.assertEqual(status, 400)
+            self.assertEqual(status, 200)
+            self.assertTrue(all(
+                feature["properties"]["source_id"] == "survey-a" and
+                feature["properties"]["entity"] == entity
+                for feature in json.loads(raw)["features"]))
         finally:
             server.shutdown()
             thread.join(timeout=5)
