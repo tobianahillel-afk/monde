@@ -844,6 +844,104 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
         self.assertEqual(json.loads(raw)["rank"], "coverage")
         self.assertEqual(json.loads(raw)["axis"], "world")
 
+
+    def test_median_rank_avoids_single_outlier_in_persisted_http(self):
+        """A source pair's single extreme separation must not dominate."""
+        from monde.world import WorldMini
+        world = WorldMini()
+        known = "2026-01-02T01:00:00Z"
+        for n in range(1, 4):
+            entity = "median-site-" + str(n)
+            for source, longitude in (("a", 0.0),
+                                      ("b", 60.0 if n == 3 else 0.1),
+                                      ("c", 1.0)):
+                key = source + str(n)
+                world.add_evidence({"id": "ev-median-" + key,
+                                    "source_id": source,
+                                    "locator": "fixture://median-" + key,
+                                    "captured_at": known, "source_event_at": known})
+                world.add_assertion({
+                    "id": "as-median-" + key, "entity": entity,
+                    "attribute": "geo_point",
+                    "value": {"type": "Point", "coordinates": [longitude, 0.]},
+                    "evidence_id": "ev-median-" + key, "kind": "CLAIM",
+                    "known_at": known,
+                    "valid_from": "2026-01-01T00:00:00Z",
+                    "valid_to": None, "supersedes": None})
+        file = Path(self.tmp.name) / "median-world.json"
+        world.save(file)
+        original = file.read_bytes()
+        server = create_server(file)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = {**self.knowledge(), "format": "json", "top": "1"}
+            status, _, raw = self.get(query, server)
+            self.assertEqual(status, 200)
+            maximum = json.loads(raw)["pairs"][0]
+            self.assertEqual((maximum["source_a"], maximum["source_b"]),
+                             ("a", "b"))
+            self.assertNotIn("median_nearest_km", maximum)
+            status, _, raw = self.get({**query, "rank": "median"}, server)
+            self.assertEqual(status, 200)
+            result = json.loads(raw)
+            self.assertEqual(result["rank"], "median")
+            self.assertEqual(result["total_pairs"], 3)
+            winner = result["pairs"][0]
+            self.assertEqual((winner["source_a"], winner["source_b"]),
+                             ("a", "c"))
+            self.assertEqual(winner["joint_entities"], 3)
+            self.assertAlmostEqual(winner["median_nearest_km"], 111.195,
+                                   places=2)
+            self.assertTrue(winner["example_assertion_ids"])
+            for fmt in ("csv", "geojson", "table", "html"):
+                status, _, raw = self.get({**query, "rank": "median",
+                                           "format": fmt}, server)
+                self.assertEqual(status, 200, fmt)
+                if fmt == "csv":
+                    rows = list(csv.DictReader(io.StringIO(raw.decode())))
+                    self.assertAlmostEqual(float(rows[0]["median_nearest_km"]),
+                                           winner["median_nearest_km"], places=3)
+                elif fmt == "geojson":
+                    geo = json.loads(raw)
+                    self.assertEqual(geo["monde_discovery"]["rank"], "median")
+                    self.assertTrue(geo["features"])
+                    for feature in geo["features"]:
+                        self.assertEqual(
+                            feature["properties"]["monde_discovery"]["median_nearest_km"],
+                            winner["median_nearest_km"])
+                elif fmt == "table":
+                    self.assertIn(b"Median km", raw)
+                    self.assertIn(b"source_a=a", raw)
+                    self.assertIn(b"source_b=c", raw)
+                else:
+                    self.assertIn(b"MONDE", raw)
+            code, _, forms = self.get(server=server)
+            self.assertEqual(code, 200)
+            self.assertEqual(forms.count(b'value="median"'), 2)
+            for bad in ("Median", "medians", "", "median "):
+                self.assertEqual(self.get({**query, "rank": bad}, server)[0],
+                                 400)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(file.read_bytes(), original)
+
+    def test_median_rank_preserves_both_axes_and_single_entity(self):
+        for axis, cutoffs in (
+            ("knowledge", ((AT, BEFORE), (AT, AFTER))),
+            ("world", ((EARLY, KNOWN), (LATE, KNOWN))),
+        ):
+            model = self.world if axis == "knowledge" else sample()
+            doc = discover_source_pairs(model, axis, cutoffs, rank="median")
+            self.assertEqual(doc["rank"], "median")
+            self.assertTrue(doc["pairs"])
+            for pair in doc["pairs"]:
+                self.assertEqual(pair["joint_entities"], 1)
+                self.assertEqual(pair["median_nearest_km"], pair["max_nearest_km"])
+                self.assertNotIn("_median_entity_km", pair)
+
 if __name__ == "__main__":
     unittest.main()
 

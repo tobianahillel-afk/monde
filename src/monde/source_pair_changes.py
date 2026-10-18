@@ -7,6 +7,7 @@ import csv
 from datetime import datetime
 import io
 import json
+from statistics import median
 from math import asin, cos, isfinite, radians, sin, sqrt
 
 from .world import WorldMini
@@ -137,7 +138,7 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
         raise ValueError("invalid source-pair discovery axis")
     if type(top) is not int or not 1 <= top <= 100:
         raise ValueError("invalid source-pair discovery limit")
-    if rank not in ("separation", "coverage", "increasing", "decreasing"):
+    if rank not in ("separation", "coverage", "median", "increasing", "decreasing"):
         raise ValueError("invalid source-pair discovery ranking")
     if source is not None and (not isinstance(source, str) or not source):
         raise ValueError("invalid original source focus")
@@ -178,6 +179,7 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
                     "max_nearest_km": 0.0, "example_entity": None,
                     "example_period": None, "example_assertion_ids": [],
                     "_entities": set(),
+                    **({"_median_entity_km": {}} if rank == "median" else {}),
                 })
                 if rank in ("increasing", "decreasing"):
                     item.setdefault("_cutoff_evidence", {}).setdefault(
@@ -190,6 +192,9 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
                 item["_entities"].add(entity)
                 item["joint_" + period + "_entities"] += 1
                 distance = measured["nearest_km"]
+                if rank == "median":
+                    values = item["_median_entity_km"]
+                    values[entity] = max(distance, values.get(entity, 0.0))
                 if item["example_entity"] is None or distance > item["max_nearest_km"]:
                     item["max_nearest_km"] = distance
                     item["example_entity"] = entity
@@ -201,6 +206,10 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
     ranked = []
     for item in pairs.values():
         item["joint_entities"] = len(item.pop("_entities"))
+        if rank == "median":
+            # Count each entity once even when observed at both cutoffs.
+            item["median_nearest_km"] = round(
+                median(item.pop("_median_entity_km").values()), 3)
         if rank in ("increasing", "decreasing"):
             samples = item.pop("_cutoff_evidence", {})
             comparable = []
@@ -227,7 +236,7 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
                         example_assertion_ids=sorted(set(
                             periods["earlier"]["assertion_ids"] +
                             periods["later"]["assertion_ids"])))
-        evidence_count = (item["joint_entities"] if rank in ("separation", "coverage")
+        evidence_count = (item["joint_entities"] if rank in ("separation", "coverage", "median")
                           else item["comparable_entities"])
         if evidence_count < min_joint_entities:
             continue
@@ -239,6 +248,10 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
     elif rank == "coverage":
         ranked.sort(key=lambda item: (
             -item["joint_entities"], -item["max_nearest_km"],
+            item["source_a"], item["source_b"]))
+    elif rank == "median":
+        ranked.sort(key=lambda item: (
+            -item["median_nearest_km"], -item["joint_entities"],
             item["source_a"], item["source_b"]))
     else:
         ranked.sort(key=lambda item: (
@@ -266,6 +279,11 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
                 " Coverage counts distinct entities jointly reported by both"
                 " sources at either cutoff; it measures original observation"
                 " overlap, not verified source reliability.")
+        elif rank == "median":
+            result["interpretation"] += (
+                " Median nearest separation uses one largest observed distance"
+                " per jointly reported entity across the two cutoffs; it is"
+                " robust to a single extreme outlier, not ground truth.")
         else:
             result["interpretation"] += (
                 " Trends compare the same entity at both cutoffs, retaining"
@@ -303,6 +321,9 @@ def discovery_geojson(world, document):
                         "max_nearest_km": pair["max_nearest_km"],
                         "rank_delta_km": pair.get("rank_delta_km"),
                     }
+                    if "median_nearest_km" in pair:
+                        properties["monde_discovery"]["median_nearest_km"] = (
+                            pair["median_nearest_km"])
                     features.append({
                         "type": "Feature",
                         "id": f"{rank}:{period}:{original['id']}",
@@ -342,6 +363,8 @@ def discovery_csv(document):
     late = document["cutoffs"]["later"]
     output = io.StringIO(newline="")
     writer = csv.writer(output, lineterminator="\r\n")
+    median_fields = (("median_nearest_km",)
+                     if document.get("rank") == "median" else ())
     writer.writerow((
         "axis", "earlier_world_at", "earlier_knowledge_at",
         "later_world_at", "later_knowledge_at", "ranking",
@@ -351,7 +374,7 @@ def discovery_csv(document):
         "comparable_entities", "matching_entities",
         "example_entity", "example_period",
         "example_assertion_ids", "example_earlier_assertion_ids",
-        "example_later_assertion_ids"))
+        "example_later_assertion_ids") + median_fields)
     for item in document["pairs"]:
         writer.writerow((
             document["axis"], early["world_at"], early["knowledge_at"],
@@ -365,7 +388,8 @@ def discovery_csv(document):
             item.get("matching_entities", ""), safe(item["example_entity"]),
             item["example_period"], ids(item, "example_assertion_ids"),
             ids(item, "example_earlier_assertion_ids"),
-            ids(item, "example_later_assertion_ids")))
+            ids(item, "example_later_assertion_ids")) +
+            ((item["median_nearest_km"],) if median_fields else ()))
     return output.getvalue()
 
 
