@@ -1005,6 +1005,7 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
              '<label>Rank by <select name="rank">'
             '<option value="separation">Largest reported separation</option>'
             '<option value="coverage">Most jointly observed entities</option>'
+            '<option value="median">Median separation across distinct entities</option>'
             '<option value="increasing">Increasing distance, matched entity</option>'
             '<option value="decreasing">Decreasing distance, matched entity</option>'
             '</select></label>'
@@ -1201,6 +1202,8 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
         # without inventing a location or introducing a second exporter.
         geojson_link = "/source-pair?" + urlencode({
             **params, "format": "geojson", "entity": pair["example_entity"]})
+        median_cell = ('<td>' + str(pair["median_nearest_km"]) + '</td>'
+                       if document.get("rank") == "median" else '')
         rows.append(
             '<tr><th scope="row"><a href="' + escape(link, quote=True) + '">' +
             escape(pair["source_a"]) + " / " + escape(pair["source_b"]) +
@@ -1209,7 +1212,7 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
             ' href="' + escape(geojson_link, quote=True) +
             '">Download original example GeoJSON</a></th><td>' +
             str(pair["max_nearest_km"]) +
-            '</td><td>' + (str(pair["rank_delta_km"])
+            '</td>' + median_cell + '<td>' + (str(pair["rank_delta_km"])
                            if "rank_delta_km" in pair else "—") +
             '</td><td>' + str(pair["joint_entities"]) +
             '</td><td>' + str(pair["joint_earlier_entities"]) + " / " +
@@ -1244,7 +1247,9 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
         '">Download all ranked original examples GeoJSON</a></p>' +
         '<table><caption>Ranked original source separations and temporal changes'
         '</caption><thead><tr><th scope="col">Open complete source evidence</th>'
-        '<th scope="col">Max km</th><th scope="col">Change km</th>'
+        '<th scope="col">Max km</th>' +
+        ('<th scope="col">Median km</th>' if document.get("rank") == "median" else '') +
+        '<th scope="col">Change km</th>'
         '<th scope="col">Joint entities</th>'
         '<th scope="col">Earlier / later counts</th>'
         '<th scope="col">Example entity / cutoff</th></tr></thead><tbody>' +
