@@ -1890,6 +1890,21 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(len(maps), sum(
             int(r["earlier_visible"]) + int(r["later_visible"])
             for r in csv_rows))
+        # Follow actual browser links against the persisted loopback server,
+        # not just the URL strings emitted by the HTML renderer.
+        for link in history[:1] + maps[:1]:
+            conn = http.client.HTTPConnection(
+                "127.0.0.1", self.server.server_port, timeout=5)
+            try:
+                conn.request("GET", link, headers={
+                    "Host": "127.0.0.1:" + str(self.server.server_port)})
+                result = conn.getresponse()
+                body = result.read()
+                self.assertEqual(result.status, 200, link)
+                self.assertIn("text/html", result.getheader("Content-Type"))
+                self.assertIn(b"Original", body)
+            finally:
+                conn.close()
         for url in history:
             params = {k: v[0] for k, v in parse_qs(urlsplit(url).query).items()}
             self.assertEqual(params["view"], "source-history")
