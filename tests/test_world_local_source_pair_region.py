@@ -537,5 +537,124 @@ class GeographicSourcePairTests(unittest.TestCase):
             self.assertEqual(path.read_bytes(), baseline)
 
 
+    def test_persistent_separation_filters_both_cutoffs_and_preserves_originals(self):
+        args = {**self.query(), "min_persistent_km": "100", "format": "json"}
+        status, headers, raw = self.fetch(args)
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        result = json.loads(raw)
+        canonical = compare_source_pair(
+            self.world, "survey-a", "survey-b", AT, BEFORE, AFTER)
+        self.assertEqual(result["entities"], canonical["entities"])
+        self.assertEqual(result["persistent_separation_filter"], {
+            "minimum_nearest_km": 100.0,
+            "cutoffs": ["earlier", "later"],
+            "total_entities": len(canonical["entities"]),
+            "matching_entities": len(canonical["entities"]),
+        })
+        no_match = json.loads(self.fetch({
+            **args, "min_persistent_km": "120"})[2])
+        self.assertEqual(no_match["entities"], [])
+        self.assertEqual(no_match["persistent_separation_filter"]
+                         ["matching_entities"], 0)
+        self.assertNotIn("persistent_separation_filter",
+                         json.loads(self.fetch({**self.query(), "format": "json"})[2]))
+
+    def test_persistent_separation_requires_two_joint_original_reports(self):
+        partial = {**self.query(), "from_known_at": "2026-01-02T12:00:00Z",
+                   "min_persistent_km": "0", "format": "json"}
+        result = json.loads(self.fetch(partial)[2])
+        self.assertEqual(result["entities"], [])
+        baseline = compare_source_pair(self.world, "survey-a", "survey-b",
+                                       AT, partial["from_known_at"], AFTER)
+        self.assertIsNone(baseline["entities"][0]["earlier"]["separation"])
+        self.assertIsNone(baseline["entities"][0]
+                          ["earlier_to_later_change_km"])
+
+    def test_persistent_separation_keeps_five_output_views_consistent(self):
+        base = {**self.query(), "min_persistent_km": "100"}
+        doc = json.loads(self.fetch({**base, "format": "json"})[2])
+        geo = json.loads(self.fetch({**base, "format": "geojson"})[2])
+        self.assertEqual(geo, comparison_geojson(doc))
+        self.assertEqual(geo["monde_comparison"]["persistent_separation_filter"],
+                         doc["persistent_separation_filter"])
+        self.assertEqual(self.fetch({**base, "format": "csv"})[2].decode(),
+                         comparison_csv(doc))
+        for fmt in ("table", "html"):
+            code, headers, body = self.fetch({**base, "format": fmt})
+            self.assertEqual(code, 200)
+            self.assertIn(b"site-1", body)
+            self.assertIn(b"survey-a", body)
+            self.assertIn(b"survey-b", body)
+            if fmt == "table":
+                self.assertIn(b"at BOTH cutoffs", body)
+            else:
+                self.assertIn(b"data-monde-ready", body)
+            self.assertIn("connect-src 'none'",
+                          headers["Content-Security-Policy"])
+        filtered = json.loads(self.fetch({**base, "min_persistent_km": "200",
+                                          "format": "geojson"})[2])
+        self.assertEqual(filtered["features"], [])
+
+    def test_persistent_separation_composes_with_region_and_top_filters(self):
+        args = {**self.query(), "bbox": "-1,-1,3,1",
+                "region_source": "both", "region_period": "both",
+                "min_persistent_km": "100", "top": "1", "format": "json"}
+        result = json.loads(self.fetch(args)[2])
+        self.assertEqual([r["entity"] for r in result["entities"]], ["site-1"])
+        self.assertEqual(result["selection"]["selected_entities"], 1)
+        self.assertEqual(result["spatial_filter"]["qualifying_period"], "both")
+        self.assertEqual(result["persistent_separation_filter"]
+                         ["matching_entities"], 1)
+        args["min_persistent_km"] = "120"
+        empty = json.loads(self.fetch(args)[2])
+        self.assertEqual(empty["entities"], [])
+        self.assertEqual(empty["selection"]["eligible_entities"], 0)
+
+    def test_persistent_separation_world_axis_respects_unknown_and_real_distances(self):
+        model = sample(dateline=True)
+        path = Path(self.tmp.name) / "persistent-separation-world.json"
+        model.save(path)
+        saved = path.read_bytes()
+        server = create_server(path)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            base = {"axis": "world", "source_a": "survey-a",
+                    "source_b": "survey-b", "from_at": EARLY, "to_at": LATE,
+                    "known_at": KNOWN, "min_persistent_km": "0",
+                    "format": "json"}
+            status, _, raw = self.fetch(base, server)
+            self.assertEqual(status, 200)
+            actual = json.loads(raw)
+            canonical = compare_source_pair_world_time(
+                model, "survey-a", "survey-b", EARLY, LATE, KNOWN)
+            expected = [r for r in canonical["entities"]
+                        if all(r[p]["separation"] is not None
+                               for p in ("earlier", "later"))]
+            self.assertEqual(actual["entities"], expected)
+            self.assertEqual(actual["persistent_separation_filter"]
+                             ["minimum_nearest_km"], 0)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(path.read_bytes(), saved)
+
+    def test_persistent_separation_validates_http_inputs_and_form(self):
+        status, _, form = self.fetch()
+        self.assertEqual(status, 200)
+        self.assertEqual(form.count(b'name="min_persistent_km"'), 2)
+        for value in ("", "-1", "NaN", "inf", "1e2", "1.0001",
+                      "1000000.001", "1000001", "01", "1<script>",
+                      "100\u200b", "1,2"):
+            with self.subTest(value=value):
+                code, _, raw = self.fetch({
+                    **self.query(), "min_persistent_km": value,
+                    "format": "json"})
+                self.assertEqual(code, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+
 if __name__ == "__main__":
     unittest.main()

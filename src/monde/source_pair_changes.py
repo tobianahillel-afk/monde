@@ -230,6 +230,9 @@ def comparison_geojson(document):
     }
     if "spatial_filter" in document:
         result["monde_comparison"]["spatial_filter"] = document["spatial_filter"]
+    if "persistent_separation_filter" in document:
+        result["monde_comparison"]["persistent_separation_filter"] = (
+            document["persistent_separation_filter"])
     return result
 
 
