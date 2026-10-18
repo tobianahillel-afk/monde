@@ -700,3 +700,22 @@ service, browser dependency or WorldMini persistence change is introduced.
 In a two-period offline disagreement comparison, the original entity coverage table now filters entities by whether their **set of reporting source IDs** is identical or different between the earlier and later selections. Each row shows counts of earlier-only and later-only source IDs. This is **selection coverage**, not evidence of physical change, source disappearance, verified absence or truth.
 
 The **Download reporting-source selection changes CSV** action exports only entity/source intersections present in exactly one selected period, including all original assertion/evidence IDs and report counts. The export uses the **complete embedded comparison evidence**, never map viewport/search/period presentation filters. The pre-existing complete coverage CSV and GeoJSON exports remain unchanged. No additional endpoint, network call, state mutation or dependency.
+
+
+### Source-first original entity coverage (WORK-0086)
+
+The offline two-period disagreement map now includes **Original sources: entity
+coverage between periods**. For every original source ID, it shows how many
+distinct original entity IDs were reported in the earlier and later embedded
+selections, identifies source/entity combinations reported in only one selected
+period, and links directly to that original source/entity/period evidence on the
+existing map. Analysts can filter sources with changed or identical reported
+entity-ID sets; these are reporting selections, **not evidence of physical
+absence, movement, completeness or truth**.
+
+The source-first download control reuses the existing complete source/entity
+selection-change CSV (with original assertion and evidence IDs), independent of
+all presentation filters. The source-first table derives from the same embedded
+original comparison features, not a second model, endpoint, hosted service or
+persistent store. Saved snapshots and the unmodified offline map renderer
+remain read-only.
