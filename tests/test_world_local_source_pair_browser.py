@@ -352,7 +352,7 @@ class LocalSourcePairBrowserTests(unittest.TestCase):
     def test_pair_table_retains_filters_and_world_time_cutoffs(self):
         from monde.source_pair_changes import source_pair_direction
         source = compare_source_pair_world_time(
-            sample(), "survey-a", "survey-b", EARLY, LATE, KNOWN)
+            self.world, "survey-a", "survey-b", EARLY, LATE, KNOWN)
         # Ensure the table is derived from the same canonical records.
         query = {"axis": "world", "source_a": "survey-a",
                  "source_b": "survey-b", "from_at": EARLY, "to_at": LATE,
