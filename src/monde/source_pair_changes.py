@@ -254,6 +254,55 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
     return result
 
 
+def discovery_geojson(world, document):
+    """Original Point evidence for all ranked source-pair examples, never inferred coordinates."""
+    if document["schema"] != "MONDE_SOURCE_PAIR_DISCOVERY_V1":
+        raise ValueError("unsupported source-pair discovery schema")
+    by_period = {}
+    for period in ("earlier", "later"):
+        cutoff = document["cutoffs"][period]
+        index = {}
+        for original in world.export_geojson(
+                cutoff["world_at"], cutoff["knowledge_at"])["features"]:
+            props = original["properties"]
+            index.setdefault((props["entity"], props["source_id"]), []).append(original)
+        by_period[period] = index
+    features = []
+    for rank, pair in enumerate(document["pairs"], 1):
+        for period in ("earlier", "later"):
+            cutoff = document["cutoffs"][period]
+            for source in (pair["source_a"], pair["source_b"]):
+                for original in by_period[period].get((pair["example_entity"], source), []):
+                    properties = dict(original["properties"])
+                    properties["monde_original_assertion_id"] = original["id"]
+                    properties["monde_discovery"] = {
+                        "rank": rank, "source_a": pair["source_a"],
+                        "source_b": pair["source_b"],
+                        "example_entity": pair["example_entity"],
+                        "period": period, "world_at": cutoff["world_at"],
+                        "knowledge_at": cutoff["knowledge_at"],
+                        "max_nearest_km": pair["max_nearest_km"],
+                        "rank_delta_km": pair.get("rank_delta_km"),
+                    }
+                    features.append({
+                        "type": "Feature",
+                        "id": f"{rank}:{period}:{original['id']}",
+                        "geometry": original["geometry"], "properties": properties,
+                    })
+    return {
+        "type": "FeatureCollection", "features": features,
+        "monde_discovery": {
+            "schema": "MONDE_SOURCE_PAIR_DISCOVERY_GEOJSON_V1",
+            "axis": document["axis"], "cutoffs": document["cutoffs"],
+            "rank": document.get("rank", "separation"),
+            "source_focus": document.get("source_focus"),
+            "total_pairs": document["total_pairs"],
+            "exported_pairs": len(document["pairs"]),
+            "interpretation": document["interpretation"],
+        },
+    }
+
+
 def discovery_csv(document):
     """Export ranked original reporter evidence at both temporal cutoffs."""
     if document["schema"] != "MONDE_SOURCE_PAIR_DISCOVERY_V1":

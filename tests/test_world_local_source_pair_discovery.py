@@ -493,6 +493,84 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
         self.assertIn(b"NO JOINT ORIGINAL SOURCE REPORTS", html)
 
 
+
+    def test_discovery_bulk_geojson_original_evidence_and_browser_link(self):
+        from monde.source_pair_changes import discovery_geojson
+        args = {**self.knowledge(), "rank": "decreasing", "top": "1"}
+        code, headers, raw = self.get({**args, "format": "geojson"})
+        self.assertEqual(code, 200)
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        doc = json.loads(raw)
+        self.assertEqual(doc["type"], "FeatureCollection")
+        self.assertEqual(doc["monde_discovery"]["exported_pairs"], 1)
+        self.assertEqual(doc["monde_discovery"]["rank"], "decreasing")
+        ids = {(feature["properties"]["monde_discovery"]["period"],
+                feature["properties"]["monde_original_assertion_id"])
+               for feature in doc["features"]}
+        self.assertEqual(ids, {("earlier", "a-a1"), ("earlier", "a-b1"),
+                               ("later", "a-a1"), ("later", "a-b2")})
+        self.assertEqual(len({f["id"] for f in doc["features"]}), 4)
+        self.assertTrue(all(f["geometry"]["type"] == "Point"
+                            for f in doc["features"]))
+        self.assertTrue(all(f["properties"]["source_id"] in ("survey-a", "survey-b")
+                            for f in doc["features"]))
+        ranked = json.loads(self.get({**args, "format": "json"})[2])
+        self.assertEqual(doc, discovery_geojson(self.world, ranked))
+        code, _, html = self.get({**args, "format": "table"})
+        self.assertEqual(code, 200)
+        self.assertIn(b"Download all ranked original examples GeoJSON", html)
+        self.assertIn(b'ranked-original-source-pairs.geojson', html)
+        self.assertEqual(self.file.read_bytes(), self.original)
+
+    def test_discovery_bulk_geojson_both_axes_and_source_focus(self):
+        world = sample(dateline=True)
+        file = Path(self.tmp.name) / "bulk-world.json"
+        world.save(file)
+        before = file.read_bytes()
+        server = create_server(file)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            args = {"discover": "1", "axis": "world", "from_at": EARLY,
+                    "to_at": LATE, "known_at": KNOWN, "format": "geojson"}
+            code, _, raw = self.get(args, server)
+            self.assertEqual(code, 200)
+            all_pairs = json.loads(raw)
+            self.assertEqual(all_pairs["monde_discovery"]["axis"], "world")
+            original_ids = {f["id"] for cutoff in (EARLY, LATE)
+                            for f in world.export_geojson(cutoff, KNOWN)["features"]}
+            self.assertTrue(all_pairs["features"])
+            self.assertTrue(all(
+                f["properties"]["monde_original_assertion_id"] in original_ids
+                for f in all_pairs["features"]))
+            source = all_pairs["features"][0]["properties"]["source_id"]
+            code, _, raw = self.get({**args, "source": source}, server)
+            self.assertEqual(code, 200)
+            focused = json.loads(raw)
+            self.assertEqual(focused["monde_discovery"]["source_focus"], source)
+            self.assertTrue(all(source in (
+                f["properties"]["monde_discovery"]["source_a"],
+                f["properties"]["monde_discovery"]["source_b"])
+                for f in focused["features"]))
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(file.read_bytes(), before)
+
+    def test_discovery_bulk_geojson_empty_and_invalid_params(self):
+        args = {**self.knowledge(), "from_known_at": "2026-01-02T00:00:00Z",
+                "to_known_at": "2026-01-02T12:00:00Z", "format": "geojson"}
+        code, _, raw = self.get(args)
+        self.assertEqual(code, 200)
+        self.assertEqual(json.loads(raw)["features"], [])
+        for invalid in ({"top": "101"}, {"rank": "invalid"},
+                        {"source": "../bad"}, {"unexpected": "x"}):
+            code, _, raw = self.get({**self.knowledge(), "format": "geojson", **invalid})
+            self.assertEqual(code, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        self.assertEqual(self.file.read_bytes(), self.original)
+
 if __name__ == "__main__":
     unittest.main()
 

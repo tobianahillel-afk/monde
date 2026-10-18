@@ -1012,7 +1012,7 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             '<label>Output <select name="format">'
             '<option value="table">Accessible ranked table</option>'
             '<option value="json">JSON</option>'
-             '<option value="csv">Download ranked evidence CSV</option></select></label>'
+             '<option value="csv">Download ranked evidence CSV</option><option value="geojson">All ranked original Points GeoJSON</option></select></label>'
             '<button>Discover original source pairs</button></form>')
     return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
             '<title>MONDE original source pairs</title><style>'
@@ -1155,7 +1155,7 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 
 def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import discover_source_pairs
-    if args.get("discover") != "1" or args.get("format", "table") not in ("json", "table", "csv"):
+    if args.get("discover") != "1" or args.get("format", "table") not in ("json", "table", "csv", "geojson"):
         raise ValueError("invalid discovery format")
     if args.get("axis") == "knowledge":
         _require(args, {"discover", "axis", "at", "from_known_at", "to_known_at"},
@@ -1226,7 +1226,10 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
          '; only independently reported partners are ranked.</p>'
          if "source_focus" in document else '') +
         '<p><a href="' + escape('/source-pair?' + urlencode({**args, 'format': 'csv'}), quote=True) +
-        '">Download ranked source evidence CSV</a></p>' +
+        '">Download ranked source evidence CSV</a> · ' +
+        '<a download="ranked-original-source-pairs.geojson" href="' +
+        escape('/source-pair?' + urlencode({**args, 'format': 'geojson'}), quote=True) +
+        '">Download all ranked original examples GeoJSON</a></p>' +
         '<table><caption>Ranked original source separations and temporal changes'
         '</caption><thead><tr><th scope="col">Open complete source evidence</th>'
         '<th scope="col">Max km</th><th scope="col">Change km</th>'
@@ -1514,6 +1517,9 @@ def create_server(state: str | Path, port: int = 0, *,
                         output_format = args.get("format", "table")
                         if output_format == "json":
                             return self._reply(200, discovery)
+                        if output_format == "geojson":
+                            from .source_pair_changes import discovery_geojson
+                            return self._reply(200, discovery_geojson(world, discovery))
                         if output_format == "csv":
                             from .source_pair_changes import discovery_csv
                             body = discovery_csv(discovery).encode("utf-8")
