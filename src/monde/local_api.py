@@ -1231,7 +1231,7 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import source_directory
     if args.get("directory") != "1" or args.get("format", "table") not in (
-            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-table", "geojson", "map"):
+            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-table", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
@@ -1247,12 +1247,12 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid source directory axis")
     if "presence" in args and (
             args["presence"] not in ("earlier", "later", "both") or
-            args.get("format") not in ("map", "geojson", "presence-csv", "presence-table") or
+            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-table") or
             "entity" not in args):
         raise ValueError("original presence requires an exact entity export")
-    if args.get("format") in ("assertions-csv", "presence-csv", "presence-table") and (
+    if args.get("format") in ("assertions-csv", "presence-csv", "presence-json", "presence-table") and (
             "entity" not in args or
-            ("source" in args and args["format"] not in ("presence-csv", "presence-table"))):
+            ("source" in args and args["format"] not in ("presence-csv", "presence-json", "presence-table"))):
         raise ValueError("original assertion CSV requires exact entity directory")
     if (args.get("format") in ("geojson", "map") and
             "source" not in args and "entity" not in args):
@@ -1264,7 +1264,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if "source" in args and "entity" in args:
         # Keep canonical directory/detail JSON, CSV and tables unchanged.
         # Original source/entity intersection also permits the presence CSV.
-        if args.get("format") not in ("map", "geojson", "presence-csv", "presence-table"):
+        if args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-table"):
             raise ValueError("source and entity selection requires a map export")
         source = args["source"]
         if not 0 < len(source) <= 200 or any(
@@ -2078,6 +2078,10 @@ def create_server(state: str | Path, port: int = 0, *,
                         output_format = args.get("format", "table")
                         if output_format == "json":
                             return self._reply(200, document)
+                        if output_format == "presence-json":
+                            from .source_pair_changes import source_directory_entity_presence_json
+                            return self._reply(200, source_directory_entity_presence_json(
+                                world, document, args.get("presence")))
                         if output_format == "geojson":
                             from .source_pair_changes import (
                                 source_directory_geojson, source_directory_entity_geojson)
