@@ -1007,6 +1007,8 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             '<option value="increasing">Increasing distance, matched entity</option>'
             '<option value="decreasing">Decreasing distance, matched entity</option>'
             '</select></label>'
+            '<label>Minimum jointly reported entities (trends: both cutoffs)'
+            '<input type="number" name="min_joint" min="1" max="10000" value="1"></label>'
             '<label>Top pairs (1–100)<input type="number" name="top"'
             ' min="1" max="100" value="25"></label>'
             '<label>Output <select name="format">'
@@ -1159,7 +1161,7 @@ def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid discovery format")
     if args.get("axis") == "knowledge":
         _require(args, {"discover", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format", "top", "rank", "source"})
+                 {"format", "top", "rank", "source", "min_joint"})
         cuts = ((args["at"], args["from_known_at"]),
                 (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
@@ -1174,16 +1176,19 @@ def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid discovery top")
     if "source" in args:
         _id(args["source"])
+    raw_min = args.get("min_joint", "1")
+    if not re.fullmatch(r"[1-9][0-9]{0,4}", raw_min) or int(raw_min) > 10000:
+        raise ValueError("invalid minimum joint entities")
     return discover_source_pairs(world, args["axis"], cuts, int(raw_top),
                                  args.get("rank", "separation"),
-                                 args.get("source"))
+                                 args.get("source"), int(raw_min))
 
 
 def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
     rows = []
     for pair in document["pairs"]:
         params = {k: v for k, v in args.items()
-                  if k not in ("discover", "top", "format", "rank", "source")}
+                  if k not in ("discover", "top", "format", "rank", "source", "min_joint")}
         params.update(source_a=pair["source_a"], source_b=pair["source_b"],
                       format="table")
         link = "/source-pair?" + urlencode(params)
@@ -1225,6 +1230,10 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
         ('<p>Original reporter focus: ' + escape(document["source_focus"]) +
          '; only independently reported partners are ranked.</p>'
          if "source_focus" in document else '') +
+        ('<p>Minimum independently joint-reported entities: ' +
+         str(document["min_joint_entities"]) +
+         ' (trends require both cutoffs).</p>'
+         if "min_joint_entities" in document else '') +
         '<p><a href="' + escape('/source-pair?' + urlencode({**args, 'format': 'html'}), quote=True) +
         '">Map all ranked original examples</a> · <a href="' +
         escape('/source-pair?' + urlencode({**args, 'format': 'csv'}), quote=True) +
