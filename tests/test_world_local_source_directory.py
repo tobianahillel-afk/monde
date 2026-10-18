@@ -1476,7 +1476,7 @@ class SourceDirectoryTests(unittest.TestCase):
 
     def test_original_report_presence_csv_scope_and_spreadsheet_safety(self):
         for extra in ({"format": "presence-csv"},
-                      {"entity": "site-1", "source": "survey-a", "format": "presence-csv"},
+                      {"entity": "site-1", "source": "survey-a", "format": "assertions-csv"},
                       {"entity": "site-1", "format": "presence-csv", "extra": "x"}):
             status, _, data = self.get({**self.knowledge(), **extra})
             self.assertEqual(status, 400)
