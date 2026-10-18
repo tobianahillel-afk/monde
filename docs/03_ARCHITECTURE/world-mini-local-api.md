@@ -617,5 +617,11 @@ evidence IDs, source Point coordinates and bitemporal context even when map
 display filters hide every marker. GeoJSON records the exact original source,
 entity, per-period counts and the explicit scope
 `COMPLETE_EMBEDDED_SOURCE_ENTITY_NOT_DISPLAY_FILTERED`.
-CSV reuses existing spreadsheet-safe complete-evidence columns. No new route,
-dependency, network call, inferred truth, or saved-world mutation.
+CSV reuses existing spreadsheet-safe complete-evidence columns. Each entity has
+an independent **Both / Earlier / Later** export selector. Earlier/Later exports
+contain only that period's full original source reports and preserve assertion,
+evidence, source and bitemporal identity, irrespective of visible map filters.
+GeoJSON records the selected period, exported count, original period counts and
+the scope `COMPLETE_EMBEDDED_SOURCE_ENTITY_SELECTED_PERIOD_NOT_DISPLAY_FILTERED`.
+The default Both export retains the previous structure. No new route, dependency,
+network call, inferred truth or saved-world mutation.

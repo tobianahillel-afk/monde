@@ -790,26 +790,47 @@ __MONDE_TIME_NAVIGATION__
             return f.properties.source_id===id && f.properties.entity===entity;
           });
           var exportButtons=document.createElement("div");
+          // Entity export period is independent from visible map filters.
+          var exportPeriod=document.createElement("select");
+          exportPeriod.setAttribute("aria-label",
+            "Export original entity period for "+String(entity));
+          [["both","Both original periods"],["earlier","Earlier only"],
+            ["later","Later only"]].forEach(function(choice){
+            var option=document.createElement("option");
+            option.value=choice[0];option.textContent=choice[1];
+            exportPeriod.appendChild(option);
+          });
+          function selectedEntityReports(){
+            return exportPeriod.value==="both" ? entityReports :
+              entityReports.filter(function(f){
+                return f.properties.monde_comparison_period===exportPeriod.value;
+              });
+          }
+          exportButtons.appendChild(exportPeriod);
           var entityGeo=document.createElement("button");
           entityGeo.type="button";entityGeo.textContent="Download entity GeoJSON";
           entityGeo.addEventListener("click",function(){
             saveEvidence(Object.assign({},data,{
-              features:entityReports,
+              features:selectedEntityReports(),
               monde_source_entity_export:{
-                scope:"COMPLETE_EMBEDDED_SOURCE_ENTITY_NOT_DISPLAY_FILTERED",
-                source_id:id,entity:entity,selected_period:"both",
+                scope:exportPeriod.value==="both" ?
+                  "COMPLETE_EMBEDDED_SOURCE_ENTITY_NOT_DISPLAY_FILTERED" :
+                  "COMPLETE_EMBEDDED_SOURCE_ENTITY_SELECTED_PERIOD_NOT_DISPLAY_FILTERED",
+                source_id:id,entity:entity,selected_period:exportPeriod.value,
                 earlier_original_report_count:periods.earlier.length,
                 later_original_report_count:periods.later.length,
-                exported_feature_count:entityReports.length
+                exported_feature_count:selectedEntityReports().length
               }
-            }),"monde-original-source-entity-both-periods.geojson",
+            }),"monde-original-source-entity-"+exportPeriod.value+
+              (exportPeriod.value==="both"?"-periods.geojson":"-period.geojson"),
               "application/geo+json");
           });
           var entityCsv=document.createElement("button");
           entityCsv.type="button";entityCsv.textContent="Download entity CSV";
           entityCsv.addEventListener("click",function(){
-            saveDownload(completeComparisonCsv(entityReports),
-              "monde-original-source-entity-both-periods.csv",
+            saveDownload(completeComparisonCsv(selectedEntityReports()),
+              "monde-original-source-entity-"+exportPeriod.value+
+                (exportPeriod.value==="both"?"-periods.csv":"-period.csv"),
               "text/csv;charset=utf-8");
           });
           exportButtons.appendChild(entityGeo);exportButtons.appendChild(entityCsv);
