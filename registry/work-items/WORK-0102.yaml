@@ -1,0 +1,50 @@
+id: WORK-0102
+title: "Focus geographic source-pair comparisons on the original reporting source"
+status: IN_REVIEW
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source-pair browser"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Let analysts distinguish which original source A or B reports a Point
+  in a chosen geographic focus while preserving full opposing evidence.
+scope:
+  in: ["Source A/B/either reporting-region selector", "Retain original evidence", "Real HTTP formats and both axes"]
+  out: ["Additional source parser", "Inferred physical truth", "Hosted dependency", "Persistence mutation"]
+acceptance_criteria:
+  - {id: AC-1, description: "Select original A/B regional reports before ranking.", status: IN_REVIEW}
+  - {id: AC-2, description: "Keep both sources and all original assertions of qualifying entities.", status: IN_REVIEW}
+  - {id: AC-3, description: "Reject invalid selector or missing region and preserve previous default.", status: IN_REVIEW}
+  - {id: AC-4, description: "Verify real HTTP JSON GeoJSON CSV map table and both time axes.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0101]
+read_before: [AGENTS.md, src/monde/local_api.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.local_api._pair_query, monde.source_pair_changes.comparison_geojson, monde.source_pair_changes.comparison_csv]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add source-specific geographic qualification.", depends_on: [], expected_files: [src/monde/local_api.py], status: IN_REVIEW}
+    - {id: T2, description: "Verify complete source reports and real HTTP output.", depends_on: [T1], expected_files: [tests/test_world_local_source_pair_region.py], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, EPISTEMIC, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_pair_region.py]
+  real_system: ["GitHub Actions world-mini; loopback HTTP"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Draft stacked on WORK-0101 PR #131; upstream chain unmerged."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close or revert this PR without migrations."

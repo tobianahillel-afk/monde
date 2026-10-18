@@ -953,6 +953,12 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
                       '<input name="entity"></label>'
                        '<label>Geographic region (optional WGS84 west,south,east,north)'
                        '<input name="bbox" placeholder="-5,40,10,52"></label>'
+                       '<label>Qualifying region reporter'
+                       '<select name="region_source">'
+                       '<option value="">Either source (default)</option>'
+                       '<option value="a">Source A only</option>'
+                       '<option value="b">Source B only</option>'
+                       '</select></label>'
                      + inputs +
                       '<label>Output <select name="format">'
                       '<option value="html">Offline evidence map</option><option value="table">Accessible source-pair evidence table</option>'
@@ -1084,7 +1090,9 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
         export_link("csv", "Download complete evidence CSV") + "</p>" +
         ('<p>Geographic focus: original Point inside ' +
          escape(str(document["spatial_filter"]["bbox"])) +
-         ' in either period; complete original reports remain available.</p>'
+         ' in either period, as reported by ' +
+         escape(document["spatial_filter"].get("qualifying_source_id", "either source")) +
+         '; complete original reports remain available.</p>'
          if "spatial_filter" in document else "") +
         '<p>Entities: ' + str(len(document["entities"])) + "</p>"
         '<table><caption>Source-reported separation at earlier and later cutoffs'
@@ -1107,7 +1115,13 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
         filter_source_pair_direction, top_nearest_source_pair_changes)
     _id(args.get("source_a"))
     _id(args.get("source_b"))
-    extra = {"format", "direction", "top", "entity", "min_change_km", "bbox"}
+    extra = {"format", "direction", "top", "entity", "min_change_km",
+             "bbox", "region_source"}
+    if "region_source" in args and "bbox" not in args:
+        raise ValueError("region source requires bbox")
+    region_source = args.get("region_source", "either")
+    if region_source not in ("either", "a", "b"):
+        raise ValueError("invalid region source")
     if args.get("axis") == "knowledge":
         _require(args, {"axis", "source_a", "source_b",
                         "at", "from_known_at", "to_known_at"}, extra)
@@ -1137,19 +1151,29 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
                           else lon >= west or lon <= east)
             return within_lon and south <= lat <= north
 
+        qualifying_fields = {
+            "either": ("source_a_original_reports", "source_b_original_reports"),
+            "a": ("source_a_original_reports",),
+            "b": ("source_b_original_reports",),
+        }[region_source]
         selected = [
             row for row in output["entities"]
             if any(inside(original)
                    for period in ("earlier", "later")
-                   for field in ("source_a_original_reports", "source_b_original_reports")
+                   for field in qualifying_fields
                    for original in row[period][field])
         ]
-        output = {**output, "entities": selected, "spatial_filter": {
+        focus = {
             "bbox": bounds,
-            "basis": "ANY_ORIGINAL_SOURCE_POINT_IN_EITHER_PERIOD",
+            "basis": ("ANY_ORIGINAL_SOURCE_POINT_IN_EITHER_PERIOD"
+                      if region_source == "either" else
+                      "SOURCE_" + region_source.upper() + "_ORIGINAL_POINT_IN_EITHER_PERIOD"),
             "total_entities": len(output["entities"]),
             "matching_entities": len(selected),
-        }}
+        }
+        if region_source != "either":
+            focus["qualifying_source_id"] = args["source_" + region_source]
+        output = {**output, "entities": selected, "spatial_filter": focus}
     if "entity" in args:
         _id(args["entity"])
         # Select one original entity before direction or top-N ranking.

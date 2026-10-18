@@ -158,5 +158,78 @@ class GeographicSourcePairTests(unittest.TestCase):
         self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
 
 
+    def test_choose_original_reporter_for_region_without_losing_other_source(self):
+        base = {**self.query(), "bbox": "29.5,-1,30.5,1", "format": "json"}
+        default = json.loads(self.fetch(base)[2])
+        explicit = json.loads(self.fetch({**base, "region_source": "either"})[2])
+        self.assertEqual(default, explicit)
+        a = json.loads(self.fetch({**base, "region_source": "a"})[2])
+        self.assertEqual([row["entity"] for row in a["entities"]], ["site-far"])
+        self.assertEqual(a["spatial_filter"]["qualifying_source_id"], "survey-a")
+        reports = a["entities"][0]["later"]
+        sources = {f["properties"]["source_id"] for key in (
+            "source_a_original_reports", "source_b_original_reports")
+            for f in reports[key]}
+        self.assertEqual(sources, {"survey-a", "survey-b"})
+        b = json.loads(self.fetch({**base, "region_source": "b"})[2])
+        self.assertEqual(b["entities"], [])
+        b_region = {**base, "bbox": "31.5,-1,32.5,1", "region_source": "b"}
+        self.assertEqual([r["entity"] for r in json.loads(self.fetch(b_region)[2])["entities"]],
+                         ["site-far"])
+
+    def test_reporter_selection_matches_json_geojson_csv_table_and_map(self):
+        params = {**self.query(), "bbox": "29.5,-1,30.5,1",
+                  "region_source": "a", "top": "1"}
+        doc = json.loads(self.fetch({**params, "format": "json"})[2])
+        self.assertEqual(json.loads(self.fetch({**params, "format": "geojson"})[2]),
+                         comparison_geojson(doc))
+        self.assertEqual(self.fetch({**params, "format": "csv"})[2].decode(),
+                         comparison_csv(doc))
+        for mode in ("table", "html"):
+            code, _, page = self.fetch({**params, "format": mode})
+            self.assertEqual(code, 200)
+            self.assertIn(b"site-far", page)
+            self.assertNotIn(b"site-1", page)
+        self.assertIn(b"survey-a", self.fetch({**params, "format": "table"})[2])
+
+    def test_reporter_selection_rejects_invalid_values_and_requires_region(self):
+        for extra in ({"region_source": "a"},
+                      {"bbox": "29,-1,33,1", "region_source": "both"},
+                      {"bbox": "29,-1,33,1", "region_source": "A"},
+                      {"bbox": "29,-1,33,1", "region_source": "unknown"}):
+            with self.subTest(extra=extra):
+                code, _, data = self.fetch({**self.query(), **extra, "format": "json"})
+                self.assertEqual(code, 400)
+                self.assertEqual(json.loads(data), {"error": "invalid_query"})
+
+    def test_region_reporter_form_and_world_axis(self):
+        code, _, page = self.fetch()
+        self.assertEqual(code, 200)
+        self.assertEqual(page.count(b'name="region_source"'), 2)
+        w = sample(dateline=True)
+        path = Path(self.tmp.name) / "region-world.json"
+        w.save(path)
+        before = path.read_bytes()
+        server = create_server(path)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = {"axis": "world", "source_a": "survey-a",
+                     "source_b": "survey-b", "from_at": EARLY, "to_at": LATE,
+                     "known_at": KNOWN, "bbox": "179.8,-1,-179.8,1",
+                     "region_source": "a", "format": "json"}
+            status, _, data = self.fetch(query, server)
+            self.assertEqual(status, 200)
+            doc = json.loads(data)
+            self.assertEqual(doc["spatial_filter"]["qualifying_source_id"], "survey-a")
+            self.assertEqual(doc["entities"], compare_source_pair_world_time(
+                w, "survey-a", "survey-b", EARLY, LATE, KNOWN)["entities"])
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(path.read_bytes(), before)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -249,3 +249,18 @@ Blank optional bbox fields submitted by the browser mean no filter.
 Malformed, nonfinite, out-of-WGS84 or inverted latitude values return 400.
 This is entirely local, read-only, dependency-free, with unchanged saved
 WorldMini bytes. Draft stacked on WORK-0100, not merged into `main`.
+
+## Qualify a region by the original reporting source (WORK-0102)
+
+Use `region_source=a` or `region_source=b` with an existing WGS84 `bbox`
+to select entities where **that source's original Point** falls in the
+region in either period. Without the selector (or `region_source=either`),
+the previous either-source rule is unchanged. No region means the source
+selector is invalid. The returned entities keep **both** sources' complete
+original Points and provenance, including observations outside the focus.
+
+The selection is applied before entity, direction, minimum-change and top-N
+filters for both world-time and knowledge-time comparisons. JSON and GeoJSON
+retain the qualifying original source ID; map, table and CSV use identical
+selected evidence. All operations are offline/local read-only; there is no
+consensus position, verified movement or additional dependency.
