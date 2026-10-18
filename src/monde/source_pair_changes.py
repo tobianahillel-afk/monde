@@ -3,7 +3,9 @@
 A distance between reports is not actual movement, accuracy or physical truth.
 """
 import argparse
+import csv
 from datetime import datetime
+import io
 import json
 from math import asin, cos, radians, sin, sqrt
 
@@ -120,10 +122,67 @@ def compare_source_pair_world_time(world, source_a, source_b,
                                            (to_at, known_at)))}
 
 
+
+def comparison_csv(document):
+    """CSV representation of original source evidence for either time axis."""
+    if document["schema"] == "MONDE_SOURCE_PAIR_CHANGE_V1":
+        axis = "knowledge"
+        cutoffs = {"earlier": (document["valid_at"], document["from_known_at"]),
+                   "later": (document["valid_at"], document["to_known_at"])}
+    elif document["schema"] == "MONDE_SOURCE_PAIR_WORLD_CHANGE_V1":
+        axis = "world"
+        cutoffs = {"earlier": (document["from_at"], document["known_at"]),
+                   "later": (document["to_at"], document["known_at"])}
+    else:
+        raise ValueError("unsupported source-pair comparison schema")
+
+    def safe(value):
+        # CSV escaping is not sufficient against spreadsheet formula injection.
+        return "'" + value if value.startswith(("=", "+", "-", "@", "\t", "\r", "\n")) else value
+
+    def originals(features, field):
+        values = ([f["geometry"]["coordinates"] for f in features]
+                  if field == "coordinates" else
+                  [f["id"] for f in features] if field == "assertion_id" else
+                  [f["properties"][field] for f in features])
+        return json.dumps(values, ensure_ascii=False, separators=(",", ":"))
+
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\n")
+    writer.writerow(("comparison_axis", "world_at", "knowledge_at", "entity",
+                     "period", "source_a", "source_b", "status", "nearest_km",
+                     "farthest_km", "change_nearest_km", "change_farthest_km",
+                     "source_a_count", "source_b_count", "source_a_assertion_ids",
+                     "source_b_assertion_ids", "source_a_evidence_ids",
+                     "source_b_evidence_ids", "source_a_coordinates",
+                     "source_b_coordinates"))
+    for item in document["entities"]:
+        for period in ("earlier", "later"):
+            at, known_at = cutoffs[period]
+            data = item[period]
+            a = data["source_a_original_reports"]
+            b = data["source_b_original_reports"]
+            sep = data["separation"]
+            delta = item["earlier_to_later_change_km"] if period == "later" else None
+            writer.writerow((
+                axis, at, known_at, safe(item["entity"]), period,
+                safe(document["source_a"]), safe(document["source_b"]), data["status"],
+                sep["nearest_km"] if sep is not None else "",
+                sep["farthest_km"] if sep is not None else "",
+                delta["nearest_km"] if delta is not None else "",
+                delta["farthest_km"] if delta is not None else "",
+                len(a), len(b), originals(a, "assertion_id"),
+                originals(b, "assertion_id"), originals(a, "evidence_id"),
+                originals(b, "evidence_id"), originals(a, "coordinates"),
+                originals(b, "coordinates")))
+    return output.getvalue()
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Compare two original source Point reports across knowledge time")
     parser.add_argument("--fixture", required=True)
+    parser.add_argument("--format", choices=("json", "csv"), default="json")
     parser.add_argument("--source-a", required=True)
     parser.add_argument("--source-b", required=True)
     parser.add_argument("--at", help="fixed world time for knowledge comparison")
@@ -151,7 +210,10 @@ def main(argv=None):
                          args.source_a, args.source_b, *cutoffs)
     except (ValueError, OSError) as error:
         parser.error(str(error))
-    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    if args.format == "csv":
+        print(comparison_csv(result), end="")
+    else:
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0
 
 
