@@ -1204,8 +1204,9 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
-    if args.get("format") in ("geojson", "map") and "source" not in args:
-        raise ValueError("source map or GeoJSON requires a source")
+    if (args.get("format") in ("geojson", "map") and
+            "source" not in args and "entity" not in args):
+        raise ValueError("source map or GeoJSON requires a source or entity")
     if "source" in args and "rank" in args:
         raise ValueError("ranking only applies to original source directory")
     if "source" in args and args.get("source_prefix"):
@@ -1299,7 +1300,14 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
          if "entity_focus" in document else '') + '<p>' +
         escape(count_label) + ', ' + escape(document["axis"]) +
         ' time.</p>' + navigation + ranking + '<p><a href="' +
-        escape(csv_link, quote=True) + '">Download matching coverage CSV</a></p>'
+        escape(csv_link, quote=True) + '">Download matching coverage CSV</a>' +
+        (' · <a href="' + escape("/source-pair?" + urlencode(
+            {**args, "format": "map"}), quote=True) +
+         '">Map all original reporters of this entity</a> · <a href="' +
+         escape("/source-pair?" + urlencode(
+             {**args, "format": "geojson"}), quote=True) +
+         '">Download original reporter Points GeoJSON</a>'
+         if "entity_focus" in document else '') + '</p>'
         '<table><caption>Original source entities at the two cutoffs</caption>'
         '<thead><tr><th scope="col">Source — investigate partners</th>'
         '<th scope="col">Entities earlier / later</th>'
@@ -1811,11 +1819,17 @@ def create_server(state: str | Path, port: int = 0, *,
                         if output_format == "json":
                             return self._reply(200, document)
                         if output_format == "geojson":
-                            from .source_pair_changes import source_directory_geojson
-                            return self._reply(200, source_directory_geojson(world, document))
+                            from .source_pair_changes import (
+                                source_directory_geojson, source_directory_entity_geojson)
+                            exporter = (source_directory_entity_geojson if "entity" in args
+                                        else source_directory_geojson)
+                            return self._reply(200, exporter(world, document))
                         if output_format == "map":
-                            from .source_pair_changes import source_directory_map
-                            return self._html(source_directory_map(world, document))
+                            from .source_pair_changes import (
+                                source_directory_map, source_directory_entity_map)
+                            exporter = (source_directory_entity_map if "entity" in args
+                                        else source_directory_map)
+                            return self._html(exporter(world, document))
                         if output_format == "csv":
                             body = (_source_directory_detail_csv(document)
                                     if "source" in args else _source_directory_csv(document))

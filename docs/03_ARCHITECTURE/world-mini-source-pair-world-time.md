@@ -603,3 +603,16 @@ original assertion IDs. Coverage and ranking statistics still count **all**
 entities for each source, not just the focus entity. HTML, JSON and CSV select
 the same sources, no data is changed, and detail/partner links omit the
 unsupported filter. No additional route, dependency or API.
+
+
+### Map original reporters of one exact entity (WORK-0115)
+
+The local source directory can open `format=geojson` or `format=map` when
+`entity` is explicitly selected. Only that entity's original Points from the
+selected reporting sources at both cutoffs are shown, with original assertion,
+evidence and source identifiers, unchanged WGS84 positions, period, world time
+and knowledge cutoff. Optional source-prefix, ranking and reporting-transition
+filters continue to select which reporters qualify. The map viewport is a
+source-point display envelope, not verified movement or a consensus position.
+Directory requests for a map without `source` or `entity` remain invalid.
+No new endpoint, dependency, service, persisted-model mutation or paid API.

@@ -925,5 +925,93 @@ class SourceDirectoryTests(unittest.TestCase):
             server.server_close()
             self.assertEqual(saved.read_bytes(), before)
 
+
+    def test_exact_entity_reporters_map_and_geojson_live_http(self):
+        query = self.knowledge()
+        status, _, raw = self.get({**query, "format": "json"})
+        self.assertEqual(status, 200)
+        entity = json.loads(raw)["sources"][0]["example_entity"]
+        focused = {**query, "entity": entity}
+        status, _, raw = self.get({**focused, "format": "json"})
+        self.assertEqual(status, 200)
+        directory = json.loads(raw)
+        reporters = {row["source_id"] for row in directory["sources"]}
+        status, _, raw = self.get({**focused, "format": "geojson"})
+        self.assertEqual(status, 200)
+        geo = json.loads(raw)
+        self.assertEqual(geo["type"], "FeatureCollection")
+        self.assertEqual(geo["monde_source_coverage"]["entity_focus"], entity)
+        self.assertEqual(geo["monde_source_coverage"]["selected_sources"],
+                         len(reporters))
+        original = {
+            (period, f["id"]): f
+            for period, instant in (("earlier", BEFORE), ("later", AFTER))
+            for f in self.world.export_geojson(AT, instant)["features"]
+        }
+        self.assertTrue(geo["features"])
+        self.assertEqual({f["properties"]["source_id"] for f in geo["features"]},
+                         reporters)
+        for feature in geo["features"]:
+            p = feature["properties"]
+            period, assertion = p["monde_comparison_period"], p["monde_original_assertion_id"]
+            original_point = original[(period, assertion)]
+            self.assertEqual(p["entity"], entity)
+            self.assertEqual(feature["geometry"], original_point["geometry"])
+            self.assertEqual(p["source_id"], original_point["properties"]["source_id"])
+            self.assertEqual(p["monde_known_at"], BEFORE if period == "earlier" else AFTER)
+            self.assertEqual(p["monde_world_at"], AT)
+        status, _, html = self.get(focused)
+        self.assertEqual(status, 200)
+        self.assertIn(b"Map all original reporters of this entity", html)
+        self.assertIn(b"Download original reporter Points GeoJSON", html)
+        status, _, map_html = self.get({**focused, "format": "map"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"<!doctype html>", map_html.lower())
+        status, _, missing = self.get({**query, "entity": "no-such-report-xyz",
+                                      "format": "geojson"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(missing)["features"], [])
+        for fmt in ("geojson", "map"):
+            status, _, body = self.get({**query, "format": fmt})
+            self.assertEqual(status, 400)
+
+    def test_original_reporter_map_world_axis_preserves_saved_world(self):
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "entity-reporters-map.json"
+        world.save(saved)
+        before = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            q = {"directory": "1", "axis": "world",
+                 "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**q, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            entity = json.loads(raw)["sources"][0]["example_entity"]
+            status, _, raw = self.get({**q, "entity": entity,
+                                       "format": "geojson"}, server)
+            self.assertEqual(status, 200)
+            features = json.loads(raw)["features"]
+            self.assertTrue(features)
+            for feature in features:
+                p = feature["properties"]
+                self.assertEqual(p["entity"], entity)
+                self.assertEqual(p["monde_world_at"],
+                                 EARLY if p["monde_comparison_period"] == "earlier" else LATE)
+                self.assertEqual(p["monde_known_at"], KNOWN)
+            status, _, html = self.get({**q, "entity": entity, "format": "map"},
+                                       server)
+            self.assertEqual(status, 200)
+            self.assertIn(b"<!doctype html>", html.lower())
+            status, _, raw = self.get({**q, "source": "survey-a",
+                                      "entity": entity, "format": "geojson"}, server)
+            self.assertEqual(status, 400)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), before)
+
 if __name__ == "__main__":
     unittest.main()

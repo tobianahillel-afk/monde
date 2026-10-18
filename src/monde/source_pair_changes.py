@@ -510,6 +510,65 @@ def source_directory_map(world, detail):
     return geojson
 
 
+def source_directory_entity_geojson(world, directory):
+    """Preserve both cutoffs' original Points for selected exact-entity reporters."""
+    if (directory.get("schema") != "MONDE_SOURCE_COVERAGE_DIRECTORY_V1" or
+            "entity_focus" not in directory):
+        raise ValueError("original entity reporter directory required")
+    selected = {row["source_id"]: set(row["example_assertion_ids"])
+                for row in directory["sources"]}
+    entity = directory["entity_focus"]
+    features = []
+    for period in ("earlier", "later"):
+        cutoff = directory["cutoffs"][period]
+        at, known_at = cutoff["world_at"], cutoff["knowledge_at"]
+        for original in world.export_geojson(at, known_at)["features"]:
+            props = original["properties"]
+            if (props["entity"] != entity or
+                    original["id"] not in selected.get(props["source_id"], ())):
+                continue
+            metadata = dict(props)
+            metadata.update(monde_original_assertion_id=original["id"],
+                            monde_comparison_period=period,
+                            monde_world_at=at, monde_known_at=known_at)
+            features.append({
+                "type": "Feature", "id": period + ":" + str(original["id"]),
+                "geometry": original["geometry"], "properties": metadata,
+            })
+    return {
+        "type": "FeatureCollection", "features": features,
+        "monde_source_coverage": {
+            "schema": "MONDE_ENTITY_REPORTERS_GEOJSON_V1",
+            "entity_focus": entity, "axis": directory["axis"],
+            "cutoffs": directory["cutoffs"],
+            "selected_sources": len(selected),
+            "original_feature_count": len(features),
+            "interpretation": directory["interpretation"],
+        },
+    }
+
+
+def source_directory_entity_map(world, directory):
+    """Reuse the source Point display envelope, never infer consensus or motion."""
+    geojson = source_directory_entity_geojson(world, directory)
+    features = geojson["features"]
+    for feature in features:
+        feature["properties"]["monde_inside_bbox"] = True
+    earlier = directory["cutoffs"]["earlier"]
+    geojson["monde_bbox_query"] = {
+        "basis": "SOURCE_REPORTED_POINT_BBOX_ONLY",
+        "bbox": _source_display_bbox(features),
+        "valid_at": earlier["world_at"],
+        "knowledge_cutoff": earlier["knowledge_at"],
+        "total_matching_entities": 1 if features else 0,
+        "total_source_features": len(features),
+        "status": "MATCHES" if features else "NO_MATCHES",
+    }
+    geojson["monde_source_coverage"]["display_basis"] = (
+        "ORIGINAL_REPORTS_AT_BOTH_CUTOFFS_NOT_CONSENSUS_LOCATION")
+    return geojson
+
+
 def discovery_geojson(world, document):
     """Original Point evidence for all ranked source-pair examples, never inferred coordinates."""
     if document["schema"] != "MONDE_SOURCE_PAIR_DISCOVERY_V1":

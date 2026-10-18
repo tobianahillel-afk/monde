@@ -17,6 +17,7 @@ acceptance_criteria:
   - {id: AC-1, description: "Select only original reporters of one entity at either cutoff.", status: IN_PROGRESS}
   - {id: AC-2, description: "Preserve coverage totals and default output.", status: IN_PROGRESS}
   - {id: AC-3, description: "Test real HTTP, world and knowledge time, exports, state immutability.", status: IN_PROGRESS}
+  - {id: AC-4, description: "Map original source Points of the selected entity at both cutoffs, preserving provenance.", status: IN_PROGRESS}
 depends_on: [WORK-0114]
 requirements: []
 read_before: [AGENTS.md, src/monde/local_api.py, src/monde/source_pair_changes.py]
