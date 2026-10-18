@@ -264,3 +264,56 @@ filters for both world-time and knowledge-time comparisons. JSON and GeoJSON
 retain the qualifying original source ID; map, table and CSV use identical
 selected evidence. All operations are offline/local read-only; there is no
 consensus position, verified movement or additional dependency.
+
+
+## Focus on both original reporters at the same cutoff (WORK-0103)
+
+The read-only `/source-pair` form now supports `region_source=both`
+alongside `either`, `a` and `b` when a WGS84 `bbox` is present.
+An entity qualifies **only if both original sources independently report
+a Point inside the region in the same earlier or later comparison period**.
+Reports from A at the earlier cutoff and B only at the later cutoff
+do not qualify merely because their union intersects the viewport.
+
+Example:
+`/source-pair?axis=knowledge&source_a=survey-a&source_b=survey-b&at=2026-01-05T00%3A00%3A00Z&from_known_at=2026-01-03T00%3A00%3A00Z&to_known_at=2026-01-06T00%3A00%3A00Z&bbox=29.5%2C-1%2C32.5%2C1&region_source=both&format=table`
+
+Filtering still precedes entity/direction/min-change/top-N; every
+selected entity retains the complete original source assertions from both
+periods, including reported Points outside the region. The same selection
+feeds the existing HTML map, accessible table, JSON, GeoJSON and CSV, on
+both world-time and knowledge-time axes. This is **joint geographic reporting**,
+not agreement, verified proximity or ground truth. No new endpoint, source
+parser, dependency or persistence write is introduced.
+
+## Choose the exact geographic comparison period (WORK-0103)
+
+With WGS84 `bbox`, optional `region_period=earlier|later` qualifies
+an entity only using the original reporter Points at that one comparison
+cutoff. Default is both periods as before. With `region_source=both`,
+both original sources must separately qualify at the selected same cutoff.
+Complete earlier/later source evidence is kept in the unchanged HTML map,
+accessible table, CSV, JSON and GeoJSON. Missing `bbox` or invalid period
+returns HTTP 400. The response records `spatial_filter.qualifying_period`
+only for an explicitly selected period.
+
+
+### Require original reporting at both cutoffs (WORK-0103)
+
+Choose `region_period=both` with an existing WGS84 `bbox` to retain an
+entity only when the selected `region_source` criterion is satisfied **at
+each of the earlier and later cutoffs independently**. For `region_source=both`,
+each original reporting source must have its own in-region Point at *both*
+cutoffs; an earlier-only source and later-only source cannot combine to qualify.
+With `region_source=a|b|either`, that same reporter selection is evaluated
+separately at both cutoffs (for `either`, the qualifying reporter may differ).
+
+The default `region_period=either` retains its prior OR semantics, and
+`earlier|later` remain available. JSON and GeoJSON include
+`spatial_filter.qualifying_period="both"` when selected; the HTML map,
+accessible table and CSV select the same original evidence without stripping
+out-of-region reports, changing the World Model or inferring verified motion.
+
+For explicit `region_period=both`, `spatial_filter.basis` uses
+`*_IN_EACH_PERIOD`, and the accessible table says *both cutoffs* rather
+than *either period*; legacy defaults retain their existing basis values.

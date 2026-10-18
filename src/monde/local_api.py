@@ -321,14 +321,14 @@ def _parameters(target: str, path: str) -> dict[str, str]:
     if parsed.path != path or parsed.fragment:
         raise ValueError("invalid request path")
     values = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
-                      max_num_fields=13)
-    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top", "min_change_km", "bbox", "region_source"})
+                      max_num_fields=14)
+    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top", "min_change_km", "bbox", "region_source", "region_period"})
            for key, v in values.items()):
         raise ValueError("all parameters must appear exactly once")
     # Browser GET forms submit empty optional controls: treat blank source as
     # no filter, but keep every other parameter strict.
     return {key: items[0] for key, items in values.items()
-            if key not in {"source", "entity", "direction", "top", "min_change_km", "bbox", "region_source"} or items[0]}
+            if key not in {"source", "entity", "direction", "top", "min_change_km", "bbox", "region_source", "region_period"} or items[0]}
 
 
 def _require(values: dict[str, str], required: set[str],
@@ -958,6 +958,14 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
                        '<option value="">Either source (default)</option>'
                        '<option value="a">Source A only</option>'
                        '<option value="b">Source B only</option>'
+                       '<option value="both">Both sources, same period</option>'
+                       '</select></label>'
+                       '<label>Qualifying comparison period'
+                       '<select name="region_period">'
+                       '<option value="">Either period (default)</option>'
+                       '<option value="earlier">Earlier cutoff only</option>'
+                       '<option value="later">Later cutoff only</option>'
+                        '<option value="both">Both cutoffs (persistent original reporting)</option>'
                        '</select></label>'
                      + inputs +
                       '<label>Output <select name="format">'
@@ -1090,8 +1098,14 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
         export_link("csv", "Download complete evidence CSV") + "</p>" +
         ('<p>Geographic focus: original Point inside ' +
          escape(str(document["spatial_filter"]["bbox"])) +
-         ' in either period, as reported by ' +
-         escape(document["spatial_filter"].get("qualifying_source_id", "either source")) +
+         ' at ' + (
+             'both cutoffs' if document["spatial_filter"].get("qualifying_period") == "both"
+             else 'the earlier cutoff' if document["spatial_filter"].get("qualifying_period") == "earlier"
+             else 'the later cutoff' if document["spatial_filter"].get("qualifying_period") == "later"
+             else 'either cutoff') + ', as reported by ' +
+         escape(", ".join(document["spatial_filter"]["qualifying_source_ids"])
+                if "qualifying_source_ids" in document["spatial_filter"] else
+                document["spatial_filter"].get("qualifying_source_id", "either source")) +
          '; complete original reports remain available.</p>'
          if "spatial_filter" in document else "") +
         '<p>Entities: ' + str(len(document["entities"])) + "</p>"
@@ -1116,12 +1130,15 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
     _id(args.get("source_a"))
     _id(args.get("source_b"))
     extra = {"format", "direction", "top", "entity", "min_change_km",
-             "bbox", "region_source"}
-    if "region_source" in args and "bbox" not in args:
-        raise ValueError("region source requires bbox")
+             "bbox", "region_source", "region_period"}
+    if ("region_source" in args or "region_period" in args) and "bbox" not in args:
+        raise ValueError("region options require bbox")
     region_source = args.get("region_source", "either")
-    if region_source not in ("either", "a", "b"):
+    if region_source not in ("either", "a", "b", "both"):
         raise ValueError("invalid region source")
+    region_period = args.get("region_period", "either")
+    if region_period not in ("either", "earlier", "later", "both"):
+        raise ValueError("invalid region comparison period")
     if args.get("axis") == "knowledge":
         _require(args, {"axis", "source_a", "source_b",
                         "at", "from_known_at", "to_known_at"}, extra)
@@ -1155,23 +1172,46 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
             "either": ("source_a_original_reports", "source_b_original_reports"),
             "a": ("source_a_original_reports",),
             "b": ("source_b_original_reports",),
+            "both": ("source_a_original_reports", "source_b_original_reports"),
         }[region_source]
+        def qualifies(row: dict, period: str) -> bool:
+            # Multiple source reports are evaluated independently at one cutoff.
+            if region_source == "both":
+                return all(any(inside(report) for report in row[period][field])
+                           for field in qualifying_fields)
+            return any(inside(report) for field in qualifying_fields
+                       for report in row[period][field])
+
+        periods = (("earlier", "later") if region_period in ("either", "both")
+                   else (region_period,))
         selected = [
             row for row in output["entities"]
-            if any(inside(original)
-                   for period in ("earlier", "later")
-                   for field in qualifying_fields
-                   for original in row[period][field])
+            if (all(qualifies(row, period) for period in periods)
+                if region_period == "both" else
+                any(qualifies(row, period) for period in periods))
         ]
         focus = {
             "bbox": bounds,
             "basis": ("ANY_ORIGINAL_SOURCE_POINT_IN_EITHER_PERIOD"
                       if region_source == "either" else
+                      "BOTH_ORIGINAL_SOURCES_IN_SAME_PERIOD"
+                      if region_source == "both" else
                       "SOURCE_" + region_source.upper() + "_ORIGINAL_POINT_IN_EITHER_PERIOD"),
             "total_entities": len(output["entities"]),
             "matching_entities": len(selected),
         }
-        if region_source != "either":
+        if region_period != "either":
+            focus["qualifying_period"] = region_period
+        if region_period == "both":
+            focus["basis"] = {
+                "either": "ANY_ORIGINAL_SOURCE_POINT_IN_EACH_PERIOD",
+                "a": "SOURCE_A_ORIGINAL_POINT_IN_EACH_PERIOD",
+                "b": "SOURCE_B_ORIGINAL_POINT_IN_EACH_PERIOD",
+                "both": "BOTH_ORIGINAL_SOURCES_IN_EACH_PERIOD",
+            }[region_source]
+        if region_source == "both":
+            focus["qualifying_source_ids"] = [args["source_a"], args["source_b"]]
+        elif region_source != "either":
             focus["qualifying_source_id"] = args["source_" + region_source]
         output = {**output, "entities": selected, "spatial_filter": focus}
     if "entity" in args:
