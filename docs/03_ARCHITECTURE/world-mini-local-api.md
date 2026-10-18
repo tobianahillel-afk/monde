@@ -53,8 +53,14 @@ Endpoints (GET, all JSON):
   that source** inside the bbox at either cutoff; both old/new source reports
   for qualifying entities remain, even if the other position is offscreen.
   Source-specific counts exclude unrelated sources. Time differences are
-  source reports, never verified physical changes. Disagreements, nearest
-  and radius remain explicitly unfiltered.
+  source reports, never verified physical changes. A source lens also works
+  with `/map-disagreements` and `/viewer?view=disagreements`: contradictions
+  are still established across **all original sources first**. The lens
+  displays only the chosen source's in-bounds qualifying observations, while
+  `monde_conflicting_source_ids` retains opposing source provenance even
+  when the opposing Point lies outside the viewport. A source without its own
+  qualifying Point produces an empty map, not a false disagreement match.
+  Nearest and radius remain explicitly unfiltered.
   The local `/explore` form suggests source IDs that have at least one original
   `geo_point` assertion in the saved snapshot. Up to 200 alphabetical IDs
   appear as native browser suggestions; manually entering any valid source ID
