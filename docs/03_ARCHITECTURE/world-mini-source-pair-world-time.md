@@ -760,3 +760,19 @@ truth. Exact source and presence=earlier|later|both filters select the same
 records in both files. The archive has stable filenames, order and timestamps.
 This reuses Python stdlib zipfile and existing KML/GeoJSON exporters, with
 no new service, remote requests, dependency, or persisted-state mutation.
+
+
+## Offline GPS waypoints (WORK-0128)
+
+The original entity Point presence browser also offers `format=presence-gpx`
+from its existing read-only `/source-pair` route. GPX 1.1 contains **one
+waypoint per original source-reported Point identity**, not routes or tracks;
+the spatial coordinates match the unique presence GeoJSON exactly. GPX
+names identify the original source and assertion. A MONDE namespace extension
+retains full unchanged GeoJSON feature properties and the complete bitemporal
+coverage/cutoff metadata, so downstream software can recover the precise
+source evidence even if a generic GPS viewer only displays waypoints.
+Exact entity, optional original reporter and presence filters apply equally
+to GPX, GeoJSON, KML and KMZ. Unknown query parameters are rejected, no
+saved-model bytes are modified, and no motion, consensus or verified ground
+truth is inferred. No additional runtime dependency or hosted service.

@@ -786,6 +786,62 @@ def source_directory_entity_presence_kml(world, directory, presence=None):
 
 
 
+
+def source_directory_entity_presence_gpx(world, directory, presence=None):
+    """Interoperable GPX 1.1 waypoints for original Point reports, not a track.
+
+    Namespace extensions retain exact full source properties and temporal
+    cutoffs for MONDE consumers; ordinary GPS clients can display waypoints.
+    """
+    from xml.etree import ElementTree as ET
+
+    geojson = source_directory_entity_presence_geojson(world, directory, presence)
+    ns = "http://www.topografix.com/GPX/1/1"
+    ext = "urn:monde:original-source-evidence:1"
+    ET.register_namespace("", ns)
+    ET.register_namespace("monde", ext)
+
+    def safe(value):
+        text = str(value)
+        if any(not (c in (9, 10, 13) or 32 <= c <= 0xD7FF or
+                    0xE000 <= c <= 0xFFFD or 0x10000 <= c <= 0x10FFFF)
+               for c in map(ord, text)):
+            raise ValueError("invalid XML source evidence")
+        return text
+
+    def tag(parent, name, value=None, namespace=ns):
+        node = ET.SubElement(parent, "{" + namespace + "}" + name)
+        if value is not None:
+            node.text = safe(value)
+        return node
+
+    root = ET.Element("{" + ns + "}gpx",
+                      {"version": "1.1", "creator": "MONDE Mini"})
+    meta = tag(root, "metadata")
+    tag(meta, "name", "MONDE original Point presence — " + directory["entity_focus"])
+    tag(meta, "desc", "Original source waypoints, not verified truth or physical movement.")
+    extra = tag(meta, "extensions")
+    tag(extra, "coverage", json.dumps(geojson["monde_source_coverage"],
+                                    ensure_ascii=False, sort_keys=True,
+                                    separators=(",", ":"), allow_nan=False), ext)
+    for feature in geojson["features"]:
+        p = feature["properties"]
+        longitude, latitude = feature["geometry"]["coordinates"]
+        # The existing canonical GeoJSON exporter already validates WGS84 Points.
+        point = ET.SubElement(root, "{" + ns + "}wpt",
+                              {"lat": safe(latitude), "lon": safe(longitude)})
+        tag(point, "name", p["source_id"] + " — " + p["monde_original_assertion_id"])
+        tag(point, "desc", "Original report; " + p["monde_visibility_transition"] +
+            "; no inferred trajectory.")
+        extension = tag(point, "extensions")
+        tag(extension, "original_properties",
+            json.dumps(p, ensure_ascii=False, sort_keys=True,
+                       separators=(",", ":"), allow_nan=False), ext)
+        tag(extension, "original_feature_id", feature["id"], ext)
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+
+
+
 def source_directory_entity_presence_kmz(world, directory, presence=None):
     """Portable offline KMZ containing original KML and full source GeoJSON.
 
