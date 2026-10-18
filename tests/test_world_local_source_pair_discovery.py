@@ -694,9 +694,9 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
     def test_minimum_joint_entities_selects_supported_pair_before_top_ranking(self):
         # A far-away one-entity disagreement must not conceal a pair
         # independently reported for two distinct entities.
-        world = fixture_world()
-        def add(source, label, entity, longitude):
-            known = "2026-01-02T10:00:00Z"
+        from monde.world import WorldMini
+        world = WorldMini()
+        def add(source, label, entity, longitude, known, supersedes=None):
             world.add_evidence({"id": "e-joint-" + label, "source_id": source,
                                 "locator": "fixture://joint-" + label,
                                 "captured_at": known, "source_event_at": known})
@@ -707,10 +707,14 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
                                  "evidence_id": "e-joint-" + label,
                                  "kind": "CLAIM", "known_at": known,
                                  "valid_from": "2026-01-01T00:00:00Z",
-                                 "valid_to": None, "supersedes": None})
-        add("survey-a", "a-site2", "site-2", 0.)
-        add("survey-b", "b-site2", "site-2", 1.)
-        add("survey-c", "c-site1", "site-1", 100.)
+                                 "valid_to": None, "supersedes": supersedes})
+        add("survey-a", "a-site1", "site-1", 0., "2026-01-02T01:00:00Z")
+        add("survey-b", "b-site1", "site-1", 2., "2026-01-02T02:00:00Z")
+        add("survey-a", "a-site2", "site-2", 0., "2026-01-02T03:00:00Z")
+        add("survey-b", "b-site2", "site-2", 1., "2026-01-02T04:00:00Z")
+        add("survey-c", "c-site1", "site-1", 100., "2026-01-02T05:00:00Z")
+        add("survey-b", "b-site1-revised", "site-1", 1.,
+            "2026-01-04T00:00:00Z", supersedes="a-joint-b-site1")
         target = Path(self.tmp.name) / "multi-source-ranking.json"
         world.save(target)
         saved = target.read_bytes()
