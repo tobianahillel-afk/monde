@@ -1,0 +1,49 @@
+id: WORK-0106
+title: "Rank increasing and decreasing geographic disagreement between original sources"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini evidence browser"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Discover original source pairs with changing nearest reported separations
+  for the same jointly reported entities at two explicit temporal cutoffs.
+scope:
+  in: ["Bitemporal source-pair trend ranking", "Accessible original evidence drilldown", "Read-only loopback browser"]
+  out: ["Ground-truth or physical movement inference", "Source reliability scores", "Persisted writes"]
+acceptance_criteria:
+  - {id: AC-1, description: "Rank increasing/decreasing same-entity original source separation without treating missing as zero.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Retain original earlier/later assertion identities and current discovery defaults.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Verify strict local HTTP, both axes and immutable snapshots.", status: IN_PROGRESS}
+depends_on: [WORK-0105]
+requirements: []
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py]
+reuses: [monde.source_pair_changes.discover_source_pairs, monde.source_pair_changes._measure, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Implement source-pair temporal-trend ranking.", depends_on: [], expected_files: [src/monde/source_pair_changes.py, src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T2, description: "Exercise world/knowledge and source corrections over real loopback HTTP.", depends_on: [T1], expected_files: [tests/test_world_local_source_pair_discovery.py], status: READY}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_pair_discovery.py]
+  real_system: ["GitHub Actions world-mini; persisted WorldMini over loopback HTTP"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Candidate stacked on unmerged WORK-0105 PR #135 and its ancestors."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close or revert the stacked PR, no data migration."
