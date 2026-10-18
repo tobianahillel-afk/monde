@@ -1518,11 +1518,47 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
     downloaded = "/source-pair?" + urlencode({**args, "format": "presence-csv"})
     headings = "".join('<th scope="col">' + escape(c.replace("_", " ")) +
                        "</th>" for c in columns)
+    headings += '<th scope="col">Trace original evidence</th>'
+    # CSV escapes spreadsheet formula-leading source IDs. Resolve each
+    # original ID against the *canonical* directory before building links.
+    source_names = {
+        ("'" + item["source_id"] if item["source_id"].startswith(
+            ("=", "+", "-", "@", "\t", "\r", "\n")) else item["source_id"]):
+        item["source_id"] for item in directory["sources"]
+    }
+
+    def row_navigation(row: dict[str, str]) -> str:
+        source = source_names.get(row["source_id"])
+        if source is None:
+            return "<td>Original source unavailable</td>"
+        links = []
+        history = "/inspect?" + urlencode({
+            "view": "source-history", "source": source,
+            "entity": directory["entity_focus"], "attribute": "geo_point",
+            "known_at": row["later_known_at"],
+        })
+        links.append('<a href="' + escape(history, quote=True) +
+                     '">Inspect original source history</a>')
+        for period, label in (("earlier", "Earlier"), ("later", "Later")):
+            if row[period + "_visible"] != "1":
+                continue
+            target = "/viewer?" + urlencode({
+                "view": "radius",
+                "center": row["longitude"] + "," + row["latitude"],
+                "radius_km": "1",
+                "at": row[period + "_world_at"],
+                "known_at": row[period + "_known_at"],
+            })
+            links.append('<a href="' + escape(target, quote=True) + '">' +
+                         label + ' original Point area</a>')
+        return "<td>" + " · ".join(links) + "</td>"
+
     body = "".join("<tr>" + "".join(
         ('<th scope="row">' if i == 0 else "<td>") +
         escape(str(row.get(field, ""))) +
         ("</th>" if i == 0 else "</td>")
-        for i, field in enumerate(columns)) + "</tr>" for row in rows)
+        for i, field in enumerate(columns)) + row_navigation(row) +
+        "</tr>" for row in rows)
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<title>Original evidence presence — MONDE Mini</title>'

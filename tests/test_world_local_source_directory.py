@@ -1868,5 +1868,53 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(path.read_bytes(), initial)
 
 
+    def test_presence_table_links_exact_report_history_and_original_cutoff_map(self):
+        from html import unescape
+        from urllib.parse import parse_qs, urlsplit
+        import re
+
+        query = {**self.knowledge(), "entity": "site-1"}
+        status, _, raw = self.get({**query, "format": "presence-csv"})
+        self.assertEqual(status, 200)
+        csv_rows = list(csv.DictReader(io.StringIO(raw.decode())))
+        self.assertTrue(csv_rows)
+        status, _, raw = self.get({**query, "format": "presence-table"})
+        self.assertEqual(status, 200)
+        page = raw.decode()
+        self.assertIn("Trace original evidence", page)
+        self.assertEqual(page.count("Inspect original source history"), len(csv_rows))
+        urls = [unescape(s) for s in re.findall(r'href="([^"]+)"', page)]
+        history = [url for url in urls if url.startswith("/inspect?")]
+        maps = [url for url in urls if url.startswith("/viewer?")]
+        self.assertEqual(len(history), len(csv_rows))
+        self.assertEqual(len(maps), sum(
+            int(r["earlier_visible"]) + int(r["later_visible"])
+            for r in csv_rows))
+        for url in history:
+            params = {k: v[0] for k, v in parse_qs(urlsplit(url).query).items()}
+            self.assertEqual(params["view"], "source-history")
+            self.assertEqual(params["entity"], "site-1")
+            self.assertEqual(params["attribute"], "geo_point")
+            self.assertEqual(params["known_at"], AFTER)
+            # History links are a separate read-only route; source identity
+            # is carried as originally recorded, never as an inferred location.
+            self.assertIn(params["source"], {"survey-a", "survey-b"})
+        for row in csv_rows:
+            expected = []
+            for period in ("earlier", "later"):
+                if row[period + "_visible"] != "1":
+                    continue
+                expected.append((
+                    row["longitude"] + "," + row["latitude"],
+                    row[period + "_world_at"], row[period + "_known_at"]))
+            actual = []
+            for url in maps:
+                p = {k: v[0] for k, v in parse_qs(urlsplit(url).query).items()}
+                if p["center"] == row["longitude"] + "," + row["latitude"]:
+                    actual.append((p["center"], p["at"], p["known_at"]))
+            for target in expected:
+                self.assertIn(target, actual)
+
+
 if __name__ == "__main__":
     unittest.main()
