@@ -1,4 +1,6 @@
 """Source-pair discovery through real persisted WorldMini and loopback HTTP."""
+import csv
+import io
 import http.client
 import json
 from pathlib import Path
@@ -8,7 +10,7 @@ import unittest
 from urllib.parse import urlencode
 
 from monde.local_api import create_server
-from monde.source_pair_changes import discover_source_pairs
+from monde.source_pair_changes import discover_source_pairs, discovery_csv
 from tests.test_world_source_pair_changes import fixture_world, AT, BEFORE, AFTER
 from tests.test_world_source_pair_world_changes import sample, EARLY, LATE, KNOWN
 
@@ -272,6 +274,79 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
                                            "rank": bad, "format": "json"})
                 self.assertEqual(status, 400)
                 self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+
+    def test_ranked_csv_download_preserves_original_evidence_and_query(self):
+        params = {**self.knowledge(), "source": "survey-a", "format": "csv"}
+        status, headers, data = self.get(params)
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "text/csv; charset=utf-8")
+        self.assertIn("attachment;", headers["Content-Disposition"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(int(headers["Content-Length"]), len(data))
+        records = list(csv.DictReader(io.StringIO(data.decode("utf-8"))))
+        self.assertEqual(len(records), 1)
+        row = records[0]
+        self.assertEqual((row["source_a"], row["source_b"]),
+                         ("survey-a", "survey-b"))
+        self.assertEqual(row["source_focus"], "survey-a")
+        self.assertEqual(row["axis"], "knowledge")
+        self.assertEqual(row["earlier_knowledge_at"], BEFORE)
+        self.assertEqual(row["later_knowledge_at"], AFTER)
+        self.assertEqual(json.loads(row["example_assertion_ids"]),
+                         ["a-a1", "a-b1"])
+        self.assertEqual(row["total_pairs"], "1")
+        status, _, html = self.get({**params, "format": "table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"Download ranked source evidence CSV", html)
+        self.assertIn(b"source=survey-a", html)
+        self.assertIn(b"format=csv", html)
+        status, _, homepage = self.get()
+        self.assertEqual(status, 200)
+        self.assertEqual(homepage.count(b"Download ranked evidence CSV"), 2)
+
+    def test_ranked_csv_world_axis_and_unknown_are_not_fabricated(self):
+        params = {"discover": "1", "axis": "world",
+                  "from_at": EARLY, "to_at": LATE, "known_at": KNOWN,
+                  "format": "csv"}
+        world = sample(dateline=True)
+        target = Path(self.tmp.name) / "world-rank.json"
+        world.save(target)
+        server = create_server(target)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            status, _, body = self.get(params, server)
+            self.assertEqual(status, 200)
+            rows = list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["axis"], "world")
+            self.assertEqual(rows[0]["earlier_world_at"], EARLY)
+            self.assertEqual(rows[0]["later_world_at"], LATE)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+        status, _, body = self.get({**self.knowledge(),
+                                   "source": "unknown-source", "format": "csv"})
+        self.assertEqual(status, 200)
+        self.assertEqual(len(list(csv.DictReader(io.StringIO(
+            body.decode("utf-8"))))), 0)
+        self.assertTrue(body.startswith(b"axis,"))
+        self.assertEqual(self.file.read_bytes(), self.original)
+
+    def test_csv_spreadsheet_formula_prefixes_are_neutralized(self):
+        data = discover_source_pairs(
+            self.world, "knowledge", ((AT, BEFORE), (AT, AFTER)))
+        data["source_focus"] = "=HYPERLINK('https://example.invalid')"
+        data["pairs"][0]["source_a"] = "+SUM(1,1)"
+        data["pairs"][0]["source_b"] = "@cmd"
+        data["pairs"][0]["example_entity"] = "-1+2"
+        values = list(csv.DictReader(io.StringIO(discovery_csv(data))))
+        for field in ("source_focus", "source_a", "source_b", "example_entity"):
+            self.assertTrue(values[0][field].startswith("'"))
+        self.assertEqual(values[0]["example_assertion_ids"], '["a-a1","a-b1"]')
 
 
 if __name__ == "__main__":
