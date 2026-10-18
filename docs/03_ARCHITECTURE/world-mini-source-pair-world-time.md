@@ -563,3 +563,20 @@ before ranking. The default order and schemas are unchanged when rank is
 omitted. Rank is directory-only, never a source-detail or partner query.
 Changes reflect reporting coverage, **not** physical loss, accuracy, events
 or a verified truth claim; persisted evidence is never modified.
+
+
+### Prioritize net original reporting coverage change (WORK-0114)
+
+The existing original source directory supports optional `rank=net-gain` or
+`rank=net-loss` on both knowledge-time and world-time comparisons. Each rank
+uses the signed difference between **distinct source-reported Point entities**
+at the later and earlier cutoffs, not the number of assertions or corrections.
+Net gain equals newly reported minus no-longer-reported entities; net loss
+reverses the sign. Mixed turnover cannot be mistaken for overall coverage
+growth. Ties use the original source ID for stable ordering across HTML,
+JSON and CSV, with the optional transition filter still applied *before* rank.
+
+These ranks are view-only: no persisted change, inferred geographic movement,
+source accuracy or reliability claim. The default directory schema and order,
+per-source detail and source-partner discovery remain unchanged. Unknown ranks
+and directory ranks on source-specific detail are rejected.

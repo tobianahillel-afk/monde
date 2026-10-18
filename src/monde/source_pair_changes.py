@@ -296,7 +296,7 @@ def source_directory(world, axis, cutoffs, change=None, rank=None):
     """Per-original-source Point coverage and optional evidence-based ranking."""
     if change not in (None, "new", "gone", "both"):
         raise ValueError("invalid source reporting transition")
-    if rank not in (None, "new", "gone", "turnover"):
+    if rank not in (None, "new", "gone", "turnover", "net-gain", "net-loss"):
         raise ValueError("invalid original source coverage ranking")
     if axis not in ("knowledge", "world") or len(cutoffs) != 2:
         raise ValueError("invalid source directory axis")
@@ -354,6 +354,10 @@ def source_directory(world, axis, cutoffs, change=None, rank=None):
             "gone": lambda row: row["no_longer_reported_entities"],
             "turnover": lambda row: (row["newly_reported_entities"] +
                                      row["no_longer_reported_entities"]),
+            "net-gain": lambda row: (row["later_entities"] -
+                                      row["earlier_entities"]),
+            "net-loss": lambda row: (row["earlier_entities"] -
+                                      row["later_entities"]),
         }[rank]
         result.sort(key=lambda row: (-count(row), row["source_id"]))
     document = {

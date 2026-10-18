@@ -1013,6 +1013,10 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             'Most no-longer-reported entities</label>'
             '<label><input type="radio" name="rank" value="turnover">'
             'Most changed reported entities</label>'
+            '<label><input type="radio" name="rank" value="net-gain">'
+            'Largest net reporting coverage gain</label>'
+            '<label><input type="radio" name="rank" value="net-loss">'
+            'Largest net reporting coverage loss</label>'
             '</fieldset><button>Browse source coverage</button></form>')
         discovery.append(
             '<form action="/source-pair" method="get">'
@@ -1249,7 +1253,8 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
     navigation = '<nav aria-label="Original reporter transition filters"><p>' + (
         ' · '.join(choices)) + '</p></nav>'
     ranks = (("all", "Default coverage"), ("new", "Most new"),
-             ("gone", "Most gone"), ("turnover", "Most changed"))
+             ("gone", "Most gone"), ("turnover", "Most changed"),
+             ("net-gain", "Largest net gain"), ("net-loss", "Largest net loss"))
     rank_links = []
     for mode, label in ranks:
         query = {k: v for k, v in args.items() if k not in ("rank", "format")}
