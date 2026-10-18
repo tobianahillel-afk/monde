@@ -1060,7 +1060,7 @@ class SourceDirectoryTests(unittest.TestCase):
                                        "source": "survey-a", "format": output})
             self.assertEqual(status, 400)
             self.assertEqual(json.loads(raw)["error"], "invalid_query")
-        for source in ("x" * 201, "survey-a\\ninvalid"):
+        for source in ("x" * 201, "survey-a\ninvalid"):
             status, _, raw = self.get({**query, "entity": entity,
                                        "source": source, "format": "geojson"})
             self.assertEqual(status, 400)
