@@ -1212,15 +1212,28 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if "source" in args and args.get("source_prefix"):
         raise ValueError("prefix search only applies to original source directory")
     if "source" in args and "entity" in args:
-        raise ValueError("entity lookup applies only to reporter directory")
-    if "source" in args:
+        # Keep canonical directory/detail JSON, CSV and tables unchanged.
+        # This intersection is exclusively an original-point map/export lens.
+        if args.get("format") not in ("map", "geojson"):
+            raise ValueError("source and entity selection requires a map export")
+        source = args["source"]
+        if not 0 < len(source) <= 200 or any(
+                ord(ch) < 32 or ord(ch) == 127 for ch in source):
+            raise ValueError("invalid original reporter")
+    if "source" in args and "entity" not in args:
         from .source_pair_changes import source_directory_detail
         return source_directory_detail(
             world, args["axis"], cutoffs, args["source"], args.get("change"))
-    return source_directory(world, args["axis"], cutoffs,
-                            args.get("change"), args.get("rank"),
-                            args.get("source_prefix") or None,
-                            args.get("entity") or None)
+    directory = source_directory(world, args["axis"], cutoffs,
+                                 args.get("change"), args.get("rank"),
+                                 args.get("source_prefix") or None,
+                                 args.get("entity") or None)
+    if "source" in args:
+        directory["sources"] = [
+            row for row in directory["sources"] if row["source_id"] == source]
+        directory["total_sources"] = len(directory["sources"])
+        directory["source_focus"] = source
+    return directory
 
 
 def _source_directory_html(document: dict, args: dict[str, str]) -> str:
@@ -1235,10 +1248,16 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
                if k not in ("rank", "source_prefix", "entity")},
             "source": item["source_id"], "format": "table"})
         partners = "/source-pair?" + urlencode(query)
+        single_reporter_map = (
+            ' · <a href="' + escape("/source-pair?" + urlencode({
+                **args, "source": item["source_id"], "format": "map"}),
+                quote=True) + '">Map this reporter for the entity</a>'
+            if "entity_focus" in document else "")
         rows.append(
             '<tr><th scope="row"><a href="' + escape(link, quote=True) + '">' +
             escape(item["source_id"]) + '</a> · <a href="' +
-            escape(partners, quote=True) + '">Find partners</a></th><td>' +
+            escape(partners, quote=True) + '">Find partners</a>' +
+            single_reporter_map + '</th><td>' +
             str(item["earlier_entities"]) + ' / ' + str(item["later_entities"]) +
             '</td><td>' + str(item["newly_reported_entities"]) + ' / ' +
             str(item["no_longer_reported_entities"]) + '</td><td>' +
