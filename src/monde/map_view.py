@@ -192,6 +192,22 @@ __MONDE_TIME_NAVIGATION__
 </table>
 <p id="comparison-entity-total" class="subtle" role="status"></p>
 </details>
+<details id="comparison-source-entity-coverage" hidden>
+<summary>Original sources: entity coverage between periods</summary>
+<p class="subtle">Original reported entity IDs per source and selection, not real-world completeness, disappearance or movement. Display filters cannot change this embedded evidence inventory.</p>
+<label for="comparison-source-entity-turnover">Source coverage change</label>
+<select id="comparison-source-entity-turnover" aria-label="Filter sources by changing original entity coverage">
+<option value="all">All original sources</option>
+<option value="changed">Different reported entities between selections</option>
+<option value="same">Same reported entities in both selections</option>
+</select>
+<button id="comparison-source-entity-export" type="button">Download complete source/entity selection changes CSV</button>
+<table aria-label="Original sources and reported entities across both selections">
+<thead><tr><th scope="col">Original source</th><th scope="col">Entities earlier</th><th scope="col">Entities later</th><th scope="col">Changed entity selections</th><th scope="col">Original reports</th></tr></thead>
+<tbody id="comparison-source-entity-rows"></tbody>
+</table>
+<p id="comparison-source-entity-summary" class="subtle" role="status" aria-live="polite"></p>
+</details>
 <div id="gpkg-layer-control" class="controls" hidden>
   <strong>Original GeoPackage layers</strong>
   <div id="gpkg-layer-options" role="group" aria-label="Toggle original GeoPackage source layers"></div>
@@ -1189,6 +1205,109 @@ __MONDE_TIME_NAVIGATION__
       .addEventListener("click",function(){exportEntityCoverage(true);});
     applyTurnoverFilter();
     document.getElementById("comparison-entity-coverage").hidden=false;
+    // Source-first view of entity coverage. Reuse the immutable entityCoverage
+    // built above, rather than a second derived World Model or a new endpoint.
+    var sourceEntityCoverage=new Map();
+    entityCoverage.forEach(function(bySource,entity){
+      bySource.forEach(function(periods,source){
+        if(!sourceEntityCoverage.has(source))
+          sourceEntityCoverage.set(source,new Map());
+        sourceEntityCoverage.get(source).set(entity,periods);
+      });
+    });
+    var sourceEntityRows=document.getElementById("comparison-source-entity-rows");
+    var sourceTurnover=document.getElementById("comparison-source-entity-turnover");
+    var sourceNames=Array.from(sourceEntityCoverage.keys()).sort();
+    sourceNames.forEach(function(source){
+      var byEntity=sourceEntityCoverage.get(source);
+      var entitiesBySource=Array.from(byEntity.keys()).sort();
+      var earlier=entitiesBySource.filter(function(entity){
+        return byEntity.get(entity).earlier.length>0;
+      });
+      var later=entitiesBySource.filter(function(entity){
+        return byEntity.get(entity).later.length>0;
+      });
+      var changed=entitiesBySource.filter(function(entity){
+        var periods=byEntity.get(entity);
+        return Boolean(periods.earlier.length)!==Boolean(periods.later.length);
+      });
+      var tr=document.createElement("tr");
+      tr.dataset.sourceId=source;
+      tr.dataset.entityTurnover=changed.length?"changed":"same";
+      tr.dataset.changedEntities=String(changed.length);
+      var sourceCell=document.createElement("td");
+      var focusSource=document.createElement("button");
+      focusSource.type="button";focusSource.textContent=source;
+      focusSource.setAttribute("aria-label","Show both original selections from source "+source);
+      focusSource.addEventListener("click",function(){
+        sources.value=source;entities.value="";comparisonPeriod.value="";
+        presenceSelect.value="";search.value="";
+        insideOnly.checked=false;currentViewOnly.checked=false;
+        render();fitReports();
+      });
+      sourceCell.appendChild(focusSource);tr.appendChild(sourceCell);
+      [earlier,later].forEach(function(entities){
+        var cell=document.createElement("td");
+        cell.textContent=String(entities.length);
+        tr.appendChild(cell);
+      });
+      var changedCell=document.createElement("td");
+      if(!changed.length){
+        changedCell.textContent="Same entity IDs in both selections";
+      }else{
+        var details=document.createElement("details");
+        var summary=document.createElement("summary");
+        summary.textContent=String(changed.length)+" changing entity selections";
+        details.appendChild(summary);
+        changed.forEach(function(entity){
+          var periods=byEntity.get(entity);
+          var selected=periods.earlier.length?"earlier":"later";
+          var link=document.createElement("button");
+          link.type="button";link.dataset.changedEntity=entity;
+          link.dataset.period=selected;
+          link.textContent=entity+" ("+selected+" selection only)";
+          link.setAttribute("aria-label","Show "+selected+
+            " original reports for entity "+entity+" from source "+source);
+          link.addEventListener("click",function(){
+            sources.value=source;entities.value=entity;
+            comparisonPeriod.value=selected;presenceSelect.value="";
+            search.value="";insideOnly.checked=false;
+            currentViewOnly.checked=false;render();fitReports();
+          });
+          details.appendChild(link);
+        });
+        changedCell.appendChild(details);
+      }
+      tr.appendChild(changedCell);
+      var total=document.createElement("td");
+      total.textContent=String(entitiesBySource.reduce(function(n,entity){
+        var p=byEntity.get(entity);
+        return n+p.earlier.length+p.later.length;
+      },0));
+      tr.appendChild(total);
+      sourceEntityRows.appendChild(tr);
+    });
+    function filterSourceEntityRows(){
+      var visible=0;
+      Array.from(sourceEntityRows.children).forEach(function(row){
+        row.hidden=sourceTurnover.value!=="all" &&
+          row.dataset.entityTurnover!==sourceTurnover.value;
+        if(!row.hidden)visible++;
+      });
+      document.getElementById("comparison-source-entity-summary").textContent=
+        visible+" of "+sourceNames.length+" original reporting sources. "+
+        "No verified absence or true movement inferred.";
+    }
+    sourceTurnover.addEventListener("change",filterSourceEntityRows);
+    // Existing complete turnover export is already source/entity scoped and
+    // contains all original assertion/evidence IDs; do not duplicate it.
+    document.getElementById("comparison-source-entity-export")
+      .addEventListener("click",function(){
+        document.getElementById("comparison-export-entity-changes-csv").click();
+      });
+    filterSourceEntityRows();
+    document.getElementById("comparison-source-entity-coverage").hidden=false;
+
   }
   // A GeoPackage layer is a separate original source, not a verified world
   // layer. Keep the source dropdown for exact source filtering; this control

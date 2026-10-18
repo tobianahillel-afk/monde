@@ -1,0 +1,50 @@
+id: WORK-0086
+title: "Browse reporting-source entity coverage transitions in original evidence"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini offline evidence browser"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Navigate from a reporting source to entity IDs that appear in different
+  original comparison selections, preserving all source evidence and provenance.
+scope:
+  in: ["Source-first entity coverage table", "Direct source/entity/period evidence navigation", "Reuse complete original selection-change CSV", "Real HTTP/Chromium test"]
+  out: ["Inferred physical absence", "Consensus or movement inference", "New endpoint, model, dependency or persistence"]
+acceptance_criteria:
+  - {id: AC-1, description: "Source-first matrix counts source-specific original entity IDs across the two embedded selections.", status: IN_REVIEW}
+  - {id: AC-2, description: "Source/entity changes navigate to exact original reports even after conflicting display filters.", status: IN_REVIEW}
+  - {id: AC-3, description: "Existing complete turnover CSV is reused; data is unchanged and noncomparison maps are unaffected.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0085]
+read_before: [AGENTS.md, src/monde/map_view.py, tests/test_world_local_api_disagreement_report.py, docs/03_ARCHITECTURE/world-mini-local-api.md]
+reuses: [monde.map_view.render_map, monde.local_api.create_server, WORK-0085]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add source-first coverage navigation reusing embedded reports.", depends_on: [], expected_files: [src/monde/map_view.py], status: IN_REVIEW}
+    - {id: T2, description: "Verify real Chromium, HTTP, provenance and unmodified snapshot.", depends_on: [T1], expected_files: [tests/test_world_local_api_disagreement_report.py], status: IN_REVIEW}
+    - {id: T3, description: "Document source coverage epistemic limits.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_disagreement_report.py]
+  real_system: ["GitHub Actions world-mini; Chromium source-coverage comparison"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0085 PR #116 and earlier candidate PRs."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close stacked PR; no persistent data changes."

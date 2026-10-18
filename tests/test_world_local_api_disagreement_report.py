@@ -2294,5 +2294,116 @@ root.dataset.entityMatrixNavigation=String(
         self.assertEqual(self.path.read_bytes(), self.before)
 
 
+    def test_source_first_entity_coverage_drills_into_original_period_evidence(self):
+        """Real HTTP + Chromium: source-first coverage is complete and navigable."""
+        import base64
+        import re
+        import shutil
+        import subprocess
+        from collections import defaultdict
+
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        status, _, body = self.fetch("/disagreement-compare.html", {
+            **QUERY, "source": "survey-east", "entity": "site-a",
+            "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(status, 200)
+        html = body.decode("utf-8")
+        embedded = self.embedded_map(html)
+        observations = defaultdict(lambda: defaultdict(lambda: {"earlier": [], "later": []}))
+        for feature in embedded["features"]:
+            props = feature["properties"]
+            observations[props["source_id"]][props["entity"]][props["monde_comparison_period"]].append(feature)
+        self.assertTrue(observations)
+        expected = {}
+        for source, by_entity in observations.items():
+            earlier = {entity for entity, periods in by_entity.items() if periods["earlier"]}
+            later = {entity for entity, periods in by_entity.items() if periods["later"]}
+            changed = {
+                entity: "earlier" if periods["earlier"] else "later"
+                for entity, periods in by_entity.items()
+                if bool(periods["earlier"]) != bool(periods["later"])
+            }
+            expected[source] = {
+                "earlier": len(earlier), "later": len(later),
+                "changed": changed, "reports": sum(
+                    len(reports) for periods in by_entity.values()
+                    for reports in periods.values())
+            }
+        script = """<script>
+const expected=__EXPECTED__,body=document.body;
+const panel=document.getElementById("comparison-source-entity-coverage");
+const rows=Array.from(document.querySelectorAll("#comparison-source-entity-rows tr"));
+body.dataset.sourceEntityReady=String(!!panel && !panel.hidden &&
+  rows.length===Object.keys(expected).length && rows.every(function(row){
+    const record=expected[row.dataset.sourceId];
+    if(!record)return false;
+    const cells=row.querySelectorAll("td");
+    const changed=Array.from(row.querySelectorAll("button[data-changed-entity]"));
+    return Number(cells[1].textContent)===record.earlier &&
+      Number(cells[2].textContent)===record.later &&
+      Number(cells[4].textContent)===record.reports &&
+      Number(row.dataset.changedEntities)===Object.keys(record.changed).length &&
+      changed.length===Object.keys(record.changed).length &&
+      changed.every(b=>record.changed[b.dataset.changedEntity]===b.dataset.period);
+  }));
+const filter=document.getElementById("comparison-source-entity-turnover");
+for(const mode of ["changed","same","all"]){
+  filter.value=mode;filter.dispatchEvent(new Event("change"));
+  body.dataset["sourceEntityFilter"+mode]=String(rows.every(function(row){
+    const category=Object.keys(expected[row.dataset.sourceId].changed).length?"changed":"same";
+    return row.hidden===(mode!=="all" && category!==mode);
+  }));
+}
+const search=document.getElementById("report-search");
+search.value="display-only-nothing";search.dispatchEvent(new Event("input"));
+const period=document.getElementById("comparison-period");
+period.value="later";period.dispatchEvent(new Event("change"));
+const entityLink=document.querySelector("#comparison-source-entity-rows button[data-changed-entity]");
+if(entityLink){
+  const source=entityLink.closest("tr").dataset.sourceId;
+  const entity=entityLink.dataset.changedEntity;
+  const selected=entityLink.dataset.period;
+  entityLink.click();
+  body.dataset.sourceEntityDrilldown=String(
+    document.getElementById("sources").value===source &&
+    document.getElementById("entities").value===entity &&
+    period.value===selected && search.value==="" &&
+    !document.getElementById("current-view-only").checked);
+}else{
+  const row=rows[0],source=row.dataset.sourceId;
+  row.querySelector("td button").click();
+  body.dataset.sourceEntityDrilldown=String(
+    document.getElementById("sources").value===source &&
+    document.getElementById("entities").value==="" &&
+    period.value==="");
+}
+const marker={};
+HTMLAnchorElement.prototype.click=function(){body.dataset.sourceEntityFilename=this.download;};
+document.getElementById("comparison-source-entity-export").click();
+body.dataset.sourceEntityCsvReused=String(
+  body.dataset.sourceEntityFilename==="monde-original-reporting-source-selection-changes.csv");
+</script>""".replace("__EXPECTED__", json.dumps(expected))
+        target = Path(self.folder.name) / "source-first-coverage.html"
+        target.write_text(html.replace("</body>", script+"</body>"), encoding="utf-8")
+        output = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", target.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
+            check=True).stdout.decode("utf-8")
+        for attribute in ("source-entity-ready", "source-entity-drilldown",
+                          "source-entity-filterchanged", "source-entity-filtersame",
+                          "source-entity-filterall", "source-entity-csv-reused"):
+            self.assertIn('data-'+attribute+'="true"', output, attribute)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+    def test_source_first_inventory_not_visible_on_noncomparison_map(self):
+        response, _, body = self.fetch("/viewer", {**QUERY, "view": "current"})
+        self.assertEqual(response, 200)
+        self.assertIn(b'id="comparison-source-entity-coverage" hidden', body)
+
+
 if __name__ == "__main__":
     unittest.main()
