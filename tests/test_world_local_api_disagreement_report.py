@@ -1337,7 +1337,7 @@ window.Blob=function(parts,options){
   const csv=String(parts[0]);
   document.body.setAttribute("data-csv-header",String(csv.includes("original_feature_id")));
   document.body.setAttribute("data-csv-inert",String(csv.includes("COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED")));
-  document.body.setAttribute("data-csv-rows",String(csv.split("\\\\r\\\\n").filter(Boolean).length-1));
+  document.body.setAttribute("data-csv-rows",String(csv.split(String.fromCharCode(13,10)).filter(Boolean).length-1));
   document.body.setAttribute("data-csv-source",String(csv.includes("survey-west")));
   document.body.setAttribute("data-csv-period",document.getElementById("comparison-period").value||"both");
   return new NativeBlob(parts,options);
