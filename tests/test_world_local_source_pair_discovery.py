@@ -131,5 +131,97 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
         self.assertEqual(len(json.loads(data)["pairs"]), 1)
 
 
+    def test_decreasing_rank_preserves_both_original_report_revisions(self):
+        args = {**self.knowledge(), "rank": "decreasing", "format": "json"}
+        status, _, raw = self.get(args)
+        self.assertEqual(status, 200)
+        doc = json.loads(raw)
+        self.assertEqual(doc["rank"], "decreasing")
+        self.assertEqual(doc["total_pairs"], 1)
+        pair = doc["pairs"][0]
+        self.assertEqual(pair["comparable_entities"], 1)
+        self.assertEqual(pair["matching_entities"], 1)
+        self.assertLess(pair["rank_delta_km"], -100)
+        self.assertEqual(pair["example_earlier_assertion_ids"],
+                         ["a-a1", "a-b1"])
+        self.assertEqual(pair["example_later_assertion_ids"],
+                         ["a-a1", "a-b2"])
+        status, _, html = self.get({**args, "format": "table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"Change km", html)
+        self.assertIn(b"source_a=survey-a", html)
+        self.assertIn(b"source_b=survey-b", html)
+        self.assertNotIn(b"<script", html)
+
+    def test_missing_joint_cutoff_does_not_create_a_false_trend(self):
+        args = {**self.knowledge(), "from_known_at": "2026-01-02T12:00:00Z",
+                "rank": "decreasing", "format": "json"}
+        status, _, raw = self.get(args)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw)["pairs"], [])
+        default = discover_source_pairs(self.world, "knowledge",
+            ((AT, "2026-01-02T12:00:00Z"), (AT, AFTER)))
+        self.assertEqual(default["total_pairs"], 1)
+
+    def test_increasing_pair_after_original_source_correction(self):
+        from monde.world import WorldMini
+        world = WorldMini()
+        def add(source, suffix, longitude, known, supersedes=None):
+            world.add_evidence({"id": "e-" + suffix, "source_id": source,
+                                "locator": "fixture://" + suffix,
+                                "captured_at": known, "source_event_at": known})
+            world.add_assertion({"id": "a-" + suffix, "entity": "growth-site",
+                                 "attribute": "geo_point",
+                                 "value": {"type": "Point",
+                                           "coordinates": [longitude, 0.]},
+                                 "evidence_id": "e-" + suffix, "kind": "CLAIM",
+                                 "known_at": known,
+                                 "valid_from": "2026-01-01T00:00:00Z",
+                                 "valid_to": None, "supersedes": supersedes})
+        add("reporter-a", "new-a", 0., "2026-01-02T00:00:00Z")
+        add("reporter-b", "new-b1", 0.2, "2026-01-03T00:00:00Z")
+        add("reporter-b", "new-b2", 3., "2026-01-04T00:00:00Z",
+            "a-new-b1")
+        file = Path(self.tmp.name) / "growing.json"
+        world.save(file)
+        before = file.read_bytes()
+        srv = create_server(file)
+        worker = threading.Thread(target=srv.serve_forever, daemon=True)
+        worker.start()
+        try:
+            args = {**self.knowledge(), "rank": "increasing", "format": "json"}
+            status, _, body = self.get(args, srv)
+            self.assertEqual(status, 200)
+            pair = json.loads(body)["pairs"][0]
+            self.assertGreater(pair["rank_delta_km"], 300)
+            self.assertEqual(pair["example_entity"], "growth-site")
+            self.assertEqual(pair["example_earlier_assertion_ids"],
+                             ["a-new-a", "a-new-b1"])
+            self.assertEqual(pair["example_later_assertion_ids"],
+                             ["a-new-a", "a-new-b2"])
+            status, _, body = self.get({**args, "rank": "decreasing"}, srv)
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(body)["total_pairs"], 0)
+        finally:
+            srv.shutdown()
+            worker.join(timeout=5)
+            srv.server_close()
+            self.assertEqual(file.read_bytes(), before)
+
+    def test_world_axis_trends_and_bad_rank_rejection(self):
+        from tests.test_world_source_pair_world_changes import sample, EARLY, LATE, KNOWN
+        cutoffs = ((EARLY, KNOWN), (LATE, KNOWN))
+        self.assertEqual(discover_source_pairs(sample(), "world", cutoffs,
+                         rank="decreasing")["total_pairs"], 1)
+        self.assertEqual(discover_source_pairs(sample(), "world", cutoffs,
+                         rank="increasing")["total_pairs"], 0)
+        for bad in ("", "growth", "INCREASING", "other"):
+            with self.subTest(bad=bad):
+                status, _, raw = self.get({**self.knowledge(),
+                                           "rank": bad, "format": "json"})
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+
 if __name__ == "__main__":
     unittest.main()

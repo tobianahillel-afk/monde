@@ -352,3 +352,22 @@ reported entities at earlier and later cutoffs remain distinct. This
 is not an accuracy score, consensus location, inferred movement or
 continuous persistence claim. Missing joint reports remain UNKNOWN,
 never zero. The WorldMini saved snapshot is unchanged.
+
+
+## Discover increasing/decreasing source-pair differences (WORK-0106)
+
+In the read-only `/source-pair?discover=1` browser, choose
+`rank=increasing` or `rank=decreasing` instead of the default
+`rank=separation`. Both world-valid-time and knowledge-time axes work.
+
+A trend is calculated only for an **identical entity** jointly reported by
+both original sources at **both** cutoffs. It uses the difference between
+nearest cross-source reported distances (later minus earlier, approximate km).
+The returned example includes both earlier and later original assertion IDs,
+along with comparable/matching entity counts. Missing joint reports remain
+UNKNOWN; they are not treated as zero or agreement.
+
+The existing detailed source-pair comparison link opens the full original
+evidence. The default discovery response remains unchanged. This is a
+comparison of original claims, **not** verified location, movement or source
+accuracy. No new dependency, hosted service or persistence write.
