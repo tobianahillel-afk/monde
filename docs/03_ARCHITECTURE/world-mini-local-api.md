@@ -598,3 +598,15 @@ CSV complements, rather than replaces, full nested GeoJSON. Filenames are
 fixed, not derived from untrusted source text. No endpoint, dependency,
 network call, inferred ground truth or saved-world mutation is added.
 The change is an unmerged stacked candidate on WORK-0082.
+
+### Original source reports by entity across two periods (WORK-0083)
+
+The standalone comparison map's source-coverage table now offers **Compare
+entities**. Expanding a source row groups that source's original Point reports
+by entity and shows earlier/later report counts and individual source assertion
+IDs, evidence IDs and reported coordinates. Groups derive from the entire
+embedded comparison, not the map's viewport, source, search or period display
+filters. They retain competing original reports individually, without consensus,
+inferred disappearance or physical movement. Source and entity labels use
+DOM text assignment rather than HTML. This read-only offline interaction makes
+no network request and never changes the persisted WorldMini snapshot.

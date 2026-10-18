@@ -738,8 +738,62 @@ __MONDE_TIME_NAVIGATION__
         saveDownload(completeComparisonCsv(reports),
           "monde-original-source-both-periods.csv","text/csv;charset=utf-8");
       });
+      // Inspect every original source assertion by entity across both periods.
+      // Build from complete embedded evidence, never from filtered map markers.
+      var inspect=document.createElement("button"),expanded=null;
+      inspect.type="button";inspect.textContent="Compare entities";
+      inspect.setAttribute("aria-expanded","false");
+      inspect.setAttribute("aria-label","Compare original entity reports for source "+id);
+      inspect.addEventListener("click",function(){
+        if(expanded){
+          expanded.remove();expanded=null;
+          inspect.setAttribute("aria-expanded","false");return;
+        }
+        var entities=new Map();
+        features.forEach(function(f){
+          var p=f.properties,period=p.monde_comparison_period;
+          if(p.source_id!==id||(period!=="earlier"&&period!=="later"))return;
+          if(!entities.has(p.entity))entities.set(p.entity,{earlier:[],later:[]});
+          entities.get(p.entity)[period].push(f);
+        });
+        expanded=document.createElement("tr");
+        expanded.className="comparison-source-entities";
+        expanded.dataset.sourceId=id;
+        var cell=document.createElement("td");cell.colSpan=6;
+        var heading=document.createElement("strong");
+        heading.textContent="Original entity evidence from source "+id;
+        cell.appendChild(heading);
+        var note=document.createElement("p");note.className="subtle";
+        note.textContent="Original source reports only. Earlier/later reporting is not proof of physical movement or absence. Display filters do not apply.";
+        cell.appendChild(note);
+        var list=document.createElement("ul");
+        list.setAttribute("aria-label","Original entity reports from source "+id);
+        Array.from(entities.keys()).sort().forEach(function(entity){
+          var periods=entities.get(entity);
+          var item=document.createElement("li");item.dataset.entity=entity;
+          var detail=document.createElement("details"),summary=document.createElement("summary");
+          summary.textContent=String(entity)+" — earlier "+periods.earlier.length+
+            ", later "+periods.later.length;
+          detail.appendChild(summary);
+          ["earlier","later"].forEach(function(period){
+            periods[period].forEach(function(f){
+              var p=f.properties,entry=document.createElement("p");
+              entry.className="subtle";entry.dataset.period=period;
+              entry.textContent=period+" · assertion "+String(p.assertion_id||p.monde_original_feature_id)+
+                " · evidence "+String(p.evidence_id)+
+                " · source Point "+f.geometry.coordinates.join(", ");
+              detail.appendChild(entry);
+            });
+          });
+          item.appendChild(detail);list.appendChild(item);
+        });
+        cell.appendChild(list);expanded.appendChild(cell);
+        tr.insertAdjacentElement("afterend",expanded);
+        inspect.setAttribute("aria-expanded","true");
+      });
       exportCell.appendChild(exportSource);
       exportCell.appendChild(csvButton);
+      exportCell.appendChild(inspect);
       tr.appendChild(exportCell);
       rows.appendChild(tr);
     });

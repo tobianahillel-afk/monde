@@ -1708,5 +1708,73 @@ body.dataset.sourceDownloadPeriodUnchanged=String(period.value==="later");
         self.assertEqual(self.path.read_bytes(), self.before)
 
 
+
+    def test_source_entity_comparison_shows_all_embedded_reports(self):
+        """Real offline browser: inspect source/entity evidence despite display filters."""
+        import shutil
+        import subprocess
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium unavailable; GitHub Actions includes headless Chromium")
+        status, _, response = self.fetch("/disagreement-compare.html", {
+            **QUERY, "source": "survey-east", "entity": "site-a",
+            "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(status, 200)
+        html = response.decode("utf-8")
+        embedded = self.embedded_map(html)
+        source = embedded["features"][0]["properties"]["source_id"]
+        evidence = [f for f in embedded["features"] if f["properties"]["source_id"] == source]
+        self.assertTrue(evidence)
+        probe = """<script>
+const root=document.body,src=__SOURCE__,expected=__EVIDENCE__;
+const tr=Array.from(document.querySelectorAll("#comparison-source-rows tr"))
+  .find(x=>x.dataset.sourceId===src);
+const button=Array.from(tr.children[5].querySelectorAll("button"))
+  .find(x=>x.textContent==="Compare entities");
+const period=document.getElementById("comparison-period");
+period.value="later";period.dispatchEvent(new Event("change"));
+const search=document.getElementById("report-search");
+search.value="no-such-visible-item";search.dispatchEvent(new Event("input"));
+button.click();
+const expansion=tr.nextElementSibling;
+const actual=Array.from(expansion.querySelectorAll("p[data-period]"));
+const entityNames=Array.from(expansion.querySelectorAll("li[data-entity]"))
+  .map(x=>x.dataset.entity).sort();
+const originalNames=Array.from(new Set(expected.map(x=>x.properties.entity))).sort();
+root.dataset.sourceEntityComplete=String(
+  button.getAttribute("aria-expanded")==="true" &&
+  expansion.className==="comparison-source-entities" &&
+  expansion.dataset.sourceId===src &&
+  actual.length===expected.length &&
+  JSON.stringify(entityNames)===JSON.stringify(originalNames) &&
+  expected.every(f=>actual.some(p=>
+    p.dataset.period===f.properties.monde_comparison_period &&
+    p.textContent.includes(String(f.properties.assertion_id||
+      f.properties.monde_original_feature_id)) &&
+    p.textContent.includes(String(f.properties.evidence_id)) &&
+    p.textContent.includes(f.geometry.coordinates.join(", ")))));
+root.dataset.sourceEntityFiltersPreserved=String(
+  period.value==="later" && search.value==="no-such-visible-item");
+button.click();
+root.dataset.sourceEntityClosed=String(
+  button.getAttribute("aria-expanded")==="false" &&
+  !tr.nextElementSibling?.classList.contains("comparison-source-entities"));
+</script>"""
+        probe = (probe.replace("__SOURCE__", json.dumps(source))
+                      .replace("__EVIDENCE__", json.dumps(evidence)))
+        target = Path(self.folder.name) / "source-entity-comparison.html"
+        target.write_text(html.replace("</body>", probe + "</body>"), encoding="utf-8")
+        result = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", target.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
+            check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', result)
+        self.assertIn('data-source-entity-complete="true"', result)
+        self.assertIn('data-source-entity-filters-preserved="true"', result)
+        self.assertIn('data-source-entity-closed="true"', result)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
 if __name__ == "__main__":
     unittest.main()
