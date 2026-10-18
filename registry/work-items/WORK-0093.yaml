@@ -1,0 +1,51 @@
+id: WORK-0093
+title: "Compare original source-pair separation across reported world validity"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Compare two original sources between validity instants while holding
+  knowledge fixed, complementing WORK-0092 knowledge-time comparison.
+scope:
+  in: ["World-validity CLI", "Original report provenance", "Shared source-pair distance calculation", "Persisted state and subprocess tests"]
+  out: ["Verified motion", "Reconciliation", "New service", "Runtime dependencies", "Data writes"]
+acceptance_criteria:
+  - {id: AC-1, description: "Two ordered validity times and fixed knowledge select original reports.", status: IN_REVIEW}
+  - {id: AC-2, description: "Unknown joint reporting remains null; provenance remains original.", status: IN_REVIEW}
+  - {id: AC-3, description: "Knowledge-time CLI and schema remain compatible.", status: IN_REVIEW}
+  - {id: AC-4, description: "Real persisted CLI and no mutation verified.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0092]
+read_before: [AGENTS.md, src/monde/world.py, src/monde/source_pair_changes.py]
+reuses: [WorldMini.export_geojson, monde.source_pair_changes._measure]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Share temporal comparison calculation for two axes.", depends_on: [], expected_files: [src/monde/source_pair_changes.py], status: IN_REVIEW}
+    - {id: T2, description: "Real original reports, CLI and persisted evidence tests.", depends_on: [T1], expected_files: [tests/test_world_source_pair_world_changes.py], status: IN_REVIEW}
+    - {id: T3, description: "Document comparison axes and epistemic scope.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_source_pair_world_changes.py, tests/test_world_source_pair_changes.py]
+  real_system: ["GitHub Actions world-mini including subprocess CLI"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0092 / PR #123."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close draft PR; no saved-state migration."
