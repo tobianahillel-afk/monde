@@ -206,6 +206,15 @@ class GeographicSourcePairTests(unittest.TestCase):
         code, _, page = self.fetch()
         self.assertEqual(code, 200)
         self.assertEqual(page.count(b'name="region_source"'), 2)
+        # Native GET forms submit every optional empty field, including this
+        # selector. The default must stay identical to an unfiltered query.
+        submitted = {**self.query(), "entity": "", "bbox": "",
+                     "region_source": "", "direction": "",
+                     "min_change_km": "", "top": "", "format": "json"}
+        baseline = self.fetch({**self.query(), "format": "json"})
+        status, _, output = self.fetch(submitted)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(output), json.loads(baseline[2]))
         w = sample(dateline=True)
         path = Path(self.tmp.name) / "region-world.json"
         w.save(path)
