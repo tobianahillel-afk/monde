@@ -371,3 +371,26 @@ The existing detailed source-pair comparison link opens the full original
 evidence. The default discovery response remains unchanged. This is a
 comparison of original claims, **not** verified location, movement or source
 accuracy. No new dependency, hosted service or persistence write.
+
+## Discover original reporter partners (WORK-0107)
+
+An optional `source` in either read-only `/source-pair?discover=1` form
+limits separation, increasing and decreasing rankings to pairs containing
+that exact original reporter. It enumerates only that source's actual reporting
+partners; missing joint Point observations are UNKNOWN, never agreement.
+JSON adds `source_focus` only on explicit requests. HTML drilldown removes
+the discovery-only filter before opening the existing full original evidence
+comparison. Both temporal axes, ranking defaults and original assertion IDs
+are preserved. No new route, dependency, store, truth inference or mutation.
+
+### Ranked source-discovery CSV
+
+The existing read-only `/source-pair?discover=1` interface supports `format=csv`
+in addition to JSON and an accessible ranked table. Its download link retains the
+comparison axis, both world/knowledge cutoffs, original reporter focus, ranking
+and top-N selection. The UTF-8 CSV preserves each displayed pair's original
+assertion IDs, example entity, reported separation, and both periods' joint
+report counts. No matching original reports yield headers only rather than
+invented agreement. Strings that could become spreadsheet formulas are escaped.
+The response is limited by the existing server response size cap and leaves
+persisted evidence unchanged. This is not a verified truth or trajectory.
