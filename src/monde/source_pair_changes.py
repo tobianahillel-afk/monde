@@ -7,7 +7,7 @@ import csv
 from datetime import datetime
 import io
 import json
-from math import asin, cos, radians, sin, sqrt
+from math import asin, cos, isfinite, radians, sin, sqrt
 
 from .world import WorldMini
 
@@ -178,11 +178,41 @@ def comparison_csv(document):
     return output.getvalue()
 
 
+
+def top_nearest_source_pair_changes(document, limit):
+    """Select material changes in original source separations, with provenance.
+
+    Missing joint reports are incomparable, never equivalent to zero change.
+    The original document and retained entity records are not modified.
+    """
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
+        raise ValueError("top nearest changes must be a positive integer")
+    eligible = []
+    for row in document["entities"]:
+        change = row["earlier_to_later_change_km"]
+        if change is None:
+            continue
+        nearest = change["nearest_km"]
+        if not isinstance(nearest, (int, float)) or not isfinite(nearest):
+            raise ValueError("invalid source separation change")
+        eligible.append(row)
+    ranked = sorted(eligible, key=lambda row: (
+        -abs(row["earlier_to_later_change_km"]["nearest_km"]), row["entity"]))
+    return {**document, "entities": ranked[:limit], "selection": {
+        "method": "absolute_nearest_reported_separation_change_km",
+        "requested_top": limit, "eligible_entities": len(eligible),
+        "total_entities": len(document["entities"]),
+        "omitted_not_jointly_reported": len(document["entities"]) - len(eligible),
+        "selected_entities": min(limit, len(eligible))}}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Compare two original source Point reports across knowledge time")
     parser.add_argument("--fixture", required=True)
     parser.add_argument("--format", choices=("json", "csv"), default="json")
+    parser.add_argument("--top-nearest-changes", type=int, metavar="N",
+                        help="top N absolute changes in original-source nearest separation")
     parser.add_argument("--source-a", required=True)
     parser.add_argument("--source-b", required=True)
     parser.add_argument("--at", help="fixed world time for knowledge comparison")
@@ -210,6 +240,11 @@ def main(argv=None):
                          args.source_a, args.source_b, *cutoffs)
     except (ValueError, OSError) as error:
         parser.error(str(error))
+    if args.top_nearest_changes is not None:
+        try:
+            result = top_nearest_source_pair_changes(result, args.top_nearest_changes)
+        except ValueError as error:
+            parser.error(str(error))
     if args.format == "csv":
         print(comparison_csv(result), end="")
     else:
