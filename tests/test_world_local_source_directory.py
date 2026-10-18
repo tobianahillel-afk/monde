@@ -1493,7 +1493,8 @@ class SourceDirectoryTests(unittest.TestCase):
                      "sources": [{"source_id": "@source",
                                   "example_assertion_ids": ["=report"]}],
                      "cutoffs": {"earlier": {"world_at": AT, "knowledge_at": BEFORE},
-                                "later": {"world_at": AT, "knowledge_at": AFTER}}}
+                                "later": {"world_at": AT, "knowledge_at": AFTER}},
+                     "interpretation": "original"}
         data = source_directory_entity_presence_csv(Minimal(), directory)
         rows = list(csv.DictReader(io.StringIO(data)))
         self.assertEqual(len(rows), 1)
