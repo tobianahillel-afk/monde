@@ -1231,28 +1231,50 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import source_directory
     if args.get("directory") != "1" or args.get("format", "table") not in (
-            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-table", "geojson", "map"):
+            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-map", "presence-table", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format", "source", "change", "rank", "source_prefix", "entity", "presence"})
+                 {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
+                  "assertion", "evidence", "longitude", "latitude"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
-                 {"format", "source", "change", "rank", "source_prefix", "entity", "presence"})
+                 {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
+                  "assertion", "evidence", "longitude", "latitude"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
+    # Original Point drill-down is only available from an exact entity+source
+    # presence map. No new endpoint, no inferred position, no partial identity.
+    exact_fields = {"assertion", "evidence", "longitude", "latitude"}
+    if exact_fields.intersection(args):
+        if (not exact_fields.issubset(args) or
+                args.get("format") != "presence-map" or
+                "entity" not in args or "source" not in args):
+            raise ValueError("original Point focus requires full source identity")
+        for field in ("assertion", "evidence"):
+            value = args[field]
+            if not 0 < len(value) <= 200 or any(
+                    ord(ch) < 32 or ord(ch) == 127 for ch in value):
+                raise ValueError("invalid original Point ID")
+        try:
+            lon, lat = float(args["longitude"]), float(args["latitude"])
+        except ValueError as error:
+            raise ValueError("invalid original Point coordinates") from error
+        if not (math.isfinite(lon) and math.isfinite(lat) and
+                -180 <= lon <= 180 and -90 <= lat <= 90):
+            raise ValueError("invalid original Point coordinates")
     if "presence" in args and (
             args["presence"] not in ("earlier", "later", "both") or
-            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-table") or
+            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-map", "presence-table") or
             "entity" not in args):
         raise ValueError("original presence requires an exact entity export")
-    if args.get("format") in ("assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-table") and (
+    if args.get("format") in ("assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-map", "presence-table") and (
             "entity" not in args or
-            ("source" in args and args["format"] not in ("presence-csv", "presence-json", "presence-geojson", "presence-table"))):
+            ("source" in args and args["format"] not in ("presence-csv", "presence-json", "presence-geojson", "presence-map", "presence-table"))):
         raise ValueError("original assertion CSV requires exact entity directory")
     if (args.get("format") in ("geojson", "map") and
             "source" not in args and "entity" not in args):
@@ -1264,7 +1286,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if "source" in args and "entity" in args:
         # Keep canonical directory/detail JSON, CSV and tables unchanged.
         # Original source/entity intersection also permits the presence CSV.
-        if args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-table"):
+        if args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-map", "presence-table"):
             raise ValueError("source and entity selection requires a map export")
         source = args["source"]
         if not 0 < len(source) <= 200 or any(
@@ -1325,6 +1347,8 @@ def _source_directory_html(document: dict, args: dict[str, str],
                           if "entity_focus" in document else None)
     presence_geojson_link = ("/source-pair?" + urlencode({**args, "format": "presence-geojson"})
                              if "entity_focus" in document else None)
+    presence_map_link = ("/source-pair?" + urlencode({**args, "format": "presence-map"})
+                         if "entity_focus" in document else None)
     filters = (("all", "All reporters"), ("new", "Any newly reported entities"),
                ("gone", "Any no-longer-reported entities"),
                ("both", "Any continuously reported entities"))
@@ -1438,13 +1462,17 @@ def _source_directory_html(document: dict, args: dict[str, str],
                         **query, "format": "presence-table"})
                     json_href = "/source-pair?" + urlencode({
                         **query, "format": "presence-json"})
+                    unique_map_href = "/source-pair?" + urlencode({
+                        **query, "format": "presence-map"})
                     cells.append('<td><a href="' + escape(href, quote=True) +
                                  '">' + str(count) + '</a> · <a href="' +
                                  escape(table_href, quote=True) +
                                  '">Inspect</a> · <a href="' +
                                  escape(csv_href, quote=True) +
                                  '">CSV</a> · <a href="' +
-                                 escape(json_href, quote=True) + '">JSON</a></td>')
+                                 escape(json_href, quote=True) + '">JSON</a> · <a href="' +
+                                 escape(unique_map_href, quote=True) +
+                                 '">Unique map</a></td>')
                 else:
                     cells.append("<td>0</td>")
             summary_rows.append('<tr><th scope="row">' +
@@ -1493,6 +1521,9 @@ def _source_directory_html(document: dict, args: dict[str, str],
         (' · <a href="' + escape(presence_geojson_link, quote=True) +
          '">Download unique original report presence GeoJSON</a>'
          if presence_geojson_link else '') +
+        (' · <a href="' + escape(presence_map_link, quote=True) +
+         '">Map unique original reports by temporal presence</a>'
+         if presence_map_link else '') +
         (' · <a href="' + escape("/source-pair?" + urlencode(
             {**args, "format": "map"}), quote=True) +
          '">Map all original reporters of this entity</a> · <a href="' +
@@ -1524,6 +1555,9 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
                                              args.get("presence"))))
     columns = reader.fieldnames or []
     rows = list(reader)
+    from .source_pair_changes import source_directory_entity_presence_records
+    originals = source_directory_entity_presence_records(
+        world, directory, args.get("presence"))
     back = "/source-pair?" + urlencode({
         **{k: v for k, v in args.items()
            if k not in ("format", "source", "presence")}, "format": "table"})
@@ -1531,6 +1565,7 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
     downloaded = "/source-pair?" + urlencode({**args, "format": "presence-csv"})
     json_link = "/source-pair?" + urlencode({**args, "format": "presence-json"})
     geojson_link = "/source-pair?" + urlencode({**args, "format": "presence-geojson"})
+    unique_map_link = "/source-pair?" + urlencode({**args, "format": "presence-map"})
     headings = "".join('<th scope="col">' + escape(c.replace("_", " ")) +
                        "</th>" for c in columns)
     headings += '<th scope="col">Trace original evidence</th>'
@@ -1542,7 +1577,7 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
         item["source_id"] for item in directory["sources"]
     }
 
-    def row_navigation(row: dict[str, str]) -> str:
+    def row_navigation(row: dict[str, str], original: dict) -> str:
         source = source_names.get(row["source_id"])
         if source is None:
             return "<td>Original source unavailable</td>"
@@ -1554,6 +1589,17 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
         })
         links.append('<a href="' + escape(history, quote=True) +
                      '">Inspect original source history</a>')
+        # CSV is spreadsheet-escaped. Use the paired canonical presence record
+        # for raw assertion/evidence identifiers in the exact map link.
+        exact_link = "/source-pair?" + urlencode({
+            **args, "format": "presence-map", "source": original["source_id"],
+            "assertion": original["assertion_id"],
+            "evidence": original["evidence_id"],
+            "longitude": str(original["longitude"]),
+            "latitude": str(original["latitude"]),
+        })
+        links.append('<a href="' + escape(exact_link, quote=True) +
+                     '">Map this exact original Point</a>')
         for period, label in (("earlier", "Earlier"), ("later", "Later")):
             if row[period + "_visible"] != "1":
                 continue
@@ -1572,8 +1618,8 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
         ('<th scope="row">' if i == 0 else "<td>") +
         escape(str(row.get(field, ""))) +
         ("</th>" if i == 0 else "</td>")
-        for i, field in enumerate(columns)) + row_navigation(row) +
-        "</tr>" for row in rows)
+        for i, field in enumerate(columns)) + row_navigation(row, original) +
+        "</tr>" for row, original in zip(rows, originals))
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<title>Original evidence presence — MONDE Mini</title>'
@@ -1590,7 +1636,9 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
         escape(json_link, quote=True) +
         '">Download matching JSON</a> · <a href="' +
         escape(geojson_link, quote=True) +
-        '">Download unique matching GeoJSON</a></nav>'
+        '">Download unique matching GeoJSON</a> · <a href="' +
+        escape(unique_map_link, quote=True) +
+        '">Map unique matching Points</a></nav>'
         '<h1>Original Point reports at both time cutoffs</h1><p>Exact entity: '
         '<strong>' + escape(directory["entity_focus"]) + '</strong>. These '
         'original assertions express evidence visibility, not verified '
@@ -2106,6 +2154,19 @@ def create_server(state: str | Path, port: int = 0, *,
                             from .source_pair_changes import source_directory_entity_presence_geojson
                             return self._reply(200, source_directory_entity_presence_geojson(
                                 world, document, args.get("presence")))
+                        if output_format == "presence-map":
+                            from .source_pair_changes import source_directory_entity_presence_map
+                            focus = None
+                            if "assertion" in args:
+                                focus = {
+                                    "source_id": args["source"],
+                                    "assertion_id": args["assertion"],
+                                    "evidence_id": args["evidence"],
+                                    "longitude": float(args["longitude"]),
+                                    "latitude": float(args["latitude"]),
+                                }
+                            return self._html(source_directory_entity_presence_map(
+                                world, document, args.get("presence"), focus))
                         if output_format == "geojson":
                             from .source_pair_changes import (
                                 source_directory_geojson, source_directory_entity_geojson)

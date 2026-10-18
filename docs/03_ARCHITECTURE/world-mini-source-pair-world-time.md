@@ -716,3 +716,16 @@ restrict the exact entity's reporters and categories. Empty evidence yields an
 empty FeatureCollection. This is **observation visibility**, never a measured
 movement, confirmed physical location, or estimate. The saved WorldMini remains
 byte-identical; the existing loopback GET endpoint and response-size policy apply.
+
+## Show unique original Point presence on the local map (WORK-0125)
+
+The existing read-only `/source-pair` entity directory now offers
+`format=presence-map`, as well as `presence-geojson`. This map reuses the
+same original Point identity set: **one marker per original reporter,
+assertion, evidence and coordinate**, even if a report is visible at both
+cutoffs. Each marker retains `earlier_visible`, `later_visible`, and
+`monde_visibility_transition`. Optional exact `source` and
+`presence=earlier|later|both` restrictions use the same authoritative
+classification as CSV, JSON and GeoJSON. The existing full two-period map
+remains unchanged. Display is offline/loopback-only, read-only and does not
+claim physical motion, verified disappearance or consensus location.
