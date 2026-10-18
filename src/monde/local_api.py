@@ -320,14 +320,14 @@ def _parameters(target: str, path: str) -> dict[str, str]:
     if parsed.path != path or parsed.fragment:
         raise ValueError("invalid request path")
     values = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
-                      max_num_fields=8)
-    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity"})
+                      max_num_fields=9)
+    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top"})
            for key, v in values.items()):
         raise ValueError("all parameters must appear exactly once")
     # Browser GET forms submit empty optional controls: treat blank source as
     # no filter, but keep every other parameter strict.
     return {key: items[0] for key, items in values.items()
-            if key not in {"source", "entity"} or items[0]}
+            if key not in {"source", "entity", "direction", "top"} or items[0]}
 
 
 def _require(values: dict[str, str], required: set[str],
@@ -948,13 +948,29 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
                      '<input type="hidden" name="axis" value="' + axis + '">'
                      '<label>Source A <input name="source_a" list="pair-ids" required></label>'
                      '<label>Source B <input name="source_b" list="pair-ids" required></label>'
-                     + inputs + '<button>Compare original evidence</button></form>')
+                     + inputs +
+                      '<label>Output <select name="format">'
+                      '<option value="html">Offline evidence map</option>'
+                      '<option value="csv">Complete original evidence CSV</option>'
+                      '<option value="json">Canonical JSON</option>'
+                      '<option value="geojson">Original Point GeoJSON</option>'
+                      '</select></label>'
+                      '<label>Separation change <select name="direction">'
+                      '<option value="">All comparable and incomparable</option>'
+                      '<option value="converging">Converging</option>'
+                      '<option value="diverging">Diverging</option>'
+                      '<option value="unchanged">Unchanged</option>'
+                      '<option value="incomparable">Incomparable</option>'
+                      '</select></label>'
+                      '<label>Top absolute nearest changes (optional, max 1000)'
+                      '<input type="number" name="top" min="1" max="1000" step="1">'
+                      '</label><button>Compare original evidence</button></form>')
     return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
             '<title>MONDE original source pairs</title><style>'
             ':root{color-scheme:dark;background:#101827;color:#ebf2f9;'
             'font-family:system-ui,sans-serif}body{max-width:900px;margin:auto;padding:24px}'
             'form{border:1px solid #48677e;padding:18px;margin:16px 0}'
-            'label{display:block;padding:8px}input{padding:7px;background:#253c50;color:white}'
+            'label{display:block;padding:8px}input,select{padding:7px;background:#253c50;color:white}'
             'button{padding:8px;background:#66e0c0}a{color:#8ee6d3}'
             '</style></head><body><a href="/explore">Explorer</a>'
             '<h1>Compare original source Point reports</h1>'
@@ -967,10 +983,10 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
     """Reuse exactly the existing source-pair comparison and optional filters."""
     from .source_pair_changes import (
         compare_source_pair, compare_source_pair_world_time,
-        filter_source_pair_direction)
+        filter_source_pair_direction, top_nearest_source_pair_changes)
     _id(args.get("source_a"))
     _id(args.get("source_b"))
-    extra = {"format", "direction"}
+    extra = {"format", "direction", "top"}
     if args.get("axis") == "knowledge":
         _require(args, {"axis", "source_a", "source_b",
                         "at", "from_known_at", "to_known_at"}, extra)
@@ -987,7 +1003,11 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("unknown source-pair comparison axis")
     if "direction" in args:
         output = filter_source_pair_direction(output, args["direction"])
-    if args.get("format", "html") not in ("html", "json", "geojson"):
+    if "top" in args:
+        if not re.fullmatch(r"[1-9][0-9]{0,3}", args["top"]) or int(args["top"]) > 1000:
+            raise ValueError("top must be an integer from 1 to 1000")
+        output = top_nearest_source_pair_changes(output, int(args["top"]))
+    if args.get("format", "html") not in ("html", "json", "geojson", "csv"):
         raise ValueError("invalid comparison format")
     return output
 
@@ -1122,7 +1142,21 @@ def create_server(state: str | Path, port: int = 0, *,
                     if not args:
                         return self._html(None, rendered_html=_pair_explorer_html(map_source_ids))
                     data = _pair_query(world, args)
-                    from .source_pair_changes import comparison_geojson, comparison_html
+                    from .source_pair_changes import comparison_geojson, comparison_html, comparison_csv
+                    if args.get("format") == "csv":
+                        body = comparison_csv(data).encode("utf-8")
+                        if len(body) > max_response_bytes:
+                            return self._reply(413, {"error": "response_too_large"})
+                        self.send_response(200)
+                        self.send_header("Content-Type", "text/csv; charset=utf-8")
+                        self.send_header("Content-Disposition",
+                                         'attachment; filename="original-source-pair-changes.csv"')
+                        self.send_header("Content-Length", str(len(body)))
+                        self.send_header("Cache-Control", "no-store")
+                        self.send_header("X-Content-Type-Options", "nosniff")
+                        self.end_headers()
+                        self.wfile.write(body)
+                        return
                     if args.get("format", "html") == "html":
                         return self._html(None, rendered_html=comparison_html(data))
                     return self._reply(200, comparison_geojson(data)

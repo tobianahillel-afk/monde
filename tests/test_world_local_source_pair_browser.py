@@ -1,5 +1,7 @@
 """Real HTTP source-pair comparisons using the original WorldMini functions."""
+import csv
 import http.client
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -10,7 +12,8 @@ from urllib.parse import urlencode
 from monde.local_api import create_server
 from monde.source_pair_changes import (
     compare_source_pair, compare_source_pair_world_time, comparison_geojson,
-    filter_source_pair_direction, comparison_html)
+    filter_source_pair_direction, comparison_html, comparison_csv,
+    top_nearest_source_pair_changes)
 from tests.test_world_source_pair_changes import fixture_world, AT, BEFORE, AFTER
 from tests.test_world_source_pair_world_changes import sample, EARLY, LATE, KNOWN
 
@@ -137,6 +140,77 @@ class LocalSourcePairBrowserTests(unittest.TestCase):
                 status, _, raw = self.fetch(invalid)
                 self.assertEqual(status, 400)
                 self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+
+    def test_csv_export_equals_canonical_engine_and_keeps_original_assertions(self):
+        original = compare_source_pair(self.world, "survey-a", "survey-b",
+                                       AT, BEFORE, AFTER)
+        status, headers, body = self.fetch({**self.knowledge(), "format": "csv"})
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "text/csv; charset=utf-8")
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(headers["Content-Disposition"],
+                         'attachment; filename="original-source-pair-changes.csv"')
+        self.assertEqual(body.decode("utf-8"), comparison_csv(original))
+        rows = list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
+        self.assertEqual(len(rows), 2 * len(original["entities"]))
+        self.assertTrue(all(row["source_a_assertion_ids"] is not None
+                            and row["source_b_evidence_ids"] is not None for row in rows))
+
+    def test_top_nearest_changes_applies_before_each_output_projection(self):
+        original = compare_source_pair(self.world, "survey-a", "survey-b",
+                                       AT, BEFORE, AFTER)
+        ranked = top_nearest_source_pair_changes(original, 1)
+        for fmt, expected in (
+            ("json", ranked),
+            ("geojson", comparison_geojson(ranked)),
+        ):
+            with self.subTest(fmt=fmt):
+                code, _, body = self.fetch({**self.knowledge(), "format": fmt, "top": "1"})
+                self.assertEqual(code, 200)
+                self.assertEqual(json.loads(body), expected)
+        code, _, body = self.fetch({**self.knowledge(), "format": "csv", "top": "1"})
+        self.assertEqual(code, 200)
+        self.assertEqual(body.decode(), comparison_csv(ranked))
+
+    def test_combined_direction_then_ranking_matches_canonical_functions(self):
+        original = compare_source_pair(self.world, "survey-a", "survey-b",
+                                       AT, BEFORE, AFTER)
+        for direction in ("converging", "diverging", "unchanged", "incomparable"):
+            expected = top_nearest_source_pair_changes(
+                filter_source_pair_direction(original, direction), 1)
+            code, _, body = self.fetch({
+                **self.knowledge(), "format": "json",
+                "direction": direction, "top": "1"})
+            self.assertEqual(code, 200)
+            self.assertEqual(json.loads(body), expected)
+
+    def test_native_forms_submit_all_controls_without_javascript(self):
+        code, _, html = self.fetch()
+        self.assertEqual(code, 200)
+        self.assertIn(b'<select name="format">', html)
+        self.assertIn(b'<select name="direction">', html)
+        self.assertIn(b'name="top" min="1" max="1000"', html)
+        self.assertIn(b'<option value="csv">', html)
+        self.assertNotIn(b"<script", html)
+        # Both native forms submit 9 parameters, including empty optionals.
+        native = {**self.knowledge(), "format": "csv", "direction": "", "top": ""}
+        status, _, raw = self.fetch(native)
+        self.assertEqual(status, 200)
+        self.assertEqual(raw.decode(), comparison_csv(compare_source_pair(
+            self.world, "survey-a", "survey-b", AT, BEFORE, AFTER)))
+
+    def test_invalid_ranking_and_extra_parameters_fail_without_state_writes(self):
+        for value in ("0", "-1", "1001", "1.0", "nan", "2e2", "1 2", "01", "x"):
+            with self.subTest(top=value):
+                code, _, raw = self.fetch({**self.knowledge(), "top": value,
+                                           "format": "csv"})
+                self.assertEqual(code, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        code, _, raw = self.fetch({**self.knowledge(), "format": "csv", "top": "1",
+                                  "direction": "diverging", "extra": "1"})
+        self.assertEqual(code, 400)
 
 
 if __name__ == "__main__":
