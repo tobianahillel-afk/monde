@@ -1960,11 +1960,14 @@ __MONDE_TIME_NAVIGATION__
     var p = feature.properties;
     // Retired reports open at the earlier cutoff; newly current reports
     // open at the later cutoff. No physical-world change is inferred.
+    var sourceCoveragePeriod = data.monde_source_coverage &&
+      (p.monde_comparison_period==="earlier" ||
+       p.monde_comparison_period==="later");
     if (inspectorEnabled) {
-      var worldAt = worldComparing ?
+      var worldAt = sourceCoveragePeriod ? p.monde_world_at : worldComparing ?
         (p.monde_change === "NO_LONGER_CURRENT" ? query.from_at : query.to_at) :
         query.valid_at;
-      var knownAt = knowledgeComparing ?
+      var knownAt = sourceCoveragePeriod ? p.monde_known_at : knowledgeComparing ?
         (p.monde_change === "NO_LONGER_CURRENT" ?
           query.from_known_at : query.to_known_at) : query.knowledge_cutoff;
       entityInspection.href = "/inspect?" + new URLSearchParams({
@@ -1994,8 +1997,13 @@ __MONDE_TIME_NAVIGATION__
       "Locator: " + p.locator,
       "Captured: " + p.captured_at,
       "Source event: " + (p.source_event_at || "not supplied"),
-      "Known cutoff: " + (knowledgeComparing ? p.knowledge_cutoff : query.knowledge_cutoff),
-      "Valid at: " + (worldComparing ? query.from_at + " → " + query.to_at : query.valid_at),
+      "Known cutoff: " + (sourceCoveragePeriod ? p.monde_known_at :
+        knowledgeComparing ? p.knowledge_cutoff : query.knowledge_cutoff),
+      "Valid at: " + (sourceCoveragePeriod ? p.monde_world_at :
+        worldComparing ? query.from_at + " → " + query.to_at : query.valid_at),
+      ...(sourceCoveragePeriod ? [
+        "Original reporting period: " + p.monde_comparison_period,
+        "Two selected cutoffs do not establish verified movement"] : []),
       "Claim status: SOURCE_REPORTED_ONLY",
       ...(p.monde_kml_trace ? [
         "KML source " + (p.monde_kml_trace.kind==="Polygon"?

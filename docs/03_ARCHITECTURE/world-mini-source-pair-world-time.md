@@ -517,3 +517,21 @@ a filtered JSON response additionally reports `reporting_filter` and
 exact original assertion IDs. The parameter requires a source and rejects
 unknown values. Both temporal axes remain explicit; missing reporting is
 not evidence of a real disappearance, and saved observations are unchanged.
+
+
+## Original source coverage GeoJSON (WORK-0112)
+
+The source detail page can export original Point evidence from BOTH selected
+world/knowledge cutoffs through the existing source-pair directory route with
+format=geojson and an exact source ID. Optional change=new|gone|both selects
+entities before their original Points are exported. Every Feature keeps original
+assertion, evidence and source identity, unchanged coordinates, original reporting
+status, period and time cutoffs. The envelope identifies source and comparison
+scope. No location inference, accuracy assessment, physical movement, new
+service, persisted-data mutation or paid API. Directory-level GeoJSON without
+a source is rejected. Existing JSON, CSV and table behavior is unchanged.
+
+
+### Original source coverage map (WORK-0112)
+
+On a source-specific coverage detail page, **Map original source Points at both cutoffs** opens the existing local read-only map via `/source-pair?directory=1&axis=knowledge|world&source=...&format=map`. Both earlier and later original Point assertions are rendered, including per-report period, original assertion/evidence IDs and world/knowledge cutoffs. Optional `change=new|gone|both` filters the original reporting transitions. The viewport is a shortest-longitude-arc display envelope, not a new query, inferred physical movement or a consensus source position. The existing GeoJSON/CSV/JSON export contracts and saved WorldMini remain unchanged.

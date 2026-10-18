@@ -1,0 +1,42 @@
+id: WORK-0112
+title: "Export original Point coverage from one source at two cutoffs"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence browser"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Provide original source geographic evidence for two world/knowledge cutoffs
+  without inference of true location or movement.
+scope:
+  in: ["Original reporter GeoJSON", "Both temporal axes", "Reporting-transition filters", "Provenance"]
+  out: ["Truth reconciliation", "New services", "Persistence mutation", "Trust scores"]
+acceptance_criteria:
+  - {id: AC-1, description: "Export unmodified original Points and source/evidence/assertion IDs at both cutoffs.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Preserve source and reporting-transition scope without inventing evidence.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Verify real HTTP on both temporal axes and immutable saved model.", status: IN_PROGRESS}
+depends_on: [WORK-0111]
+requirements: []
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [WorldMini.export_geojson, monde.local_api.create_server, monde.source_pair_changes.source_directory_detail]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Export selected original source Points as GeoJSON.", depends_on: [], expected_files: [src/monde/source_pair_changes.py, src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T2, description: "Prove original HTTP/provenance and both temporal axes.", depends_on: [T1], expected_files: [tests/test_world_local_source_directory.py], status: READY}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["GitHub Actions world-mini; persisted WorldMini and local HTTP"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on WORK-0111 PR #141; ancestors not merged into main."]

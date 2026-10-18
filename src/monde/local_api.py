@@ -1173,7 +1173,7 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import source_directory
     if args.get("directory") != "1" or args.get("format", "table") not in (
-            "table", "json", "csv"):
+            "table", "json", "csv", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
@@ -1187,6 +1187,8 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
+    if args.get("format") in ("geojson", "map") and "source" not in args:
+        raise ValueError("source map or GeoJSON requires a source")
     if "source" in args:
         from .source_pair_changes import source_directory_detail
         return source_directory_detail(
@@ -1261,6 +1263,8 @@ def _source_directory_detail_html(document: dict, args: dict[str, str]) -> str:
             escape(", ".join(item["earlier_assertion_ids"])) + '</td><td>' +
             escape(", ".join(item["later_assertion_ids"])) + '</td></tr>')
     csv_link = "/source-pair?" + urlencode({**args, "format": "csv"})
+    geojson_link = "/source-pair?" + urlencode({**args, "format": "geojson"})
+    map_link = "/source-pair?" + urlencode({**args, "format": "map"})
     filters = (("all", "All entities"), ("new", "Newly reported"),
                ("gone", "No longer reported"), ("both", "At both cutoffs"))
     choices = []
@@ -1295,7 +1299,11 @@ def _source_directory_detail_html(document: dict, args: dict[str, str]) -> str:
          ' matching original entities.</p>' if "reporting_filter" in document
          else '') +
         '<p><a href="' + escape(csv_link, quote=True) +
-        '">Download original IDs CSV</a></p>'
+        '">Download original IDs CSV</a> · <a href="' +
+        escape(geojson_link, quote=True) +
+        '">Download original Point GeoJSON for both cutoffs</a> · <a href="' +
+        escape(map_link, quote=True) +
+        '">Map original source Points at both cutoffs</a></p>'
         '<table><caption>Evidence per original source entity</caption>'
         '<thead><tr><th scope="col">Entity — inspect source history</th>'
         '<th scope="col">Reported coverage status</th>'
@@ -1639,6 +1647,13 @@ def create_server(state: str | Path, port: int = 0, *,
                         _explorer_html(map_source_ids) if geojson is None else
                         render_map(geojson, inspector_links=not download,
                                    navigation=navigation))
+            if geojson is not None and "monde_source_coverage" in geojson:
+                notice = ('<p class="notice" role="status">'
+                          'Both comparison periods show original source-reported '
+                          'Points, not verified movement, truth or consensus. '
+                          'Each marker retains its own world and knowledge '
+                          'cutoff and original assertion ID.</p>')
+                rendered = rendered.replace("<main>", notice + "<main>", 1)
             if geojson is not None and "monde_comparison" in geojson:
                 notice = ('<p class="notice" role="status">'
                           'Two original source-report periods on one map. '
@@ -1725,6 +1740,12 @@ def create_server(state: str | Path, port: int = 0, *,
                         output_format = args.get("format", "table")
                         if output_format == "json":
                             return self._reply(200, document)
+                        if output_format == "geojson":
+                            from .source_pair_changes import source_directory_geojson
+                            return self._reply(200, source_directory_geojson(world, document))
+                        if output_format == "map":
+                            from .source_pair_changes import source_directory_map
+                            return self._html(source_directory_map(world, document))
                         if output_format == "csv":
                             body = (_source_directory_detail_csv(document)
                                     if "source" in args else _source_directory_csv(document))

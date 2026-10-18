@@ -395,6 +395,69 @@ def source_directory_detail(world, axis, cutoffs, source, change=None):
     return result
 
 
+
+def source_directory_geojson(world, detail):
+    """Export original source Points at two cutoffs, never inferred truth."""
+    if detail.get("schema") != "MONDE_SOURCE_COVERAGE_DETAIL_V1":
+        raise ValueError("unsupported source coverage detail")
+    allowed = {row["entity"]: row for row in detail["entities"]}
+    features = []
+    for period in ("earlier", "later"):
+        cutoff = detail["cutoffs"][period]
+        at, known_at = cutoff["world_at"], cutoff["knowledge_at"]
+        ids = {entity: set(row[period + "_assertion_ids"])
+               for entity, row in allowed.items()}
+        for original in world.export_geojson(at, known_at)["features"]:
+            props = original["properties"]
+            if (props["source_id"] != detail["source_id"] or
+                    original["id"] not in ids.get(props["entity"], ())):
+                continue
+            metadata = dict(props)
+            metadata.update(
+                monde_original_assertion_id=original["id"],
+                monde_comparison_period=period,
+                monde_world_at=at,
+                monde_known_at=known_at,
+                monde_reported_coverage_status=allowed[props["entity"]]["status"])
+            features.append({
+                "type": "Feature", "id": period + ":" + str(original["id"]),
+                "geometry": original["geometry"], "properties": metadata,
+            })
+    coverage = {
+        "schema": "MONDE_SOURCE_COVERAGE_GEOJSON_V1",
+        "source_id": detail["source_id"], "axis": detail["axis"],
+        "cutoffs": detail["cutoffs"], "interpretation": detail["interpretation"],
+        "original_feature_count": len(features),
+        "matched_entities": len(allowed),
+    }
+    if "reporting_filter" in detail:
+        coverage["reporting_filter"] = detail["reporting_filter"]
+    return {"type": "FeatureCollection", "features": features,
+            "monde_source_coverage": coverage}
+
+
+def source_directory_map(world, detail):
+    """Display both original reporting periods without inferring physical motion."""
+    geojson = source_directory_geojson(world, detail)
+    features = geojson["features"]
+    for feature in features:
+        feature["properties"]["monde_inside_bbox"] = True
+    earlier = detail["cutoffs"]["earlier"]
+    geojson["monde_bbox_query"] = {
+        "basis": "SOURCE_REPORTED_POINT_BBOX_ONLY",
+        "bbox": _source_display_bbox(features),
+        "valid_at": earlier["world_at"],
+        "knowledge_cutoff": earlier["knowledge_at"],
+        "total_matching_entities": len({
+            feature["properties"]["entity"] for feature in features}),
+        "total_source_features": len(features),
+        "status": "MATCHES" if features else "NO_MATCHES",
+    }
+    geojson["monde_source_coverage"]["display_basis"] = (
+        "BOTH_ORIGINAL_REPORTING_PERIODS_NOT_VERIFIED_MOVEMENT")
+    return geojson
+
+
 def discovery_geojson(world, document):
     """Original Point evidence for all ranked source-pair examples, never inferred coordinates."""
     if document["schema"] != "MONDE_SOURCE_PAIR_DISCOVERY_V1":
@@ -683,21 +746,8 @@ def comparison_html(document):
     return _source_pair_map(comparison_geojson(document))
 
 
-def _source_pair_map(geojson):
-    """Only derive a map display envelope; never infer source truth."""
-    from .map_view import render_map
-
-    features = geojson["features"]
-    cutoffs = geojson["monde_comparison"]["cutoffs"]
-    for feature in features:
-        props = feature["properties"]
-        pair = props["monde_source_pair"]
-        props["monde_comparison_period"] = pair["period"]
-        props["monde_world_at"] = pair["world_at"]
-        props["monde_known_at"] = pair["knowledge_at"]
-        props["monde_original_feature_id"] = props["monde_original_assertion_id"]
-        props["monde_inside_bbox"] = True
-
+def _source_display_bbox(features):
+    """Smallest source Point longitude arc for a display viewport only."""
     if features:
         coords = [f["geometry"]["coordinates"] for f in features]
         # Smallest WGS84 circular longitude interval, including antimeridian.
@@ -723,6 +773,26 @@ def _source_pair_map(geojson):
                   east, min(90., north + lat_padding)]
     else:
         bounds = [-180., -90., 180., 90.]
+
+    return bounds
+
+
+def _source_pair_map(geojson):
+    """Only derive a map display envelope; never infer source truth."""
+    from .map_view import render_map
+
+    features = geojson["features"]
+    cutoffs = geojson["monde_comparison"]["cutoffs"]
+    for feature in features:
+        props = feature["properties"]
+        pair = props["monde_source_pair"]
+        props["monde_comparison_period"] = pair["period"]
+        props["monde_world_at"] = pair["world_at"]
+        props["monde_known_at"] = pair["knowledge_at"]
+        props["monde_original_feature_id"] = props["monde_original_assertion_id"]
+        props["monde_inside_bbox"] = True
+
+    bounds = _source_display_bbox(features)
 
     geojson["monde_comparison"]["axis"] = geojson["monde_comparison"]["comparison_axis"]
     geojson["monde_bbox_query"] = {
