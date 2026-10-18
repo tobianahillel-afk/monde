@@ -15,7 +15,7 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from .world import WorldMini, _time
+from .world import WorldMini, _time, _id
 
 MAX_REQUEST_TARGET = 2048
 MAX_RESPONSE_BYTES = 2_000_000
@@ -968,6 +968,8 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import (
         compare_source_pair, compare_source_pair_world_time,
         filter_source_pair_direction)
+    _id(args.get("source_a"))
+    _id(args.get("source_b"))
     extra = {"format", "direction"}
     if args.get("axis") == "knowledge":
         _require(args, {"axis", "source_a", "source_b",
