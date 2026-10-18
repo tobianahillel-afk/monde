@@ -2080,6 +2080,24 @@ root.dataset.entityMatrixFiltersPreserved=String(period.value==="later" &&
   search.value==="not-a-visible-report");
 window.Blob=NativeBlob;
 const target=rows.find(r=>r.dataset.entity===entities[0]);
+const exportPeriod=document.getElementById("comparison-entity-export-period");
+const exportEntity=target.querySelector('button[aria-label^="Download complete original evidence for entity"]');
+root.dataset.entityGeojsonButton=String(!!exportEntity);
+window.Blob=function(parts,options){
+  if(options && options.type==="application/geo+json")
+    root.dataset.entityGeojson=btoa(unescape(encodeURIComponent(String(parts[0]))));
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){root.dataset.entityGeojsonFilename=this.download;};
+for(const selected of ["earlier","later","both"]){
+  exportPeriod.value=selected;
+  exportEntity.click();
+  root.dataset["entityGeojson"+selected.charAt(0).toUpperCase()+selected.slice(1)]=
+    root.dataset.entityGeojson;
+}
+root.dataset.entityGeojsonFiltersPreserved=String(period.value==="later" &&
+  search.value==="not-a-visible-report" && exportPeriod.value==="both");
+window.Blob=NativeBlob;
 target.querySelector("button").click();
 root.dataset.entityMatrixNavigation=String(
   document.getElementById("entities").value===entities[0] &&
@@ -2101,6 +2119,36 @@ root.dataset.entityMatrixNavigation=String(
         self.assertIn(
             'data-entity-matrix-filename="monde-original-entity-source-coverage.csv"',
             rendered)
+        self.assertIn('data-entity-geojson-button="true"', rendered)
+        self.assertIn('data-entity-geojson-filters-preserved="true"', rendered)
+        self.assertIn(
+            'data-entity-geojson-filename="monde-original-entity-period-reports.geojson"',
+            rendered)
+        for selected in ("earlier", "later", "both"):
+            marker = "data-entity-geojson-" + selected
+            result = re.search(marker + r'="([A-Za-z0-9+/=]+)"', rendered)
+            self.assertIsNotNone(result, marker)
+            doc = json.loads(base64.b64decode(result.group(1)).decode("utf-8"))
+            selected_features = [f for f in embedded["features"]
+                if f["properties"]["entity"] == expected_entities[0] and
+                (selected == "both" or f["properties"]["monde_comparison_period"] == selected)]
+            self.assertEqual(doc["features"], selected_features)
+            self.assertEqual(doc["monde_comparison"], embedded["monde_comparison"])
+            provenance = doc["monde_entity_period_export"]
+            self.assertEqual(provenance["scope"],
+                             "COMPLETE_EMBEDDED_ENTITY_NOT_DISPLAY_FILTERED")
+            self.assertEqual(provenance["entity"], expected_entities[0])
+            self.assertEqual(provenance["selected_period"], selected)
+            self.assertEqual(provenance["original_feature_count"],
+                             len(embedded["features"]))
+            self.assertEqual(provenance["exported_feature_count"],
+                             len(selected_features))
+            self.assertEqual(provenance["earlier_original_report_count"],
+                sum(f["properties"]["monde_comparison_period"] == "earlier"
+                    for f in selected_features))
+            self.assertEqual(provenance["later_original_report_count"],
+                sum(f["properties"]["monde_comparison_period"] == "later"
+                    for f in selected_features))
         match = re.search(r'data-entity-matrix-csv="([A-Za-z0-9+/=]+)"', rendered)
         self.assertIsNotNone(match, "Original source/entity CSV not generated")
         payload = base64.b64decode(match.group(1)).decode("utf-8-sig")
