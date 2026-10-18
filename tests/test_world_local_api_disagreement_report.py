@@ -1794,6 +1794,42 @@ root.dataset.entityGeoComplete=String(geoOK);
 root.dataset.entityCsvComplete=String(csvOK);
 root.dataset.entityExportFiltersPreserved=String(
   period.value==="later" && search.value==="no-such-visible-item");
+// Browser-level earlier/later evidence export must ignore presentation filters.
+const entityPeriod=row.querySelector('select[aria-label^="Export original entity period for"]');
+root.dataset.entityPeriodDefaultsBoth=String(entityPeriod?.value==="both");
+const oldBlob=window.Blob;
+for(const selected of ["earlier","later"]){
+  let actualGeo=false,actualCsv=false;
+  const chosen=expectedEntity.filter(f=>f.properties.monde_comparison_period===selected);
+  entityPeriod.value=selected;
+  window.Blob=function(parts,options){
+    if(options.type==="application/geo+json"){
+      const obj=JSON.parse(String(parts[0])),meta=obj.monde_source_entity_export;
+      actualGeo=JSON.stringify(obj.features)===JSON.stringify(chosen) &&
+        meta.scope==="COMPLETE_EMBEDDED_SOURCE_ENTITY_SELECTED_PERIOD_NOT_DISPLAY_FILTERED" &&
+        meta.source_id===src && meta.entity===chosenEntity &&
+        meta.selected_period===selected && meta.exported_feature_count===chosen.length &&
+        meta.earlier_original_report_count===expectedEntity.filter(f=>
+          f.properties.monde_comparison_period==="earlier").length &&
+        meta.later_original_report_count===expectedEntity.filter(f=>
+          f.properties.monde_comparison_period==="later").length;
+    }else if(options.type.startsWith("text/csv")){
+      const csv=String(parts[0]);
+      actualCsv=csv.includes("source_id") &&
+        csv.trimEnd().split(String.fromCharCode(13,10)).length===chosen.length+1 &&
+        chosen.every(f=>csv.includes('"'+String(f.properties.assertion_id||
+          f.properties.monde_original_feature_id).replace(/"/g,'""')+'"'));
+    }
+    return new NativeBlob(parts,options);
+  };
+  exports[0].click();exports[1].click();
+  root.dataset["entity"+(selected==="earlier"?"Earlier":"Later")+"ExportComplete"]=
+    String(actualGeo && actualCsv &&
+      root.dataset.entityGeoFilename==="monde-original-source-entity-"+selected+"-period.geojson" &&
+      root.dataset.entityCsvFilename==="monde-original-source-entity-"+selected+"-period.csv" &&
+      period.value==="later" && search.value==="no-such-visible-item");
+}
+window.Blob=oldBlob;
 button.click();
 root.dataset.sourceEntityClosed=String(
   button.getAttribute("aria-expanded")==="false" &&
@@ -1816,6 +1852,9 @@ root.dataset.sourceEntityClosed=String(
         self.assertIn('data-entity-geo-complete="true"', result)
         self.assertIn('data-entity-csv-complete="true"', result)
         self.assertIn('data-entity-export-filters-preserved="true"', result)
+        self.assertIn('data-entity-period-defaults-both="true"', result)
+        self.assertIn('data-entity-earlier-export-complete="true"', result)
+        self.assertIn('data-entity-later-export-complete="true"', result)
         self.assertIn('data-entity-geo-filename="monde-original-source-entity-both-periods.geojson"', result)
         self.assertIn('data-entity-csv-filename="monde-original-source-entity-both-periods.csv"', result)
         self.assertEqual(self.path.read_bytes(), self.before)
