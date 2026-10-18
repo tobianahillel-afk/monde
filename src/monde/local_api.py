@@ -1231,7 +1231,7 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import source_directory
     if args.get("directory") != "1" or args.get("format", "table") not in (
-            "table", "json", "csv", "assertions-csv", "presence-csv", "geojson", "map"):
+            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-table", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
@@ -1247,12 +1247,12 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid source directory axis")
     if "presence" in args and (
             args["presence"] not in ("earlier", "later", "both") or
-            args.get("format") not in ("map", "geojson", "presence-csv") or
+            args.get("format") not in ("map", "geojson", "presence-csv", "presence-table") or
             "entity" not in args):
         raise ValueError("original presence requires an exact entity export")
-    if args.get("format") in ("assertions-csv", "presence-csv") and (
+    if args.get("format") in ("assertions-csv", "presence-csv", "presence-table") and (
             "entity" not in args or
-            ("source" in args and args["format"] != "presence-csv")):
+            ("source" in args and args["format"] not in ("presence-csv", "presence-table"))):
         raise ValueError("original assertion CSV requires exact entity directory")
     if (args.get("format") in ("geojson", "map") and
             "source" not in args and "entity" not in args):
@@ -1264,7 +1264,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if "source" in args and "entity" in args:
         # Keep canonical directory/detail JSON, CSV and tables unchanged.
         # Original source/entity intersection also permits the presence CSV.
-        if args.get("format") not in ("map", "geojson", "presence-csv"):
+        if args.get("format") not in ("map", "geojson", "presence-csv", "presence-table"):
             raise ValueError("source and entity selection requires a map export")
         source = args["source"]
         if not 0 < len(source) <= 200 or any(
@@ -1430,8 +1430,12 @@ def _source_directory_html(document: dict, args: dict[str, str],
                     href = "/source-pair?" + urlencode(query)
                     csv_href = "/source-pair?" + urlencode({
                         **query, "format": "presence-csv"})
+                    table_href = "/source-pair?" + urlencode({
+                        **query, "format": "presence-table"})
                     cells.append('<td><a href="' + escape(href, quote=True) +
                                  '">' + str(count) + '</a> · <a href="' +
+                                 escape(table_href, quote=True) +
+                                 '">Inspect</a> · <a href="' +
                                  escape(csv_href, quote=True) +
                                  '">CSV</a></td>')
                 else:
@@ -1496,6 +1500,51 @@ def _source_directory_html(document: dict, args: dict[str, str],
          '<p role="status">NO ORIGINAL POINT SOURCE REPORTS at either cutoff.'
          '</p>' if not rows else '') + '</body></html>')
 
+
+
+def _source_directory_presence_table_html(world: WorldMini, directory: dict,
+                                          args: dict[str, str]) -> str:
+    """Render exact original report presence from the existing source CSV."""
+    from .source_pair_changes import source_directory_entity_presence_csv
+    reader = csv.DictReader(io.StringIO(
+        source_directory_entity_presence_csv(world, directory,
+                                             args.get("presence"))))
+    columns = reader.fieldnames or []
+    rows = list(reader)
+    back = "/source-pair?" + urlencode({
+        **{k: v for k, v in args.items()
+           if k not in ("format", "source", "presence")}, "format": "table"})
+    mapped = "/source-pair?" + urlencode({**args, "format": "map"})
+    downloaded = "/source-pair?" + urlencode({**args, "format": "presence-csv"})
+    headings = "".join('<th scope="col">' + escape(c.replace("_", " ")) +
+                       "</th>" for c in columns)
+    body = "".join("<tr>" + "".join(
+        ('<th scope="row">' if i == 0 else "<td>") +
+        escape(str(row.get(field, ""))) +
+        ("</th>" if i == 0 else "</td>")
+        for i, field in enumerate(columns)) + "</tr>" for row in rows)
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<title>Original evidence presence — MONDE Mini</title>'
+        '<style>:root{color-scheme:dark;background:#101827;color:#ebf2f9;'
+        'font-family:system-ui,sans-serif}body{margin:2rem}a{color:#8ee6d3}'
+        'main{overflow-x:auto}table{border-collapse:collapse}'
+        'th,td{border:1px solid #59788c;padding:.5rem;text-align:left}</style>'
+        '</head><body><nav aria-label="Original evidence navigation">'
+        '<a href="' + escape(back, quote=True) + '">Back to reporter directory</a>'
+        ' · <a href="' + escape(mapped, quote=True) +
+        '">Map the same original reports</a> · <a href="' +
+        escape(downloaded, quote=True) + '">Download matching CSV</a></nav>'
+        '<h1>Original Point reports at both time cutoffs</h1><p>Exact entity: '
+        '<strong>' + escape(directory["entity_focus"]) + '</strong>. These '
+        'original assertions express evidence visibility, not verified '
+        'movement or consensus.</p><p>' + str(len(rows)) +
+        ' original report identities; axis: ' + escape(directory["axis"]) +
+        ' time.</p><main><table><caption>Original reports per source, assertion, '
+        'evidence and Point at each cutoff</caption><thead><tr>' + headings +
+        '</tr></thead><tbody>' + body +
+        '</tbody></table></main></body></html>'
+    )
 
 
 def _source_directory_detail_html(document: dict, args: dict[str, str]) -> str:
@@ -2009,6 +2058,9 @@ def create_server(state: str | Path, port: int = 0, *,
                             return self._html(
                                 exporter(world, document, args.get("presence"))
                                 if "entity" in args else exporter(world, document))
+                        if output_format == "presence-table":
+                            return self._html(None, rendered_html=(
+                                _source_directory_presence_table_html(world, document, args)))
                         if output_format in ("csv", "assertions-csv", "presence-csv"):
                             if output_format == "presence-csv":
                                 from .source_pair_changes import source_directory_entity_presence_csv
