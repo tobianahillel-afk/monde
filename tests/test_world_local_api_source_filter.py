@@ -109,6 +109,60 @@ class SourceLensHTTPTests(unittest.TestCase):
         self.assertNotIn(b"survey-west", body)
         self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
 
+    def test_focused_disagreement_keeps_cross_source_evidence(self):
+        params = {**QUERY, "source": "survey-east"}
+        code, headers, body = self.fetch("/map-disagreements", params)
+        self.assertEqual(code, 200)
+        doc = json.loads(body)
+        self.assertEqual(doc["monde_source_focus"], "survey-east")
+        self.assertEqual(doc["monde_bbox_query"]["total_matching_entities"], 1)
+        self.assertEqual(doc["monde_bbox_query"]["total_source_features"], 2)
+        self.assertEqual({f["properties"]["source_id"] for f in doc["features"]},
+                         {"survey-east", "survey-west"})
+        for f in doc["features"]:
+            self.assertEqual(f["properties"]["monde_conflicting_source_ids"],
+                             ["survey-east", "survey-west"])
+            self.assertTrue(f["properties"]["evidence_id"])
+        args = {"view": "disagreements", **params}
+        status, viewer_headers, page = self.fetch("/viewer", args)
+        self.assertEqual(status, 200)
+        self.assertEqual(page.decode(), render_map(
+            doc, inspector_links=True, navigation=args))
+        self.assertIn(b'name="source" value="survey-east"', page)
+        self.assertIn("connect-src 'none'", viewer_headers["Content-Security-Policy"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+
+    def test_outside_disputed_source_does_not_qualify(self):
+        code, _, body = self.fetch("/map-disagreements",
+                                   {**QUERY, "source": "survey-west"})
+        self.assertEqual(code, 200)
+        doc = json.loads(body)
+        self.assertEqual(doc["features"], [])
+        self.assertEqual(doc["monde_bbox_query"]["status"], "NO_MATCHES")
+        self.assertEqual(doc["monde_disagreements_view"]
+                         ["conflicting_entities_in_view"], 0)
+
+    def test_unfiltered_disagreements_keep_existing_api_response(self):
+        code, _, body = self.fetch("/map-disagreements", QUERY)
+        self.assertEqual(code, 200)
+        self.assertEqual(json.loads(body),
+                         self.world.export_geojson_disagreements(AT, K1, BOUNDS))
+        self.assertEqual(self.fetch("/map-disagreements",
+                         {**QUERY, "source": ""})[0], 200)
+
+    def test_disagreement_source_rejects_invalid_query(self):
+        for source in ("../bad", "<script>", "/root", "a b", "a\\b", "x" * 100):
+            with self.subTest(source=source):
+                code, _, body = self.fetch("/map-disagreements",
+                                            {**QUERY, "source": source})
+                self.assertEqual(code, 400)
+                self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        code, _, body = self.fetch("/viewer",
+                                   {"view": "disagreements", **QUERY,
+                                    "source": "survey-east", "extra": "x"})
+        self.assertEqual(code, 400)
+        self.assertEqual(json.loads(body), {"error": "invalid_query"})
+
     def test_invalid_source_cannot_change_query_semantics(self):
         for source in ("../survey-east", "bad<script>", "/abs", "a b", "a\\b", "z" * 100):
             with self.subTest(source=source):
@@ -116,7 +170,6 @@ class SourceLensHTTPTests(unittest.TestCase):
                 self.assertEqual(code, 400)
                 self.assertEqual(json.loads(body), {"error": "invalid_query"})
         for route, query in (
-            ("/viewer", {"view": "disagreements", **QUERY, "source": "survey-east"}),
             ("/map", {**QUERY, "source": "survey-east", "extra": "x"}),
         ):
             code, _, body = self.fetch(route, query)
