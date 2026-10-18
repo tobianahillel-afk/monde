@@ -427,3 +427,14 @@ same offline map controls are reused, with no new endpoint, storage or paid
 API. A map envelope is display-only, not a new geographic query, physical
 movement estimate, reconciliation or verification of ground truth. Empty
 rankings produce an empty map; the persisted snapshot is never changed.
+
+### Minimum independently joint-reported entities (WORK-0108)
+
+The read-only `/source-pair?discover=1` interface accepts optional
+`min_joint=N` (1–10000), before top-N ranking. Separation counts **distinct
+entities jointly reported by both original reporters at either temporal
+cutoff**; increasing/decreasing trends instead require joint original reports
+for the **same entity at both cutoffs**. This is evidence coverage, not source
+credibility or ground truth. Default 1 preserves existing results. The same
+filtered ranking flows to the accessible table, JSON, original GeoJSON,
+CSV and offline map without adding a service, parser, store or paid API.
