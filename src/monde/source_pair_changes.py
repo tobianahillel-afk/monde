@@ -352,6 +352,39 @@ def source_directory(world, axis, cutoffs):
     }
 
 
+
+def source_directory_detail(world, axis, cutoffs, source):
+    """Show original assertion IDs per entity at two bitemporal cutoffs."""
+    if not isinstance(source, str) or not 0 < len(source) <= 200 or any(
+            ord(ch) < 32 or ord(ch) == 127 for ch in source):
+        raise ValueError("invalid original reporter")
+    directory = source_directory(world, axis, cutoffs)
+    before, after = {}, {}
+    for found, (at, known_at) in zip((before, after), cutoffs):
+        for feature in world.export_geojson(at, known_at)["features"]:
+            props = feature["properties"]
+            if props["source_id"] == source:
+                found.setdefault(props["entity"], set()).add(feature["id"])
+    rows = []
+    for entity in sorted(before.keys() | after.keys()):
+        earlier = sorted(before.get(entity, set()))
+        later = sorted(after.get(entity, set()))
+        rows.append({
+            "entity": entity,
+            "status": ("REPORTED_AT_BOTH" if earlier and later else
+                       "NEWLY_REPORTED" if later else "NO_LONGER_REPORTED"),
+            "earlier_assertion_ids": earlier,
+            "later_assertion_ids": later,
+        })
+    return {
+        "schema": "MONDE_SOURCE_COVERAGE_DETAIL_V1",
+        "axis": axis, "cutoffs": directory["cutoffs"],
+        "source_id": source, "interpretation": directory["interpretation"],
+        "earlier_entities": len(before), "later_entities": len(after),
+        "entities": rows,
+    }
+
+
 def discovery_geojson(world, document):
     """Original Point evidence for all ranked source-pair examples, never inferred coordinates."""
     if document["schema"] != "MONDE_SOURCE_PAIR_DISCOVERY_V1":

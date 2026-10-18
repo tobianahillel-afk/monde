@@ -492,3 +492,14 @@ to open existing source-focused pair discovery at identical cutoffs.
 Absence of a source report is not evidence of agreement. Reporting-count
 changes are not proof of physical movement, source accuracy or reliability.
 The existing saved WorldMini is read-only and no new service is introduced.
+
+
+### Original reporter detail — evidence drill-down (WORK-0111)
+
+From the source directory select a reporter. The same local read-only
+/source-pair?directory=1 query accepts source=<original ID> with
+format=table, json or csv. Every reported entity shows the original
+assertion IDs before and after the selected world/knowledge cutoff,
+labelled NEWLY_REPORTED, NO_LONGER_REPORTED or REPORTED_AT_BOTH.
+Links open the existing source-specific history for that entity.
+Reporting presence is not evidence of actual movement or truth.

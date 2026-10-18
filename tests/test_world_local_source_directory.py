@@ -146,6 +146,78 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn(b"NO ORIGINAL POINT SOURCE REPORTS", html)
 
+    def test_source_details_original_assertions_and_existing_history_links(self):
+        q = {**self.knowledge(), "source": "survey-b"}
+        status, _, raw = self.get({**q, "format": "json"})
+        self.assertEqual(status, 200)
+        doc = json.loads(raw)
+        self.assertEqual(doc["schema"], "MONDE_SOURCE_COVERAGE_DETAIL_V1")
+        self.assertEqual(doc["source_id"], "survey-b")
+        self.assertEqual(doc["earlier_entities"], 1)
+        self.assertEqual(doc["later_entities"], 1)
+        self.assertEqual(doc["entities"][0]["entity"], "site-1")
+        self.assertEqual(doc["entities"][0]["status"], "REPORTED_AT_BOTH")
+        self.assertEqual(doc["entities"][0]["earlier_assertion_ids"], ["a-b1"])
+        self.assertEqual(doc["entities"][0]["later_assertion_ids"], ["a-b2"])
+        status, _, html = self.get(q)
+        self.assertEqual(status, 200)
+        self.assertIn(b"source-history", html)
+        self.assertIn(b"source=survey-b", html)
+        self.assertIn(b"a-b1", html)
+        self.assertIn(b"a-b2", html)
+        status, _, directory = self.get({**self.knowledge(), "format": "table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"Find partners", directory)
+        self.assertIn(b"source=survey-b", directory)
+
+    def test_source_detail_csv_original_ids_and_missing_source(self):
+        q = {**self.knowledge(), "source": "survey-a"}
+        status, headers, raw = self.get({**q, "format": "csv"})
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+        rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+        self.assertEqual([r["entity"] for r in rows],
+                         ["site-1", "site-only-one-source"])
+        self.assertEqual(json.loads(rows[0]["earlier_assertion_ids"]), ["a-a1"])
+        self.assertEqual(json.loads(rows[1]["later_assertion_ids"]), ["a-orphan"])
+        status, _, raw = self.get({**self.knowledge(), "source": "not-present",
+                                   "format": "json"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw)["entities"], [])
+
+    def test_source_detail_bad_input_and_world_axis(self):
+        for bad in ("\ninvalid", "x" * 201):
+            status, _, raw = self.get({**self.knowledge(), "source": bad,
+                                       "format": "json"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        status, _, raw = self.get({**self.knowledge(), "source": "survey-a",
+                                   "top": "2", "format": "json"})
+        self.assertEqual(status, 400)
+        status, _, raw = self.get({**self.knowledge(), "source": "survey-a",
+                                   "format": "html"})
+        self.assertEqual(status, 400)
+        world = sample(dateline=True)
+        path = Path(self.tmp.name) / "world-detail.json"
+        world.save(path)
+        before = path.read_bytes()
+        server = create_server(path)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        try:
+            q = {"directory": "1", "source": "not-present", "axis": "world",
+                 "from_at": EARLY, "to_at": LATE, "known_at": KNOWN,
+                 "format": "json"}
+            status, _, raw = self.get(q, server)
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(raw)["axis"], "world")
+        finally:
+            server.shutdown()
+            worker.join(timeout=5)
+            server.server_close()
+            self.assertEqual(path.read_bytes(), before)
+
+
 
 if __name__ == "__main__":
     unittest.main()

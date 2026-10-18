@@ -1177,16 +1177,19 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format"})
+                 {"format", "source"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
-                 {"format"})
+                 {"format", "source"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
+    if "source" in args:
+        from .source_pair_changes import source_directory_detail
+        return source_directory_detail(world, args["axis"], cutoffs, args["source"])
     return source_directory(world, args["axis"], cutoffs)
 
 
@@ -1196,10 +1199,13 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         query = {key: value for key, value in args.items()
                  if key not in ("directory", "format")}
         query.update(discover="1", source=item["source_id"], format="table")
-        link = "/source-pair?" + urlencode(query)
+        link = "/source-pair?" + urlencode({
+            **args, "source": item["source_id"], "format": "table"})
+        partners = "/source-pair?" + urlencode(query)
         rows.append(
             '<tr><th scope="row"><a href="' + escape(link, quote=True) + '">' +
-            escape(item["source_id"]) + '</a></th><td>' +
+            escape(item["source_id"]) + '</a> · <a href="' +
+            escape(partners, quote=True) + '">Find partners</a></th><td>' +
             str(item["earlier_entities"]) + ' / ' + str(item["later_entities"]) +
             '</td><td>' + str(item["newly_reported_entities"]) + ' / ' +
             str(item["no_longer_reported_entities"]) + '</td><td>' +
@@ -1231,6 +1237,69 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         ''.join(rows) + '</tbody></table>' +
         ('<p role="status">NO ORIGINAL POINT SOURCE REPORTS at either cutoff.'
          '</p>' if not rows else '') + '</body></html>')
+
+
+
+def _source_directory_detail_html(document: dict, args: dict[str, str]) -> str:
+    rows = []
+    back = "/source-pair?" + urlencode({
+        **{k: v for k, v in args.items() if k not in ("source", "format")},
+        "format": "table"})
+    later_known = document["cutoffs"]["later"]["knowledge_at"]
+    for item in document["entities"]:
+        evidence = "/inspect?" + urlencode({
+            "view": "source-history", "source": document["source_id"],
+            "entity": item["entity"], "attribute": "geo_point",
+            "known_at": later_known})
+        rows.append(
+            '<tr><th scope="row"><a href="' +
+            escape(evidence, quote=True) + '">' + escape(item["entity"]) +
+            '</a></th><td>' + escape(item["status"]) + '</td><td>' +
+            escape(", ".join(item["earlier_assertion_ids"])) + '</td><td>' +
+            escape(", ".join(item["later_assertion_ids"])) + '</td></tr>')
+    csv_link = "/source-pair?" + urlencode({**args, "format": "csv"})
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<title>Original reporter coverage details</title>'
+        '<style>:root{color-scheme:dark;background:#101827;color:#ebf2f9;'
+        'font-family:system-ui,sans-serif}body{max-width:950px;margin:auto;'
+        'padding:24px}a{color:#8ee6d3}th,td{border:1px solid #59788c;'
+        'padding:9px;text-align:left}table{border-collapse:collapse}</style>'
+        '</head><body><nav><a href="' + escape(back, quote=True) +
+        '">All source coverage</a></nav><h1>Original source coverage: ' +
+        escape(document["source_id"]) + '</h1><p>' +
+        escape(document["interpretation"]) + '</p><p>' +
+        str(document["earlier_entities"]) + ' earlier / ' +
+        str(document["later_entities"]) + ' later entities</p><p><a href="' +
+        escape(csv_link, quote=True) + '">Download original IDs CSV</a></p>'
+        '<table><caption>Evidence per original source entity</caption>'
+        '<thead><tr><th scope="col">Entity — inspect source history</th>'
+        '<th scope="col">Reported coverage status</th>'
+        '<th scope="col">Earlier original assertion IDs</th>'
+        '<th scope="col">Later original assertion IDs</th></tr></thead><tbody>' +
+        ''.join(rows) + '</tbody></table>' +
+        ('<p role="status">NO ORIGINAL POINT REPORTS FROM THIS SOURCE'
+         ' AT EITHER CUTOFF.</p>' if not rows else '') + '</body></html>')
+
+
+def _source_directory_detail_csv(document: dict) -> bytes:
+    output = io.StringIO(newline="")
+    writer = csv.writer(output)
+    columns = ("entity", "status", "earlier_assertion_ids",
+               "later_assertion_ids")
+    writer.writerow(columns)
+    for item in document["entities"]:
+        values = []
+        for name in columns:
+            value = item[name]
+            if isinstance(value, list):
+                value = json.dumps(value, ensure_ascii=False)
+            value = str(value)
+            if value.startswith(("=", "+", "-", "@", "\t", "\r", "\n")):
+                value = "'" + value
+            values.append(value)
+        writer.writerow(values)
+    return output.getvalue().encode("utf-8")
 
 
 def _source_directory_csv(document: dict) -> bytes:
@@ -1633,7 +1702,8 @@ def create_server(state: str | Path, port: int = 0, *,
                         if output_format == "json":
                             return self._reply(200, document)
                         if output_format == "csv":
-                            body = _source_directory_csv(document)
+                            body = (_source_directory_detail_csv(document)
+                                    if "source" in args else _source_directory_csv(document))
                             if len(body) > max_response_bytes:
                                 return self._reply(413, {"error": "response_too_large"})
                             self.send_response(200)
@@ -1646,7 +1716,9 @@ def create_server(state: str | Path, port: int = 0, *,
                             self.end_headers()
                             self.wfile.write(body)
                             return
-                        return self._html(None, rendered_html=_source_directory_html(document, args))
+                        return self._html(None, rendered_html=(
+                            _source_directory_detail_html(document, args)
+                            if "source" in args else _source_directory_html(document, args)))
                     if args.get("discover") == "1":
                         discovery = _pair_discovery_query(world, args)
                         output_format = args.get("format", "table")

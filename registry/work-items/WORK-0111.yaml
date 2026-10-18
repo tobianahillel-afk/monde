@@ -11,12 +11,13 @@ purpose: |
   Show original geographic source presence, observation counts and reporting gaps
   without inferring true locations, source trust or physical movement.
 scope:
-  in: ["Source coverage directory", "Both temporal axes", "Existing pair drilldown", "JSON/CSV"]
+  in: ["Source coverage directory", "Both temporal axes", "Existing pair drilldown", "Per-entity original assertion history", "JSON/CSV"]
   out: ["Truth reconciliation", "Source reliability scores", "New services", "Persistence changes"]
 acceptance_criteria:
   - {id: AC-1, description: "Count distinct original Point entities and assertion IDs at both cutoffs.", status: IN_PROGRESS}
   - {id: AC-2, description: "Open source-focused pair discovery at identical temporal cutoffs.", status: IN_PROGRESS}
   - {id: AC-3, description: "Verify real HTTP/CSV/JSON behavior and immutable saved evidence.", status: IN_PROGRESS}
+  - {id: AC-4, description: "Open original per-source entity assertion IDs for both cutoffs with read-only source-history links.", status: IN_PROGRESS}
 depends_on: [WORK-0110]
 requirements: []
 read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
