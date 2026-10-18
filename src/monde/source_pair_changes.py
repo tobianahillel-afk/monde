@@ -627,18 +627,54 @@ def source_directory_entity_presence_summary(world, directory):
     return [rows[source] for source in sorted(rows)]
 
 
-def source_directory_entity_presence_csv(world, directory, presence=None):
-    """Original Point report visibility, optionally filtered after classification."""
+def source_directory_entity_presence_records(world, directory, presence=None):
+    """Return unmodified original Point identities with temporal visibility."""
     if presence is not None and presence not in ("earlier", "later", "both"):
         raise ValueError("invalid original report presence filter")
     features = source_directory_entity_geojson(world, directory)["features"]
-    reports_by_period = {}
+    reports = {}
     for feature in features:
-        props = feature["properties"]
-        longitude, latitude = feature["geometry"]["coordinates"]
-        key = (props["source_id"], props["monde_original_assertion_id"],
-               props["evidence_id"], longitude, latitude)
-        reports_by_period.setdefault(key, set()).add(props["monde_comparison_period"])
+        p = feature["properties"]
+        lon, lat = feature["geometry"]["coordinates"]
+        identity = (p["source_id"], p["monde_original_assertion_id"],
+                    p["evidence_id"], lon, lat)
+        reports.setdefault(identity, set()).add(p["monde_comparison_period"])
+    rows = []
+    for identity in sorted(reports, key=lambda row: tuple(map(str, row))):
+        source, assertion, evidence, lon, lat = identity
+        before, after = ("earlier" in reports[identity], "later" in reports[identity])
+        transition = ("BOTH_CUTOFFS" if before and after else
+                      "EARLIER_ONLY" if before else "LATER_ONLY")
+        if presence is not None and transition != {
+                "earlier": "EARLIER_ONLY", "later": "LATER_ONLY",
+                "both": "BOTH_CUTOFFS"}[presence]:
+            continue
+        rows.append({"entity": directory["entity_focus"],
+                     "source_id": source, "assertion_id": assertion,
+                     "evidence_id": evidence, "longitude": lon, "latitude": lat,
+                     "earlier_visible": before, "later_visible": after,
+                     "visibility_transition": transition})
+    return rows
+
+
+def source_directory_entity_presence_json(world, directory, presence=None):
+    """Machine-readable original source Point presence, not inferred truth."""
+    rows = source_directory_entity_presence_records(world, directory, presence)
+    return {"schema": "MONDE_ORIGINAL_POINT_PRESENCE_V1",
+            "entity": directory["entity_focus"],
+            "axis": directory["axis"],
+            "cutoffs": directory["cutoffs"],
+            **({"source_focus": directory["source_focus"]}
+               if "source_focus" in directory else {}),
+            **({"presence_filter": presence} if presence is not None else {}),
+            "report_count": len(rows),
+            "reports": rows,
+            "interpretation": "Original source-report visibility, not verified movement or truth"}
+
+
+def source_directory_entity_presence_csv(world, directory, presence=None):
+    """Spreadsheet-safe original presence CSV, from the shared report identities."""
+    reports = source_directory_entity_presence_records(world, directory, presence)
 
     def safe(value):
         value = str(value)
@@ -652,21 +688,15 @@ def source_directory_entity_presence_csv(world, directory, presence=None):
                      "longitude", "latitude", "earlier_visible", "later_visible",
                      "visibility_transition", "earlier_world_at", "earlier_known_at",
                      "later_world_at", "later_known_at"))
-    for key in sorted(reports_by_period, key=lambda row: tuple(map(str, row))):
-        source, assertion, evidence, lon, lat = key
-        before, after = ("earlier" in reports_by_period[key], "later" in reports_by_period[key])
-        transition = ("BOTH_CUTOFFS" if before and after else
-                      "EARLIER_ONLY" if before else "LATER_ONLY")
-        if presence is not None and transition != {
-                "earlier": "EARLIER_ONLY", "later": "LATER_ONLY",
-                "both": "BOTH_CUTOFFS"}[presence]:
-            continue
-        writer.writerow((safe(directory["entity_focus"]), safe(source),
-                         safe(assertion), safe(evidence), lon, lat,
-                         int(before), int(after), transition,
-                         early["world_at"], early["knowledge_at"],
-                         late["world_at"], late["knowledge_at"]))
+    for r in reports:
+        writer.writerow((safe(r["entity"]), safe(r["source_id"]),
+                         safe(r["assertion_id"]), safe(r["evidence_id"]),
+                         r["longitude"], r["latitude"],
+                         int(r["earlier_visible"]), int(r["later_visible"]),
+                         r["visibility_transition"], early["world_at"],
+                         early["knowledge_at"], late["world_at"], late["knowledge_at"]))
     return output.getvalue()
+
 
 def source_directory_entity_map(world, directory, presence=None):
     """Reuse the original Point map for selected temporal visibility."""
