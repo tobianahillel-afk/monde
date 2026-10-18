@@ -1433,3 +1433,71 @@ document.body.setAttribute("data-count-both",String(count("")));
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_offline_comparison_source_coverage_matches_complete_embedded_evidence(self):
+        """Source/period matrix counts the full original snapshot, not the visible map."""
+        import shutil
+        import subprocess
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if not browser:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, body = self.fetch("/disagreement-compare.html", params)
+        self.assertEqual(status, 200)
+        html = body.decode("utf-8")
+        embedded = self.embedded_map(html)
+        actual = {}
+        for f in embedded["features"]:
+            source = f["properties"]["source_id"]
+            period = f["properties"]["monde_comparison_period"]
+            entry = actual.setdefault(source, {"earlier": 0, "later": 0})
+            entry[period] += 1
+        self.assertGreaterEqual(len(actual), 2)
+        expected = "|".join(
+            f"{name}:{actual[name]['earlier']}:{actual[name]['later']}"
+            for name in sorted(actual))
+        probe = """<script>
+const body=document.body,coverage=document.getElementById("comparison-source-coverage");
+body.dataset.coverageOpen=String(!coverage.hidden);
+const records=Array.from(document.querySelectorAll("#comparison-source-rows tr"));
+body.dataset.coverageCount=String(records.length);
+body.dataset.coverageRows=records.map(row=>row.dataset.sourceId+":"+
+  row.children[1].textContent+":"+row.children[2].textContent).join("|");
+const sourceSelect=document.getElementById("sources");
+const originalCount=document.getElementById("comparison-source-total").textContent;
+records[0].querySelector("button").click();
+body.dataset.sourceAfterClick=sourceSelect.value;
+body.dataset.firstSource=records[0].dataset.sourceId;
+document.getElementById("comparison-period").value="later";
+document.getElementById("comparison-period").dispatchEvent(new Event("change"));
+body.dataset.coverageAfterFiltering=String(
+  document.getElementById("comparison-source-total").textContent===originalCount);
+document.getElementById("comparison-all-sources").click();
+body.dataset.sourceAfterReset=String(sourceSelect.value==="");
+</script>"""
+        output = Path(self.folder.name) / "coverage-comparison-offline.html"
+        output.write_text(html.replace("</body>", probe + "</body>"), encoding="utf-8")
+        rendered = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", output.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
+            check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', rendered)
+        self.assertIn('data-coverage-open="true"', rendered)
+        self.assertIn('data-coverage-count="' + str(len(actual)) + '"', rendered)
+        self.assertIn('data-coverage-rows="' + expected + '"', rendered)
+        self.assertIn('data-coverage-after-filtering="true"', rendered)
+        self.assertIn('data-source-after-reset="true"', rendered)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+    def test_comparison_source_coverage_is_not_active_on_regular_maps(self):
+        status, _, comparison = self.fetch("/disagreement-compare.html",
+            {**QUERY, "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(status, 200)
+        self.assertIn(b'id="comparison-source-coverage" hidden', comparison)
+        status, _, current = self.fetch("/viewer", {"view": "current", **QUERY})
+        self.assertEqual(status, 200)
+        self.assertIn(b'id="comparison-source-coverage" hidden', current)
+        self.assertEqual(self.path.read_bytes(), self.before)

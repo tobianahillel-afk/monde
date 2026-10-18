@@ -548,3 +548,16 @@ The CSV is a flattened analyst table; use the existing complete GeoJSON for
 full nested original metadata. Empty selected periods export a header-only
 CSV, not synthetic evidence. No external requests, new endpoint, model or
 persistent data modifications.
+
+### Original source coverage matrix in offline comparison maps (WORK-0082)
+
+An offline two-period disagreement map includes an expandable **Original source
+coverage by comparison period** table. Each source's Earlier/Later/Total count
+comes from **all original source reports embedded in the selected comparison**,
+not viewport, search, source or period display filters. Choosing a source
+filters the visible map to that source, and **Show all original sources**
+clears only the source display selection; neither operation mutates the
+embedded evidence or persisted World Model. Empty or asymmetric period counts
+do not prove a physical absence, agreement or movement. The table uses
+text-only DOM assignment for original untrusted source identifiers, with no
+external network requests, new API, new model or dependency.

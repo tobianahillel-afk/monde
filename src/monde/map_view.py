@@ -86,6 +86,11 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 #details{white-space:pre-wrap;overflow-wrap:anywhere;background:#102033;border-radius:7px;padding:12px;font-size:.84rem;max-height:280px;overflow:auto;min-height:70px}
 .notice{padding:10px 12px;background:#273b49;border-left:3px solid #ffc873;border-radius:4px;margin:14px 0}
 #metrics{font-size:.9rem;color:#bbd0df}
+#comparison-source-coverage{margin:12px 0;padding:10px;border:1px solid #38526a;border-radius:8px}
+#comparison-source-coverage summary{cursor:pointer;color:#8ee6d3;font-weight:bold}
+#comparison-source-coverage table{width:100%;border-collapse:collapse;text-align:left;font-size:.87rem}
+#comparison-source-coverage th,#comparison-source-coverage td{padding:6px;border-bottom:1px solid #38526a;overflow-wrap:anywhere}
+#comparison-source-coverage th[scope=col]{color:#bbd0df}
 @media(max-width:850px){main{grid-template-columns:1fr}}
 </style>
 </head>
@@ -145,6 +150,16 @@ __MONDE_TIME_NAVIGATION__
 </select><button id="export-comparison-complete" type="button">Export complete original period GeoJSON</button>
 <button id="export-comparison-csv" type="button">Export complete original period CSV</button></div>
 <p id="comparison-period-summary" class="subtle" role="status" aria-live="polite" hidden></p>
+<details id="comparison-source-coverage" hidden>
+<summary>Original source coverage by comparison period</summary>
+<p class="subtle">Counts use all original source reports embedded in this comparison, including offscreen evidence. Display filters do not change them. They are NOT evidence of physical agreement, movement or absence.</p>
+<button type="button" id="comparison-all-sources">Show all original sources</button>
+<table aria-label="Embedded original reports by source and period">
+<thead><tr><th scope="col">Original source</th><th scope="col">Earlier</th><th scope="col">Later</th><th scope="col">Total reports</th></tr></thead>
+<tbody id="comparison-source-rows"></tbody>
+</table>
+<p id="comparison-source-total" class="subtle" role="status"></p>
+</details>
 <div id="gpkg-layer-control" class="controls" hidden>
   <strong>Original GeoPackage layers</strong>
   <div id="gpkg-layer-options" role="group" aria-label="Toggle original GeoPackage source layers"></div>
@@ -634,6 +649,40 @@ __MONDE_TIME_NAVIGATION__
     var option = document.createElement("option");
     option.value = id; label(option,id); sources.appendChild(option);
   });
+  // Comparison-only browser navigation: count the complete embedded original
+  // selection, not the viewport/period/search-filtered visibleFeatures.
+  if (data.monde_comparison) {
+    var coverage = document.getElementById("comparison-source-coverage");
+    var counts = new Map();
+    features.forEach(function(feature) {
+      var p=feature.properties,source=p.source_id,period=p.monde_comparison_period;
+      if(!counts.has(source))counts.set(source,{earlier:0,later:0});
+      if(period==="earlier"||period==="later")counts.get(source)[period]++;
+    });
+    var rows=document.getElementById("comparison-source-rows");
+    Array.from(counts.keys()).sort().forEach(function(id) {
+      var value=counts.get(id),tr=document.createElement("tr"),cell=document.createElement("td");
+      tr.dataset.sourceId=id;
+      var button=document.createElement("button");
+      button.type="button";
+      button.textContent=id;
+      button.setAttribute("aria-label","Show original evidence from source "+id);
+      button.addEventListener("click",function(){sources.value=id;render();});
+      cell.appendChild(button);tr.appendChild(cell);
+      [value.earlier,value.later,value.earlier+value.later].forEach(function(count) {
+        var td=document.createElement("td");
+        td.textContent=String(count);tr.appendChild(td);
+      });
+      rows.appendChild(tr);
+    });
+    document.getElementById("comparison-all-sources").addEventListener("click",function() {
+      sources.value="";render();
+    });
+    document.getElementById("comparison-source-total").textContent =
+      String(counts.size)+" original sources · "+String(features.length)+
+      " embedded original reports. No inferred truth or completeness.";
+    coverage.hidden=false;
+  }
   // A GeoPackage layer is a separate original source, not a verified world
   // layer. Keep the source dropdown for exact source filtering; this control
   // allows multiple original GeoPackage layers to be compared side by side.
