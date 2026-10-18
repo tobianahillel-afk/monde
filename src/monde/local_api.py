@@ -20,7 +20,7 @@ MAX_RESPONSE_BYTES = 2_000_000
 
 _EXPLORER_VIEWS = (
     ("current", "Current reports", ("bbox", "at", "known_at", "source")),
-    ("disagreements", "Source disagreements", ("bbox", "at", "known_at", "source")),
+    ("disagreements", "Source disagreements", ("bbox", "at", "known_at")),
     ("knowledge-changes", "Newly known or corrected evidence",
      ("bbox", "at", "from_known_at", "to_known_at", "source")),
     ("world-changes", "Changes in reported validity",
@@ -371,16 +371,8 @@ def _filter_source_bbox(document: dict, source: str | None) -> dict:
     query["total_matching_entities"] = len(entities)
     query["total_source_features"] = len(features)
     query["status"] = "MATCHES" if features else "NO_MATCHES"
-    filtered = {**document, "features": features, "monde_bbox_query": query,
-                "monde_source_filter": source}
-    if "monde_disagreements_view" in document:
-        # Disagreement was established across every original source before
-        # selecting this source. Keep the opposing source IDs as evidence.
-        filtered["monde_disagreements_view"] = {
-            **document["monde_disagreements_view"],
-            "conflicting_entities_in_view": len(entities),
-        }
-    return filtered
+    return {**document, "features": features, "monde_bbox_query": query,
+            "monde_source_filter": source}
 
 
 def _filter_source_changes(document: dict, source: str | None, query_key: str) -> dict:
@@ -567,17 +559,9 @@ def create_server(state: str | Path, port: int = 0, *,
                         args["at"], args["from_known_at"], args["to_known_at"],
                         args.get("attribute"))
                 elif path == "/map-disagreements":
-                    _require(args, {"bbox", "at", "known_at"}, {"source"})
-                    if "source" in args:
-                        from .map_view import disagreement_view
-                        output = _filter_source_bbox(
-                            disagreement_view(world, _bbox(args["bbox"]),
-                                              args["at"], args["known_at"]),
-                            args["source"])
-                    else:
-                        # Preserve the existing unfiltered JSON API contract.
-                        output = world.export_geojson_disagreements(
-                            args["at"], args["known_at"], _bbox(args["bbox"]))
+                    _require(args, {"bbox", "at", "known_at"})
+                    output = world.export_geojson_disagreements(
+                        args["at"], args["known_at"], _bbox(args["bbox"]))
                 elif path == "/map-knowledge-changes":
                     _require(args, {"bbox", "at", "from_known_at", "to_known_at"},
                              {"source"})
@@ -639,12 +623,10 @@ def create_server(state: str | Path, port: int = 0, *,
                             _bbox(args["bbox"]), args["at"], args["known_at"]),
                             args.get("source"))
                     elif mode == "disagreements":
-                        _require(args, {"view", "bbox", "at", "known_at"}, {"source"})
+                        _require(args, {"view", "bbox", "at", "known_at"})
                         from .map_view import disagreement_view
-                        geojson = _filter_source_bbox(
-                            disagreement_view(world, _bbox(args["bbox"]),
-                                              args["at"], args["known_at"]),
-                            args.get("source"))
+                        geojson = disagreement_view(
+                            world, _bbox(args["bbox"]), args["at"], args["known_at"])
                     elif mode == "knowledge-changes":
                         _require(args, {"view", "bbox", "at",
                                         "from_known_at", "to_known_at"},
