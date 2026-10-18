@@ -2343,7 +2343,7 @@ root.dataset.entityMatrixNavigation=String(
                 if feature["properties"]["source_id"] == source
                 and feature["properties"]["entity"] in changed_entities
             ]
-        script = """<script>
+        script = ("""<script>
 const expected=__EXPECTED__,expectedExports=__EXPECTED_EXPORTS__,body=document.body;
 const panel=document.getElementById("comparison-source-entity-coverage");
 const rows=Array.from(document.querySelectorAll("#comparison-source-entity-rows tr"));
@@ -2444,7 +2444,7 @@ body.dataset.sourceEntityCsvReused=String(
   body.dataset.sourceEntityFilename==="monde-original-reporting-source-selection-changes.csv");
 </script>""".replace("__EXPECTED__", json.dumps(expected))
                      .replace("__EXPECTED_EXPORTS__", json.dumps(expected_exports))
-                     .replace("__TOTAL_FEATURES__", str(len(embedded["features"])))
+                     .replace("__TOTAL_FEATURES__", str(len(embedded["features"]))))
         target = Path(self.folder.name) / "source-first-coverage.html"
         target.write_text(html.replace("</body>", script+"</body>"), encoding="utf-8")
         output = subprocess.run([
