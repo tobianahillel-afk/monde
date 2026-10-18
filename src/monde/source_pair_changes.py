@@ -607,16 +607,38 @@ def source_directory_entity_assertions_csv(world, directory):
     return output.getvalue()
 
 
-def source_directory_entity_presence_csv(world, directory):
-    """Original report presence at two cutoffs; never inferred real-world change."""
+
+def source_directory_entity_presence_summary(world, directory):
+    """Distinct original report identities per reporter at both cutoffs."""
     features = source_directory_entity_geojson(world, directory)["features"]
-    presence = {}
+    seen = {}
+    for feature in features:
+        p = feature["properties"]
+        identity = (p["source_id"], p["monde_original_assertion_id"],
+                    p["evidence_id"], tuple(feature["geometry"]["coordinates"]))
+        seen.setdefault(identity, set()).add(p["monde_comparison_period"])
+    rows = {item["source_id"]: {"source_id": item["source_id"],
+            "earlier_only": 0, "later_only": 0, "both_cutoffs": 0}
+            for item in directory["sources"]}
+    for identity, periods in seen.items():
+        category = ("both_cutoffs" if len(periods) == 2 else
+                    "earlier_only" if "earlier" in periods else "later_only")
+        rows[identity[0]][category] += 1
+    return [rows[source] for source in sorted(rows)]
+
+
+def source_directory_entity_presence_csv(world, directory, presence=None):
+    """Original Point report visibility, optionally filtered after classification."""
+    if presence is not None and presence not in ("earlier", "later", "both"):
+        raise ValueError("invalid original report presence filter")
+    features = source_directory_entity_geojson(world, directory)["features"]
+    reports_by_period = {}
     for feature in features:
         props = feature["properties"]
         longitude, latitude = feature["geometry"]["coordinates"]
         key = (props["source_id"], props["monde_original_assertion_id"],
                props["evidence_id"], longitude, latitude)
-        presence.setdefault(key, set()).add(props["monde_comparison_period"])
+        reports_by_period.setdefault(key, set()).add(props["monde_comparison_period"])
 
     def safe(value):
         value = str(value)
@@ -630,11 +652,15 @@ def source_directory_entity_presence_csv(world, directory):
                      "longitude", "latitude", "earlier_visible", "later_visible",
                      "visibility_transition", "earlier_world_at", "earlier_known_at",
                      "later_world_at", "later_known_at"))
-    for key in sorted(presence, key=lambda row: tuple(map(str, row))):
+    for key in sorted(reports_by_period, key=lambda row: tuple(map(str, row))):
         source, assertion, evidence, lon, lat = key
-        before, after = ("earlier" in presence[key], "later" in presence[key])
+        before, after = ("earlier" in reports_by_period[key], "later" in reports_by_period[key])
         transition = ("BOTH_CUTOFFS" if before and after else
                       "EARLIER_ONLY" if before else "LATER_ONLY")
+        if presence is not None and transition != {
+                "earlier": "EARLIER_ONLY", "later": "LATER_ONLY",
+                "both": "BOTH_CUTOFFS"}[presence]:
+            continue
         writer.writerow((safe(directory["entity_focus"]), safe(source),
                          safe(assertion), safe(evidence), lon, lat,
                          int(before), int(after), transition,
