@@ -350,9 +350,6 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
         self.assertEqual(values[0]["example_assertion_ids"], '["a-a1","a-b1"]')
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
     def test_ranked_discovery_opens_example_original_point_map(self):
         """Ranking -> focused original-report offline map, without changing data."""
@@ -398,8 +395,7 @@ if __name__ == "__main__":
                     {k: value[0] for k, value in query.items()}, server)
                 self.assertEqual(status, 200)
                 self.assertTrue(headers["Content-Type"].startswith("text/html"))
-                self.assertIn(b"survey-", map_html) if axis == "knowledge" else (
-                    self.assertIn(b"monde_source_pair", map_html))
+                self.assertIn(b"monde_source_pair", map_html)
                 self.assertIn(b"monde_original_assertion_id", map_html)
             finally:
                 if axis == "world":
@@ -415,3 +411,8 @@ if __name__ == "__main__":
         self.assertEqual(status, 200)
         self.assertNotIn(b"Map original example evidence", html)
         self.assertIn(b"NO JOINT ORIGINAL SOURCE REPORTS", html)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
