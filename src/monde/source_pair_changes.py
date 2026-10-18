@@ -578,6 +578,42 @@ def source_directory_entity_assertions_csv(world, directory):
                          safe(props["evidence_id"]), longitude, latitude))
     return output.getvalue()
 
+
+def source_directory_entity_presence_csv(world, directory):
+    """Original report presence at two cutoffs; never inferred real-world change."""
+    features = source_directory_entity_geojson(world, directory)["features"]
+    presence = {}
+    for feature in features:
+        props = feature["properties"]
+        longitude, latitude = feature["geometry"]["coordinates"]
+        key = (props["source_id"], props["monde_original_assertion_id"],
+               props["evidence_id"], longitude, latitude)
+        presence.setdefault(key, set()).add(props["monde_comparison_period"])
+
+    def safe(value):
+        value = str(value)
+        return "'" + value if value.startswith(("=", "+", "-", "@", "\t", "\r", "\n")) else value
+
+    early = directory["cutoffs"]["earlier"]
+    late = directory["cutoffs"]["later"]
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\r\n")
+    writer.writerow(("entity", "source_id", "assertion_id", "evidence_id",
+                     "longitude", "latitude", "earlier_visible", "later_visible",
+                     "visibility_transition", "earlier_world_at", "earlier_known_at",
+                     "later_world_at", "later_known_at"))
+    for key in sorted(presence, key=lambda row: tuple(map(str, row))):
+        source, assertion, evidence, lon, lat = key
+        before, after = ("earlier" in presence[key], "later" in presence[key])
+        transition = ("BOTH_CUTOFFS" if before and after else
+                      "EARLIER_ONLY" if before else "LATER_ONLY")
+        writer.writerow((safe(directory["entity_focus"]), safe(source),
+                         safe(assertion), safe(evidence), lon, lat,
+                         int(before), int(after), transition,
+                         early["world_at"], early["knowledge_at"],
+                         late["world_at"], late["knowledge_at"]))
+    return output.getvalue()
+
 def source_directory_entity_map(world, directory):
     """Reuse the source Point display envelope, never infer consensus or motion."""
     geojson = source_directory_entity_geojson(world, directory)
