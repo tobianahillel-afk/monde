@@ -22,6 +22,7 @@ acceptance_criteria:
   - {id: AC-2, description: "Complete entity/source CSV preserves every embedded original assertion and evidence ID and period count regardless of display filters.", status: IN_REVIEW}
   - {id: AC-3, description: "Entity drilldown resets visual filters and navigates existing source map without mutating saved evidence.", status: IN_REVIEW}
   - {id: AC-4, description: "Real loopback browser/Chromium regression validates original CSV and navigation with filters active.", status: IN_REVIEW}
+  - {id: AC-5, description: "Entity-specific original Point GeoJSON export covers both or one comparison period independently of all visual filters.", status: IN_REVIEW}
 requirements: []
 depends_on: [WORK-0083]
 read_before: [AGENTS.md, src/monde/map_view.py, tests/test_world_local_api_disagreement_report.py, docs/03_ARCHITECTURE/world-mini-local-api.md]
