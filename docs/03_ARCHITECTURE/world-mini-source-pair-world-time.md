@@ -438,3 +438,17 @@ for the **same entity at both cutoffs**. This is evidence coverage, not source
 credibility or ground truth. Default 1 preserves existing results. The same
 filtered ranking flows to the accessible table, JSON, original GeoJSON,
 CSV and offline map without adding a service, parser, store or paid API.
+
+## Rank source pairs by jointly observed evidence coverage (WORK-0109)
+
+Use `rank=coverage` in either existing `/source-pair?discover=1` form to
+prioritize reporter pairs that jointly report original Points for the largest
+number of **distinct entities at either cutoff**. Ties prefer the largest
+reported nearest-source separation, then source IDs. `min_joint`, source
+focus and `top` keep their existing semantics.
+
+Evidence coverage is **not** source credibility, accuracy, verified physical
+movement, or ground truth. Missing reports remain UNKNOWN, never inferred
+agreement. Existing JSON, CSV, GeoJSON, offline-map and table outputs retain
+original assertions and both temporal cutoffs. The default `separation`
+ranking is unchanged. No new endpoint, storage, dependency or data mutation.
