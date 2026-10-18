@@ -130,17 +130,15 @@ class SourceLensHTTPTests(unittest.TestCase):
                          ["conflicting_entities_in_view"], 0)
         self.assertEqual(filtered["monde_bbox_query"]["status"], "NO_MATCHES")
 
-    def test_unfiltered_disagreement_route_reuses_same_original_view(self):
-        from monde.map_view import disagreement_view
+    def test_unfiltered_disagreement_route_preserves_original_json_contract(self):
+        expected = self.world.export_geojson_disagreements(AT, K1, BOUNDS)
         code, _, raw = self.fetch("/map-disagreements", QUERY)
         self.assertEqual(code, 200)
-        self.assertEqual(json.loads(raw),
-                         disagreement_view(self.world, BOUNDS, AT, K1))
+        self.assertEqual(json.loads(raw), expected)
         status, _, raw = self.fetch("/map-disagreements",
                                     {**QUERY, "source": ""})
         self.assertEqual(status, 200)
-        self.assertEqual(json.loads(raw),
-                         disagreement_view(self.world, BOUNDS, AT, K1))
+        self.assertEqual(json.loads(raw), expected)
         html = _explorer_html(("survey-east",))
         form = html.split('value="disagreements">', 1)[1].split('</form>', 1)[0]
         self.assertIn('name="source"', form)

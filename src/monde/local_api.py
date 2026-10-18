@@ -568,11 +568,16 @@ def create_server(state: str | Path, port: int = 0, *,
                         args.get("attribute"))
                 elif path == "/map-disagreements":
                     _require(args, {"bbox", "at", "known_at"}, {"source"})
-                    from .map_view import disagreement_view
-                    output = _filter_source_bbox(
-                        disagreement_view(world, _bbox(args["bbox"]),
-                                          args["at"], args["known_at"]),
-                        args.get("source"))
+                    if "source" in args:
+                        from .map_view import disagreement_view
+                        output = _filter_source_bbox(
+                            disagreement_view(world, _bbox(args["bbox"]),
+                                              args["at"], args["known_at"]),
+                            args["source"])
+                    else:
+                        # Preserve the existing unfiltered JSON API contract.
+                        output = world.export_geojson_disagreements(
+                            args["at"], args["known_at"], _bbox(args["bbox"]))
                 elif path == "/map-knowledge-changes":
                     _require(args, {"bbox", "at", "from_known_at", "to_known_at"},
                              {"source"})
