@@ -750,6 +750,100 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
             server.server_close()
             self.assertEqual(target.read_bytes(), saved)
 
+
+    def test_rank_coverage_prioritizes_broad_joint_evidence_through_http(self):
+        from monde.world import WorldMini
+        world = WorldMini()
+        def add(source, entity, longitude, key):
+            known = "2026-01-02T01:00:00Z"
+            world.add_evidence({"id": "e-cover-" + key, "source_id": source,
+                                "locator": "fixture://cover-" + key,
+                                "captured_at": known, "source_event_at": known})
+            world.add_assertion({"id": "a-cover-" + key, "entity": entity,
+                                 "attribute": "geo_point",
+                                 "value": {"type": "Point", "coordinates": [longitude, 0.]},
+                                 "evidence_id": "e-cover-" + key,
+                                 "kind": "CLAIM", "known_at": known,
+                                 "valid_from": "2026-01-01T00:00:00Z",
+                                 "valid_to": None, "supersedes": None})
+        for entity, tag in (("site-1", "1"), ("site-2", "2")):
+            add("survey-a", entity, 0., "a" + tag)
+            add("survey-b", entity, 1., "b" + tag)
+        add("survey-c", "site-1", 100., "c1")
+        file = Path(self.tmp.name) / "coverage.json"
+        world.save(file)
+        saved = file.read_bytes()
+        server = create_server(file)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            q = {**self.knowledge(), "format": "json", "top": "1"}
+            status, _, raw = self.get(q, server)
+            self.assertEqual(status, 200)
+            first = json.loads(raw)
+            self.assertNotIn("rank", first)
+            self.assertIn("survey-c", (first["pairs"][0]["source_a"],
+                                       first["pairs"][0]["source_b"]))
+            status, _, raw = self.get({**q, "rank": "coverage"}, server)
+            self.assertEqual(status, 200)
+            result = json.loads(raw)
+            self.assertEqual(result["rank"], "coverage")
+            self.assertEqual(result["total_pairs"], 3)
+            self.assertEqual((result["pairs"][0]["source_a"],
+                              result["pairs"][0]["source_b"]),
+                             ("survey-a", "survey-b"))
+            self.assertEqual(result["pairs"][0]["joint_entities"], 2)
+            self.assertTrue(result["pairs"][0]["example_assertion_ids"])
+            self.assertNotIn("rank_delta_km", result["pairs"][0])
+            for fmt in ("table", "csv", "geojson", "html"):
+                status, _, raw = self.get({**q, "rank": "coverage",
+                                           "format": fmt}, server)
+                self.assertEqual(status, 200, fmt)
+                if fmt == "csv":
+                    rows = list(csv.DictReader(io.StringIO(raw.decode())))
+                    self.assertEqual(rows[0]["joint_entities"], "2")
+                elif fmt == "geojson":
+                    feature = json.loads(raw)
+                    self.assertEqual(feature["monde_discovery"]["rank"], "coverage")
+                    self.assertEqual({f["properties"]["source_id"]
+                                      for f in feature["features"]},
+                                     {"survey-a", "survey-b"})
+                elif fmt == "table":
+                    self.assertIn(b"source_a=survey-a", raw)
+                    self.assertIn(b"source_b=survey-b", raw)
+                else:
+                    self.assertIn(b"MONDE", raw)
+            status, _, raw = self.get(server=server)
+            self.assertEqual(status, 200)
+            self.assertEqual(raw.count(b'value="coverage"'), 2)
+            for wrong in ("Coverage", "coverages", "", "=coverage"):
+                status, _, _ = self.get({**q, "rank": wrong}, server)
+                self.assertEqual(status, 400, wrong)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(file.read_bytes(), saved)
+
+    def test_coverage_rank_preserves_world_and_knowledge_cutoffs(self):
+        result = discover_source_pairs(self.world, "knowledge",
+                                       ((AT, BEFORE), (AT, AFTER)),
+                                       rank="coverage")
+        self.assertEqual(result["rank"], "coverage")
+        self.assertNotIn("rank_delta_km", result["pairs"][0])
+        later = discover_source_pairs(
+            self.world, "knowledge",
+            ((AT, "2026-01-02T12:00:00Z"), (AT, AFTER)), rank="coverage")
+        self.assertEqual(later["pairs"][0]["joint_earlier_entities"], 0)
+        self.assertEqual(later["pairs"][0]["joint_later_entities"], 1)
+        q = {"discover": "1", "axis": "world",
+             "from_at": EARLY, "to_at": LATE, "known_at": KNOWN,
+             "format": "json", "rank": "coverage"}
+        status, _, raw = self.get(q)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw)["rank"], "coverage")
+        self.assertEqual(json.loads(raw)["axis"], "world")
+
 if __name__ == "__main__":
     unittest.main()
 

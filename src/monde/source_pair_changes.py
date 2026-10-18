@@ -137,7 +137,7 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
         raise ValueError("invalid source-pair discovery axis")
     if type(top) is not int or not 1 <= top <= 100:
         raise ValueError("invalid source-pair discovery limit")
-    if rank not in ("separation", "increasing", "decreasing"):
+    if rank not in ("separation", "coverage", "increasing", "decreasing"):
         raise ValueError("invalid source-pair discovery ranking")
     if source is not None and (not isinstance(source, str) or not source):
         raise ValueError("invalid original source focus")
@@ -179,7 +179,7 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
                     "example_period": None, "example_assertion_ids": [],
                     "_entities": set(),
                 })
-                if rank != "separation":
+                if rank in ("increasing", "decreasing"):
                     item.setdefault("_cutoff_evidence", {}).setdefault(
                         entity, {})[period] = {
                         "nearest_km": measured["nearest_km"],
@@ -201,7 +201,7 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
     ranked = []
     for item in pairs.values():
         item["joint_entities"] = len(item.pop("_entities"))
-        if rank != "separation":
+        if rank in ("increasing", "decreasing"):
             samples = item.pop("_cutoff_evidence", {})
             comparable = []
             for entity, periods in samples.items():
@@ -227,7 +227,7 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
                         example_assertion_ids=sorted(set(
                             periods["earlier"]["assertion_ids"] +
                             periods["later"]["assertion_ids"])))
-        evidence_count = (item["joint_entities"] if rank == "separation"
+        evidence_count = (item["joint_entities"] if rank in ("separation", "coverage")
                           else item["comparable_entities"])
         if evidence_count < min_joint_entities:
             continue
@@ -235,6 +235,10 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
     if rank == "separation":
         ranked.sort(key=lambda item: (
             -item["max_nearest_km"], -item["joint_entities"],
+            item["source_a"], item["source_b"]))
+    elif rank == "coverage":
+        ranked.sort(key=lambda item: (
+            -item["joint_entities"], -item["max_nearest_km"],
             item["source_a"], item["source_b"]))
     else:
         ranked.sort(key=lambda item: (
@@ -257,9 +261,15 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
         result["min_joint_entities"] = min_joint_entities
     if rank != "separation":
         result["rank"] = rank
-        result["interpretation"] += (
-            " Trends compare the same entity at both cutoffs, retaining"
-            " original assertion IDs; unpaired observations are UNKNOWN.")
+        if rank == "coverage":
+            result["interpretation"] += (
+                " Coverage counts distinct entities jointly reported by both"
+                " sources at either cutoff; it measures original observation"
+                " overlap, not verified source reliability.")
+        else:
+            result["interpretation"] += (
+                " Trends compare the same entity at both cutoffs, retaining"
+                " original assertion IDs; unpaired observations are UNKNOWN.")
     return result
 
 

@@ -1,0 +1,49 @@
+id: WORK-0109
+title: "Rank original source-pair evidence by independent joint coverage"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini evidence browser"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Prioritize pairs supported by a larger number of independently jointly
+  reported original entities, not only extreme geographic disagreement.
+scope:
+  in: ["Rank by joint source entity coverage", "Both temporal axes", "Existing HTTP and offline exports"]
+  out: ["Verified ground truth", "Source credibility inference", "New API/store", "Automatic merge"]
+acceptance_criteria:
+  - {id: AC-1, description: "Coverage-first ranking changes persisted multi-source ordering.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Existing original-evidence exports and both temporal axes are preserved.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Default unchanged, invalid requests rejected and snapshot immutable.", status: IN_PROGRESS}
+depends_on: [WORK-0108]
+requirements: []
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.source_pair_changes.discover_source_pairs, monde.local_api._pair_discovery_query]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Rank original pairs by jointly reported entity coverage.", depends_on: [], expected_files: [src/monde/source_pair_changes.py, src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T2, description: "Verify real persisted HTTP both time axes and exports.", depends_on: [T1], expected_files: [tests/test_world_local_source_pair_discovery.py], status: READY}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_pair_discovery.py]
+  real_system: ["GitHub Actions world-mini; persisted WorldMini loopback HTTP"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Draft stacked on WORK-0108 PR #138 and unmerged ancestor chain."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close or revert scoped PR. No persistence migration."
