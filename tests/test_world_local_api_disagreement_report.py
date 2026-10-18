@@ -2465,5 +2465,122 @@ body.dataset.sourceEntityCsvReused=String(
         self.assertIn(b'id="comparison-source-entity-coverage" hidden', body)
 
 
+    def test_original_source_pair_same_period_overlap_and_exact_offline_export(self):
+        """Real HTTP + offline Chromium: cross-examine two sources without losing evidence."""
+        import shutil
+        import subprocess
+        from collections import defaultdict
+
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        status, _, body = self.fetch("/disagreement-compare.html", {
+            **QUERY, "source": "survey-east", "entity": "site-a",
+            "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(status, 200)
+        html = body.decode("utf-8")
+        embedded = self.embedded_map(html)
+        observations = defaultdict(lambda: defaultdict(lambda: {"earlier": [], "later": []}))
+        for feature in embedded["features"]:
+            p = feature["properties"]
+            observations[p["source_id"]][p["entity"]][p["monde_comparison_period"]].append(feature)
+        sources = sorted(observations)
+        self.assertGreaterEqual(len(sources), 2)
+        pair = None
+        overlap = {}
+        for i, a_source in enumerate(sources):
+            for b_source in sources[i+1:]:
+                entities = {}
+                for entity, a_periods in observations[a_source].items():
+                    if entity not in observations[b_source]:
+                        continue
+                    b_periods = observations[b_source][entity]
+                    earlier = bool(a_periods["earlier"] and b_periods["earlier"])
+                    later = bool(a_periods["later"] and b_periods["later"])
+                    if earlier or later:
+                        entities[entity] = {
+                            "earlier": earlier, "later": later,
+                            "count": sum(len(x) for x in a_periods.values()) +
+                                     sum(len(x) for x in b_periods.values())
+                        }
+                if entities:
+                    pair = (a_source, b_source)
+                    overlap = entities
+                    break
+            if pair:
+                break
+        self.assertIsNotNone(pair, "fixture must include jointly reported original entity IDs")
+        expected = [feature for feature in embedded["features"]
+                    if feature["properties"]["source_id"] in pair
+                    and feature["properties"]["entity"] in overlap]
+        self.assertTrue(expected)
+        script = ("""<script>
+const expected=__EXPECTED__,sourcesPair=__SOURCES__,reports=__REPORTS__;
+const root=document.body,panel=document.getElementById("comparison-source-pairs");
+const a=document.getElementById("comparison-source-a"),b=document.getElementById("comparison-source-b");
+const exportButton=document.getElementById("comparison-source-pair-export");
+a.value=sourcesPair[0];a.dispatchEvent(new Event("change"));
+b.value=sourcesPair[1];b.dispatchEvent(new Event("change"));
+const rows=Array.from(document.querySelectorAll("#comparison-source-pair-rows tr"));
+root.dataset.pairRowsCorrect=String(panel&&!panel.hidden&&!exportButton.disabled&&
+  rows.length===Object.keys(expected).length&&rows.every(function(row){
+    const item=expected[row.dataset.pairEntity],cells=row.querySelectorAll("td");
+    return !!item && row.dataset.sharedEarlier===String(item.earlier) &&
+      row.dataset.sharedLater===String(item.later) && Number(cells[3].textContent)===item.count;
+  }));
+// Presentation filtering must never truncate the original embedded evidence.
+const search=document.getElementById("report-search");
+search.value="not-in-evidence";search.dispatchEvent(new Event("input"));
+const period=document.getElementById("comparison-period");
+period.value="later";period.dispatchEvent(new Event("change"));
+const nativeBlob=window.Blob;
+let output=null,filename=null;
+window.Blob=function(parts,options){
+  if(options&&options.type==="application/geo+json")
+    output=JSON.parse(String(parts[0]));
+  return new nativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){filename=this.download;};
+exportButton.click();
+const meta=output&&output.monde_source_pair_coverage_export;
+root.dataset.pairExportCorrect=String(!!meta&&
+  JSON.stringify(output.features)===JSON.stringify(reports)&&
+  meta.source_a===sourcesPair[0]&&meta.source_b===sourcesPair[1]&&
+  meta.shared_entity_count===Object.keys(expected).length&&
+  meta.original_feature_count===__TOTAL__&&
+  meta.exported_feature_count===reports.length&&
+  meta.earlier_original_report_count===reports.filter(function(f){
+    return f.properties.monde_comparison_period==="earlier";
+  }).length&&
+  meta.later_original_report_count===reports.filter(function(f){
+    return f.properties.monde_comparison_period==="later";
+  }).length&&
+  meta.scope==="COMPLETE_EMBEDDED_SAME_PERIOD_JOINT_ENTITY_COVERAGE"&&
+  filename==="monde-original-source-pair-shared-evidence.geojson"&&
+  search.value==="not-in-evidence"&&period.value==="later");
+a.value=sourcesPair[0];b.value=sourcesPair[0];b.dispatchEvent(new Event("change"));
+root.dataset.pairSameSourceDenied=String(exportButton.disabled&&
+  document.querySelectorAll("#comparison-source-pair-rows tr").length===0);
+</script>""".replace("__EXPECTED__", json.dumps(overlap))
+                   .replace("__SOURCES__", json.dumps(pair))
+                   .replace("__REPORTS__", json.dumps(expected))
+                   .replace("__TOTAL__", str(len(embedded["features"]))))
+        target = Path(self.folder.name) / "source-pair-coverage.html"
+        target.write_text(html.replace("</body>", script+"</body>"), encoding="utf-8")
+        output = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", target.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=35,
+            check=True).stdout.decode("utf-8")
+        for name in ("pair-rows-correct", "pair-export-correct",
+                     "pair-same-source-denied"):
+            self.assertIn('data-'+name+'="true"', output, name)
+        response, _, ordinary = self.fetch("/viewer", {**QUERY, "view": "current"})
+        self.assertEqual(response, 200)
+        self.assertIn(b'id="comparison-source-pairs" hidden', ordinary)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+
 if __name__ == "__main__":
     unittest.main()
