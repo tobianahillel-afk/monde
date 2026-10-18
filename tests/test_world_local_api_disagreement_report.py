@@ -1860,6 +1860,18 @@ search.value="no-such-visible-item";search.dispatchEvent(new Event("input"));
 reportJump?.click();
 const exactMarker=Array.from(document.querySelectorAll("#points circle.selected"));
 const selectedText=document.getElementById("details").textContent;
+root.dataset.entityExactDiagnostic=[
+  Boolean(originalEntry),Boolean(reportJump),
+  document.getElementById("sources").value===src,
+  document.getElementById("entities").value===chosenEntity,
+  period.value===one.properties.monde_comparison_period,
+  search.value==="",
+  document.querySelectorAll("#points circle").length===samePeriod.length,
+  exactMarker.length===1,
+  selectedText.includes("Assertion: "+String(one.id)),
+  selectedText.includes("Evidence: "+String(one.properties.evidence_id)),
+  document.getElementById("focus-selected").disabled===false
+].map(x=>x?"1":"0").join("");
 root.dataset.entityExactReportMap=String(
   !!reportJump && document.getElementById("sources").value===src &&
   document.getElementById("entities").value===chosenEntity &&
