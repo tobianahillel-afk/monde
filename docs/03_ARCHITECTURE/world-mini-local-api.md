@@ -320,3 +320,20 @@ Filtered JSON explicitly states `monde_source_filter_scope` and recalculates
 result counts. Without `source`, the original `/map-disagreements` response
 is unchanged. Nothing is reconciled into a true location, downloaded, or
 written to the saved snapshot.
+
+### Browse original Point sources from the local interface (WORK-0058)
+
+Open `/sources` from `/explore`. The local read-only page accepts explicit
+world-validity and knowledge cutoffs, optional source-ID prefix and a
+lexicographic pagination cursor (100 sources per page). It lists *saved*
+original Point source IDs even when they have no surviving Point assertion
+at the selected times. Counts are distinct source-reported entities and
+current Point assertions at those cutoffs, **not physical ground truth or
+source reliability**.
+
+Each row links to the original `/inspect?view=source-history` dossier.
+Where original current Points support a coherent viewport, it also links
+directly to the existing source-filtered `/viewer` map. A shortest circular
+longitude arc handles reports near the antimeridian; very dispersed sources
+do not receive a misleading auto-fit map. No source reconciliation, new
+database, JavaScript dependency, network service, or state mutation occurs.
