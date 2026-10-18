@@ -172,8 +172,14 @@ __MONDE_TIME_NAVIGATION__
 <summary>Original entity coverage across sources and periods</summary>
 <p class="subtle">This is an inventory of original source Point reports embedded in the comparison, not inferred agreement, completeness, or physical movement. View filters cannot remove original evidence from this table or its CSV.</p>
 <button id="comparison-export-entity-coverage-csv" type="button">Download complete entity and source coverage CSV</button>
+<label for="comparison-entity-export-period">Original reports to export per entity</label>
+<select id="comparison-entity-export-period" aria-label="Original entity evidence export period">
+<option value="both">Both original periods</option>
+<option value="earlier">Earlier original reports</option>
+<option value="later">Later original reports</option>
+</select>
 <table aria-label="Complete original entity reporting by source and period">
-<thead><tr><th scope="col">Original entity</th><th scope="col">Sources earlier</th><th scope="col">Sources later</th><th scope="col">Sources in both</th><th scope="col">Original reports</th></tr></thead>
+<thead><tr><th scope="col">Original entity</th><th scope="col">Sources earlier</th><th scope="col">Sources later</th><th scope="col">Sources in both</th><th scope="col">Original reports</th><th scope="col">Download original evidence</th></tr></thead>
 <tbody id="comparison-entity-rows"></tbody>
 </table>
 <p id="comparison-entity-total" class="subtle" role="status"></p>
@@ -1019,7 +1025,34 @@ __MONDE_TIME_NAVIGATION__
       count.textContent=String(sourceNames.reduce(function(n,id){
         var x=bySource.get(id);return n+x.earlier.length+x.later.length;
       },0));
-      row.appendChild(count);entityRows.appendChild(row);
+      row.appendChild(count);
+      var exportCell=document.createElement("td"),download=document.createElement("button");
+      download.type="button";download.textContent="Download original reports";
+      download.setAttribute("aria-label","Download complete original evidence for entity "+entity);
+      download.addEventListener("click",function(){
+        var period=document.getElementById("comparison-entity-export-period").value;
+        var selected=features.filter(function(f){
+          return f.properties.entity===entity && (period==="both" ||
+            f.properties.monde_comparison_period===period);
+        });
+        var earlierCount=selected.filter(function(f){
+          return f.properties.monde_comparison_period==="earlier";
+        }).length;
+        saveEvidence(Object.assign({},data,{
+          features:selected,
+          monde_entity_period_export:{
+            scope:"COMPLETE_EMBEDDED_ENTITY_NOT_DISPLAY_FILTERED",
+            entity:entity,selected_period:period,
+            comparison_axis:data.monde_comparison.axis,
+            earlier_original_report_count:earlierCount,
+            later_original_report_count:selected.length-earlierCount,
+            original_feature_count:features.length,
+            exported_feature_count:selected.length
+          }
+        }),"monde-original-entity-period-reports.geojson","application/geo+json");
+      });
+      exportCell.appendChild(download);row.appendChild(exportCell);
+      entityRows.appendChild(row);
     });
     document.getElementById("comparison-entity-total").textContent=
       String(entityCoverage.size)+" original entities across "+
