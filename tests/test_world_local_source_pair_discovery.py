@@ -119,7 +119,7 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
         for extra in (
             {"discover": "0"}, {"axis": "unknown"}, {"top": "0"},
             {"top": "101"}, {"top": "1e2"}, {"top": "1.0"},
-            {"format": "csv"}, {"source_a": "survey-a"},
+            {"format": "yaml"}, {"source_a": "survey-a"},
             {"from_known_at": AFTER, "to_known_at": BEFORE},
             {"from_known_at": "2026-01-01T00:00:00"},
         ):
