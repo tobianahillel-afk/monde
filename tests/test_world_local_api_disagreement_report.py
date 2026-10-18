@@ -1098,5 +1098,66 @@ class DisagreementReportHTTPTests(unittest.TestCase):
 
 
 
+
+    def test_download_offline_two_period_comparison_map_preserves_original_evidence(self):
+        from html import unescape
+        from re import search
+        from urllib.parse import parse_qs, urlsplit
+
+        for axis in ({"from_known_at": "2026-01-09T00:00:00Z"},
+                     {"from_at": "2026-01-01T01:00:00Z"}):
+            with self.subTest(axis=axis):
+                selected = {**QUERY, "source": "survey-east",
+                            "entity": "site-a", **axis}
+                report_status, _, report = self.fetch("/disagreement-report", selected)
+                self.assertEqual(report_status, 200)
+                link = search(r'href="([^"]+)">Download offline comparison map</a>',
+                              report.decode("utf-8"))
+                self.assertIsNotNone(link)
+                link_url = urlsplit(unescape(link.group(1)))
+                self.assertEqual(link_url.path, "/disagreement-compare.html")
+                self.assertEqual({key: val[0] for key, val in
+                                  parse_qs(link_url.query).items()}, selected)
+
+                status, headers, offline = self.fetch(link_url.path, selected)
+                self.assertEqual(status, 200)
+                self.assertIn("attachment;", headers["Content-Disposition"])
+                self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
+                self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+                self.assertIn("img-src 'none'", headers["Content-Security-Policy"])
+                self.assertNotIn("Access-Control-Allow-Origin", headers)
+                self.assertNotIn(b"/inspect?view=", offline)
+                self.assertIn(b"Two original source-report periods on one map", offline)
+                self.assertIn(b"NOT verified movement", offline)
+
+                offline_data = self.embedded_map(offline.decode("utf-8"))
+                geojson = json.loads(self.fetch(
+                    "/disagreement-compare.geojson", selected)[2])
+                self.assertEqual(offline_data["features"], geojson["features"])
+                self.assertEqual(offline_data["monde_comparison"],
+                                 geojson["monde_comparison"])
+                self.assertEqual({item["properties"]["source_id"]
+                                  for item in offline_data["features"]},
+                                 {"survey-east", "survey-west"})
+
+    def test_download_comparison_map_reuses_filters_empty_and_validation(self):
+        selected = {**QUERY, "from_known_at": "2026-01-09T00:00:00Z",
+                    "source": "survey-east", "entity": "site-a"}
+        for kind in ("appeared", "disappeared", "modified"):
+            params = {**selected, "change_kind": kind}
+            status, _, body = self.fetch("/disagreement-compare.html", params)
+            self.assertEqual(status, 200)
+            mapped = self.embedded_map(body.decode())
+            matching = json.loads(self.fetch("/disagreement-compare.geojson", params)[2])
+            self.assertEqual(mapped["features"], matching["features"])
+        for bad in (QUERY, {**selected, "from_at": "2026-01-01T00:00:00Z"},
+                    {**selected, "source": "../unsafe"}, {**selected, "extra": "evil"},
+                    {**selected, "change_kind": "other"},
+                    {**selected, "from_known_at": selected["known_at"]}):
+            with self.subTest(bad=bad):
+                status, _, body = self.fetch("/disagreement-compare.html", bad)
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(body), {"error": "invalid_query"})
+
 if __name__ == "__main__":
     unittest.main()

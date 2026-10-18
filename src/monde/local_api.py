@@ -883,7 +883,9 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
             '">Open original comparison GeoJSON</a> · <a href="' +
             escape("/viewer?" + urlencode({**params, "view": "disagreement-comparison"}),
                    quote=True) +
-            '">Map both original evidence periods</a></p>' + filter_links +
+            '">Map both original evidence periods</a> · <a href="' +
+            escape("/disagreement-compare.html?" + urlencode(params), quote=True) +
+            '">Download offline comparison map</a></p>' + filter_links +
             ('<ul>' + ''.join(changes) + '</ul>' if changes else
              '<p role="status">' + (
                  'NO ORIGINAL SOURCE DISAGREEMENT WITH SELECTED CHANGE TYPE'
@@ -970,12 +972,13 @@ def create_server(state: str | Path, port: int = 0, *,
             self.wfile.write(body)
 
 
-        def _html(self, geojson: dict | None, navigation: dict[str, str] | None = None):
+        def _html(self, geojson: dict | None, navigation: dict[str, str] | None = None,
+                  download: bool = False):
             # Reuse the offline map renderer; no new browser-side service or
             # unauthenticated state-changing route is introduced.
             from .map_view import render_map
             rendered = (_explorer_html(map_source_ids) if geojson is None else
-                        render_map(geojson, inspector_links=True,
+                        render_map(geojson, inspector_links=not download,
                                    navigation=navigation))
             if geojson is not None and "monde_comparison" in geojson:
                 notice = ('<p class="notice" role="status">'
@@ -990,6 +993,9 @@ def create_server(state: str | Path, port: int = 0, *,
                 return self._reply(413, {"error": "response_too_large"})
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            if download:
+                self.send_header("Content-Disposition",
+                                 'attachment; filename="original-disagreement-comparison.html"')
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
@@ -1047,7 +1053,8 @@ def create_server(state: str | Path, port: int = 0, *,
                             "/map-knowledge-changes", "/map-world-changes", "/viewer", "/explore",
                              "/inspect", "/disagreement-report", "/disagreement.csv",
                              "/disagreement-compare.json", "/disagreement-compare.csv",
-                             "/disagreement-compare.geojson"}:
+                             "/disagreement-compare.geojson",
+                             "/disagreement-compare.html"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
@@ -1169,13 +1176,17 @@ def create_server(state: str | Path, port: int = 0, *,
                     self.wfile.write(body)
                     return
                 elif path in ("/disagreement-compare.json",
-                               "/disagreement-compare.geojson"):
+                               "/disagreement-compare.geojson",
+                               "/disagreement-compare.html"):
                     _require(args, {"bbox", "at", "known_at"},
                              {"source", "entity", "from_known_at", "from_at", "changes_only", "change_kind"})
                     if ("from_at" in args) == ("from_known_at" in args):
                         raise ValueError("exactly one comparison axis is required")
                     later, earlier = _disagreement_pair(world, args)
                     comparison = _disagreement_comparison_json(later, earlier, args)
+                    if path.endswith(".html"):
+                        return self._html(_disagreement_comparison_map(comparison),
+                                          download=True)
                     return self._reply(200, _disagreement_comparison_geojson(comparison)
                                        if path.endswith(".geojson") else comparison)
                 elif path == "/map-knowledge-changes":
