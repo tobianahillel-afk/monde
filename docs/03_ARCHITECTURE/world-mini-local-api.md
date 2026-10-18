@@ -610,3 +610,12 @@ filters. They retain competing original reports individually, without consensus,
 inferred disappearance or physical movement. Source and entity labels use
 DOM text assignment rather than HTML. This read-only offline interaction makes
 no network request and never changes the persisted WorldMini snapshot.
+
+Each entity's expanded comparison includes **Download entity GeoJSON** and
+**Download entity CSV**. These preserve both periods' full original assertions,
+evidence IDs, source Point coordinates and bitemporal context even when map
+display filters hide every marker. GeoJSON records the exact original source,
+entity, per-period counts and the explicit scope
+`COMPLETE_EMBEDDED_SOURCE_ENTITY_NOT_DISPLAY_FILTERED`.
+CSV reuses existing spreadsheet-safe complete-evidence columns. No new route,
+dependency, network call, inferred truth, or saved-world mutation.

@@ -1756,6 +1756,44 @@ root.dataset.sourceEntityComplete=String(
     p.textContent.includes(f.geometry.coordinates.join(", ")))));
 root.dataset.sourceEntityFiltersPreserved=String(
   period.value==="later" && search.value==="no-such-visible-item");
+const chosenEntity=originalNames[0];
+const row=Array.from(expansion.querySelectorAll("li[data-entity]"))
+  .find(x=>x.dataset.entity===chosenEntity);
+const expectedEntity=expected.filter(x=>x.properties.entity===chosenEntity);
+const NativeBlob=window.Blob;
+let geoOK=false,csvOK=false;
+window.Blob=function(parts,options){
+  if(options && options.type && options.type.startsWith("text/csv")){
+    const csv=String(parts[0]);
+    csvOK=csv.includes("COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED") &&
+      csv.trimEnd().split("\\r\\n").length===expectedEntity.length+1 &&
+      expectedEntity.every(f=>csv.includes('"'+String(f.properties.assertion_id||
+        f.properties.monde_original_feature_id).replace(/"/g,'""')+'"'));
+  }else if(options && options.type==="application/geo+json"){
+    const output=JSON.parse(String(parts[0])),meta=output.monde_source_entity_export;
+    geoOK=JSON.stringify(output.features)===JSON.stringify(expectedEntity) &&
+      meta.scope==="COMPLETE_EMBEDDED_SOURCE_ENTITY_NOT_DISPLAY_FILTERED" &&
+      meta.source_id===src && meta.entity===chosenEntity &&
+      meta.selected_period==="both" &&
+      meta.exported_feature_count===expectedEntity.length &&
+      meta.earlier_original_report_count===expectedEntity.filter(f=>
+        f.properties.monde_comparison_period==="earlier").length &&
+      meta.later_original_report_count===expectedEntity.filter(f=>
+        f.properties.monde_comparison_period==="later").length;
+  }
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  if(this.download.endsWith(".csv"))root.dataset.entityCsvFilename=this.download;
+  else root.dataset.entityGeoFilename=this.download;
+};
+const exports=row.querySelectorAll("button");
+root.dataset.entityExportButtons=String(exports.length===2);
+exports[0].click();exports[1].click();
+root.dataset.entityGeoComplete=String(geoOK);
+root.dataset.entityCsvComplete=String(csvOK);
+root.dataset.entityExportFiltersPreserved=String(
+  period.value==="later" && search.value==="no-such-visible-item");
 button.click();
 root.dataset.sourceEntityClosed=String(
   button.getAttribute("aria-expanded")==="false" &&
@@ -1774,6 +1812,12 @@ root.dataset.sourceEntityClosed=String(
         self.assertIn('data-source-entity-complete="true"', result)
         self.assertIn('data-source-entity-filters-preserved="true"', result)
         self.assertIn('data-source-entity-closed="true"', result)
+        self.assertIn('data-entity-export-buttons="true"', result)
+        self.assertIn('data-entity-geo-complete="true"', result)
+        self.assertIn('data-entity-csv-complete="true"', result)
+        self.assertIn('data-entity-export-filters-preserved="true"', result)
+        self.assertIn('data-entity-geo-filename="monde-original-source-entity-both-periods.geojson"', result)
+        self.assertIn('data-entity-csv-filename="monde-original-source-entity-both-periods.csv"', result)
         self.assertEqual(self.path.read_bytes(), self.before)
 
 if __name__ == "__main__":
