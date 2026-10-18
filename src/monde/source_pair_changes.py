@@ -632,13 +632,13 @@ def source_directory_entity_presence_csv(world, directory, presence=None):
     if presence is not None and presence not in ("earlier", "later", "both"):
         raise ValueError("invalid original report presence filter")
     features = source_directory_entity_geojson(world, directory)["features"]
-    presence = {}
+    reports_by_period = {}
     for feature in features:
         props = feature["properties"]
         longitude, latitude = feature["geometry"]["coordinates"]
         key = (props["source_id"], props["monde_original_assertion_id"],
                props["evidence_id"], longitude, latitude)
-        presence.setdefault(key, set()).add(props["monde_comparison_period"])
+        reports_by_period.setdefault(key, set()).add(props["monde_comparison_period"])
 
     def safe(value):
         value = str(value)
@@ -652,9 +652,9 @@ def source_directory_entity_presence_csv(world, directory, presence=None):
                      "longitude", "latitude", "earlier_visible", "later_visible",
                      "visibility_transition", "earlier_world_at", "earlier_known_at",
                      "later_world_at", "later_known_at"))
-    for key in sorted(presence, key=lambda row: tuple(map(str, row))):
+    for key in sorted(reports_by_period, key=lambda row: tuple(map(str, row))):
         source, assertion, evidence, lon, lat = key
-        before, after = ("earlier" in presence[key], "later" in presence[key])
+        before, after = ("earlier" in reports_by_period[key], "later" in reports_by_period[key])
         transition = ("BOTH_CUTOFFS" if before and after else
                       "EARLIER_ONLY" if before else "LATER_ONLY")
         if presence is not None and transition != {
