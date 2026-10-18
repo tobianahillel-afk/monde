@@ -425,5 +425,111 @@ class GeographicSourcePairTests(unittest.TestCase):
             server.server_close()
             self.assertEqual(path.read_bytes(), previous)
 
+
+    def test_persistent_region_requires_evidence_at_both_cutoffs(self):
+        # The original source A Point for site-1 remains inside at both cutoffs;
+        # site-far only enters when its evidence becomes known at the later one.
+        one = {**self.query(), "bbox": "-0.1,-1,0.1,1",
+               "region_source": "a", "region_period": "both", "format": "json"}
+        code, _, raw = self.fetch(one)
+        self.assertEqual(code, 200)
+        doc = json.loads(raw)
+        self.assertEqual([row["entity"] for row in doc["entities"]], ["site-1"])
+        self.assertEqual(doc["spatial_filter"]["qualifying_period"], "both")
+        self.assertEqual(doc["spatial_filter"]["matching_entities"], 1)
+        original = compare_source_pair(self.world, "survey-a", "survey-b",
+                                       AT, BEFORE, AFTER)
+        self.assertEqual(doc["entities"][0],
+                         next(x for x in original["entities"] if x["entity"] == "site-1"))
+        late_only = {**one, "bbox": "29.5,-1,32.5,1", "region_source": "both"}
+        later = json.loads(self.fetch({**late_only, "region_period": "later"})[2])
+        durable = json.loads(self.fetch(late_only)[2])
+        self.assertEqual([x["entity"] for x in later["entities"]], ["site-far"])
+        self.assertEqual(durable["entities"], [])
+        self.assertEqual(durable["spatial_filter"]["matching_entities"], 0)
+
+    def test_joint_original_reporters_persist_at_each_cutoff(self):
+        original = compare_source_pair(self.world, "survey-a", "survey-b",
+                                       AT, BEFORE, AFTER)
+        args = {**self.query(), "bbox": "-0.1,-1,2.5,1",
+                "region_source": "both", "region_period": "both"}
+        canonical = json.loads(self.fetch({**args, "format": "json"})[2])
+        self.assertEqual([row["entity"] for row in canonical["entities"]], ["site-1"])
+        self.assertEqual(canonical["entities"][0],
+                         next(x for x in original["entities"] if x["entity"] == "site-1"))
+        self.assertEqual(canonical["spatial_filter"]["qualifying_source_ids"],
+                         ["survey-a", "survey-b"])
+        self.assertEqual(canonical["spatial_filter"]["qualifying_period"], "both")
+        self.assertEqual(json.loads(self.fetch({**args, "format": "geojson"})[2]),
+                         comparison_geojson(canonical))
+        self.assertEqual(self.fetch({**args, "format": "csv"})[2].decode(),
+                         comparison_csv(canonical))
+        for fmt in ("table", "html"):
+            status, _, body = self.fetch({**args, "format": fmt})
+            self.assertEqual(status, 200)
+            self.assertIn(b"site-1", body)
+            self.assertNotIn(b"site-far", body)
+
+    def test_persistence_is_not_same_as_either_period_or_either_source(self):
+        # Stable reporting by either source at each cutoff may change which
+        # original source qualifies; requiring both reporters is stricter.
+        base = {**self.query(), "bbox": "0.5,-1,2.5,1", "format": "json"}
+        stable = json.loads(self.fetch({**base, "region_period": "both"})[2])
+        jointly = json.loads(self.fetch({**base, "region_source": "both",
+                                        "region_period": "both"})[2])
+        self.assertEqual([x["entity"] for x in stable["entities"]], ["site-1"])
+        self.assertEqual(jointly["entities"], [])
+        self.assertNotIn("qualifying_period", json.loads(self.fetch(base)[2])
+                         ["spatial_filter"])
+
+    def test_both_cutoffs_form_and_strict_http_rejection(self):
+        status, _, body = self.fetch()
+        self.assertEqual(status, 200)
+        self.assertEqual(body.count(b'value="both">Both cutoffs'), 2)
+        for query in (
+            {**self.query(), "region_period": "both"},
+            {**self.query(), "bbox": "-1,-1,1,1", "region_period": "BOTH"},
+            {**self.query(), "bbox": "-1,-1,1,1", "region_period": "both\u200b"},
+        ):
+            code, _, raw = self.fetch({**query, "format": "json"})
+            self.assertEqual(code, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+    def test_both_cutoffs_world_axis_uses_original_reports_not_estimates(self):
+        model = sample(dateline=True)
+        path = Path(self.tmp.name) / "persistent-world.json"
+        model.save(path)
+        baseline = path.read_bytes()
+        server = create_server(path)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            bounds = "179.8,-1,-179.8,1"
+            query = {"axis": "world", "source_a": "survey-a",
+                     "source_b": "survey-b", "from_at": EARLY, "to_at": LATE,
+                     "known_at": KNOWN, "bbox": bounds, "region_source": "a",
+                     "region_period": "both", "format": "json"}
+            code, _, raw = self.fetch(query, server)
+            self.assertEqual(code, 200)
+            result = json.loads(raw)
+            original = compare_source_pair_world_time(
+                model, "survey-a", "survey-b", EARLY, LATE, KNOWN)
+            def qualifies(row, period):
+                return any(
+                    -1 <= report["geometry"]["coordinates"][1] <= 1
+                    and (report["geometry"]["coordinates"][0] >= 179.8
+                         or report["geometry"]["coordinates"][0] <= -179.8)
+                    for report in row[period]["source_a_original_reports"])
+            expected = [row for row in original["entities"]
+                        if qualifies(row, "earlier") and qualifies(row, "later")]
+            self.assertEqual(result["entities"], expected)
+            self.assertEqual(result["spatial_filter"]["qualifying_period"], "both")
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(path.read_bytes(), baseline)
+
+
 if __name__ == "__main__":
     unittest.main()

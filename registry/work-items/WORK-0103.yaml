@@ -20,6 +20,7 @@ acceptance_criteria:
   - {id: AC-3, description: "Retain all prior source filters and fail closed on invalid inputs.", status: IN_REVIEW}
   - {id: AC-4, description: "Verify five existing output formats and both time axes over loopback HTTP.", status: IN_REVIEW}
   - {id: AC-5, description: "Select geographic evidence at one explicit comparison cutoff.", status: IN_REVIEW}
+  - {id: AC-6, description: "Require qualifying original evidence at both earlier and later cutoffs.", status: IN_REVIEW}
 requirements: []
 depends_on: [WORK-0102]
 read_before: [AGENTS.md, src/monde/local_api.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]

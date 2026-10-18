@@ -965,6 +965,7 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
                        '<option value="">Either period (default)</option>'
                        '<option value="earlier">Earlier cutoff only</option>'
                        '<option value="later">Later cutoff only</option>'
+                        '<option value="both">Both cutoffs (persistent original reporting)</option>'
                        '</select></label>'
                      + inputs +
                       '<label>Output <select name="format">'
@@ -1132,7 +1133,7 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
     if region_source not in ("either", "a", "b", "both"):
         raise ValueError("invalid region source")
     region_period = args.get("region_period", "either")
-    if region_period not in ("either", "earlier", "later"):
+    if region_period not in ("either", "earlier", "later", "both"):
         raise ValueError("invalid region comparison period")
     if args.get("axis") == "knowledge":
         _require(args, {"axis", "source_a", "source_b",
@@ -1169,17 +1170,21 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
             "b": ("source_b_original_reports",),
             "both": ("source_a_original_reports", "source_b_original_reports"),
         }[region_source]
+        def qualifies(row: dict, period: str) -> bool:
+            # Multiple source reports are evaluated independently at one cutoff.
+            if region_source == "both":
+                return all(any(inside(report) for report in row[period][field])
+                           for field in qualifying_fields)
+            return any(inside(report) for field in qualifying_fields
+                       for report in row[period][field])
+
+        periods = (("earlier", "later") if region_period in ("either", "both")
+                   else (region_period,))
         selected = [
             row for row in output["entities"]
-            if any(
-                all(any(inside(original) for original in row[period][field])
-                    for field in qualifying_fields)
-                if region_source == "both" else
-                any(inside(original) for field in qualifying_fields
-                    for original in row[period][field])
-                for period in (("earlier", "later") if region_period == "either"
-                               else (region_period,))
-            )
+            if (all(qualifies(row, period) for period in periods)
+                if region_period == "both" else
+                any(qualifies(row, period) for period in periods))
         ]
         focus = {
             "bbox": bounds,

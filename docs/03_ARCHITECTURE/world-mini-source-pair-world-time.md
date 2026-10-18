@@ -296,3 +296,20 @@ Complete earlier/later source evidence is kept in the unchanged HTML map,
 accessible table, CSV, JSON and GeoJSON. Missing `bbox` or invalid period
 returns HTTP 400. The response records `spatial_filter.qualifying_period`
 only for an explicitly selected period.
+
+
+### Require original reporting at both cutoffs (WORK-0103)
+
+Choose `region_period=both` with an existing WGS84 `bbox` to retain an
+entity only when the selected `region_source` criterion is satisfied **at
+each of the earlier and later cutoffs independently**. For `region_source=both`,
+each original reporting source must have its own in-region Point at *both*
+cutoffs; an earlier-only source and later-only source cannot combine to qualify.
+With `region_source=a|b|either`, that same reporter selection is evaluated
+separately at both cutoffs (for `either`, the qualifying reporter may differ).
+
+The default `region_period=either` retains its prior OR semantics, and
+`earlier|later` remain available. JSON and GeoJSON include
+`spatial_filter.qualifying_period="both"` when selected; the HTML map,
+accessible table and CSV select the same original evidence without stripping
+out-of-region reports, changing the World Model or inferring verified motion.
