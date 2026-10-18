@@ -684,6 +684,45 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
     json_url = "/map-disagreements?" + urlencode(values)
     csv_url = "/disagreement.csv?" + urlencode(values)
 
+    # Allow an analyst to change or clear the source/entity scope without
+    # losing either temporal axis or a selected change classification.
+    comparison_fields = ("bbox", "at", "known_at", "from_known_at", "from_at",
+                         "changes_only", "change_kind")
+    focus_hidden = ''.join(
+        '<input type="hidden" name="' + key + '" value="' +
+        escape(params[key], quote=True) + '">'
+        for key in comparison_fields if key in params)
+    all_reports = document["features"] + (
+        earlier["features"] if earlier is not None else [])
+    focus_sources = sorted({
+        str(feature["properties"]["source_id"]) for feature in all_reports})
+    focus_entities = sorted({
+        str(feature["properties"]["entity"]) for feature in all_reports})
+    source_options = ''.join(
+        '<option value="' + escape(value, quote=True) + '"></option>'
+        for value in focus_sources[:200])
+    entity_options = ''.join(
+        '<option value="' + escape(value, quote=True) + '"></option>'
+        for value in focus_entities[:200])
+    focus_form = (
+        '<details><summary>Focus another original source or entity</summary>'
+        '<p>Type an original ID or clear a field to remove its filter. '
+        'Suggestions are from the currently selected source reports only; '
+        'other valid IDs can be typed. Opposing source evidence is retained.</p>'
+        '<form id="disagreement-focus-form" action="/disagreement-report" method="get">' +
+        focus_hidden +
+        '<label>Original source ID (optional)'
+        '<input name="source" list="disagreement-source-suggestions" value="' +
+        escape(params.get("source", ""), quote=True) + '"></label>' +
+        '<datalist id="disagreement-source-suggestions">' +
+        source_options + '</datalist>' +
+        '<label>Entity ID (optional)'
+        '<input name="entity" list="disagreement-entity-suggestions" value="' +
+        escape(params.get("entity", ""), quote=True) + '"></label>' +
+        '<datalist id="disagreement-entity-suggestions">' +
+        entity_options + '</datalist>' +
+        '<button type="submit">Apply original evidence focus</button>'
+        '</form></details>')
     retained = ''.join(
         '<input type="hidden" name="' + key + '" value="' +
         escape(params[key], quote=True) + '">'
@@ -855,7 +894,7 @@ summary{cursor:pointer;overflow-wrap:anywhere}
 <h1>Original source disagreement evidence</h1>
 <p>OBSERVED original reports, not verified physical positions. No consensus location,
 inferred truth or confirmed physical movement.</p><p>''' +
-            description + '</p>' + time_navigation + comparison + '<p>World time: ' + escape(params["at"]) +
+            description + '</p>' + focus_form + time_navigation + comparison + '<p>World time: ' + escape(params["at"]) +
             ' · Knowledge cutoff: ' + escape(params["known_at"]) +
             ' · Entities: ' + str(len(grouped)) +
             (' · Focused entity: ' + escape(params["entity"])

@@ -455,3 +455,18 @@ offscreen reports; empty results are valid empty FeatureCollections. These are
 source reports, not confirmed movement or consensus. The endpoint reuses the
 local host restrictions, response limits and immutable persisted snapshot.
 This candidate depends on unmerged WORK-0074 / PR #105.
+
+### Focus source or entity inside the evidence report (WORK-0076)
+
+The existing read-only `/disagreement-report` page now includes an expandable
+**Focus another original source or entity** native GET form. Analysts can type,
+change or clear the source ID and entity ID without returning to `/explore`.
+The form preserves the viewport, current world-valid time, knowledge cutoff,
+one optional earlier world/knowledge cutoff and the existing change filters.
+Suggestions come only from the reports already selected; other IDs can be typed.
+As with the JSON/CSV/GeoJSON exports, a source qualifies using its *own*
+in-viewport Point; opposing source Points remain in the selection, including
+positions outside that viewport. Clearing a filter does not confirm an
+inferred location or source truth. The saved WorldMini file stays unchanged,
+and existing loopback/CSP/input validation still applies. This candidate
+stacks on unmerged WORK-0075 / PR #106.
