@@ -1321,6 +1321,8 @@ def _source_directory_html(document: dict, args: dict[str, str],
                           if "entity_focus" in document else None)
     presence_csv_link = ("/source-pair?" + urlencode({**args, "format": "presence-csv"})
                          if "entity_focus" in document else None)
+    presence_json_link = ("/source-pair?" + urlencode({**args, "format": "presence-json"})
+                          if "entity_focus" in document else None)
     filters = (("all", "All reporters"), ("new", "Any newly reported entities"),
                ("gone", "Any no-longer-reported entities"),
                ("both", "Any continuously reported entities"))
@@ -1432,12 +1434,15 @@ def _source_directory_html(document: dict, args: dict[str, str],
                         **query, "format": "presence-csv"})
                     table_href = "/source-pair?" + urlencode({
                         **query, "format": "presence-table"})
+                    json_href = "/source-pair?" + urlencode({
+                        **query, "format": "presence-json"})
                     cells.append('<td><a href="' + escape(href, quote=True) +
                                  '">' + str(count) + '</a> · <a href="' +
                                  escape(table_href, quote=True) +
                                  '">Inspect</a> · <a href="' +
                                  escape(csv_href, quote=True) +
-                                 '">CSV</a></td>')
+                                 '">CSV</a> · <a href="' +
+                                 escape(json_href, quote=True) + '">JSON</a></td>')
                 else:
                     cells.append("<td>0</td>")
             summary_rows.append('<tr><th scope="row">' +
@@ -1480,6 +1485,9 @@ def _source_directory_html(document: dict, args: dict[str, str],
         (' · <a href="' + escape(presence_csv_link, quote=True) +
          '">Download original report presence changes CSV</a>'
          if presence_csv_link else '') +
+        (' · <a href="' + escape(presence_json_link, quote=True) +
+         '">Download original report presence JSON</a>'
+         if presence_json_link else '') +
         (' · <a href="' + escape("/source-pair?" + urlencode(
             {**args, "format": "map"}), quote=True) +
          '">Map all original reporters of this entity</a> · <a href="' +
@@ -1516,6 +1524,7 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
            if k not in ("format", "source", "presence")}, "format": "table"})
     mapped = "/source-pair?" + urlencode({**args, "format": "map"})
     downloaded = "/source-pair?" + urlencode({**args, "format": "presence-csv"})
+    json_link = "/source-pair?" + urlencode({**args, "format": "presence-json"})
     headings = "".join('<th scope="col">' + escape(c.replace("_", " ")) +
                        "</th>" for c in columns)
     headings += '<th scope="col">Trace original evidence</th>'
@@ -1570,7 +1579,9 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
         '<a href="' + escape(back, quote=True) + '">Back to reporter directory</a>'
         ' · <a href="' + escape(mapped, quote=True) +
         '">Map the same original reports</a> · <a href="' +
-        escape(downloaded, quote=True) + '">Download matching CSV</a></nav>'
+        escape(downloaded, quote=True) +
+        '">Download matching CSV</a> · <a href="' +
+        escape(json_link, quote=True) + '">Download matching JSON</a></nav>'
         '<h1>Original Point reports at both time cutoffs</h1><p>Exact entity: '
         '<strong>' + escape(directory["entity_focus"]) + '</strong>. These '
         'original assertions express evidence visibility, not verified '
