@@ -1011,7 +1011,8 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             ' min="1" max="100" value="25"></label>'
             '<label>Output <select name="format">'
             '<option value="table">Accessible ranked table</option>'
-            '<option value="json">JSON</option></select></label>'
+            '<option value="json">JSON</option>'
+             '<option value="csv">Download ranked evidence CSV</option></select></label>'
             '<button>Discover original source pairs</button></form>')
     return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
             '<title>MONDE original source pairs</title><style>'
@@ -1154,7 +1155,7 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 
 def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import discover_source_pairs
-    if args.get("discover") != "1" or args.get("format", "table") not in ("json", "table"):
+    if args.get("discover") != "1" or args.get("format", "table") not in ("json", "table", "csv"):
         raise ValueError("invalid discovery format")
     if args.get("axis") == "knowledge":
         _require(args, {"discover", "axis", "at", "from_known_at", "to_known_at"},
@@ -1212,6 +1213,8 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
         ('<p>Original reporter focus: ' + escape(document["source_focus"]) +
          '; only independently reported partners are ranked.</p>'
          if "source_focus" in document else '') +
+        '<p><a href="' + escape('/source-pair?' + urlencode({**args, 'format': 'csv'}), quote=True) +
+        '">Download ranked source evidence CSV</a></p>' +
         '<table><caption>Ranked original source separations and temporal changes'
         '</caption><thead><tr><th scope="col">Open complete source evidence</th>'
         '<th scope="col">Max km</th><th scope="col">Change km</th>'
@@ -1496,8 +1499,24 @@ def create_server(state: str | Path, port: int = 0, *,
                         return self._html(None, rendered_html=_pair_explorer_html(map_source_ids))
                     if args.get("discover") == "1":
                         discovery = _pair_discovery_query(world, args)
-                        if args.get("format", "table") == "json":
+                        output_format = args.get("format", "table")
+                        if output_format == "json":
                             return self._reply(200, discovery)
+                        if output_format == "csv":
+                            from .source_pair_changes import discovery_csv
+                            body = discovery_csv(discovery).encode("utf-8")
+                            if len(body) > max_response_bytes:
+                                return self._reply(413, {"error": "response_too_large"})
+                            self.send_response(200)
+                            self.send_header("Content-Type", "text/csv; charset=utf-8")
+                            self.send_header("Content-Disposition",
+                                             'attachment; filename="original-source-pair-ranking.csv"')
+                            self.send_header("Content-Length", str(len(body)))
+                            self.send_header("Cache-Control", "no-store")
+                            self.send_header("X-Content-Type-Options", "nosniff")
+                            self.end_headers()
+                            self.wfile.write(body)
+                            return
                         return self._html(None, rendered_html=_pair_discovery_html(discovery, args))
                     data = _pair_query(world, args)
                     from .source_pair_changes import comparison_geojson, comparison_html, comparison_csv
