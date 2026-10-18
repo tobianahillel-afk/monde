@@ -768,6 +768,17 @@ __MONDE_TIME_NAVIGATION__
         cell.appendChild(note);
         var list=document.createElement("ul");
         list.setAttribute("aria-label","Original entity reports from source "+id);
+        function navigateEntityReports(entity,period){
+          sources.value=id;document.getElementById("entities").value=entity;
+          presenceSelect.value="";comparisonPeriod.value=period;
+          search.value="";insideOnly.checked=false;
+          currentViewOnly.checked=false;differentOnly.checked=false;
+          changeFilter.value="";traceFilter.value="";
+          capturedFrom.value="";capturedThrough.value="";
+          gpxClockFrom.value="";gpxClockThrough.value="";
+          radiusCenter=null;clearRadiusButton.disabled=true;
+          if(gpkgLayers.length>1)visibleGpkgSources.add(id);
+        }
         Array.from(entities.keys()).sort().forEach(function(entity){
           var periods=entities.get(entity);
           var item=document.createElement("li");item.dataset.entity=entity;
@@ -782,6 +793,19 @@ __MONDE_TIME_NAVIGATION__
               entry.textContent=period+" · assertion "+String(p.assertion_id||p.monde_original_feature_id)+
                 " · evidence "+String(p.evidence_id)+
                 " · source Point "+f.geometry.coordinates.join(", ");
+              // Focus one original source assertion at its own reported Point.
+              // The other comparison period remains embedded and unchanged.
+              var focusReport=document.createElement("button");
+              focusReport.type="button";
+              focusReport.textContent="Show this original report on map";
+              focusReport.setAttribute("aria-label",
+                "Show original "+period+" report "+String(f.id)+" on map from "+id);
+              focusReport.addEventListener("click",function(){
+                navigateEntityReports(entity,period);
+                inspect(f);
+              });
+              entry.appendChild(document.createTextNode(" "));
+              entry.appendChild(focusReport);
               detail.appendChild(entry);
             });
           });
@@ -839,17 +863,8 @@ __MONDE_TIME_NAVIGATION__
           showOnMap.setAttribute("aria-label",
             "Show both original source-reported periods on map for "+String(entity)+" from "+id);
           showOnMap.addEventListener("click",function(){
-            // Navigate existing map to original evidence, not an inferred location.
-            // Reset display-only filters which could hide the selected reports.
-            sources.value=id;document.getElementById("entities").value=entity;
-            presenceSelect.value="";comparisonPeriod.value="";
-            search.value="";insideOnly.checked=false;
-            currentViewOnly.checked=false;differentOnly.checked=false;
-            changeFilter.value="";traceFilter.value="";
-            capturedFrom.value="";capturedThrough.value="";
-            gpxClockFrom.value="";gpxClockThrough.value="";
-            radiusCenter=null;clearRadiusButton.disabled=true;
-            if(gpkgLayers.length>1)visibleGpkgSources.add(id);
+            // Reuse identical visual reset for both-period navigation.
+            navigateEntityReports(entity,"");
             fitReports();
           });
           exportButtons.appendChild(showOnMap);
