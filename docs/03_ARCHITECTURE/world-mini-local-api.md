@@ -637,3 +637,13 @@ evidence provenance and persisted snapshot remain unchanged. The focus is on a
 source-reported coordinate, not a reconciled actual location or inferred movement.
 
 An individual earlier/later assertion in the expanded comparison row also has **Download this original report**. The offline GeoJSON contains exactly that original Point feature, its full source/assertion/evidence/temporal metadata and original two-period comparison context. `monde_single_report_export` identifies the exact assertion and declares `EXACT_ORIGINAL_ASSERTION_NOT_DISPLAY_FILTERED`. Source, search, viewport and period **display** filters do not truncate the download. The fixed filename avoids deriving a path from untrusted source IDs. No new route, remote request, inferred truth or persisted state mutation.
+
+The same source-coverage row also offers **Download entity inventory CSV**. It
+exports one row per original source/entity in the complete embedded two-period
+selection: per-period original report counts, coverage category, and JSON arrays
+of exact original assertion and evidence IDs. The exported inventory is not
+limited by the current search, map window, source dropdown or selected display
+period. Labels are source-reported coverage only, **not** inferred agreement,
+physical movement or missing-world evidence. CSV fields use the existing
+spreadsheet-safe quoting, with a fixed download filename. This reuses the
+interactive grouping above; no new World Model, endpoint or service.

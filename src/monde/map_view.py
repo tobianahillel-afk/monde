@@ -740,6 +740,50 @@ __MONDE_TIME_NAVIGATION__
       });
       // Inspect every original source assertion by entity across both periods.
       // Build from complete embedded evidence, never from filtered map markers.
+
+      // One complete source/entity inventory for offline analyst comparison.
+      // Reuse the very same full-data groups as the interactive entity list.
+      var originalEntities=new Map();
+      features.forEach(function(f){
+        var p=f.properties,period=p.monde_comparison_period;
+        if(p.source_id!==id||(period!=="earlier"&&period!=="later"))return;
+        if(!originalEntities.has(p.entity))
+          originalEntities.set(p.entity,{earlier:[],later:[]});
+        originalEntities.get(p.entity)[period].push(f);
+      });
+      var inventoryButton=document.createElement("button");
+      inventoryButton.type="button";
+      inventoryButton.textContent="Download entity inventory CSV";
+      inventoryButton.setAttribute("aria-label",
+        "Download complete original entity inventory for source "+id);
+      inventoryButton.addEventListener("click",function(){
+        var columns=["comparison_axis","source_id","entity",
+          "earlier_original_report_count","later_original_report_count",
+          "selection_coverage","earlier_assertion_ids_json",
+          "later_assertion_ids_json","earlier_evidence_ids_json",
+          "later_evidence_ids_json","export_scope"];
+        var rows=Array.from(originalEntities.keys()).sort().map(function(entity){
+          var periods=originalEntities.get(entity);
+          function ids(period,key){
+            return JSON.stringify(periods[period].map(function(f){
+              var p=f.properties;
+              return String(key==="assertion"?
+                (p.assertion_id||p.monde_original_feature_id):p.evidence_id);
+            }));
+          }
+          var earlier=periods.earlier.length,later=periods.later.length;
+          var presence=earlier&&later?"BOTH_SELECTIONS":
+            (earlier?"EARLIER_SELECTION_ONLY":"LATER_SELECTION_ONLY");
+          var values=[data.monde_comparison.axis,id,entity,earlier,later,
+            presence,ids("earlier","assertion"),ids("later","assertion"),
+            ids("earlier","evidence"),ids("later","evidence"),
+            "COMPLETE_EMBEDDED_SOURCE_ENTITY_INVENTORY_NOT_DISPLAY_FILTERED"];
+          return values.map(function(v,i){return csvCell(v,i===3||i===4);})
+            .join(",");
+        });
+        saveDownload("\uFEFF"+columns.join(",")+"\r\n"+rows.join("\r\n")+"\r\n",
+          "monde-original-source-entity-inventory.csv","text/csv;charset=utf-8");
+      });
       var compareEntitiesButton=document.createElement("button"),expanded=null;
       compareEntitiesButton.type="button";compareEntitiesButton.textContent="Compare entities";
       compareEntitiesButton.setAttribute("aria-expanded","false");
@@ -749,13 +793,7 @@ __MONDE_TIME_NAVIGATION__
           expanded.remove();expanded=null;
           compareEntitiesButton.setAttribute("aria-expanded","false");return;
         }
-        var entities=new Map();
-        features.forEach(function(f){
-          var p=f.properties,period=p.monde_comparison_period;
-          if(p.source_id!==id||(period!=="earlier"&&period!=="later"))return;
-          if(!entities.has(p.entity))entities.set(p.entity,{earlier:[],later:[]});
-          entities.get(p.entity)[period].push(f);
-        });
+        var entities=originalEntities;
         expanded=document.createElement("tr");
         expanded.className="comparison-source-entities";
         expanded.dataset.sourceId=id;
@@ -898,6 +936,7 @@ __MONDE_TIME_NAVIGATION__
       exportCell.appendChild(exportSource);
       exportCell.appendChild(csvButton);
       exportCell.appendChild(compareEntitiesButton);
+      exportCell.appendChild(inventoryButton);
       tr.appendChild(exportCell);
       rows.appendChild(tr);
     });

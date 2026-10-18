@@ -1948,5 +1948,89 @@ root.dataset.sourceEntityClosed=String(
         self.assertIn('data-entity-both-csv-filename="monde-original-source-entity-both-periods.csv"', result)
         self.assertEqual(self.path.read_bytes(), self.before)
 
+
+    def test_source_entity_inventory_csv_matches_original_periods_despite_filters(self):
+        """Actual Chromium export: every entity and original ID, independent of presentation."""
+        import base64
+        import re
+        import shutil
+        import subprocess
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        status, _, response = self.fetch("/disagreement-compare.html", {
+            **QUERY, "source": "survey-east", "entity": "site-a",
+            "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(status, 200)
+        html = response.decode("utf-8")
+        embedded = self.embedded_map(html)
+        source = embedded["features"][0]["properties"]["source_id"]
+        expected = [f for f in embedded["features"]
+                    if f["properties"]["source_id"] == source]
+        self.assertTrue(expected)
+        probe = """<script>
+const body=document.body,source=__SOURCE__;
+const row=Array.from(document.querySelectorAll("#comparison-source-rows tr"))
+  .find(x=>x.dataset.sourceId===source);
+const period=document.getElementById("comparison-period");
+period.value="later";period.dispatchEvent(new Event("change"));
+const search=document.getElementById("report-search");
+search.value="absent-original-report";search.dispatchEvent(new Event("input"));
+const NativeBlob=window.Blob;
+window.Blob=function(parts,options) {
+  if(options?.type?.startsWith("text/csv"))
+    body.dataset.inventoryCsvBase64=btoa(unescape(encodeURIComponent(String(parts[0]))));
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  body.dataset.inventoryFilename=this.download;
+};
+Array.from(row.children[5].querySelectorAll("button"))
+  .find(x=>x.textContent==="Download entity inventory CSV").click();
+body.dataset.inventoryFiltersPreserved=String(period.value==="later" &&
+  search.value==="absent-original-report");
+</script>""".replace("__SOURCE__", json.dumps(source))
+        target = Path(self.folder.name) / "source-entity-inventory.html"
+        target.write_text(html.replace("</body>", probe + "</body>"), encoding="utf-8")
+        rendered = subprocess.run(
+            [browser, "--headless", "--no-sandbox", "--disable-gpu",
+             "--disable-dev-shm-usage", "--dump-dom", target.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
+            check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', rendered)
+        self.assertIn('data-inventory-filename="monde-original-source-entity-inventory.csv"',
+                      rendered)
+        self.assertIn('data-inventory-filters-preserved="true"', rendered)
+        matched = re.search(r'data-inventory-csv-base64="([A-Za-z0-9+/=]+)"', rendered)
+        self.assertIsNotNone(matched, "Inventory export was not generated")
+        payload = base64.b64decode(matched.group(1)).decode("utf-8-sig")
+        rows = list(csv.DictReader(io.StringIO(payload)))
+        keys = {(feature["properties"]["source_id"], feature["properties"]["entity"])
+                for feature in expected}
+        self.assertEqual({(row["source_id"], row["entity"]) for row in rows}, keys)
+        for row in rows:
+            reports = [f for f in expected if f["properties"]["entity"] == row["entity"]]
+            self.assertEqual(row["source_id"], source)
+            self.assertEqual(row["comparison_axis"], embedded["monde_comparison"]["axis"])
+            for period_name in ("earlier", "later"):
+                subset = [f for f in reports
+                          if f["properties"]["monde_comparison_period"] == period_name]
+                self.assertEqual(int(row[period_name + "_original_report_count"]), len(subset))
+                self.assertEqual(json.loads(row[period_name + "_assertion_ids_json"]),
+                                 [str(f["properties"].get("assertion_id") or
+                                      f["properties"].get("monde_original_feature_id"))
+                                  for f in subset])
+                self.assertEqual(json.loads(row[period_name + "_evidence_ids_json"]),
+                                 [str(f["properties"]["evidence_id"]) for f in subset])
+            earlier = int(row["earlier_original_report_count"])
+            later = int(row["later_original_report_count"])
+            self.assertEqual(row["selection_coverage"],
+                "BOTH_SELECTIONS" if earlier and later else
+                "EARLIER_SELECTION_ONLY" if earlier else "LATER_SELECTION_ONLY")
+            self.assertEqual(row["export_scope"],
+                "COMPLETE_EMBEDDED_SOURCE_ENTITY_INVENTORY_NOT_DISPLAY_FILTERED")
+        self.assertEqual(self.path.read_bytes(), self.before)
+
 if __name__ == "__main__":
     unittest.main()
