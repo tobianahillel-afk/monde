@@ -66,7 +66,7 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
         self.assertIn(b"/source-pair?axis=knowledge", html)
         self.assertIn(b"source_a=survey-a", html)
         self.assertIn(b"source_b=survey-b", html)
-        self.assertIn(b"Original geographic", html)
+        self.assertIn(b"Geographic differences between original reporters", html)
         self.assertNotIn(b"<script", html)
         status, _, page = self.get()
         self.assertEqual(status, 200)
