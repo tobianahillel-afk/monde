@@ -1214,6 +1214,84 @@ class DisagreementReportHTTPTests(unittest.TestCase):
                                   headers["Content-Security-Policy"])
                 self.assertEqual(self.path.read_bytes(), self.before)
 
+
+    def test_complete_period_export_available_only_in_original_comparison_maps(self):
+        for axis in ({"from_known_at": "2026-01-09T00:00:00Z"},
+                     {"from_at": "2026-01-01T01:00:00Z"}):
+            selected = {**QUERY, "source": "survey-east",
+                        "entity": "site-a", **axis}
+            status, _, raw = self.fetch("/disagreement-compare.html", selected)
+            self.assertEqual(status, 200)
+            html = raw.decode("utf-8")
+            self.assertIn('id="export-comparison-complete"', html)
+            self.assertIn("COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED",
+                          html)
+            self.assertIn('id="comparison-period-control" class="controls" hidden',
+                          self.fetch("/viewer", {"view": "current", **QUERY})[2].decode())
+            self.assertEqual(self.embedded_map(html)["features"],
+                             json.loads(self.fetch("/disagreement-compare.geojson",
+                                                   selected)[2])["features"])
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+    def test_complete_period_export_chromium_includes_offscreen_original_reports(self):
+        """Real browser click reads generated Blob; no host/CDN or data writes."""
+        import re
+        import shutil
+        import subprocess
+        browser = next((x for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (x := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium absent; GitHub Actions covers browser export")
+        selected = {**QUERY, "from_known_at": "2026-01-09T00:00:00Z",
+                    "source": "survey-east", "entity": "site-a"}
+        status, _, raw = self.fetch("/disagreement-compare.html", selected)
+        self.assertEqual(status, 200)
+        document = self.embedded_map(raw.decode("utf-8"))
+        counts = {period: sum(
+            f["properties"]["monde_comparison_period"] == period
+            for f in document["features"])
+            for period in ("earlier", "later")}
+        probe = """<script>
+// Capture the exact synchronous Blob constructor payload produced by the
+// real browser UI and saveEvidence path; suppress the actual headless download.
+const NativeBlob=window.Blob;
+window.Blob=function(parts,options){
+  const doc=JSON.parse(String(parts[0])),meta=doc.monde_complete_period_export;
+  document.body.setAttribute("data-actual-period",meta.selected_period);
+  document.body.setAttribute("data-actual-count",String(doc.features.length));
+  document.body.setAttribute("data-actual-original",String(meta.original_feature_count));
+  document.body.setAttribute("data-actual-basis",meta.scope);
+  document.body.setAttribute("data-source-ids",
+    Array.from(new Set(doc.features.map(f=>f.properties.source_id))).sort().join(","));
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  document.body.setAttribute("data-download-name",this.download);
+};
+const period=document.getElementById("comparison-period");
+period.value="later";
+period.dispatchEvent(new Event("change"));
+document.getElementById("export-comparison-complete").click();
+</script>"""
+        file = Path(self.folder.name) / "comparison-export.html"
+        file.write_text(raw.decode().replace("</body>", probe+"</body>"),
+                        encoding="utf-8")
+        rendered = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", file.as_uri()], stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, timeout=30, check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', rendered)
+        self.assertIn('data-actual-period="later"', rendered)
+        self.assertIn('data-actual-count="'+str(counts["later"])+'"', rendered)
+        self.assertIn('data-actual-original="'+str(len(document["features"]))+'"',
+                      rendered)
+        self.assertIn('data-actual-basis="COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED"',
+                      rendered)
+        self.assertIn('data-source-ids="survey-east,survey-west"', rendered)
+        self.assertIn('data-download-name="monde-original-later-comparison.geojson"',
+                      rendered)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
     def test_comparison_period_control_is_hidden_for_normal_source_maps(self):
         status, _, raw = self.fetch("/viewer",
                                     {"view": "current", **QUERY})

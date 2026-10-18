@@ -516,3 +516,20 @@ selector affects displayed markers, side lists and filtered exports only;
 server JSON/GeoJSON/CSV, source provenance and the saved World Model are never
 modified. A hidden point is not missing evidence, a verified location or
 proof of physical movement. Other map modes keep the control hidden.
+
+### Export complete selected original comparison period (WORK-0080)
+
+The offline two-period disagreement map has an **Export complete original period
+GeoJSON** button next to the existing Both / Earlier / Later selector. The
+result contains every original Point assertion in the **already embedded
+source/entity/time comparison selection** for the selected period, including
+opposing reports outside the displayed bbox and reports hidden by browser
+search, visibility, map zoom and source controls. Both (the default) exports
+both periods; valid empty earlier/later periods export an empty FeatureCollection
+rather than inventing reports. The export keeps the original comparison
+metadata, source/assertion/evidence IDs, original geometries and time cutoffs.
+`monde_complete_period_export` records period and original/exported counts,
+and distinguishes this complete embedded selection from the existing
+**Export visible GeoJSON** button. It neither downloads the entire World
+Model nor infers truth, location, movement or agreement. No network access,
+server dependency, package, new route or state mutation is introduced.
