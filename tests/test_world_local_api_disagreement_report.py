@@ -1527,7 +1527,7 @@ body.dataset.coverageGroupReset=document.getElementById("comparison-period-summa
         self.assertIn('data-coverage-after-filtering="true"', rendered)
         self.assertIn('data-source-after-reset="true"', rendered)
         for group, expected_count in class_counts.items():
-            attr = "coverage-group-" + group.replace("-", "")
+            attr = "coverage-group" + group.replace("-", "")
             self.assertIn(f'data-{attr}="{expected_count}"', rendered)
         self.assertIn('data-coverage-group-reset="' +
                       str(len(embedded["features"])) + '"', rendered)
