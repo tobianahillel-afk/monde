@@ -1007,12 +1007,14 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             '<option value="increasing">Increasing distance, matched entity</option>'
             '<option value="decreasing">Decreasing distance, matched entity</option>'
             '</select></label>'
+            '<label>Minimum jointly reported entities (trends: both cutoffs)'
+            '<input type="number" name="min_joint" min="1" max="10000" value="1"></label>'
             '<label>Top pairs (1–100)<input type="number" name="top"'
             ' min="1" max="100" value="25"></label>'
             '<label>Output <select name="format">'
             '<option value="table">Accessible ranked table</option>'
             '<option value="json">JSON</option>'
-             '<option value="csv">Download ranked evidence CSV</option></select></label>'
+             '<option value="csv">Download ranked evidence CSV</option><option value="geojson">All ranked original Points GeoJSON</option></select></label>'
             '<button>Discover original source pairs</button></form>')
     return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
             '<title>MONDE original source pairs</title><style>'
@@ -1155,16 +1157,16 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 
 def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import discover_source_pairs
-    if args.get("discover") != "1" or args.get("format", "table") not in ("json", "table", "csv"):
+    if args.get("discover") != "1" or args.get("format", "table") not in ("json", "table", "csv", "geojson", "html"):
         raise ValueError("invalid discovery format")
     if args.get("axis") == "knowledge":
         _require(args, {"discover", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format", "top", "rank", "source"})
+                 {"format", "top", "rank", "source", "min_joint"})
         cuts = ((args["at"], args["from_known_at"]),
                 (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"discover", "axis", "from_at", "to_at", "known_at"},
-                 {"format", "top", "rank", "source"})
+                 {"format", "top", "rank", "source", "min_joint"})
         cuts = ((args["from_at"], args["known_at"]),
                 (args["to_at"], args["known_at"]))
     else:
@@ -1174,23 +1176,38 @@ def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid discovery top")
     if "source" in args:
         _id(args["source"])
+    raw_min = args.get("min_joint", "1")
+    if not re.fullmatch(r"[1-9][0-9]{0,4}", raw_min) or int(raw_min) > 10000:
+        raise ValueError("invalid minimum joint entities")
     return discover_source_pairs(world, args["axis"], cuts, int(raw_top),
                                  args.get("rank", "separation"),
-                                 args.get("source"))
+                                 args.get("source"), int(raw_min))
 
 
 def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
     rows = []
     for pair in document["pairs"]:
         params = {k: v for k, v in args.items()
-                  if k not in ("discover", "top", "format", "rank", "source")}
+                  if k not in ("discover", "top", "format", "rank", "source", "min_joint")}
         params.update(source_a=pair["source_a"], source_b=pair["source_b"],
                       format="table")
         link = "/source-pair?" + urlencode(params)
+        # Reuse the existing original-report offline map, with the same
+        # world/knowledge cutoffs and only this pair's example entity.
+        map_link = "/source-pair?" + urlencode({
+            **params, "format": "html", "entity": pair["example_entity"]})
+        # The same original, bitemporal example can be saved as real GeoJSON,
+        # without inventing a location or introducing a second exporter.
+        geojson_link = "/source-pair?" + urlencode({
+            **params, "format": "geojson", "entity": pair["example_entity"]})
         rows.append(
             '<tr><th scope="row"><a href="' + escape(link, quote=True) + '">' +
             escape(pair["source_a"]) + " / " + escape(pair["source_b"]) +
-            '</a></th><td>' + str(pair["max_nearest_km"]) +
+            '</a> · <a href="' + escape(map_link, quote=True) +
+            '">Map original example evidence</a> · <a download="source-pair-example.geojson"'
+            ' href="' + escape(geojson_link, quote=True) +
+            '">Download original example GeoJSON</a></th><td>' +
+            str(pair["max_nearest_km"]) +
             '</td><td>' + (str(pair["rank_delta_km"])
                            if "rank_delta_km" in pair else "—") +
             '</td><td>' + str(pair["joint_entities"]) +
@@ -1213,8 +1230,17 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
         ('<p>Original reporter focus: ' + escape(document["source_focus"]) +
          '; only independently reported partners are ranked.</p>'
          if "source_focus" in document else '') +
-        '<p><a href="' + escape('/source-pair?' + urlencode({**args, 'format': 'csv'}), quote=True) +
-        '">Download ranked source evidence CSV</a></p>' +
+        ('<p>Minimum independently joint-reported entities: ' +
+         str(document["min_joint_entities"]) +
+         ' (trends require both cutoffs).</p>'
+         if "min_joint_entities" in document else '') +
+        '<p><a href="' + escape('/source-pair?' + urlencode({**args, 'format': 'html'}), quote=True) +
+        '">Map all ranked original examples</a> · <a href="' +
+        escape('/source-pair?' + urlencode({**args, 'format': 'csv'}), quote=True) +
+        '">Download ranked source evidence CSV</a> · ' +
+        '<a download="ranked-original-source-pairs.geojson" href="' +
+        escape('/source-pair?' + urlencode({**args, 'format': 'geojson'}), quote=True) +
+        '">Download all ranked original examples GeoJSON</a></p>' +
         '<table><caption>Ranked original source separations and temporal changes'
         '</caption><thead><tr><th scope="col">Open complete source evidence</th>'
         '<th scope="col">Max km</th><th scope="col">Change km</th>'
@@ -1502,6 +1528,12 @@ def create_server(state: str | Path, port: int = 0, *,
                         output_format = args.get("format", "table")
                         if output_format == "json":
                             return self._reply(200, discovery)
+                        if output_format == "geojson":
+                            from .source_pair_changes import discovery_geojson
+                            return self._reply(200, discovery_geojson(world, discovery))
+                        if output_format == "html":
+                            from .source_pair_changes import discovery_html
+                            return self._html(None, rendered_html=discovery_html(world, discovery))
                         if output_format == "csv":
                             from .source_pair_changes import discovery_csv
                             body = discovery_csv(discovery).encode("utf-8")

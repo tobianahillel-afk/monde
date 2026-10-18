@@ -394,3 +394,47 @@ report counts. No matching original reports yield headers only rather than
 invented agreement. Strings that could become spreadsheet formulas are escaped.
 The response is limited by the existing server response size cap and leaves
 persisted evidence unchanged. This is not a verified truth or trajectory.
+
+## Map ranked source disagreement examples (WORK-0108)
+
+The accessible `/source-pair?discover=1` ranking now links each ranked
+original source pair directly to an **offline map of its example entity's
+original reports**. The map reuses the existing `/source-pair`
+`format=html&entity=...` comparison with the identical world-validity
+and knowledge cutoffs. Discovery-only filters (`source`, `rank`, `top`,
+`discover`) do not leak into map requests; the source pair itself remains
+explicit. Every reported Point retains its original assertion identity.
+The same ranked row also offers **Download original example GeoJSON** using
+the already-supported source-pair `format=geojson&entity=...` export, so a
+researcher can inspect the original Points in GIS software without losing
+either reporter, original assertion IDs, or both temporal cutoffs. Discovery
+filters do not leak into this link. The browser download filename is
+`source-pair-example.geojson`; no new endpoint or export format is introduced.
+
+The example is not a consensus position, an accuracy verdict or inferred
+movement. Pairs without joint original evidence offer neither an example map
+nor an example GeoJSON download. No new endpoint, store, third-party
+dependency or network access is added.
+
+### Map all ranked original example Points together (WORK-0108)
+
+Use `format=html` with the existing read-only `/source-pair?discover=1`
+query, or follow **Map all ranked original examples** from its ranking table,
+to open one offline browser map of the original source Points included in
+the existing bulk GeoJSON. Each marker retains rank, reporter pair, original
+assertion, earlier/later period and the exact world/knowledge cutoffs. The
+same offline map controls are reused, with no new endpoint, storage or paid
+API. A map envelope is display-only, not a new geographic query, physical
+movement estimate, reconciliation or verification of ground truth. Empty
+rankings produce an empty map; the persisted snapshot is never changed.
+
+### Minimum independently joint-reported entities (WORK-0108)
+
+The read-only `/source-pair?discover=1` interface accepts optional
+`min_joint=N` (1–10000), before top-N ranking. Separation counts **distinct
+entities jointly reported by both original reporters at either temporal
+cutoff**; increasing/decreasing trends instead require joint original reports
+for the **same entity at both cutoffs**. This is evidence coverage, not source
+credibility or ground truth. Default 1 preserves existing results. The same
+filtered ranking flows to the accessible table, JSON, original GeoJSON,
+CSV and offline map without adding a service, parser, store or paid API.

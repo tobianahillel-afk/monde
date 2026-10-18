@@ -124,7 +124,8 @@ def compare_source_pair_world_time(world, source_a, source_b,
 
 
 
-def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", source=None):
+def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", source=None,
+                          min_joint_entities=1):
     """Rank original source pairs by geographic separation or temporal change.
 
     A trend requires the same entity to be jointly reported by both original
@@ -140,6 +141,8 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
         raise ValueError("invalid source-pair discovery ranking")
     if source is not None and (not isinstance(source, str) or not source):
         raise ValueError("invalid original source focus")
+    if type(min_joint_entities) is not int or not 1 <= min_joint_entities <= 10000:
+        raise ValueError("invalid minimum joint entities")
     for at, known_at in cutoffs:
         _instant(at)
         _instant(known_at)
@@ -224,6 +227,10 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
                         example_assertion_ids=sorted(set(
                             periods["earlier"]["assertion_ids"] +
                             periods["later"]["assertion_ids"])))
+        evidence_count = (item["joint_entities"] if rank == "separation"
+                          else item["comparable_entities"])
+        if evidence_count < min_joint_entities:
+            continue
         ranked.append(item)
     if rank == "separation":
         ranked.sort(key=lambda item: (
@@ -246,12 +253,66 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
     }
     if source is not None:
         result["source_focus"] = source
+    if min_joint_entities != 1:
+        result["min_joint_entities"] = min_joint_entities
     if rank != "separation":
         result["rank"] = rank
         result["interpretation"] += (
             " Trends compare the same entity at both cutoffs, retaining"
             " original assertion IDs; unpaired observations are UNKNOWN.")
     return result
+
+
+def discovery_geojson(world, document):
+    """Original Point evidence for all ranked source-pair examples, never inferred coordinates."""
+    if document["schema"] != "MONDE_SOURCE_PAIR_DISCOVERY_V1":
+        raise ValueError("unsupported source-pair discovery schema")
+    by_period = {}
+    for period in ("earlier", "later"):
+        cutoff = document["cutoffs"][period]
+        index = {}
+        for original in world.export_geojson(
+                cutoff["world_at"], cutoff["knowledge_at"])["features"]:
+            props = original["properties"]
+            index.setdefault((props["entity"], props["source_id"]), []).append(original)
+        by_period[period] = index
+    features = []
+    for rank, pair in enumerate(document["pairs"], 1):
+        for period in ("earlier", "later"):
+            cutoff = document["cutoffs"][period]
+            for source in (pair["source_a"], pair["source_b"]):
+                for original in by_period[period].get((pair["example_entity"], source), []):
+                    properties = dict(original["properties"])
+                    properties["monde_original_assertion_id"] = original["id"]
+                    properties["monde_discovery"] = {
+                        "rank": rank, "source_a": pair["source_a"],
+                        "source_b": pair["source_b"],
+                        "example_entity": pair["example_entity"],
+                        "period": period, "world_at": cutoff["world_at"],
+                        "knowledge_at": cutoff["knowledge_at"],
+                        "max_nearest_km": pair["max_nearest_km"],
+                        "rank_delta_km": pair.get("rank_delta_km"),
+                    }
+                    features.append({
+                        "type": "Feature",
+                        "id": f"{rank}:{period}:{original['id']}",
+                        "geometry": original["geometry"], "properties": properties,
+                    })
+    output = {
+        "type": "FeatureCollection", "features": features,
+        "monde_discovery": {
+            "schema": "MONDE_SOURCE_PAIR_DISCOVERY_GEOJSON_V1",
+            "axis": document["axis"], "cutoffs": document["cutoffs"],
+            "rank": document.get("rank", "separation"),
+            "source_focus": document.get("source_focus"),
+            "total_pairs": document["total_pairs"],
+            "exported_pairs": len(document["pairs"]),
+            "interpretation": document["interpretation"],
+        },
+    }
+    if "min_joint_entities" in document:
+        output["monde_discovery"]["min_joint_entities"] = document["min_joint_entities"]
+    return output
 
 
 def discovery_csv(document):
@@ -460,15 +521,34 @@ def top_nearest_source_pair_changes(document, limit):
 
 
 
-def comparison_html(document):
-    """Render original pair reports in the existing offline MONDE map viewer.
+def discovery_html(world, document):
+    """Render all ranked source-pair examples in the existing offline viewer."""
+    geojson = discovery_geojson(world, document)
+    geojson["monde_comparison"] = {
+        "schema": "MONDE_SOURCE_PAIR_DISCOVERY_MAP_V1",
+        "comparison_axis": document["axis"],
+        "cutoffs": document["cutoffs"],
+        "interpretation": document["interpretation"],
+    }
+    for feature in geojson["features"]:
+        info = feature["properties"]["monde_discovery"]
+        feature["properties"]["monde_source_pair"] = {
+            "period": info["period"],
+            "world_at": info["world_at"],
+            "knowledge_at": info["knowledge_at"],
+        }
+    return _source_pair_map(geojson)
 
-    Every original report remains separate. This is a *display* envelope, not
-    a new spatial query, reconstructed route, position estimate or truth claim.
-    """
+
+def comparison_html(document):
+    """Render one original source pair via the shared offline map viewer."""
+    return _source_pair_map(comparison_geojson(document))
+
+
+def _source_pair_map(geojson):
+    """Only derive a map display envelope; never infer source truth."""
     from .map_view import render_map
 
-    geojson = comparison_geojson(document)
     features = geojson["features"]
     cutoffs = geojson["monde_comparison"]["cutoffs"]
     for feature in features:

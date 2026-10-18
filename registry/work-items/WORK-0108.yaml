@@ -1,0 +1,49 @@
+id: WORK-0108
+title: "Open ranked source-pair disagreements as original-evidence maps"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini evidence browser"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Navigate from a ranked geographic source disagreement directly to a map
+  of the ranking example's original Points, keeping source and temporal context.
+scope:
+  in: ["Ranked example-to-map navigation", "Original evidence preservation", "Both temporal axes"]
+  out: ["Geographic truth inference", "Reconstruction", "New API/store", "Automatic merge"]
+acceptance_criteria:
+  - {id: AC-1, description: "A ranked pair opens its example original-report map at unchanged time cutoffs.", status: IN_PROGRESS}
+  - {id: AC-2, description: "No inferred position or discovery-only parameters enter the comparison.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Live loopback HTTP, empty output and persisted data immutability are tested.", status: IN_PROGRESS}
+depends_on: [WORK-0107]
+requirements: []
+read_before: [AGENTS.md, src/monde/local_api.py, src/monde/source_pair_changes.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.local_api._pair_discovery_html, monde.local_api._pair_query, monde.source_pair_changes.comparison_html]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Link ranked original example to the existing evidence map.", depends_on: [], expected_files: [src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T2, description: "Verify real HTTP example navigation, both time axes and empty evidence.", depends_on: [T1], expected_files: [tests/test_world_local_source_pair_discovery.py], status: READY}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_pair_discovery.py]
+  real_system: ["GitHub Actions world-mini; persisted WorldMini loopback HTTP"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Draft stacked on unmerged WORK-0107 PR #137 and upstream chain."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close/revert the scoped PR. No persistence migration."
