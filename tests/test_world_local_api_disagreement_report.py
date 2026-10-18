@@ -1612,5 +1612,82 @@ body.dataset.coverageCsvDisplayFilter=document.getElementById("comparison-period
 
 
 
+    def test_coverage_row_download_contains_exact_original_source_evidence(self):
+        """Source-scoped two-period GeoJSON is independent of map display filters."""
+        import shutil
+        import subprocess
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, body = self.fetch("/disagreement-compare.html", params)
+        self.assertEqual(status, 200)
+        html = body.decode("utf-8")
+        document = self.embedded_map(html)
+        sources = sorted({f["properties"]["source_id"] for f in document["features"]})
+        self.assertTrue(sources)
+        source = sources[0]
+        expected = [f for f in document["features"]
+                    if f["properties"]["source_id"] == source]
+        earlier = sum(f["properties"]["monde_comparison_period"] == "earlier"
+                      for f in expected)
+        later = sum(f["properties"]["monde_comparison_period"] == "later"
+                    for f in expected)
+        probe = """<script>
+const body=document.body,source=__SOURCE__,expected=__EXPECTED__;
+const row=Array.from(document.querySelectorAll("#comparison-source-rows tr"))
+  .find(x=>x.dataset.sourceId===source);
+body.dataset.sourceDownloadButton=String(Boolean(row && row.children[5]
+  .querySelector("button")));
+const NativeBlob=window.Blob;
+window.Blob=function(parts,options){
+  const output=JSON.parse(String(parts[0]));
+  const meta=output.monde_source_period_export;
+  body.dataset.sourceDownloadIntegrity=String(
+    JSON.stringify(output.features)===JSON.stringify(expected) &&
+    meta.source_id===source && meta.selected_period==="both" &&
+    meta.earlier_original_report_count===__EARLIER__ &&
+    meta.later_original_report_count===__LATER__ &&
+    meta.original_feature_count>=expected.length &&
+    meta.exported_feature_count===expected.length &&
+    meta.scope==="COMPLETE_EMBEDDED_SOURCE_NOT_DISPLAY_FILTERED" &&
+    output.monde_comparison.axis!==undefined);
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  body.dataset.sourceDownloadFilename=this.download;
+};
+const selection=document.getElementById("sources");
+selection.value=source;selection.dispatchEvent(new Event("change"));
+const period=document.getElementById("comparison-period");
+period.value="later";period.dispatchEvent(new Event("change"));
+const search=document.getElementById("report-search");
+search.value="no-visible-match";search.dispatchEvent(new Event("input"));
+row.children[5].querySelector("button").click();
+body.dataset.sourceDownloadPeriodUnchanged=String(period.value==="later");
+</script>"""
+        probe = (probe.replace("__SOURCE__", json.dumps(source))
+                      .replace("__EXPECTED__", json.dumps(expected))
+                      .replace("__EARLIER__", str(earlier))
+                      .replace("__LATER__", str(later)))
+        output = Path(self.folder.name) / "source-original-export.html"
+        output.write_text(html.replace("</body>", probe + "</body>"),
+                          encoding="utf-8")
+        rendered = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", output.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            timeout=30, check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', rendered)
+        self.assertIn('data-source-download-button="true"', rendered)
+        self.assertIn('data-source-download-integrity="true"', rendered)
+        self.assertIn('data-source-download-period-unchanged="true"', rendered)
+        self.assertIn('data-source-download-filename="monde-original-source-both-periods.geojson"',
+                      rendered)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+
 if __name__ == "__main__":
     unittest.main()

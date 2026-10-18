@@ -576,3 +576,21 @@ and explicit `BOTH_SELECTIONS`, `EARLIER_SELECTION_ONLY`, or
 `LATER_SELECTION_ONLY` labels. The CSV is independent of presentation filters,
 escapes untrusted spreadsheet formulas and says nothing about ground-truth
 source presence, actual movement, or physical absence.
+
+
+### Export complete original evidence for one comparison source (WORK-0083)
+
+Each original source coverage row in the standalone comparison map has a
+**Download GeoJSON** control. This saves the selected source's complete
+original Point reports from both comparison periods, retaining individual
+assertion/evidence IDs, original source locations, temporal and comparison
+metadata. It operates on the complete embedded comparison rather than
+the current viewport, source/period control, or search results.
+
+The export includes the explicit metadata object
+monde_source_period_export: original source ID, both earlier/later counts,
+complete embedded count, exported count and the
+COMPLETE_EMBEDDED_SOURCE_NOT_DISPLAY_FILTERED scope label. The filename is
+fixed, not derived from untrusted source text. No endpoint, dependency,
+network call, inferred ground truth or saved-world mutation is added.
+The change is an unmerged stacked candidate on WORK-0082.
