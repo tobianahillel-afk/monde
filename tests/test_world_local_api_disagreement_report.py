@@ -2739,6 +2739,40 @@ thresholdControl.value="0";metricControl.value="farthest";periodControl.value="e
 thresholdControl.dispatchEvent(new Event("input"));
 root.dataset.pairThresholdResetCorrect=String(
   thresholdRows.every(function(row){return !row.hidden;})&&!thresholdExport.disabled);
+// Real Chromium exercises the user ranking on original source-pair reports.
+const rankControl=document.getElementById("comparison-pair-distance-sort");
+function independentlyRank(periodSelection,metric,order){
+  function value(entity){
+    const reported=separations[entity];
+    const periods=periodSelection==="either"?["earlier","later"]:[periodSelection];
+    const values=periods.filter(function(p){return reported[p]!==null;})
+      .map(function(p){return reported[p][metric+"_km"];});
+    return values.length?Math.max.apply(null,values):null;
+  }
+  return Object.keys(separations).sort(function(x,y){
+    const a=value(x),b=value(y);
+    if(a===null)return b===null?x.localeCompare(y):1;
+    if(b===null)return -1;
+    return (order==="descending"?b-a:a-b)||x.localeCompare(y);
+  });
+}
+function actualPairOrder(){
+  return Array.from(document.querySelectorAll("#comparison-source-pair-rows tr"))
+    .map(function(row){return row.dataset.pairEntity;});
+}
+rankControl.value="descending";rankControl.dispatchEvent(new Event("change"));
+root.dataset.pairRankDescending=String(JSON.stringify(actualPairOrder())===
+  JSON.stringify(independentlyRank("either","farthest","descending")));
+rankControl.value="ascending";rankControl.dispatchEvent(new Event("change"));
+root.dataset.pairRankAscending=String(JSON.stringify(actualPairOrder())===
+  JSON.stringify(independentlyRank("either","farthest","ascending")));
+periodControl.value="earlier";periodControl.dispatchEvent(new Event("change"));
+root.dataset.pairRankMissingLast=String(JSON.stringify(actualPairOrder())===
+  JSON.stringify(independentlyRank("earlier","farthest","ascending")));
+rankControl.value="entity";rankControl.dispatchEvent(new Event("change"));
+root.dataset.pairRankDefaultRestored=String(JSON.stringify(actualPairOrder())===
+  JSON.stringify(Object.keys(separations).sort()));
+periodControl.value="either";periodControl.dispatchEvent(new Event("change"));
 a.value=sourcesPair[0];b.value=sourcesPair[0];b.dispatchEvent(new Event("change"));
 root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disabled&&csvButton.disabled&&thresholdExport.disabled&&
   document.querySelectorAll("#comparison-source-pair-rows tr").length===0);
@@ -2763,6 +2797,8 @@ root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disab
                      "pair-threshold-rows-correct", "pair-threshold-export-correct",
                      "pair-threshold-period-correct", "pair-threshold-metric-correct",
                      "pair-threshold-invalid-denied", "pair-threshold-reset-correct",
+                     "pair-rank-descending", "pair-rank-ascending",
+                     "pair-rank-missing-last", "pair-rank-default-restored",
                      "pair-same-source-denied"):
             self.assertIn('data-'+name+'="true"', output, name)
         response, _, ordinary = self.fetch("/viewer", {**QUERY, "view": "current"})
