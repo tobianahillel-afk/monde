@@ -549,3 +549,17 @@ describe the filtered list. Reporter detail links retain the same transition
 filter, whereas Find partners clears the directory-only filter for its
 existing source-pair discovery route. No original observation is mutated,
 and absence of a report is UNKNOWN, not verified disappearance or movement.
+
+
+### Prioritize original reporter coverage changes (WORK-0113)
+
+On the existing read-only original reporter directory, optional
+`rank=new|gone|turnover` orders reporters by the number of **distinct
+originally reported entities** newly covered, no longer covered, or in
+either transition between the selected cutoffs. Ties resolve by source ID.
+The native HTML ranking links, JSON `ranking` metadata and matching CSV
+share the same order. The `change=new|gone|both` filter still applies
+before ranking. The default order and schemas are unchanged when rank is
+omitted. Rank is directory-only, never a source-detail or partner query.
+Changes reflect reporting coverage, **not** physical loss, accuracy, events
+or a verified truth claim; persisted evidence is never modified.

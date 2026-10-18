@@ -1005,6 +1005,12 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             '<option value="table">Accessible coverage table</option>'
             '<option value="json">JSON</option>'
             '<option value="csv">Coverage CSV</option>'
+            '</select></label>'
+            '<label>Prioritize original reporting changes <select name="rank">'
+            '<option value="">Default coverage order</option>'
+            '<option value="new">Most newly reported entities</option>'
+            '<option value="gone">Most no-longer-reported entities</option>'
+            '<option value="turnover">Most changed reported entities</option>'
             '</select></label><button>Browse source coverage</button></form>')
         discovery.append(
             '<form action="/source-pair" method="get">'
@@ -1177,34 +1183,38 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format", "source", "change"})
+                 {"format", "source", "change", "rank"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
-                 {"format", "source", "change"})
+                 {"format", "source", "change", "rank"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
     if args.get("format") in ("geojson", "map") and "source" not in args:
         raise ValueError("source map or GeoJSON requires a source")
+    if "source" in args and "rank" in args:
+        raise ValueError("ranking only applies to original source directory")
     if "source" in args:
         from .source_pair_changes import source_directory_detail
         return source_directory_detail(
             world, args["axis"], cutoffs, args["source"], args.get("change"))
-    return source_directory(world, args["axis"], cutoffs, args.get("change"))
+    return source_directory(world, args["axis"], cutoffs,
+                            args.get("change"), args.get("rank"))
 
 
 def _source_directory_html(document: dict, args: dict[str, str]) -> str:
     rows = []
     for item in document["sources"]:
         query = {key: value for key, value in args.items()
-                 if key not in ("directory", "format")}
+                 if key not in ("directory", "format", "rank")}
         query.pop("change", None)  # partner discovery has no directory filter
         query.update(discover="1", source=item["source_id"], format="table")
         link = "/source-pair?" + urlencode({
-            **args, "source": item["source_id"], "format": "table"})
+            **{k: v for k, v in args.items() if k != "rank"},
+            "source": item["source_id"], "format": "table"})
         partners = "/source-pair?" + urlencode(query)
         rows.append(
             '<tr><th scope="row"><a href="' + escape(link, quote=True) + '">' +
@@ -1236,6 +1246,21 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
             escape(label) + '</a>')
     navigation = '<nav aria-label="Original reporter transition filters"><p>' + (
         ' · '.join(choices)) + '</p></nav>'
+    ranks = (("all", "Default coverage"), ("new", "Most new"),
+             ("gone", "Most gone"), ("turnover", "Most changed"))
+    rank_links = []
+    for mode, label in ranks:
+        query = {k: v for k, v in args.items() if k not in ("rank", "format")}
+        if mode != "all":
+            query["rank"] = mode
+        query["format"] = "table"
+        rank_links.append(
+            '<strong aria-current="page">' + escape(label) + '</strong>'
+            if args.get("rank", "all") == mode else
+            '<a href="' + escape("/source-pair?" + urlencode(query),
+                                   quote=True) + '">' + escape(label) + '</a>')
+    ranking = '<nav aria-label="Original reporter coverage ranking"><p>' + (
+        ' · '.join(rank_links)) + '</p></nav>'
     count_label = (str(document["total_sources"]) + " matching of " +
                    str(document["available_sources"]) + " original sources"
                    if "reporting_filter" in document else
@@ -1251,7 +1276,7 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         '<h1>Original Point reporter coverage</h1><p>' +
         escape(document["interpretation"]) + '</p><p>' +
         escape(count_label) + ', ' + escape(document["axis"]) +
-        ' time.</p>' + navigation + '<p><a href="' +
+        ' time.</p>' + navigation + ranking + '<p><a href="' +
         escape(csv_link, quote=True) + '">Download matching coverage CSV</a></p>'
         '<table><caption>Original source entities at the two cutoffs</caption>'
         '<thead><tr><th scope="col">Source — investigate partners</th>'

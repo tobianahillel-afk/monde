@@ -532,5 +532,87 @@ class SourceDirectoryTests(unittest.TestCase):
             server.server_close()
             self.assertEqual(saved.read_bytes(), initial)
 
+
+    def test_rank_original_reporter_transitions_http_json_csv_html(self):
+        query = self.knowledge()
+        _, _, raw = self.get({**query, "format": "json"})
+        original = json.loads(raw)
+        scores = {"new": lambda row: row["newly_reported_entities"],
+                  "gone": lambda row: row["no_longer_reported_entities"],
+                  "turnover": lambda row: (row["newly_reported_entities"] +
+                                           row["no_longer_reported_entities"])}
+        for mode, key in scores.items():
+            with self.subTest(rank=mode):
+                status, _, raw = self.get({**query, "rank": mode, "format": "json"})
+                self.assertEqual(status, 200)
+                result = json.loads(raw)
+                self.assertEqual(result["ranking"], mode)
+                expected = sorted(original["sources"],
+                                  key=lambda row: (-key(row), row["source_id"]))
+                self.assertEqual(result["sources"], expected)
+                self.assertEqual(result["total_sources"], len(expected))
+                status, _, raw = self.get({**query, "rank": mode, "format": "csv"})
+                self.assertEqual(status, 200)
+                rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+                self.assertEqual([r["source_id"] for r in rows],
+                                 [r["source_id"] for r in expected])
+                status, _, html = self.get({**query, "rank": mode})
+                self.assertEqual(status, 200)
+                self.assertIn(b'Original reporter coverage ranking', html)
+                self.assertIn(b'aria-current="page"', html)
+                self.assertIn(b"rank=" + mode.encode("ascii"), html)
+                # Existing reporter detail remains directly navigable.
+                if expected:
+                    self.assertIn(b"source=" + expected[0]["source_id"].encode(), html)
+                self.assertNotIn(b"source=" + expected[0]["source_id"].encode() +
+                                 b"&format=table&rank=", html)
+
+    def test_rank_filters_world_time_and_invalid_inputs(self):
+        # A ranking is a directory-level read-only view, never a per-source
+        # reinterpretation of original evidence.
+        for invalid in ("", "NEW", "all", "source", "delta", "turnover%00"):
+            status, _, payload = self.get({
+                **self.knowledge(), "rank": invalid, "format": "json"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(payload), {"error": "invalid_query"})
+        status, _, payload = self.get({
+            **self.knowledge(), "source": "survey-a",
+            "rank": "new", "format": "json"})
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(payload), {"error": "invalid_query"})
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "rank-world.json"
+        world.save(saved)
+        initial = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = {"directory": "1", "axis": "world",
+                     "from_at": EARLY, "to_at": LATE, "known_at": KNOWN,
+                     "change": "gone", "rank": "turnover"}
+            status, _, payload = self.get({**query, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            ranked = json.loads(payload)
+            self.assertEqual(ranked["ranking"], "turnover")
+            self.assertEqual(ranked["reporting_filter"], "gone")
+            self.assertTrue(all(row["no_longer_reported_entities"] > 0
+                                for row in ranked["sources"]))
+            expected = sorted(ranked["sources"], key=lambda row: (
+                -(row["newly_reported_entities"] +
+                  row["no_longer_reported_entities"]), row["source_id"]))
+            self.assertEqual(ranked["sources"], expected)
+            status, _, raw = self.get({**query, "format": "csv"}, server)
+            self.assertEqual(status, 200)
+            rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+            self.assertEqual([row["source_id"] for row in rows],
+                             [row["source_id"] for row in expected])
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), initial)
+
+
 if __name__ == "__main__":
     unittest.main()
