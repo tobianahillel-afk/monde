@@ -849,5 +849,81 @@ class SourceDirectoryTests(unittest.TestCase):
 
 
 
+    def test_exact_entity_reporter_directory_live_http(self):
+        q = self.knowledge()
+        status, _, raw = self.get({**q, "format": "json"})
+        self.assertEqual(status, 200)
+        original = json.loads(raw)
+        entity = original["sources"][0]["example_entity"]
+        reporters = {feature["properties"]["source_id"]
+                     for t in (BEFORE, AFTER)
+                     for feature in self.world.export_geojson(AT, t)["features"]
+                     if feature["properties"]["entity"] == entity}
+        filtered = {**q, "entity": entity}
+        status, _, raw = self.get({**filtered, "format": "json"})
+        self.assertEqual(status, 200)
+        result = json.loads(raw)
+        self.assertEqual(result["entity_focus"], entity)
+        self.assertEqual(result["available_sources"], original["total_sources"])
+        self.assertEqual({row["source_id"] for row in result["sources"]}, reporters)
+        for row in result["sources"]:
+            full = next(item for item in original["sources"]
+                        if item["source_id"] == row["source_id"])
+            self.assertEqual(row["example_entity"], entity)
+            self.assertEqual(row["earlier_entities"], full["earlier_entities"])
+            self.assertEqual(row["later_entities"], full["later_entities"])
+            self.assertTrue(row["example_assertion_ids"])
+        status, _, body = self.get({**filtered, "format": "csv"})
+        self.assertEqual(status, 200)
+        rows = list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
+        self.assertEqual([row["source_id"] for row in rows],
+                         [row["source_id"] for row in result["sources"]])
+        status, _, html = self.get(filtered)
+        self.assertEqual(status, 200)
+        self.assertIn(b"Exact original entity:", html)
+        from html import unescape
+        import re
+        partners = re.findall(rb'href="([^"]+)"[^>]*>Find partners</a>', html)
+        self.assertTrue(partners)
+        for url in partners:
+            self.assertNotIn("entity=", unescape(url.decode()))
+        status, _, missing = self.get({**filtered, "entity": "unseen-entity",
+                                       "format": "json"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(missing)["sources"], [])
+
+    def test_exact_entity_reporter_validation_and_world_axis(self):
+        q = self.knowledge()
+        for bad in ("\x00", "\n", "x" * 201):
+            status, _, raw = self.get({**q, "entity": bad, "format": "json"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        status, _, _ = self.get({**q, "source": "survey-a",
+                                 "entity": "anything", "format": "json"})
+        self.assertEqual(status, 400)
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "world-entity.json"
+        world.save(saved)
+        before = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            q2 = {"directory": "1", "axis": "world", "from_at": EARLY,
+                  "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**q2, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            sample_row = json.loads(raw)["sources"][0]
+            status, _, raw = self.get({**q2, "entity": sample_row["example_entity"],
+                                       "format": "json"}, server)
+            self.assertEqual(status, 200)
+            self.assertIn(sample_row["source_id"],
+                          {x["source_id"] for x in json.loads(raw)["sources"]})
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), before)
+
 if __name__ == "__main__":
     unittest.main()

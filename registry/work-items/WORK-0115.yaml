@@ -1,0 +1,42 @@
+id: WORK-0115
+title: "Discover original Point reporters by entity"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Find the original sources that reported an exact entity at either cutoff,
+  preserving complete unmodified source coverage and original assertion IDs.
+scope:
+  in: ["Entity reporter selection", "Two time axes", "Existing HTTP/HTML/JSON/CSV"]
+  out: ["Inferred truth", "Model mutation", "New dependencies or services"]
+acceptance_criteria:
+  - {id: AC-1, description: "Select only original reporters of one entity at either cutoff.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Preserve coverage totals and default output.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Test real HTTP, world and knowledge time, exports, state immutability.", status: IN_PROGRESS}
+depends_on: [WORK-0114]
+requirements: []
+read_before: [AGENTS.md, src/monde/local_api.py, src/monde/source_pair_changes.py]
+reuses: [monde.source_pair_changes.source_directory, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add the original entity reporter selection.", depends_on: [], expected_files: [src/monde/local_api.py, src/monde/source_pair_changes.py], status: IN_PROGRESS}
+    - {id: T2, description: "Test persisted local server and both time axes.", depends_on: [T1], expected_files: [tests/test_world_local_source_directory.py], status: READY}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Ancestors stacked and not merged to main."]

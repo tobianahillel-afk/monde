@@ -593,3 +593,13 @@ An empty optional form field leaves old unfiltered JSON unchanged.
 Filtered JSON adds `source_prefix` and `available_sources`; no saved
 WorldMini model changes. Source detail and pair-discovery links drop
 inapplicable directory prefix/rank controls to remain navigable.
+
+## Exact original-entity reporter lookup (WORK-0115)
+
+The existing local source-coverage directory accepts optional `entity` for both
+world and knowledge cutoffs. It selects original sources reporting a Point for
+that exact entity at either cutoff. The example column preserves that entity's
+original assertion IDs. Coverage and ranking statistics still count **all**
+entities for each source, not just the focus entity. HTML, JSON and CSV select
+the same sources, no data is changed, and detail/partner links omit the
+unsupported filter. No additional route, dependency or API.

@@ -1004,6 +1004,8 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             '<label>Original source ID starts with (optional)'
             '<input name="source_prefix" maxlength="80"'
             ' placeholder="e.g. survey-" autocomplete="off"></label>'
+            '<label>Original entity ID (optional; exact reporter lookup)'
+            '<input name="entity" maxlength="200" autocomplete="off"></label>'
             '<label>Output <select name="format">'
             '<option value="table">Accessible coverage table</option>'
             '<option value="json">JSON</option>'
@@ -1192,12 +1194,12 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format", "source", "change", "rank", "source_prefix"})
+                 {"format", "source", "change", "rank", "source_prefix", "entity"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
-                 {"format", "source", "change", "rank", "source_prefix"})
+                 {"format", "source", "change", "rank", "source_prefix", "entity"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
@@ -1208,25 +1210,28 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("ranking only applies to original source directory")
     if "source" in args and args.get("source_prefix"):
         raise ValueError("prefix search only applies to original source directory")
+    if "source" in args and "entity" in args:
+        raise ValueError("entity lookup applies only to reporter directory")
     if "source" in args:
         from .source_pair_changes import source_directory_detail
         return source_directory_detail(
             world, args["axis"], cutoffs, args["source"], args.get("change"))
     return source_directory(world, args["axis"], cutoffs,
                             args.get("change"), args.get("rank"),
-                            args.get("source_prefix") or None)
+                            args.get("source_prefix") or None,
+                            args.get("entity") or None)
 
 
 def _source_directory_html(document: dict, args: dict[str, str]) -> str:
     rows = []
     for item in document["sources"]:
         query = {key: value for key, value in args.items()
-                 if key not in ("directory", "format", "rank", "source_prefix")}
+                 if key not in ("directory", "format", "rank", "source_prefix", "entity")}
         query.pop("change", None)  # partner discovery has no directory filter
         query.update(discover="1", source=item["source_id"], format="table")
         link = "/source-pair?" + urlencode({
             **{k: v for k, v in args.items()
-               if k not in ("rank", "source_prefix")},
+               if k not in ("rank", "source_prefix", "entity")},
             "source": item["source_id"], "format": "table"})
         partners = "/source-pair?" + urlencode(query)
         rows.append(
@@ -1288,7 +1293,10 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         'padding:9px;text-align:left}table{border-collapse:collapse}</style>'
         '</head><body><nav><a href="/source-pair">Source comparisons</a></nav>'
         '<h1>Original Point reporter coverage</h1><p>' +
-        escape(document["interpretation"]) + '</p><p>' +
+        escape(document["interpretation"]) + '</p>' +
+        ('<p>Exact original entity: <strong>' +
+         escape(document["entity_focus"]) + '</strong></p>'
+         if "entity_focus" in document else '') + '<p>' +
         escape(count_label) + ', ' + escape(document["axis"]) +
         ' time.</p>' + navigation + ranking + '<p><a href="' +
         escape(csv_link, quote=True) + '">Download matching coverage CSV</a></p>'

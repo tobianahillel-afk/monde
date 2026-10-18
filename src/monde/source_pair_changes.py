@@ -134,6 +134,10 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
     """
     from itertools import combinations
 
+    if entity is not None and (not isinstance(entity, str) or
+            not 0 < len(entity) <= 200 or any(ord(c) < 32 or ord(c) == 127
+                                               for c in entity)):
+        raise ValueError("invalid original entity filter")
     if axis not in ("knowledge", "world") or len(cutoffs) != 2:
         raise ValueError("invalid source-pair discovery axis")
     if type(top) is not int or not 1 <= top <= 100:
@@ -292,7 +296,8 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
 
 
 
-def source_directory(world, axis, cutoffs, change=None, rank=None, source_prefix=None):
+def source_directory(world, axis, cutoffs, change=None, rank=None, source_prefix=None,
+                     entity=None):
     """Per-original-source Point coverage and optional evidence-based ranking."""
     if change not in (None, "new", "gone", "both"):
         raise ValueError("invalid source reporting transition")
@@ -329,7 +334,7 @@ def source_directory(world, axis, cutoffs, change=None, rank=None, source_prefix
         earlier = periods["earlier"].get(source, {})
         later = periods["later"].get(source, {})
         a, b = set(earlier), set(later)
-        example = min(a | b)
+        example = entity if entity is not None and entity in (a | b) else min(a | b)
         result.append({
             "source_id": source,
             "earlier_entities": len(a),
@@ -346,6 +351,8 @@ def source_directory(world, axis, cutoffs, change=None, rank=None, source_prefix
     result.sort(key=lambda row: (-max(row["earlier_entities"],
                                      row["later_entities"]), row["source_id"]))
     available_sources = len(result)
+    if entity is not None:
+        result = [row for row in result if row["example_entity"] == entity]
     if source_prefix is not None:
         result = [row for row in result if row["source_id"].startswith(source_prefix)]
     if change is not None:
@@ -385,7 +392,12 @@ def source_directory(world, axis, cutoffs, change=None, rank=None, source_prefix
         document["reporting_filter"] = change
     if source_prefix is not None:
         document["source_prefix"] = source_prefix
-    if change is not None or source_prefix is not None:
+    if entity is not None:
+        document["entity_focus"] = entity
+        document["interpretation"] += (
+            " Selected sources reported this exact original entity at either"
+            " cutoff; coverage counts still include all source entities.")
+    if change is not None or source_prefix is not None or entity is not None:
         document["available_sources"] = available_sources
     if rank is not None:
         document["ranking"] = rank
