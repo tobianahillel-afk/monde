@@ -1,0 +1,43 @@
+id: WORK-0117
+title: "Compare two original reporters directly from an entity coverage directory"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Let investigators move from exact-entity coverage to the existing
+  two-original-reporter temporal Point map without retyping IDs or cutoffs.
+scope:
+  in: ["Native original-source comparison form", "Bitemporal cutoffs", "Original evidence map"]
+  out: ["New API", "Inferred truth", "World Model mutations", "Additional dependencies"]
+acceptance_criteria:
+  - {id: AC-1, description: "Offer source-pair comparison for entities reported by at least two original sources.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Preserve source identities and both temporal cutoffs when opening existing comparison map.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Verify real persisted loopback HTTP and absence of state mutation.", status: IN_PROGRESS}
+  - {id: AC-4, description: "Link entity inspector to original reporter directory on both temporal axes with preserved cutoffs.", status: IN_PROGRESS}
+depends_on: [WORK-0116]
+requirements: []
+read_before: [AGENTS.md, src/monde/local_api.py, src/monde/source_pair_changes.py]
+reuses: [monde.local_api._source_directory_html, monde.source_pair_changes.comparison_html]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Enable native original-reporter comparison navigation.", depends_on: [], expected_files: [src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T2, description: "Verify both axes and genuine persisted HTTP comparisons.", depends_on: [T1], expected_files: [tests/test_world_local_source_directory.py, tests/test_world_local_api_inspection.py], status: READY}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Ancestors remain stacked/unmerged to main."]

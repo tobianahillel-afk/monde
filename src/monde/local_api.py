@@ -196,6 +196,46 @@ def _comparison_map_link(payload: dict, mode: str,
     return "/viewer?" + urlencode(query)
 
 
+
+def _inspector_source_coverage_navigation(mode: str, params: dict[str, str]) -> str:
+    """Link exact entity evidence to existing bitemporal source coverage."""
+    if mode not in {"entity", "compare-knowledge", "compare-world"}:
+        return ""
+    common = {"directory": "1", "entity": params["entity"], "format": "table"}
+    if mode != "entity":
+        keys = (("at", "from_known_at", "to_known_at")
+                if mode == "compare-knowledge" else
+                ("from_at", "to_at", "known_at"))
+        query = {**common, "axis": ("knowledge" if mode == "compare-knowledge"
+                                   else "world")}
+        query.update({key: params[key] for key in keys})
+        return ('<p><a href="' + escape("/source-pair?" + urlencode(query), quote=True) +
+                '">Compare original Point reporters for this entity at these cutoffs</a>'
+                ' (source evidence, not verified location or movement).</p>')
+    forms = []
+    for axis, fixed, earlier in (
+            ("knowledge", {"at": params["at"], "to_known_at": params["known_at"]},
+             "from_known_at"),
+            ("world", {"to_at": params["at"], "known_at": params["known_at"]},
+             "from_at")):
+        hidden = "".join(
+            '<input type="hidden" name="' + escape(key, quote=True) +
+            '" value="' + escape(value, quote=True) + '">'
+            for key, value in {**common, "axis": axis, **fixed}.items())
+        forms.append(
+            '<form action="/source-pair" method="get">' + hidden +
+            '<label>Earlier ' + axis + ' cutoff (ISO-8601 with timezone)'
+            '<input name="' + earlier + '" required'
+            ' placeholder="2026-01-01T00:00:00Z"></label>'
+            '<button type="submit">Compare original Point reporters across ' +
+            axis + ' time</button></form>')
+    return ('<section aria-label="Original Point reporter coverage">'
+            '<h2>Investigate which original sources reported this entity</h2>'
+            '<p>Enter an earlier cutoff; the current entity and its '
+            'world/knowledge cutoffs are retained. Missing reports remain UNKNOWN, '
+            'never evidence of agreement.</p>' + "".join(forms) + '</section>')
+
+
 def _inspection_html(payload: dict | None, mode: str | None = None,
                      params: dict[str, str] | None = None) -> str:
     """A readable view of untouched WorldMini output; no inference or browser scripts."""
@@ -290,6 +330,7 @@ def _inspection_html(payload: dict | None, mode: str | None = None,
                    escape(source_url, quote=True) +
                    '">View complete original JSON response</a></p>' +
                    map_overview +
+                   _inspector_source_coverage_navigation(mode, params) +
                    (''.join(records) if records else
                     ('<p role="status">UNCHANGED — no newly current or retired '
                      'source reports between these selected cutoffs.</p>'
@@ -1300,6 +1341,48 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
                                    quote=True) + '">' + escape(label) + '</a>')
     ranking = '<nav aria-label="Original reporter coverage ranking"><p>' + (
         ' · '.join(rank_links)) + '</p></nav>'
+    # An entity investigator can compare any two *original* reporters through
+    # the existing bitemporal source-pair map (no inferred consensus geometry).
+    pair_form = ""
+    if "entity_focus" in document and len(document["sources"]) >= 2:
+        reporter_ids = [row["source_id"] for row in document["sources"]]
+        common = {key: args[key] for key in
+                  ("axis", "at", "from_known_at", "to_known_at",
+                   "from_at", "to_at", "known_at") if key in args}
+        hidden = "".join(
+            '<input type="hidden" name="' + escape(key, quote=True) +
+            '" value="' + escape(value, quote=True) + '">'
+            for key, value in {**common, "entity": document["entity_focus"]}.items())
+        first_options = "".join(
+            '<option value="' + escape(source, quote=True) + '"' +
+            (' selected' if i == 0 else '') + '>' +
+            escape(source) + '</option>'
+            for i, source in enumerate(reporter_ids))
+        second_options = "".join(
+            '<option value="' + escape(source, quote=True) + '"' +
+            (' selected' if i == 1 else '') + '>' +
+            escape(source) + '</option>'
+            for i, source in enumerate(reporter_ids))
+        pair_form = (
+            '<form action="/source-pair" method="get"><fieldset>'
+            '<legend>Compare two original reporters for this entity</legend>' +
+            hidden + '<label>First original source '
+            '<select name="source_a" required>' + first_options +
+            '</select></label> <label>Second original source '
+            '<select name="source_b" required>' + second_options +
+            '</select></label> <label>Evidence output '
+            '<select name="format">'
+            '<option value="html" selected>Compare source positions on one map</option>'
+            '<option value="table">Accessible evidence table</option>'
+            '<option value="json">Complete original reports JSON</option>'
+            '<option value="csv">Download original evidence CSV</option>'
+            '<option value="geojson">Download original Point GeoJSON</option>'
+            '</select></label> <button type="submit">Open comparison</button>'
+            '<p>Choose different reporters; output always contains the two '
+            'selected original sources at both specified time cutoffs. '
+            'Reported separation is not verified ground truth.</p>'
+            '</fieldset></form>')
+
     count_label = (str(document["total_sources"]) + " matching of " +
                    str(document["available_sources"]) + " original sources"
                    if "available_sources" in document else
@@ -1316,7 +1399,7 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         escape(document["interpretation"]) + '</p>' +
         ('<p>Exact original entity: <strong>' +
          escape(document["entity_focus"]) + '</strong></p>'
-         if "entity_focus" in document else '') + '<p>' +
+         if "entity_focus" in document else '') + pair_form + '<p>' +
         escape(count_label) + ', ' + escape(document["axis"]) +
         ' time.</p>' + navigation + ranking + '<p><a href="' +
         escape(csv_link, quote=True) + '">Download matching coverage CSV</a>' +

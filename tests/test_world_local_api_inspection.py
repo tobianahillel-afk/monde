@@ -701,3 +701,101 @@ class EvidenceInspectorTests(unittest.TestCase):
         safe = _viewer_time_navigation({**params, "known_at": '"<unsafe>&'})
         self.assertIn("&quot;&lt;unsafe&gt;&amp;", safe)
         self.assertNotIn('value=""<unsafe>', safe)
+
+
+    def test_dossier_native_forms_open_original_source_coverage(self):
+        class Forms(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.forms = []
+                self.current = None
+            def handle_starttag(self, tag, attrs):
+                attrs = dict(attrs)
+                if tag == "form" and attrs.get("action") == "/source-pair":
+                    self.current = {}
+                    self.forms.append(self.current)
+                if tag == "input" and self.current is not None:
+                    self.current[attrs["name"]] = attrs.get("value", "")
+            def handle_endtag(self, tag):
+                if tag == "form":
+                    self.current = None
+
+        status, _, body = self.fetch(params={
+            "view": "entity", "entity": "building-001",
+            "at": AT, "known_at": LATE})
+        self.assertEqual(status, 200)
+        parser = Forms()
+        parser.feed(body.decode("utf-8"))
+        self.assertEqual(len(parser.forms), 2)
+        self.assertEqual({x["axis"] for x in parser.forms}, {"world", "knowledge"})
+        for form in parser.forms:
+            self.assertEqual(form["entity"], "building-001")
+            self.assertEqual(form["directory"], "1")
+            if form["axis"] == "world":
+                self.assertEqual((form["to_at"], form["known_at"]), (AT, LATE))
+                form["from_at"] = "2025-12-31T00:00:00Z"
+            else:
+                self.assertEqual((form["at"], form["to_known_at"]), (AT, LATE))
+                form["from_known_at"] = "2026-01-05T00:00:00Z"
+            code, _, raw = self.fetch("/source-pair", {**form, "format": "json"})
+            self.assertEqual(code, 200)
+            self.assertEqual(json.loads(raw)["entity_focus"], "building-001")
+        self.assertEqual(self.path.read_bytes(), self.original)
+
+    def test_temporal_inspection_links_reach_original_reporter_directory(self):
+        class Links(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.links = []
+                self.href = None
+            def handle_starttag(self, tag, attrs):
+                if tag == "a":
+                    self.href = dict(attrs).get("href")
+            def handle_data(self, data):
+                if self.href and "Compare original Point reporters" in data:
+                    self.links.append(self.href)
+            def handle_endtag(self, tag):
+                if tag == "a":
+                    self.href = None
+
+        examples = (
+            ({"view": "compare-knowledge", "entity": "building-001",
+              "at": AT, "from_known_at": "2026-01-05T00:00:00Z",
+              "to_known_at": LATE}, "knowledge",
+             ("at", "from_known_at", "to_known_at")),
+            ({"view": "compare-world", "entity": "building-001",
+              "from_at": "2025-12-31T00:00:00Z",
+              "to_at": AT, "known_at": LATE}, "world",
+             ("from_at", "to_at", "known_at")))
+        for params, axis, fields in examples:
+            with self.subTest(axis=axis):
+                status, _, body = self.fetch(params=params)
+                self.assertEqual(status, 200)
+                parser = Links()
+                parser.feed(body.decode("utf-8"))
+                self.assertEqual(len(parser.links), 1)
+                uri = urlsplit(parser.links[0])
+                self.assertEqual(uri.path, "/source-pair")
+                args = {k: v[0] for k, v in parse_qs(uri.query).items()}
+                self.assertEqual(args["axis"], axis)
+                self.assertEqual(args["entity"], "building-001")
+                self.assertEqual({k: args[k] for k in fields},
+                                 {k: params[k] for k in fields})
+                status, _, raw = self.fetch("/source-pair",
+                                            {**args, "format": "json"})
+                self.assertEqual(status, 200)
+                self.assertEqual(json.loads(raw)["entity_focus"], "building-001")
+        self.assertEqual(self.path.read_bytes(), self.original)
+
+    def test_inspector_source_navigation_escapes_entity_and_excludes_history(self):
+        bad = '"><img src=x onerror=alert(1)>'
+        html = _inspection_html({"world": "OBSERVED", "status": "UNKNOWN",
+                                 "attributes": {}}, "entity", {
+            "view": "entity", "entity": bad, "at": AT, "known_at": LATE})
+        self.assertNotIn("<img", html)
+        self.assertIn("&quot;&gt;&lt;img", html)
+        self.assertEqual(html.count('action="/source-pair"'), 2)
+        history = _inspection_html({"world": "OBSERVED", "status": "UNKNOWN",
+                                    "reports": []}, "source-history", {
+            "view": "source-history", "source": "x", "known_at": LATE})
+        self.assertNotIn('action="/source-pair"', history)

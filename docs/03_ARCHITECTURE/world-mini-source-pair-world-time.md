@@ -628,3 +628,19 @@ entity reporter directory and per-source detail outputs remain unchanged;
 combined source+entity parameters with other formats are rejected. Empty
 matches return an empty feature collection, never an inferred location.
 The existing saved WorldMini remains byte-identical.
+
+## Compare two original reporters from one entity
+
+The exact-entity original-reporter directory exposes a native, read-only form to select **two distinct original sources** and open the existing source-pair map with the same world/knowledge cutoffs. A source is offered only if it reported that exact entity at one of the selected cutoffs. The map keeps each original Point assertion, source, evidence and comparison period; it never asserts a consensus location, and no extra HTTP endpoint or persistent state is introduced.
+
+### Navigate directly from the entity evidence inspector (WORK-0117)
+
+The original entity evidence dossier at /inspect?view=entity now offers native,
+read-only source-coverage forms on both temporal axes. The chosen entity,
+current world time and knowledge cutoff are retained; the investigator enters
+only the missing earlier cutoff. Existing compare-knowledge and compare-world
+inspections expose a direct link using their already-selected pair of cutoffs.
+The existing /source-pair directory then leads to source-specific original
+Point evidence and comparison maps, without retyping entity IDs or timestamps.
+These navigation controls make no inference of physical movement, location
+truth or missing-source agreement, and do not mutate the saved WorldMini.
