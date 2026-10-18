@@ -116,12 +116,73 @@ class SourceLensHTTPTests(unittest.TestCase):
                 self.assertEqual(code, 400)
                 self.assertEqual(json.loads(body), {"error": "invalid_query"})
         for route, query in (
-            ("/viewer", {"view": "disagreements", **QUERY, "source": "survey-east"}),
             ("/map", {**QUERY, "source": "survey-east", "extra": "x"}),
         ):
             code, _, body = self.fetch(route, query)
             self.assertEqual(code, 400)
             self.assertEqual(json.loads(body), {"error": "invalid_query"})
+
+
+    def test_disagreement_source_keeps_opposing_original_evidence(self):
+        from monde.map_view import disagreement_view
+        query = {**QUERY, "source": "survey-east"}
+        code, headers, raw = self.fetch("/map-disagreements", query)
+        self.assertEqual(code, 200)
+        data = json.loads(raw)
+        self.assertEqual(data["monde_source_filter"], "survey-east")
+        self.assertEqual(data["monde_source_filter_scope"],
+                         "SELECTED_SOURCE_INSIDE_BBOX_KEEP_OPPONENTS")
+        self.assertEqual(data["monde_disagreements_view"]["conflicting_entities_in_view"], 1)
+        self.assertEqual(data["monde_bbox_query"]["total_matching_entities"], 1)
+        self.assertEqual({feature["properties"]["source_id"] for feature in data["features"]},
+                         {"survey-east", "survey-west"})
+        self.assertTrue(all(feature["properties"]["monde_disagreement_basis"] ==
+                            "DISTINCT_SOURCE_REPORTS_NOT_PHYSICAL_TRUTH"
+                            for feature in data["features"]))
+        self.assertTrue(all(feature["properties"]["monde_conflicting_source_ids"] ==
+                            ["survey-east", "survey-west"] for feature in data["features"]))
+        # Browser and API share the same disagreement-filtering semantics.
+        navigation = {"view": "disagreements", **query}
+        status, headers, html = self.fetch("/viewer", navigation)
+        self.assertEqual(status, 200)
+        self.assertEqual(html.decode("utf-8"),
+                         render_map(data, inspector_links=True, navigation=navigation))
+        self.assertIn(b'name="source" value="survey-east"', html)
+        self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+        # The preexisting unfiltered JSON route must remain byte-equivalent.
+        status, _, raw = self.fetch("/map-disagreements", QUERY)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw),
+                         self.world.export_geojson_disagreements(AT, K1, BOUNDS))
+        self.assertEqual(disagreement_view(self.world, BOUNDS, AT, K1)
+                         ["monde_disagreements_view"]["conflicting_entities_in_view"], 1)
+
+    def test_disagreement_source_outside_bbox_cannot_qualify_other_source(self):
+        status, _, raw = self.fetch("/map-disagreements",
+                                    {**QUERY, "source": "survey-west"})
+        self.assertEqual(status, 200)
+        data = json.loads(raw)
+        self.assertEqual(data["features"], [])
+        self.assertEqual(data["monde_bbox_query"]["total_matching_entities"], 0)
+        self.assertEqual(data["monde_disagreements_view"]["conflicting_entities_in_view"], 0)
+        self.assertEqual(data["monde_bbox_query"]["status"], "NO_MATCHES")
+
+    def test_disagreement_filter_rejects_invalid_source_and_unknown_parameters(self):
+        for route, view in (("/map-disagreements", False), ("/viewer", True)):
+            for source in ("../survey-east", "bad<script>", "a b"):
+                query = {**QUERY, "source": source}
+                if view:
+                    query["view"] = "disagreements"
+                status, _, raw = self.fetch(route, query)
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        self.assertEqual(self.fetch("/map-disagreements",
+                         {**QUERY, "source": "survey-east", "unexpected": "yes"})[0], 400)
+        html = _explorer_html(("survey-east",))
+        form = html.split('value="disagreements">', 1)[1].split('</form>', 1)[0]
+        self.assertIn('name="source"', form)
+        self.assertIn('list="saved-original-sources"', form)
+
 
 
 class HistoricalSourceLensHTTPTests(unittest.TestCase):

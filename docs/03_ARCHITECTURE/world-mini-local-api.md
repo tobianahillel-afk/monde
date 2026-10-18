@@ -305,3 +305,18 @@ Knowledge/world comparison maps preserve their earlier/later temporal cutoffs.
 This is a native read-only GET /viewer over existing WorldMini queries:
 no new model, inferred physical movement, external service, upload or saved-state
 change. Standalone offline CLI maps intentionally show no server-dependent form.
+
+### Source-specific disagreement map (read-only)
+
+Choose an original `source` on the **Source disagreements** form, or request
+`/viewer?view=disagreements&bbox=...&at=...&known_at=...&source=SOURCE_ID`.
+The filtered `/map-disagreements` JSON route accepts the same optional
+`source`. An entity qualifies only when that source's **own** original Point
+is inside the WGS84 viewport **and** participates in a current cross-source
+contradiction. For each qualifying entity the response **retains every
+opposing original source report**, including positions outside the viewport:
+otherwise the claimed disagreement would appear without its evidence.
+Filtered JSON explicitly states `monde_source_filter_scope` and recalculates
+result counts. Without `source`, the original `/map-disagreements` response
+is unchanged. Nothing is reconciled into a true location, downloaded, or
+written to the saved snapshot.
