@@ -503,3 +503,17 @@ assertion IDs before and after the selected world/knowledge cutoff,
 labelled NEWLY_REPORTED, NO_LONGER_REPORTED or REPORTED_AT_BOTH.
 Links open the existing source-specific history for that entity.
 Reporting presence is not evidence of actual movement or truth.
+
+
+### Filter original reporter transitions (WORK-0111 incremental)
+
+In the source-specific coverage detail, use **All entities**, **Newly reported**,
+**No longer reported** or **At both cutoffs**. These native read-only links
+add an optional `change=new|gone|both` to the existing
+`/source-pair?directory=1&source=...` query; it applies consistently to
+table, JSON and CSV outputs. The unfiltered JSON contract is unchanged;
+a filtered JSON response additionally reports `reporting_filter` and
+`matched_entities` while retaining the original total source counts and
+exact original assertion IDs. The parameter requires a source and rejects
+unknown values. Both temporal axes remain explicit; missing reporting is
+not evidence of a real disappearance, and saved observations are unchanged.

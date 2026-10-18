@@ -219,5 +219,83 @@ class SourceDirectoryTests(unittest.TestCase):
 
 
 
+
+    def test_filter_reporting_transitions_preserves_original_ids(self):
+        query = self.knowledge()
+        q = {**query, "source": "survey-a"}
+        status, _, raw = self.get({**q, "change": "both", "format": "json"})
+        self.assertEqual(status, 200)
+        both = json.loads(raw)
+        self.assertEqual(both["reporting_filter"], "both")
+        self.assertEqual(both["matched_entities"], 2)
+        self.assertEqual([r["entity"] for r in both["entities"]],
+                         ["site-1", "site-only-one-source"])
+        self.assertEqual(both["entities"][0]["earlier_assertion_ids"], ["a-a1"])
+        status, _, raw = self.get({**q, "change": "new", "format": "csv"})
+        self.assertEqual(status, 200)
+        self.assertEqual(list(csv.DictReader(io.StringIO(raw.decode("utf-8")))), [])
+        status, _, html = self.get({**q, "change": "new", "format": "table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"Newly reported", html)
+        self.assertIn(b"0 matching original entities", html)
+        self.assertIn(b"change=gone", html)
+        self.assertIn(b"aria-current", html)
+        self.assertNotIn(b"<script", html)
+        status, _, raw = self.get({**q, "format": "json"})
+        self.assertNotIn("reporting_filter", json.loads(raw))
+
+    def test_new_reporting_filter_real_knowledge_cutoffs_and_csv_parity(self):
+        query = {**self.knowledge(),
+                 "from_known_at": "2026-01-02T12:00:00Z", "source": "survey-a"}
+        status, _, raw = self.get({**query, "change": "new", "format": "json"})
+        self.assertEqual(status, 200)
+        doc = json.loads(raw)
+        self.assertEqual(doc["matched_entities"], 1)
+        self.assertEqual([r["entity"] for r in doc["entities"]],
+                         ["site-only-one-source"])
+        self.assertEqual(doc["entities"][0]["later_assertion_ids"], ["a-orphan"])
+        status, _, raw = self.get({**query, "change": "new", "format": "csv"})
+        self.assertEqual(status, 200)
+        rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+        self.assertEqual([r["entity"] for r in rows], ["site-only-one-source"])
+        self.assertEqual(json.loads(rows[0]["later_assertion_ids"]), ["a-orphan"])
+        status, _, raw = self.get({**query, "change": "both", "format": "json"})
+        self.assertEqual(json.loads(raw)["matched_entities"], 1)
+
+    def test_reporting_filter_rejects_unknown_values_and_directory_misuse(self):
+        for query in ({**self.knowledge(), "change": "new"},
+                      {**self.knowledge(), "source": "survey-a", "change": "OTHER"},
+                      {**self.knowledge(), "source": "survey-a", "change": ""},
+                      {**self.knowledge(), "source": "survey-a",
+                       "change": "new", "discover": "1"}):
+            with self.subTest(query=query):
+                status, _, raw = self.get({**query, "format": "json"})
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+    def test_reporting_filter_world_axis_and_no_snapshot_writes(self):
+        world = sample(dateline=True)
+        path = Path(self.tmp.name) / "world-filter.json"
+        world.save(path)
+        original = path.read_bytes()
+        server = create_server(path)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = {"directory": "1", "axis": "world", "source": "not-present",
+                     "from_at": EARLY, "to_at": LATE, "known_at": KNOWN,
+                     "change": "gone", "format": "json"}
+            status, _, raw = self.get(query, server)
+            self.assertEqual(status, 200)
+            doc = json.loads(raw)
+            self.assertEqual(doc["matched_entities"], 0)
+            self.assertEqual(doc["reporting_filter"], "gone")
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(path.read_bytes(), original)
+
+
 if __name__ == "__main__":
     unittest.main()

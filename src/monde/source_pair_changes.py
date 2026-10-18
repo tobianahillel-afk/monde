@@ -353,8 +353,12 @@ def source_directory(world, axis, cutoffs):
 
 
 
-def source_directory_detail(world, axis, cutoffs, source):
-    """Show original assertion IDs per entity at two bitemporal cutoffs."""
+def source_directory_detail(world, axis, cutoffs, source, change=None):
+    """Show original assertion IDs, optionally limited by reporting transition."""
+    filters = {"new": "NEWLY_REPORTED", "gone": "NO_LONGER_REPORTED",
+               "both": "REPORTED_AT_BOTH"}
+    if change is not None and change not in filters:
+        raise ValueError("invalid original reporting transition")
     if not isinstance(source, str) or not 0 < len(source) <= 200 or any(
             ord(ch) < 32 or ord(ch) == 127 for ch in source):
         raise ValueError("invalid original reporter")
@@ -376,13 +380,19 @@ def source_directory_detail(world, axis, cutoffs, source):
             "earlier_assertion_ids": earlier,
             "later_assertion_ids": later,
         })
-    return {
+    if change is not None:
+        rows = [row for row in rows if row["status"] == filters[change]]
+    result = {
         "schema": "MONDE_SOURCE_COVERAGE_DETAIL_V1",
         "axis": axis, "cutoffs": directory["cutoffs"],
         "source_id": source, "interpretation": directory["interpretation"],
         "earlier_entities": len(before), "later_entities": len(after),
         "entities": rows,
     }
+    if change is not None:
+        result["reporting_filter"] = change
+        result["matched_entities"] = len(rows)
+    return result
 
 
 def discovery_geojson(world, document):

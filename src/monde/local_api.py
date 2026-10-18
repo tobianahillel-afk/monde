@@ -1177,19 +1177,22 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format", "source"})
+                 {"format", "source", "change"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
-                 {"format", "source"})
+                 {"format", "source", "change"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
     if "source" in args:
         from .source_pair_changes import source_directory_detail
-        return source_directory_detail(world, args["axis"], cutoffs, args["source"])
+        return source_directory_detail(
+            world, args["axis"], cutoffs, args["source"], args.get("change"))
+    if "change" in args:
+        raise ValueError("reporting transition filter requires source")
     return source_directory(world, args["axis"], cutoffs)
 
 
@@ -1258,9 +1261,24 @@ def _source_directory_detail_html(document: dict, args: dict[str, str]) -> str:
             escape(", ".join(item["earlier_assertion_ids"])) + '</td><td>' +
             escape(", ".join(item["later_assertion_ids"])) + '</td></tr>')
     csv_link = "/source-pair?" + urlencode({**args, "format": "csv"})
+    filters = (("all", "All entities"), ("new", "Newly reported"),
+               ("gone", "No longer reported"), ("both", "At both cutoffs"))
+    choices = []
+    for mode, label in filters:
+        query = {key: value for key, value in args.items()
+                 if key not in ("change", "format")}
+        if mode != "all":
+            query["change"] = mode
+        query["format"] = "table"
+        active = args.get("change", "all") == mode
+        choices.append(
+            '<strong aria-current="page">' + escape(label) + '</strong>'
+            if active else '<a href="' + escape(
+                "/source-pair?" + urlencode(query), quote=True) + '">' +
+            escape(label) + '</a>')
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
-        '<title>Original reporter coverage details</title>'
+        '<title>Original reporter coverage details</title' + '>'
         '<style>:root{color-scheme:dark;background:#101827;color:#ebf2f9;'
         'font-family:system-ui,sans-serif}body{max-width:950px;margin:auto;'
         'padding:24px}a{color:#8ee6d3}th,td{border:1px solid #59788c;'
@@ -1270,8 +1288,14 @@ def _source_directory_detail_html(document: dict, args: dict[str, str]) -> str:
         escape(document["source_id"]) + '</h1><p>' +
         escape(document["interpretation"]) + '</p><p>' +
         str(document["earlier_entities"]) + ' earlier / ' +
-        str(document["later_entities"]) + ' later entities</p><p><a href="' +
-        escape(csv_link, quote=True) + '">Download original IDs CSV</a></p>'
+        str(document["later_entities"]) + ' later entities</p>'
+        '<nav aria-label="Reporting transitions"><p>Show: ' +
+        ' · '.join(choices) + '</p></nav>' +
+        ('<p role="status">' + str(document["matched_entities"]) +
+         ' matching original entities.</p>' if "reporting_filter" in document
+         else '') +
+        '<p><a href="' + escape(csv_link, quote=True) +
+        '">Download original IDs CSV</a></p>'
         '<table><caption>Evidence per original source entity</caption>'
         '<thead><tr><th scope="col">Entity — inspect source history</th>'
         '<th scope="col">Reported coverage status</th>'
