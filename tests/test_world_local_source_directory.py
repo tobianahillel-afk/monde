@@ -1931,5 +1931,92 @@ class SourceDirectoryTests(unittest.TestCase):
                 self.assertIn(target, actual)
 
 
+
+    def test_original_presence_json_matches_original_csv_and_browser_links(self):
+        """Persisted world, real HTTP JSON/CSV identity parity and browser GET."""
+        from urllib.parse import urlsplit, parse_qs
+        from html import unescape
+        import re
+        query = {**self.knowledge(), "entity": "site-1"}
+        status, headers, payload = self.get({**query, "format": "presence-json"})
+        self.assertEqual(status, 200)
+        self.assertIn("application/json", headers["Content-Type"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+        document = json.loads(payload)
+        self.assertEqual(document["schema"], "MONDE_ORIGINAL_POINT_PRESENCE_V1")
+        self.assertEqual(document["entity"], "site-1")
+        self.assertEqual(document["axis"], "knowledge")
+        self.assertIn("not verified movement", document["interpretation"])
+        self.assertEqual(document["report_count"], len(document["reports"]))
+        self.assertTrue(document["reports"])
+        _, _, raw_csv = self.get({**query, "format": "presence-csv"})
+        csv_rows = list(csv.DictReader(io.StringIO(raw_csv.decode("utf-8"))))
+        self.assertEqual(len(csv_rows), len(document["reports"]))
+        for original, csv_row in zip(document["reports"], csv_rows):
+            for key in ("entity", "source_id", "assertion_id", "evidence_id",
+                        "visibility_transition"):
+                self.assertEqual(str(original[key]), csv_row[key])
+            self.assertEqual(str(original["longitude"]), csv_row["longitude"])
+            self.assertEqual(str(original["latitude"]), csv_row["latitude"])
+            self.assertEqual(int(original["earlier_visible"]),
+                             int(csv_row["earlier_visible"]))
+            self.assertEqual(int(original["later_visible"]),
+                             int(csv_row["later_visible"]))
+        _, _, rendered = self.get({**query, "format": "table"})
+        self.assertIn(b"Download original report presence JSON", rendered)
+        hrefs = [unescape(x) for x in re.findall(
+            r'href="([^"]+)"', rendered.decode("utf-8"))]
+        target = next(x for x in hrefs if "format=presence-json" in x)
+        params = {k: vals[0] for k, vals in
+                  parse_qs(urlsplit(target).query).items()}
+        self.assertEqual(json.loads(self.get(params)[2]), document)
+
+    def test_original_presence_json_source_category_and_scope(self):
+        q = {**self.knowledge(), "entity": "site-1"}
+        entire = json.loads(self.get({**q, "format": "presence-json"})[2])
+        for source in ("survey-a", "survey-b"):
+            for selection, category in (
+                    ("earlier", "EARLIER_ONLY"),
+                    ("later", "LATER_ONLY"),
+                    ("both", "BOTH_CUTOFFS")):
+                params = {**q, "source": source, "presence": selection,
+                          "format": "presence-json"}
+                status, _, body = self.get(params)
+                self.assertEqual(status, 200)
+                result = json.loads(body)
+                self.assertEqual(result["source_focus"], source)
+                self.assertEqual(result["presence_filter"], selection)
+                wanted = [r for r in entire["reports"]
+                          if r["source_id"] == source and
+                          r["visibility_transition"] == category]
+                self.assertEqual(result["reports"], wanted)
+                self.assertEqual(result["report_count"], len(wanted))
+        for bad in (
+                {"format": "presence-json"},
+                {"source": "survey-a", "format": "presence-json"},
+                {"entity": "site-1", "presence": "unknown",
+                 "format": "presence-json"},
+                {"entity": "site-1", "format": "presence-json",
+                 "unrecognized": "x"}):
+            status, _, body = self.get({**self.knowledge(), **bad})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(body)["error"], "invalid_query")
+
+    def test_original_presence_json_world_axis_and_unchanged_saved_world(self):
+        q = {"directory": "1", "axis": "world", "from_at": EARLY,
+             "to_at": LATE, "known_at": KNOWN, "entity": "missing",
+             "format": "presence-json"}
+        status, _, body = self.get(q)
+        self.assertEqual(status, 200)
+        doc = json.loads(body)
+        self.assertEqual(doc["axis"], "world")
+        self.assertEqual(doc["report_count"], 0)
+        self.assertEqual(doc["reports"], [])
+        self.assertEqual(doc["cutoffs"]["earlier"]["world_at"], EARLY)
+        self.assertEqual(doc["cutoffs"]["later"]["world_at"], LATE)
+        self.assertEqual(doc["cutoffs"]["earlier"]["knowledge_at"], KNOWN)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()
