@@ -690,6 +690,62 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
             srv.server_close()
             self.assertEqual(file.read_bytes(), before)
 
+
+    def test_minimum_joint_entities_selects_supported_pair_before_top_ranking(self):
+        # A far-away one-entity disagreement must not conceal a pair
+        # independently reported for two distinct entities.
+        world = fixture_world()
+        def add(source, label, entity, longitude):
+            known = "2026-01-02T10:00:00Z"
+            world.add_evidence({"id": "e-joint-" + label, "source_id": source,
+                                "locator": "fixture://joint-" + label,
+                                "captured_at": known, "source_event_at": known})
+            world.add_assertion({"id": "a-joint-" + label, "entity": entity,
+                                 "attribute": "geo_point",
+                                 "value": {"type": "Point",
+                                           "coordinates": [longitude, 0.0]},
+                                 "evidence_id": "e-joint-" + label,
+                                 "kind": "CLAIM", "known_at": known,
+                                 "valid_from": "2026-01-01T00:00:00Z",
+                                 "valid_to": None, "supersedes": None})
+        add("survey-a", "a-site2", "site-2", 0.)
+        add("survey-b", "b-site2", "site-2", 1.)
+        add("survey-c", "c-site1", "site-1", 100.)
+        target = Path(self.tmp.name) / "multi-source-ranking.json"
+        world.save(target)
+        saved = target.read_bytes()
+        server = create_server(target)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            q = {**self.knowledge(), "top": "1", "format": "json"}
+            code, _, body = self.get(q, server)
+            self.assertEqual(code, 200)
+            first = json.loads(body)["pairs"][0]
+            self.assertIn("survey-c", (first["source_a"], first["source_b"]))
+            code, _, body = self.get({**q, "min_joint": "2"}, server)
+            self.assertEqual(code, 200)
+            selected = json.loads(body)
+            self.assertEqual(selected["total_pairs"], 1)
+            pair = selected["pairs"][0]
+            self.assertEqual((pair["source_a"], pair["source_b"]),
+                             ("survey-a", "survey-b"))
+            self.assertEqual(pair["joint_entities"], 2)
+            code, _, body = self.get({**q, "min_joint": "2",
+                                      "rank": "decreasing"}, server)
+            self.assertEqual(code, 200)
+            trend = json.loads(body)["pairs"][0]
+            self.assertEqual(trend["comparable_entities"], 2)
+            self.assertEqual(trend["matching_entities"], 1)
+            code, _, body = self.get({**q, "min_joint": "3"}, server)
+            self.assertEqual(code, 200)
+            self.assertEqual(json.loads(body)["pairs"], [])
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(target.read_bytes(), saved)
+
 if __name__ == "__main__":
     unittest.main()
 
