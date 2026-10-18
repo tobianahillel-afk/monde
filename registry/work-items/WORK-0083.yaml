@@ -1,0 +1,60 @@
+id: WORK-0083
+title: "Download complete original source evidence across two comparison periods"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini evidence browser"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  From a source coverage row, export both comparison-period original source
+  reports in GeoJSON and CSV without losing provenance or dependence on visual filters.
+scope:
+  in: ["Source-specific original two-period GeoJSON and CSV downloads",
+        "Inspect complete per-entity original evidence across comparison periods",
+       "Preserve complete embedded reports and provenance",
+       "Offline browser regression with active presentation filters"]
+  out: ["New endpoint or database", "Inferred consensus or movement",
+        "External network, paid API or new dependency"]
+acceptance_criteria:
+  - {id: AC-1, description: "Export selected source original reports across both periods.", status: IN_REVIEW}
+  - {id: AC-2, description: "Viewport/search/period controls never truncate the source export.", status: IN_REVIEW}
+  - {id: AC-3, description: "Retain complete provenance and snapshot immutability.", status: IN_REVIEW}
+  - {id: AC-4, description: "Export source-specific CSV with original IDs, period, coordinates and safe quoting.", status: IN_REVIEW}
+  - {id: AC-5, description: "Compare both periods original assertions by entity from one source, independently of display filters.", status: IN_REVIEW}
+  - {id: AC-6, description: "Export complete original two-period source/entity GeoJSON and CSV despite display filters.", status: IN_REVIEW}
+  - {id: AC-7, description: "Focus exact original source Point and its comparison period from expanded evidence.", status: IN_REVIEW}
+  - {id: AC-8, description: "Download one exact original comparison assertion with provenance independently of display filters.", status: IN_REVIEW}
+  - {id: AC-9, description: "Export a complete per-source/entity earlier-later evidence inventory with exact original assertion and evidence IDs, independent of map filters.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0082]
+read_before: [AGENTS.md, src/monde/map_view.py, tests/test_world_local_api_disagreement_report.py, docs/03_ARCHITECTURE/world-mini-local-api.md]
+reuses: [monde.map_view.render_map, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Implement per-source offline evidence export.", depends_on: [], expected_files: [src/monde/map_view.py], status: IN_REVIEW}
+    - {id: T2, description: "Test exact original source payload in browser.", depends_on: [T1], expected_files: [tests/test_world_local_api_disagreement_report.py], status: IN_REVIEW}
+    - {id: T3, description: "Document export scope.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_disagreement_report.py]
+  real_system: ["GitHub Actions world-mini; headless Chromium source-period export"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged WORK-0082 / PR #113 and upstream chain."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close stacked PR; no migration or saved state change."

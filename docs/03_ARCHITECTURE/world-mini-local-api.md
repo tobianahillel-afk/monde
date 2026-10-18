@@ -576,3 +576,74 @@ and explicit `BOTH_SELECTIONS`, `EARLIER_SELECTION_ONLY`, or
 `LATER_SELECTION_ONLY` labels. The CSV is independent of presentation filters,
 escapes untrusted spreadsheet formulas and says nothing about ground-truth
 source presence, actual movement, or physical absence.
+
+
+### Export complete original evidence for one comparison source (WORK-0083)
+
+Each original source coverage row in the standalone comparison map has a
+**Download GeoJSON** and **Download CSV** controls. Both save the selected
+source's complete original Point reports from both comparison periods, retaining individual
+assertion/evidence IDs, original source locations, temporal and comparison
+metadata. It operates on the complete embedded comparison rather than
+the current viewport, source/period control, or search results.
+
+The GeoJSON export includes the explicit metadata object
+monde_source_period_export: original source ID, both earlier/later counts,
+complete embedded count, exported count and the
+COMPLETE_EMBEDDED_SOURCE_NOT_DISPLAY_FILTERED scope label. The CSV reuses the complete-period analyst columns and spreadsheet-safe
+quoting. It includes the original source, assertion/evidence IDs, period,
+coordinates, temporal provenance and export scope for exactly the same original
+features as GeoJSON, even if no markers are currently visible. The flattened
+CSV complements, rather than replaces, full nested GeoJSON. Filenames are
+fixed, not derived from untrusted source text. No endpoint, dependency,
+network call, inferred ground truth or saved-world mutation is added.
+The change is an unmerged stacked candidate on WORK-0082.
+
+### Original source reports by entity across two periods (WORK-0083)
+
+The standalone comparison map's source-coverage table now offers **Compare
+entities**. Expanding a source row groups that source's original Point reports
+by entity and shows earlier/later report counts and individual source assertion
+IDs, evidence IDs and reported coordinates. Groups derive from the entire
+embedded comparison, not the map's viewport, source, search or period display
+filters. They retain competing original reports individually, without consensus,
+inferred disappearance or physical movement. Source and entity labels use
+DOM text assignment rather than HTML. This read-only offline interaction makes
+no network request and never changes the persisted WorldMini snapshot.
+
+Each entity's expanded comparison includes **Download entity GeoJSON** and
+**Download entity CSV**. These preserve both periods' full original assertions,
+evidence IDs, source Point coordinates and bitemporal context even when map
+display filters hide every marker. GeoJSON records the exact original source,
+entity, per-period counts and the explicit scope
+`COMPLETE_EMBEDDED_SOURCE_ENTITY_NOT_DISPLAY_FILTERED`.
+CSV reuses existing spreadsheet-safe complete-evidence columns. Each entity has
+an independent **Both / Earlier / Later** export selector. Earlier/Later exports
+contain only that period's full original source reports and preserve assertion,
+evidence, source and bitemporal identity, irrespective of visible map filters.
+GeoJSON records the selected period, exported count, original period counts and
+the scope `COMPLETE_EMBEDDED_SOURCE_ENTITY_SELECTED_PERIOD_NOT_DISPLAY_FILTERED`.
+The default Both export retains the previous structure. No new route, dependency,
+network call, inferred truth or saved-world mutation.
+
+From each original source/entity comparison row, **Show both periods on map** now reuses the offline viewer to focus and fit the selected source's original entity Point reports. It clears conflicting presentation filters, not the embedded source evidence; no claimed physical movement, consensus position, new endpoint or data mutation.
+
+The expanded source/entity comparison also provides **Show this original report on map**
+for each original source Point assertion. The browser restores that report's actual
+earlier/later comparison period, chooses its exact source/entity and original Point,
+and opens the existing selected-evidence inspector. Conflicting display-only filters
+are reset, while the other source assertions, both embedded original periods, the
+evidence provenance and persisted snapshot remain unchanged. The focus is on a
+source-reported coordinate, not a reconciled actual location or inferred movement.
+
+An individual earlier/later assertion in the expanded comparison row also has **Download this original report**. The offline GeoJSON contains exactly that original Point feature, its full source/assertion/evidence/temporal metadata and original two-period comparison context. `monde_single_report_export` identifies the exact assertion and declares `EXACT_ORIGINAL_ASSERTION_NOT_DISPLAY_FILTERED`. Source, search, viewport and period **display** filters do not truncate the download. The fixed filename avoids deriving a path from untrusted source IDs. No new route, remote request, inferred truth or persisted state mutation.
+
+The same source-coverage row also offers **Download entity inventory CSV**. It
+exports one row per original source/entity in the complete embedded two-period
+selection: per-period original report counts, coverage category, and JSON arrays
+of exact original assertion and evidence IDs. The exported inventory is not
+limited by the current search, map window, source dropdown or selected display
+period. Labels are source-reported coverage only, **not** inferred agreement,
+physical movement or missing-world evidence. CSV fields use the existing
+spreadsheet-safe quoting, with a fixed download filename. This reuses the
+interactive grouping above; no new World Model, endpoint or service.

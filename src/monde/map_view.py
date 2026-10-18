@@ -163,7 +163,7 @@ __MONDE_TIME_NAVIGATION__
 <button type="button" id="comparison-all-sources">Show all original sources</button>
 <button type="button" id="comparison-export-coverage-csv">Export complete source coverage CSV</button>
 <table aria-label="Embedded original reports by source and period">
-<thead><tr><th scope="col">Original source</th><th scope="col">Earlier</th><th scope="col">Later</th><th scope="col">Total reports</th><th scope="col">Selection coverage</th></tr></thead>
+<thead><tr><th scope="col">Original source</th><th scope="col">Earlier</th><th scope="col">Later</th><th scope="col">Total reports</th><th scope="col">Selection coverage</th><th scope="col">Original evidence export</th></tr></thead>
 <tbody id="comparison-source-rows"></tbody>
 </table>
 <p id="comparison-source-total" class="subtle" role="status"></p>
@@ -707,6 +707,237 @@ __MONDE_TIME_NAVIGATION__
         "Both selections" : (value.earlier>0 ?
           "Earlier selection only" : "Later selection only");
       tr.appendChild(coverageCell);
+      // Full original evidence from this source in both comparison periods.
+      // Ignore presentation filters; source IDs are data, never filenames.
+      var exportCell=document.createElement("td"),exportSource=document.createElement("button");
+      exportSource.type="button";
+      exportSource.textContent="Download GeoJSON";
+      exportSource.setAttribute("aria-label","Download both periods of original evidence from source "+id);
+      exportSource.addEventListener("click",function() {
+        var reports=features.filter(function(f){return f.properties.source_id===id;});
+        saveEvidence(Object.assign({},data,{
+          features:reports,
+          monde_source_period_export:{
+            scope:"COMPLETE_EMBEDDED_SOURCE_NOT_DISPLAY_FILTERED",
+            source_id:id,
+            selected_period:"both",
+            earlier_original_report_count:value.earlier,
+            later_original_report_count:value.later,
+            original_feature_count:features.length,
+            exported_feature_count:reports.length
+          }
+        }),"monde-original-source-both-periods.geojson","application/geo+json");
+      });
+      // Reuse complete-period CSV, scoped to this original source; UI filters do not apply.
+      var csvButton=document.createElement("button");
+      csvButton.type="button";
+      csvButton.textContent="Download CSV";
+      csvButton.setAttribute("aria-label","Download both periods of original CSV evidence from source "+id);
+      csvButton.addEventListener("click",function() {
+        var reports=features.filter(function(f){return f.properties.source_id===id;});
+        saveDownload(completeComparisonCsv(reports),
+          "monde-original-source-both-periods.csv","text/csv;charset=utf-8");
+      });
+      // Inspect every original source assertion by entity across both periods.
+      // Build from complete embedded evidence, never from filtered map markers.
+
+      // One complete source/entity inventory for offline analyst comparison.
+      // Reuse the very same full-data groups as the interactive entity list.
+      var originalEntities=new Map();
+      features.forEach(function(f){
+        var p=f.properties,period=p.monde_comparison_period;
+        if(p.source_id!==id||(period!=="earlier"&&period!=="later"))return;
+        if(!originalEntities.has(p.entity))
+          originalEntities.set(p.entity,{earlier:[],later:[]});
+        originalEntities.get(p.entity)[period].push(f);
+      });
+      var inventoryButton=document.createElement("button");
+      inventoryButton.type="button";
+      inventoryButton.textContent="Download entity inventory CSV";
+      inventoryButton.setAttribute("aria-label",
+        "Download complete original entity inventory for source "+id);
+      inventoryButton.addEventListener("click",function(){
+        var columns=["comparison_axis","source_id","entity",
+          "earlier_original_report_count","later_original_report_count",
+          "selection_coverage","earlier_assertion_ids_json",
+          "later_assertion_ids_json","earlier_evidence_ids_json",
+          "later_evidence_ids_json","export_scope"];
+        var rows=Array.from(originalEntities.keys()).sort().map(function(entity){
+          var periods=originalEntities.get(entity);
+          function ids(period,key){
+            return JSON.stringify(periods[period].map(function(f){
+              var p=f.properties;
+              return String(key==="assertion"?
+                (p.assertion_id||p.monde_original_feature_id):p.evidence_id);
+            }));
+          }
+          var earlier=periods.earlier.length,later=periods.later.length;
+          var presence=earlier&&later?"BOTH_SELECTIONS":
+            (earlier?"EARLIER_SELECTION_ONLY":"LATER_SELECTION_ONLY");
+          var values=[data.monde_comparison.axis,id,entity,earlier,later,
+            presence,ids("earlier","assertion"),ids("later","assertion"),
+            ids("earlier","evidence"),ids("later","evidence"),
+            "COMPLETE_EMBEDDED_SOURCE_ENTITY_INVENTORY_NOT_DISPLAY_FILTERED"];
+          return values.map(function(v,i){return csvCell(v,i===3||i===4);})
+            .join(",");
+        });
+        saveDownload("\uFEFF"+columns.join(",")+"\r\n"+rows.join("\r\n")+"\r\n",
+          "monde-original-source-entity-inventory.csv","text/csv;charset=utf-8");
+      });
+      var compareEntitiesButton=document.createElement("button"),expanded=null;
+      compareEntitiesButton.type="button";compareEntitiesButton.textContent="Compare entities";
+      compareEntitiesButton.setAttribute("aria-expanded","false");
+      compareEntitiesButton.setAttribute("aria-label","Compare original entity reports for source "+id);
+      compareEntitiesButton.addEventListener("click",function(){
+        if(expanded){
+          expanded.remove();expanded=null;
+          compareEntitiesButton.setAttribute("aria-expanded","false");return;
+        }
+        var entities=originalEntities;
+        expanded=document.createElement("tr");
+        expanded.className="comparison-source-entities";
+        expanded.dataset.sourceId=id;
+        var cell=document.createElement("td");cell.colSpan=6;
+        var heading=document.createElement("strong");
+        heading.textContent="Original entity evidence from source "+id;
+        cell.appendChild(heading);
+        var note=document.createElement("p");note.className="subtle";
+        note.textContent="Original source reports only. Earlier/later reporting is not proof of physical movement or absence. Display filters do not apply.";
+        cell.appendChild(note);
+        var list=document.createElement("ul");
+        list.setAttribute("aria-label","Original entity reports from source "+id);
+        function navigateEntityReports(entity,period){
+          sources.value=id;document.getElementById("entities").value=entity;
+          presenceSelect.value="";comparisonPeriod.value=period;
+          search.value="";insideOnly.checked=false;
+          currentViewOnly.checked=false;differentOnly.checked=false;
+          changeFilter.value="";traceFilter.value="";
+          capturedFrom.value="";capturedThrough.value="";
+          gpxClockFrom.value="";gpxClockThrough.value="";
+          radiusCenter=null;clearRadiusButton.disabled=true;
+          if(gpkgLayers.length>1)visibleGpkgSources.add(id);
+        }
+        Array.from(entities.keys()).sort().forEach(function(entity){
+          var periods=entities.get(entity);
+          var item=document.createElement("li");item.dataset.entity=entity;
+          var detail=document.createElement("details"),summary=document.createElement("summary");
+          summary.textContent=String(entity)+" — earlier "+periods.earlier.length+
+            ", later "+periods.later.length;
+          detail.appendChild(summary);
+          ["earlier","later"].forEach(function(period){
+            periods[period].forEach(function(f){
+              var p=f.properties,entry=document.createElement("p");
+              entry.className="subtle";entry.dataset.period=period;
+              entry.textContent=period+" · assertion "+String(p.assertion_id||p.monde_original_feature_id)+
+                " · evidence "+String(p.evidence_id)+
+                " · source Point "+f.geometry.coordinates.join(", ");
+              // Focus one original source assertion at its own reported Point.
+              // The other comparison period remains embedded and unchanged.
+              var focusReport=document.createElement("button");
+              focusReport.type="button";
+              focusReport.textContent="Show this original report on map";
+              focusReport.setAttribute("aria-label",
+                "Show original "+period+" report "+String(f.id)+" on map from "+id);
+              focusReport.addEventListener("click",function(){
+                navigateEntityReports(entity,period);
+                inspect(f);
+              });
+              entry.appendChild(document.createTextNode(" "));
+              entry.appendChild(focusReport);
+              // Export the selected assertion itself, not a viewport-filtered subset.
+              var downloadReport=document.createElement("button");
+              downloadReport.type="button";
+              downloadReport.textContent="Download this original report";
+              downloadReport.setAttribute("aria-label",
+                "Download original "+period+" report "+String(f.id)+" from "+id);
+              downloadReport.addEventListener("click",function(){
+                saveEvidence(Object.assign({},data,{
+                  features:[f],
+                  monde_single_report_export:{
+                    scope:"EXACT_ORIGINAL_ASSERTION_NOT_DISPLAY_FILTERED",
+                    source_id:id,entity:entity,comparison_period:period,
+                    assertion_id:p.assertion_id||p.monde_original_feature_id,
+                    evidence_id:p.evidence_id,original_feature_id:f.id,
+                    exported_feature_count:1
+                  }
+                }),"monde-original-report.geojson","application/geo+json");
+              });
+              entry.appendChild(document.createTextNode(" "));
+              entry.appendChild(downloadReport);
+              detail.appendChild(entry);
+            });
+          });
+          // Complete per-entity source evidence, not presentation-filtered.
+          var entityReports=features.filter(function(f){
+            return f.properties.source_id===id && f.properties.entity===entity;
+          });
+          var exportButtons=document.createElement("div");
+          // Entity export period is independent from visible map filters.
+          var exportPeriod=document.createElement("select");
+          exportPeriod.setAttribute("aria-label",
+            "Export original entity period for "+String(entity));
+          [["both","Both original periods"],["earlier","Earlier only"],
+            ["later","Later only"]].forEach(function(choice){
+            var option=document.createElement("option");
+            option.value=choice[0];option.textContent=choice[1];
+            exportPeriod.appendChild(option);
+          });
+          function selectedEntityReports(){
+            return exportPeriod.value==="both" ? entityReports :
+              entityReports.filter(function(f){
+                return f.properties.monde_comparison_period===exportPeriod.value;
+              });
+          }
+          exportButtons.appendChild(exportPeriod);
+          var entityGeo=document.createElement("button");
+          entityGeo.type="button";entityGeo.textContent="Download entity GeoJSON";
+          entityGeo.addEventListener("click",function(){
+            saveEvidence(Object.assign({},data,{
+              features:selectedEntityReports(),
+              monde_source_entity_export:{
+                scope:exportPeriod.value==="both" ?
+                  "COMPLETE_EMBEDDED_SOURCE_ENTITY_NOT_DISPLAY_FILTERED" :
+                  "COMPLETE_EMBEDDED_SOURCE_ENTITY_SELECTED_PERIOD_NOT_DISPLAY_FILTERED",
+                source_id:id,entity:entity,selected_period:exportPeriod.value,
+                earlier_original_report_count:periods.earlier.length,
+                later_original_report_count:periods.later.length,
+                exported_feature_count:selectedEntityReports().length
+              }
+            }),"monde-original-source-entity-"+exportPeriod.value+
+              (exportPeriod.value==="both"?"-periods.geojson":"-period.geojson"),
+              "application/geo+json");
+          });
+          var entityCsv=document.createElement("button");
+          entityCsv.type="button";entityCsv.textContent="Download entity CSV";
+          entityCsv.addEventListener("click",function(){
+            saveDownload(completeComparisonCsv(selectedEntityReports()),
+              "monde-original-source-entity-"+exportPeriod.value+
+                (exportPeriod.value==="both"?"-periods.csv":"-period.csv"),
+              "text/csv;charset=utf-8");
+          });
+          exportButtons.appendChild(entityGeo);exportButtons.appendChild(entityCsv);
+          var showOnMap=document.createElement("button");
+          showOnMap.type="button";showOnMap.textContent="Show both periods on map";
+          showOnMap.setAttribute("aria-label",
+            "Show both original source-reported periods on map for "+String(entity)+" from "+id);
+          showOnMap.addEventListener("click",function(){
+            // Reuse identical visual reset for both-period navigation.
+            navigateEntityReports(entity,"");
+            fitReports();
+          });
+          exportButtons.appendChild(showOnMap);
+          detail.appendChild(exportButtons);
+          item.appendChild(detail);list.appendChild(item);
+        });
+        cell.appendChild(list);expanded.appendChild(cell);
+        tr.insertAdjacentElement("afterend",expanded);
+        compareEntitiesButton.setAttribute("aria-expanded","true");
+      });
+      exportCell.appendChild(exportSource);
+      exportCell.appendChild(csvButton);
+      exportCell.appendChild(compareEntitiesButton);
+      exportCell.appendChild(inventoryButton);
+      tr.appendChild(exportCell);
       rows.appendChild(tr);
     });
     // Download exactly the embedded original source selection, not a derivative

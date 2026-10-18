@@ -1612,5 +1612,425 @@ body.dataset.coverageCsvDisplayFilter=document.getElementById("comparison-period
 
 
 
+    def test_coverage_row_download_contains_exact_original_source_evidence(self):
+        """Source-scoped two-period GeoJSON is independent of map display filters."""
+        import shutil
+        import subprocess
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, body = self.fetch("/disagreement-compare.html", params)
+        self.assertEqual(status, 200)
+        html = body.decode("utf-8")
+        document = self.embedded_map(html)
+        sources = sorted({f["properties"]["source_id"] for f in document["features"]})
+        self.assertTrue(sources)
+        source = sources[0]
+        expected = [f for f in document["features"]
+                    if f["properties"]["source_id"] == source]
+        earlier = sum(f["properties"]["monde_comparison_period"] == "earlier"
+                      for f in expected)
+        later = sum(f["properties"]["monde_comparison_period"] == "later"
+                    for f in expected)
+        probe = """<script>
+const body=document.body,source=__SOURCE__,expected=__EXPECTED__;
+const row=Array.from(document.querySelectorAll("#comparison-source-rows tr"))
+  .find(x=>x.dataset.sourceId===source);
+body.dataset.sourceDownloadButton=String(Boolean(row && row.children[5]
+  .querySelector("button")));
+const NativeBlob=window.Blob;
+window.Blob=function(parts,options){
+  if(options && options.type && options.type.startsWith("text/csv")){
+    const csv=String(parts[0]),lines=csv.replace(/^\\uFEFF/,"").trimEnd().split("\\r\\n");
+    const assertions=expected.map(f=>String(f.properties.assertion_id||
+      f.properties.monde_original_feature_id));
+    body.dataset.sourceCsvIntegrity=String(
+      lines.length===expected.length+1 &&
+      lines[0].includes("assertion_id") &&
+      lines[0].includes("source_id") &&
+      lines[0].includes("period") &&
+      lines[0].includes("export_scope") &&
+      lines.slice(1).every(line=>line.includes('"'+source.replace(/"/g,'""')+'"')) &&
+      assertions.every(id=>csv.includes('"'+id.replace(/"/g,'""')+'"')) &&
+      csv.includes("COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED"));
+    return new NativeBlob(parts,options);
+  }
+  const output=JSON.parse(String(parts[0]));
+  const meta=output.monde_source_period_export;
+  body.dataset.sourceDownloadIntegrity=String(
+    JSON.stringify(output.features)===JSON.stringify(expected) &&
+    meta.source_id===source && meta.selected_period==="both" &&
+    meta.earlier_original_report_count===__EARLIER__ &&
+    meta.later_original_report_count===__LATER__ &&
+    meta.original_feature_count>=expected.length &&
+    meta.exported_feature_count===expected.length &&
+    meta.scope==="COMPLETE_EMBEDDED_SOURCE_NOT_DISPLAY_FILTERED" &&
+    output.monde_comparison.axis!==undefined);
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  if(this.download.endsWith(".csv"))body.dataset.sourceCsvFilename=this.download;
+  else body.dataset.sourceDownloadFilename=this.download;
+};
+const selection=document.getElementById("sources");
+selection.value=source;selection.dispatchEvent(new Event("change"));
+const period=document.getElementById("comparison-period");
+period.value="later";period.dispatchEvent(new Event("change"));
+const search=document.getElementById("report-search");
+search.value="no-visible-match";search.dispatchEvent(new Event("input"));
+row.children[5].querySelector("button").click();
+row.children[5].querySelectorAll("button")[1].click();
+body.dataset.sourceDownloadPeriodUnchanged=String(period.value==="later");
+</script>"""
+        probe = (probe.replace("__SOURCE__", json.dumps(source))
+                      .replace("__EXPECTED__", json.dumps(expected))
+                      .replace("__EARLIER__", str(earlier))
+                      .replace("__LATER__", str(later)))
+        output = Path(self.folder.name) / "source-original-export.html"
+        output.write_text(html.replace("</body>", probe + "</body>"),
+                          encoding="utf-8")
+        rendered = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", output.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            timeout=30, check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', rendered)
+        self.assertIn('data-source-download-button="true"', rendered)
+        self.assertIn('data-source-download-integrity="true"', rendered)
+        self.assertIn('data-source-download-period-unchanged="true"', rendered)
+        self.assertIn('data-source-csv-integrity="true"', rendered)
+        self.assertIn('data-source-csv-filename="monde-original-source-both-periods.csv"', rendered)
+        self.assertIn('data-source-download-filename="monde-original-source-both-periods.geojson"',
+                      rendered)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+
+
+    def test_source_entity_comparison_shows_all_embedded_reports(self):
+        """Real offline browser: inspect source/entity evidence despite display filters."""
+        import shutil
+        import subprocess
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium unavailable; GitHub Actions includes headless Chromium")
+        status, _, response = self.fetch("/disagreement-compare.html", {
+            **QUERY, "source": "survey-east", "entity": "site-a",
+            "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(status, 200)
+        html = response.decode("utf-8")
+        embedded = self.embedded_map(html)
+        source = embedded["features"][0]["properties"]["source_id"]
+        evidence = [f for f in embedded["features"] if f["properties"]["source_id"] == source]
+        self.assertTrue(evidence)
+        probe = """<script>
+const root=document.body,src=__SOURCE__,expected=__EVIDENCE__;
+const referenceComparison=__COMPARISON__;
+const tr=Array.from(document.querySelectorAll("#comparison-source-rows tr"))
+  .find(x=>x.dataset.sourceId===src);
+const button=Array.from(tr.children[5].querySelectorAll("button"))
+  .find(x=>x.textContent==="Compare entities");
+const period=document.getElementById("comparison-period");
+period.value="later";period.dispatchEvent(new Event("change"));
+const search=document.getElementById("report-search");
+search.value="no-such-visible-item";search.dispatchEvent(new Event("input"));
+button.click();
+const expansion=tr.nextElementSibling;
+const actual=Array.from(expansion.querySelectorAll("p[data-period]"));
+const entityNames=Array.from(expansion.querySelectorAll("li[data-entity]"))
+  .map(x=>x.dataset.entity).sort();
+const originalNames=Array.from(new Set(expected.map(x=>x.properties.entity))).sort();
+root.dataset.sourceEntityComplete=String(
+  button.getAttribute("aria-expanded")==="true" &&
+  expansion.className==="comparison-source-entities" &&
+  expansion.dataset.sourceId===src &&
+  actual.length===expected.length &&
+  JSON.stringify(entityNames)===JSON.stringify(originalNames) &&
+  expected.every(f=>actual.some(p=>
+    p.dataset.period===f.properties.monde_comparison_period &&
+    p.textContent.includes(String(f.properties.assertion_id||
+      f.properties.monde_original_feature_id)) &&
+    p.textContent.includes(String(f.properties.evidence_id)) &&
+    p.textContent.includes(f.geometry.coordinates.join(", ")))));
+root.dataset.sourceEntityFiltersPreserved=String(
+  period.value==="later" && search.value==="no-such-visible-item");
+const chosenEntity=originalNames[0];
+const row=Array.from(expansion.querySelectorAll("li[data-entity]"))
+  .find(x=>x.dataset.entity===chosenEntity);
+const expectedEntity=expected.filter(x=>x.properties.entity===chosenEntity);
+const NativeBlob=window.Blob;
+let geoOK=false,csvOK=false;
+window.Blob=function(parts,options){
+  if(options && options.type && options.type.startsWith("text/csv")){
+    const csv=String(parts[0]);
+    csvOK=csv.includes("COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED") &&
+      csv.trimEnd().split("\\r\\n").length===expectedEntity.length+1 &&
+      expectedEntity.every(f=>csv.includes('"'+String(f.properties.assertion_id||
+        f.properties.monde_original_feature_id).replace(/"/g,'""')+'"'));
+  }else if(options && options.type==="application/geo+json"){
+    const output=JSON.parse(String(parts[0])),meta=output.monde_source_entity_export;
+    geoOK=JSON.stringify(output.features)===JSON.stringify(expectedEntity) &&
+      meta.scope==="COMPLETE_EMBEDDED_SOURCE_ENTITY_NOT_DISPLAY_FILTERED" &&
+      meta.source_id===src && meta.entity===chosenEntity &&
+      meta.selected_period==="both" &&
+      meta.exported_feature_count===expectedEntity.length &&
+      meta.earlier_original_report_count===expectedEntity.filter(f=>
+        f.properties.monde_comparison_period==="earlier").length &&
+      meta.later_original_report_count===expectedEntity.filter(f=>
+        f.properties.monde_comparison_period==="later").length;
+  }
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  if(this.download.endsWith(".csv"))root.dataset.entityCsvFilename=this.download;
+  else root.dataset.entityGeoFilename=this.download;
+};
+// Only the three export/navigation actions, not report-level focus buttons.
+const exports=row.querySelector("details > div").querySelectorAll("button");
+root.dataset.entityExportButtons=String(exports.length===3);
+exports[0].click();exports[1].click();
+root.dataset.entityGeoComplete=String(geoOK);
+root.dataset.entityCsvComplete=String(csvOK);
+root.dataset.entityBothGeoFilename=root.dataset.entityGeoFilename;
+root.dataset.entityBothCsvFilename=root.dataset.entityCsvFilename;
+root.dataset.entityExportFiltersPreserved=String(
+  period.value==="later" && search.value==="no-such-visible-item");
+// Browser-level earlier/later evidence export must ignore presentation filters.
+const entityPeriod=row.querySelector('select[aria-label^="Export original entity period for"]');
+root.dataset.entityPeriodDefaultsBoth=String(entityPeriod?.value==="both");
+const oldBlob=window.Blob;
+for(const selected of ["earlier","later"]){
+  let actualGeo=false,actualCsv=false;
+  const chosen=expectedEntity.filter(f=>f.properties.monde_comparison_period===selected);
+  entityPeriod.value=selected;
+  window.Blob=function(parts,options){
+    if(options.type==="application/geo+json"){
+      const obj=JSON.parse(String(parts[0])),meta=obj.monde_source_entity_export;
+      actualGeo=JSON.stringify(obj.features)===JSON.stringify(chosen) &&
+        meta.scope==="COMPLETE_EMBEDDED_SOURCE_ENTITY_SELECTED_PERIOD_NOT_DISPLAY_FILTERED" &&
+        meta.source_id===src && meta.entity===chosenEntity &&
+        meta.selected_period===selected && meta.exported_feature_count===chosen.length &&
+        meta.earlier_original_report_count===expectedEntity.filter(f=>
+          f.properties.monde_comparison_period==="earlier").length &&
+        meta.later_original_report_count===expectedEntity.filter(f=>
+          f.properties.monde_comparison_period==="later").length;
+    }else if(options.type.startsWith("text/csv")){
+      const csv=String(parts[0]);
+      actualCsv=csv.includes("source_id") &&
+        csv.trimEnd().split(String.fromCharCode(13,10)).length===chosen.length+1 &&
+        chosen.every(f=>csv.includes('"'+String(f.properties.assertion_id||
+          f.properties.monde_original_feature_id).replace(/"/g,'""')+'"'));
+    }
+    return new NativeBlob(parts,options);
+  };
+  exports[0].click();exports[1].click();
+  root.dataset["entity"+(selected==="earlier"?"Earlier":"Later")+"ExportComplete"]=
+    String(actualGeo && actualCsv &&
+      root.dataset.entityGeoFilename==="monde-original-source-entity-"+selected+"-period.geojson" &&
+      root.dataset.entityCsvFilename==="monde-original-source-entity-"+selected+"-period.csv" &&
+      period.value==="later" && search.value==="no-such-visible-item");
+}
+window.Blob=oldBlob;
+// Navigate from comparison evidence to its source/entitity map without
+// changing the complete underlying embedded original selection.
+const show=Array.from(exports).find(x=>x.textContent==="Show both periods on map");
+show?.click();
+root.dataset.entityFocusMap=String(
+  !!show && document.getElementById("sources").value===src &&
+  document.getElementById("entities").value===chosenEntity &&
+  period.value==="" && search.value==="" &&
+  document.querySelectorAll("#points circle").length===expectedEntity.length &&
+  document.getElementById("fit-reports").disabled===false);
+// Navigate from a hidden original report to its exact period/point and
+// verify the existing evidence inspector selects THAT assertion.
+const one=expectedEntity[0];
+const samePeriod=expectedEntity.filter(f=>
+  f.properties.monde_comparison_period===one.properties.monde_comparison_period);
+const originalEntry=Array.from(row.querySelectorAll("p[data-period]"))
+  .find(p=>p.dataset.period===one.properties.monde_comparison_period &&
+    p.textContent.includes(String(one.properties.assertion_id||
+      one.properties.monde_original_feature_id)) &&
+    p.textContent.includes(String(one.properties.evidence_id)));
+const reportJump=Array.from(originalEntry?.querySelectorAll("button")||[])
+  .find(b=>b.textContent==="Show this original report on map");
+period.value=one.properties.monde_comparison_period==="earlier"?"later":"earlier";
+search.value="no-such-visible-item";search.dispatchEvent(new Event("input"));
+const originalDownload=Array.from(originalEntry?.querySelectorAll("button")||[])
+  .find(b=>b.textContent==="Download this original report");
+let exactDownloaded=false;
+window.Blob=function(parts,options){
+  if(options?.type==="application/geo+json"){
+    const single=JSON.parse(String(parts[0]));
+    const meta=single.monde_single_report_export;
+    exactDownloaded=single.type==="FeatureCollection" &&
+      JSON.stringify(single.features)===JSON.stringify([one]) &&
+      JSON.stringify(single.monde_comparison)===JSON.stringify(referenceComparison) &&
+      meta.scope==="EXACT_ORIGINAL_ASSERTION_NOT_DISPLAY_FILTERED" &&
+      meta.source_id===src && meta.entity===chosenEntity &&
+      meta.comparison_period===one.properties.monde_comparison_period &&
+      meta.assertion_id===(one.properties.assertion_id||
+        one.properties.monde_original_feature_id) &&
+      meta.original_feature_id===one.id &&
+      meta.evidence_id===one.properties.evidence_id &&
+      meta.exported_feature_count===1;
+  }
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  root.dataset.originalReportFilename=this.download;
+};
+originalDownload?.click();
+root.dataset.originalReportExactExport=String(
+  !!originalDownload && exactDownloaded &&
+  root.dataset.originalReportFilename==="monde-original-report.geojson" &&
+  period.value!==one.properties.monde_comparison_period &&
+  search.value==="no-such-visible-item");
+window.Blob=oldBlob;
+reportJump?.click();
+const exactMarker=Array.from(document.querySelectorAll("#points circle.selected"));
+const selectedText=document.getElementById("details").textContent;
+root.dataset.entityExactDiagnostic=[
+  Boolean(originalEntry),Boolean(reportJump),
+  document.getElementById("sources").value===src,
+  document.getElementById("entities").value===chosenEntity,
+  period.value===one.properties.monde_comparison_period,
+  search.value==="",
+  document.querySelectorAll("#points circle").length===samePeriod.length,
+  exactMarker.length===1,
+  selectedText.includes("Assertion: "+String(one.id)),
+  selectedText.includes("Evidence: "+String(one.properties.evidence_id)),
+  document.getElementById("focus-selected").disabled===false
+].map(x=>x?"1":"0").join("");
+root.dataset.entityExactReportMap=String(
+  !!reportJump && document.getElementById("sources").value===src &&
+  document.getElementById("entities").value===chosenEntity &&
+  period.value===one.properties.monde_comparison_period &&
+  search.value==="" &&
+  document.querySelectorAll("#points circle").length===samePeriod.length &&
+  exactMarker.length===1 &&
+  selectedText.includes("Assertion: "+String(one.id)) &&
+  selectedText.includes("Evidence: "+String(one.properties.evidence_id)) &&
+  document.getElementById("focus-selected").disabled===false);
+button.click();
+root.dataset.sourceEntityClosed=String(
+  button.getAttribute("aria-expanded")==="false" &&
+  !tr.nextElementSibling?.classList.contains("comparison-source-entities"));
+</script>"""
+        probe = (probe.replace("__SOURCE__", json.dumps(source))
+                      .replace("__EVIDENCE__", json.dumps(evidence))
+                      .replace("__COMPARISON__", json.dumps(embedded.get("monde_comparison"))))
+        target = Path(self.folder.name) / "source-entity-comparison.html"
+        target.write_text(html.replace("</body>", probe + "</body>"), encoding="utf-8")
+        result = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", target.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
+            check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', result)
+        self.assertIn('data-source-entity-complete="true"', result)
+        self.assertIn('data-source-entity-filters-preserved="true"', result)
+        self.assertIn('data-source-entity-closed="true"', result)
+        self.assertIn('data-entity-export-buttons="true"', result)
+        self.assertIn('data-entity-geo-complete="true"', result)
+        self.assertIn('data-entity-csv-complete="true"', result)
+        self.assertIn('data-entity-export-filters-preserved="true"', result)
+        self.assertIn('data-entity-period-defaults-both="true"', result)
+        self.assertIn('data-entity-focus-map="true"', result)
+        self.assertIn('data-entity-exact-report-map="true"', result)
+        self.assertIn('data-original-report-exact-export="true"', result)
+        self.assertIn('data-original-report-filename="monde-original-report.geojson"', result)
+        self.assertIn('data-entity-earlier-export-complete="true"', result)
+        self.assertIn('data-entity-later-export-complete="true"', result)
+        self.assertIn('data-entity-both-geo-filename="monde-original-source-entity-both-periods.geojson"', result)
+        self.assertIn('data-entity-both-csv-filename="monde-original-source-entity-both-periods.csv"', result)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+
+    def test_source_entity_inventory_csv_matches_original_periods_despite_filters(self):
+        """Actual Chromium export: every entity and original ID, independent of presentation."""
+        import base64
+        import re
+        import shutil
+        import subprocess
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        status, _, response = self.fetch("/disagreement-compare.html", {
+            **QUERY, "source": "survey-east", "entity": "site-a",
+            "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(status, 200)
+        html = response.decode("utf-8")
+        embedded = self.embedded_map(html)
+        source = embedded["features"][0]["properties"]["source_id"]
+        expected = [f for f in embedded["features"]
+                    if f["properties"]["source_id"] == source]
+        self.assertTrue(expected)
+        probe = """<script>
+const body=document.body,source=__SOURCE__;
+const row=Array.from(document.querySelectorAll("#comparison-source-rows tr"))
+  .find(x=>x.dataset.sourceId===source);
+const period=document.getElementById("comparison-period");
+period.value="later";period.dispatchEvent(new Event("change"));
+const search=document.getElementById("report-search");
+search.value="absent-original-report";search.dispatchEvent(new Event("input"));
+const NativeBlob=window.Blob;
+window.Blob=function(parts,options) {
+  if(options?.type?.startsWith("text/csv"))
+    body.dataset.inventoryCsvBase64=btoa(unescape(encodeURIComponent(String(parts[0]))));
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  body.dataset.inventoryFilename=this.download;
+};
+Array.from(row.children[5].querySelectorAll("button"))
+  .find(x=>x.textContent==="Download entity inventory CSV").click();
+body.dataset.inventoryFiltersPreserved=String(period.value==="later" &&
+  search.value==="absent-original-report");
+</script>""".replace("__SOURCE__", json.dumps(source))
+        target = Path(self.folder.name) / "source-entity-inventory.html"
+        target.write_text(html.replace("</body>", probe + "</body>"), encoding="utf-8")
+        rendered = subprocess.run(
+            [browser, "--headless", "--no-sandbox", "--disable-gpu",
+             "--disable-dev-shm-usage", "--dump-dom", target.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
+            check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', rendered)
+        self.assertIn('data-inventory-filename="monde-original-source-entity-inventory.csv"',
+                      rendered)
+        self.assertIn('data-inventory-filters-preserved="true"', rendered)
+        matched = re.search(r'data-inventory-csv-base64="([A-Za-z0-9+/=]+)"', rendered)
+        self.assertIsNotNone(matched, "Inventory export was not generated")
+        payload = base64.b64decode(matched.group(1)).decode("utf-8-sig")
+        rows = list(csv.DictReader(io.StringIO(payload)))
+        keys = {(feature["properties"]["source_id"], feature["properties"]["entity"])
+                for feature in expected}
+        self.assertEqual({(row["source_id"], row["entity"]) for row in rows}, keys)
+        for row in rows:
+            reports = [f for f in expected if f["properties"]["entity"] == row["entity"]]
+            self.assertEqual(row["source_id"], source)
+            self.assertEqual(row["comparison_axis"], embedded["monde_comparison"]["axis"])
+            for period_name in ("earlier", "later"):
+                subset = [f for f in reports
+                          if f["properties"]["monde_comparison_period"] == period_name]
+                self.assertEqual(int(row[period_name + "_original_report_count"]), len(subset))
+                self.assertEqual(json.loads(row[period_name + "_assertion_ids_json"]),
+                                 [str(f["properties"].get("assertion_id") or
+                                      f["properties"].get("monde_original_feature_id"))
+                                  for f in subset])
+                self.assertEqual(json.loads(row[period_name + "_evidence_ids_json"]),
+                                 [str(f["properties"]["evidence_id"]) for f in subset])
+            earlier = int(row["earlier_original_report_count"])
+            later = int(row["later_original_report_count"])
+            self.assertEqual(row["selection_coverage"],
+                "BOTH_SELECTIONS" if earlier and later else
+                "EARLIER_SELECTION_ONLY" if earlier else "LATER_SELECTION_ONLY")
+            self.assertEqual(row["export_scope"],
+                "COMPLETE_EMBEDDED_SOURCE_ENTITY_INVENTORY_NOT_DISPLAY_FILTERED")
+        self.assertEqual(self.path.read_bytes(), self.before)
+
 if __name__ == "__main__":
     unittest.main()
