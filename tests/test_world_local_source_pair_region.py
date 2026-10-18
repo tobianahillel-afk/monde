@@ -25,14 +25,14 @@ class GeographicSourcePairTests(unittest.TestCase):
                 ("survey-a", "far-a", 30.0), ("survey-b", "far-b", 32.0)):
             self.world.add_evidence({
                 "id": "e-" + suffix, "source_id": source,
-                "locator": "fixture://" + suffix, "captured_at": BEFORE,
-                "source_event_at": BEFORE,
+                "locator": "fixture://" + suffix, "captured_at": AFTER,
+                "source_event_at": AFTER,
             })
             self.world.add_assertion({
                 "id": "a-" + suffix, "entity": "site-far", "attribute": "geo_point",
                 "value": {"type": "Point", "coordinates": [longitude, 0.0]},
                 "evidence_id": "e-" + suffix, "kind": "CLAIM",
-                "known_at": BEFORE, "valid_from": "2026-01-01T00:00:00Z",
+                "known_at": AFTER, "valid_from": "2026-01-01T00:00:00Z",
                 "valid_to": None, "supersedes": None,
             })
         self.world.save(self.path)

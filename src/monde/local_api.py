@@ -1081,7 +1081,7 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
         '<p>' + export_link("html", "Open comparison map") + " · " +
         export_link("json", "Canonical JSON") + " · " +
         export_link("geojson", "Original Point GeoJSON") + " · " +
-        export_link("csv", "Download complete evidence CSV") + "</p>"
+        export_link("csv", "Download complete evidence CSV") + "</p>" +
         ('<p>Geographic focus: original Point inside ' +
          escape(str(document["spatial_filter"]["bbox"])) +
          ' in either period; complete original reports remain available.</p>'
