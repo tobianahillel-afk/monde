@@ -412,7 +412,8 @@ class DisagreementReportHTTPTests(unittest.TestCase):
         parser = Anchors()
         parser.feed(raw.decode())
         target = [u for u in parser.links if urlsplit(u).path in (
-            "/viewer", "/map-disagreements", "/disagreement.csv")]
+            "/viewer", "/map-disagreements", "/disagreement.csv")
+            and "view=disagreement-comparison" not in u]
         self.assertEqual(len(target), 6)
         for link in target:
             parsed = urlsplit(link)
@@ -466,6 +467,8 @@ class DisagreementReportHTTPTests(unittest.TestCase):
             if parsed.path not in ("/viewer", "/map-disagreements", "/disagreement.csv"):
                 continue
             args = {key: value[0] for key, value in parse_qs(parsed.query).items()}
+            if parsed.path == "/viewer" and args.get("view") == "disagreement-comparison":
+                continue  # This new link intentionally retains both temporal cutoffs.
             self.assertNotIn("from_at", args)
             self.assertEqual(args["known_at"], K1)
             self.assertEqual(args["source"], "survey-east")
@@ -961,6 +964,137 @@ class DisagreementReportHTTPTests(unittest.TestCase):
         form = self.focus_form(html)
         self.assertEqual(form.inputs["entity"], injected)
         self.assertEqual(self.fetch(form.action, {**form.inputs, "entity": ""})[0], 200)
+
+
+
+    @staticmethod
+    def embedded_map(html):
+        """Read the real offline viewer's data script without a browser dependency."""
+        from html.parser import HTMLParser
+
+        class Reader(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.inside = False
+                self.parts = []
+
+            def handle_starttag(self, tag, attrs):
+                if tag == "script" and dict(attrs).get("id") == "monde-data":
+                    self.inside = True
+
+            def handle_endtag(self, tag):
+                if tag == "script":
+                    self.inside = False
+
+            def handle_data(self, data):
+                if self.inside:
+                    self.parts.append(data)
+
+        parser = Reader()
+        parser.feed(html)
+        return json.loads("".join(parser.parts))
+
+    def test_both_original_disagreement_periods_open_on_one_map(self):
+        from html import unescape
+        from re import search
+        from urllib.parse import parse_qs, urlsplit
+
+        for axis in ({"from_known_at": "2026-01-09T00:00:00Z"},
+                     {"from_at": "2026-01-01T01:00:00Z"}):
+            with self.subTest(axis=axis):
+                selected = {**QUERY, "source": "survey-east",
+                            "entity": "site-a", **axis}
+                status, _, report = self.fetch("/disagreement-report", selected)
+                self.assertEqual(status, 200)
+                link = search(
+                    r'href="([^"]+)">Map both original evidence periods</a>',
+                    report.decode("utf-8"))
+                self.assertIsNotNone(link)
+                opened = urlsplit(unescape(link.group(1)))
+                self.assertEqual(opened.path, "/viewer")
+                params = {name: values[0]
+                          for name, values in parse_qs(opened.query).items()}
+                self.assertEqual(params.pop("view"), "disagreement-comparison")
+                self.assertEqual(params, selected)
+                code, headers, body = self.fetch(
+                    opened.path, {"view": "disagreement-comparison", **params})
+                self.assertEqual(code, 200)
+                self.assertIn(b"Two original source-report periods on one map", body)
+                self.assertIn(b"NOT verified movement", body)
+                self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+                self.assertNotIn("Access-Control-Allow-Origin", headers)
+                mapped = self.embedded_map(body.decode("utf-8"))
+                exported = json.loads(
+                    self.fetch("/disagreement-compare.geojson", selected)[2])
+                self.assertEqual(mapped["features"], exported["features"])
+                self.assertEqual(mapped["monde_comparison"],
+                                 exported["monde_comparison"])
+                self.assertEqual({f["properties"]["source_id"]
+                                  for f in mapped["features"]},
+                                 {"survey-east", "survey-west"})
+                self.assertEqual({f["properties"]["monde_inside_bbox"]
+                                  for f in mapped["features"]}, {True, False})
+                self.assertEqual(
+                    mapped["monde_bbox_query"]["total_source_features"],
+                    len(exported["features"]))
+
+    def test_both_period_map_change_filter_and_empty_evidence(self):
+        params = {**QUERY, "from_known_at": "2026-01-09T00:00:00Z",
+                  "source": "survey-east", "entity": "site-a"}
+        for kind in ("appeared", "disappeared", "modified"):
+            with self.subTest(kind=kind):
+                selected = {**params, "change_kind": kind}
+                status, _, body = self.fetch(
+                    "/viewer", {"view": "disagreement-comparison", **selected})
+                self.assertEqual(status, 200)
+                mapped = self.embedded_map(body.decode("utf-8"))
+                exported = json.loads(
+                    self.fetch("/disagreement-compare.geojson", selected)[2])
+                self.assertEqual(mapped["features"], exported["features"])
+                self.assertEqual(mapped["monde_bbox_query"]["status"],
+                                 "MATCHES" if exported["features"] else "NO_MATCHES")
+        status, _, body = self.fetch(
+            "/viewer", {"view": "disagreement-comparison",
+                        **params, "change_kind": "disappeared"})
+        self.assertEqual(status, 200)
+        self.assertEqual(self.embedded_map(body.decode())["features"], [])
+
+    def test_both_period_map_rejects_invalid_or_ambiguous_input(self):
+        valid = {**QUERY, "from_known_at": "2026-01-09T00:00:00Z"}
+        for params in (QUERY,
+                       {**valid, "from_at": "2026-01-01T00:00:00Z"},
+                       {**valid, "change_kind": "invalid"},
+                       {**valid, "source": "../../evil"},
+                       {**valid, "extra": "unexpected"},
+                       {**valid, "from_known_at": K1}):
+            with self.subTest(params=params):
+                status, _, body = self.fetch(
+                    "/viewer", {"view": "disagreement-comparison", **params})
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(body), {"error": "invalid_query"})
+
+
+
+
+    def test_comparison_map_link_from_explore_does_not_switch_view(self):
+        from html import unescape
+        from re import search
+        from urllib.parse import parse_qs, urlsplit
+
+        selected = {**QUERY, "view": "disagreements", "source": "survey-east",
+                    "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, body = self.fetch("/disagreement-report", selected)
+        self.assertEqual(status, 200)
+        link = search(r'href="([^"]+)">Map both original evidence periods</a>',
+                      body.decode())
+        self.assertIsNotNone(link)
+        url = urlsplit(unescape(link.group(1)))
+        args = {key: values[0]
+                for key, values in parse_qs(url.query).items()}
+        self.assertEqual(args["view"], "disagreement-comparison")
+        self.assertEqual(args["source"], selected["source"])
+        self.assertEqual(self.fetch(url.path, args)[0], 200)
+
 
 
 

@@ -637,6 +637,24 @@ def _disagreement_comparison_geojson(comparison: dict) -> dict:
     }
 
 
+
+def _disagreement_comparison_map(comparison: dict) -> dict:
+    """Display original reports from both periods on the existing source map."""
+    document = _disagreement_comparison_geojson(comparison)
+    reports = document["features"]
+    return {**document, "monde_bbox_query": {
+        "basis": "SOURCE_REPORTED_POINT_BBOX_ONLY",
+        "bbox": _bbox(comparison["selection"]["bbox"]),
+        # Display metadata only; actual report cutoffs live on each feature.
+        "valid_at": comparison["later"]["at"],
+        "knowledge_cutoff": comparison["later"]["known_at"],
+        "total_matching_entities": len({
+            f["properties"]["entity"] for f in reports}),
+        "total_source_features": len(reports),
+        "status": "MATCHES" if reports else "NO_MATCHES",
+    }}
+
+
 def _disagreement_comparison_csv(comparison: dict) -> bytes:
     """Preserve original reports at both cutoffs, without inferring truth."""
     output = io.StringIO()
@@ -862,7 +880,10 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
             escape("/disagreement-compare.csv?" + urlencode(params), quote=True) +
             '">Download original comparison CSV</a> · <a href="' +
             escape("/disagreement-compare.geojson?" + urlencode(params), quote=True) +
-            '">Open original comparison GeoJSON</a></p>' + filter_links +
+            '">Open original comparison GeoJSON</a> · <a href="' +
+            escape("/viewer?" + urlencode({**params, "view": "disagreement-comparison"}),
+                   quote=True) +
+            '">Map both original evidence periods</a></p>' + filter_links +
             ('<ul>' + ''.join(changes) + '</ul>' if changes else
              '<p role="status">' + (
                  'NO ORIGINAL SOURCE DISAGREEMENT WITH SELECTED CHANGE TYPE'
@@ -953,8 +974,18 @@ def create_server(state: str | Path, port: int = 0, *,
             # Reuse the offline map renderer; no new browser-side service or
             # unauthenticated state-changing route is introduced.
             from .map_view import render_map
-            body = (_explorer_html(map_source_ids) if geojson is None else render_map(geojson, inspector_links=True,
-                                 navigation=navigation)).encode("utf-8")
+            rendered = (_explorer_html(map_source_ids) if geojson is None else
+                        render_map(geojson, inspector_links=True,
+                                   navigation=navigation))
+            if geojson is not None and "monde_comparison" in geojson:
+                notice = ('<p class="notice" role="status">'
+                          'Two original source-report periods on one map. '
+                          'Markers are source assertions, NOT verified movement, '
+                          'consensus positions or proof of agreement. '
+                          'Inspect each marker for its original period and '
+                          'world/knowledge cutoffs.</p>')
+                rendered = rendered.replace("<main>", notice + "<main>", 1)
+            body = rendered.encode("utf-8")
             if len(body) > max_response_bytes:
                 return self._reply(413, {"error": "response_too_large"})
             self.send_response(200)
@@ -1217,6 +1248,15 @@ def create_server(state: str | Path, port: int = 0, *,
                                                   args["at"], args["known_at"]),
                                 args.get("source")),
                             args.get("entity"))
+                    elif mode == "disagreement-comparison":
+                        _require(args, {"view", "bbox", "at", "known_at"},
+                                 {"source", "entity", "from_known_at", "from_at",
+                                  "changes_only", "change_kind"})
+                        if ("from_at" in args) == ("from_known_at" in args):
+                            raise ValueError("exactly one comparison axis is required")
+                        later, earlier = _disagreement_pair(world, args)
+                        geojson = _disagreement_comparison_map(
+                            _disagreement_comparison_json(later, earlier, args))
                     elif mode == "knowledge-changes":
                         _require(args, {"view", "bbox", "at",
                                         "from_known_at", "to_known_at"},
@@ -1248,7 +1288,8 @@ def create_server(state: str | Path, port: int = 0, *,
                             args["at"], args["known_at"])
                     else:
                         raise ValueError("unsupported viewer mode")
-                    return self._html(geojson, navigation=args)
+                    return self._html(geojson, navigation=(
+                        None if mode == "disagreement-comparison" else args))
                 elif path == "/map":
                     _require(args, {"bbox", "at", "known_at"}, {"source"})
                     output = _filter_source_bbox(

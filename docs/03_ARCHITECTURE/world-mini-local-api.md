@@ -470,3 +470,22 @@ positions outside that viewport. Clearing a filter does not confirm an
 inferred location or source truth. The saved WorldMini file stays unchanged,
 and existing loopback/CSP/input validation still applies. This candidate
 stacks on unmerged WORK-0075 / PR #106.
+
+
+### Both original disagreement periods on one offline map (WORK-0077)
+
+On a two-cutoff disagreement report, the new **Map both original evidence periods**
+link opens the existing local /viewer with view=disagreement-comparison.
+It preserves the selected source, entity, change_kind/changes_only filter,
+viewport and both world/knowledge time cutoffs. This is the same evidence
+selection as /disagreement-compare.geojson, embedded in the established
+standalone browser map: period-qualified original feature IDs, original
+source/assertion/evidence IDs, reported coordinates, inside/outside viewport
+flags, classification and per-report world/knowledge cutoffs remain intact.
+
+The map's viewport metadata is display framing only. Earlier evidence is
+not reassigned to the later time. The browser visibly warns against inferred
+physical movement, verified source truth or consensus. All output is
+read-only, loopback-only and subject to the existing CSP and response limits.
+The persisted WorldMini snapshot is unchanged. This draft feature is stacked
+on unmerged WORK-0076 / PR #107, not yet deployed on main.
