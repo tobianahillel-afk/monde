@@ -352,3 +352,66 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_ranked_discovery_opens_example_original_point_map(self):
+        """Ranking -> focused original-report offline map, without changing data."""
+        from html import unescape
+        import re
+        from urllib.parse import parse_qs, urlsplit
+
+        for axis in ("knowledge", "world"):
+            if axis == "knowledge":
+                args = self.knowledge()
+                server = self.server
+            else:
+                other = sample(dateline=True)
+                other_file = Path(self.tmp.name) / "world-map-drilldown.json"
+                other.save(other_file)
+                server = create_server(other_file)
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                args = {"discover": "1", "axis": "world", "from_at": EARLY,
+                        "to_at": LATE, "known_at": KNOWN}
+            try:
+                status, _, html = self.get({**args, "format": "table"}, server)
+                self.assertEqual(status, 200)
+                urls = [unescape(value) for value in
+                        re.findall(r'href="([^"]+)"', html.decode("utf-8"))]
+                maps = [url for url in urls
+                        if "Map original example evidence" not in url and
+                        parse_qs(urlsplit(url).query).get("format") == ["html"]]
+                self.assertTrue(maps, "ranked pair must open an actual evidence map")
+                query = parse_qs(urlsplit(maps[0]).query)
+                self.assertEqual(query["axis"], [axis])
+                self.assertEqual(query["entity"], [
+                    json.loads(self.get({**args, "format": "json"}, server)[2])
+                    ["pairs"][0]["example_entity"]])
+                self.assertNotIn("source", query)
+                self.assertNotIn("discover", query)
+                self.assertNotIn("rank", query)
+                self.assertNotIn("top", query)
+                for key in ("at", "from_known_at", "to_known_at") if axis == "knowledge" else (
+                        "from_at", "to_at", "known_at"):
+                    self.assertEqual(query[key], [args[key]])
+                status, headers, map_html = self.get(
+                    {k: value[0] for k, value in query.items()}, server)
+                self.assertEqual(status, 200)
+                self.assertTrue(headers["Content-Type"].startswith("text/html"))
+                self.assertIn(b"survey-", map_html) if axis == "knowledge" else (
+                    self.assertIn(b"monde_source_pair", map_html))
+                self.assertIn(b"monde_original_assertion_id", map_html)
+            finally:
+                if axis == "world":
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+
+    def test_ranked_discovery_without_joint_reports_has_no_example_map(self):
+        args = {"discover": "1", "axis": "knowledge", "at": AT,
+                "from_known_at": "2026-01-02T00:00:00Z",
+                "to_known_at": "2026-01-02T12:00:00Z"}
+        status, _, html = self.get(args)
+        self.assertEqual(status, 200)
+        self.assertNotIn(b"Map original example evidence", html)
+        self.assertIn(b"NO JOINT ORIGINAL SOURCE REPORTS", html)

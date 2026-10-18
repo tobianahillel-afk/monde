@@ -1187,10 +1187,16 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
         params.update(source_a=pair["source_a"], source_b=pair["source_b"],
                       format="table")
         link = "/source-pair?" + urlencode(params)
+        # Reuse the existing original-report offline map, with the same
+        # world/knowledge cutoffs and only this pair's example entity.
+        map_link = "/source-pair?" + urlencode({
+            **params, "format": "html", "entity": pair["example_entity"]})
         rows.append(
             '<tr><th scope="row"><a href="' + escape(link, quote=True) + '">' +
             escape(pair["source_a"]) + " / " + escape(pair["source_b"]) +
-            '</a></th><td>' + str(pair["max_nearest_km"]) +
+            '</a> · <a href="' + escape(map_link, quote=True) +
+            '">Map original example evidence</a></th><td>' +
+            str(pair["max_nearest_km"]) +
             '</td><td>' + (str(pair["rank_delta_km"])
                            if "rank_delta_km" in pair else "—") +
             '</td><td>' + str(pair["joint_entities"]) +

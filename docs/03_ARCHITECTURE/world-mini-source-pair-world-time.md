@@ -394,3 +394,16 @@ report counts. No matching original reports yield headers only rather than
 invented agreement. Strings that could become spreadsheet formulas are escaped.
 The response is limited by the existing server response size cap and leaves
 persisted evidence unchanged. This is not a verified truth or trajectory.
+
+## Map ranked source disagreement examples (WORK-0108)
+
+The accessible `/source-pair?discover=1` ranking now links each ranked
+original source pair directly to an **offline map of its example entity's
+original reports**. The map reuses the existing `/source-pair`
+`format=html&entity=...` comparison with the identical world-validity
+and knowledge cutoffs. Discovery-only filters (`source`, `rank`, `top`,
+`discover`) do not leak into map requests; the source pair itself remains
+explicit. Every reported Point retains its original assertion identity.
+The example is not a consensus position, an accuracy verdict or inferred
+movement. Pairs without any joint original evidence have no example-map link.
+No new endpoint, store, third-party dependency or network access is added.
