@@ -1300,6 +1300,41 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
                                    quote=True) + '">' + escape(label) + '</a>')
     ranking = '<nav aria-label="Original reporter coverage ranking"><p>' + (
         ' · '.join(rank_links)) + '</p></nav>'
+    # An entity investigator can compare any two *original* reporters through
+    # the existing bitemporal source-pair map (no inferred consensus geometry).
+    pair_form = ""
+    if "entity_focus" in document and len(document["sources"]) >= 2:
+        reporter_ids = [row["source_id"] for row in document["sources"]]
+        common = {key: args[key] for key in
+                  ("axis", "at", "from_known_at", "to_known_at",
+                   "from_at", "to_at", "known_at") if key in args}
+        hidden = "".join(
+            '<input type="hidden" name="' + escape(key, quote=True) +
+            '" value="' + escape(value, quote=True) + '">'
+            for key, value in {**common, "entity": document["entity_focus"],
+                               "format": "html"}.items())
+        first_options = "".join(
+            '<option value="' + escape(source, quote=True) + '"' +
+            (' selected' if i == 0 else '') + '>' +
+            escape(source) + '</option>'
+            for i, source in enumerate(reporter_ids))
+        second_options = "".join(
+            '<option value="' + escape(source, quote=True) + '"' +
+            (' selected' if i == 1 else '') + '>' +
+            escape(source) + '</option>'
+            for i, source in enumerate(reporter_ids))
+        pair_form = (
+            '<form action="/source-pair" method="get"><fieldset>'
+            '<legend>Compare two original reporters for this entity</legend>' +
+            hidden + '<label>First original source '
+            '<select name="source_a" required>' + first_options +
+            '</select></label> <label>Second original source '
+            '<select name="source_b" required>' + second_options +
+            '</select></label> <button type="submit">Compare source '
+            'positions on one map</button><p>Choose different reporters; '
+            'reported separation is not verified ground truth.</p>'
+            '</fieldset></form>')
+
     count_label = (str(document["total_sources"]) + " matching of " +
                    str(document["available_sources"]) + " original sources"
                    if "available_sources" in document else
@@ -1316,7 +1351,7 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         escape(document["interpretation"]) + '</p>' +
         ('<p>Exact original entity: <strong>' +
          escape(document["entity_focus"]) + '</strong></p>'
-         if "entity_focus" in document else '') + '<p>' +
+         if "entity_focus" in document else '') + pair_form + '<p>' +
         escape(count_label) + ', ' + escape(document["axis"]) +
         ' time.</p>' + navigation + ranking + '<p><a href="' +
         escape(csv_link, quote=True) + '">Download matching coverage CSV</a>' +

@@ -1116,5 +1116,121 @@ class SourceDirectoryTests(unittest.TestCase):
             server.server_close()
             self.assertEqual(saved.read_bytes(), before)
 
+    def test_exact_entity_compare_two_original_reporters_navigation(self):
+        """One native GET form opens the existing source-pair evidence map."""
+        from html.parser import HTMLParser
+
+        class FormReader(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.forms = []
+                self.current = None
+
+            def handle_starttag(self, tag, attrs):
+                data = dict(attrs)
+                if tag == "form" and data.get("action") == "/source-pair":
+                    self.current = {"fields": {}, "selects": {}}
+                    self.forms.append(self.current)
+                elif self.current is not None and tag == "input":
+                    if data.get("name"):
+                        self.current["fields"][data["name"]] = data.get("value", "")
+                elif self.current is not None and tag == "select":
+                    self.selected_name = data.get("name")
+                    if self.selected_name in ("source_a", "source_b"):
+                        self.current["selects"][self.selected_name] = []
+                elif self.current is not None and tag == "option":
+                    if hasattr(self, "selected_name") and self.selected_name in (
+                            "source_a", "source_b"):
+                        self.current["selects"][self.selected_name].append(data)
+
+            def handle_endtag(self, tag):
+                if tag == "form":
+                    self.current = None
+                elif tag == "select":
+                    self.selected_name = None
+
+        query = self.knowledge()
+        focused = {**query, "entity": "site-1"}
+        status, _, raw = self.get(focused)
+        self.assertEqual(status, 200)
+        reader = FormReader()
+        reader.feed(raw.decode("utf-8"))
+        candidates = [f for f in reader.forms
+                      if set(f["selects"]) == {"source_a", "source_b"}]
+        self.assertEqual(len(candidates), 1)
+        frm = candidates[0]
+        self.assertEqual(frm["fields"]["entity"], "site-1")
+        self.assertEqual(frm["fields"]["format"], "html")
+        for key in ("axis", "at", "from_known_at", "to_known_at"):
+            self.assertEqual(frm["fields"][key], query[key])
+        self.assertEqual(set(x["value"] for x in frm["selects"]["source_a"]),
+                         {"survey-a", "survey-b"})
+        self.assertEqual(set(x["value"] for x in frm["selects"]["source_b"]),
+                         {"survey-a", "survey-b"})
+        first = next(x["value"] for x in frm["selects"]["source_a"]
+                     if "selected" in x)
+        second = next(x["value"] for x in frm["selects"]["source_b"]
+                      if "selected" in x)
+        self.assertNotEqual(first, second)
+        compare = {**frm["fields"], "source_a": first, "source_b": second}
+        status, _, page = self.get(compare)
+        self.assertEqual(status, 200)
+        self.assertIn(b"<!doctype html>", page.lower())
+        status, _, raw = self.get({**compare, "format": "json"})
+        self.assertEqual(status, 200)
+        doc = json.loads(raw)
+        self.assertEqual([x["entity"] for x in doc["entities"]], ["site-1"])
+        self.assertEqual({doc["source_a"], doc["source_b"]},
+                         {"survey-a", "survey-b"})
+        status, _, raw = self.get({**compare, "format": "geojson"})
+        self.assertEqual(status, 200)
+        features = json.loads(raw)["features"]
+        self.assertTrue(features)
+        self.assertEqual({x["properties"]["source_id"] for x in features},
+                         {"survey-a", "survey-b"})
+        self.assertEqual({x["properties"]["entity"] for x in features}, {"site-1"})
+
+    def test_entity_reporter_compare_form_absent_with_one_source_or_no_match(self):
+        for entity in ("site-only-one-source", "does-not-exist"):
+            status, _, page = self.get({**self.knowledge(), "entity": entity})
+            self.assertEqual(status, 200)
+            self.assertNotIn(b'Compare source positions on one map', page)
+        status, _, raw = self.get({**self.knowledge(), "entity": "site-1",
+                                   "source": "survey-a", "format": "map"})
+        self.assertEqual(status, 200)
+        self.assertNotIn(b'Compare source positions on one map', raw)
+
+    def test_compare_two_reporters_world_axis_uses_original_world_cutoffs(self):
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "world-two-reporters.json"
+        world.save(saved)
+        before = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            q = {"directory": "1", "axis": "world",
+                 "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**q, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            source_rows = json.loads(raw)["sources"]
+            entity = source_rows[0]["example_entity"]
+            status, _, page = self.get({**q, "entity": entity}, server)
+            self.assertEqual(status, 200)
+            if len([x for x in source_rows if x["example_entity"] == entity]) >= 2:
+                self.assertIn(b'Compare source positions on one map', page)
+            else:
+                self.assertNotIn(b'Compare source positions on one map', page)
+            if b'Compare source positions on one map' in page:
+                self.assertIn(b'name="from_at"', page)
+                self.assertIn(b'name="to_at"', page)
+                self.assertIn(b'name="known_at"', page)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), before)
+
+
 if __name__ == "__main__":
     unittest.main()
