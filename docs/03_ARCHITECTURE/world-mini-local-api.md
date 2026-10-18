@@ -563,4 +563,10 @@ clears only the source display selection; neither operation mutates the
 embedded evidence or persisted World Model. Empty or asymmetric period counts
 do not prove a physical absence, agreement or movement. The table uses
 text-only DOM assignment for original untrusted source identifiers, with no
-external network requests, new API, new model or dependency.
+external network requests, new API, new model or dependency. The complete source
+coverage table can be exported as a standalone **CSV** containing the comparison
+axis, every embedded original source ID, earlier/later/total Point-report counts,
+and explicit `BOTH_SELECTIONS`, `EARLIER_SELECTION_ONLY`, or
+`LATER_SELECTION_ONLY` labels. The CSV is independent of presentation filters,
+escapes untrusted spreadsheet formulas and says nothing about ground-truth
+source presence, actual movement, or physical absence.

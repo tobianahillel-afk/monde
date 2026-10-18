@@ -12,6 +12,7 @@ purpose: |
   both comparison periods and permit direct source-focused inspection offline.
 scope:
   in: ["Earlier/later original source evidence counts", "Source-to-map navigation",
+       "Complete source-by-period coverage CSV export",
        "Offline browser and saved-state regression tests"]
   out: ["Verified movement or consensus", "New endpoint or data store",
         "External network calls", "Independent inferred evidence"]
@@ -19,6 +20,7 @@ acceptance_criteria:
   - {id: AC-1, description: "Count every selected original source Point separately by period.", status: IN_REVIEW}
   - {id: AC-2, description: "Navigate from source counts to original evidence without losing embedded reports.", status: IN_REVIEW}
   - {id: AC-3, description: "Retain offline safety, bitemporal provenance and saved model immutability.", status: IN_REVIEW}
+  - {id: AC-4, description: "Export complete source-by-period counts independently of presentation filters with safe CSV escaping.", status: IN_REVIEW}
 requirements: []
 depends_on: [WORK-0081]
 read_before: [AGENTS.md, src/monde/map_view.py, tests/test_world_local_api_disagreement_report.py]

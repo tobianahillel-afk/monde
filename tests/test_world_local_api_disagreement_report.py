@@ -1522,5 +1522,68 @@ body.dataset.sourceAfterReset=String(sourceSelect.value==="");
         self.assertEqual(self.path.read_bytes(), self.before)
 
 
+    def test_complete_source_coverage_csv_offline_matches_embedded_originals(self):
+        """Export complete source counts, not display-filtered counts, in offline Chromium."""
+        import shutil
+        import subprocess
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, body = self.fetch("/disagreement-compare.html", params)
+        self.assertEqual(status, 200)
+        original = body.decode("utf-8")
+        embedded = self.embedded_map(original)
+        counts = {}
+        for feature in embedded["features"]:
+            props = feature["properties"]
+            row = counts.setdefault(props["source_id"], [0, 0])
+            row[0 if props["monde_comparison_period"] == "earlier" else 1] += 1
+        self.assertTrue(counts)
+        probe = """<script>
+const body=document.body, rows=document.querySelectorAll("#comparison-source-rows tr");
+const NativeBlob=window.Blob;
+window.Blob=function(parts,options){
+  const csv=String(parts[0]);
+  const lines=csv.replace(/^\\uFEFF/,"").trim().split("\\r\\n");
+  body.dataset.coverageCsvRows=String(lines.length-1);
+  body.dataset.coverageCsvHeader=String(lines[0].includes("selection_coverage"));
+  body.dataset.coverageCsvScope=String(csv.includes("COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED"));
+  body.dataset.coverageCsvContents=JSON.stringify(lines.slice(1));
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){body.dataset.coverageCsvFilename=this.download;};
+document.getElementById("sources").value=rows[0].dataset.sourceId;
+document.getElementById("sources").dispatchEvent(new Event("change"));
+document.getElementById("comparison-period").value="later";
+document.getElementById("comparison-period").dispatchEvent(new Event("change"));
+document.getElementById("comparison-export-coverage-csv").click();
+body.dataset.coverageCsvDisplayFilter=document.getElementById("comparison-period").value;
+</script>"""
+        output = Path(self.folder.name) / "source-coverage-export.html"
+        output.write_text(original.replace("</body>", probe + "</body>"),
+                          encoding="utf-8")
+        rendered = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", output.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            timeout=30, check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', rendered)
+        self.assertIn('data-coverage-csv-rows="' + str(len(counts)) + '"', rendered)
+        self.assertIn('data-coverage-csv-header="true"', rendered)
+        self.assertIn('data-coverage-csv-scope="true"', rendered)
+        self.assertIn('data-coverage-csv-filename="monde-original-source-period-coverage.csv"', rendered)
+        self.assertIn('data-coverage-csv-display-filter="later"', rendered)
+        for source, (earlier, later) in counts.items():
+            # All original source reports remain represented despite display filters.
+            self.assertIn(source, rendered)
+            self.assertIn('&quot;' + str(earlier) + '&quot;', rendered)
+            self.assertIn('&quot;' + str(later) + '&quot;', rendered)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -154,8 +154,9 @@ __MONDE_TIME_NAVIGATION__
 <summary>Original source coverage by comparison period</summary>
 <p class="subtle">Counts use all original source reports embedded in this comparison, including offscreen evidence. Display filters do not change them. They are NOT evidence of physical agreement, movement or absence.</p>
 <button type="button" id="comparison-all-sources">Show all original sources</button>
+<button type="button" id="comparison-export-coverage-csv">Export complete source coverage CSV</button>
 <table aria-label="Embedded original reports by source and period">
-<thead><tr><th scope="col">Original source</th><th scope="col">Earlier</th><th scope="col">Later</th><th scope="col">Total reports</th></tr></thead>
+<thead><tr><th scope="col">Original source</th><th scope="col">Earlier</th><th scope="col">Later</th><th scope="col">Total reports</th><th scope="col">Selection coverage</th></tr></thead>
 <tbody id="comparison-source-rows"></tbody>
 </table>
 <p id="comparison-source-total" class="subtle" role="status"></p>
@@ -688,7 +689,31 @@ __MONDE_TIME_NAVIGATION__
       var total=document.createElement("td");
       total.textContent=String(value.earlier+value.later);
       tr.appendChild(total);
+      var coverageCell=document.createElement("td");
+      coverageCell.textContent=value.earlier>0&&value.later>0 ?
+        "Both selections" : (value.earlier>0 ?
+          "Earlier selection only" : "Later selection only");
+      tr.appendChild(coverageCell);
       rows.appendChild(tr);
+    });
+    // Download exactly the embedded original source selection, not a derivative
+    // of source, viewport, search, or period display filters. csvCell escapes
+    // potentially spreadsheet-executable untrusted source identifiers.
+    document.getElementById("comparison-export-coverage-csv").addEventListener("click",function() {
+      var header=["comparison_axis","source_id","earlier_original_report_count",
+        "later_original_report_count","total_original_report_count",
+        "selection_coverage","export_scope"];
+      var body=Array.from(counts.keys()).sort().map(function(id){
+        var c=counts.get(id),presence=c.earlier>0&&c.later>0 ?
+          "BOTH_SELECTIONS" : (c.earlier>0 ?
+            "EARLIER_SELECTION_ONLY" : "LATER_SELECTION_ONLY");
+        var values=[data.monde_comparison.axis,id,c.earlier,c.later,
+          c.earlier+c.later,presence,
+          "COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED"];
+        return values.map(function(v,i){return csvCell(v,i>=2&&i<=4);}).join(",");
+      });
+      saveDownload("\uFEFF"+header.join(",")+"\r\n"+body.join("\r\n")+"\r\n",
+        "monde-original-source-period-coverage.csv","text/csv;charset=utf-8");
     });
     document.getElementById("comparison-all-sources").addEventListener("click",function() {
       sources.value="";render();
