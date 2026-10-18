@@ -10,12 +10,13 @@ updated_at: "2026-10-18"
 purpose: |
   Map source-reported temporal changes preserving evidence and uncertainty.
 scope:
-  in: ["Existing source-pair comparison", "GeoJSON original Points", "World and knowledge time", "Evidence provenance"]
+  in: ["Existing source-pair comparison", "GeoJSON original Points", "World and knowledge time", "Evidence provenance", "Directional separation filter"]
   out: ["New service", "New model", "Inferred movement", "Truth inference", "Paid APIs"]
 acceptance_criteria:
   - {id: AC-1, description: "Both periods export original WGS84 Points with separate IDs, source and evidence lineage.", status: IN_REVIEW}
   - {id: AC-2, description: "Missing joint reports remain nullable and both cutoffs and temporal axes are explicit.", status: IN_REVIEW}
   - {id: AC-3, description: "Real persisted CLI tests pass and existing JSON/CSV and saved snapshots are unchanged.", status: IN_REVIEW}
+  - {id: AC-4, description: "Filter original source-pair evidence by convergence divergence stability or incomparability without implying physical movement, for both temporal axes and output formats.", status: IN_REVIEW}
 requirements: []
 depends_on: [WORK-0095]
 read_before: [AGENTS.md, src/monde/source_pair_changes.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]

@@ -106,3 +106,28 @@ The output contains **only original source-reported Points**, never synthetic
 connecting routes: reported-source differences do not establish physical
 movement, accuracy or truth. Missing comparison values remain `null`,
 never zero. Existing JSON/CSV and persisted WorldMini snapshots are unchanged.
+
+
+## Source-pair convergence and divergence filter (WORK-0096)
+
+The existing offline CLI accepts `--change-direction converging|diverging|unchanged|incomparable`
+for **either temporal axis** and any output format (`json`, `csv`, `geojson`).
+The comparison is the *later minus earlier nearest distance between the
+two original reporting sources*: negative is `converging`, positive is
+`diverging`, exactly zero is `unchanged`. An entity missing joint reports
+in either period is `incomparable`, never a zero-distance assertion.
+
+```bash
+PYTHONPATH=src python3 -m monde.source_pair_changes \
+  --fixture saved-world.json --source-a survey-a --source-b survey-b \
+  --at 2026-01-05T00:00:00Z \
+  --from-known-at 2026-01-03T12:00:00Z \
+  --to-known-at 2026-01-05T12:00:00Z \
+  --change-direction diverging --top-nearest-changes 20 --format geojson
+```
+
+Direction filtering precedes optional top-N ranking. The GeoJSON projection
+retains original source/assertion/evidence identity and adds per-feature
+classification and filter metadata; the stored WorldMini remains byte-identical.
+This reports change in **source disagreement**, never verified physical movement.
+Without the new option, existing JSON/CSV output and ranking are unchanged.

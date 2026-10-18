@@ -10,7 +10,8 @@ import unittest
 
 from monde.source_pair_changes import (
     compare_source_pair, compare_source_pair_world_time, comparison_geojson,
-    top_nearest_source_pair_changes,
+    top_nearest_source_pair_changes, filter_source_pair_direction,
+    source_pair_direction,
 )
 from tests.test_world_source_pair_changes import fixture_world, AT, BEFORE, AFTER
 from tests.test_world_source_pair_world_changes import sample, EARLY, LATE, KNOWN
@@ -121,6 +122,93 @@ class SourcePairGeojsonTest(unittest.TestCase):
                     self.assertEqual(baseline.returncode, 0, baseline.stderr)
                     self.assertNotIn("monde_comparison", json.loads(baseline.stdout))
                     self.assertEqual(path.read_bytes(), before)
+
+
+    def test_direction_semantics_and_immutable_input(self):
+        rows = [{"entity": key, "earlier_to_later_change_km": delta}
+                for key, delta in (
+                    ("a", {"nearest_km": -1.0}), ("b", {"nearest_km": 2.0}),
+                    ("c", {"nearest_km": 0.0}), ("d", None))]
+        document = {"schema": "MONDE_SOURCE_PAIR_CHANGE_V1", "entities": rows}
+        frozen = copy.deepcopy(document)
+        for direction, target in (
+            ("converging", "a"), ("diverging", "b"),
+            ("unchanged", "c"), ("incomparable", "d")):
+            filtered = filter_source_pair_direction(document, direction)
+            self.assertEqual([x["entity"] for x in filtered["entities"]], [target])
+            self.assertEqual(filtered["direction_filter"],
+                             {"direction": direction, "total_entities": 4,
+                              "selected_entities": 1})
+        self.assertEqual(document, frozen)
+        with self.assertRaises(ValueError):
+            filter_source_pair_direction(document, "physical-movement")
+
+    def test_direction_keeps_all_original_points_and_later_ranking(self):
+        document = compare_source_pair(fixture_world(), "survey-a", "survey-b",
+                                       AT, BEFORE, AFTER)
+        frozen = copy.deepcopy(document)
+        direction = source_pair_direction(document["entities"][0])
+        chosen = filter_source_pair_direction(document, direction)
+        self.assertGreater(len(chosen["entities"]), 0)
+        geojson = comparison_geojson(chosen)
+        self.assertEqual(geojson["monde_comparison"]["direction_filter"]["direction"],
+                         direction)
+        self.assertEqual({f["properties"]["monde_source_pair"]["direction"]
+                          for f in geojson["features"]}, {direction})
+        expected = [r["id"] for entity in chosen["entities"]
+                    for period in ("earlier", "later")
+                    for key in ("source_a_original_reports", "source_b_original_reports")
+                    for r in entity[period][key]]
+        actual = [f["properties"]["monde_original_assertion_id"]
+                  for f in geojson["features"]]
+        self.assertCountEqual(actual, expected)
+        if direction != "incomparable":
+            ranked = top_nearest_source_pair_changes(chosen, 1)
+            self.assertEqual(ranked["selection"]["requested_top"], 1)
+        self.assertEqual(document, frozen)
+
+    def test_saved_cli_direction_in_json_csv_and_geojson_on_both_axes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            settings = {"cwd": Path(__file__).resolve().parents[1],
+                        "env": {**os.environ, "PYTHONPATH": "src"},
+                        "capture_output": True, "text": True}
+            for axis, world, cutoffs in (
+                ("knowledge", fixture_world(),
+                 ["--at", AT, "--from-known-at", BEFORE, "--to-known-at", AFTER]),
+                ("world", sample(),
+                 ["--from-at", EARLY, "--to-at", LATE, "--known-at", KNOWN])):
+                with self.subTest(axis=axis):
+                    saved = Path(folder) / (axis + ".json")
+                    world.save(saved)
+                    untouched = saved.read_bytes()
+                    command = [sys.executable, "-m", "monde.source_pair_changes",
+                               "--fixture", str(saved), "--source-a", "survey-a",
+                               "--source-b", "survey-b", *cutoffs]
+                    baseline = subprocess.run(command, **settings)
+                    self.assertEqual(baseline.returncode, 0, baseline.stderr)
+                    entities = json.loads(baseline.stdout)["entities"]
+                    direction = source_pair_direction(entities[0])
+                    selected = [e for e in entities
+                                if source_pair_direction(e) == direction]
+                    command += ["--change-direction", direction]
+                    filtered = subprocess.run(command, **settings)
+                    self.assertEqual(filtered.returncode, 0, filtered.stderr)
+                    self.assertEqual(
+                        [e["entity"] for e in json.loads(filtered.stdout)["entities"]],
+                        [e["entity"] for e in selected])
+                    geo = subprocess.run(command + ["--format", "geojson"], **settings)
+                    self.assertEqual(geo.returncode, 0, geo.stderr)
+                    projected = json.loads(geo.stdout)
+                    self.assertEqual(
+                        projected["monde_comparison"]["direction_filter"]["direction"],
+                        direction)
+                    self.assertEqual({f["properties"]["entity"]
+                                      for f in projected["features"]},
+                                     {e["entity"] for e in selected})
+                    csv_result = subprocess.run(command + ["--format", "csv"], **settings)
+                    self.assertEqual(csv_result.returncode, 0, csv_result.stderr)
+                    self.assertEqual(len(csv_result.stdout.splitlines()), 1 + 2*len(selected))
+                    self.assertEqual(saved.read_bytes(), untouched)
 
 
 if __name__ == "__main__":

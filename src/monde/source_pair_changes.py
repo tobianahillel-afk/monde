@@ -208,6 +208,7 @@ def comparison_geojson(document):
                         "separation": row["separation"],
                         "earlier_to_later_change_km":
                             entity["earlier_to_later_change_km"],
+                        "direction": source_pair_direction(entity),
                     }
                     features.append({
                         "type": "Feature", "id": f"{period}:{len(features)}",
@@ -224,9 +225,30 @@ def comparison_geojson(document):
                 for period, (at, known_at) in times.items()},
             "interpretation": document["interpretation"],
             "selection": document.get("selection"),
+            "direction_filter": document.get("direction_filter"),
         },
     }
 
+
+def source_pair_direction(row):
+    """Classify only the nearest reported cross-source separation change."""
+    change = row["earlier_to_later_change_km"]
+    if change is None:
+        return "incomparable"
+    delta = change["nearest_km"]
+    return "diverging" if delta > 0 else "converging" if delta < 0 else "unchanged"
+
+
+def filter_source_pair_direction(document, direction):
+    """Filter selected original records, without altering the input document."""
+    if direction not in ("converging", "diverging", "unchanged", "incomparable"):
+        raise ValueError("invalid reported source-pair direction")
+    matched = [row for row in document["entities"]
+               if source_pair_direction(row) == direction]
+    return {**document, "entities": matched,
+            "direction_filter": {"direction": direction,
+                                 "total_entities": len(document["entities"]),
+                                 "selected_entities": len(matched)}}
 
 
 def top_nearest_source_pair_changes(document, limit):
@@ -263,6 +285,9 @@ def main(argv=None):
     parser.add_argument("--format", choices=("json", "csv", "geojson"), default="json")
     parser.add_argument("--top-nearest-changes", type=int, metavar="N",
                         help="top N absolute changes in original-source nearest separation")
+    parser.add_argument("--change-direction",
+                        choices=("converging", "diverging", "unchanged", "incomparable"),
+                        help="filter by change in original cross-source separation")
     parser.add_argument("--source-a", required=True)
     parser.add_argument("--source-b", required=True)
     parser.add_argument("--at", help="fixed world time for knowledge comparison")
@@ -290,6 +315,8 @@ def main(argv=None):
                          args.source_a, args.source_b, *cutoffs)
     except (ValueError, OSError) as error:
         parser.error(str(error))
+    if args.change_direction is not None:
+        result = filter_source_pair_direction(result, args.change_direction)
     if args.top_nearest_changes is not None:
         try:
             result = top_nearest_source_pair_changes(result, args.top_nearest_changes)
