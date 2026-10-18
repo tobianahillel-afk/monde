@@ -124,7 +124,7 @@ def compare_source_pair_world_time(world, source_a, source_b,
 
 
 
-def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation"):
+def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", source=None):
     """Rank original source pairs by geographic separation or temporal change.
 
     A trend requires the same entity to be jointly reported by both original
@@ -138,6 +138,8 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation"):
         raise ValueError("invalid source-pair discovery limit")
     if rank not in ("separation", "increasing", "decreasing"):
         raise ValueError("invalid source-pair discovery ranking")
+    if source is not None and (not isinstance(source, str) or not source):
+        raise ValueError("invalid original source focus")
     for at, known_at in cutoffs:
         _instant(at)
         _instant(known_at)
@@ -156,7 +158,14 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation"):
             by_entity.setdefault(prop["entity"], {}).setdefault(
                 prop["source_id"], []).append(feature)
         for entity, reporters in by_entity.items():
-            for sa, sb in combinations(sorted(reporters), 2):
+            if source is None:
+                relevant_pairs = combinations(sorted(reporters), 2)
+            elif source in reporters:
+                relevant_pairs = ((min(source, other), max(source, other))
+                                  for other in sorted(reporters) if other != source)
+            else:
+                continue
+            for sa, sb in relevant_pairs:
                 measured = _measure(reporters[sa], reporters[sb])
                 if measured is None:
                     continue
@@ -235,6 +244,8 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation"):
                            "Missing joint reports are UNKNOWN, not zero."),
         "total_pairs": len(ranked), "top": top, "pairs": ranked[:top],
     }
+    if source is not None:
+        result["source_focus"] = source
     if rank != "separation":
         result["rank"] = rank
         result["interpretation"] += (
