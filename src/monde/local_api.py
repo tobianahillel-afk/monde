@@ -964,6 +964,10 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
                       '<option value="unchanged">Unchanged</option>'
                       '<option value="incomparable">Incomparable</option>'
                       '</select></label>'
+                      '<label>Minimum absolute nearest separation change (km)'
+                      '<input name="min_change_km" type="number" min="0" '
+                      'max="1000000" step="0.001" placeholder="Optional">'
+                      '</label>'
                       '<label>Top absolute nearest changes (optional, max 1000)'
                       '<input type="number" name="top" min="1" max="1000" step="1">'
                       '</label><button>Compare original evidence</button></form>')
@@ -1096,7 +1100,7 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
         filter_source_pair_direction, top_nearest_source_pair_changes)
     _id(args.get("source_a"))
     _id(args.get("source_b"))
-    extra = {"format", "direction", "top", "entity"}
+    extra = {"format", "direction", "top", "entity", "min_change_km"}
     if args.get("axis") == "knowledge":
         _require(args, {"axis", "source_a", "source_b",
                         "at", "from_known_at", "to_known_at"}, extra)
@@ -1118,6 +1122,18 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
             row for row in output["entities"] if row["entity"] == args["entity"]]}
     if "direction" in args:
         output = filter_source_pair_direction(output, args["direction"])
+    if "min_change_km" in args:
+        threshold = args["min_change_km"]
+        # Explicitly reject negatives, nonfinite values, exponent notation
+        # and precision > 0.001 km. UNKNOWN never becomes a zero delta.
+        if (not re.fullmatch(r"(?:0|[1-9][0-9]{0,5})(?:\.[0-9]{1,3})?", threshold)
+                or float(threshold) > 1000000):
+            raise ValueError("invalid minimum source-pair distance change")
+        minimum = float(threshold)
+        output = {**output, "entities": [
+            row for row in output["entities"]
+            if row["earlier_to_later_change_km"] is not None
+            and abs(row["earlier_to_later_change_km"]["nearest_km"]) >= minimum]}
     if "top" in args:
         if not re.fullmatch(r"[1-9][0-9]{0,3}", args["top"]) or int(args["top"]) > 1000:
             raise ValueError("top must be an integer from 1 to 1000")

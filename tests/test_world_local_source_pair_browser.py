@@ -408,5 +408,60 @@ class LocalSourcePairBrowserTests(unittest.TestCase):
         self.assertIn("&lt;img", html)
 
 
+    def test_min_distance_change_threshold_matches_existing_source_pair_engine(self):
+        source = compare_source_pair(self.world, "survey-a", "survey-b", AT, BEFORE, AFTER)
+        for threshold in ("0", "0.000", "2.500", "1000000"):
+            value = float(threshold)
+            selected = {**source, "entities": [
+                row for row in source["entities"]
+                if row["earlier_to_later_change_km"] is not None and
+                abs(row["earlier_to_later_change_km"]["nearest_km"]) >= value]}
+            for fmt, expected in (("json", selected),
+                                  ("geojson", comparison_geojson(selected))):
+                with self.subTest(threshold=threshold, format=fmt):
+                    status, _, raw = self.fetch({
+                        **self.knowledge(), "format": fmt, "min_change_km": threshold})
+                    self.assertEqual(status, 200)
+                    self.assertEqual(json.loads(raw), expected)
+            status, _, raw = self.fetch({
+                **self.knowledge(), "format": "csv", "min_change_km": threshold})
+            self.assertEqual(status, 200)
+            self.assertEqual(raw.decode("utf-8"), comparison_csv(selected))
+
+    def test_min_distance_threshold_combines_with_direction_entity_before_top(self):
+        initial = compare_source_pair(self.world, "survey-a", "survey-b", AT, BEFORE, AFTER)
+        entity = {**initial, "entities": [
+            row for row in initial["entities"] if row["entity"] == "site-1"]}
+        directed = filter_source_pair_direction(entity, "diverging")
+        material = {**directed, "entities": [
+            row for row in directed["entities"] if
+            row["earlier_to_later_change_km"] is not None]}
+        expected = top_nearest_source_pair_changes(material, 1)
+        status, _, raw = self.fetch({
+            **self.knowledge(), "format": "json", "entity": "site-1",
+            "direction": "diverging", "min_change_km": "0", "top": "1"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw), expected)
+
+    def test_min_distance_threshold_native_form_and_empty_accessible_table(self):
+        status, _, form = self.fetch()
+        self.assertEqual(status, 200)
+        self.assertIn(b'name="min_change_km"', form)
+        status, _, html = self.fetch({
+            **self.knowledge(), "format": "table", "min_change_km": "1000000"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"NO MATCHING COMPARABLE SOURCE EVIDENCE", html)
+        self.assertIn(b"min_change_km=1000000", html)
+
+    def test_min_distance_threshold_rejects_invalid_numeric_input(self):
+        for text in ("-1", "nan", "inf", "1e3", "1.2345", "01", ".5",
+                     "1000000.001", "1000001", "0\nHost: evil", "<script>", ""):
+            with self.subTest(value=text):
+                status, _, raw = self.fetch({
+                    **self.knowledge(), "format": "json", "min_change_km": text})
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -17,6 +17,7 @@ acceptance_criteria:
   - {id: AC-1, description: "Render earlier/later source report separation and nullable nearest delta for both temporal axes.", status: IN_REVIEW}
   - {id: AC-2, description: "Show original assertions and evidence with exact-cutoff source-history and entity links.", status: IN_REVIEW}
   - {id: AC-3, description: "Maintain current filters, safe HTML, native controls, read-only HTTP and immutable saved state.", status: IN_REVIEW}
+  - {id: AC-4, description: "Select comparable original-source changes by user-controlled minimum absolute nearest-distance threshold before top-N.", status: IN_REVIEW}
 requirements: []
 depends_on: [WORK-0099]
 read_before: [AGENTS.md, src/monde/local_api.py, src/monde/source_pair_changes.py]
