@@ -542,6 +542,8 @@ def source_directory_entity_geojson(world, directory):
             "entity_focus": entity, "axis": directory["axis"],
             "cutoffs": directory["cutoffs"],
             "selected_sources": len(selected),
+            **({"source_focus": directory["source_focus"]}
+               if "source_focus" in directory else {}),
             "original_feature_count": len(features),
             "interpretation": directory["interpretation"],
         },

@@ -1,0 +1,42 @@
+id: WORK-0116
+title: "Isolate one source's original entity positions across time cutoffs"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Let an investigator isolate one original reporter from an entity's evidence
+  map without losing source, assertion, timestamps, provenance or geometry.
+scope:
+  in: ["Exact entity + original source Point map", "Both time axes", "GeoJSON export"]
+  out: ["Inferred truth", "New API endpoint", "Model mutation", "Additional dependencies"]
+acceptance_criteria:
+  - {id: AC-1, description: "Isolate one reporter from original entity source maps, retaining original evidence.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Reject unsupported source+entity output forms and unsafe inputs.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Verify knowledge and world axes over real loopback HTTP with unchanged persisted state.", status: IN_PROGRESS}
+depends_on: [WORK-0115]
+requirements: []
+read_before: [AGENTS.md, src/monde/local_api.py, src/monde/source_pair_changes.py]
+reuses: [monde.source_pair_changes.source_directory_entity_geojson, monde.source_pair_changes.source_directory_entity_map]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Isolate an original reporter in entity-map navigation and export.", depends_on: [], expected_files: [src/monde/local_api.py, src/monde/source_pair_changes.py], status: IN_PROGRESS}
+    - {id: T2, description: "Verify persisted loopback HTTP and both temporal axes.", depends_on: [T1], expected_files: [tests/test_world_local_source_directory.py], status: READY}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Ancestors stacked and not merged to main."]

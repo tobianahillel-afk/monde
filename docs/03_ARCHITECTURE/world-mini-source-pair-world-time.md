@@ -616,3 +616,15 @@ filters continue to select which reporters qualify. The map viewport is a
 source-point display envelope, not verified movement or a consensus position.
 Directory requests for a map without `source` or `entity` remain invalid.
 No new endpoint, dependency, service, persisted-model mutation or paid API.
+
+## WORK-0116 — Inspect one original reporter's entity map
+
+From an exact-entity original coverage directory, the **Map this reporter for
+the entity** link restricts an existing read-only two-cutoff source map to one
+original source ID. Use `/source-pair?directory=1&entity=...&source=...&format=map`
+with the existing world/knowledge cutoff parameters; `format=geojson` exports
+the same exact original assertion/evidence/Point features. The unfiltered
+entity reporter directory and per-source detail outputs remain unchanged;
+combined source+entity parameters with other formats are rejected. Empty
+matches return an empty feature collection, never an inferred location.
+The existing saved WorldMini remains byte-identical.

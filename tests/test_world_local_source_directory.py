@@ -1006,7 +1006,110 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertIn(b"<!doctype html>", html.lower())
             status, _, raw = self.get({**q, "source": "survey-a",
                                       "entity": entity, "format": "geojson"}, server)
+            self.assertEqual(status, 200)
+            self.assertTrue(all(
+                feature["properties"]["source_id"] == "survey-a" and
+                feature["properties"]["entity"] == entity
+                for feature in json.loads(raw)["features"]))
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), before)
+
+
+    def test_exact_entity_single_original_reporter_map_http(self):
+        from html import unescape
+        import re
+        query = self.knowledge()
+        status, _, raw = self.get({**query, "format": "json"})
+        self.assertEqual(status, 200)
+        row = json.loads(raw)["sources"][0]
+        focused = {**query, "entity": row["example_entity"]}
+        status, _, html = self.get(focused)
+        self.assertEqual(status, 200)
+        links = re.findall(
+            rb'href="([^"]+)"[^>]*>Map this reporter for the entity</a>',
+            html)
+        self.assertTrue(links)
+        from urllib.parse import parse_qs, urlsplit
+        source_query = parse_qs(urlsplit(unescape(links[0].decode())).query)
+        self.assertEqual(source_query["format"], ["map"])
+        self.assertEqual(source_query["entity"], [row["example_entity"]])
+        single = {**focused, "source": source_query["source"][0]}
+        status, _, raw = self.get({**single, "format": "geojson"})
+        self.assertEqual(status, 200)
+        document = json.loads(raw)
+        self.assertEqual(document["monde_source_coverage"]["source_focus"],
+                         single["source"])
+        self.assertEqual(document["monde_source_coverage"]["selected_sources"], 1)
+        status, _, raw = self.get({**focused, "format": "geojson"})
+        self.assertEqual(status, 200)
+        all_reports = json.loads(raw)
+        expected = [feature for feature in all_reports["features"]
+                    if feature["properties"]["source_id"] == single["source"]]
+        self.assertEqual(document["features"], expected)
+        self.assertTrue(document["features"])
+        status, _, page = self.get({**single, "format": "map"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"<!doctype html>", page.lower())
+        self.assertIn(single["source"].encode(), page)
+
+    def test_original_reporter_intersection_invalid_and_empty(self):
+        query = self.knowledge()
+        status, _, raw = self.get({**query, "format": "json"})
+        entity = json.loads(raw)["sources"][0]["example_entity"]
+        for output in ("json", "csv", "table"):
+            status, _, raw = self.get({**query, "entity": entity,
+                                       "source": "survey-a", "format": output})
             self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw)["error"], "invalid_query")
+        for source in ("x" * 201, "survey-a\ninvalid"):
+            status, _, raw = self.get({**query, "entity": entity,
+                                       "source": source, "format": "geojson"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw)["error"], "invalid_query")
+        status, _, raw = self.get({**query, "entity": entity,
+                                   "source": "nonexistent-reporter",
+                                   "format": "geojson"})
+        self.assertEqual(status, 200)
+        empty = json.loads(raw)
+        self.assertEqual(empty["features"], [])
+        self.assertEqual(empty["monde_source_coverage"]["selected_sources"], 0)
+        self.assertEqual(empty["monde_source_coverage"]["source_focus"],
+                         "nonexistent-reporter")
+
+    def test_original_reporter_single_source_world_axis_no_mutation(self):
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "entity-original-reporter.json"
+        world.save(saved)
+        before = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = {"directory": "1", "axis": "world",
+                     "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**query, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            row = json.loads(raw)["sources"][0]
+            selected = {**query, "entity": row["example_entity"],
+                        "source": row["source_id"]}
+            status, _, raw = self.get({**selected, "format": "geojson"}, server)
+            self.assertEqual(status, 200)
+            features = json.loads(raw)["features"]
+            self.assertTrue(features)
+            for feature in features:
+                props = feature["properties"]
+                self.assertEqual(props["source_id"], row["source_id"])
+                self.assertEqual(props["entity"], row["example_entity"])
+                self.assertEqual(props["monde_known_at"], KNOWN)
+                self.assertEqual(props["monde_world_at"],
+                                 EARLY if props["monde_comparison_period"] == "earlier"
+                                 else LATE)
+            status, _, page = self.get({**selected, "format": "map"}, server)
+            self.assertEqual(status, 200)
+            self.assertIn(b"<!doctype html>", page.lower())
         finally:
             server.shutdown()
             thread.join(timeout=5)
