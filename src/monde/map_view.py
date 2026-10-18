@@ -1491,7 +1491,7 @@ def _viewer_time_navigation(query: dict[str, str] | None) -> str:
     mode = query["view"]
     fields = _VIEWER_TIME_FIELDS[mode]
     allowed = set(fields) | {"view"} | ({"source"} if mode in
-        {"current", "disagreements", "knowledge-changes", "world-changes"} else set())
+        set(_VIEWER_TIME_FIELDS) else set())
     if not set(fields) | {"view"} <= set(query) or set(query) - allowed or any(
             type(value) is not str or len(value) > 256 for value in query.values()):
         raise ValueError("invalid time navigation")
@@ -1519,9 +1519,8 @@ def _viewer_time_navigation(query: dict[str, str] | None) -> str:
         view_field + inputs +
         (('<label>Original source ID (optional)<input name="source" value="' +
           html_escape(query.get("source", ""), quote=True) +
-          '" placeholder="e.g. survey-1"></label>') if mode == "current" or
-         (mode in {"disagreements", "knowledge-changes", "world-changes"} and
-          "source" in query) else "") +
+          '" placeholder="e.g. survey-1"></label>') if mode in
+         {"current", "nearest", "radius"} or "source" in query else "") +
         '<button type="submit">Open evidence at selected times</button></form>'
         '</details></nav>')
 

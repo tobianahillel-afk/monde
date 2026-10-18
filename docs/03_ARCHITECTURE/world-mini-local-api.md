@@ -53,8 +53,9 @@ Endpoints (GET, all JSON):
   that source** inside the bbox at either cutoff; both old/new source reports
   for qualifying entities remain, even if the other position is offscreen.
   Source-specific counts exclude unrelated sources. Time differences are
-  source reports, never verified physical changes. Disagreements, nearest
-  and radius remain explicitly unfiltered.
+  source reports, never verified physical changes. The original-source filter
+  also supports `/map-disagreements` while retaining opposing evidence
+  needed to understand a cross-source conflict.
   The local `/explore` form suggests source IDs that have at least one original
   `geo_point` assertion in the saved snapshot. Up to 200 alphabetical IDs
   appear as native browser suggestions; manually entering any valid source ID
@@ -70,6 +71,15 @@ Endpoints (GET, all JSON):
 - `/radius?center=2.3522,48.8566&radius_km=5&at=...&known_at=...` —
   source Points within a radius, keeping conflicting out-of-radius reports of
   matched entities. Distance is not a measure of positional accuracy.
+- Both `/nearest` and `/radius` now accept optional `source=original-id`.
+  Nearby entities must qualify using **that source's own original Point**;
+  other sources cannot make them appear in the result. Nearest-N ranks are
+  recomputed using the selected source before applying the limit, never
+  obtained by filtering an already truncated global top-N list. The filtered
+  map preserves that source's original assertions and their evidence, and
+  adds `monde_source_filter`; unfiltered responses are unchanged. Both
+  filtered modes can be opened directly in `/viewer` and switched via the
+  existing native GET forms without state writes or remote requests.
 - `/timeline?entity=building-001&attribute=floors&from_at=T1&to_at=T2&known_at=K`
   — source-reported intervals and explicit UNKNOWN gaps, at fixed knowledge K.
 - `/compare-knowledge?entity=building-001&at=T&from_known_at=K1&to_known_at=K2`

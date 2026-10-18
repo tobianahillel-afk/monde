@@ -185,6 +185,73 @@ class SourceLensHTTPTests(unittest.TestCase):
 
 
 
+    def test_source_filtered_nearest_reranks_entire_population(self):
+        # The selected source must rank against *its* original Points, not
+        # post-filter the first N entities ranked using other sources.
+        query = {"center": "1.2,45.1", "limit": "1", "at": AT, "known_at": K1}
+        code, _, raw = self.fetch("/nearest", {**query, "source": "survey-west"})
+        self.assertEqual(code, 200)
+        data = json.loads(raw)
+        self.assertEqual(data["monde_source_filter"], "survey-west")
+        self.assertEqual(data["monde_nearest_query"]["total_matching_entities"], 1)
+        self.assertEqual(data["monde_nearest_query"]["has_more"], False)
+        self.assertEqual([(f["properties"]["entity"], f["properties"]["source_id"])
+                          for f in data["features"]], [("site-a", "survey-west")])
+        self.assertEqual(data["features"][0]["geometry"]["coordinates"], [7.2, 47.5])
+        self.assertEqual(json.loads(self.fetch("/nearest", query)[2]),
+                         self.world.export_geojson_nearest([1.2, 45.1], 1, AT, K1))
+        navigation = {"view": "nearest", **query, "source": "survey-west"}
+        status, headers, html = self.fetch("/viewer", navigation)
+        self.assertEqual(status, 200)
+        self.assertEqual(html.decode(), render_map(data, inspector_links=True,
+                                                    navigation=navigation))
+        self.assertIn(b'name="source" value="survey-west"', html)
+        self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
+
+    def test_source_filtered_radius_never_qualifies_using_another_source(self):
+        query = {"center": "2.35,48.85", "radius_km": "10",
+                 "at": AT, "known_at": K1}
+        status, _, raw = self.fetch("/radius", {**query, "source": "survey-west"})
+        self.assertEqual(status, 200)
+        other = json.loads(raw)
+        self.assertEqual(other["features"], [])
+        self.assertEqual(other["monde_radius_query"]["total_matching_entities"], 0)
+        self.assertEqual(other["monde_radius_query"]["status"], "NO_MATCHES")
+        status, _, raw = self.fetch("/radius", {**query, "source": "survey-east"})
+        self.assertEqual(status, 200)
+        data = json.loads(raw)
+        self.assertEqual(data["monde_source_filter"], "survey-east")
+        self.assertEqual(data["monde_radius_query"]["total_matching_entities"], 1)
+        self.assertEqual([(f["properties"]["entity"], f["properties"]["source_id"])
+                          for f in data["features"]], [("site-a", "survey-east")])
+        self.assertEqual(json.loads(self.fetch("/radius", query)[2]),
+                         self.world.export_geojson_radius([2.35, 48.85], 10, AT, K1))
+        navigation = {"view": "radius", **query, "source": "survey-east"}
+        status, _, html = self.fetch("/viewer", navigation)
+        self.assertEqual(status, 200)
+        self.assertEqual(html.decode(), render_map(data, inspector_links=True,
+                                                    navigation=navigation))
+
+    def test_proximity_source_validation_and_native_explorer(self):
+        for route, base in (
+                ("/nearest", {"center": "2.35,48.85", "limit": "2"}),
+                ("/radius", {"center": "2.35,48.85", "radius_km": "10"})):
+            query = {**base, "at": AT, "known_at": K1}
+            for source in ("../survey-east", "bad<script>", "has spaces"):
+                with self.subTest(route=route, source=source):
+                    code, _, raw = self.fetch(route, {**query, "source": source})
+                    self.assertEqual(code, 400)
+                    self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+            self.assertEqual(self.fetch(route, {**query, "source": "survey-east",
+                                                 "unexpected": "1"})[0], 400)
+            self.assertEqual(self.fetch(route, {**query, "source": ""})[0], 200)
+        html = _explorer_html(("survey-east", "survey-west"))
+        for view in ("nearest", "radius"):
+            form = html.split('value="' + view + '">', 1)[1].split("</form>", 1)[0]
+            self.assertIn('name="source"', form)
+            self.assertIn('list="saved-original-sources"', form)
+
+
 class HistoricalSourceLensHTTPTests(unittest.TestCase):
     def setUp(self):
         from tests.test_world_geojson_changes import model, correct
