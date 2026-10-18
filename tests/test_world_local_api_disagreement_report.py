@@ -1177,5 +1177,97 @@ class DisagreementReportHTTPTests(unittest.TestCase):
                 self.assertEqual(status, 400)
                 self.assertEqual(json.loads(body), {"error": "invalid_query"})
 
+
+    def test_comparison_period_selector_preserves_both_original_snapshots(self):
+        """The server sends all evidence; only browser visibility changes."""
+        for axis in ({"from_known_at": "2026-01-09T00:00:00Z"},
+                     {"from_at": "2026-01-01T01:00:00Z"}):
+            with self.subTest(axis=axis):
+                selected = {**QUERY, "source": "survey-east",
+                            "entity": "site-a", **axis}
+                expected = json.loads(
+                    self.fetch("/disagreement-compare.geojson", selected)[2])
+                counts = {period: sum(
+                    f["properties"]["monde_comparison_period"] == period
+                    for f in expected["features"])
+                    for period in ("earlier", "later")}
+                # An empty earlier period is valid: absence of known source
+                # reports at that cutoff must not be filled with later evidence.
+                self.assertEqual(counts["earlier"] + counts["later"],
+                                 len(expected["features"]))
+                self.assertGreater(len(expected["features"]), 0)
+                for route in ("/disagreement-compare.html", "/viewer"):
+                    args = ({"view": "disagreement-comparison", **selected}
+                            if route == "/viewer" else selected)
+                    code, headers, raw = self.fetch(route, args)
+                    self.assertEqual(code, 200)
+                    html = raw.decode("utf-8")
+                    self.assertIn('id="comparison-period-control"', html)
+                    self.assertIn('value="earlier"', html)
+                    self.assertIn('value="later"', html)
+                    self.assertIn("The complete earlier/later evidence", html)
+                    embedded = self.embedded_map(html)
+                    self.assertEqual(embedded["features"], expected["features"])
+                    self.assertEqual(embedded["monde_comparison"],
+                                     expected["monde_comparison"])
+                    self.assertIn("connect-src 'none'",
+                                  headers["Content-Security-Policy"])
+                self.assertEqual(self.path.read_bytes(), self.before)
+
+    def test_comparison_period_control_is_hidden_for_normal_source_maps(self):
+        status, _, raw = self.fetch("/viewer",
+                                    {"view": "current", **QUERY})
+        self.assertEqual(status, 200)
+        html = raw.decode()
+        self.assertIn('id="comparison-period-control"', html)
+        self.assertIn('id="comparison-period-control" class="controls" hidden', html)
+        self.assertEqual(self.embedded_map(html).get("monde_comparison"), None)
+
+    def test_period_selector_changes_rendered_svg_without_changing_saved_evidence(self):
+        """Headless Chromium exercises the real offline JavaScript change event."""
+        import re
+        import shutil
+        import subprocess
+        browser = next((path for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (path := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium not installed; GitHub Actions tests browser path")
+        selected = {**QUERY, "from_known_at": "2026-01-09T00:00:00Z",
+                    "source": "survey-east", "entity": "site-a"}
+        status, _, raw = self.fetch("/disagreement-compare.html", selected)
+        self.assertEqual(status, 200)
+        expected = self.embedded_map(raw.decode())
+        counts = {period: sum(f["properties"]["monde_comparison_period"] == period
+                              for f in expected["features"])
+                  for period in ("earlier", "later")}
+        probe = """<script>
+const period=document.getElementById("comparison-period");
+function count(mode) {
+  period.value=mode;
+  period.dispatchEvent(new Event("change"));
+  return document.querySelectorAll("#points circle").length;
+}
+document.body.setAttribute("data-count-earlier",String(count("earlier")));
+document.body.setAttribute("data-count-later",String(count("later")));
+document.body.setAttribute("data-count-both",String(count("")));
+</script>"""
+        output = Path(self.folder.name) / "comparison.html"
+        output.write_text(raw.decode().replace("</body>", probe + "</body>"),
+                          encoding="utf-8")
+        rendered = subprocess.run(
+            [browser, "--headless", "--no-sandbox", "--disable-gpu",
+             "--disable-dev-shm-usage", "--timeout=15000", "--dump-dom",
+             output.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            timeout=30, check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', rendered)
+        for mode, value in (("earlier", counts["earlier"]),
+                            ("later", counts["later"]),
+                            ("both", len(expected["features"]))):
+            match = re.search(r'data-count-' + mode + r'="(\d+)"', rendered)
+            self.assertIsNotNone(match, "Browser did not run " + mode)
+            self.assertEqual(int(match.group(1)), value)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
 if __name__ == "__main__":
     unittest.main()

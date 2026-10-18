@@ -136,6 +136,14 @@ __MONDE_TIME_NAVIGATION__
 <button id="export-visible-csv" type="button" disabled>Export visible CSV</button>
 <button id="export-dossier" type="button" disabled>Export entity evidence dossier</button></div>
 <div class="controls"><label for="sources">Source</label><select id="sources"><option value="">All sources</option></select></div>
+<div id="comparison-period-control" class="controls" hidden>
+<label for="comparison-period">Original evidence period</label>
+<select id="comparison-period" aria-label="Filter original source reports by comparison period">
+<option value="">Both original periods</option>
+<option value="earlier">Earlier source reports only</option>
+<option value="later">Later source reports only</option>
+</select></div>
+<p id="comparison-period-summary" class="subtle" role="status" aria-live="polite" hidden></p>
 <div id="gpkg-layer-control" class="controls" hidden>
   <strong>Original GeoPackage layers</strong>
   <div id="gpkg-layer-options" role="group" aria-label="Toggle original GeoPackage source layers"></div>
@@ -264,6 +272,12 @@ __MONDE_TIME_NAVIGATION__
   var entityInspection = document.getElementById("full-entity-inspection");
   var sourceInspection = document.getElementById("full-source-history");
   var sources = document.getElementById("sources");
+  var comparisonPeriod = document.getElementById("comparison-period");
+  var comparisonPeriodSummary = document.getElementById("comparison-period-summary");
+  if (data.monde_comparison) {
+    document.getElementById("comparison-period-control").hidden = false;
+    comparisonPeriodSummary.hidden = false;
+  }
   var traceFilter = document.getElementById("trace-filter");
   var traceClear = document.getElementById("clear-trace-filter");
   var traceSummary = document.getElementById("trace-filter-summary");
@@ -1022,6 +1036,8 @@ __MONDE_TIME_NAVIGATION__
       (!insideOnly.checked || inSelection(p)) &&
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
+      (!data.monde_comparison || !comparisonPeriod.value ||
+       p.monde_comparison_period === comparisonPeriod.value) &&
       (!p.monde_gpkg_source_layer || gpkgLayers.length <= 1 ||
         visibleGpkgSources.has(p.source_id)) &&
       (!traceFilter.value || traceKey(f) === traceFilter.value) &&
@@ -1184,6 +1200,13 @@ __MONDE_TIME_NAVIGATION__
     renderConflictNavigator();
     renderCaptureTimeline();
     visibleFeatures = features.filter(function(f) { return matchesFilters(f,false); });
+    if (data.monde_comparison) {
+      comparisonPeriodSummary.textContent = String(visibleFeatures.length) +
+        " original source reports currently shown (" +
+        (comparisonPeriod.value || "both periods") + "). " +
+        "The complete earlier/later evidence remains embedded and unchanged; " +
+        "hiding a report is not proof of its absence or verified movement.";
+    }
     gpxClockClear.disabled=!gpxClockFrom.value&&!gpxClockThrough.value;
     if(availableTraces.size)gpxClockSummary.textContent=gpxClockClear.disabled ?
       "Original source sample UTC days; not evidence capture or physical travel." :
@@ -1292,6 +1315,7 @@ __MONDE_TIME_NAVIGATION__
     return {
       search: search.value.trim(),
       source_id: sources.value,
+      comparison_period: data.monde_comparison ? comparisonPeriod.value : null,
       gpkg_visible_source_ids: gpkgLayers.length > 1 ?
         Array.from(visibleGpkgSources).sort() : null,
       gpkg_layer_filter_basis: gpkgLayers.length > 1 ?
@@ -1429,6 +1453,7 @@ __MONDE_TIME_NAVIGATION__
     if (dossier) saveEvidence(dossier,"monde-entity-evidence-dossier.json","application/json");
   });
   sources.addEventListener("change",render);
+  comparisonPeriod.addEventListener("change",render);
   traceFilter.addEventListener("change",render);
   traceClear.addEventListener("click",function(){traceFilter.value="";render();});
   gpxClockFrom.addEventListener("change",render);
