@@ -647,3 +647,49 @@ period. Labels are source-reported coverage only, **not** inferred agreement,
 physical movement or missing-world evidence. CSV fields use the existing
 spreadsheet-safe quoting, with a fixed download filename. This reuses the
 interactive grouping above; no new World Model, endpoint or service.
+
+
+### Entity-first original source coverage (WORK-0084)
+
+For either axis of the read-only two-period disagreement-comparison map, expand
+**Original entity coverage across sources and periods**. Each entity row lists
+the original reporting sources in earlier, later and both selections, and the
+total original Point reports. Click an entity to return to the existing map
+of all its embedded source reports across both periods. The **Download complete
+entity and source coverage CSV** action exports one row per entity/source pair,
+including earlier/later report counts and complete original assertion/evidence
+ID lists as JSON text. The CSV is spreadsheet-formula escaped and is derived
+from all *embedded* original reports, not viewport/search/source/period display
+filters. Zero reporting within the selection is **not** evidence of physical
+absence or consensus. No new endpoint, external network, hosted API, model,
+inferred movement, or saved-state mutation is introduced.
+
+Each original entity row now has a **Download original reports** control and a
+separate Both / Earlier / Later export-period selector. It preserves the exact
+original Point feature objects, source, assertion, evidence, bitemporal metadata
+and the parent comparison context for every embedded source of the selected
+entity, regardless of map viewport, search, source or displayed period filters.
+The `monde_entity_period_export` metadata records scope, selected entity,
+period and original report counts. No consensus/movement inference, external
+request, new endpoint or saved WorldMini mutation occurs.
+
+**Entity × original source × comparison period navigation (WORK-0084):**
+Each source name in an entity's Earlier, Later or Both coverage cell is now an
+interactive, read-only link to exactly that entity/source/period selection on
+the already embedded offline evidence map. It clears contradictory presentation
+filters and fits the selected original reports. Empty intersections show no
+link. The source and entity IDs are assigned through text nodes; no new
+network route, source inference, or persisted model change is introduced.
+
+## Entity/source/period evidence downloads (WORK-0084)
+
+In the offline comparison map, the entity-first coverage table now provides a
+**Download GeoJSON** action next to each source in the Earlier, Later or Both
+column. It exports only that original entity/source/period intersection from
+the complete embedded source reports, even if viewport, search and period
+presentation filters hide the evidence. Original features, assertion/evidence
+IDs and comparison cutoffs remain unchanged. The export includes explicit
+entity, source, selected period, original/selected counts and an evidence-only
+scope; it does not infer physical movement, truth or absence. The filename is
+fixed, never derived from untrusted source or entity names. No additional
+service, browser dependency or WorldMini persistence change is introduced.

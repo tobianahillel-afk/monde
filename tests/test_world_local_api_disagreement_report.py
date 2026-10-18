@@ -2032,5 +2032,220 @@ body.dataset.inventoryFiltersPreserved=String(period.value==="later" &&
                 "COMPLETE_EMBEDDED_SOURCE_ENTITY_INVENTORY_NOT_DISPLAY_FILTERED")
         self.assertEqual(self.path.read_bytes(), self.before)
 
+
+    def test_entity_first_source_coverage_csv_and_map_navigation(self):
+        """Live HTTP/Chromium: entity/source/period inventory ignores display filters."""
+        import base64
+        import re
+        import shutil
+        import subprocess
+        from collections import defaultdict
+
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        status, _, body = self.fetch("/disagreement-compare.html", {
+            **QUERY, "source": "survey-east", "entity": "site-a",
+            "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(status, 200)
+        html = body.decode("utf-8")
+        embedded = self.embedded_map(html)
+        records = defaultdict(lambda: {"earlier": [], "later": []})
+        for f in embedded["features"]:
+            p = f["properties"]
+            records[(p["entity"], p["source_id"])][p["monde_comparison_period"]].append(f)
+        self.assertTrue(records, "Expected original source/entity evidence")
+        expected_entities = sorted({entity for entity, _ in records})
+        probe = """<script>
+const root=document.body,records=__RECORDS__,entities=__ENTITIES__;
+const panel=document.getElementById("comparison-entity-coverage");
+const rows=Array.from(document.querySelectorAll("#comparison-entity-rows tr"));
+root.dataset.entityMatrixRendered=String(
+  panel && !panel.hidden && rows.length===entities.length &&
+  rows.every(r=>entities.includes(r.dataset.entity)));
+const period=document.getElementById("comparison-period");
+period.value="later";period.dispatchEvent(new Event("change"));
+const search=document.getElementById("report-search");
+search.value="not-a-visible-report";search.dispatchEvent(new Event("input"));
+const NativeBlob=window.Blob;
+window.Blob=function(parts,options){
+  if(options && options.type.startsWith("text/csv"))
+    root.dataset.entityMatrixCsv=btoa(unescape(encodeURIComponent(String(parts[0]))));
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){root.dataset.entityMatrixFilename=this.download;};
+document.getElementById("comparison-export-entity-coverage-csv").click();
+root.dataset.entityMatrixFiltersPreserved=String(period.value==="later" &&
+  search.value==="not-a-visible-report");
+window.Blob=NativeBlob;
+const target=rows.find(r=>r.dataset.entity===entities[0]);
+const exportPeriod=document.getElementById("comparison-entity-export-period");
+const exportEntity=target.querySelector('button[aria-label^="Download complete original evidence for entity"]');
+root.dataset.entityGeojsonButton=String(!!exportEntity);
+window.Blob=function(parts,options){
+  if(options && options.type==="application/geo+json")
+    root.dataset.entityGeojson=btoa(unescape(encodeURIComponent(String(parts[0]))));
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){root.dataset.entityGeojsonFilename=this.download;};
+for(const selected of ["earlier","later","both"]){
+  exportPeriod.value=selected;
+  exportEntity.click();
+  root.dataset["entityGeojson"+selected.charAt(0).toUpperCase()+selected.slice(1)]=
+    root.dataset.entityGeojson;
+}
+root.dataset.entityGeojsonFiltersPreserved=String(period.value==="later" &&
+  search.value==="not-a-visible-report" && exportPeriod.value==="both");
+window.Blob=NativeBlob;
+// Exact intersection exports remain complete even with conflicting display
+// controls active. Capture each available earlier/later/both download.
+const intersectionButtons=Array.from(target.querySelectorAll(
+  "button[data-export-source-id][data-export-period]"));
+const intersectionExports=[];
+window.Blob=function(parts,options){
+  if(options && options.type==="application/geo+json")
+    root.dataset.intersectionPayload=String(parts[0]);
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  root.dataset.intersectionFilename=this.download;
+};
+for(const mode of ["earlier","later","both"]){
+  const btn=intersectionButtons.find(b=>b.dataset.exportPeriod===mode);
+  if(!btn)continue;
+  btn.click();
+  intersectionExports.push({
+    source:btn.dataset.exportSourceId,period:mode,
+    payload:root.dataset.intersectionPayload
+  });
+}
+root.dataset.intersectionExports=btoa(unescape(encodeURIComponent(
+  JSON.stringify(intersectionExports))));
+root.dataset.intersectionFiltersPreserved=String(
+  period.value==="later" && search.value==="not-a-visible-report");
+window.Blob=NativeBlob;
+// An entity/source/period intersection must navigate to *that* report set,
+// not only to the source as a whole or whatever is currently visible.
+const intersect=target.querySelector("td:nth-child(2) button") ||
+  target.querySelector("td:nth-child(3) button") ||
+  target.querySelector("td:nth-child(4) button");
+const selectedSource=intersect && intersect.dataset.sourceId;
+const selectedPeriod=intersect && intersect.dataset.period;
+if(intersect)intersect.click();
+root.dataset.entityMatrixSourceDrilldown=String(!!intersect &&
+  document.getElementById("entities").value===entities[0] &&
+  document.getElementById("sources").value===selectedSource &&
+  document.getElementById("comparison-period").value===
+    (selectedPeriod==="both"?"":selectedPeriod) &&
+  document.getElementById("report-search").value==="" &&
+  !document.getElementById("current-view-only").checked);
+target.querySelector("button").click();
+root.dataset.entityMatrixNavigation=String(
+  document.getElementById("entities").value===entities[0] &&
+  document.getElementById("sources").value==="" &&
+  document.getElementById("comparison-period").value==="" &&
+  document.getElementById("report-search").value==="");
+</script>""".replace("__RECORDS__", json.dumps(len(records))).replace(
+            "__ENTITIES__", json.dumps(expected_entities))
+        target = Path(self.folder.name) / "entity-source-coverage.html"
+        target.write_text(html.replace("</body>", probe + "</body>"), encoding="utf-8")
+        rendered = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", target.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
+            check=True).stdout.decode("utf-8")
+        for attr in ("entity-matrix-rendered", "entity-matrix-filters-preserved",
+                     "entity-matrix-source-drilldown", "entity-matrix-navigation"):
+            self.assertIn('data-' + attr + '="true"', rendered, attr)
+        self.assertIn(
+            'data-entity-matrix-filename="monde-original-entity-source-coverage.csv"',
+            rendered)
+        self.assertIn('data-entity-geojson-button="true"', rendered)
+        self.assertIn('data-entity-geojson-filters-preserved="true"', rendered)
+        self.assertIn(
+            'data-entity-geojson-filename="monde-original-entity-period-reports.geojson"',
+            rendered)
+        for selected in ("earlier", "later", "both"):
+            marker = "data-entity-geojson-" + selected
+            result = re.search(marker + r'="([A-Za-z0-9+/=]+)"', rendered)
+            self.assertIsNotNone(result, marker)
+            doc = json.loads(base64.b64decode(result.group(1)).decode("utf-8"))
+            selected_features = [f for f in embedded["features"]
+                if f["properties"]["entity"] == expected_entities[0] and
+                (selected == "both" or f["properties"]["monde_comparison_period"] == selected)]
+            self.assertEqual(doc["features"], selected_features)
+            self.assertEqual(doc["monde_comparison"], embedded["monde_comparison"])
+            provenance = doc["monde_entity_period_export"]
+            self.assertEqual(provenance["scope"],
+                             "COMPLETE_EMBEDDED_ENTITY_NOT_DISPLAY_FILTERED")
+            self.assertEqual(provenance["entity"], expected_entities[0])
+            self.assertEqual(provenance["selected_period"], selected)
+            self.assertEqual(provenance["original_feature_count"],
+                             len(embedded["features"]))
+            self.assertEqual(provenance["exported_feature_count"],
+                             len(selected_features))
+            self.assertEqual(provenance["earlier_original_report_count"],
+                sum(f["properties"]["monde_comparison_period"] == "earlier"
+                    for f in selected_features))
+            self.assertEqual(provenance["later_original_report_count"],
+                sum(f["properties"]["monde_comparison_period"] == "later"
+                    for f in selected_features))
+        self.assertIn('data-intersection-filters-preserved="true"', rendered)
+        self.assertIn(
+            'data-intersection-filename="monde-original-entity-source-period-reports.geojson"',
+            rendered)
+        exported_match = re.search(
+            r'data-intersection-exports="([A-Za-z0-9+/=]+)"', rendered)
+        self.assertIsNotNone(exported_match, "Intersection export missing")
+        intersections = json.loads(base64.b64decode(
+            exported_match.group(1)).decode("utf-8"))
+        self.assertTrue(intersections, "No source/period download available")
+        for item in intersections:
+            doc = json.loads(item["payload"])
+            expected = [f for f in embedded["features"]
+                if f["properties"]["entity"] == expected_entities[0]
+                and f["properties"]["source_id"] == item["source"]
+                and (item["period"] == "both" or
+                     f["properties"]["monde_comparison_period"] == item["period"])]
+            self.assertTrue(expected, item)
+            self.assertEqual(doc["features"], expected)
+            self.assertEqual(doc["monde_comparison"], embedded["monde_comparison"])
+            scope = doc["monde_entity_source_period_export"]
+            self.assertEqual(scope["scope"],
+                "COMPLETE_EMBEDDED_ENTITY_SOURCE_PERIOD_NOT_DISPLAY_FILTERED")
+            self.assertEqual(scope["entity"], expected_entities[0])
+            self.assertEqual(scope["source_id"], item["source"])
+            self.assertEqual(scope["selected_period"], item["period"])
+            self.assertEqual(scope["comparison_axis"], embedded["monde_comparison"]["axis"])
+            self.assertEqual(scope["exported_feature_count"], len(expected))
+            self.assertEqual(scope["original_feature_count"], len(embedded["features"]))
+            self.assertEqual(scope["earlier_original_report_count"],
+                sum(f["properties"]["monde_comparison_period"] == "earlier" for f in expected))
+            self.assertEqual(scope["later_original_report_count"],
+                sum(f["properties"]["monde_comparison_period"] == "later" for f in expected))
+        match = re.search(r'data-entity-matrix-csv="([A-Za-z0-9+/=]+)"', rendered)
+        self.assertIsNotNone(match, "Original source/entity CSV not generated")
+        payload = base64.b64decode(match.group(1)).decode("utf-8-sig")
+        rows = list(csv.DictReader(io.StringIO(payload)))
+        self.assertEqual(len(rows), len(records))
+        for row in rows:
+            periods = records[(row["entity"], row["source_id"])]
+            for period in ("earlier", "later"):
+                original = periods[period]
+                self.assertEqual(int(row[period + "_original_report_count"]),
+                                 len(original))
+                self.assertEqual(json.loads(row[period + "_assertion_ids_json"]),
+                                 [str(f["properties"].get("assertion_id") or
+                                      f["properties"].get("monde_original_feature_id"))
+                                  for f in original])
+                self.assertEqual(json.loads(row[period + "_evidence_ids_json"]),
+                                 [str(f["properties"]["evidence_id"]) for f in original])
+            self.assertEqual(row["comparison_axis"], embedded["monde_comparison"]["axis"])
+            self.assertEqual(row["export_scope"],
+                "COMPLETE_EMBEDDED_ENTITY_SOURCE_INVENTORY_NOT_DISPLAY_FILTERED")
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+
 if __name__ == "__main__":
     unittest.main()
