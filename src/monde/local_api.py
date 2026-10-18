@@ -1231,7 +1231,7 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import source_directory
     if args.get("directory") != "1" or args.get("format", "table") not in (
-            "table", "json", "csv", "assertions-csv", "geojson", "map"):
+            "table", "json", "csv", "assertions-csv", "presence-csv", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
@@ -1245,7 +1245,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
-    if args.get("format") == "assertions-csv" and (
+    if args.get("format") in ("assertions-csv", "presence-csv") and (
             "entity" not in args or "source" in args):
         raise ValueError("original assertion CSV requires exact entity directory")
     if (args.get("format") in ("geojson", "map") and
@@ -1312,6 +1312,8 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
     csv_link = "/source-pair?" + urlencode({**args, "format": "csv"})
     assertion_csv_link = ("/source-pair?" + urlencode({**args, "format": "assertions-csv"})
                           if "entity_focus" in document else None)
+    presence_csv_link = ("/source-pair?" + urlencode({**args, "format": "presence-csv"})
+                         if "entity_focus" in document else None)
     filters = (("all", "All reporters"), ("new", "Any newly reported entities"),
                ("gone", "Any no-longer-reported entities"),
                ("both", "Any continuously reported entities"))
@@ -1411,6 +1413,9 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         (' · <a href="' + escape(assertion_csv_link, quote=True) +
          '">Download all original reporter assertions CSV</a>'
          if assertion_csv_link else '') +
+        (' · <a href="' + escape(presence_csv_link, quote=True) +
+         '">Download original report presence changes CSV</a>'
+         if presence_csv_link else '') +
         (' · <a href="' + escape("/source-pair?" + urlencode(
             {**args, "format": "map"}), quote=True) +
          '">Map all original reporters of this entity</a> · <a href="' +
@@ -1940,8 +1945,11 @@ def create_server(state: str | Path, port: int = 0, *,
                             exporter = (source_directory_entity_map if "entity" in args
                                         else source_directory_map)
                             return self._html(exporter(world, document))
-                        if output_format in ("csv", "assertions-csv"):
-                            if output_format == "assertions-csv":
+                        if output_format in ("csv", "assertions-csv", "presence-csv"):
+                            if output_format == "presence-csv":
+                                from .source_pair_changes import source_directory_entity_presence_csv
+                                body = source_directory_entity_presence_csv(world, document).encode("utf-8")
+                            elif output_format == "assertions-csv":
                                 from .source_pair_changes import source_directory_entity_assertions_csv
                                 body = source_directory_entity_assertions_csv(world, document).encode("utf-8")
                             else:
@@ -1952,7 +1960,9 @@ def create_server(state: str | Path, port: int = 0, *,
                             self.send_response(200)
                             self.send_header("Content-Type", "text/csv; charset=utf-8")
                             self.send_header("Content-Disposition",
-                                             ('attachment; filename="original-entity-reporter-assertions.csv"'
+                                             ('attachment; filename="original-entity-report-presence.csv"'
+                                               if output_format == "presence-csv" else
+                                               'attachment; filename="original-entity-reporter-assertions.csv"'
                                                if output_format == "assertions-csv" else
                                                'attachment; filename="original-source-coverage.csv"'))
                             self.send_header("Content-Length", str(len(body)))
