@@ -724,6 +724,67 @@ def source_directory_entity_presence_geojson(world, directory, presence=None):
     }
 
 
+
+def source_directory_entity_presence_kml(world, directory, presence=None):
+    """KML 2.2 original Point identities for offline GIS, not inferred movement."""
+    from xml.etree import ElementTree as ET
+    geojson = source_directory_entity_presence_geojson(world, directory, presence)
+    ns = "http://www.opengis.net/kml/2.2"
+    ET.register_namespace("", ns)
+
+    def node(parent, tag, text=None):
+        element = ET.SubElement(parent, "{" + ns + "}" + tag)
+        if text is not None:
+            text = str(text)
+            if any(not (n in (9, 10, 13) or 32 <= n <= 0xD7FF or
+                        0xE000 <= n <= 0xFFFD or 0x10000 <= n <= 0x10FFFF)
+                   for n in map(ord, text)):
+                raise ValueError("invalid XML source evidence")
+            element.text = text
+        return element
+
+    def extended(parent, values):
+        data = node(parent, "ExtendedData")
+        for key, value in values.items():
+            field = ET.SubElement(data, "{" + ns + "}Data", {"name": key})
+            node(field, "value", value)
+
+    root = ET.Element("{" + ns + "}kml")
+    document = node(root, "Document")
+    node(document, "name", "MONDE original Point presence — " + directory["entity_focus"])
+    node(document, "description", "Original reports, not verified movement or truth.")
+    meta = geojson["monde_source_coverage"]
+    early, late = meta["cutoffs"]["earlier"], meta["cutoffs"]["later"]
+    detail = {"schema": "MONDE_ORIGINAL_POINT_PRESENCE_KML_V1",
+              "entity": meta["entity_focus"], "axis": meta["axis"],
+              "earlier_world_at": early["world_at"],
+              "earlier_knowledge_at": early["knowledge_at"],
+              "later_world_at": late["world_at"],
+              "later_knowledge_at": late["knowledge_at"],
+              "report_count": len(geojson["features"])}
+    for key in ("source_focus", "presence_filter"):
+        if key in meta:
+            detail[key] = meta[key]
+    extended(document, detail)
+    for feature in geojson["features"]:
+        p = feature["properties"]
+        lon, lat = feature["geometry"]["coordinates"]
+        place = node(document, "Placemark")
+        node(place, "name", p["source_id"] + " — " + p["monde_original_assertion_id"])
+        props = {"entity": p["entity"], "source_id": p["source_id"],
+                 "assertion_id": p["monde_original_assertion_id"],
+                 "evidence_id": p["evidence_id"],
+                 "earlier_visible": str(p["earlier_visible"]).lower(),
+                 "later_visible": str(p["later_visible"]).lower(),
+                 "visibility_transition": p["monde_visibility_transition"]}
+        for key in ("locator", "captured_at", "source_event_at"):
+            if p.get(key) is not None:
+                props[key] = p[key]
+        extended(place, props)
+        node(node(place, "Point"), "coordinates", f"{lon},{lat},0")
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+
+
 def source_directory_entity_presence_map(world, directory, presence=None, focus=None):
     """Map original report identities once; optionally select one exact Point.
 

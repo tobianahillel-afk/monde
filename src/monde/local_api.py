@@ -1231,7 +1231,7 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import source_directory
     if args.get("directory") != "1" or args.get("format", "table") not in (
-            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-map", "presence-table", "geojson", "map"):
+            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-map", "presence-table", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
@@ -1269,12 +1269,12 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             raise ValueError("invalid original Point coordinates")
     if "presence" in args and (
             args["presence"] not in ("earlier", "later", "both") or
-            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-map", "presence-table") or
+            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-map", "presence-table") or
             "entity" not in args):
         raise ValueError("original presence requires an exact entity export")
-    if args.get("format") in ("assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-map", "presence-table") and (
+    if args.get("format") in ("assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-map", "presence-table") and (
             "entity" not in args or
-            ("source" in args and args["format"] not in ("presence-csv", "presence-json", "presence-geojson", "presence-map", "presence-table"))):
+            ("source" in args and args["format"] not in ("presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-map", "presence-table"))):
         raise ValueError("original assertion CSV requires exact entity directory")
     if (args.get("format") in ("geojson", "map") and
             "source" not in args and "entity" not in args):
@@ -1286,7 +1286,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if "source" in args and "entity" in args:
         # Keep canonical directory/detail JSON, CSV and tables unchanged.
         # Original source/entity intersection also permits the presence CSV.
-        if args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-map", "presence-table"):
+        if args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-map", "presence-table"):
             raise ValueError("source and entity selection requires a map export")
         source = args["source"]
         if not 0 < len(source) <= 200 or any(
@@ -1347,6 +1347,8 @@ def _source_directory_html(document: dict, args: dict[str, str],
                           if "entity_focus" in document else None)
     presence_geojson_link = ("/source-pair?" + urlencode({**args, "format": "presence-geojson"})
                              if "entity_focus" in document else None)
+    presence_kml_link = ("/source-pair?" + urlencode({**args, "format": "presence-kml"})
+                         if "entity_focus" in document else None)
     presence_map_link = ("/source-pair?" + urlencode({**args, "format": "presence-map"})
                          if "entity_focus" in document else None)
     filters = (("all", "All reporters"), ("new", "Any newly reported entities"),
@@ -1524,6 +1526,9 @@ def _source_directory_html(document: dict, args: dict[str, str],
         (' · <a href="' + escape(presence_map_link, quote=True) +
          '">Map unique original reports by temporal presence</a>'
          if presence_map_link else '') +
+        (' · <a href="' + escape(presence_kml_link, quote=True) +
+         '">Download original Point presence KML</a>'
+         if presence_kml_link else '') +
         (' · <a href="' + escape("/source-pair?" + urlencode(
             {**args, "format": "map"}), quote=True) +
          '">Map all original reporters of this entity</a> · <a href="' +
@@ -1565,6 +1570,7 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
     downloaded = "/source-pair?" + urlencode({**args, "format": "presence-csv"})
     json_link = "/source-pair?" + urlencode({**args, "format": "presence-json"})
     geojson_link = "/source-pair?" + urlencode({**args, "format": "presence-geojson"})
+    kml_link = "/source-pair?" + urlencode({**args, "format": "presence-kml"})
     unique_map_link = "/source-pair?" + urlencode({**args, "format": "presence-map"})
     headings = "".join('<th scope="col">' + escape(c.replace("_", " ")) +
                        "</th>" for c in columns)
@@ -1638,7 +1644,9 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
         escape(geojson_link, quote=True) +
         '">Download unique matching GeoJSON</a> · <a href="' +
         escape(unique_map_link, quote=True) +
-        '">Map unique matching Points</a></nav>'
+        '">Map unique matching Points</a> · <a href="' +
+        escape(kml_link, quote=True) +
+        '">Download matching KML</a></nav>'
         '<h1>Original Point reports at both time cutoffs</h1><p>Exact entity: '
         '<strong>' + escape(directory["entity_focus"]) + '</strong>. These '
         'original assertions express evidence visibility, not verified '
@@ -2154,6 +2162,23 @@ def create_server(state: str | Path, port: int = 0, *,
                             from .source_pair_changes import source_directory_entity_presence_geojson
                             return self._reply(200, source_directory_entity_presence_geojson(
                                 world, document, args.get("presence")))
+                        if output_format == "presence-kml":
+                            from .source_pair_changes import source_directory_entity_presence_kml
+                            body = source_directory_entity_presence_kml(
+                                world, document, args.get("presence"))
+                            if len(body) > max_response_bytes:
+                                return self._reply(413, {"error": "response_too_large"})
+                            self.send_response(200)
+                            self.send_header("Content-Type",
+                                             "application/vnd.google-earth.kml+xml; charset=utf-8")
+                            self.send_header("Content-Disposition",
+                                             'attachment; filename="monde-original-point-presence.kml"')
+                            self.send_header("Content-Length", str(len(body)))
+                            self.send_header("Cache-Control", "no-store")
+                            self.send_header("X-Content-Type-Options", "nosniff")
+                            self.end_headers()
+                            self.wfile.write(body)
+                            return
                         if output_format == "presence-map":
                             from .source_pair_changes import source_directory_entity_presence_map
                             focus = None

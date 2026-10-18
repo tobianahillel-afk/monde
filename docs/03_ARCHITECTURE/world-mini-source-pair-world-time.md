@@ -729,3 +729,20 @@ cutoffs. Each marker retains `earlier_visible`, `later_visible`, and
 classification as CSV, JSON and GeoJSON. The existing full two-period map
 remains unchanged. Display is offline/loopback-only, read-only and does not
 claim physical motion, verified disappearance or consensus location.
+
+## Original Point evidence presence KML for external GIS (WORK-0126)
+
+For a selected exact entity, `/source-pair?directory=1&format=presence-kml`
+downloads a read-only KML 2.2 document that can be opened in Google Earth and
+other compatible GIS software. The directory and original presence table link
+to this download. Select an exact `source` and
+`presence=earlier|later|both` to restrict the original reports.
+
+Each `Placemark` is one *original* source/assertion/evidence/WGS84-coordinate
+identity, never a duplicate per temporal cutoff. KML `ExtendedData` retains
+the original IDs, each cutoff's world and knowledge times, earlier/later
+visibility, and its original-source attribution. Coordinates are original
+reported locations, **not verified movement, a consensus estimate or truth**.
+This reuses `source_directory_entity_presence_geojson`, performs no ingestion
+or saved-model write, adds no paid APIs or runtime packages, and keeps the
+existing strict loopback-only HTTP interface and response-size limit.
