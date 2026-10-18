@@ -2649,7 +2649,7 @@ root.dataset.diffExportCorrect=String(!!metaDiff&&
   filename==="monde-original-source-pair-position-differences.geojson"&&
   search.value==="not-in-evidence"&&period.value==="later");
 csvOutput=null;filename=null;csvButton.click();
-const csvLines=csvOutput&&csvOutput.replace(/^\uFEFF/,"").trimEnd().split("\r\n");
+const csvLines=csvOutput&&csvOutput.replace(/^\\uFEFF/,"").trimEnd().split("\\r\\n");
 const csvRows=csvLines&&csvLines.slice(1),csvHeader=csvLines&&csvLines[0];
 root.dataset.pairSeparationCsvCorrect=String(!!csvRows&&
   filename==="monde-original-source-pair-separations.csv"&&
