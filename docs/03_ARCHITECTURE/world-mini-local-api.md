@@ -627,3 +627,11 @@ The default Both export retains the previous structure. No new route, dependency
 network call, inferred truth or saved-world mutation.
 
 From each original source/entity comparison row, **Show both periods on map** now reuses the offline viewer to focus and fit the selected source's original entity Point reports. It clears conflicting presentation filters, not the embedded source evidence; no claimed physical movement, consensus position, new endpoint or data mutation.
+
+The expanded source/entity comparison also provides **Show this original report on map**
+for each original source Point assertion. The browser restores that report's actual
+earlier/later comparison period, chooses its exact source/entity and original Point,
+and opens the existing selected-evidence inspector. Conflicting display-only filters
+are reset, while the other source assertions, both embedded original periods, the
+evidence provenance and persisted snapshot remain unchanged. The focus is on a
+source-reported coordinate, not a reconciled actual location or inferred movement.
