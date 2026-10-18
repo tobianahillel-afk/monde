@@ -82,8 +82,8 @@ class BrowserViewerTests(unittest.TestCase):
             "disagreements": {"view", "bbox", "at", "known_at", "source"},
             "knowledge-changes": {"view", "bbox", "at", "from_known_at", "to_known_at", "source"},
             "world-changes": {"view", "bbox", "from_at", "to_at", "known_at", "source"},
-            "nearest": {"view", "center", "limit", "at", "known_at"},
-            "radius": {"view", "center", "radius_km", "at", "known_at"}
+            "nearest": {"view", "center", "limit", "at", "known_at", "source"},
+            "radius": {"view", "center", "radius_km", "at", "known_at", "source"}
         }
         self.assertEqual(len(forms.forms), 6)
         params = {"bbox": "2.3,48.8,2.4,48.9", "at": AT, "known_at": K2,

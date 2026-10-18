@@ -663,7 +663,8 @@ class EvidenceInspectorTests(unittest.TestCase):
             parser.feed(html)
             self.assertEqual(len(parser.forms), 1)
             self.assertEqual(parser.forms[0]["method"], "get")
-            expected = ({**args, "source": ""} if mode == "current" else
+            expected = ({**args, "source": ""} if mode in
+                        {"current", "nearest", "radius"} else
                         args if mode == "disagreements" else query)
             self.assertEqual(parser.fields, expected)
             if mode in {"current", "disagreements"}:
