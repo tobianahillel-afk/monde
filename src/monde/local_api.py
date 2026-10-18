@@ -1211,7 +1211,7 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
         str(document["total_pairs"]) + ' observed pairs.</p>' +
         ('<p>Original reporter focus: ' + escape(document["source_focus"]) +
          '; only independently reported partners are ranked.</p>'
-         if "source_focus" in document else '')
+         if "source_focus" in document else '') +
         '<table><caption>Ranked original source separations and temporal changes'
         '</caption><thead><tr><th scope="col">Open complete source evidence</th>'
         '<th scope="col">Max km</th><th scope="col">Change km</th>'
