@@ -536,8 +536,9 @@ class SourceDirectoryTests(unittest.TestCase):
     def test_optional_rank_form_does_not_submit_an_empty_rejected_rank(self):
         status, _, html = self.get()
         self.assertEqual(status, 200)
-        self.assertEqual(html.count(b'name="rank"'), 2 * 3)
-        self.assertNotIn(b'<select name="rank">', html)
+        self.assertEqual(html.count(b'type="radio" name="rank"'), 2 * 3)
+        # The existing source-pair discovery forms still have two ranking menus.
+        self.assertEqual(html.count(b'<select name="rank">'), 2)
         self.assertNotIn(b'name="rank" value=""', html)
 
     def test_rank_original_reporter_transitions_http_json_csv_html(self):
