@@ -1842,6 +1842,33 @@ root.dataset.entityFocusMap=String(
   period.value==="" && search.value==="" &&
   document.querySelectorAll("#points circle").length===expectedEntity.length &&
   document.getElementById("fit-reports").disabled===false);
+// Navigate from a hidden original report to its exact period/point and
+// verify the existing evidence inspector selects THAT assertion.
+const one=expectedEntity[0];
+const samePeriod=expectedEntity.filter(f=>
+  f.properties.monde_comparison_period===one.properties.monde_comparison_period);
+const originalEntry=Array.from(row.querySelectorAll("p[data-period]"))
+  .find(p=>p.dataset.period===one.properties.monde_comparison_period &&
+    p.textContent.includes(String(one.properties.assertion_id||
+      one.properties.monde_original_feature_id)) &&
+    p.textContent.includes(String(one.properties.evidence_id)));
+const reportJump=Array.from(originalEntry?.querySelectorAll("button")||[])
+  .find(b=>b.textContent==="Show this original report on map");
+period.value=one.properties.monde_comparison_period==="earlier"?"later":"earlier";
+search.value="no-such-visible-item";search.dispatchEvent(new Event("input"));
+reportJump?.click();
+const exactMarker=Array.from(document.querySelectorAll("#points circle.selected"));
+const selectedText=document.getElementById("details").textContent;
+root.dataset.entityExactReportMap=String(
+  !!reportJump && document.getElementById("sources").value===src &&
+  document.getElementById("entities").value===chosenEntity &&
+  period.value===one.properties.monde_comparison_period &&
+  search.value==="" &&
+  document.querySelectorAll("#points circle").length===samePeriod.length &&
+  exactMarker.length===1 &&
+  selectedText.includes("Assertion: "+String(one.id)) &&
+  selectedText.includes("Evidence: "+String(one.properties.evidence_id)) &&
+  document.getElementById("focus-selected").disabled===false);
 button.click();
 root.dataset.sourceEntityClosed=String(
   button.getAttribute("aria-expanded")==="false" &&
@@ -1866,6 +1893,7 @@ root.dataset.sourceEntityClosed=String(
         self.assertIn('data-entity-export-filters-preserved="true"', result)
         self.assertIn('data-entity-period-defaults-both="true"', result)
         self.assertIn('data-entity-focus-map="true"', result)
+        self.assertIn('data-entity-exact-report-map="true"', result)
         self.assertIn('data-entity-earlier-export-complete="true"', result)
         self.assertIn('data-entity-later-export-complete="true"', result)
         self.assertIn('data-entity-both-geo-filename="monde-original-source-entity-both-periods.geojson"', result)
