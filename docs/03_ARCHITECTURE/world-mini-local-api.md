@@ -680,3 +680,16 @@ the already embedded offline evidence map. It clears contradictory presentation
 filters and fits the selected original reports. Empty intersections show no
 link. The source and entity IDs are assigned through text nodes; no new
 network route, source inference, or persisted model change is introduced.
+
+## Entity/source/period evidence downloads (WORK-0084)
+
+In the offline comparison map, the entity-first coverage table now provides a
+**Download GeoJSON** action next to each source in the Earlier, Later or Both
+column. It exports only that original entity/source/period intersection from
+the complete embedded source reports, even if viewport, search and period
+presentation filters hide the evidence. Original features, assertion/evidence
+IDs and comparison cutoffs remain unchanged. The export includes explicit
+entity, source, selected period, original/selected counts and an evidence-only
+scope; it does not infer physical movement, truth or absence. The filename is
+fixed, never derived from untrusted source or entity names. No additional
+service, browser dependency or WorldMini persistence change is introduced.

@@ -2098,6 +2098,33 @@ for(const selected of ["earlier","later","both"]){
 root.dataset.entityGeojsonFiltersPreserved=String(period.value==="later" &&
   search.value==="not-a-visible-report" && exportPeriod.value==="both");
 window.Blob=NativeBlob;
+// Exact intersection exports remain complete even with conflicting display
+// controls active. Capture each available earlier/later/both download.
+const intersectionButtons=Array.from(target.querySelectorAll(
+  "button[data-export-source-id][data-export-period]"));
+const intersectionExports=[];
+window.Blob=function(parts,options){
+  if(options && options.type==="application/geo+json")
+    root.dataset.intersectionPayload=String(parts[0]);
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  root.dataset.intersectionFilename=this.download;
+};
+for(const mode of ["earlier","later","both"]){
+  const btn=intersectionButtons.find(b=>b.dataset.exportPeriod===mode);
+  if(!btn)continue;
+  btn.click();
+  intersectionExports.push({
+    source:btn.dataset.exportSourceId,period:mode,
+    payload:root.dataset.intersectionPayload
+  });
+}
+root.dataset.intersectionExports=btoa(unescape(encodeURIComponent(
+  JSON.stringify(intersectionExports))));
+root.dataset.intersectionFiltersPreserved=String(
+  period.value==="later" && search.value==="not-a-visible-report");
+window.Blob=NativeBlob;
 // An entity/source/period intersection must navigate to *that* report set,
 // not only to the source as a whole or whatever is currently visible.
 const intersect=target.querySelector("td:nth-child(2) button") ||
@@ -2164,6 +2191,39 @@ root.dataset.entityMatrixNavigation=String(
             self.assertEqual(provenance["later_original_report_count"],
                 sum(f["properties"]["monde_comparison_period"] == "later"
                     for f in selected_features))
+        self.assertIn('data-intersection-filters-preserved="true"', rendered)
+        self.assertIn(
+            'data-intersection-filename="monde-original-entity-source-period-reports.geojson"',
+            rendered)
+        exported_match = re.search(
+            r'data-intersection-exports="([A-Za-z0-9+/=]+)"', rendered)
+        self.assertIsNotNone(exported_match, "Intersection export missing")
+        intersections = json.loads(base64.b64decode(
+            exported_match.group(1)).decode("utf-8"))
+        self.assertTrue(intersections, "No source/period download available")
+        for item in intersections:
+            doc = json.loads(item["payload"])
+            expected = [f for f in embedded["features"]
+                if f["properties"]["entity"] == expected_entities[0]
+                and f["properties"]["source_id"] == item["source"]
+                and (item["period"] == "both" or
+                     f["properties"]["monde_comparison_period"] == item["period"])]
+            self.assertTrue(expected, item)
+            self.assertEqual(doc["features"], expected)
+            self.assertEqual(doc["monde_comparison"], embedded["monde_comparison"])
+            scope = doc["monde_entity_source_period_export"]
+            self.assertEqual(scope["scope"],
+                "COMPLETE_EMBEDDED_ENTITY_SOURCE_PERIOD_NOT_DISPLAY_FILTERED")
+            self.assertEqual(scope["entity"], expected_entities[0])
+            self.assertEqual(scope["source_id"], item["source"])
+            self.assertEqual(scope["selected_period"], item["period"])
+            self.assertEqual(scope["comparison_axis"], embedded["monde_comparison"]["axis"])
+            self.assertEqual(scope["exported_feature_count"], len(expected))
+            self.assertEqual(scope["original_feature_count"], len(embedded["features"]))
+            self.assertEqual(scope["earlier_original_report_count"],
+                sum(f["properties"]["monde_comparison_period"] == "earlier" for f in expected))
+            self.assertEqual(scope["later_original_report_count"],
+                sum(f["properties"]["monde_comparison_period"] == "later" for f in expected))
         match = re.search(r'data-entity-matrix-csv="([A-Za-z0-9+/=]+)"', rendered)
         self.assertIsNotNone(match, "Original source/entity CSV not generated")
         payload = base64.b64decode(match.group(1)).decode("utf-8-sig")

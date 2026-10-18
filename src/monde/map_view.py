@@ -1037,6 +1037,41 @@ __MONDE_TIME_NAVIGATION__
             render();fitReports();
           });
           td.appendChild(link);
+          // Download this exact entity/source/period intersection from the
+          // complete embedded original evidence, independent of visual filters.
+          var exportIntersection=document.createElement("button");
+          exportIntersection.type="button";
+          exportIntersection.textContent="Download GeoJSON";
+          exportIntersection.dataset.exportSourceId=id;
+          exportIntersection.dataset.exportPeriod=link.dataset.period;
+          exportIntersection.setAttribute("aria-label","Download "+link.dataset.period+
+            " original reports for entity "+entity+" from source "+id);
+          exportIntersection.addEventListener("click",function(){
+            var period=link.dataset.period;
+            var selected=features.filter(function(f){
+              var p=f.properties;
+              return p.entity===entity&&p.source_id===id&&
+                (period==="both"||p.monde_comparison_period===period);
+            });
+            var earlierCount=selected.filter(function(f){
+              return f.properties.monde_comparison_period==="earlier";
+            }).length;
+            saveEvidence(Object.assign({},data,{
+              features:selected,
+              monde_entity_source_period_export:{
+                scope:"COMPLETE_EMBEDDED_ENTITY_SOURCE_PERIOD_NOT_DISPLAY_FILTERED",
+                entity:entity,source_id:id,selected_period:period,
+                comparison_axis:data.monde_comparison.axis,
+                earlier_original_report_count:earlierCount,
+                later_original_report_count:selected.length-earlierCount,
+                original_feature_count:features.length,
+                exported_feature_count:selected.length
+              }
+            }),"monde-original-entity-source-period-reports.geojson",
+              "application/geo+json");
+          });
+          td.appendChild(document.createTextNode(" "));
+          td.appendChild(exportIntersection);
         });
         row.appendChild(td);
       });
