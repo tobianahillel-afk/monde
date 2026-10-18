@@ -1274,7 +1274,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("original presence requires an exact entity export")
     if args.get("format") in ("assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-map", "presence-table") and (
             "entity" not in args or
-            ("source" in args and args["format"] not in ("presence-csv", "presence-json", "presence-geojson", "presence-map", "presence-table"))):
+            ("source" in args and args["format"] not in ("presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-map", "presence-table"))):
         raise ValueError("original assertion CSV requires exact entity directory")
     if (args.get("format") in ("geojson", "map") and
             "source" not in args and "entity" not in args):
