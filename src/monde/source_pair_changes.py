@@ -292,8 +292,10 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
 
 
 
-def source_directory(world, axis, cutoffs):
-    """Per-original-source Point coverage at two world/knowledge cutoffs."""
+def source_directory(world, axis, cutoffs, change=None):
+    """Per-original-source Point coverage, optionally focused by transition."""
+    if change not in (None, "new", "gone", "both"):
+        raise ValueError("invalid source reporting transition")
     if axis not in ("knowledge", "world") or len(cutoffs) != 2:
         raise ValueError("invalid source directory axis")
     for at, known_at in cutoffs:
@@ -336,7 +338,13 @@ def source_directory(world, axis, cutoffs):
         })
     result.sort(key=lambda row: (-max(row["earlier_entities"],
                                      row["later_entities"]), row["source_id"]))
-    return {
+    available_sources = len(result)
+    if change is not None:
+        field = {"new": "newly_reported_entities",
+                 "gone": "no_longer_reported_entities",
+                 "both": "continuously_reported_entities"}[change]
+        result = [row for row in result if row[field] > 0]
+    document = {
         "schema": "MONDE_SOURCE_COVERAGE_DIRECTORY_V1",
         "axis": axis,
         "cutoffs": {
@@ -350,6 +358,10 @@ def source_directory(world, axis, cutoffs):
         "total_sources": len(result),
         "sources": result,
     }
+    if change is not None:
+        document["reporting_filter"] = change
+        document["available_sources"] = available_sources
+    return document
 
 
 

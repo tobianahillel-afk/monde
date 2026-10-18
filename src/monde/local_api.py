@@ -1193,9 +1193,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         from .source_pair_changes import source_directory_detail
         return source_directory_detail(
             world, args["axis"], cutoffs, args["source"], args.get("change"))
-    if "change" in args:
-        raise ValueError("reporting transition filter requires source")
-    return source_directory(world, args["axis"], cutoffs)
+    return source_directory(world, args["axis"], cutoffs, args.get("change"))
 
 
 def _source_directory_html(document: dict, args: dict[str, str]) -> str:
@@ -1203,6 +1201,7 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
     for item in document["sources"]:
         query = {key: value for key, value in args.items()
                  if key not in ("directory", "format")}
+        query.pop("change", None)  # partner discovery has no directory filter
         query.update(discover="1", source=item["source_id"], format="table")
         link = "/source-pair?" + urlencode({
             **args, "source": item["source_id"], "format": "table"})
@@ -1219,6 +1218,28 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
             str(item["later_assertions"]) + '</td><td>' +
             escape(item["example_entity"]) + '</td></tr>')
     csv_link = "/source-pair?" + urlencode({**args, "format": "csv"})
+    filters = (("all", "All reporters"), ("new", "Any newly reported entities"),
+               ("gone", "Any no-longer-reported entities"),
+               ("both", "Any continuously reported entities"))
+    choices = []
+    for mode, label in filters:
+        query = {key: value for key, value in args.items()
+                 if key not in ("change", "format")}
+        if mode != "all":
+            query["change"] = mode
+        query["format"] = "table"
+        choices.append(
+            '<strong aria-current="page">' + escape(label) + '</strong>'
+            if args.get("change", "all") == mode else
+            '<a href="' + escape(
+                "/source-pair?" + urlencode(query), quote=True) + '">' +
+            escape(label) + '</a>')
+    navigation = '<nav aria-label="Original reporter transition filters"><p>' + (
+        ' · '.join(choices)) + '</p></nav>'
+    count_label = (str(document["total_sources"]) + " matching of " +
+                   str(document["available_sources"]) + " original sources"
+                   if "reporting_filter" in document else
+                   str(document["total_sources"]) + " original sources")
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<title>Original Point source coverage</title>'
@@ -1229,9 +1250,9 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         '</head><body><nav><a href="/source-pair">Source comparisons</a></nav>'
         '<h1>Original Point reporter coverage</h1><p>' +
         escape(document["interpretation"]) + '</p><p>' +
-        str(document["total_sources"]) + ' sources, ' +
-        escape(document["axis"]) + ' time.</p><p><a href="' +
-        escape(csv_link, quote=True) + '">Download coverage CSV</a></p>'
+        escape(count_label) + ', ' + escape(document["axis"]) +
+        ' time.</p>' + navigation + '<p><a href="' +
+        escape(csv_link, quote=True) + '">Download matching coverage CSV</a></p>'
         '<table><caption>Original source entities at the two cutoffs</caption>'
         '<thead><tr><th scope="col">Source — investigate partners</th>'
         '<th scope="col">Entities earlier / later</th>'
@@ -1240,7 +1261,9 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         '<th scope="col">Point assertions earlier / later</th>'
         '<th scope="col">Example original entity</th></tr></thead><tbody>' +
         ''.join(rows) + '</tbody></table>' +
-        ('<p role="status">NO ORIGINAL POINT SOURCE REPORTS at either cutoff.'
+        ('<p role="status">NO MATCHING ORIGINAL SOURCE REPORTING TRANSITIONS.'
+         '</p>' if not rows and "reporting_filter" in document else
+         '<p role="status">NO ORIGINAL POINT SOURCE REPORTS at either cutoff.'
          '</p>' if not rows else '') + '</body></html>')
 
 
