@@ -881,7 +881,7 @@ def _disagreement_report_html(document: dict, params: dict[str, str],
             '">Download original comparison CSV</a> · <a href="' +
             escape("/disagreement-compare.geojson?" + urlencode(params), quote=True) +
             '">Open original comparison GeoJSON</a> · <a href="' +
-            escape("/viewer?" + urlencode({"view": "disagreement-comparison", **params}),
+            escape("/viewer?" + urlencode({**params, "view": "disagreement-comparison"}),
                    quote=True) +
             '">Map both original evidence periods</a></p>' + filter_links +
             ('<ul>' + ''.join(changes) + '</ul>' if changes else
