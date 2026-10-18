@@ -952,7 +952,7 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
                       '<input name="entity"></label>'
                      + inputs +
                       '<label>Output <select name="format">'
-                      '<option value="html">Offline evidence map</option>'
+                      '<option value="html">Offline evidence map</option><option value="table">Accessible source-pair evidence table</option>'
                       '<option value="csv">Complete original evidence CSV</option>'
                       '<option value="json">Canonical JSON</option>'
                       '<option value="geojson">Original Point GeoJSON</option>'
@@ -979,6 +979,114 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             '<p>Reported source disagreement is not verified physical movement.</p>'
             '<datalist id="pair-ids">' + options + '</datalist>' +
             ''.join(parts) + '</body></html>')
+
+
+
+def _pair_table_html(document: dict, params: dict[str, str]) -> str:
+    """Readable original-evidence comparison; derived only from canonical rows."""
+    from .source_pair_changes import source_pair_direction
+
+    if document["schema"] == "MONDE_SOURCE_PAIR_CHANGE_V1":
+        cutoffs = {
+            "earlier": (document["valid_at"], document["from_known_at"]),
+            "later": (document["valid_at"], document["to_known_at"]),
+        }
+    elif document["schema"] == "MONDE_SOURCE_PAIR_WORLD_CHANGE_V1":
+        cutoffs = {
+            "earlier": (document["from_at"], document["known_at"]),
+            "later": (document["to_at"], document["known_at"]),
+        }
+    else:
+        raise ValueError("unknown comparison schema")
+
+    def original_reports(item: dict) -> str:
+        records = []
+        for period in ("earlier", "later"):
+            at, known_at = cutoffs[period]
+            for source_field in ("source_a_original_reports", "source_b_original_reports"):
+                for original in item[period][source_field]:
+                    properties = original["properties"]
+                    source = properties["source_id"]
+                    history = "/inspect?" + urlencode({
+                        "view": "source-history", "source": source, "known_at": known_at})
+                    coords = original["geometry"]["coordinates"]
+                    records.append(
+                        "<li>" + escape(period) + " / " +
+                        '<a href="' + escape(history, quote=True) + '">' +
+                        escape(source) + "</a> / assertion " +
+                        escape(str(original["id"])) + " / evidence " +
+                        escape(str(properties["evidence_id"])) + " / reported Point " +
+                        escape(str(coords)) + " (world " + escape(at) +
+                        ", known " + escape(known_at) + ")</li>")
+        return ("<details><summary>Inspect " + str(len(records)) +
+                " original reports</summary><ul>" + "".join(records) +
+                "</ul></details>" if records else
+                "<span>NO ORIGINAL POINT REPORTS</span>")
+
+    def reported_km(period: dict) -> str:
+        separation = period["separation"]
+        return ("UNKNOWN (not jointly reported)" if separation is None else
+                str(separation["nearest_km"]) + " km nearest / " +
+                str(separation["farthest_km"]) + " km farthest")
+
+    def entity_links(entity: str) -> str:
+        links = []
+        for period in ("earlier", "later"):
+            at, known_at = cutoffs[period]
+            destination = "/inspect?" + urlencode({
+                "view": "entity", "entity": entity, "at": at, "known_at": known_at})
+            links.append('<a href="' + escape(destination, quote=True) + '">' +
+                         escape(period) + " dossier</a>")
+        return escape(entity) + "<div>" + " · ".join(links) + "</div>"
+
+    rows = []
+    for item in document["entities"]:
+        delta = item["earlier_to_later_change_km"]
+        change = ("UNKNOWN" if delta is None else
+                  str(delta["nearest_km"]) + " km")
+        rows.append(
+            "<tr><th scope=\"row\">" + entity_links(item["entity"]) + "</th><td>" +
+            reported_km(item["earlier"]) + "</td><td>" +
+            reported_km(item["later"]) + "</td><td>" +
+            escape(source_pair_direction(item)) + " / " + change +
+            "</td><td>" + original_reports(item) + "</td></tr>")
+
+    def export_link(format_name: str, label: str) -> str:
+        target = "/source-pair?" + urlencode({**params, "format": format_name})
+        return '<a href="' + escape(target, quote=True) + '">' + label + "</a>"
+
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<title>MONDE Mini — Original source-pair evidence table</title>'
+        '<style>:root{color-scheme:dark;background:#101827;color:#ebf2f9;'
+        'font-family:system-ui,sans-serif}body{max-width:1200px;margin:auto;padding:20px}'
+        'a{color:#83e7d3}table{border-collapse:collapse;width:100%}'
+        'th,td{border:1px solid #64748b;padding:12px;text-align:left;vertical-align:top}'
+        'th{background:#263a4d}tr:nth-child(even){background:#182a3e}'
+        'details{max-width:480px}li{margin:8px 0;overflow-wrap:anywhere}'
+        ':focus-visible{outline:3px solid #ffc870}</style></head><body>'
+        '<nav><a href="/source-pair">New comparison</a></nav>'
+        '<h1>Original source-pair evidence — readable comparison</h1>'
+        '<p>Sources: ' + escape(document["source_a"]) + " vs " +
+        escape(document["source_b"]) + '. Original reports only; separations '
+        'are not verified location, physical movement or ground truth.</p>'
+        '<p>' + export_link("html", "Open comparison map") + " · " +
+        export_link("json", "Canonical JSON") + " · " +
+        export_link("geojson", "Original Point GeoJSON") + " · " +
+        export_link("csv", "Download complete evidence CSV") + "</p>"
+        '<p>Entities: ' + str(len(document["entities"])) + "</p>"
+        '<table><caption>Source-reported separation at earlier and later cutoffs'
+        '</caption><thead><tr><th scope="col">Entity &amp; evidence dossier</th>'
+        '<th scope="col">Earlier reported separation</th>'
+        '<th scope="col">Later reported separation</th>'
+        '<th scope="col">Change in nearest separation</th>'
+        '<th scope="col">Unmodified original source assertions</th>'
+        '</tr></thead><tbody>' + "".join(rows) + "</tbody></table>" +
+        ('<p role="status">NO MATCHING COMPARABLE SOURCE EVIDENCE — '
+         'not evidence of agreement or absence.</p>' if not rows else "") +
+        "</body></html>"
+    )
 
 
 def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
@@ -1014,7 +1122,7 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
         if not re.fullmatch(r"[1-9][0-9]{0,3}", args["top"]) or int(args["top"]) > 1000:
             raise ValueError("top must be an integer from 1 to 1000")
         output = top_nearest_source_pair_changes(output, int(args["top"]))
-    if args.get("format", "html") not in ("html", "json", "geojson", "csv"):
+    if args.get("format", "html") not in ("html", "table", "json", "geojson", "csv"):
         raise ValueError("invalid comparison format")
     return output
 
@@ -1166,6 +1274,8 @@ def create_server(state: str | Path, port: int = 0, *,
                         return
                     if args.get("format", "html") == "html":
                         return self._html(None, rendered_html=comparison_html(data))
+                    if args["format"] == "table":
+                        return self._html(None, rendered_html=_pair_table_html(data, args))
                     return self._reply(200, comparison_geojson(data)
                                        if args["format"] == "geojson" else data)
                 elif path == "/health":

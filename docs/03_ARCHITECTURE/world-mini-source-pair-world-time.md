@@ -211,3 +211,9 @@ assertions, sources, evidence IDs, reported coordinates, nullable
 separations and cutoffs. Missing entities produce an empty valid comparison
 and never a fabricated location. Empty optional form input is ignored.
 The existing loopback-only HTTP server and saved snapshots remain read-only.
+
+## Accessible original source-pair evidence table (WORK-0100)
+
+The existing loopback-only `/source-pair` native forms provide **Accessible source-pair evidence table** (`format=table`) on both knowledge-time and world-time axes. Each row displays one canonical entity's earlier/later original-source nearest and farthest separations, an explicitly nullable nearest-distance change, direction, and the unmodified source, assertion/evidence IDs and reported Point coordinates. Original report details include separate world-validity and knowledge cutoff values with read-only links to the existing source-history inspector. Entity dossiers link to both original temporal cutoffs. The header links back to the canonical map, JSON, GeoJSON and complete evidence CSV with the same source, entity, direction and top-N selections.
+
+The HTML output is a server-rendered, accessible plain table without scripts or new endpoints, services or external dependencies. All original strings and query-derived href attributes are escaped; there is no new physical-ground-truth or motion inference. Empty sets have an explicit UNKNOWN notice. Existing `format=html|json|geojson|csv` behavior remains unchanged. Regression tests exercise both temporal axes, filtering, original evidence lineage, safe HTML and immutable persisted snapshots.
