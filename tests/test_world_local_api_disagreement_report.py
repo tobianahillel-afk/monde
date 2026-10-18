@@ -1292,6 +1292,90 @@ document.getElementById("export-comparison-complete").click();
                       rendered)
         self.assertEqual(self.path.read_bytes(), self.before)
 
+
+    def test_complete_period_csv_button_uses_existing_original_evidence(self):
+        """The server embeds the same full, original source reports for CSV."""
+        for axis in ({"from_known_at": "2026-01-09T00:00:00Z"},
+                     {"from_at": "2026-01-01T01:00:00Z"}):
+            with self.subTest(axis=axis):
+                params = {**QUERY, "source": "survey-east", "entity": "site-a", **axis}
+                status, _, body = self.fetch("/disagreement-compare.html", params)
+                self.assertEqual(status, 200)
+                html = body.decode("utf-8")
+                self.assertIn('id="export-comparison-csv"', html)
+                self.assertIn("COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED", html)
+                embedded = self.embedded_map(html)
+                original = json.loads(self.fetch("/disagreement-compare.geojson", params)[2])
+                self.assertEqual(embedded["features"], original["features"])
+                self.assertTrue(all(
+                    f["properties"]["monde_comparison_period"] in ("earlier", "later")
+                    for f in embedded["features"]))
+                self.assertIn('id="comparison-period-control" class="controls" hidden',
+                              self.fetch("/viewer", {"view": "current", **QUERY})[2].decode())
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+    def test_complete_period_csv_chromium_download_preserves_offscreen_originals(self):
+        """Real offline Chromium Blob path checks export vs embedded evidence, not visual filters."""
+        import re
+        import shutil
+        import subprocess
+        browser = next((b for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (b := shutil.which(name))), None)
+        if not browser:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, body = self.fetch("/disagreement-compare.html", params)
+        self.assertEqual(status, 200)
+        html = body.decode("utf-8")
+        doc = self.embedded_map(html)
+        counts = {p: sum(f["properties"]["monde_comparison_period"] == p
+                         for f in doc["features"]) for p in ("earlier", "later")}
+        probe = """<script>
+const NativeBlob=window.Blob;
+window.Blob=function(parts,options){
+  const csv=String(parts[0]);
+  document.body.setAttribute("data-csv-header",String(csv.includes("original_feature_id")));
+  document.body.setAttribute("data-csv-inert",String(csv.includes("COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED")));
+  document.body.setAttribute("data-csv-rows",String(csv.split("\\\\r\\\\n").filter(Boolean).length-1));
+  document.body.setAttribute("data-csv-source",String(csv.includes("survey-west")));
+  document.body.setAttribute("data-csv-period",document.getElementById("comparison-period").value||"both");
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  document.body.setAttribute("data-csv-file",this.download);
+};
+for(const period of ["earlier","later",""]){
+  const selection=document.getElementById("comparison-period");
+  selection.value=period;
+  selection.dispatchEvent(new Event("change"));
+  document.getElementById("export-comparison-csv").click();
+  const suffix=period||"both";
+  document.body.setAttribute("data-"+suffix+"-csv-rows",document.body.getAttribute("data-csv-rows"));
+  document.body.setAttribute("data-"+suffix+"-csv-file",document.body.getAttribute("data-csv-file"));
+}
+</script>"""
+        output = Path(self.folder.name) / "complete-comparison-csv.html"
+        output.write_text(html.replace("</body>", probe + "</body>"), encoding="utf-8")
+        rendered = subprocess.run(
+            [browser, "--headless", "--no-sandbox", "--disable-gpu",
+             "--disable-dev-shm-usage", "--dump-dom", output.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
+            check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', rendered)
+        for period in ("earlier", "later"):
+            self.assertIn('data-'+period+'-csv-rows="'+str(counts[period])+'"',
+                          rendered)
+            self.assertIn('data-'+period+'-csv-file="monde-original-'+period+
+                          '-comparison.csv"', rendered)
+        self.assertIn('data-both-csv-rows="'+str(len(doc["features"]))+'"', rendered)
+        self.assertIn('data-both-csv-file="monde-original-both-comparison.csv"',
+                      rendered)
+        self.assertIn('data-csv-header="true"', rendered)
+        self.assertIn('data-csv-inert="true"', rendered)
+        self.assertIn('data-csv-source="true"', rendered)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
     def test_comparison_period_control_is_hidden_for_normal_source_maps(self):
         status, _, raw = self.fetch("/viewer",
                                     {"view": "current", **QUERY})
