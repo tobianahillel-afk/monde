@@ -176,3 +176,26 @@ physical movement. Unknown parameters or invalid source IDs are rejected.
 No new comparison engine, model, paid API, service, network permission, or
 saved-state write is introduced. This is an unmerged stacked candidate,
 not a new public web service or production deployment.
+
+## Browser CSV export and top source-pair separation changes (WORK-0098)
+
+In the local read-only MONDE Mini server, open `/source-pair`, select the
+two original source IDs and choose either world-time or knowledge-time
+cutoffs. The native form now offers **complete evidence CSV** alongside
+the existing offline comparison map, JSON and GeoJSON.
+
+The optional *Separation change* selector accepts `converging`,
+`diverging`, `unchanged`, or `incomparable`. *Top absolute nearest
+changes* accepts integers from 1 to 1000. Direction filtering happens
+**before** top-N ranking, and the same canonical source-pair engine
+calculates all output formats. Empty optional controls mean no filtering.
+
+A direct read-only query can include `format=csv&top=20&direction=diverging`
+along with the six required source/temporal parameters. The CSV is the
+existing canonical `comparison_csv` output: every selected entity has
+both original observation periods, source, assertion and evidence
+identifiers, coordinates and nullable separation; no inferred source
+agreement, ground truth or physical movement. CSV formula-escaping is
+inherited from the same exporter. The response is a local file attachment,
+with no caching, CORS, network request or saved-state write. Invalid or
+oversized query controls return an error.
