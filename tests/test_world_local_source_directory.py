@@ -380,5 +380,81 @@ class SourceDirectoryTests(unittest.TestCase):
             server.server_close()
             self.assertEqual(saved.read_bytes(), original)
 
+    def test_coverage_map_renders_original_points_and_reports_without_mutation(self):
+        from monde.source_pair_changes import (
+            source_directory_detail, source_directory_geojson, source_directory_map)
+        query = {**self.knowledge(), "source": "survey-a"}
+        status, headers, page = self.get({**query, "format": "map"})
+        self.assertEqual(status, 200)
+        self.assertIn("text/html", headers["Content-Type"])
+        self.assertIn(b"Both comparison periods show original source-reported", page)
+        self.assertIn(b"monde_original_assertion_id", page)
+        self.assertIn(b"monde_comparison_period", page)
+        self.assertIn(b"monde_inside_bbox", page)
+        detail = source_directory_detail(
+            self.world, "knowledge", ((AT, BEFORE), (AT, AFTER)), "survey-a")
+        original = source_directory_geojson(self.world, detail)
+        mapped = source_directory_map(self.world, detail)
+        self.assertEqual([f["geometry"] for f in mapped["features"]],
+                         [f["geometry"] for f in original["features"]])
+        self.assertEqual([f["properties"]["monde_original_assertion_id"]
+                          for f in mapped["features"]],
+                         [f["properties"]["monde_original_assertion_id"]
+                          for f in original["features"]])
+        self.assertTrue(all(f["properties"]["monde_inside_bbox"]
+                            for f in mapped["features"]))
+        self.assertEqual(mapped["monde_bbox_query"]["total_source_features"],
+                         len(mapped["features"]))
+        status, _, detail_page = self.get(query)
+        self.assertEqual(status, 200)
+        self.assertIn(b"Map original source Points at both cutoffs", detail_page)
+        empty_status, _, empty = self.get({
+            **query, "source": "nonexistent-source", "format": "map"})
+        self.assertEqual(empty_status, 200)
+        self.assertIn(b"NO_MATCHES", empty)
+        for bad in ({**self.knowledge(), "format": "map"},
+                    {**query, "format": "map", "change": "unrecognized"}):
+            self.assertEqual(self.get(bad)[0], 400)
+
+    def test_coverage_map_world_time_and_strict_original_source_scope(self):
+        from monde.source_pair_changes import (
+            source_directory_detail, source_directory_map)
+        world = sample(dateline=True)
+        path = Path(self.tmp.name) / "world-axis.json"
+        world.save(path)
+        initial = path.read_bytes()
+        server = create_server(path)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = {"directory": "1", "axis": "world",
+                     "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}
+            source = source_directory(world, "world",
+                                      ((EARLY, KNOWN), (LATE, KNOWN))
+                                      )["sources"][0]["source_id"]
+            status, _, body = self.get(
+                {**query, "source": source, "format": "map"}, server)
+            self.assertEqual(status, 200)
+            self.assertIn(b"monde_source_coverage", body)
+            self.assertIn(b"monde_world_at", body)
+            detail = source_directory_detail(
+                world, "world", ((EARLY, KNOWN), (LATE, KNOWN)), source)
+            mapped = source_directory_map(world, detail)
+            self.assertEqual(mapped["monde_source_coverage"]["axis"], "world")
+            self.assertEqual(
+                mapped["monde_source_coverage"]["display_basis"],
+                "BOTH_ORIGINAL_REPORTING_PERIODS_NOT_VERIFIED_MOVEMENT")
+            self.assertEqual(
+                {f["properties"]["source_id"] for f in mapped["features"]},
+                {source} if mapped["features"] else set())
+            self.assertEqual(
+                mapped["monde_bbox_query"]["total_source_features"],
+                len(mapped["features"]))
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(path.read_bytes(), initial)
+
 if __name__ == "__main__":
     unittest.main()

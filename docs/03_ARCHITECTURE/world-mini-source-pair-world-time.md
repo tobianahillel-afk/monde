@@ -530,3 +530,8 @@ status, period and time cutoffs. The envelope identifies source and comparison
 scope. No location inference, accuracy assessment, physical movement, new
 service, persisted-data mutation or paid API. Directory-level GeoJSON without
 a source is rejected. Existing JSON, CSV and table behavior is unchanged.
+
+
+### Original source coverage map (WORK-0112)
+
+On a source-specific coverage detail page, **Map original source Points at both cutoffs** opens the existing local read-only map via `/source-pair?directory=1&axis=knowledge|world&source=...&format=map`. Both earlier and later original Point assertions are rendered, including per-report period, original assertion/evidence IDs and world/knowledge cutoffs. Optional `change=new|gone|both` filters the original reporting transitions. The viewport is a shortest-longitude-arc display envelope, not a new query, inferred physical movement or a consensus source position. The existing GeoJSON/CSV/JSON export contracts and saved WorldMini remain unchanged.
