@@ -647,3 +647,19 @@ period. Labels are source-reported coverage only, **not** inferred agreement,
 physical movement or missing-world evidence. CSV fields use the existing
 spreadsheet-safe quoting, with a fixed download filename. This reuses the
 interactive grouping above; no new World Model, endpoint or service.
+
+
+### Entity-first original source coverage (WORK-0084)
+
+For either axis of the read-only two-period disagreement-comparison map, expand
+**Original entity coverage across sources and periods**. Each entity row lists
+the original reporting sources in earlier, later and both selections, and the
+total original Point reports. Click an entity to return to the existing map
+of all its embedded source reports across both periods. The **Download complete
+entity and source coverage CSV** action exports one row per entity/source pair,
+including earlier/later report counts and complete original assertion/evidence
+ID lists as JSON text. The CSV is spreadsheet-formula escaped and is derived
+from all *embedded* original reports, not viewport/search/source/period display
+filters. Zero reporting within the selection is **not** evidence of physical
+absence or consensus. No new endpoint, external network, hosted API, model,
+inferred movement, or saved-state mutation is introduced.

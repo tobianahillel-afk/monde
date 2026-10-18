@@ -2032,5 +2032,97 @@ body.dataset.inventoryFiltersPreserved=String(period.value==="later" &&
                 "COMPLETE_EMBEDDED_SOURCE_ENTITY_INVENTORY_NOT_DISPLAY_FILTERED")
         self.assertEqual(self.path.read_bytes(), self.before)
 
+
+    def test_entity_first_source_coverage_csv_and_map_navigation(self):
+        """Live HTTP/Chromium: entity/source/period inventory ignores display filters."""
+        import base64
+        import re
+        import shutil
+        import subprocess
+        from collections import defaultdict
+
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        status, _, body = self.fetch("/disagreement-compare.html", {
+            **QUERY, "source": "survey-east", "entity": "site-a",
+            "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(status, 200)
+        html = body.decode("utf-8")
+        embedded = self.embedded_map(html)
+        records = defaultdict(lambda: {"earlier": [], "later": []})
+        for f in embedded["features"]:
+            p = f["properties"]
+            records[(p["entity"], p["source_id"])][p["monde_comparison_period"]].append(f)
+        self.assertTrue(records, "Expected original source/entity evidence")
+        expected_entities = sorted({entity for entity, _ in records})
+        probe = """<script>
+const root=document.body,records=__RECORDS__,entities=__ENTITIES__;
+const panel=document.getElementById("comparison-entity-coverage");
+const rows=Array.from(document.querySelectorAll("#comparison-entity-rows tr"));
+root.dataset.entityMatrixRendered=String(
+  panel && !panel.hidden && rows.length===entities.length &&
+  rows.every(r=>entities.includes(r.dataset.entity)));
+const period=document.getElementById("comparison-period");
+period.value="later";period.dispatchEvent(new Event("change"));
+const search=document.getElementById("report-search");
+search.value="not-a-visible-report";search.dispatchEvent(new Event("input"));
+const NativeBlob=window.Blob;
+window.Blob=function(parts,options){
+  if(options && options.type.startsWith("text/csv"))
+    root.dataset.entityMatrixCsv=btoa(unescape(encodeURIComponent(String(parts[0]))));
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){root.dataset.entityMatrixFilename=this.download;};
+document.getElementById("comparison-export-entity-coverage-csv").click();
+root.dataset.entityMatrixFiltersPreserved=String(period.value==="later" &&
+  search.value==="not-a-visible-report");
+window.Blob=NativeBlob;
+const target=rows.find(r=>r.dataset.entity===entities[0]);
+target.querySelector("button").click();
+root.dataset.entityMatrixNavigation=String(
+  document.getElementById("entities").value===entities[0] &&
+  document.getElementById("sources").value==="" &&
+  document.getElementById("comparison-period").value==="" &&
+  document.getElementById("report-search").value==="");
+</script>""".replace("__RECORDS__", json.dumps(len(records))).replace(
+            "__ENTITIES__", json.dumps(expected_entities))
+        target = Path(self.folder.name) / "entity-source-coverage.html"
+        target.write_text(html.replace("</body>", probe + "</body>"), encoding="utf-8")
+        rendered = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", target.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
+            check=True).stdout.decode("utf-8")
+        for attr in ("entity-matrix-rendered", "entity-matrix-filters-preserved",
+                     "entity-matrix-navigation"):
+            self.assertIn('data-' + attr + '="true"', rendered, attr)
+        self.assertIn(
+            'data-entity-matrix-filename="monde-original-entity-source-coverage.csv"',
+            rendered)
+        match = re.search(r'data-entity-matrix-csv="([A-Za-z0-9+/=]+)"', rendered)
+        self.assertIsNotNone(match, "Original source/entity CSV not generated")
+        payload = base64.b64decode(match.group(1)).decode("utf-8-sig")
+        rows = list(csv.DictReader(io.StringIO(payload)))
+        self.assertEqual(len(rows), len(records))
+        for row in rows:
+            periods = records[(row["entity"], row["source_id"])]
+            for period in ("earlier", "later"):
+                original = periods[period]
+                self.assertEqual(int(row[period + "_original_report_count"]),
+                                 len(original))
+                self.assertEqual(json.loads(row[period + "_assertion_ids_json"]),
+                                 [str(f["properties"].get("assertion_id") or
+                                      f["properties"].get("monde_original_feature_id"))
+                                  for f in original])
+                self.assertEqual(json.loads(row[period + "_evidence_ids_json"]),
+                                 [str(f["properties"]["evidence_id"]) for f in original])
+            self.assertEqual(row["comparison_axis"], embedded["monde_comparison"]["axis"])
+            self.assertEqual(row["export_scope"],
+                "COMPLETE_EMBEDDED_ENTITY_SOURCE_INVENTORY_NOT_DISPLAY_FILTERED")
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+
 if __name__ == "__main__":
     unittest.main()
