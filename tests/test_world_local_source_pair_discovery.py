@@ -571,6 +571,57 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
             self.assertEqual(json.loads(raw), {"error": "invalid_query"})
         self.assertEqual(self.file.read_bytes(), self.original)
 
+    def test_ranked_all_examples_open_one_offline_map(self):
+        args = {**self.knowledge(), "rank": "decreasing", "top": "1"}
+        code, headers, page = self.get({**args, "format": "html"})
+        self.assertEqual(code, 200)
+        self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        for text in (b"monde_discovery", b"monde_comparison_period",
+                     b"monde_original_assertion_id", b"survey-a", b"survey-b",
+                     b"decreasing", b"data.monde_comparison"):
+            self.assertIn(text, page)
+        code, _, table = self.get({**args, "format": "table"})
+        self.assertEqual(code, 200)
+        self.assertIn(b"Map all ranked original examples", table)
+        self.assertIn(b"format=html", table)
+
+    def test_ranked_all_examples_world_axis_and_cutoffs(self):
+        w = sample(dateline=True)
+        file = Path(self.tmp.name) / "ranked-all-world.json"
+        w.save(file)
+        before = file.read_bytes()
+        srv = create_server(file)
+        thread = threading.Thread(target=srv.serve_forever, daemon=True)
+        thread.start()
+        try:
+            args = {"discover": "1", "axis": "world", "from_at": EARLY,
+                    "to_at": LATE, "known_at": KNOWN, "format": "html"}
+            code, headers, page = self.get(args, srv)
+            self.assertEqual(code, 200)
+            for text in (b"monde_discovery", b"world",
+                         EARLY.encode(), LATE.encode()):
+                self.assertIn(text, page)
+            self.assertEqual(headers["Cache-Control"], "no-store")
+        finally:
+            srv.shutdown()
+            thread.join(timeout=5)
+            srv.server_close()
+            self.assertEqual(file.read_bytes(), before)
+
+    def test_ranked_all_examples_empty_and_invalid(self):
+        args = {**self.knowledge(), "from_known_at": "2026-01-02T00:00:00Z",
+                "to_known_at": "2026-01-02T12:00:00Z", "format": "html"}
+        code, _, page = self.get(args)
+        self.assertEqual(code, 200)
+        self.assertIn(b"NO_MATCHES", page)
+        for invalid in ({"top": "101"}, {"rank": "none"},
+                        {"source": "../bad"}, {"unexpected": "x"}):
+            code, _, body = self.get({**self.knowledge(), "format": "html", **invalid})
+            self.assertEqual(code, 400)
+            self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        self.assertEqual(self.file.read_bytes(), self.original)
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -415,3 +415,15 @@ The example is not a consensus position, an accuracy verdict or inferred
 movement. Pairs without joint original evidence offer neither an example map
 nor an example GeoJSON download. No new endpoint, store, third-party
 dependency or network access is added.
+
+### Map all ranked original example Points together (WORK-0108)
+
+Use `format=html` with the existing read-only `/source-pair?discover=1`
+query, or follow **Map all ranked original examples** from its ranking table,
+to open one offline browser map of the original source Points included in
+the existing bulk GeoJSON. Each marker retains rank, reporter pair, original
+assertion, earlier/later period and the exact world/knowledge cutoffs. The
+same offline map controls are reused, with no new endpoint, storage or paid
+API. A map envelope is display-only, not a new geographic query, physical
+movement estimate, reconciliation or verification of ground truth. Empty
+rankings produce an empty map; the persisted snapshot is never changed.

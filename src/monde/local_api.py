@@ -1155,7 +1155,7 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 
 def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import discover_source_pairs
-    if args.get("discover") != "1" or args.get("format", "table") not in ("json", "table", "csv", "geojson"):
+    if args.get("discover") != "1" or args.get("format", "table") not in ("json", "table", "csv", "geojson", "html"):
         raise ValueError("invalid discovery format")
     if args.get("axis") == "knowledge":
         _require(args, {"discover", "axis", "at", "from_known_at", "to_known_at"},
@@ -1225,7 +1225,9 @@ def _pair_discovery_html(document: dict, args: dict[str, str]) -> str:
         ('<p>Original reporter focus: ' + escape(document["source_focus"]) +
          '; only independently reported partners are ranked.</p>'
          if "source_focus" in document else '') +
-        '<p><a href="' + escape('/source-pair?' + urlencode({**args, 'format': 'csv'}), quote=True) +
+        '<p><a href="' + escape('/source-pair?' + urlencode({**args, 'format': 'html'}), quote=True) +
+        '">Map all ranked original examples</a> · <a href="' +
+        escape('/source-pair?' + urlencode({**args, 'format': 'csv'}), quote=True) +
         '">Download ranked source evidence CSV</a> · ' +
         '<a download="ranked-original-source-pairs.geojson" href="' +
         escape('/source-pair?' + urlencode({**args, 'format': 'geojson'}), quote=True) +
@@ -1520,6 +1522,9 @@ def create_server(state: str | Path, port: int = 0, *,
                         if output_format == "geojson":
                             from .source_pair_changes import discovery_geojson
                             return self._reply(200, discovery_geojson(world, discovery))
+                        if output_format == "html":
+                            from .source_pair_changes import discovery_html
+                            return self._html(None, rendered_html=discovery_html(world, discovery))
                         if output_format == "csv":
                             from .source_pair_changes import discovery_csv
                             body = discovery_csv(discovery).encode("utf-8")

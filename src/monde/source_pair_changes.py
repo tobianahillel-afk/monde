@@ -509,15 +509,34 @@ def top_nearest_source_pair_changes(document, limit):
 
 
 
-def comparison_html(document):
-    """Render original pair reports in the existing offline MONDE map viewer.
+def discovery_html(world, document):
+    """Render all ranked source-pair examples in the existing offline viewer."""
+    geojson = discovery_geojson(world, document)
+    geojson["monde_comparison"] = {
+        "schema": "MONDE_SOURCE_PAIR_DISCOVERY_MAP_V1",
+        "comparison_axis": document["axis"],
+        "cutoffs": document["cutoffs"],
+        "interpretation": document["interpretation"],
+    }
+    for feature in geojson["features"]:
+        info = feature["properties"]["monde_discovery"]
+        feature["properties"]["monde_source_pair"] = {
+            "period": info["period"],
+            "world_at": info["world_at"],
+            "knowledge_at": info["knowledge_at"],
+        }
+    return _source_pair_map(geojson)
 
-    Every original report remains separate. This is a *display* envelope, not
-    a new spatial query, reconstructed route, position estimate or truth claim.
-    """
+
+def comparison_html(document):
+    """Render one original source pair via the shared offline map viewer."""
+    return _source_pair_map(comparison_geojson(document))
+
+
+def _source_pair_map(geojson):
+    """Only derive a map display envelope; never infer source truth."""
     from .map_view import render_map
 
-    geojson = comparison_geojson(document)
     features = geojson["features"]
     cutoffs = geojson["monde_comparison"]["cutoffs"]
     for feature in features:
