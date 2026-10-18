@@ -2504,7 +2504,22 @@ body.dataset.sourceEntityCsvReused=String(
                             "count": sum(len(x) for x in a_periods.values()) +
                                      sum(len(x) for x in b_periods.values())
                         }
-                if entities:
+                def reported_positions(reports):
+                    return {tuple(feature["geometry"]["coordinates"])
+                            for feature in reports}
+                for entity, item in entities.items():
+                    one = observations[a_source][entity]
+                    two = observations[b_source][entity]
+                    item["different_earlier"] = bool(
+                        item["earlier"] and
+                        reported_positions(one["earlier"]) !=
+                        reported_positions(two["earlier"]))
+                    item["different_later"] = bool(
+                        item["later"] and
+                        reported_positions(one["later"]) !=
+                        reported_positions(two["later"]))
+                if any(v["different_earlier"] or v["different_later"]
+                       for v in entities.values()):
                     pair = (a_source, b_source)
                     overlap = entities
                     break
@@ -2515,11 +2530,41 @@ body.dataset.sourceEntityCsvReused=String(
                     if feature["properties"]["source_id"] in pair
                     and feature["properties"]["entity"] in overlap]
         self.assertTrue(expected)
+        different = {entity: item for entity, item in overlap.items()
+                     if item["different_earlier"] or item["different_later"]}
+        self.assertTrue(different, "fixture must include two sources reporting different positions")
+        diff_reports = [feature for feature in expected
+                        if feature["properties"]["entity"] in different]
+        self.assertTrue(diff_reports)
+        import math
+        def approximate_km(p, q):
+            lat1, lat2 = math.radians(p[1]), math.radians(q[1])
+            delta_lat = lat2 - lat1
+            delta_lon = math.radians(((q[0]-p[0]+540) % 360)-180)
+            h = (math.sin(delta_lat/2)**2 +
+                 math.cos(lat1)*math.cos(lat2)*math.sin(delta_lon/2)**2)
+            return 6371.0088*2*math.asin(math.sqrt(min(1, max(0, h))))
+        separations = {}
+        for entity in overlap:
+            first = observations[pair[0]][entity]
+            second = observations[pair[1]][entity]
+            separations[entity] = {}
+            for period_name in ("earlier", "later"):
+                one = {tuple(x["geometry"]["coordinates"]) for x in first[period_name]}
+                two = {tuple(x["geometry"]["coordinates"]) for x in second[period_name]}
+                all_distances = [approximate_km(a, b) for a in one for b in two]
+                separations[entity][period_name] = (
+                    {"nearest_km": round(min(all_distances), 3),
+                     "farthest_km": round(max(all_distances), 3)}
+                    if all_distances else None)
         script = ("""<script>
 const expected=__EXPECTED__,sourcesPair=__SOURCES__,reports=__REPORTS__;
+const separations=__SEPARATIONS__;
 const root=document.body,panel=document.getElementById("comparison-source-pairs");
 const a=document.getElementById("comparison-source-a"),b=document.getElementById("comparison-source-b");
 const exportButton=document.getElementById("comparison-source-pair-export");
+const diffButton=document.getElementById("comparison-source-pair-diff-export");
+const csvButton=document.getElementById("comparison-source-pair-distance-csv");
 a.value=sourcesPair[0];a.dispatchEvent(new Event("change"));
 b.value=sourcesPair[1];b.dispatchEvent(new Event("change"));
 const rows=Array.from(document.querySelectorAll("#comparison-source-pair-rows tr"));
@@ -2527,7 +2572,20 @@ root.dataset.pairRowsCorrect=String(panel&&!panel.hidden&&!exportButton.disabled
   rows.length===Object.keys(expected).length&&rows.every(function(row){
     const item=expected[row.dataset.pairEntity],cells=row.querySelectorAll("td");
     return !!item && row.dataset.sharedEarlier===String(item.earlier) &&
-      row.dataset.sharedLater===String(item.later) && Number(cells[3].textContent)===item.count;
+      row.dataset.sharedLater===String(item.later) &&
+      row.dataset.differentEarlier===String(item.different_earlier) &&
+      row.dataset.differentLater===String(item.different_later) &&
+      Number(cells[5].textContent)===item.count&&
+      ["earlier","later"].every(function(period){
+        const measure=separations[row.dataset.pairEntity][period];
+        const visible=period==="earlier"?cells[6]:cells[7];
+        return measure?
+          Math.abs(Number(row.dataset[period+"NearestKm"])-measure.nearest_km)<0.0015&&
+          Math.abs(Number(row.dataset[period+"FarthestKm"])-measure.farthest_km)<0.0015&&
+          visible.textContent.includes("–"):
+          visible.textContent==="Not jointly reported"&&
+          !Object.hasOwn(row.dataset,period+"NearestKm");
+      });
   }));
 // Presentation filtering must never truncate the original embedded evidence.
 const search=document.getElementById("report-search");
@@ -2535,10 +2593,12 @@ search.value="not-in-evidence";search.dispatchEvent(new Event("input"));
 const period=document.getElementById("comparison-period");
 period.value="later";period.dispatchEvent(new Event("change"));
 const nativeBlob=window.Blob;
-let output=null,filename=null;
+let output=null,filename=null,csvOutput=null;
 window.Blob=function(parts,options){
   if(options&&options.type==="application/geo+json")
     output=JSON.parse(String(parts[0]));
+  if(options&&options.type==="text/csv;charset=utf-8")
+    csvOutput=String(parts[0]);
   return new nativeBlob(parts,options);
 };
 HTMLAnchorElement.prototype.click=function(){filename=this.download;};
@@ -2559,13 +2619,67 @@ root.dataset.pairExportCorrect=String(!!meta&&
   meta.scope==="COMPLETE_EMBEDDED_SAME_PERIOD_JOINT_ENTITY_COVERAGE"&&
   filename==="monde-original-source-pair-shared-evidence.geojson"&&
   search.value==="not-in-evidence"&&period.value==="later");
+root.dataset.diffRowsCorrect=String(!diffButton.disabled&&
+  rows.filter(function(row){
+    return row.dataset.differentEarlier==="true"||row.dataset.differentLater==="true";
+  }).length===Object.keys(__DIFFERENT__).length);
+output=null;filename=null;diffButton.click();
+const metaDiff=output&&output.monde_source_pair_position_difference_export;
+root.dataset.diffExportCorrect=String(!!metaDiff&&
+  JSON.stringify(output.features)===JSON.stringify(__DIFF_REPORTS__)&&
+  metaDiff.scope==="COMPLETE_EMBEDDED_SOURCE_PAIR_REPORTED_POSITION_DIFFERENCES"&&
+  metaDiff.source_a===sourcesPair[0]&&metaDiff.source_b===sourcesPair[1]&&
+  metaDiff.differing_entity_count===Object.keys(__DIFFERENT__).length&&
+  metaDiff.separation_method==="APPROXIMATE_WGS84_GREAT_CIRCLE_NEAREST_AND_FARTHEST_SOURCE_POINT_PAIRS_KM"&&
+  metaDiff.source_reported_separations.length===Object.keys(__DIFFERENT__).length&&
+  metaDiff.source_reported_separations.every(function(item){
+    const reference=separations[item.entity];
+    return reference&&["earlier","later"].every(function(period){
+      const actual=item[period],value=reference[period];
+      return !value?actual===null:
+        !!actual&&Math.abs(actual.nearest_km-value.nearest_km)<0.0015&&
+        Math.abs(actual.farthest_km-value.farthest_km)<0.0015;
+    });
+  })&&
+  metaDiff.original_feature_count===__TOTAL__&&
+  metaDiff.exported_feature_count===__DIFF_COUNT__&&
+  metaDiff.earlier_original_report_count===__DIFF_REPORTS__.filter(function(f){
+    return f.properties.monde_comparison_period==="earlier";
+  }).length&&
+  filename==="monde-original-source-pair-position-differences.geojson"&&
+  search.value==="not-in-evidence"&&period.value==="later");
+csvOutput=null;filename=null;csvButton.click();
+const csvLines=csvOutput&&csvOutput.replace(/^\\uFEFF/,"").trimEnd().split("\\r\\n");
+const csvRows=csvLines&&csvLines.slice(1),csvHeader=csvLines&&csvLines[0];
+root.dataset.pairSeparationCsvCorrect=String(!!csvRows&&
+  filename==="monde-original-source-pair-separations.csv"&&
+  csvHeader.includes("nearest_separation_km,farthest_separation_km")&&
+  csvRows.length===2*Object.keys(expected).length&&
+  csvRows.every(function(line){
+    return line.includes('"'+sourcesPair[0]+'"')&&
+      line.includes('"'+sourcesPair[1]+'"')&&
+      line.includes("ORIGINAL_SOURCE_REPORT_SEPARATION_NOT_VERIFIED_TRUTH_OR_MOTION");
+  })&&Object.keys(expected).every(function(entity){
+    return ["earlier","later"].every(function(p){
+      const row=csvRows.find(function(line){return line.includes('"'+entity+'","'+p+'"');});
+      if(!row)return false;
+      const item=separations[entity][p];
+      return item?
+        row.includes('"'+item.nearest_km+'"')&&row.includes('"'+item.farthest_km+'"'):
+        row.includes('"NOT_JOINTLY_REPORTED"')&&row.includes(',"","",');
+    });
+  })&&search.value==="not-in-evidence"&&period.value==="later");
 a.value=sourcesPair[0];b.value=sourcesPair[0];b.dispatchEvent(new Event("change"));
-root.dataset.pairSameSourceDenied=String(exportButton.disabled&&
+root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disabled&&csvButton.disabled&&
   document.querySelectorAll("#comparison-source-pair-rows tr").length===0);
 </script>""".replace("__EXPECTED__", json.dumps(overlap))
+                   .replace("__SEPARATIONS__", json.dumps(separations))
                    .replace("__SOURCES__", json.dumps(pair))
                    .replace("__REPORTS__", json.dumps(expected))
-                   .replace("__TOTAL__", str(len(embedded["features"]))))
+                   .replace("__TOTAL__", str(len(embedded["features"])))
+                   .replace("__DIFFERENT__", json.dumps(different))
+                   .replace("__DIFF_REPORTS__", json.dumps(diff_reports))
+                   .replace("__DIFF_COUNT__", str(len(diff_reports))))
         target = Path(self.folder.name) / "source-pair-coverage.html"
         target.write_text(html.replace("</body>", script+"</body>"), encoding="utf-8")
         output = subprocess.run([
@@ -2574,6 +2688,8 @@ root.dataset.pairSameSourceDenied=String(exportButton.disabled&&
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=35,
             check=True).stdout.decode("utf-8")
         for name in ("pair-rows-correct", "pair-export-correct",
+                     "diff-rows-correct", "diff-export-correct",
+                     "pair-separation-csv-correct",
                      "pair-same-source-denied"):
             self.assertIn('data-'+name+'="true"', output, name)
         response, _, ordinary = self.fetch("/viewer", {**QUERY, "view": "current"})
