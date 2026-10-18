@@ -15,7 +15,7 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from .world import WorldMini, _time
+from .world import WorldMini, _time, _id
 
 MAX_REQUEST_TARGET = 2048
 MAX_RESPONSE_BYTES = 2_000_000
@@ -102,7 +102,7 @@ truth. No external requests, data upload or saved-state changes.</p>
 """ + source_hint + """
 <datalist id="saved-original-sources">""" + suggestions + """</datalist>
 <main>""" + ''.join(forms) + """</main>
-<p><a href="/inspect">Inspect original entity reports and source histories</a></p>
+<p><a href="/inspect">Inspect original entity reports and source histories</a> · <a href="/source-pair">Compare two original sources</a></p>
 <p>Local read-only interface. Time cutoffs must be timezone-aware ISO-8601.</p>
 </body></html>"""
 
@@ -933,6 +933,65 @@ inferred truth or confirmed physical movement.</p><p>''' +
              'not evidence of agreement or absence.</p>') + '</body></html>')
 
 
+
+def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
+    """Read-only native source-pair comparison forms."""
+    options = ''.join('<option value="' + escape(s, quote=True) + '"></option>'
+                      for s in source_ids[:200])
+    parts = []
+    for axis, fields in (("knowledge", ("at", "from_known_at", "to_known_at")),
+                         ("world", ("from_at", "to_at", "known_at"))):
+        inputs = ''.join('<label>' + escape(k) + ' (ISO-8601 UTC)'
+                         '<input name="' + k + '" required></label>' for k in fields)
+        parts.append('<form action="/source-pair" method="get"><h2>' +
+                     axis.capitalize() + ' time</h2>'
+                     '<input type="hidden" name="axis" value="' + axis + '">'
+                     '<label>Source A <input name="source_a" list="pair-ids" required></label>'
+                     '<label>Source B <input name="source_b" list="pair-ids" required></label>'
+                     + inputs + '<button>Compare original evidence</button></form>')
+    return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<title>MONDE original source pairs</title><style>'
+            ':root{color-scheme:dark;background:#101827;color:#ebf2f9;'
+            'font-family:system-ui,sans-serif}body{max-width:900px;margin:auto;padding:24px}'
+            'form{border:1px solid #48677e;padding:18px;margin:16px 0}'
+            'label{display:block;padding:8px}input{padding:7px;background:#253c50;color:white}'
+            'button{padding:8px;background:#66e0c0}a{color:#8ee6d3}'
+            '</style></head><body><a href="/explore">Explorer</a>'
+            '<h1>Compare original source Point reports</h1>'
+            '<p>Reported source disagreement is not verified physical movement.</p>'
+            '<datalist id="pair-ids">' + options + '</datalist>' +
+            ''.join(parts) + '</body></html>')
+
+
+def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
+    """Reuse exactly the existing source-pair comparison and optional filters."""
+    from .source_pair_changes import (
+        compare_source_pair, compare_source_pair_world_time,
+        filter_source_pair_direction)
+    _id(args.get("source_a"))
+    _id(args.get("source_b"))
+    extra = {"format", "direction"}
+    if args.get("axis") == "knowledge":
+        _require(args, {"axis", "source_a", "source_b",
+                        "at", "from_known_at", "to_known_at"}, extra)
+        output = compare_source_pair(
+            world, args["source_a"], args["source_b"], args["at"],
+            args["from_known_at"], args["to_known_at"])
+    elif args.get("axis") == "world":
+        _require(args, {"axis", "source_a", "source_b",
+                        "from_at", "to_at", "known_at"}, extra)
+        output = compare_source_pair_world_time(
+            world, args["source_a"], args["source_b"], args["from_at"],
+            args["to_at"], args["known_at"])
+    else:
+        raise ValueError("unknown source-pair comparison axis")
+    if "direction" in args:
+        output = filter_source_pair_direction(output, args["direction"])
+    if args.get("format", "html") not in ("html", "json", "geojson"):
+        raise ValueError("invalid comparison format")
+    return output
+
+
 def create_server(state: str | Path, port: int = 0, *,
                   max_response_bytes: int = MAX_RESPONSE_BYTES) -> ThreadingHTTPServer:
     """Load once, then serve queries only on 127.0.0.1. No state writes."""
@@ -973,11 +1032,12 @@ def create_server(state: str | Path, port: int = 0, *,
 
 
         def _html(self, geojson: dict | None, navigation: dict[str, str] | None = None,
-                  download: bool = False):
+                  download: bool = False, rendered_html: str | None = None):
             # Reuse the offline map renderer; no new browser-side service or
             # unauthenticated state-changing route is introduced.
             from .map_view import render_map
-            rendered = (_explorer_html(map_source_ids) if geojson is None else
+            rendered = (rendered_html if rendered_html is not None else
+                        _explorer_html(map_source_ids) if geojson is None else
                         render_map(geojson, inspector_links=not download,
                                    navigation=navigation))
             if geojson is not None and "monde_comparison" in geojson:
@@ -1054,11 +1114,20 @@ def create_server(state: str | Path, port: int = 0, *,
                              "/inspect", "/disagreement-report", "/disagreement.csv",
                              "/disagreement-compare.json", "/disagreement-compare.csv",
                              "/disagreement-compare.geojson",
-                             "/disagreement-compare.html"}:
+                             "/disagreement-compare.html", "/source-pair"}:
                 return self._reply(404, {"error": "unknown_endpoint"})
             try:
                 args = _parameters(self.path, path)
-                if path == "/health":
+                if path == "/source-pair":
+                    if not args:
+                        return self._html(None, rendered_html=_pair_explorer_html(map_source_ids))
+                    data = _pair_query(world, args)
+                    from .source_pair_changes import comparison_geojson, comparison_html
+                    if args.get("format", "html") == "html":
+                        return self._html(None, rendered_html=comparison_html(data))
+                    return self._reply(200, comparison_geojson(data)
+                                       if args["format"] == "geojson" else data)
+                elif path == "/health":
                     _require(args, set())
                     output = {"service": "MONDE Mini", "mode": "READ_ONLY",
                               "world": "OBSERVED", "status": "READY"}
