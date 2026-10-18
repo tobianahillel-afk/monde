@@ -163,7 +163,7 @@ __MONDE_TIME_NAVIGATION__
 <button type="button" id="comparison-all-sources">Show all original sources</button>
 <button type="button" id="comparison-export-coverage-csv">Export complete source coverage CSV</button>
 <table aria-label="Embedded original reports by source and period">
-<thead><tr><th scope="col">Original source</th><th scope="col">Earlier</th><th scope="col">Later</th><th scope="col">Total reports</th><th scope="col">Selection coverage</th></tr></thead>
+<thead><tr><th scope="col">Original source</th><th scope="col">Earlier</th><th scope="col">Later</th><th scope="col">Total reports</th><th scope="col">Selection coverage</th><th scope="col">Original evidence export</th></tr></thead>
 <tbody id="comparison-source-rows"></tbody>
 </table>
 <p id="comparison-source-total" class="subtle" role="status"></p>
@@ -707,6 +707,28 @@ __MONDE_TIME_NAVIGATION__
         "Both selections" : (value.earlier>0 ?
           "Earlier selection only" : "Later selection only");
       tr.appendChild(coverageCell);
+      // Full original evidence from this source in both comparison periods.
+      // Ignore presentation filters; source IDs are data, never filenames.
+      var exportCell=document.createElement("td"),exportSource=document.createElement("button");
+      exportSource.type="button";
+      exportSource.textContent="Download GeoJSON";
+      exportSource.setAttribute("aria-label","Download both periods of original evidence from source "+id);
+      exportSource.addEventListener("click",function() {
+        var reports=features.filter(function(f){return f.properties.source_id===id;});
+        saveEvidence(Object.assign({},data,{
+          features:reports,
+          monde_source_period_export:{
+            scope:"COMPLETE_EMBEDDED_SOURCE_NOT_DISPLAY_FILTERED",
+            source_id:id,
+            selected_period:"both",
+            earlier_original_report_count:value.earlier,
+            later_original_report_count:value.later,
+            original_feature_count:features.length,
+            exported_feature_count:reports.length
+          }
+        }),"monde-original-source-both-periods.geojson","application/geo+json");
+      });
+      exportCell.appendChild(exportSource);tr.appendChild(exportCell);
       rows.appendChild(tr);
     });
     // Download exactly the embedded original source selection, not a derivative
