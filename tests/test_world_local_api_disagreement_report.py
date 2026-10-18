@@ -866,5 +866,103 @@ class DisagreementReportHTTPTests(unittest.TestCase):
         self.assertEqual(source, initial)
 
 
+    @staticmethod
+    def focus_form(html):
+        """Read the actual native GET controls instead of reconstructing URLs."""
+        from html.parser import HTMLParser
+
+        class Focus(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.active = False
+                self.action = None
+                self.inputs = {}
+
+            def handle_starttag(self, tag, attrs):
+                props = dict(attrs)
+                if tag == "form" and props.get("id") == "disagreement-focus-form":
+                    self.active = True
+                    self.action = props.get("action")
+                    self.method = props.get("method")
+                elif self.active and tag == "input":
+                    self.inputs[props["name"]] = props.get("value", "")
+
+            def handle_endtag(self, tag):
+                if tag == "form" and self.active:
+                    self.active = False
+
+        parsed = Focus()
+        parsed.feed(html)
+        return parsed
+
+    def test_browser_refocus_source_and_entity_without_losing_original_reports(self):
+        original = {**QUERY, "source": "survey-east", "entity": "site-a"}
+        code, headers, raw = self.fetch("/disagreement-report", original)
+        self.assertEqual(code, 200)
+        self.assertIn("script-src 'none'", headers["Content-Security-Policy"])
+        html = raw.decode("utf-8")
+        form = self.focus_form(html)
+        self.assertEqual(form.action, "/disagreement-report")
+        self.assertEqual(form.method, "get")
+        self.assertEqual(form.inputs["source"], "survey-east")
+        self.assertEqual(form.inputs["entity"], "site-a")
+        self.assertEqual(form.inputs["bbox"], QUERY["bbox"])
+        self.assertEqual(form.inputs["at"], AT)
+        self.assertEqual(form.inputs["known_at"], K1)
+        self.assertIn('id="disagreement-source-suggestions"', html)
+        self.assertIn('value="survey-west"', html)
+        self.assertIn('id="disagreement-entity-suggestions"', html)
+        # Both source/entity controls can be cleared. No source is silently inferred.
+        reset = dict(form.inputs, source="", entity="")
+        status, _, body = self.fetch(form.action, reset)
+        self.assertEqual(status, 200)
+        self.assertIn("<h2>site-a</h2>", body.decode("utf-8"))
+        self.assertIn("<h2>site-b</h2>", body.decode("utf-8"))
+        # Focusing the out-of-bounds source does not borrow a different source's Point.
+        changed = dict(form.inputs, source="survey-west")
+        status, _, body = self.fetch(form.action, changed)
+        self.assertEqual(status, 200)
+        self.assertIn("NO MATCHING SOURCE DISAGREEMENT", body.decode("utf-8"))
+
+    def test_browser_refocus_preserves_temporal_axis_and_change_selection(self):
+        for axis in ({"from_known_at": "2026-01-09T00:00:00Z"},
+                     {"from_at": "2025-12-31T00:00:00Z"}):
+            with self.subTest(axis=axis):
+                params = {**QUERY, **axis, "source": "survey-east",
+                          "entity": "site-a", "change_kind": "appeared"}
+                status, _, raw = self.fetch("/disagreement-report", params)
+                self.assertEqual(status, 200)
+                form = self.focus_form(raw.decode("utf-8"))
+                self.assertEqual(form.inputs["change_kind"], "appeared")
+                self.assertEqual(form.inputs["known_at"], K1)
+                self.assertEqual(form.inputs["at"], AT)
+                for key, value in axis.items():
+                    self.assertEqual(form.inputs[key], value)
+                # Follow the actual GET form to refocus, then compare existing JSON.
+                updated = dict(form.inputs, source="", entity="site-a")
+                report = self.fetch(form.action, updated)
+                self.assertEqual(report[0], 200)
+                self.assertIn("Original source disagreements at two", report[2].decode())
+                result = self.fetch("/disagreement-compare.json", updated)
+                self.assertEqual(result[0], 200)
+                self.assertEqual(json.loads(result[2])["selection"]["change_kind"],
+                                 "appeared")
+
+    def test_browser_focus_escapes_untrusted_entity_and_keeps_loopback_read_only(self):
+        injected = '<img src=x onerror="alert(1)">'
+        status, headers, body = self.fetch(
+            "/disagreement-report", {**QUERY, "entity": injected})
+        self.assertEqual(status, 200)
+        html = body.decode("utf-8")
+        self.assertNotIn(injected, html)
+        self.assertIn("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;", html)
+        self.assertIn("script-src 'none'", headers["Content-Security-Policy"])
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+        form = self.focus_form(html)
+        self.assertEqual(form.inputs["entity"], injected)
+        self.assertEqual(self.fetch(form.action, {**form.inputs, "entity": ""})[0], 200)
+
+
+
 if __name__ == "__main__":
     unittest.main()
