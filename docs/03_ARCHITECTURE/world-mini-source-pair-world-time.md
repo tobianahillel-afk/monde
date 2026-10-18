@@ -474,3 +474,46 @@ This identifies **representative source-reported separation**, never source
 accuracy, physical truth, reliability or inferred movement. Missing joint
 reports remain UNKNOWN; all queries reuse persisted WorldMini snapshots
 without mutation or external services. PR is stacked on WORK-0109 (#139).
+
+
+## Original Point source coverage directory (WORK-0111)
+
+In the existing local source-pair browser, choose **Original Point reporter
+coverage** for either world or knowledge time. The same bitemporal arguments
+as source-pair discovery are used. Set `directory=1` and choose
+`format=table` (default), `format=json` or `format=csv`.
+
+Each original source has distinct entity counts and Point assertion counts
+at the two cutoffs, along with newly reported, no-longer-reported and
+continuously reported entity counts. JSON and CSV retain one original entity
+and its actual original assertion IDs per reporter. Click a reporter
+to open existing source-focused pair discovery at identical cutoffs.
+
+Absence of a source report is not evidence of agreement. Reporting-count
+changes are not proof of physical movement, source accuracy or reliability.
+The existing saved WorldMini is read-only and no new service is introduced.
+
+
+### Original reporter detail — evidence drill-down (WORK-0111)
+
+From the source directory select a reporter. The same local read-only
+/source-pair?directory=1 query accepts source=<original ID> with
+format=table, json or csv. Every reported entity shows the original
+assertion IDs before and after the selected world/knowledge cutoff,
+labelled NEWLY_REPORTED, NO_LONGER_REPORTED or REPORTED_AT_BOTH.
+Links open the existing source-specific history for that entity.
+Reporting presence is not evidence of actual movement or truth.
+
+
+### Filter original reporter transitions (WORK-0111 incremental)
+
+In the source-specific coverage detail, use **All entities**, **Newly reported**,
+**No longer reported** or **At both cutoffs**. These native read-only links
+add an optional `change=new|gone|both` to the existing
+`/source-pair?directory=1&source=...` query; it applies consistently to
+table, JSON and CSV outputs. The unfiltered JSON contract is unchanged;
+a filtered JSON response additionally reports `reporting_filter` and
+`matched_entities` while retaining the original total source counts and
+exact original assertion IDs. The parameter requires a source and rejects
+unknown values. Both temporal axes remain explicit; missing reporting is
+not evidence of a real disappearance, and saved observations are unchanged.

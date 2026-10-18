@@ -291,6 +291,110 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
     return result
 
 
+
+def source_directory(world, axis, cutoffs):
+    """Per-original-source Point coverage at two world/knowledge cutoffs."""
+    if axis not in ("knowledge", "world") or len(cutoffs) != 2:
+        raise ValueError("invalid source directory axis")
+    for at, known_at in cutoffs:
+        _instant(at)
+        _instant(known_at)
+    (first_at, first_known), (last_at, last_known) = cutoffs
+    if axis == "knowledge":
+        if first_at != last_at or _instant(first_known) >= _instant(last_known):
+            raise ValueError("invalid source directory knowledge cutoffs")
+    elif first_known != last_known or _instant(first_at) >= _instant(last_at):
+        raise ValueError("invalid source directory world cutoffs")
+
+    periods = {}
+    for label, (at, known_at) in zip(("earlier", "later"), cutoffs):
+        sources = {}
+        for feature in world.export_geojson(at, known_at)["features"]:
+            properties = feature["properties"]
+            sources.setdefault(properties["source_id"], {}).setdefault(
+                properties["entity"], set()).add(feature["id"])
+        periods[label] = sources
+
+    result = []
+    for source in sorted(set(periods["earlier"]) | set(periods["later"])):
+        earlier = periods["earlier"].get(source, {})
+        later = periods["later"].get(source, {})
+        a, b = set(earlier), set(later)
+        example = min(a | b)
+        result.append({
+            "source_id": source,
+            "earlier_entities": len(a),
+            "later_entities": len(b),
+            "earlier_assertions": sum(map(len, earlier.values())),
+            "later_assertions": sum(map(len, later.values())),
+            "continuously_reported_entities": len(a & b),
+            "newly_reported_entities": len(b - a),
+            "no_longer_reported_entities": len(a - b),
+            "example_entity": example,
+            "example_assertion_ids": sorted(
+                earlier.get(example, set()) | later.get(example, set())),
+        })
+    result.sort(key=lambda row: (-max(row["earlier_entities"],
+                                     row["later_entities"]), row["source_id"]))
+    return {
+        "schema": "MONDE_SOURCE_COVERAGE_DIRECTORY_V1",
+        "axis": axis,
+        "cutoffs": {
+            name: {"world_at": at, "knowledge_at": known_at}
+            for name, (at, known_at) in zip(("earlier", "later"), cutoffs)
+        },
+        "interpretation": (
+            "Original source-reported Point coverage only. Changes in reported "
+            "entities are not verified movement, accuracy, or actual events."
+        ),
+        "total_sources": len(result),
+        "sources": result,
+    }
+
+
+
+def source_directory_detail(world, axis, cutoffs, source, change=None):
+    """Show original assertion IDs, optionally limited by reporting transition."""
+    filters = {"new": "NEWLY_REPORTED", "gone": "NO_LONGER_REPORTED",
+               "both": "REPORTED_AT_BOTH"}
+    if change is not None and change not in filters:
+        raise ValueError("invalid original reporting transition")
+    if not isinstance(source, str) or not 0 < len(source) <= 200 or any(
+            ord(ch) < 32 or ord(ch) == 127 for ch in source):
+        raise ValueError("invalid original reporter")
+    directory = source_directory(world, axis, cutoffs)
+    before, after = {}, {}
+    for found, (at, known_at) in zip((before, after), cutoffs):
+        for feature in world.export_geojson(at, known_at)["features"]:
+            props = feature["properties"]
+            if props["source_id"] == source:
+                found.setdefault(props["entity"], set()).add(feature["id"])
+    rows = []
+    for entity in sorted(before.keys() | after.keys()):
+        earlier = sorted(before.get(entity, set()))
+        later = sorted(after.get(entity, set()))
+        rows.append({
+            "entity": entity,
+            "status": ("REPORTED_AT_BOTH" if earlier and later else
+                       "NEWLY_REPORTED" if later else "NO_LONGER_REPORTED"),
+            "earlier_assertion_ids": earlier,
+            "later_assertion_ids": later,
+        })
+    if change is not None:
+        rows = [row for row in rows if row["status"] == filters[change]]
+    result = {
+        "schema": "MONDE_SOURCE_COVERAGE_DETAIL_V1",
+        "axis": axis, "cutoffs": directory["cutoffs"],
+        "source_id": source, "interpretation": directory["interpretation"],
+        "earlier_entities": len(before), "later_entities": len(after),
+        "entities": rows,
+    }
+    if change is not None:
+        result["reporting_filter"] = change
+        result["matched_entities"] = len(rows)
+    return result
+
+
 def discovery_geojson(world, document):
     """Original Point evidence for all ranked source-pair examples, never inferred coordinates."""
     if document["schema"] != "MONDE_SOURCE_PAIR_DISCOVERY_V1":
