@@ -1431,5 +1431,186 @@ document.body.setAttribute("data-count-both",String(count("")));
             self.assertEqual(int(match.group(1)), value)
         self.assertEqual(self.path.read_bytes(), self.before)
 
+    def test_offline_comparison_source_coverage_matches_complete_embedded_evidence(self):
+        """Source/period matrix counts the full original snapshot, not the visible map."""
+        import shutil
+        import subprocess
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if not browser:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, body = self.fetch("/disagreement-compare.html", params)
+        self.assertEqual(status, 200)
+        html = body.decode("utf-8")
+        embedded = self.embedded_map(html)
+        actual = {}
+        for f in embedded["features"]:
+            source = f["properties"]["source_id"]
+            period = f["properties"]["monde_comparison_period"]
+            entry = actual.setdefault(source, {"earlier": 0, "later": 0})
+            entry[period] += 1
+        self.assertGreaterEqual(len(actual), 2)
+        class_counts = {
+            "both": sum(v["earlier"] + v["later"] for v in actual.values()
+                        if v["earlier"] and v["later"]),
+            "earlier-only": sum(v["earlier"] for v in actual.values()
+                                if v["earlier"] and not v["later"]),
+            "later-only": sum(v["later"] for v in actual.values()
+                              if v["later"] and not v["earlier"]),
+        }
+        expected = "|".join(
+            f"{name}:{actual[name]['earlier']}:{actual[name]['later']}"
+            for name in sorted(actual))
+        probe = """<script>
+const body=document.body,coverage=document.getElementById("comparison-source-coverage");
+body.dataset.coverageOpen=String(!coverage.hidden);
+const records=Array.from(document.querySelectorAll("#comparison-source-rows tr"));
+body.dataset.coverageCount=String(records.length);
+body.dataset.coverageRows=records.map(row=>row.dataset.sourceId+":"+
+  row.children[1].textContent+":"+row.children[2].textContent).join("|");
+const sourceSelect=document.getElementById("sources");
+const originalCount=document.getElementById("comparison-source-total").textContent;
+records[0].querySelector("button").click();
+body.dataset.sourceAfterClick=sourceSelect.value;
+body.dataset.firstSource=records[0].dataset.sourceId;
+const periodSelect=document.getElementById("comparison-period");
+const earlierRow=records.find(row=>Number(row.children[1].textContent)>0);
+if(earlierRow){
+  earlierRow.children[1].querySelector("button").click();
+  body.dataset.earlierJump=String(sourceSelect.value===earlierRow.dataset.sourceId &&
+    periodSelect.value==="earlier");
+}else{
+  // This real temporal fixture can have no earlier evidence. Do not invent it.
+  body.dataset.earlierJump=String(records.every(row=>
+    Number(row.children[1].textContent)===0 &&
+    row.children[1].querySelector("button")===null));
+}
+const laterRow=records.find(row=>Number(row.children[2].textContent)>0);
+laterRow.children[2].querySelector("button").click();
+body.dataset.laterJump=String(sourceSelect.value===laterRow.dataset.sourceId &&
+  periodSelect.value==="later");
+body.dataset.zeroCellsPlain=String(records.every(row=>
+  [1,2].every(i=>Number(row.children[i].textContent)!==0 ||
+    row.children[i].querySelector("button")===null)));
+periodSelect.value="later";
+periodSelect.dispatchEvent(new Event("change"));
+body.dataset.coverageAfterFiltering=String(
+  document.getElementById("comparison-source-total").textContent===originalCount);
+const presence=document.getElementById("comparison-source-presence");
+sourceSelect.value="";periodSelect.value="";
+["both","earlier-only","later-only"].forEach(function(group){
+  presence.value=group;presence.dispatchEvent(new Event("change"));
+  body.dataset["coverageGroup"+group.replace("-","")]=
+    document.getElementById("comparison-period-summary").textContent.split(" original")[0];
+});
+document.getElementById("comparison-all-sources").click();
+body.dataset.sourceAfterReset=String(sourceSelect.value===""&&presence.value==="");
+body.dataset.coverageGroupReset=document.getElementById("comparison-period-summary")
+  .textContent.split(" original")[0];
+</script>"""
+        output = Path(self.folder.name) / "coverage-comparison-offline.html"
+        output.write_text(html.replace("</body>", probe + "</body>"), encoding="utf-8")
+        rendered = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", output.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
+            check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', rendered)
+        self.assertIn('data-coverage-open="true"', rendered)
+        self.assertIn('data-coverage-count="' + str(len(actual)) + '"', rendered)
+        self.assertIn('data-coverage-rows="' + expected + '"', rendered)
+        self.assertIn('data-earlier-jump="true"', rendered)
+        self.assertIn('data-later-jump="true"', rendered)
+        self.assertIn('data-zero-cells-plain="true"', rendered)
+        self.assertIn('data-coverage-after-filtering="true"', rendered)
+        self.assertIn('data-source-after-reset="true"', rendered)
+        for group, expected_count in class_counts.items():
+            attr = "coverage-group" + group.replace("-", "")
+            self.assertIn(f'data-{attr}="{expected_count}"', rendered)
+        self.assertIn('data-coverage-group-reset="' +
+                      str(len(embedded["features"])) + '"', rendered)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+    def test_comparison_source_coverage_is_not_active_on_regular_maps(self):
+        status, _, comparison = self.fetch("/disagreement-compare.html",
+            {**QUERY, "from_known_at": "2026-01-09T00:00:00Z"})
+        self.assertEqual(status, 200)
+        self.assertIn(b'id="comparison-source-coverage" hidden', comparison)
+        status, _, current = self.fetch("/viewer", {"view": "current", **QUERY})
+        self.assertEqual(status, 200)
+        self.assertIn(b'id="comparison-source-coverage" hidden', current)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+
+    def test_complete_source_coverage_csv_offline_matches_embedded_originals(self):
+        """Export complete source counts, not display-filtered counts, in offline Chromium."""
+        import shutil
+        import subprocess
+        browser = next((p for name in ("google-chrome", "chromium", "chromium-browser")
+                        if (p := shutil.which(name))), None)
+        if browser is None:
+            self.skipTest("Chromium unavailable; GitHub Actions runs browser integration")
+        params = {**QUERY, "source": "survey-east", "entity": "site-a",
+                  "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, body = self.fetch("/disagreement-compare.html", params)
+        self.assertEqual(status, 200)
+        original = body.decode("utf-8")
+        embedded = self.embedded_map(original)
+        counts = {}
+        for feature in embedded["features"]:
+            props = feature["properties"]
+            row = counts.setdefault(props["source_id"], [0, 0])
+            row[0 if props["monde_comparison_period"] == "earlier" else 1] += 1
+        self.assertTrue(counts)
+        probe = """<script>
+const body=document.body, rows=document.querySelectorAll("#comparison-source-rows tr");
+const NativeBlob=window.Blob;
+window.Blob=function(parts,options){
+  const csv=String(parts[0]);
+  const lines=csv.replace(/^\\uFEFF/,"").trim().split("\\r\\n");
+  body.dataset.coverageCsvRows=String(lines.length-1);
+  body.dataset.coverageCsvHeader=String(lines[0].includes("selection_coverage"));
+  body.dataset.coverageCsvScope=String(csv.includes("COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED"));
+  body.dataset.coverageCsvCounts=lines.slice(1).map(line=>{
+    const fields=line.split('","');
+    return fields[1]+":"+fields[2]+":"+fields[3];
+  }).join("|");
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){body.dataset.coverageCsvFilename=this.download;};
+document.getElementById("sources").value=rows[0].dataset.sourceId;
+document.getElementById("sources").dispatchEvent(new Event("change"));
+document.getElementById("comparison-period").value="later";
+document.getElementById("comparison-period").dispatchEvent(new Event("change"));
+const presence=document.getElementById("comparison-source-presence");
+presence.value="earlier-only";presence.dispatchEvent(new Event("change"));
+document.getElementById("comparison-export-coverage-csv").click();
+body.dataset.coverageCsvDisplayFilter=document.getElementById("comparison-period").value;
+</script>"""
+        output = Path(self.folder.name) / "source-coverage-export.html"
+        output.write_text(original.replace("</body>", probe + "</body>"),
+                          encoding="utf-8")
+        rendered = subprocess.run([
+            browser, "--headless", "--no-sandbox", "--disable-gpu",
+            "--disable-dev-shm-usage", "--dump-dom", output.as_uri()],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            timeout=30, check=True).stdout.decode("utf-8")
+        self.assertIn('data-monde-ready="true"', rendered)
+        self.assertIn('data-coverage-csv-rows="' + str(len(counts)) + '"', rendered)
+        self.assertIn('data-coverage-csv-header="true"', rendered)
+        self.assertIn('data-coverage-csv-scope="true"', rendered)
+        self.assertIn('data-coverage-csv-filename="monde-original-source-period-coverage.csv"', rendered)
+        self.assertIn('data-coverage-csv-display-filter="later"', rendered)
+        expected = "|".join(f"{source}:{values[0]}:{values[1]}"
+                            for source, values in sorted(counts.items()))
+        # Assert the CSV's actual per-source counts, not independently visible
+        # DOM text or HTML escaping in attributes.
+        self.assertIn('data-coverage-csv-counts="' + expected + '"', rendered)
+        self.assertEqual(self.path.read_bytes(), self.before)
+
+
+
 if __name__ == "__main__":
     unittest.main()

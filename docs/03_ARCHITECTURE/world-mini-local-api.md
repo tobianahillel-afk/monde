@@ -548,3 +548,31 @@ The CSV is a flattened analyst table; use the existing complete GeoJSON for
 full nested original metadata. Empty selected periods export a header-only
 CSV, not synthetic evidence. No external requests, new endpoint, model or
 persistent data modifications.
+
+### Original source coverage matrix in offline comparison maps (WORK-0082)
+
+An offline two-period disagreement map includes an expandable **Original source
+coverage by comparison period** table. Each source's Earlier/Later/Total count
+comes from **all original source reports embedded in the selected comparison**,
+not viewport, search, source or period display filters. Choosing a source
+filters the visible map to that source; clicking a nonzero **Earlier** or **Later**
+count selects that source and its original evidence period in one action.
+A **Source reporting across selections** selector filters the offline map to
+sources present in both selections, only the earlier selection, or only the
+later selection. It classifies the entire embedded original report selection
+before display filters. Choosing a source row clears this group selector;
+**Show all original sources** clears both source and coverage-class filters.
+No absent report can establish physical absence.
+Zero counts are not links and do not imply physical absence.
+**Show all original sources**
+clears only the source display selection; neither operation mutates the
+embedded evidence or persisted World Model. Empty or asymmetric period counts
+do not prove a physical absence, agreement or movement. The table uses
+text-only DOM assignment for original untrusted source identifiers, with no
+external network requests, new API, new model or dependency. The complete source
+coverage table can be exported as a standalone **CSV** containing the comparison
+axis, every embedded original source ID, earlier/later/total Point-report counts,
+and explicit `BOTH_SELECTIONS`, `EARLIER_SELECTION_ONLY`, or
+`LATER_SELECTION_ONLY` labels. The CSV is independent of presentation filters,
+escapes untrusted spreadsheet formulas and says nothing about ground-truth
+source presence, actual movement, or physical absence.

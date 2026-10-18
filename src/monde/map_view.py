@@ -86,6 +86,11 @@ label{display:inline-flex;gap:7px;align-items:center;font-size:.9rem}
 #details{white-space:pre-wrap;overflow-wrap:anywhere;background:#102033;border-radius:7px;padding:12px;font-size:.84rem;max-height:280px;overflow:auto;min-height:70px}
 .notice{padding:10px 12px;background:#273b49;border-left:3px solid #ffc873;border-radius:4px;margin:14px 0}
 #metrics{font-size:.9rem;color:#bbd0df}
+#comparison-source-coverage{margin:12px 0;padding:10px;border:1px solid #38526a;border-radius:8px}
+#comparison-source-coverage summary{cursor:pointer;color:#8ee6d3;font-weight:bold}
+#comparison-source-coverage table{width:100%;border-collapse:collapse;text-align:left;font-size:.87rem}
+#comparison-source-coverage th,#comparison-source-coverage td{padding:6px;border-bottom:1px solid #38526a;overflow-wrap:anywhere}
+#comparison-source-coverage th[scope=col]{color:#bbd0df}
 @media(max-width:850px){main{grid-template-columns:1fr}}
 </style>
 </head>
@@ -145,6 +150,24 @@ __MONDE_TIME_NAVIGATION__
 </select><button id="export-comparison-complete" type="button">Export complete original period GeoJSON</button>
 <button id="export-comparison-csv" type="button">Export complete original period CSV</button></div>
 <p id="comparison-period-summary" class="subtle" role="status" aria-live="polite" hidden></p>
+<details id="comparison-source-coverage" hidden>
+<summary>Original source coverage by comparison period</summary>
+<p class="subtle">Counts use all original source reports embedded in this comparison, including offscreen evidence. Display filters do not change them. They are NOT evidence of physical agreement, movement or absence.</p>
+<label for="comparison-source-presence">Source reporting across selections</label>
+<select id="comparison-source-presence" aria-label="Filter original sources by earlier and later reporting">
+<option value="">All original sources</option>
+<option value="both">Reported in both selections</option>
+<option value="earlier-only">Reported only in earlier selection</option>
+<option value="later-only">Reported only in later selection</option>
+</select>
+<button type="button" id="comparison-all-sources">Show all original sources</button>
+<button type="button" id="comparison-export-coverage-csv">Export complete source coverage CSV</button>
+<table aria-label="Embedded original reports by source and period">
+<thead><tr><th scope="col">Original source</th><th scope="col">Earlier</th><th scope="col">Later</th><th scope="col">Total reports</th><th scope="col">Selection coverage</th></tr></thead>
+<tbody id="comparison-source-rows"></tbody>
+</table>
+<p id="comparison-source-total" class="subtle" role="status"></p>
+</details>
 <div id="gpkg-layer-control" class="controls" hidden>
   <strong>Original GeoPackage layers</strong>
   <div id="gpkg-layer-options" role="group" aria-label="Toggle original GeoPackage source layers"></div>
@@ -634,6 +657,85 @@ __MONDE_TIME_NAVIGATION__
     var option = document.createElement("option");
     option.value = id; label(option,id); sources.appendChild(option);
   });
+  // Comparison-only browser navigation: count the complete embedded original
+  // selection, not the viewport/period/search-filtered visibleFeatures.
+  if (data.monde_comparison) {
+    var coverage = document.getElementById("comparison-source-coverage");
+    var counts = new Map();
+    features.forEach(function(feature) {
+      var p=feature.properties,source=p.source_id,period=p.monde_comparison_period;
+      if(!counts.has(source))counts.set(source,{earlier:0,later:0});
+      if(period==="earlier"||period==="later")counts.get(source)[period]++;
+    });
+    var rows=document.getElementById("comparison-source-rows");
+    var presenceSelect=document.getElementById("comparison-source-presence");
+    presenceSelect.addEventListener("change",function() {
+      sources.value="";render();
+    });
+    Array.from(counts.keys()).sort().forEach(function(id) {
+      var value=counts.get(id),tr=document.createElement("tr"),cell=document.createElement("td");
+      tr.dataset.sourceId=id;
+      var button=document.createElement("button");
+      button.type="button";
+      button.textContent=id;
+      button.setAttribute("aria-label","Show original evidence from source "+id);
+      button.addEventListener("click",function(){
+        presenceSelect.value="";sources.value=id;render();
+      });
+      cell.appendChild(button);tr.appendChild(cell);
+      ["earlier","later"].forEach(function(period) {
+        var td=document.createElement("td"),count=value[period];
+        if(count>0){
+          var jump=document.createElement("button");
+          jump.type="button";
+          jump.textContent=String(count);
+          jump.setAttribute("aria-label","Show "+period+" original reports from source "+id);
+          jump.addEventListener("click",function(){
+            presenceSelect.value="";sources.value=id;comparisonPeriod.value=period;render();
+          });
+          td.appendChild(jump);
+        }else{
+          td.textContent="0";
+        }
+        tr.appendChild(td);
+      });
+      var total=document.createElement("td");
+      total.textContent=String(value.earlier+value.later);
+      tr.appendChild(total);
+      var coverageCell=document.createElement("td");
+      coverageCell.textContent=value.earlier>0&&value.later>0 ?
+        "Both selections" : (value.earlier>0 ?
+          "Earlier selection only" : "Later selection only");
+      tr.appendChild(coverageCell);
+      rows.appendChild(tr);
+    });
+    // Download exactly the embedded original source selection, not a derivative
+    // of source, viewport, search, or period display filters. csvCell escapes
+    // potentially spreadsheet-executable untrusted source identifiers.
+    document.getElementById("comparison-export-coverage-csv").addEventListener("click",function() {
+      var header=["comparison_axis","source_id","earlier_original_report_count",
+        "later_original_report_count","total_original_report_count",
+        "selection_coverage","export_scope"];
+      var body=Array.from(counts.keys()).sort().map(function(id){
+        var c=counts.get(id),presence=c.earlier>0&&c.later>0 ?
+          "BOTH_SELECTIONS" : (c.earlier>0 ?
+            "EARLIER_SELECTION_ONLY" : "LATER_SELECTION_ONLY");
+        var values=[data.monde_comparison.axis,id,c.earlier,c.later,
+          c.earlier+c.later,presence,
+          "COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED"];
+        return values.map(function(v,i){return csvCell(v,i>=2&&i<=4);}).join(",");
+      });
+      saveDownload("\uFEFF"+header.join(",")+"\r\n"+body.join("\r\n")+"\r\n",
+        "monde-original-source-period-coverage.csv","text/csv;charset=utf-8");
+    });
+    document.getElementById("comparison-all-sources").addEventListener("click",function() {
+      sources.value="";presenceSelect.value="";render();
+    });
+    document.getElementById("comparison-source-total").textContent =
+      String(counts.size)+" original sources · "+String(features.length)+
+      " embedded original reports. No inferred truth or completeness.";
+    coverage.hidden=false;
+  }
   // A GeoPackage layer is a separate original source, not a verified world
   // layer. Keep the source dropdown for exact source filtering; this control
   // allows multiple original GeoPackage layers to be compared side by side.
@@ -1039,6 +1141,14 @@ __MONDE_TIME_NAVIGATION__
       (!insideOnly.checked || inSelection(p)) &&
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
+      (!data.monde_comparison || !presenceSelect.value ||
+        (counts.has(p.source_id) && (
+          (presenceSelect.value==="both" && counts.get(p.source_id).earlier>0 &&
+            counts.get(p.source_id).later>0) ||
+          (presenceSelect.value==="earlier-only" && counts.get(p.source_id).earlier>0 &&
+            counts.get(p.source_id).later===0) ||
+          (presenceSelect.value==="later-only" && counts.get(p.source_id).earlier===0 &&
+            counts.get(p.source_id).later>0)))) &&
       (!data.monde_comparison || !comparisonPeriod.value ||
        p.monde_comparison_period === comparisonPeriod.value) &&
       (!p.monde_gpkg_source_layer || gpkgLayers.length <= 1 ||
@@ -1206,7 +1316,8 @@ __MONDE_TIME_NAVIGATION__
     if (data.monde_comparison) {
       comparisonPeriodSummary.textContent = String(visibleFeatures.length) +
         " original source reports currently shown (" +
-        (comparisonPeriod.value || "both periods") + "). " +
+        (comparisonPeriod.value || "both periods") + "; " +
+        (presenceSelect.value || "all source-coverage classes") + "). " +
         "The complete earlier/later evidence remains embedded and unchanged; " +
         "hiding a report is not proof of its absence or verified movement.";
     }
@@ -1318,6 +1429,7 @@ __MONDE_TIME_NAVIGATION__
     return {
       search: search.value.trim(),
       source_id: sources.value,
+      comparison_source_presence: data.monde_comparison ? presenceSelect.value : null,
       comparison_period: data.monde_comparison ? comparisonPeriod.value : null,
       gpkg_visible_source_ids: gpkgLayers.length > 1 ?
         Array.from(visibleGpkgSources).sort() : null,
