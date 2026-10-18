@@ -1644,7 +1644,7 @@ body.dataset.sourceDownloadButton=String(Boolean(row && row.children[5]
 const NativeBlob=window.Blob;
 window.Blob=function(parts,options){
   if(options && options.type && options.type.startsWith("text/csv")){
-    const csv=String(parts[0]),lines=csv.replace(/^\uFEFF/,"").trimEnd().split("\r\n");
+    const csv=String(parts[0]),lines=csv.replace(/^\\uFEFF/,"").trimEnd().split("\\r\\n");
     const assertions=expected.map(f=>String(f.properties.assertion_id||
       f.properties.monde_original_feature_id));
     body.dataset.sourceCsvIntegrity=String(
