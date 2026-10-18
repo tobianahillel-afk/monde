@@ -1551,7 +1551,10 @@ window.Blob=function(parts,options){
   body.dataset.coverageCsvRows=String(lines.length-1);
   body.dataset.coverageCsvHeader=String(lines[0].includes("selection_coverage"));
   body.dataset.coverageCsvScope=String(csv.includes("COMPLETE_EMBEDDED_SOURCE_SELECTION_NOT_DISPLAY_FILTERED"));
-  body.dataset.coverageCsvContents=JSON.stringify(lines.slice(1));
+  body.dataset.coverageCsvCounts=lines.slice(1).map(line=>{
+    const fields=line.split('","');
+    return fields[1]+":"+fields[2]+":"+fields[3];
+  }).join("|");
   return new NativeBlob(parts,options);
 };
 HTMLAnchorElement.prototype.click=function(){body.dataset.coverageCsvFilename=this.download;};
@@ -1576,11 +1579,11 @@ body.dataset.coverageCsvDisplayFilter=document.getElementById("comparison-period
         self.assertIn('data-coverage-csv-scope="true"', rendered)
         self.assertIn('data-coverage-csv-filename="monde-original-source-period-coverage.csv"', rendered)
         self.assertIn('data-coverage-csv-display-filter="later"', rendered)
-        for source, (earlier, later) in counts.items():
-            # All original source reports remain represented despite display filters.
-            self.assertIn(source, rendered)
-            self.assertIn('&quot;' + str(earlier) + '&quot;', rendered)
-            self.assertIn('&quot;' + str(later) + '&quot;', rendered)
+        expected = "|".join(f"{source}:{values[0]}:{values[1]}"
+                            for source, values in sorted(counts.items()))
+        # Assert the CSV's actual per-source counts, not independently visible
+        # DOM text or HTML escaping in attributes.
+        self.assertIn('data-coverage-csv-counts="' + expected + '"', rendered)
         self.assertEqual(self.path.read_bytes(), self.before)
 
 
