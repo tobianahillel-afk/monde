@@ -746,3 +746,17 @@ reported locations, **not verified movement, a consensus estimate or truth**.
 This reuses `source_directory_entity_presence_geojson`, performs no ingestion
 or saved-model write, adds no paid APIs or runtime packages, and keeps the
 existing strict loopback-only HTTP interface and response-size limit.
+
+## Portable offline original presence archive (WORK-0127)
+
+With an exact entity and both bitemporal cutoffs, the existing loopback-only
+/source-pair?directory=1&format=presence-kmz downloads a KMZ that external
+GIS applications can open without internet access. Standard doc.kml contains
+one original Placemark per source/assertion/evidence/coordinate identity.
+The additional original-presence.geojson retains complete source properties,
+classifications and both world/knowledge time cutoffs without a lossy
+KML field projection. It is source evidence, not inferred motion or ground
+truth. Exact source and presence=earlier|later|both filters select the same
+records in both files. The archive has stable filenames, order and timestamps.
+This reuses Python stdlib zipfile and existing KML/GeoJSON exporters, with
+no new service, remote requests, dependency, or persisted-state mutation.
