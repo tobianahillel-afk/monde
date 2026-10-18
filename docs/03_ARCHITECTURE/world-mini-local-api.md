@@ -663,3 +663,12 @@ from all *embedded* original reports, not viewport/search/source/period display
 filters. Zero reporting within the selection is **not** evidence of physical
 absence or consensus. No new endpoint, external network, hosted API, model,
 inferred movement, or saved-state mutation is introduced.
+
+Each original entity row now has a **Download original reports** control and a
+separate Both / Earlier / Later export-period selector. It preserves the exact
+original Point feature objects, source, assertion, evidence, bitemporal metadata
+and the parent comparison context for every embedded source of the selected
+entity, regardless of map viewport, search, source or displayed period filters.
+The `monde_entity_period_export` metadata records scope, selected entity,
+period and original report counts. No consensus/movement inference, external
+request, new endpoint or saved WorldMini mutation occurs.
