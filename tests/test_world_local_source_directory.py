@@ -1796,5 +1796,77 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(saved.read_bytes(), original)
 
 
+
+    def test_presence_html_exact_source_and_period_csv_parity(self):
+        import re
+        from html import escape as html_escape, unescape
+        from urllib.parse import parse_qs, urlsplit
+        base = {**self.knowledge(), "entity": "site-1"}
+        status, _, raw = self.get(base)
+        self.assertEqual(status, 200)
+        links = [unescape(link) for link in re.findall(r'href="([^"]+)"', raw.decode())]
+        selected = [url for url in links if "format=presence-table" in url
+                    and "source=" in url and "presence=" in url]
+        self.assertTrue(selected)
+        for url in selected:
+            params = {k: v[0] for k, v in parse_qs(urlsplit(url).query).items()}
+            status, _, raw = self.get({**params, "format": "presence-csv"})
+            self.assertEqual(status, 200)
+            expected = list(csv.DictReader(io.StringIO(raw.decode())))
+            self.assertTrue(expected)
+            status, headers, raw = self.get(params)
+            self.assertEqual(status, 200)
+            self.assertIn("text/html", headers["Content-Type"])
+            page = raw.decode()
+            self.assertEqual(page.count("<tbody><tr>"), len(expected))
+            self.assertIn("Map the same original reports", page)
+            for row in expected:
+                self.assertIn("<td>" + html_escape(row["assertion_id"]) + "</td>", page)
+                self.assertIn("<td>" + row["visibility_transition"] + "</td>", page)
+
+    def test_presence_html_strict_entity_scope_and_empty_evidence(self):
+        base = self.knowledge()
+        for query in ({"format": "presence-table"},
+                      {"source": "survey-a", "format": "presence-table"},
+                      {"entity": "site-1", "presence": "invalid",
+                       "format": "presence-table"},
+                      {"entity": "site-1", "format": "presence-table", "extra": "x"}):
+            status, _, raw = self.get({**base, **query})
+            self.assertEqual(status, 400, query)
+            self.assertEqual(json.loads(raw)["error"], "invalid_query")
+        status, _, raw = self.get({**base, "entity": "missing",
+                                   "format": "presence-table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"0 original report identities", raw)
+
+    def test_presence_html_world_axis_and_unchanged_persisted_evidence(self):
+        world = sample(dateline=True)
+        path = Path(self.tmp.name) / "world-browser-evidence.json"
+        world.save(path)
+        initial = path.read_bytes()
+        server = create_server(path)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = {"directory": "1", "axis": "world",
+                     "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**query, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            entity = json.loads(raw)["sources"][0]["example_entity"]
+            chosen = {**query, "entity": entity}
+            status, _, html = self.get({**chosen, "format": "presence-table"}, server)
+            self.assertEqual(status, 200)
+            self.assertIn(b"axis: world time", html)
+            status, _, raw = self.get({**chosen, "format": "presence-csv"}, server)
+            self.assertEqual(status, 200)
+            expected = list(csv.DictReader(io.StringIO(raw.decode())))
+            self.assertEqual(html.decode().count("<tbody><tr>"), len(expected))
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+        self.assertEqual(path.read_bytes(), initial)
+
+
 if __name__ == "__main__":
     unittest.main()
