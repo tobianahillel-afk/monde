@@ -321,14 +321,14 @@ def _parameters(target: str, path: str) -> dict[str, str]:
     if parsed.path != path or parsed.fragment:
         raise ValueError("invalid request path")
     values = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
-                      max_num_fields=13)
-    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top", "min_change_km", "bbox", "region_source"})
+                      max_num_fields=14)
+    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top", "min_change_km", "bbox", "region_source", "region_period"})
            for key, v in values.items()):
         raise ValueError("all parameters must appear exactly once")
     # Browser GET forms submit empty optional controls: treat blank source as
     # no filter, but keep every other parameter strict.
     return {key: items[0] for key, items in values.items()
-            if key not in {"source", "entity", "direction", "top", "min_change_km", "bbox", "region_source"} or items[0]}
+            if key not in {"source", "entity", "direction", "top", "min_change_km", "bbox", "region_source", "region_period"} or items[0]}
 
 
 def _require(values: dict[str, str], required: set[str],
@@ -960,6 +960,12 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
                        '<option value="b">Source B only</option>'
                        '<option value="both">Both sources, same period</option>'
                        '</select></label>'
+                       '<label>Qualifying comparison period'
+                       '<select name="region_period">'
+                       '<option value="">Either period (default)</option>'
+                       '<option value="earlier">Earlier cutoff only</option>'
+                       '<option value="later">Later cutoff only</option>'
+                       '</select></label>'
                      + inputs +
                       '<label>Output <select name="format">'
                       '<option value="html">Offline evidence map</option><option value="table">Accessible source-pair evidence table</option>'
@@ -1120,11 +1126,14 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
     _id(args.get("source_b"))
     extra = {"format", "direction", "top", "entity", "min_change_km",
              "bbox", "region_source"}
-    if "region_source" in args and "bbox" not in args:
-        raise ValueError("region source requires bbox")
+    if ("region_source" in args or "region_period" in args) and "bbox" not in args:
+        raise ValueError("region options require bbox")
     region_source = args.get("region_source", "either")
     if region_source not in ("either", "a", "b", "both"):
         raise ValueError("invalid region source")
+    region_period = args.get("region_period", "either")
+    if region_period not in ("either", "earlier", "later"):
+        raise ValueError("invalid region comparison period")
     if args.get("axis") == "knowledge":
         _require(args, {"axis", "source_a", "source_b",
                         "at", "from_known_at", "to_known_at"}, extra)
@@ -1168,7 +1177,8 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
                 if region_source == "both" else
                 any(inside(original) for field in qualifying_fields
                     for original in row[period][field])
-                for period in ("earlier", "later")
+                for period in (("earlier", "later") if region_period == "either"
+                               else (region_period,))
             )
         ]
         focus = {
@@ -1181,6 +1191,8 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
             "total_entities": len(output["entities"]),
             "matching_entities": len(selected),
         }
+        if region_period != "either":
+            focus["qualifying_period"] = region_period
         if region_source == "both":
             focus["qualifying_source_ids"] = [args["source_a"], args["source_b"]]
         elif region_source != "either":

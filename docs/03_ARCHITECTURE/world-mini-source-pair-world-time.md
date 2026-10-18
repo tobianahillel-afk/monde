@@ -285,3 +285,14 @@ feeds the existing HTML map, accessible table, JSON, GeoJSON and CSV, on
 both world-time and knowledge-time axes. This is **joint geographic reporting**,
 not agreement, verified proximity or ground truth. No new endpoint, source
 parser, dependency or persistence write is introduced.
+
+## Choose the exact geographic comparison period (WORK-0103)
+
+With WGS84 `bbox`, optional `region_period=earlier|later` qualifies
+an entity only using the original reporter Points at that one comparison
+cutoff. Default is both periods as before. With `region_source=both`,
+both original sources must separately qualify at the selected same cutoff.
+Complete earlier/later source evidence is kept in the unchanged HTML map,
+accessible table, CSV, JSON and GeoJSON. Missing `bbox` or invalid period
+returns HTTP 400. The response records `spatial_filter.qualifying_period`
+only for an explicitly selected period.
