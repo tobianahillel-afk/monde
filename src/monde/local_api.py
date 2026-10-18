@@ -1098,7 +1098,11 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
         export_link("csv", "Download complete evidence CSV") + "</p>" +
         ('<p>Geographic focus: original Point inside ' +
          escape(str(document["spatial_filter"]["bbox"])) +
-         ' in either period, as reported by ' +
+         ' at ' + (
+             'both cutoffs' if document["spatial_filter"].get("qualifying_period") == "both"
+             else 'the earlier cutoff' if document["spatial_filter"].get("qualifying_period") == "earlier"
+             else 'the later cutoff' if document["spatial_filter"].get("qualifying_period") == "later"
+             else 'either cutoff') + ', as reported by ' +
          escape(", ".join(document["spatial_filter"]["qualifying_source_ids"])
                 if "qualifying_source_ids" in document["spatial_filter"] else
                 document["spatial_filter"].get("qualifying_source_id", "either source")) +
@@ -1198,6 +1202,13 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
         }
         if region_period != "either":
             focus["qualifying_period"] = region_period
+        if region_period == "both":
+            focus["basis"] = {
+                "either": "ANY_ORIGINAL_SOURCE_POINT_IN_EACH_PERIOD",
+                "a": "SOURCE_A_ORIGINAL_POINT_IN_EACH_PERIOD",
+                "b": "SOURCE_B_ORIGINAL_POINT_IN_EACH_PERIOD",
+                "both": "BOTH_ORIGINAL_SOURCES_IN_EACH_PERIOD",
+            }[region_source]
         if region_source == "both":
             focus["qualifying_source_ids"] = [args["source_a"], args["source_b"]]
         elif region_source != "either":

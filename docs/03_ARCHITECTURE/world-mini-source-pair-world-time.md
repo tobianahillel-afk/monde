@@ -313,3 +313,7 @@ The default `region_period=either` retains its prior OR semantics, and
 `spatial_filter.qualifying_period="both"` when selected; the HTML map,
 accessible table and CSV select the same original evidence without stripping
 out-of-region reports, changing the World Model or inferring verified motion.
+
+For explicit `region_period=both`, `spatial_filter.basis` uses
+`*_IN_EACH_PERIOD`, and the accessible table says *both cutoffs* rather
+than *either period*; legacy defaults retain their existing basis values.

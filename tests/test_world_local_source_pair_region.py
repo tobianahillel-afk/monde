@@ -436,6 +436,8 @@ class GeographicSourcePairTests(unittest.TestCase):
         doc = json.loads(raw)
         self.assertEqual([row["entity"] for row in doc["entities"]], ["site-1"])
         self.assertEqual(doc["spatial_filter"]["qualifying_period"], "both")
+        self.assertEqual(doc["spatial_filter"]["basis"],
+                         "SOURCE_A_ORIGINAL_POINT_IN_EACH_PERIOD")
         self.assertEqual(doc["spatial_filter"]["matching_entities"], 1)
         original = compare_source_pair(self.world, "survey-a", "survey-b",
                                        AT, BEFORE, AFTER)
@@ -460,6 +462,8 @@ class GeographicSourcePairTests(unittest.TestCase):
         self.assertEqual(canonical["spatial_filter"]["qualifying_source_ids"],
                          ["survey-a", "survey-b"])
         self.assertEqual(canonical["spatial_filter"]["qualifying_period"], "both")
+        self.assertEqual(canonical["spatial_filter"]["basis"],
+                         "BOTH_ORIGINAL_SOURCES_IN_EACH_PERIOD")
         self.assertEqual(json.loads(self.fetch({**args, "format": "geojson"})[2]),
                          comparison_geojson(canonical))
         self.assertEqual(self.fetch({**args, "format": "csv"})[2].decode(),
@@ -469,6 +473,8 @@ class GeographicSourcePairTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn(b"site-1", body)
             self.assertNotIn(b"site-far", body)
+            if fmt == "table":
+                self.assertIn(b"both cutoffs", body)
 
     def test_persistence_is_not_same_as_either_period_or_either_source(self):
         # Stable reporting by either source at each cutoff may change which
