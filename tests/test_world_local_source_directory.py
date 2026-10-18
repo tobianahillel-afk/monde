@@ -1818,7 +1818,7 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertIn("text/html", headers["Content-Type"])
             page = raw.decode()
-            self.assertEqual(page.count("<tbody><tr>"), len(expected))
+            self.assertEqual(page.count("<tr>") - 1, len(expected))
             self.assertIn("Map the same original reports", page)
             for row in expected:
                 self.assertIn("<td>" + html_escape(row["assertion_id"]) + "</td>", page)
@@ -1860,7 +1860,7 @@ class SourceDirectoryTests(unittest.TestCase):
             status, _, raw = self.get({**chosen, "format": "presence-csv"}, server)
             self.assertEqual(status, 200)
             expected = list(csv.DictReader(io.StringIO(raw.decode())))
-            self.assertEqual(html.decode().count("<tbody><tr>"), len(expected))
+            self.assertEqual(html.decode().count("<tr>") - 1, len(expected))
         finally:
             server.shutdown()
             thread.join(timeout=5)
