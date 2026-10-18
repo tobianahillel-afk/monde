@@ -2380,5 +2380,72 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(json.loads(raw)["error"], "invalid_query")
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_original_source_presence_gpx_waypoints_match_complete_geojson(self):
+        """Real loopback HTTP: standard GPX waypoints with lossless MONDE evidence."""
+        from xml.etree import ElementTree as ET
+        params = {**self.knowledge(), "entity": "site-1"}
+        status, headers, body = self.get({**params, "format": "presence-gpx"})
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "application/gpx+xml; charset=utf-8")
+        self.assertIn(".gpx", headers["Content-Disposition"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        ns = "{http://www.topografix.com/GPX/1/1}"
+        ext = "{urn:monde:original-source-evidence:1}"
+        root = ET.fromstring(body)
+        self.assertEqual(root.tag, ns + "gpx")
+        self.assertEqual(root.attrib["version"], "1.1")
+        original = json.loads(self.get({**params, "format": "presence-geojson"})[2])
+        coverage = root.find(ns + "metadata/" + ns + "extensions/" + ext + "coverage")
+        self.assertEqual(json.loads(coverage.text), original["monde_source_coverage"])
+        points = root.findall(ns + "wpt")
+        self.assertEqual(len(points), len(original["features"]))
+        for feature, waypoint in zip(original["features"], points):
+            lon, lat = feature["geometry"]["coordinates"]
+            self.assertEqual((float(waypoint.attrib["lon"]), float(waypoint.attrib["lat"])),
+                             (lon, lat))
+            extension = waypoint.find(ns + "extensions")
+            self.assertEqual(json.loads(extension.find(ext + "original_properties").text),
+                             feature["properties"])
+            self.assertEqual(extension.find(ext + "original_feature_id").text, feature["id"])
+            self.assertIsNone(waypoint.find(ns + "trk"))
+            self.assertIsNone(waypoint.find(ns + "rte"))
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_original_source_presence_gpx_filters_navigation_and_bad_queries(self):
+        from xml.etree import ElementTree as ET
+        params = {**self.knowledge(), "entity": "site-1"}
+        self.assertIn(b"Download original Point waypoints GPX",
+                      self.get({**params, "format": "table"})[2])
+        self.assertIn(b"Download matching GPX waypoints",
+                      self.get({**params, "format": "presence-table"})[2])
+        ns = "{http://www.topografix.com/GPX/1/1}"
+        ext = "{urn:monde:original-source-evidence:1}"
+        for source in ("survey-a", "survey-b"):
+            for presence in ("earlier", "later", "both"):
+                scoped = {**params, "source": source, "presence": presence}
+                status, _, body = self.get({**scoped, "format": "presence-gpx"})
+                self.assertEqual(status, 200)
+                root = ET.fromstring(body)
+                expected = json.loads(
+                    self.get({**scoped, "format": "presence-geojson"})[2])
+                self.assertEqual(len(root.findall(ns + "wpt")), len(expected["features"]))
+                self.assertEqual(
+                    json.loads(root.find(ns + "metadata/" + ns + "extensions/" +
+                                         ext + "coverage").text),
+                    expected["monde_source_coverage"])
+        empty = {**params, "entity": "unknown-entity", "format": "presence-gpx"}
+        self.assertEqual(ET.fromstring(self.get(empty)[2]).findall(ns + "wpt"), [])
+        for invalid in ({**self.knowledge(), "format": "presence-gpx"},
+                        {**params, "format": "presence-gpx", "presence": "future"},
+                        {**params, "format": "presence-gpx", "unexpected": "anything"},
+                        {**params, "format": "presence-gpx", "source": "survey-a",
+                         "assertion": "partial"}):
+            status, _, payload = self.get(invalid)
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(payload)["error"], "invalid_query")
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+
 if __name__ == "__main__":
     unittest.main()
