@@ -179,6 +179,56 @@ def comparison_csv(document):
 
 
 
+
+def comparison_geojson(document):
+    """Project original source Points at two time cutoffs, never inferred motion."""
+    if document["schema"] == "MONDE_SOURCE_PAIR_CHANGE_V1":
+        axis = "knowledge"
+        times = {"earlier": (document["valid_at"], document["from_known_at"]),
+                 "later": (document["valid_at"], document["to_known_at"])}
+    elif document["schema"] == "MONDE_SOURCE_PAIR_WORLD_CHANGE_V1":
+        axis = "world"
+        times = {"earlier": (document["from_at"], document["known_at"]),
+                 "later": (document["to_at"], document["known_at"])}
+    else:
+        raise ValueError("unsupported source-pair comparison schema")
+
+    features = []
+    for entity in document["entities"]:
+        for period in ("earlier", "later"):
+            row = entity[period]
+            at, known_at = times[period]
+            for key in ("source_a_original_reports", "source_b_original_reports"):
+                for original in row[key]:
+                    properties = dict(original["properties"])
+                    properties["monde_original_assertion_id"] = original["id"]
+                    properties["monde_source_pair"] = {
+                        "period": period, "world_at": at,
+                        "knowledge_at": known_at, "status": row["status"],
+                        "separation": row["separation"],
+                        "earlier_to_later_change_km":
+                            entity["earlier_to_later_change_km"],
+                    }
+                    features.append({
+                        "type": "Feature", "id": f"{period}:{len(features)}",
+                        "geometry": original["geometry"], "properties": properties,
+                    })
+    return {
+        "type": "FeatureCollection", "features": features,
+        "monde_comparison": {
+            "schema": "MONDE_SOURCE_PAIR_GEOJSON_V1",
+            "comparison_schema": document["schema"], "comparison_axis": axis,
+            "source_a": document["source_a"], "source_b": document["source_b"],
+            "cutoffs": {
+                period: {"world_at": at, "knowledge_at": known_at}
+                for period, (at, known_at) in times.items()},
+            "interpretation": document["interpretation"],
+            "selection": document.get("selection"),
+        },
+    }
+
+
+
 def top_nearest_source_pair_changes(document, limit):
     """Select material changes in original source separations, with provenance.
 
@@ -210,7 +260,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Compare two original source Point reports across knowledge time")
     parser.add_argument("--fixture", required=True)
-    parser.add_argument("--format", choices=("json", "csv"), default="json")
+    parser.add_argument("--format", choices=("json", "csv", "geojson"), default="json")
     parser.add_argument("--top-nearest-changes", type=int, metavar="N",
                         help="top N absolute changes in original-source nearest separation")
     parser.add_argument("--source-a", required=True)
@@ -247,6 +297,8 @@ def main(argv=None):
             parser.error(str(error))
     if args.format == "csv":
         print(comparison_csv(result), end="")
+    elif args.format == "geojson":
+        print(json.dumps(comparison_geojson(result), ensure_ascii=False, sort_keys=True))
     else:
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0

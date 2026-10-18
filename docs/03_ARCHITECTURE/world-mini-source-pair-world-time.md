@@ -80,3 +80,29 @@ and original coordinates for every selected entity.
 
 Without `--top-nearest-changes`, original JSON and CSV output are unchanged.
 The operation reads the persisted WorldMini without modifying its bytes.
+
+## Map temporal source-pair evidence as GeoJSON (WORK-0096)
+
+Use `--format geojson` on either world-time or knowledge-time
+comparison, optionally with `--top-nearest-changes N`:
+
+~~~bash
+PYTHONPATH=src python3 -m monde.source_pair_changes \
+  --fixture saved-world.json --source-a survey-a --source-b survey-b \
+  --from-at 2026-01-02T00:00:00Z --to-at 2026-01-05T00:00:00Z \
+  --known-at 2026-01-07T00:00:00Z --format geojson > source-pair-periods.geojson
+~~~
+
+Each original Point is retained for each earlier/later period with original
+coordinates, source/evidence identity and assertion lineage. The export feature
+ID is unique across periods, while `monde_original_assertion_id` retains
+the original assertion ID. `monde_source_pair` carries the period,
+both temporal cutoffs, joint-report status, nullable separation and nullable
+earlier-to-later change. `monde_comparison` describes the selected
+sources, axis, original schema, cutoffs, epistemic disclaimer and any optional
+top-N selection.
+
+The output contains **only original source-reported Points**, never synthetic
+connecting routes: reported-source differences do not establish physical
+movement, accuracy or truth. Missing comparison values remain `null`,
+never zero. Existing JSON/CSV and persisted WorldMini snapshots are unchanged.

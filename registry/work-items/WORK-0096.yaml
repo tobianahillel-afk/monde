@@ -1,0 +1,49 @@
+id: WORK-0096
+title: "Visualize temporal source-pair changes as original-evidence GeoJSON"
+status: IN_REVIEW
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini original evidence"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Map source-reported temporal changes preserving evidence and uncertainty.
+scope:
+  in: ["Existing source-pair comparison", "GeoJSON original Points", "World and knowledge time", "Evidence provenance"]
+  out: ["New service", "New model", "Inferred movement", "Truth inference", "Paid APIs"]
+acceptance_criteria:
+  - {id: AC-1, description: "Both periods export original WGS84 Points with separate IDs, source and evidence lineage.", status: IN_REVIEW}
+  - {id: AC-2, description: "Missing joint reports remain nullable and both cutoffs and temporal axes are explicit.", status: IN_REVIEW}
+  - {id: AC-3, description: "Real persisted CLI tests pass and existing JSON/CSV and saved snapshots are unchanged.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0095]
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.source_pair_changes.compare_source_pair, monde.source_pair_changes.compare_source_pair_world_time, monde.source_pair_changes.top_nearest_source_pair_changes]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add original-evidence GeoJSON format to CLI.", depends_on: [], expected_files: [src/monde/source_pair_changes.py], status: IN_REVIEW}
+    - {id: T2, description: "Verify persistence, identity, temporal semantics, and real CLI.", depends_on: [T1], expected_files: [tests/test_world_source_pair_geojson.py], status: IN_REVIEW}
+    - {id: T3, description: "Document source-vs-movement semantics.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_source_pair_geojson.py]
+  real_system: ["GitHub Actions world-mini; persisted WorldMini subprocess for both time axes"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked on unmerged PR #125 / WORK-0095; L2 pending."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Remove optional GeoJSON projection and CLI flag; no state migration."
