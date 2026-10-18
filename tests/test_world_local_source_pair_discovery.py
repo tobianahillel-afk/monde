@@ -623,6 +623,73 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
             self.assertEqual(json.loads(body), {"error": "invalid_query"})
         self.assertEqual(self.file.read_bytes(), self.original)
 
+
+    def test_minimum_joint_entities_filters_before_top_and_preserves_default(self):
+        query = {**self.knowledge(), "format": "json"}
+        status, _, raw = self.get(query)
+        self.assertEqual(status, 200)
+        baseline = json.loads(raw)
+        self.assertEqual(baseline["total_pairs"], 1)
+        self.assertNotIn("min_joint_entities", baseline)
+        status, _, raw = self.get({**query, "min_joint": "1"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw), baseline)
+        for rank in ("separation", "decreasing"):
+            case = {**query, "min_joint": "2", "top": "1", "rank": rank}
+            status, _, raw = self.get(case)
+            self.assertEqual(status, 200)
+            result = json.loads(raw)
+            self.assertEqual(result["pairs"], [])
+            self.assertEqual(result["total_pairs"], 0)
+            self.assertEqual(result["min_joint_entities"], 2)
+            status, _, page = self.get({**case, "format": "table"})
+            self.assertEqual(status, 200)
+            self.assertIn(b"Minimum independently joint-reported entities: 2", page)
+            status, _, data = self.get({**case, "format": "geojson"})
+            self.assertEqual(status, 200)
+            geo = json.loads(data)
+            self.assertEqual(geo["features"], [])
+            self.assertEqual(geo["monde_discovery"]["min_joint_entities"], 2)
+        self.assertEqual(self.file.read_bytes(), self.original)
+
+    def test_minimum_joint_entities_strict_input_world_axis_and_map(self):
+        from monde.source_pair_changes import discover_source_pairs
+        for bad in (0, -1, True, 10001, "2"):
+            with self.assertRaises(ValueError):
+                discover_source_pairs(self.world, "knowledge",
+                    ((AT, BEFORE), (AT, AFTER)), min_joint_entities=bad)
+        for bad in ("", "0", "-1", "2.0", "1e2", "10001", " 2", "0002"):
+            code, _, body = self.get({**self.knowledge(), "min_joint": bad})
+            self.assertEqual(code, 400)
+            self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        status, _, page = self.get()
+        self.assertEqual(status, 200)
+        self.assertEqual(page.count(b'name="min_joint"'), 2)
+        world = sample(dateline=True)
+        file = Path(self.tmp.name) / "joint-world.json"
+        world.save(file)
+        before = file.read_bytes()
+        srv = create_server(file)
+        thread = threading.Thread(target=srv.serve_forever, daemon=True)
+        thread.start()
+        try:
+            q = {"discover": "1", "axis": "world", "from_at": EARLY,
+                 "to_at": LATE, "known_at": KNOWN, "min_joint": "100"}
+            code, _, raw = self.get({**q, "format": "json"}, srv)
+            self.assertEqual(code, 200)
+            self.assertEqual(json.loads(raw)["pairs"], [])
+            code, _, html = self.get({**q, "format": "html"}, srv)
+            self.assertEqual(code, 200)
+            self.assertIn(b"NO_MATCHES", html)
+            code, _, csv_body = self.get({**q, "format": "csv"}, srv)
+            self.assertEqual(code, 200)
+            self.assertEqual(list(csv.DictReader(io.StringIO(csv_body.decode()))), [])
+        finally:
+            srv.shutdown()
+            thread.join(timeout=5)
+            srv.server_close()
+            self.assertEqual(file.read_bytes(), before)
+
 if __name__ == "__main__":
     unittest.main()
 
