@@ -1467,8 +1467,20 @@ const originalCount=document.getElementById("comparison-source-total").textConte
 records[0].querySelector("button").click();
 body.dataset.sourceAfterClick=sourceSelect.value;
 body.dataset.firstSource=records[0].dataset.sourceId;
-document.getElementById("comparison-period").value="later";
-document.getElementById("comparison-period").dispatchEvent(new Event("change"));
+const periodSelect=document.getElementById("comparison-period");
+const earlierRow=records.find(row=>Number(row.children[1].textContent)>0);
+earlierRow.children[1].querySelector("button").click();
+body.dataset.earlierJump=String(sourceSelect.value===earlierRow.dataset.sourceId &&
+  periodSelect.value==="earlier");
+const laterRow=records.find(row=>Number(row.children[2].textContent)>0);
+laterRow.children[2].querySelector("button").click();
+body.dataset.laterJump=String(sourceSelect.value===laterRow.dataset.sourceId &&
+  periodSelect.value==="later");
+body.dataset.zeroCellsPlain=String(records.every(row=>
+  [1,2].every(i=>Number(row.children[i].textContent)!==0 ||
+    row.children[i].querySelector("button")===null)));
+periodSelect.value="later";
+periodSelect.dispatchEvent(new Event("change"));
 body.dataset.coverageAfterFiltering=String(
   document.getElementById("comparison-source-total").textContent===originalCount);
 document.getElementById("comparison-all-sources").click();
@@ -1485,6 +1497,9 @@ body.dataset.sourceAfterReset=String(sourceSelect.value==="");
         self.assertIn('data-coverage-open="true"', rendered)
         self.assertIn('data-coverage-count="' + str(len(actual)) + '"', rendered)
         self.assertIn('data-coverage-rows="' + expected + '"', rendered)
+        self.assertIn('data-earlier-jump="true"', rendered)
+        self.assertIn('data-later-jump="true"', rendered)
+        self.assertIn('data-zero-cells-plain="true"', rendered)
         self.assertIn('data-coverage-after-filtering="true"', rendered)
         self.assertIn('data-source-after-reset="true"', rendered)
         self.assertEqual(self.path.read_bytes(), self.before)

@@ -669,10 +669,25 @@ __MONDE_TIME_NAVIGATION__
       button.setAttribute("aria-label","Show original evidence from source "+id);
       button.addEventListener("click",function(){sources.value=id;render();});
       cell.appendChild(button);tr.appendChild(cell);
-      [value.earlier,value.later,value.earlier+value.later].forEach(function(count) {
-        var td=document.createElement("td");
-        td.textContent=String(count);tr.appendChild(td);
+      ["earlier","later"].forEach(function(period) {
+        var td=document.createElement("td"),count=value[period];
+        if(count>0){
+          var jump=document.createElement("button");
+          jump.type="button";
+          jump.textContent=String(count);
+          jump.setAttribute("aria-label","Show "+period+" original reports from source "+id);
+          jump.addEventListener("click",function(){
+            sources.value=id;comparisonPeriod.value=period;render();
+          });
+          td.appendChild(jump);
+        }else{
+          td.textContent="0";
+        }
+        tr.appendChild(td);
       });
+      var total=document.createElement("td");
+      total.textContent=String(value.earlier+value.later);
+      tr.appendChild(total);
       rows.appendChild(tr);
     });
     document.getElementById("comparison-all-sources").addEventListener("click",function() {

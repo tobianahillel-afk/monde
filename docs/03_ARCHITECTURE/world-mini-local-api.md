@@ -555,7 +555,10 @@ An offline two-period disagreement map includes an expandable **Original source
 coverage by comparison period** table. Each source's Earlier/Later/Total count
 comes from **all original source reports embedded in the selected comparison**,
 not viewport, search, source or period display filters. Choosing a source
-filters the visible map to that source, and **Show all original sources**
+filters the visible map to that source; clicking a nonzero **Earlier** or **Later**
+count selects that source and its original evidence period in one action.
+Zero counts are not links and do not imply physical absence.
+**Show all original sources**
 clears only the source display selection; neither operation mutates the
 embedded evidence or persisted World Model. Empty or asymmetric period counts
 do not prove a physical absence, agreement or movement. The table uses
