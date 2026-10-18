@@ -298,19 +298,21 @@ def discovery_geojson(world, document):
                         "id": f"{rank}:{period}:{original['id']}",
                         "geometry": original["geometry"], "properties": properties,
                     })
-    return {
+    output = {
         "type": "FeatureCollection", "features": features,
         "monde_discovery": {
             "schema": "MONDE_SOURCE_PAIR_DISCOVERY_GEOJSON_V1",
             "axis": document["axis"], "cutoffs": document["cutoffs"],
             "rank": document.get("rank", "separation"),
             "source_focus": document.get("source_focus"),
-            "min_joint_entities": document.get("min_joint_entities", 1),
             "total_pairs": document["total_pairs"],
             "exported_pairs": len(document["pairs"]),
             "interpretation": document["interpretation"],
         },
     }
+    if "min_joint_entities" in document:
+        output["monde_discovery"]["min_joint_entities"] = document["min_joint_entities"]
+    return output
 
 
 def discovery_csv(document):
