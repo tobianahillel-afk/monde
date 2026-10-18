@@ -2669,8 +2669,78 @@ root.dataset.pairSeparationCsvCorrect=String(!!csvRows&&
         row.includes('"NOT_JOINTLY_REPORTED"')&&row.includes(',"","",');
     });
   })&&search.value==="not-in-evidence"&&period.value==="later");
+// Analyst threshold workflow: independently calculate expected matches from
+// the Python Haversine oracle, not from the UI's own filtering function.
+const metricControl=document.getElementById("comparison-pair-distance-metric");
+const periodControl=document.getElementById("comparison-pair-distance-period");
+const thresholdControl=document.getElementById("comparison-pair-distance-min-km");
+const thresholdExport=document.getElementById("comparison-pair-distance-export");
+const nonZero=Object.values(separations).flatMap(function(x){
+  return ["earlier","later"].map(function(p){return x[p]&&x[p].farthest_km;})
+    .filter(function(v){return typeof v==="number"&&v>0;});
+});
+const threshold=Math.max.apply(null,nonZero);
+const matching=Object.keys(separations).filter(function(entity){
+  return ["earlier","later"].some(function(p){
+    const d=separations[entity][p];return d!==null&&d.farthest_km>=threshold;
+  });
+});
+metricControl.value="farthest";
+periodControl.value="either";
+thresholdControl.value=String(threshold);
+thresholdControl.dispatchEvent(new Event("input"));
+const thresholdRows=Array.from(document.querySelectorAll("#comparison-source-pair-rows tr"));
+root.dataset.pairThresholdRowsCorrect=String(
+  nonZero.length>0&&matching.length>0&&!thresholdExport.disabled&&
+  thresholdRows.filter(function(row){return !row.hidden;}).length===matching.length&&
+  thresholdRows.every(function(row){
+    return row.hidden===!matching.includes(row.dataset.pairEntity);
+  }));
+output=null;filename=null;thresholdExport.click();
+const thresholdReports=reports.filter(function(f){
+  return matching.includes(f.properties.entity);
+});
+const thresholdMeta=output&&output.monde_source_pair_distance_threshold_export;
+root.dataset.pairThresholdExportCorrect=String(!!thresholdMeta&&
+  JSON.stringify(output.features)===JSON.stringify(thresholdReports)&&
+  JSON.stringify(thresholdMeta.matched_entity_ids)===JSON.stringify(matching)&&
+  thresholdMeta.matched_entity_count===matching.length&&
+  thresholdMeta.minimum_separation_km===threshold&&
+  thresholdMeta.metric==="farthest"&&thresholdMeta.selected_period==="either"&&
+  thresholdMeta.source_a===sourcesPair[0]&&thresholdMeta.source_b===sourcesPair[1]&&
+  thresholdMeta.original_feature_count===__TOTAL__&&
+  thresholdMeta.exported_feature_count===thresholdReports.length&&
+  thresholdMeta.scope==="COMPLETE_EMBEDDED_ORIGINAL_EVIDENCE_FOR_THRESHOLD_MATCHING_ENTITIES"&&
+  filename==="monde-source-pair-threshold-matching-evidence.geojson"&&
+  search.value==="not-in-evidence"&&period.value==="later");
+periodControl.value="earlier";
+periodControl.dispatchEvent(new Event("change"));
+const earlierMatches=Object.keys(separations).filter(function(entity){
+  const item=separations[entity].earlier;
+  return item!==null&&item.farthest_km>=threshold;
+});
+root.dataset.pairThresholdPeriodCorrect=String(
+  thresholdRows.filter(function(row){return !row.hidden;}).length===earlierMatches.length&&
+  thresholdRows.every(function(row){
+    return row.hidden===!earlierMatches.includes(row.dataset.pairEntity);
+  }));
+metricControl.value="nearest";
+metricControl.dispatchEvent(new Event("change"));
+const strictMatches=Object.keys(separations).filter(function(entity){
+  const d=separations[entity].earlier;return d!==null&&d.nearest_km>=threshold;
+});
+root.dataset.pairThresholdMetricCorrect=String(
+  thresholdRows.filter(function(row){return !row.hidden;}).length===strictMatches.length);
+thresholdControl.value="-1";
+thresholdControl.dispatchEvent(new Event("input"));
+root.dataset.pairThresholdInvalidDenied=String(
+  thresholdExport.disabled&&thresholdRows.every(function(row){return row.hidden;}));
+thresholdControl.value="0";metricControl.value="farthest";periodControl.value="either";
+thresholdControl.dispatchEvent(new Event("input"));
+root.dataset.pairThresholdResetCorrect=String(
+  thresholdRows.every(function(row){return !row.hidden;})&&!thresholdExport.disabled);
 a.value=sourcesPair[0];b.value=sourcesPair[0];b.dispatchEvent(new Event("change"));
-root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disabled&&csvButton.disabled&&
+root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disabled&&csvButton.disabled&&thresholdExport.disabled&&
   document.querySelectorAll("#comparison-source-pair-rows tr").length===0);
 </script>""".replace("__EXPECTED__", json.dumps(overlap))
                    .replace("__SEPARATIONS__", json.dumps(separations))
@@ -2690,6 +2760,9 @@ root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disab
         for name in ("pair-rows-correct", "pair-export-correct",
                      "diff-rows-correct", "diff-export-correct",
                      "pair-separation-csv-correct",
+                     "pair-threshold-rows-correct", "pair-threshold-export-correct",
+                     "pair-threshold-period-correct", "pair-threshold-metric-correct",
+                     "pair-threshold-invalid-denied", "pair-threshold-reset-correct",
                      "pair-same-source-denied"):
             self.assertIn('data-'+name+'="true"', output, name)
         response, _, ordinary = self.fetch("/viewer", {**QUERY, "view": "current"})

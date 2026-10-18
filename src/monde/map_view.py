@@ -218,6 +218,16 @@ __MONDE_TIME_NAVIGATION__
   <button id="comparison-source-pair-export" type="button" disabled>Download complete shared-entity pair GeoJSON</button>
   <button id="comparison-source-pair-diff-export" type="button" disabled>Download original reports with different source coordinates</button>
   <button id="comparison-source-pair-distance-csv" type="button" disabled>Download complete pair separation CSV</button>
+  <div class="controls">
+    <label for="comparison-pair-distance-metric">Reported source separation</label>
+    <select id="comparison-pair-distance-metric"><option value="farthest">Farthest pair</option><option value="nearest">Nearest pair</option></select>
+    <label for="comparison-pair-distance-period">Comparison period</label>
+    <select id="comparison-pair-distance-period"><option value="either">Either original period</option><option value="earlier">Earlier only</option><option value="later">Later only</option></select>
+    <label for="comparison-pair-distance-min-km">At least (km)</label>
+    <input id="comparison-pair-distance-min-km" type="number" min="0" max="20040" step="any" value="0" aria-label="Minimum original source separation in kilometers">
+    <button id="comparison-pair-distance-export" type="button" disabled>Download threshold-matching original evidence GeoJSON</button>
+  </div>
+  <p class="subtle">Threshold filters this pair table only. An unreported period never counts as zero; complete pair exports remain unfiltered. Nearest and farthest are distances between original source-reported coordinates, not verified positions, accuracy or movement.</p>
   <p id="comparison-source-pair-summary" class="subtle" role="status" aria-live="polite"></p>
   <table aria-label="Entities jointly reported by two sources in original periods">
   <thead><tr><th scope="col">Original entity</th><th scope="col">Both earlier</th><th scope="col">Both later</th><th scope="col">Earlier reported coordinates differ</th><th scope="col">Later reported coordinates differ</th><th scope="col">Pair original reports</th><th scope="col">Earlier source separation (km)</th><th scope="col">Later source separation (km)</th><th scope="col">Explore</th></tr></thead>
@@ -1367,6 +1377,10 @@ __MONDE_TIME_NAVIGATION__
     var pairExport=document.getElementById("comparison-source-pair-export");
     var pairDiffExport=document.getElementById("comparison-source-pair-diff-export");
     var pairCsv=document.getElementById("comparison-source-pair-distance-csv");
+    var pairMetric=document.getElementById("comparison-pair-distance-metric");
+    var pairPeriod=document.getElementById("comparison-pair-distance-period");
+    var pairMinKm=document.getElementById("comparison-pair-distance-min-km");
+    var pairMatchExport=document.getElementById("comparison-pair-distance-export");
     [pairA,pairB].forEach(function(select){
       sourceNames.forEach(function(source){
         var option=document.createElement("option");
@@ -1374,7 +1388,39 @@ __MONDE_TIME_NAVIGATION__
         select.appendChild(option);
       });
     });
-    var pairShared=[],pairDifferent=[],pairDistances=[];
+    var pairShared=[],pairDifferent=[],pairDistances=[],pairMatches=[];
+    function applyPairDistanceFilter(){
+      pairMatches=[];
+      var raw=pairMinKm.value.trim();
+      var minKm=Number(raw),valid=raw!==""&&Number.isFinite(minKm)&&
+        minKm>=0&&minKm<=20040;
+      var periods=pairPeriod.value==="either"?["earlier","later"]:[pairPeriod.value];
+      var metric=pairMetric.value+"_km";
+      Array.from(pairRows.children).forEach(function(row){
+        var item=pairDistances.find(function(d){
+          return d.entity===row.dataset.pairEntity;
+        });
+        var matched=valid&&item&&periods.some(function(period){
+          // Missing source reports mean NO measurement, never a numeric zero.
+          return item[period]!==null&&item[period][metric]>=minKm;
+        });
+        row.hidden=!matched;
+        if(matched)pairMatches.push(item.entity);
+      });
+      pairMatchExport.disabled=!pairMatches.length;
+      if(pairA.value&&pairB.value&&pairA.value!==pairB.value){
+        pairSummary.textContent=valid?
+          pairMatches.length+" of "+pairShared.length+" jointly reported entities "+
+          "meet the "+pairMetric.value+" reported pair separation >= "+minKm+
+          " km in "+pairPeriod.value+" period selection. "+
+          "Not verified source accuracy, movement or ground truth.":
+          "Enter a valid original source separation from 0 to 20040 km; no rows selected.";
+      }
+    }
+    [pairMetric,pairPeriod].forEach(function(input){
+      input.addEventListener("change",applyPairDistanceFilter);
+    });
+    pairMinKm.addEventListener("input",applyPairDistanceFilter);
     // The existing great-circle function measures approximate separations
     // between source reports, not verified physical locations.
     function crossSourceSeparation(left,right){
@@ -1411,6 +1457,7 @@ __MONDE_TIME_NAVIGATION__
       pairShared=[];pairDifferent=[];pairDistances=[];
       pairRows.replaceChildren();pairExport.disabled=true;
       pairDiffExport.disabled=true;pairCsv.disabled=true;
+      pairMatches=[];pairMatchExport.disabled=true;
       var first=sourceEntityCoverage.get(pairA.value);
       var second=sourceEntityCoverage.get(pairB.value);
       if(!first||!second||pairA.value===pairB.value){
@@ -1470,12 +1517,32 @@ __MONDE_TIME_NAVIGATION__
       });
       pairExport.disabled=!pairShared.length;
       pairDiffExport.disabled=!pairDifferent.length;pairCsv.disabled=!pairShared.length;
-      pairSummary.textContent=pairShared.length+
-        " jointly reported entity IDs in at least one same-period selection; "+
-        pairDifferent.length+" with different original reported coordinate sets "+
-        "in at least one jointly reported period. "+
-        "Same positions do not prove agreement; differences do not establish which source is correct.";
+      applyPairDistanceFilter();
     }
+    pairMatchExport.addEventListener("click",function(){
+      if(pairMatchExport.disabled)return;
+      var selected=new Set(pairMatches);
+      var a=pairA.value,b=pairB.value;
+      // Preserve the complete earlier AND later provenance for each matched
+      // entity, even when only one period satisfied the display threshold.
+      var reports=features.filter(function(f){
+        return (f.properties.source_id===a||f.properties.source_id===b)&&
+          selected.has(f.properties.entity);
+      });
+      saveEvidence(Object.assign({},data,{
+        features:reports,
+        monde_source_pair_distance_threshold_export:{
+          scope:"COMPLETE_EMBEDDED_ORIGINAL_EVIDENCE_FOR_THRESHOLD_MATCHING_ENTITIES",
+          source_a:a,source_b:b,metric:pairMetric.value,
+          selected_period:pairPeriod.value,minimum_separation_km:Number(pairMinKm.value),
+          matched_entity_ids:pairMatches.slice(),matched_entity_count:pairMatches.length,
+          original_feature_count:features.length,exported_feature_count:reports.length,
+          separation_method:"APPROXIMATE_WGS84_SOURCE_REPORTED_POINT_PAIRS_KM",
+          interpretation:"A pairwise original coordinate separation, not verified location, accuracy or physical movement."
+        }
+      }),"monde-source-pair-threshold-matching-evidence.geojson",
+        "application/geo+json");
+    });
     pairA.addEventListener("change",renderPair);
     pairB.addEventListener("change",renderPair);
     pairExport.addEventListener("click",function(){
