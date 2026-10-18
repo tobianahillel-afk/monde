@@ -22,7 +22,7 @@ def fixture_world():
                         "locator": "fixture://" + name, "captured_at": known,
                         "source_event_at": known})
         w.add_assertion({"id": "a-" + name, "entity": entity,
-                         "attribute": "geo_point", "value": value,
+                         "attribute": "geo_point", "value": {"type": "Point", "coordinates": value},
                          "evidence_id": "e-" + name, "kind": "CLAIM",
                          "known_at": known, "valid_from": "2026-01-01T00:00:00Z",
                          "valid_to": None, "supersedes": supersedes})
