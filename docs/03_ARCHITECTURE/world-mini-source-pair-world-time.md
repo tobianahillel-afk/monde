@@ -474,3 +474,21 @@ This identifies **representative source-reported separation**, never source
 accuracy, physical truth, reliability or inferred movement. Missing joint
 reports remain UNKNOWN; all queries reuse persisted WorldMini snapshots
 without mutation or external services. PR is stacked on WORK-0109 (#139).
+
+
+## Original Point source coverage directory (WORK-0111)
+
+In the existing local source-pair browser, choose **Original Point reporter
+coverage** for either world or knowledge time. The same bitemporal arguments
+as source-pair discovery are used. Set `directory=1` and choose
+`format=table` (default), `format=json` or `format=csv`.
+
+Each original source has distinct entity counts and Point assertion counts
+at the two cutoffs, along with newly reported, no-longer-reported and
+continuously reported entity counts. JSON and CSV retain one original entity
+and its actual original assertion IDs per reporter. Click a reporter
+to open existing source-focused pair discovery at identical cutoffs.
+
+Absence of a source report is not evidence of agreement. Reporting-count
+changes are not proof of physical movement, source accuracy or reliability.
+The existing saved WorldMini is read-only and no new service is introduced.
