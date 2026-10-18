@@ -1787,7 +1787,8 @@ HTMLAnchorElement.prototype.click=function(){
   if(this.download.endsWith(".csv"))root.dataset.entityCsvFilename=this.download;
   else root.dataset.entityGeoFilename=this.download;
 };
-const exports=row.querySelectorAll("button");
+// Only the three export/navigation actions, not report-level focus buttons.
+const exports=row.querySelector("details > div").querySelectorAll("button");
 root.dataset.entityExportButtons=String(exports.length===3);
 exports[0].click();exports[1].click();
 root.dataset.entityGeoComplete=String(geoOK);
