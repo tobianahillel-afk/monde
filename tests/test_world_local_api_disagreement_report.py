@@ -412,7 +412,8 @@ class DisagreementReportHTTPTests(unittest.TestCase):
         parser = Anchors()
         parser.feed(raw.decode())
         target = [u for u in parser.links if urlsplit(u).path in (
-            "/viewer", "/map-disagreements", "/disagreement.csv")]
+            "/viewer", "/map-disagreements", "/disagreement.csv")
+            and "view=disagreement-comparison" not in u]
         self.assertEqual(len(target), 6)
         for link in target:
             parsed = urlsplit(link)
@@ -466,6 +467,8 @@ class DisagreementReportHTTPTests(unittest.TestCase):
             if parsed.path not in ("/viewer", "/map-disagreements", "/disagreement.csv"):
                 continue
             args = {key: value[0] for key, value in parse_qs(parsed.query).items()}
+            if parsed.path == "/viewer" and args.get("view") == "disagreement-comparison":
+                continue  # This new link intentionally retains both temporal cutoffs.
             self.assertNotIn("from_at", args)
             self.assertEqual(args["known_at"], K1)
             self.assertEqual(args["source"], "survey-east")
