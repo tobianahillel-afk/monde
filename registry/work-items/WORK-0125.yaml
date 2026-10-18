@@ -10,6 +10,7 @@ updated_at: "2026-10-18"
 purpose: |
   Make the original Point presence GeoJSON from WORK-0124 directly navigable in
   the offline browser map, without duplicating reports visible at both cutoffs.
+  Allow direct exact original Point map drill-down from the evidence table.
 scope:
   in: ["Unique original Point map", "Source/presence selection", "Bitemporal metadata", "Read-only local HTTP"]
   out: ["Physical motion inference", "Consensus positions", "New server", "Paid API", "State mutation"]
@@ -17,6 +18,7 @@ acceptance_criteria:
   - {id: AC-1, description: "Reuses original Point presence identities without duplicate period markers.", status: IN_PROGRESS}
   - {id: AC-2, description: "Source and earlier/later/both filters preserve provenance and both axes.", status: IN_PROGRESS}
   - {id: AC-3, description: "Browser navigation, persisted HTTP tests, empty results and immutability.", status: IN_PROGRESS}
+  - {id: AC-4, description: "Exact source/assertion/evidence/coordinate drill-down from the presence table returns only the selected original Point.", status: IN_PROGRESS}
 depends_on: [WORK-0124]
 requirements: []
 read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py]

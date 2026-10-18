@@ -1235,16 +1235,38 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format", "source", "change", "rank", "source_prefix", "entity", "presence"})
+                 {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
+                  "assertion", "evidence", "longitude", "latitude"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
-                 {"format", "source", "change", "rank", "source_prefix", "entity", "presence"})
+                 {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
+                  "assertion", "evidence", "longitude", "latitude"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
+    # Original Point drill-down is only available from an exact entity+source
+    # presence map. No new endpoint, no inferred position, no partial identity.
+    exact_fields = {"assertion", "evidence", "longitude", "latitude"}
+    if exact_fields.intersection(args):
+        if (not exact_fields.issubset(args) or
+                args.get("format") != "presence-map" or
+                "entity" not in args or "source" not in args):
+            raise ValueError("original Point focus requires full source identity")
+        for field in ("assertion", "evidence"):
+            value = args[field]
+            if not 0 < len(value) <= 200 or any(
+                    ord(ch) < 32 or ord(ch) == 127 for ch in value):
+                raise ValueError("invalid original Point ID")
+        try:
+            lon, lat = float(args["longitude"]), float(args["latitude"])
+        except ValueError as error:
+            raise ValueError("invalid original Point coordinates") from error
+        if not (math.isfinite(lon) and math.isfinite(lat) and
+                -180 <= lon <= 180 and -90 <= lat <= 90):
+            raise ValueError("invalid original Point coordinates")
     if "presence" in args and (
             args["presence"] not in ("earlier", "later", "both") or
             args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-map", "presence-table") or
@@ -1533,6 +1555,9 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
                                              args.get("presence"))))
     columns = reader.fieldnames or []
     rows = list(reader)
+    from .source_pair_changes import source_directory_entity_presence_records
+    originals = source_directory_entity_presence_records(
+        world, directory, args.get("presence"))
     back = "/source-pair?" + urlencode({
         **{k: v for k, v in args.items()
            if k not in ("format", "source", "presence")}, "format": "table"})
@@ -1552,7 +1577,7 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
         item["source_id"] for item in directory["sources"]
     }
 
-    def row_navigation(row: dict[str, str]) -> str:
+    def row_navigation(row: dict[str, str], original: dict) -> str:
         source = source_names.get(row["source_id"])
         if source is None:
             return "<td>Original source unavailable</td>"
@@ -1564,6 +1589,17 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
         })
         links.append('<a href="' + escape(history, quote=True) +
                      '">Inspect original source history</a>')
+        # CSV is spreadsheet-escaped. Use the paired canonical presence record
+        # for raw assertion/evidence identifiers in the exact map link.
+        exact_link = "/source-pair?" + urlencode({
+            **args, "format": "presence-map", "source": original["source_id"],
+            "assertion": original["assertion_id"],
+            "evidence": original["evidence_id"],
+            "longitude": str(original["longitude"]),
+            "latitude": str(original["latitude"]),
+        })
+        links.append('<a href="' + escape(exact_link, quote=True) +
+                     '">Map this exact original Point</a>')
         for period, label in (("earlier", "Earlier"), ("later", "Later")):
             if row[period + "_visible"] != "1":
                 continue
@@ -1582,8 +1618,8 @@ def _source_directory_presence_table_html(world: WorldMini, directory: dict,
         ('<th scope="row">' if i == 0 else "<td>") +
         escape(str(row.get(field, ""))) +
         ("</th>" if i == 0 else "</td>")
-        for i, field in enumerate(columns)) + row_navigation(row) +
-        "</tr>" for row in rows)
+        for i, field in enumerate(columns)) + row_navigation(row, original) +
+        "</tr>" for row, original in zip(rows, originals))
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<title>Original evidence presence — MONDE Mini</title>'
@@ -2120,8 +2156,17 @@ def create_server(state: str | Path, port: int = 0, *,
                                 world, document, args.get("presence")))
                         if output_format == "presence-map":
                             from .source_pair_changes import source_directory_entity_presence_map
+                            focus = None
+                            if "assertion" in args:
+                                focus = {
+                                    "source_id": args["source"],
+                                    "assertion_id": args["assertion"],
+                                    "evidence_id": args["evidence"],
+                                    "longitude": float(args["longitude"]),
+                                    "latitude": float(args["latitude"]),
+                                }
                             return self._html(source_directory_entity_presence_map(
-                                world, document, args.get("presence")))
+                                world, document, args.get("presence"), focus))
                         if output_format == "geojson":
                             from .source_pair_changes import (
                                 source_directory_geojson, source_directory_entity_geojson)

@@ -2170,5 +2170,69 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual(self.get({**query, "format": "presence-map"})[0], 200)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+
+    def test_exact_original_point_from_presence_table_is_one_evidence_identity(self):
+        """HTTP table links resolve exactly one original Point, never a centroid."""
+        from html import unescape
+        from urllib.parse import parse_qs, urlsplit
+        import re
+        from monde.source_pair_changes import (
+            source_directory_entity_presence_map,
+            source_directory_entity_presence_records,
+        )
+        query = {**self.knowledge(), "entity": "site-1"}
+        directory = json.loads(self.get({**query, "format": "json"})[2])
+        originals = source_directory_entity_presence_records(self.world, directory)
+        self.assertTrue(originals)
+        table = self.get({**query, "format": "presence-table"})[2].decode("utf-8")
+        links = [unescape(v) for v in re.findall(r'href="([^"]+)"', table)
+                 if "assertion=" in v and "format=presence-map" in v]
+        self.assertEqual(len(links), len(originals))
+        for link in links:
+            params = {k: v[0] for k, v in parse_qs(urlsplit(link).query).items()}
+            self.assertEqual(urlsplit(link).path, "/source-pair")
+            status, headers, body = self.get(params)
+            self.assertEqual(status, 200)
+            self.assertIn("text/html", headers["Content-Type"])
+            self.assertIn(b"MONDE_ORIGINAL_POINT_PRESENCE_GEOJSON_V1", body)
+            focus = {
+                "source_id": params["source"], "assertion_id": params["assertion"],
+                "evidence_id": params["evidence"],
+                "longitude": float(params["longitude"]),
+                "latitude": float(params["latitude"]),
+            }
+            geojson = source_directory_entity_presence_map(
+                self.world,
+                {**directory, "sources": [s for s in directory["sources"]
+                    if s["source_id"] == params["source"]],
+                 "source_focus": params["source"]}, focus=focus)
+            self.assertEqual(len(geojson["features"]), 1)
+            self.assertEqual(geojson["features"][0]["properties"]
+                             ["monde_original_assertion_id"], params["assertion"])
+            self.assertEqual(geojson["monde_bbox_query"]["total_source_features"], 1)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_exact_original_point_rejects_partial_unsafe_or_unscoped_requests(self):
+        query = {**self.knowledge(), "entity": "site-1",
+                 "source": "survey-a", "format": "presence-map"}
+        for bad in (
+            {**query, "assertion": "a"},
+            {**query, "assertion": "a", "evidence": "e", "longitude": "0"},
+            {**query, "assertion": "a", "evidence": "e",
+             "longitude": "nan", "latitude": "0"},
+            {**query, "assertion": "a", "evidence": "e",
+             "longitude": "181", "latitude": "0"},
+            {**query, "assertion": "a", "evidence": "e",
+             "longitude": "0", "latitude": "-91"},
+            {**query, "assertion": "a", "evidence": "e",
+             "longitude": "0", "latitude": "0", "format": "presence-json"},
+            {**{k: v for k, v in query.items() if k != "entity"},
+             "assertion": "a", "evidence": "e", "longitude": "0",
+             "latitude": "0"},
+        ):
+            self.assertEqual(self.get(bad)[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()

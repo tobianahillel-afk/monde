@@ -724,12 +724,23 @@ def source_directory_entity_presence_geojson(world, directory, presence=None):
     }
 
 
-def source_directory_entity_presence_map(world, directory, presence=None):
-    """Map each original report identity only once at the two cutoffs.
+def source_directory_entity_presence_map(world, directory, presence=None, focus=None):
+    """Map original report identities once; optionally select one exact Point.
 
-    Reuses the source-presence GeoJSON, without inferring movement or truth.
+    An exact focus identifies original evidence, not inferred physical truth.
     """
     geojson = source_directory_entity_presence_geojson(world, directory, presence)
+    if focus is not None:
+        if not isinstance(focus, dict) or set(focus) != {
+                "source_id", "assertion_id", "evidence_id", "longitude", "latitude"}:
+            raise ValueError("invalid original Point focus")
+        geojson["features"] = [feature for feature in geojson["features"]
+            if (feature["properties"]["source_id"] == focus["source_id"]
+                and feature["properties"]["monde_original_assertion_id"] == focus["assertion_id"]
+                and feature["properties"]["evidence_id"] == focus["evidence_id"]
+                and feature["geometry"]["coordinates"] == [
+                    focus["longitude"], focus["latitude"]])]
+        geojson["monde_source_coverage"]["original_report_focus"] = focus
     features = geojson["features"]
     for feature in features:
         feature["properties"]["monde_inside_bbox"] = True
