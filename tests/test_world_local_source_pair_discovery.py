@@ -373,11 +373,12 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
             try:
                 status, _, html = self.get({**args, "format": "table"}, server)
                 self.assertEqual(status, 200)
-                urls = [unescape(value) for value in
-                        re.findall(r'href="([^"]+)"', html.decode("utf-8"))]
-                maps = [url for url in urls
-                        if "Map original example evidence" not in url and
-                        parse_qs(urlsplit(url).query).get("format") == ["html"]]
+                # Follow this row's drilldown, not the separate bulk map link.
+                maps = [unescape(value) for value in re.findall(
+                    r'href="([^"]+)"[^>]*>Map original example evidence</a>',
+                    html.decode("utf-8"))
+                    if parse_qs(urlsplit(unescape(value)).query).get("format")
+                    == ["html"]]
                 self.assertTrue(maps, "ranked pair must open an actual evidence map")
                 query = parse_qs(urlsplit(maps[0]).query)
                 self.assertEqual(query["axis"], [axis])
