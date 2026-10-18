@@ -264,3 +264,24 @@ filters for both world-time and knowledge-time comparisons. JSON and GeoJSON
 retain the qualifying original source ID; map, table and CSV use identical
 selected evidence. All operations are offline/local read-only; there is no
 consensus position, verified movement or additional dependency.
+
+
+## Focus on both original reporters at the same cutoff (WORK-0103)
+
+The read-only `/source-pair` form now supports `region_source=both`
+alongside `either`, `a` and `b` when a WGS84 `bbox` is present.
+An entity qualifies **only if both original sources independently report
+a Point inside the region in the same earlier or later comparison period**.
+Reports from A at the earlier cutoff and B only at the later cutoff
+do not qualify merely because their union intersects the viewport.
+
+Example:
+`/source-pair?axis=knowledge&source_a=survey-a&source_b=survey-b&at=2026-01-05T00%3A00%3A00Z&from_known_at=2026-01-03T00%3A00%3A00Z&to_known_at=2026-01-06T00%3A00%3A00Z&bbox=29.5%2C-1%2C32.5%2C1&region_source=both&format=table`
+
+Filtering still precedes entity/direction/min-change/top-N; every
+selected entity retains the complete original source assertions from both
+periods, including reported Points outside the region. The same selection
+feeds the existing HTML map, accessible table, JSON, GeoJSON and CSV, on
+both world-time and knowledge-time axes. This is **joint geographic reporting**,
+not agreement, verified proximity or ground truth. No new endpoint, source
+parser, dependency or persistence write is introduced.
