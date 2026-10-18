@@ -1728,6 +1728,7 @@ body.dataset.sourceDownloadPeriodUnchanged=String(period.value==="later");
         self.assertTrue(evidence)
         probe = """<script>
 const root=document.body,src=__SOURCE__,expected=__EVIDENCE__;
+const referenceComparison=__COMPARISON__;
 const tr=Array.from(document.querySelectorAll("#comparison-source-rows tr"))
   .find(x=>x.dataset.sourceId===src);
 const button=Array.from(tr.children[5].querySelectorAll("button"))
@@ -1866,7 +1867,7 @@ window.Blob=function(parts,options){
     const meta=single.monde_single_report_export;
     exactDownloaded=single.type==="FeatureCollection" &&
       JSON.stringify(single.features)===JSON.stringify([one]) &&
-      JSON.stringify(single.monde_comparison)===JSON.stringify(embedded.monde_comparison) &&
+      JSON.stringify(single.monde_comparison)===JSON.stringify(referenceComparison) &&
       meta.scope==="EXACT_ORIGINAL_ASSERTION_NOT_DISPLAY_FILTERED" &&
       meta.source_id===src && meta.entity===chosenEntity &&
       meta.comparison_period===one.properties.monde_comparison_period &&
@@ -1919,7 +1920,8 @@ root.dataset.sourceEntityClosed=String(
   !tr.nextElementSibling?.classList.contains("comparison-source-entities"));
 </script>"""
         probe = (probe.replace("__SOURCE__", json.dumps(source))
-                      .replace("__EVIDENCE__", json.dumps(evidence)))
+                      .replace("__EVIDENCE__", json.dumps(evidence))
+                      .replace("__COMPARISON__", json.dumps(embedded.get("monde_comparison"))))
         target = Path(self.folder.name) / "source-entity-comparison.html"
         target.write_text(html.replace("</body>", probe + "</body>"), encoding="utf-8")
         result = subprocess.run([
