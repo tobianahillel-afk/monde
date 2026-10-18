@@ -51,3 +51,32 @@ labels to avoid spreadsheet execution; it never modifies saved evidence.
 Without `--format csv`, the existing JSON output and schemas are unchanged.
 This is *reported source separation*, not verified location, source accuracy
 or actual physical movement.
+
+## Prioritize changes between original sources (WORK-0095)
+
+To find the largest **changes in source-reported separation** rather than read every
+entity, add `--top-nearest-changes N` (positive integer) to either comparison axis.
+
+Example (knowledge changes at fixed world time):
+
+```bash
+PYTHONPATH=src python3 -m monde.source_pair_changes \
+  --fixture saved-world.json --source-a survey-a --source-b survey-b \
+  --at 2026-01-05T00:00:00Z \
+  --from-known-at 2026-01-03T12:00:00Z \
+  --to-known-at 2026-01-05T12:00:00Z \
+  --top-nearest-changes 20 --format csv
+```
+
+The ordering is descending **absolute earlier-to-later nearest-distance change**
+in approximate km (ties sorted by entity ID). Positive or negative changes
+both count; this measures disagreement between *reported locations*, not
+physical movement, truth, credibility or source accuracy. An entity not
+jointly reported by both sources in **both** comparison periods is
+**incomparable**, never assigned zero. The JSON `selection` block explains
+the number eligible, omitted and returned. The existing CSV schema is
+unchanged and preserves both periods' complete source assertion/evidence IDs
+and original coordinates for every selected entity.
+
+Without `--top-nearest-changes`, original JSON and CSV output are unchanged.
+The operation reads the persisted WorldMini without modifying its bytes.
