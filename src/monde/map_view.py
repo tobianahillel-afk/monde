@@ -226,8 +226,16 @@ __MONDE_TIME_NAVIGATION__
     <label for="comparison-pair-distance-min-km">At least (km)</label>
     <input id="comparison-pair-distance-min-km" type="number" min="0" max="20040" step="any" value="0" aria-label="Minimum original source separation in kilometers">
     <button id="comparison-pair-distance-export" type="button" disabled>Download threshold-matching original evidence GeoJSON</button>
+    <label for="comparison-pair-distance-sort">Order by reported source separation</label>
+    <select id="comparison-pair-distance-sort" aria-label="Rank entities by source coordinate divergence">
+      <option value="entity">Original entity ID</option>
+      <option value="descending">Largest separation first</option>
+      <option value="ascending">Smallest separation first</option>
+    </select>
   </div>
   <p class="subtle">Threshold filters this pair table only. An unreported period never counts as zero; complete pair exports remain unfiltered. Nearest and farthest are distances between original source-reported coordinates, not verified positions, accuracy or movement.</p>
+  <button id="comparison-source-pair-clear-focus" type="button" disabled>Show all original reports on map</button>
+  <p id="comparison-source-pair-focus-summary" class="subtle" role="status" aria-live="polite">No pair map focus selected.</p>
   <p id="comparison-source-pair-summary" class="subtle" role="status" aria-live="polite"></p>
   <table aria-label="Entities jointly reported by two sources in original periods">
   <thead><tr><th scope="col">Original entity</th><th scope="col">Both earlier</th><th scope="col">Both later</th><th scope="col">Earlier reported coordinates differ</th><th scope="col">Later reported coordinates differ</th><th scope="col">Pair original reports</th><th scope="col">Earlier source separation (km)</th><th scope="col">Later source separation (km)</th><th scope="col">Explore</th></tr></thead>
@@ -457,6 +465,8 @@ __MONDE_TIME_NAVIGATION__
   // Preserve the source report chosen as center even if a later filter hides it.
   var radiusCenter = null;
   var visibleFeatures = [];
+  // Temporary map selection only; original embedded evidence stays complete.
+  var pairFocus = null;
   document.getElementById("change-filter-control").hidden = !comparing;
   if (data.monde_source_delta) {
     document.getElementById("source-notice").textContent =
@@ -1381,6 +1391,17 @@ __MONDE_TIME_NAVIGATION__
     var pairPeriod=document.getElementById("comparison-pair-distance-period");
     var pairMinKm=document.getElementById("comparison-pair-distance-min-km");
     var pairMatchExport=document.getElementById("comparison-pair-distance-export");
+    var pairSort=document.getElementById("comparison-pair-distance-sort");
+    var pairClearFocus=document.getElementById("comparison-source-pair-clear-focus");
+    var pairFocusSummary=document.getElementById("comparison-source-pair-focus-summary");
+    function clearPairFocus(){
+      if(!pairFocus)return;
+      pairFocus=null;pairClearFocus.disabled=true;
+      pairFocusSummary.textContent="Showing original source reports without pair focus.";
+      entities.value="";comparisonPeriod.value="";
+      render();fitReports();
+    }
+    pairClearFocus.addEventListener("click",clearPairFocus);
     [pairA,pairB].forEach(function(select){
       sourceNames.forEach(function(source){
         var option=document.createElement("option");
@@ -1389,6 +1410,31 @@ __MONDE_TIME_NAVIGATION__
       });
     });
     var pairShared=[],pairDifferent=[],pairDistances=[],pairMatches=[];
+    function sortPairRows(){
+      var periods=pairPeriod.value==="either"?["earlier","later"]:[pairPeriod.value];
+      var metric=pairMetric.value+"_km";
+      var distances=new Map(pairDistances.map(function(item){return [item.entity,item];}));
+      function rank(entity){
+        var item=distances.get(entity);
+        if(!item)return null;
+        var values=periods.map(function(period){
+          return item[period]&&item[period][metric];
+        }).filter(function(value){return typeof value==="number";});
+        // Rank by the strongest actual original-source separation for "either".
+        // An unreported period is UNKNOWN, never measured zero.
+        return values.length?Math.max.apply(null,values):null;
+      }
+      Array.from(pairRows.children).sort(function(a,b){
+        var nameA=a.dataset.pairEntity,nameB=b.dataset.pairEntity;
+        if(pairSort.value==="entity")return nameA.localeCompare(nameB);
+        var left=rank(nameA),right=rank(nameB);
+        if(left===null)return right===null?nameA.localeCompare(nameB):1;
+        if(right===null)return -1;
+        var diff=pairSort.value==="descending"?right-left:left-right;
+        return diff||nameA.localeCompare(nameB);
+      }).forEach(function(row){pairRows.appendChild(row);});
+    }
+    pairSort.addEventListener("change",sortPairRows);
     function applyPairDistanceFilter(){
       pairMatches=[];
       var raw=pairMinKm.value.trim();
@@ -1408,6 +1454,7 @@ __MONDE_TIME_NAVIGATION__
         if(matched)pairMatches.push(item.entity);
       });
       pairMatchExport.disabled=!pairMatches.length;
+      sortPairRows();
       if(pairA.value&&pairB.value&&pairA.value!==pairB.value){
         pairSummary.textContent=valid?
           pairMatches.length+" of "+pairShared.length+" jointly reported entities "+
@@ -1507,13 +1554,38 @@ __MONDE_TIME_NAVIGATION__
         var action=cell(""),button=document.createElement("button");
         button.type="button";button.textContent="Explore all original reports for entity";
         button.addEventListener("click",function(){
-          // Existing entity explorer may include other reporting sources.
+          // This broader explorer must leave the temporary two-source focus.
+          pairFocus=null;pairClearFocus.disabled=true;
+          pairFocusSummary.textContent="Showing all original reporting sources for "+entity+".";
           sources.value="";entities.value=entity;comparisonPeriod.value="";
           presenceSelect.value="";search.value="";
           insideOnly.checked=false;currentViewOnly.checked=false;
           render();fitReports();
         });
-        action.appendChild(button);pairRows.appendChild(tr);
+        action.appendChild(button);
+        var mapPair=document.createElement("button");
+        mapPair.type="button";mapPair.dataset.mapPair="true";
+        mapPair.textContent="Show these two sources on map";
+        mapPair.setAttribute("aria-label",
+          "Map original reports for "+entity+" from "+pairA.value+" and "+pairB.value);
+        mapPair.addEventListener("click",function(){
+          pairFocus={entity:entity,a:pairA.value,b:pairB.value};
+          sources.value="";entities.value=entity;
+          comparisonPeriod.value=pairPeriod.value==="either"?"":pairPeriod.value;
+          presenceSelect.value="";search.value="";
+          insideOnly.checked=false;currentViewOnly.checked=false;
+          differentOnly.checked=false;changeFilter.value="";
+          traceFilter.value="";capturedFrom.value="";capturedThrough.value="";
+          gpxClockFrom.value="";gpxClockThrough.value="";
+          radiusCenter=null;clearRadiusButton.disabled=true;
+          visibleGpkgSources.add(pairA.value);visibleGpkgSources.add(pairB.value);
+          pairClearFocus.disabled=false;
+          pairFocusSummary.textContent="Map focus: "+entity+" · "+pairA.value+
+            " vs "+pairB.value+" · "+(comparisonPeriod.value||"both periods")+
+            ". Original reported Points only, not verified locations or movement.";
+          render();fitReports();
+        });
+        action.appendChild(mapPair);pairRows.appendChild(tr);
       });
       pairExport.disabled=!pairShared.length;
       pairDiffExport.disabled=!pairDifferent.length;pairCsv.disabled=!pairShared.length;
@@ -1543,8 +1615,12 @@ __MONDE_TIME_NAVIGATION__
       }),"monde-source-pair-threshold-matching-evidence.geojson",
         "application/geo+json");
     });
-    pairA.addEventListener("change",renderPair);
-    pairB.addEventListener("change",renderPair);
+    [pairA,pairB].forEach(function(select){
+      select.addEventListener("change",function(){
+        if(pairFocus)clearPairFocus();
+        renderPair();
+      });
+    });
     pairExport.addEventListener("click",function(){
       if(pairExport.disabled)return;
       var selected=new Set(pairShared),a=pairA.value,b=pairB.value;
@@ -2049,6 +2125,8 @@ __MONDE_TIME_NAVIGATION__
       (!insideOnly.checked || inSelection(p)) &&
       (ignoreDisplayedWindow || !currentViewOnly.checked || insideDisplayedWindow(f)) &&
       (!sources.value || p.source_id === sources.value) &&
+      (!pairFocus || (p.entity===pairFocus.entity &&
+        (p.source_id===pairFocus.a||p.source_id===pairFocus.b))) &&
       (!data.monde_comparison || !presenceSelect.value ||
         (counts.has(p.source_id) && (
           (presenceSelect.value==="both" && counts.get(p.source_id).earlier>0 &&

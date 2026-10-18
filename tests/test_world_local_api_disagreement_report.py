@@ -2739,6 +2739,80 @@ thresholdControl.value="0";metricControl.value="farthest";periodControl.value="e
 thresholdControl.dispatchEvent(new Event("input"));
 root.dataset.pairThresholdResetCorrect=String(
   thresholdRows.every(function(row){return !row.hidden;})&&!thresholdExport.disabled);
+// Real Chromium exercises the user ranking on original source-pair reports.
+const rankControl=document.getElementById("comparison-pair-distance-sort");
+function independentlyRank(periodSelection,metric,order){
+  function value(entity){
+    const reported=separations[entity];
+    const periods=periodSelection==="either"?["earlier","later"]:[periodSelection];
+    const values=periods.filter(function(p){return reported[p]!==null;})
+      .map(function(p){return reported[p][metric+"_km"];});
+    return values.length?Math.max.apply(null,values):null;
+  }
+  return Object.keys(separations).sort(function(x,y){
+    const a=value(x),b=value(y);
+    if(a===null)return b===null?x.localeCompare(y):1;
+    if(b===null)return -1;
+    return (order==="descending"?b-a:a-b)||x.localeCompare(y);
+  });
+}
+function actualPairOrder(){
+  return Array.from(document.querySelectorAll("#comparison-source-pair-rows tr"))
+    .map(function(row){return row.dataset.pairEntity;});
+}
+rankControl.value="descending";rankControl.dispatchEvent(new Event("change"));
+root.dataset.pairRankDescending=String(JSON.stringify(actualPairOrder())===
+  JSON.stringify(independentlyRank("either","farthest","descending")));
+rankControl.value="ascending";rankControl.dispatchEvent(new Event("change"));
+root.dataset.pairRankAscending=String(JSON.stringify(actualPairOrder())===
+  JSON.stringify(independentlyRank("either","farthest","ascending")));
+periodControl.value="earlier";periodControl.dispatchEvent(new Event("change"));
+root.dataset.pairRankMissingLast=String(JSON.stringify(actualPairOrder())===
+  JSON.stringify(independentlyRank("earlier","farthest","ascending")));
+rankControl.value="entity";rankControl.dispatchEvent(new Event("change"));
+root.dataset.pairRankDefaultRestored=String(JSON.stringify(actualPairOrder())===
+  JSON.stringify(Object.keys(separations).sort()));
+periodControl.value="either";periodControl.dispatchEvent(new Event("change"));
+const pairEntity=actualPairOrder()[0];
+const pairRow=Array.from(document.querySelectorAll("#comparison-source-pair-rows tr"))
+  .find(function(row){return row.dataset.pairEntity===pairEntity;});
+const focusPair=pairRow&&pairRow.querySelector("button[data-map-pair]");
+const clearPair=document.getElementById("comparison-source-pair-clear-focus");
+const pairFocusStatus=document.getElementById("comparison-source-pair-focus-summary");
+const mapPoints=function(){return Array.from(document.querySelectorAll("#points circle"));};
+const pairReports=reports.filter(function(f){return f.properties.entity===pairEntity;});
+document.getElementById("report-search").value="not-real-source-report";
+if(focusPair)focusPair.click();
+root.dataset.pairFocusBothCorrect=String(!!focusPair&&!clearPair.disabled&&
+  mapPoints().length===pairReports.length&&mapPoints().every(function(point){
+    return sourcesPair.some(function(source){
+      return point.getAttribute("aria-label")===pairEntity+" from "+source;
+    });
+  })&&pairFocusStatus.textContent.includes("both periods")&&
+  document.getElementById("report-search").value==="");
+periodControl.value="earlier";periodControl.dispatchEvent(new Event("change"));
+if(focusPair)focusPair.click();
+const earlierPairReports=pairReports.filter(function(f){
+  return f.properties.monde_comparison_period==="earlier";
+});
+root.dataset.pairFocusEarlierCorrect=String(mapPoints().length===earlierPairReports.length&&
+  document.getElementById("comparison-period").value==="earlier");
+// The pre-existing all-sources explorer must never inherit an invisible pair lock.
+pairRow.querySelector("button:not([data-map-pair])").click();
+root.dataset.pairFocusExploreAllCorrect=String(clearPair.disabled&&
+  document.getElementById("entities").value===pairEntity&&
+  pairFocusStatus.textContent.includes("all original reporting sources"));
+if(focusPair)focusPair.click();
+clearPair.click();
+root.dataset.pairFocusClearCorrect=String(clearPair.disabled&&
+  document.getElementById("entities").value===""&&
+  document.getElementById("comparison-period").value===""&&
+  mapPoints().length===__TOTAL__);
+output=null;filename=null;exportButton.click();
+root.dataset.pairFocusExportsUnchanged=String(!!output&&
+  output.features.length===reports.length&&
+  filename==="monde-original-source-pair-shared-evidence.geojson");
+periodControl.value="either";periodControl.dispatchEvent(new Event("change"));
 a.value=sourcesPair[0];b.value=sourcesPair[0];b.dispatchEvent(new Event("change"));
 root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disabled&&csvButton.disabled&&thresholdExport.disabled&&
   document.querySelectorAll("#comparison-source-pair-rows tr").length===0);
@@ -2763,6 +2837,11 @@ root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disab
                      "pair-threshold-rows-correct", "pair-threshold-export-correct",
                      "pair-threshold-period-correct", "pair-threshold-metric-correct",
                      "pair-threshold-invalid-denied", "pair-threshold-reset-correct",
+                     "pair-rank-descending", "pair-rank-ascending",
+                     "pair-rank-missing-last", "pair-rank-default-restored",
+                     "pair-focus-both-correct", "pair-focus-earlier-correct",
+                     "pair-focus-clear-correct", "pair-focus-explore-all-correct",
+                     "pair-focus-exports-unchanged",
                      "pair-same-source-denied"):
             self.assertIn('data-'+name+'="true"', output, name)
         response, _, ordinary = self.fetch("/viewer", {**QUERY, "view": "current"})

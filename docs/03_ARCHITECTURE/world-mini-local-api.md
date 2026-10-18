@@ -785,3 +785,21 @@ The **Download complete pair separation CSV** action exports both earlier and la
 ### Filter original source-pair separation by threshold (WORK-0090)
 
 In the self-contained two-period source-pair map, the analyst can choose **nearest or farthest** approximate separation between two sources' original reported Points, an earlier/later/either-period selection, and a minimum distance (0–20040 km). Only jointly reported periods qualify; a missing source measurement is never interpreted as zero. The table updates immediately and reports the count of matching entities. The **Download threshold-matching original evidence GeoJSON** action exports every embedded original report for both chosen sources and both periods belonging to matching entities, preserving all assertion/evidence IDs; this explicitly scoped export is distinct from the existing *complete*, display-filter-independent pair GeoJSON and CSV downloads. Empty, negative, non-finite and out-of-range input shows no matches and cannot export. The approximate distances are not verified source accuracy, location confidence, travel or ground truth. No new endpoint, external API, dependency or persistent-state mutation is introduced.
+
+### Rank original source-pair coordinate divergence (WORK-0091)
+
+The existing two-source comparison panel offers **original entity ID**, **largest separation first** and **smallest separation first** ordering. Ranking reuses the nearest/farthest distance metric and earlier/later/either period already selected by the analyst. For either-period ranking, the largest actual same-period measured separation is used; missing jointly reported measurements are unknown, never zero, and sort last. Equal distances are ordered by original entity ID for deterministic browsing. This presentation choice does not change the minimum threshold, original source assertions, or complete and threshold-matching GeoJSON/CSV exports. Separations are approximate original source-reported coordinate differences, not verified geography, motion, reliability or accuracy. No stored state, endpoint, paid API or dependency is added.
+
+
+#### Inspect both original reporting sources on one offline map (WORK-0091)
+
+The source-pair comparison table now links each jointly reported entity to its
+**two original reporting sources on the map**, using the selected earlier/later/
+either period. Other display filters are reset for this temporary focus, and
+the map fits all original points reported by the two selected sources. A visible
+**Show all original reports on map** control clears the focus; changing one of
+the two selected sources also exits it. The underlying original assertions,
+provenance and complete unfiltered GeoJSON/CSV exports are never modified.
+These are source-reported coordinate claims, not verified truth, routes,
+accuracy rankings or physical movements. No new API, dependency or persisted
+state is introduced.
