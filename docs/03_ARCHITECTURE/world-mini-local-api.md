@@ -693,3 +693,10 @@ entity, source, selected period, original/selected counts and an evidence-only
 scope; it does not infer physical movement, truth or absence. The filename is
 fixed, never derived from untrusted source or entity names. No additional
 service, browser dependency or WorldMini persistence change is introduced.
+
+
+### Original reporting-source selection changes (WORK-0085)
+
+In a two-period offline disagreement comparison, the original entity coverage table now filters entities by whether their **set of reporting source IDs** is identical or different between the earlier and later selections. Each row shows counts of earlier-only and later-only source IDs. This is **selection coverage**, not evidence of physical change, source disappearance, verified absence or truth.
+
+The **Download reporting-source selection changes CSV** action exports only entity/source intersections present in exactly one selected period, including all original assertion/evidence IDs and report counts. The export uses the **complete embedded comparison evidence**, never map viewport/search/period presentation filters. The pre-existing complete coverage CSV and GeoJSON exports remain unchanged. No additional endpoint, network call, state mutation or dependency.
