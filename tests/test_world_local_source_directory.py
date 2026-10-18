@@ -1136,11 +1136,11 @@ class SourceDirectoryTests(unittest.TestCase):
                         self.current["fields"][data["name"]] = data.get("value", "")
                 elif self.current is not None and tag == "select":
                     self.selected_name = data.get("name")
-                    if self.selected_name in ("source_a", "source_b"):
+                    if self.selected_name in ("source_a", "source_b", "format"):
                         self.current["selects"][self.selected_name] = []
                 elif self.current is not None and tag == "option":
                     if hasattr(self, "selected_name") and self.selected_name in (
-                            "source_a", "source_b"):
+                            "source_a", "source_b", "format"):
                         self.current["selects"][self.selected_name].append(data)
 
             def handle_endtag(self, tag):
@@ -1156,11 +1156,14 @@ class SourceDirectoryTests(unittest.TestCase):
         reader = FormReader()
         reader.feed(raw.decode("utf-8"))
         candidates = [f for f in reader.forms
-                      if set(f["selects"]) == {"source_a", "source_b"}]
+                      if set(f["selects"]) == {"source_a", "source_b", "format"}]
         self.assertEqual(len(candidates), 1)
         frm = candidates[0]
         self.assertEqual(frm["fields"]["entity"], "site-1")
-        self.assertEqual(frm["fields"]["format"], "html")
+        self.assertEqual({x["value"] for x in frm["selects"]["format"]},
+                         {"html", "table", "json", "csv", "geojson"})
+        self.assertEqual([x["value"] for x in frm["selects"]["format"]
+                          if "selected" in x], ["html"])
         for key in ("axis", "at", "from_known_at", "to_known_at"):
             self.assertEqual(frm["fields"][key], query[key])
         self.assertEqual(set(x["value"] for x in frm["selects"]["source_a"]),
@@ -1172,7 +1175,8 @@ class SourceDirectoryTests(unittest.TestCase):
         second = next(x["value"] for x in frm["selects"]["source_b"]
                       if "selected" in x)
         self.assertNotEqual(first, second)
-        compare = {**frm["fields"], "source_a": first, "source_b": second}
+        compare = {**frm["fields"], "source_a": first, "source_b": second,
+                   "format": "html"}
         status, _, page = self.get(compare)
         self.assertEqual(status, 200)
         self.assertIn(b"<!doctype html>", page.lower())
@@ -1189,6 +1193,59 @@ class SourceDirectoryTests(unittest.TestCase):
         self.assertEqual({x["properties"]["source_id"] for x in features},
                          {"survey-a", "survey-b"})
         self.assertEqual({x["properties"]["entity"] for x in features}, {"site-1"})
+
+
+    def test_entity_original_reporters_export_all_formats_from_same_form(self):
+        """Native GET selections preserve exact source IDs and both cutoffs."""
+        selected = {**self.knowledge(), "entity": "site-1",
+                    "source_a": "survey-a", "source_b": "survey-b"}
+        status, _, raw = self.get({**selected, "format": "json"})
+        self.assertEqual(status, 200)
+        doc = json.loads(raw)
+        self.assertEqual(doc["source_a"], "survey-a")
+        self.assertEqual(doc["source_b"], "survey-b")
+        self.assertEqual([e["entity"] for e in doc["entities"]], ["site-1"])
+        for period in ("earlier", "later"):
+            for record in doc["entities"][0][period]["source_a_original_reports"] + (
+                    doc["entities"][0][period]["source_b_original_reports"]):
+                self.assertIn(record["properties"]["source_id"], ("survey-a", "survey-b"))
+                self.assertTrue(record["id"])
+                self.assertTrue(record["properties"]["evidence_id"])
+        for fmt in ("table", "html"):
+            status, _, body = self.get({**selected, "format": fmt})
+            self.assertEqual(status, 200)
+            self.assertIn(b"<!doctype html>", body.lower())
+            self.assertIn(b"survey-a", body)
+            self.assertIn(b"survey-b", body)
+        status, headers, body = self.get({**selected, "format": "csv"})
+        self.assertEqual(status, 200)
+        self.assertIn("text/csv", headers["content-type"])
+        rows = list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
+        self.assertEqual({row["entity"] for row in rows}, {"site-1"})
+        self.assertEqual({row["source_a"] for row in rows}, {"survey-a"})
+        self.assertEqual({row["source_b"] for row in rows}, {"survey-b"})
+        self.assertEqual({row["period"] for row in rows}, {"earlier", "later"})
+        status, _, body = self.get({**selected, "format": "geojson"})
+        self.assertEqual(status, 200)
+        geo = json.loads(body)
+        self.assertEqual(geo["monde_comparison"]["source_a"], "survey-a")
+        self.assertEqual(geo["monde_comparison"]["source_b"], "survey-b")
+        self.assertEqual({f["properties"]["entity"] for f in geo["features"]}, {"site-1"})
+        self.assertEqual({f["properties"]["source_id"] for f in geo["features"]},
+                         {"survey-a", "survey-b"})
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_source_comparison_export_rejects_invalid_and_duplicate_reporters(self):
+        base = {**self.knowledge(), "entity": "site-1",
+                "source_a": "survey-a", "source_b": "survey-b"}
+        for extra in ({"source_b": "survey-a"},
+                      {"format": "xml"},
+                      {"source_a": "../bad"},
+                      {"unknown": "secret"}):
+            status, _, body = self.get({**base, **extra})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(body)["error"], "invalid_query")
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
     def test_entity_reporter_compare_form_absent_with_one_source_or_no_match(self):
         for entity in ("site-only-one-source", "does-not-exist"):

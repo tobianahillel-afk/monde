@@ -1311,8 +1311,7 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         hidden = "".join(
             '<input type="hidden" name="' + escape(key, quote=True) +
             '" value="' + escape(value, quote=True) + '">'
-            for key, value in {**common, "entity": document["entity_focus"],
-                               "format": "html"}.items())
+            for key, value in {**common, "entity": document["entity_focus"]}.items())
         first_options = "".join(
             '<option value="' + escape(source, quote=True) + '"' +
             (' selected' if i == 0 else '') + '>' +
@@ -1330,9 +1329,17 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
             '<select name="source_a" required>' + first_options +
             '</select></label> <label>Second original source '
             '<select name="source_b" required>' + second_options +
-            '</select></label> <button type="submit">Compare source '
-            'positions on one map</button><p>Choose different reporters; '
-            'reported separation is not verified ground truth.</p>'
+            '</select></label> <label>Evidence output '
+            '<select name="format">'
+            '<option value="html" selected>Compare source positions on one map</option>'
+            '<option value="table">Accessible evidence table</option>'
+            '<option value="json">Complete original reports JSON</option>'
+            '<option value="csv">Download original evidence CSV</option>'
+            '<option value="geojson">Download original Point GeoJSON</option>'
+            '</select></label> <button type="submit">Open comparison</button>'
+            '<p>Choose different reporters; output always contains the two '
+            'selected original sources at both specified time cutoffs. '
+            'Reported separation is not verified ground truth.</p>'
             '</fieldset></form>')
 
     count_label = (str(document["total_sources"]) + " matching of " +
