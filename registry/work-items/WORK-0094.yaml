@@ -1,0 +1,51 @@
+id: WORK-0094
+title: "Export complete source-pair temporal evidence as CSV"
+status: IN_REVIEW
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini source evidence"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Turn the existing two source-pair temporal comparisons into a complete,
+  offline, provenance-preserving CSV useful to analysts.
+scope:
+  in: ["Existing CLI both temporal axes", "Original source provenance", "CSV output", "Real persisted snapshot tests"]
+  out: ["New network service", "Verified motion", "Source authority", "New dependencies", "World Model writes"]
+acceptance_criteria:
+  - {id: AC-1, description: "Two time-stamped rows per compared entity and complete source attribution.", status: IN_REVIEW}
+  - {id: AC-2, description: "Original IDs and positions survive the CSV representation.", status: IN_REVIEW}
+  - {id: AC-3, description: "Missing jointly reported periods are UNKNOWN, not zero.", status: IN_REVIEW}
+  - {id: AC-4, description: "Existing JSON and original persisted WorldMini stay unchanged.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0093]
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.source_pair_changes.compare_source_pair, monde.source_pair_changes.compare_source_pair_world_time]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add complete CSV view of existing original source-pair comparisons.", depends_on: [], expected_files: [src/monde/source_pair_changes.py], status: IN_REVIEW}
+    - {id: T2, description: "Exercise both axes and provenance using saved WorldMini subprocess tests.", depends_on: [T1], expected_files: [tests/test_world_source_pair_csv.py], status: IN_REVIEW}
+    - {id: T3, description: "Document CSV, missingness, and epistemic constraints.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_source_pair_csv.py, tests/test_world_source_pair_changes.py, tests/test_world_source_pair_world_changes.py]
+  real_system: ["GitHub Actions world-mini; original persisted WorldMini and subprocess CLI"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Candidate stacked on unmerged WORK-0093 / PR #124."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Revert CSV changes; no stored-state migration."
