@@ -10,6 +10,7 @@ import unittest
 from urllib.parse import urlencode
 
 from monde.local_api import create_server
+from monde.world import WorldMini
 from monde.source_pair_changes import (
     compare_source_pair, compare_source_pair_world_time, comparison_geojson,
     filter_source_pair_direction, comparison_html, comparison_csv,
@@ -255,18 +256,28 @@ class LocalSourcePairBrowserTests(unittest.TestCase):
         self.assertEqual(form.count(b'name="entity"'), 2)
 
     def test_entity_scope_before_top_on_two_real_original_entities(self):
-        world = fixture_world()
-        for source, tag, longitude in (("survey-a", "extra-a", 10.0),
-                                       ("survey-b", "extra-b", 10.5)):
+        # Construct the original evidence in knowledge order: WorldMini rejects
+        # appending a fact with an earlier knowledge timestamp.
+        world = WorldMini()
+        early = "2026-01-02T00:00:00Z"
+        late = "2026-01-04T00:00:00Z"
+        originals = (
+            ("survey-a", "main-a", "site-1", 0.0, early, None),
+            ("survey-b", "main-b", "site-1", 2.0, early, None),
+            ("survey-a", "extra-a", "site-extra", 10.0, early, None),
+            ("survey-b", "extra-b", "site-extra", 10.5, early, None),
+            ("survey-b", "main-b2", "site-1", 1.0, late, "a-main-b"),
+        )
+        for source, tag, entity, lon, known, parent in originals:
             world.add_evidence({"id": "e-" + tag, "source_id": source,
                                 "locator": "fixture://" + tag,
-                                "captured_at": BEFORE, "source_event_at": BEFORE})
+                                "captured_at": known, "source_event_at": known})
             world.add_assertion({
-                "id": "a-" + tag, "entity": "site-extra", "attribute": "geo_point",
-                "value": {"type": "Point", "coordinates": [longitude, 0.]},
+                "id": "a-" + tag, "entity": entity, "attribute": "geo_point",
+                "value": {"type": "Point", "coordinates": [lon, 0.]},
                 "evidence_id": "e-" + tag, "kind": "CLAIM",
-                "known_at": BEFORE, "valid_from": "2026-01-01T00:00:00Z",
-                "valid_to": None, "supersedes": None})
+                "known_at": known, "valid_from": "2026-01-01T00:00:00Z",
+                "valid_to": None, "supersedes": parent})
         file = Path(self.temp.name) / "multi.json"
         world.save(file)
         saved = file.read_bytes()
@@ -281,13 +292,18 @@ class LocalSourcePairBrowserTests(unittest.TestCase):
             focused = {**original, "entities": [
                 row for row in original["entities"] if row["entity"] == "site-extra"]}
             expected = top_nearest_source_pair_changes(focused, 1)
+            # site-1 has a larger change, hence filtering *after* top-1
+            # would incorrectly produce an empty result for site-extra.
+            ranked = top_nearest_source_pair_changes(original, 1)
+            self.assertEqual([row["entity"] for row in ranked["entities"]],
+                             ["site-1"])
             query = {**self.knowledge(), "entity": "site-extra",
                      "top": "1", "format": "json"}
             conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
             conn.request("GET", "/source-pair?" + urlencode(query),
                          headers={"Host": "127.0.0.1:" + str(server.server_port)})
-            result = conn.getresponse()
-            code, actual = result.status, json.loads(result.read())
+            response = conn.getresponse()
+            code, actual = response.status, json.loads(response.read())
             conn.close()
             self.assertEqual(code, 200)
             self.assertEqual(actual, expected)
