@@ -1073,5 +1073,27 @@ class DisagreementReportHTTPTests(unittest.TestCase):
 
 
 
+    def test_comparison_map_link_from_explore_does_not_switch_view(self):
+        from html import unescape
+        from re import search
+        from urllib.parse import parse_qs, urlsplit
+
+        selected = {**QUERY, "view": "disagreements", "source": "survey-east",
+                    "from_known_at": "2026-01-09T00:00:00Z"}
+        status, _, body = self.fetch("/disagreement-report", selected)
+        self.assertEqual(status, 200)
+        link = search(r'href="([^"]+)">Map both original evidence periods</a>',
+                      body.decode())
+        self.assertIsNotNone(link)
+        url = urlsplit(unescape(link.group(1)))
+        args = {key: values[0]
+                for key, values in parse_qs(url.query).items()}
+        self.assertEqual(args["view"], "disagreement-comparison")
+        self.assertEqual(args["source"], selected["source"])
+        self.assertEqual(self.fetch(url.path, args)[0], 200)
+
+
+
+
 if __name__ == "__main__":
     unittest.main()
