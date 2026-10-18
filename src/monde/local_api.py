@@ -981,6 +981,11 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
                       '<option value="unchanged">Unchanged</option>'
                       '<option value="incomparable">Incomparable</option>'
                       '</select></label>'
+                      '<label>Minimum nearest original-source separation '
+                      'at BOTH comparison cutoffs (km; requires joint reports)'
+                      '<input name="min_persistent_km" type="number" min="0" '
+                      'max="1000000" step="0.001" placeholder="Optional">'
+                      '</label>'
                       '<label>Minimum absolute nearest separation change (km)'
                       '<input name="min_change_km" type="number" min="0" '
                       'max="1000000" step="0.001" placeholder="Optional">'
@@ -1108,6 +1113,10 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
                 document["spatial_filter"].get("qualifying_source_id", "either source")) +
          '; complete original reports remain available.</p>'
          if "spatial_filter" in document else "") +
+        ('<p>Persistent source-reported separation: at least ' +
+         escape(str(document["persistent_separation_filter"]["minimum_nearest_km"])) +
+         ' km at BOTH cutoffs; unknown joint reports excluded.</p>'
+         if "persistent_separation_filter" in document else "") +
         '<p>Entities: ' + str(len(document["entities"])) + "</p>"
         '<table><caption>Source-reported separation at earlier and later cutoffs'
         '</caption><thead><tr><th scope="col">Entity &amp; evidence dossier</th>'
@@ -1130,7 +1139,7 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
     _id(args.get("source_a"))
     _id(args.get("source_b"))
     extra = {"format", "direction", "top", "entity", "min_change_km",
-             "bbox", "region_source", "region_period"}
+             "min_persistent_km", "bbox", "region_source", "region_period"}
     if ("region_source" in args or "region_period" in args) and "bbox" not in args:
         raise ValueError("region options require bbox")
     region_source = args.get("region_source", "either")
@@ -1221,6 +1230,28 @@ def _pair_query(world: WorldMini, args: dict[str, str]) -> dict:
             row for row in output["entities"] if row["entity"] == args["entity"]]}
     if "direction" in args:
         output = filter_source_pair_direction(output, args["direction"])
+    if "min_persistent_km" in args:
+        raw = args["min_persistent_km"]
+        # Measurements use three decimal places; never treat missing reports
+        # as a zero-kilometer separation, including when the threshold is 0.
+        if (not re.fullmatch(r"(?:0|[1-9][0-9]{0,6})(?:\.[0-9]{1,3})?", raw)
+                or float(raw) > 1000000):
+            raise ValueError("invalid minimum persistent source separation")
+        threshold = float(raw)
+        previous = output["entities"]
+        retained = [
+            row for row in previous
+            if all(row[period]["separation"] is not None
+                   and row[period]["separation"]["nearest_km"] >= threshold
+                   for period in ("earlier", "later"))
+        ]
+        output = {**output, "entities": retained,
+                  "persistent_separation_filter": {
+                      "minimum_nearest_km": threshold,
+                      "cutoffs": ["earlier", "later"],
+                      "total_entities": len(previous),
+                      "matching_entities": len(retained),
+                  }}
     if "min_change_km" in args:
         threshold = args["min_change_km"]
         # Explicitly reject negatives, nonfinite values, exponent notation

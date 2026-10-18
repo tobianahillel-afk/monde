@@ -317,3 +317,21 @@ out-of-region reports, changing the World Model or inferring verified motion.
 For explicit `region_period=both`, `spatial_filter.basis` uses
 `*_IN_EACH_PERIOD`, and the accessible table says *both cutoffs* rather
 than *either period*; legacy defaults retain their existing basis values.
+
+
+## Persistent original-source separation at both cutoffs (WORK-0104)
+
+The existing loopback-only `/source-pair` comparison form accepts optional
+`min_persistent_km=100` for **either knowledge-time or world-time comparison**.
+An entity qualifies only if both original sources jointly report Point positions
+at *both* selected cutoffs and the minimum cross-source Point separation is at
+least 100 km in each period. Multiple reports per source retain the existing
+**nearest** pairwise measurement; no consensus or source credibility is inferred.
+Missing joint reports are **UNKNOWN and excluded even at a zero threshold**.
+Original A/B reports, assertion/evidence IDs and out-of-region positions remain
+unchanged for selected entities. The filter precedes `top` ranking, composes
+with region/source/period/direction filters and applies to all existing HTML,
+accessible table, JSON, GeoJSON and CSV outputs. The JSON/GeoJSON
+`persistent_separation_filter` records the threshold and qualifying count.
+The underlying saved WorldMini is never rewritten. Omitting the option retains
+the existing output contract.
