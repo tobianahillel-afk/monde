@@ -489,3 +489,19 @@ physical movement, verified source truth or consensus. All output is
 read-only, loopback-only and subject to the existing CSP and response limits.
 The persisted WorldMini snapshot is unchanged. This draft feature is stacked
 on unmerged WORK-0076 / PR #107, not yet deployed on main.
+
+
+### Download standalone two-period source-evidence map (WORK-0078)
+
+From a two-cutoff original disagreement report, Download offline comparison map
+saves a self-contained HTML rendering of the same original source reports
+provided by /disagreement-compare.geojson. The read-only loopback
+/disagreement-compare.html endpoint accepts the same bbox, world and
+knowledge cutoffs, optional source/entity focus and changed-evidence filters;
+exactly one earlier world or knowledge cutoff is mandatory. It reuses the
+existing offline map renderer, disabling server-dependent inspector links so
+the saved map is usable without a MONDE server. Original source/assertion/
+evidence IDs, per-period cutoffs, epistemic warnings and opposing offscreen
+reports remain embedded. The response uses an attachment filename, CSP with
+no network access and existing response-size limits. No snapshot changes.
+Candidate is stacked on unmerged WORK-0077 / PR #108.
