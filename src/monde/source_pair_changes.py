@@ -124,14 +124,20 @@ def compare_source_pair_world_time(world, source_a, source_b,
 
 
 
-def discover_source_pairs(world, axis, cutoffs, top=25):
-    """Discover independently reported Point separations at two explicit cutoffs."""
+def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation"):
+    """Rank original source pairs by geographic separation or temporal change.
+
+    A trend requires the same entity to be jointly reported by both original
+    sources at *both* cutoffs. Missing evidence is UNKNOWN, not zero.
+    """
     from itertools import combinations
 
     if axis not in ("knowledge", "world") or len(cutoffs) != 2:
         raise ValueError("invalid source-pair discovery axis")
     if type(top) is not int or not 1 <= top <= 100:
         raise ValueError("invalid source-pair discovery limit")
+    if rank not in ("separation", "increasing", "decreasing"):
+        raise ValueError("invalid source-pair discovery ranking")
     for at, known_at in cutoffs:
         _instant(at)
         _instant(known_at)
@@ -141,6 +147,7 @@ def discover_source_pairs(world, axis, cutoffs, top=25):
             raise ValueError("invalid discovery knowledge cutoffs")
     elif known1 != known2 or _instant(at1) >= _instant(at2):
         raise ValueError("invalid discovery world cutoffs")
+
     pairs = {}
     for period, (at, known_at) in zip(("earlier", "later"), cutoffs):
         by_entity = {}
@@ -160,6 +167,14 @@ def discover_source_pairs(world, axis, cutoffs, top=25):
                     "example_period": None, "example_assertion_ids": [],
                     "_entities": set(),
                 })
+                if rank != "separation":
+                    item.setdefault("_cutoff_evidence", {}).setdefault(
+                        entity, {})[period] = {
+                        "nearest_km": measured["nearest_km"],
+                        "assertion_ids": sorted(
+                            feature["id"] for source in (sa, sb)
+                            for feature in reporters[source]),
+                    }
                 item["_entities"].add(entity)
                 item["joint_" + period + "_entities"] += 1
                 distance = measured["nearest_km"]
@@ -170,14 +185,46 @@ def discover_source_pairs(world, axis, cutoffs, top=25):
                     item["example_assertion_ids"] = sorted(
                         feature["id"] for source in (sa, sb)
                         for feature in reporters[source])
+
     ranked = []
     for item in pairs.values():
         item["joint_entities"] = len(item.pop("_entities"))
+        if rank != "separation":
+            samples = item.pop("_cutoff_evidence", {})
+            comparable = []
+            for entity, periods in samples.items():
+                if set(periods) != {"earlier", "later"}:
+                    continue
+                delta = round(periods["later"]["nearest_km"] -
+                              periods["earlier"]["nearest_km"], 3)
+                comparable.append((delta, entity, periods))
+            matches = ([entry for entry in comparable if entry[0] > 0]
+                       if rank == "increasing" else
+                       [entry for entry in comparable if entry[0] < 0])
+            if not matches:
+                continue
+            delta, entity, periods = sorted(
+                matches, key=lambda entry: (-abs(entry[0]), entry[1]))[0]
+            item.update(rank_delta_km=delta,
+                        comparable_entities=len(comparable),
+                        matching_entities=len(matches),
+                        example_entity=entity,
+                        example_period="both",
+                        example_earlier_assertion_ids=periods["earlier"]["assertion_ids"],
+                        example_later_assertion_ids=periods["later"]["assertion_ids"],
+                        example_assertion_ids=sorted(set(
+                            periods["earlier"]["assertion_ids"] +
+                            periods["later"]["assertion_ids"])))
         ranked.append(item)
-    ranked.sort(key=lambda item: (
-        -item["max_nearest_km"], -item["joint_entities"],
-        item["source_a"], item["source_b"]))
-    return {
+    if rank == "separation":
+        ranked.sort(key=lambda item: (
+            -item["max_nearest_km"], -item["joint_entities"],
+            item["source_a"], item["source_b"]))
+    else:
+        ranked.sort(key=lambda item: (
+            -abs(item["rank_delta_km"]), -item["matching_entities"],
+            item["source_a"], item["source_b"]))
+    result = {
         "schema": "MONDE_SOURCE_PAIR_DISCOVERY_V1",
         "axis": axis, "cutoffs": {
             period: {"world_at": at, "knowledge_at": known_at}
@@ -188,6 +235,12 @@ def discover_source_pairs(world, axis, cutoffs, top=25):
                            "Missing joint reports are UNKNOWN, not zero."),
         "total_pairs": len(ranked), "top": top, "pairs": ranked[:top],
     }
+    if rank != "separation":
+        result["rank"] = rank
+        result["interpretation"] += (
+            " Trends compare the same entity at both cutoffs, retaining"
+            " original assertion IDs; unpaired observations are UNKNOWN.")
+    return result
 
 
 def comparison_csv(document):
