@@ -395,6 +395,47 @@ def source_directory_detail(world, axis, cutoffs, source, change=None):
     return result
 
 
+
+def source_directory_geojson(world, detail):
+    """Export original source Points at two cutoffs, never inferred truth."""
+    if detail.get("schema") != "MONDE_SOURCE_COVERAGE_DETAIL_V1":
+        raise ValueError("unsupported source coverage detail")
+    allowed = {row["entity"]: row for row in detail["entities"]}
+    features = []
+    for period in ("earlier", "later"):
+        cutoff = detail["cutoffs"][period]
+        at, known_at = cutoff["world_at"], cutoff["knowledge_at"]
+        ids = {entity: set(row[period + "_assertion_ids"])
+               for entity, row in allowed.items()}
+        for original in world.export_geojson(at, known_at)["features"]:
+            props = original["properties"]
+            if (props["source_id"] != detail["source_id"] or
+                    original["id"] not in ids.get(props["entity"], ())):
+                continue
+            metadata = dict(props)
+            metadata.update(
+                monde_original_assertion_id=original["id"],
+                monde_comparison_period=period,
+                monde_world_at=at,
+                monde_known_at=known_at,
+                monde_reported_coverage_status=allowed[props["entity"]]["status"])
+            features.append({
+                "type": "Feature", "id": period + ":" + str(original["id"]),
+                "geometry": original["geometry"], "properties": metadata,
+            })
+    coverage = {
+        "schema": "MONDE_SOURCE_COVERAGE_GEOJSON_V1",
+        "source_id": detail["source_id"], "axis": detail["axis"],
+        "cutoffs": detail["cutoffs"], "interpretation": detail["interpretation"],
+        "original_feature_count": len(features),
+        "matched_entities": len(allowed),
+    }
+    if "reporting_filter" in detail:
+        coverage["reporting_filter"] = detail["reporting_filter"]
+    return {"type": "FeatureCollection", "features": features,
+            "monde_source_coverage": coverage}
+
+
 def discovery_geojson(world, document):
     """Original Point evidence for all ranked source-pair examples, never inferred coordinates."""
     if document["schema"] != "MONDE_SOURCE_PAIR_DISCOVERY_V1":

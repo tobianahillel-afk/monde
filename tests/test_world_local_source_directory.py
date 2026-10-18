@@ -297,5 +297,88 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(path.read_bytes(), original)
 
 
+
+    def test_source_geojson_preserves_original_points(self):
+        q = {**self.knowledge(), "source": "survey-a"}
+        status, _, raw = self.get({**q, "format": "geojson"})
+        self.assertEqual(status, 200)
+        doc = json.loads(raw)
+        self.assertEqual(doc["type"], "FeatureCollection")
+        self.assertEqual(doc["monde_source_coverage"]["source_id"], "survey-a")
+        self.assertEqual(doc["monde_source_coverage"]["axis"], "knowledge")
+        original = {}
+        for period, known in (("earlier", BEFORE), ("later", AFTER)):
+            for feature in self.world.export_geojson(AT, known)["features"]:
+                if feature["properties"]["source_id"] == "survey-a":
+                    original[period, feature["id"]] = feature
+        self.assertEqual(len(doc["features"]), len(original))
+        for feature in doc["features"]:
+            p = feature["properties"]
+            key = p["monde_comparison_period"], p["monde_original_assertion_id"]
+            self.assertIn(key, original)
+            self.assertEqual(feature["geometry"], original[key]["geometry"])
+            self.assertEqual(p["evidence_id"],
+                             original[key]["properties"]["evidence_id"])
+            self.assertEqual(p["monde_world_at"], AT)
+        _, _, page = self.get(q)
+        self.assertIn(b"Download original Point GeoJSON for both cutoffs", page)
+
+    def test_source_geojson_transition_filter_and_strict_scope(self):
+        q = {**self.knowledge(), "source": "survey-a",
+             "from_known_at": "2026-01-02T12:00:00Z",
+             "change": "new", "format": "geojson"}
+        status, _, raw = self.get(q)
+        self.assertEqual(status, 200)
+        doc = json.loads(raw)
+        self.assertEqual(doc["monde_source_coverage"]["reporting_filter"], "new")
+        self.assertEqual(doc["monde_source_coverage"]["matched_entities"], 1)
+        self.assertTrue(doc["features"])
+        self.assertEqual({f["properties"]["entity"] for f in doc["features"]},
+                         {"site-only-one-source"})
+        self.assertEqual({f["properties"]["monde_comparison_period"]
+                          for f in doc["features"]}, {"later"})
+        status, _, raw = self.get({**q, "source": "unknown-source"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw)["features"], [])
+        for bad in ({**self.knowledge(), "format": "geojson"},
+                    {**q, "change": "invalid"},
+                    {**q, "source": ""}):
+            status, _, _ = self.get(bad)
+            self.assertEqual(status, 400)
+
+    def test_source_geojson_world_time_and_immutable_model(self):
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "source-world.json"
+        world.save(saved)
+        original = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            q = {"directory": "1", "axis": "world", "from_at": EARLY,
+                 "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**q, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            sources = json.loads(raw)["sources"]
+            self.assertTrue(sources)
+            status, _, raw = self.get({**q, "source": sources[0]["source_id"],
+                                       "format": "geojson"}, server)
+            self.assertEqual(status, 200)
+            doc = json.loads(raw)
+            self.assertEqual(doc["monde_source_coverage"]["axis"], "world")
+            self.assertEqual(doc["monde_source_coverage"]["cutoffs"]["earlier"]
+                             ["world_at"], EARLY)
+            self.assertEqual(doc["monde_source_coverage"]["cutoffs"]["later"]
+                             ["world_at"], LATE)
+            for feature in doc["features"]:
+                self.assertEqual(feature["properties"]["source_id"],
+                                 sources[0]["source_id"])
+                self.assertEqual(feature["properties"]["monde_known_at"], KNOWN)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), original)
+
 if __name__ == "__main__":
     unittest.main()
