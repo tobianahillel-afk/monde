@@ -134,11 +134,6 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
     """
     from itertools import combinations
 
-    if source_prefix is not None:
-        if (not isinstance(source_prefix, str) or not source_prefix or
-                len(source_prefix) > 80 or not source_prefix.isascii() or
-                not all(c.isalnum() or c in "._:-" for c in source_prefix)):
-            raise ValueError("invalid source directory prefix")
     if axis not in ("knowledge", "world") or len(cutoffs) != 2:
         raise ValueError("invalid source-pair discovery axis")
     if type(top) is not int or not 1 <= top <= 100:
@@ -303,6 +298,11 @@ def source_directory(world, axis, cutoffs, change=None, rank=None, source_prefix
         raise ValueError("invalid source reporting transition")
     if rank not in (None, "new", "gone", "turnover", "net-gain", "net-loss"):
         raise ValueError("invalid original source coverage ranking")
+    if source_prefix is not None:
+        if (not isinstance(source_prefix, str) or not source_prefix or
+                len(source_prefix) > 80 or not source_prefix.isascii() or
+                not all(c.isalnum() or c in "._:-" for c in source_prefix)):
+            raise ValueError("invalid source directory prefix")
     if axis not in ("knowledge", "world") or len(cutoffs) != 2:
         raise ValueError("invalid source directory axis")
     for at, known_at in cutoffs:
