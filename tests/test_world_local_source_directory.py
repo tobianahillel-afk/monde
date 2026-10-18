@@ -2324,5 +2324,61 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(json.loads(body)["error"], "invalid_query")
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_portable_kmz_contains_original_kml_and_complete_geojson(self):
+        """Persisted WorldMini, actual loopback HTTP and lossless GIS package."""
+        from zipfile import ZipFile
+        from xml.etree import ElementTree as ET
+        query = {**self.knowledge(), "entity": "site-1"}
+        status, headers, blob = self.get({**query, "format": "presence-kmz"})
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Content-Type"], "application/vnd.google-earth.kmz")
+        self.assertIn(".kmz", headers["Content-Disposition"])
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        with ZipFile(io.BytesIO(blob)) as package:
+            self.assertEqual(package.namelist(), ["doc.kml", "original-presence.geojson"])
+            self.assertIsNone(package.testzip())
+            kml = package.read("doc.kml")
+            geojson = json.loads(package.read("original-presence.geojson"))
+        self.assertEqual(kml, self.get({**query, "format": "presence-kml"})[2])
+        self.assertEqual(geojson, json.loads(
+            self.get({**query, "format": "presence-geojson"})[2]))
+        ns = "{http://www.opengis.net/kml/2.2}"
+        self.assertEqual(len(ET.fromstring(kml).findall(
+            ns + "Document/" + ns + "Placemark")), len(geojson["features"]))
+        self.assertEqual(blob, self.get({**query, "format": "presence-kmz"})[2])
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_portable_kmz_source_presence_scope_links_and_rejection(self):
+        from zipfile import ZipFile
+        query = {**self.knowledge(), "entity": "site-1"}
+        self.assertIn(b"Download portable original Point KMZ",
+                      self.get({**query, "format": "table"})[2])
+        self.assertIn(b"Download matching KMZ",
+                      self.get({**query, "format": "presence-table"})[2])
+        for source in ("survey-a", "survey-b"):
+            for presence in ("earlier", "later", "both"):
+                scoped = {**query, "source": source, "presence": presence}
+                status, _, blob = self.get({**scoped, "format": "presence-kmz"})
+                self.assertEqual(status, 200)
+                with ZipFile(io.BytesIO(blob)) as package:
+                    selected = json.loads(package.read("original-presence.geojson"))
+                expected = json.loads(
+                    self.get({**scoped, "format": "presence-geojson"})[2])
+                self.assertEqual(selected, expected)
+        empty = {**query, "entity": "unknown-entity"}
+        with ZipFile(io.BytesIO(self.get({**empty, "format": "presence-kmz"})[2])) as package:
+            self.assertEqual(json.loads(
+                package.read("original-presence.geojson"))["features"], [])
+        for bad in ({**self.knowledge(), "format": "presence-kmz"},
+                    {**query, "format": "presence-kmz", "presence": "invalid"},
+                    {**query, "format": "presence-kmz", "unexpected": "value"},
+                    {**query, "format": "presence-kmz", "source": "survey-a",
+                     "assertion": "incomplete"}):
+            status, _, raw = self.get(bad)
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw)["error"], "invalid_query")
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()
