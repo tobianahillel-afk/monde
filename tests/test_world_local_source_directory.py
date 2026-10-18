@@ -536,7 +536,7 @@ class SourceDirectoryTests(unittest.TestCase):
     def test_optional_rank_form_does_not_submit_an_empty_rejected_rank(self):
         status, _, html = self.get()
         self.assertEqual(status, 200)
-        self.assertEqual(html.count(b'type="radio" name="rank"'), 2 * 3)
+        self.assertEqual(html.count(b'type="radio" name="rank"'), 2 * 5)
         # The existing source-pair discovery forms still have two ranking menus.
         self.assertEqual(html.count(b'<select name="rank">'), 2)
         self.assertNotIn(b'name="rank" value=""', html)
@@ -621,6 +621,397 @@ class SourceDirectoryTests(unittest.TestCase):
             server.server_close()
             self.assertEqual(saved.read_bytes(), initial)
 
+
+    def test_net_gain_loss_ranking_uses_distinct_entities_not_assertion_volume(self):
+        """A mixed-gain-and-loss reporter must not outrank a larger net gain."""
+        early = "2025-04-01T00:00:00Z"
+        late = "2025-04-02T00:00:00Z"
+        fixed = "2025-04-03T00:00:00Z"
+
+        class SourcePointWorld:
+            def export_geojson(self, at, known_at):
+                before = {
+                    "mixed": {"one", "two", "three"},
+                    "growing": {"one"},
+                    "shrinking": {"a", "b", "c", "d"},
+                }
+                after = {
+                    "mixed": {"one", "four", "five", "six"},
+                    "growing": {"one", "two", "three"},
+                    "shrinking": {"a", "b"},
+                }
+                selected = before if known_at == early else after
+                return {"features": [
+                    {"id": f"{source}-{entity}", "properties": {
+                        "source_id": source, "entity": entity}}
+                    for source, entities in selected.items()
+                    for entity in sorted(entities)
+                ]}
+
+        world = SourcePointWorld()
+        cutoffs = ((fixed, early), (fixed, late))
+        default = source_directory(world, "knowledge", cutoffs)
+        gain = source_directory(world, "knowledge", cutoffs, rank="net-gain")
+        loss = source_directory(world, "knowledge", cutoffs, rank="net-loss")
+        self.assertEqual([row["source_id"] for row in gain["sources"]],
+                         ["growing", "mixed", "shrinking"])
+        self.assertEqual([row["source_id"] for row in loss["sources"]],
+                         ["shrinking", "mixed", "growing"])
+        self.assertNotIn("ranking", default)
+        self.assertEqual(gain["ranking"], "net-gain")
+        self.assertEqual(loss["ranking"], "net-loss")
+        for row in gain["sources"]:
+            self.assertEqual(row["later_entities"] - row["earlier_entities"],
+                             row["newly_reported_entities"] -
+                             row["no_longer_reported_entities"])
+
+    def test_net_coverage_http_html_json_csv_and_world_axis(self):
+        for axis, world, query in (
+            ("knowledge", self.world, self.knowledge()),
+            ("world", sample(dateline=True), {
+                "directory": "1", "axis": "world", "from_at": EARLY,
+                "to_at": LATE, "known_at": KNOWN}),
+        ):
+            if axis == "world":
+                saved = Path(self.tmp.name) / "world-net.json"
+                world.save(saved)
+                immutable = saved.read_bytes()
+                server = create_server(saved)
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+            else:
+                server = self.server
+            try:
+                for mode, key in (
+                    ("net-gain", lambda x: x["later_entities"] -
+                                              x["earlier_entities"]),
+                    ("net-loss", lambda x: x["earlier_entities"] -
+                                              x["later_entities"]),
+                ):
+                    with self.subTest(axis=axis, ranking=mode):
+                        status, _, data = self.get(
+                            {**query, "rank": mode, "format": "json"}, server)
+                        self.assertEqual(status, 200)
+                        document = json.loads(data)
+                        self.assertEqual(document["ranking"], mode)
+                        expected = sorted(document["sources"],
+                                          key=lambda row: (-key(row), row["source_id"]))
+                        self.assertEqual(document["sources"], expected)
+                        status, _, csv_body = self.get(
+                            {**query, "rank": mode, "format": "csv"}, server)
+                        self.assertEqual(status, 200)
+                        csv_rows = list(csv.DictReader(io.StringIO(
+                            csv_body.decode("utf-8"))))
+                        self.assertEqual([r["source_id"] for r in csv_rows],
+                                         [r["source_id"] for r in expected])
+                        status, _, html = self.get({**query, "rank": mode}, server)
+                        self.assertEqual(status, 200)
+                        self.assertIn(b"Original reporter coverage ranking", html)
+                        self.assertIn(b"rank=" + mode.encode(), html)
+                        self.assertIn(b'aria-current="page"', html)
+                status, _, default = self.get({**query, "format": "json"}, server)
+                self.assertEqual(status, 200)
+                self.assertNotIn("ranking", json.loads(default))
+            finally:
+                if axis == "world":
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+                    self.assertEqual(saved.read_bytes(), immutable)
+
+    def test_net_coverage_invalid_modes_do_not_change_detail_scope(self):
+        query = self.knowledge()
+        for invalid in ("net", "NET-GAIN", "net-loss%00", "net-gain ", "0"):
+            status, _, data = self.get({**query, "rank": invalid,
+                                         "format": "json"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(data), {"error": "invalid_query"})
+        for mode in ("net-gain", "net-loss"):
+            status, _, data = self.get({**query, "source": "survey-a",
+                                         "rank": mode, "format": "json"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(data), {"error": "invalid_query"})
+
+
+    def test_source_prefix_search_real_http_json_csv_and_navigation(self):
+        query = self.knowledge()
+        status, _, original_raw = self.get({**query, "format": "json"})
+        self.assertEqual(status, 200)
+        original = json.loads(original_raw)
+        options = {**query, "source_prefix": "survey-a"}
+        status, _, raw = self.get({**options, "format": "json"})
+        self.assertEqual(status, 200)
+        selected = json.loads(raw)
+        self.assertEqual(selected["source_prefix"], "survey-a")
+        self.assertEqual(selected["available_sources"], original["total_sources"])
+        self.assertEqual(selected["sources"], [item for item in original["sources"]
+                          if item["source_id"].startswith("survey-a")])
+        for variation in (options, {**options, "rank": "net-gain"},
+                          {**options, "rank": "turnover", "change": "both"}):
+            status, _, raw = self.get({**variation, "format": "json"})
+            self.assertEqual(status, 200)
+            filtered = json.loads(raw)
+            status, _, csv_body = self.get({**variation, "format": "csv"})
+            self.assertEqual(status, 200)
+            rows = list(csv.DictReader(io.StringIO(csv_body.decode("utf-8"))))
+            self.assertEqual([row["source_id"] for row in rows],
+                             [item["source_id"] for item in filtered["sources"]])
+        status, _, html_bytes = self.get(options)
+        self.assertEqual(status, 200)
+        html = html_bytes.decode("utf-8")
+        self.assertIn("source_prefix=survey-a", html)
+        self.assertIn("matching of", html)
+        # Both per-source and partner deep links should remain usable after
+        # navigating from a directory with prefix/rank filters applied.
+        from html import unescape
+        import re
+        for params in (options, {**options, "rank": "net-loss"}):
+            status, _, html_bytes = self.get(params)
+            self.assertEqual(status, 200)
+            html = html_bytes.decode("utf-8")
+            links = re.findall(r'href="([^"]+)"[^>]*>Find partners</a>', html)
+            self.assertTrue(links)
+            for link in links:
+                url = unescape(link)
+                self.assertIn("discover=1", url)
+                self.assertNotIn("source_prefix=", url)
+                self.assertNotIn("rank=", url)
+                connection = http.client.HTTPConnection(
+                    "127.0.0.1", self.server.server_port, timeout=5)
+                connection.request("GET", url, headers={
+                    "Host": "127.0.0.1:" + str(self.server.server_port)})
+                reply = connection.getresponse()
+                self.assertEqual(reply.status, 200)
+                reply.read()
+                connection.close()
+        status, _, blank_raw = self.get({**query, "source_prefix": "",
+                                           "format": "json"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(blank_raw), original)
+        status, _, missing = self.get({**query, "source_prefix": "absent",
+                                       "format": "json"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(missing)["sources"], [])
+        status, _, missing_html = self.get({**query, "source_prefix": "absent"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"NO MATCHING ORIGINAL SOURCE REPORTING TRANSITIONS",
+                      missing_html)
+
+    def test_source_prefix_strict_validation_and_detail_scope(self):
+        query = self.knowledge()
+        for invalid in ("*", "../", "space name", "survey%00",
+                        "a" * 81, "\u00e9"):
+            status, _, body = self.get({**query, "source_prefix": invalid,
+                                        "format": "json"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        status, _, body = self.get({**query, "source": "survey-a",
+                                    "source_prefix": "survey", "format": "json"})
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        with self.assertRaises(ValueError):
+            source_directory(self.world, "knowledge", ((AT, BEFORE), (AT, AFTER)),
+                             source_prefix="../../")
+
+    def test_source_prefix_world_axis_retains_persisted_model(self):
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "source-prefix-world.json"
+        world.save(saved)
+        before = saved.read_bytes()
+        server = create_server(saved)
+        runner = threading.Thread(target=server.serve_forever, daemon=True)
+        runner.start()
+        try:
+            query = {"directory": "1", "axis": "world",
+                     "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**query, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            original = json.loads(raw)["sources"]
+            self.assertTrue(original)
+            prefix = original[0]["source_id"][:3]
+            status, _, raw = self.get({**query, "source_prefix": prefix,
+                                       "format": "json"}, server)
+            self.assertEqual(status, 200)
+            filtered = json.loads(raw)["sources"]
+            self.assertEqual(filtered, [row for row in original
+                                       if row["source_id"].startswith(prefix)])
+            status, _, raw = self.get({**query, "source_prefix": prefix,
+                                       "format": "csv"}, server)
+            self.assertEqual(status, 200)
+            csv_rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+            self.assertEqual([row["source_id"] for row in csv_rows],
+                             [row["source_id"] for row in filtered])
+        finally:
+            server.shutdown()
+            runner.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), before)
+
+
+
+    def test_exact_entity_reporter_directory_live_http(self):
+        q = self.knowledge()
+        status, _, raw = self.get({**q, "format": "json"})
+        self.assertEqual(status, 200)
+        original = json.loads(raw)
+        entity = original["sources"][0]["example_entity"]
+        reporters = {feature["properties"]["source_id"]
+                     for t in (BEFORE, AFTER)
+                     for feature in self.world.export_geojson(AT, t)["features"]
+                     if feature["properties"]["entity"] == entity}
+        filtered = {**q, "entity": entity}
+        status, _, raw = self.get({**filtered, "format": "json"})
+        self.assertEqual(status, 200)
+        result = json.loads(raw)
+        self.assertEqual(result["entity_focus"], entity)
+        self.assertEqual(result["available_sources"], original["total_sources"])
+        self.assertEqual({row["source_id"] for row in result["sources"]}, reporters)
+        for row in result["sources"]:
+            full = next(item for item in original["sources"]
+                        if item["source_id"] == row["source_id"])
+            self.assertEqual(row["example_entity"], entity)
+            self.assertEqual(row["earlier_entities"], full["earlier_entities"])
+            self.assertEqual(row["later_entities"], full["later_entities"])
+            self.assertTrue(row["example_assertion_ids"])
+        status, _, body = self.get({**filtered, "format": "csv"})
+        self.assertEqual(status, 200)
+        rows = list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
+        self.assertEqual([row["source_id"] for row in rows],
+                         [row["source_id"] for row in result["sources"]])
+        status, _, html = self.get(filtered)
+        self.assertEqual(status, 200)
+        self.assertIn(b"Exact original entity:", html)
+        from html import unescape
+        import re
+        partners = re.findall(rb'href="([^"]+)"[^>]*>Find partners</a>', html)
+        self.assertTrue(partners)
+        for url in partners:
+            self.assertNotIn("entity=", unescape(url.decode()))
+        status, _, missing = self.get({**filtered, "entity": "unseen-entity",
+                                       "format": "json"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(missing)["sources"], [])
+
+    def test_exact_entity_reporter_validation_and_world_axis(self):
+        q = self.knowledge()
+        for bad in ("\x00", "\n", "x" * 201):
+            status, _, raw = self.get({**q, "entity": bad, "format": "json"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        status, _, _ = self.get({**q, "source": "survey-a",
+                                 "entity": "anything", "format": "json"})
+        self.assertEqual(status, 400)
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "world-entity.json"
+        world.save(saved)
+        before = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            q2 = {"directory": "1", "axis": "world", "from_at": EARLY,
+                  "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**q2, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            sample_row = json.loads(raw)["sources"][0]
+            status, _, raw = self.get({**q2, "entity": sample_row["example_entity"],
+                                       "format": "json"}, server)
+            self.assertEqual(status, 200)
+            self.assertIn(sample_row["source_id"],
+                          {x["source_id"] for x in json.loads(raw)["sources"]})
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), before)
+
+
+    def test_exact_entity_reporters_map_and_geojson_live_http(self):
+        query = self.knowledge()
+        status, _, raw = self.get({**query, "format": "json"})
+        self.assertEqual(status, 200)
+        entity = json.loads(raw)["sources"][0]["example_entity"]
+        focused = {**query, "entity": entity}
+        status, _, raw = self.get({**focused, "format": "json"})
+        self.assertEqual(status, 200)
+        directory = json.loads(raw)
+        reporters = {row["source_id"] for row in directory["sources"]}
+        status, _, raw = self.get({**focused, "format": "geojson"})
+        self.assertEqual(status, 200)
+        geo = json.loads(raw)
+        self.assertEqual(geo["type"], "FeatureCollection")
+        self.assertEqual(geo["monde_source_coverage"]["entity_focus"], entity)
+        self.assertEqual(geo["monde_source_coverage"]["selected_sources"],
+                         len(reporters))
+        original = {
+            (period, f["id"]): f
+            for period, instant in (("earlier", BEFORE), ("later", AFTER))
+            for f in self.world.export_geojson(AT, instant)["features"]
+        }
+        self.assertTrue(geo["features"])
+        self.assertEqual({f["properties"]["source_id"] for f in geo["features"]},
+                         reporters)
+        for feature in geo["features"]:
+            p = feature["properties"]
+            period, assertion = p["monde_comparison_period"], p["monde_original_assertion_id"]
+            original_point = original[(period, assertion)]
+            self.assertEqual(p["entity"], entity)
+            self.assertEqual(feature["geometry"], original_point["geometry"])
+            self.assertEqual(p["source_id"], original_point["properties"]["source_id"])
+            self.assertEqual(p["monde_known_at"], BEFORE if period == "earlier" else AFTER)
+            self.assertEqual(p["monde_world_at"], AT)
+        status, _, html = self.get(focused)
+        self.assertEqual(status, 200)
+        self.assertIn(b"Map all original reporters of this entity", html)
+        self.assertIn(b"Download original reporter Points GeoJSON", html)
+        status, _, map_html = self.get({**focused, "format": "map"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"<!doctype html>", map_html.lower())
+        status, _, missing = self.get({**query, "entity": "no-such-report-xyz",
+                                      "format": "geojson"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(missing)["features"], [])
+        for fmt in ("geojson", "map"):
+            status, _, body = self.get({**query, "format": fmt})
+            self.assertEqual(status, 400)
+
+    def test_original_reporter_map_world_axis_preserves_saved_world(self):
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "entity-reporters-map.json"
+        world.save(saved)
+        before = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            q = {"directory": "1", "axis": "world",
+                 "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}
+            status, _, raw = self.get({**q, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            entity = json.loads(raw)["sources"][0]["example_entity"]
+            status, _, raw = self.get({**q, "entity": entity,
+                                       "format": "geojson"}, server)
+            self.assertEqual(status, 200)
+            features = json.loads(raw)["features"]
+            self.assertTrue(features)
+            for feature in features:
+                p = feature["properties"]
+                self.assertEqual(p["entity"], entity)
+                self.assertEqual(p["monde_world_at"],
+                                 EARLY if p["monde_comparison_period"] == "earlier" else LATE)
+                self.assertEqual(p["monde_known_at"], KNOWN)
+            status, _, html = self.get({**q, "entity": entity, "format": "map"},
+                                       server)
+            self.assertEqual(status, 200)
+            self.assertIn(b"<!doctype html>", html.lower())
+            status, _, raw = self.get({**q, "source": "survey-a",
+                                      "entity": entity, "format": "geojson"}, server)
+            self.assertEqual(status, 400)
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), before)
 
 if __name__ == "__main__":
     unittest.main()

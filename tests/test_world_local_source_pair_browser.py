@@ -253,7 +253,8 @@ class LocalSourcePairBrowserTests(unittest.TestCase):
         self.assertEqual(json.loads(raw), original)
         status, _, form = self.fetch()
         self.assertEqual(status, 200)
-        self.assertEqual(form.count(b'name="entity"'), 2)
+        # Two source-pair forms plus two reporter-directory lookup forms.
+        self.assertEqual(form.count(b'name="entity"'), 4)
 
     def test_entity_scope_before_top_on_two_real_original_entities(self):
         # Construct the original evidence in knowledge order: WorldMini rejects

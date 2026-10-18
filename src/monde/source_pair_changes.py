@@ -292,12 +292,22 @@ def discover_source_pairs(world, axis, cutoffs, top=25, rank="separation", sourc
 
 
 
-def source_directory(world, axis, cutoffs, change=None, rank=None):
+def source_directory(world, axis, cutoffs, change=None, rank=None, source_prefix=None,
+                     entity=None):
     """Per-original-source Point coverage and optional evidence-based ranking."""
     if change not in (None, "new", "gone", "both"):
         raise ValueError("invalid source reporting transition")
-    if rank not in (None, "new", "gone", "turnover"):
+    if rank not in (None, "new", "gone", "turnover", "net-gain", "net-loss"):
         raise ValueError("invalid original source coverage ranking")
+    if source_prefix is not None:
+        if (not isinstance(source_prefix, str) or not source_prefix or
+                len(source_prefix) > 80 or not source_prefix.isascii() or
+                not all(c.isalnum() or c in "._:-" for c in source_prefix)):
+            raise ValueError("invalid source directory prefix")
+    if entity is not None and (not isinstance(entity, str) or
+            not 0 < len(entity) <= 200 or any(ord(c) < 32 or ord(c) == 127
+                                               for c in entity)):
+        raise ValueError("invalid original entity filter")
     if axis not in ("knowledge", "world") or len(cutoffs) != 2:
         raise ValueError("invalid source directory axis")
     for at, known_at in cutoffs:
@@ -324,7 +334,7 @@ def source_directory(world, axis, cutoffs, change=None, rank=None):
         earlier = periods["earlier"].get(source, {})
         later = periods["later"].get(source, {})
         a, b = set(earlier), set(later)
-        example = min(a | b)
+        example = entity if entity is not None and entity in (a | b) else min(a | b)
         result.append({
             "source_id": source,
             "earlier_entities": len(a),
@@ -341,6 +351,10 @@ def source_directory(world, axis, cutoffs, change=None, rank=None):
     result.sort(key=lambda row: (-max(row["earlier_entities"],
                                      row["later_entities"]), row["source_id"]))
     available_sources = len(result)
+    if entity is not None:
+        result = [row for row in result if row["example_entity"] == entity]
+    if source_prefix is not None:
+        result = [row for row in result if row["source_id"].startswith(source_prefix)]
     if change is not None:
         field = {"new": "newly_reported_entities",
                  "gone": "no_longer_reported_entities",
@@ -354,6 +368,10 @@ def source_directory(world, axis, cutoffs, change=None, rank=None):
             "gone": lambda row: row["no_longer_reported_entities"],
             "turnover": lambda row: (row["newly_reported_entities"] +
                                      row["no_longer_reported_entities"]),
+            "net-gain": lambda row: (row["later_entities"] -
+                                      row["earlier_entities"]),
+            "net-loss": lambda row: (row["earlier_entities"] -
+                                      row["later_entities"]),
         }[rank]
         result.sort(key=lambda row: (-count(row), row["source_id"]))
     document = {
@@ -372,6 +390,14 @@ def source_directory(world, axis, cutoffs, change=None, rank=None):
     }
     if change is not None:
         document["reporting_filter"] = change
+    if source_prefix is not None:
+        document["source_prefix"] = source_prefix
+    if entity is not None:
+        document["entity_focus"] = entity
+        document["interpretation"] += (
+            " Selected sources reported this exact original entity at either"
+            " cutoff; coverage counts still include all source entities.")
+    if change is not None or source_prefix is not None or entity is not None:
         document["available_sources"] = available_sources
     if rank is not None:
         document["ranking"] = rank
@@ -481,6 +507,65 @@ def source_directory_map(world, detail):
     }
     geojson["monde_source_coverage"]["display_basis"] = (
         "BOTH_ORIGINAL_REPORTING_PERIODS_NOT_VERIFIED_MOVEMENT")
+    return geojson
+
+
+def source_directory_entity_geojson(world, directory):
+    """Preserve both cutoffs' original Points for selected exact-entity reporters."""
+    if (directory.get("schema") != "MONDE_SOURCE_COVERAGE_DIRECTORY_V1" or
+            "entity_focus" not in directory):
+        raise ValueError("original entity reporter directory required")
+    selected = {row["source_id"]: set(row["example_assertion_ids"])
+                for row in directory["sources"]}
+    entity = directory["entity_focus"]
+    features = []
+    for period in ("earlier", "later"):
+        cutoff = directory["cutoffs"][period]
+        at, known_at = cutoff["world_at"], cutoff["knowledge_at"]
+        for original in world.export_geojson(at, known_at)["features"]:
+            props = original["properties"]
+            if (props["entity"] != entity or
+                    original["id"] not in selected.get(props["source_id"], ())):
+                continue
+            metadata = dict(props)
+            metadata.update(monde_original_assertion_id=original["id"],
+                            monde_comparison_period=period,
+                            monde_world_at=at, monde_known_at=known_at)
+            features.append({
+                "type": "Feature", "id": period + ":" + str(original["id"]),
+                "geometry": original["geometry"], "properties": metadata,
+            })
+    return {
+        "type": "FeatureCollection", "features": features,
+        "monde_source_coverage": {
+            "schema": "MONDE_ENTITY_REPORTERS_GEOJSON_V1",
+            "entity_focus": entity, "axis": directory["axis"],
+            "cutoffs": directory["cutoffs"],
+            "selected_sources": len(selected),
+            "original_feature_count": len(features),
+            "interpretation": directory["interpretation"],
+        },
+    }
+
+
+def source_directory_entity_map(world, directory):
+    """Reuse the source Point display envelope, never infer consensus or motion."""
+    geojson = source_directory_entity_geojson(world, directory)
+    features = geojson["features"]
+    for feature in features:
+        feature["properties"]["monde_inside_bbox"] = True
+    earlier = directory["cutoffs"]["earlier"]
+    geojson["monde_bbox_query"] = {
+        "basis": "SOURCE_REPORTED_POINT_BBOX_ONLY",
+        "bbox": _source_display_bbox(features),
+        "valid_at": earlier["world_at"],
+        "knowledge_cutoff": earlier["knowledge_at"],
+        "total_matching_entities": 1 if features else 0,
+        "total_source_features": len(features),
+        "status": "MATCHES" if features else "NO_MATCHES",
+    }
+    geojson["monde_source_coverage"]["display_basis"] = (
+        "ORIGINAL_REPORTS_AT_BOTH_CUTOFFS_NOT_CONSENSUS_LOCATION")
     return geojson
 
 

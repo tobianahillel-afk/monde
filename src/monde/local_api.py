@@ -322,13 +322,13 @@ def _parameters(target: str, path: str) -> dict[str, str]:
         raise ValueError("invalid request path")
     values = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
                       max_num_fields=14)
-    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top", "min_change_km", "bbox", "region_source", "region_period"})
+    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top", "min_change_km", "bbox", "region_source", "region_period", "source_prefix"})
            for key, v in values.items()):
         raise ValueError("all parameters must appear exactly once")
     # Browser GET forms submit empty optional controls: treat blank source as
     # no filter, but keep every other parameter strict.
     return {key: items[0] for key, items in values.items()
-            if key not in {"source", "entity", "direction", "top", "min_change_km", "bbox", "region_source", "region_period"} or items[0]}
+            if key not in {"source", "entity", "direction", "top", "min_change_km", "bbox", "region_source", "region_period", "source_prefix"} or items[0]}
 
 
 def _require(values: dict[str, str], required: set[str],
@@ -1001,6 +1001,11 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             '<input type="hidden" name="directory" value="1">'
             '<input type="hidden" name="axis" value="' + axis + '">'
             + inputs +
+            '<label>Original source ID starts with (optional)'
+            '<input name="source_prefix" maxlength="80"'
+            ' placeholder="e.g. survey-" autocomplete="off"></label>'
+            '<label>Original entity ID (optional; exact reporter lookup)'
+            '<input name="entity" maxlength="200" autocomplete="off"></label>'
             '<label>Output <select name="format">'
             '<option value="table">Accessible coverage table</option>'
             '<option value="json">JSON</option>'
@@ -1013,6 +1018,10 @@ def _pair_explorer_html(source_ids: tuple[str, ...]) -> str:
             'Most no-longer-reported entities</label>'
             '<label><input type="radio" name="rank" value="turnover">'
             'Most changed reported entities</label>'
+            '<label><input type="radio" name="rank" value="net-gain">'
+            'Largest net reporting coverage gain</label>'
+            '<label><input type="radio" name="rank" value="net-loss">'
+            'Largest net reporting coverage loss</label>'
             '</fieldset><button>Browse source coverage</button></form>')
         discovery.append(
             '<form action="/source-pair" method="get">'
@@ -1185,37 +1194,45 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
-                 {"format", "source", "change", "rank"})
+                 {"format", "source", "change", "rank", "source_prefix", "entity"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
-                 {"format", "source", "change", "rank"})
+                 {"format", "source", "change", "rank", "source_prefix", "entity"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
         raise ValueError("invalid source directory axis")
-    if args.get("format") in ("geojson", "map") and "source" not in args:
-        raise ValueError("source map or GeoJSON requires a source")
+    if (args.get("format") in ("geojson", "map") and
+            "source" not in args and "entity" not in args):
+        raise ValueError("source map or GeoJSON requires a source or entity")
     if "source" in args and "rank" in args:
         raise ValueError("ranking only applies to original source directory")
+    if "source" in args and args.get("source_prefix"):
+        raise ValueError("prefix search only applies to original source directory")
+    if "source" in args and "entity" in args:
+        raise ValueError("entity lookup applies only to reporter directory")
     if "source" in args:
         from .source_pair_changes import source_directory_detail
         return source_directory_detail(
             world, args["axis"], cutoffs, args["source"], args.get("change"))
     return source_directory(world, args["axis"], cutoffs,
-                            args.get("change"), args.get("rank"))
+                            args.get("change"), args.get("rank"),
+                            args.get("source_prefix") or None,
+                            args.get("entity") or None)
 
 
 def _source_directory_html(document: dict, args: dict[str, str]) -> str:
     rows = []
     for item in document["sources"]:
         query = {key: value for key, value in args.items()
-                 if key not in ("directory", "format", "rank")}
+                 if key not in ("directory", "format", "rank", "source_prefix", "entity")}
         query.pop("change", None)  # partner discovery has no directory filter
         query.update(discover="1", source=item["source_id"], format="table")
         link = "/source-pair?" + urlencode({
-            **{k: v for k, v in args.items() if k != "rank"},
+            **{k: v for k, v in args.items()
+               if k not in ("rank", "source_prefix", "entity")},
             "source": item["source_id"], "format": "table"})
         partners = "/source-pair?" + urlencode(query)
         rows.append(
@@ -1249,7 +1266,8 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
     navigation = '<nav aria-label="Original reporter transition filters"><p>' + (
         ' · '.join(choices)) + '</p></nav>'
     ranks = (("all", "Default coverage"), ("new", "Most new"),
-             ("gone", "Most gone"), ("turnover", "Most changed"))
+             ("gone", "Most gone"), ("turnover", "Most changed"),
+             ("net-gain", "Largest net gain"), ("net-loss", "Largest net loss"))
     rank_links = []
     for mode, label in ranks:
         query = {k: v for k, v in args.items() if k not in ("rank", "format")}
@@ -1265,7 +1283,7 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         ' · '.join(rank_links)) + '</p></nav>'
     count_label = (str(document["total_sources"]) + " matching of " +
                    str(document["available_sources"]) + " original sources"
-                   if "reporting_filter" in document else
+                   if "available_sources" in document else
                    str(document["total_sources"]) + " original sources")
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -1276,10 +1294,20 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         'padding:9px;text-align:left}table{border-collapse:collapse}</style>'
         '</head><body><nav><a href="/source-pair">Source comparisons</a></nav>'
         '<h1>Original Point reporter coverage</h1><p>' +
-        escape(document["interpretation"]) + '</p><p>' +
+        escape(document["interpretation"]) + '</p>' +
+        ('<p>Exact original entity: <strong>' +
+         escape(document["entity_focus"]) + '</strong></p>'
+         if "entity_focus" in document else '') + '<p>' +
         escape(count_label) + ', ' + escape(document["axis"]) +
         ' time.</p>' + navigation + ranking + '<p><a href="' +
-        escape(csv_link, quote=True) + '">Download matching coverage CSV</a></p>'
+        escape(csv_link, quote=True) + '">Download matching coverage CSV</a>' +
+        (' · <a href="' + escape("/source-pair?" + urlencode(
+            {**args, "format": "map"}), quote=True) +
+         '">Map all original reporters of this entity</a> · <a href="' +
+         escape("/source-pair?" + urlencode(
+             {**args, "format": "geojson"}), quote=True) +
+         '">Download original reporter Points GeoJSON</a>'
+         if "entity_focus" in document else '') + '</p>'
         '<table><caption>Original source entities at the two cutoffs</caption>'
         '<thead><tr><th scope="col">Source — investigate partners</th>'
         '<th scope="col">Entities earlier / later</th>'
@@ -1289,7 +1317,7 @@ def _source_directory_html(document: dict, args: dict[str, str]) -> str:
         '<th scope="col">Example original entity</th></tr></thead><tbody>' +
         ''.join(rows) + '</tbody></table>' +
         ('<p role="status">NO MATCHING ORIGINAL SOURCE REPORTING TRANSITIONS.'
-         '</p>' if not rows and "reporting_filter" in document else
+         '</p>' if not rows and "available_sources" in document else
          '<p role="status">NO ORIGINAL POINT SOURCE REPORTS at either cutoff.'
          '</p>' if not rows else '') + '</body></html>')
 
@@ -1791,11 +1819,17 @@ def create_server(state: str | Path, port: int = 0, *,
                         if output_format == "json":
                             return self._reply(200, document)
                         if output_format == "geojson":
-                            from .source_pair_changes import source_directory_geojson
-                            return self._reply(200, source_directory_geojson(world, document))
+                            from .source_pair_changes import (
+                                source_directory_geojson, source_directory_entity_geojson)
+                            exporter = (source_directory_entity_geojson if "entity" in args
+                                        else source_directory_geojson)
+                            return self._reply(200, exporter(world, document))
                         if output_format == "map":
-                            from .source_pair_changes import source_directory_map
-                            return self._html(source_directory_map(world, document))
+                            from .source_pair_changes import (
+                                source_directory_map, source_directory_entity_map)
+                            exporter = (source_directory_entity_map if "entity" in args
+                                        else source_directory_map)
+                            return self._html(exporter(world, document))
                         if output_format == "csv":
                             body = (_source_directory_detail_csv(document)
                                     if "source" in args else _source_directory_csv(document))

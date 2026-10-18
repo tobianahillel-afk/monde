@@ -563,3 +563,56 @@ before ranking. The default order and schemas are unchanged when rank is
 omitted. Rank is directory-only, never a source-detail or partner query.
 Changes reflect reporting coverage, **not** physical loss, accuracy, events
 or a verified truth claim; persisted evidence is never modified.
+
+
+### Prioritize net original reporting coverage change (WORK-0114)
+
+The existing original source directory supports optional `rank=net-gain` or
+`rank=net-loss` on both knowledge-time and world-time comparisons. Each rank
+uses the signed difference between **distinct source-reported Point entities**
+at the later and earlier cutoffs, not the number of assertions or corrections.
+Net gain equals newly reported minus no-longer-reported entities; net loss
+reverses the sign. Mixed turnover cannot be mistaken for overall coverage
+growth. Ties use the original source ID for stable ordering across HTML,
+JSON and CSV, with the optional transition filter still applied *before* rank.
+
+These ranks are view-only: no persisted change, inferred geographic movement,
+source accuracy or reliability claim. The default directory schema and order,
+per-source detail and source-partner discovery remain unchanged. Unknown ranks
+and directory ranks on source-specific detail are rejected.
+
+
+### Find original reporters by exact source ID prefix
+
+The existing directory form accepts optional `source_prefix=survey-` for both
+knowledge-time and world-time comparisons. The case-sensitive literal prefix
+filters original reporter IDs *before* transition filtering and ranking;
+the same selection appears in HTML, JSON and CSV. Prefixes are ASCII letters,
+digits, `._:-`, up to 80 characters, not wildcards or patterns.
+An empty optional form field leaves old unfiltered JSON unchanged.
+Filtered JSON adds `source_prefix` and `available_sources`; no saved
+WorldMini model changes. Source detail and pair-discovery links drop
+inapplicable directory prefix/rank controls to remain navigable.
+
+## Exact original-entity reporter lookup (WORK-0115)
+
+The existing local source-coverage directory accepts optional `entity` for both
+world and knowledge cutoffs. It selects original sources reporting a Point for
+that exact entity at either cutoff. The example column preserves that entity's
+original assertion IDs. Coverage and ranking statistics still count **all**
+entities for each source, not just the focus entity. HTML, JSON and CSV select
+the same sources, no data is changed, and detail/partner links omit the
+unsupported filter. No additional route, dependency or API.
+
+
+### Map original reporters of one exact entity (WORK-0115)
+
+The local source directory can open `format=geojson` or `format=map` when
+`entity` is explicitly selected. Only that entity's original Points from the
+selected reporting sources at both cutoffs are shown, with original assertion,
+evidence and source identifiers, unchanged WGS84 positions, period, world time
+and knowledge cutoff. Optional source-prefix, ranking and reporting-transition
+filters continue to select which reporters qualify. The map viewport is a
+source-point display envelope, not verified movement or a consensus position.
+Directory requests for a map without `source` or `entity` remain invalid.
+No new endpoint, dependency, service, persisted-model mutation or paid API.
