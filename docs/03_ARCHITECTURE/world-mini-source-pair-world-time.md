@@ -452,3 +452,25 @@ movement, or ground truth. Missing reports remain UNKNOWN, never inferred
 agreement. Existing JSON, CSV, GeoJSON, offline-map and table outputs retain
 original assertions and both temporal cutoffs. The default `separation`
 ranking is unchanged. No new endpoint, storage, dependency or data mutation.
+
+## Representative geographic divergence by median separation (WORK-0110)
+
+The existing local, read-only `/source-pair?discover=1` supports
+`rank=median` on **both** knowledge-time and world-time comparisons. It ranks
+original reporter pairs by the median nearest separation of **distinct jointly
+observed entities**, not the most extreme original Point. If an entity has
+observations at both cutoffs, its greatest nearest separation contributes once:
+two captures of the same entity do not count as two independent entities.
+
+The ranked pair JSON exposes `median_nearest_km` (approximate km, rounded to
+0.001). The native discovery form offers the option; the accessible table shows
+a median column; CSV adds a median field only for this ranking, keeping the
+default CSV schema unchanged. The original evidence GeoJSON retains original
+Point geometry, source/assertion identity and provenance, with the ranking
+median as metadata. Existing per-pair evidence/map drilldowns are reused.
+`min_joint` still applies before top-N.
+
+This identifies **representative source-reported separation**, never source
+accuracy, physical truth, reliability or inferred movement. Missing joint
+reports remain UNKNOWN; all queries reuse persisted WorldMini snapshots
+without mutation or external services. PR is stacked on WORK-0109 (#139).
