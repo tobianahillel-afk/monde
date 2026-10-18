@@ -2536,8 +2536,30 @@ body.dataset.sourceEntityCsvReused=String(
         diff_reports = [feature for feature in expected
                         if feature["properties"]["entity"] in different]
         self.assertTrue(diff_reports)
+        import math
+        def approximate_km(p, q):
+            lat1, lat2 = math.radians(p[1]), math.radians(q[1])
+            delta_lat = lat2 - lat1
+            delta_lon = math.radians(((q[0]-p[0]+540) % 360)-180)
+            h = (math.sin(delta_lat/2)**2 +
+                 math.cos(lat1)*math.cos(lat2)*math.sin(delta_lon/2)**2)
+            return 6371.0088*2*math.asin(math.sqrt(min(1, max(0, h))))
+        separations = {}
+        for entity in overlap:
+            first = observations[pair[0]][entity]
+            second = observations[pair[1]][entity]
+            separations[entity] = {}
+            for period_name in ("earlier", "later"):
+                one = {tuple(x["geometry"]["coordinates"]) for x in first[period_name]}
+                two = {tuple(x["geometry"]["coordinates"]) for x in second[period_name]}
+                all_distances = [approximate_km(a, b) for a in one for b in two]
+                separations[entity][period_name] = (
+                    {"nearest_km": round(min(all_distances), 3),
+                     "farthest_km": round(max(all_distances), 3)}
+                    if all_distances else None)
         script = ("""<script>
 const expected=__EXPECTED__,sourcesPair=__SOURCES__,reports=__REPORTS__;
+const separations=__SEPARATIONS__;
 const root=document.body,panel=document.getElementById("comparison-source-pairs");
 const a=document.getElementById("comparison-source-a"),b=document.getElementById("comparison-source-b");
 const exportButton=document.getElementById("comparison-source-pair-export");
@@ -2552,7 +2574,17 @@ root.dataset.pairRowsCorrect=String(panel&&!panel.hidden&&!exportButton.disabled
       row.dataset.sharedLater===String(item.later) &&
       row.dataset.differentEarlier===String(item.different_earlier) &&
       row.dataset.differentLater===String(item.different_later) &&
-      Number(cells[5].textContent)===item.count;
+      Number(cells[5].textContent)===item.count&&
+      ["earlier","later"].every(function(period){
+        const measure=separations[row.dataset.pairEntity][period];
+        const visible=period==="earlier"?cells[6]:cells[7];
+        return measure?
+          Math.abs(Number(row.dataset[period+"NearestKm"])-measure.nearest_km)<0.0015&&
+          Math.abs(Number(row.dataset[period+"FarthestKm"])-measure.farthest_km)<0.0015&&
+          visible.textContent.includes("–"):
+          visible.textContent==="Not jointly reported"&&
+          !Object.hasOwn(row.dataset,period+"NearestKm");
+      });
   }));
 // Presentation filtering must never truncate the original embedded evidence.
 const search=document.getElementById("report-search");
@@ -2595,6 +2627,17 @@ root.dataset.diffExportCorrect=String(!!metaDiff&&
   metaDiff.scope==="COMPLETE_EMBEDDED_SOURCE_PAIR_REPORTED_POSITION_DIFFERENCES"&&
   metaDiff.source_a===sourcesPair[0]&&metaDiff.source_b===sourcesPair[1]&&
   metaDiff.differing_entity_count===Object.keys(__DIFFERENT__).length&&
+  metaDiff.separation_method==="APPROXIMATE_WGS84_GREAT_CIRCLE_NEAREST_AND_FARTHEST_SOURCE_POINT_PAIRS_KM"&&
+  metaDiff.source_reported_separations.length===Object.keys(__DIFFERENT__).length&&
+  metaDiff.source_reported_separations.every(function(item){
+    const reference=separations[item.entity];
+    return reference&&["earlier","later"].every(function(period){
+      const actual=item[period],value=reference[period];
+      return !value?actual===null:
+        !!actual&&Math.abs(actual.nearest_km-value.nearest_km)<0.0015&&
+        Math.abs(actual.farthest_km-value.farthest_km)<0.0015;
+    });
+  })&&
   metaDiff.original_feature_count===__TOTAL__&&
   metaDiff.exported_feature_count===__DIFF_COUNT__&&
   metaDiff.earlier_original_report_count===__DIFF_REPORTS__.filter(function(f){
@@ -2606,6 +2649,7 @@ a.value=sourcesPair[0];b.value=sourcesPair[0];b.dispatchEvent(new Event("change"
 root.dataset.pairSameSourceDenied=String(exportButton.disabled&&diffButton.disabled&&
   document.querySelectorAll("#comparison-source-pair-rows tr").length===0);
 </script>""".replace("__EXPECTED__", json.dumps(overlap))
+                   .replace("__SEPARATIONS__", json.dumps(separations))
                    .replace("__SOURCES__", json.dumps(pair))
                    .replace("__REPORTS__", json.dumps(expected))
                    .replace("__TOTAL__", str(len(embedded["features"])))

@@ -10,14 +10,16 @@ updated_at: "2026-10-18"
 purpose: |
   Allow analysts to identify where two original reporting sources provide
   different Point coordinate sets for one entity in the same world/knowledge
-  comparison period, and retrieve full original evidence for inspection.
+  comparison period, measure their approximate minimum and maximum same-period
+  Point separations, and retrieve full original evidence for inspection.
 scope:
-  in: ["Earlier/later original source position comparison", "Complete diverging-pair GeoJSON export", "Chromium evidence integrity test"]
+  in: ["Earlier/later original source position comparison", "Approximate nearest/farthest cross-source Point distances", "Complete diverging-pair GeoJSON export", "Chromium evidence integrity test"]
   out: ["Inferred consensus, physical movement, verified position or absence", "New services, dependencies, mutable state"]
 acceptance_criteria:
   - {id: AC-1, description: "Different same-period original coordinate sets are identified for jointly reported entity IDs without inferring truth.", status: IN_REVIEW}
   - {id: AC-2, description: "Exact original pair features from both periods remain exportable despite screen filters.", status: IN_REVIEW}
   - {id: AC-3, description: "Real browser integration tests preserve source provenance and byte-unchanged saved WorldMini.", status: IN_REVIEW}
+  - {id: AC-4, description: "Compare nearest and farthest same-period cross-source reported Point separations without inferring verified location or movement.", status: IN_REVIEW}
 requirements: []
 depends_on: [WORK-0088]
 read_before: [AGENTS.md, src/monde/map_view.py, tests/test_world_local_api_disagreement_report.py, docs/03_ARCHITECTURE/world-mini-local-api.md]

@@ -219,7 +219,7 @@ __MONDE_TIME_NAVIGATION__
   <button id="comparison-source-pair-diff-export" type="button" disabled>Download original reports with different source coordinates</button>
   <p id="comparison-source-pair-summary" class="subtle" role="status" aria-live="polite"></p>
   <table aria-label="Entities jointly reported by two sources in original periods">
-  <thead><tr><th scope="col">Original entity</th><th scope="col">Both earlier</th><th scope="col">Both later</th><th scope="col">Earlier reported coordinates differ</th><th scope="col">Later reported coordinates differ</th><th scope="col">Pair original reports</th><th scope="col">Explore</th></tr></thead>
+  <thead><tr><th scope="col">Original entity</th><th scope="col">Both earlier</th><th scope="col">Both later</th><th scope="col">Earlier reported coordinates differ</th><th scope="col">Later reported coordinates differ</th><th scope="col">Pair original reports</th><th scope="col">Earlier source separation (km)</th><th scope="col">Later source separation (km)</th><th scope="col">Explore</th></tr></thead>
   <tbody id="comparison-source-pair-rows"></tbody></table>
 </details>
 <div id="gpkg-layer-control" class="controls" hidden>
@@ -1372,7 +1372,26 @@ __MONDE_TIME_NAVIGATION__
         select.appendChild(option);
       });
     });
-    var pairShared=[],pairDifferent=[];
+    var pairShared=[],pairDifferent=[],pairDistances=[];
+    // The existing great-circle function measures approximate separations
+    // between source reports, not verified physical locations.
+    function crossSourceSeparation(left,right){
+      if(!left.length||!right.length)return null;
+      var unique=function(reports){
+        return Array.from(new Set(reports.map(function(f){
+          return JSON.stringify(f.geometry.coordinates);
+        }))).map(JSON.parse);
+      };
+      var a=unique(left),b=unique(right),lo=Infinity,hi=0;
+      a.forEach(function(p){
+        b.forEach(function(q){
+          var km=approximateDistanceKm(p,q);
+          lo=Math.min(lo,km);hi=Math.max(hi,km);
+        });
+      });
+      return {nearest_km:Math.round(lo*1000)/1000,
+        farthest_km:Math.round(hi*1000)/1000};
+    }
     function differentCoordinates(left,right){
       // Compare sets of *original reported coordinates* in the same period.
       // Multiple identical reports do not create an artificial mismatch.
@@ -1387,7 +1406,7 @@ __MONDE_TIME_NAVIGATION__
         Array.from(first).some(function(position){return !second.has(position);});
     }
     function renderPair(){
-      pairShared=[];pairDifferent=[];
+      pairShared=[];pairDifferent=[];pairDistances=[];
       pairRows.replaceChildren();pairExport.disabled=true;
       pairDiffExport.disabled=true;
       var first=sourceEntityCoverage.get(pairA.value);
@@ -1404,7 +1423,11 @@ __MONDE_TIME_NAVIGATION__
         if(!earlier&&!later)return;
         var earlierDifferent=earlier&&differentCoordinates(a.earlier,b.earlier);
         var laterDifferent=later&&differentCoordinates(a.later,b.later);
+        var earlierSeparation=crossSourceSeparation(a.earlier,b.earlier);
+        var laterSeparation=crossSourceSeparation(a.later,b.later);
         pairShared.push(entity);
+        pairDistances.push({entity:entity,earlier:earlierSeparation,
+          later:laterSeparation});
         if(earlierDifferent||laterDifferent)pairDifferent.push(entity);
         var tr=document.createElement("tr");
         tr.dataset.pairEntity=entity;
@@ -1420,6 +1443,18 @@ __MONDE_TIME_NAVIGATION__
         cell(!earlier?"Not jointly reported":earlierDifferent?"Different":"Same reported positions");
         cell(!later?"Not jointly reported":laterDifferent?"Different":"Same reported positions");
         cell(a.earlier.length+a.later.length+b.earlier.length+b.later.length);
+        function separationCell(period,result){
+          var td=cell(result?
+            result.nearest_km.toFixed(3)+"–"+result.farthest_km.toFixed(3):
+            "Not jointly reported");
+          if(result){
+            tr.dataset[period+"NearestKm"]=String(result.nearest_km);
+            tr.dataset[period+"FarthestKm"]=String(result.farthest_km);
+          }
+          return td;
+        }
+        separationCell("earlier",earlierSeparation);
+        separationCell("later",laterSeparation);
         var action=cell(""),button=document.createElement("button");
         button.type="button";button.textContent="Explore all original reports for entity";
         button.addEventListener("click",function(){
@@ -1483,6 +1518,11 @@ __MONDE_TIME_NAVIGATION__
           comparison_axis:data.monde_comparison.axis,
           source_a:a,source_b:b,
           differing_entity_count:pairDifferent.length,
+          source_reported_separations:pairDistances.filter(function(item){
+            return different.has(item.entity);
+          }),
+          separation_method:"APPROXIMATE_WGS84_GREAT_CIRCLE_NEAREST_AND_FARTHEST_SOURCE_POINT_PAIRS_KM",
+          separation_interpretation:"Between two original source reports in the same period only; not a verified position, accuracy, route, source quality or physical movement.",
           earlier_original_report_count:earlierCount,
           later_original_report_count:reports.length-earlierCount,
           original_feature_count:features.length,
