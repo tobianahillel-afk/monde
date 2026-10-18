@@ -216,9 +216,10 @@ __MONDE_TIME_NAVIGATION__
   <label for="comparison-source-b">Second reporting source</label>
   <select id="comparison-source-b" aria-label="Second reporting source"><option value="">Choose second source</option></select>
   <button id="comparison-source-pair-export" type="button" disabled>Download complete shared-entity pair GeoJSON</button>
+  <button id="comparison-source-pair-diff-export" type="button" disabled>Download original reports with different source coordinates</button>
   <p id="comparison-source-pair-summary" class="subtle" role="status" aria-live="polite"></p>
   <table aria-label="Entities jointly reported by two sources in original periods">
-  <thead><tr><th scope="col">Original entity</th><th scope="col">Both earlier</th><th scope="col">Both later</th><th scope="col">Pair original reports</th><th scope="col">Explore</th></tr></thead>
+  <thead><tr><th scope="col">Original entity</th><th scope="col">Both earlier</th><th scope="col">Both later</th><th scope="col">Earlier reported coordinates differ</th><th scope="col">Later reported coordinates differ</th><th scope="col">Pair original reports</th><th scope="col">Explore</th></tr></thead>
   <tbody id="comparison-source-pair-rows"></tbody></table>
 </details>
 <div id="gpkg-layer-control" class="controls" hidden>
@@ -1363,6 +1364,7 @@ __MONDE_TIME_NAVIGATION__
     var pairRows=document.getElementById("comparison-source-pair-rows");
     var pairSummary=document.getElementById("comparison-source-pair-summary");
     var pairExport=document.getElementById("comparison-source-pair-export");
+    var pairDiffExport=document.getElementById("comparison-source-pair-diff-export");
     [pairA,pairB].forEach(function(select){
       sourceNames.forEach(function(source){
         var option=document.createElement("option");
@@ -1370,10 +1372,24 @@ __MONDE_TIME_NAVIGATION__
         select.appendChild(option);
       });
     });
-    var pairShared=[];
+    var pairShared=[],pairDifferent=[];
+    function differentCoordinates(left,right){
+      // Compare sets of *original reported coordinates* in the same period.
+      // Multiple identical reports do not create an artificial mismatch.
+      if(!left.length||!right.length)return false;
+      var first=new Set(left.map(function(f){
+        return JSON.stringify(f.geometry.coordinates);
+      }));
+      var second=new Set(right.map(function(f){
+        return JSON.stringify(f.geometry.coordinates);
+      }));
+      return first.size!==second.size ||
+        Array.from(first).some(function(position){return !second.has(position);});
+    }
     function renderPair(){
-      pairShared=[];
+      pairShared=[];pairDifferent=[];
       pairRows.replaceChildren();pairExport.disabled=true;
+      pairDiffExport.disabled=true;
       var first=sourceEntityCoverage.get(pairA.value);
       var second=sourceEntityCoverage.get(pairB.value);
       if(!first||!second||pairA.value===pairB.value){
@@ -1386,16 +1402,23 @@ __MONDE_TIME_NAVIGATION__
         var earlier=Boolean(a.earlier.length&&b.earlier.length);
         var later=Boolean(a.later.length&&b.later.length);
         if(!earlier&&!later)return;
+        var earlierDifferent=earlier&&differentCoordinates(a.earlier,b.earlier);
+        var laterDifferent=later&&differentCoordinates(a.later,b.later);
         pairShared.push(entity);
+        if(earlierDifferent||laterDifferent)pairDifferent.push(entity);
         var tr=document.createElement("tr");
         tr.dataset.pairEntity=entity;
         tr.dataset.sharedEarlier=String(earlier);
         tr.dataset.sharedLater=String(later);
+        tr.dataset.differentEarlier=String(earlierDifferent);
+        tr.dataset.differentLater=String(laterDifferent);
         function cell(value){
           var td=document.createElement("td");td.textContent=String(value);
           tr.appendChild(td);return td;
         }
         cell(entity);cell(earlier?"Yes":"No");cell(later?"Yes":"No");
+        cell(!earlier?"Not jointly reported":earlierDifferent?"Different":"Same reported positions");
+        cell(!later?"Not jointly reported":laterDifferent?"Different":"Same reported positions");
         cell(a.earlier.length+a.later.length+b.earlier.length+b.later.length);
         var action=cell(""),button=document.createElement("button");
         button.type="button";button.textContent="Explore all original reports for entity";
@@ -1409,9 +1432,12 @@ __MONDE_TIME_NAVIGATION__
         action.appendChild(button);pairRows.appendChild(tr);
       });
       pairExport.disabled=!pairShared.length;
+      pairDiffExport.disabled=!pairDifferent.length;
       pairSummary.textContent=pairShared.length+
-        " jointly reported entity IDs in at least one same-period selection. "+
-        "No inferred consensus, movement or verified absence.";
+        " jointly reported entity IDs in at least one same-period selection; "+
+        pairDifferent.length+" with different original reported coordinate sets "+
+        "in at least one jointly reported period. "+
+        "Same positions do not prove agreement; differences do not establish which source is correct.";
     }
     pairA.addEventListener("change",renderPair);
     pairB.addEventListener("change",renderPair);
@@ -1437,6 +1463,33 @@ __MONDE_TIME_NAVIGATION__
           exported_feature_count:reports.length
         }
       }),"monde-original-source-pair-shared-evidence.geojson","application/geo+json");
+    });
+    pairDiffExport.addEventListener("click",function(){
+      if(pairDiffExport.disabled)return;
+      var different=new Set(pairDifferent),a=pairA.value,b=pairB.value;
+      // Export complete original reports for differing entities from BOTH
+      // periods, never just displayed/viewport-filtered markers.
+      var reports=features.filter(function(f){
+        return (f.properties.source_id===a||f.properties.source_id===b)&&
+          different.has(f.properties.entity);
+      });
+      var earlierCount=reports.filter(function(f){
+        return f.properties.monde_comparison_period==="earlier";
+      }).length;
+      saveEvidence(Object.assign({},data,{
+        features:reports,
+        monde_source_pair_position_difference_export:{
+          scope:"COMPLETE_EMBEDDED_SOURCE_PAIR_REPORTED_POSITION_DIFFERENCES",
+          comparison_axis:data.monde_comparison.axis,
+          source_a:a,source_b:b,
+          differing_entity_count:pairDifferent.length,
+          earlier_original_report_count:earlierCount,
+          later_original_report_count:reports.length-earlierCount,
+          original_feature_count:features.length,
+          exported_feature_count:reports.length
+        }
+      }),"monde-original-source-pair-position-differences.geojson",
+        "application/geo+json");
     });
     renderPair();pairPanel.hidden=false;
 
