@@ -208,6 +208,53 @@ class SourcePairDiscoveryHTTPTests(unittest.TestCase):
             srv.server_close()
             self.assertEqual(file.read_bytes(), before)
 
+
+    def test_focused_discovery_is_source_specific_and_links_original_evidence(self):
+        args = {**self.knowledge(), "source": "survey-a", "format": "json"}
+        status, _, body = self.get(args)
+        self.assertEqual(status, 200)
+        result = json.loads(body)
+        self.assertEqual(result["source_focus"], "survey-a")
+        self.assertEqual(result["total_pairs"], 1)
+        self.assertEqual((result["pairs"][0]["source_a"],
+                          result["pairs"][0]["source_b"]),
+                         ("survey-a", "survey-b"))
+        status, _, data = self.get({**args, "source": "unknown-source"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(data)["pairs"], [])
+        status, _, table = self.get({**args, "format": "table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"Original reporter focus: survey-a", table)
+        self.assertIn(b"source_a=survey-a", table)
+        self.assertIn(b"source_b=survey-b", table)
+        self.assertNotIn(b"&amp;source=survey-a", table)
+        status, _, homepage = self.get()
+        self.assertEqual(status, 200)
+        self.assertEqual(homepage.count(b'name="source" list="pair-ids"'), 2)
+        self.assertEqual(self.file.read_bytes(), self.original)
+
+    def test_source_focus_retains_trends_original_assertions_and_both_axes(self):
+        args = {**self.knowledge(), "rank": "decreasing",
+                "source": "survey-b", "format": "json"}
+        status, _, raw = self.get(args)
+        self.assertEqual(status, 200)
+        pair = json.loads(raw)["pairs"][0]
+        self.assertLess(pair["rank_delta_km"], 0)
+        self.assertEqual(pair["example_earlier_assertion_ids"],
+                         ["a-a1", "a-b1"])
+        self.assertEqual(pair["example_later_assertion_ids"],
+                         ["a-a1", "a-b2"])
+        for invalid in ("", "a\nb"):
+            status, _, raw = self.get({**args, "source": invalid})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        unreported = discover_source_pairs(
+            sample(dateline=True), "world",
+            ((EARLY, KNOWN), (LATE, KNOWN)), source="unknown-source")
+        self.assertEqual(unreported["pairs"], [])
+        self.assertEqual(unreported["source_focus"], "unknown-source")
+        self.assertEqual(self.file.read_bytes(), self.original)
+
     def test_world_axis_trends_and_bad_rank_rejection(self):
         from tests.test_world_source_pair_world_changes import sample, EARLY, LATE, KNOWN
         cutoffs = ((EARLY, KNOWN), (LATE, KNOWN))
