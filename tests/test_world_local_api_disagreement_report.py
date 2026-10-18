@@ -2057,13 +2057,29 @@ body.dataset.inventoryFiltersPreserved=String(period.value==="later" &&
             records[(p["entity"], p["source_id"])][p["monde_comparison_period"]].append(f)
         self.assertTrue(records, "Expected original source/entity evidence")
         expected_entities = sorted({entity for entity, _ in records})
+        turnover = {}
+        for entity in expected_entities:
+            earlier_sources = {source for (candidate, source), periods in records.items()
+                               if candidate == entity and periods["earlier"]}
+            later_sources = {source for (candidate, source), periods in records.items()
+                             if candidate == entity and periods["later"]}
+            turnover[entity] = "changed" if earlier_sources != later_sources else "same"
         probe = """<script>
 const root=document.body,records=__RECORDS__,entities=__ENTITIES__;
+const turnover=__TURNOVER__;
 const panel=document.getElementById("comparison-entity-coverage");
 const rows=Array.from(document.querySelectorAll("#comparison-entity-rows tr"));
 root.dataset.entityMatrixRendered=String(
   panel && !panel.hidden && rows.length===entities.length &&
   rows.every(r=>entities.includes(r.dataset.entity)));
+root.dataset.turnoverClassification=String(rows.every(
+  r=>r.dataset.sourceTurnover===turnover[r.dataset.entity]));
+const turnoverFilter=document.getElementById("comparison-entity-turnover");
+for(const mode of ["changed","same","all"]){
+  turnoverFilter.value=mode;turnoverFilter.dispatchEvent(new Event("change"));
+  root.dataset["turnover"+mode.charAt(0).toUpperCase()+mode.slice(1)]=
+    String(rows.every(r=>r.hidden===(mode!=="all"&&turnover[r.dataset.entity]!==mode)));
+}
 const period=document.getElementById("comparison-period");
 period.value="later";period.dispatchEvent(new Event("change"));
 const search=document.getElementById("report-search");
@@ -2075,6 +2091,9 @@ window.Blob=function(parts,options){
   return new NativeBlob(parts,options);
 };
 HTMLAnchorElement.prototype.click=function(){root.dataset.entityMatrixFilename=this.download;};
+document.getElementById("comparison-export-entity-changes-csv").click();
+root.dataset.turnoverCsv=root.dataset.entityMatrixCsv;
+root.dataset.turnoverFilename=root.dataset.entityMatrixFilename;
 document.getElementById("comparison-export-entity-coverage-csv").click();
 root.dataset.entityMatrixFiltersPreserved=String(period.value==="later" &&
   search.value==="not-a-visible-report");
@@ -2147,7 +2166,8 @@ root.dataset.entityMatrixNavigation=String(
   document.getElementById("comparison-period").value==="" &&
   document.getElementById("report-search").value==="");
 </script>""".replace("__RECORDS__", json.dumps(len(records))).replace(
-            "__ENTITIES__", json.dumps(expected_entities))
+            "__ENTITIES__", json.dumps(expected_entities)).replace(
+            "__TURNOVER__", json.dumps(turnover))
         target = Path(self.folder.name) / "entity-source-coverage.html"
         target.write_text(html.replace("</body>", probe + "</body>"), encoding="utf-8")
         rendered = subprocess.run([
@@ -2156,7 +2176,9 @@ root.dataset.entityMatrixNavigation=String(
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
             check=True).stdout.decode("utf-8")
         for attr in ("entity-matrix-rendered", "entity-matrix-filters-preserved",
-                     "entity-matrix-source-drilldown", "entity-matrix-navigation"):
+                     "entity-matrix-source-drilldown", "entity-matrix-navigation",
+                     "turnover-classification", "turnover-changed", "turnover-same",
+                     "turnover-all"):
             self.assertIn('data-' + attr + '="true"', rendered, attr)
         self.assertIn(
             'data-entity-matrix-filename="monde-original-entity-source-coverage.csv"',
@@ -2224,6 +2246,31 @@ root.dataset.entityMatrixNavigation=String(
                 sum(f["properties"]["monde_comparison_period"] == "earlier" for f in expected))
             self.assertEqual(scope["later_original_report_count"],
                 sum(f["properties"]["monde_comparison_period"] == "later" for f in expected))
+        self.assertIn('data-turnover-filename="monde-original-reporting-source-selection-changes.csv"',
+                      rendered)
+        changed_match = re.search(r'data-turnover-csv="([A-Za-z0-9+/=]+)"', rendered)
+        self.assertIsNotNone(changed_match, "Reporting-source change CSV missing")
+        changed_csv = base64.b64decode(changed_match.group(1)).decode("utf-8-sig")
+        changed_rows = list(csv.DictReader(io.StringIO(changed_csv)))
+        expected_changes = {
+            (entity, source): "SOURCE_IN_EARLIER_SELECTION_ONLY" if periods["earlier"]
+                else "SOURCE_IN_LATER_SELECTION_ONLY"
+            for (entity, source), periods in records.items()
+            if bool(periods["earlier"]) != bool(periods["later"])
+        }
+        self.assertEqual({(r["entity"], r["source_id"]): r["source_selection_change"]
+                          for r in changed_rows}, expected_changes)
+        for row in changed_rows:
+            periods = records[(row["entity"], row["source_id"])]
+            for period in ("earlier", "later"):
+                self.assertEqual(int(row[period+"_original_report_count"]),
+                                 len(periods[period]))
+                self.assertEqual(json.loads(row[period+"_assertion_ids_json"]),
+                    [str(f["properties"].get("assertion_id") or
+                         f["properties"].get("monde_original_feature_id"))
+                     for f in periods[period]])
+            self.assertEqual(row["export_scope"],
+                "EMBEDDED_SOURCE_SELECTION_CHANGE_NOT_VERIFIED_ABSENCE")
         match = re.search(r'data-entity-matrix-csv="([A-Za-z0-9+/=]+)"', rendered)
         self.assertIsNotNone(match, "Original source/entity CSV not generated")
         payload = base64.b64decode(match.group(1)).decode("utf-8-sig")

@@ -172,6 +172,14 @@ __MONDE_TIME_NAVIGATION__
 <summary>Original entity coverage across sources and periods</summary>
 <p class="subtle">This is an inventory of original source Point reports embedded in the comparison, not inferred agreement, completeness, or physical movement. View filters cannot remove original evidence from this table or its CSV.</p>
 <button id="comparison-export-entity-coverage-csv" type="button">Download complete entity and source coverage CSV</button>
+<button id="comparison-export-entity-changes-csv" type="button">Download reporting-source selection changes CSV</button>
+<label for="comparison-entity-turnover">Entity reporting-source coverage</label>
+<select id="comparison-entity-turnover" aria-label="Filter entities by original reporting-source coverage change">
+<option value="all">All original entities</option>
+<option value="changed">Different reporting sources between selections</option>
+<option value="same">Same reporting sources in both selections</option>
+</select>
+<p id="comparison-entity-filter-total" class="subtle" role="status" aria-live="polite"></p>
 <label for="comparison-entity-export-period">Original reports to export per entity</label>
 <select id="comparison-entity-export-period" aria-label="Original entity evidence export period">
 <option value="both">Both original periods</option>
@@ -179,7 +187,7 @@ __MONDE_TIME_NAVIGATION__
 <option value="later">Later original reports</option>
 </select>
 <table aria-label="Complete original entity reporting by source and period">
-<thead><tr><th scope="col">Original entity</th><th scope="col">Sources earlier</th><th scope="col">Sources later</th><th scope="col">Sources in both</th><th scope="col">Original reports</th><th scope="col">Download original evidence</th></tr></thead>
+<thead><tr><th scope="col">Original entity</th><th scope="col">Sources earlier</th><th scope="col">Sources later</th><th scope="col">Sources in both</th><th scope="col">Original reports</th><th scope="col">Source-selection coverage change</th><th scope="col">Download original evidence</th></tr></thead>
 <tbody id="comparison-entity-rows"></tbody>
 </table>
 <p id="comparison-entity-total" class="subtle" role="status"></p>
@@ -997,6 +1005,19 @@ __MONDE_TIME_NAVIGATION__
     });
     var entityRows=document.getElementById("comparison-entity-rows");
     var entityNames=Array.from(entityCoverage.keys()).sort();
+    var turnoverFilter=document.getElementById("comparison-entity-turnover");
+    function applyTurnoverFilter(){
+      var visible=0;
+      Array.from(entityRows.children).forEach(function(row){
+        row.hidden=turnoverFilter.value!=="all" &&
+          row.dataset.sourceTurnover!==turnoverFilter.value;
+        if(!row.hidden)visible++;
+      });
+      document.getElementById("comparison-entity-filter-total").textContent=
+        visible+" of "+entityNames.length+
+        " original entities in this source selection. No verified absence or physical change is inferred.";
+    }
+    turnoverFilter.addEventListener("change",applyTurnoverFilter);
     entityNames.forEach(function(entity){
       var bySource=entityCoverage.get(entity),sourceNames=Array.from(bySource.keys()).sort();
       var earlier=sourceNames.filter(function(id){return bySource.get(id).earlier.length>0;});
@@ -1004,7 +1025,11 @@ __MONDE_TIME_NAVIGATION__
       var both=sourceNames.filter(function(id){
         return bySource.get(id).earlier.length>0&&bySource.get(id).later.length>0;
       });
+      var earlierOnly=earlier.filter(function(id){return !later.includes(id);});
+      var laterOnly=later.filter(function(id){return !earlier.includes(id);});
+      var turnover=earlierOnly.length||laterOnly.length ? "changed" : "same";
       var row=document.createElement("tr");row.dataset.entity=entity;
+      row.dataset.sourceTurnover=turnover;
       var first=document.createElement("td"),jump=document.createElement("button");
       jump.type="button";jump.textContent=entity;
       jump.setAttribute("aria-label","Show all original reports for entity "+entity);
@@ -1080,6 +1105,12 @@ __MONDE_TIME_NAVIGATION__
         var x=bySource.get(id);return n+x.earlier.length+x.later.length;
       },0));
       row.appendChild(count);
+      var turnoverCell=document.createElement("td");
+      turnoverCell.textContent=turnover==="changed" ?
+        "Earlier-selection-only sources: "+earlierOnly.length+
+        "; later-selection-only sources: "+laterOnly.length :
+        "Same reporting source IDs in both selections";
+      row.appendChild(turnoverCell);
       var exportCell=document.createElement("td"),download=document.createElement("button");
       download.type="button";download.textContent="Download original reports";
       download.setAttribute("aria-label","Download complete original evidence for entity "+entity);
@@ -1111,38 +1142,52 @@ __MONDE_TIME_NAVIGATION__
     document.getElementById("comparison-entity-total").textContent=
       String(entityCoverage.size)+" original entities across "+
       String(counts.size)+" sources. No inferred absence or source consensus.";
-    document.getElementById("comparison-export-entity-coverage-csv")
-      .addEventListener("click",function(){
-        var header=["comparison_axis","entity","source_id",
-          "earlier_original_report_count","later_original_report_count",
-          "earlier_assertion_ids_json","later_assertion_ids_json",
-          "earlier_evidence_ids_json","later_evidence_ids_json","export_scope"];
-        var lines=[];
-        entityNames.forEach(function(entity){
-          var bySource=entityCoverage.get(entity);
-          Array.from(bySource.keys()).sort().forEach(function(source){
-            var periods=bySource.get(source);
-            function reportIds(period,key){
-              return JSON.stringify(periods[period].map(function(f){
-                var p=f.properties;
-                return String(key==="assertion" ?
-                  (p.assertion_id||p.monde_original_feature_id):p.evidence_id);
-              }));
-            }
-            var values=[data.monde_comparison.axis,entity,source,
-              periods.earlier.length,periods.later.length,
-              reportIds("earlier","assertion"),reportIds("later","assertion"),
-              reportIds("earlier","evidence"),reportIds("later","evidence"),
+    function exportEntityCoverage(onlyTurnover){
+      var header=["comparison_axis","entity","source_id",
+        "earlier_original_report_count","later_original_report_count",
+        "earlier_assertion_ids_json","later_assertion_ids_json",
+        "earlier_evidence_ids_json","later_evidence_ids_json","export_scope"];
+      if(onlyTurnover)header.splice(3,0,"source_selection_change");
+      var lines=[];
+      entityNames.forEach(function(entity){
+        var bySource=entityCoverage.get(entity);
+        Array.from(bySource.keys()).sort().forEach(function(source){
+          var periods=bySource.get(source);
+          var earlierPresent=periods.earlier.length>0;
+          var laterPresent=periods.later.length>0;
+          if(onlyTurnover&&earlierPresent===laterPresent)return;
+          function reportIds(period,key){
+            return JSON.stringify(periods[period].map(function(f){
+              var p=f.properties;
+              return String(key==="assertion" ?
+                (p.assertion_id||p.monde_original_feature_id):p.evidence_id);
+            }));
+          }
+          var values=[data.monde_comparison.axis,entity,source,
+            periods.earlier.length,periods.later.length,
+            reportIds("earlier","assertion"),reportIds("later","assertion"),
+            reportIds("earlier","evidence"),reportIds("later","evidence"),
+            onlyTurnover?
+              "EMBEDDED_SOURCE_SELECTION_CHANGE_NOT_VERIFIED_ABSENCE":
               "COMPLETE_EMBEDDED_ENTITY_SOURCE_INVENTORY_NOT_DISPLAY_FILTERED"];
-            lines.push(values.map(function(v,i){
-              return csvCell(v,i===3||i===4);
-            }).join(","));
-          });
+          if(onlyTurnover)values.splice(3,0,earlierPresent?
+            "SOURCE_IN_EARLIER_SELECTION_ONLY":"SOURCE_IN_LATER_SELECTION_ONLY");
+          lines.push(values.map(function(v,i){
+            return csvCell(v,onlyTurnover?(i===4||i===5):(i===3||i===4));
+          }).join(","));
         });
-        saveDownload("\uFEFF"+header.join(",")+"\r\n"+
-          lines.join("\r\n")+"\r\n",
-          "monde-original-entity-source-coverage.csv","text/csv;charset=utf-8");
       });
+      saveDownload("\uFEFF"+header.join(",")+"\r\n"+
+        lines.join("\r\n")+"\r\n",onlyTurnover?
+          "monde-original-reporting-source-selection-changes.csv":
+          "monde-original-entity-source-coverage.csv",
+        "text/csv;charset=utf-8");
+    }
+    document.getElementById("comparison-export-entity-coverage-csv")
+      .addEventListener("click",function(){exportEntityCoverage(false);});
+    document.getElementById("comparison-export-entity-changes-csv")
+      .addEventListener("click",function(){exportEntityCoverage(true);});
+    applyTurnoverFilter();
     document.getElementById("comparison-entity-coverage").hidden=false;
   }
   // A GeoPackage layer is a separate original source, not a verified world
