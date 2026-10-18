@@ -262,9 +262,8 @@ class SourceDirectoryTests(unittest.TestCase):
         status, _, raw = self.get({**query, "change": "both", "format": "json"})
         self.assertEqual(json.loads(raw)["matched_entities"], 1)
 
-    def test_reporting_filter_rejects_unknown_values_and_directory_misuse(self):
-        for query in ({**self.knowledge(), "change": "new"},
-                      {**self.knowledge(), "source": "survey-a", "change": "OTHER"},
+    def test_reporting_filter_rejects_unknown_values_and_discovery_misuse(self):
+        for query in ({**self.knowledge(), "source": "survey-a", "change": "OTHER"},
                       {**self.knowledge(), "source": "survey-a", "change": ""},
                       {**self.knowledge(), "source": "survey-a",
                        "change": "new", "discover": "1"}):
@@ -460,6 +459,168 @@ class SourceDirectoryTests(unittest.TestCase):
             thread.join(timeout=5)
             server.server_close()
             self.assertEqual(path.read_bytes(), initial)
+
+
+    def test_reporter_directory_transition_filters_reuse_original_counts(self):
+        query = self.knowledge()
+        _, _, payload = self.get({**query, "format": "json"})
+        original = json.loads(payload)
+        categories = {"new": "newly_reported_entities",
+                      "gone": "no_longer_reported_entities",
+                      "both": "continuously_reported_entities"}
+        for mode, count in categories.items():
+            with self.subTest(mode=mode):
+                expected = [item for item in original["sources"] if item[count] > 0]
+                status, _, payload = self.get({**query, "change": mode, "format": "json"})
+                self.assertEqual(status, 200)
+                result = json.loads(payload)
+                self.assertEqual(result["reporting_filter"], mode)
+                self.assertEqual(result["available_sources"], original["total_sources"])
+                self.assertEqual(result["total_sources"], len(expected))
+                self.assertEqual(result["sources"], expected)
+                self.assertEqual(result, source_directory(
+                    self.world, "knowledge", ((AT, BEFORE), (AT, AFTER)), mode))
+                status, _, payload = self.get({**query, "change": mode, "format": "csv"})
+                self.assertEqual(status, 200)
+                rows = list(csv.DictReader(io.StringIO(payload.decode("utf-8"))))
+                self.assertEqual([row["source_id"] for row in rows],
+                                 [row["source_id"] for row in expected])
+                status, _, html = self.get({**query, "change": mode})
+                self.assertEqual(status, 200)
+                self.assertIn(b"Original reporter transition filters", html)
+                self.assertIn(b'Download matching coverage CSV', html)
+                self.assertIn(b'aria-current="page"', html)
+                if expected:
+                    self.assertIn(b"change=" + mode.encode("ascii"), html)
+                    self.assertIn(b"Find partners", html)
+
+    def test_reporter_transition_filters_strict_and_world_time_read_only(self):
+        query = self.knowledge()
+        for invalid in ("unknown", "all", "", "NEW"):
+            status, _, payload = self.get({**query, "change": invalid, "format": "json"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(payload), {"error": "invalid_query"})
+        empty = {**query, "from_known_at": "2025-01-01T00:00:00Z",
+                 "to_known_at": "2025-01-02T00:00:00Z", "change": "new"}
+        status, _, payload = self.get({**empty, "format": "json"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(payload)["sources"], [])
+        status, _, page = self.get(empty)
+        self.assertEqual(status, 200)
+        self.assertIn(b"NO MATCHING ORIGINAL SOURCE REPORTING TRANSITIONS", page)
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "world-filtered.json"
+        world.save(saved)
+        initial = saved.read_bytes()
+        server = create_server(saved)
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        try:
+            base = {"directory": "1", "axis": "world",
+                    "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}
+            status, _, payload = self.get({**base, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            original = json.loads(payload)["sources"]
+            status, _, payload = self.get(
+                {**base, "change": "gone", "format": "json"}, server)
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(payload)["sources"], [
+                row for row in original if row["no_longer_reported_entities"] > 0])
+        finally:
+            server.shutdown()
+            worker.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), initial)
+
+
+    def test_optional_rank_form_does_not_submit_an_empty_rejected_rank(self):
+        status, _, html = self.get()
+        self.assertEqual(status, 200)
+        self.assertEqual(html.count(b'type="radio" name="rank"'), 2 * 3)
+        # The existing source-pair discovery forms still have two ranking menus.
+        self.assertEqual(html.count(b'<select name="rank">'), 2)
+        self.assertNotIn(b'name="rank" value=""', html)
+
+    def test_rank_original_reporter_transitions_http_json_csv_html(self):
+        query = self.knowledge()
+        _, _, raw = self.get({**query, "format": "json"})
+        original = json.loads(raw)
+        scores = {"new": lambda row: row["newly_reported_entities"],
+                  "gone": lambda row: row["no_longer_reported_entities"],
+                  "turnover": lambda row: (row["newly_reported_entities"] +
+                                           row["no_longer_reported_entities"])}
+        for mode, key in scores.items():
+            with self.subTest(rank=mode):
+                status, _, raw = self.get({**query, "rank": mode, "format": "json"})
+                self.assertEqual(status, 200)
+                result = json.loads(raw)
+                self.assertEqual(result["ranking"], mode)
+                expected = sorted(original["sources"],
+                                  key=lambda row: (-key(row), row["source_id"]))
+                self.assertEqual(result["sources"], expected)
+                self.assertEqual(result["total_sources"], len(expected))
+                status, _, raw = self.get({**query, "rank": mode, "format": "csv"})
+                self.assertEqual(status, 200)
+                rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+                self.assertEqual([r["source_id"] for r in rows],
+                                 [r["source_id"] for r in expected])
+                status, _, html = self.get({**query, "rank": mode})
+                self.assertEqual(status, 200)
+                self.assertIn(b'Original reporter coverage ranking', html)
+                self.assertIn(b'aria-current="page"', html)
+                self.assertIn(b"rank=" + mode.encode("ascii"), html)
+                # Existing reporter detail remains directly navigable.
+                if expected:
+                    self.assertIn(b"source=" + expected[0]["source_id"].encode(), html)
+                self.assertNotIn(b"source=" + expected[0]["source_id"].encode() +
+                                 b"&format=table&rank=", html)
+
+    def test_rank_filters_world_time_and_invalid_inputs(self):
+        # A ranking is a directory-level read-only view, never a per-source
+        # reinterpretation of original evidence.
+        for invalid in ("", "NEW", "all", "source", "delta", "turnover%00"):
+            status, _, payload = self.get({
+                **self.knowledge(), "rank": invalid, "format": "json"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(payload), {"error": "invalid_query"})
+        status, _, payload = self.get({
+            **self.knowledge(), "source": "survey-a",
+            "rank": "new", "format": "json"})
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(payload), {"error": "invalid_query"})
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "rank-world.json"
+        world.save(saved)
+        initial = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            query = {"directory": "1", "axis": "world",
+                     "from_at": EARLY, "to_at": LATE, "known_at": KNOWN,
+                     "change": "gone", "rank": "turnover"}
+            status, _, payload = self.get({**query, "format": "json"}, server)
+            self.assertEqual(status, 200)
+            ranked = json.loads(payload)
+            self.assertEqual(ranked["ranking"], "turnover")
+            self.assertEqual(ranked["reporting_filter"], "gone")
+            self.assertTrue(all(row["no_longer_reported_entities"] > 0
+                                for row in ranked["sources"]))
+            expected = sorted(ranked["sources"], key=lambda row: (
+                -(row["newly_reported_entities"] +
+                  row["no_longer_reported_entities"]), row["source_id"]))
+            self.assertEqual(ranked["sources"], expected)
+            status, _, raw = self.get({**query, "format": "csv"}, server)
+            self.assertEqual(status, 200)
+            rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+            self.assertEqual([row["source_id"] for row in rows],
+                             [row["source_id"] for row in expected])
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+            self.assertEqual(saved.read_bytes(), initial)
+
 
 if __name__ == "__main__":
     unittest.main()
