@@ -1,0 +1,50 @@
+id: WORK-0088
+title: "Compare original same-period entity evidence from two sources"
+status: PROPOSED
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini offline evidence browser"
+created_at: "2026-10-18"
+updated_at: "2026-10-18"
+purpose: |
+  Let analysts examine the actual same-period entity coverage of two reporting
+  sources and download their original Point evidence without inferring consensus.
+scope:
+  in: ["Pairwise same-period original entity coverage", "Complete two-source GeoJSON export", "Actual local Chromium browser regression"]
+  out: ["Inferred agreement, completeness or movement", "New services, dependencies or state mutation"]
+acceptance_criteria:
+  - {id: AC-1, description: "Original two-source coverage and same-period shared entity IDs are navigable.", status: IN_REVIEW}
+  - {id: AC-2, description: "Exact original reports from the two sources remain exportable despite display filters.", status: IN_REVIEW}
+  - {id: AC-3, description: "Real Chromium/HTTP verification and persisted state immutability.", status: IN_REVIEW}
+requirements: []
+depends_on: [WORK-0087]
+read_before: [AGENTS.md, src/monde/map_view.py, tests/test_world_local_api_disagreement_report.py, docs/03_ARCHITECTURE/world-mini-local-api.md]
+reuses: [monde.map_view.render_map, WORK-0084, WORK-0086, WORK-0087]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Select original source pair and compute same-period entity overlap.", depends_on: [], expected_files: [src/monde/map_view.py], status: IN_REVIEW}
+    - {id: T2, description: "Chromium test for exact exported evidence and controls.", depends_on: [T1], expected_files: [tests/test_world_local_api_disagreement_report.py], status: IN_REVIEW}
+    - {id: T3, description: "Document epistemic and integration scope.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-local-api.md], status: IN_REVIEW}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [VERIFICATION_VALIDATION, SECURITY, EPISTEMIC]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_api_disagreement_report.py]
+  real_system: ["GitHub Actions world-mini, Chromium offline source-pair interaction"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Stacked onto unmerged WORK-0087 PR #118 and earlier product work."]
+risk:
+  security: LOW
+  data: LOW
+  epistemic: MEDIUM
+  operational: LOW
+rollback:
+  strategy: "Close PR; no data migration or persisted-state changes."

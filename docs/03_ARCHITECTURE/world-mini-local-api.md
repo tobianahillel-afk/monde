@@ -734,3 +734,8 @@ button. This is a change in *which source reports appear in the selection*,
 not proof of disappearance, movement, source completeness or truth. The export
 uses the existing offline browser download mechanism; it does not mutate
 saved WorldMini state or add a route, service, data model or dependency.
+
+
+### Pairwise original reporting-source coverage (WORK-0088)
+
+The existing self-contained two-period comparison map lets an analyst select **two distinct original reporting sources**, count their jointly reported entity IDs in the same earlier/later selection, inspect the entities through the original evidence explorer, and download the complete original GeoJSON from exactly those two sources for the shared entities. Counts and downloads use the original embedded evidence, independently of map display filters. A shared entity ID does **not** mean that sources agree, that a source is comprehensive, or that a location or movement is verified. The ordinary source map retains its previous behavior. No service, model, dependency or saved-state mutation is introduced.
