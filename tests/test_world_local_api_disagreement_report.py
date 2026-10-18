@@ -1469,9 +1469,16 @@ body.dataset.sourceAfterClick=sourceSelect.value;
 body.dataset.firstSource=records[0].dataset.sourceId;
 const periodSelect=document.getElementById("comparison-period");
 const earlierRow=records.find(row=>Number(row.children[1].textContent)>0);
-earlierRow.children[1].querySelector("button").click();
-body.dataset.earlierJump=String(sourceSelect.value===earlierRow.dataset.sourceId &&
-  periodSelect.value==="earlier");
+if(earlierRow){
+  earlierRow.children[1].querySelector("button").click();
+  body.dataset.earlierJump=String(sourceSelect.value===earlierRow.dataset.sourceId &&
+    periodSelect.value==="earlier");
+}else{
+  // This real temporal fixture can have no earlier evidence. Do not invent it.
+  body.dataset.earlierJump=String(records.every(row=>
+    Number(row.children[1].textContent)===0 &&
+    row.children[1].querySelector("button")===null));
+}
 const laterRow=records.find(row=>Number(row.children[2].textContent)>0);
 laterRow.children[2].querySelector("button").click();
 body.dataset.laterJump=String(sourceSelect.value===laterRow.dataset.sourceId &&
