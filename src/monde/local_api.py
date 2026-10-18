@@ -1166,7 +1166,7 @@ def _pair_discovery_query(world: WorldMini, args: dict[str, str]) -> dict:
                 (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"discover", "axis", "from_at", "to_at", "known_at"},
-                 {"format", "top", "rank", "source"})
+                 {"format", "top", "rank", "source", "min_joint"})
         cuts = ((args["from_at"], args["known_at"]),
                 (args["to_at"], args["known_at"]))
     else:
