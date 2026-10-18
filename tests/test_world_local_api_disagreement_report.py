@@ -1792,6 +1792,8 @@ root.dataset.entityExportButtons=String(exports.length===2);
 exports[0].click();exports[1].click();
 root.dataset.entityGeoComplete=String(geoOK);
 root.dataset.entityCsvComplete=String(csvOK);
+root.dataset.entityBothGeoFilename=root.dataset.entityGeoFilename;
+root.dataset.entityBothCsvFilename=root.dataset.entityCsvFilename;
 root.dataset.entityExportFiltersPreserved=String(
   period.value==="later" && search.value==="no-such-visible-item");
 // Browser-level earlier/later evidence export must ignore presentation filters.
@@ -1855,8 +1857,8 @@ root.dataset.sourceEntityClosed=String(
         self.assertIn('data-entity-period-defaults-both="true"', result)
         self.assertIn('data-entity-earlier-export-complete="true"', result)
         self.assertIn('data-entity-later-export-complete="true"', result)
-        self.assertIn('data-entity-geo-filename="monde-original-source-entity-both-periods.geojson"', result)
-        self.assertIn('data-entity-csv-filename="monde-original-source-entity-both-periods.csv"', result)
+        self.assertIn('data-entity-both-geo-filename="monde-original-source-entity-both-periods.geojson"', result)
+        self.assertIn('data-entity-both-csv-filename="monde-original-source-entity-both-periods.csv"', result)
         self.assertEqual(self.path.read_bytes(), self.before)
 
 if __name__ == "__main__":
