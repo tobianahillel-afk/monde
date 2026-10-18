@@ -806,6 +806,26 @@ __MONDE_TIME_NAVIGATION__
               });
               entry.appendChild(document.createTextNode(" "));
               entry.appendChild(focusReport);
+              // Export the selected assertion itself, not a viewport-filtered subset.
+              var downloadReport=document.createElement("button");
+              downloadReport.type="button";
+              downloadReport.textContent="Download this original report";
+              downloadReport.setAttribute("aria-label",
+                "Download original "+period+" report "+String(f.id)+" from "+id);
+              downloadReport.addEventListener("click",function(){
+                saveEvidence(Object.assign({},data,{
+                  features:[f],
+                  monde_single_report_export:{
+                    scope:"EXACT_ORIGINAL_ASSERTION_NOT_DISPLAY_FILTERED",
+                    source_id:id,entity:entity,comparison_period:period,
+                    assertion_id:p.assertion_id||p.monde_original_feature_id,
+                    evidence_id:p.evidence_id,original_feature_id:f.id,
+                    exported_feature_count:1
+                  }
+                }),"monde-original-report.geojson","application/geo+json");
+              });
+              entry.appendChild(document.createTextNode(" "));
+              entry.appendChild(downloadReport);
               detail.appendChild(entry);
             });
           });

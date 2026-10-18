@@ -1857,6 +1857,37 @@ const reportJump=Array.from(originalEntry?.querySelectorAll("button")||[])
   .find(b=>b.textContent==="Show this original report on map");
 period.value=one.properties.monde_comparison_period==="earlier"?"later":"earlier";
 search.value="no-such-visible-item";search.dispatchEvent(new Event("input"));
+const originalDownload=Array.from(originalEntry?.querySelectorAll("button")||[])
+  .find(b=>b.textContent==="Download this original report");
+let exactDownloaded=false;
+window.Blob=function(parts,options){
+  if(options?.type==="application/geo+json"){
+    const single=JSON.parse(String(parts[0]));
+    const meta=single.monde_single_report_export;
+    exactDownloaded=single.type==="FeatureCollection" &&
+      JSON.stringify(single.features)===JSON.stringify([one]) &&
+      JSON.stringify(single.monde_comparison)===JSON.stringify(embedded.monde_comparison) &&
+      meta.scope==="EXACT_ORIGINAL_ASSERTION_NOT_DISPLAY_FILTERED" &&
+      meta.source_id===src && meta.entity===chosenEntity &&
+      meta.comparison_period===one.properties.monde_comparison_period &&
+      meta.assertion_id===(one.properties.assertion_id||
+        one.properties.monde_original_feature_id) &&
+      meta.original_feature_id===one.id &&
+      meta.evidence_id===one.properties.evidence_id &&
+      meta.exported_feature_count===1;
+  }
+  return new NativeBlob(parts,options);
+};
+HTMLAnchorElement.prototype.click=function(){
+  root.dataset.originalReportFilename=this.download;
+};
+originalDownload?.click();
+root.dataset.originalReportExactExport=String(
+  !!originalDownload && exactDownloaded &&
+  root.dataset.originalReportFilename==="monde-original-report.geojson" &&
+  period.value!==one.properties.monde_comparison_period &&
+  search.value==="no-such-visible-item");
+window.Blob=oldBlob;
 reportJump?.click();
 const exactMarker=Array.from(document.querySelectorAll("#points circle.selected"));
 const selectedText=document.getElementById("details").textContent;
@@ -1907,6 +1938,8 @@ root.dataset.sourceEntityClosed=String(
         self.assertIn('data-entity-period-defaults-both="true"', result)
         self.assertIn('data-entity-focus-map="true"', result)
         self.assertIn('data-entity-exact-report-map="true"', result)
+        self.assertIn('data-original-report-exact-export="true"', result)
+        self.assertIn('data-original-report-filename="monde-original-report.geojson"', result)
         self.assertIn('data-entity-earlier-export-complete="true"', result)
         self.assertIn('data-entity-later-export-complete="true"', result)
         self.assertIn('data-entity-both-geo-filename="monde-original-source-entity-both-periods.geojson"', result)

@@ -635,3 +635,5 @@ and opens the existing selected-evidence inspector. Conflicting display-only fil
 are reset, while the other source assertions, both embedded original periods, the
 evidence provenance and persisted snapshot remain unchanged. The focus is on a
 source-reported coordinate, not a reconciled actual location or inferred movement.
+
+An individual earlier/later assertion in the expanded comparison row also has **Download this original report**. The offline GeoJSON contains exactly that original Point feature, its full source/assertion/evidence/temporal metadata and original two-period comparison context. `monde_single_report_export` identifies the exact assertion and declares `EXACT_ORIGINAL_ASSERTION_NOT_DISPLAY_FILTERED`. Source, search, viewport and period **display** filters do not truncate the download. The fixed filename avoids deriving a path from untrusted source IDs. No new route, remote request, inferred truth or persisted state mutation.
