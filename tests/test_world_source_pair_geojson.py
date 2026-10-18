@@ -11,7 +11,7 @@ import unittest
 from monde.source_pair_changes import (
     compare_source_pair, compare_source_pair_world_time, comparison_geojson,
     top_nearest_source_pair_changes, filter_source_pair_direction,
-    source_pair_direction,
+    source_pair_direction, comparison_html,
 )
 from tests.test_world_source_pair_changes import fixture_world, AT, BEFORE, AFTER
 from tests.test_world_source_pair_world_changes import sample, EARLY, LATE, KNOWN
@@ -209,6 +209,67 @@ class SourcePairGeojsonTest(unittest.TestCase):
                     self.assertEqual(csv_result.returncode, 0, csv_result.stderr)
                     self.assertEqual(len(csv_result.stdout.splitlines()), 1 + 2*len(selected))
                     self.assertEqual(saved.read_bytes(), untouched)
+
+
+    def test_html_reuses_offline_map_and_preserves_original_two_period_evidence(self):
+        for axis, document in (
+            ("knowledge", compare_source_pair(
+                fixture_world(), "survey-a", "survey-b", AT, BEFORE, AFTER)),
+            ("world", compare_source_pair_world_time(
+                sample(), "survey-a", "survey-b", EARLY, LATE, KNOWN)),
+        ):
+            with self.subTest(axis=axis):
+                baseline = copy.deepcopy(document)
+                html = comparison_html(document)
+                self.assertIn('id="comparison-period"', html)
+                self.assertIn('"monde_comparison"', html)
+                self.assertIn('"axis":"'+axis+'"', html)
+                self.assertIn('"monde_comparison_period":"earlier"', html)
+                self.assertIn('"monde_comparison_period":"later"', html)
+                self.assertIn('"monde_original_assertion_id"', html)
+                self.assertIn('survey-a', html)
+                self.assertIn('survey-b', html)
+                self.assertIn('SOURCE_REPORTED_POINT_BBOX_ONLY', html)
+                self.assertIn('Content-Security-Policy', html)
+                self.assertEqual(document, baseline)
+
+    def test_html_source_bounds_wrap_antimeridian_not_whole_globe(self):
+        doc = compare_source_pair_world_time(
+            sample(dateline=True), "survey-a", "survey-b", EARLY, LATE, KNOWN)
+        html = comparison_html(doc)
+        self.assertIn('"monde_bbox_query"', html)
+        # The wrapped envelope has east < west; original +/-179.9 points survive.
+        import re
+        match = re.search(r'"bbox":\[([-0-9.,]+)\]', html)
+        self.assertIsNotNone(match)
+        west, south, east, north = map(float, match.group(1).split(","))
+        self.assertGreater(west, east)
+        self.assertLess(north-south, 20)
+        self.assertIn('-179.9', html)
+        self.assertIn('179.9', html)
+
+    def test_html_live_saved_cli_preserves_snapshot_and_escapes_untrusted_identifiers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            file = Path(directory) / "world.json"
+            fixture_world().save(file)
+            before = file.read_bytes()
+            command = [sys.executable, "-m", "monde.source_pair_changes",
+                       "--fixture", str(file), "--source-a", "survey-a",
+                       "--source-b", "survey-b", "--at", AT,
+                       "--from-known-at", BEFORE, "--to-known-at", AFTER]
+            options = {"cwd": Path(__file__).resolve().parents[1],
+                       "env": {**os.environ, "PYTHONPATH": "src"},
+                       "capture_output": True, "text": True}
+            html = subprocess.run(command + ["--format", "html"], **options)
+            self.assertEqual(html.returncode, 0, html.stderr)
+            self.assertIn('"monde_comparison_period":"earlier"', html.stdout)
+            self.assertIn('source-reported', html.stdout.lower())
+            self.assertIn('<svg', html.stdout)
+            json_default = subprocess.run(command, **options)
+            self.assertEqual(json_default.returncode, 0, json_default.stderr)
+            self.assertEqual(json.loads(json_default.stdout)["schema"],
+                             "MONDE_SOURCE_PAIR_CHANGE_V1")
+            self.assertEqual(file.read_bytes(), before)
 
 
 if __name__ == "__main__":

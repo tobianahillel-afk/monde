@@ -278,11 +278,72 @@ def top_nearest_source_pair_changes(document, limit):
         "selected_entities": min(limit, len(eligible))}}
 
 
+
+def comparison_html(document):
+    """Render original pair reports in the existing offline MONDE map viewer.
+
+    Every original report remains separate. This is a *display* envelope, not
+    a new spatial query, reconstructed route, position estimate or truth claim.
+    """
+    from .map_view import render_map
+
+    geojson = comparison_geojson(document)
+    features = geojson["features"]
+    cutoffs = geojson["monde_comparison"]["cutoffs"]
+    for feature in features:
+        props = feature["properties"]
+        pair = props["monde_source_pair"]
+        props["monde_comparison_period"] = pair["period"]
+        props["monde_world_at"] = pair["world_at"]
+        props["monde_known_at"] = pair["knowledge_at"]
+        props["monde_original_feature_id"] = props["monde_original_assertion_id"]
+        props["monde_inside_bbox"] = True
+
+    if features:
+        coords = [f["geometry"]["coordinates"] for f in features]
+        # Smallest WGS84 circular longitude interval, including antimeridian.
+        angles = sorted({(p[0] + 180.0) % 360.0 for p in coords})
+        if len(angles) == 1:
+            start = end = angles[0]
+        else:
+            gap = max(range(len(angles)), key=lambda i:
+                      (angles[(i + 1) % len(angles)] - angles[i]) % 360.0)
+            start, end = angles[(gap + 1) % len(angles)], angles[gap]
+            if end < start:
+                end += 360.0
+        span = end - start
+        padding = max(.005, span * .05)
+        if span + 2 * padding >= 360.0:
+            west, east = -180., 180.
+        else:
+            west = ((start - padding) % 360.0) - 180.0
+            east = ((end + padding) % 360.0) - 180.0
+        south, north = min(p[1] for p in coords), max(p[1] for p in coords)
+        lat_padding = max(.005, (north - south) * .05)
+        bounds = [west, max(-90., south - lat_padding),
+                  east, min(90., north + lat_padding)]
+    else:
+        bounds = [-180., -90., 180., 90.]
+
+    geojson["monde_comparison"]["axis"] = geojson["monde_comparison"]["comparison_axis"]
+    geojson["monde_bbox_query"] = {
+        "basis": "SOURCE_REPORTED_POINT_BBOX_ONLY",
+        "bbox": bounds,
+        "valid_at": cutoffs["earlier"]["world_at"],
+        "knowledge_cutoff": cutoffs["earlier"]["knowledge_at"],
+        "total_matching_entities": len({
+            f["properties"]["entity"] for f in features}),
+        "total_source_features": len(features),
+        "status": "MATCHES" if features else "NO_MATCHES",
+    }
+    return render_map(geojson)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Compare two original source Point reports across knowledge time")
     parser.add_argument("--fixture", required=True)
-    parser.add_argument("--format", choices=("json", "csv", "geojson"), default="json")
+    parser.add_argument("--format", choices=("json", "csv", "geojson", "html"), default="json")
     parser.add_argument("--top-nearest-changes", type=int, metavar="N",
                         help="top N absolute changes in original-source nearest separation")
     parser.add_argument("--change-direction",
@@ -326,6 +387,8 @@ def main(argv=None):
         print(comparison_csv(result), end="")
     elif args.format == "geojson":
         print(json.dumps(comparison_geojson(result), ensure_ascii=False, sort_keys=True))
+    elif args.format == "html":
+        print(comparison_html(result))
     else:
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0

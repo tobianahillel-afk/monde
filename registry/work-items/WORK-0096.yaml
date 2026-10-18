@@ -17,6 +17,7 @@ acceptance_criteria:
   - {id: AC-2, description: "Missing joint reports remain nullable and both cutoffs and temporal axes are explicit.", status: IN_REVIEW}
   - {id: AC-3, description: "Real persisted CLI tests pass and existing JSON/CSV and saved snapshots are unchanged.", status: IN_REVIEW}
   - {id: AC-4, description: "Filter original source-pair evidence by convergence divergence stability or incomparability without implying physical movement, for both temporal axes and output formats.", status: IN_REVIEW}
+  - {id: AC-5, description: "Open both temporal source-pair evidence periods in existing interactive offline HTML map without extra service or altering original identity.", status: IN_REVIEW}
 requirements: []
 depends_on: [WORK-0095]
 read_before: [AGENTS.md, src/monde/source_pair_changes.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
@@ -26,6 +27,7 @@ implementation_plan:
     - {id: T1, description: "Add original-evidence GeoJSON format to CLI.", depends_on: [], expected_files: [src/monde/source_pair_changes.py], status: IN_REVIEW}
     - {id: T2, description: "Verify persistence, identity, temporal semantics, and real CLI.", depends_on: [T1], expected_files: [tests/test_world_source_pair_geojson.py], status: IN_REVIEW}
     - {id: T3, description: "Document source-vs-movement semantics.", depends_on: [T1], expected_files: [docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md], status: IN_REVIEW}
+    - {id: T4, description: "Render original source pairs with existing offline browser map and test both time axes.", depends_on: [T1], expected_files: [src/monde/source_pair_changes.py, tests/test_world_source_pair_geojson.py], status: IN_REVIEW}
   planned_runs: []
 review_plan:
   artifact_class: WORLD_MODEL_EXPERIENCE
