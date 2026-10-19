@@ -1228,10 +1228,80 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 
 
 
+
+def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
+    """Read-only HTML presentation of the original bitemporal source matrix."""
+    def assertions(data):
+        return ", ".join(escape(str(x)) for x in data["assertion_ids"]) or "—"
+
+    # Existing read-only drill-downs keep both temporal cutoffs, but not the
+    # global bbox; entity evidence may legitimately exist outside the viewport.
+    retained = {key: args[key] for key in (
+        "directory", "axis", "at", "from_known_at", "to_known_at",
+        "from_at", "to_at", "known_at", "presence") if key in args}
+
+    def drilldown(entity, fmt, source=None):
+        query = {**retained, "entity": entity, "format": fmt}
+        if source is not None:
+            query["source"] = source
+        return escape("/source-pair?" + urlencode(query), quote=True)
+
+    body = []
+    for item in doc["entities"]:
+        cells = []
+        for period in ("earlier", "later"):
+            p = item[period]
+            cells.extend((
+                "<td>" + escape(p["status"]) + "</td>",
+                "<td>" + str(p["source_a"]["count"]) + " · " +
+                assertions(p["source_a"]) + "</td>",
+                "<td>" + str(p["source_b"]["count"]) + " · " +
+                assertions(p["source_b"]) + "</td>",
+            ))
+        entity = str(item["entity"])
+        links = ['<a href="' + drilldown(entity, "presence-table") +
+                 '">Entity evidence</a>']
+        for side, label, source in (
+                ("source_a", "Source A map", doc["source_a"]),
+                ("source_b", "Source B map", doc["source_b"])):
+            if any(item[period][side]["count"] for period in ("earlier", "later")):
+                links.append('<a href="' + drilldown(
+                    entity, "presence-map", source) + '">' + label + '</a>')
+        body.append('<tr><th scope="row">' + escape(entity) + ' · ' +
+                    ' · '.join(links) + "</th>" +
+                    "".join(cells) + "</tr>")
+    shared = {key: value for key, value in args.items() if key != "format"}
+    def link(fmt, text):
+        target = "/source-pair?" + urlencode({**shared, "format": fmt})
+        return '<a href="' + escape(target, quote=True) + '">' + text + "</a>"
+    return (
+        '<!doctype html><html lang="en"><meta charset="utf-8">'
+        "<title>Original reporter Point matrix</title>"
+        "<h1>Original reporter Point matrix</h1><p>" +
+        escape(doc["source_a"]) + " versus " + escape(doc["source_b"]) +
+        "</p><p>" + escape(doc["interpretation"]) + "</p><p>" +
+        link("presence-all-map", "Open original evidence map") + " · " +
+        link("presence-all-compare-json", "Download reporter matrix JSON") + " · " +
+        link("presence-all-compare-csv", "Download reporter matrix CSV") +
+        '</p><table><caption>Selected original Point reports, not agreement'
+        '</caption><thead><tr><th rowspan="2">Entity</th>'
+        '<th colspan="3">Earlier</th><th colspan="3">Later</th></tr>'
+        '<tr><th>Status</th><th>Source A assertions</th>'
+        '<th>Source B assertions</th><th>Status</th>'
+        '<th>Source A assertions</th><th>Source B assertions</th></tr>'
+        '</thead><tbody>' + "".join(body) + '</tbody></table>'
+        '<p>Total entities: ' + str(doc["total_entities"]) + '</p>' +
+        '<p>Entity and source links open full original Point evidence at the '
+        'same world/knowledge cutoffs, outside any global bbox filter. '
+        'No consensus location or physical movement is inferred.</p></html>'
+    )
+
+
+
 def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     from .source_pair_changes import source_directory
     if args.get("directory") != "1" or args.get("format", "table") not in (
-            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-map", "presence-table", "geojson", "map"):
+            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-map", "presence-table", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
@@ -1252,7 +1322,8 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         if (not {"compare_a", "compare_b"}.issubset(args) or
                 args.get("format") not in
                     ("presence-all-map", "presence-all-geojson",
-                     "presence-all-csv", "presence-all-gpkg") or
+                     "presence-all-csv", "presence-all-gpkg",
+                     "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv") or
                 any(k in args for k in
                     ("entity", "source", "source_exact", "source_prefix")) or
                 args["compare_a"] == args["compare_b"]):
@@ -1262,17 +1333,20 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             if not 0 < len(value) <= 200 or any(
                     ord(ch) < 32 or ord(ch) == 127 for ch in value):
                 raise ValueError("invalid compared original reporter")
+    if args.get("format") in ("presence-all-compare-json",
+                                 "presence-all-compare-table", "presence-all-compare-csv") and not comparing:
+        raise ValueError("reporter matrix requires two different sources")
     if "source_exact" in args:
         value = args["source_exact"]
         if (args.get("format") not in ("presence-all-gpkg", "presence-all-geojson",
-                                       "presence-all-csv", "presence-all-map") or
+                                       "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv") or
                 "entity" in args or "source" in args or
                 "source_prefix" in args or
                 not 0 < len(value) <= 200 or
                 any(ord(ch) < 32 or ord(ch) == 127 for ch in value)):
             raise ValueError("exact reporter requires a global original Point export")
     if "bbox" in args:
-        if args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map"):
+        if args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv"):
             raise ValueError("bbox is only supported for global Point exports")
         from .source_pair_changes import _valid_presence_bbox
         _valid_presence_bbox(_bbox(args["bbox"]))
@@ -1298,10 +1372,10 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             raise ValueError("invalid original Point coordinates")
     if "presence" in args and (
             args["presence"] not in ("earlier", "later", "both") or
-            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-map", "presence-table") or
-            ("entity" not in args and args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map"))):
+            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-map", "presence-table") or
+            ("entity" not in args and args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv"))):
         raise ValueError("original presence requires an exact entity export")
-    if (args.get("format") in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map") and
+    if (args.get("format") in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv") and
             ("entity" in args or "source" in args)):
         raise ValueError("global source export cannot have entity/source focus")
     if args.get("format") in ("assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-map", "presence-table") and (
@@ -1435,6 +1509,9 @@ def _source_directory_html(document: dict, args: dict[str, str],
             '<option value="presence-all-geojson">Original Point GeoJSON</option>'
             '<option value="presence-all-csv">Original Point CSV</option>'
             '<option value="presence-all-gpkg">Offline GeoPackage</option>'
+            '<option value="presence-all-compare-table">Original reporting table</option>'
+            '<option value="presence-all-compare-json">Original reporting JSON</option>'
+            '<option value="presence-all-compare-csv">Original reporting matrix CSV</option>'
             '</select></label> '
             '<button type="submit">Compare original source Points</button>'
             '<p>Original reports only; no inferred agreement or movement.</p>'
@@ -2360,6 +2437,33 @@ def create_server(state: str | Path, port: int = 0, *,
                             self.end_headers()
                             self.wfile.write(body)
                             return
+                        if output_format in ("presence-all-compare-json",
+                                             "presence-all-compare-table", "presence-all-compare-csv"):
+                            from .source_pair_changes import source_directory_global_pair_matrix
+                            matrix = source_directory_global_pair_matrix(
+                                world, document, args.get("presence"),
+                                _bbox(args["bbox"]) if "bbox" in args else None,
+                                compare_sources)
+                            if output_format == "presence-all-compare-json":
+                                return self._reply(200, matrix)
+                            if output_format == "presence-all-compare-csv":
+                                from .source_pair_changes import source_directory_global_pair_matrix_csv
+                                body = source_directory_global_pair_matrix_csv(matrix).encode("utf-8")
+                                if len(body) > max_response_bytes:
+                                    return self._reply(413, {"error": "response_too_large"})
+                                self.send_response(200)
+                                self.send_header("Content-Type", "text/csv; charset=utf-8")
+                                self.send_header("Content-Disposition",
+                                                 'attachment; filename="monde-original-reporter-matrix.csv"')
+                                self.send_header("Content-Length", str(len(body)))
+                                self.send_header("Cache-Control", "no-store")
+                                self.send_header("X-Content-Type-Options", "nosniff")
+                                self.end_headers()
+                                self.wfile.write(body)
+                                return
+                            return self._html(
+                                None, rendered_html=_source_directory_pair_matrix_html(
+                                    matrix, args))
                         if output_format == "presence-all-map":
                             from .source_pair_changes import source_directory_all_presence_map
                             return self._html(source_directory_all_presence_map(

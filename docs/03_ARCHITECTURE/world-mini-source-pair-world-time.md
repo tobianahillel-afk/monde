@@ -900,3 +900,31 @@ Source-prefix, entity, and exact-single-reporter scopes cannot be mixed with a
 two-reporter selection. Unrecognized reporter IDs never fabricate evidence.
 This is an overlay of the original reported positions, not a verified location,
 consensus, disagreement diagnosis, or physical movement.
+
+
+### Original global reporter comparison matrix (WORK-0133 candidate)
+
+The local two-reporter directory now offers a **native HTML table** and a
+machine-readable JSON matrix alongside its existing global map, GeoJSON, CSV
+and GeoPackage outputs. Select exactly two different original reporter IDs.
+The matrix groups the **same selected original Points** by entity and by
+earlier/later world-and-knowledge cutoff, classifying each period only as
+BOTH_REPORTED, ONLY_SOURCE_A, ONLY_SOURCE_B or NOT_REPORTED. Per-source
+assertion IDs, evidence IDs, WGS84 Point coordinates and counts are preserved.
+
+Optional earlier/later/both presence and WGS84 bounding-box filters (including
+the antimeridian) apply **before** the matrix is calculated, identically to
+the existing GIS exports. The browser table escapes untrusted source/entity
+names and provides direct links back to the matching selected map and JSON.
+Unknown source IDs produce no fabricated reports. Missing evidence remains
+UNKNOWN, not agreement; overlapping sources never prove consensus, movement
+or verified physical location. The server remains loopback read-only, with
+no snapshot writes, dependency or external service.
+
+## WORK-0133 — Export original reporter comparison as CSV
+
+The existing loopback-only `/source-pair?directory=1` comparison now accepts `format=presence-all-compare-csv` with two distinct `compare_a`/`compare_b` sources. The accessible reporter-matrix table links directly to this download. It is derived from the exact same global source selection as the matrix JSON, including spatial `bbox`, world/knowledge cutoffs and `presence=earlier|later|both`. Each entity has one earlier and one later row; both original sources retain their report counts and aligned JSON arrays of assertion IDs, evidence IDs and Point coordinates in CSV cells. Entity/source fields are spreadsheet-formula escaped. Zero-report status remains unreported/UNKNOWN rather than agreement, verified location or physical motion. No external request or persisted-data mutation is introduced.
+
+
+### WORK-0133 — Navigate from original reporter matrix to evidence
+The existing global comparison HTML matrix now links each listed entity to the already available full original-evidence presence table; reporters with original Points also link to their respective original per-entity source maps. The drill-downs preserve both world/knowledge cutoffs and optional presence classification without claiming agreement or inferred movement. A global spatial bbox is deliberately *not* carried to per-entity routes, which show the complete original evidence for the selected entity/source; the HTML discloses this scope change. The existing index selector for the reporting matrix now uses a valid single HTML option value. No new endpoint, data mutation or external dependency.

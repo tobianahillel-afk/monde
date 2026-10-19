@@ -7,7 +7,9 @@ from pathlib import Path
 import tempfile
 import threading
 import unittest
-from urllib.parse import urlencode
+from html import unescape
+import re
+from urllib.parse import urlencode, urlsplit, parse_qs
 
 from monde.local_api import create_server
 from monde.source_pair_changes import source_directory
@@ -3192,6 +3194,239 @@ class SourceDirectoryTests(unittest.TestCase):
                 self.world, directory, presence, [-180, -90, 180, 90],
                 source_compare=("survey-a", "survey-b"))
             self.assertEqual(json.loads(raw), expected)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+
+    def test_two_reporter_matrix_json_preserves_gis_original_evidence(self):
+        q = {**self.knowledge(), "compare_a": "survey-a",
+             "compare_b": "survey-b"}
+        status, headers, raw = self.get({**q, "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        matrix = json.loads(raw)
+        self.assertEqual(matrix["schema"], "MONDE_ORIGINAL_POINT_REPORTER_MATRIX_V1")
+        self.assertEqual((matrix["source_a"], matrix["source_b"]),
+                         ("survey-a", "survey-b"))
+        status, _, raw_geo = self.get({**q, "format": "presence-all-geojson"})
+        self.assertEqual(status, 200)
+        features = json.loads(raw_geo)["features"]
+        self.assertEqual(matrix["total_original_reports"], len(features))
+        self.assertEqual(matrix["total_entities"], len({
+            f["properties"]["entity"] for f in features}))
+        self.assertTrue(matrix["entities"])
+        for item in matrix["entities"]:
+            for period in ("earlier", "later"):
+                current = [f for f in features if
+                           f["properties"]["entity"] == item["entity"] and
+                           f["properties"][period + "_visible"]]
+                a = [f for f in current if f["properties"]["source_id"] == "survey-a"]
+                b = [f for f in current if f["properties"]["source_id"] == "survey-b"]
+                expected = ("BOTH_REPORTED" if a and b else
+                            "ONLY_SOURCE_A" if a else
+                            "ONLY_SOURCE_B" if b else "NOT_REPORTED")
+                self.assertEqual(item[period]["status"], expected)
+                for key, originals in (("source_a", a), ("source_b", b)):
+                    self.assertEqual(item[period][key]["count"], len(originals))
+                    self.assertEqual(item[period][key]["assertion_ids"],
+                                     [f["properties"]["monde_original_assertion_id"]
+                                      for f in originals])
+                    self.assertEqual(item[period][key]["evidence_ids"],
+                                     [f["properties"]["evidence_id"]
+                                      for f in originals])
+                    self.assertEqual(item[period][key]["coordinates"],
+                                     [f["geometry"]["coordinates"]
+                                      for f in originals])
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_two_reporter_matrix_browser_and_strict_query(self):
+        q = {**self.knowledge(), "compare_a": "survey-a",
+             "compare_b": "survey-b"}
+        status, _, html = self.get({**q, "format": "presence-all-compare-table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"Original reporter Point matrix", html)
+        self.assertIn(b"Open original evidence map", html)
+        self.assertIn(b"presence-all-compare-json", html)
+        status, _, index = self.get(self.knowledge())
+        self.assertEqual(status, 200)
+        self.assertIn(b"Original reporting table", index)
+        self.assertIn(b"Original reporting JSON", index)
+        for invalid in ({"compare_b": "survey-a"}, {"compare_a": ""},
+                        {"source_exact": "survey-a"},
+                        {"source_prefix": "sur"}, {"entity": "site-1"}):
+            for fmt in ("presence-all-compare-json", "presence-all-compare-table"):
+                status, _, raw = self.get({**q, **invalid, "format": fmt})
+                self.assertEqual(status, 400)
+                self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        for fmt in ("presence-all-compare-json", "presence-all-compare-table"):
+            self.assertEqual(self.get({**self.knowledge(), "format": fmt})[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_two_reporter_matrix_respects_spatial_and_visibility_filters(self):
+        from monde.source_pair_changes import source_directory_global_pair_matrix
+        directory = json.loads(self.get({**self.knowledge(), "format": "json"})[2])
+        for period in ("earlier", "later", "both"):
+            query = {**self.knowledge(), "compare_a": "survey-a",
+                     "compare_b": "survey-b", "presence": period,
+                     "bbox": "-180,-90,180,90"}
+            status, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            expected = source_directory_global_pair_matrix(
+                self.world, directory, period, [-180, -90, 180, 90],
+                ("survey-a", "survey-b"))
+            self.assertEqual(json.loads(raw), expected)
+        status, _, raw = self.get({
+            **self.knowledge(), "compare_a": "unknown-a", "compare_b": "unknown-b",
+            "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw)["entities"], [])
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+
+    def test_two_reporter_matrix_csv_matches_json_and_filtered_evidence(self):
+        for presence in (None, "earlier", "later", "both"):
+            query = {**self.knowledge(), "compare_a": "survey-a",
+                     "compare_b": "survey-b", "bbox": "-180,-90,180,90"}
+            if presence:
+                query["presence"] = presence
+            status, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+            self.assertEqual(status, 200)
+            matrix = json.loads(raw)
+            status, headers, raw = self.get({
+                **query, "format": "presence-all-compare-csv"})
+            self.assertEqual(status, 200)
+            self.assertEqual(headers["Content-Type"], "text/csv; charset=utf-8")
+            self.assertIn("monde-original-reporter-matrix.csv",
+                          headers["Content-Disposition"])
+            self.assertEqual(headers["Cache-Control"], "no-store")
+            rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+            self.assertEqual(len(rows), 2 * matrix["total_entities"])
+            for row in rows:
+                item = next(x for x in matrix["entities"] if
+                            x["entity"] == row["entity"])
+                period = row["period"]
+                self.assertEqual(row["reporting_status"], item[period]["status"])
+                self.assertEqual((row["source_a"], row["source_b"]),
+                                 (matrix["source_a"], matrix["source_b"]))
+                for reporter in ("source_a", "source_b"):
+                    original = item[period][reporter]
+                    self.assertEqual(int(row[reporter + "_count"]),
+                                     original["count"])
+                    for field in ("assertion_ids", "evidence_ids", "coordinates"):
+                        self.assertEqual(
+                            json.loads(row[reporter + "_" + field + "_json"]),
+                            original[field])
+                cutoff = matrix["cutoffs"][period]
+                self.assertEqual((row["world_at"], row["knowledge_at"]),
+                                 (cutoff["world_at"], cutoff["knowledge_at"]))
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_two_reporter_matrix_csv_navigation_and_rejections(self):
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b"}
+        status, _, page = self.get({
+            **base, "format": "presence-all-compare-table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"Download reporter matrix CSV", page)
+        self.assertIn(b"presence-all-compare-csv", page)
+        status, _, index = self.get(self.knowledge())
+        self.assertEqual(status, 200)
+        self.assertIn(b"Original reporting matrix CSV", index)
+        for extra in ({"compare_b": "survey-a"}, {"compare_a": ""},
+                      {"source_exact": "survey-a"}, {"entity": "site-1"},
+                      {"source_prefix": "sur"}):
+            status, _, raw = self.get({
+                **base, **extra, "format": "presence-all-compare-csv"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(raw), {"error": "invalid_query"})
+        self.assertEqual(self.get({
+            **self.knowledge(), "format": "presence-all-compare-csv"})[0], 400)
+        status, _, empty = self.get({
+            **self.knowledge(), "compare_a": "missing-a",
+            "compare_b": "missing-b", "format": "presence-all-compare-csv"})
+        self.assertEqual(status, 200)
+        self.assertEqual(list(csv.DictReader(
+            io.StringIO(empty.decode("utf-8")))), [])
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_two_reporter_matrix_csv_escapes_spreadsheet_formulas(self):
+        from monde.source_pair_changes import source_directory_global_pair_matrix_csv
+        original = lambda count, ids: {
+            "count": count, "assertion_ids": ids, "evidence_ids": ["@e"] if ids else [],
+            "coordinates": [[1.0, 2.0]] if ids else []}
+        matrix = {
+            "schema": "MONDE_ORIGINAL_POINT_REPORTER_MATRIX_V1",
+            "source_a": "=reporter", "source_b": "@reporter",
+            "cutoffs": {"earlier": {"world_at": AT, "knowledge_at": BEFORE},
+                        "later": {"world_at": AT, "knowledge_at": AFTER}},
+            "entities": [{
+                "entity": "+entity",
+                "earlier": {"status": "ONLY_SOURCE_A",
+                            "source_a": original(1, ["=assertion"]),
+                            "source_b": original(0, [])},
+                "later": {"status": "ONLY_SOURCE_B",
+                          "source_a": original(0, []),
+                          "source_b": original(1, ["-assertion"])}}]}
+        rows = list(csv.DictReader(io.StringIO(
+            source_directory_global_pair_matrix_csv(matrix))))
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["entity"], "'+entity")
+        self.assertEqual(rows[0]["source_a"], "'=reporter")
+        self.assertEqual(rows[0]["source_b"], "'@reporter")
+        self.assertEqual(json.loads(rows[0]["source_a_assertion_ids_json"]),
+                         ["=assertion"])
+        self.assertEqual(json.loads(rows[1]["source_b_assertion_ids_json"]),
+                         ["-assertion"])
+        with self.assertRaises(ValueError):
+            source_directory_global_pair_matrix_csv({"schema": "UNEXPECTED"})
+
+
+
+    def test_two_reporter_matrix_drills_into_existing_source_maps(self):
+        query = {**self.knowledge(), "compare_a": "survey-a",
+                 "compare_b": "survey-b", "bbox": "-180,-90,180,90"}
+        status, _, raw = self.get({**query, "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        rows = json.loads(raw)["entities"]
+        self.assertTrue(rows)
+        status, _, page = self.get({**query, "format": "presence-all-compare-table"})
+        self.assertEqual(status, 200)
+        self.assertIn(b"outside any global bbox filter", page)
+        self.assertNotIn(b'value="presence-all-compare-table",', page)
+        anchors = re.findall(r'<a href="([^"]+)">([^<]+)</a>', page.decode("utf-8"))
+        links = [(label, {key: values[0] for key, values in
+                 parse_qs(urlsplit(unescape(href)).query).items()})
+                 for href, label in anchors]
+        first = rows[0]
+        entity = first["entity"]
+        dossier = next(q for label, q in links if label == "Entity evidence"
+                       and q.get("entity") == entity)
+        self.assertEqual(dossier["format"], "presence-table")
+        for key in self.knowledge():
+            self.assertEqual(dossier[key], self.knowledge()[key])
+        self.assertNotIn("bbox", dossier)
+        self.assertNotIn("compare_a", dossier)
+        self.assertNotIn("compare_b", dossier)
+        status, _, original = self.get(dossier)
+        self.assertEqual(status, 200)
+        self.assertIn(b"<!doctype html>", original.lower())
+        for side, label, source in (
+                ("source_a", "Source A map", "survey-a"),
+                ("source_b", "Source B map", "survey-b")):
+            present = any(first[period][side]["count"]
+                          for period in ("earlier", "later"))
+            found = [q for text, q in links
+                     if text == label and q.get("entity") == entity]
+            self.assertEqual(bool(found), bool(present))
+            if found:
+                selected = found[0]
+                self.assertEqual((selected["format"], selected["source"]),
+                                 ("presence-map", source))
+                self.assertNotIn("bbox", selected)
+                for key in self.knowledge():
+                    self.assertEqual(selected[key], self.knowledge()[key])
+                status, _, map_html = self.get(selected)
+                self.assertEqual(status, 200)
+                self.assertIn(b"<!doctype html>", map_html.lower())
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
 if __name__ == "__main__":
