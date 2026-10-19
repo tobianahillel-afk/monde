@@ -1334,7 +1334,12 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         (' selected' if shared.get("gap_window") == "both" else '') +
         '>Both cutoffs (persistent)</option></select></label>'
         '<label>Ranking <select name="gap_order">'
-        '<option value="largest">Largest original-report gap first</option>'
+        '<option value="largest"' +
+        (' selected' if shared.get("gap_order", "largest") == "largest" else '') +
+        '>Largest original-report gap first</option>'
+        '<option value="largest-change"' +
+        (' selected' if shared.get("gap_order") == "largest-change" else '') +
+        '>Largest change in original-report gap first</option>'
         '</select></label><button type="submit">Prioritize evidence</button>'
         '</fieldset></form>')
     return (
@@ -1454,7 +1459,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             raise ValueError("invalid original reporter gap threshold")
     if "gap_order" in args and (
             args.get("format") not in formats or
-            args["gap_order"] != "largest"):
+            args["gap_order"] not in ("largest", "largest-change")):
         raise ValueError("invalid original reporter gap order")
     if "gap_window" in args and (
             args.get("format") not in formats or

@@ -1033,3 +1033,20 @@ all source Points, additionally marking each exact selected endpoint with
 previous numeric distances, source selection, gap filters and cutoff logic
 are unchanged. A highlighted pair explains a **reported separation**, not a
 verified location, source reliability, agreement or physical movement.
+
+
+## Rank largest change in original two-reporter Point separation (WORK-0139)
+
+The existing read-only original reporter matrix now accepts
+\`gap_order=largest-change\` for JSON, CSV, HTML, filtered original GeoJSON
+and offline map. It sorts by the **absolute earlier-to-later difference**
+of the nearest cross-source Point gap (rounded km), descending. A stable
+entity ID breaks ties. Entities with no joint original Points at either
+cutoff are UNKNOWN and appear last, **not as zero change**. The previous
+\`gap_order=largest\`, default entity order, and \`min_gap_km\` /
+\`gap_window=both\` filters remain intact. The native browser GET form lets
+the analyst select this ordering without modifying saved evidence.
+
+Ranking reflects *changes in distance between original source reports*,
+not proven physical movement, agreement, accuracy or a source trust score.
+No new endpoint, package, data store, hosted dependency or model inference.

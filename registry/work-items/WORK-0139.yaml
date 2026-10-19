@@ -1,0 +1,42 @@
+id: WORK-0139
+title: "Prioritize changes in original two-reporter Point separation"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-19"
+updated_at: "2026-10-19"
+purpose: |
+  Rank original two-reporter evidence investigations by absolute change in
+  nearest source-to-source reported Point separation across both cutoffs.
+scope:
+  in: ["Existing original reporter matrix ranking", "Read-only browser form", "JSON/CSV/GeoJSON/map parity", "Real local HTTP regression"]
+  out: ["Inferred physical movement or truth", "New source trust ranking", "New service/API dependency", "World Model persistence changes"]
+acceptance_criteria:
+  - {id: AC-1, description: "Largest absolute earlier/later original-report gap changes rank first with stable entity tie-break; incomparable reports remain UNKNOWN last.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Existing browser GET form and JSON CSV GeoJSON offline map use the same selection on both temporal axes.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Persistent gap filters and prior ranking are unchanged; strict invalid inputs rejected and saved evidence byte-identical.", status: IN_PROGRESS}
+depends_on: [WORK-0138]
+requirements: []
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
+reuses: [monde.source_pair_changes.source_directory_global_pair_matrix, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Add largest-change option to shared source-pair matrix.", depends_on: [], expected_files: [src/monde/source_pair_changes.py], status: IN_PROGRESS}
+    - {id: T2, description: "Expose ranking in read-only original reporter browser.", depends_on: [T1], expected_files: [src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T3, description: "Exercise real HTTP ordering, export parity, error scope and immutability.", depends_on: [T2], expected_files: [tests/test_world_local_source_directory.py], status: IN_PROGRESS}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
