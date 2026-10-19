@@ -1218,8 +1218,7 @@ To inspect **every changed entity** between two independently verified original-
 ZIP exports in one invocation, use:
 
 ```bash
-PYTHONPATH=src python3 -m monde.evidence_bundle before.zip \\
-  --compare after.zip --inspect-changed
+PYTHONPATH=src python3 -m monde.evidence_bundle before.zip --compare after.zip --inspect-changed
 ```
 
 The `changed_entity_inspections` array contains the complete original Point
