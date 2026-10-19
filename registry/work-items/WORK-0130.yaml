@@ -1,5 +1,5 @@
 id: WORK-0130
-title: "Global bitemporal source-reported Point GeoJSON download"
+title: "Global bitemporal original Point GeoJSON and CSV downloads"
 status: IN_PROGRESS
 phase: PHASE-0
 lot: LOT-2
@@ -8,17 +8,17 @@ owner: "MONDE Mini"
 created_at: "2026-10-19"
 updated_at: "2026-10-19"
 purpose: |
-  Provide interoperable global source-observation GeoJSON and area downloads
+  Provide interoperable global source-observation GeoJSON, CSV and area downloads
   using the already working GeoPackage evidence selector.
 scope:
-  in: ["Original multi-entity GeoJSON", "Temporal and reporter filters",
+  in: ["Original multi-entity GeoJSON and CSV", "Temporal and reporter filters",
        "WGS84 bounding box including antimeridian", "Read-only HTTP and browser links"]
   out: ["Ground truth inference", "Data mutation", "New dependencies"]
 acceptance_criteria:
   - {id: AC-1, description: "GeoJSON retains identical source Point identities and properties as global GeoPackage.", status: IN_PROGRESS}
   - {id: AC-2, description: "Reporter, presence and wrapped viewport filters are consistent.", status: IN_PROGRESS}
   - {id: AC-3, description: "Local HTTP and browser expose global and regional downloads safely.", status: IN_PROGRESS}
-  - {id: AC-4, description: "Real persisted HTTP tests prove JSON-GIS parity and read-only behavior.", status: IN_PROGRESS}
+  - {id: AC-4, description: "Real persisted HTTP tests prove JSON-GIS-CSV parity and read-only behavior.", status: IN_PROGRESS}
 depends_on: [WORK-0129]
 requirements: []
 read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py]

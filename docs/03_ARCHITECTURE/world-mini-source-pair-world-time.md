@@ -845,3 +845,16 @@ GeoPackage use the **same original assertion selector**, preserving exact
 identities, provenance, world/knowledge cutoffs and earlier/later visibility.
 The browser exposes global and area GeoJSON downloads. There is no inferred
 consensus, new service, dependency or persisted WorldMini mutation.
+
+
+## Global original Point CSV (WORK-0130)
+
+The existing read-only `/source-pair?directory=1` exports original Points as
+`format=presence-all-csv`, globally or within a WGS84 bbox (including the
+wrapped antimeridian). Exactly the same source-prefix, presence-transition and
+spatial selector as global GeoJSON/GeoPackage is reused, so no location is
+inferred. Each row retains original feature/entity/source/assertion/evidence
+identifiers, original coordinates, both world/knowledge cutoffs, temporal
+visibility and all original feature properties as JSON. User-controlled text
+cells escape leading spreadsheet formulas. Existing read-only HTTP response
+size, attachment and no-store protections apply; no new external dependency.

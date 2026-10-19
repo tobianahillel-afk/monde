@@ -2856,5 +2856,87 @@ class SourceDirectoryTests(unittest.TestCase):
             server.server_close()
         self.assertEqual(saved.read_bytes(), initial)
 
+
+    def test_global_csv_has_exact_original_geojson_feature_identities_and_metadata(self):
+        import csv
+        import io
+        query = self.knowledge()
+        status, headers, payload = self.get({**query, "format": "presence-all-csv"})
+        self.assertEqual(status, 200)
+        self.assertIn("text/csv", headers["Content-Type"])
+        self.assertIn("attachment", headers["Content-Disposition"])
+        rows = list(csv.DictReader(io.StringIO(payload.decode("utf-8"))))
+        original = json.loads(self.get({**query, "format": "presence-all-geojson"})[2])
+        self.assertEqual(len(rows), len(original["features"]))
+        self.assertEqual([r["feature_id"] for r in rows],
+                         [f["id"] for f in original["features"]])
+        for row, feature in zip(rows, original["features"]):
+            props = feature["properties"]
+            self.assertEqual(json.loads(row["original_properties_json"]), props)
+            self.assertEqual(row["source_id"], props["source_id"])
+            self.assertEqual(row["assertion_id"], props["monde_original_assertion_id"])
+            self.assertEqual(row["evidence_id"], props["evidence_id"])
+            self.assertEqual([float(row["longitude"]), float(row["latitude"])],
+                             feature["geometry"]["coordinates"])
+            self.assertEqual(int(row["earlier_visible"]), int(props["earlier_visible"]))
+            self.assertEqual(int(row["later_visible"]), int(props["later_visible"]))
+            self.assertEqual(row["visibility_transition"],
+                             props["monde_visibility_transition"])
+            for side in ("earlier", "later"):
+                cutoff = original["monde_source_coverage"]["cutoffs"][side]
+                self.assertEqual(row[side+"_world_at"], cutoff["world_at"])
+                self.assertEqual(row[side+"_known_at"], cutoff["knowledge_at"])
+        page = self.get({**query, "format": "table"})[2]
+        self.assertIn(b"Download all selected original Points CSV", page)
+        self.assertIn(b"Download area CSV", page)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_global_csv_reuses_source_and_presence_filters_and_validates_scope(self):
+        import csv
+        import io
+        for presence in ("earlier", "later", "both"):
+            query = {**self.knowledge(), "format": "presence-all-csv",
+                     "source_prefix": "survey-a", "presence": presence}
+            status, _, raw = self.get(query)
+            self.assertEqual(status, 200)
+            rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+            geo = json.loads(self.get({**query, "format": "presence-all-geojson"})[2])
+            self.assertEqual([row["feature_id"] for row in rows],
+                             [f["id"] for f in geo["features"]])
+        for invalid in ({"entity": "site-1"}, {"source": "survey-a"},
+                        {"presence": "unknown"}, {"bbox": "0,0,0,1"},
+                        {"bbox": "nan,0,1,1"}, {"unexpected": "x"}):
+            self.assertEqual(self.get({**self.knowledge(),
+                                      "format": "presence-all-csv", **invalid})[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_global_csv_wrapped_bbox_and_empty_region_preserve_saved_world(self):
+        import csv
+        import io
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "dateline-csv-global.json"
+        world.save(saved)
+        baseline = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            for bbox in ("179,-1,-179,1", "40,40,41,41"):
+                query = {"directory": "1", "axis": "world", "from_at": EARLY,
+                         "to_at": LATE, "known_at": KNOWN, "bbox": bbox}
+                status, _, raw = self.get({**query, "format": "presence-all-csv"},
+                                          server)
+                self.assertEqual(status, 200)
+                rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8"))))
+                geo = json.loads(self.get({**query,
+                    "format": "presence-all-geojson"}, server)[2])
+                self.assertEqual([r["feature_id"] for r in rows],
+                                 [f["id"] for f in geo["features"]])
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+        self.assertEqual(saved.read_bytes(), baseline)
+
 if __name__ == "__main__":
     unittest.main()

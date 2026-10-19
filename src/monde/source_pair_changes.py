@@ -942,6 +942,40 @@ def source_directory_all_presence_geojson(world, directory, presence=None, bbox=
             "monde_source_coverage": coverage}
 
 
+def source_directory_all_presence_csv(world, directory, presence=None, bbox=None):
+    """Spreadsheet-safe original Point identities, using the global GeoJSON selection."""
+    features = source_directory_all_presence_geojson(
+        world, directory, presence, bbox)["features"]
+    earlier, later = directory["cutoffs"]["earlier"], directory["cutoffs"]["later"]
+
+    def safe(value):
+        text = str(value)
+        return "'" + text if text.startswith(
+            ("=", "+", "-", "@", "\t", "\r", "\n")) else text
+
+    result = io.StringIO(newline="")
+    writer = csv.writer(result, lineterminator="\r\n")
+    writer.writerow(("feature_id", "entity", "source_id", "assertion_id",
+                     "evidence_id", "longitude", "latitude", "earlier_visible",
+                     "later_visible", "visibility_transition",
+                     "earlier_world_at", "earlier_known_at", "later_world_at",
+                     "later_known_at", "original_properties_json"))
+    for feature in features:
+        props = feature["properties"]
+        lon, lat = feature["geometry"]["coordinates"]
+        writer.writerow((
+            safe(feature["id"]), safe(props["entity"]),
+            safe(props["source_id"]), safe(props["monde_original_assertion_id"]),
+            safe(props["evidence_id"]), lon, lat,
+            int(props["earlier_visible"]), int(props["later_visible"]),
+            props["monde_visibility_transition"],
+            earlier["world_at"], earlier["knowledge_at"],
+            later["world_at"], later["knowledge_at"],
+            json.dumps(props, ensure_ascii=False, sort_keys=True,
+                       separators=(",", ":"))))
+    return result.getvalue()
+
+
 def source_directory_all_presence_gpkg(world, directory, presence=None, bbox=None):
     """Convert the same evidence selection to the original offline GIS format."""
     result = source_directory_all_presence_geojson(world, directory, presence, bbox)
