@@ -1132,3 +1132,7 @@ Analytical witness features and WKT CSV rows additionally expose the **nearest o
 ### Portable two-reporter evidence ZIP (WORK-0143)
 
 The local /source-pair selector accepts format=presence-all-compare-bundle for an offline, fixed-name ZIP of the exact selected original matrix JSON/CSV, original Point GeoJSON, and separately identified analytical witness GeoJSON/WKT CSV. Its manifest.json records the two source IDs, bitemporal cutoffs, validated filters, byte sizes and SHA-256 hashes for each exported member. Same immutable snapshot and identical query yields the same ZIP bytes; the existing 2 MB HTTP limit applies. Original observations remain distinct from schematic connectors, which are not ground-truth locations, verified routes or movement. No new service, external library or write endpoint.
+
+## Portable offline reporter evidence index (WORK-0143)
+
+The existing `presence-all-compare-bundle` ZIP now includes an extracted `index.html` offline report. Open it after unzipping: it shows the exact selected entity matrix, reporter IDs, temporal axis/cutoffs, original reporting presence and derived nearest-point gaps, with links to the unchanged JSON/CSV/GeoJSON artifacts and SHA-256 manifest. Values from original sources are escaped as text; the report does not require JavaScript, a local MONDE server or external assets. Original observations and derived witness geometry remain explicitly distinguished; neither implies ground truth or movement.

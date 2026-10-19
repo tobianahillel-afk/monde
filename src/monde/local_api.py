@@ -1231,6 +1231,75 @@ def _pair_table_html(document: dict, params: dict[str, str]) -> str:
 
 
 
+def _reporter_evidence_offline_html(matrix: dict) -> bytes:
+    """Static human-readable companion for the exact selected matrix."""
+    def cell(value):
+        return escape(str(value), quote=True)
+
+    def gap(row, period):
+        separation = row[period]["separation_km"]
+        return ("UNKNOWN" if separation is None else
+                str(separation["nearest_km"]) + " km")
+
+    exports = (
+        ("matrix.json", "Full original reporter matrix (JSON)"),
+        ("matrix.csv", "Original reporter matrix (CSV)"),
+        ("original-points.geojson", "Original source Point observations (GeoJSON)"),
+        ("analytical-witnesses.geojson", "Derived nearest-pair witnesses (GeoJSON)"),
+        ("analytical-witnesses.csv", "Derived nearest-pair witnesses (CSV)"),
+        ("manifest.json", "SHA-256 integrity manifest"),
+    )
+    links = "".join('<li><a href="' + name + '">' + cell(label) +
+                    "</a></li>" for name, label in exports)
+    rows = []
+    for report in matrix["entities"]:
+        rows.append("<tr><th scope=\"row\">" + cell(report["entity"]) +
+                    "</th><td>" + cell(report["earlier"]["status"]) +
+                    "</td><td>" + cell(report["later"]["status"]) +
+                    "</td><td>" + cell(gap(report, "earlier")) +
+                    "</td><td>" + cell(gap(report, "later")) +
+                    "</td><td>" + cell(report["reporting_transition"]) +
+                    "</td><td>" + cell(report["reporter_gap_trend"]) +
+                    "</td></tr>")
+    page = (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta http-equiv="Content-Security-Policy" '
+        'content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<title>MONDE original reporter evidence</title>'
+        '<style>body{font:1rem system-ui,sans-serif;max-width:76rem;'
+        'margin:auto;padding:1rem;line-height:1.5}'
+        'table{border-collapse:collapse;width:100%}th,td{border:1px solid #888;'
+        'padding:.4rem;text-align:left}th{background:#eee}'
+        'pre{white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body>'
+        '<h1>Original reporter evidence — offline report</h1>'
+        '<p>Reporter A: <strong>' + cell(matrix["source_a"]) +
+        '</strong>; reporter B: <strong>' + cell(matrix["source_b"]) +
+        '</strong>; comparison axis: <strong>' + cell(matrix["axis"]) +
+        '</strong>.</p><p>Selected entities: ' + cell(matrix["total_entities"]) +
+        '; original source Point reports: ' +
+        cell(matrix["total_original_reports"]) + '.</p>'
+        '<h2>World/knowledge cutoffs</h2><pre>' +
+        cell(json.dumps(matrix["cutoffs"], ensure_ascii=False, sort_keys=True,
+                        indent=2)) + '</pre>'
+        '<p>Only source-reported observations are original evidence. '
+        'Distances and analytical witnesses are derived measurements, '
+        'not verified truth, consensus, physical routes or movement. '
+        'Missing observations mean UNKNOWN.</p>'
+        '<h2>Archive contents</h2><ul>' + links + '</ul>'
+        '<h2>Selected entity comparisons</h2><table><thead><tr>'
+        '<th scope="col">Entity</th><th scope="col">Earlier reporting</th>'
+        '<th scope="col">Later reporting</th><th scope="col">Earlier gap</th>'
+        '<th scope="col">Later gap</th><th scope="col">Transition</th>'
+        '<th scope="col">Gap trend</th></tr></thead><tbody>' +
+        "".join(rows) + '</tbody></table>'
+        '<p>Extract this ZIP before opening this report to follow '
+        'the relative links. Verify files against manifest.json for integrity.</p>'
+        '</body></html>'
+    )
+    return page.encode("utf-8")
+
+
 def _reporter_evidence_archive(world, directory, matrix, args):
     """Bundle selected original reporter evidence and distinct analytic witnesses."""
     from .source_pair_changes import (
@@ -1250,6 +1319,7 @@ def _reporter_evidence_archive(world, directory, matrix, args):
                            separators=(",", ":")) + "\n").encode("utf-8")
 
     files = {
+        "index.html": _reporter_evidence_offline_html(matrix),
         "matrix.json": as_json(matrix),
         "matrix.csv": source_directory_global_pair_matrix_csv(matrix).encode("utf-8"),
         "original-points.geojson": as_json(original),

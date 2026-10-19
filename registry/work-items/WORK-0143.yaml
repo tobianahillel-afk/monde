@@ -10,6 +10,7 @@ updated_at: "2026-10-19"
 purpose: |
   Save one verified local package of selected original reporter gaps, source
   evidence and separate analytical witness geometry for offline investigation.
+  Include a directly readable HTML report in the extracted offline archive.
 scope:
   in: ["Original bitemporal two-reporter comparisons", "ZIP SHA256 manifest",
        "Existing original reports and analytical GIS exports"]

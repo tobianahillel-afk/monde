@@ -4915,11 +4915,24 @@ class SourceDirectoryTests(unittest.TestCase):
             self.assertEqual(self.get(selected)[2], raw)
             with ZipFile(io.BytesIO(raw)) as archive:
                 self.assertEqual(set(archive.namelist()), {
-                    "manifest.json", "matrix.json", "matrix.csv",
+                    "manifest.json", "index.html", "matrix.json", "matrix.csv",
                     "original-points.geojson", "analytical-witnesses.geojson",
                     "analytical-witnesses.csv"})
                 self.assertTrue(all(i.date_time[:3] == (1980, 1, 1)
                                     for i in archive.infolist()))
+                # The extracted ZIP opens offline without local MONDE server.
+                report = archive.read("index.html").decode("utf-8")
+                self.assertIn('<!doctype html>', report)
+                self.assertIn("Reporter A: <strong>survey-a</strong>", report)
+                self.assertIn("Reporter B: <strong>survey-b</strong>", report)
+                self.assertIn("<table>", report)
+                self.assertIn("UNKNOWN", report)
+                self.assertIn('href="original-points.geojson"', report)
+                self.assertIn('href="analytical-witnesses.geojson"', report)
+                self.assertIn('href="manifest.json"', report)
+                self.assertNotIn("<script", report.lower())
+                self.assertNotIn("http://", report)
+                self.assertNotIn("https://", report)
                 manifest = json.loads(archive.read("manifest.json"))
                 self.assertEqual(manifest["schema"],
                                  "MONDE_ORIGINAL_REPORTER_EVIDENCE_BUNDLE_V1")
@@ -4956,6 +4969,32 @@ class SourceDirectoryTests(unittest.TestCase):
             table = self.get({**q, "format": "presence-all-compare-table"})[2]
             self.assertIn(b"Download complete offline evidence ZIP", table)
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+
+    def test_original_reporter_bundle_offline_report_escapes_untrusted_labels(self):
+        from monde.local_api import _reporter_evidence_offline_html
+        entity = '<img src=x onerror="alert(1)">'
+        matrix = {
+            "source_a": '<script>alert(1)</script>', "source_b": 'B & "C"',
+            "axis": "knowledge", "cutoffs": {"at": "<bad>"},
+            "total_entities": 1, "total_original_reports": 1,
+            "entities": [{"entity": entity,
+                          "earlier": {"status": "ONLY_SOURCE_A",
+                                      "separation_km": None},
+                          "later": {"status": "BOTH_REPORTED",
+                                    "separation_km": {"nearest_km": 1.25}},
+                          "reporting_transition": "REPORTERS_CHANGED",
+                          "reporter_gap_trend": "UNKNOWN"}],
+        }
+        html = _reporter_evidence_offline_html(matrix).decode("utf-8")
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
+        self.assertIn("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;", html)
+        self.assertIn("&lt;bad&gt;", html)
+        self.assertNotIn("<script>", html)
+        self.assertNotIn("<img", html)
+        self.assertIn("1.25 km", html)
+        self.assertIn("<td>UNKNOWN</td>", html)
+        self.assertEqual(html.count("<tr>"), 2)
 
     def test_original_reporter_evidence_zip_rejects_invalid_combinations(self):
         q = {**self.knowledge(), "compare_a": "survey-a",
