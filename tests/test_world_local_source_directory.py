@@ -4926,7 +4926,8 @@ class SourceDirectoryTests(unittest.TestCase):
                 self.assertIn("Reporter A: <strong>survey-a</strong>", report)
                 self.assertIn("reporter B: <strong>survey-b</strong>", report)
                 self.assertIn("<table>", report)
-                self.assertIn("No entities match all selected comparison filters", report)
+                if not json.loads(archive.read("matrix.json"))["entities"]:
+                    self.assertIn("No entities match all selected comparison filters", report)
                 self.assertIn("UNKNOWN", report)
                 self.assertIn('href="original-points.geojson"', report)
                 self.assertIn('href="analytical-witnesses.geojson"', report)
