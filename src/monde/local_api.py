@@ -1376,7 +1376,7 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         link("presence-all-compare-csv", "Download reporter matrix CSV") + " · " +
         link("presence-all-compare-map", "Map matching original reports") + " · " +
         link("presence-all-compare-geojson", "Download matching original Points GeoJSON") +
-        " · " + link("presence-all-compare-witness-geojson", "presence-all-compare-witness-csv",
+        " · " + link("presence-all-compare-witness-geojson",
                     "Download nearest original reporter witness lines GeoJSON") +
         " · " + link("presence-all-compare-witness-csv",
                      "Download analyst nearest-pair witnesses WKT CSV") +
