@@ -185,6 +185,51 @@ class SourceLensHTTPTests(unittest.TestCase):
 
 
 
+
+    def test_source_filtered_xyz_tile_preserves_own_qualification_and_metadata(self):
+        # z=8/x=129/y=88 covers the Paris source but not its rival Point.
+        tile = {"z": "8", "x": "129", "y": "88", "at": AT, "known_at": K1}
+        status, _, raw = self.fetch("/tile", {**tile, "source": "survey-east"})
+        self.assertEqual(status, 200)
+        document = json.loads(raw)
+        self.assertEqual(document["monde_source_filter"], "survey-east")
+        self.assertEqual({f["properties"]["source_id"] for f in document["features"]},
+                         {"survey-east"})
+        self.assertEqual(document["monde_bbox_query"]["total_matching_entities"], 1)
+        self.assertEqual(document["monde_tile_query"]["status"], "MATCHES")
+        self.assertTrue(document["features"][0]["properties"]["monde_inside_bbox"])
+
+        # A rival point outside the tile must not qualify its own source.
+        status, _, raw = self.fetch("/tile", {**tile, "source": "survey-west"})
+        self.assertEqual(status, 200)
+        west = json.loads(raw)
+        self.assertEqual(west["features"], [])
+        self.assertEqual(west["monde_bbox_query"]["total_matching_entities"], 0)
+        self.assertEqual(west["monde_tile_query"]["status"], "NO_MATCHES")
+
+    def test_xyz_source_filter_keeps_original_reports_and_legacy_output(self):
+        tile = {"z": "0", "x": "0", "y": "0", "at": AT, "known_at": K1}
+        status, _, raw = self.fetch("/tile", tile)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw), self.world.export_geojson_tile(0, 0, 0, AT, K1))
+        self.assertEqual(json.loads(self.fetch("/tile", {**tile, "source": ""})[2]),
+                         self.world.export_geojson_tile(0, 0, 0, AT, K1))
+        status, _, raw = self.fetch("/tile", {**tile, "source": "survey-west"})
+        self.assertEqual(status, 200)
+        west = json.loads(raw)
+        self.assertEqual([f["properties"]["source_id"] for f in west["features"]],
+                         ["survey-west"])
+        self.assertEqual(west["features"][0]["properties"]["entity"], "site-a")
+        self.assertTrue(west["features"][0]["properties"]["evidence_id"])
+        self.assertEqual(west["monde_tile_query"]["status"], "MATCHES")
+        for invalid in ("../survey-east", "bad name", "<script>", "a" * 100):
+            with self.subTest(invalid=invalid):
+                code, _, data = self.fetch("/tile", {**tile, "source": invalid})
+                self.assertEqual(code, 400)
+                self.assertEqual(json.loads(data), {"error": "invalid_query"})
+        self.assertEqual(self.fetch("/tile", {**tile, "source": "survey-west",
+                                             "unexpected": "x"})[0], 400)
+
     def test_source_filtered_nearest_reranks_entire_population(self):
         # The selected source must rank against *its* original Points, not
         # post-filter the first N entities ranked using other sources.

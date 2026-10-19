@@ -62,9 +62,14 @@ Endpoints (GET, all JSON):
   still works. Suggestions do not assert that a source has an active Point at
   the chosen world-time/knowledge-time cutoff. No browser script or network
   dependency is added.
-- `/tile?z=5&x=16&y=11&at=...&known_at=...` — GeoJSON for a WGS84
+- `/tile?z=5&x=16&y=11&at=...&known_at=...&source=survey-1` — GeoJSON for a WGS84
   viewport derived from a standard XYZ Web Mercator tile, including the original
   source Point assertions and tile metadata; this is not a raster tile service.
+  The optional `source` filter uses the same original-source-in-viewport
+  qualification as `/map`: a Point from a different source cannot qualify
+  the selected source's tile. When filtered, both `monde_bbox_query` and
+  `monde_tile_query` report the filtered status; requests without `source`
+  preserve the unfiltered output exactly.
 - `/nearest?center=2.3522,48.8566&limit=10&at=...&known_at=...` —
   nearest **source-reported** Point entities, ranked by approximate spherical
   distance, not inferred ground-truth positions (maximum 1000 entities).

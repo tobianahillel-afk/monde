@@ -707,10 +707,17 @@ def create_server(state: str | Path, port: int = 0, *,
                                                   args["at"], args["known_at"]),
                         args.get("source"))
                 elif path == "/tile":
-                    _require(args, {"z", "x", "y", "at", "known_at"})
+                    _require(args, {"z", "x", "y", "at", "known_at"}, {"source"})
                     output = world.export_geojson_tile(
                         int(args["z"]), int(args["x"]), int(args["y"]),
                         args["at"], args["known_at"])
+                    if "source" in args:
+                        # Qualify entities by this source's own point inside
+                        # the XYZ tile. Keep its other original positions.
+                        output = _filter_source_bbox(output, args["source"])
+                        tile_query = dict(output["monde_tile_query"])
+                        tile_query["status"] = output["monde_bbox_query"]["status"]
+                        output["monde_tile_query"] = tile_query
                 elif path == "/nearest":
                     _require(args, {"center", "limit", "at", "known_at"}, {"source"})
                     output = world.export_geojson_nearest(
