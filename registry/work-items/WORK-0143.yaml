@@ -20,6 +20,7 @@ acceptance_criteria:
   - {id: AC-1, description: "ZIP contains selected five existing exports and integrity manifest.", status: IN_PROGRESS}
   - {id: AC-2, description: "Both temporal axes retain original versus analytic provenance.", status: IN_PROGRESS}
   - {id: AC-3, description: "Strict validation, deterministic archive and byte-immutable persisted model.", status: IN_PROGRESS}
+  - {id: AC-4, description: "Downloaded bundle can be verified offline without extraction or false source-authenticity claims.", status: IN_PROGRESS}
 depends_on: [WORK-0142]
 requirements: []
 read_before: [AGENTS.md, src/monde/local_api.py, src/monde/source_pair_changes.py, docs/03_ARCHITECTURE/world-mini-source-pair-world-time.md]
@@ -28,6 +29,7 @@ implementation_plan:
   tasks:
     - {id: T1, description: "Package selected existing source evidence.", depends_on: [], expected_files: [src/monde/local_api.py], status: IN_PROGRESS}
     - {id: T2, description: "Test live HTTP and stable offline export on both axes.", depends_on: [T1], expected_files: [tests/test_world_local_source_directory.py], status: IN_PROGRESS}
+    - {id: T3, description: "Verify downloaded ZIP contents and original/derived roles offline.", depends_on: [T1], expected_files: [src/monde/evidence_bundle.py, tests/test_world_evidence_bundle.py, tests/test_world_local_source_directory.py], status: IN_PROGRESS}
   planned_runs: []
 review_plan:
   artifact_class: WORLD_MODEL_EXPERIENCE
@@ -36,7 +38,7 @@ review_plan:
   completed_reviews: []
   open_findings: []
 required_tests:
-  integration: [tests/test_world_local_source_directory.py]
+  integration: [tests/test_world_local_source_directory.py, tests/test_world_evidence_bundle.py]
   real_system: ["world-mini GitHub Actions"]
 validation:
   executed: []

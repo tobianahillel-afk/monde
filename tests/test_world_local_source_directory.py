@@ -4951,6 +4951,11 @@ class SourceDirectoryTests(unittest.TestCase):
                 self.assertNotIn("<script", report.lower())
                 self.assertNotIn("http://", report)
                 self.assertNotIn("https://", report)
+                from monde.evidence_bundle import verify_bundle
+                inspected = verify_bundle(raw)
+                self.assertTrue(inspected["valid"])
+                self.assertEqual(inspected["verified_files"], 6)
+                self.assertEqual(inspected["authenticity"], "NOT_ATTESTED")
                 manifest = json.loads(archive.read("manifest.json"))
                 self.assertEqual(manifest["schema"],
                                  "MONDE_ORIGINAL_REPORTER_EVIDENCE_BUNDLE_V1")

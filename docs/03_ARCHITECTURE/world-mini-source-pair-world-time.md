@@ -1139,3 +1139,27 @@ The existing `presence-all-compare-bundle` ZIP now includes an extracted `index.
 
 
 The extracted static report also includes expandable **per-entity original evidence**, retaining each reporter's original assertion and evidence IDs and reported Point longitude/latitude at the earlier and later cutoffs. Surviving assertions appear under both cutoffs, but do not imply two captures or observed physical movement. All names, IDs and coordinates are HTML-escaped inert text; offline viewing needs no scripts or external resources. The ZIP's original exports, SHA-256 manifest, immutability and deterministic ordering are unchanged.
+
+## Verify a downloaded original-reporter evidence bundle offline (WORK-0143)
+
+The existing `presence-all-compare-bundle` ZIP contains `manifest.json`,
+`index.html`, the original reporter matrix, original Point GeoJSON, and
+separate analytical witness exports. Verify the download without extracting
+files or starting the MONDE server:
+
+```bash
+PYTHONPATH=src python3 -m monde.evidence_bundle ./monde-reporter-evidence.zip
+```
+
+The command emits a machine-readable JSON result (`valid: true` or
+`valid: false`) and exits with `0` for a consistent bundle, `1` for a
+corrupted, unexpected, or invalid one. It verifies exact member names,
+SHA-256 checksums, payload sizes, temporal cutoff/reporter metadata parity,
+and separation between original observations and analytical geometry.
+It does not extract or execute ZIP members and uses no network or paid API.
+
+**Integrity is not authenticity:** the manifest and hashes live in the same
+archive. Someone who changes data and recomputes its manifest can make a
+consistent archive. No verification of independent reporter identity,
+ground truth, or physical movement is implied. Preserve trusted external
+distribution provenance when authenticity is required.
