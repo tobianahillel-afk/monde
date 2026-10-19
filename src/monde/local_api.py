@@ -363,13 +363,13 @@ def _parameters(target: str, path: str) -> dict[str, str]:
         raise ValueError("invalid request path")
     values = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
                       max_num_fields=20)
-    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top", "min_change_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "bbox", "region_source", "region_period", "source_prefix"})
+    if any(len(v) != 1 or (not v[0] and key not in {"source", "entity", "direction", "top", "min_change_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "min_crossing_margin_km", "bbox", "region_source", "region_period", "source_prefix"})
            for key, v in values.items()):
         raise ValueError("all parameters must appear exactly once")
     # Browser GET forms submit empty optional controls: treat blank source as
     # no filter, but keep every other parameter strict.
     return {key: items[0] for key, items in values.items()
-            if key not in {"source", "entity", "direction", "top", "min_change_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "bbox", "region_source", "region_period", "source_prefix"} or items[0]}
+            if key not in {"source", "entity", "direction", "top", "min_change_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "min_crossing_margin_km", "bbox", "region_source", "region_period", "source_prefix"} or items[0]}
 
 
 def _require(values: dict[str, str], required: set[str],
@@ -1294,8 +1294,9 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
                     ' · '.join(links) + "</th><td>" +
                     escape(item["reporting_transition"]) + "</td><td>" +
                     escape(item["reporter_gap_trend"]) + "</td><td>" +
-                    escape(item.get("reporter_gap_crossing", "—")) + "</td>" +
-                    "".join(cells) + "</tr>")
+                    escape(item.get("reporter_gap_crossing", "—")) + "</td><td>" +
+                    str(item.get("reporter_gap_crossing_margin_km", "—")) +
+                    "</td>" + "".join(cells) + "</tr>")
     shared = {key: value for key, value in args.items() if key != "format"}
     def transition_link(value, text):
         retained = {key: val for key, val in shared.items()
@@ -1316,9 +1317,13 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
     def link(fmt, text):
         target = "/source-pair?" + urlencode({**shared, "format": fmt})
         return '<a href="' + escape(target, quote=True) + '">' + text + "</a>"
+    def witness_link(period, fmt, label):
+        query = {**shared, "format": fmt, "witness_period": period}
+        return '<a href="' + escape("/source-pair?" + urlencode(query),
+                                     quote=True) + '">' + label + '</a>'
     hidden = {k: v for k, v in shared.items()
               if k not in ("min_gap_km", "min_gap_change_km",
-                           "gap_crossing_km", "gap_crossing_direction",
+                           "gap_crossing_km", "gap_crossing_direction", "min_crossing_margin_km",
                            "gap_order", "gap_window")}
     priority = (
         '<form method="get" action="/source-pair"><fieldset>'
@@ -1336,6 +1341,9 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         '"></label><label>Gap threshold crossing (km)'
         '<input type="number" name="gap_crossing_km" min="0" max="20015" step="0.001"'
         ' value="' + escape(shared.get("gap_crossing_km", ""), quote=True) +
+        '"></label><label>Minimum crossing margin (km)'
+        '<input type="number" name="min_crossing_margin_km" min="0" max="20015" step="0.001"'
+        ' value="' + escape(shared.get("min_crossing_margin_km", ""), quote=True) +
         '"></label><label>Crossing direction <select name="gap_crossing_direction">'
         '<option value=""' +
         (' selected' if not shared.get("gap_crossing_direction") else '') +
@@ -1356,6 +1364,9 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         '<option value="largest-change"' +
         (' selected' if shared.get("gap_order") == "largest-change" else '') +
         '>Largest change in original-report gap first</option>'
+        '<option value="largest-margin"' +
+        (' selected' if shared.get("gap_order") == "largest-margin" else '') +
+        '>Largest threshold crossing margin first</option>'
         '</select></label><button type="submit">Prioritize evidence</button>'
         '</fieldset></form>')
     return (
@@ -1369,6 +1380,14 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         link("presence-all-compare-csv", "Download reporter matrix CSV") + " · " +
         link("presence-all-compare-map", "Map matching original reports") + " · " +
         link("presence-all-compare-geojson", "Download matching original Points GeoJSON") +
+        " · " + link("presence-all-compare-witness-geojson",
+                    "Download nearest original reporter witness lines GeoJSON") +
+        " · " + link("presence-all-compare-witness-csv",
+                     "Download analyst nearest-pair witnesses WKT CSV") +
+        " · " + witness_link("earlier", "presence-all-compare-witness-geojson",
+                             "Earlier analytical witnesses GIS") +
+        " · " + witness_link("later", "presence-all-compare-witness-geojson",
+                             "Later analytical witnesses GIS") +
         '</p><nav aria-label="Original evidence transition filters">' +
         transition_link(None, "All evidence") + " · " +
         transition_link("reporters-changed", "Reporters changed") + " · " +
@@ -1385,6 +1404,7 @@ def _source_directory_pair_matrix_html(doc: dict, args: dict[str, str]) -> str:
         '<th rowspan="2">Evidence transition</th>'
         '<th rowspan="2">Gap trend</th>'
         '<th rowspan="2">Crossing direction</th>'
+        '<th rowspan="2">Crossing margin (km)</th>'
         '<th colspan="5">Earlier</th><th colspan="5">Later</th></tr>'
         '<tr><th>Status</th><th>Source A assertions</th>'
         '<th>Source B assertions</th><th>Reporter separation (min-max km)</th>'
@@ -1422,19 +1442,21 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
         args = {k: v for k, v in args.items() if k != "gap_crossing_km"}
     if args.get("gap_crossing_direction") == "":
         args = {k: v for k, v in args.items() if k != "gap_crossing_direction"}
+    if args.get("min_crossing_margin_km") == "":
+        args = {k: v for k, v in args.items() if k != "min_crossing_margin_km"}
     if args.get("directory") != "1" or args.get("format", "table") not in (
-            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-map", "presence-table", "geojson", "map"):
+            "table", "json", "csv", "assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv", "presence-map", "presence-table", "geojson", "map"):
         raise ValueError("invalid source directory format")
     if args.get("axis") == "knowledge":
         _require(args, {"directory", "axis", "at", "from_known_at", "to_known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "gap_order", "gap_window", "focus_entity"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "min_crossing_margin_km", "gap_order", "gap_window", "focus_entity", "witness_period"})
         cutoffs = ((args["at"], args["from_known_at"]),
                    (args["at"], args["to_known_at"]))
     elif args.get("axis") == "world":
         _require(args, {"directory", "axis", "from_at", "to_at", "known_at"},
                  {"format", "source", "change", "rank", "source_prefix", "entity", "presence",
-                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "gap_order", "gap_window", "focus_entity"})
+                  "assertion", "evidence", "longitude", "latitude", "bbox", "source_exact", "compare_a", "compare_b", "transition", "gap_trend", "min_gap_km", "min_gap_change_km", "gap_crossing_km", "gap_crossing_direction", "min_crossing_margin_km", "gap_order", "gap_window", "focus_entity", "witness_period"})
         cutoffs = ((args["from_at"], args["known_at"]),
                    (args["to_at"], args["known_at"]))
     else:
@@ -1445,7 +1467,7 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
                 args.get("format") not in
                     ("presence-all-map", "presence-all-geojson",
                      "presence-all-csv", "presence-all-gpkg",
-                     "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson") or
+                     "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
                 any(k in args for k in
                     ("entity", "source", "source_exact", "source_prefix")) or
                 args["compare_a"] == args["compare_b"]):
@@ -1456,12 +1478,12 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
                     ord(ch) < 32 or ord(ch) == 127 for ch in value):
                 raise ValueError("invalid compared original reporter")
     if args.get("format") in ("presence-all-compare-json",
-                                 "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson") and not comparing:
+                                 "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") and not comparing:
         raise ValueError("reporter matrix requires two different sources")
     if "transition" in args and (
             args.get("format") not in
                 ("presence-all-compare-json", "presence-all-compare-table",
-                 "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson") or
+                 "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
             args["transition"] not in
                 ("reporters-changed", "evidence-changed", "unchanged")):
         raise ValueError("invalid original reporter transition")
@@ -1469,13 +1491,13 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             args.get("format") not in
                 ("presence-all-compare-json", "presence-all-compare-table",
                  "presence-all-compare-csv", "presence-all-compare-map",
-                 "presence-all-compare-geojson") or
+                 "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
             args["gap_trend"] not in
                 ("widening", "narrowing", "steady", "unknown")):
         raise ValueError("invalid original reporter gap trend")
     formats = ("presence-all-compare-json", "presence-all-compare-table",
                "presence-all-compare-csv", "presence-all-compare-map",
-               "presence-all-compare-geojson")
+               "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv")
     if "min_gap_km" in args:
         value = args["min_gap_km"]
         if (args.get("format") not in formats or
@@ -1499,10 +1521,19 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             args.get("format") not in formats or
             args["gap_crossing_direction"] not in ("above", "below")):
         raise ValueError("invalid original reporter crossing direction")
+    if "min_crossing_margin_km" in args:
+        value = args["min_crossing_margin_km"]
+        if ("gap_crossing_km" not in args or
+                args.get("format") not in formats or
+                not re.fullmatch(r"(?:0|[1-9][0-9]*)(?:[.][0-9]{1,3})?", value) or
+                float(value) > 20015):
+            raise ValueError("invalid minimum crossing margin")
     if "gap_order" in args and (
             args.get("format") not in formats or
-            args["gap_order"] not in ("largest", "largest-change")):
+            args["gap_order"] not in ("largest", "largest-change", "largest-margin")):
         raise ValueError("invalid original reporter gap order")
+    if args.get("gap_order") == "largest-margin" and "gap_crossing_km" not in args:
+        raise ValueError("crossing margin ranking requires a threshold")
     if "gap_window" in args and (
             args.get("format") not in formats or
             "min_gap_km" not in args or
@@ -1511,21 +1542,27 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
     if "focus_entity" in args:
         focus = args["focus_entity"]
         if (not comparing or args.get("format") not in
-                ("presence-all-compare-map", "presence-all-compare-geojson") or
+                ("presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
                 not 0 < len(focus) <= 200 or
                 any(ord(ch) < 32 or ord(ch) == 127 for ch in focus)):
             raise ValueError("exact entity focus requires two reporter map export")
+    if "witness_period" in args and (
+            args.get("format") not in
+                ("presence-all-compare-witness-geojson",
+                 "presence-all-compare-witness-csv") or
+            args["witness_period"] not in ("earlier", "later")):
+        raise ValueError("invalid analytical witness cutoff")
     if "source_exact" in args:
         value = args["source_exact"]
         if (args.get("format") not in ("presence-all-gpkg", "presence-all-geojson",
-                                       "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson") or
+                                       "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") or
                 "entity" in args or "source" in args or
                 "source_prefix" in args or
                 not 0 < len(value) <= 200 or
                 any(ord(ch) < 32 or ord(ch) == 127 for ch in value)):
             raise ValueError("exact reporter requires a global original Point export")
     if "bbox" in args:
-        if args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson"):
+        if args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv"):
             raise ValueError("bbox is only supported for global Point exports")
         from .source_pair_changes import _valid_presence_bbox
         _valid_presence_bbox(_bbox(args["bbox"]))
@@ -1551,10 +1588,10 @@ def _source_directory_query(world: WorldMini, args: dict[str, str]) -> dict:
             raise ValueError("invalid original Point coordinates")
     if "presence" in args and (
             args["presence"] not in ("earlier", "later", "both") or
-            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-map", "presence-table") or
-            ("entity" not in args and args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson"))):
+            args.get("format") not in ("map", "geojson", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv", "presence-map", "presence-table") or
+            ("entity" not in args and args.get("format") not in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv"))):
         raise ValueError("original presence requires an exact entity export")
-    if (args.get("format") in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson") and
+    if (args.get("format") in ("presence-all-gpkg", "presence-all-geojson", "presence-all-csv", "presence-all-map", "presence-all-compare-json", "presence-all-compare-table", "presence-all-compare-csv", "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv") and
             ("entity" in args or "source" in args)):
         raise ValueError("global source export cannot have entity/source focus")
     if args.get("format") in ("assertions-csv", "presence-csv", "presence-json", "presence-geojson", "presence-kml", "presence-kmz", "presence-gpx", "presence-gpkg", "presence-map", "presence-table") and (
@@ -2618,7 +2655,7 @@ def create_server(state: str | Path, port: int = 0, *,
                             return
                         if output_format in ("presence-all-compare-json",
                                              "presence-all-compare-table", "presence-all-compare-csv",
-                                             "presence-all-compare-map", "presence-all-compare-geojson"):
+                                             "presence-all-compare-map", "presence-all-compare-geojson", "presence-all-compare-witness-geojson", "presence-all-compare-witness-csv"):
                             from .source_pair_changes import source_directory_global_pair_matrix
                             matrix = source_directory_global_pair_matrix(
                                 world, document, args.get("presence"),
@@ -2632,21 +2669,52 @@ def create_server(state: str | Path, port: int = 0, *,
                                 "min_gap_change_km" in args else None,
                                 float(args["gap_crossing_km"]) if
                                 "gap_crossing_km" in args else None,
-                                args.get("gap_crossing_direction"))
+                                args.get("gap_crossing_direction"),
+                                float(args["min_crossing_margin_km"]) if
+                                "min_crossing_margin_km" in args else None)
                             if output_format == "presence-all-compare-json":
                                 return self._reply(200, matrix)
                             if output_format in ("presence-all-compare-map",
-                                                 "presence-all-compare-geojson"):
+                                                 "presence-all-compare-geojson", "presence-all-compare-witness-geojson"):
                                 from .source_pair_changes import (
-                                    source_directory_global_pair_transition_geojson)
-                                result = source_directory_global_pair_transition_geojson(
+                                    source_directory_global_pair_transition_geojson,
+                                    source_directory_global_pair_witness_geojson)
+                                exporter = (source_directory_global_pair_witness_geojson
+                                            if output_format == "presence-all-compare-witness-geojson"
+                                            else source_directory_global_pair_transition_geojson)
+                                result = exporter(
                                     world, document, matrix, args.get("presence"),
                                     _bbox(args["bbox"]) if "bbox" in args else None,
                                     output_format == "presence-all-compare-map",
-                                    args.get("focus_entity"))
+                                    args.get("focus_entity"),
+                                    **({"witness_period": args["witness_period"]}
+                                       if output_format == "presence-all-compare-witness-geojson"
+                                       and "witness_period" in args else {}))
                                 return (self._html(result) if output_format ==
                                         "presence-all-compare-map" else
                                         self._reply(200, result))
+                            if output_format == "presence-all-compare-witness-csv":
+                                from .source_pair_changes import (
+                                    source_directory_global_pair_witness_geojson,
+                                    source_directory_global_pair_witness_csv)
+                                witness = source_directory_global_pair_witness_geojson(
+                                    world, document, matrix, args.get("presence"),
+                                    _bbox(args["bbox"]) if "bbox" in args else None,
+                                    False, args.get("focus_entity"),
+                                    witness_period=args.get("witness_period"))
+                                body = source_directory_global_pair_witness_csv(witness).encode("utf-8")
+                                if len(body) > max_response_bytes:
+                                    return self._reply(413, {"error": "response_too_large"})
+                                self.send_response(200)
+                                self.send_header("Content-Type", "text/csv; charset=utf-8")
+                                self.send_header("Content-Disposition",
+                                                 'attachment; filename="monde-original-pair-witnesses.csv"')
+                                self.send_header("Content-Length", str(len(body)))
+                                self.send_header("Cache-Control", "no-store")
+                                self.send_header("X-Content-Type-Options", "nosniff")
+                                self.end_headers()
+                                self.wfile.write(body)
+                                return
                             if output_format == "presence-all-compare-csv":
                                 from .source_pair_changes import source_directory_global_pair_matrix_csv
                                 body = source_directory_global_pair_matrix_csv(matrix).encode("utf-8")

@@ -1009,7 +1009,8 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
                                         min_gap_km=None, gap_order=None,
                                         gap_window=None, min_gap_change_km=None,
                                         gap_crossing_km=None,
-                                        gap_crossing_direction=None):
+                                        gap_crossing_direction=None,
+                                        min_crossing_margin_km=None):
     """Compare presence of two original Point reporters per entity and cutoff.
 
     Shared reporting never implies agreement, accuracy or verified location.
@@ -1090,16 +1091,24 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
         raise ValueError("invalid reporter gap window")
     if (min_gap_km is None and gap_order is None and
             min_gap_change_km is None and gap_crossing_km is None and
-            gap_crossing_direction is None):
+            gap_crossing_direction is None and min_crossing_margin_km is None):
         return matrix
     if (gap_crossing_direction not in (None, "above", "below") or
             (gap_crossing_direction is not None and gap_crossing_km is None)):
         raise ValueError("invalid reporter gap crossing direction")
+    if gap_order == "largest-margin" and gap_crossing_km is None:
+        raise ValueError("crossing margin ranking requires a threshold")
     if gap_crossing_km is not None and (
             type(gap_crossing_km) not in (int, float) or
             not isfinite(gap_crossing_km) or
             not 0 <= gap_crossing_km <= 20015):
         raise ValueError("invalid reporter gap crossing threshold")
+    if min_crossing_margin_km is not None and (
+            gap_crossing_km is None or
+            type(min_crossing_margin_km) not in (int, float) or
+            not isfinite(min_crossing_margin_km) or
+            not 0 <= min_crossing_margin_km <= 20015):
+        raise ValueError("invalid minimum crossing margin")
     if min_gap_change_km is not None and (
             type(min_gap_change_km) not in (int, float) or
             not isfinite(min_gap_change_km) or
@@ -1110,7 +1119,7 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
             not isinstance(min_gap_km, (int, float)) or
             not isfinite(min_gap_km) or not 0 <= min_gap_km <= 20015):
         raise ValueError("invalid reporter gap threshold")
-    if gap_order not in (None, "largest", "largest-change"):
+    if gap_order not in (None, "largest", "largest-change", "largest-margin"):
         raise ValueError("invalid reporter gap order")
     def gap(row):
         values = [row[p]["separation_km"]["nearest_km"]
@@ -1131,6 +1140,13 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
         if new <= gap_crossing_km < old:
             return "CROSSED_BELOW"
         return None
+    def crossing_margin(row):
+        direction = crossing(row)
+        if direction is None:
+            return None
+        later = row["later"]["separation_km"]["nearest_km"]
+        return (later - gap_crossing_km if direction == "CROSSED_ABOVE"
+                else gap_crossing_km - later)
     before = len(matrix["entities"])
     rows = [
         r for r in matrix["entities"]
@@ -1144,11 +1160,19 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
              (gap_crossing_direction is None or
               crossing(r) == {"above": "CROSSED_ABOVE",
                               "below": "CROSSED_BELOW"}[gap_crossing_direction])))
+        and (min_crossing_margin_km is None or
+             (crossing_margin(r) is not None and
+              crossing_margin(r) >= min_crossing_margin_km))
     ]
     if gap_crossing_km is not None:
-        rows = [{**r, "reporter_gap_crossing": crossing(r)} for r in rows]
+        rows = [{**r, "reporter_gap_crossing": crossing(r),
+                 "reporter_gap_crossing_margin_km": crossing_margin(r)}
+                for r in rows]
     if gap_order == "largest":
         rows.sort(key=lambda r: (gap(r) is None, -(gap(r) or 0), r["entity"]))
+    elif gap_order == "largest-margin":
+        # Prioritize the crossed-side overshoot at the later cutoff.
+        rows.sort(key=lambda r: (-crossing_margin(r), r["entity"]))
     elif gap_order == "largest-change":
         # Compare only original reports jointly observed at BOTH cutoffs.
         # Missing comparisons are UNKNOWN and sort last, never as zero change.
@@ -1173,6 +1197,8 @@ def source_directory_global_pair_matrix(world, directory, presence=None,
                    if gap_crossing_km is not None else {}),
                 **({"crossing_direction": gap_crossing_direction}
                    if gap_crossing_direction is not None else {}),
+                **({"minimum_crossing_margin_km": min_crossing_margin_km}
+                   if min_crossing_margin_km is not None else {}),
                 "order": gap_order or "entity",
                 "window": gap_window or "either",
                 "entities_before_gap_filter": before,
@@ -1281,6 +1307,9 @@ def source_directory_global_pair_transition_geojson(
             **({"monde_reporter_gap_crossing":
                 categories[props["entity"]]["reporter_gap_crossing"]}
                if "reporter_gap_crossing" in categories[props["entity"]] else {}),
+            **({"monde_reporter_gap_crossing_margin_km":
+                categories[props["entity"]]["reporter_gap_crossing_margin_km"]}
+               if "reporter_gap_crossing_margin_km" in categories[props["entity"]] else {}),
             **({"monde_nearest_original_pair_periods": marked}
                if marked else {})}}
 
@@ -1319,6 +1348,137 @@ def source_directory_global_pair_transition_geojson(
             display["bbox"] = _source_display_bbox(geojson["features"])
     return geojson
 
+def source_directory_global_pair_witness_geojson(
+        world, directory, matrix, presence=None, bbox=None, for_map=False,
+        focus_entity=None, witness_period=None):
+    """Export original Points plus explicitly analytical nearest-pair segments.
+
+    Segments are *not* source observations, verified routes, movement, or
+    geodesic tracks. Each is derived from the actual nearest original
+    assertions and retained only for jointly reported entities/periods.
+    """
+    if for_map:
+        raise ValueError("analytical lines are only available as GIS export")
+    if witness_period not in (None, "earlier", "later"):
+        raise ValueError("invalid analytical witness cutoff")
+    output = source_directory_global_pair_transition_geojson(
+        world, directory, matrix, presence, bbox, False, focus_entity)
+    analytical = []
+    for row in matrix["entities"]:
+        if focus_entity is not None and row["entity"] != focus_entity:
+            continue
+        for period in ("earlier", "later"):
+            # "presence" classifies original *assertions* as earlier-only,
+            # later-only or both. The distinct witness_period option selects
+            # an analytical cutoff without changing original observations.
+            if witness_period is not None and period != witness_period:
+                continue
+            nearest = row[period]["nearest_original_pair"]
+            if nearest is None:
+                continue
+            aa, bb = nearest["source_a"], nearest["source_b"]
+            a, b = aa["coordinates"], bb["coordinates"]
+            if abs(b[0] - a[0]) <= 180:
+                geometry = {"type": "LineString", "coordinates": [a, b]}
+            else:
+                # Schematic dateline split, never a claim of a real path.
+                crossing = 180 if b[0] < a[0] else -180
+                unwrapped_b = b[0] + (360 if crossing == 180 else -360)
+                fraction = (crossing - a[0]) / (unwrapped_b - a[0])
+                latitude = a[1] + (b[1] - a[1]) * fraction
+                geometry = {
+                    "type": "MultiLineString",
+                    "coordinates": [[a, [crossing, latitude]],
+                                    [[-crossing, latitude], b]]}
+            cutoff = matrix["cutoffs"][period]
+            analytical.append({
+                "type": "Feature", "geometry": geometry,
+                "properties": {
+                    "entity": row["entity"],
+                    "monde_geometry_role": "ANALYTICAL_REPORTER_GAP_WITNESS",
+                    "monde_original_observation": False,
+                    "monde_not_a_route_or_movement": True,
+                    "period": period,
+                    "world_at": cutoff["world_at"],
+                    "knowledge_at": cutoff["knowledge_at"],
+                    "distance_km": nearest["distance_km"],
+                    # Change compares two reported *separations*, not the
+                    # distance travelled by an entity or a reporter.
+                    "reporter_gap_change_nearest_km": (
+                        row["separation_change_km"]["nearest_km"]
+                        if row.get("separation_change_km") is not None else None),
+                    "reporter_gap_trend": row.get("reporter_gap_trend", "UNKNOWN"),
+                    "reporting_transition": row.get("reporting_transition", "UNKNOWN"),
+                    "source_a": matrix["source_a"],
+                    "source_b": matrix["source_b"],
+                    "source_a_assertion_id": aa["assertion_id"],
+                    "source_b_assertion_id": bb["assertion_id"],
+                    "source_a_evidence_id": aa["evidence_id"],
+                    "source_b_evidence_id": bb["evidence_id"],
+                    **({"reporter_gap_crossing": row["reporter_gap_crossing"],
+                        "reporter_gap_crossing_margin_km":
+                            row["reporter_gap_crossing_margin_km"]}
+                       if "reporter_gap_crossing" in row else {}),
+                }})
+    output["features"].extend(analytical)
+    output["monde_source_coverage"]["analytical_witness_count"] = len(analytical)
+    if witness_period is not None:
+        output["monde_source_coverage"]["analytical_witness_period"] = witness_period
+    output["monde_source_coverage"]["analytical_witness_semantics"] = (
+        "Schematic straight connector between original nearest source reports "
+        "at each cutoff; NOT a source-observed geometry, route, movement, "
+        "position consensus, or geodesic path. Original report counts exclude "
+        "these analytical features.")
+    return output
+
+
+
+def source_directory_global_pair_witness_csv(geojson):
+    """GIS-ready analytical nearest-pair witnesses, never source observations."""
+    def safe(value):
+        text = str(value)
+        return "'" + text if text.startswith(("=", "+", "-", "@", "\t", "\r", "\n")) else text
+
+    def wkt(geometry):
+        def segment(points):
+            return ", ".join(f"{pt[0]} {pt[1]}" for pt in points)
+        kind = geometry["type"]
+        if kind == "LineString":
+            return "LINESTRING (" + segment(geometry["coordinates"]) + ")"
+        if kind == "MultiLineString":
+            return "MULTILINESTRING (" + ", ".join(
+                "(" + segment(part) + ")" for part in geometry["coordinates"]) + ")"
+        raise ValueError("unexpected analytical witness geometry")
+
+    stream = io.StringIO(newline="")
+    writer = csv.writer(stream, lineterminator="\r\n")
+    writer.writerow(("entity", "period", "world_at", "knowledge_at",
+                     "source_a", "source_b", "source_a_assertion_id",
+                     "source_a_evidence_id", "source_b_assertion_id",
+                     "source_b_evidence_id", "distance_km",
+                     "reporter_gap_change_nearest_km", "reporter_gap_trend",
+                     "reporting_transition", "reporter_gap_crossing",
+                     "reporter_gap_crossing_margin_km", "geometry_wkt",
+                     "original_observation", "geometry_role"))
+    for feature in geojson["features"]:
+        p = feature["properties"]
+        if p.get("monde_geometry_role") != "ANALYTICAL_REPORTER_GAP_WITNESS":
+            continue
+        writer.writerow((safe(p["entity"]), p["period"], p["world_at"],
+                         p["knowledge_at"], safe(p["source_a"]), safe(p["source_b"]),
+                         safe(p["source_a_assertion_id"]), safe(p["source_a_evidence_id"]),
+                         safe(p["source_b_assertion_id"]), safe(p["source_b_evidence_id"]),
+                         p["distance_km"],
+                         (p.get("reporter_gap_change_nearest_km")
+                          if p.get("reporter_gap_change_nearest_km") is not None else ""),
+                         p.get("reporter_gap_trend", "UNKNOWN"),
+                         p.get("reporting_transition", "UNKNOWN"),
+                         p.get("reporter_gap_crossing", ""),
+                         p.get("reporter_gap_crossing_margin_km", ""),
+                         wkt(feature["geometry"]), "false",
+                         "ANALYTICAL_REPORTER_GAP_WITNESS"))
+    return stream.getvalue()
+
 def source_directory_global_pair_matrix_csv(matrix):
     """Export exact reporter-presence matrix rows without inventing agreement.
 
@@ -1342,7 +1502,8 @@ def source_directory_global_pair_matrix_csv(matrix):
     writer = csv.writer(output, lineterminator="\r\n")
     writer.writerow(("entity", "period", "reporting_status",
                      "reporting_transition", "reporter_gap_trend",
-                     "reporter_gap_crossing", "source_a", "source_b", "source_a_count", "source_b_count",
+                     "reporter_gap_crossing", "reporter_gap_crossing_margin_km",
+                     "source_a", "source_b", "source_a_count", "source_b_count",
                      "source_a_assertion_ids_json", "source_a_evidence_ids_json",
                      "source_a_coordinates_json", "source_b_assertion_ids_json",
                      "source_b_evidence_ids_json", "source_b_coordinates_json",
@@ -1358,6 +1519,7 @@ def source_directory_global_pair_matrix_csv(matrix):
                              item.get("reporting_transition", ""),
                              item.get("reporter_gap_trend", "UNKNOWN"),
                              item.get("reporter_gap_crossing", ""),
+                             item.get("reporter_gap_crossing_margin_km", ""),
                              safe(matrix["source_a"]), safe(matrix["source_b"]),
                              a["count"], b["count"], *original_columns(a),
                              *original_columns(b),

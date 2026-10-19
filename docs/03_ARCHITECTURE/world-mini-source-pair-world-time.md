@@ -1087,3 +1087,43 @@ read-only and remains unchanged.
 ### Direction des franchissements d'écart entre reporters (WORK-0141)
 
 Pour `gap_crossing_km=N`, le paramètre optionnel `gap_crossing_direction=above|below` sélectionne respectivement `CROSSED_ABOVE` ou `CROSSED_BELOW` sur les observations Point originales **comparables aux deux instants**. Sans direction, les deux catégories sont conservées. `gap_crossing_direction` sans seuil est rejeté. Le tableau local, la réponse JSON, le CSV (`reporter_gap_crossing`), le GeoJSON et la carte conservent la même sélection et les identifiants de preuves originaux. Aucune direction n'est inférée lorsque des observations manquent ; aucun mouvement physique n'est prétendu.
+
+
+## Significant original threshold crossings (WORK-0142)
+
+Add `min_crossing_margin_km=M` (0–20015 km, at most three decimals) with
+`gap_crossing_km=N` to the existing two-reporter evidence matrix. A crossing
+qualifies only when the **later original nearest Point separation** is at least
+M kilometres beyond threshold N on the crossed side. Both temporal axes and
+crossing directions are supported. M=0 retains prior crossings, blank browser
+entry disables this extra filter. UNKNOWN paired evidence never becomes zero.
+The same filtered original entities and evidence identities appear in JSON,
+CSV, accessible HTML, original GeoJSON and the read-only offline map; JSON
+`gap_selection.minimum_crossing_margin_km` records the chosen margin.
+No inferred movement, location consensus, mutation, service or dependency.
+
+### Ranking original reporter gap crossings by later threshold margin (WORK-0142)
+
+After selecting `gap_crossing_km=N`, `gap_order=largest-margin` sorts qualifying entities by the distance that their later original nearest Point-report gap extends beyond the crossed side of threshold N, descending; equal margins use entity ID. This differs from `largest-change`, which sorts the total earlier/later gap variation. Without a crossing threshold the new ordering is rejected. Native HTML, canonical JSON, CSV, source-attributed GeoJSON and local map retain the exact same evidence selection. Neither metric asserts physical movement or ground truth.
+
+
+For threshold-crossing selections, each comparable entity now exposes `reporter_gap_crossing_margin_km` in JSON, CSV and the native evidence table. Filtered original GeoJSON carries the same quantity as `monde_reporter_gap_crossing_margin_km`. This nonnegative distance measures how far the *later* nearest original reporter gap lies beyond the crossed side of the chosen threshold—not total earlier/later change, verified truth or physical movement. Without a crossing threshold this quantity is omitted; both world- and knowledge-time axes use identical semantics.
+
+
+### Analytical nearest original-report witness lines (WORK-0142)
+
+The existing two-reporter matrix now offers `format=presence-all-compare-witness-geojson` as an explicit opt-in GIS export. It returns the **unchanged original Point features**, plus one clearly marked schematic LineString (or antimeridian-split MultiLineString) for each entity/cutoff with jointly reported Points. Every analytical line cites the **exact nearest original assertion and evidence ID of each reporter**, associated bitemporal cutoff, computed report separation and any selected crossing margin. Analytical features carry `monde_geometry_role=ANALYTICAL_REPORTER_GAP_WITNESS`, `monde_original_observation=false`, and are **not** physical tracks, observed paths, a location consensus, or additional original reports. The existing original-only GeoJSON, maps, JSON, CSV and saved world remain unchanged. Filtering and focus reuse the existing source-pair selection.
+
+
+### WKT witness CSV for offline GIS / audit (WORK-0142)
+
+The local `/source-pair?format=presence-all-compare-witness-csv` export reuses the exact selected analytical nearest-pair witness GeoJSON. One row per qualifying entity/cutoff includes WKT LINESTRING or seam-split MULTILINESTRING, original source/assertion/evidence identifiers, temporal cutoffs, measured distance and optional threshold margin. `original_observation=false` explicitly forbids interpreting schematic connectors as source observations, roads, physical motion or ground truth. The export is read-only and guards CSV formula prefixes. On these two
+witness-only formats, the optional strict query parameter
+`witness_period=earlier|later` selects only analytical nearest-pair segments
+for that cutoff; original Point evidence remains fully present and the original
+report count is unchanged. This is intentionally distinct from
+`presence=earlier|later|both`, which classifies *individual original reports*
+by which cutoff(s) contain them. The matrix page provides direct earlier/later
+GIS links. Other formats reject `witness_period`.
+
+Analytical witness features and WKT CSV rows additionally expose the **nearest original-reporter separation change in kilometres** (`reporter_gap_change_nearest_km`), the matrix's `reporter_gap_trend` and `reporting_transition`. Missing comparisons remain JSON `null` / empty CSV cells, never a fabricated zero. These fields classify two original sources' measured gaps across cutoffs; they **do not** establish movement, position truth or a source-observed route. Original Point features and saved snapshots are unchanged.
