@@ -867,7 +867,7 @@ def _valid_presence_bbox(bbox):
     return west, south, east, north
 
 
-def source_directory_all_presence_gpkg(world, directory, presence=None, bbox=None):
+def source_directory_all_presence_geojson(world, directory, presence=None, bbox=None):
     """One offline GIS layer of original source Points across *all* entities.
 
     Export only the original sources selected by the existing source directory
@@ -925,7 +925,7 @@ def source_directory_all_presence_gpkg(world, directory, presence=None, bbox=Non
             "geometry": original["geometry"], "properties": props,
         })
     coverage = {
-        "schema": "MONDE_ORIGINAL_POINT_PRESENCE_GPKG_ALL_V1",
+        "schema": "MONDE_ORIGINAL_POINT_PRESENCE_GEOJSON_ALL_V1",
         "axis": directory["axis"], "cutoffs": directory["cutoffs"],
         "selected_sources": len(sources),
         "original_report_count": len(features),
@@ -938,10 +938,16 @@ def source_directory_all_presence_gpkg(world, directory, presence=None, bbox=Non
             "Original source Point presence across two cutoffs; not "
             "inferred truth, movement or a consensus position"),
     }
-    return _presence_geojson_to_gpkg({
-        "type": "FeatureCollection", "features": features,
-        "monde_source_coverage": coverage,
-    })
+    return {"type": "FeatureCollection", "features": features,
+            "monde_source_coverage": coverage}
+
+
+def source_directory_all_presence_gpkg(world, directory, presence=None, bbox=None):
+    """Convert the same evidence selection to the original offline GIS format."""
+    result = source_directory_all_presence_geojson(world, directory, presence, bbox)
+    result["monde_source_coverage"]["schema"] = (
+        "MONDE_ORIGINAL_POINT_PRESENCE_GPKG_ALL_V1")
+    return _presence_geojson_to_gpkg(result)
 
 
 def _presence_geojson_to_gpkg(geojson):

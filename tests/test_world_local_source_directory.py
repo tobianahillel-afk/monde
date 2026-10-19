@@ -2774,5 +2774,87 @@ class SourceDirectoryTests(unittest.TestCase):
             other.server_close()
         self.assertEqual(saved.read_bytes(), initial)
 
+
+    def test_global_geojson_matches_same_source_evidence_as_geopackage(self):
+        import sqlite3
+        from tempfile import NamedTemporaryFile
+        query = self.knowledge()
+        status, headers, raw = self.get({**query, "format": "presence-all-geojson"})
+        self.assertEqual(status, 200)
+        self.assertIn("application/json", headers["Content-Type"])
+        result = json.loads(raw)
+        self.assertEqual(result["monde_source_coverage"]["schema"],
+                         "MONDE_ORIGINAL_POINT_PRESENCE_GEOJSON_ALL_V1")
+        self.assertEqual(result["monde_source_coverage"]["original_report_count"],
+                         len(result["features"]))
+        self.assertEqual(len({f["id"] for f in result["features"]}),
+                         len(result["features"]))
+        _, _, raw_gpkg = self.get({**query, "format": "presence-all-gpkg"})
+        with NamedTemporaryFile(suffix=".gpkg") as file:
+            Path(file.name).write_bytes(raw_gpkg)
+            with sqlite3.connect(file.name) as db:
+                self.assertEqual(
+                    {fid: json.loads(props) for fid, props in db.execute(
+                        "SELECT feature_id,original_properties_json FROM original_points")},
+                    {f["id"]: f["properties"] for f in result["features"]})
+        html = self.get({**query, "format": "table"})[2]
+        self.assertIn(b"Download all selected original Points GeoJSON", html)
+        self.assertIn(b"Download area GeoJSON", html)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_global_geojson_preserves_source_presence_filters_and_rejects_scope(self):
+        query = self.knowledge()
+        for presence, expected in (("earlier", "EARLIER_ONLY"),
+                                   ("later", "LATER_ONLY"), ("both", "BOTH_CUTOFFS")):
+            status, _, raw = self.get({**query, "format": "presence-all-geojson",
+                                       "source_prefix": "survey-a", "presence": presence})
+            self.assertEqual(status, 200)
+            result = json.loads(raw)
+            self.assertTrue(all(f["properties"]["source_id"].startswith("survey-a") and
+                                f["properties"]["monde_visibility_transition"] == expected
+                                for f in result["features"]))
+        for bad in ({"entity": "site-1"}, {"source": "survey-a"},
+                    {"presence": "invalid"}, {"bbox": "0,0,0,1"},
+                    {"bbox": "nan,0,1,1"}, {"unknown": "x"}):
+            self.assertEqual(self.get({**query, "format": "presence-all-geojson",
+                                       **bad})[0], 400)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_global_geojson_wrapped_bbox_matches_geopackage_point_identities(self):
+        import sqlite3
+        from tempfile import NamedTemporaryFile
+        world = sample(dateline=True)
+        saved = Path(self.tmp.name) / "dateline-geojson.json"
+        world.save(saved)
+        initial = saved.read_bytes()
+        server = create_server(saved)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            for bbox in ("179,-1,-179,1", "40,40,41,41"):
+                params = {"directory": "1", "axis": "world", "from_at": EARLY,
+                          "to_at": LATE, "known_at": KNOWN, "bbox": bbox}
+                status, _, raw = self.get({**params, "format": "presence-all-geojson"},
+                                          server)
+                self.assertEqual(status, 200)
+                result = json.loads(raw)
+                self.assertEqual(result["monde_source_coverage"]["bbox_filter"],
+                                 [float(x) for x in bbox.split(",")])
+                status, _, gpkg = self.get({**params, "format": "presence-all-gpkg"},
+                                            server)
+                self.assertEqual(status, 200)
+                with NamedTemporaryFile(suffix=".gpkg") as file:
+                    Path(file.name).write_bytes(gpkg)
+                    with sqlite3.connect(file.name) as db:
+                        self.assertEqual(
+                            {row[0] for row in db.execute(
+                                "SELECT feature_id FROM original_points")},
+                            {feature["id"] for feature in result["features"]})
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+        self.assertEqual(saved.read_bytes(), initial)
+
 if __name__ == "__main__":
     unittest.main()

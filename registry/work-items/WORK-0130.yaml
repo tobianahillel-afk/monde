@@ -1,0 +1,45 @@
+id: WORK-0130
+title: "Global bitemporal source-reported Point GeoJSON download"
+status: IN_PROGRESS
+phase: PHASE-0
+lot: LOT-2
+sublot: SUBLOT-2.1
+owner: "MONDE Mini"
+created_at: "2026-10-19"
+updated_at: "2026-10-19"
+purpose: |
+  Provide interoperable global source-observation GeoJSON and area downloads
+  using the already working GeoPackage evidence selector.
+scope:
+  in: ["Original multi-entity GeoJSON", "Temporal and reporter filters",
+       "WGS84 bounding box including antimeridian", "Read-only HTTP and browser links"]
+  out: ["Ground truth inference", "Data mutation", "New dependencies"]
+acceptance_criteria:
+  - {id: AC-1, description: "GeoJSON retains identical source Point identities and properties as global GeoPackage.", status: IN_PROGRESS}
+  - {id: AC-2, description: "Reporter, presence and wrapped viewport filters are consistent.", status: IN_PROGRESS}
+  - {id: AC-3, description: "Local HTTP and browser expose global and regional downloads safely.", status: IN_PROGRESS}
+  - {id: AC-4, description: "Real persisted HTTP tests prove JSON-GIS parity and read-only behavior.", status: IN_PROGRESS}
+depends_on: [WORK-0129]
+requirements: []
+read_before: [AGENTS.md, src/monde/source_pair_changes.py, src/monde/local_api.py]
+reuses: [monde.source_pair_changes.source_directory_all_presence_gpkg, monde.local_api.create_server]
+implementation_plan:
+  tasks:
+    - {id: T1, description: "Share original report selection between global GeoJSON and GeoPackage.", depends_on: [], expected_files: [src/monde/source_pair_changes.py], status: IN_PROGRESS}
+    - {id: T2, description: "Expose read-only export and browser controls.", depends_on: [T1], expected_files: [src/monde/local_api.py], status: IN_PROGRESS}
+    - {id: T3, description: "Verify real HTTP, equality, filtering and snapshot immutability.", depends_on: [T2], expected_files: [tests/test_world_local_source_directory.py], status: IN_PROGRESS}
+  planned_runs: []
+review_plan:
+  artifact_class: WORLD_MODEL_EXPERIENCE
+  independence_level: L2_TARGET
+  required_hats: [EPISTEMIC, VERIFICATION_VALIDATION, SECURITY]
+  completed_reviews: []
+  open_findings: []
+required_tests:
+  integration: [tests/test_world_local_source_directory.py]
+  real_system: ["world-mini GitHub Actions"]
+validation:
+  executed: []
+  evidence: []
+  coverage: {line: null, branch: null}
+  known_gaps: ["Upstream WORK-0129 and prior product PRs are stacked, not merged into main."]
