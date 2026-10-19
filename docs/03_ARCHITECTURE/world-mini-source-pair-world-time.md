@@ -1050,3 +1050,17 @@ the analyst select this ordering without modifying saved evidence.
 Ranking reflects *changes in distance between original source reports*,
 not proven physical movement, agreement, accuracy or a source trust score.
 No new endpoint, package, data store, hosted dependency or model inference.
+
+## WORK-0140 — Filter material changes in original reporter Point gaps
+
+The existing local read-only two-reporter matrix accepts optional
+`min_gap_change_km=N` (decimal, 0–20015 km, up to three fractional digits).
+Only entities jointly reported at **both** bitemporal cutoffs with absolute
+nearest original reporter Point-separation change at least N are retained.
+Missing comparisons are **UNKNOWN**, never treated as zero (even for N=0).
+The existing `min_gap_km`, `gap_window`, `gap_trend`, transition and ranking
+filters remain composable, without changing stored WorldMini observations.
+The same selection powers JSON, CSV, the local HTML form, source GeoJSON and
+read-only offline maps, on either knowledge-time or world-validity axis.
+A blank browser field preserves previous unfiltered behavior. This measures
+changes in original reports, not physical motion, reliability, or truth.

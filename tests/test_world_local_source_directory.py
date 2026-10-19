@@ -4142,5 +4142,104 @@ class SourceDirectoryTests(unittest.TestCase):
                             for r in change["entities"]))
         self.assertEqual(self.saved.read_bytes(), self.snapshot)
 
+
+    def test_original_reporter_minimum_change_filter_http_across_formats(self):
+        """Only comparable original observations pass a magnitude threshold."""
+        for base in (self.knowledge(),
+                     {"directory": "1", "axis": "world",
+                      "from_at": EARLY, "to_at": LATE, "known_at": KNOWN}):
+            query = {**base, "compare_a": "survey-a",
+                     "compare_b": "survey-b"}
+            fmt = "presence-all-compare-json"
+            status, _, raw = self.get({**query, "format": fmt})
+            self.assertEqual(status, 200)
+            original = json.loads(raw)
+            comparable = [row for row in original["entities"]
+                          if row["separation_change_km"] is not None]
+            # 0 is an explicit filter: unknown pairs must not become zero gaps.
+            filtered_query = {**query, "min_gap_change_km": "0",
+                              "gap_order": "largest-change"}
+            status, _, raw = self.get({**filtered_query, "format": fmt})
+            self.assertEqual(status, 200)
+            result = json.loads(raw)
+            self.assertEqual({r["entity"] for r in result["entities"]},
+                             {r["entity"] for r in comparable})
+            self.assertEqual(result["gap_selection"]["minimum_abs_change_km"], 0)
+            self.assertEqual(result["total_entities"], len(comparable))
+            if comparable:
+                magnitudes = [abs(r["separation_change_km"]["nearest_km"])
+                              for r in comparable]
+                # A positive threshold must exclude all smaller original gaps.
+                threshold = "1.000"
+                status, _, raw = self.get({
+                    **filtered_query, "min_gap_change_km": threshold,
+                    "format": fmt})
+                self.assertEqual(status, 200)
+                selected = json.loads(raw)
+                expected = {r["entity"] for r in comparable
+                            if abs(r["separation_change_km"]["nearest_km"]) >= 1}
+                self.assertEqual({r["entity"] for r in selected["entities"]},
+                                 expected)
+                self.assertTrue(all(v >= 0 for v in magnitudes))
+            status, _, csv_body = self.get({
+                **filtered_query, "format": "presence-all-compare-csv"})
+            self.assertEqual(status, 200)
+            rows = list(csv.DictReader(io.StringIO(csv_body.decode("utf-8"))))
+            self.assertEqual({r["entity"] for r in rows}, 
+                             {r["entity"] for r in comparable})
+            status, _, geo_raw = self.get({
+                **filtered_query, "format": "presence-all-compare-geojson"})
+            self.assertEqual(status, 200)
+            geo = json.loads(geo_raw)
+            self.assertEqual({f["properties"]["entity"] for f in geo["features"]},
+                             {r["entity"] for r in comparable})
+            self.assertEqual(geo["monde_source_coverage"]
+                             ["reporter_matrix"]["gap_selection"]
+                             ["minimum_abs_change_km"], 0)
+            status, _, html = self.get({
+                **filtered_query, "format": "presence-all-compare-table"})
+            self.assertEqual(status, 200)
+            self.assertIn(b'name="min_gap_change_km"', html)
+            self.assertIn(b'Minimum absolute change between cutoffs', html)
+            self.assertEqual(self.get({
+                **filtered_query, "format": "presence-all-compare-map"})[0], 200)
+            # Browser empty field preserves the original unfiltered result.
+            _, _, empty_raw = self.get({**query, "min_gap_change_km": "",
+                                         "format": fmt})
+            self.assertEqual(json.loads(empty_raw), original)
+            self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_original_reporter_minimum_change_filter_rejects_bad_scope(self):
+        query = {**self.knowledge(), "compare_a": "survey-a",
+                 "compare_b": "survey-b"}
+        for invalid in ("-1", "NaN", "inf", "1e2", "1.0001", "20016",
+                        " 1", "01", "1,0", "false"):
+            status, _, body = self.get({
+                **query, "format": "presence-all-compare-json",
+                "min_gap_change_km": invalid})
+            self.assertEqual(status, 400, invalid)
+            self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        for unrelated in ("presence-all-map", "presence-all-geojson", "json"):
+            status, _, body = self.get({
+                **query, "format": unrelated, "min_gap_change_km": "1"})
+            self.assertEqual(status, 400)
+            self.assertEqual(json.loads(body), {"error": "invalid_query"})
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
+    def test_original_reporter_minimum_change_combines_existing_filters(self):
+        base = {**self.knowledge(), "compare_a": "survey-a",
+                "compare_b": "survey-b", "min_gap_km": "0",
+                "gap_window": "both", "gap_order": "largest-change"}
+        _, _, raw = self.get({**base, "format": "presence-all-compare-json"})
+        prior = json.loads(raw)
+        status, _, raw = self.get({**base, "min_gap_change_km": "0",
+                                  "format": "presence-all-compare-json"})
+        self.assertEqual(status, 200)
+        current = json.loads(raw)
+        self.assertEqual(prior["entities"], current["entities"])
+        self.assertEqual(current["gap_selection"]["window"], "both")
+        self.assertEqual(current["gap_selection"]["minimum_abs_change_km"], 0)
+        self.assertEqual(self.saved.read_bytes(), self.snapshot)
+
 if __name__ == "__main__":
     unittest.main()
